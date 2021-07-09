@@ -147,6 +147,8 @@ int nas_5g::send_registration_request()
   logger.info("Generating registration request");
 
   nas_5gs_msg             nas_msg;
+  nas_msg.hdr.extended_protocol_discriminator =
+      nas_5gs_hdr::extended_protocol_discriminator_opts::extended_protocol_discriminator_5gmm;
   registration_request_t& reg_req = nas_msg.set_registration_request();
 
   reg_req.registration_type_5gs.follow_on_request_bit =
@@ -155,11 +157,11 @@ int nas_5g::send_registration_request()
       registration_type_5gs_t::registration_type_type_::options::initial_registration;
   mobile_identity_5gs_t::suci_s& suci = reg_req.mobile_identity_5gs.set_suci();
   suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
-  mcc_to_bytes(0x0, suci.mcc.data());
-  uint8_t mnc_len;
-  mnc_to_bytes(0x0, suci.mnc.data(), &mnc_len);
-  suci.scheme_output.resize(15);
-  usim->get_imsi_vec(suci.scheme_output.data(), 15);
+  usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+  usim->get_home_mcc_bytes(suci.mnc.data(), suci.mnc.size());
+
+  suci.scheme_output.resize(5);
+  usim->get_home_msin_bcd(suci.scheme_output.data(), 5);
   logger.info("Requesting IMSI attach (IMSI=%s)", usim->get_imsi_str().c_str());
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {

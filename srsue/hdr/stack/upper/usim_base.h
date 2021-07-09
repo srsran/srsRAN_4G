@@ -70,6 +70,9 @@ public:
   std::string get_imei_str() final;
 
   bool get_imsi_vec(uint8_t* imsi_, uint32_t n) final;
+  bool get_home_mcc_bytes(uint8_t* mcc_, uint32_t n) final;
+  bool get_home_mnc_bytes(uint8_t* mnc_, uint32_t n) final;
+  bool get_home_msin_bcd(uint8_t* msin_, uint32_t n) final;
   bool get_imei_vec(uint8_t* imei_, uint32_t n) final;
   bool get_home_plmn_id(srsran::plmn_id_t* home_plmn_id) final;
 

@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/upper/usim_base.h"
+#include "srsran/common/bcd_helpers.h"
 #include "srsue/hdr/stack/upper/usim.h"
 
 #ifdef HAVE_PCSC
@@ -118,6 +119,88 @@ bool usim_base::get_home_plmn_id(srsran::plmn_id_t* home_plmn_id)
 
   logger.info("Read Home PLMN Id=%s", home_plmn_id->to_string().c_str());
 
+  return true;
+}
+
+bool usim_base::get_home_mcc_bytes(uint8_t* mcc_, uint32_t n)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return false;
+  }
+
+  if (NULL == mcc_ || n < 3) {
+    logger.error("Invalid parameters to get_home_mcc_bytes");
+    return false;
+  }
+
+  uint8_t imsi_vec[15];
+  get_imsi_vec(imsi_vec, 15);
+
+  std::string mcc_str = get_mcc_str(imsi_vec);
+  uint16_t    mcc_bcd = 0;
+
+  srsran::string_to_mcc(mcc_str, &mcc_bcd);
+  srsran::mcc_to_bytes(mcc_bcd, mcc_);
+
+  return true;
+}
+
+bool usim_base::get_home_mnc_bytes(uint8_t* mnc_, uint32_t n)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return false;
+  }
+
+  if (NULL == mnc_ || n < 3) {
+    logger.error("Invalid parameters to get_home_mcc_bytes");
+    return false;
+  }
+
+  uint8_t imsi_vec[15];
+  get_imsi_vec(imsi_vec, 15);
+
+  std::string mcc_str = get_mcc_str(imsi_vec);
+  std::string mnc_str = get_mnc_str(imsi_vec, mcc_str);
+
+  uint16_t mnc_bcd = 0;
+  uint8_t  len     = 0;
+
+  srsran::string_to_mnc(mnc_str, &mnc_bcd);
+  srsran::mnc_to_bytes(mnc_bcd, mnc_, &len);
+
+  if (len == 2) {
+    mnc_[2] = 0xf;
+  }
+
+  return true;
+}
+
+bool usim_base::get_home_msin_bcd(uint8_t* msin_, uint32_t n)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return false;
+  }
+
+  if (NULL == msin_ || n < 5) {
+    logger.error("Invalid parameters to get_home_mcc_bytes");
+    return false;
+  }
+
+  srsran::plmn_id_t tmp_plmn;
+  get_home_plmn_id(&tmp_plmn);
+
+  uint8_t imsi_vec[15];
+  get_imsi_vec(imsi_vec, 15);
+
+  int total_msin_len = (tmp_plmn.nof_mnc_digits + 3) / 2;
+  int j              = 0;
+  for (int i = tmp_plmn.nof_mnc_digits + 3; i < 15; i += 2) {
+    msin_[j] = (imsi_vec[i]) | (imsi_vec[i + 1] << 4);
+    j++;
+  }
   return true;
 }
 
