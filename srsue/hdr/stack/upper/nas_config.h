@@ -34,6 +34,8 @@ public:
   bool           force_imsi_attach;
   std::string    eia;
   std::string    eea;
+  std::string    ia5g;
+  std::string    ea5g;
   nas_sim_args_t sim;
 };
 

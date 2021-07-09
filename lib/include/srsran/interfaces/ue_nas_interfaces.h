@@ -39,6 +39,17 @@ public:
   virtual bool     connection_request_completed(bool outcome)                                            = 0;
 };
 
+class nas_5g_interface_rrc_nr
+{
+public:
+};
+
+class nas_5g_interface_procedures
+{
+public:
+  virtual int send_registration_request() = 0;
+};
+
 } // namespace srsue
 
 #endif // SRSRAN_UE_NAS_INTERFACES_H

@@ -19,6 +19,10 @@ add_executable(nas_test nas_test.cc)
 target_link_libraries(nas_test srsue_upper srsran_common srsran_phy rrc_asn1 srsran_asn1)
 add_test(nas_test nas_test)
 
+add_executable(nas_5g_test nas_5g_test.cc)
+target_link_libraries(nas_5g_test srsue_upper srsran_phy rrc_asn1)
+add_test(nas_5g_test nas_5g_test)
+
 add_executable(gw_test gw_test.cc)
 target_link_libraries(gw_test srsue_upper srsran_common srsran_phy)
 add_test(gw_test gw_test)

@@ -22,6 +22,7 @@
 #include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include "srsue/hdr/stack/upper/nas.h"
+#include "srsue/hdr/stack/upper/nas_5g.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
 
@@ -122,6 +123,26 @@ private:
   bool                            is_connected_flag = false;
 };
 
+class rrc_nr_dummy : public rrc_nr_interface_nas_5g
+{
+public:
+  rrc_nr_dummy() : last_sdu_len(0)
+  {
+    plmns[0].plmn_id.from_number(mcc, mnc);
+    plmns[0].tac = 0xffff;
+  }
+  void init(nas_5g* nas_5g_) { nas_5g_ptr = nas_5g_; }
+  void write_sdu(unique_byte_buffer_t sdu)
+  {
+    last_sdu_len = sdu->N_bytes;
+    // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
+  }
+
+private:
+  nas_5g*                         nas_5g_ptr;
+  uint32_t                        last_sdu_len;
+  nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
+};
 template <typename T>
 class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread
 {
@@ -132,7 +153,11 @@ public:
     nas = nas_;
     start(-1);
   }
-  bool switch_on() { nas->switch_on(); return true; }
+  bool switch_on()
+  {
+    nas->switch_on();
+    return true;
+  }
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
   bool has_active_radio_bearer(uint32_t eps_bearer_id) { return true; }
 
@@ -158,7 +183,7 @@ public:
     wait_thread_finish();
   }
   pdcp_interface_stack* pdcp    = nullptr;
-  T*           nas     = nullptr;
+  T*                    nas     = nullptr;
   std::atomic<bool>     running = {false};
 };
 
