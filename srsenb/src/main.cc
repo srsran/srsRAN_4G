@@ -30,6 +30,7 @@
 #include "srsran/common/config_file.h"
 #include "srsran/common/crash_handler.h"
 #include "srsran/common/signal_handler.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/srslog/event_trace.h"
 #include "srsran/srslog/srslog.h"
 

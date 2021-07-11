@@ -26,6 +26,7 @@
 
 #ifdef __cplusplus
 
+#include "srsran/common/buffer_pool.h"
 #include "srsran/common/crash_handler.h"
 #include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
@@ -148,6 +149,13 @@ inline void test_init(int argc, char** argv)
 
   // Start the log backend.
   srslog::init();
+}
+
+inline void copy_msg_to_buffer(unique_byte_buffer_t& pdu, const_byte_span msg)
+{
+  pdu = srsran::make_byte_buffer();
+  memcpy(pdu->msg, msg.data(), msg.size());
+  pdu->N_bytes = msg.size();
 }
 
 } // namespace srsran

@@ -147,8 +147,48 @@ public:
 
   void set_cell(const srsran_cell_t& c);
 
-  bool sr_enabled     = false;
-  int  sr_last_tx_tti = -1;
+  class sr_signal
+  {
+  public:
+    void reset()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      enabled     = false;
+      last_tx_tti = -1;
+    }
+    bool is_triggered()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return enabled;
+    }
+    void trigger()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      enabled     = true;
+      last_tx_tti = -1;
+    }
+    int get_last_tx_tti()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return last_tx_tti;
+    }
+    bool set_last_tx_tti(int last_tx_tti_)
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (enabled) {
+        enabled     = false;
+        last_tx_tti = last_tx_tti_;
+        return true;
+      }
+      return false;
+    }
+
+  private:
+    std::mutex mutex;
+    bool       enabled     = false;
+    int        last_tx_tti = -1;
+  };
+  sr_signal sr;
 
   srsran::radio_interface_phy* get_radio();
 
@@ -221,7 +261,11 @@ public:
     return rx_gain_offset;
   }
 
-  void neighbour_cells_reset(uint32_t cc_idx) { avg_rsrp_neigh[cc_idx] = NAN; }
+  void neighbour_cells_reset(uint32_t cc_idx)
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    avg_rsrp_neigh[cc_idx] = NAN;
+  }
 
   void set_neighbour_cells(uint32_t cc_idx, const std::vector<phy_meas_t>& meas)
   {

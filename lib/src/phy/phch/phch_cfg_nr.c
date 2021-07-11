@@ -238,7 +238,7 @@ static uint32_t phch_cfg_uci_to_str(const srsran_uci_cfg_nr_t* uci, char* str, u
   len = srsran_print_check(str, str_len, len, "    beta_csi_part1_offset=%.2f\n", uci->pusch.beta_csi1_offset);
   len = srsran_print_check(str, str_len, len, "    beta_csi_part2_offset=%.2f\n", uci->pusch.beta_csi1_offset);
   len = srsran_print_check(str, str_len, len, "    o_csi1=%d\n", srsran_csi_part1_nof_bits(uci->csi, uci->nof_csi));
-  len = srsran_print_check(str, str_len, len, "    o_ack=%d\n", uci->o_ack);
+  len = srsran_print_check(str, str_len, len, "    o_ack=%d\n", uci->ack.count);
 
   return len;
 }

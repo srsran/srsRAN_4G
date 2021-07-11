@@ -27,9 +27,7 @@
 namespace srsue {
 namespace nr {
 cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_state_) :
-  cc_idx(cc_idx_),
-  phy(phy_state_),
-  logger(log)
+  cc_idx(cc_idx_), phy(phy_state_), logger(log)
 {
   cf_t* rx_buffer_c[SRSRAN_MAX_PORTS] = {};
 
@@ -230,16 +228,16 @@ void cc_worker::decode_pdcch_ul()
     }
 
     // Enqueue UL grants
-    phy.set_ul_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
+    phy.set_ul_pending_grant(dl_slot_cfg, dci_rx[i]);
   }
 }
 
 bool cc_worker::decode_pdsch_dl()
 {
   // Get DL grant for this TTI, if available
-  uint32_t                       pid          = 0;
-  srsran_sch_cfg_nr_t            pdsch_cfg    = {};
-  srsran_pdsch_ack_resource_nr_t ack_resource = {};
+  uint32_t                   pid          = 0;
+  srsran_sch_cfg_nr_t        pdsch_cfg    = {};
+  srsran_harq_ack_resource_t ack_resource = {};
   if (not phy.get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
     // Early return if no grant was available
     return true;
@@ -323,7 +321,7 @@ bool cc_worker::decode_pdsch_dl()
   phy.stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
 
   if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
-    phy.rar_grant_tti = dl_slot_cfg.idx;
+    phy.rar_grant_slot = dl_slot_cfg;
   }
 
   if (pdsch_res.tb[0].crc) {
@@ -537,12 +535,12 @@ bool cc_worker::work_ul()
 
     if (logger.debug.enabled()) {
       std::array<char, 512> str = {};
-      if (srsran_ue_dl_nr_ack_info(&pdsch_ack, str.data(), (uint32_t)str.size()) > 0) {
+      if (srsran_harq_ack_info(&pdsch_ack, str.data(), (uint32_t)str.size()) > 0) {
         logger.debug("%s", str.data());
       }
     }
 
-    if (srsran_ue_dl_nr_gen_ack(&phy.cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
+    if (srsran_harq_ack_pack(&phy.cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
       ERROR("Filling UCI ACK bits");
       return false;
     }

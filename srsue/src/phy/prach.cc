@@ -41,6 +41,7 @@ using namespace srsue;
 
 void prach::init(uint32_t max_prb)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   for (auto& i : buffer) {
     for (auto& j : i) {
       j = srsran_vec_cf_malloc(SRSRAN_PRACH_MAX_LEN);
@@ -74,6 +75,7 @@ void prach::init(uint32_t max_prb)
 
 void prach::stop()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (!mem_initiated) {
     return;
   }
@@ -185,6 +187,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_, uint32_t current_pci)
 {
   // Make sure the curernt PCI is the one we configured the PRACH for
   if (is_pending() && current_pci == cell.id) {
+    std::lock_guard<std::mutex> lock(mutex);
     // consider the number of subframes the transmission must be anticipated
     uint32_t tti_tx = TTI_TX(current_tti_);
     if (srsran_prach_tti_opportunity(&prach_obj, tti_tx, allowed_subframe)) {
@@ -198,6 +201,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_, uint32_t current_pci)
 
 phy_interface_mac_lte::prach_info_t prach::get_info() const
 {
+  std::lock_guard<std::mutex>         lock(mutex);
   phy_interface_mac_lte::prach_info_t info = {};
 
   info.preamble_format = prach_obj.config_idx / 16;
@@ -216,6 +220,7 @@ phy_interface_mac_lte::prach_info_t prach::get_info() const
 
 cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (!cell_initiated || preamble_idx < 0 || !nof_sf || unsigned(preamble_idx) >= max_preambles ||
       !srsran_cell_isvalid(&cell) || len >= MAX_LEN_SF * 30720 || len == 0) {
     Error("PRACH: Invalid parameters: cell_initiated=%d, preamble_idx=%d, cell.nof_prb=%d, len=%d",

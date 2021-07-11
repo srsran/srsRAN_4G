@@ -44,19 +44,20 @@ int test_cell_cfg(const srsenb::sched_interface::cell_cfg_t& cellcfg)
  */
 int test_sib_generation()
 {
-  srsran::timer_handler timers_db(128);
+  srsran::task_scheduler task_sched;
 
   mac_dummy  mac_obj;
   rlc_dummy  rlc_obj;
   pdcp_dummy pdcp_obj;
-  rrc_nr     rrc_obj(&timers_db);
+  rrc_nr     rrc_obj(&task_sched);
 
   // set cfg
   rrc_nr_cfg_t default_cfg = {};
   rrc_nr_cfg_t rrc_cfg     = rrc_obj.update_default_cfg(default_cfg);
   auto&        sched_elem  = rrc_cfg.sib1.si_sched_info.sched_info_list[0];
 
-  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr) == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+             SRSRAN_SUCCESS);
 
   TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSRAN_SUCCESS);
   // TEMP tests
@@ -72,22 +73,23 @@ int test_sib_generation()
 
 int test_rrc_setup()
 {
-  srsran::timer_handler timers_db(128);
+  srsran::task_scheduler task_sched;
 
   mac_dummy  mac_obj;
   rlc_dummy  rlc_obj;
   pdcp_dummy pdcp_obj;
-  rrc_nr     rrc_obj(&timers_db);
+  rrc_nr     rrc_obj(&task_sched);
 
   // set cfg
   rrc_nr_cfg_t default_cfg = {};
   rrc_nr_cfg_t rrc_cfg     = rrc_obj.update_default_cfg(default_cfg);
-  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr) == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+             SRSRAN_SUCCESS);
 
   for (uint32_t n = 0; n < 2; ++n) {
     uint32_t timeout = 5500;
     for (uint32_t i = 0; i < timeout and rlc_obj.last_sdu == nullptr; ++i) {
-      timers_db.step_all();
+      task_sched.tic();
     }
     TESTASSERT(rlc_obj.last_sdu != nullptr);
   }

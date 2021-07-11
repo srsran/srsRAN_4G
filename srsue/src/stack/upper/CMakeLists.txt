@@ -27,6 +27,7 @@ if(HAVE_PCSC)
 endif(HAVE_PCSC)
 
 add_library(srsue_upper STATIC ${SOURCES})
+target_link_libraries(srsue_upper ${ATOMIC_LIBS})
 
 if(HAVE_PCSC)
   target_link_libraries(srsue_upper ${PCSCLITE_LIBRARY})

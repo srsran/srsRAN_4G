@@ -251,7 +251,7 @@ private:
   uint32_t                prach_preamble_index = 0;
   uint16_t                dl_rnti              = 0;
   int                     force_lcid           = -1;
-  srsue::stack_test_dummy stack;
+  srsue::stack_test_dummy stack; // helper to run queue pending tasks
   bool                    last_dl_ndi[SRSRAN_FDD_NOF_HARQ] = {};
   bool                    last_ul_ndi[SRSRAN_FDD_NOF_HARQ] = {};
 
@@ -284,6 +284,9 @@ private:
   typedef std::unique_ptr<syssim_cell_t> unique_syssim_cell_t;
   std::vector<unique_syssim_cell_t>      cells;
   int32_t                                pcell_idx = -1;
+
+  // Main mutex to protect access from syssim's main thread (epoll handlers) and calls from  UE's stack thread
+  std::mutex syssim_mutex;
 
   // Internal function
   void           update_cell_map();

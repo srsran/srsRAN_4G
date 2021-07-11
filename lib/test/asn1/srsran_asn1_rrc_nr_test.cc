@@ -23,6 +23,8 @@
 #include "srsran/common/test_common.h"
 #include <cstdio>
 
+#define JSON_OUTPUT 0
+
 using namespace asn1;
 using namespace asn1::rrc_nr;
 
@@ -184,9 +186,11 @@ int test_ue_rrc_reconfiguration()
 
   TESTASSERT(rrc_recfg.unpack(bref) == SRSASN_SUCCESS);
   TESTASSERT(rrc_recfg.rrc_transaction_id == 0);
+#if JSON_OUTPUT
   json_writer jw;
   rrc_recfg.to_json(jw);
   srslog::fetch_basic_logger("RRC").info("RRC Reconfig: \n %s", jw.to_string().c_str());
+#endif
 
   TESTASSERT(rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg);
   TESTASSERT(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true);
@@ -195,9 +199,11 @@ int test_ue_rrc_reconfiguration()
   cbit_ref         bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
                  rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
   TESTASSERT(cell_group_cfg.unpack(bref0) == SRSASN_SUCCESS);
-  // json_writer jw1;
-  // cell_group_cfg.to_json(jw1);
-  // srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: \n %s", jw1.to_string().c_str());
+#if JSON_OUTPUT
+  json_writer jw1;
+  cell_group_cfg.to_json(jw1);
+  srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: \n %s", jw1.to_string().c_str());
+#endif
   TESTASSERT(cell_group_cfg.cell_group_id == 1);
   TESTASSERT(cell_group_cfg.rlc_bearer_to_add_mod_list_present == true);
   TESTASSERT(cell_group_cfg.rlc_bearer_to_add_mod_list.size() == 1);
@@ -210,18 +216,76 @@ int test_ue_rrc_reconfiguration()
 int test_radio_bearer_config()
 {
   uint8_t            rrc_msg[]   = "\x14\x09\x28\x17\x87\xc0\x0c\x28";
-  uint32_t           rrc_msg_len = sizeof(rrc_msg);
   cbit_ref           bref(&rrc_msg[0], sizeof(rrc_msg));
   radio_bearer_cfg_s radio_bearer_cfg;
   TESTASSERT(radio_bearer_cfg.unpack(bref) == SRSASN_SUCCESS);
-  // json_writer jw;
-  // radio_bearer_cfg.to_json(jw);
-  // srslog::fetch_basic_logger("RRC").info("RRC Bearer CFG Message: \n %s", jw.to_string().c_str());
+#if JSON_OUTPUT
+  json_writer jw;
+  radio_bearer_cfg.to_json(jw);
+  srslog::fetch_basic_logger("RRC").info("RRC Bearer CFG Message: \n %s", jw.to_string().c_str());
+#endif
   TESTASSERT(radio_bearer_cfg.drb_to_add_mod_list_present == true);
   TESTASSERT(radio_bearer_cfg.drb_to_add_mod_list.size() == 1);
   TESTASSERT(radio_bearer_cfg.security_cfg_present == true);
   TESTASSERT(radio_bearer_cfg.security_cfg.security_algorithm_cfg_present == true);
   TESTASSERT(radio_bearer_cfg.security_cfg.key_to_use_present == true);
+
+  // full RRC reconfig pack
+  rrc_recfg_s reconfig;
+  reconfig.rrc_transaction_id = 0;
+  rrc_recfg_ies_s& recfg_ies  = reconfig.crit_exts.set_rrc_recfg();
+
+  recfg_ies.radio_bearer_cfg_present                     = true;
+  recfg_ies.radio_bearer_cfg.drb_to_add_mod_list_present = true;
+  recfg_ies.radio_bearer_cfg.drb_to_add_mod_list.resize(1);
+
+  auto& drb_item                                = recfg_ies.radio_bearer_cfg.drb_to_add_mod_list[0];
+  drb_item.drb_id                               = 1;
+  drb_item.cn_assoc_present                     = true;
+  drb_item.cn_assoc.set_eps_bearer_id()         = 5;
+  drb_item.pdcp_cfg_present                     = true;
+  drb_item.pdcp_cfg.ciphering_disabled_present  = true;
+  drb_item.pdcp_cfg.drb_present                 = true;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_dl_present = true;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_dl         = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::len18bits;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_ul         = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_opts::len18bits;
+  drb_item.pdcp_cfg.drb.discard_timer_present   = true;
+  drb_item.pdcp_cfg.drb.discard_timer           = asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
+  drb_item.pdcp_cfg.drb.hdr_compress.set_not_used();
+  drb_item.pdcp_cfg.t_reordering_present = true;
+  drb_item.pdcp_cfg.t_reordering         = asn1::rrc_nr::pdcp_cfg_s::t_reordering_opts::ms0;
+
+  recfg_ies.radio_bearer_cfg.security_cfg_present            = true;
+  recfg_ies.radio_bearer_cfg.security_cfg.key_to_use_present = true;
+  recfg_ies.radio_bearer_cfg.security_cfg.key_to_use         = asn1::rrc_nr::security_cfg_s::key_to_use_opts::secondary;
+  recfg_ies.radio_bearer_cfg.security_cfg.security_algorithm_cfg_present             = true;
+  recfg_ies.radio_bearer_cfg.security_cfg.security_algorithm_cfg.ciphering_algorithm = ciphering_algorithm_opts::nea2;
+
+  uint8_t       buffer[1024];
+  asn1::bit_ref bref_pack(buffer, sizeof(buffer));
+  TESTASSERT(reconfig.pack(bref_pack) == asn1::SRSASN_SUCCESS);
+  TESTASSERT(test_pack_unpack_consistency(reconfig) == SRSASN_SUCCESS);
+
+#if JSON_OUTPUT
+  reconfig.to_json(jw);
+  srslog::fetch_basic_logger("RRC").info("RRC Reconfig Message: \n %s", jw.to_string().c_str());
+#endif
+
+  // only pack the radio bearer config to compare against TV
+  asn1::bit_ref       bref_pack2(buffer, sizeof(buffer));
+  radio_bearer_cfg_s& radio_bearer_cfg_pack = recfg_ies.radio_bearer_cfg;
+  TESTASSERT(radio_bearer_cfg_pack.pack(bref_pack2) == asn1::SRSASN_SUCCESS);
+
+#if JSON_OUTPUT
+  radio_bearer_cfg_pack.to_json(jw);
+  srslog::fetch_basic_logger("RRC").info("Radio bearer config Message: \n %s", jw.to_string().c_str());
+#endif
+
+  // TODO: messages don't match yet
+  // TESTASSERT(bref_pack2.distance_bytes() == sizeof(rrc_msg));
+  // TESTASSERT(memcmp(rrc_msg, buffer, sizeof(rrc_msg)) == 0);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -271,7 +335,7 @@ int test_cell_group_config()
   TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg_present == true);
   TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg_present == true);
   TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present == true);
-  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync_present = true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync_present == true);
   TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present == true);
   TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present == true);
   TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci == 500);
@@ -300,9 +364,123 @@ int test_cell_group_config()
   TESTASSERT(rach_cfg_common.rach_cfg_generic.ra_resp_win == asn1::rrc_nr::rach_cfg_generic_s::ra_resp_win_opts::sl10);
   TESTASSERT(rach_cfg_common.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present == true);
 
-  // asn1::json_writer json_writer;
-  // cell_group_cfg.to_json(json_writer);
-  // srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: Content: %s\n", json_writer.to_string().c_str());
+#if JSON_OUTPUT
+  asn1::json_writer json_writer;
+  cell_group_cfg.to_json(json_writer);
+  srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: Content: %s\n", json_writer.to_string().c_str());
+#endif
+
+  // pack it again
+  cell_group_cfg_s cell_group_cfg_pack;
+  cell_group_cfg_pack.sp_cell_cfg_present                                        = true;
+  cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx_present                          = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded_present                        = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp_present            = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
+
+  // TODO: add setup
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg_present = true;
+  auto& pdcch_cfg = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg.set_setup();
+  // TODO: add PDCCH config
+
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg_present = true;
+  auto& pdsch_cfg = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.set_setup();
+  // TODO: add PDSCH config
+
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.set_setup();
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 17943;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = 0;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dmrs_type_a_position =
+      asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci = 500;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing =
+      subcarrier_spacing_opts::khz30;
+
+  // DL config
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
+      .absolute_freq_ssb_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
+      632640;
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list
+      .push_back(78);
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_point_a =
+      632316;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
+      .scs_specific_carrier_list.resize(1);
+  auto& dl_carrier = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
+                         .scs_specific_carrier_list[0];
+  dl_carrier.offset_to_carrier  = 0;
+  dl_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
+  dl_carrier.carrier_bw         = 52;
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.generic_params
+      .location_and_bw = 14025;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.generic_params
+      .subcarrier_spacing = subcarrier_spacing_opts::khz15;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp
+      .pdcch_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common
+      .set_setup();
+  // TODO: add PDCCH config
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp
+      .pdsch_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common
+      .set_setup();
+  // TODO: add PDSCH config
+
+  // UL config
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.dummy = time_align_timer_opts::ms500;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul
+      .scs_specific_carrier_list.resize(1);
+  auto& ul_carrier = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul
+                         .scs_specific_carrier_list[0];
+  ul_carrier.offset_to_carrier  = 0;
+  ul_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
+  ul_carrier.carrier_bw         = 52;
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.generic_params
+      .location_and_bw = 14025;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.generic_params
+      .subcarrier_spacing = subcarrier_spacing_opts::khz15;
+
+  // TODO: add config field for RACH
+#if 0
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present=true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.set_setup();
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup().prach_root_seq_idx = 10;
+#endif
+
+  uint8_t       buffer[1024];
+  asn1::bit_ref bref_pack(buffer, sizeof(buffer));
+  TESTASSERT(cell_group_cfg_pack.pack(bref_pack) == asn1::SRSASN_SUCCESS);
+  TESTASSERT(test_pack_unpack_consistency(cell_group_cfg_pack) == SRSASN_SUCCESS);
+
+#if JSON_OUTPUT
+  int               packed_len = bref_pack.distance_bytes();
+  asn1::json_writer json_writer2;
+  cell_group_cfg_pack.to_json(json_writer2);
+  srslog::fetch_basic_logger("RRC").info(
+      buffer, packed_len, "Cell group config repacked (%d B): \n %s", packed_len, json_writer2.to_string().c_str());
+#endif
+
   return SRSRAN_SUCCESS;
 }
 

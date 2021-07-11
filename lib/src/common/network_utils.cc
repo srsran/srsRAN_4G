@@ -468,7 +468,7 @@ void socket_manager::run_thread()
   FD_SET(pipefd[0], &total_fd_set);
   max_fd = std::max(pipefd[0], max_fd);
 
-  while (running) {
+  while (running.load(std::memory_order_relaxed)) {
     memcpy(&read_fd_set, &total_fd_set, sizeof(total_fd_set));
     int n = select(max_fd + 1, &read_fd_set, nullptr, nullptr, nullptr);
 

@@ -22,6 +22,7 @@
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/mac/ue.h"
+#include "srsenb/hdr/stack/rrc/rrc_endc.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsran/adt/pool/circular_stack_pool.h"
@@ -30,8 +31,8 @@
 
 namespace srsenb {
 
-const static size_t UE_MEM_BLOCK_SIZE =
-    sizeof(ue) + sizeof(rrc::ue) + sizeof(rrc::ue::rrc_mobility) + sizeof(srsran::rlc) + sizeof(srsran::pdcp);
+const static size_t UE_MEM_BLOCK_SIZE = 1024 + sizeof(ue) + sizeof(rrc::ue) + sizeof(rrc::ue::rrc_mobility) +
+                                        sizeof(rrc::ue::rrc_endc) + sizeof(srsran::rlc) + sizeof(srsran::pdcp);
 
 srsran::circular_stack_pool<SRSENB_MAX_UES>* get_rnti_pool()
 {

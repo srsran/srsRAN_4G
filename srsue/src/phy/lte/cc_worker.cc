@@ -793,12 +793,10 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
 
 void cc_worker::set_uci_sr(srsran_uci_data_t* uci_data)
 {
-  Debug("set_uci_sr() query: sr_enabled=%d, last_tx_tti=%d", phy->sr_enabled, phy->sr_last_tx_tti);
-  if (srsran_ue_ul_gen_sr(&ue_ul_cfg, &sf_cfg_ul, uci_data, phy->sr_enabled)) {
-    if (phy->sr_enabled) {
-      phy->sr_last_tx_tti = CURRENT_TTI_TX;
-      phy->sr_enabled     = false;
-      Debug("set_uci_sr() sending SR: sr_enabled=%d, last_tx_tti=%d", phy->sr_enabled, phy->sr_last_tx_tti);
+  Debug("set_uci_sr() query: sr_enabled=%d, last_tx_tti=%d", phy->sr.is_triggered(), phy->sr.get_last_tx_tti());
+  if (srsran_ue_ul_gen_sr(&ue_ul_cfg, &sf_cfg_ul, uci_data, phy->sr.is_triggered())) {
+    if (phy->sr.set_last_tx_tti(CURRENT_TTI_TX)) {
+      Debug("set_uci_sr() sending SR: sr_enabled=true, last_tx_tti=%d", CURRENT_TTI_TX);
     }
   }
 }

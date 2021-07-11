@@ -1370,13 +1370,11 @@ rrc::connection_reest_proc::connection_reest_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 {
   // Save Current RNTI before MAC Reset
-  mac_interface_rrc::ue_rnti_t uernti;
-  rrc_ptr->mac->get_rntis(&uernti);
+  uint16_t crnti             = rrc_ptr->mac->get_crnti();
   size_t nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
 
   // 5.3.7.1 - Conditions for Reestablishment procedure
-  if (not rrc_ptr->security_is_activated or rrc_ptr->state != RRC_STATE_CONNECTED or
-      uernti.crnti == SRSRAN_INVALID_RNTI) {
+  if (not rrc_ptr->security_is_activated or rrc_ptr->state != RRC_STATE_CONNECTED or crnti == SRSRAN_INVALID_RNTI) {
     Warning("Conditions are NOT met to start procedure.");
     return proc_outcome_t::error;
   }
@@ -1388,7 +1386,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     reest_source_pci  = rrc_ptr->ho_handler.get()->ho_src_cell.pci;
     reest_source_freq = rrc_ptr->ho_handler.get()->ho_src_cell.earfcn;
   } else {
-    reest_rnti        = uernti.crnti;
+    reest_rnti        = crnti;
     reest_source_pci  = rrc_ptr->meas_cells.serving_cell().get_pci(); // needed for reestablishment with another cell
     reest_source_freq = rrc_ptr->meas_cells.serving_cell().get_earfcn();
   }
@@ -1660,9 +1658,7 @@ srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   // Save serving cell and current configuration
   ho_src_cell = rrc_ptr->meas_cells.serving_cell().phy_cell;
-  mac_interface_rrc::ue_rnti_t uernti;
-  rrc_ptr->mac->get_rntis(&uernti);
-  ho_src_rnti = uernti.crnti;
+  ho_src_rnti = rrc_ptr->mac->get_crnti();
 
   // Section 5.3.5.4
   rrc_ptr->t310.stop();

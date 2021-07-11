@@ -61,7 +61,9 @@ ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   signal_handler(running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
 {
-  if (ue->init(all_args_t{}, this, "INIT_TEST") != SRSRAN_SUCCESS) {
+  all_args_t args            = {};
+  args.stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
+  if (ue->init(args, this, "INIT_TEST") != SRSRAN_SUCCESS) {
     ue->stop();
     fprintf(stderr, "Couldn't initialize UE.\n");
   }
@@ -202,6 +204,8 @@ int ttcn3_syssim::add_port_handler()
 ///< Function called by epoll timer handler when TTI timer expires
 void ttcn3_syssim::new_tti_indication(uint64_t res)
 {
+  std::lock_guard<std::mutex> lock(syssim_mutex);
+
   tti = (tti + 1) % 10240;
 
   logger.set_context(tti);
@@ -393,6 +397,7 @@ void ttcn3_syssim::stop()
 
 void ttcn3_syssim::reset()
 {
+  std::lock_guard<std::mutex> lock(syssim_mutex);
   logger.info("Resetting SS");
   cells.clear();
   pcell_idx = -1;
@@ -489,9 +494,11 @@ void ttcn3_syssim::disable_data()
   event_queue.push(DISABLE_DATA);
 }
 
-// Called from PHY but always from the SS main thread with lock being hold
+// Called from PHY through RA procedure running on Stack thread
 void ttcn3_syssim::prach_indication(uint32_t preamble_index_, const uint32_t& cell_id)
 {
+  std::lock_guard<std::mutex> lock(syssim_mutex);
+
   // verify that UE intends to send PRACH on current Pcell
   if (cells[pcell_idx]->config.phy_cell.id != cell_id) {
     logger.error(
@@ -1270,8 +1277,10 @@ void ttcn3_syssim::release_as_security_impl(const std::string cell_name)
   cell->pending_bearer_config.clear();
 }
 
+// Called from PHY in Stack context
 void ttcn3_syssim::select_cell(srsran_cell_t phy_cell)
 {
+  std::lock_guard<std::mutex> lock(syssim_mutex);
   // find matching cell in SS cell list
   for (uint32_t i = 0; i < cells.size(); ++i) {
     if (cells[i]->config.phy_cell.id == phy_cell.id) {

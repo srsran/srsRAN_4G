@@ -493,7 +493,6 @@ private:
     int  get_status_pdu_length();
     int  get_status_pdu(rlc_status_pdu_t* status, const uint32_t nof_bytes);
     bool get_do_status();
-    void reset_status(); // called when status PDU has been sent
 
   private:
     void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
@@ -503,6 +502,7 @@ private:
     void debug_state();
     void print_rx_segments();
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu* segment);
+    void reset_status();
 
     rlc_am_lte*           parent = nullptr;
     byte_buffer_pool*     pool   = nullptr;
@@ -536,8 +536,8 @@ private:
     rlc_ringbuffer_t<rlc_amd_rx_pdu>              rx_window;
     std::map<uint32_t, rlc_amd_rx_pdu_segments_t> rx_segments;
 
-    bool poll_received = false;
-    bool do_status     = false;
+    bool              poll_received = false;
+    std::atomic<bool> do_status     = {false}; // light-weight access from Tx entity
 
     /****************************************************************************
      * Timers

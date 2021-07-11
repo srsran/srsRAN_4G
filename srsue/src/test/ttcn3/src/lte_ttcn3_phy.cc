@@ -64,7 +64,7 @@ void lte_ttcn3_phy::get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* 
 // The interface for the SS
 void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(phy_mutex);
   cells = cells_;
 }
 
@@ -104,7 +104,7 @@ void lte_ttcn3_phy::meas_stop() {}
 // are actually visible though.
 bool lte_ttcn3_phy::cell_search()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(phy_mutex);
 
   logger.info("Running cell search in PHY");
 
@@ -144,28 +144,44 @@ bool lte_ttcn3_phy::cell_search()
   return true;
 }
 
+// Called from RRC/Stack thread
 bool lte_ttcn3_phy::cell_select(phy_cell_t rrc_cell)
 {
-  // try to find RRC cell in current cell map
-  for (auto& cell : cells) {
-    if (cell.info.id == rrc_cell.pci && cell.earfcn == rrc_cell.earfcn) {
-      if (cell.power >= SUITABLE_CELL_RS_EPRE) {
-        pcell     = cell;
-        pcell_set = true;
-        syssim->select_cell(pcell.info);
-        logger.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.", cell.power, rrc_cell.pci, rrc_cell.earfcn);
-      } else {
-        pcell_set = false;
-        logger.error("Power of selected cell too low (%.2f < %.2f)", cell.power, SUITABLE_CELL_RS_EPRE);
-      }
+  bool ret = false;
 
-      stack->cell_select_complete(pcell_set);
-      return true;
+  {
+    std::lock_guard<std::mutex> lock(phy_mutex);
+    // try to find RRC cell in current cell map
+    for (auto& cell : cells) {
+      if (cell.info.id == rrc_cell.pci && cell.earfcn == rrc_cell.earfcn) {
+        if (cell.power >= SUITABLE_CELL_RS_EPRE) {
+          pcell     = cell;
+          pcell_set = true;
+          logger.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.", cell.power, rrc_cell.pci, rrc_cell.earfcn);
+        } else {
+          pcell_set = false;
+          logger.error("Power of selected cell too low (%.2f < %.2f)", cell.power, SUITABLE_CELL_RS_EPRE);
+        }
+        // update return value
+        ret = pcell_set;
+        break;
+      }
     }
   }
 
-  logger.error("Couldn't find RRC cell with PCI=%d on EARFCN=%d in cell map.", rrc_cell.pci, rrc_cell.earfcn);
-  return false;
+  if (ret) {
+    // cell has been selected
+    syssim->select_cell(pcell.info);
+  } else {
+    logger.error(
+        "Couldn't find (suitable) RRC cell with PCI=%d on EARFCN=%d in cell map.", rrc_cell.pci, rrc_cell.earfcn);
+  }
+
+  // inform stack about result asynchronously
+  task_sched.defer_task([this, ret]() { stack->cell_select_complete(ret); });
+
+  // regardless of actual result, return True to tell RRC that we entered the cell select state at PHY
+  return true;
 }
 
 bool lte_ttcn3_phy::cell_is_camping()
@@ -178,15 +194,19 @@ bool lte_ttcn3_phy::cell_is_camping()
 }
 
 // The interface for MAC (called from Stack thread context)
-
 void lte_ttcn3_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  logger.info("Sending PRACH with preamble %d on PCID=%d", preamble_idx, pcell.info.id);
-  prach_tti_tx = current_tti;
-  ra_trans_cnt++;
+  uint32_t pcell_pci = 0;
+  {
+    std::lock_guard<std::mutex> lock(phy_mutex);
+    pcell_pci = pcell.info.id;
 
-  syssim->prach_indication(preamble_idx, pcell.info.id);
+    logger.info("Sending PRACH with preamble %d on PCID=%d", preamble_idx, pcell_pci);
+    prach_tti_tx = current_tti;
+    ra_trans_cnt++;
+  }
+
+  syssim->prach_indication(preamble_idx, pcell_pci);
 };
 
 std::string lte_ttcn3_phy::get_type()
@@ -196,7 +216,7 @@ std::string lte_ttcn3_phy::get_type()
 
 phy_interface_mac_lte::prach_info_t lte_ttcn3_phy::prach_get_info()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(phy_mutex);
   prach_info_t                info = {};
   if (prach_tti_tx != -1) {
     info.is_transmitted = true;
@@ -240,7 +260,7 @@ void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], u
 // Called from the SYSSIM to configure the current TTI
 void lte_ttcn3_phy::set_current_tti(uint32_t tti)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(phy_mutex);
 
   current_tti = tti;
   run_tti();
@@ -249,6 +269,7 @@ void lte_ttcn3_phy::set_current_tti(uint32_t tti)
 // Called from MAC to retrieve the current TTI
 uint32_t lte_ttcn3_phy::get_current_tti()
 {
+  std::lock_guard<std::mutex> lock(phy_mutex);
   return current_tti;
 }
 
@@ -268,7 +289,7 @@ float lte_ttcn3_phy::get_pathloss_db()
 // Calling function hold mutex
 void lte_ttcn3_phy::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(phy_mutex);
 
   mac_interface_phy_lte::tb_action_ul_t ul_action = {};
 
@@ -284,7 +305,7 @@ void lte_ttcn3_phy::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t ul_mac_gr
 // Provides DL grant, copy data into DL action and pass up to MAC
 void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl_grant, const uint8_t* data)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(phy_mutex);
 
   if (data == nullptr) {
     logger.error("Invalid data buffer passed");

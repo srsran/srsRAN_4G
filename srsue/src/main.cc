@@ -24,6 +24,7 @@
 #include "srsran/common/crash_handler.h"
 #include "srsran/common/metrics_hub.h"
 #include "srsran/common/signal_handler.h"
+#include "srsran/common/tsan_options.h"
 #include "srsran/srslog/event_trace.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/srsran.h"

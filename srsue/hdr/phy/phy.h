@@ -193,7 +193,7 @@ private:
 
   std::mutex              config_mutex;
   std::condition_variable config_cond;
-  bool                    is_configured = false;
+  std::atomic<bool>       is_configured = {false};
 
   const static int SF_RECV_THREAD_PRIO = 0;
   const static int WORKERS_THREAD_PRIO = 2;

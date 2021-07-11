@@ -113,7 +113,7 @@ SRSRAN_API int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
                                       const srsran_sch_grant_nr_t* grant,
                                       srsran_chest_dl_res_t*       channel,
                                       cf_t*                        sf_symbols[SRSRAN_MAX_PORTS],
-                                      srsran_pusch_res_nr_t*       data[SRSRAN_MAX_TB]);
+                                      srsran_pusch_res_nr_t*       data);
 
 SRSRAN_API uint32_t srsran_pusch_nr_rx_info(const srsran_pusch_nr_t*     q,
                                             const srsran_sch_cfg_nr_t*   cfg,

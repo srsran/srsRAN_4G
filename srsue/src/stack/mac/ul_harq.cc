@@ -35,7 +35,7 @@ ul_harq_entity::ul_harq_entity(const uint8_t cc_idx_) :
   proc(SRSRAN_MAX_HARQ_PROC), logger(srslog::fetch_basic_logger("MAC")), cc_idx(cc_idx_)
 {}
 
-bool ul_harq_entity::init(mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_procedure_, mux* mux_unit_)
+bool ul_harq_entity::init(ue_rnti* rntis_, ra_proc* ra_procedure_, mux* mux_unit_)
 {
   mux_unit     = mux_unit_;
   ra_procedure = ra_procedure_;
@@ -84,12 +84,12 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
     Error("Invalid PID: %d", grant.pid);
     return;
   }
-  if (grant.rnti == rntis->crnti || grant.rnti == rntis->temp_rnti || SRSRAN_RNTI_ISRAR(grant.rnti)) {
-    if (grant.rnti == rntis->crnti && proc[grant.pid].is_sps()) {
+  if (grant.rnti == rntis->get_crnti() || grant.rnti == rntis->get_temp_rnti() || SRSRAN_RNTI_ISRAR(grant.rnti)) {
+    if (grant.rnti == rntis->get_crnti() && proc[grant.pid].is_sps()) {
       grant.tb.ndi = true;
     }
     proc[grant.pid].new_grant_ul(grant, action);
-  } else if (grant.rnti == rntis->sps_rnti) {
+  } else if (grant.rnti == rntis->get_sps_rnti()) {
     if (grant.tb.ndi) {
       grant.tb.ndi = proc[grant.pid].get_ndi();
       proc[grant.pid].new_grant_ul(grant, action);
@@ -183,7 +183,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
     // Get maximum retransmissions
     uint32_t max_retx;
-    if (grant.rnti == harq_entity->rntis->temp_rnti) {
+    if (grant.rnti == harq_entity->rntis->get_temp_rnti()) {
       max_retx = harq_entity->harq_cfg.max_harq_msg3_tx;
     } else {
       max_retx = harq_entity->harq_cfg.max_harq_tx;
@@ -192,11 +192,11 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
     // Check maximum retransmissions, do not consider last retx ACK
     if (current_tx_nb >= max_retx && !grant.hi_value) {
       Info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.", pid, max_retx);
-      if (grant.rnti == harq_entity->rntis->temp_rnti) {
+      if (grant.rnti == harq_entity->rntis->get_temp_rnti()) {
         harq_entity->ra_procedure->harq_max_retx();
       }
       reset();
-    } else if (grant.rnti == harq_entity->rntis->temp_rnti && current_tx_nb && !grant.hi_value) {
+    } else if (grant.rnti == harq_entity->rntis->get_temp_rnti() && current_tx_nb && !grant.hi_value) {
       harq_entity->ra_procedure->harq_retx();
     }
   }
@@ -215,9 +215,9 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       action->tb.enabled = true;
 
       // Decide if adaptive retx or new tx. 3 checks in 5.4.2.1
-    } else if ((grant.rnti != harq_entity->rntis->temp_rnti &&
+    } else if ((grant.rnti != harq_entity->rntis->get_temp_rnti() &&
                 grant.tb.ndi != get_ndi()) || // If not addressed to T-CRNTI and NDI toggled
-               (grant.rnti == harq_entity->rntis->crnti &&
+               (grant.rnti == harq_entity->rntis->get_crnti() &&
                 !has_grant()) || // If addressed to C-RNTI and buffer is empty
                (grant.is_rar))   // Grant received in a RAR
     {
@@ -254,7 +254,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         }
       }
 
-      if (grant.rnti == harq_entity->rntis->crnti && harq_entity->ra_procedure->is_contention_resolution()) {
+      if (grant.rnti == harq_entity->rntis->get_crnti() && harq_entity->ra_procedure->is_contention_resolution()) {
         harq_entity->ra_procedure->pdcch_to_crnti(true);
       }
     } else if (has_grant()) {
@@ -265,10 +265,10 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
     }
     if (harq_entity->pcap) {
       uint16_t rnti;
-      if (grant.rnti == harq_entity->rntis->temp_rnti && harq_entity->rntis->temp_rnti) {
-        rnti = harq_entity->rntis->temp_rnti;
+      if (grant.rnti == harq_entity->rntis->get_temp_rnti() && harq_entity->rntis->get_temp_rnti()) {
+        rnti = harq_entity->rntis->get_temp_rnti();
       } else {
-        rnti = harq_entity->rntis->crnti;
+        rnti = harq_entity->rntis->get_crnti();
       }
       harq_entity->pcap->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), grant.tti_tx, harq_entity->cc_idx);
     }
@@ -364,11 +364,11 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
   current_tx_nb             = 0;
   current_irv               = 0;
 
-  action->is_rar = grant.is_rar || (grant.rnti == harq_entity->rntis->temp_rnti);
+  action->is_rar = grant.is_rar || (grant.rnti == harq_entity->rntis->get_temp_rnti());
 
   Info("UL %d:  New TX%s, RV=%d, TBS=%d",
        pid,
-       grant.rnti == harq_entity->rntis->temp_rnti ? " for Msg3" : "",
+       grant.rnti == harq_entity->rntis->get_temp_rnti() ? " for Msg3" : "",
        get_rv(),
        cur_grant.tb.tbs);
   generate_tx(action);

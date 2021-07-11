@@ -310,7 +310,26 @@ bool ue::switch_off()
   if (gw_inst) {
     gw_inst->stop();
   }
-  return stack->switch_off();
+
+  // send switch off
+  stack->switch_off();
+
+  // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
+  int             cnt = 0, timeout_s = 5;
+  stack_metrics_t metrics = {};
+  stack->get_metrics(&metrics);
+
+  while (metrics.rrc.state != RRC_STATE_IDLE && ++cnt <= timeout_s) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    stack->get_metrics(&metrics);
+  }
+
+  if (metrics.rrc.state != RRC_STATE_IDLE) {
+    srslog::fetch_basic_logger("NAS").warning("Detach couldn't be sent after %ds.", timeout_s);
+    return false;
+  }
+
+  return true;
 }
 
 void ue::start_plot()

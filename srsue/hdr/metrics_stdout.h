@@ -63,6 +63,7 @@ private:
   bool                  table_has_neighbours = false; ///< state of last table head
   uint8_t               n_reports            = 10;
   ue_metrics_interface* ue                   = nullptr;
+  std::mutex            mutex;
 };
 
 } // namespace srsue

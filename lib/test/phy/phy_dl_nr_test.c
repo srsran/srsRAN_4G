@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsran/phy/enb/enb_dl_nr.h"
+#include "srsran/phy/gnb/gnb_dl.h"
 #include "srsran/phy/phch/ra_dl_nr.h"
 #include "srsran/phy/phch/ra_nr.h"
 #include "srsran/phy/ue/ue_dl_nr.h"
@@ -153,13 +153,13 @@ static int parse_args(int argc, char** argv)
   return SRSRAN_SUCCESS;
 }
 
-static int work_gnb_dl(srsran_enb_dl_nr_t*    enb_dl,
+static int work_gnb_dl(srsran_gnb_dl_t*       gnb_dl,
                        srsran_slot_cfg_t*     slot,
                        srsran_search_space_t* search_space,
                        srsran_dci_location_t* dci_location,
                        uint8_t**              data_tx)
 {
-  if (srsran_enb_dl_nr_base_zero(enb_dl) < SRSRAN_SUCCESS) {
+  if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
     ERROR("Error setting base to zero");
     return SRSRAN_ERROR;
   }
@@ -179,18 +179,18 @@ static int work_gnb_dl(srsran_enb_dl_nr_t*    enb_dl,
   dci_dl.rv                    = 0;
 
   // Put actual DCI
-  if (srsran_enb_dl_nr_pdcch_put_dl(enb_dl, slot, &dci_dl) < SRSRAN_SUCCESS) {
+  if (srsran_gnb_dl_pdcch_put_dl(gnb_dl, slot, &dci_dl) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDCCH");
     return SRSRAN_ERROR;
   }
 
   // Put PDSCH transmission
-  if (srsran_enb_dl_nr_pdsch_put(enb_dl, slot, &pdsch_cfg, data_tx) < SRSRAN_SUCCESS) {
+  if (srsran_gnb_dl_pdsch_put(gnb_dl, slot, &pdsch_cfg, data_tx) < SRSRAN_SUCCESS) {
     ERROR("Error putting PDSCH");
     return SRSRAN_ERROR;
   }
 
-  srsran_enb_dl_nr_gen_signal(enb_dl);
+  srsran_gnb_dl_gen_signal(gnb_dl);
 
   return SRSRAN_SUCCESS;
 }
@@ -223,7 +223,7 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot, srsran_
 int main(int argc, char** argv)
 {
   int                   ret             = SRSRAN_ERROR;
-  srsran_enb_dl_nr_t    enb_dl          = {};
+  srsran_gnb_dl_t       gnb_dl          = {};
   srsran_ue_dl_nr_t     ue_dl           = {};
   srsran_pdsch_res_nr_t pdsch_res       = {};
   srsran_random_t       rand_gen        = srsran_random_init(1234);
@@ -260,11 +260,11 @@ int main(int argc, char** argv)
   ue_dl_args.pdcch.measure_evm             = true;
   ue_dl_args.nof_max_prb                   = carrier.nof_prb;
 
-  srsran_enb_dl_nr_args_t enb_dl_args = {};
-  enb_dl_args.nof_tx_antennas         = 1;
-  enb_dl_args.pdsch.sch.disable_simd  = false;
-  enb_dl_args.pdcch.disable_simd      = false;
-  enb_dl_args.nof_max_prb             = carrier.nof_prb;
+  srsran_gnb_dl_args_t gnb_dl_args   = {};
+  gnb_dl_args.nof_tx_antennas        = 1;
+  gnb_dl_args.pdsch.sch.disable_simd = false;
+  gnb_dl_args.pdcch.disable_simd     = false;
+  gnb_dl_args.nof_max_prb            = carrier.nof_prb;
 
   srsran_pdcch_cfg_nr_t pdcch_cfg = {};
 
@@ -294,7 +294,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srsran_enb_dl_nr_init(&enb_dl, buffer_gnb, &enb_dl_args)) {
+  if (srsran_gnb_dl_init(&gnb_dl, buffer_gnb, &gnb_dl_args)) {
     ERROR("Error UE DL");
     goto clean_exit;
   }
@@ -313,12 +313,12 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srsran_enb_dl_nr_set_carrier(&enb_dl, &carrier)) {
+  if (srsran_gnb_dl_set_carrier(&gnb_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
-  if (srsran_enb_dl_nr_set_pdcch_config(&enb_dl, &pdcch_cfg, &dci_cfg)) {
+  if (srsran_gnb_dl_set_pdcch_config(&gnb_dl, &pdcch_cfg, &dci_cfg)) {
     ERROR("Error setting CORESET");
     goto clean_exit;
   }
@@ -419,7 +419,7 @@ int main(int argc, char** argv)
         dci_location.L                     = L;
 
         gettimeofday(&t[1], NULL);
-        if (work_gnb_dl(&enb_dl, &slot, search_space, &dci_location, data_tx) < SRSRAN_ERROR) {
+        if (work_gnb_dl(&gnb_dl, &slot, search_space, &dci_location, data_tx) < SRSRAN_ERROR) {
           ERROR("Error running eNb DL");
           goto clean_exit;
         }
@@ -510,7 +510,7 @@ int main(int argc, char** argv)
 
 clean_exit:
   srsran_random_free(rand_gen);
-  srsran_enb_dl_nr_free(&enb_dl);
+  srsran_gnb_dl_free(&gnb_dl);
   srsran_ue_dl_nr_free(&ue_dl);
   for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
     if (data_tx[i]) {

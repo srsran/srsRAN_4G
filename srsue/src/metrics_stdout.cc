@@ -62,11 +62,13 @@ char const* const prefixes[2][9] = {
 
 void metrics_stdout::set_ue_handle(ue_metrics_interface* ue_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   ue = ue_;
 }
 
 void metrics_stdout::toggle_print(bool b)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   do_print = b;
 }
 
@@ -170,6 +172,7 @@ void metrics_stdout::set_metrics_helper(const phy_metrics_t& phy,
 
 void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (ue == nullptr) {
     return;
   }

@@ -97,14 +97,17 @@ void sync::init(srsran::radio_interface_phy* _radio,
   sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size());
 
   // Start intra-frequency measurement
-  for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
-    scell::intra_measure_lte*         q    = new scell::intra_measure_lte(phy_logger, *this);
-    scell::intra_measure_base::args_t args = {};
-    args.len_ms                            = worker_com->args->intra_freq_meas_len_ms;
-    args.period_ms                         = worker_com->args->intra_freq_meas_period_ms;
-    args.rx_gain_offset_db                 = worker_com->args->rx_gain_offset;
-    q->init(i, args);
-    intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure_lte>(q));
+  {
+    std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
+    for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
+      scell::intra_measure_lte*         q    = new scell::intra_measure_lte(phy_logger, *this);
+      scell::intra_measure_base::args_t args = {};
+      args.len_ms                            = worker_com->args->intra_freq_meas_len_ms;
+      args.period_ms                         = worker_com->args->intra_freq_meas_period_ms;
+      args.rx_gain_offset_db                 = worker_com->args->rx_gain_offset;
+      q->init(i, args);
+      intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure_lte>(q));
+    }
   }
 
   // Allocate Secondary serving cell synchronization
@@ -134,6 +137,7 @@ sync::~sync()
 
 void sync::stop()
 {
+  std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
   worker_com->semaphore.wait_all();
   for (auto& q : intra_freq_meas) {
     q->stop();
@@ -151,7 +155,7 @@ void sync::reset()
   in_sync_cnt     = 0;
   out_of_sync_cnt = 0;
   current_earfcn  = -1;
-  srate_mode      = SRATE_NONE;
+  srate.reset();
   sfn_p.reset();
   search_p.reset();
 }
@@ -228,8 +232,7 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
 
   rrc_proc_state = PROC_SEARCH_RUNNING;
 
-  if (srate_mode != SRATE_FIND) {
-    srate_mode = SRATE_FIND;
+  if (srate.set_find()) {
     radio_h->set_rx_srate(1.92e6);
     radio_h->set_tx_srate(1.92e6);
     Info("SYNC:  Setting Cell Search sampling rate");
@@ -253,10 +256,10 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
   // Check return state
   switch (cell_search_ret) {
     case search::CELL_FOUND:
-      phy_logger.info("Cell Search: Found cell with PCI=%d with %d PRB", cell.id, cell.nof_prb);
+      phy_logger.info("Cell Search: Found cell with PCI=%d with %d PRB", cell.get().id, cell.get().nof_prb);
       if (found_cell) {
         found_cell->earfcn = current_earfcn;
-        found_cell->pci    = cell.id;
+        found_cell->pci    = cell.get().id;
         found_cell->cfo_hz = search_p.get_last_cfo();
       }
       ret.found = rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
@@ -337,7 +340,7 @@ bool sync::cell_select_start(phy_cell_t new_cell)
   search_p.reset();
 
   // Reconfigure cell if necessary
-  cell.id = new_cell.pci;
+  cell.set_pci(new_cell.pci);
   if (not set_cell(new_cell.cfo_hz)) {
     Error("Cell Select: Reconfiguring cell");
     goto clean_exit;
@@ -355,19 +358,16 @@ bool sync::cell_select_start(phy_cell_t new_cell)
   }
 
   // Reconfigure first intra-frequency measurement
-  intra_freq_meas[0]->set_primary_cell(current_earfcn, cell);
+  intra_freq_meas[0]->set_primary_cell(current_earfcn, cell.get());
 
   // Reconfigure secondary serving cell synchronization assuming the same BW than the primary
   // The secondary serving cell synchronization will not resize again when the SCell gets configured
   for (auto& e : scell_sync) {
-    e.second->set_bw(cell.nof_prb);
+    e.second->set_bw(cell.get().nof_prb);
   }
 
   // Change sampling rate if necessary
-  if (srate_mode != SRATE_CAMP) {
-    phy_logger.info("Cell Select: Setting CAMPING sampling rate");
-    set_sampling_rate();
-  }
+  set_sampling_rate();
 
   // SFN synchronization
   phy_state.run_sfn_sync();
@@ -411,8 +411,10 @@ bool sync::wait_idle()
 
 void sync::run_cell_search_state()
 {
-  cell_search_ret = search_p.run(&cell, mib);
+  srsran_cell_t tmp_cell = cell.get();
+  cell_search_ret        = search_p.run(&tmp_cell, mib);
   if (cell_search_ret == search::CELL_FOUND) {
+    cell.set(tmp_cell);
     stack->bch_decoded_ok(SYNC_CC_IDX, mib.data(), mib.size() / 8);
   }
   phy_state.state_exit();
@@ -420,12 +422,11 @@ void sync::run_cell_search_state()
 
 void sync::run_sfn_sync_state()
 {
-  srsran_cell_t temp_cell = cell;
-  switch (sfn_p.run_subframe(&temp_cell, &tti, mib)) {
+  srsran_cell_t old_cell = cell.get();
+  switch (sfn_p.run_subframe(&old_cell, &tti, mib)) {
     case sfn_sync::SFN_FOUND:
-      if (memcmp(&cell, &temp_cell, sizeof(srsran_cell_t)) != 0) {
-        srsran_cell_fprint(stdout, &cell, 0);
-        srsran_cell_fprint(stdout, &temp_cell, 0);
+      if (!cell.equals(old_cell)) {
+        srsran_cell_fprint(stdout, &old_cell, 0);
         phy_logger.error("Detected cell during SFN synchronization differs from configured cell. Cell reselection to "
                          "cells with different MIB is not supported");
         srsran::console("Detected cell during SFN synchronization differs from configured cell. Cell reselection "
@@ -474,7 +475,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   // Force decode MIB if required
   if (force_camping_sfn_sync) {
     uint32_t           _tti      = 0;
-    srsran_cell_t      temp_cell = cell;
+    srsran_cell_t      temp_cell = cell.get();
     sfn_sync::ret_code ret       = sfn_p.decode_mib(&temp_cell, &_tti, &sync_buffer, mib);
 
     if (ret == sfn_sync::SFN_FOUND) {
@@ -484,7 +485,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
       // Disable
       force_camping_sfn_sync = false;
 
-      if (memcmp(&cell, &temp_cell, sizeof(srsran_cell_t)) != 0) {
+      if (!cell.equals(temp_cell)) {
         phy_logger.error("Detected cell during SFN synchronization differs from configured cell. Cell "
                          "reselection to cells with different MIB is not supported");
         srsran::console("Detected cell during SFN synchronization differs from configured cell. Cell "
@@ -508,14 +509,15 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   }
 
   // Check if we need to TX a PRACH
-  if (prach_buffer->is_ready_to_send(tti, cell.id)) {
+  if (prach_buffer->is_ready_to_send(tti, cell.get().id)) {
     prach_ptr = prach_buffer->generate(get_tx_cfo(), &prach_nof_sf, &prach_power);
     if (prach_ptr == nullptr) {
       Error("Generating PRACH");
     }
   }
 
-  lte_worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSRAN_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
+  lte_worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSRAN_SF_LEN_PRB(cell.get().nof_prb)] : nullptr,
+                        prach_power);
 
   // Execute Serving Cell state FSM
   worker_com->cell_state.run_tti(tti);
@@ -627,8 +629,8 @@ void sync::run_idle_state()
 {
   if (radio_h->is_init()) {
     uint32_t nsamples = 1920;
-    if (std::isnormal(current_srate) and current_srate > 0.0f) {
-      nsamples = current_srate / 1000;
+    if (srate.is_normal()) {
+      nsamples = srate.get_srate() / 1000;
     }
     Debug("Discarding %d samples", nsamples);
     srsran_timestamp_t rx_time = {};
@@ -821,18 +823,21 @@ void sync::set_ue_sync_opts(srsran_ue_sync_t* q, float cfo_)
 
 bool sync::set_cell(float cfo_in)
 {
-  if (!srsran_cell_isvalid(&cell)) {
-    Error("SYNC:  Setting cell: invalid cell (nof_prb=%d, pci=%d, ports=%d)", cell.nof_prb, cell.id, cell.nof_ports);
+  if (!cell.is_valid()) {
+    Error("SYNC:  Setting cell: invalid cell (nof_prb=%d, pci=%d, ports=%d)",
+          cell.get().nof_prb,
+          cell.get().id,
+          cell.get().nof_ports);
     return false;
   }
 
   // Set cell in all objects
-  if (srsran_ue_sync_set_cell(&ue_sync, cell)) {
+  if (srsran_ue_sync_set_cell(&ue_sync, cell.get())) {
     Error("SYNC:  Setting cell: initiating ue_sync");
     return false;
   }
-  sfn_p.set_cell(cell);
-  worker_com->set_cell(cell);
+  sfn_p.set_cell(cell.get());
+  worker_com->set_cell(cell.get());
 
   // Reset cell configuration
   for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
@@ -843,7 +848,7 @@ bool sync::set_cell(float cfo_in)
   for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
     lte::sf_worker* w = lte_worker_pool->wait_worker_id(i);
     if (w) {
-      success &= w->set_cell_unlocked(0, cell);
+      success &= w->set_cell_unlocked(0, cell.get());
       w->release();
     }
   }
@@ -904,21 +909,18 @@ bool sync::set_frequency()
 
 void sync::set_sampling_rate()
 {
-  float new_srate = (float)srsran_sampling_freq_hz(cell.nof_prb);
+  float new_srate = (float)srsran_sampling_freq_hz(cell.get().nof_prb);
   if (new_srate < 0.0) {
-    Error("Invalid sampling rate for %d PRBs. keeping same.", cell.nof_prb);
+    Error("Invalid sampling rate for %d PRBs. keeping same.", cell.get().nof_prb);
     return;
   }
 
-  if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
-    current_srate = new_srate;
-    Info("SYNC:  Setting sampling rate %.2f MHz", current_srate / 1000000);
-
-    srate_mode = SRATE_CAMP;
-    radio_h->set_rx_srate(current_srate);
-    radio_h->set_tx_srate(current_srate);
+  if (srate.set_camp(new_srate)) {
+    Info("SYNC:  Setting sampling rate %.2f MHz", new_srate / 1000000);
+    radio_h->set_rx_srate(new_srate);
+    radio_h->set_tx_srate(new_srate);
   } else {
-    Error("Error setting sampling rate for cell with %d PRBs", cell.nof_prb);
+    Error("Error setting sampling rate for cell with %d PRBs", cell.get().nof_prb);
   }
 }
 
@@ -930,7 +932,7 @@ uint32_t sync::get_current_tti()
 void sync::get_current_cell(srsran_cell_t* cell_, uint32_t* earfcn_)
 {
   if (cell_) {
-    *cell_ = cell;
+    *cell_ = cell.get();
   }
   if (earfcn_) {
     *earfcn_ = current_earfcn;
@@ -968,12 +970,13 @@ int sync::radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time)
 
   // Execute channel DL emulator
   if (channel_emulator and rx_time) {
-    channel_emulator->set_srate((uint32_t)current_srate);
+    channel_emulator->set_srate((uint32_t)srate.get_srate());
     channel_emulator->run(data.to_cf_t(), data.to_cf_t(), data.get_nof_samples(), *rx_time);
   }
 
   // Save signal for Intra-frequency measurement
-  if (srsran_cell_isvalid(&cell)) {
+  if (cell.is_valid()) {
+    std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
     for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
       // Feed the exact number of base-band samples for avoiding an invalid buffer read
       intra_freq_meas[i]->run_tti(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
@@ -1040,12 +1043,14 @@ void sync::set_rx_gain(float gain)
 
 void sync::set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srsran_cell_t cell_)
 {
+  std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
   if (cc_idx < intra_freq_meas.size()) {
     intra_freq_meas[cc_idx]->set_primary_cell(earfcn_, cell_);
   }
 }
 void sync::set_cells_to_meas(uint32_t earfcn_, const std::set<uint32_t>& pci)
 {
+  std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
   bool found = false;
   for (size_t i = 0; i < intra_freq_meas.size() and not found; i++) {
     if (earfcn_ == intra_freq_meas[i]->get_earfcn()) {
@@ -1060,6 +1065,7 @@ void sync::set_cells_to_meas(uint32_t earfcn_, const std::set<uint32_t>& pci)
 
 void sync::meas_stop()
 {
+  std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
   for (auto& q : intra_freq_meas) {
     q->meas_stop();
   }

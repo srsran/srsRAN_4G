@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
+#include "srsenb/hdr/stack/rrc/rrc_endc.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srsran/asn1/rrc_utils.h"
@@ -87,6 +88,10 @@ int rrc::ue::init()
   }
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
+  if (parent->rrc_nr != nullptr) {
+    endc_handler = make_rnti_obj<rrc_endc>(rnti, this);
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -381,6 +386,9 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
         mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
       } else {
         parent->logger.warning("Received MeasReport but no mobility configuration is available");
+      }
+      if (endc_handler) {
+        endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
@@ -794,6 +802,10 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
     }
   }
 
+  if (endc_handler != nullptr) {
+    endc_handler->fill_conn_recfg(&recfg_r8);
+  }
+
   // Reuse same PDU
   if (pdu != nullptr) {
     pdu->clear();
@@ -947,6 +959,10 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities);
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
+
+    if (endc_handler) {
+      endc_handler->handle_ue_capabilities(eutra_capabilities);
+    }
   }
 
   if (eutra_capabilities_unpacked) {
@@ -1148,6 +1164,18 @@ void rrc::ue::update_scells()
   }
 
   parent->logger.info("SCells activated for rnti=0x%x", rnti);
+}
+
+/// EN-DC helper
+void rrc::ue::handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
+                                       const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15)
+{
+  endc_handler->handle_sgnb_addition_ack(nr_secondary_cell_group_cfg_r15, nr_radio_bearer_cfg1_r15);
+}
+
+void rrc::ue::handle_sgnb_addition_reject()
+{
+  endc_handler->handle_sgnb_addition_reject();
 }
 
 /********************** HELPERS ***************************/

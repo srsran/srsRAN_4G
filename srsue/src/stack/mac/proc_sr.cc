@@ -48,6 +48,7 @@ void sr_proc::init(ra_proc* ra_, phy_interface_mac_lte* phy_h_, rrc_interface_ma
 
 void sr_proc::reset()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   is_pending_sr = false;
 }
 
@@ -84,37 +85,56 @@ void sr_proc::set_config(srsran::sr_cfg_t& cfg)
 
 void sr_proc::step(uint32_t tti)
 {
-  if (initiated) {
-    if (is_pending_sr) {
-      if (sr_cfg.enabled) {
-        if (sr_counter < sr_cfg.dsr_transmax) {
-          if (sr_counter == 0 || need_tx(tti)) {
-            sr_counter++;
-            Info("SR:    Signalling PHY sr_counter=%d", sr_counter);
-            phy_h->sr_send();
+  bool                        do_mac_order     = false;
+  bool                        do_release_pucch = false;
+  bool                        do_sr            = false;
+
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (initiated) {
+      if (is_pending_sr) {
+        if (sr_cfg.enabled) {
+          if (sr_counter < sr_cfg.dsr_transmax) {
+            if (sr_counter == 0 || need_tx(tti)) {
+              sr_counter++;
+              Info("SR:    Signalling PHY sr_counter=%d", sr_counter);
+              do_sr = true;
+            }
+          } else {
+            if (need_tx(tti)) {
+              Info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, dsr_transmax=%d",
+                   sr_counter,
+                   sr_cfg.dsr_transmax);
+              srsran::console("Scheduling request failed: releasing RRC connection...\n");
+              do_mac_order     = true;
+              do_release_pucch = true;
+              is_pending_sr    = false;
+            }
           }
-        } else {
-          if (need_tx(tti)) {
-            Info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, dsr_transmax=%d",
-                 sr_counter,
-                 sr_cfg.dsr_transmax);
-            srsran::console("Scheduling request failed: releasing RRC connection...\n");
-            rrc->release_pucch_srs();
-            ra->start_mac_order();
-            reset();
-          }
+        } else if (ra->is_idle()) {
+          Info("SR:    PUCCH not configured. Starting RA procedure");
+          do_mac_order  = true;
+          is_pending_sr = false;
         }
-      } else if (ra->is_idle()) {
-        Info("SR:    PUCCH not configured. Starting RA procedure");
-        ra->start_mac_order();
-        reset();
       }
     }
+  }
+
+  // These calls go out of this component, so call them with mutex unlocked
+  if (do_sr) {
+    phy_h->sr_send();
+  }
+  if (do_release_pucch) {
+    rrc->release_pucch_srs();
+  }
+  if (do_mac_order) {
+    ra->start_mac_order();
   }
 }
 
 void sr_proc::start()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (initiated) {
     if (!is_pending_sr) {
       sr_counter    = 0;

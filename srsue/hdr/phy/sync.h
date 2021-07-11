@@ -215,6 +215,7 @@ private:
   search                                                  search_p;
   sfn_sync                                                sfn_p;
   std::vector<std::unique_ptr<scell::intra_measure_lte> > intra_freq_meas;
+  std::mutex                                              intra_freq_cfg_mutex;
 
   // Pointers to other classes
   stack_interface_phy_lte*     stack = nullptr;
@@ -268,11 +269,97 @@ private:
   search::ret_code cell_search_ret = search::CELL_NOT_FOUND;
 
   // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
-  enum { SRATE_NONE = 0, SRATE_FIND, SRATE_CAMP } srate_mode = SRATE_NONE;
-  float current_srate                                        = 0;
+  class srate_safe
+  {
+  public:
+    void reset()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      srate_mode    = SRATE_NONE;
+      current_srate = 0;
+    }
+    float get_srate()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return current_srate;
+    }
+    bool is_normal()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return std::isnormal(current_srate) and current_srate > 0.0f;
+    }
+    bool set_camp(float new_srate)
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
+        current_srate = new_srate;
+        srate_mode    = SRATE_CAMP;
+        return true;
+      }
+      return false;
+    }
+    bool set_find()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (srate_mode != SRATE_FIND) {
+        srate_mode    = SRATE_FIND;
+        current_srate = 1.92e6;
+        return true;
+      }
+      return false;
+    }
+
+  private:
+    enum { SRATE_NONE = 0, SRATE_FIND, SRATE_CAMP } srate_mode = SRATE_NONE;
+    float      current_srate                                   = 0;
+    std::mutex mutex;
+  };
+  // Protect sampling rate changes since accessed by multiple threads
+  srate_safe srate;
 
   // This is the primary cell
-  srsran_cell_t                               cell                   = {};
+  class cell_safe
+  {
+  public:
+    void set_pci(uint32_t id)
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      cell.id = id;
+    }
+    void reset()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      cell = {};
+    }
+    bool is_valid()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return srsran_cell_isvalid(&cell);
+    }
+    void set(srsran_cell_t& x)
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      cell = x;
+    }
+    srsran_cell_t get()
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return cell;
+    }
+    bool equals(srsran_cell_t& x)
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      return memcmp(&cell, &x, sizeof(srsran_cell_t)) == 0;
+    }
+
+  private:
+    srsran_cell_t cell = {};
+    std::mutex    mutex;
+  };
+
+  // Protect access to cell configuration since it's accessed by multiple threads
+  cell_safe cell;
+
   bool                                        force_camping_sfn_sync = false;
   uint32_t                                    tti                    = 0;
   srsran_timestamp_t                          stack_tti_ts_new       = {};

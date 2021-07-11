@@ -159,7 +159,7 @@ static int ue_ul_nr_encode_pucch_format1(srsran_ue_ul_nr_t*                  q,
   uint8_t b[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS] = {};
 
   // Set ACK bits
-  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_data->cfg.o_ack);
+  uint32_t nof_bits = SRSRAN_MIN(SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS, uci_data->cfg.ack.count);
   for (uint32_t i = 0; i < nof_bits; i++) {
     b[i] = uci_data->value.ack[i];
   }
@@ -269,7 +269,7 @@ int srsran_ue_ul_nr_pucch_info(const srsran_pucch_nr_resource_t* resource,
   int len = 0;
 
   // Append PDSCH info
-  len += srsran_pucch_nr_tx_info(resource, uci_data, &str[len], str_len - len);
+  len += srsran_pucch_nr_info(resource, uci_data, &str[len], str_len - len);
 
   return len;
 }

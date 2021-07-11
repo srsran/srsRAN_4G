@@ -165,8 +165,8 @@ static int uci_nr_pack_ack_sr(const srsran_uci_cfg_nr_t* cfg, const srsran_uci_v
   int A = 0;
 
   // Append ACK bits
-  srsran_vec_u8_copy(&sequence[A], value->ack, cfg->o_ack);
-  A += cfg->o_ack;
+  srsran_vec_u8_copy(&sequence[A], value->ack, cfg->ack.count);
+  A += cfg->ack.count;
 
   // Append SR bits
   uint8_t* bits = &sequence[A];
@@ -186,8 +186,8 @@ static int uci_nr_unpack_ack_sr(const srsran_uci_cfg_nr_t* cfg, uint8_t* sequenc
   int A = 0;
 
   // Append ACK bits
-  srsran_vec_u8_copy(value->ack, &sequence[A], cfg->o_ack);
-  A += cfg->o_ack;
+  srsran_vec_u8_copy(value->ack, &sequence[A], cfg->ack.count);
+  A += cfg->ack.count;
 
   // Append SR bits
   uint8_t* bits = &sequence[A];
@@ -207,8 +207,8 @@ static int uci_nr_pack_ack_sr_csi(const srsran_uci_cfg_nr_t* cfg, const srsran_u
   int A = 0;
 
   // Append ACK bits
-  srsran_vec_u8_copy(&sequence[A], value->ack, cfg->o_ack);
-  A += cfg->o_ack;
+  srsran_vec_u8_copy(&sequence[A], value->ack, cfg->ack.count);
+  A += cfg->ack.count;
 
   // Append SR bits
   uint8_t* bits = &sequence[A];
@@ -236,8 +236,8 @@ static int uci_nr_unpack_ack_sr_csi(const srsran_uci_cfg_nr_t* cfg, uint8_t* seq
   int A = 0;
 
   // Append ACK bits
-  srsran_vec_u8_copy(value->ack, &sequence[A], cfg->o_ack);
-  A += cfg->o_ack;
+  srsran_vec_u8_copy(value->ack, &sequence[A], cfg->ack.count);
+  A += cfg->ack.count;
 
   // Append SR bits
   uint8_t* bits = &sequence[A];
@@ -265,11 +265,11 @@ static int uci_nr_A(const srsran_uci_cfg_nr_t* cfg)
 
   // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
   if (o_csi == 0) {
-    return cfg->o_ack + cfg->o_sr;
+    return cfg->ack.count + cfg->o_sr;
   }
 
   // 6.3.1.1.2 CSI only
-  if (cfg->o_ack == 0 && cfg->o_sr == 0) {
+  if (cfg->ack.count == 0 && cfg->o_sr == 0) {
     return o_csi;
   }
 
@@ -288,7 +288,7 @@ static int uci_nr_pack_pucch(const srsran_uci_cfg_nr_t* cfg, const srsran_uci_va
   }
 
   // 6.3.1.1.2 CSI only
-  if (cfg->o_ack == 0 && cfg->o_sr == 0) {
+  if (cfg->ack.count == 0 && cfg->o_sr == 0) {
     return srsran_csi_part1_pack(cfg->csi, value->csi, cfg->nof_csi, sequence, SRSRAN_UCI_NR_MAX_NOF_BITS);
   }
 
@@ -306,7 +306,7 @@ static int uci_nr_unpack_pucch(const srsran_uci_cfg_nr_t* cfg, uint8_t* sequence
   }
 
   // 6.3.1.1.2 CSI only
-  if (cfg->o_ack == 0 && cfg->o_sr == 0) {
+  if (cfg->ack.count == 0 && cfg->o_sr == 0) {
     ERROR("CSI only are not implemented");
     return SRSRAN_ERROR;
   }
@@ -989,16 +989,16 @@ uint32_t srsran_uci_nr_total_bits(const srsran_uci_cfg_nr_t* uci_cfg)
     return 0;
   }
 
-  return uci_cfg->o_ack + uci_cfg->o_sr + srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  return uci_cfg->ack.count + uci_cfg->o_sr + srsran_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 }
 
 uint32_t srsran_uci_nr_info(const srsran_uci_data_nr_t* uci_data, char* str, uint32_t str_len)
 {
   uint32_t len = 0;
 
-  if (uci_data->cfg.o_ack > 0) {
+  if (uci_data->cfg.ack.count > 0) {
     char str_ack[10];
-    srsran_vec_sprint_bin(str_ack, (uint32_t)sizeof(str_ack), uci_data->value.ack, uci_data->cfg.o_ack);
+    srsran_vec_sprint_bin(str_ack, (uint32_t)sizeof(str_ack), uci_data->value.ack, uci_data->cfg.ack.count);
     len = srsran_print_check(str, str_len, len, "ack=%s ", str_ack);
   }
 
@@ -1075,7 +1075,7 @@ int srsran_uci_nr_encode_pusch_ack(srsran_uci_nr_t*             q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  int A = cfg->o_ack;
+  int A = cfg->ack.count;
 
   // 6.3.2.1 UCI bit sequence generation
   // 6.3.2.1.1 HARQ-ACK
@@ -1088,7 +1088,7 @@ int srsran_uci_nr_encode_pusch_ack(srsran_uci_nr_t*             q,
     UCI_NR_INFO_TX("No HARQ-ACK to mux");
     return SRSRAN_SUCCESS;
   } else {
-    srsran_vec_u8_copy(q->bit_sequence, value->ack, cfg->o_ack);
+    srsran_vec_u8_copy(q->bit_sequence, value->ack, cfg->ack.count);
   }
 
   // Compute total of encoded bits according to 6.3.2.4 Rate matching
@@ -1111,12 +1111,12 @@ int srsran_uci_nr_decode_pusch_ack(srsran_uci_nr_t*           q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  int A = cfg->o_ack;
+  int A = cfg->ack.count;
 
   // 6.3.2.1 UCI bit sequence generation
   // 6.3.2.1.1 HARQ-ACK
   bool has_csi_part2 = srsran_csi_has_part2(cfg->csi, cfg->nof_csi);
-  if (cfg->pusch.K_sum == 0 && cfg->nof_csi > 1 && !has_csi_part2 && cfg->o_ack < 2) {
+  if (cfg->pusch.K_sum == 0 && cfg->nof_csi > 1 && !has_csi_part2 && cfg->ack.count < 2) {
     A = 2;
   }
 
@@ -1187,7 +1187,7 @@ int srsran_uci_nr_pusch_csi1_nof_bits(const srsran_uci_cfg_nr_t* cfg)
     ERROR("Errpr calculating CSI part 1 number of bits");
     return SRSRAN_ERROR;
   }
-  uint32_t O_ack = SRSRAN_MAX(2, cfg->o_ack);
+  uint32_t O_ack = SRSRAN_MAX(2, cfg->ack.count);
 
   int Q_csi1_prime = uci_nr_pusch_Q_prime_csi1(&cfg->pusch, (uint32_t)O_csi1, O_ack);
   if (Q_csi1_prime < SRSRAN_SUCCESS) {

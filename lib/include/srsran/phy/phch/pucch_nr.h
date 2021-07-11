@@ -197,6 +197,7 @@ SRSRAN_API int srsran_pucch_nr_format1_encode(const srsran_pucch_nr_t*          
  * @param[in] slot_symbols Resource grid of the given slot
  * @param[out] b Bits to decode
  * @param[in] nof_bits Number of bits to decode in the message
+ * @param[out] norm_corr Normalised correlation
  * @return SRSRAN_SUCCESS if successful, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
@@ -206,7 +207,8 @@ SRSRAN_API int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                
                                               srsran_chest_ul_res_t*              chest_res,
                                               cf_t*                               slot_symbols,
                                               uint8_t  b[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS],
-                                              uint32_t nof_bits);
+                                              uint32_t nof_bits,
+                                              float*   norm_corr);
 
 /**
  * @brief Encoder NR-PUCCH formats 2, 3 and 4. The NR-PUCCH format is selected by resource->format.
@@ -248,9 +250,9 @@ SRSRAN_API int srsran_pucch_nr_format_2_3_4_decode(srsran_pucch_nr_t*           
                                                    cf_t*                               slot_symbols,
                                                    srsran_uci_value_nr_t*              uci_value);
 
-SRSRAN_API uint32_t srsran_pucch_nr_tx_info(const srsran_pucch_nr_resource_t* resource,
-                                            const srsran_uci_data_nr_t*       uci_data,
-                                            char*                             str,
-                                            uint32_t                          str_len);
+SRSRAN_API uint32_t srsran_pucch_nr_info(const srsran_pucch_nr_resource_t* resource,
+                                         const srsran_uci_data_nr_t*       uci_data,
+                                         char*                             str,
+                                         uint32_t                          str_len);
 
 #endif // SRSRAN_PUCCH_NR_H

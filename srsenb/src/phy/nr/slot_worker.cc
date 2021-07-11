@@ -62,22 +62,41 @@ bool slot_worker::init(const args_t& args)
   }
 
   // Prepare DL arguments
-  srsran_enb_dl_nr_args_t dl_args = {};
-  dl_args.pdsch.measure_time      = true;
-  dl_args.pdsch.max_layers        = args.carrier.max_mimo_layers;
-  dl_args.pdsch.max_prb           = args.carrier.nof_prb;
-  dl_args.nof_tx_antennas         = args.nof_tx_ports;
-  dl_args.nof_max_prb             = args.carrier.nof_prb;
+  srsran_gnb_dl_args_t dl_args = {};
+  dl_args.pdsch.measure_time   = true;
+  dl_args.pdsch.max_layers     = args.carrier.max_mimo_layers;
+  dl_args.pdsch.max_prb        = args.carrier.nof_prb;
+  dl_args.nof_tx_antennas      = args.nof_tx_ports;
+  dl_args.nof_max_prb          = args.carrier.nof_prb;
 
-  // Initialise  DL
-  if (srsran_enb_dl_nr_init(&gnb_dl, tx_buffer.data(), &dl_args) < SRSRAN_SUCCESS) {
-    logger.error("Error gNb PHY init");
+  // Initialise DL
+  if (srsran_gnb_dl_init(&gnb_dl, tx_buffer.data(), &dl_args) < SRSRAN_SUCCESS) {
+    logger.error("Error gNb DL init");
     return false;
   }
 
-  // Set gNb carrier
-  if (srsran_enb_dl_nr_set_carrier(&gnb_dl, &args.carrier) < SRSRAN_SUCCESS) {
-    logger.error("Error setting carrier");
+  // Set gNb DL carrier
+  if (srsran_gnb_dl_set_carrier(&gnb_dl, &args.carrier) < SRSRAN_SUCCESS) {
+    logger.error("Error setting DL carrier");
+    return false;
+  }
+
+  // Prepare UL arguments
+  srsran_gnb_ul_args_t ul_args = {};
+  ul_args.pusch.measure_time   = true;
+  ul_args.pusch.max_layers     = args.carrier.max_mimo_layers;
+  ul_args.pusch.max_prb        = args.carrier.nof_prb;
+  ul_args.nof_max_prb          = args.carrier.nof_prb;
+
+  // Initialise UL
+  if (srsran_gnb_ul_init(&gnb_ul, rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
+    logger.error("Error gNb DL init");
+    return false;
+  }
+
+  // Set gNb UL carrier
+  if (srsran_gnb_ul_set_carrier(&gnb_ul, &args.carrier) < SRSRAN_SUCCESS) {
+    logger.error("Error setting UL carrier");
     return false;
   }
 
@@ -98,7 +117,8 @@ slot_worker::~slot_worker()
       b = nullptr;
     }
   }
-  srsran_enb_dl_nr_free(&gnb_dl);
+  srsran_gnb_dl_free(&gnb_dl);
+  srsran_gnb_ul_free(&gnb_ul);
 }
 
 cf_t* slot_worker::get_buffer_rx(uint32_t antenna_idx)
@@ -140,14 +160,72 @@ bool slot_worker::work_ul()
     return false;
   }
 
+  // Demodulate
+  if (srsran_gnb_ul_fft(&gnb_ul) < SRSRAN_SUCCESS) {
+    logger.error("Error in demodulation");
+    return false;
+  }
+
   // Decode PUCCH
   for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
-    // ...
+    stack_interface_phy_nr::pucch_info_t pucch_info = {};
+    pucch_info.uci_data.cfg                         = pucch.uci_cfg;
+
+    // Decode PUCCH
+    if (srsran_gnb_ul_get_pucch(&gnb_ul,
+                                &ul_slot_cfg,
+                                &pucch.pucch_cfg,
+                                &pucch.resource,
+                                &pucch_info.uci_data.cfg,
+                                &pucch_info.uci_data.value) < SRSRAN_SUCCESS) {
+      logger.error("Error getting PUCCH");
+      return false;
+    }
+
+    // Inform stack
+    if (stack.pucch_info(ul_slot_cfg, pucch_info) < SRSRAN_SUCCESS) {
+      logger.error("Error pushing PUCCH information to stack");
+      return false;
+    }
+
+    // Log PUCCH decoding
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srsran_gnb_ul_pucch_info(&gnb_ul, &pucch.resource, &pucch_info.uci_data, str.data(), (uint32_t)str.size());
+
+      logger.info("PUCCH: %s", str.data());
+    }
   }
 
   // Decode PUSCH
   for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
-    // ...
+    // Get payload PDU
+    stack_interface_phy_nr::pusch_info_t pusch_info = {};
+    pusch_info.uci_cfg                              = pusch.sch.uci;
+    pusch_info.pid                                  = pusch.pid;
+    pusch_info.pusch_data.tb[0].payload             = pusch.data[0];
+    pusch_info.pusch_data.tb[1].payload             = pusch.data[1];
+
+    // Decode PUCCH
+    if (srsran_gnb_ul_get_pusch(&gnb_ul, &ul_slot_cfg, &pusch.sch, &pusch.sch.grant, &pusch_info.pusch_data) <
+        SRSRAN_SUCCESS) {
+      logger.error("Error getting PUSCH");
+      return false;
+    }
+
+    // Inform stack
+    if (stack.pusch_info(ul_slot_cfg, pusch_info) < SRSRAN_SUCCESS) {
+      logger.error("Error pushing PUSCH information to stack");
+      return false;
+    }
+
+    // Log PUSCH decoding
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srsran_gnb_ul_pusch_info(&gnb_ul, &pusch.sch, &pusch_info.pusch_data, str.data(), (uint32_t)str.size());
+
+      logger.info("PUSCH: %s", str.data());
+    }
   }
 
   return true;
@@ -157,12 +235,12 @@ bool slot_worker::work_dl()
 {
   // Retrieve Scheduling for the current processing DL slot
   stack_interface_phy_nr::dl_sched_t dl_sched = {};
-  if (stack.get_dl_sched(ul_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
+  if (stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
     logger.error("Error retrieving DL scheduling");
     return false;
   }
 
-  if (srsran_enb_dl_nr_base_zero(&gnb_dl) < SRSRAN_SUCCESS) {
+  if (srsran_gnb_dl_base_zero(&gnb_dl) < SRSRAN_SUCCESS) {
     logger.error("Error zeroeing RE grid");
     return false;
   }
@@ -170,13 +248,13 @@ bool slot_worker::work_dl()
   // Encode PDCCH for DL transmissions
   for (const stack_interface_phy_nr::pdcch_dl_t& pdcch : dl_sched.pdcch_dl) {
     // Set PDCCH configuration, including DCI dedicated
-    if (srsran_enb_dl_nr_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error setting DL configuration");
       return false;
     }
 
     // Put PDCCH message
-    if (srsran_enb_dl_nr_pdcch_put_dl(&gnb_dl, &dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_pdcch_put_dl(&gnb_dl, &dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error putting DL message");
       return false;
     }
@@ -184,7 +262,7 @@ bool slot_worker::work_dl()
     // Log PDCCH information
     if (logger.info.enabled()) {
       std::array<char, 512> str = {};
-      srsran_enb_dl_nr_pdcch_dl_info(&gnb_dl, &pdcch.dci, str.data(), (uint32_t)str.size());
+      srsran_gnb_dl_pdcch_dl_info(&gnb_dl, &pdcch.dci, str.data(), (uint32_t)str.size());
       logger.info("PDCCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
     }
   }
@@ -192,13 +270,13 @@ bool slot_worker::work_dl()
   // Encode PDCCH for UL transmissions
   for (const stack_interface_phy_nr::pdcch_ul_t& pdcch : dl_sched.pdcch_ul) {
     // Set PDCCH configuration, including DCI dedicated
-    if (srsran_enb_dl_nr_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error setting DL configuration");
       return false;
     }
 
     // Put PDCCH message
-    if (srsran_enb_dl_nr_pdcch_put_ul(&gnb_dl, &dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_pdcch_put_ul(&gnb_dl, &dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error putting DL message");
       return false;
     }
@@ -206,7 +284,7 @@ bool slot_worker::work_dl()
     // Log PDCCH information
     if (logger.info.enabled()) {
       std::array<char, 512> str = {};
-      srsran_enb_dl_nr_pdcch_ul_info(&gnb_dl, &pdcch.dci, str.data(), (uint32_t)str.size());
+      srsran_gnb_dl_pdcch_ul_info(&gnb_dl, &pdcch.dci, str.data(), (uint32_t)str.size());
       logger.info("PDCCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
     }
   }
@@ -214,7 +292,7 @@ bool slot_worker::work_dl()
   // Encode PDSCH
   for (stack_interface_phy_nr::pdsch_t& pdsch : dl_sched.pdsch) {
     // Put PDSCH message
-    if (srsran_enb_dl_nr_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, pdsch.data.data()) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, pdsch.data.data()) < SRSRAN_SUCCESS) {
       logger.error("PDSCH: Error putting DL message");
       return false;
     }
@@ -222,7 +300,7 @@ bool slot_worker::work_dl()
     // Log PDSCH information
     if (logger.info.enabled()) {
       std::array<char, 512> str = {};
-      srsran_enb_dl_nr_pdsch_info(&gnb_dl, &pdsch.sch, str.data(), (uint32_t)str.size());
+      srsran_gnb_dl_pdsch_info(&gnb_dl, &pdsch.sch, str.data(), (uint32_t)str.size());
       logger.info("PDSCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
     }
   }
@@ -233,7 +311,7 @@ bool slot_worker::work_dl()
   }
 
   // Generate baseband signal
-  srsran_enb_dl_nr_gen_signal(&gnb_dl);
+  srsran_gnb_dl_gen_signal(&gnb_dl);
 
   // Add SSB to the baseband signal
   for (const stack_interface_phy_nr::ssb_t& ssb : dl_sched.ssb) {

@@ -383,7 +383,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
 
   // if the number of HARQ-ACK information bits to be transmitted on PUSCH is 0, 1 or 2 bits
   uint32_t G_ack_rvd = 0;
-  if (cfg->o_ack <= 2) {
+  if (cfg->ack.count <= 2) {
     // the number of reserved resource elements for potential HARQ-ACK transmission is calculated according to Clause
     // 6.3.2.4.2.1, by setting O_ACK = 2 ;
     G_ack_rvd = srsran_uci_nr_pusch_ack_nof_bits(&cfg->pusch, 2);
@@ -421,7 +421,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
     uint32_t ack_d          = 0;
     uint32_t ack_m_re_count = 0;
     if (l >= l1) {
-      if (cfg->o_ack <= 2 && m_ack_count < G_ack_rvd) {
+      if (cfg->ack.count <= 2 && m_ack_count < G_ack_rvd) {
         ack_d          = 1;
         ack_m_re_count = M_ulsch_sc;
         if (G_ack_rvd - m_ack_count < M_uci_sc * Nl * Qm) {
@@ -507,7 +507,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
 
       // Set reserved bits only if there are ACK bits
       if (reserved) {
-        if (cfg->o_ack > 0) {
+        if (cfg->ack.count > 0) {
           for (uint32_t j = 0; j < Nl * Qm; j++) {
             pos_ack[m_ack_count++] = m_all_count + j;
           }
@@ -540,7 +540,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
   q->G_ulsch = m_ulsch_count;
 
   // Assert Number of bits
-  if (G_ack_rvd != 0 && G_ack_rvd != m_ack_count && cfg->o_ack > 0) {
+  if (G_ack_rvd != 0 && G_ack_rvd != m_ack_count && cfg->ack.count > 0) {
     ERROR("Not matched %d!=%d", G_ack_rvd, m_ack_count);
   }
   if (G_ack != 0 && G_ack != m_ack_count) {
@@ -560,7 +560,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
       DEBUG("UL-SCH bit positions:");
       srsran_vec_fprint_i(stdout, (int*)pos_ulsch, m_ulsch_count);
     }
-    if (m_ack_count != 0 && cfg->o_ack > 0) {
+    if (m_ack_count != 0 && cfg->ack.count > 0) {
       DEBUG("HARQ-ACK bit positions [%d]:", m_ack_count);
       srsran_vec_fprint_i(stdout, (int*)pos_ack, m_ack_count);
     }
@@ -671,7 +671,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   srsran_sequence_apply_bit(b, q->b[tb->cw_idx], nof_bits, cinit);
 
   // Special Scrambling condition
-  if (cfg->uci.o_ack <= 2) {
+  if (cfg->uci.ack.count <= 2) {
     for (uint32_t i = 0; i < q->G_ack; i++) {
       uint32_t idx = q->pos_ack[i];
       if (q->g_ack[i] == (uint8_t)UCI_BIT_REPETITION) {
@@ -802,7 +802,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
   uint32_t nof_bits = tb->nof_re * srsran_mod_bits_x_symbol(tb->mod);
 
   // Calculate HARQ-ACK bits
-  int n = srsran_uci_nr_pusch_ack_nof_bits(&cfg->uci.pusch, cfg->uci.o_ack);
+  int n = srsran_uci_nr_pusch_ack_nof_bits(&cfg->uci.pusch, cfg->uci.ack.count);
   if (n < SRSRAN_SUCCESS) {
     ERROR("Calculating G_ack");
     return SRSRAN_ERROR;
@@ -918,7 +918,7 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
                            const srsran_sch_grant_nr_t* grant,
                            srsran_chest_dl_res_t*       channel,
                            cf_t*                        sf_symbols[SRSRAN_MAX_PORTS],
-                           srsran_pusch_res_nr_t*       data[SRSRAN_MAX_TB])
+                           srsran_pusch_res_nr_t*       data)
 {
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols || !channel) {
@@ -987,7 +987,7 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
 
   // SCH decode
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
-    if (pusch_nr_decode_codeword(q, cfg, &grant->tb[tb], data[0], grant->rnti) < SRSRAN_SUCCESS) {
+    if (pusch_nr_decode_codeword(q, cfg, &grant->tb[tb], data, grant->rnti) < SRSRAN_SUCCESS) {
       ERROR("Error encoding TB %d", tb);
       return SRSRAN_ERROR;
     }

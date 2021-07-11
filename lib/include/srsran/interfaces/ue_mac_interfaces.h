@@ -109,21 +109,7 @@ public:
   virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;
 };
 
-class mac_interface_rrc_common
-{
-public:
-  // Class to handle UE specific RNTIs between RRC and MAC
-  typedef struct {
-    uint16_t crnti;
-    uint16_t rar_rnti;
-    uint16_t temp_rnti;
-    uint16_t tpc_rnti;
-    uint16_t sps_rnti;
-    uint64_t contention_id;
-  } ue_rnti_t;
-};
-
-class mac_interface_rrc : public mac_interface_rrc_common
+class mac_interface_rrc
 {
 public:
   /* Instructs the MAC to start receiving BCCH */
@@ -147,9 +133,9 @@ public:
 
   virtual void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) = 0;
 
-  virtual void get_rntis(ue_rnti_t* rntis)                      = 0;
-  virtual void set_contention_id(uint64_t uecri)                = 0;
-  virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
+  virtual uint16_t get_crnti()                                      = 0;
+  virtual void     set_contention_id(uint64_t uecri)                = 0;
+  virtual void     set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
 
   virtual void reconfiguration(const uint32_t& cc_idx, const bool& enable) = 0;
   virtual void reset()                                                     = 0;

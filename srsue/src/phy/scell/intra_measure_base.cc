@@ -45,7 +45,7 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
   context.meas_period_ms     = args.period_ms;
   context.trigger_tti_period = args.tti_period;
   context.trigger_tti_offset = args.tti_offset;
-  context.rx_gain_offset_db  = args.rx_gain_offset_db;
+  rx_gain_offset_db          = args.rx_gain_offset_db;
 
   // Compute subframe length from the sampling rate if available
   if (std::isnormal(args.srate_hz)) {
@@ -95,7 +95,7 @@ void intra_measure_base::stop()
 
 void intra_measure_base::set_rx_gain_offset(float rx_gain_offset_db_)
 {
-  context.rx_gain_offset_db = rx_gain_offset_db_;
+  rx_gain_offset_db = rx_gain_offset_db_;
 }
 
 void intra_measure_base::meas_stop()
@@ -188,7 +188,7 @@ void intra_measure_base::measure_proc()
   }
 
   // Perform measurements for the actual RAT
-  if (not measure_rat(context, search_buffer)) {
+  if (not measure_rat(context, search_buffer, rx_gain_offset_db)) {
     Log(error, "Error measuring RAT");
   }
 }

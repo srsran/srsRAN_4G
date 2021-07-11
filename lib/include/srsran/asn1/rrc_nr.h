@@ -2263,11 +2263,8 @@ struct setup_release_c {
 
   // choice methods
   setup_release_c() = default;
-  void        set(typename types::options e = types::nulltype);
   types       type() const { return type_; }
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
+
   // getters
   elem_type_paramT_& setup()
   {
@@ -2280,6 +2277,57 @@ struct setup_release_c {
     return c;
   }
   void               set_release() { set(types::release); }
+
+  void set(typename types::options e) { type_ = e; }
+
+  void to_json(json_writer& j) const
+  {
+    j.start_obj();
+    switch (type_) {
+      case types::release:
+        break;
+      case types::setup:
+        break;
+      default:
+        log_invalid_choice_id(type_, "setup_release_c");
+    }
+    j.end_obj();
+  }
+
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    type_.pack(bref);
+    switch (type_) {
+      case types::release:
+        break;
+      case types::setup:
+        HANDLE_CODE(c.pack(bref));
+        break;
+      default:
+        log_invalid_choice_id(type_, "setup_release_c");
+        return SRSASN_ERROR_ENCODE_FAIL;
+    }
+    return SRSASN_SUCCESS;
+  }
+
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    types e;
+    e.unpack(bref);
+    set(e);
+    switch (type_) {
+      case types::release:
+        break;
+      case types::setup:
+        HANDLE_CODE(c.unpack(bref));
+        break;
+      default:
+        log_invalid_choice_id(type_, "setup_release_c");
+        return SRSASN_ERROR_DECODE_FAIL;
+    }
+    return SRSASN_SUCCESS;
+  }
+
   elem_type_paramT_& set_setup()
   {
     set(types::setup);

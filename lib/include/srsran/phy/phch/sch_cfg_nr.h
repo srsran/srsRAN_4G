@@ -37,7 +37,8 @@ typedef struct SRSRAN_API {
   uint32_t     N_L;      ///< the number of transmission layers that the transport block is mapped onto
   uint32_t     mcs;      ///< Modulation Code Scheme (MCS) for debug and trace purpose
   int          tbs;      ///< Payload size, TS 38.212 refers to it as A
-  double       R;        ///< Target LDPC rate
+  double       R;        ///< Target code rate
+  double       R_prime;  ///< Actual code rate
   int          rv;       ///< Redundancy version
   int          ndi;      ///< New Data Indicator
   uint32_t     nof_re;   ///< Number of available resource elements to transmit ULSCH (data) and UCI (control)

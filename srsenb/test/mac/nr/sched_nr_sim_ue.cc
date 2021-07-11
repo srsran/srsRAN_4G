@@ -20,7 +20,7 @@
  */
 
 #include "sched_nr_sim_ue.h"
-#include "lib/include/srsran/common/test_common.h"
+#include "srsran/common/test_common.h"
 
 namespace srsenb {
 

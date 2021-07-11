@@ -27,10 +27,10 @@ namespace srsenb {
 
 gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(srslog::fetch_basic_logger("RLC-NR"))
 {
-  m_mac.reset(new mac_nr());
+  m_mac.reset(new mac_nr(&task_sched));
   m_rlc.reset(new rlc_nr("RLC-NR"));
   m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP-NR"));
-  m_rrc.reset(new rrc_nr(task_sched.get_timer_handler()));
+  m_rrc.reset(new rrc_nr(&task_sched));
   m_sdap.reset(new sdap());
   m_gw.reset(new srsue::gw());
   //  m_gtpu.reset(new srsenb::gtpu());
@@ -88,7 +88,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   pdcp_args.log_hex_limit  = args.log.pdcp_hex_limit;
   m_pdcp->init(pdcp_args, m_rlc.get(), m_rrc.get(), m_sdap.get());
 
-  m_rrc->init(rrc_cfg_, phy, m_mac.get(), m_rlc.get(), m_pdcp.get(), nullptr, nullptr);
+  m_rrc->init(rrc_cfg_, phy, m_mac.get(), m_rlc.get(), m_pdcp.get(), nullptr, nullptr, nullptr);
 
   m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
 
@@ -197,6 +197,14 @@ int gnb_stack_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl
 int gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
 {
   return m_mac->get_ul_sched(slot_cfg, ul_sched);
+}
+int gnb_stack_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
+{
+  return m_mac->pucch_info(slot_cfg, pucch_info);
+}
+int gnb_stack_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
+{
+  return m_mac->pusch_info(slot_cfg, pusch_info);
 }
 
 } // namespace srsenb

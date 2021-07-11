@@ -207,7 +207,7 @@ void mac::run_tti(const uint32_t tti)
   sr_procedure.step(tti);
   phr_procedure.step();
   ra_procedure.step(tti);
-  ra_procedure.update_rar_window(ra_window_start, ra_window_length);
+  ra_procedure.update_rar_window(ra_window);
 
   // Count TTI for metrics
   for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; i++) {
@@ -219,13 +219,13 @@ void mac::bcch_start_rx(int si_window_start_, int si_window_length_)
 {
   if (si_window_length_ >= 0 && si_window_start_ >= 0) {
     dl_harq.at(0)->set_si_window_start(si_window_start_);
-    si_window_length = si_window_length_;
-    si_window_start  = si_window_start_;
+    si_window.set(si_window_length_, si_window_start_);
   } else {
-    si_window_length = 0;
-    si_window_start  = 0;
+    si_window.reset();
   }
-  Info("SCHED: Searching for DL dci for SI-RNTI window_st=%d, window_len=%d", si_window_start, si_window_length);
+  Info("SCHED: Searching for DL dci for SI-RNTI window_st=%d, window_len=%d",
+       si_window.get_start(),
+       si_window.get_length());
 }
 
 void mac::bcch_stop_rx()
@@ -235,28 +235,25 @@ void mac::bcch_stop_rx()
 
 void mac::pcch_start_rx()
 {
-  this->p_window_start = 1;
+  this->p_window.set(0, 1);
 }
 
 void mac::clear_rntis()
 {
-  p_window_start   = 0;
-  si_window_start  = 0;
-  ra_window_start  = -1;
-  ra_window_length = -1;
-  bzero(&uernti, sizeof(ue_rnti_t));
+  p_window.reset();
+  si_window.reset();
+  ra_window.reset();
+  uernti.reset();
 }
 
-void mac::get_rntis(ue_rnti_t* rntis)
+uint16_t mac::get_crnti()
 {
-  if (rntis) {
-    *rntis = uernti;
-  }
+  return uernti.get_crnti();
 }
 
 void mac::set_ho_rnti(uint16_t crnti, uint16_t target_pci)
 {
-  uernti.crnti = crnti;
+  uernti.set_crnti(crnti);
   if (pcap) {
     pcap->set_ue_id(target_pci);
   }
@@ -264,71 +261,44 @@ void mac::set_ho_rnti(uint16_t crnti, uint16_t target_pci)
 
 uint16_t mac::get_ul_sched_rnti(uint32_t tti)
 {
-  if (uernti.temp_rnti && !uernti.crnti) {
-    return uernti.temp_rnti;
+  if (uernti.get_temp_rnti() && !uernti.get_crnti()) {
+    return uernti.get_temp_rnti();
   }
-  if (uernti.crnti) {
-    return uernti.crnti;
+  if (uernti.get_crnti()) {
+    return uernti.get_crnti();
   }
   return SRSRAN_INVALID_RNTI;
-}
-
-bool mac::is_in_window(uint32_t tti, int* start, int* len)
-{
-  uint32_t st = (uint32_t)*start;
-  uint32_t l  = (uint32_t)*len;
-
-  if (srsran_tti_interval(tti, st) < l + 5) {
-    if (tti > st) {
-      if (tti <= st + l) {
-        return true;
-      } else {
-        *start = 0;
-        *len   = 0;
-        return false;
-      }
-    } else {
-      if (tti <= (st + l) % 10240) {
-        return true;
-      } else {
-        *start = 0;
-        *len   = 0;
-        return false;
-      }
-    }
-  }
-  return false;
 }
 
 uint16_t mac::get_dl_sched_rnti(uint32_t tti)
 {
   // Priority: SI-RNTI, P-RNTI, RA-RNTI, Temp-RNTI, CRNTI
-  if (si_window_start > 0) {
-    if (is_in_window(tti, &si_window_start, &si_window_length)) {
-      // TODO: This scheduling decision belongs to RRC
-      if (si_window_length > 1) {                     // This is not a SIB1
-        if ((tti / 10) % 2 == 0 && (tti % 10) == 5) { // Skip subframe #5 for which SFN mod 2 = 0
-          return SRSRAN_INVALID_RNTI;
-        }
+  if (si_window.is_in_window(tti)) {
+    // TODO: This scheduling decision belongs to RRC
+    if (si_window.get_length() > 1) {               // This is not a SIB1
+      if ((tti / 10) % 2 == 0 && (tti % 10) == 5) { // Skip subframe #5 for which SFN mod 2 = 0
+        return SRSRAN_INVALID_RNTI;
       }
-      Debug("SCHED: Searching SI-RNTI, tti=%d, window start=%d, length=%d", tti, si_window_start, si_window_length);
-      return SRSRAN_SIRNTI;
     }
+    Debug("SCHED: Searching SI-RNTI, tti=%d, window start=%d, length=%d",
+          tti,
+          si_window.get_start(),
+          si_window.get_length());
+    return SRSRAN_SIRNTI;
   }
-  if (uernti.rar_rnti && ra_window_start > 0 && ra_window_length > 0 &&
-      is_in_window(tti, &ra_window_start, &ra_window_length)) {
-    Debug("SCHED: Searching RAR-RNTI=0x%x, tti=%d", uernti.rar_rnti, tti);
-    return uernti.rar_rnti;
+  if (uernti.get_rar_rnti() && ra_window.is_in_window(tti)) {
+    Debug("SCHED: Searching RAR-RNTI=0x%x, tti=%d", uernti.get_rar_rnti(), tti);
+    return uernti.get_rar_rnti();
   }
-  if (uernti.temp_rnti && !uernti.crnti) {
-    Debug("SCHED: Searching Temp-RNTI=0x%x", uernti.temp_rnti);
-    return uernti.temp_rnti;
+  if (uernti.get_temp_rnti() && !uernti.get_crnti()) {
+    Debug("SCHED: Searching Temp-RNTI=0x%x", uernti.get_temp_rnti());
+    return uernti.get_temp_rnti();
   }
-  if (uernti.crnti) {
-    Debug("SCHED: Searching C-RNTI=0x%x", uernti.crnti);
-    return uernti.crnti;
+  if (uernti.get_crnti()) {
+    Debug("SCHED: Searching C-RNTI=0x%x", uernti.get_crnti());
+    return uernti.get_crnti();
   }
-  if (p_window_start > 0) {
+  if (p_window.is_set()) {
     Debug("SCHED: Searching P-RNTI");
     return SRSRAN_PRNTI;
   }
@@ -428,14 +398,17 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSRAN_MAX_
     dl_harq.at(cc_idx)->tb_decoded(grant, ack);
     process_pdus();
 
-    for (uint32_t tb = 0; tb < SRSRAN_MAX_CODEWORDS; tb++) {
-      if (grant.tb[tb].tbs) {
-        if (ack[tb]) {
-          metrics[cc_idx].rx_brate += grant.tb[tb].tbs * 8;
-        } else {
-          metrics[cc_idx].rx_errors++;
+    {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
+      for (uint32_t tb = 0; tb < SRSRAN_MAX_CODEWORDS; tb++) {
+        if (grant.tb[tb].tbs) {
+          if (ack[tb]) {
+            metrics[cc_idx].rx_brate += grant.tb[tb].tbs * 8;
+          } else {
+            metrics[cc_idx].rx_errors++;
+          }
+          metrics[cc_idx].rx_pkts++;
         }
-        metrics[cc_idx].rx_pkts++;
       }
     }
   }
@@ -461,7 +434,7 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
     }
   } else if (!(grant.rnti == SRSRAN_SIRNTI && cc_idx != 0)) {
     // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
-    if (grant.rnti == uernti.crnti && ra_procedure.is_contention_resolution()) {
+    if (grant.rnti == uernti.get_crnti() && ra_procedure.is_contention_resolution()) {
       ra_procedure.pdcch_to_crnti(false);
     }
     // Assert DL HARQ entity
@@ -589,7 +562,7 @@ void mac::timer_alignment_expire()
 
 void mac::set_contention_id(uint64_t uecri)
 {
-  uernti.contention_id = uecri;
+  uernti.set_contention_id(uecri);
 }
 
 void mac::set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask)

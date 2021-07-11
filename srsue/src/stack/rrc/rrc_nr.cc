@@ -1283,7 +1283,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 
 bool rrc_nr::apply_phy_cell_group_cfg(const phys_cell_group_cfg_s& phys_cell_group_cfg)
 {
-  srsran_ue_dl_nr_harq_ack_cfg_t harq_ack;
+  srsran_harq_ack_cfg_hl_t harq_ack;
   if (make_phy_harq_ack_cfg(phys_cell_group_cfg, &harq_ack) == true) {
     phy_cfg.harq_ack = harq_ack;
   } else {

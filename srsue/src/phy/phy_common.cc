@@ -58,7 +58,7 @@ void phy_common::init(phy_args_t*                  _args,
   stack          = _stack;
   args           = _args;
   insync_itf     = _chest_loop;
-  sr_last_tx_tti = -1;
+  sr.reset();
 
   // Instantiate UL channel emulator
   if (args->ul_channel_args.enable) {
@@ -882,10 +882,9 @@ void phy_common::reset()
 {
   reset_radio();
 
-  sr_enabled      = false;
+  sr.reset();
   cur_pathloss    = 0;
   cur_pusch_power = 0;
-  sr_last_tx_tti  = -1;
   last_ri         = 0;
 
   // Reset all measurements

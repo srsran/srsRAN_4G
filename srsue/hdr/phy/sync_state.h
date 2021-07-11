@@ -91,8 +91,16 @@ public:
   }
 
   /* Helpers below this */
-  bool is_idle() { return cur_state == IDLE; }
-  bool is_camping() { return cur_state == CAMPING; }
+  bool is_idle()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return cur_state == IDLE;
+  }
+  bool is_camping()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return cur_state == CAMPING;
+  }
   bool wait_idle(uint32_t timeout_ms)
   {
     std::unique_lock<std::mutex> lock(mutex);

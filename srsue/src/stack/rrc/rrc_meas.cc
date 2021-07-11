@@ -379,20 +379,27 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_
       rc.pci_r15 = (uint16_t)cell.pci;
 
       // Set quantity to report
-      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_rsrp == true) {
+      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15.is_present()) {
+        if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_rsrp == true) {
+          rc.meas_result_cell_r15.rsrp_result_r15_present = true;
+          rc.meas_result_cell_r15.rsrp_result_r15 =
+              value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15, rsrp_value);
+        }
+        if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_rsrq == true) {
+          rc.meas_result_cell_r15.rsrq_result_r15_present = true;
+          rc.meas_result_cell_r15.rsrq_result_r15 =
+              value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15, rsrq_value);
+        }
+        if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_sinr == true) {
+          rc.meas_result_cell_r15.rs_sinr_result_r15_present = true;
+          rc.meas_result_cell_r15.rs_sinr_result_r15 =
+              value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15, 1.0);
+        }
+      } else {
+        logger.warning("Report quantity for NR cells not present in measurement config. Sending RSRP anyway.");
         rc.meas_result_cell_r15.rsrp_result_r15_present = true;
         rc.meas_result_cell_r15.rsrp_result_r15 =
             value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15, rsrp_value);
-      }
-      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_rsrq == true) {
-        rc.meas_result_cell_r15.rsrq_result_r15_present = true;
-        rc.meas_result_cell_r15.rsrq_result_r15 =
-            value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15, rsrq_value);
-      }
-      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_sinr == true) {
-        rc.meas_result_cell_r15.rs_sinr_result_r15_present = true;
-        rc.meas_result_cell_r15.rs_sinr_result_r15 =
-            value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15, 1.0);
       }
 
       logger.info("MEAS:  Adding to report neighbour=%d, pci=%d, earfcn=%d, rsrp=%+.1f, rsrq=%+.1f",

@@ -32,6 +32,7 @@
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/threads.h"
 #include "srsran/common/timeout.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/interfaces/gnb_ngap_interfaces.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
@@ -69,18 +70,20 @@ struct rrc_nr_cfg_t {
 class rrc_nr final : public rrc_interface_pdcp_nr,
                      public rrc_interface_mac_nr,
                      public rrc_interface_rlc_nr,
-                     public rrc_interface_ngap_nr
+                     public rrc_interface_ngap_nr,
+                     public rrc_nr_interface_rrc
 {
 public:
-  explicit rrc_nr(srsran::timer_handler* timers_);
+  explicit rrc_nr(srsran::task_sched_handle task_sched_);
 
-  int32_t init(const rrc_nr_cfg_t&     cfg,
-               phy_interface_stack_nr* phy,
-               mac_interface_rrc_nr*   mac,
-               rlc_interface_rrc_nr*   rlc,
-               pdcp_interface_rrc_nr*  pdcp,
-               ngap_interface_rrc_nr*  ngap_,
-               gtpu_interface_rrc_nr*  gtpu);
+  int32_t init(const rrc_nr_cfg_t&         cfg,
+               phy_interface_stack_nr*     phy,
+               mac_interface_rrc_nr*       mac,
+               rlc_interface_rrc_nr*       rlc,
+               pdcp_interface_rrc_nr*      pdcp,
+               ngap_interface_rrc_nr*      ngap_,
+               gtpu_interface_rrc_nr*      gtpu,
+               rrc_eutra_interface_rrc_nr* rrc_eutra_);
 
   void stop();
 
@@ -104,6 +107,10 @@ public:
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
   void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) final;
 
+  // Interface for EUTRA RRC
+  int sgnb_addition_request(uint16_t rnti);
+  int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response);
+
   class ue
   {
   public:
@@ -111,6 +118,8 @@ public:
 
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
+
+    int handle_sgnb_addition_request();
 
     // getters
     bool is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
@@ -139,9 +148,10 @@ private:
   pdcp_interface_rrc_nr*  pdcp = nullptr;
   gtpu_interface_rrc_nr*  gtpu = nullptr;
   ngap_interface_rrc_nr*  ngap = nullptr;
+  rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
 
   // args
-  srsran::timer_handler* timers = nullptr;
+  srsran::task_sched_handle task_sched;
 
   // derived
   uint32_t              slot_dur_ms = 0;

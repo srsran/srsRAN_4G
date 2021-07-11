@@ -31,6 +31,7 @@
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/timers.h"
 #include "srsran/mac/pdu.h"
+#include "srsue/hdr/stack/mac_common/mac_common.h"
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
 
@@ -45,7 +46,7 @@ public:
 
   void init(phy_interface_mac_lte*               phy_h,
             rrc_interface_mac*                   rrc_,
-            mac_interface_rrc::ue_rnti_t*        rntis,
+            ue_rnti*                             rntis,
             srsran::timer_handler::unique_timer* time_alignment_timer_,
             mux*                                 mux_unit,
             srsran::ext_task_sched_handle*       task_sched_);
@@ -59,7 +60,7 @@ public:
   void start_mac_order(uint32_t msg_len_bits = 56);
   void step(uint32_t tti);
 
-  void update_rar_window(int& rar_window_start, int& rar_window_length);
+  void update_rar_window(rnti_window_safe& ra_window);
   bool is_contention_resolution();
   void harq_retx();
   void harq_max_retx();
@@ -149,7 +150,7 @@ private:
   srsran::timer_handler::unique_timer* time_alignment_timer = nullptr;
   srsran::timer_handler::unique_timer  contention_resolution_timer;
 
-  mac_interface_rrc::ue_rnti_t* rntis = nullptr;
+  ue_rnti* rntis = nullptr;
 
   std::atomic<uint64_t> transmitted_contention_id = {0};
   std::atomic<uint16_t> transmitted_crnti         = {0};

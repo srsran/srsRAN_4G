@@ -106,6 +106,8 @@ SRSRAN_API int rf_zmq_tx_align(rf_zmq_tx_t* q, uint64_t ts);
 
 SRSRAN_API int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples);
 
+SRSRAN_API int rf_zmq_tx_get_nsamples(rf_zmq_tx_t* q);
+
 SRSRAN_API int rf_zmq_tx_zeros(rf_zmq_tx_t* q, uint32_t nsamples);
 
 SRSRAN_API bool rf_zmq_tx_match_freq(rf_zmq_tx_t* q, uint32_t freq_hz);

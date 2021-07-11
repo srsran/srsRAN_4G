@@ -164,9 +164,9 @@ public:
   void set_config(srsran::sr_cfg_t& sr_cfg) override {}
   void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) override {}
 
-  void get_rntis(ue_rnti_t* rntis) override {}
-  void set_contention_id(uint64_t uecri) override {}
-  void set_ho_rnti(uint16_t crnti, uint16_t target_pci) override {}
+  uint16_t get_crnti() override { return 0; }
+  void     set_contention_id(uint64_t uecri) override {}
+  void     set_ho_rnti(uint16_t crnti, uint16_t target_pci) override {}
 
   void reconfiguration(const uint32_t& cc_idx, const bool& enable) override {}
   void reset() override {}

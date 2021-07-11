@@ -84,13 +84,15 @@ public:
     initialised = true;
   }
 
-  ~test_bench()
+  void stop()
   {
     ue_phy_com.stop();
     gnb_phy_com.stop();
     gnb_phy.stop();
     ue_phy.stop();
   }
+
+  ~test_bench() = default;
 
   bool is_initialised() const { return initialised; }
 

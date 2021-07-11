@@ -76,6 +76,8 @@ private:
     float    ta_us; ///< TA measurement in microseconds
   } ta_meas_t;
 
+  std::mutex mutex;
+
   uint32_t               meas_t_ms  = 0; ///< Time counter in milliseconds
   uint32_t               meas_count = 0; ///< Number of measures in the buffer
   uint32_t               meas_idx   = 0; ///< Next mesurement index in the buffer
@@ -220,6 +222,7 @@ public:
    */
   uint32_t push_value(float ta_us)
   {
+    std::lock_guard<std::mutex> lock(mutex);
     // Put measurement if state is measurement
     if (state == state_measure) {
       // Set measurement
@@ -247,6 +250,7 @@ public:
    */
   uint32_t tick()
   {
+    std::lock_guard<std::mutex> lock(mutex);
     // Increase measurement timestamp counter
     meas_t_ms++;
 

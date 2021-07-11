@@ -251,14 +251,15 @@ public:
   };
 
   struct pusch_t {
-    srsran_sch_cfg_nr_t                                sch           = {}; ///< PUSCH configuration
-    std::array<uint8_t*, SRSRAN_MAX_TB>                data          = {}; ///< Data pointer
-    std::array<srsran_softbuffer_tx_t*, SRSRAN_MAX_TB> softbuffer_tx = {}; ///< Tx Softbuffer
+    uint32_t                            pid  = 0;  ///< HARQ process ID
+    srsran_sch_cfg_nr_t                 sch  = {}; ///< PUSCH configuration
+    std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
   };
 
   struct pucch_t {
-    srsran_uci_cfg_nr_t        uci_cfg;
-    srsran_pucch_nr_resource_t resource;
+    srsran_uci_cfg_nr_t          uci_cfg;   ///< UCI configuration
+    srsran_pucch_nr_common_cfg_t pucch_cfg; ///< UE dedicated PUCCH configuration
+    srsran_pucch_nr_resource_t   resource;  ///< PUCCH resource
   };
 
   struct ul_sched_t {
@@ -266,9 +267,24 @@ public:
     srsran::bounded_vector<pucch_t, MAX_GRANTS> pucch;
   };
 
-  virtual int slot_indication(const srsran_slot_cfg_t& slot_cfg)                    = 0;
-  virtual int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) = 0;
-  virtual int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) = 0;
+  struct pucch_info_t {
+    srsran_uci_data_nr_t uci_data; ///< RNTI is available under cfg->pucch->rnti
+    // ... add signal measurements here
+  };
+
+  struct pusch_info_t {
+    uint16_t              rnti;
+    uint32_t              pid = 0; ///< HARQ process ID
+    srsran_pusch_res_nr_t pusch_data;
+    srsran_uci_cfg_nr_t   uci_cfg; ///< Provides UCI configuration, so stack does not need to keep the pending state
+    // ... add signal measurements here
+  };
+
+  virtual int slot_indication(const srsran_slot_cfg_t& slot_cfg)                            = 0;
+  virtual int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)         = 0;
+  virtual int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)         = 0;
+  virtual int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) = 0;
+  virtual int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) = 0;
 };
 
 class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr

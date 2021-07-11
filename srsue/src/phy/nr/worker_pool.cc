@@ -127,11 +127,11 @@ int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> pac
   if (logger.info.enabled()) {
     std::array<char, 512> str;
     srsran_dci_ul_nr_to_str(NULL, &dci_ul, str.data(), str.size());
-    logger.set_context(phy_state.rar_grant_tti);
+    logger.set_context(phy_state.rar_grant_slot.idx);
     logger.info("Setting RAR Grant %s", str.data());
   }
 
-  phy_state.set_ul_pending_grant(phy_state.rar_grant_tti, dci_ul);
+  phy_state.set_ul_pending_grant(phy_state.rar_grant_slot, dci_ul);
 
   return SRSRAN_SUCCESS;
 }

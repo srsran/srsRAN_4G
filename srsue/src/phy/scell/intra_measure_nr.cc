@@ -90,7 +90,7 @@ bool intra_measure_nr::set_config(const config_t& cfg)
   return true;
 }
 
-bool intra_measure_nr::measure_rat(const measure_context_t context, std::vector<cf_t>& buffer)
+bool intra_measure_nr::measure_rat(const measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset)
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -126,7 +126,7 @@ bool intra_measure_nr::measure_rat(const measure_context_t context, std::vector<
     // Prepare found measurements
     std::vector<phy_meas_t> meas_list(1);
     meas_list[0].rat    = get_rat();
-    meas_list[0].rsrp   = meas.rsrp_dB + context.rx_gain_offset_db;
+    meas_list[0].rsrp   = meas.rsrp_dB + rx_gain_offset_db;
     meas_list[0].cfo_hz = meas.cfo_hz;
     meas_list[0].earfcn = get_earfcn();
     meas_list[0].pci    = N_id;

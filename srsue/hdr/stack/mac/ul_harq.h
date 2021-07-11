@@ -38,7 +38,7 @@ class ul_harq_entity
 public:
   ul_harq_entity(const uint8_t cc_idx_);
 
-  bool init(mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_proc_h_, mux* mux_unit_);
+  bool init(ue_rnti* rntis_, ra_proc* ra_proc_h_, mux* mux_unit_);
 
   void reset();
   void reset_ndi();
@@ -105,8 +105,9 @@ private:
   srsran::mac_pcap*     pcap     = nullptr;
   srslog::basic_logger& logger;
 
-  mac_interface_rrc_common::ue_rnti_t* rntis    = nullptr;
-  srsran::ul_harq_cfg_t                harq_cfg = {};
+  ue_rnti* rntis = nullptr;
+
+  srsran::ul_harq_cfg_t harq_cfg = {};
 
   float    average_retx = 0.0;
   uint64_t nof_pkts     = 0;

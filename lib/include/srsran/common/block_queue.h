@@ -130,7 +130,14 @@ public:
 
   const myobj& front() const { return q.front(); }
 
-  size_t size() { return q.size(); }
+  size_t size()
+  {
+    size_t len = 0;
+    pthread_mutex_lock(&mutex);
+    len = q.size();
+    pthread_mutex_unlock(&mutex);
+    return len;
+  }
 
 private:
   bool pop_(myobj* value, bool block)

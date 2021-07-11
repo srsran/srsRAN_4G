@@ -605,9 +605,13 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
 /******* METRICS interface ***************/
 void ue::metrics_read(mac_ue_metrics_t* metrics_)
 {
+  uint32_t ul_buffer = sched->get_ul_buffer(rnti);
+  uint32_t dl_buffer = sched->get_dl_buffer(rnti);
+
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.rnti      = rnti;
-  ue_metrics.ul_buffer = sched->get_ul_buffer(rnti);
-  ue_metrics.dl_buffer = sched->get_dl_buffer(rnti);
+  ue_metrics.ul_buffer = ul_buffer;
+  ue_metrics.dl_buffer = dl_buffer;
 
   // set PCell sector id
   std::array<int, SRSRAN_MAX_CARRIERS> cc_list = sched->get_enb_ue_cc_map(rnti);
@@ -623,12 +627,14 @@ void ue::metrics_read(mac_ue_metrics_t* metrics_)
 
 void ue::metrics_phr(float phr)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.phr = SRSRAN_VEC_CMA(phr, ue_metrics.phr, phr_counter);
   phr_counter++;
 }
 
 void ue::metrics_dl_ri(uint32_t dl_ri)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   if (ue_metrics.dl_ri == 0.0f) {
     ue_metrics.dl_ri = (float)dl_ri + 1.0f;
   } else {
@@ -639,18 +645,21 @@ void ue::metrics_dl_ri(uint32_t dl_ri)
 
 void ue::metrics_dl_pmi(uint32_t dl_ri)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.dl_pmi = SRSRAN_VEC_CMA((float)dl_ri, ue_metrics.dl_pmi, dl_pmi_counter);
   dl_pmi_counter++;
 }
 
 void ue::metrics_dl_cqi(uint32_t dl_cqi)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.dl_cqi = SRSRAN_VEC_CMA((float)dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
   dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   if (crc) {
     ue_metrics.rx_brate += tbs * 8;
   } else {
@@ -661,6 +670,7 @@ void ue::metrics_rx(bool crc, uint32_t tbs)
 
 void ue::metrics_tx(bool crc, uint32_t tbs)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   if (crc) {
     ue_metrics.tx_brate += tbs * 8;
   } else {
@@ -671,6 +681,7 @@ void ue::metrics_tx(bool crc, uint32_t tbs)
 
 void ue::metrics_cnt()
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.nof_tti++;
 }
 

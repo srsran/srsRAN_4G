@@ -530,6 +530,12 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   tb->nof_bits = tb->nof_re * Qm;
   tb->enabled  = true;
 
+  // Calculate actual rate
+  tb->R_prime = 0.0;
+  if (tb->nof_re != 0) {
+    tb->R_prime = (double)tb->tbs / (double)tb->nof_bits;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -764,6 +770,7 @@ ra_ul_dmrs(const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg, const srsran_dci_ul_nr_t*
 }
 
 int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
+                                 const srsran_slot_cfg_t*      slot_cfg,
                                  const srsran_sch_hl_cfg_nr_t* pusch_hl_cfg,
                                  const srsran_dci_ul_nr_t*     dci_ul,
                                  srsran_sch_cfg_nr_t*          pusch_cfg,
@@ -826,9 +833,9 @@ static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_
 
   // Select Beta Offset index from the number of HARQ-ACK bits
   uint32_t beta_offset_index = beta_offsets->ack_index1;
-  if (uci_cfg->o_ack > 11) {
+  if (uci_cfg->ack.count > 11) {
     beta_offset_index = beta_offsets->ack_index3;
-  } else if (uci_cfg->o_ack > 2) {
+  } else if (uci_cfg->ack.count > 2) {
     beta_offset_index = beta_offsets->ack_index2;
   }
 
@@ -836,7 +843,7 @@ static float ra_ul_beta_offset_ack_semistatic(const srsran_beta_offsets_t* beta_
   if (beta_offset_index >= RA_NR_BETA_OFFSET_HARQACK_SIZE) {
     ERROR("Beta offset index for HARQ-ACK (%d) for O_ack=%d exceeds table size (%d)",
           beta_offset_index,
-          uci_cfg->o_ack,
+          uci_cfg->ack.count,
           RA_NR_BETA_OFFSET_HARQACK_SIZE);
     return NAN;
   }
@@ -1024,8 +1031,8 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
 
   // Calculate number of UCI encoded bits
   int Gack = 0;
-  if (pusch_cfg->uci.o_ack > 2) {
-    Gack = srsran_uci_nr_pusch_ack_nof_bits(&pusch_cfg->uci.pusch, pusch_cfg->uci.o_ack);
+  if (pusch_cfg->uci.ack.count > 2) {
+    Gack = srsran_uci_nr_pusch_ack_nof_bits(&pusch_cfg->uci.pusch, pusch_cfg->uci.ack.count);
     if (Gack < SRSRAN_SUCCESS) {
       ERROR("Error calculating Qdack");
       return SRSRAN_ERROR;

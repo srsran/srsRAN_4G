@@ -54,7 +54,7 @@ int delta_preamble_db_table[5] = {0, 0, -3, -3, 8};
 // Initializes memory and pointers to other objects
 void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    rrc_interface_mac*                   rrc_,
-                   mac_interface_rrc::ue_rnti_t*        rntis_,
+                   ue_rnti*                             rntis_,
                    srsran::timer_handler::unique_timer* time_alignment_timer_,
                    mux*                                 mux_unit_,
                    srsran::ext_task_sched_handle*       task_sched_)
@@ -162,7 +162,7 @@ void ra_proc::state_pdcch_setup()
     srsran::console(
         "Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble.load(), info.tti_ra, ra_rnti);
     rar_window_st   = ra_tti + 3;
-    rntis->rar_rnti = ra_rnti;
+    rntis->set_rar_rnti(ra_rnti);
     state           = RESPONSE_RECEPTION;
   } else {
     rDebug("preamble not yet transmitted");
@@ -313,7 +313,7 @@ void ra_proc::preamble_transmission()
                               (preambleTransmissionCounter - 1) * rach_cfg.powerRampingStep;
 
   phy_h->prach_send(sel_preamble, sel_maskIndex - 1, received_target_power_dbm);
-  rntis->rar_rnti        = SRSRAN_INVALID_RNTI;
+  rntis->clear_rar_rnti();
   ra_tti                 = 0;
   rar_received           = false;
   backoff_interval_start = -1;
@@ -405,7 +405,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
       uint8_t grant[srsran::rar_subh::RAR_GRANT_LEN] = {};
       rar_pdu_msg.get()->get_sched_grant(grant);
 
-      rntis->rar_rnti = SRSRAN_INVALID_RNTI;
+      rntis->clear_rar_rnti();
       phy_h->set_rar_grant(grant, rar_pdu_msg.get()->get_temp_crnti());
 
       current_ta = rar_pdu_msg.get()->get_ta_cmd();
@@ -416,7 +416,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
             rar_pdu_msg.get()->get_temp_crnti());
 
       // Save Temp-CRNTI before generating the reply
-      rntis->temp_rnti = rar_pdu_msg.get()->get_temp_crnti();
+      rntis->set_temp_rnti(rar_pdu_msg.get()->get_temp_crnti());
 
       // Perform actions when preamble was selected by UE MAC
       if (preambleIndex <= 0) {
@@ -425,7 +425,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
         // If this is the first successfully received RAR within this procedure, Msg3 is empty
         if (mux_unit->msg3_is_empty()) {
           // Save transmitted C-RNTI (if any)
-          transmitted_crnti = rntis->crnti;
+          transmitted_crnti = rntis->get_crnti();
 
           // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
           if (transmitted_crnti) {
@@ -435,7 +435,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
         }
 
         // Save transmitted UE contention id, as defined by higher layers
-        transmitted_contention_id = rntis->contention_id;
+        transmitted_contention_id = rntis->get_contention_id();
 
         task_queue.push([this]() {
           rDebug("Waiting for Contention Resolution");
@@ -458,7 +458,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
  */
 void ra_proc::response_error()
 {
-  rntis->temp_rnti = 0;
+  rntis->clear_temp_rnti();
   preambleTransmissionCounter++;
   contention_resolution_timer.stop();
   if (preambleTransmissionCounter >= rach_cfg.preambleTransMax + 1) {
@@ -492,16 +492,16 @@ void ra_proc::complete()
 {
   // Start looking for PDCCH CRNTI
   if (!transmitted_crnti) {
-    rntis->crnti = rntis->temp_rnti;
+    rntis->set_crnti_to_temp();
   }
-  rntis->temp_rnti = 0;
+  rntis->clear_temp_rnti();
 
   mux_unit->msg3_flush();
 
   rrc->ra_completed();
 
-  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
-  rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d", rntis->crnti, current_ta);
+  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->get_crnti(), current_ta);
+  rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d", rntis->get_crnti(), current_ta);
 
   state = IDLE;
 }
@@ -600,17 +600,15 @@ void ra_proc::pdcch_to_crnti(bool is_new_uplink_transmission)
 }
 
 // Called from the Stack thread
-void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
+void ra_proc::update_rar_window(rnti_window_safe& ra_window)
 {
   if (state != RESPONSE_RECEPTION) {
     // reset RAR window params to default values to disable RAR search
-    rar_window_start  = -1;
-    rar_window_length = -1;
+    ra_window.reset();
   } else {
-    rar_window_length = rach_cfg.responseWindowSize;
-    rar_window_start  = rar_window_st;
+    ra_window.set(rach_cfg.responseWindowSize, rar_window_st);
   }
-  rDebug("rar_window_start=%d, rar_window_length=%d", rar_window_start, rar_window_length);
+  rDebug("rar_window_start=%d, rar_window_length=%d", ra_window.get_start(), ra_window.get_length());
 }
 
 // Restart timer at each Msg3 HARQ retransmission (5.1.5)

@@ -249,8 +249,6 @@ void phy::configure_prach_params()
 {
   Debug("Configuring PRACH parameters");
 
-  prach_cfg.tdd_config = tdd_config;
-
   if (!prach_buffer.set_cell(selected_cell, prach_cfg)) {
     Error("Configuring PRACH parameters");
   }
@@ -303,7 +301,9 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 
 void phy::meas_stop()
 {
-  sfsync.meas_stop();
+  if (is_configured) {
+    sfsync.meas_stop();
+  }
 }
 
 // This function executes one part of the procedure immediatly and returns to continue in the background.
@@ -424,14 +424,13 @@ uint32_t phy::get_current_tti()
 
 void phy::sr_send()
 {
-  common.sr_enabled     = true;
-  common.sr_last_tx_tti = -1;
-  Debug("sr_send(): sr_enabled=%d, last_tx_tti=%d", common.sr_enabled, common.sr_last_tx_tti);
+  common.sr.trigger();
+  Debug("SR is triggered");
 }
 
 int phy::sr_last_tx_tti()
 {
-  return common.sr_last_tx_tti;
+  return common.sr.get_last_tx_tti();
 }
 
 void phy::set_rar_grant(uint8_t grant_payload[SRSRAN_RAR_GRANT_LEN], uint16_t rnti)
@@ -469,6 +468,7 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
   // - The PRACH configuration is present
   if (!cc_idx && config_.prach_cfg_present) {
     prach_cfg = config_.prach_cfg;
+    prach_cfg.tdd_config = tdd_config;
   }
 
   // Apply configurations asynchronously to avoid race conditions
