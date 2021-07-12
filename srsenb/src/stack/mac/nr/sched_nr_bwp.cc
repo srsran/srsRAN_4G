@@ -29,7 +29,7 @@ ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_
   for (nof_grants_alloc = rar.msg3_grant.size(); nof_grants_alloc > 0; nof_grants_alloc--) {
     ret                    = alloc_result::invalid_coderate;
     uint32_t start_prb_idx = 0;
-    for (uint32_t nprb = 1; nprb < bwp_cfg->N_rbg and ret == alloc_result::invalid_coderate; ++nprb) {
+    for (uint32_t nprb = 1; nprb < bwp_cfg->cfg.rb_width and ret == alloc_result::invalid_coderate; ++nprb) {
       prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
       start_prb_idx       = interv.stop();
       if (interv.length() == nprb) {

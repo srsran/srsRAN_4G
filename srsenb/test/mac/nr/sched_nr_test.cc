@@ -15,6 +15,7 @@
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/test_common.h"
 #include "srsran/common/thread_pool.h"
+#include <chrono>
 
 namespace srsenb {
 
@@ -39,18 +40,13 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg()
 {
   sched_nr_interface::cell_cfg_t cell_cfg{};
 
-  cell_cfg.tdd.pattern1.period_ms      = 10;
-  cell_cfg.tdd.pattern1.nof_dl_slots   = 6;
-  cell_cfg.tdd.pattern1.nof_dl_symbols = 0;
-  cell_cfg.tdd.pattern1.nof_ul_slots   = 4;
-  cell_cfg.tdd.pattern1.nof_ul_symbols = 0;
-
-  // Disable pattern 2
-  cell_cfg.tdd.pattern2.period_ms = 0;
+  cell_cfg.carrier = default_phy_cfg.carrier;
+  cell_cfg.tdd     = default_phy_cfg.tdd;
 
   cell_cfg.bwps.resize(1);
-  cell_cfg.bwps[0].pdcch = default_phy_cfg.pdcch;
-  cell_cfg.bwps[0].pdsch = default_phy_cfg.pdsch;
+  cell_cfg.bwps[0].pdcch    = default_phy_cfg.pdcch;
+  cell_cfg.bwps[0].pdsch    = default_phy_cfg.pdsch;
+  cell_cfg.bwps[0].rb_width = default_phy_cfg.carrier.nof_prb;
 
   cell_cfg.bwps[0].pdcch.coreset_present[0]      = true;
   cell_cfg.bwps[0].pdcch.coreset[0]              = get_default_coreset0();
@@ -158,6 +154,7 @@ void sched_nr_cfg_serialized_test()
 
   sched_tester.add_user(0x46, uecfg, 0);
 
+  auto tp1 = std::chrono::steady_clock::now();
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti_rx(nof_ttis % 10240);
     tti_point tti_tx = tti_rx + TX_ENB_DELAY;
@@ -174,9 +171,13 @@ void sched_nr_cfg_serialized_test()
       TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (tti_tx).sf_idx()) or dl_res.pdcch_dl.size() == 1);
     }
   }
+  auto tp2 = std::chrono::steady_clock::now();
 
   tasks.print_results();
   TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
+
+  uint32_t microsecs = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
+  printf("Total time taken per slot: %f\n", microsecs / (float)max_nof_ttis);
 }
 
 void sched_nr_cfg_parallel_cc_test()
@@ -193,6 +194,7 @@ void sched_nr_cfg_parallel_cc_test()
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   sched_tester.add_user(0x46, uecfg, 0);
 
+  auto tp1 = std::chrono::steady_clock::now();
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti_rx(nof_ttis % 10240);
     tti_point tti_tx = tti_rx + TX_ENB_DELAY;
@@ -210,11 +212,15 @@ void sched_nr_cfg_parallel_cc_test()
       });
     }
   }
+  auto tp2 = std::chrono::steady_clock::now();
 
   tasks.wait_task_finish();
 
   tasks.print_results();
   TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
+
+  uint32_t microsecs = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
+  printf("Total time taken per slot [usec]: %f\n", microsecs / (float)max_nof_ttis);
 }
 
 void sched_nr_cfg_parallel_sf_test()
@@ -233,6 +239,7 @@ void sched_nr_cfg_parallel_sf_test()
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   sched.ue_cfg(0x46, uecfg);
 
+  auto tp1 = std::chrono::steady_clock::now();
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti(nof_ttis % 10240);
     tasks.start_slot(tti, nof_sectors);
@@ -246,10 +253,14 @@ void sched_nr_cfg_parallel_sf_test()
       });
     }
   }
+  auto tp2 = std::chrono::steady_clock::now();
 
   tasks.wait_task_finish();
 
   tasks.print_results();
+
+  uint32_t microsecs = std::chrono::duration_cast<std::chrono::microseconds>(tp2 - tp1).count();
+  printf("Total time taken per slot [usec]: %f\n", microsecs / (float)max_nof_ttis);
 }
 
 } // namespace srsenb
