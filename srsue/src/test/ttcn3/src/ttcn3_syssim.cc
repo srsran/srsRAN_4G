@@ -248,8 +248,8 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
 
   // DL/UL processing if UE has selected cell
   dl_rnti = ue->get_dl_sched_rnti(tti);
-  if (SRSRAN_RNTI_ISSI(dl_rnti)) {
-    // deliver SIBs one after another
+  if (SRSRAN_RNTI_ISSI(dl_rnti) && (tti % 2 == 0)) {
+    // deliver SIBs one after another in every other TTI
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
     dl_grant.tti                                   = tti;
     dl_grant.pid                                   = get_pid(tti);
@@ -257,7 +257,7 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
     dl_grant.tb[0].tbs                             = cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->N_bytes;
     dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
     ue->new_tb(dl_grant, cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->msg);
-    logger.info("Delivered SIB%d for pcell_idx=%d", cells[pcell_idx]->sib_idx, pcell_idx);
+    logger.info("Delivered SIB%d for pcell_idx=%d", cells[pcell_idx]->sib_idx + 1, pcell_idx);
     cells[pcell_idx]->sib_idx = (cells[pcell_idx]->sib_idx + 1) % cells[pcell_idx]->sibs.size();
   } else if (SRSRAN_RNTI_ISRAR(dl_rnti)) {
     if (prach_tti != -1) {
