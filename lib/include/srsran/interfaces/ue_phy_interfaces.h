@@ -86,6 +86,8 @@ struct phy_args_t {
   float       force_ul_amplitude           = 0.0f;
   bool        detect_cp                    = false;
 
+  bool nr_store_pdsch_ko = false;
+
   float    in_sync_rsrp_dbm_th    = -130.0f;
   float    in_sync_snr_db_th      = 1.0f;
   uint32_t nof_in_sync_events     = 10;
@@ -129,8 +131,8 @@ public:
   } prach_info_t;
 
   virtual void
-                       prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
-  virtual prach_info_t prach_get_info() = 0;
+  prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
+  virtual prach_info_t prach_get_info()                                                                     = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send()        = 0;

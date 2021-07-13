@@ -175,6 +175,7 @@ struct phy_args_nr_t {
   srsran_ue_ul_nr_args_t ul               = {};
   std::set<uint32_t>     fixed_sr         = {1};
   uint32_t               fix_wideband_cqi = 15; // Set to a non-zero value for fixing the wide-band CQI report
+  bool                   store_pdsch_ko   = false;
 
   phy_args_nr_t()
   {

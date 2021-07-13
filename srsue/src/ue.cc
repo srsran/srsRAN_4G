@@ -97,6 +97,7 @@ int ue::init(const all_args_t& args_)
     phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;
     phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
     phy_args_nr.log                  = args.phy.log;
+    phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
     if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
       srsran::console("Error initializing NR PHY.\n");
       ret = SRSRAN_ERROR;
