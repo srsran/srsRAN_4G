@@ -15,7 +15,9 @@
 
 #include "slot_worker.h"
 #include "srsenb/hdr/phy/phy_interfaces.h"
+#include "srsenb/hdr/phy/prach_worker.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
 namespace srsenb {
@@ -23,11 +25,64 @@ namespace nr {
 
 class worker_pool
 {
+private:
+  class prach_stack_adaptor_t : public stack_interface_phy_lte
+  {
+  private:
+    stack_interface_phy_nr& stack;
+
+  public:
+    prach_stack_adaptor_t(stack_interface_phy_nr& stack_) : stack(stack_)
+    {
+      // Do nothing
+    }
+
+    int  sr_detected(uint32_t tti, uint16_t rnti) override { return 0; }
+    void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) override
+    {
+      stack_interface_phy_nr::rach_info_t rach_info = {};
+      rach_info.preamble                            = preamble_idx;
+      rach_info.time_adv                            = time_adv;
+
+      stack.rach_detected(rach_info);
+    }
+    int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override { return 0; }
+    int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) override { return 0; }
+    int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override { return 0; }
+    int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) override { return 0; }
+    int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override { return 0; }
+    int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override { return 0; }
+    int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override { return 0; }
+    int push_pdu(uint32_t tti_rx,
+                 uint16_t rnti,
+                 uint32_t enb_cc_idx,
+                 uint32_t nof_bytes,
+                 bool     crc_res,
+                 uint32_t ul_nof_prbs) override
+    {
+      return 0;
+    }
+    int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override { return 0; }
+    int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) override { return 0; }
+    int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override { return 0; }
+    void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) override {}
+    void tti_clock() override {}
+  };
+
   srsran::phy_common_interface&              common;
   stack_interface_phy_nr&                    stack;
   srslog::sink&                              log_sink;
   srsran::thread_pool                        pool;
   std::vector<std::unique_ptr<slot_worker> > workers;
+  prach_worker_pool                          prach;
+  uint32_t                                   current_tti = 0; ///< Current TTI, read and write from same thread
+  srslog::basic_logger&                      logger;
+  prach_stack_adaptor_t                      prach_stack_adaptor;
+
+  // Current configuration
+  std::mutex            common_cfg_mutex;
+  srsran_carrier_nr_t   carrier   = {};
+  srsran_pdcch_cfg_nr_t pdcch_cfg = {};
 
 public:
   struct args_t {
@@ -47,6 +102,7 @@ public:
   slot_worker* wait_worker_id(uint32_t id);
   void         start_worker(slot_worker* w);
   void         stop();
+  int          set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common_cfg);
 };
 
 } // namespace nr

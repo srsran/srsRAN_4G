@@ -24,7 +24,7 @@ private:
   const std::string       GNB_PHY_COM_LOG_NAME = "GNB/PHY/COM";
   uint32_t                slot_idx             = 0;
   uint64_t                slot_count           = 0;
-  uint64_t                duration_slots;
+  uint64_t                duration_slots       = 0;
   gnb_dummy_stack         gnb_stack;
   srsenb::nr::worker_pool gnb_phy;
   phy_common              gnb_phy_com;
@@ -53,10 +53,15 @@ public:
     args_t(int argc, char** argv);
   };
 
+  struct metrics_t {
+    gnb_dummy_stack::metrics_t gnb_stack = {};
+    ue_dummy_stack::metrics_t  ue_stack  = {};
+  };
+
   test_bench(const args_t& args) :
     gnb_stack(args.gnb_stack),
     gnb_phy(gnb_phy_com, gnb_stack, srslog::get_default_sink(), args.gnb_phy.nof_phy_threads),
-    ue_stack(args.ue_stack),
+    ue_stack(args.ue_stack, ue_phy),
     ue_phy(args.ue_phy.nof_phy_threads),
 
     ue_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
@@ -70,6 +75,15 @@ public:
     srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
 
     if (not gnb_phy.init(args.gnb_phy, args.cell_list)) {
+      return;
+    }
+
+    srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
+    common_cfg.carrier                                    = args.phy_cfg.carrier;
+    common_cfg.pdcch                                      = args.phy_cfg.pdcch;
+    common_cfg.prach                                      = args.phy_cfg.prach;
+
+    if (gnb_phy.set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
       return;
     }
 
@@ -147,7 +161,10 @@ public:
     ue_worker->set_tti(slot_idx);
     ue_worker->set_tx_time(ue_time);
 
-    // Start gNb work
+    // Run UE stack
+    ue_stack.run_tti(slot_idx);
+
+    // Start UE work
     ue_phy_com.push_semaphore(ue_worker);
     ue_phy.start_worker(ue_worker);
 
@@ -156,7 +173,13 @@ public:
     return slot_count <= duration_slots;
   }
 
-  srsenb::mac_ue_metrics_t get_gnb_metrics() { return gnb_stack.get_metrics(); }
+  metrics_t get_gnb_metrics()
+  {
+    metrics_t metrics = {};
+    metrics.gnb_stack = gnb_stack.get_metrics();
+    metrics.ue_stack  = ue_stack.get_metrics();
+    return metrics;
+  }
 };
 
 #endif // SRSRAN_TEST_BENCH_H

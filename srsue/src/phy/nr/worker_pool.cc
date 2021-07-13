@@ -91,7 +91,10 @@ void worker_pool::stop()
   pool.stop();
 }
 
-void worker_pool::send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power)
+void worker_pool::send_prach(const uint32_t prach_occasion,
+                             const int      preamble_index,
+                             const float    preamble_received_target_power,
+                             const float    ta_base_sec)
 {
   prach_buffer->prepare_to_send(preamble_index);
 }
@@ -185,6 +188,10 @@ void worker_pool::clear_pending_grants()
 void worker_pool::get_metrics(phy_metrics_t& m)
 {
   phy_state.get_metrics(m);
+}
+int worker_pool::tx_request(const phy_interface_mac_nr::tx_request_t& request)
+{
+  return 0;
 }
 
 } // namespace nr

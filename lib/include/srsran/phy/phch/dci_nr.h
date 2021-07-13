@@ -147,8 +147,14 @@ typedef struct SRSRAN_API {
   uint32_t pid;            ///< HARQ process number
   uint32_t dai;            ///< Downlink assignment index
   uint32_t tpc;            ///< TPC command for scheduled PUCCH
-  uint32_t pucch_resource; ///< PUCCH resource indicator
+  uint32_t pucch_resource; ///< PUCCH resource indicator for HARQ feedback
+                           ///< @note PUCCH resource is selected from PUCCH-ResourceSet if available, otherwise the UE
+                           ///< shall pick a pucch-ResourceCommon from Table 9.2.1-1.
   uint32_t harq_feedback;  ///< PDSCH-to-HARQ_feedback timing indicator
+                           ///< @note harq_feedback for format 1_0 indicates the delay between the PDSCH reception and
+                           ///< the UL transmission timing
+                           ///< @note harq_feedback for format 1_1 is index of the delay indicated in DL data to UL ACK
+                           ///< dedicated configuration table
 
   // P-RNTI specific fields
   uint32_t smi;        ///< Short Messages Indicator

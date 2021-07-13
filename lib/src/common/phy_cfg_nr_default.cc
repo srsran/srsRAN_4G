@@ -197,6 +197,7 @@ void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
   prach.config_idx   = 0;
   prach.freq_offset  = 2;
   prach.root_seq_idx = 0;
+  prach.is_nr        = true;
 }
 
 phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)

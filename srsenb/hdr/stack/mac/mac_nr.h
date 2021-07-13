@@ -71,12 +71,9 @@ public:
   int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
   int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override;
   int  pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override;
+  void rach_detected(const rach_info_t& rach_info) override;
 
 private:
-  void get_dl_config(const uint32_t                               tti,
-                     phy_interface_stack_nr::dl_config_request_t& config_request,
-                     phy_interface_stack_nr::tx_request_t&        tx_request);
-
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 

@@ -20,7 +20,11 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             ${Boost_LIBRARIES}
             ${ATOMIC_LIBS})
 
-    add_nr_test(nr_phy_test_10MHz_dl_only nr_phy_test --duration=100 --gnb.stack.pdsch.slots=\"0,1,2,3,4,5\" --gnb.stack.pusch.slots=\"\")
+    add_nr_test(nr_phy_test_10MHz_dl_only nr_phy_test
+            --duration=100
+            --gnb.stack.pdsch.slots=\"0,1,2,3,4,5\"
+            --gnb.stack.pusch.slots=\"\")
+
     add_nr_test(nr_phy_test_10MHz_ul_only nr_phy_test
             --duration=100 # 100 slots
             --gnb.stack.pdsch.slots=6 # No PDSCH
@@ -29,6 +33,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             --gnb.stack.pusch.length=52 # Full 10 MHz BW
             --gnb.stack.pusch.mcs=28 # Maximum MCS
             )
+
     add_nr_test(nr_phy_test_10MHz_bidir nr_phy_test
             --duration=100 # 100 slots
             --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
@@ -39,5 +44,13 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             --gnb.stack.pusch.start=0 # Start at RB 0
             --gnb.stack.pusch.length=52 # Full 10 MHz BW
             --gnb.stack.pusch.mcs=28 # Maximum MCS
+            )
+
+    add_nr_test(nr_phy_test_10MHz_prach nr_phy_test
+            --duration=1000 # 100 slots
+            --gnb.stack.pdsch.slots=6 # No PDSCH
+            --gnb.stack.pusch.slots=0 # No PUSCH
+            --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
+            --ue.stack.prach.preamble=10 # Use preamble 10
             )
 endif ()

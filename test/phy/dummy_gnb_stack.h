@@ -26,6 +26,17 @@
 
 class gnb_dummy_stack : public srsenb::stack_interface_phy_nr
 {
+public:
+  struct prach_metrics_t {
+    uint32_t count;
+    float    avg_ta;
+  };
+
+  struct metrics_t {
+    std::map<uint32_t, prach_metrics_t> prach = {}; ///< PRACH metrics indexed with premable index
+    srsenb::mac_ue_metrics_t            mac   = {}; ///< MAC metrics
+  };
+
 private:
   srslog::basic_logger& logger = srslog::fetch_basic_logger("GNB STK");
   const uint16_t        rnti   = 0x1234;
@@ -41,8 +52,8 @@ private:
   srsran::phy_cfg_nr_t                                    phy_cfg    = {};
   bool                                                    valid      = false;
 
-  std::mutex               mac_metrics_mutex;
-  srsenb::mac_ue_metrics_t mac_metrics = {};
+  std::mutex metrics_mutex;
+  metrics_t  metrics = {};
 
   // HARQ feedback
   class pending_ack_t
@@ -245,16 +256,16 @@ private:
 
   bool handle_uci_data(const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value)
   {
-    std::unique_lock<std::mutex> lock(mac_metrics_mutex);
+    std::unique_lock<std::mutex> lock(metrics_mutex);
 
     for (uint32_t i = 0; i < cfg.ack.count; i++) {
       const srsran_harq_ack_bit_t* ack_bit  = &cfg.ack.bits[i];
       bool                         is_ok    = (value.ack[i] == 1) and value.valid;
       uint32_t                     tb_count = (ack_bit->tb0 ? 1 : 0) + (ack_bit->tb1 ? 1 : 0);
-      mac_metrics.tx_brate += tx_harq_proc[ack_bit->pid].get_tbs();
-      mac_metrics.tx_pkts += tb_count;
+      metrics.mac.tx_brate += tx_harq_proc[ack_bit->pid].get_tbs();
+      metrics.mac.tx_pkts += tb_count;
       if (not is_ok) {
-        mac_metrics.tx_errors += tb_count;
+        metrics.mac.tx_errors += tb_count;
         logger.debug("NACK received!");
       }
     }
@@ -452,19 +463,27 @@ public:
     }
 
     if (not pusch_info.pusch_data.tb[0].crc) {
-      mac_metrics.rx_errors++;
+      metrics.mac.rx_errors++;
     }
-    mac_metrics.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
-    mac_metrics.rx_pkts++;
+    metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
+    metrics.mac.rx_pkts++;
 
     return SRSRAN_SUCCESS;
   }
 
-  srsenb::mac_ue_metrics_t get_metrics()
+  void rach_detected(const rach_info_t& rach_info) override
   {
-    std::unique_lock<std::mutex> lock(mac_metrics_mutex);
+    std::unique_lock<std::mutex> lock(metrics_mutex);
+    prach_metrics_t&             prach_metrics = metrics.prach[rach_info.preamble];
+    prach_metrics.avg_ta = SRSRAN_VEC_SAFE_CMA((float)rach_info.time_adv, prach_metrics.avg_ta, prach_metrics.count);
+    prach_metrics.count++;
+  }
 
-    return mac_metrics;
+  metrics_t get_metrics()
+  {
+    std::unique_lock<std::mutex> lock(metrics_mutex);
+
+    return metrics;
   }
 };
 

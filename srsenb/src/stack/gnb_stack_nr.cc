@@ -198,4 +198,6 @@ int gnb_stack_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interf
   return m_mac->pusch_info(slot_cfg, pusch_info);
 }
 
+void gnb_stack_nr::rach_detected(const rach_info_t& rach_info) {}
+
 } // namespace srsenb

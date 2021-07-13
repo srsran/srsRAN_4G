@@ -18,15 +18,23 @@ worker_pool::worker_pool(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
                          srslog::sink&                 log_sink_,
                          uint32_t                      max_workers) :
-  pool(max_workers), common(common_), stack(stack_), log_sink(log_sink_)
+  pool(max_workers),
+  common(common_),
+  stack(stack_),
+  log_sink(log_sink_),
+  logger(srslog::fetch_basic_logger("PHY-NR", log_sink)),
+  prach_stack_adaptor(stack_)
 {
   // Do nothing
 }
 
 bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_list)
 {
-  // Add workers to workers pool and start threads
+  // Configure logger
   srslog::basic_levels log_level = srslog::str_to_basic_level(args.log.phy_level);
+  logger.set_level(log_level);
+
+  // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
     auto& log = srslog::fetch_basic_logger(fmt::format("{}PHY{}-NR", args.log.id_preamble, i), log_sink);
     log.set_level(log_level);
@@ -39,11 +47,10 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
     slot_worker::args_t w_args     = {};
     uint32_t            cell_index = 0;
     w_args.cell_index              = cell_index;
-    w_args.carrier                 = cell_list[cell_index].carrier;
+    w_args.nof_max_prb             = cell_list[cell_index].carrier.nof_prb;
     w_args.nof_tx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
     w_args.nof_rx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
     w_args.pusch_max_nof_iter      = args.pusch_max_nof_iter;
-    w_args.pdcch_cfg               = cell_list[cell_index].pdcch;
 
     if (not w->init(w_args)) {
       return false;
@@ -55,12 +62,41 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
 
 void worker_pool::start_worker(slot_worker* w)
 {
+  // Feed PRACH detection before start processing
+  prach.new_tti(0, current_tti, w->get_buffer_rx(0));
+
+  // Start actual worker
   pool.start_worker(w);
 }
 
 slot_worker* worker_pool::wait_worker(uint32_t tti)
 {
-  return (slot_worker*)pool.wait_worker(tti);
+  slot_worker* w = (slot_worker*)pool.wait_worker(tti);
+
+  // Only if a worker was available
+  if (w != nullptr) {
+    srsran_carrier_nr_t   carrier_;
+    srsran_pdcch_cfg_nr_t pdcch_cfg_;
+
+    // Copy configuration
+    {
+      std::unique_lock<std::mutex> lock(common_cfg_mutex);
+      carrier_   = carrier;
+      pdcch_cfg_ = pdcch_cfg;
+    }
+
+    // Set worker configuration
+    if (not w->set_common_cfg(carrier_, pdcch_cfg_)) {
+      logger.error("Error setting common config");
+      return nullptr;
+    }
+  }
+
+  // Save current TTI
+  current_tti = tti;
+
+  // Return worker
+  return w;
 }
 
 slot_worker* worker_pool::wait_worker_id(uint32_t id)
@@ -71,6 +107,41 @@ slot_worker* worker_pool::wait_worker_id(uint32_t id)
 void worker_pool::stop()
 {
   pool.stop();
+  prach.stop();
+}
+
+int worker_pool::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common_cfg)
+{
+  // Best effort to convert NR carrier into LTE cell
+  srsran_cell_t cell = {};
+  int           ret  = srsran_carrier_to_cell(&common_cfg.carrier, &cell);
+  if (ret < SRSRAN_SUCCESS) {
+    logger.error("Converting carrier to cell for PRACH (%d)", ret);
+    return SRSRAN_ERROR;
+  }
+
+  // Best effort to set up NR-PRACH config reused for NR
+  srsran_prach_cfg_t prach_cfg           = common_cfg.prach;
+  uint32_t           lte_nr_prach_offset = (common_cfg.carrier.nof_prb - cell.nof_prb) / 2;
+  if (prach_cfg.freq_offset < lte_nr_prach_offset) {
+    logger.error("prach_cfg.freq_offset=%d is not compatible with LTE", prach_cfg.freq_offset);
+    return SRSRAN_ERROR;
+  }
+  prach_cfg.freq_offset -= lte_nr_prach_offset;
+  prach_cfg.is_nr = true;
+
+  // Set the PRACH configuration
+  prach.init(0, cell, prach_cfg, &prach_stack_adaptor, logger, 0, 1);
+  prach.set_max_prach_offset_us(1000);
+
+  // Save current configuration
+  {
+    std::unique_lock<std::mutex> lock(common_cfg_mutex);
+    carrier   = common_cfg.carrier;
+    pdcch_cfg = common_cfg.pdcch;
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace nr

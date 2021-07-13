@@ -89,114 +89,6 @@ void mac_nr::stop()
 
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics) {}
 
-// Fills both, DL_CONFIG.request and TX.request structs
-void mac_nr::get_dl_config(const uint32_t                               tti,
-                           phy_interface_stack_nr::dl_config_request_t& config_request,
-                           phy_interface_stack_nr::tx_request_t&        tx_request)
-{
-  // send MIB over BCH every 80ms
-  if (tti % 80 == 0) {
-    // try to read BCH PDU from RRC
-    if (rrc_h->read_pdu_bcch_bch(tti, bcch_bch_payload) == SRSRAN_SUCCESS) {
-      logger.info("Adding BCH in TTI=%d", tti);
-      tx_request.pdus[tx_request.nof_pdus].pbch.mib_present = true;
-      tx_request.pdus[tx_request.nof_pdus].data[0]          = bcch_bch_payload->msg;
-      tx_request.pdus[tx_request.nof_pdus].length           = bcch_bch_payload->N_bytes;
-      tx_request.pdus[tx_request.nof_pdus].index            = tx_request.nof_pdus;
-      tx_request.nof_pdus++;
-
-      if (pcap) {
-        pcap->write_dl_bch(bcch_bch_payload->msg, bcch_bch_payload->N_bytes, 0xffff, 0, tti);
-      }
-    } else {
-      logger.error("Couldn't read BCH payload from RRC");
-    }
-  }
-
-  // Schedule SIBs
-  for (auto& sib : bcch_dlsch_payload) {
-    if (sib.payload->N_bytes > 0) {
-      if (tti % (sib.periodicity * 10) == 0) {
-        logger.info("Adding SIB %d in TTI=%d", sib.index, tti);
-
-        tx_request.pdus[tx_request.nof_pdus].data[0] = sib.payload->msg;
-        tx_request.pdus[tx_request.nof_pdus].length  = sib.payload->N_bytes;
-        tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
-
-        if (pcap) {
-          pcap->write_dl_si_rnti_nr(sib.payload->msg, sib.payload->N_bytes, 0xffff, 0, tti);
-        }
-
-        tx_request.nof_pdus++;
-      }
-    }
-  }
-
-  // Add MAC padding if TTI is empty
-  if (tx_request.nof_pdus == 0) {
-    uint32_t buffer_index = tti % SRSRAN_FDD_NOF_HARQ;
-
-    ue_tx_buffer.at(buffer_index)->clear();
-    ue_tx_pdu.init_tx(ue_tx_buffer.at(buffer_index).get(), args.tb_size);
-
-    // read RLC PDU
-    ue_rlc_buffer->clear();
-    int pdu_len = rlc_h->read_pdu(args.rnti, 4, ue_rlc_buffer->msg, args.tb_size - 2);
-
-    // Only create PDU if RLC has something to tx
-    if (pdu_len > 0) {
-      logger.info("Adding MAC PDU for RNTI=%d", args.rnti);
-      ue_rlc_buffer->N_bytes = pdu_len;
-      logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
-
-      // add to MAC PDU and pack
-      ue_tx_pdu.add_sdu(4, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
-      ue_tx_pdu.pack();
-
-      logger.debug(ue_tx_buffer.at(buffer_index)->msg,
-                   ue_tx_buffer.at(buffer_index)->N_bytes,
-                   "Generated MAC PDU (%d B)",
-                   ue_tx_buffer.at(buffer_index)->N_bytes);
-
-      tx_request.pdus[tx_request.nof_pdus].data[0] = ue_tx_buffer.at(buffer_index)->msg;
-      tx_request.pdus[tx_request.nof_pdus].length  = ue_tx_buffer.at(buffer_index)->N_bytes;
-      tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
-
-      if (pcap) {
-        pcap->write_dl_crnti_nr(tx_request.pdus[tx_request.nof_pdus].data[0],
-                                tx_request.pdus[tx_request.nof_pdus].length,
-                                args.rnti,
-                                buffer_index,
-                                tti);
-      }
-
-      tx_request.nof_pdus++;
-    }
-  }
-
-  config_request.tti = tti;
-  tx_request.tti     = tti;
-}
-
-int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
-{
-  phy_interface_stack_nr::dl_config_request_t config_request = {};
-  phy_interface_stack_nr::tx_request_t        tx_request     = {};
-
-  // step MAC TTI
-  logger.set_context(slot_cfg.idx);
-
-  get_dl_config(slot_cfg.idx, config_request, tx_request);
-
-  // send DL_CONFIG.request
-  phy_h->dl_config_request(config_request);
-
-  // send TX.request
-  phy_h->tx_request(tx_request);
-
-  return SRSRAN_SUCCESS;
-}
-
 int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
 {
   // push received PDU on queue
@@ -270,6 +162,11 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   return SRSRAN_SUCCESS;
 }
 
+int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
+{
+  return 0;
+}
+
 int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
 {
   return 0;
@@ -286,5 +183,6 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
 {
   return 0;
 }
+void mac_nr::rach_detected(const mac_interface_phy_nr::rach_info_t& rach_info) {}
 
 } // namespace srsenb

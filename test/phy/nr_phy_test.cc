@@ -72,7 +72,9 @@ test_bench::args_t::args_t(int argc, char** argv)
       ;
 
   options_ue_stack.add_options()
-      ("ue.stack.sr.period", bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period), "SR period in number of opportunities. Set 0 to disable and 1 for all.")
+      ("ue.stack.sr.period",      bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period),           "SR period in number of opportunities. Set 0 to disable and 1 for all.")
+      ("ue.stack.prach.period",   bpo::value<uint32_t>(&ue_stack.prach_period)->default_value(ue_stack.prach_period),     "PRACH period in SFN. Set 0 to disable and 1 for all.")
+      ("ue.stack.prach.preamble", bpo::value<uint32_t>(&ue_stack.prach_preamble)->default_value(ue_stack.prach_preamble), "PRACH preamble. Set 0 to disable and 1 for all.")
       ;
 
   options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
@@ -153,18 +155,18 @@ int main(int argc, char** argv)
   srslog::flush();
 
   // Retrieve MAC metrics
-  srsenb::mac_ue_metrics_t mac_metrics = tb.get_gnb_metrics();
+  test_bench::metrics_t metrics = tb.get_gnb_metrics();
 
   // Print PDSCH metrics if scheduled
-  if (mac_metrics.tx_pkts > 0) {
+  if (metrics.gnb_stack.mac.tx_pkts > 0) {
     float pdsch_bler = 0.0f;
-    pdsch_bler       = (float)mac_metrics.tx_errors / (float)mac_metrics.tx_pkts;
+    pdsch_bler       = (float)metrics.gnb_stack.mac.tx_errors / (float)metrics.gnb_stack.mac.tx_pkts;
 
     float pdsch_shed_rate = 0.0f;
-    pdsch_shed_rate       = (float)mac_metrics.tx_brate / (float)mac_metrics.tx_pkts / 1000.0f;
+    pdsch_shed_rate       = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
 
     srsran::console("PDSCH:\n");
-    srsran::console("       Count: %d\n", mac_metrics.tx_pkts);
+    srsran::console("       Count: %d\n", metrics.gnb_stack.mac.tx_pkts);
     srsran::console("        BLER: %f\n", pdsch_bler);
     srsran::console("  Sched Rate: %f Mbps\n", pdsch_shed_rate);
     srsran::console("    Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
@@ -173,19 +175,19 @@ int main(int argc, char** argv)
   }
 
   // Print PUSCH metrics if scheduled
-  if (mac_metrics.rx_pkts > 0) {
+  if (metrics.gnb_stack.mac.rx_pkts > 0) {
     float pusch_bler = 0.0f;
-    if (mac_metrics.rx_pkts != 0) {
-      pusch_bler = (float)mac_metrics.rx_errors / (float)mac_metrics.rx_pkts;
+    if (metrics.gnb_stack.mac.rx_pkts != 0) {
+      pusch_bler = (float)metrics.gnb_stack.mac.rx_errors / (float)metrics.gnb_stack.mac.rx_pkts;
     }
 
     float pusch_shed_rate = 0.0f;
-    if (mac_metrics.rx_pkts != 0) {
-      pusch_shed_rate = (float)mac_metrics.rx_brate / (float)mac_metrics.rx_pkts / 1000.0f;
+    if (metrics.gnb_stack.mac.rx_pkts != 0) {
+      pusch_shed_rate = (float)metrics.gnb_stack.mac.rx_brate / (float)metrics.gnb_stack.mac.rx_pkts / 1000.0f;
     }
 
     srsran::console("PUSCH:\n");
-    srsran::console("       Count: %d\n", mac_metrics.rx_pkts);
+    srsran::console("       Count: %d\n", metrics.gnb_stack.mac.rx_pkts);
     srsran::console("        BLER: %f\n", pusch_bler);
     srsran::console("  Sched Rate: %f Mbps\n", pusch_shed_rate);
     srsran::console("    Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
@@ -193,9 +195,43 @@ int main(int argc, char** argv)
     srsran::console("\n");
   }
 
+  // Print PRACH
+  if (metrics.ue_stack.prach.size() > 0) {
+    srsran::console("PRACH:\n");
+    srsran::console("  UE transmitted:\n");
+    srsran::console("   +------------+------------+\n");
+    srsran::console("   | %10s | %10s |\n", "preamble", "count");
+    srsran::console("   +------------+------------+\n");
+
+    for (const auto& p : metrics.ue_stack.prach) {
+      srsran::console("   | %10d | %10d |\n", p.first, p.second.count);
+
+      // Ensure the detected count matches with transmission
+      TESTASSERT(metrics.gnb_stack.prach.count(p.first));
+      TESTASSERT(metrics.gnb_stack.prach[p.first].count == p.second.count);
+    }
+    srsran::console("   +------------+------------+\n\n");
+
+    srsran::console("  GNB detected:\n");
+    srsran::console("   +------------+------------+------------+\n");
+    srsran::console("   | %10s | %10s | %10s |\n", "preamble", "count", "avg TA");
+    srsran::console("   +------------+------------+------------+\n");
+
+    for (const auto& p : metrics.gnb_stack.prach) {
+      srsran::console("   | %10d | %10d | %10.1f |\n", p.first, p.second.count, p.second.avg_ta);
+
+      // Ensure all detected preambles were transmitted
+      TESTASSERT(metrics.ue_stack.prach.count(p.first) > 0);
+    }
+    srsran::console("   +------------+------------+------------+\n\n");
+  } else {
+    // In this case no PRACH should
+    TESTASSERT(metrics.gnb_stack.prach.empty());
+  }
+
   // Assert metrics
-  TESTASSERT(mac_metrics.tx_errors == 0);
-  TESTASSERT(mac_metrics.rx_errors == 0);
+  TESTASSERT(metrics.gnb_stack.mac.tx_errors == 0);
+  TESTASSERT(metrics.gnb_stack.mac.rx_errors == 0);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;
