@@ -432,7 +432,7 @@ SRSASN_CODE capability_5gmm_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(cag, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 13) {
     asn1::log_error("Encoding Failed (5GMM capability): Packed length (%d) is not in range of min: 1 and max 13 bytes",
@@ -532,7 +532,7 @@ SRSASN_CODE ue_security_capability_t::pack(asn1::bit_ref& bref)
     HANDLE_CODE(bref.pack(eia7_supported, 1));
   }
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 8) {
     asn1::log_error(
@@ -608,7 +608,7 @@ SRSASN_CODE nssai_t::pack(asn1::bit_ref& bref)
   }
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 144) {
     asn1::log_error("Encoding Failed (NSSAI): Packed length (%d) is not in range of min: 2 and max 144 bytes", length);
@@ -733,7 +733,7 @@ SRSASN_CODE s1_ue_network_capability_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(racs_supported, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 13) {
     asn1::log_error(
@@ -878,7 +878,7 @@ SRSASN_CODE uplink_data_status_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(psi_8, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 32) {
     asn1::log_error(
@@ -948,7 +948,7 @@ SRSASN_CODE pdu_session_status_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(psi_8, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 32) {
     asn1::log_error(
@@ -1028,7 +1028,7 @@ SRSASN_CODE ue_status_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(s1_mode_reg, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (UE status): Packed length (%d) does not equal expected length 1", length);
@@ -1080,7 +1080,7 @@ SRSASN_CODE allowed_pdu_session_status_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(psi_8, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 32) {
     asn1::log_error(
@@ -1138,7 +1138,7 @@ SRSASN_CODE ue_usage_setting_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(ue_usage_setting.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (UE usage setting): Packed length (%d) does not equal expected length 1", length);
@@ -1176,7 +1176,7 @@ SRSASN_CODE drx_parameters_5gs_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(drx_value.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (5GS DRX parameters): Packed length (%d) does not equal expected length 1",
@@ -1212,7 +1212,7 @@ SRSASN_CODE eps_nas_message_container_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(eps_nas_message_container.data(), eps_nas_message_container.size()));
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   HANDLE_CODE(bref_length.pack(length, 16));
   return SRSASN_SUCCESS;
@@ -1241,7 +1241,7 @@ SRSASN_CODE ladn_indication_t::pack(asn1::bit_ref& bref)
   }
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MIN 0 not check because auf uint underflow
   if (length > 808) {
@@ -1297,7 +1297,7 @@ SRSASN_CODE payload_container_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(payload_container_contents.data(), payload_container_contents.size()));
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 1) {
@@ -1361,7 +1361,7 @@ SRSASN_CODE update_type_5gs_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(sms_requested.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -1391,7 +1391,7 @@ SRSASN_CODE mobile_station_classmark_2_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 3) {
     asn1::log_error("Encoding Failed (Mobile station classmark 2): Packed length (%d) does not equal expected length 3",
@@ -1429,7 +1429,7 @@ SRSASN_CODE supported_codec_list_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 3) {
     asn1::log_error("Encoding Failed (Supported codec list): Packed length (%d) is not in range of min: 3 bytes",
@@ -1465,7 +1465,7 @@ SRSASN_CODE message_container_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(nas_message_container.data(), nas_message_container.size()));
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   if (length < 1 || length > 65532) {
     asn1::log_error(
@@ -1518,7 +1518,7 @@ SRSASN_CODE eps_bearer_context_status_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(ebi_8, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 2) {
     asn1::log_error("Encoding Failed (EPS bearer context status): Packed length (%d) does not equal expected length 2",
@@ -1570,7 +1570,7 @@ SRSASN_CODE extended_drx_parameters_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(e_drx_value.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (Extended DRX parameters): Packed length (%d) does not equal expected length 1",
@@ -1607,7 +1607,7 @@ SRSASN_CODE gprs_timer_3_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(timer_value, 5));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (GPRS timer 3): Packed length (%d) does not equal expected length 1", length);
@@ -1641,7 +1641,7 @@ SRSASN_CODE ue_radio_capability_id_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(ue_radio_capability_id.data(), ue_radio_capability_id.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -1668,7 +1668,7 @@ SRSASN_CODE mapped_nssai_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 40) {
     asn1::log_error("Encoding Failed (Mapped NSSAI): Packed length (%d) is not in range of min: 2 and max 40 bytes",
@@ -1707,7 +1707,7 @@ SRSASN_CODE additional_information_requested_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(cipher_key, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -1734,7 +1734,7 @@ SRSASN_CODE wus_assistance_information_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1) {
     asn1::log_error("Encoding Failed (WUS assistance information): Packed length (%d) is not in range of min: 1 bytes",
@@ -1794,7 +1794,7 @@ SRSASN_CODE nb_n1_mode_drx_parameters_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(nb_n1_mode_drx_value.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (NB-N1 mode DRX parameters): Packed length (%d) does not equal expected length 1",
@@ -1837,7 +1837,7 @@ SRSASN_CODE registration_result_5gs_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(registration_result.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (5GS registration result): Packed length (%d) does not equal expected length 1",
@@ -1877,7 +1877,7 @@ SRSASN_CODE plmn_list_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -1904,7 +1904,7 @@ SRSASN_CODE tracking_area_identity_list_5gs_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 7) {
     asn1::log_error(
@@ -1943,7 +1943,7 @@ SRSASN_CODE rejected_nssai_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -1970,7 +1970,7 @@ SRSASN_CODE network_feature_support_5gs_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 3) {
     asn1::log_error(
@@ -2024,7 +2024,7 @@ SRSASN_CODE pdu_session_reactivation_result_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(psi_8, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 32) {
     asn1::log_error("Encoding Failed (PDU session reactivation result): Packed length (%d) is not in range of min: 2 "
@@ -2083,7 +2083,7 @@ SRSASN_CODE pdu_session_reactivation_result_error_cause_t::pack(asn1::bit_ref& b
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   if (length < 2 || length > 512) {
     asn1::log_error("Encoding Failed (PDU session reactivation result error cause): Packed length (%d) is not in range "
@@ -2123,7 +2123,7 @@ SRSASN_CODE ladn_information_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MIN 0 not check because auf uint underflow
   if (length > 1712) {
@@ -2161,7 +2161,7 @@ SRSASN_CODE service_area_list_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -2188,7 +2188,7 @@ SRSASN_CODE gprs_timer_2_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(timer_value, 8));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (GPRS timer 2): Packed length (%d) does not equal expected length 1", length);
@@ -2222,7 +2222,7 @@ SRSASN_CODE emergency_number_list_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 3 || length > 48) {
     asn1::log_error(
@@ -2261,7 +2261,7 @@ SRSASN_CODE extended_emergency_number_list_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 4) {
@@ -2301,7 +2301,7 @@ SRSASN_CODE sor_transparent_container_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   if (length < 17) {
     asn1::log_error("Encoding Failed (SOR transparent container): Packed length (%d) is not in range of min: 17 bytes",
@@ -2338,7 +2338,7 @@ SRSASN_CODE eap_message_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(eap_message.data(), eap_message.size()));
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   if (length < 4 || length > 1500) {
     asn1::log_error("Encoding Failed (EAP message): Packed length (%d) is not in range of min: 4 and max 1500 bytes",
@@ -2394,7 +2394,7 @@ SRSASN_CODE operator_defined_access_category_definitions_t::pack(asn1::bit_ref& 
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   HANDLE_CODE(bref_length.pack(length, 16));
   return SRSASN_SUCCESS;
@@ -2461,7 +2461,7 @@ SRSASN_CODE ciphering_key_data_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   if (length < 31 || length > 2672) {
     asn1::log_error(
@@ -2500,7 +2500,7 @@ SRSASN_CODE cag_information_list_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   HANDLE_CODE(bref_length.pack(length, 16));
   return SRSASN_SUCCESS;
@@ -2528,7 +2528,7 @@ SRSASN_CODE truncated_5g_s_tmsi_configuration_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(truncated_amf__pointer_value, 4));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error(
@@ -2656,7 +2656,7 @@ SRSASN_CODE network_name_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   HANDLE_CODE(bref_length.pack(length, 8));
   return SRSASN_SUCCESS;
@@ -2725,7 +2725,7 @@ SRSASN_CODE daylight_saving_time_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(value.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (Daylight saving time): Packed length (%d) does not equal expected length 1",
@@ -2799,7 +2799,7 @@ SRSASN_CODE abba_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(abba_contents.data(), abba_contents.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2) {
     asn1::log_error("Encoding Failed (ABBA): Packed length (%d) is not in range of min: 2 bytes", length);
@@ -2849,7 +2849,7 @@ SRSASN_CODE authentication_parameter_autn_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(autn.data(), autn.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 16) {
     asn1::log_error(
@@ -2886,7 +2886,7 @@ SRSASN_CODE authentication_response_parameter_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(res.data(), res.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 16) {
     asn1::log_error(
@@ -2923,7 +2923,7 @@ SRSASN_CODE authentication_failure_parameter_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(auth_failure.data(), auth_failure.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 14) {
     asn1::log_error(
@@ -3049,7 +3049,7 @@ SRSASN_CODE additional_5g_security_information_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(hdp, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error(
@@ -3132,7 +3132,7 @@ SRSASN_CODE s1_ue_security_capability_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(gea7, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 2 || length > 5) {
     asn1::log_error(
@@ -3296,7 +3296,7 @@ SRSASN_CODE s_nssai_t::pack(asn1::bit_ref& bref)
   }
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 8) {
     asn1::log_error("Encoding Failed (S-NSSAI): Packed length (%d) is not in range of min: 1 and max 8 bytes", length);
@@ -3345,7 +3345,7 @@ SRSASN_CODE dnn_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(dnn_value.data(), dnn_value.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 100) {
     asn1::log_error("Encoding Failed (DNN): Packed length (%d) is not in range of min: 1 and max 100 bytes", length);
@@ -3379,7 +3379,7 @@ SRSASN_CODE additional_information_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(additional_information_value.data(), additional_information_value.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1) {
     asn1::log_error("Encoding Failed (Additional information): Packed length (%d) is not in range of min: 1 bytes",
@@ -3509,7 +3509,7 @@ SRSASN_CODE capability_5gsm_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 13) {
     asn1::log_error("Encoding Failed (5GSM capability): Packed length (%d) is not in range of min: 1 and max 13 bytes",
@@ -3587,7 +3587,7 @@ SRSASN_CODE sm_pdu_dn_request_container_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(dn_specific_identity.data(), dn_specific_identity.size()));
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 253) {
     asn1::log_error(
@@ -3626,7 +3626,7 @@ SRSASN_CODE extended_protocol_configuration_options_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 1) {
@@ -3668,7 +3668,7 @@ SRSASN_CODE ip_header_compression_configuration_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   // MAX 255 not check because auf uint overflow
   if (length < 3) {
@@ -3709,7 +3709,7 @@ SRSASN_CODE ds_tt__ethernet_port_mac_address_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack_bytes(ds_tt__ethernet_port_mac_address_contents.data(), 6));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 6) {
     asn1::log_error(
@@ -3746,7 +3746,7 @@ SRSASN_CODE ue_ds_tt_residence_time_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack_bytes(ue_ds_tt_residence_time_contents.data(), 8));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 8) {
     asn1::log_error("Encoding Failed (UE-DS-TT residence time): Packed length (%d) does not equal expected length 8",
@@ -3781,7 +3781,7 @@ SRSASN_CODE port_management_information_container_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(
       bref.pack_bytes(port_management_information_container.data(), port_management_information_container.size()));
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 1) {
@@ -3823,7 +3823,7 @@ SRSASN_CODE ethernet_header_compression_configuration_t::pack(asn1::bit_ref& bre
   HANDLE_CODE(cid__length.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (Ethernet header compression configuration): Packed length (%d) does not equal "
@@ -3879,7 +3879,7 @@ SRSASN_CODE pdu_address_t::pack(asn1::bit_ref& bref)
   }
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 5 || length > 29) {
     asn1::log_error("Encoding Failed (PDU address): Packed length (%d) is not in range of min: 5 and max 29 bytes",
@@ -3938,7 +3938,7 @@ SRSASN_CODE qo_s_rules_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.advance_bits(16));
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 4) {
@@ -3977,7 +3977,7 @@ SRSASN_CODE session_ambr_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(session_ambr_for_uplink, 16));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 6) {
     asn1::log_error("Encoding Failed (Session-AMBR): Packed length (%d) does not equal expected length 6", length);
@@ -4068,7 +4068,7 @@ SRSASN_CODE mapped_eps_bearer_contexts_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 4) {
@@ -4108,7 +4108,7 @@ SRSASN_CODE qo_s_flow_descriptions_t::pack(asn1::bit_ref& bref)
   // TODO proper packing
 
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MAX 65535 not check because auf uint overflow
   if (length < 3) {
@@ -4149,7 +4149,7 @@ SRSASN_CODE network_feature_support_5gsm_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(ept_s1.pack(bref));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length < 1 || length > 13) {
     asn1::log_error(
@@ -4192,7 +4192,7 @@ SRSASN_CODE serving_plmn_rate_control_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(serving_plmn_rate_control_value, 16));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 2) {
     asn1::log_error("Encoding Failed (Serving PLMN rate control): Packed length (%d) does not equal expected length 2",
@@ -4227,7 +4227,7 @@ SRSASN_CODE atsss_container_t::pack(asn1::bit_ref& bref)
 
   HANDLE_CODE(bref.pack_bytes(nas_message_container.data(), nas_message_container.size()));
   bref.align_bytes_zero();
-  uint16_t length = (uint16_t)(ceilf(bref.distance(bref_length) / 8) - 2);
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
   // MIN 0 not check because auf uint underflow
   // MAX 65535 not check because auf uint overflow
@@ -4328,7 +4328,7 @@ SRSASN_CODE re_attempt_indicator_t::pack(asn1::bit_ref& bref)
   HANDLE_CODE(bref.pack(ratc, 1));
 
   bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf(bref.distance(bref_length) / 8) - 1);
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
   if (length != 1) {
     asn1::log_error("Encoding Failed (Re-attempt indicator): Packed length (%d) does not equal expected length 1",
