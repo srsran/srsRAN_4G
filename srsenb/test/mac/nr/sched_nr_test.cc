@@ -200,7 +200,7 @@ void sched_nr_cfg_parallel_cc_test()
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   sched_tester.add_user(0x46, uecfg, 0);
 
-  std::vector<std::atomic<long> > nano_count(nof_sectors);
+  std::array<std::atomic<long>, SRSRAN_MAX_CARRIERS> nano_count{};
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti_rx(nof_ttis % 10240);
     tti_point tti_tx = tti_rx + TX_ENB_DELAY;
@@ -229,7 +229,7 @@ void sched_nr_cfg_parallel_cc_test()
   TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
 
   double final_avg_usec = 0;
-  for (uint32_t i = 0; i < nano_count.size(); ++i) {
+  for (uint32_t i = 0; i < nof_sectors; ++i) {
     final_avg_usec += nano_count[i];
   }
   final_avg_usec = final_avg_usec / 1000.0 / max_nof_ttis / nof_sectors;
@@ -251,7 +251,7 @@ void sched_nr_cfg_parallel_sf_test()
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   sched_tester.add_user(0x46, uecfg, 0);
 
-  std::vector<std::atomic<long> > nano_count(nof_sectors);
+  std::array<std::atomic<long>, SRSRAN_MAX_CARRIERS> nano_count{};
   for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
     tti_point tti_rx(nof_ttis % 10240);
     tti_point tti_tx = tti_rx + TX_ENB_DELAY;
@@ -279,7 +279,7 @@ void sched_nr_cfg_parallel_sf_test()
   tasks.print_results();
 
   double final_avg_usec = 0;
-  for (uint32_t i = 0; i < nano_count.size(); ++i) {
+  for (uint32_t i = 0; i < nof_sectors; ++i) {
     final_avg_usec += nano_count[i];
   }
   final_avg_usec = final_avg_usec / 1000.0 / max_nof_ttis / nof_sectors;

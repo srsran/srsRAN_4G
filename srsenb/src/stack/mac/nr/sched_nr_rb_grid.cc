@@ -119,6 +119,11 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
 
 alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant)
 {
+  if (ue.cfg->active_bwp().bwp_id != bwp_grid.cfg->bwp_id) {
+    logger.warning(
+        "SCHED: Trying to allocate PDSCH for rnti=0x%x in inactive BWP id=%d", ue.rnti, ue.cfg->active_bwp().bwp_id);
+    return alloc_result::no_rnti_opportunity;
+  }
   if (ue.h_dl == nullptr) {
     logger.warning("SCHED: Trying to allocate PDSCH for rnti=0x%x with no available HARQs", ue.rnti);
     return alloc_result::no_rnti_opportunity;

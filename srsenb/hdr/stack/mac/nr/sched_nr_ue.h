@@ -46,7 +46,6 @@ public:
 
   // UE parameters that are sector specific
   const ue_cc_cfg_t* cc_cfg = nullptr;
-  uint32_t           bwp_id;
   tti_point          pdcch_tti;
   tti_point          pdsch_tti;
   tti_point          pusch_tti;

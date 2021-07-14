@@ -95,6 +95,7 @@ public:
 
   const ue_cfg_t*             ue_cfg() const { return cfg_; }
   const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
+  const bwp_params&           active_bwp() const { return *bwp_cfg; }
   const bwp_cce_pos_list&     cce_pos_list(uint32_t search_id) const
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];
@@ -102,8 +103,8 @@ public:
 
 private:
   uint16_t          rnti    = SRSRAN_INVALID_RNTI;
-  const bwp_params* bwp_cfg = nullptr;
   const ue_cfg_t*   cfg_    = nullptr;
+  const bwp_params* bwp_cfg = nullptr;
 
   std::vector<bwp_cce_pos_list>                              cce_positions_list;
   std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;

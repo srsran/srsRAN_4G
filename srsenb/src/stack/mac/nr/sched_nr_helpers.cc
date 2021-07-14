@@ -30,7 +30,7 @@ void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dc
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
-  dci.bwp_id = ue.bwp_id;
+  dci.bwp_id = ue.cfg->active_bwp().bwp_id;
   dci.cc_id  = ue.cc;
   dci.tpc    = 1;
   // harq
