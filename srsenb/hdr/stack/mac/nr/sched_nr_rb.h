@@ -191,7 +191,6 @@ public:
 private:
   prb_bitmap prbs_;
   rbg_bitmap rbgs_;
-  uint32_t   bwp_prb_start  = 0;
   uint32_t   P_             = 0;
   uint32_t   Pnofbits       = 0;
   uint32_t   first_rbg_size = 0;

@@ -232,7 +232,7 @@ bool sched_worker_manager::save_sched_result(tti_point pdcch_tti, uint32_t cc, d
   dl_res.pdsch    = bwp_slot.pdschs;
   ul_res.pusch    = bwp_slot.puschs;
 
-  // Generate PUCCH
+  // Group pending HARQ ACKs
   srsran_pdsch_ack_nr_t ack           = {};
   ack.nof_cc                          = not bwp_slot.pending_acks.empty();
   const srsran::phy_cfg_nr_t* phy_cfg = nullptr;
@@ -246,11 +246,23 @@ bool sched_worker_manager::save_sched_result(tti_point pdcch_tti, uint32_t cc, d
 
   if (phy_cfg != nullptr) {
     srsran_slot_cfg_t slot_cfg{};
-    slot_cfg.idx = pdcch_tti.sf_idx();
-    ul_res.pucch.emplace_back();
-    pucch_t& pucch = ul_res.pucch.back();
-    if (not phy_cfg->get_pucch(slot_cfg, ack, pucch.pucch_cfg, pucch.uci_cfg, pucch.resource)) {
-      logger.error("Error getting UCI CFG");
+    slot_cfg.idx                = pdcch_tti.sf_idx();
+    srsran_uci_cfg_nr_t uci_cfg = {};
+    srsran_assert(phy_cfg->get_uci_cfg(slot_cfg, ack, uci_cfg), "Error getting UCI CFG");
+
+    if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
+      if (not ul_res.pusch.empty()) {
+        // Put UCI configuration in PUSCH config
+        srsran_assert(phy_cfg->get_pusch_uci_cfg(slot_cfg, uci_cfg, ul_res.pusch[0].sch),
+                      "Error setting UCI configuration in PUSCH");
+      } else {
+        // Put UCI configuration in PUCCH config
+        ul_res.pucch.emplace_back();
+        pucch_t& pucch = ul_res.pucch.back();
+        pucch.uci_cfg  = uci_cfg;
+        srsran_assert(phy_cfg->get_pucch_uci_cfg(slot_cfg, pucch.uci_cfg, pucch.pucch_cfg, pucch.resource),
+                      "Error getting PUCCH UCI cfg");
+      }
     }
   }
 

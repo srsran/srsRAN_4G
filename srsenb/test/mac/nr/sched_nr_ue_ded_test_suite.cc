@@ -52,8 +52,9 @@ void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_o
   }
 
   for (const pdsch_t& pdsch : pdschs) {
-    TESTASSERT(pdsch.tx_softbuffer[0].buffer_b != nullptr);
-    TESTASSERT(pdsch.tx_softbuffer[0].max_cb > 0);
+    TESTASSERT(pdsch.sch.grant.tb[0].softbuffer.tx != nullptr);
+    TESTASSERT(pdsch.sch.grant.tb[0].softbuffer.tx->buffer_b != nullptr);
+    TESTASSERT(pdsch.sch.grant.tb[0].softbuffer.tx->max_cb > 0);
   }
 }
 

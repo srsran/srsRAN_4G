@@ -214,9 +214,8 @@ public:
   };
 
   struct pdsch_t {
-    srsran_sch_cfg_nr_t                               sch           = {}; ///< PDSCH configuration
-    std::array<uint8_t*, SRSRAN_MAX_TB>               data          = {}; ///< Data pointer
-    std::array<srsran_softbuffer_tx_t, SRSRAN_MAX_TB> tx_softbuffer = {}; ///< HARQ-specific Softbuffer
+    srsran_sch_cfg_nr_t                 sch  = {}; ///< PDSCH configuration
+    std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
   };
 
   struct ssb_t {

@@ -55,7 +55,6 @@ uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_
 bwp_rb_bitmap::bwp_rb_bitmap(uint32_t bwp_nof_prbs, uint32_t bwp_prb_start_, bool config1_or_2) :
   prbs_(bwp_nof_prbs),
   rbgs_(get_nof_rbgs(bwp_nof_prbs, bwp_prb_start_, config1_or_2)),
-  bwp_prb_start(bwp_prb_start_),
   P_(get_P(bwp_nof_prbs, config1_or_2)),
   Pnofbits(log2(P_)),
   first_rbg_size(get_rbg_size(bwp_nof_prbs, bwp_prb_start_, config1_or_2, 0))

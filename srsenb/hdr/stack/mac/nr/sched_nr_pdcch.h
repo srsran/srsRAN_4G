@@ -62,7 +62,6 @@ public:
   size_t   nof_allocs() const { return dfs_tree.size(); }
 
 private:
-  const bwp_params*       bwp_cfg;
   const srsran_coreset_t* coreset_cfg;
   uint32_t                coreset_id;
   uint32_t                slot_idx;
