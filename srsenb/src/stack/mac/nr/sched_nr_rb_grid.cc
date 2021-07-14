@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_phy.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -45,7 +45,7 @@ void bwp_slot_grid::reset()
   ul_prbs.reset();
   dl_pdcchs.clear();
   ul_pdcchs.clear();
-  pucchs.clear();
+  pending_acks.clear();
 }
 
 bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
@@ -167,14 +167,16 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
   fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci.pucch_resource = 0;
-  pdcch.dci.dai = std::count_if(bwp_uci_slot.pucchs.begin(), bwp_uci_slot.pucchs.end(), [&ue](const pucch_t& p) {
-    return p.uci_cfg.pucch.rnti == ue.rnti;
-  });
+  pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
+                                bwp_uci_slot.pending_acks.end(),
+                                [&ue](const harq_ack_t& p) { return p.res.rnti == ue.rnti; });
+  pdcch.dci.dai %= 4;
 
   // Generate PUCCH
-  bwp_uci_slot.pucchs.emplace_back();
-  pucch_t& pucch           = bwp_uci_slot.pucchs.back();
-  pucch.uci_cfg.pucch.rnti = ue.rnti;
+  bwp_uci_slot.pending_acks.emplace_back();
+  bwp_uci_slot.pending_acks.back().phy_cfg = &ue.cfg->phy();
+  srsran_assert(ue.cfg->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
+                "Error getting ack resource");
 
   // Generate PDSCH
   bwp_pdsch_slot.dl_prbs |= dl_grant;

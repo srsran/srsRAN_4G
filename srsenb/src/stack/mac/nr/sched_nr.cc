@@ -197,7 +197,7 @@ int sched_nr::generate_slot_result(tti_point pdcch_tti, uint32_t cc)
   // Copy results to intermediate buffer
   dl_sched_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
   ul_sched_t& ul_res = pending_results->add_ul_result(pdcch_tti, cc);
-  sched_workers->get_sched_result(pdcch_tti, cc, dl_res, ul_res);
+  sched_workers->save_sched_result(pdcch_tti, cc, dl_res, ul_res);
 
   return SRSRAN_SUCCESS;
 }

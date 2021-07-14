@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_SCHED_NR_PHY_H
-#define SRSRAN_SCHED_NR_PHY_H
+#ifndef SRSRAN_SCHED_NR_HELPERS_H
+#define SRSRAN_SCHED_NR_HELPERS_H
 
 #include "sched_nr_cfg.h"
 
@@ -41,4 +41,4 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
 } // namespace sched_nr_impl
 } // namespace srsenb
 
-#endif // SRSRAN_SCHED_NR_PHY_H
+#endif // SRSRAN_SCHED_NR_HELPERS_H

@@ -11,12 +11,13 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
+#include "srsran/common/string_helpers.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
 
 slot_cc_worker::slot_cc_worker(serv_cell_ctxt& cc_sched) :
-  cell(cc_sched), cfg(*cc_sched.cfg), bwp_alloc(cc_sched.bwps[0].grid)
+  cell(cc_sched), cfg(*cc_sched.cfg), bwp_alloc(cc_sched.bwps[0].grid), logger(srslog::fetch_basic_logger("MAC"))
 {}
 
 /// Called at the beginning of TTI in a locked context, to reserve available UE resources
@@ -52,6 +53,9 @@ void slot_cc_worker::run()
   // TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
   alloc_dl_ues();
   alloc_ul_ues();
+
+  // Log CC scheduler result
+  log_result();
 }
 
 void slot_cc_worker::end_tti()
@@ -94,9 +98,37 @@ void slot_cc_worker::alloc_ul_ues()
   bwp_alloc.alloc_pusch(ue, ulmask);
 }
 
+void slot_cc_worker::log_result() const
+{
+  const bwp_slot_grid& bwp_slot = cell.bwps[0].grid[tti_rx + TX_ENB_DELAY];
+  for (const pdcch_dl_t& pdcch : bwp_slot.dl_pdcchs) {
+    fmt::memory_buffer fmtbuf;
+    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
+      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
+      fmt::format_to(fmtbuf,
+                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, dai={}, tti_pdsch={}, tti_ack={}",
+                     ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
+                     cell.cfg->cc,
+                     ue.rnti,
+                     ue.h_dl->pid,
+                     ue.h_dl->nof_retx(),
+                     pdcch.dci.dai,
+                     ue.pdsch_tti,
+                     ue.uci_tti);
+    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
+      fmt::format_to(fmtbuf, "SCHED: DL RAR, cc={}", cell.cfg->cc);
+    } else {
+      fmt::format_to(fmtbuf, "SCHED: unknown format");
+    }
+
+    logger.info("%s", srsran::to_c_str(fmtbuf));
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_) : cfg(cfg_), ue_db(ue_db_)
+sched_worker_manager::sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_) :
+  cfg(cfg_), ue_db(ue_db_), logger(srslog::fetch_basic_logger("MAC"))
 {
   for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
     cell_grid_list.emplace_back(cfg.cells[cc]);
@@ -186,22 +218,44 @@ void sched_worker_manager::release_slot(tti_point tti_rx_)
   std::unique_lock<std::mutex> lock(sf_worker_ctxt.slot_mutex);
   sf_worker_ctxt.tti_rx = {};
   if (sf_worker_ctxt.nof_workers_waiting > 0) {
+    lock.unlock();
     sf_worker_ctxt.cvar.notify_one();
   }
 }
 
-bool sched_worker_manager::get_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
+bool sched_worker_manager::save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
 {
-  auto& pdcch_bwp_slot = cell_grid_list[cc].bwps[0].grid[pdcch_tti];
+  auto& bwp_slot = cell_grid_list[cc].bwps[0].grid[pdcch_tti];
 
-  dl_res.pdcch_dl = pdcch_bwp_slot.dl_pdcchs;
-  dl_res.pdcch_ul = pdcch_bwp_slot.ul_pdcchs;
-  dl_res.pdsch    = pdcch_bwp_slot.pdschs;
-  ul_res.pucch    = pdcch_bwp_slot.pucchs;
-  ul_res.pusch    = pdcch_bwp_slot.puschs;
+  dl_res.pdcch_dl = bwp_slot.dl_pdcchs;
+  dl_res.pdcch_ul = bwp_slot.ul_pdcchs;
+  dl_res.pdsch    = bwp_slot.pdschs;
+  ul_res.pusch    = bwp_slot.puschs;
+
+  // Generate PUCCH
+  srsran_pdsch_ack_nr_t ack           = {};
+  ack.nof_cc                          = not bwp_slot.pending_acks.empty();
+  const srsran::phy_cfg_nr_t* phy_cfg = nullptr;
+  for (const harq_ack_t& pending_ack : bwp_slot.pending_acks) {
+    srsran_harq_ack_m_t ack_m = {};
+    ack_m.resource            = pending_ack.res;
+    ack_m.present             = true;
+    srsran_harq_ack_insert_m(&ack, &ack_m);
+    phy_cfg = pending_ack.phy_cfg;
+  }
+
+  if (phy_cfg != nullptr) {
+    srsran_slot_cfg_t slot_cfg{};
+    slot_cfg.idx = pdcch_tti.sf_idx();
+    ul_res.pucch.emplace_back();
+    pucch_t& pucch = ul_res.pucch.back();
+    if (not phy_cfg->get_pucch(slot_cfg, ack, pucch.pucch_cfg, pucch.uci_cfg, pucch.resource)) {
+      logger.error("Error getting UCI CFG");
+    }
+  }
 
   // clear up BWP slot
-  pdcch_bwp_slot.reset();
+  bwp_slot.reset();
 
   return true;
 }

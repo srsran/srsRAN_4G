@@ -6,7 +6,7 @@
 # the distribution.
 #
 
-add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc)
+add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc sched_nr_ue_ded_test_suite.cc)
 target_link_libraries(sched_nr_test
         srsgnb_mac
         srsran_common

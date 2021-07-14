@@ -43,9 +43,11 @@ public:
 private:
   void alloc_dl_ues();
   void alloc_ul_ues();
+  void log_result() const;
 
   const sched_cell_params& cfg;
   serv_cell_ctxt&          cell;
+  srslog::basic_logger&    logger;
 
   tti_point          tti_rx;
   bwp_slot_allocator bwp_alloc;
@@ -73,12 +75,14 @@ public:
   void start_slot(tti_point tti_rx, srsran::move_callback<void()> process_feedback);
   bool run_slot(tti_point tti_rx, uint32_t cc);
   void release_slot(tti_point tti_rx);
-  bool get_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+  bool save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
 private:
-  const sched_params& cfg;
-  ue_map_t&           ue_db;
-  std::mutex          ue_db_mutex;
+  const sched_params&   cfg;
+  ue_map_t&             ue_db;
+  srslog::basic_logger& logger;
+
+  std::mutex ue_db_mutex;
 
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
 

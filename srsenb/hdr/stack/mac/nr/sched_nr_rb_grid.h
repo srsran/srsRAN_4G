@@ -15,9 +15,9 @@
 
 #include "../sched_common.h"
 #include "lib/include/srsran/adt/circular_array.h"
+#include "sched_nr_helpers.h"
 #include "sched_nr_interface.h"
 #include "sched_nr_pdcch.h"
-#include "sched_nr_phy.h"
 #include "sched_nr_ue.h"
 
 namespace srsenb {
@@ -33,6 +33,12 @@ using slot_coreset_list                 = std::array<srsran::optional<coreset_re
 using pdsch_t      = mac_interface_phy_nr::pdsch_t;
 using pdsch_list_t = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 
+struct harq_ack_t {
+  const srsran::phy_cfg_nr_t* phy_cfg;
+  srsran_harq_ack_resource_t  res;
+};
+using harq_ack_list_t = srsran::bounded_vector<harq_ack_t, MAX_GRANTS>;
+
 struct bwp_slot_grid {
   uint32_t          slot_idx;
   const bwp_params* cfg;
@@ -44,8 +50,8 @@ struct bwp_slot_grid {
   pdcch_ul_list_t   ul_pdcchs;
   pdsch_list_t      pdschs;
   slot_coreset_list coresets;
-  pucch_list_t      pucchs;
   pusch_list_t      puschs;
+  harq_ack_list_t   pending_acks;
 
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);

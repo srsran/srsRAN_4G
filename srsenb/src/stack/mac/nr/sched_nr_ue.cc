@@ -58,11 +58,15 @@ slot_ue ue_carrier::try_reserve(tti_point tti_rx, const ue_cfg_t& uecfg_)
   sfu.cfg = &bwp_cfg;
 
   // copy cc-specific parameters and find available HARQs
-  sfu.cc_cfg    = &uecfg_.carriers[cc];
-  sfu.pdcch_tti = tti_rx + TX_ENB_DELAY;
-  sfu.pdsch_tti = sfu.pdcch_tti + sfu.cc_cfg->pdsch_res_list[0].k0;
-  sfu.pusch_tti = sfu.pdcch_tti + sfu.cc_cfg->pusch_res_list[0].k2;
-  sfu.uci_tti   = sfu.pdsch_tti + sfu.cc_cfg->pdsch_res_list[0].k1;
+  sfu.cc_cfg        = &uecfg_.carriers[cc];
+  sfu.pdcch_tti     = tti_rx + TX_ENB_DELAY;
+  const uint32_t k0 = 0;
+  sfu.pdsch_tti     = sfu.pdcch_tti + k0;
+  uint32_t k1 =
+      sfu.cfg->phy().harq_ack.dl_data_to_ul_ack[sfu.pdsch_tti.sf_idx() % sfu.cfg->phy().harq_ack.nof_dl_data_to_ul_ack];
+  sfu.uci_tti   = sfu.pdsch_tti + k1;
+  uint32_t k2   = k1;
+  sfu.pusch_tti = sfu.pdcch_tti + k2;
   sfu.dl_cqi    = dl_cqi;
   sfu.ul_cqi    = ul_cqi;
 

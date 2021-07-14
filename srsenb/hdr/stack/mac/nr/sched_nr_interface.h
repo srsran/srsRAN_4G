@@ -68,9 +68,7 @@ public:
   };
 
   struct ue_cc_cfg_t {
-    bool                    active = false;
-    pdsch_td_res_alloc_list pdsch_res_list{1};
-    pusch_td_res_alloc_list pusch_res_list{1};
+    bool active = false;
   };
 
   struct ue_cfg_t {

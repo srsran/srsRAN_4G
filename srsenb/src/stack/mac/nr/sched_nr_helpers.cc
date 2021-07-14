@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/nr/sched_nr_phy.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_harq.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_ue.h"
 
