@@ -100,13 +100,14 @@ bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_)
   return true;
 }
 
-harq_entity::harq_entity(uint32_t nof_harq_procs)
+harq_entity::harq_entity(uint32_t nprb, uint32_t nof_harq_procs)
 {
+  // Create HARQs
   dl_harqs.reserve(nof_harq_procs);
   ul_harqs.reserve(nof_harq_procs);
   for (uint32_t pid = 0; pid < nof_harq_procs; ++pid) {
-    dl_harqs.emplace_back(pid);
-    ul_harqs.emplace_back(pid);
+    dl_harqs.emplace_back(pid, nprb);
+    ul_harqs.emplace_back(pid, nprb);
   }
 }
 

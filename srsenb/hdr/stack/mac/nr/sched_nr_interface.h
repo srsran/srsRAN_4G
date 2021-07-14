@@ -68,7 +68,8 @@ public:
   };
 
   struct ue_cc_cfg_t {
-    bool active = false;
+    bool     active = false;
+    uint32_t cc     = 0;
   };
 
   struct ue_cfg_t {

@@ -11,7 +11,7 @@
  */
 
 #include "sched_nr_ue_ded_test_suite.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_pdcch.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
 #include "srsran/common/test_common.h"
 
 namespace srsenb {
@@ -22,6 +22,7 @@ void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_o
 {
   tti_point              pdcch_tti = cc_out.tti;
   const pdcch_dl_list_t& pdcchs    = cc_out.dl_cc_result->pdcch_dl;
+  const pdsch_list_t&    pdschs    = cc_out.dl_cc_result->pdsch;
 
   // Iterate over UE PDCCH allocations
   for (const pdcch_dl_t& pdcch : pdcchs) {
@@ -48,6 +49,11 @@ void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_o
       TESTASSERT(pdcch.dci.harq_feedback == pdcch_tti.sf_idx());
     }
     TESTASSERT(ue.cc_list[cc_out.cc].pending_acks[(pdcch_tti + k1).to_uint()] % 4 == pdcch.dci.dai);
+  }
+
+  for (const pdsch_t& pdsch : pdschs) {
+    TESTASSERT(pdsch.tx_softbuffer[0].buffer_b != nullptr);
+    TESTASSERT(pdsch.tx_softbuffer[0].max_cb > 0);
   }
 }
 

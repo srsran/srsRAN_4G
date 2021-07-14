@@ -145,11 +145,16 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 
 bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) : cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg) {}
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 serv_cell_ctxt::serv_cell_ctxt(const sched_cell_params& cell_cfg_) : cfg(&cell_cfg_)
 {
   for (uint32_t bwp_id = 0; bwp_id < cfg->cell_cfg.bwps.size(); ++bwp_id) {
     bwps.emplace_back(cell_cfg_.bwps[bwp_id]);
   }
+
+  // Pre-allocate HARQs in common pool of softbuffers
+  harq_softbuffer_pool::get_instance().init_pool(cfg->nof_prb());
 }
 
 } // namespace sched_nr_impl

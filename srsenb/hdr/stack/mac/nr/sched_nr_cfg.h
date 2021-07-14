@@ -57,6 +57,8 @@ struct sched_cell_params {
   std::vector<bwp_params> bwps;
 
   sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_);
+
+  uint32_t nof_prb() const { return cell_cfg.carrier.nof_prb; }
 };
 
 struct sched_params {

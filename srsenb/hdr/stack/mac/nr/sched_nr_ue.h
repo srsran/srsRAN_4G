@@ -53,7 +53,7 @@ public:
   tti_point          uci_tti;
   uint32_t           dl_cqi;
   uint32_t           ul_cqi;
-  harq_proc*         h_dl = nullptr;
+  dl_harq_proc*      h_dl = nullptr;
   harq_proc*         h_ul = nullptr;
 
 private:

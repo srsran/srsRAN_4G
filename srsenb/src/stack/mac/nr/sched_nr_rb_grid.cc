@@ -191,6 +191,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   } else {
     srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
   }
+  pdsch.tx_softbuffer[0] = *ue.h_dl->get_softbuffer();
 
   return alloc_result::success;
 }

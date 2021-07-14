@@ -14,6 +14,7 @@
 #define SRSRAN_SCHED_NR_HARQ_H
 
 #include "sched_nr_cfg.h"
+#include "srsenb/hdr/stack/mac/nr/harq_softbuffer.h"
 #include "srsran/common/tti_point.h"
 #include <array>
 
@@ -70,23 +71,55 @@ private:
   std::array<tb_t, SCHED_NR_MAX_TB> tb;
 };
 
+class dl_harq_proc : public harq_proc
+{
+public:
+  dl_harq_proc(uint32_t id_, uint32_t nprb) :
+    harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_tx(nprb))
+  {}
+
+  tx_harq_softbuffer& get_softbuffer() { return *softbuffer; }
+
+private:
+  srsran::unique_pool_ptr<tx_harq_softbuffer> softbuffer;
+};
+
+class ul_harq_proc : public harq_proc
+{
+public:
+  ul_harq_proc(uint32_t id_, uint32_t nprb) :
+    harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_rx(nprb))
+  {}
+
+  rx_harq_softbuffer& get_softbuffer() { return *softbuffer; }
+
+  bool set_tbs(uint32_t tbs)
+  {
+    softbuffer->reset(tbs * 8u);
+    return harq_proc::set_tbs(tbs);
+  }
+
+private:
+  srsran::unique_pool_ptr<rx_harq_softbuffer> softbuffer;
+};
+
 class harq_entity
 {
 public:
-  explicit harq_entity(uint32_t nof_harq_procs = SCHED_NR_MAX_HARQ);
+  explicit harq_entity(uint32_t nprb, uint32_t nof_harq_procs = SCHED_NR_MAX_HARQ);
   void new_tti(tti_point tti_rx_);
 
   void dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { dl_harqs[pid].ack_info(tb_idx, ack); }
 
-  harq_proc* find_pending_dl_retx()
+  dl_harq_proc* find_pending_dl_retx()
   {
-    return find_dl([this](const harq_proc& h) { return h.has_pending_retx(tti_rx); });
+    return find_dl([this](const dl_harq_proc& h) { return h.has_pending_retx(tti_rx); });
   }
   harq_proc* find_pending_ul_retx()
   {
     return find_ul([this](const harq_proc& h) { return h.has_pending_retx(tti_rx); });
   }
-  harq_proc* find_empty_dl_harq()
+  dl_harq_proc* find_empty_dl_harq()
   {
     return find_dl([](const harq_proc& h) { return h.empty(); });
   }
@@ -97,7 +130,7 @@ public:
 
 private:
   template <typename Predicate>
-  harq_proc* find_dl(Predicate p)
+  dl_harq_proc* find_dl(Predicate p)
   {
     auto it = std::find_if(dl_harqs.begin(), dl_harqs.end(), p);
     return (it == dl_harqs.end()) ? nullptr : &(*it);
@@ -109,9 +142,9 @@ private:
     return (it == ul_harqs.end()) ? nullptr : &(*it);
   }
 
-  tti_point              tti_rx;
-  std::vector<harq_proc> dl_harqs;
-  std::vector<harq_proc> ul_harqs;
+  tti_point                 tti_rx;
+  std::vector<dl_harq_proc> dl_harqs;
+  std::vector<ul_harq_proc> ul_harqs;
 };
 
 } // namespace sched_nr_impl

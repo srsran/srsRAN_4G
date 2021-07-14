@@ -23,7 +23,11 @@ slot_ue::slot_ue(resource_guard::token ue_token_, uint16_t rnti_, tti_point tti_
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const sched_cell_params& cell_params_) :
-  rnti(rnti_), cc(cell_params_.cc), bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_), cell_params(cell_params_)
+  rnti(rnti_),
+  cc(cell_params_.cc),
+  bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
+  cell_params(cell_params_),
+  harq_ent(cell_params_.nof_prb())
 {}
 
 void ue_carrier::push_feedback(srsran::move_callback<void(ue_carrier&)> callback)

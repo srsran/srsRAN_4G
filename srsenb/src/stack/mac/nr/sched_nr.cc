@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/hdr/stack/mac/nr/harq_softbuffer.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
 #include "srsran/common/thread_pool.h"
@@ -156,6 +157,7 @@ int sched_nr::cell_cfg(srsran::const_span<cell_cfg_t> cell_list)
 
   pending_results.reset(new sched_result_manager(cell_list.size()));
   sched_workers.reset(new sched_nr_impl::sched_worker_manager(ue_db, cfg));
+
   return SRSRAN_SUCCESS;
 }
 
