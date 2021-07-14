@@ -44,6 +44,8 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
   */
   cfg = cfg_.am;
 
+  tx_enabled = true;
+
   return true;
 }
 
@@ -61,14 +63,45 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) {}
 
 uint32_t rlc_am_nr_tx::get_buffer_state()
 {
-  return 0;
+  uint32_t tx_queue      = 0;
+  uint32_t prio_tx_queue = 0;
+  get_buffer_state(tx_queue, prio_tx_queue);
+  return tx_queue + prio_tx_queue;
 }
 
-void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) {}
-
-int rlc_am_nr_tx::write_sdu(unique_byte_buffer_t sdu)
+void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
 {
-  return 0;
+  std::lock_guard<std::mutex> lock(mutex);
+  uint32_t                    n_bytes = 0;
+  uint32_t                    n_sdus  = 0;
+
+  /*
+  logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
+               rb_name,
+               do_status() ? "yes" : "no",
+               status_prohibit_timer.is_running() ? "yes" : "no",
+               status_prohibit_timer.time_elapsed(),
+               status_prohibit_timer.duration());
+  */
+
+  // Bytes needed for status report
+  // TODO
+
+  // Bytes needed for retx
+  // TODO
+
+  // Bytes needed for tx SDUs
+  n_sdus = tx_sdu_queue.get_n_sdus();
+  n_bytes += tx_sdu_queue.size_bytes();
+
+  // Room needed for fixed header of data PDUs
+  n_bytes += 2 * n_sdus; // TODO make header size configurable
+  if (n_bytes > 0 && n_sdus > 0) {
+    logger->debug("%s Total buffer state - %d SDUs (%d B)", rb_name, n_sdus, n_bytes);
+  }
+
+  tx_queue = n_bytes;
+  return;
 }
 
 void rlc_am_nr_tx::reestablish()
