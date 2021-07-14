@@ -71,6 +71,7 @@ cc_used_buffers_map::~cc_used_buffers_map()
 
 srsran::unique_byte_buffer_t cc_used_buffers_map::release_pdu(tti_point tti)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   if (not has_tti(tti)) {
     return nullptr;
   }
@@ -85,6 +86,7 @@ srsran::unique_byte_buffer_t cc_used_buffers_map::release_pdu(tti_point tti)
 
 uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   if (not pdu_map.has_space(tti.to_uint())) {
     logger->error("UE buffers: could not allocate buffer for tti=%d", tti.to_uint());
     return nullptr;
@@ -105,6 +107,7 @@ uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
 
 void cc_used_buffers_map::clear_old_pdus(tti_point current_tti)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   static const uint32_t old_tti_threshold = SRSRAN_FDD_NOF_HARQ + 4;
 
   tti_point max_tti{current_tti - old_tti_threshold};
@@ -253,13 +256,11 @@ srsran_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t enb_cc_idx, uint32_t harq
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t enb_cc_idx, uint32_t len)
 {
   srsran_assert(len > 0, "UE buffers: Requesting buffer for zero bytes");
-  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   return cc_buffers[enb_cc_idx].get_rx_used_buffers().request_pdu(tti_point(tti), len);
 }
 
 void ue::clear_old_buffers(uint32_t tti)
 {
-  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   // remove old buffers
   for (auto& cc : cc_buffers) {
     cc.get_rx_used_buffers().clear_old_pdus(tti_point{tti});
@@ -389,7 +390,6 @@ void ue::process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t ue_cc_idx, uint3
 
 srsran::unique_byte_buffer_t ue::release_pdu(uint32_t tti, uint32_t enb_cc_idx)
 {
-  std::lock_guard<std::mutex> lock(rx_buffers_mutex);
   return cc_buffers[enb_cc_idx].get_rx_used_buffers().release_pdu(tti_point(tti));
 }
 
