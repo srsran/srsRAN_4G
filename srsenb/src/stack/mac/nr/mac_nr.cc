@@ -82,12 +82,16 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   cfg = *cell_cfg;
 
   // read SIBs from RRC (SIB1 for now only)
-  for (int i = 0; i < srsenb::sched_interface::MAX_SIBS; i++) {
+  for (int i = 0; i < 1 /* srsenb::sched_interface::MAX_SIBS */; i++) {
     if (cell_cfg->sibs->len > 0) {
       sib_info_t sib  = {};
       sib.index       = i;
       sib.periodicity = cell_cfg->sibs->period_rf;
       sib.payload     = srsran::make_byte_buffer();
+      if (sib.payload == nullptr) {
+        logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+        return SRSRAN_ERROR;
+      }
       if (rrc->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSRAN_SUCCESS) {
         logger.error("Couldn't read SIB %d from RRC", sib.index);
       }
