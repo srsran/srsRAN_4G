@@ -444,7 +444,7 @@ static bool cqi_get_N_tdd(uint32_t I_cqi_pmi, uint32_t* N_p, uint32_t* N_offset)
   return true;
 }
 
-static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd)
+static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd, uint32_t H)
 {
 
   uint32_t N_p      = 0;
@@ -461,7 +461,7 @@ static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd)
   }
 
   if (N_p) {
-    if ((tti - N_offset) % N_p == 0) {
+    if ((tti - N_offset) % (H * N_p) == 0) {
       return true;
     }
   }
@@ -517,6 +517,51 @@ static bool ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti, bool is_fdd
   return false;
 }
 
+/* Returns the subband size for higher layer-configured subband feedback,
+ * i.e., the number of RBs per subband as a function of the cell bandwidth
+ * (Table 7.2.1-3 in TS 36.213)
+ */
+static int cqi_hl_get_subband_size(int nof_prb)
+{
+  if (nof_prb < 7) {
+    return 0;
+  } else if (nof_prb <= 26) {
+    return 4;
+  } else if (nof_prb <= 63) {
+    return 6;
+  } else if (nof_prb <= 110) {
+    return 8;
+  } else {
+    return -1;
+  }
+}
+
+/* Returns the bandwidth parts (J)
+ * (Table 7.2.2-2 in TS 36.213)
+ */
+static int cqi_hl_get_bwp_J(int nof_prb)
+{
+  if (nof_prb < 7) {
+    return 0;
+  } else if (nof_prb <= 26) {
+    return 4;
+  } else if (nof_prb <= 63) {
+    return 6;
+  } else if (nof_prb <= 110) {
+    return 8;
+  } else {
+    return -1;
+  }
+}
+
+/* Returns the number of bits to index a bandwidth part (L)
+ * L = ceil(log2(nof_prb/k/J))
+ */
+int srsran_cqi_hl_get_L(int nof_prb)
+{
+  return (int)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb) / cqi_hl_get_bwp_J(nof_prb));
+}
+
 bool srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tti, srsran_frame_type_t frame_type)
 {
   return cfg->periodic_configured && cfg->ri_idx_present &&
@@ -525,7 +570,20 @@ bool srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tt
 
 bool srsran_cqi_periodic_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tti, srsran_frame_type_t frame_type)
 {
-  return cfg->periodic_configured && cqi_send(cfg->pmi_idx, tti, frame_type == SRSRAN_FDD);
+  return cfg->periodic_configured && cqi_send(cfg->pmi_idx, tti, frame_type == SRSRAN_FDD, 1);
+}
+
+bool srsran_cqi_periodic_is_subband(const srsran_cqi_report_cfg_t* cfg,
+                                    uint32_t                       tti,
+                                    uint32_t                       nof_prb,
+                                    srsran_frame_type_t            frame_type)
+{
+  uint32_t K = cfg->subband_wideband_ratio;
+  uint32_t J = cqi_hl_get_bwp_J(nof_prb);
+  uint32_t H = J * K + 1;
+
+  // A periodic report is subband if it's a CQI opportunity and is not wideband
+  return srsran_cqi_periodic_send(cfg, tti, frame_type) && !cqi_send(cfg->pmi_idx, tti, frame_type == SRSRAN_FDD, H);
 }
 
 // CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-1
@@ -590,25 +648,6 @@ uint8_t srsran_cqi_from_snr(float snr)
     }
   }
   return 0;
-}
-
-/* Returns the subband size for higher layer-configured subband feedback,
- * i.e., the number of RBs per subband as a function of the cell bandwidth
- * (Table 7.2.1-3 in TS 36.213)
- */
-static int cqi_hl_get_subband_size(int nof_prb)
-{
-  if (nof_prb < 7) {
-    return 0;
-  } else if (nof_prb <= 26) {
-    return 4;
-  } else if (nof_prb <= 63) {
-    return 6;
-  } else if (nof_prb <= 110) {
-    return 8;
-  } else {
-    return -1;
-  }
 }
 
 /* Returns the number of subbands to be reported in CQI measurements as

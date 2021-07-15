@@ -441,7 +441,15 @@ bool srsran_enb_dl_gen_cqi_periodic(const srsran_cell_t*   cell,
     cqi_cfg->ri_len = srsran_ri_nof_bits(cell);
     cqi_enabled     = true;
   } else if (srsran_cqi_periodic_send(&dl_cfg->cqi_report, tti, cell->frame_type)) {
-    cqi_cfg->type = SRSRAN_CQI_TYPE_WIDEBAND;
+    if (dl_cfg->cqi_report.format_is_subband &&
+        srsran_cqi_periodic_is_subband(&dl_cfg->cqi_report, tti, cell->nof_prb, cell->frame_type)) {
+      // 36.213 table 7.2.2-1, periodic CQI supports UE-selected only
+      cqi_cfg->type                 = SRSRAN_CQI_TYPE_SUBBAND_UE;
+      cqi_cfg->L                    = srsran_cqi_hl_get_L(cell->nof_prb);
+      cqi_cfg->subband_label_2_bits = cqi_cfg->L > 1;
+    } else {
+      cqi_cfg->type = SRSRAN_CQI_TYPE_WIDEBAND;
+    }
     if (dl_cfg->tm == SRSRAN_TM4) {
       cqi_cfg->pmi_present     = true;
       cqi_cfg->rank_is_not_one = last_ri > 0;

@@ -146,10 +146,17 @@ srsran_cqi_value_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_value_t* value, char
 SRSRAN_API bool
 srsran_cqi_periodic_send(const srsran_cqi_report_cfg_t* periodic_cfg, uint32_t tti, srsran_frame_type_t frame_type);
 
+SRSRAN_API bool srsran_cqi_periodic_is_subband(const srsran_cqi_report_cfg_t* cfg,
+                                               uint32_t                       tti,
+                                               uint32_t                       nof_prb,
+                                               srsran_frame_type_t            frame_type);
+
 SRSRAN_API bool
 srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* periodic_cfg, uint32_t tti, srsran_frame_type_t frame_type);
 
 SRSRAN_API int srsran_cqi_hl_get_no_subbands(int nof_prb);
+
+SRSRAN_API int srsran_cqi_hl_get_L(int nof_prb);
 
 SRSRAN_API uint8_t srsran_cqi_from_snr(float snr);
 
