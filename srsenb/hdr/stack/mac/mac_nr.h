@@ -99,7 +99,8 @@ private:
   // Map of active UEs
   pthread_rwlock_t                    rwlock     = {};
   static const uint16_t               FIRST_RNTI = 0x4601;
-  rnti_map_t<unique_rnti_ptr<ue_nr> > ue_db;
+  srsran::static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES> ue_db;
+
   std::atomic<uint16_t>               ue_counter;
 
   // BCH buffers

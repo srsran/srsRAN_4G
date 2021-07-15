@@ -173,7 +173,7 @@ uint16_t mac_nr::add_ue(uint32_t enb_cc_idx)
 
     // Allocate and initialize UE object
     // TODO: add sched interface
-    unique_rnti_ptr<ue_nr> ue_ptr = make_rnti_obj<ue_nr>(rnti, rnti, enb_cc_idx, nullptr, rrc, rlc, phy, logger);
+    std::unique_ptr<ue_nr> ue_ptr = std::unique_ptr<ue_nr>(new ue_nr(rnti, enb_cc_idx, nullptr, rrc, rlc, phy, logger));
 
     // Add UE to rnti map
     srsran::rwlock_write_guard rw_lock(rwlock);
