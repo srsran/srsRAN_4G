@@ -120,8 +120,14 @@ void fill_cqi_report_enb_cfg(cqi_report_cfg_s& cqi_report_cfg, const rrc_cfg_t& 
   } else {
     cqi_report_cfg.cqi_report_periodic_present = true;
     auto& cqi_setup                            = cqi_report_cfg.cqi_report_periodic.set_setup();
-    cqi_setup.cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
+    if (enb_cfg.cqi_cfg.subband_k == 0) {
+      cqi_setup.cqi_format_ind_periodic.set(
+          cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
+    } else {
+      cqi_setup.cqi_format_ind_periodic.set(
+          cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::subband_cqi);
+      cqi_setup.cqi_format_ind_periodic.subband_cqi().k = enb_cfg.cqi_cfg.subband_k;
+    }
     cqi_setup.simul_ack_nack_and_cqi = enb_cfg.cqi_cfg.simultaneousAckCQI;
   }
   cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;

@@ -31,6 +31,8 @@ struct rrc_cfg_cqi_t {
   uint32_t           nof_prb;
   uint32_t           period;
   uint32_t           m_ri;
+  bool               is_subband_enabled;
+  uint32_t           subband_k;
   bool               simultaneousAckCQI;
   rrc_cfg_cqi_mode_t mode;
 };
