@@ -12,6 +12,7 @@
 #ifndef SRSENB_NGAP_H
 #define SRSENB_NGAP_H
 
+#include "ngap_metrics.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/optional.h"
@@ -66,6 +67,7 @@ public:
   // Stack interface
   bool
   handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  void get_metrics(ngap_metrics_t& m);
 
 private:
   static const int AMF_PORT        = 38412;

@@ -143,6 +143,19 @@ void ngap::stop()
   amf_socket.close();
 }
 
+void ngap::get_metrics(ngap_metrics_t& m)
+{
+  if (!running) {
+    m.status = ngap_error;
+    return;
+  }
+  if (amf_connected) {
+    m.status = ngap_connected;
+  } else {
+    m.status = ngap_attaching;
+  }
+}
+
 bool ngap::is_amf_connected()
 {
   return amf_connected;
