@@ -51,7 +51,6 @@ typedef struct {
   bool                     ri_idx_present;
   bool                     format_is_subband;
   uint8_t                  subband_wideband_ratio; ///< K value in TS 36.331. 0 for wideband reporting, (1..4) otherwise
-  uint32_t                 subband_size;
   srsran_cqi_report_mode_t periodic_mode;
   srsran_cqi_report_mode_t aperiodic_mode;
 } srsran_cqi_report_cfg_t;
