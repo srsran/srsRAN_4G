@@ -124,6 +124,18 @@ public:
    */
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) = 0;
 
+  /**
+   * PHY callback for giving MAC the Channel Quality information of a given RNTI, TTI, eNb cell/carrier for a specific
+   * subband
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param cc_idx The eNb Cell/Carrier where the measurement corresponds
+   * @param sb_idx Index of the Sub-band
+   * @param cqi_value the corresponding Channel Quality Information
+   * @return SRSRAN_SUCCESS if no error occurs, SRSRAN_ERROR* if an error occurs
+   */
+  virtual int sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi_value) = 0;
+
   typedef enum { PUSCH = 0, PUCCH, SRS } ul_channel_t;
 
   /**

@@ -34,6 +34,7 @@ struct sched_ue_cell {
   void finish_tti(tti_point tti_rx);
 
   int set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_);
+  int set_dl_sb_cqi(tti_point tti_rx, uint32_t sb_idx, uint32_t dl_cqi_);
 
   bool             configured() const { return ue_cc_idx >= 0; }
   int              get_ue_cc_idx() const { return ue_cc_idx; }
@@ -80,6 +81,8 @@ struct sched_ue_cell {
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
 private:
+  void check_cc_activation(uint32_t dl_cqi);
+
   // args
   srslog::basic_logger&            logger;
   const sched_interface::ue_cfg_t* ue_cfg = nullptr;

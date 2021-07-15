@@ -49,6 +49,10 @@ private:
     int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override { return 0; }
     int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) override { return 0; }
     int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override { return 0; }
+    int sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t sb_idx, uint32_t cqi_value) override
+    {
+      return 0;
+    }
     int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) override { return 0; }
     int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override { return 0; }
     int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override { return 0; }

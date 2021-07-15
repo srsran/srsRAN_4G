@@ -60,6 +60,7 @@ public:
   void set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri);
   void set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri);
   void set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi);
+  void set_dl_sb_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi);
   int  set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack);
   void set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res);
 

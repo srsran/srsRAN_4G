@@ -275,11 +275,12 @@ void sched_ue::set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t pmi)
 
 void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 {
-  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
-    cells[enb_cc_idx].set_dl_wb_cqi(tti_rx, cqi);
-  } else {
-    logger.warning("Received DL CQI for invalid enb cell index %d", enb_cc_idx);
-  }
+  cells[enb_cc_idx].set_dl_wb_cqi(tti_rx, cqi);
+}
+
+void sched_ue::set_dl_sb_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi)
+{
+  cells[enb_cc_idx].set_dl_sb_cqi(tti_rx, sb_idx, cqi);
 }
 
 void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code)

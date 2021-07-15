@@ -392,6 +392,19 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi
   return SRSRAN_SUCCESS;
 }
 
+int mac::sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi_value)
+{
+  logger.set_context(tti);
+  srsran::rwlock_read_guard lock(rwlock);
+
+  if (not check_ue_active(rnti)) {
+    return SRSRAN_ERROR;
+  }
+
+  scheduler.dl_sb_cqi_info(tti, rnti, enb_cc_idx, sb_idx, cqi_value);
+  return SRSRAN_SUCCESS;
+}
+
 int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr, ul_channel_t ch)
 {
   logger.set_context(tti_rx);
@@ -815,9 +828,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid     = current_lcid;
-      mch.pdu[0].nbytes   = bytes_received;
+      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid    = current_lcid;
+      mch.pdu[0].nbytes  = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {
@@ -969,7 +982,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib2  = *sib2_;
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
-  current_mcch_length = mcch_payload_length;
+  current_mcch_length     = mcch_payload_length;
   std::unique_ptr<ue> ptr = std::unique_ptr<ue>{
       new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
   auto ret = ue_db.insert(SRSRAN_MRNTI, std::move(ptr));

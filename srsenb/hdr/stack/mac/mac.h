@@ -56,6 +56,7 @@ public:
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value) override;
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value) override;
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value) override;
+  int sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi_value) override;
   int snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr, ul_channel_t ch) override;
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override;
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) override;

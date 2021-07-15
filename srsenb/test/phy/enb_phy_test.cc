@@ -283,6 +283,7 @@ private:
   CALLBACK(ri_info);
   CALLBACK(pmi_info);
   CALLBACK(cqi_info);
+  CALLBACK(sb_cqi_info);
   CALLBACK(snr_info);
   CALLBACK(ta_info);
   CALLBACK(ack_info);
@@ -458,6 +459,13 @@ public:
     notify_cqi_info();
 
     logger.info("Received CQI tti=%d; rnti=0x%x; cc_idx=%d; cqi=%d;", tti, rnti, cc_idx, cqi_value);
+
+    return SRSRAN_SUCCESS;
+  }
+  int sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t sb_idx, uint32_t cqi_value) override
+  {
+    notify_sb_cqi_info();
+    logger.info("Received CQI tti=%d; rnti=0x%x; cc_idx=%d; sb_idx=%d cqi=%d;", tti, rnti, cc_idx, sb_idx, cqi_value);
 
     return SRSRAN_SUCCESS;
   }
