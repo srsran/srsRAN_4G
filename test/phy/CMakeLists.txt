@@ -7,6 +7,9 @@
 #
 
 if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
+    set(NR_PHY_TEST_GNB_NOF_THREADS 3)
+    set(NR_PHY_TEST_UE_NOF_THREADS 3)
+
     add_executable(nr_phy_test nr_phy_test.cc)
     target_link_libraries(nr_phy_test
             srsue_phy
@@ -23,7 +26,10 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
     add_nr_test(nr_phy_test_10MHz_dl_only nr_phy_test
             --duration=100
             --gnb.stack.pdsch.slots=\"0,1,2,3,4,5\"
-            --gnb.stack.pusch.slots=\"\")
+            --gnb.stack.pusch.slots=\"\"
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+            )
 
     add_nr_test(nr_phy_test_10MHz_ul_only nr_phy_test
             --duration=100 # 100 slots
@@ -32,6 +38,8 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             --gnb.stack.pusch.start=0 # Start at RB 0
             --gnb.stack.pusch.length=52 # Full 10 MHz BW
             --gnb.stack.pusch.mcs=28 # Maximum MCS
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
             )
 
     add_nr_test(nr_phy_test_10MHz_bidir nr_phy_test
@@ -44,13 +52,17 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             --gnb.stack.pusch.start=0 # Start at RB 0
             --gnb.stack.pusch.length=52 # Full 10 MHz BW
             --gnb.stack.pusch.mcs=28 # Maximum MCS
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
             )
 
     add_nr_test(nr_phy_test_10MHz_prach nr_phy_test
             --duration=1000 # 100 slots
             --gnb.stack.pdsch.slots=6 # No PDSCH
             --gnb.stack.pusch.slots=0 # No PUSCH
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
             --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
             --ue.stack.prach.preamble=10 # Use preamble 10
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
             )
 endif ()

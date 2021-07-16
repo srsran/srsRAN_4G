@@ -47,10 +47,9 @@ private:
     std::set<uint32_t>                                                   slots;
   } dl, ul;
   srsran::circular_array<uint32_t, SRSRAN_NOF_SF_X_FRAME> dl_data_to_ul_ack;
-  uint32_t                                                ss_id      = 0;
-  srsran_random_t                                         random_gen = nullptr;
-  srsran::phy_cfg_nr_t                                    phy_cfg    = {};
-  bool                                                    valid      = false;
+  uint32_t                                                ss_id   = 0;
+  srsran::phy_cfg_nr_t                                    phy_cfg = {};
+  bool                                                    valid   = false;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -124,9 +123,8 @@ private:
   };
   std::array<pending_pusch_t, TTIMOD_SZ> pending_pusch = {};
 
-  srsran::circular_array<dummy_tx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> tx_harq_proc;
-
-  srsran::circular_array<dummy_rx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> rx_harq_proc;
+  dummy_tx_harq_entity tx_harq_proc;
+  dummy_rx_harq_entity rx_harq_proc;
 
   bool schedule_pdsch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
@@ -179,9 +177,6 @@ private:
     // Set TBS
     // Select grant and set data
     pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
-
-    // Generate random data
-    srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
 
     // Set softbuffer
     pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi);
@@ -292,7 +287,6 @@ public:
 
   gnb_dummy_stack(const args_t& args) : rnti(args.rnti), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
   {
-    random_gen = srsran_random_init(0x1234);
     logger.set_level(srslog::str_to_basic_level(args.log_level));
 
     dl.mcs = args.pdsch.mcs;
@@ -347,7 +341,7 @@ public:
     valid = true;
   }
 
-  ~gnb_dummy_stack() { srsran_random_free(random_gen); }
+  ~gnb_dummy_stack() {}
   bool is_valid() const { return valid; }
 
   int rx_data_indication(rx_data_ind_t& grant) override { return 0; }
@@ -411,7 +405,6 @@ public:
       // Generate data
       pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
       pusch.data[1] = nullptr;
-      srsran_random_byte_vector(random_gen, pusch.data[0], pusch.sch.grant.tb[0].tbs / 8);
 
       // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
@@ -462,6 +455,8 @@ public:
       return SRSRAN_ERROR;
     }
 
+    // Handle UL-SCH metrics
+    std::unique_lock<std::mutex> lock(metrics_mutex);
     if (not pusch_info.pusch_data.tb[0].crc) {
       metrics.mac.rx_errors++;
     }

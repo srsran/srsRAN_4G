@@ -61,4 +61,7 @@ public:
   uint32_t get_tbs() const { return tbs; }
 };
 
+class dummy_rx_harq_entity : public srsran::circular_array<dummy_rx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR>
+{};
+
 #endif // SRSRAN_DUMMY_RX_HARQ_PROC_H

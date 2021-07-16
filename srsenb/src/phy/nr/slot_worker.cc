@@ -67,7 +67,6 @@ bool slot_worker::init(const args_t& args)
     return false;
   }
 
-
   // Prepare UL arguments
   srsran_gnb_ul_args_t ul_args = {};
   ul_args.pusch.measure_time   = true;

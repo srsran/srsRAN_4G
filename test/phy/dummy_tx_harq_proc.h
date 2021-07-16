@@ -23,9 +23,11 @@
 class dummy_tx_harq_proc
 {
 private:
+  mutable std::mutex     mutex;
+  srsran_random_t        random_gen = nullptr;
   srsran::byte_buffer_t  data;
   srsran_softbuffer_tx_t softbuffer = {};
-  std::atomic<uint32_t>  tbs        = {0};
+  uint32_t               tbs        = 0;
   bool                   first      = true;
   uint32_t               ndi        = 0;
 
@@ -39,16 +41,26 @@ public:
     }
   }
 
-  ~dummy_tx_harq_proc() { srsran_softbuffer_tx_free(&softbuffer); }
+  void init(uint32_t pid) { random_gen = srsran_random_init(pid * 1234); }
+
+  ~dummy_tx_harq_proc()
+  {
+    srsran_softbuffer_tx_free(&softbuffer);
+    srsran_random_free(random_gen);
+  }
 
   srsran::byte_buffer_t& get_tb(uint32_t tbs_)
   {
+    std::unique_lock<std::mutex> lock(mutex);
     tbs = tbs_;
+    srsran_random_byte_vector(random_gen, data.msg, tbs / 8);
     return data;
   }
 
   srsran_softbuffer_tx_t& get_softbuffer(uint32_t ndi_)
   {
+    std::unique_lock<std::mutex> lock(mutex);
+
     if (ndi_ != ndi || first) {
       srsran_softbuffer_tx_reset(&softbuffer);
       ndi   = ndi_;
@@ -58,7 +70,23 @@ public:
     return softbuffer;
   }
 
-  uint32_t get_tbs() const { return tbs; }
+  uint32_t get_tbs() const
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    return tbs;
+  }
+};
+
+class dummy_tx_harq_entity : public srsran::circular_array<dummy_tx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR>
+{
+public:
+  dummy_tx_harq_entity() : srsran::circular_array<dummy_tx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR>()
+  {
+    uint32_t pid = 0;
+    for (dummy_tx_harq_proc& proc : *this) {
+      proc.init(pid++);
+    }
+  }
 };
 
 #endif // SRSRAN_TX_DUMMY_HARQ_PROC_H

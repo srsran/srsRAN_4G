@@ -27,7 +27,6 @@ public:
   };
 
 private:
-  srsran_random_t                random_gen     = srsran_random_init(0x4567);
   uint16_t                       rnti           = 0;
   bool                           valid          = false;
   uint32_t                       sr_period      = 0;
@@ -37,8 +36,8 @@ private:
   metrics_t                      metrics        = {};
   srsue::phy_interface_stack_nr& phy;
 
-  srsran::circular_array<dummy_tx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> tx_harq_proc;
-  srsran::circular_array<dummy_rx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR> rx_harq_proc;
+  dummy_tx_harq_entity tx_harq_proc;
+  dummy_rx_harq_entity rx_harq_proc;
 
 public:
   struct args_t {
@@ -56,7 +55,7 @@ public:
   {
     valid = true;
   }
-  ~ue_dummy_stack() { srsran_random_free(random_gen); }
+  ~ue_dummy_stack() = default;
   void in_sync() override {}
   void out_of_sync() override {}
   void run_tti(const uint32_t tti) override
@@ -88,7 +87,6 @@ public:
     action->tb.enabled    = true;
     action->tb.payload    = &tx_harq_proc[grant.pid].get_tb(grant.tbs);
     action->tb.softbuffer = &tx_harq_proc[grant.pid].get_softbuffer(grant.ndi);
-    srsran_random_byte_vector(random_gen, action->tb.payload->msg, grant.tbs);
   }
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) override {}
   bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx) override
