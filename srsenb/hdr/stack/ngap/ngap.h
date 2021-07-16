@@ -68,6 +68,7 @@ public:
   bool
   handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void get_metrics(ngap_metrics_t& m);
+  void get_args(ngap_args_t& args_);
 
 private:
   static const int AMF_PORT        = 38412;

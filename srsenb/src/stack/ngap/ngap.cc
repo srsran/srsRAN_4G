@@ -156,6 +156,11 @@ void ngap::get_metrics(ngap_metrics_t& m)
   }
 }
 
+void ngap::get_args(ngap_args_t& args_)
+{
+  args_ = args;
+}
+
 bool ngap::is_amf_connected()
 {
   return amf_connected;
