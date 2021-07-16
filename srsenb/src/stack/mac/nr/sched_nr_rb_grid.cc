@@ -195,12 +195,12 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   slot_cfg.idx = ue.pdsch_tti.sf_idx();
   bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(ret, "Error converting DCI to grant");
+  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
   if (ue.h_dl->nof_retx() == 0) {
     ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
   } else {
     srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
   }
-  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
 
   return alloc_result::success;
 }
@@ -249,7 +249,14 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
   fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
   // Generate PUSCH
-  bwp_pusch_slot.ul_prbs.add(ul_mask);
+  bwp_pusch_slot.ul_prbs |= ul_mask;
+  bwp_pusch_slot.puschs.emplace_back();
+  pusch_t&          pusch = bwp_pusch_slot.puschs.back();
+  srsran_slot_cfg_t slot_cfg;
+  slot_cfg.idx = ue.pusch_tti.sf_idx();
+  bool ret     = ue.cfg->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
+  srsran_assert(ret, "Error converting DCI to PUSCH grant");
+  pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
 
   return alloc_result::success;
 }

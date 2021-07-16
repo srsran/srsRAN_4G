@@ -52,7 +52,7 @@ public:
   uint32_t          dl_cqi;
   uint32_t          ul_cqi;
   dl_harq_proc*     h_dl = nullptr;
-  harq_proc*        h_ul = nullptr;
+  ul_harq_proc*     h_ul = nullptr;
 };
 
 class ue_carrier

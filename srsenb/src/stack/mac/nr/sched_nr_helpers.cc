@@ -34,11 +34,12 @@ void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dc
   dci.cc_id  = ue.cc;
   dci.tpc    = 1;
   // harq
-  harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? ue.h_dl : ue.h_ul;
-  dci.pid      = h->pid;
-  dci.ndi      = h->ndi();
-  dci.mcs      = h->mcs();
-  dci.rv       = rv_idx[h->nof_retx() % 4];
+  harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? static_cast<harq_proc*>(ue.h_dl)
+                                                                    : static_cast<harq_proc*>(ue.h_ul);
+  dci.pid = h->pid;
+  dci.ndi = h->ndi();
+  dci.mcs = h->mcs();
+  dci.rv  = rv_idx[h->nof_retx() % 4];
   // PRB assignment
   const prb_grant& grant = h->prbs();
   if (grant.is_alloc_type0()) {

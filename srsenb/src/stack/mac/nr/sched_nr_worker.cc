@@ -161,15 +161,14 @@ void slot_cc_worker::log_result() const
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}, tti_ack={}",
+                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      cell.cfg.cc,
                      ue.rnti,
                      pdcch.dci.pid,
                      ue.h_dl->nof_retx(),
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-                     ue.pusch_tti,
-                     ue.uci_tti);
+                     ue.pusch_tti);
     } else {
       fmt::format_to(fmtbuf, "SCHED: unknown rnti format");
     }
@@ -199,7 +198,7 @@ void sched_worker_manager::enqueue_event(uint16_t rnti, srsran::move_callback<vo
   next_slot_events.push_back(ue_event_t{rnti, std::move(ev)});
 }
 
-void sched_worker_manager::run_slot(tti_point tti_tx, uint32_t cc)
+void sched_worker_manager::run_slot(tti_point tti_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
 {
   srsran::bounded_vector<std::condition_variable*, SRSRAN_MAX_CARRIERS> waiting_cvars;
   {
@@ -281,10 +280,14 @@ void sched_worker_manager::run_slot(tti_point tti_tx, uint32_t cc)
       c->notify_one();
     }
   }
+
+  // Copy results to intermediate buffer
+  save_sched_result(tti_tx, cc, dl_res, ul_res);
 }
 
 bool sched_worker_manager::save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
 {
+  // NOTE: Unlocked region
   auto& bwp_slot = cells[cc]->bwps[0].grid[pdcch_tti];
 
   dl_res.pdcch_dl = bwp_slot.dl_pdcchs;
@@ -313,15 +316,15 @@ bool sched_worker_manager::save_sched_result(tti_point pdcch_tti, uint32_t cc, d
     if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
       if (not ul_res.pusch.empty()) {
         // Put UCI configuration in PUSCH config
-        srsran_assert(phy_cfg->get_pusch_uci_cfg(slot_cfg, uci_cfg, ul_res.pusch[0].sch),
-                      "Error setting UCI configuration in PUSCH");
+        bool ret = phy_cfg->get_pusch_uci_cfg(slot_cfg, uci_cfg, ul_res.pusch[0].sch);
+        srsran_assert(ret, "Error setting UCI configuration in PUSCH");
       } else {
         // Put UCI configuration in PUCCH config
         ul_res.pucch.emplace_back();
         pucch_t& pucch = ul_res.pucch.back();
         pucch.uci_cfg  = uci_cfg;
-        srsran_assert(phy_cfg->get_pucch_uci_cfg(slot_cfg, pucch.uci_cfg, pucch.pucch_cfg, pucch.resource),
-                      "Error getting PUCCH UCI cfg");
+        bool ret       = phy_cfg->get_pucch_uci_cfg(slot_cfg, pucch.uci_cfg, pucch.pucch_cfg, pucch.resource);
+        srsran_assert(ret, "Error getting PUCCH UCI cfg");
       }
     }
   }

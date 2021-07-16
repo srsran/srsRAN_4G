@@ -277,7 +277,7 @@ private:
 public:
   struct args_t {
     srsran::phy_cfg_nr_t phy_cfg;                          ///< Physical layer configuration
-    bool                 use_dummy_sched         = false;  ///< Use dummy or real NR scheduler
+    bool                 use_dummy_sched         = true;   ///< Use dummy or real NR scheduler
     uint16_t             rnti                    = 0x1234; ///< C-RNTI
     uint32_t             ss_id                   = 1;      ///< Search Space identifier
     uint32_t             pdcch_aggregation_level = 0;      ///< PDCCH aggregation level
@@ -293,7 +293,11 @@ public:
   };
 
   gnb_dummy_stack(const args_t& args) :
-    rnti(args.rnti), phy_cfg(args.phy_cfg), ss_id(args.ss_id), sched(srsenb::sched_nr_interface::sched_cfg_t{})
+    rnti(args.rnti),
+    phy_cfg(args.phy_cfg),
+    ss_id(args.ss_id),
+    sched(srsenb::sched_nr_interface::sched_cfg_t{}),
+    use_dummy_sched(args.use_dummy_sched)
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
 
@@ -382,6 +386,7 @@ public:
         // Set TBS
         // Select grant and set data
         pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
+        pdsch.data[1] = nullptr;
 
         // Generate random data
         srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
@@ -423,7 +428,15 @@ public:
     }
 
     if (not use_dummy_sched) {
-      return sched.get_ul_sched(pusch_tti, 0, ul_sched);
+      int ret = sched.get_ul_sched(pusch_tti, 0, ul_sched);
+
+      for (pusch_t& pusch : ul_sched.pusch) {
+        pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
+        pusch.data[1] = nullptr;
+        srsran_random_byte_vector(random_gen, pusch.data[0], pusch.sch.grant.tb[0].tbs / 8);
+      }
+
+      return ret;
     }
 
     // Get ACK information

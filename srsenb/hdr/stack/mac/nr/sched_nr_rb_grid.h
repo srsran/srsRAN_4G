@@ -72,6 +72,10 @@ private:
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 
+/**
+ * Class responsible for jointly filling the DL/UL sched result fields and allocate RB/PDCCH resources in the RB grid
+ * to avoid potential RB/PDCCH collisions
+ */
 class bwp_slot_allocator
 {
 public:

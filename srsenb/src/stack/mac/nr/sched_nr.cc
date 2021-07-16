@@ -128,13 +128,12 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 /// Generate {tti,cc} scheduling decision
 int sched_nr::generate_slot_result(tti_point pdcch_tti, uint32_t cc)
 {
-  // Generate {slot_idx,cc} result
-  sched_workers->run_slot(pdcch_tti, cc);
-
   // Copy results to intermediate buffer
   dl_sched_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
   ul_sched_t& ul_res = pending_results->add_ul_result(pdcch_tti, cc);
-  sched_workers->save_sched_result(pdcch_tti, cc, dl_res, ul_res);
+
+  // Generate {slot_idx,cc} result
+  sched_workers->run_slot(pdcch_tti, cc, dl_res, ul_res);
 
   return SRSRAN_SUCCESS;
 }
@@ -148,14 +147,14 @@ int sched_nr::get_dl_sched(tti_point tti_tx, uint32_t cc, dl_sched_t& result)
   result = pending_results->pop_dl_result(tti_tx, cc);
   return SRSRAN_SUCCESS;
 }
-int sched_nr::get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)
+int sched_nr::get_ul_sched(tti_point pusch_tti, uint32_t cc, ul_sched_t& result)
 {
-  if (not pending_results->has_ul_result(tti_rx, cc)) {
+  if (not pending_results->has_ul_result(pusch_tti, cc)) {
     // sched result hasn't been generated
     return SRSRAN_SUCCESS;
   }
 
-  result = pending_results->pop_ul_result(tti_rx, cc);
+  result = pending_results->pop_ul_result(pusch_tti, cc);
   return SRSRAN_SUCCESS;
 }
 

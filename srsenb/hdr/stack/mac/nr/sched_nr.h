@@ -45,7 +45,7 @@ public:
   void ul_sr_info(tti_point tti_rx, uint16_t rnti) override;
 
   int get_dl_sched(tti_point pdsch_tti, uint32_t cc, dl_sched_t& result) override;
-  int get_ul_sched(tti_point pdcch_tti, uint32_t cc, ul_sched_t& result) override;
+  int get_ul_sched(tti_point pusch_tti, uint32_t cc, ul_sched_t& result) override;
 
 private:
   int  generate_slot_result(tti_point pdcch_tti, uint32_t cc);

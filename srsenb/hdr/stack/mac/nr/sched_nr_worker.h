@@ -90,8 +90,7 @@ public:
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void run_slot(tti_point tti_tx, uint32_t cc);
-  bool save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+  void run_slot(tti_point tti_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
   void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
   void enqueue_cc_feedback(uint16_t rnti, uint32_t cc, slot_cc_worker::feedback_callback_t fdbk)
@@ -100,6 +99,8 @@ public:
   }
 
 private:
+  bool save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+
   const sched_params&                               cfg;
   ue_map_t&                                         ue_db;
   srsran::span<std::unique_ptr<serv_cell_manager> > cells;

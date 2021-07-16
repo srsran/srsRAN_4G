@@ -80,6 +80,12 @@ public:
 
   tx_harq_softbuffer& get_softbuffer() { return *softbuffer; }
 
+  bool set_tbs(uint32_t tbs)
+  {
+    softbuffer->reset();
+    return harq_proc::set_tbs(tbs);
+  }
+
 private:
   srsran::unique_pool_ptr<tx_harq_softbuffer> softbuffer;
 };
@@ -115,17 +121,17 @@ public:
   {
     return find_dl([this](const dl_harq_proc& h) { return h.has_pending_retx(tti_rx); });
   }
-  harq_proc* find_pending_ul_retx()
+  ul_harq_proc* find_pending_ul_retx()
   {
-    return find_ul([this](const harq_proc& h) { return h.has_pending_retx(tti_rx); });
+    return find_ul([this](const ul_harq_proc& h) { return h.has_pending_retx(tti_rx); });
   }
   dl_harq_proc* find_empty_dl_harq()
   {
-    return find_dl([](const harq_proc& h) { return h.empty(); });
+    return find_dl([](const dl_harq_proc& h) { return h.empty(); });
   }
-  harq_proc* find_empty_ul_harq()
+  ul_harq_proc* find_empty_ul_harq()
   {
-    return find_ul([](const harq_proc& h) { return h.empty(); });
+    return find_ul([](const ul_harq_proc& h) { return h.empty(); });
   }
 
 private:
@@ -136,7 +142,7 @@ private:
     return (it == dl_harqs.end()) ? nullptr : &(*it);
   }
   template <typename Predicate>
-  harq_proc* find_ul(Predicate p)
+  ul_harq_proc* find_ul(Predicate p)
   {
     auto it = std::find_if(ul_harqs.begin(), ul_harqs.end(), p);
     return (it == ul_harqs.end()) ? nullptr : &(*it);
