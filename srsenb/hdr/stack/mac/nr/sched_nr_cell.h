@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_SCHED_NR_BWP_H
-#define SRSRAN_SCHED_NR_BWP_H
+#ifndef SRSRAN_SCHED_NR_CELL_H
+#define SRSRAN_SCHED_NR_CELL_H
 
 #include "sched_nr_cfg.h"
 #include "sched_nr_rb_grid.h"
@@ -62,17 +62,26 @@ public:
   bwp_res_grid grid;
 };
 
-class serv_cell_ctxt
+class serv_cell_manager
 {
 public:
+  using feedback_callback_t = srsran::move_callback<void(ue_carrier&)>;
+
+  explicit serv_cell_manager(const sched_cell_params& cell_cfg_);
+
+  void add_user(uint16_t rnti, ue_carrier* ue);
+  void rem_user(uint16_t rnti);
+
   srsran::bounded_vector<bwp_ctxt, SCHED_NR_MAX_BWP_PER_CELL> bwps;
+  const sched_cell_params&                                    cfg;
 
-  explicit serv_cell_ctxt(const sched_cell_params& cell_cfg_);
+  srsran::static_circular_map<uint16_t, ue_carrier*, SCHED_NR_MAX_USERS> ues;
 
-  const sched_cell_params* cfg;
+private:
+  srslog::basic_logger& logger;
 };
 
 } // namespace sched_nr_impl
 } // namespace srsenb
 
-#endif // SRSRAN_SCHED_NR_BWP_H
+#endif // SRSRAN_SCHED_NR_CELL_H

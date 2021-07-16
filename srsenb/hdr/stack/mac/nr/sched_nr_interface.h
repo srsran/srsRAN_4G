@@ -63,9 +63,7 @@ public:
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
   };
 
-  struct sched_cfg_t {
-    uint32_t nof_concurrent_subframes = 1;
-  };
+  struct sched_cfg_t {};
 
   struct ue_cc_cfg_t {
     bool     active = false;

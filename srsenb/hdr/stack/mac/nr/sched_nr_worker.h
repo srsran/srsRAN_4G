@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_WORKER_H
 #define SRSRAN_SCHED_NR_WORKER_H
 
-#include "sched_nr_bwp.h"
+#include "sched_nr_cell.h"
 #include "sched_nr_cfg.h"
 #include "sched_nr_rb_grid.h"
 #include "sched_nr_ue.h"
@@ -33,24 +33,40 @@ using ul_sched_t = sched_nr_interface::ul_sched_t;
 class slot_cc_worker
 {
 public:
-  explicit slot_cc_worker(serv_cell_ctxt& sched);
+  using feedback_callback_t = srsran::move_callback<void(ue_carrier&)>;
 
-  void start(tti_point tti_rx_, ue_map_t& ue_db_);
+  explicit slot_cc_worker(serv_cell_manager& sched);
+
+  void start(tti_point pdcch_tti, ue_map_t& ue_db_);
   void run();
-  void end_tti();
+  void finish();
   bool running() const { return tti_rx.is_valid(); }
 
+  /// Enqueue feedback directed at a given UE in a given cell
+  void enqueue_cc_feedback(uint16_t rnti, feedback_callback_t fdbk);
+
 private:
+  /// Run all pending feedback. This should be called at the beginning of a TTI
+  void run_feedback(ue_map_t& ue_db);
+
   void alloc_dl_ues();
   void alloc_ul_ues();
   void log_result() const;
 
   const sched_cell_params& cfg;
-  serv_cell_ctxt&          cell;
+  serv_cell_manager&       cell;
   srslog::basic_logger&    logger;
 
   tti_point          tti_rx;
   bwp_slot_allocator bwp_alloc;
+
+  // Process of UE cell-specific feedback
+  struct feedback_t {
+    uint16_t            rnti;
+    feedback_callback_t fdbk;
+  };
+  std::mutex                feedback_mutex;
+  srsran::deque<feedback_t> pending_feedback, tmp_feedback_to_run;
 
   srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
 };
@@ -67,28 +83,49 @@ class sched_worker_manager
   };
 
 public:
-  explicit sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_);
+  explicit sched_worker_manager(ue_map_t&                                         ue_db_,
+                                const sched_params&                               cfg_,
+                                srsran::span<std::unique_ptr<serv_cell_manager> > cells_);
   sched_worker_manager(const sched_worker_manager&) = delete;
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void start_slot(tti_point tti_rx, srsran::move_callback<void()> process_feedback);
-  bool run_slot(tti_point tti_rx, uint32_t cc);
-  void release_slot(tti_point tti_rx);
+  void run_slot(tti_point tti_tx, uint32_t cc);
   bool save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
-private:
-  const sched_params&   cfg;
-  ue_map_t&             ue_db;
-  srslog::basic_logger& logger;
+  void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
+  void enqueue_cc_feedback(uint16_t rnti, uint32_t cc, slot_cc_worker::feedback_callback_t fdbk)
+  {
+    cc_worker_list[cc]->worker.enqueue_cc_feedback(rnti, std::move(fdbk));
+  }
 
-  std::mutex ue_db_mutex;
+private:
+  const sched_params&                               cfg;
+  ue_map_t&                                         ue_db;
+  srsran::span<std::unique_ptr<serv_cell_manager> > cells;
+  srslog::basic_logger&                             logger;
+
+  struct ue_event_t {
+    uint16_t                      rnti;
+    srsran::move_callback<void()> callback;
+  };
+  std::mutex                event_mutex;
+  srsran::deque<ue_event_t> next_slot_events, slot_events;
 
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
+  struct cc_context {
+    std::condition_variable cvar;
+    bool                    waiting = false;
+    slot_cc_worker          worker;
 
-  srsran::bounded_vector<serv_cell_ctxt, SCHED_NR_MAX_CARRIERS> cell_grid_list;
+    cc_context(serv_cell_manager& sched) : worker(sched) {}
+  };
 
-  slot_worker_ctxt& get_sf(tti_point tti_rx);
+  std::mutex                                slot_mutex;
+  std::condition_variable                   cvar;
+  tti_point                                 current_tti;
+  std::atomic<int>                          worker_count{0}; // variable shared across slot_cc_workers
+  std::vector<std::unique_ptr<cc_context> > cc_worker_list;
 };
 
 } // namespace sched_nr_impl

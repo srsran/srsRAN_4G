@@ -142,7 +142,7 @@ struct task_job_manager {
 
 void sched_nr_cfg_serialized_test()
 {
-  uint32_t         max_nof_ttis = 1000, nof_sectors = 2;
+  uint32_t         max_nof_ttis = 1000, nof_sectors = 4;
   task_job_manager tasks;
 
   sched_nr_interface::sched_cfg_t             cfg;
@@ -150,7 +150,7 @@ void sched_nr_cfg_serialized_test()
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Serialized Test");
 
-  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(2);
+  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
 
   sched_tester.add_user(0x46, uecfg, 0);
 
@@ -188,7 +188,7 @@ void sched_nr_cfg_serialized_test()
 
 void sched_nr_cfg_parallel_cc_test()
 {
-  uint32_t         nof_sectors  = 2;
+  uint32_t         nof_sectors  = 4;
   uint32_t         max_nof_ttis = 1000;
   task_job_manager tasks;
 
@@ -236,64 +236,14 @@ void sched_nr_cfg_parallel_cc_test()
   printf("Total time taken per slot [usec]: %f\n", final_avg_usec);
 }
 
-void sched_nr_cfg_parallel_sf_test()
-{
-  uint32_t         max_nof_ttis = 1000;
-  uint32_t         nof_sectors  = 2;
-  task_job_manager tasks;
-
-  sched_nr_interface::sched_cfg_t cfg;
-  cfg.nof_concurrent_subframes                          = 2;
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
-
-  sched_nr_sim_base sched_tester(cfg, cells_cfg, "Parallel SF Test");
-
-  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
-  sched_tester.add_user(0x46, uecfg, 0);
-
-  std::array<std::atomic<long>, SRSRAN_MAX_CARRIERS> nano_count{};
-  for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
-    tti_point tti_rx(nof_ttis % 10240);
-    tti_point tti_tx = tti_rx + TX_ENB_DELAY;
-    tasks.start_slot(tti_tx, nof_sectors);
-    sched_tester.new_slot(tti_tx);
-    for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
-      srsran::get_background_workers().push_task([cc, tti_tx, &sched_tester, &tasks, &nano_count]() {
-        sched_nr_interface::dl_sched_t dl_res;
-        sched_nr_interface::ul_sched_t ul_res;
-        auto                           tp1 = std::chrono::steady_clock::now();
-        TESTASSERT(sched_tester.get_sched()->get_dl_sched(tti_tx, cc, dl_res) == SRSRAN_SUCCESS);
-        TESTASSERT(sched_tester.get_sched()->get_ul_sched(tti_tx, cc, ul_res) == SRSRAN_SUCCESS);
-        auto tp2 = std::chrono::steady_clock::now();
-        nano_count[cc].fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1).count(),
-                                 std::memory_order_relaxed);
-        sched_nr_cc_output_res_t out{tti_tx, cc, &dl_res, &ul_res};
-        sched_tester.update(out);
-        tasks.finish_cc(tti_tx, dl_res, ul_res);
-      });
-    }
-  }
-
-  tasks.wait_task_finish();
-
-  tasks.print_results();
-
-  double final_avg_usec = 0;
-  for (uint32_t i = 0; i < nof_sectors; ++i) {
-    final_avg_usec += nano_count[i];
-  }
-  final_avg_usec = final_avg_usec / 1000.0 / max_nof_ttis / nof_sectors;
-  printf("Total time taken per slot [usec]: %f\n", final_avg_usec);
-}
-
 } // namespace srsenb
 
 int main()
 {
   auto& test_logger = srslog::fetch_basic_logger("TEST");
-  test_logger.set_level(srslog::basic_levels::info);
+  test_logger.set_level(srslog::basic_levels::warning);
   auto& mac_logger = srslog::fetch_basic_logger("MAC");
-  mac_logger.set_level(srslog::basic_levels::info);
+  mac_logger.set_level(srslog::basic_levels::warning);
   auto& pool_logger = srslog::fetch_basic_logger("POOL");
   pool_logger.set_level(srslog::basic_levels::info);
 
@@ -304,5 +254,4 @@ int main()
 
   srsenb::sched_nr_cfg_serialized_test();
   srsenb::sched_nr_cfg_parallel_cc_test();
-  srsenb::sched_nr_cfg_parallel_sf_test();
 }

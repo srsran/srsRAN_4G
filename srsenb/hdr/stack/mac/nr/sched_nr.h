@@ -27,7 +27,7 @@ namespace srsenb {
 
 namespace sched_nr_impl {
 class sched_worker_manager;
-class serv_cell_ctxt;
+class serv_cell_manager;
 } // namespace sched_nr_impl
 
 class ue_event_manager;
@@ -62,14 +62,11 @@ private:
   std::mutex ue_db_mutex;
   ue_map_t   ue_db;
 
-  // management of UE feedback
-  std::unique_ptr<ue_event_manager> pending_events;
-
   // management of Sched Result buffering
   std::unique_ptr<sched_result_manager> pending_results;
 
   // management of cell resources
-  std::vector<std::unique_ptr<sched_nr_impl::serv_cell_ctxt> > cells;
+  std::vector<std::unique_ptr<sched_nr_impl::serv_cell_manager> > cells;
 };
 
 } // namespace srsenb
