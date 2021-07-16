@@ -75,7 +75,7 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci)
 {
-  bool ret = ue.cfg->phy().get_dci_ctx_pdsch_rnti_c(ss_id, dci_pos, ue.rnti, dci.ctx);
+  bool ret = ue.cfg->phy().get_dci_ctx_pusch_rnti_c(ss_id, dci_pos, ue.rnti, dci.ctx);
   srsran_assert(ret, "Invalid DL DCI format");
 
   fill_dci_common(ue, bwp_cfg, dci);

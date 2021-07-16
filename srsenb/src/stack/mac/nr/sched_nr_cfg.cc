@@ -29,8 +29,8 @@ sched_cell_params::sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const
   cc(cc_), cell_cfg(cell), sched_cfg(sched_cfg_)
 {
   bwps.reserve(cell.bwps.size());
-  for (uint32_t i = 0; i < cell.bwps.size(); ++i) {
-    bwps.emplace_back(cell, sched_cfg_, cc, i);
+  for (uint32_t i = 0; i < cell_cfg.bwps.size(); ++i) {
+    bwps.emplace_back(cell_cfg, sched_cfg_, cc, i);
   }
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }

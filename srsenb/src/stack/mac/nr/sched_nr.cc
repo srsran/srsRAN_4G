@@ -151,7 +151,8 @@ int sched_nr::get_dl_sched(tti_point tti_tx, uint32_t cc, dl_sched_t& result)
 int sched_nr::get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)
 {
   if (not pending_results->has_ul_result(tti_rx, cc)) {
-    return SRSRAN_ERROR;
+    // sched result hasn't been generated
+    return SRSRAN_SUCCESS;
   }
 
   result = pending_results->pop_ul_result(tti_rx, cc);

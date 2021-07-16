@@ -54,6 +54,7 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("gnb.stack.pusch.slots",             bpo::value<std::string>(&gnb_stack.pusch.slots)->default_value(gnb_stack.pusch.slots),                      "Slots enabled for PUSCH")
         ("gnb.stack.pusch.mcs",               bpo::value<uint32_t>(&gnb_stack.pusch.mcs)->default_value(gnb_stack.pusch.mcs),                             "PUSCH scheduling modulation code scheme")
         ("gnb.stack.log.level",               bpo::value<std::string>(&gnb_stack.log_level)->default_value(gnb_stack.log_level),                          "Stack log level")
+        ("gnb.stack.use_dummy_sched",         bpo::value<bool>(&gnb_stack.use_dummy_sched)->default_value(true),                                          "Use dummy or real NR scheduler")
         ;
 
   options_gnb_phy.add_options()

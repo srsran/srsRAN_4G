@@ -15,6 +15,8 @@
 
 #include "dummy_rx_harq_proc.h"
 #include "dummy_tx_harq_proc.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include <mutex>
 #include <set>
 #include <srsenb/hdr/stack/mac/common/mac_metrics.h>
@@ -38,8 +40,9 @@ public:
   };
 
 private:
-  srslog::basic_logger& logger = srslog::fetch_basic_logger("GNB STK");
-  const uint16_t        rnti   = 0x1234;
+  srslog::basic_logger& logger          = srslog::fetch_basic_logger("GNB STK");
+  bool                  use_dummy_sched = true;
+  const uint16_t        rnti            = 0x1234;
   struct {
     srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_location;
     uint32_t                                                             mcs;
@@ -50,6 +53,9 @@ private:
   uint32_t                                                ss_id   = 0;
   srsran::phy_cfg_nr_t                                    phy_cfg = {};
   bool                                                    valid   = false;
+
+  srsenb::sched_nr  sched;
+  srsran::tti_point pdsch_tti, pusch_tti;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -271,6 +277,7 @@ private:
 public:
   struct args_t {
     srsran::phy_cfg_nr_t phy_cfg;                          ///< Physical layer configuration
+    bool                 use_dummy_sched         = false;  ///< Use dummy or real NR scheduler
     uint16_t             rnti                    = 0x1234; ///< C-RNTI
     uint32_t             ss_id                   = 1;      ///< Search Space identifier
     uint32_t             pdcch_aggregation_level = 0;      ///< PDCCH aggregation level
@@ -285,9 +292,20 @@ public:
     std::string log_level = "warning";
   };
 
-  gnb_dummy_stack(const args_t& args) : rnti(args.rnti), phy_cfg(args.phy_cfg), ss_id(args.ss_id)
+  gnb_dummy_stack(const args_t& args) :
+    rnti(args.rnti), phy_cfg(args.phy_cfg), ss_id(args.ss_id), sched(srsenb::sched_nr_interface::sched_cfg_t{})
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
+
+    // create sched object
+    std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
+    sched.cell_cfg(cells_cfg);
+
+    // add UE to scheduler
+    srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
+    ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
+    ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
+    sched.ue_cfg(args.rnti, ue_cfg);
 
     dl.mcs = args.pdsch.mcs;
     ul.mcs = args.pusch.mcs;
@@ -351,6 +369,26 @@ public:
   int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override
   {
     logger.set_context(slot_cfg.idx);
+    if (not pdsch_tti.is_valid()) {
+      pdsch_tti = srsran::tti_point{slot_cfg.idx};
+    } else {
+      pdsch_tti++;
+    }
+
+    if (not use_dummy_sched) {
+      int ret = sched.get_dl_sched(pdsch_tti, 0, dl_sched);
+
+      for (pdsch_t& pdsch : dl_sched.pdsch) {
+        // Set TBS
+        // Select grant and set data
+        pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
+
+        // Generate random data
+        srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
+      }
+
+      return ret;
+    }
 
     // Check if it is TDD DL slot and PDSCH mask, if no PDSCH shall be scheduled, do not set any grant and skip
     if (not srsran_tdd_nr_is_dl(&phy_cfg.tdd, phy_cfg.carrier.scs, slot_cfg.idx)) {
@@ -378,6 +416,15 @@ public:
   int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override
   {
     logger.set_context(slot_cfg.idx);
+    if (not pusch_tti.is_valid()) {
+      pusch_tti = srsran::tti_point{slot_cfg.idx};
+    } else {
+      pusch_tti++;
+    }
+
+    if (not use_dummy_sched) {
+      return sched.get_ul_sched(pusch_tti, 0, ul_sched);
+    }
 
     // Get ACK information
     srsran_pdsch_ack_nr_t ack     = pending_ack[slot_cfg.idx % pending_ack.size()].get_ack();

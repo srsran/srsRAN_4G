@@ -45,6 +45,8 @@ void bwp_slot_grid::reset()
   ul_prbs.reset();
   dl_pdcchs.clear();
   ul_pdcchs.clear();
+  pdschs.clear();
+  puschs.clear();
   pending_acks.clear();
 }
 
@@ -157,7 +159,8 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
 
   // Allocate HARQ
   if (ue.h_dl->empty()) {
-    int  mcs = 20;
+    srsran_assert(ue.cfg->ue_cfg()->fixed_dl_mcs >= 0, "Dynamic MCS not yet supported");
+    int  mcs = ue.cfg->ue_cfg()->fixed_dl_mcs;
     int  tbs = 100;
     bool ret = ue.h_dl->new_tx(ue.pdsch_tti, ue.uci_tti, dl_grant, mcs, tbs, 4);
     srsran_assert(ret, "Failed to allocate DL HARQ");
@@ -176,6 +179,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
                                 bwp_uci_slot.pending_acks.end(),
                                 [&ue](const harq_ack_t& p) { return p.res.rnti == ue.rnti; });
   pdcch.dci.dai %= 4;
+  pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
 
   // Generate PUCCH
   bwp_uci_slot.pending_acks.emplace_back();
@@ -230,7 +234,8 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
   }
 
   if (ue.h_ul->empty()) {
-    int  mcs = 20;
+    srsran_assert(ue.cfg->ue_cfg()->fixed_ul_mcs >= 0, "Dynamic MCS not yet supported");
+    int  mcs = ue.cfg->ue_cfg()->fixed_ul_mcs;
     int  tbs = 100;
     bool ret = ue.h_ul->new_tx(ue.pusch_tti, ue.pusch_tti, ul_mask, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
     srsran_assert(ret, "Failed to allocate UL HARQ");
@@ -242,6 +247,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
   // Generate PDCCH
   pdcch_ul_t& pdcch = pdcchs.back();
   fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+  pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
   // Generate PUSCH
   bwp_pusch_slot.ul_prbs.add(ul_mask);
 

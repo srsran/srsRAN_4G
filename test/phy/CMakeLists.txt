@@ -17,6 +17,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             srsran_phy
             srsran_radio
             srsenb_phy
+            srsgnb_mac
             ${CMAKE_THREAD_LIBS_INIT}
             ${Boost_LIBRARIES}
             ${CMAKE_THREAD_LIBS_INIT}

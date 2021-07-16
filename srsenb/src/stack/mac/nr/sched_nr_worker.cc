@@ -138,12 +138,13 @@ void slot_cc_worker::log_result() const
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, dai={}, tti_pdsch={}, tti_ack={}",
+                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, f={}, dai={}, tti_pdsch={}, tti_ack={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      cell.cfg.cc,
                      ue.rnti,
-                     ue.h_dl->pid,
+                     pdcch.dci.pid,
                      ue.h_dl->nof_retx(),
+                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      pdcch.dci.dai,
                      ue.pdsch_tti,
                      ue.uci_tti);
@@ -151,6 +152,26 @@ void slot_cc_worker::log_result() const
       fmt::format_to(fmtbuf, "SCHED: DL RAR, cc={}", cell.cfg.cc);
     } else {
       fmt::format_to(fmtbuf, "SCHED: unknown format");
+    }
+
+    logger.info("%s", srsran::to_c_str(fmtbuf));
+  }
+  for (const pdcch_ul_t& pdcch : bwp_slot.ul_pdcchs) {
+    fmt::memory_buffer fmtbuf;
+    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
+      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
+      fmt::format_to(fmtbuf,
+                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}, tti_ack={}",
+                     ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
+                     cell.cfg.cc,
+                     ue.rnti,
+                     pdcch.dci.pid,
+                     ue.h_dl->nof_retx(),
+                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
+                     ue.pusch_tti,
+                     ue.uci_tti);
+    } else {
+      fmt::format_to(fmtbuf, "SCHED: unknown rnti format");
     }
 
     logger.info("%s", srsran::to_c_str(fmtbuf));

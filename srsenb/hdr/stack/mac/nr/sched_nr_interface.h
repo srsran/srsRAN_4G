@@ -71,7 +71,9 @@ public:
   };
 
   struct ue_cfg_t {
-    uint32_t                                                   maxharq_tx = 4;
+    uint32_t                                                   maxharq_tx   = 4;
+    int                                                        fixed_dl_mcs = -1;
+    int                                                        fixed_ul_mcs = -1;
     srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
     srsran::phy_cfg_nr_t                                       phy_cfg = {};
   };
