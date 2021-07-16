@@ -13,6 +13,9 @@
 #include "srsenb/hdr/stack/mac/mac_nr.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/log_helper.h"
+#include "srsran/common/rwlock_guard.h"
+#include "srsran/common/standard_streams.h"
+#include "srsran/common/time_prof.h"
 #include <pthread.h>
 #include <string.h>
 #include <strings.h>
@@ -22,7 +25,9 @@ namespace srsenb {
 
 mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("MAC-NR")), task_sched(task_sched_)
-{}
+{
+  stack_task_queue = task_sched.make_task_queue();
+}
 
 mac_nr::~mac_nr()
 {
@@ -32,18 +37,15 @@ mac_nr::~mac_nr()
 int mac_nr::init(const mac_nr_args_t&    args_,
                  phy_interface_stack_nr* phy_,
                  stack_interface_mac*    stack_,
-                 rlc_interface_mac_nr*   rlc_,
+                 rlc_interface_mac*      rlc_,
                  rrc_interface_mac_nr*   rrc_)
 {
   args = args_;
 
-  phy_h   = phy_;
-  stack_h = stack_;
-  rlc_h   = rlc_;
-  rrc_h   = rrc_;
-
-  logger.set_level(srslog::str_to_basic_level(args.log_level));
-  logger.set_hex_dump_max_size(args.log_hex_limit);
+  phy   = phy_;
+  stack = stack_;
+  rlc   = rlc_;
+  rrc   = rrc_;
 
   if (args.pcap.enable) {
     pcap = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
@@ -52,20 +54,6 @@ int mac_nr::init(const mac_nr_args_t&    args_,
 
   bcch_bch_payload = srsran::make_byte_buffer();
   if (bcch_bch_payload == nullptr) {
-    return SRSRAN_ERROR;
-  }
-
-  // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
-  for (int i = 0; i < SRSRAN_FDD_NOF_HARQ; i++) {
-    srsran::unique_byte_buffer_t buffer = srsran::make_byte_buffer();
-    if (buffer == nullptr) {
-      return SRSRAN_ERROR;
-    }
-    ue_tx_buffer.emplace_back(std::move(buffer));
-  }
-
-  ue_rlc_buffer = srsran::make_byte_buffer();
-  if (ue_rlc_buffer == nullptr) {
     return SRSRAN_ERROR;
   }
 
@@ -89,56 +77,6 @@ void mac_nr::stop()
 
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics) {}
 
-int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
-{
-  // push received PDU on queue
-  if (rx_data.tb != nullptr) {
-    if (pcap) {
-      pcap->write_ul_crnti_nr(rx_data.tb->msg, rx_data.tb->N_bytes, rx_data.rnti, true, rx_data.tti);
-    }
-    ue_rx_pdu_queue.push(std::move(rx_data.tb));
-  }
-
-  // inform stack that new PDUs may have been received
-  stack_h->process_pdus();
-
-  return SRSRAN_SUCCESS;
-}
-
-/**
- * Called from the main stack thread to process received PDUs
- */
-void mac_nr::process_pdus()
-{
-  while (started and not ue_rx_pdu_queue.empty()) {
-    srsran::unique_byte_buffer_t pdu = ue_rx_pdu_queue.wait_pop();
-    /// TODO; delegate to demux class
-    handle_pdu(std::move(pdu));
-  }
-}
-
-int mac_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
-{
-  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
-
-  ue_rx_pdu.init_rx(true);
-  if (ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
-    return SRSRAN_ERROR;
-  }
-
-  for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
-    srsran::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
-    logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
-                i,
-                ue_rx_pdu.get_num_subpdus(),
-                subpdu.get_lcid(),
-                subpdu.get_sdu_length());
-
-    // rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-  }
-  return SRSRAN_SUCCESS;
-}
-
 int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
 {
   cfg = *cell_cfg;
@@ -150,7 +88,7 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
       sib.index       = i;
       sib.periodicity = cell_cfg->sibs->period_rf;
       sib.payload     = srsran::make_byte_buffer();
-      if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSRAN_SUCCESS) {
+      if (rrc->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSRAN_SUCCESS) {
         logger.error("Couldn't read SIB %d from RRC", sib.index);
       }
 
@@ -160,6 +98,146 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   }
 
   return SRSRAN_SUCCESS;
+}
+
+void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
+                           uint32_t                 enb_cc_idx,
+                           uint32_t                 preamble_idx,
+                           uint32_t                 time_adv)
+{
+  static srsran::mutexed_tprof<srsran::avg_time_stats> rach_tprof("rach_tprof", "MAC-NR", 1);
+  logger.set_context(slot_cfg.idx);
+  auto rach_tprof_meas = rach_tprof.start();
+
+  stack_task_queue.push([this, slot_cfg, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
+    uint16_t rnti = add_ue(enb_cc_idx);
+    if (rnti == SRSRAN_INVALID_RNTI) {
+      return;
+    }
+
+    rach_tprof_meas.defer_stop();
+
+    // TODO: Generate RAR data
+    // ..
+
+    // Log this event.
+    ++detected_rachs[enb_cc_idx];
+
+    // Add new user to the scheduler so that it can RX/TX SRB0
+    // ..
+
+    // Register new user in RRC
+    if (rrc->add_user(rnti) == SRSRAN_ERROR) {
+      // ue_rem(rnti);
+      return;
+    }
+
+    // Trigger scheduler RACH
+    // scheduler.dl_rach_info(enb_cc_idx, rar_info);
+
+    logger.info("RACH:  cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+                slot_cfg.idx,
+                enb_cc_idx,
+                preamble_idx,
+                time_adv,
+                rnti);
+    srsran::console("RACH:  cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+                    slot_cfg.idx,
+                    enb_cc_idx,
+                    preamble_idx,
+                    time_adv,
+                    rnti);
+  });
+}
+
+uint16_t mac_nr::add_ue(uint32_t enb_cc_idx)
+{
+  ue_nr*   inserted_ue = nullptr;
+  uint16_t rnti        = SRSRAN_INVALID_RNTI;
+
+  do {
+    // Assign new RNTI
+    rnti = FIRST_RNTI + (ue_counter.fetch_add(1, std::memory_order_relaxed) % 60000);
+
+    // Pre-check if rnti is valid
+    {
+      srsran::rwlock_read_guard read_lock(rwlock);
+      if (not is_rnti_valid_unsafe(rnti)) {
+        continue;
+      }
+    }
+
+    // Allocate and initialize UE object
+    // TODO: add sched interface
+    unique_rnti_ptr<ue_nr> ue_ptr = make_rnti_obj<ue_nr>(rnti, rnti, enb_cc_idx, nullptr, rrc, rlc, phy, logger);
+
+    // Add UE to rnti map
+    srsran::rwlock_write_guard rw_lock(rwlock);
+    if (not is_rnti_valid_unsafe(rnti)) {
+      continue;
+    }
+    auto ret = ue_db.insert(rnti, std::move(ue_ptr));
+    if (ret.has_value()) {
+      inserted_ue = ret.value()->second.get();
+    } else {
+      logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+    }
+  } while (inserted_ue == nullptr);
+
+  // Set PCAP if available
+  // ..
+
+  return rnti;
+}
+
+// Remove UE from the perspective of L2/L3
+int mac_nr::remove_ue(uint16_t rnti)
+{
+  srsran::rwlock_write_guard lock(rwlock);
+  if (is_rnti_active_unsafe(rnti)) {
+    ue_db.erase(rnti);
+  } else {
+    logger.error("User rnti=0x%x not found", rnti);
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+uint16_t mac_nr::reserve_rnti()
+{
+  uint16_t rnti = add_ue(0);
+  if (rnti == SRSRAN_INVALID_RNTI) {
+    return rnti;
+  }
+
+  return rnti;
+}
+
+bool mac_nr::is_rnti_valid_unsafe(uint16_t rnti)
+{
+  if (not started) {
+    logger.info("RACH ignored as eNB is being shutdown");
+    return false;
+  }
+  if (ue_db.full()) {
+    logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
+    return false;
+  }
+  if (not ue_db.has_space(rnti)) {
+    logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+    return false;
+  }
+  return true;
+}
+
+bool mac_nr::is_rnti_active_unsafe(uint16_t rnti)
+{
+  if (not ue_db.contains(rnti)) {
+    logger.error("User rnti=0x%x not found", rnti);
+    return false;
+  }
+  return ue_db[rnti]->is_active();
 }
 
 int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
@@ -181,8 +259,22 @@ int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
 }
 int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
 {
-  return 0;
+  // FIXME: does the PUSCH info call include received PDUs?
+  uint16_t                     rnti = pusch_info.rnti;
+  srsran::unique_byte_buffer_t rx_pdu;
+  auto                         process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
+    srsran::rwlock_read_guard lock(rwlock);
+    if (is_rnti_active_unsafe(rnti)) {
+      ue_db[rnti]->process_pdu(std::move(pdu));
+    } else {
+      logger.debug("Discarding PDU rnti=0x%x", rnti);
+    }
+  };
+  stack_task_queue.try_push(std::bind(process_pdu_task, std::move(rx_pdu)));
+
+  return SRSRAN_SUCCESS;
 }
+
 void mac_nr::rach_detected(const mac_interface_phy_nr::rach_info_t& rach_info) {}
 
 } // namespace srsenb

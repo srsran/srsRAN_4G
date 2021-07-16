@@ -17,7 +17,7 @@
 #include "dummy_tx_harq_proc.h"
 #include <mutex>
 #include <set>
-#include <srsenb/hdr/stack/mac/mac_metrics.h>
+#include <srsenb/hdr/stack/mac/common/mac_metrics.h>
 #include <srsran/adt/circular_array.h>
 #include <srsran/common/phy_cfg_nr.h>
 #include <srsran/common/standard_streams.h>

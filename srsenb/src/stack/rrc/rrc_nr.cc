@@ -26,8 +26,8 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
 int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  phy_interface_stack_nr*     phy_,
                  mac_interface_rrc_nr*       mac_,
-                 rlc_interface_rrc_nr*       rlc_,
-                 pdcp_interface_rrc_nr*      pdcp_,
+                 rlc_interface_rrc*          rlc_,
+                 pdcp_interface_rrc*         pdcp_,
                  ngap_interface_rrc_nr*      ngap_,
                  gtpu_interface_rrc_nr*      gtpu_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
@@ -36,8 +36,9 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   mac  = mac_;
   rlc  = rlc_;
   pdcp = pdcp_;
-  gtpu = gtpu_;
   ngap = ngap_;
+  gtpu      = gtpu_;
+  rrc_eutra = rrc_eutra_;
 
   // TODO: overwriting because we are not passing config right now
   cfg = update_default_cfg(cfg_);
@@ -55,22 +56,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   }
 
   config_mac();
-
-  // add dummy user
-  logger.info("Creating dummy DRB for RNTI=%d on LCID=%d", cfg.coreless.rnti, cfg.coreless.drb_lcid);
-  add_user(cfg.coreless.rnti);
-  srsran::rlc_config_t rlc_cnfg = srsran::rlc_config_t::default_rlc_um_nr_config(6);
-  rlc->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, rlc_cnfg);
-  srsran::pdcp_config_t pdcp_cnfg{cfg.coreless.drb_lcid,
-                                  srsran::PDCP_RB_IS_DRB,
-                                  srsran::SECURITY_DIRECTION_DOWNLINK,
-                                  srsran::SECURITY_DIRECTION_UPLINK,
-                                  srsran::PDCP_SN_LEN_18,
-                                  srsran::pdcp_t_reordering_t::ms500,
-                                  srsran::pdcp_discard_timer_t::infinity,
-                                  false,
-                                  srsran::srsran_rat_t::nr};
-  pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
   logger.info("Started");
 
@@ -171,16 +156,46 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
 }
 
 // This function is called from PRACH worker (can wait)
-void rrc_nr::add_user(uint16_t rnti)
+int rrc_nr::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
     users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
+    return SRSRAN_SUCCESS;
   } else {
     logger.error("Adding user rnti=0x%x (already exists)", rnti);
+    return SRSRAN_ERROR;
   }
+}
+
+/* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
+ * valid RNTI.
+ */
+int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
+{
+  // Remove new_rnti
+  auto new_ue_it = users.find(new_rnti);
+  if (new_ue_it != users.end()) {
+    // TODO: cleanup new user?
+    return SRSRAN_ERROR;
+  }
+
+  // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
+  auto old_it = users.find(old_rnti);
+  if (old_it == users.end()) {
+    logger.info("rnti=0x%x received MAC CRNTI CE: 0x%x, but old context is unavailable", new_rnti, old_rnti);
+    return SRSRAN_ERROR;
+  }
+  ue* ue_ptr = old_it->second.get();
+
+  // Assume that SgNB addition is running
+  logger.info("Resuming rnti=0x%x RRC connection due to received C-RNTI CE from rnti=0x%x.", old_rnti, new_rnti);
+  if (ue_ptr->is_connected()) {
+    rrc_eutra->sgnb_addition_complete(new_rnti);
+  }
+  return SRSRAN_SUCCESS;
 }
 
 void rrc_nr::config_mac()
@@ -355,15 +370,37 @@ void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
   Interface for EUTRA RRC
 *******************************************************************************/
 
-int rrc_nr::sgnb_addition_request(uint16_t rnti)
+int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti)
 {
-  // try to allocate new user
-  task_sched.defer_task([]() {});
+  task_sched.defer_task([this, eutra_rnti]() {
+    // try to allocate new user
+    uint16_t nr_rnti = mac->reserve_rnti();
+    if (nr_rnti == SRSRAN_INVALID_RNTI) {
+      logger.error("Failed to allocate RNTI at MAC");
+      rrc_eutra->sgnb_addition_reject(eutra_rnti);
+      return;
+    }
+
+    if (add_user(nr_rnti) != SRSRAN_SUCCESS) {
+      logger.error("Failed to allocate RNTI at RRC");
+      rrc_eutra->sgnb_addition_reject(eutra_rnti);
+      return;
+    }
+
+    // new RNTI is now registered at MAC and RRC
+    auto user_it = users.find(nr_rnti);
+    if (user_it == users.end()) {
+      logger.warning("Unrecognised rnti: 0x%x", nr_rnti);
+      return;
+    }
+    user_it->second->handle_sgnb_addition_request(eutra_rnti);
+  });
 
   // return straight away
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response)
+
+int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response)
 {
   return SRSRAN_SUCCESS;
 }
@@ -376,13 +413,6 @@ int rrc_nr::sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring rec
 *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
 {
-  // setup periodic RRCSetup send
-  rrc_setup_periodic_timer = parent->task_sched.get_unique_timer();
-  rrc_setup_periodic_timer.set(5000, [this](uint32_t tid) {
-    send_connection_setup();
-    rrc_setup_periodic_timer.run();
-  });
-  rrc_setup_periodic_timer.run();
 }
 
 void rrc_nr::ue::send_connection_setup()
@@ -427,7 +457,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
 }
 
-int rrc_nr::ue::handle_sgnb_addition_request()
+int rrc_nr::ue::handle_sgnb_addition_request(uint16_t eutra_rnti)
 {
   // provide hard-coded NR configs
   asn1::dyn_octstring nr_config;
@@ -438,14 +468,47 @@ int rrc_nr::ue::handle_sgnb_addition_request()
 
   recfg_ies.radio_bearer_cfg_present                     = true;
   recfg_ies.radio_bearer_cfg.drb_to_add_mod_list_present = true;
-  recfg_ies.radio_bearer_cfg.drb_to_release_list.resize(1);
-  // recfg_ies.radio_bearer_cfg.drb_to_release_list[0].set_eps_bearer_id(5);
+  recfg_ies.radio_bearer_cfg.drb_to_add_mod_list.resize(1);
+
+  // configure fixed DRB1
+  auto& drb_item                                = recfg_ies.radio_bearer_cfg.drb_to_add_mod_list[0];
+  drb_item.drb_id                               = 1;
+  drb_item.cn_assoc_present                     = true;
+  drb_item.cn_assoc.set_eps_bearer_id()         = 5;
+  drb_item.pdcp_cfg_present                     = true;
+  drb_item.pdcp_cfg.ciphering_disabled_present  = true;
+  drb_item.pdcp_cfg.drb_present                 = true;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_dl_present = true;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_dl         = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::len18bits;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
+  drb_item.pdcp_cfg.drb.pdcp_sn_size_ul         = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_opts::len18bits;
+  drb_item.pdcp_cfg.drb.discard_timer_present   = true;
+  drb_item.pdcp_cfg.drb.discard_timer           = asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
+  drb_item.pdcp_cfg.drb.hdr_compress.set_not_used();
+  drb_item.pdcp_cfg.t_reordering_present = true;
+  drb_item.pdcp_cfg.t_reordering         = asn1::rrc_nr::pdcp_cfg_s::t_reordering_opts::ms0;
+
+  recfg_ies.radio_bearer_cfg.security_cfg_present            = true;
+  recfg_ies.radio_bearer_cfg.security_cfg.key_to_use_present = true;
+  recfg_ies.radio_bearer_cfg.security_cfg.key_to_use         = asn1::rrc_nr::security_cfg_s::key_to_use_opts::secondary;
+  recfg_ies.radio_bearer_cfg.security_cfg.security_algorithm_cfg_present             = true;
+  recfg_ies.radio_bearer_cfg.security_cfg.security_algorithm_cfg.ciphering_algorithm = ciphering_algorithm_opts::nea2;
+
+  uint8_t buffer[1024];
+
+  asn1::bit_ref       bref_pack(buffer, sizeof(buffer));
+  radio_bearer_cfg_s& radio_bearer_cfg_pack = recfg_ies.radio_bearer_cfg;
+  if (radio_bearer_cfg_pack.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
+    parent->logger.error("Failed to pack NR radio bearer config");
+    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti);
+    return SRSRAN_ERROR;
+  }
 
   // TODO: fill configs
   asn1::dyn_octstring nr_secondary_cell_group_cfg;
   asn1::dyn_octstring nr_radio_bearer_config;
 
-  parent->rrc_eutra->sgnb_addition_ack(rnti, nr_secondary_cell_group_cfg, nr_radio_bearer_config);
+  parent->rrc_eutra->sgnb_addition_ack(eutra_rnti, nr_secondary_cell_group_cfg, nr_radio_bearer_config);
 
   return SRSRAN_SUCCESS;
 }

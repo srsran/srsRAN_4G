@@ -32,6 +32,9 @@ class mac_interface_rrc_nr
 public:
   // Provides cell configuration including SIB periodicity, etc.
   virtual int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg) = 0;
+
+  /// Allocates a new user/RNTI at MAC. Returns RNTI on success or SRSRAN_INVALID_RNTI otherwise.
+  virtual uint16_t reserve_rnti() = 0;
 };
 
 class mac_interface_rlc_nr
@@ -145,6 +148,9 @@ public:
   // Provides MIB packed message
   virtual int read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer)   = 0;
   virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) = 0;
+
+  /// User management
+  virtual int add_user(uint16_t rnti) = 0;
 };
 class rrc_interface_rlc_nr
 {
@@ -183,6 +189,7 @@ public:
   // TBD
 };
 
+// Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_nr : public phy_interface_rrc_nr, public phy_interface_mac_nr
 {
 public:

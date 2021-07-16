@@ -17,6 +17,7 @@
 
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srsenb/test/common/dummy_classes.h"
+#include "srsenb/test/common/dummy_classes_common.h"
 #include "srsran/common/network_utils.h"
 #include "srsran/common/test_common.h"
 #include "srsran/upper/gtpu.h"

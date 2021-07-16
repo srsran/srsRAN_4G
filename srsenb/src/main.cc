@@ -243,7 +243,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds")
     ("expert.rlf_min_ul_snr_estim", bpo::value<int>(&args->stack.mac.rlf_min_ul_snr_estim)->default_value(-2), "SNR threshold in dB below which the eNB is notified with rlf ko.")
 
-
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
     ("embms.m1u_multiaddr", bpo::value<string>(&args->stack.embms.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
@@ -259,14 +258,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3333), "Bind port")
     ("log.vnf_level",     bpo::value<string>(&args->phy.vnf_args.log_level),   "VNF log level")
     ("log.vnf_hex_limit", bpo::value<int>(&args->phy.vnf_args.log_hex_limit),  "VNF log hex dump limit")
-
-    // Arguments for coreless operation
-    ("coreless.ip_devname", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_name)->default_value("tun1"), "Name of the TUN device")
-    ("coreless.ip_address", bpo::value<string>(&args->stack.coreless.ip_addr)->default_value("192.168.1.1"), "IP address of the TUN device")
-    ("coreless.ip_netmask", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the TUN device")
-    ("coreless.drb_lcid", bpo::value<uint8_t>(&args->stack.coreless.drb_lcid)->default_value(4), "LCID of the dummy DRB")
-    ("coreless.rnti", bpo::value<uint16_t >(&args->stack.coreless.rnti)->default_value(1234), "RNTI of the dummy user")
-    ;
+  ;
 
   // Positional options - config file location
   bpo::options_description position("Positional options");

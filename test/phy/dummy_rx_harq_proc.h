@@ -14,7 +14,7 @@
 #define SRSRAN_DUMMY_RX_HARQ_PROC_H
 
 #include <mutex>
-#include <srsenb/hdr/stack/mac/mac_metrics.h>
+#include <srsenb/hdr/stack/mac/common/mac_metrics.h>
 #include <srsran/adt/circular_array.h>
 #include <srsran/common/buffer_pool.h>
 #include <srsran/common/phy_cfg_nr.h>
