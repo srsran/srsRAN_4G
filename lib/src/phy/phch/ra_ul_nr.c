@@ -528,10 +528,9 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
 
   // Use SR PUCCH resource
   // - At least one positive SR
-  // - up to 2 HARQ-ACK
+  // - No HARQ-ACK
   // - No CSI report
-  if (uci_cfg->sr_positive_present > 0 && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
-      uci_cfg->nof_csi == 0) {
+  if (uci_cfg->sr_positive_present > 0 && uci_cfg->ack.count == 0 && uci_cfg->nof_csi == 0) {
     uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
     if (sr_resource_id >= SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES) {
       ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES);
@@ -548,6 +547,55 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
 
     // No more logic is required in this case
     return SRSRAN_SUCCESS;
+  }
+
+  // Use SR PUCCH resource
+  // - At least one positive SR
+  // - up to 2 HARQ-ACK
+  // - No CSI report
+  if (uci_cfg->sr_positive_present > 0 && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+      uci_cfg->nof_csi == 0) {
+    uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
+    if (sr_resource_id >= SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES) {
+      ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES);
+      return SRSRAN_ERROR;
+    }
+
+    if (!pucch_cfg->sr_resources[sr_resource_id].configured) {
+      ERROR("SR resource ID (%d) is not configured", sr_resource_id);
+      return SRSRAN_ERROR;
+    }
+
+    // Select PUCCH resource for SR
+    srsran_pucch_nr_resource_t resource_sr = pucch_cfg->sr_resources[sr_resource_id].resource;
+
+    // Select PUCCH resource for HARQ-ACK
+    srsran_pucch_nr_resource_t resource_harq = {};
+    if (ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, &resource_harq) < SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    // If a UE would transmit positive or negative SR in a resource using PUCCH format 0 and HARQ-ACK information bits
+    // in a resource using PUCCH format 1 in a slot, the UE transmits only a PUCCH with the HARQ-ACK information bits
+    // in the resource using PUCCH format 1.
+    if (resource_sr.format == SRSRAN_PUCCH_NR_FORMAT_0 && resource_harq.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+      *resource = resource_harq;
+      return SRSRAN_SUCCESS;
+    }
+
+    // If the UE would transmit positive SR in a first resource using PUCCH format 1 and at most two HARQ-ACK
+    // information bits in a second resource using PUCCH format 1 in a slot, the UE transmits a PUCCH with HARQ-ACK
+    // information bits in the first resource using PUCCH format 1 as described in Clause 9.2.3. If a UE would transmit
+    // negative SR in a resource using PUCCH format 1 and at most two HARQ-ACK information bits in a resource using
+    // PUCCH format 1 in a slot, the UE transmits a PUCCH in the resource using PUCCH format 1 for HARQ-ACK
+    // information as described in Clause 9.2.3.
+    if (resource_sr.format == SRSRAN_PUCCH_NR_FORMAT_1 && resource_harq.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+      *resource = resource_sr;
+      return SRSRAN_SUCCESS;
+    }
+
+    // The impossible happened...
+    return SRSRAN_ERROR;
   }
 
   // Use format 2, 3 or 4 resource from higher layers

@@ -243,10 +243,20 @@ public:
     std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
   };
 
+  /**
+   * @brief Describes a possible PUCCH candidate transmission
+   * @note The physical layer shall try decoding all the possible PUCCH candidates and report back to the stack the
+   * strongest of the candidates. This is thought to be used in the case of SR opportunities in which the UE could
+   * transmit HARQ-ACK in two possible resources.
+   */
+  struct pucch_candidate_t {
+    srsran_uci_cfg_nr_t        uci_cfg;  ///< UCI configuration for the opportunity
+    srsran_pucch_nr_resource_t resource; ///< PUCCH resource to use
+  };
+
   struct pucch_t {
-    srsran_uci_cfg_nr_t          uci_cfg;   ///< UCI configuration
-    srsran_pucch_nr_common_cfg_t pucch_cfg; ///< UE dedicated PUCCH configuration
-    srsran_pucch_nr_resource_t   resource;  ///< PUCCH resource
+    srsran_pucch_nr_common_cfg_t                          pucch_cfg;  ///< UE dedicated PUCCH configuration
+    srsran::bounded_vector<pucch_candidate_t, MAX_GRANTS> candidates; ///< PUCCH candidates to decode
   };
 
   struct ul_sched_t {

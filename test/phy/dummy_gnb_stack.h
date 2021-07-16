@@ -475,8 +475,8 @@ public:
     // If any UCI information is triggered, schedule PUCCH
     if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
       mac_interface_phy_nr::pucch_t pucch = {};
-      pucch.uci_cfg                       = uci_cfg;
-      if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.resource)) {
+      pucch.candidates[0].uci_cfg         = uci_cfg;
+      if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates[0].resource)) {
         logger.error("Error getting UCI CFG");
         return SRSRAN_ERROR;
       }
