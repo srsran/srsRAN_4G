@@ -78,7 +78,7 @@ typedef struct SRSRAN_API {
   uint8_t  wideband_cqi;     // 4-bit width
   uint8_t  subband_diff_cqi; // 2-bit width
   uint32_t position_subband; // L-bit width
-} srsran_cqi_ue_subband_t;
+} srsran_cqi_ue_diff_subband_t;
 
 /* Table 5.2.3.3.1-1: Fields for channel quality information feedback for wideband CQI reports
 (transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
@@ -100,12 +100,12 @@ typedef struct SRSRAN_API {
 typedef struct SRSRAN_API {
   uint8_t subband_cqi;   // 4-bit width
   uint8_t subband_label; // 1- or 2-bit width
-} srsran_cqi_format2_subband_t;
+} srsran_cqi_ue_subband_t;
 
 typedef enum {
   SRSRAN_CQI_TYPE_WIDEBAND = 0,
-  SRSRAN_CQI_TYPE_SUBBAND,
   SRSRAN_CQI_TYPE_SUBBAND_UE,
+  SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF,
   SRSRAN_CQI_TYPE_SUBBAND_HL
 } srsran_cqi_type_t;
 
@@ -125,8 +125,8 @@ typedef struct SRSRAN_API {
 typedef struct {
   union {
     srsran_cqi_format2_wideband_t wideband;
-    srsran_cqi_format2_subband_t  subband;
     srsran_cqi_ue_subband_t       subband_ue;
+    srsran_cqi_ue_diff_subband_t  subband_ue_diff;
     srsran_cqi_hl_subband_t       subband_hl;
   };
   bool data_crc;

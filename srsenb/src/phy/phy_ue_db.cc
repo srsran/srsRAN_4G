@@ -668,14 +668,14 @@ int phy_ue_db::send_uci_data(uint32_t                  tti,
         case SRSRAN_CQI_TYPE_WIDEBAND:
           cqi_value = uci_value.cqi.wideband.wideband_cqi;
           break;
-        case SRSRAN_CQI_TYPE_SUBBAND:
-          cqi_value = uci_value.cqi.subband.subband_cqi;
+        case SRSRAN_CQI_TYPE_SUBBAND_UE:
+          cqi_value = uci_value.cqi.subband_ue.subband_cqi;
           break;
         case SRSRAN_CQI_TYPE_SUBBAND_HL:
           cqi_value = uci_value.cqi.subband_hl.wideband_cqi_cw0;
           break;
-        case SRSRAN_CQI_TYPE_SUBBAND_UE:
-          cqi_value = uci_value.cqi.subband_ue.wideband_cqi;
+        case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
+          cqi_value = uci_value.cqi.subband_ue_diff.wideband_cqi;
           break;
       }
       stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);

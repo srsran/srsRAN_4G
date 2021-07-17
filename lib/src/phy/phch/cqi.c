@@ -65,7 +65,7 @@ static int cqi_hl_subband_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_hl_subband_t* m
   return bit_count;
 }
 
-static int cqi_ue_subband_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_subband_t* msg, uint8_t* buff)
+static int cqi_ue_subband_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_diff_subband_t* msg, uint8_t* buff)
 {
   uint8_t* body_ptr = buff;
   srsran_bit_unpack(msg->wideband_cqi, &body_ptr, 4);
@@ -101,7 +101,7 @@ static int cqi_format2_wideband_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_format2_w
   return (int)(body_ptr - buff);
 }
 
-static int cqi_format2_subband_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_format2_subband_t* msg, uint8_t* buff)
+static int cqi_format2_subband_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_subband_t* msg, uint8_t* buff)
 {
   uint8_t* body_ptr = buff;
   srsran_bit_unpack(msg->subband_cqi, &body_ptr, 4);
@@ -114,10 +114,10 @@ int srsran_cqi_value_pack(srsran_cqi_cfg_t* cfg, srsran_cqi_value_t* value, uint
   switch (cfg->type) {
     case SRSRAN_CQI_TYPE_WIDEBAND:
       return cqi_format2_wideband_pack(cfg, &value->wideband, buff);
-    case SRSRAN_CQI_TYPE_SUBBAND:
-      return cqi_format2_subband_pack(cfg, &value->subband, buff);
     case SRSRAN_CQI_TYPE_SUBBAND_UE:
-      return cqi_ue_subband_pack(cfg, &value->subband_ue, buff);
+      return cqi_format2_subband_pack(cfg, &value->subband_ue, buff);
+    case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
+      return cqi_ue_subband_pack(cfg, &value->subband_ue_diff, buff);
     case SRSRAN_CQI_TYPE_SUBBAND_HL:
       return cqi_hl_subband_pack(cfg, &value->subband_hl, buff);
   }
@@ -163,7 +163,7 @@ int cqi_hl_subband_unpack(srsran_cqi_cfg_t* cfg, uint8_t* buff, srsran_cqi_hl_su
   return bit_count;
 }
 
-int cqi_ue_subband_unpack(srsran_cqi_cfg_t* cfg, uint8_t* buff, srsran_cqi_ue_subband_t* msg)
+int cqi_ue_subband_unpack(srsran_cqi_cfg_t* cfg, uint8_t* buff, srsran_cqi_ue_diff_subband_t* msg)
 {
   uint8_t* body_ptr     = buff;
   msg->wideband_cqi     = srsran_bit_pack(&body_ptr, 4);
@@ -197,7 +197,7 @@ static int cqi_format2_wideband_unpack(srsran_cqi_cfg_t* cfg, uint8_t* buff, srs
   return 4;
 }
 
-static int cqi_format2_subband_unpack(srsran_cqi_cfg_t* cfg, uint8_t* buff, srsran_cqi_format2_subband_t* msg)
+static int cqi_format2_subband_unpack(srsran_cqi_cfg_t* cfg, uint8_t* buff, srsran_cqi_ue_subband_t* msg)
 {
   uint8_t* body_ptr  = buff;
   msg->subband_cqi   = srsran_bit_pack(&body_ptr, 4);
@@ -210,10 +210,10 @@ int srsran_cqi_value_unpack(srsran_cqi_cfg_t* cfg, uint8_t buff[SRSRAN_CQI_MAX_B
   switch (cfg->type) {
     case SRSRAN_CQI_TYPE_WIDEBAND:
       return cqi_format2_wideband_unpack(cfg, buff, &value->wideband);
-    case SRSRAN_CQI_TYPE_SUBBAND:
-      return cqi_format2_subband_unpack(cfg, buff, &value->subband);
     case SRSRAN_CQI_TYPE_SUBBAND_UE:
-      return cqi_ue_subband_unpack(cfg, buff, &value->subband_ue);
+      return cqi_format2_subband_unpack(cfg, buff, &value->subband_ue);
+    case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
+      return cqi_ue_subband_unpack(cfg, buff, &value->subband_ue_diff);
     case SRSRAN_CQI_TYPE_SUBBAND_HL:
       return cqi_hl_subband_unpack(cfg, buff, &value->subband_hl);
   }
@@ -242,7 +242,7 @@ cqi_format2_wideband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_format2_wideband
 }
 
 static int
-cqi_format2_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_format2_subband_t* msg, char* buff, uint32_t buff_len)
+cqi_format2_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_subband_t* msg, char* buff, uint32_t buff_len)
 {
   int n = 0;
 
@@ -252,7 +252,8 @@ cqi_format2_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_format2_subband_t
   return n;
 }
 
-static int cqi_ue_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_subband_t* msg, char* buff, uint32_t buff_len)
+static int
+cqi_ue_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_diff_subband_t* msg, char* buff, uint32_t buff_len)
 {
   int n = 0;
 
@@ -292,11 +293,11 @@ int srsran_cqi_value_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_value_t* value, 
     case SRSRAN_CQI_TYPE_WIDEBAND:
       ret = cqi_format2_wideband_tostring(cfg, &value->wideband, buff, buff_len);
       break;
-    case SRSRAN_CQI_TYPE_SUBBAND:
-      ret = cqi_format2_subband_tostring(cfg, &value->subband, buff, buff_len);
-      break;
     case SRSRAN_CQI_TYPE_SUBBAND_UE:
-      ret = cqi_ue_subband_tostring(cfg, &value->subband_ue, buff, buff_len);
+      ret = cqi_format2_subband_tostring(cfg, &value->subband_ue, buff, buff_len);
+      break;
+    case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
+      ret = cqi_ue_subband_tostring(cfg, &value->subband_ue_diff, buff, buff_len);
       break;
     case SRSRAN_CQI_TYPE_SUBBAND_HL:
       ret = cqi_hl_subband_tostring(cfg, &value->subband_hl, buff, buff_len);
@@ -339,10 +340,10 @@ int srsran_cqi_size(srsran_cqi_cfg_t* cfg)
         }
       }
       break;
-    case SRSRAN_CQI_TYPE_SUBBAND:
+    case SRSRAN_CQI_TYPE_SUBBAND_UE:
       size = 4 + ((cfg->subband_label_2_bits) ? 2 : 1);
       break;
-    case SRSRAN_CQI_TYPE_SUBBAND_UE:
+    case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
       size = 4 + 2 + cfg->L;
       break;
     case SRSRAN_CQI_TYPE_SUBBAND_HL:
