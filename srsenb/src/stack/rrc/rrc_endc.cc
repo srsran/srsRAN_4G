@@ -248,6 +248,11 @@ void rrc::ue::rrc_endc::handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_s
   nr_secondary_cell_group_cfg_r15 = nr_secondary_cell_group_cfg_r15_;
   nr_radio_bearer_cfg1_r15        = nr_radio_bearer_cfg1_r15_;
 
+  logger.debug(nr_secondary_cell_group_cfg_r15.data(),
+               nr_secondary_cell_group_cfg_r15.size(),
+               "nr-SecondaryCellGroupConfig-r15:");
+  logger.debug(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size(), "nr-RadioBearerConfig1-r15:");
+
   sgnb_add_req_ack_ev sgnb_add_ack{};
   trigger(sgnb_add_ack);
 }

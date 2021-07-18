@@ -99,9 +99,15 @@ public:
 
     // setters
 
+    int pack_rrc_reconfiguraiton();
+
   private:
     rrc_nr*  parent = nullptr;
     uint16_t rnti   = SRSRAN_INVALID_RNTI;
+
+    int pack_rrc_reconfiguraiton(asn1::dyn_octstring& packed_rrc_reconfig);
+    int pack_secondary_cell_group_config(asn1::dyn_octstring& packed_secondary_cell_config);
+    int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
     // state
     rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
