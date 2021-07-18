@@ -29,7 +29,7 @@
 namespace srsue {
 namespace nr {
 
-class worker_pool
+class worker_pool : public srsue::phy_interface_stack_nr
 {
 private:
   srslog::basic_logger&                    logger;
@@ -46,12 +46,18 @@ public:
   sf_worker* wait_worker(uint32_t tti);
   void       start_worker(sf_worker* w);
   void       stop();
-  void       send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power);
-  int  set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> array, uint16_t rnti, srsran_rnti_type_t rnti_type);
-  bool set_config(const srsran::phy_cfg_nr_t& cfg);
-  bool       has_valid_sr_resource(uint32_t sr_id);
-  void       clear_pending_grants();
+  void       send_prach(const uint32_t prach_occasion,
+                        const int      preamble_index,
+                        const float    preamble_received_target_power,
+                        const float    ta_base_sec = 0.0f) override;
+  int        set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> array,
+                          uint16_t                                       rnti,
+                          srsran_rnti_type_t                             rnti_type) override;
+  bool       set_config(const srsran::phy_cfg_nr_t& cfg) override;
+  bool       has_valid_sr_resource(uint32_t sr_id) override;
+  void       clear_pending_grants() override;
   void       get_metrics(phy_metrics_t& m);
+  int        tx_request(const tx_request_t& request) override;
 };
 
 } // namespace nr

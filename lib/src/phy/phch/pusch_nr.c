@@ -848,6 +848,13 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
 
   // Demultiplex UCI only if necessary
   if (q->uci_mux) {
+    // As it can be HARQ-ACK takes LLRs from ULSCH, demultiplex HARQ-ACK first
+    int8_t* g_ack = (int8_t*)q->g_ack;
+    for (uint32_t i = 0; i < q->G_ack; i++) {
+      g_ack[i]           = llr[q->pos_ack[i]];
+      llr[q->pos_ack[i]] = 0;
+    }
+
     // Demultiplex UL-SCH, change sign
     int8_t* g_ulsch = (int8_t*)q->g_ulsch;
     for (uint32_t i = 0; i < q->G_ulsch; i++) {
@@ -855,12 +862,6 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
     }
     for (uint32_t i = q->G_ulsch; i < nof_bits; i++) {
       g_ulsch[i] = 0;
-    }
-
-    // Demultiplex HARQ-ACK
-    int8_t* g_ack = (int8_t*)q->g_ack;
-    for (uint32_t i = 0; i < q->G_ack; i++) {
-      g_ack[i] = llr[q->pos_ack[i]];
     }
 
     // Demultiplex CSI part 1

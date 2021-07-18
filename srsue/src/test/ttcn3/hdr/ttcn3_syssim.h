@@ -285,7 +285,7 @@ private:
   std::vector<unique_syssim_cell_t>      cells;
   int32_t                                pcell_idx = -1;
 
-  // Main mutex to protect access from syssim's main thread (epoll handlers) and calls from  UE's stack thread
+  // Main mutex to protect access from syssim's main thread (epoll handlers) and calls from UE's stack thread
   std::mutex syssim_mutex;
 
   // Internal function

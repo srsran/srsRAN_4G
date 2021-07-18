@@ -183,13 +183,13 @@ int srsran_rf_open_multi(srsran_rf_t* h, char* args, uint32_t nof_channels)
 int srsran_rf_close(srsran_rf_t* rf)
 {
   // Stop gain thread
+  pthread_mutex_lock(&rf->mutex);
   if (rf->thread_gain_run) {
-    pthread_mutex_lock(&rf->mutex);
     rf->thread_gain_run = false;
-    pthread_mutex_unlock(&rf->mutex);
-    pthread_cond_signal(&rf->cond);
-    pthread_join(rf->thread_gain, NULL);
   }
+  pthread_mutex_unlock(&rf->mutex);
+  pthread_cond_signal(&rf->cond);
+  pthread_join(rf->thread_gain, NULL);
 
   return ((rf_dev_t*)rf->dev)->srsran_rf_close(rf->handler);
 }

@@ -414,6 +414,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<int>(&args->phy.force_N_id_2)->default_value(-1),
      "Force using a specific PSS (set to -1 to allow all PSSs).")
 
+    // PHY NR args
+    ("phy.nr.store_pdsch_ko",
+      bpo::value<bool>(&args->phy.nr_store_pdsch_ko)->default_value(false),
+      "Dumps the PDSCH baseband samples into a file on KO reception.")
+
     // UE simulation args
     ("sim.airplane_t_on_ms",
      bpo::value<int>(&args->stack.nas.sim.airplane_t_on_ms)->default_value(-1),

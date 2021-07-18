@@ -20,6 +20,7 @@
  */
 
 #include "sched_nr_sim_ue.h"
+#include "sched_nr_ue_ded_test_suite.h"
 #include "srsran/common/test_common.h"
 
 namespace srsenb {
@@ -47,14 +48,31 @@ sched_nr_ue_sim::sched_nr_ue_sim(uint16_t                            rnti_,
 int sched_nr_ue_sim::update(const sched_nr_cc_output_res_t& cc_out)
 {
   update_dl_harqs(cc_out);
+
+  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result->pdcch_dl[i];
+    if (data.dci.ctx.rnti != ctxt.rnti) {
+      continue;
+    }
+    tti_point pdcch_tti = cc_out.tti;
+    uint32_t  k1        = ctxt.ue_cfg.phy_cfg.harq_ack
+                      .dl_data_to_ul_ack[pdcch_tti.sf_idx() % ctxt.ue_cfg.phy_cfg.harq_ack.nof_dl_data_to_ul_ack];
+    tti_point uci_tti = pdcch_tti + k1;
+
+    ctxt.cc_list[cc_out.cc].pending_acks[uci_tti.to_uint()]++;
+  }
+
+  // clear up old slots
+  ctxt.cc_list[cc_out.cc].pending_acks[(cc_out.tti - 1).to_uint()] = 0;
+
   return SRSRAN_SUCCESS;
 }
 
 void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
 {
   uint32_t cc = cc_out.cc;
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdschs.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->pdcchs[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result->pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }
@@ -63,7 +81,7 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
       // It is newtx
       h.nof_retxs    = 0;
       h.ndi          = data.dci.ndi;
-      h.first_tti_rx = cc_out.tti_rx;
+      h.first_tti_tx = cc_out.tti;
       h.dci_loc      = data.dci.ctx.location;
       h.tbs          = 100; // TODO
     } else {
@@ -71,7 +89,11 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
       h.nof_retxs++;
     }
     h.active      = true;
-    h.last_tti_rx = cc_out.tti_rx;
+    h.last_tti_tx = cc_out.tti;
+    h.last_tti_ack =
+        h.last_tti_tx +
+        ctxt.ue_cfg.phy_cfg.harq_ack
+            .dl_data_to_ul_ack[h.last_tti_tx.sf_idx() % ctxt.ue_cfg.phy_cfg.harq_ack.nof_dl_data_to_ul_ack];
     h.nof_txs++;
   }
 }
@@ -90,6 +112,7 @@ sched_nr_sim_base::sched_nr_sim_base(const sched_nr_interface::sched_cfg_t&     
     cell_params.emplace_back(cc, cell_cfg_list[cc], sched_args);
   }
   sched_ptr->cell_cfg(cell_cfg_list); // call parent cfg
+
   TESTASSERT(cell_params.size() > 0);
 }
 
@@ -103,61 +126,68 @@ int sched_nr_sim_base::add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_
   TESTASSERT(ue_db.count(rnti) == 0);
 
   sched_ptr->ue_cfg(rnti, ue_cfg_);
-  ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_tti_rx, preamble_idx)));
+  ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_tti_tx, preamble_idx)));
   return SRSRAN_SUCCESS;
 }
 
-void sched_nr_sim_base::slot_indication(srsran::tti_point tti_rx)
+void sched_nr_sim_base::new_slot(srsran::tti_point tti_tx)
 {
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    logger.set_context(tti_rx.to_uint());
-    mac_logger.set_context(tti_rx.to_uint());
-    current_tti_rx = tti_rx;
-    logger.info("---------------- TTI=%d ---------------", tti_rx.to_uint());
-    for (auto& ue : ue_db) {
-      ue_tti_events events;
-      set_default_tti_events(ue.second.get_ctxt(), events);
-      set_external_tti_events(ue.second.get_ctxt(), events);
-      apply_tti_events(ue.second.get_ctxt(), events);
-    }
+  std::unique_lock<std::mutex> lock(mutex);
+  while (cc_finished > 0) {
+    cvar.wait(lock);
   }
-  sched_ptr->slot_indication(tti_rx);
+  logger.set_context(tti_tx.to_uint());
+  mac_logger.set_context(tti_tx.to_uint());
+  logger.info("---------------- TTI=%d ---------------", tti_tx.to_uint());
+  current_tti_tx = tti_tx;
+  cc_finished    = cell_params.size();
+  for (auto& ue : ue_db) {
+    ue_nr_tti_events events;
+    set_default_tti_events(ue.second.get_ctxt(), events);
+    set_external_tti_events(ue.second.get_ctxt(), events);
+    apply_tti_events(ue.second.get_ctxt(), events);
+  }
 }
 
 void sched_nr_sim_base::update(sched_nr_cc_output_res_t& cc_out)
 {
   std::unique_lock<std::mutex> lock(mutex);
-  for (auto& ue_pair : ue_db) {
-    ue_pair.second.update(cc_out);
+
+  sim_nr_enb_ctxt_t ctxt;
+  ctxt = get_enb_ctxt();
+  test_dl_sched_result(ctxt, cc_out);
+
+  for (auto& u : ue_db) {
+    u.second.update(cc_out);
+  }
+
+  if (--cc_finished <= 0) {
+    cvar.notify_one();
   }
 }
 
-int sched_nr_sim_base::set_default_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events)
+int sched_nr_sim_base::set_default_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_tti_events& pending_events)
 {
   pending_events.cc_list.clear();
   pending_events.cc_list.resize(cell_params.size());
-  pending_events.tti_rx = current_tti_rx;
+  pending_events.tti_rx = current_tti_tx;
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_events.cc_list.size(); ++enb_cc_idx) {
     auto& cc_feedback = pending_events.cc_list[enb_cc_idx];
 
     cc_feedback.configured = true;
-    cc_feedback.ue_cc_idx  = enb_cc_idx;
     for (uint32_t pid = 0; pid < SCHED_NR_MAX_HARQ; ++pid) {
-      auto& dl_h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
-      auto& ul_h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[pid];
+      auto& dl_h = ue_ctxt.cc_list[enb_cc_idx].dl_harqs[pid];
+      auto& ul_h = ue_ctxt.cc_list[enb_cc_idx].ul_harqs[pid];
 
       // Set default DL ACK
-      if (dl_h.active and (dl_h.last_tti_rx + 8) == current_tti_rx) {
-        cc_feedback.dl_pid = pid;
-        cc_feedback.dl_ack = true; // default is ACK
+      if (dl_h.active and (dl_h.last_tti_ack) == current_tti_tx) {
+        cc_feedback.dl_acks.push_back(ue_nr_tti_events::ack_t{pid, true});
       }
 
       // Set default UL ACK
-      if (ul_h.active and (ul_h.last_tti_rx + 8) == current_tti_rx) {
-        cc_feedback.ul_pid = pid;
-        cc_feedback.ul_ack = true;
+      if (ul_h.active and (ul_h.last_tti_tx + 8) == current_tti_tx) {
+        cc_feedback.ul_acks.emplace_back(ue_nr_tti_events::ack_t{pid, true});
       }
 
       // TODO: other CSI
@@ -167,7 +197,7 @@ int sched_nr_sim_base::set_default_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, u
   return SRSRAN_SUCCESS;
 }
 
-int sched_nr_sim_base::apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_tti_events& events)
+int sched_nr_sim_base::apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_tti_events& events)
 {
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < events.cc_list.size(); ++enb_cc_idx) {
     const auto& cc_feedback = events.cc_list[enb_cc_idx];
@@ -175,35 +205,29 @@ int sched_nr_sim_base::apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_tti_
       continue;
     }
 
-    if (cc_feedback.dl_pid >= 0) {
-      auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
+    for (auto& ack : cc_feedback.dl_acks) {
+      auto& h = ue_ctxt.cc_list[enb_cc_idx].dl_harqs[ack.pid];
 
-      if (cc_feedback.dl_ack) {
-        logger.info("DL ACK rnti=0x%x tti_dl_tx=%u cc=%d pid=%d",
-                    ue_ctxt.rnti,
-                    to_tx_dl(h.last_tti_rx).to_uint(),
-                    enb_cc_idx,
-                    cc_feedback.dl_pid);
+      if (ack.ack) {
+        logger.info(
+            "DL ACK rnti=0x%x tti_dl_tx=%u cc=%d pid=%d", ue_ctxt.rnti, h.last_tti_tx.to_uint(), enb_cc_idx, ack.pid);
       }
 
       // update scheduler
-      sched_ptr->dl_ack_info(ue_ctxt.rnti, enb_cc_idx, cc_feedback.dl_pid, cc_feedback.tb, cc_feedback.dl_ack);
+      sched_ptr->dl_ack_info(ue_ctxt.rnti, enb_cc_idx, h.pid, 0, ack.ack);
 
       // update UE sim context
-      if (cc_feedback.dl_ack or ue_ctxt.is_last_dl_retx(cc_feedback.ue_cc_idx, cc_feedback.dl_pid)) {
+      if (ack.ack or ue_ctxt.is_last_dl_retx(enb_cc_idx, h.pid)) {
         h.active = false;
       }
     }
 
-    if (cc_feedback.ul_pid >= 0) {
-      auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.ul_pid];
+    for (auto& ack : cc_feedback.ul_acks) {
+      auto& h = ue_ctxt.cc_list[enb_cc_idx].ul_harqs[ack.pid];
 
-      if (cc_feedback.ul_ack) {
-        logger.info("UL ACK rnti=0x%x, tti_ul_tx=%u, cc=%d pid=%d",
-                    ue_ctxt.rnti,
-                    to_tx_ul(h.last_tti_rx).to_uint(),
-                    enb_cc_idx,
-                    cc_feedback.ul_pid);
+      if (ack.ack) {
+        logger.info(
+            "UL ACK rnti=0x%x, tti_ul_tx=%u, cc=%d pid=%d", ue_ctxt.rnti, h.last_tti_tx.to_uint(), enb_cc_idx, h.pid);
       }
 
       //      // update scheduler
@@ -215,6 +239,18 @@ int sched_nr_sim_base::apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_tti_
   }
 
   return SRSRAN_SUCCESS;
+}
+
+sim_nr_enb_ctxt_t sched_nr_sim_base::get_enb_ctxt() const
+{
+  sim_nr_enb_ctxt_t ctxt;
+  ctxt.cell_params = cell_params;
+
+  for (auto& ue_pair : ue_db) {
+    ctxt.ue_db.insert(std::make_pair(ue_pair.first, &ue_pair.second.get_ctxt()));
+  }
+
+  return ctxt;
 }
 
 } // namespace srsenb

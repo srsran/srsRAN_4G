@@ -2127,265 +2127,353 @@ public:
   registration_request_t& set_registration_request()
   {
     set(msg_types::options::registration_request);
-    msg_container = srslog::detail::any{registration_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{registration_request_t()};
     return *srslog::detail::any_cast<registration_request_t>(&msg_container);
   }
   registration_accept_t& set_registration_accept()
   {
     set(msg_types::options::registration_accept);
-    msg_container = srslog::detail::any{registration_accept_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{registration_accept_t()};
     return *srslog::detail::any_cast<registration_accept_t>(&msg_container);
   }
   registration_complete_t& set_registration_complete()
   {
     set(msg_types::options::registration_complete);
-    msg_container = srslog::detail::any{registration_complete_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{registration_complete_t()};
     return *srslog::detail::any_cast<registration_complete_t>(&msg_container);
   }
   registration_reject_t& set_registration_reject()
   {
     set(msg_types::options::registration_reject);
-    msg_container = srslog::detail::any{registration_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{registration_reject_t()};
     return *srslog::detail::any_cast<registration_reject_t>(&msg_container);
   }
   deregistration_request_ue_originating_t& set_deregistration_request_ue_originating()
   {
     set(msg_types::options::deregistration_request_ue_originating);
-    msg_container = srslog::detail::any{deregistration_request_ue_originating_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{deregistration_request_ue_originating_t()};
     return *srslog::detail::any_cast<deregistration_request_ue_originating_t>(&msg_container);
   }
   deregistration_accept_ue_originating_t& set_deregistration_accept_ue_originating()
   {
     set(msg_types::options::deregistration_accept_ue_originating);
-    msg_container = srslog::detail::any{deregistration_accept_ue_originating_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{deregistration_accept_ue_originating_t()};
     return *srslog::detail::any_cast<deregistration_accept_ue_originating_t>(&msg_container);
   }
   deregistration_request_ue_terminated_t& set_deregistration_request_ue_terminated()
   {
     set(msg_types::options::deregistration_request_ue_terminated);
-    msg_container = srslog::detail::any{deregistration_request_ue_terminated_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{deregistration_request_ue_terminated_t()};
     return *srslog::detail::any_cast<deregistration_request_ue_terminated_t>(&msg_container);
   }
   deregistration_accept_ue_terminated_t& set_deregistration_accept_ue_terminated()
   {
     set(msg_types::options::deregistration_accept_ue_terminated);
-    msg_container = srslog::detail::any{deregistration_accept_ue_terminated_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{deregistration_accept_ue_terminated_t()};
     return *srslog::detail::any_cast<deregistration_accept_ue_terminated_t>(&msg_container);
   }
   service_request_t& set_service_request()
   {
     set(msg_types::options::service_request);
-    msg_container = srslog::detail::any{service_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{service_request_t()};
     return *srslog::detail::any_cast<service_request_t>(&msg_container);
   }
   service_reject_t& set_service_reject()
   {
     set(msg_types::options::service_reject);
-    msg_container = srslog::detail::any{service_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{service_reject_t()};
     return *srslog::detail::any_cast<service_reject_t>(&msg_container);
   }
   service_accept_t& set_service_accept()
   {
     set(msg_types::options::service_accept);
-    msg_container = srslog::detail::any{service_accept_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{service_accept_t()};
     return *srslog::detail::any_cast<service_accept_t>(&msg_container);
   }
   configuration_update_command_t& set_configuration_update_command()
   {
     set(msg_types::options::configuration_update_command);
-    msg_container = srslog::detail::any{configuration_update_command_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{configuration_update_command_t()};
     return *srslog::detail::any_cast<configuration_update_command_t>(&msg_container);
   }
   configuration_update_complete_t& set_configuration_update_complete()
   {
     set(msg_types::options::configuration_update_complete);
-    msg_container = srslog::detail::any{configuration_update_complete_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{configuration_update_complete_t()};
     return *srslog::detail::any_cast<configuration_update_complete_t>(&msg_container);
   }
   authentication_request_t& set_authentication_request()
   {
     set(msg_types::options::authentication_request);
-    msg_container = srslog::detail::any{authentication_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{authentication_request_t()};
     return *srslog::detail::any_cast<authentication_request_t>(&msg_container);
   }
   authentication_response_t& set_authentication_response()
   {
     set(msg_types::options::authentication_response);
-    msg_container = srslog::detail::any{authentication_response_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{authentication_response_t()};
     return *srslog::detail::any_cast<authentication_response_t>(&msg_container);
   }
   authentication_reject_t& set_authentication_reject()
   {
     set(msg_types::options::authentication_reject);
-    msg_container = srslog::detail::any{authentication_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{authentication_reject_t()};
     return *srslog::detail::any_cast<authentication_reject_t>(&msg_container);
   }
   authentication_failure_t& set_authentication_failure()
   {
     set(msg_types::options::authentication_failure);
-    msg_container = srslog::detail::any{authentication_failure_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{authentication_failure_t()};
     return *srslog::detail::any_cast<authentication_failure_t>(&msg_container);
   }
   authentication_result_t& set_authentication_result()
   {
     set(msg_types::options::authentication_result);
-    msg_container = srslog::detail::any{authentication_result_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{authentication_result_t()};
     return *srslog::detail::any_cast<authentication_result_t>(&msg_container);
   }
   identity_request_t& set_identity_request()
   {
     set(msg_types::options::identity_request);
-    msg_container = srslog::detail::any{identity_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{identity_request_t()};
     return *srslog::detail::any_cast<identity_request_t>(&msg_container);
   }
   identity_response_t& set_identity_response()
   {
     set(msg_types::options::identity_response);
-    msg_container = srslog::detail::any{identity_response_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{identity_response_t()};
     return *srslog::detail::any_cast<identity_response_t>(&msg_container);
   }
   security_mode_command_t& set_security_mode_command()
   {
     set(msg_types::options::security_mode_command);
-    msg_container = srslog::detail::any{security_mode_command_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{security_mode_command_t()};
     return *srslog::detail::any_cast<security_mode_command_t>(&msg_container);
   }
   security_mode_complete_t& set_security_mode_complete()
   {
     set(msg_types::options::security_mode_complete);
-    msg_container = srslog::detail::any{security_mode_complete_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{security_mode_complete_t()};
     return *srslog::detail::any_cast<security_mode_complete_t>(&msg_container);
   }
   security_mode_reject_t& set_security_mode_reject()
   {
     set(msg_types::options::security_mode_reject);
-    msg_container = srslog::detail::any{security_mode_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{security_mode_reject_t()};
     return *srslog::detail::any_cast<security_mode_reject_t>(&msg_container);
   }
   status_5gmm_t& set_status_5gmm()
   {
     set(msg_types::options::status_5gmm);
-    msg_container = srslog::detail::any{status_5gmm_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{status_5gmm_t()};
     return *srslog::detail::any_cast<status_5gmm_t>(&msg_container);
   }
   notification_t& set_notification()
   {
     set(msg_types::options::notification);
-    msg_container = srslog::detail::any{notification_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{notification_t()};
     return *srslog::detail::any_cast<notification_t>(&msg_container);
   }
   notification_response_t& set_notification_response()
   {
     set(msg_types::options::notification_response);
-    msg_container = srslog::detail::any{notification_response_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{notification_response_t()};
     return *srslog::detail::any_cast<notification_response_t>(&msg_container);
   }
   ul_nas_transport_t& set_ul_nas_transport()
   {
     set(msg_types::options::ul_nas_transport);
-    msg_container = srslog::detail::any{ul_nas_transport_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{ul_nas_transport_t()};
     return *srslog::detail::any_cast<ul_nas_transport_t>(&msg_container);
   }
   dl_nas_transport_t& set_dl_nas_transport()
   {
     set(msg_types::options::dl_nas_transport);
-    msg_container = srslog::detail::any{dl_nas_transport_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gmm;
+    msg_container                             = srslog::detail::any{dl_nas_transport_t()};
     return *srslog::detail::any_cast<dl_nas_transport_t>(&msg_container);
   }
   pdu_session_establishment_request_t& set_pdu_session_establishment_request()
   {
     set(msg_types::options::pdu_session_establishment_request);
-    msg_container = srslog::detail::any{pdu_session_establishment_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_establishment_request_t()};
     return *srslog::detail::any_cast<pdu_session_establishment_request_t>(&msg_container);
   }
   pdu_session_establishment_accept_t& set_pdu_session_establishment_accept()
   {
     set(msg_types::options::pdu_session_establishment_accept);
-    msg_container = srslog::detail::any{pdu_session_establishment_accept_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_establishment_accept_t()};
     return *srslog::detail::any_cast<pdu_session_establishment_accept_t>(&msg_container);
   }
   pdu_session_establishment_reject_t& set_pdu_session_establishment_reject()
   {
     set(msg_types::options::pdu_session_establishment_reject);
-    msg_container = srslog::detail::any{pdu_session_establishment_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_establishment_reject_t()};
     return *srslog::detail::any_cast<pdu_session_establishment_reject_t>(&msg_container);
   }
   pdu_session_authentication_command_t& set_pdu_session_authentication_command()
   {
     set(msg_types::options::pdu_session_authentication_command);
-    msg_container = srslog::detail::any{pdu_session_authentication_command_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_authentication_command_t()};
     return *srslog::detail::any_cast<pdu_session_authentication_command_t>(&msg_container);
   }
   pdu_session_authentication_complete_t& set_pdu_session_authentication_complete()
   {
     set(msg_types::options::pdu_session_authentication_complete);
-    msg_container = srslog::detail::any{pdu_session_authentication_complete_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_authentication_complete_t()};
     return *srslog::detail::any_cast<pdu_session_authentication_complete_t>(&msg_container);
   }
   pdu_session_authentication_result_t& set_pdu_session_authentication_result()
   {
     set(msg_types::options::pdu_session_authentication_result);
-    msg_container = srslog::detail::any{pdu_session_authentication_result_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_authentication_result_t()};
     return *srslog::detail::any_cast<pdu_session_authentication_result_t>(&msg_container);
   }
   pdu_session_modification_request_t& set_pdu_session_modification_request()
   {
     set(msg_types::options::pdu_session_modification_request);
-    msg_container = srslog::detail::any{pdu_session_modification_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_modification_request_t()};
     return *srslog::detail::any_cast<pdu_session_modification_request_t>(&msg_container);
   }
   pdu_session_modification_reject_t& set_pdu_session_modification_reject()
   {
     set(msg_types::options::pdu_session_modification_reject);
-    msg_container = srslog::detail::any{pdu_session_modification_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_modification_reject_t()};
     return *srslog::detail::any_cast<pdu_session_modification_reject_t>(&msg_container);
   }
   pdu_session_modification_command_t& set_pdu_session_modification_command()
   {
     set(msg_types::options::pdu_session_modification_command);
-    msg_container = srslog::detail::any{pdu_session_modification_command_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_modification_command_t()};
     return *srslog::detail::any_cast<pdu_session_modification_command_t>(&msg_container);
   }
   pdu_session_modification_complete_t& set_pdu_session_modification_complete()
   {
     set(msg_types::options::pdu_session_modification_complete);
-    msg_container = srslog::detail::any{pdu_session_modification_complete_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_modification_complete_t()};
     return *srslog::detail::any_cast<pdu_session_modification_complete_t>(&msg_container);
   }
   pdu_session_modification_command_reject_t& set_pdu_session_modification_command_reject()
   {
     set(msg_types::options::pdu_session_modification_command_reject);
-    msg_container = srslog::detail::any{pdu_session_modification_command_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_modification_command_reject_t()};
     return *srslog::detail::any_cast<pdu_session_modification_command_reject_t>(&msg_container);
   }
   pdu_session_release_request_t& set_pdu_session_release_request()
   {
     set(msg_types::options::pdu_session_release_request);
-    msg_container = srslog::detail::any{pdu_session_release_request_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_release_request_t()};
     return *srslog::detail::any_cast<pdu_session_release_request_t>(&msg_container);
   }
   pdu_session_release_reject_t& set_pdu_session_release_reject()
   {
     set(msg_types::options::pdu_session_release_reject);
-    msg_container = srslog::detail::any{pdu_session_release_reject_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_release_reject_t()};
     return *srslog::detail::any_cast<pdu_session_release_reject_t>(&msg_container);
   }
   pdu_session_release_command_t& set_pdu_session_release_command()
   {
     set(msg_types::options::pdu_session_release_command);
-    msg_container = srslog::detail::any{pdu_session_release_command_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_release_command_t()};
     return *srslog::detail::any_cast<pdu_session_release_command_t>(&msg_container);
   }
   pdu_session_release_complete_t& set_pdu_session_release_complete()
   {
     set(msg_types::options::pdu_session_release_complete);
-    msg_container = srslog::detail::any{pdu_session_release_complete_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{pdu_session_release_complete_t()};
     return *srslog::detail::any_cast<pdu_session_release_complete_t>(&msg_container);
   }
   status_5gsm_t& set_status_5gsm()
   {
     set(msg_types::options::status_5gsm);
-    msg_container = srslog::detail::any{status_5gsm_t()};
+    hdr.extended_protocol_discriminator       = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    hdr.inner_extended_protocol_discriminator = nas_5gs_hdr::extended_protocol_discriminator_5gsm;
+    msg_container                             = srslog::detail::any{status_5gsm_t()};
     return *srslog::detail::any_cast<status_5gsm_t>(&msg_container);
   }
 

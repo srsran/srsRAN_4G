@@ -35,11 +35,12 @@ slot_worker::slot_worker(srsran::phy_common_interface& common_,
 bool slot_worker::init(const args_t& args)
 {
   // Calculate subframe length
-  sf_len = SRSRAN_SF_LEN_PRB_NR(args.carrier.nof_prb);
+  sf_len = SRSRAN_SF_LEN_PRB_NR(args.nof_max_prb);
 
   // Copy common configurations
   cell_index = args.cell_index;
-  pdcch_cfg  = args.pdcch_cfg;
+  // FIXME:
+  // pdcch_cfg  = args.pdcch_cfg;
 
   // Allocate Tx buffers
   tx_buffer.resize(args.nof_tx_ports);
@@ -64,10 +65,10 @@ bool slot_worker::init(const args_t& args)
   // Prepare DL arguments
   srsran_gnb_dl_args_t dl_args = {};
   dl_args.pdsch.measure_time   = true;
-  dl_args.pdsch.max_layers     = args.carrier.max_mimo_layers;
-  dl_args.pdsch.max_prb        = args.carrier.nof_prb;
+  dl_args.pdsch.max_layers     = args.nof_tx_ports;
+  dl_args.pdsch.max_prb        = args.nof_max_prb;
   dl_args.nof_tx_antennas      = args.nof_tx_ports;
-  dl_args.nof_max_prb          = args.carrier.nof_prb;
+  dl_args.nof_max_prb          = args.nof_max_prb;
 
   // Initialise DL
   if (srsran_gnb_dl_init(&gnb_dl, tx_buffer.data(), &dl_args) < SRSRAN_SUCCESS) {
@@ -75,28 +76,17 @@ bool slot_worker::init(const args_t& args)
     return false;
   }
 
-  // Set gNb DL carrier
-  if (srsran_gnb_dl_set_carrier(&gnb_dl, &args.carrier) < SRSRAN_SUCCESS) {
-    logger.error("Error setting DL carrier");
-    return false;
-  }
 
   // Prepare UL arguments
   srsran_gnb_ul_args_t ul_args = {};
   ul_args.pusch.measure_time   = true;
-  ul_args.pusch.max_layers     = args.carrier.max_mimo_layers;
-  ul_args.pusch.max_prb        = args.carrier.nof_prb;
-  ul_args.nof_max_prb          = args.carrier.nof_prb;
+  ul_args.pusch.max_layers     = args.nof_rx_ports;
+  ul_args.pusch.max_prb        = args.nof_max_prb;
+  ul_args.nof_max_prb          = args.nof_max_prb;
 
   // Initialise UL
   if (srsran_gnb_ul_init(&gnb_ul, rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
     logger.error("Error gNb DL init");
-    return false;
-  }
-
-  // Set gNb UL carrier
-  if (srsran_gnb_ul_set_carrier(&gnb_ul, &args.carrier) < SRSRAN_SUCCESS) {
-    logger.error("Error setting UL carrier");
     return false;
   }
 
@@ -166,7 +156,7 @@ bool slot_worker::work_ul()
     return false;
   }
 
-  // Decode PUCCH
+  // For each PUCCH...
   for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
     stack_interface_phy_nr::pucch_info_t pucch_info = {};
     pucch_info.uci_data.cfg                         = pucch.uci_cfg;
@@ -197,7 +187,7 @@ bool slot_worker::work_ul()
     }
   }
 
-  // Decode PUSCH
+  // For each PUSCH...
   for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
     // Get payload PDU
     stack_interface_phy_nr::pusch_info_t pusch_info = {};
@@ -206,7 +196,7 @@ bool slot_worker::work_ul()
     pusch_info.pusch_data.tb[0].payload             = pusch.data[0];
     pusch_info.pusch_data.tb[1].payload             = pusch.data[1];
 
-    // Decode PUCCH
+    // Decode PUSCH
     if (srsran_gnb_ul_get_pusch(&gnb_ul, &ul_slot_cfg, &pusch.sch, &pusch.sch.grant, &pusch_info.pusch_data) <
         SRSRAN_SUCCESS) {
       logger.error("Error getting PUSCH");
@@ -348,6 +338,27 @@ void slot_worker::work_imp()
   }
 
   common.worker_end(this, true, tx_rf_buffer, tx_time, true);
+}
+bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_)
+{
+  // Set gNb DL carrier
+  if (srsran_gnb_dl_set_carrier(&gnb_dl, &carrier) < SRSRAN_SUCCESS) {
+    logger.error("Error setting DL carrier");
+    return false;
+  }
+
+  // Set gNb UL carrier
+  if (srsran_gnb_ul_set_carrier(&gnb_ul, &carrier) < SRSRAN_SUCCESS) {
+    logger.error("Error setting UL carrier");
+    return false;
+  }
+
+  pdcch_cfg = pdcch_cfg_;
+
+  // Update subframe length
+  sf_len = SRSRAN_SF_LEN_PRB_NR(carrier.nof_prb);
+
+  return true;
 }
 
 } // namespace nr

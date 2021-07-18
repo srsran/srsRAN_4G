@@ -171,42 +171,31 @@ public:
   virtual void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid)                 = 0;
 };
 
-class phy_interface_stack_nr
+class phy_interface_rrc_nr
 {
 public:
-  const static int MAX_DL_GRANTS = 4;
+  /**
+   * @brief Describes physical layer configuration common among all the UEs for a given cell
+   */
+  struct common_cfg_t {
+    srsran_carrier_nr_t   carrier;
+    srsran_pdcch_cfg_nr_t pdcch;
+    srsran_prach_cfg_t    prach;
+  };
 
-  typedef struct {
-    // TODO: include NR related fields
-  } dl_sched_grant_t;
+  virtual int set_common_cfg(const common_cfg_t& common_cfg) = 0;
+};
 
-  typedef struct {
-    bool mib_present;
-  } bch_sched_t;
+class phy_interface_mac_nr
+{
+public:
+  // TBD
+};
 
-  typedef struct {
-    uint32_t         tti;
-    uint32_t         nof_grants;
-    dl_sched_grant_t pdsch[MAX_DL_GRANTS];
-    int              beam_id;
-  } dl_config_request_t;
-
-  typedef struct {
-    bch_sched_t pbch;
-    uint16_t    length;
-    uint16_t    index;               // index indicated in dl_config
-    uint8_t*    data[SRSRAN_MAX_TB]; // always a pointer in our case
-  } tx_request_pdu_t;
-
-  typedef struct {
-    uint32_t         tti;
-    uint32_t         tb_len;
-    uint32_t         nof_pdus;
-    tx_request_pdu_t pdus[MAX_DL_GRANTS];
-  } tx_request_t;
-
-  virtual int dl_config_request(const dl_config_request_t& request) = 0;
-  virtual int tx_request(const tx_request_t& request)               = 0;
+class phy_interface_stack_nr : public phy_interface_rrc_nr, public phy_interface_mac_nr
+{
+public:
+  // TBD
 };
 
 class stack_interface_mac
@@ -280,11 +269,17 @@ public:
     // ... add signal measurements here
   };
 
-  virtual int slot_indication(const srsran_slot_cfg_t& slot_cfg)                            = 0;
-  virtual int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)         = 0;
-  virtual int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)         = 0;
-  virtual int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) = 0;
-  virtual int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) = 0;
+  struct rach_info_t {
+    uint32_t preamble;
+    uint32_t time_adv;
+  };
+
+  virtual int  slot_indication(const srsran_slot_cfg_t& slot_cfg)                            = 0;
+  virtual int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)         = 0;
+  virtual int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)         = 0;
+  virtual int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) = 0;
+  virtual int  pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) = 0;
+  virtual void rach_detected(const rach_info_t& rach_info)                                   = 0;
 };
 
 class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr

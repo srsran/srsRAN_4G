@@ -18,6 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES mac_nr.cc sched_nr.cc sched_nr_ue.cc sched_nr_worker.cc sched_nr_rb_grid.cc sched_nr_harq.cc sched_nr_pdcch.cc sched_nr_common.cc sched_nr_phy_helpers.cc)
+set(SOURCES mac_nr.cc sched_nr.cc sched_nr_ue.cc sched_nr_worker.cc sched_nr_rb_grid.cc sched_nr_harq.cc
+            sched_nr_pdcch.cc sched_nr_cfg.cc sched_nr_helpers.cc sched_nr_bwp.cc sched_nr_rb.cc harq_softbuffer.cc)
 
 add_library(srsgnb_mac STATIC ${SOURCES})

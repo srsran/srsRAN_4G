@@ -155,9 +155,9 @@ private:
   std::atomic<uint64_t> transmitted_contention_id = {0};
   std::atomic<uint16_t> transmitted_crnti         = {0};
 
-  bool     started_by_pdcch = false;
-  uint32_t rar_grant_nbytes = 0;
-  bool     rar_received     = false;
+  bool              started_by_pdcch = false;
+  uint32_t          rar_grant_nbytes = 0;
+  std::atomic<bool> rar_received     = {false};
 };
 
 } // namespace srsue

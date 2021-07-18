@@ -44,6 +44,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas(srsran::task_sched_handle task_sched_) :
+  nas_base("NAS"),
   plmn_searcher(this),
   task_sched(task_sched_),
   t3402(task_sched_.get_unique_timer()),
@@ -51,8 +52,7 @@ nas::nas(srsran::task_sched_handle task_sched_) :
   t3411(task_sched_.get_unique_timer()),
   t3421(task_sched_.get_unique_timer()),
   reattach_timer(task_sched_.get_unique_timer()),
-  airplane_mode_sim_timer(task_sched_.get_unique_timer()),
-  logger(srslog::fetch_basic_logger("NAS"))
+  airplane_mode_sim_timer(task_sched_.get_unique_timer())
 {}
 
 int nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
@@ -67,30 +67,21 @@ int nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_n
   }
 
   // parse and sanity check EIA list
-  std::vector<uint8_t> cap_list;
-  srsran::string_parse_list(cfg_.eia, ',', cap_list);
-  if (cap_list.empty()) {
-    logger.error("Empty EIA list. Select at least one EIA algorithm.");
-  }
-  for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
-    if (*it != 0 && *it < 4) {
-      eia_caps[*it] = true;
-    } else {
-      logger.error("EIA%d is not a valid EIA algorithm.", *it);
-    }
+  if (parse_security_algorithm_list(cfg_.eia, eia_caps) != SRSRAN_SUCCESS) {
+    logger.warning("Failed to parse integrity protection algorithm list: Defaulting to EIA1-128, EIA2-128, EIA3-128");
+    eia_caps[0] = false;
+    eia_caps[1] = true;
+    eia_caps[2] = true;
+    eia_caps[3] = true;
   }
 
   // parse and sanity check EEA list
-  srsran::string_parse_list(cfg_.eea, ',', cap_list);
-  if (cap_list.empty()) {
-    logger.error("Empty EEA list. Select at least one EEA algorithm.");
-  }
-  for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
-    if (*it < 4) {
-      eea_caps[*it] = true;
-    } else {
-      logger.error("EEA%d is not a valid EEA algorithm.", *it);
-    }
+  if (parse_security_algorithm_list(cfg_.eea, eea_caps) != SRSRAN_SUCCESS) {
+    logger.warning("Failed to parse encryption algorithm list: Defaulting to EEA0, EEA1-128, EEA2-128, EEA3-128");
+    eea_caps[0] = true;
+    eea_caps[1] = true;
+    eea_caps[2] = true;
+    eea_caps[3] = true;
   }
 
   cfg = cfg_;
@@ -698,204 +689,6 @@ void nas::select_plmn()
   }
 }
 
-/*******************************************************************************
- * Security
- ******************************************************************************/
-
-void nas::integrity_generate(uint8_t* key_128,
-                             uint32_t count,
-                             uint8_t  direction,
-                             uint8_t* msg,
-                             uint32_t msg_len,
-                             uint8_t* mac)
-{
-  switch (ctxt.integ_algo) {
-    case INTEGRITY_ALGORITHM_ID_EIA0:
-      break;
-    case INTEGRITY_ALGORITHM_ID_128_EIA1:
-      security_128_eia1(key_128,
-                        count,
-                        0, // Bearer always 0 for NAS
-                        direction,
-                        msg,
-                        msg_len,
-                        mac);
-      break;
-    case INTEGRITY_ALGORITHM_ID_128_EIA2:
-      security_128_eia2(key_128,
-                        count,
-                        0, // Bearer always 0 for NAS
-                        direction,
-                        msg,
-                        msg_len,
-                        mac);
-      break;
-    case INTEGRITY_ALGORITHM_ID_128_EIA3:
-      security_128_eia3(key_128,
-                        count,
-                        0, // Bearer always 0 for NAS
-                        direction,
-                        msg,
-                        msg_len,
-                        mac);
-      break;
-    default:
-      break;
-  }
-}
-
-// This function depends to a valid k_nas_int.
-// This key is generated in the security mode command.
-bool nas::integrity_check(byte_buffer_t* pdu)
-{
-  if (pdu == nullptr) {
-    logger.error("Invalid PDU");
-    return false;
-  }
-
-  if (pdu->N_bytes > 5) {
-    uint8_t  exp_mac[4] = {0};
-    uint8_t* mac        = &pdu->msg[1];
-
-    // generate expected MAC
-    uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[5];
-    integrity_generate(
-        &k_nas_int[16], count_est, SECURITY_DIRECTION_DOWNLINK, &pdu->msg[5], pdu->N_bytes - 5, &exp_mac[0]);
-
-    // Check if expected mac equals the sent mac
-    for (int i = 0; i < 4; i++) {
-      if (exp_mac[i] != mac[i]) {
-        logger.warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
-                       "Received: count=%d, [%02x %02x %02x %02x]",
-                       count_est,
-                       exp_mac[0],
-                       exp_mac[1],
-                       exp_mac[2],
-                       exp_mac[3],
-                       pdu->msg[5],
-                       mac[0],
-                       mac[1],
-                       mac[2],
-                       mac[3]);
-        return false;
-      }
-    }
-    logger.info("Integrity check ok. Local: count=%d, Received: count=%d  [%02x %02x %02x %02x]",
-                count_est,
-                pdu->msg[5],
-                mac[0],
-                mac[1],
-                mac[2],
-                mac[3]);
-
-    // Updated local count (according to TS 24.301 Sec. 4.4.3.3)
-    if (count_est != ctxt.rx_count) {
-      logger.info("Update local count to estimated count %d", count_est);
-      ctxt.rx_count = count_est;
-    }
-    return true;
-  } else {
-    logger.error("Invalid integrity check PDU size (%d)", pdu->N_bytes);
-    return false;
-  }
-}
-
-void nas::cipher_encrypt(byte_buffer_t* pdu)
-{
-  byte_buffer_t pdu_tmp;
-
-  if (ctxt.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
-    logger.debug("Encrypting PDU. count=%d", ctxt.tx_count);
-  }
-
-  switch (ctxt.cipher_algo) {
-    case CIPHERING_ALGORITHM_ID_EEA0:
-      break;
-    case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&k_nas_enc[16],
-                        ctxt.tx_count,
-                        0, // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
-      break;
-    case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        ctxt.tx_count,
-                        0, // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
-      break;
-    case CIPHERING_ALGORITHM_ID_128_EEA3:
-      security_128_eea3(&k_nas_enc[16],
-                        ctxt.tx_count,
-                        0, // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
-      break;
-    default:
-      logger.error("Ciphering algorithm not known");
-      break;
-  }
-}
-
-void nas::cipher_decrypt(byte_buffer_t* pdu)
-{
-  byte_buffer_t tmp_pdu;
-
-  uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[5];
-  if (ctxt.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
-    logger.debug("Decrypting PDU. Local: count=%d, Received: count=%d", ctxt.rx_count, count_est);
-  }
-
-  switch (ctxt.cipher_algo) {
-    case CIPHERING_ALGORITHM_ID_EEA0:
-      break;
-    case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&k_nas_enc[16],
-                        count_est,
-                        0, // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &tmp_pdu.msg[6]);
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
-      break;
-    case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        count_est,
-                        0, // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &tmp_pdu.msg[6]);
-      logger.debug(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
-      break;
-    case CIPHERING_ALGORITHM_ID_128_EEA3:
-      security_128_eea3(&k_nas_enc[16],
-                        count_est,
-                        0, // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &tmp_pdu.msg[6]);
-      logger.debug(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
-      break;
-    default:
-      logger.error("Ciphering algorithms not known");
-      break;
-  }
-}
 
 bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps)
 {

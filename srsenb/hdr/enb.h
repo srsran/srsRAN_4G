@@ -71,7 +71,7 @@ struct enb_args_t {
 struct enb_files_t {
   std::string sib_config;
   std::string rr_config;
-  std::string drb_config;
+  std::string rb_config;
 };
 
 struct log_args_t {

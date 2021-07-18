@@ -36,12 +36,12 @@ n_prb = 50
 # sib_config:  SIB1, SIB2 and SIB3 configuration file 
 # note: when enabling mbms, use the sib.conf.mbsfn configuration file which includes SIB13
 # rr_config:   Radio Resources configuration file 
-# drb_config:  DRB configuration file 
+# rb_config:   SRB/DRB configuration file 
 #####################################################################
 [enb_files]
 sib_config = sib.conf
 rr_config  = rr.conf
-drb_config = drb.conf
+rb_config = rb.conf
 
 #####################################################################
 # RF configuration
@@ -180,6 +180,7 @@ enable = false
 # init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
 # init_dl_cqi:       DL CQI value used before any CQI report is available to the eNB
 # max_sib_coderate:  Upper bound on SIB and RAR grants coderate
+# pdcch_cqi_offset:  CQI offset in derivation of PDCCH aggregation level
 #
 #####################################################################
 [scheduler]
@@ -204,6 +205,7 @@ enable = false
 #init_ul_snr_value=5
 #init_dl_cqi=5
 #max_sib_coderate=0.3
+#pdcch_cqi_offset=0
 
 #####################################################################
 # eMBMS configuration options
@@ -324,6 +326,7 @@ enable = false
 # tracing_enable:       Write source code tracing information to a file.
 # tracing_filename:     File path to use for tracing information.
 # tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
+# stdout_ts_enable:     Prints once per second the timestamp into stdout.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
@@ -335,6 +338,8 @@ enable = false
 # gtpu_tunnel_timeout:  Time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU (0 for no timer).
 #ts1_reloc_prep_timeout: S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds
 #ts1_reloc_overall_timeout: S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds
+# rlf_release_timer_ms: Time taken by eNB to release UE context after it detects an RLF
+# rlf_min_ul_snr_estim: SNR threshold in dB below which the enb is notified with rlf ko
 #
 #####################################################################
 [expert]
@@ -351,6 +356,7 @@ enable = false
 #tracing_enable       = true
 #tracing_filename     = /tmp/enb_tracing.log
 #tracing_buffcapacity = 1000000
+#stdout_ts_enable     = false
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000
@@ -365,3 +371,5 @@ enable = false
 #extended_cp         = false
 #ts1_reloc_prep_timeout = 10000
 #ts1_reloc_overall_timeout = 10000
+#rlf_release_timer_ms = 4000
+#rlf_min_ul_snr_estim = -2

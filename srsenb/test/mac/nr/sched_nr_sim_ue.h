@@ -24,20 +24,49 @@
 
 #include "../sched_sim_ue.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsran/adt/circular_array.h"
 #include <condition_variable>
 
 namespace srsenb {
 
+const static uint32_t MAX_GRANTS = mac_interface_phy_nr::MAX_GRANTS;
+
+struct ue_nr_harq_ctxt_t {
+  bool                  active    = false;
+  bool                  ndi       = false;
+  uint32_t              pid       = 0;
+  uint32_t              nof_txs   = 0;
+  uint32_t              nof_retxs = std::numeric_limits<uint32_t>::max();
+  uint32_t              riv       = 0;
+  srsran_dci_location_t dci_loc   = {};
+  uint32_t              tbs       = 0;
+  tti_point             last_tti_tx, first_tti_tx, last_tti_ack;
+};
 struct sched_nr_cc_output_res_t {
-  tti_point                             tti_rx;
+  tti_point                             tti;
   uint32_t                              cc;
-  sched_nr_interface::dl_tti_request_t* dl_cc_result;
-  sched_nr_interface::ul_tti_request_t* ul_cc_result;
+  const sched_nr_interface::dl_sched_t* dl_cc_result;
+  const sched_nr_interface::ul_sched_t* ul_cc_result;
 };
 
 struct ue_nr_cc_ctxt_t {
-  std::array<ue_harq_ctxt_t, SCHED_NR_MAX_HARQ> dl_harqs;
-  std::array<ue_harq_ctxt_t, SCHED_NR_MAX_HARQ> ul_harqs;
+  std::array<ue_nr_harq_ctxt_t, SCHED_NR_MAX_HARQ> dl_harqs;
+  std::array<ue_nr_harq_ctxt_t, SCHED_NR_MAX_HARQ> ul_harqs;
+  srsran::circular_array<uint32_t, TTIMOD_SZ>      pending_acks;
+};
+
+struct ue_nr_tti_events {
+  struct ack_t {
+    uint32_t pid;
+    bool     ack;
+  };
+  struct cc_data {
+    bool                                      configured = false;
+    srsran::bounded_vector<ack_t, MAX_GRANTS> dl_acks;
+    srsran::bounded_vector<ack_t, MAX_GRANTS> ul_acks;
+  };
+  srsran::tti_point    tti_rx;
+  std::vector<cc_data> cc_list;
 };
 
 struct sim_nr_ue_ctxt_t {
@@ -52,6 +81,10 @@ struct sim_nr_ue_ctxt_t {
     auto& h = cc_list.at(ue_cc_idx).dl_harqs[pid];
     return h.nof_retxs + 1 >= ue_cfg.maxharq_tx;
   }
+};
+struct sim_nr_enb_ctxt_t {
+  srsran::span<const sched_nr_impl::sched_cell_params> cell_params;
+  std::map<uint16_t, const sim_nr_ue_ctxt_t*>          ue_db;
 };
 
 class sched_nr_ue_sim
@@ -84,7 +117,7 @@ public:
 
   int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx);
 
-  void slot_indication(srsran::tti_point tti_rx);
+  void new_slot(srsran::tti_point tti_tx);
   void update(sched_nr_cc_output_res_t& cc_out);
 
   sched_nr_ue_sim&       at(uint16_t rnti) { return ue_db.at(rnti); }
@@ -110,18 +143,20 @@ public:
   tti_point                                            get_tti_rx() const
   {
     std::lock_guard<std::mutex> lock(mutex);
-    return current_tti_rx;
+    return current_tti_tx;
   }
+
+  sim_nr_enb_ctxt_t get_enb_ctxt() const;
 
   std::map<uint16_t, sched_nr_ue_sim>::iterator begin() { return ue_db.begin(); }
   std::map<uint16_t, sched_nr_ue_sim>::iterator end() { return ue_db.end(); }
 
   // configurable by simulator concrete implementation
-  virtual void set_external_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events) {}
+  virtual void set_external_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_tti_events& pending_events) {}
 
 private:
-  int set_default_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events);
-  int apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_tti_events& events);
+  int set_default_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_tti_events& pending_events);
+  int apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_tti_events& events);
 
   std::string                                   test_name;
   srslog::basic_logger&                         logger;
@@ -129,11 +164,13 @@ private:
   std::unique_ptr<sched_nr>                     sched_ptr;
   std::vector<sched_nr_impl::sched_cell_params> cell_params;
 
-  srsran::tti_point                   current_tti_rx;
+  srsran::tti_point current_tti_tx;
+  int               cc_finished = 0;
+
   std::map<uint16_t, sched_nr_ue_sim> ue_db;
 
   mutable std::mutex      mutex;
-  std::condition_variable cond_var;
+  std::condition_variable cvar;
 };
 
 } // namespace srsenb

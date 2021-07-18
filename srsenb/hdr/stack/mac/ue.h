@@ -90,6 +90,7 @@ public:
 
 private:
   srslog::basic_logger* logger;
+  std::mutex            mutex;
 
   srsran::static_circular_map<uint32_t, srsran::unique_byte_buffer_t, SRSRAN_FDD_NOF_HARQ * 8> pdu_map;
 };
@@ -224,7 +225,6 @@ private:
 
   // Mutexes
   std::mutex mutex;
-  std::mutex rx_buffers_mutex;
 };
 
 } // namespace srsenb

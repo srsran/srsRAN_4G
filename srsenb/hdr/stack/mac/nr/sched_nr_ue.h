@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_NR_UE_H
 #define SRSRAN_SCHED_NR_UE_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
 #include "srsran/adt/circular_map.h"
@@ -32,35 +32,6 @@
 namespace srsenb {
 
 namespace sched_nr_impl {
-
-using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
-using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
-
-class ue_cfg_extended : public ue_cfg_t
-{
-public:
-  struct search_space_params {
-    srsran_search_space_t* cfg = nullptr;
-  };
-  struct coreset_params {
-    srsran_coreset_t*                 cfg = nullptr;
-    std::vector<search_space_params*> ss_list;
-    bwp_cce_pos_list                  cce_positions;
-  };
-  struct bwp_params {
-    std::vector<search_space_params> search_spaces;
-    std::vector<coreset_params>      coresets;
-  };
-  struct cc_params {
-    srsran::bounded_vector<bwp_params, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-  };
-
-  uint16_t               rnti;
-  std::vector<cc_params> cc_params;
-
-  ue_cfg_extended() = default;
-  explicit ue_cfg_extended(uint16_t rnti, const ue_cfg_t& uecfg);
-};
 
 class ue_carrier;
 
@@ -79,19 +50,18 @@ public:
   uint32_t  cc = SCHED_NR_MAX_CARRIERS;
 
   // UE parameters common to all sectors
-  const ue_cfg_extended* cfg = nullptr;
-  bool                   pending_sr;
+  const bwp_ue_cfg* cfg = nullptr;
+  bool              pending_sr;
 
   // UE parameters that are sector specific
   const ue_cc_cfg_t* cc_cfg = nullptr;
-  uint32_t           bwp_id;
   tti_point          pdcch_tti;
   tti_point          pdsch_tti;
   tti_point          pusch_tti;
   tti_point          uci_tti;
   uint32_t           dl_cqi;
   uint32_t           ul_cqi;
-  harq_proc*         h_dl = nullptr;
+  dl_harq_proc*      h_dl = nullptr;
   harq_proc*         h_ul = nullptr;
 
 private:
@@ -101,8 +71,8 @@ private:
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, uint32_t cc, const ue_cfg_t& cfg);
-  slot_ue try_reserve(tti_point pdcch_tti, const ue_cfg_extended& cfg);
+  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const sched_cell_params& cell_params_);
+  slot_ue try_reserve(tti_point pdcch_tti, const ue_cfg_t& cfg);
   void    push_feedback(srsran::move_callback<void(ue_carrier&)> callback);
 
   const uint16_t rnti;
@@ -115,7 +85,8 @@ public:
   harq_entity harq_ent;
 
 private:
-  const ue_cfg_t* cfg = nullptr;
+  bwp_ue_cfg               bwp_cfg;
+  const sched_cell_params& cell_params;
 
   resource_guard busy;
   tti_point      last_tti_rx;
@@ -126,7 +97,7 @@ private:
 class ue
 {
 public:
-  ue(uint16_t rnti, const ue_cfg_t& cfg);
+  ue(uint16_t rnti, const ue_cfg_t& cfg, const sched_params& sched_cfg_);
 
   slot_ue try_reserve(tti_point tti_rx, uint32_t cc);
 
@@ -137,12 +108,13 @@ public:
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
 private:
-  const uint16_t rnti;
+  const uint16_t      rnti;
+  const sched_params& sched_cfg;
 
   bool pending_sr = false;
 
-  int                            current_idx = 0;
-  std::array<ue_cfg_extended, 4> ue_cfgs;
+  int                     current_idx = 0;
+  std::array<ue_cfg_t, 4> ue_cfgs;
 };
 
 using ue_map_t = srsran::static_circular_map<uint16_t, std::unique_ptr<ue>, SCHED_NR_MAX_USERS>;

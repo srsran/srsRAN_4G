@@ -122,6 +122,10 @@ public:
   virtual bool is_config_pending()                                               = 0;
 };
 
+class rrc_nr_interface_nas_5g
+{
+public:
+};
 } // namespace srsue
 
 #endif // SRSRAN_UE_RRC_INTERFACES_H

@@ -155,6 +155,18 @@ private:
   uint32_t  default_offset;
 };
 
+class field_srb final : public parser::field_itf
+{
+public:
+  explicit field_srb(srb_cfg_t& cfg_) : cfg(cfg_) {}
+  const char* get_name() override { return "field_srb"; }
+
+  int parse(Setting& root) override;
+
+private:
+  srb_cfg_t& cfg;
+};
+
 class field_qci final : public parser::field_itf
 {
 public:

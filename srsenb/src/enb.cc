@@ -20,7 +20,6 @@
  */
 
 #include "srsenb/hdr/enb.h"
-#include "srsenb/hdr/phy/vnf_phy_nr.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/src/enb_cfg_parser.h"
@@ -104,40 +103,9 @@ int enb::init(const all_args_t& args_)
     phy   = std::move(lte_phy);
     radio = std::move(lte_radio);
 
-  } else if (args.stack.type == "nr") {
-    std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr);
-    std::unique_ptr<srsran::radio_null>   nr_radio(new srsran::radio_null);
-    std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr);
-
-    // Init layers
-    if (nr_radio->init(args.rf, nullptr)) {
-      srsran::console("Error initializing radio.\n");
-      return SRSRAN_ERROR;
-    }
-
-    // TODO: where do we put this?
-    srsenb::nr_phy_cfg_t nr_phy_cfg = {};
-
-    args.phy.vnf_args.type          = "gnb";
-    args.phy.vnf_args.log_level     = args.phy.log.phy_level;
-    args.phy.vnf_args.log_hex_limit = args.phy.log.phy_hex_limit;
-    if (nr_phy->init(args.phy, nr_phy_cfg, nr_stack.get())) {
-      srsran::console("Error initializing PHY.\n");
-      return SRSRAN_ERROR;
-    }
-
-    // Same here, where do we put this?
-    srsenb::rrc_nr_cfg_t rrc_nr_cfg = {};
-    rrc_nr_cfg.coreless             = args.stack.coreless;
-
-    if (nr_stack->init(args.stack, rrc_nr_cfg, nr_phy.get())) {
-      srsran::console("Error initializing stack.\n");
-      return SRSRAN_ERROR;
-    }
-
-    stack = std::move(nr_stack);
-    phy   = std::move(nr_phy);
-    radio = std::move(nr_radio);
+  } else {
+    srsran::console("Stack type %s not supported.\n", args.stack.type.c_str());
+    return SRSRAN_ERROR;
   }
 
   started = true; // set to true in any case to allow stopping the eNB if an error happened

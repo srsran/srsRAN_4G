@@ -22,6 +22,7 @@
 #include "srsran/srslog/srslog.h"
 #include "formatters/json_formatter.h"
 #include "sinks/file_sink.h"
+#include "sinks/syslog_sink.h"
 #include "srslog_instance.h"
 
 using namespace srslog;
@@ -170,6 +171,25 @@ sink& srslog::fetch_file_sink(const std::string& path, size_t max_size, std::uni
       std::piecewise_construct,
       std::forward_as_tuple(path),
       std::forward_as_tuple(new file_sink(path, max_size, std::move(f))));
+
+  return *s;
+}
+
+sink& srslog::fetch_syslog_sink(const std::string&             preamble_,
+                                syslog_local_type              log_local_,
+                                std::unique_ptr<log_formatter> f)
+{
+  std::string sink_id = preamble_ + std::to_string(static_cast<int>(log_local_));
+  if (auto* s = find_sink(sink_id)) {
+    return *s;
+  }
+
+  //: TODO: GCC5 or lower versions emits an error if we use the new() expression
+  // directly, use redundant piecewise_construct instead.
+  auto& s = srslog_instance::get().get_sink_repo().emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(sink_id),
+      std::forward_as_tuple(new syslog_sink(std::move(f), preamble_, log_local_)));
 
   return *s;
 }

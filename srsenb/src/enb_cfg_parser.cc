@@ -82,7 +82,7 @@ int field_sched_info::parse(libconfig::Setting& root)
   for (uint32_t i = 0; i < data->sched_info_list.size(); i++) {
     if (not parse_enum_by_number(data->sched_info_list[i].si_periodicity, "si_periodicity", root[i])) {
       fprintf(stderr, "Missing field si_periodicity in sched_info=%d\n", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     if (root[i].exists("si_mapping_info")) {
       data->sched_info_list[i].sib_map_info.resize((uint32_t)root[i]["si_mapping_info"].getLength());
@@ -93,12 +93,12 @@ int field_sched_info::parse(libconfig::Setting& root)
             data->sched_info_list[i].sib_map_info[j].value = (sib_type_e::options)(sib_index - 3);
           } else {
             fprintf(stderr, "Invalid SIB index %d for si_mapping_info=%d in sched_info=%d\n", sib_index, j, i);
-            return -1;
+            return SRSRAN_ERROR;
           }
         }
       } else {
         fprintf(stderr, "Number of si_mapping_info values exceeds maximum (%d)\n", ASN1_RRC_MAX_SIB);
-        return -1;
+        return SRSRAN_ERROR;
       }
     } else {
       data->sched_info_list[i].sib_map_info.resize(0);
@@ -114,13 +114,13 @@ int field_intra_neigh_cell_list::parse(libconfig::Setting& root)
   for (uint32_t i = 0; i < data->intra_freq_neigh_cell_list.size() && i < ASN1_RRC_MAX_CELL_INTRA; i++) {
     if (not parse_enum_by_number(data->intra_freq_neigh_cell_list[i].q_offset_cell, "q_offset_range", root[i])) {
       fprintf(stderr, "Missing field q_offset_range in neigh_cell=%d\n", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     int phys_cell_id = 0;
     if (!root[i].lookupValue("phys_cell_id", phys_cell_id)) {
       fprintf(stderr, "Missing field phys_cell_id in neigh_cell=%d\n", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     data->intra_freq_neigh_cell_list[i].pci = (uint16)phys_cell_id;
   }
@@ -134,14 +134,14 @@ int field_intra_black_cell_list::parse(libconfig::Setting& root)
   for (uint32_t i = 0; i < data->intra_freq_black_cell_list.size() && i < ASN1_RRC_MAX_CELL_BLACK; i++) {
     if (not parse_enum_by_number(data->intra_freq_black_cell_list[i].range, "range", root[i])) {
       fprintf(stderr, "Missing field range in black_cell=%d\n", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     data->intra_freq_black_cell_list[i].range_present = true;
 
     int start = 0;
     if (!root[i].lookupValue("start", start)) {
       fprintf(stderr, "Missing field start in black_cell=%d\n", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     data->intra_freq_black_cell_list[i].start = (uint16)start;
   }
@@ -154,7 +154,7 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
   data->carrier_freqs_info_list_present = data->carrier_freqs_info_list.size() > 0;
   if (data->carrier_freqs_info_list.size() > ASN1_RRC_MAX_GNFG) {
     ERROR("CarrierFreqsInfoGERAN cannot have more than %d entries", ASN1_RRC_MAX_GNFG);
-    return -1;
+    return SRSRAN_ERROR;
   }
   for (uint32_t i = 0; i < data->carrier_freqs_info_list.size(); i++) {
     int cell_resel_prio;
@@ -173,27 +173,27 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
         "ncc_permitted", &data->carrier_freqs_info_list[i].common_info.ncc_permitted);
     if (ncc_permitted.parse(root[i])) {
       ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_lsit=%d", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     int q_rx_lev_min = 0;
     if (!root[i].lookupValue("q_rx_lev_min", q_rx_lev_min)) {
       ERROR("Missing field `q_rx_lev_min` in carrier_freqs_info_list=%d", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     data->carrier_freqs_info_list[i].common_info.q_rx_lev_min = q_rx_lev_min;
 
     int thresh_x_high = 0;
     if (!root[i].lookupValue("thresh_x_high", thresh_x_high)) {
       ERROR("Missing field `thresh_x_high` in carrier_freqs_info_list=%d", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     data->carrier_freqs_info_list[i].common_info.thresh_x_high = thresh_x_high;
 
     int thresh_x_low = 0;
     if (!root[i].lookupValue("thresh_x_low", thresh_x_low)) {
       ERROR("Missing field `thresh_x_low` in carrier_freqs_info_list=%d", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
     data->carrier_freqs_info_list[i].common_info.thresh_x_low = thresh_x_low;
 
@@ -206,7 +206,7 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
                                                               &data->carrier_freqs_info_list[i].carrier_freqs.band_ind);
     if (band_ind.parse(root[i])) {
       ERROR("Error parsing `band_ind` in carrier_freqs_info_list=%d", i);
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     data->carrier_freqs_info_list[i].carrier_freqs.following_arfcns.set_explicit_list_of_arfcns();
@@ -222,12 +222,12 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
             exp_l[j] = (short unsigned int)arfcn;
           } else {
             fprintf(stderr, "Invalid ARFCN %d in for carrier_freqs_info_list=%d explicit_list_of_arfcns\n", i, j);
-            return -1;
+            return SRSRAN_ERROR;
           }
         }
       } else {
         fprintf(stderr, "Number of ARFCN in explicit_list_of_arfcns exceeds maximum (%d)\n", 31);
-        return -1;
+        return SRSRAN_ERROR;
       }
     } else {
       exp_l.resize(0);
@@ -273,7 +273,7 @@ int mbsfn_sf_cfg_list_parser::parse(Setting& root)
   }
   if (len > 1) {
     fprintf(stderr, "Only mbsfnSubframeConfigListLengths of size 1 are supported\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
   *enabled = true;
   mbsfn_list->resize(len);
@@ -315,53 +315,53 @@ int mbsfn_area_info_list_parser::parse(Setting& root)
                                                                               &mbsfn_item->non_mbsfn_region_len);
   if (fieldlen.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing non_mbsfn_region_length\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_> repeat(
       "mcch_repetition_period", &mbsfn_item->mcch_cfg_r9.mcch_repeat_period_r9);
   if (repeat.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing mcch_repetition_period\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_> mod(
       "mcch_modification_period", &mbsfn_item->mcch_cfg_r9.mcch_mod_period_r9);
   if (mod.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing mcch_modification_period\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_> sig("signalling_mcs",
                                                                                &mbsfn_item->mcch_cfg_r9.sig_mcs_r9);
   if (sig.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing signalling_mcs\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   parser::field<uint16_t> areaid("mbsfn_area_id", &mbsfn_item->mbsfn_area_id_r9);
   if (areaid.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing mbsfn_area_id\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   parser::field<uint8_t> notif_ind("notification_indicator", &mbsfn_item->notif_ind_r9);
   if (notif_ind.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing notification_indicator\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   parser::field<uint8_t> offset("mcch_offset", &mbsfn_item->mcch_cfg_r9.mcch_offset_r9);
   if (offset.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing mcch_offset\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   field_asn1_bitstring_number<asn1::fixed_bitstring<6>, uint8_t> alloc_info("sf_alloc_info",
                                                                             &mbsfn_item->mcch_cfg_r9.sf_alloc_info_r9);
   if (alloc_info.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing mbsfn_area_info_list\n");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   return 0;
@@ -395,14 +395,80 @@ int phr_cnfg_parser::parse(libconfig::Setting& root)
   mac_main_cfg_s::phr_cfg_c_::setup_s_& s = phr_cfg->setup();
 
   if (not parse_enum_by_str(s.dl_pathloss_change, "dl_pathloss_change", root["phr_cnfg"])) {
-    return -1;
+    return SRSRAN_ERROR;
   }
   if (not parse_enum_by_number(s.periodic_phr_timer, "periodic_phr_timer", root["phr_cnfg"])) {
-    return -1;
+    return SRSRAN_ERROR;
   }
   if (not parse_enum_by_number(s.prohibit_phr_timer, "prohibit_phr_timer", root["phr_cnfg"])) {
-    return -1;
+    return SRSRAN_ERROR;
   }
+  return 0;
+}
+
+int field_srb::parse(libconfig::Setting& root)
+{
+  // Parse RLC AM section
+  rlc_cfg_c* rlc_cfg = &cfg.rlc_cfg.set_explicit_value();
+  if (root.exists("ul_am") && root.exists("dl_am")) {
+    rlc_cfg->set_am();
+  }
+
+  // RLC-UM Should not exist section
+  if (root.exists("ul_um") || root.exists("dl_um")) {
+    ERROR("Error SRBs must be AM.");
+    return SRSRAN_ERROR;
+  }
+
+  // Parse RLC-AM section
+  if (root.exists("ul_am")) {
+    ul_am_rlc_s* am_rlc = &rlc_cfg->am().ul_am_rlc;
+
+    field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
+    if (t_poll_retx.parse(root["ul_am"])) {
+      ERROR("Error can't find t_poll_retx in section ul_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
+    if (poll_pdu.parse(root["ul_am"])) {
+      ERROR("Error can't find poll_pdu in section ul_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
+    if (poll_byte.parse(root["ul_am"])) {
+      ERROR("Error can't find poll_byte in section ul_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh", &am_rlc->max_retx_thres);
+    if (max_retx_thresh.parse(root["ul_am"])) {
+      ERROR("Error can't find max_retx_thresh in section ul_am");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  if (root.exists("dl_am")) {
+    dl_am_rlc_s* am_rlc = &rlc_cfg->am().dl_am_rlc;
+
+    field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
+    if (t_reordering.parse(root["dl_am"])) {
+      ERROR("Error can't find t_reordering in section dl_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
+    if (t_status_prohibit.parse(root["dl_am"])) {
+      ERROR("Error can't find t_status_prohibit in section dl_am");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  if (root.exists("enb_specific")) {
+    cfg.enb_dl_max_retx_thres = (int)root["enb_specific"]["dl_max_retx_thresh"];
+  }
+
   return 0;
 }
 
@@ -418,7 +484,7 @@ int field_qci::parse(libconfig::Setting& root)
     // Parse PDCP section
     if (!q.exists("pdcp_config")) {
       fprintf(stderr, "Error section pdcp_config not found for qci=%d\n", qci);
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     rrc_cfg_qci_t qcicfg;
@@ -447,7 +513,7 @@ int field_qci::parse(libconfig::Setting& root)
       rlc_cfg->set_um_uni_dir_dl();
     } else {
       fprintf(stderr, "Invalid combination of UL/DL UM/AM for qci=%d\n", qci);
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     // Parse RLC-UM section
@@ -462,7 +528,7 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["ul_um"])) {
         ERROR("Error can't find sn_field_length in section ul_um");
-        return -1;
+        return SRSRAN_ERROR;
       }
     }
 
@@ -477,13 +543,13 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["dl_um"])) {
         ERROR("Error can't find sn_field_length in section dl_um");
-        return -1;
+        return SRSRAN_ERROR;
       }
 
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &um_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_um"])) {
         ERROR("Error can't find t_reordering in section dl_um");
-        return -1;
+        return SRSRAN_ERROR;
       }
     }
 
@@ -494,26 +560,26 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
       if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find t_poll_retx in section ul_am");
-        return -1;
+        return SRSRAN_ERROR;
       }
 
       field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
       if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find poll_pdu in section ul_am");
-        return -1;
+        return SRSRAN_ERROR;
       }
 
       field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
       if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find poll_byte in section ul_am");
-        return -1;
+        return SRSRAN_ERROR;
       }
 
       field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh",
                                                                              &am_rlc->max_retx_thres);
       if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find max_retx_thresh in section ul_am");
-        return -1;
+        return SRSRAN_ERROR;
       }
     }
 
@@ -523,20 +589,20 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
         ERROR("Error can't find t_reordering in section dl_am");
-        return -1;
+        return SRSRAN_ERROR;
       }
 
       field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
       if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
         ERROR("Error can't find t_status_prohibit in section dl_am");
-        return -1;
+        return SRSRAN_ERROR;
       }
     }
 
     // Parse logical channel configuration section
     if (!q.exists("logical_channel_config")) {
       fprintf(stderr, "Error section logical_channel_config not found for qci=%d\n", qci);
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     lc_ch_cfg_s::ul_specific_params_s_* lc_cfg = &qcicfg.lc_cfg;
@@ -544,26 +610,31 @@ int field_qci::parse(libconfig::Setting& root)
     parser::field<uint8> priority("priority", &lc_cfg->prio);
     if (priority.parse(q["logical_channel_config"])) {
       ERROR("Error can't find logical_channel_config in section priority");
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_> prioritised_bit_rate(
         "prioritized_bit_rate", &lc_cfg->prioritised_bit_rate);
     if (prioritised_bit_rate.parse(q["logical_channel_config"])) {
       fprintf(stderr, "Error can't find prioritized_bit_rate in section logical_channel_config\n");
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_> bucket_size_duration(
         "bucket_size_duration", &lc_cfg->bucket_size_dur);
     if (bucket_size_duration.parse(q["logical_channel_config"])) {
       ERROR("Error can't find bucket_size_duration in section logical_channel_config");
-      return -1;
+      return SRSRAN_ERROR;
     }
 
     parser::field<uint8> log_chan_group("log_chan_group", &lc_cfg->lc_ch_group);
     lc_cfg->lc_ch_group_present = not log_chan_group.parse(q["logical_channel_config"]);
     qcicfg.configured           = true;
+
+    if (q.exists("enb_specific")) {
+      qcicfg.enb_dl_max_retx_thres = (int)q["enb_specific"]["dl_max_retx_thresh"];
+    }
+
     cfg.insert(std::make_pair(qci, qcicfg));
   }
 
@@ -674,6 +745,8 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   cqi_report_cnfg.add_field(new parser::field<uint32>("period", &rrc_cfg_->cqi_cfg.period));
   cqi_report_cnfg.add_field(new parser::field<uint32>("m_ri", &rrc_cfg_->cqi_cfg.m_ri));
   cqi_report_cnfg.add_field(new parser::field<uint32>("nof_prb", &rrc_cfg_->cqi_cfg.nof_prb));
+  cqi_report_cnfg.add_field(
+      new parser::field<uint32>("subband_k", &rrc_cfg_->cqi_cfg.subband_k, &rrc_cfg_->cqi_cfg.is_subband_enabled));
   cqi_report_cnfg.add_field(new parser::field<bool>("simultaneousAckCQI", &rrc_cfg_->cqi_cfg.simultaneousAckCQI));
   cqi_report_cnfg.add_field(new field_sf_mapping(rrc_cfg_->cqi_cfg.sf_mapping, &rrc_cfg_->cqi_cfg.nof_subframes, 1));
 
@@ -789,7 +862,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));
       if (not cellroot.exists("meas_report_desc")) {
         ERROR("PARSER ERROR: \"ho_active\" is set to true, but field \"meas_report_desc\" doesn't exist.\n");
-        return -1;
+        return SRSRAN_ERROR;
       }
       HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot["meas_report_desc"]));
     }
@@ -815,13 +888,13 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
       // Check RF port is not repeated
       if (it->rf_port == it2->rf_port) {
         ERROR("Repeated RF port for multiple cells");
-        return -1;
+        return SRSRAN_ERROR;
       }
 
       // Check cell ID is not repeated
       if (it->cell_id == it2->cell_id) {
         ERROR("Repeated Cell identifier");
-        return -1;
+        return SRSRAN_ERROR;
       }
     }
   }
@@ -1535,7 +1608,7 @@ int parse_sib9(std::string filename, sib_type9_s* data)
     }
     return 0;
   } else {
-    return -1;
+    return SRSRAN_ERROR;
   }
 }
 
@@ -1581,19 +1654,19 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
   std::string mnc_str;
   if (not srsran::mnc_to_string(args_->stack.s1ap.mnc, &mnc_str)) {
     ERROR("The provided mnc=%d is not valid", args_->stack.s1ap.mnc);
-    return -1;
+    return SRSRAN_ERROR;
   }
   std::string mcc_str;
   if (not srsran::mcc_to_string(args_->stack.s1ap.mcc, &mcc_str)) {
     ERROR("The provided mnc=%d is not valid", args_->stack.s1ap.mcc);
-    return -1;
+    return SRSRAN_ERROR;
   }
   sib_type1_s::cell_access_related_info_s_* cell_access = &sib1->cell_access_related_info;
   cell_access->plmn_id_list.resize(1);
   srsran::plmn_id_t plmn;
   if (plmn.from_string(mcc_str + mnc_str) == SRSRAN_ERROR) {
     ERROR("Could not convert %s to a plmn_id", (mcc_str + mnc_str).c_str());
-    return -1;
+    return SRSRAN_ERROR;
   }
   srsran::to_asn1(&cell_access->plmn_id_list[0].plmn_id, plmn);
   cell_access->plmn_id_list[0].cell_reserved_for_oper = plmn_id_info_s::cell_reserved_for_oper_e_::not_reserved;
@@ -1619,7 +1692,7 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
     // verify SIB13 is available
     if (not sib_is_present(sib1->sched_info_list, sib_type_e::sib_type13_v920)) {
       fprintf(stderr, "SIB13 not present in sched_info.\n");
-      return -1;
+      return SRSRAN_ERROR;
     }
   }
 
@@ -1673,9 +1746,40 @@ namespace drb_sections {
 
 int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
 {
+  parser::section srb1("srb1_config");
+  bool            srb1_present = false;
+  srb1.set_optional(&srb1_present);
+
+  parser::section srb1_rlc_cfg("rlc_config");
+  srb1.add_subsection(&srb1_rlc_cfg);
+  srb1_rlc_cfg.add_field(new field_srb(rrc_cfg_->srb1_cfg));
+
+  parser::section srb2("srb2_config");
+  bool            srb2_present = false;
+  srb2.set_optional(&srb2_present);
+
+  parser::section srb2_rlc_cfg("rlc_config");
+  srb2.add_subsection(&srb2_rlc_cfg);
+  srb2_rlc_cfg.add_field(new field_srb(rrc_cfg_->srb2_cfg));
+
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
-  return parser::parse_section(args_->enb_files.drb_config, &qci);
+
+  // Run parser with two sections
+  parser p(args_->enb_files.rb_config);
+  p.add_section(&srb1);
+  p.add_section(&srb2);
+  p.add_section(&qci);
+
+  int ret = p.parse();
+  if (not srb1_present) {
+    rrc_cfg_->srb1_cfg.rlc_cfg.set_default_value();
+  }
+  if (not srb2_present) {
+    rrc_cfg_->srb2_cfg.rlc_cfg.set_default_value();
+  }
+
+  return ret;
 }
 
 } // namespace drb_sections

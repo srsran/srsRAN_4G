@@ -172,7 +172,7 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
                                           const srsran_tdd_config_nr_t& tdd_cfg)
 {
   // Generate as many entries as DL slots
-  harq.nof_dl_data_to_ul_ack = SRSRAN_MAX(tdd_cfg.pattern1.nof_dl_slots, SRSRAN_MAX_NOF_DL_DATA_TO_UL);
+  harq.nof_dl_data_to_ul_ack = SRSRAN_MIN(tdd_cfg.pattern1.nof_dl_slots, SRSRAN_MAX_NOF_DL_DATA_TO_UL);
 
   // Set PDSCH to ACK timing delay to 4 or more
   for (uint32_t n = 0; n < harq.nof_dl_data_to_ul_ack; n++) {
@@ -206,6 +206,7 @@ void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
   prach.config_idx   = 0;
   prach.freq_offset  = 2;
   prach.root_seq_idx = 0;
+  prach.is_nr        = true;
 }
 
 phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)

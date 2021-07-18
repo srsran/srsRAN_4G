@@ -44,12 +44,11 @@
  * @brief Uplink Control Information bits configuration for PUCCH transmission
  */
 typedef struct {
-  uint16_t rnti;                ///< RNTI
-  uint32_t resource_id;         ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
-  uint32_t n_cce_0;             ///< index of a first CCE for the PDCCH reception
-  uint32_t N_cce;               ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
-  uint32_t sr_resource_id;      ///< Scheduling request resource identifier, only valid if positive SR
-  bool     sr_positive_present; ///< Set to true if there is at least one positive SR
+  uint16_t rnti;           ///< RNTI
+  uint32_t resource_id;    ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
+  uint32_t n_cce_0;        ///< index of a first CCE for the PDCCH reception
+  uint32_t N_cce;          ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
+  uint32_t sr_resource_id; ///< Scheduling request resource identifier, only valid if positive SR
 } srsran_uci_nr_pucch_cfg_t;
 
 /**
@@ -79,6 +78,7 @@ typedef struct SRSRAN_API {
   /// Common Parameters
   srsran_harq_ack_cfg_t   ack;                            ///< HARQ-ACK configuration
   uint32_t                o_sr;                           ///< Number of SR bits
+  bool                    sr_positive_present;            ///< Set to true if there is at least one positive SR
   srsran_csi_report_cfg_t csi[SRSRAN_CSI_MAX_NOF_REPORT]; ///< CSI report configuration
   uint32_t                nof_csi;                        ///< Number of CSI reports
   union {

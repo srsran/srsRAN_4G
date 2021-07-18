@@ -41,18 +41,19 @@ class slot_worker final : public srsran::thread_pool::worker
 {
 public:
   struct args_t {
-    uint32_t              cell_index         = 0;
-    srsran_carrier_nr_t   carrier            = {};
-    uint32_t              nof_tx_ports       = 1;
-    uint32_t              nof_rx_ports       = 1;
-    uint32_t              pusch_max_nof_iter = 10;
-    srsran_pdcch_cfg_nr_t pdcch_cfg          = {}; ///< PDCCH configuration
+    uint32_t cell_index         = 0;
+    uint32_t nof_max_prb        = SRSRAN_MAX_PRB_NR;
+    uint32_t nof_tx_ports       = 1;
+    uint32_t nof_rx_ports       = 1;
+    uint32_t pusch_max_nof_iter = 10;
   };
 
   slot_worker(srsran::phy_common_interface& common_, stack_interface_phy_nr& stack_, srslog::basic_logger& logger);
   ~slot_worker();
 
   bool init(const args_t& args);
+
+  bool set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_);
 
   /* Functions used by main PHY thread */
   cf_t*    get_buffer_rx(uint32_t antenna_idx);

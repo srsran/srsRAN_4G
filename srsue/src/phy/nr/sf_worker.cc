@@ -99,6 +99,7 @@ void sf_worker::work_imp()
   if (prach_ptr != nullptr) {
     // PRACH is available, set buffer, transmit and return
     tx_buffer.set(0, prach_ptr);
+    tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
     // Notify MAC about PRACH transmission
     phy_state.stack->prach_sent(TTI_TX(tti_rx),

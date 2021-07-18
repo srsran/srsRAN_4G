@@ -46,7 +46,7 @@ static bool when_fully_filled_log_entry_then_everything_is_formatted()
   fmt::dynamic_format_arg_store<fmt::printf_context> store;
   text_formatter{}.format(build_log_entry_metadata(&store), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [ABC    ] [Z] [   10] Text 88\n";
+  std::string expected = "1970-01-01T00:00:00.050000 [ABC    ] [Z] [   10] Text 88\n";
 
   ASSERT_EQ(result, expected);
 
@@ -62,7 +62,7 @@ static bool when_log_entry_without_name_is_passed_then_name_is_not_formatted()
   fmt::memory_buffer buffer;
   text_formatter{}.format(std::move(entry), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [Z] [   10] Text 88\n";
+  std::string expected = "1970-01-01T00:00:00.050000 [Z] [   10] Text 88\n";
 
   ASSERT_EQ(result, expected);
 
@@ -78,7 +78,7 @@ static bool when_log_entry_without_tag_is_passed_then_tag_is_not_formatted()
   fmt::memory_buffer buffer;
   text_formatter{}.format(std::move(entry), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [ABC    ] [   10] Text 88\n";
+  std::string expected = "1970-01-01T00:00:00.050000 [ABC    ] [   10] Text 88\n";
 
   ASSERT_EQ(result, expected);
 
@@ -94,7 +94,7 @@ static bool when_log_entry_without_context_is_passed_then_context_is_not_formatt
   fmt::memory_buffer buffer;
   text_formatter{}.format(std::move(entry), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [ABC    ] [Z] Text 88\n";
+  std::string expected = "1970-01-01T00:00:00.050000 [ABC    ] [Z] Text 88\n";
 
   ASSERT_EQ(result, expected);
 
@@ -111,7 +111,7 @@ static bool when_log_entry_with_hex_dump_is_passed_then_hex_dump_is_formatted()
   fmt::memory_buffer buffer;
   text_formatter{}.format(std::move(entry), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [ABC    ] [Z] [   10] Text 88\n"
+  std::string expected = "1970-01-01T00:00:00.050000 [ABC    ] [Z] [   10] Text 88\n"
                          "    0000: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f\n"
                          "    0010: 10 11 12 13\n";
 
@@ -185,7 +185,7 @@ static bool when_log_entry_with_only_context_is_passed_then_context_is_formatted
   fmt::memory_buffer buffer;
   text_formatter{}.format_ctx(ctx, std::move(entry), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [ABC    ] [Z] [   10] Context dump for "
+  std::string expected = "1970-01-01T00:00:00.050000 [ABC    ] [Z] [   10] Context dump for "
                          "\"Complex Context\"\n"
                          "  > List: sector_list\n"
                          "    > Set: sector_metrics\n"
@@ -227,7 +227,7 @@ static bool when_log_entry_with_context_and_message_is_passed_then_context_is_fo
   fmt::memory_buffer buffer;
   text_formatter{}.format_ctx(ctx, std::move(entry), buffer);
   std::string result   = fmt::to_string(buffer);
-  std::string expected = "00:00:00.050000 [ABC    ] [Z] [   10] [[sector_metrics_type: event, "
+  std::string expected = "1970-01-01T00:00:00.050000 [ABC    ] [Z] [   10] [[sector_metrics_type: event, "
                          "sector_metrics_sector_id: 1, [ue_container_Throughput: 1.2 MB/s, "
                          "ue_container_Address: 10.20.30.40, [RF_SNR: 5.1 dB, RF_PWR: -11 "
                          "dBm][RF_SNR: 10.1 dB, RF_PWR: -20 dBm]][ue_container_Throughput: 10.2 "

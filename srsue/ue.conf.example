@@ -375,6 +375,15 @@ enable = false
 #nof_out_of_sync_events = 20
 
 #####################################################################
+# PHY NR specific configuration options
+#
+# store_pdsch_ko:       Dumps the PDSCH baseband samples into a file on KO reception
+#
+#####################################################################
+[phy.nr]
+#store_pdsch_ko = false
+
+#####################################################################
 # Simulation configuration options
 #
 # The UE simulation supports turning on and off airplane mode in the UE.

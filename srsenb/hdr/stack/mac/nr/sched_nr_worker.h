@@ -22,7 +22,8 @@
 #ifndef SRSRAN_SCHED_NR_WORKER_H
 #define SRSRAN_SCHED_NR_WORKER_H
 
-#include "sched_nr_common.h"
+#include "sched_nr_bwp.h"
+#include "sched_nr_cfg.h"
 #include "sched_nr_rb_grid.h"
 #include "sched_nr_ue.h"
 #include "srsran/adt/circular_array.h"
@@ -31,19 +32,17 @@
 #include "srsran/adt/span.h"
 #include <condition_variable>
 #include <mutex>
-#include <semaphore.h>
 
 namespace srsenb {
 namespace sched_nr_impl {
 
-using slot_res_t = sched_nr_interface::tti_request_t;
+using dl_sched_t = sched_nr_interface::dl_sched_t;
+using ul_sched_t = sched_nr_interface::ul_sched_t;
 
 class slot_cc_worker
 {
 public:
-  explicit slot_cc_worker(const sched_cell_params& cell_params, cell_res_grid& phy_grid) :
-    cfg(cell_params), res_grid(0, phy_grid)
-  {}
+  explicit slot_cc_worker(serv_cell_ctxt& sched);
 
   void start(tti_point tti_rx_, ue_map_t& ue_db_);
   void run();
@@ -53,41 +52,50 @@ public:
 private:
   void alloc_dl_ues();
   void alloc_ul_ues();
+  void log_result() const;
 
   const sched_cell_params& cfg;
+  serv_cell_ctxt&          cell;
+  srslog::basic_logger&    logger;
 
-  tti_point      tti_rx;
-  slot_bwp_sched res_grid;
+  tti_point          tti_rx;
+  bwp_slot_allocator bwp_alloc;
 
   srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
 };
 
 class sched_worker_manager
 {
+  struct slot_worker_ctxt {
+    std::mutex                  slot_mutex; // lock of all workers of the same slot.
+    std::condition_variable     cvar;
+    tti_point                   tti_rx;
+    int                         nof_workers_waiting = 0;
+    std::atomic<int>            worker_count{0}; // variable shared across slot_cc_workers
+    std::vector<slot_cc_worker> workers;
+  };
+
 public:
   explicit sched_worker_manager(ue_map_t& ue_db_, const sched_params& cfg_);
   sched_worker_manager(const sched_worker_manager&) = delete;
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void reserve_workers(tti_point tti_rx);
-  void start_tti(tti_point tti_rx);
-  bool run_tti(tti_point tti_rx, uint32_t cc, sched_nr_interface::tti_request_t& req);
-  void end_tti(tti_point tti_rx);
+  void start_slot(tti_point tti_rx, srsran::move_callback<void()> process_feedback);
+  bool run_slot(tti_point tti_rx, uint32_t cc);
+  void release_slot(tti_point tti_rx);
+  bool save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
 private:
-  const sched_params& cfg;
-  ue_map_t&           ue_db;
+  const sched_params&   cfg;
+  ue_map_t&             ue_db;
+  srslog::basic_logger& logger;
 
-  struct slot_worker_ctxt {
-    sem_t                       sf_sem; // lock of all workers of the same slot. unlocked by last slot_cc_worker
-    tti_point                   tti_rx;
-    std::atomic<int>            worker_count{0}; // variable shared across slot_cc_workers
-    std::vector<slot_cc_worker> workers;
-  };
-  std::vector<std::unique_ptr<slot_worker_ctxt> > slot_ctxts;
+  std::mutex ue_db_mutex;
 
-  srsran::bounded_vector<cell_res_grid, SCHED_NR_MAX_CARRIERS> cell_grid_list;
+  std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
+
+  srsran::bounded_vector<serv_cell_ctxt, SCHED_NR_MAX_CARRIERS> cell_grid_list;
 
   slot_worker_ctxt& get_sf(tti_point tti_rx);
 };

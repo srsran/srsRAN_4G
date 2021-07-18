@@ -27,10 +27,12 @@
 #include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include "srsue/hdr/stack/upper/nas.h"
+#include "srsue/hdr/stack/upper/test/nas_test_common.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
 
 using namespace srsue;
+using namespace srsran;
 
 static_assert(alignof(LIBLTE_BYTE_MSG_STRUCT) == alignof(byte_buffer_t),
               "liblte buffer and byte buffer members misaligned");
@@ -41,164 +43,74 @@ static_assert(offsetof(LIBLTE_BYTE_MSG_STRUCT, header) == offsetof(byte_buffer_t
 static_assert(sizeof(LIBLTE_BYTE_MSG_STRUCT) <= offsetof(byte_buffer_t, msg),
               "liblte buffer and byte buffer members misaligned");
 
-#define LCID 1
-
-uint8_t auth_request_pdu[] = {0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4, 0xce, 0xd9,
-                              0x86, 0xfb, 0xe5, 0xce, 0x9b, 0x62, 0x5e, 0x10, 0x67, 0x57, 0xb3, 0xc2,
-                              0xb9, 0x70, 0x90, 0x01, 0x0c, 0x72, 0x8a, 0x67, 0x57, 0x92, 0x52, 0xb8};
-
-uint8_t sec_mode_command_pdu[] = {0x37, 0x4e, 0xfd, 0x57, 0x11, 0x00, 0x07, 0x5d, 0x02, 0x01, 0x02, 0xf0, 0x70, 0xc1};
-
-uint8_t attach_accept_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x42, 0x01, 0x3e, 0x06, 0x00, 0x00,
-                               0xf1, 0x10, 0x00, 0x01, 0x00, 0x2a, 0x52, 0x01, 0xc1, 0x01, 0x04, 0x1b, 0x07,
-                               0x74, 0x65, 0x73, 0x74, 0x31, 0x32, 0x33, 0x06, 0x6d, 0x6e, 0x63, 0x30, 0x30,
-                               0x31, 0x06, 0x6d, 0x63, 0x63, 0x30, 0x30, 0x31, 0x04, 0x67, 0x70, 0x72, 0x73,
-                               0x05, 0x01, 0xc0, 0xa8, 0x05, 0x02, 0x27, 0x01, 0x80, 0x50, 0x0b, 0xf6, 0x00,
-                               0xf1, 0x10, 0x80, 0x01, 0x01, 0x35, 0x16, 0x6d, 0xbc, 0x64, 0x01, 0x00};
-
-uint8_t esm_info_req_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x5a, 0xd9};
-
-uint8_t activate_dedicated_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0xc5, 0x05,
-                                               0x01, 0x01, 0x07, 0x21, 0x31, 0x00, 0x03, 0x40, 0x08, 0xae,
-                                               0x5d, 0x02, 0x00, 0xc2, 0x81, 0x34, 0x01, 0x4d};
-
-uint8_t deactivate_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0xcd, 0x24};
-
-uint16 mcc = 61441;
-uint16 mnc = 65281;
-
-using namespace srsran;
-
-namespace srsran {
-
-// fake classes
-class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_stack
+int mme_attach_request_test()
 {
-public:
-  void        write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) override {}
-  void        write_pdu_bcch_bch(unique_byte_buffer_t pdu) override {}
-  void        write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) override {}
-  void        write_pdu_pcch(unique_byte_buffer_t pdu) override {}
-  void        write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) override {}
-  const char* get_rb_name(uint32_t lcid) override { return "lcid"; }
-  void        write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn = -1) override {}
-  bool        is_eps_bearer_id_enabled(uint32_t eps_bearer_id) { return false; }
-  void        notify_pdcp_integrity_error(uint32_t lcid) override {}
-  bool        is_lcid_enabled(uint32_t lcid) override { return false; }
-};
+  int ret = SRSRAN_ERROR;
 
-class rrc_dummy : public rrc_interface_nas
-{
-public:
-  rrc_dummy() : last_sdu_len(0)
+  rrc_dummy  rrc_dummy;
+  pdcp_dummy pdcp_dummy;
+
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  usim_args_t args;
+  args.mode = "soft";
+  args.algo = "xor";
+  args.imei = "353490069873319";
+  args.imsi = "001010123456789";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
+  usim.init(&args);
+
   {
-    plmns[0].plmn_id.from_number(mcc, mnc);
-    plmns[0].tac = 0xffff;
-  }
-  void init(nas* nas_) { nas_ptr = nas_; }
-  void write_sdu(unique_byte_buffer_t sdu)
-  {
-    last_sdu_len = sdu->N_bytes;
-    // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
-    // srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
-  }
-  const char* get_rb_name(uint32_t lcid) { return "lcid"; }
-  uint32_t    get_last_sdu_len() { return last_sdu_len; }
-  void        reset() { last_sdu_len = 0; }
+    nas_args_t nas_cfg;
+    nas_cfg.force_imsi_attach = true;
+    nas_cfg.eia               = "1,2,3";
+    nas_cfg.eea               = "0,1,2,3";
+    nas_cfg.apn_name          = "test123";
 
-  bool plmn_search()
-  {
-    nas_ptr->plmn_search_completed(plmns, 1);
-    return true;
-  }
-  void plmn_select(srsran::plmn_id_t plmn_id){};
-  void set_ue_identity(srsran::s_tmsi_t s_tmsi) {}
-  bool connection_request(srsran::establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
-  {
-    printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
-    last_sdu_len = sdu->N_bytes;
-    srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
-    is_connected_flag = true;
-    nas_ptr->connection_request_completed(true);
-    return true;
-  }
-  bool is_connected() { return is_connected_flag; }
+    test_stack_dummy<srsue::nas> stack(&pdcp_dummy);
+    srsue::nas                   nas(&stack.task_sched);
+    srsue::gw                    gw;
 
-  uint16_t get_mcc() { return mcc; }
-  uint16_t get_mnc() { return mnc; }
-  void     enable_capabilities() {}
-  uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) { return 0; }
-  void     paging_completed(bool outcome) {}
-  bool     has_nr_dc() { return false; }
+    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
 
-private:
-  nas*                            nas_ptr;
-  uint32_t                        last_sdu_len;
-  nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
-  bool                            is_connected_flag = false;
-};
+    gw_args_t gw_args;
+    gw_args.tun_dev_name     = "tun0";
+    gw_args.log.gw_level     = "debug";
+    gw_args.log.gw_hex_limit = 100000;
 
-class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread
-{
-public:
-  test_stack_dummy(pdcp_interface_stack* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
-  void init(srsue::nas* nas_)
-  {
-    nas = nas_;
-    start(-1);
-  }
-  bool switch_on() { return true; }
-  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
-  bool has_active_radio_bearer(uint32_t eps_bearer_id) { return true; }
+    gw.init(gw_args, &stack);
+    stack.init(&nas);
+    // trigger test
+    stack.switch_on();
+    stack.stop();
 
-  bool is_registered() { return true; }
+    // this will time out in the first place
 
-  bool start_service_request() { return true; }
+    // reset length of last received NAS PDU
+    rrc_dummy.reset();
 
-  void run_thread()
-  {
-    running = true;
-    while (running) {
-      task_sched.tic();
-      task_sched.run_pending_tasks();
-      nas->run_tti();
+    // finally push attach accept
+    byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
+    unique_byte_buffer_t tmp  = srsran::make_byte_buffer();
+    TESTASSERT(tmp != nullptr);
+    memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
+    tmp->N_bytes = sizeof(attach_accept_pdu);
+    nas.write_pdu(LCID, std::move(tmp));
+    nas_metrics_t metrics;
+    nas.get_metrics(&metrics);
+    TESTASSERT(metrics.nof_active_eps_bearer == 1);
+
+    // check length of generated NAS SDU (attach complete)
+    if (rrc_dummy.get_last_sdu_len() > 3) {
+      ret = SRSRAN_SUCCESS;
     }
+    // ensure buffers are deleted before pool cleanup
+    gw.stop();
   }
-  void stop()
-  {
-    while (not running) {
-      usleep(1000);
-    }
-    running = false;
-    wait_thread_finish();
-  }
-  pdcp_interface_stack*   pdcp    = nullptr;
-  srsue::nas*             nas     = nullptr;
-  std::atomic<bool>       running = {false};
-};
 
-class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
-{
-  int setup_if_addr(uint32_t eps_bearer_id,
-                    uint8_t  pdn_type,
-                    uint32_t ip_addr,
-                    uint8_t* ipv6_if_id,
-                    char*    err_str)
-  {
-    return SRSRAN_SUCCESS;
-  }
-  int deactivate_eps_bearer(const uint32_t eps_bearer_id) { return SRSRAN_SUCCESS; }
-  int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
-                                  const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
-  {
-    return SRSRAN_SUCCESS;
-  }
-  void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
-  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
-  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) {}
-};
-
-} // namespace srsran
+  return ret;
+}
 
 int security_command_test()
 {
@@ -255,73 +167,6 @@ int security_command_test()
   return ret;
 }
 
-int mme_attach_request_test()
-{
-  int ret = SRSRAN_ERROR;
-
-  rrc_dummy  rrc_dummy;
-  pdcp_dummy pdcp_dummy;
-
-  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
-  usim_args_t args;
-  args.mode = "soft";
-  args.algo = "xor";
-  args.imei = "353490069873319";
-  args.imsi = "001010123456789";
-  args.k    = "00112233445566778899aabbccddeeff";
-  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
-  usim.init(&args);
-
-  {
-    nas_args_t nas_cfg;
-    nas_cfg.force_imsi_attach = true;
-    nas_cfg.apn_name          = "test123";
-
-    test_stack_dummy stack(&pdcp_dummy);
-    srsue::nas       nas(&stack.task_sched);
-    srsue::gw        gw;
-
-    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
-    rrc_dummy.init(&nas);
-
-    gw_args_t gw_args;
-    gw_args.tun_dev_name     = "tun0";
-    gw_args.log.gw_level     = "debug";
-    gw_args.log.gw_hex_limit = 100000;
-
-    gw.init(gw_args, &stack);
-    stack.init(&nas);
-    // trigger test
-    stack.switch_on();
-    stack.stop();
-
-    // this will time out in the first place
-
-    // reset length of last received NAS PDU
-    rrc_dummy.reset();
-
-    // finally push attach accept
-    byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srsran::make_byte_buffer();
-    TESTASSERT(tmp != nullptr);
-    memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
-    tmp->N_bytes = sizeof(attach_accept_pdu);
-    nas.write_pdu(LCID, std::move(tmp));
-    nas_metrics_t metrics;
-    nas.get_metrics(&metrics);
-    TESTASSERT(metrics.nof_active_eps_bearer == 1);
-
-    // check length of generated NAS SDU (attach complete)
-    if (rrc_dummy.get_last_sdu_len() > 3) {
-      ret = SRSRAN_SUCCESS;
-    }
-    // ensure buffers are deleted before pool cleanup
-    gw.stop();
-  }
-
-  return ret;
-}
-
 int esm_info_request_test()
 {
   int ret = SRSRAN_ERROR;
@@ -348,6 +193,8 @@ int esm_info_request_test()
     cfg.apn_name          = "srsran";
     cfg.apn_user          = "srsuser";
     cfg.apn_pass          = "srspass";
+    cfg.eia               = "1,2,3";
+    cfg.eea               = "0,1,2,3";
     cfg.force_imsi_attach = true;
     nas.init(&usim, &rrc_dummy, &gw, cfg);
 
@@ -388,6 +235,8 @@ int dedicated_eps_bearer_test()
   srsue::nas nas(&stack.task_sched);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
+  cfg.eia               = "1,2,3";
+  cfg.eea               = "0,1,2,3";
   nas.init(&usim, &rrc_dummy, &gw, cfg);
 
   // push dedicated EPS bearer PDU to NAS
@@ -462,25 +311,10 @@ int main(int argc, char** argv)
   // Start the log backend.
   srslog::init();
 
-  if (security_command_test()) {
-    printf("Security command test failed.\n");
-    return -1;
-  }
+  TESTASSERT(mme_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(security_command_test() == SRSRAN_SUCCESS);
+  TESTASSERT(esm_info_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(dedicated_eps_bearer_test() == SRSRAN_SUCCESS);
 
-  if (mme_attach_request_test()) {
-    printf("Attach request test failed.\n");
-    return -1;
-  }
-
-  if (esm_info_request_test()) {
-    printf("ESM info request test failed.\n");
-    return -1;
-  }
-
-  if (dedicated_eps_bearer_test()) {
-    printf("Dedicated EPS bearer test failed.\n");
-    return -1;
-  }
-
-  return 0;
+  return SRSRAN_SUCCESS;
 }

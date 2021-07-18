@@ -306,7 +306,9 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, t
   write_pcap(cc_idx, grant, result);
 
   if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
-    proc_ra.handle_rar_pdu(result);
+    if (result.ack && result.payload != nullptr) {
+      proc_ra.handle_rar_pdu(result);
+    }
   } else {
     // Assert HARQ entity
     if (dl_harq.at(cc_idx) == nullptr) {

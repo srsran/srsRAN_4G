@@ -539,7 +539,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - At least one positive SR
   // - up to 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->pucch.sr_positive_present > 0 && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+  if (uci_cfg->sr_positive_present > 0 && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
       uci_cfg->nof_csi == 0) {
     uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
     if (sr_resource_id >= SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES) {

@@ -25,22 +25,25 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-coreset_region::coreset_region(uint32_t         bwp_id_,
-                               uint32_t         slot_idx_,
-                               uint32_t         nof_td_symbols,
-                               uint32_t         nof_freq_resources,
-                               pdcch_dl_list_t& pdcch_list_) :
-  bwp_id(bwp_id_),
+coreset_region::coreset_region(const bwp_params& bwp_cfg_,
+                               uint32_t          coreset_id_,
+                               uint32_t          slot_idx_,
+                               pdcch_dl_list_t&  dl_list_,
+                               pdcch_ul_list_t&  ul_list_) :
+  coreset_cfg(&bwp_cfg_.cfg.pdcch.coreset[coreset_id_]),
+  coreset_id(coreset_id_),
   slot_idx(slot_idx_),
-  nof_symbols(nof_td_symbols),
-  nof_freq_res(nof_freq_resources),
-  pdcch_dl_list(pdcch_list_)
+  pdcch_dl_list(dl_list_),
+  pdcch_ul_list(ul_list_)
 {
-  srsran_assert(nof_td_symbols <= SRSRAN_CORESET_DURATION_MAX,
+  const bool* res_active = &coreset_cfg->freq_resources[0];
+  nof_freq_res           = std::count(res_active, res_active + SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, true);
+  srsran_assert(get_td_symbols() <= SRSRAN_CORESET_DURATION_MAX,
                 "Possible number of time-domain OFDM symbols in CORESET must be within {1,2,3}");
-  srsran_assert(nof_freq_resources <= SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE,
-                "Provided number of CORESET freq domain resources=%d is too high",
-                nof_freq_resources);
+  srsran_assert(nof_freq_res <= bwp_cfg_.cell_cfg.carrier.nof_prb,
+                "The number of frequency resources=%d of coreset_id=%d exceeds BWP bandwidth",
+                nof_freq_res,
+                coreset_id);
 }
 
 void coreset_region::reset()
@@ -49,9 +52,13 @@ void coreset_region::reset()
   saved_dfs_tree.clear();
   dci_list.clear();
   pdcch_dl_list.clear();
+  pdcch_ul_list.clear();
 }
 
-bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx, uint32_t coreset_id, slot_ue* user)
+bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type,
+                               uint32_t           aggr_idx,
+                               uint32_t           search_space_id,
+                               slot_ue*           user)
 {
   srsran_assert(aggr_idx <= 4, "Invalid DCI aggregation level=%d", 1U << aggr_idx);
   srsran_assert((user == nullptr) xor
@@ -62,10 +69,15 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx,
   alloc_record record;
   record.ue         = user;
   record.aggr_idx   = aggr_idx;
+  record.ss_id      = search_space_id;
   record.alloc_type = alloc_type;
-  record.idx        = pdcch_dl_list.size();
-  record.coreset_id = coreset_id;
-  pdcch_dl_list.emplace_back();
+  if (record.alloc_type == pdcch_grant_type_t::ul_data) {
+    record.idx = pdcch_ul_list.size();
+    pdcch_ul_list.emplace_back();
+  } else {
+    record.idx = pdcch_dl_list.size();
+    pdcch_dl_list.emplace_back();
+  }
 
   // Try to allocate grant. If it fails, attempt the same grant, but using a different permutation of past grant DCI
   // positions
@@ -83,7 +95,11 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx,
 
   // Revert steps to initial state, before dci record allocation was attempted
   dfs_tree = saved_dfs_tree;
-  pdcch_dl_list.pop_back();
+  if (record.alloc_type == pdcch_grant_type_t::ul_data) {
+    pdcch_ul_list.pop_back();
+  } else {
+    pdcch_dl_list.pop_back();
+  }
   return false;
 }
 
@@ -93,8 +109,12 @@ void coreset_region::rem_last_dci()
 
   // Remove DCI record
   dfs_tree.pop_back();
+  if (dci_list.back().alloc_type == pdcch_grant_type_t::ul_data) {
+    pdcch_ul_list.pop_back();
+  } else {
+    pdcch_dl_list.pop_back();
+  }
   dci_list.pop_back();
-  pdcch_dl_list.pop_back();
 }
 
 bool coreset_region::get_next_dfs()
@@ -150,8 +170,13 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
     // Allocation successful
     node.total_mask |= node.current_mask;
     alloc_dfs.push_back(node);
-    pdcch_dl_t& pdcch_dl      = pdcch_dl_list[record.idx];
-    pdcch_dl.dci.ctx.location = node.dci_pos;
+    if (record.alloc_type == pdcch_grant_type_t::ul_data) {
+      pdcch_ul_t& pdcch_ul      = pdcch_ul_list[record.idx];
+      pdcch_ul.dci.ctx.location = node.dci_pos;
+    } else {
+      pdcch_dl_t& pdcch_dl      = pdcch_dl_list[record.idx];
+      pdcch_dl.dci.ctx.location = node.dci_pos;
+    }
     return true;
   }
 
@@ -162,10 +187,9 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 {
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
-      return record.ue->cfg->cc_params[record.ue->cc]
-          .bwps[bwp_id]
-          .coresets[record.coreset_id]
-          .cce_positions[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
+    case pdcch_grant_type_t::ul_data:
+      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
     default:
       break;
   }

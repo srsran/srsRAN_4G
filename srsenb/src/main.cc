@@ -54,7 +54,8 @@ namespace bpo = boost::program_options;
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
-string config_file;
+string      config_file;
+static bool stdout_ts_enable = false;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
@@ -92,7 +93,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     ("enb_files.sib_config", bpo::value<string>(&args->enb_files.sib_config)->default_value("sib.conf"), "SIB configuration files")
     ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),   "RR configuration files")
-    ("enb_files.drb_config", bpo::value<string>(&args->enb_files.drb_config)->default_value("drb.conf"), "DRB configuration files")
+    ("enb_files.rb_config", bpo::value<string>(&args->enb_files.rb_config)->default_value("rb.conf"), "SRB/DRB configuration files")
 
     ("rf.dl_earfcn",      bpo::value<uint32_t>(&args->enb.dl_earfcn)->default_value(0),   "Force Downlink EARFCN for single cell")
     ("rf.srate",          bpo::value<double>(&args->rf.srate_hz)->default_value(0.0),     "Force Tx and Rx sampling rate in Hz")
@@ -171,6 +172,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.init_ul_snr_value", bpo::value<int>(&args->stack.mac.sched.init_ul_snr_value)->default_value(5), "Initial UL SNR value used for computing MCS in the first UL grant")
     ("scheduler.init_dl_cqi", bpo::value<int>(&args->stack.mac.sched.init_dl_cqi)->default_value(5), "DL CQI value used before any CQI report is available to the eNB")
     ("scheduler.max_sib_coderate", bpo::value<float>(&args->stack.mac.sched.max_sib_coderate)->default_value(0.8), "Upper bound on SIB and RAR grants coderate")
+    ("scheduler.pdcch_cqi_offset", bpo::value<int>(&args->stack.mac.sched.pdcch_cqi_offset)->default_value(0), "CQI offset in derivation of PDCCH aggregation level")
+
 
 
     /* Downlink Channel emulator section */
@@ -233,6 +236,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.tracing_enable",  bpo::value<bool>(&args->general.tracing_enable)->default_value(false), "Events tracing")
     ("expert.tracing_filename", bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/enb_tracing.log"), "Tracing events filename")
     ("expert.tracing_buffcapacity", bpo::value<std::size_t>(&args->general.tracing_buffcapacity)->default_value(1000000), "Tracing buffer capcity")
+    ("expert.stdout_ts_enable", bpo::value<bool>(&stdout_ts_enable)->default_value(false), "Prints once per second the timestamp into stdout")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(30000), "Inactivity timer in ms.")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
@@ -246,6 +250,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.extended_cp", bpo::value<bool>(&args->phy.extended_cp)->default_value(false), "Use extended cyclic prefix")
     ("expert.ts1_reloc_prep_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_prep_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds")
     ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds")
+    ("expert.rlf_min_ul_snr_estim", bpo::value<int>(&args->stack.mac.rlf_min_ul_snr_estim)->default_value(-2), "SNR threshold in dB below which the eNB is notified with rlf ko.")
 
 
     // eMBMS section
@@ -445,8 +450,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  if (!config_exists(args->enb_files.drb_config, "drb.conf")) {
-    cout << "Failed to read DRB configuration file " << args->enb_files.drb_config << " - exiting" << endl;
+  if (!config_exists(args->enb_files.rb_config, "rb.conf")) {
+    cout << "Failed to read DRB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
     exit(1);
   }
 
@@ -629,13 +634,24 @@ int main(int argc, char* argv[])
       enb->start_plot();
     }
   }
-  int cnt = 0;
+  int cnt    = 0;
+  int ts_cnt = 0;
   while (running) {
     if (args.general.print_buffer_state) {
       cnt++;
       if (cnt == 1000) {
         cnt = 0;
         enb->print_pool();
+      }
+    }
+    if (stdout_ts_enable) {
+      if (++ts_cnt == 100) {
+        ts_cnt = 0;
+        char        buff[64];
+        std::time_t t = std::time(nullptr);
+        if (std::strftime(buff, sizeof(buff), "%FT%T", std::gmtime(&t))) {
+          std::cout << buff << '\n';
+        }
       }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));

@@ -288,6 +288,7 @@ uint32_t sched_ue_cell::get_aggr_level(uint32_t nof_bits) const
   } else {
     dl_cqi = dl_cqi_ctxt.get_avg_cqi();
   }
+  dl_cqi = std::max(cell_cfg->sched_cfg->pdcch_cqi_offset + (int)dl_cqi, 0);
   return srsenb::get_aggr_level(nof_bits,
                                 dl_cqi,
                                 cell_cfg->sched_cfg->min_aggr_level,

@@ -29,6 +29,7 @@
 
 #include "rf_helper.h"
 #include "srsran/phy/utils/debug.h"
+#include "srsran/phy/utils/vector.h"
 
 #include "rf_uhd_generic.h"
 #include "rf_uhd_imp.h"
@@ -197,10 +198,12 @@ void suppress_handler(const char* x)
   // do nothing
 }
 
-static cf_t zero_mem[64 * 1024] = {};
+static std::array<cf_t, 64 * 1024> zero_mem  = {}; // For transmitting zeros
+static std::array<cf_t, 64 * 1024> dummy_mem = {}; // For receiving
 
 static void log_overflow(rf_uhd_handler_t* h)
 {
+  std::unique_lock<std::mutex> lock(h->tx_mutex);
   if (h->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
     h->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
   }
@@ -215,6 +218,7 @@ static void log_overflow(rf_uhd_handler_t* h)
 
 static void log_late(rf_uhd_handler_t* h, bool is_rx)
 {
+  std::unique_lock<std::mutex> lock(h->tx_mutex);
   if (h->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
     h->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
   }
@@ -563,13 +567,14 @@ void rf_uhd_flush_buffer(void* h)
 
   // Set all pointers to zero buffer
   for (auto& i : data) {
-    i = zero_mem;
+    i = dummy_mem.data();
   }
 
   // Receive until time out
   uhd::rx_metadata_t md;
   do {
-    if (handler->uhd->receive(data, handler->rx_nof_samples, md, 0.0, false, rxd_samples) != UHD_ERROR_NONE) {
+    uint32_t nsamples = SRSRAN_MIN(handler->rx_nof_samples, (uint32_t)dummy_mem.size());
+    if (handler->uhd->receive(data, nsamples, md, 0.0, false, rxd_samples) != UHD_ERROR_NONE) {
       log_rx_error(handler);
       return;
     }
@@ -958,7 +963,7 @@ static inline int rf_uhd_imp_end_burst(rf_uhd_handler_t* handler)
 
   // Set buffer pointers
   for (int i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
-    buffs_ptr[i] = zero_mem;
+    buffs_ptr[i] = zero_mem.data();
   }
 
   // Set metadata
@@ -1270,13 +1275,19 @@ int rf_uhd_recv_with_time_multi(void*    h,
   // Receive stream in multiple blocks
   while (rxd_samples_total < nsamples and trials < RF_UHD_IMP_MAX_RX_TRIALS) {
     void* buffs_ptr[SRSRAN_MAX_CHANNELS] = {};
-    for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
-      cf_t* data_c = (cf_t*)data[i];
-      buffs_ptr[i] = &data_c[rxd_samples_total];
-    }
 
     size_t num_samps_left = nsamples - rxd_samples_total;
-    size_t num_rx_samples = (num_samps_left > handler->rx_nof_samples) ? handler->rx_nof_samples : num_samps_left;
+    size_t num_rx_samples = SRSRAN_MIN(handler->rx_nof_samples, num_samps_left);
+
+    for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
+      if (data[i] != nullptr) {
+        cf_t* data_c = (cf_t*)data[i];
+        buffs_ptr[i] = &data_c[rxd_samples_total];
+      } else {
+        buffs_ptr[i]   = dummy_mem.data();
+        num_rx_samples = SRSRAN_MIN(num_rx_samples, (uint32_t)dummy_mem.size());
+      }
+    }
 
     if (handler->uhd->receive(buffs_ptr, num_rx_samples, md, 1.0, false, rxd_samples) != UHD_ERROR_NONE) {
       log_rx_error(handler);
@@ -1388,9 +1399,9 @@ int rf_uhd_send_timed_multi(void*  h,
   cf_t* data_c[SRSRAN_MAX_CHANNELS] = {};
   for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
     if (i < handler->nof_tx_channels) {
-      data_c[i] = (data[i] != nullptr) ? (cf_t*)(data[i]) : zero_mem;
+      data_c[i] = (data[i] != nullptr) ? (cf_t*)(data[i]) : zero_mem.data();
     } else {
-      data_c[i] = zero_mem;
+      data_c[i] = zero_mem.data();
     }
   }
 

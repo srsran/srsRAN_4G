@@ -22,6 +22,7 @@
 #include "srsue/hdr/phy/nr/cc_worker.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/common/buffer_pool.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/srsran.h"
 
 namespace srsue {
@@ -309,6 +310,32 @@ bool cc_worker::decode_pdsch_dl()
     }
   }
 
+  if (not pdsch_res.tb[0].crc and phy.args.store_pdsch_ko) {
+    static unsigned unique_filename_id = 0;
+    unsigned        id                 = ++unique_filename_id;
+
+    fmt::memory_buffer filename;
+    fmt::format_to(filename, "pdsch_ko_bb_samples_{}.bin", id);
+
+    srsran_filesink_t filesink = {};
+    if (srsran_filesink_init(&filesink, (char*)srsran::to_c_str(filename), SRSRAN_COMPLEX_FLOAT_BIN) == 0) {
+      srsran_filesink_write(&filesink, (void*)rx_buffer[0], ue_dl.fft[0].sf_sz);
+      srsran_filesink_free(&filesink);
+
+      str_extra_t str_extra;
+      srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
+      logger.info("PDSCH: KO detected, dumping PDSCH baseband samples into file '%s'"
+                  "\n"
+                  "Information: cc_idx=%d pid=%d slot_idx=%d sf_len=%d\n%s",
+                  srsran::to_c_str(filename),
+                  cc_idx,
+                  pid,
+                  dl_slot_cfg.idx,
+                  ue_dl.fft[0].sf_sz,
+                  str_extra.data());
+    }
+  }
+
   // Enqueue PDSCH ACK information only if the RNTI is type C
   if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_c) {
     phy.set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res.tb[0].crc);
@@ -547,7 +574,7 @@ bool cc_worker::work_ul()
   }
 
   // Add SR to UCI data only if there is no UL grant!
-  if (!has_ul_ack) {
+  if (not has_pusch_grant) {
     phy.get_pending_sr(ul_slot_cfg.idx, uci_data);
   }
 

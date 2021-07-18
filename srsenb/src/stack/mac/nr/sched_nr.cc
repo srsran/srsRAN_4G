@@ -20,15 +20,14 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/hdr/stack/mac/nr/harq_softbuffer.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
 #include "srsran/common/thread_pool.h"
 
 namespace srsenb {
 
-using sched_nr_impl::sched_worker_manager;
-using sched_nr_impl::ue;
-using sched_nr_impl::ue_carrier;
-using sched_nr_impl::ue_map_t;
+using namespace sched_nr_impl;
 
 static int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t& uecfg);
 
@@ -53,7 +52,7 @@ public:
     feedback_list.back().cc       = cc;
     feedback_list.back().callback = std::move(event);
   }
-  void new_tti()
+  void new_slot()
   {
     {
       std::lock_guard<std::mutex> lock(common_mutex);
@@ -90,7 +89,71 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr(const sched_cfg_t& sched_cfg) : cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)) {}
+class sched_result_manager
+{
+public:
+  explicit sched_result_manager(uint32_t nof_cc_)
+  {
+    for (auto& v : results) {
+      v.resize(nof_cc_);
+    }
+  }
+
+  dl_sched_t& add_dl_result(tti_point tti, uint32_t cc)
+  {
+    if (not has_dl_result(tti, cc)) {
+      results[tti.to_uint()][cc].tti_dl = tti;
+      results[tti.to_uint()][cc].dl_res = {};
+    }
+    return results[tti.to_uint()][cc].dl_res;
+  }
+  ul_sched_t& add_ul_result(tti_point tti, uint32_t cc)
+  {
+    if (not has_ul_result(tti, cc)) {
+      results[tti.to_uint()][cc].tti_ul = tti;
+      results[tti.to_uint()][cc].ul_res = {};
+    }
+    return results[tti.to_uint()][cc].ul_res;
+  }
+
+  bool has_dl_result(tti_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].tti_dl == tti; }
+
+  bool has_ul_result(tti_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].tti_ul == tti; }
+
+  dl_sched_t pop_dl_result(tti_point tti, uint32_t cc)
+  {
+    if (has_dl_result(tti, cc)) {
+      results[tti.to_uint()][cc].tti_dl.reset();
+      return results[tti.to_uint()][cc].dl_res;
+    }
+    return {};
+  }
+
+  ul_sched_t pop_ul_result(tti_point tti, uint32_t cc)
+  {
+    if (has_ul_result(tti, cc)) {
+      results[tti.to_uint()][cc].tti_ul.reset();
+      return results[tti.to_uint()][cc].ul_res;
+    }
+    return {};
+  }
+
+private:
+  struct slot_result_t {
+    tti_point  tti_dl;
+    tti_point  tti_ul;
+    dl_sched_t dl_res;
+    ul_sched_t ul_res;
+  };
+
+  srsran::circular_array<std::vector<slot_result_t>, TTIMOD_SZ> results;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+sched_nr::sched_nr(const sched_cfg_t& sched_cfg) :
+  cfg(sched_cfg), pending_events(new ue_event_manager(ue_db)), logger(srslog::fetch_basic_logger("MAC"))
+{}
 
 sched_nr::~sched_nr() {}
 
@@ -101,7 +164,9 @@ int sched_nr::cell_cfg(srsran::const_span<cell_cfg_t> cell_list)
     cfg.cells.emplace_back(cc, cell_list[cc], cfg.sched_cfg);
   }
 
+  pending_results.reset(new sched_result_manager(cell_list.size()));
   sched_workers.reset(new sched_nr_impl::sched_worker_manager(ue_db, cfg));
+
   return SRSRAN_SUCCESS;
 }
 
@@ -114,39 +179,56 @@ void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
-    ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg}));
+    ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
   } else {
     ue_db[rnti]->set_cfg(uecfg);
   }
 }
 
-void sched_nr::slot_indication(tti_point tti_rx)
-{
-  // Lock slot workers for provided tti_rx
-  sched_workers->reserve_workers(tti_rx);
-
-  {
-    // synchronize {tti,cc} state. e.g. reserve UE resources for {tti,cc} decision, process feedback
-    std::lock_guard<std::mutex> lock(ue_db_mutex);
-    // Process pending events
-    pending_events->new_tti();
-
-    sched_workers->start_tti(tti_rx);
-  }
-}
-
 /// Generate {tti,cc} scheduling decision
-int sched_nr::generate_sched_result(tti_point tti_rx, uint32_t cc, tti_request_t& req)
+int sched_nr::generate_slot_result(tti_point pdcch_tti, uint32_t cc)
 {
+  tti_point tti_rx = pdcch_tti - TX_ENB_DELAY;
+
+  // Lock carrier workers for provided tti_rx
+  sched_workers->start_slot(tti_rx, [this]() {
+    // In case it is first worker for the given slot
+    // synchronize {tti,cc} state. e.g. reserve UE resources for {tti,cc} decision, process feedback
+    pending_events->new_slot();
+  });
+
   // unlocked, parallel region
-  bool all_workers_finished = sched_workers->run_tti(tti_rx, cc, req);
+  bool all_workers_finished = sched_workers->run_slot(tti_rx, cc);
 
   if (all_workers_finished) {
     // once all workers of the same subframe finished, synchronize sched outcome with ue_db
-    std::lock_guard<std::mutex> lock(ue_db_mutex);
-    sched_workers->end_tti(tti_rx);
+    sched_workers->release_slot(tti_rx);
   }
 
+  // Copy results to intermediate buffer
+  dl_sched_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
+  ul_sched_t& ul_res = pending_results->add_ul_result(pdcch_tti, cc);
+  sched_workers->save_sched_result(pdcch_tti, cc, dl_res, ul_res);
+
+  return SRSRAN_SUCCESS;
+}
+
+int sched_nr::get_dl_sched(tti_point tti_tx, uint32_t cc, dl_sched_t& result)
+{
+  if (not pending_results->has_dl_result(tti_tx, cc)) {
+    generate_slot_result(tti_tx, cc);
+  }
+
+  result = pending_results->pop_dl_result(tti_tx, cc);
+  return SRSRAN_SUCCESS;
+}
+int sched_nr::get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)
+{
+  if (not pending_results->has_ul_result(tti_rx, cc)) {
+    return SRSRAN_ERROR;
+  }
+
+  result = pending_results->pop_ul_result(tti_rx, cc);
   return SRSRAN_SUCCESS;
 }
 
@@ -165,15 +247,21 @@ void sched_nr::ul_sr_info(tti_point tti_rx, uint16_t rnti)
   });
 }
 
+#define VERIFY_INPUT(cond, msg, ...)                                                                                   \
+  do {                                                                                                                 \
+    if (not(cond)) {                                                                                                   \
+      srslog::fetch_basic_logger("MAC").warning(msg, ##__VA_ARGS__);                                                   \
+      return SRSRAN_ERROR;                                                                                             \
+    }                                                                                                                  \
+  } while (0)
+
 int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t& uecfg)
 {
-  const srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");
-  if (std::count(&uecfg.phy_cfg.pdcch.coreset_present[0],
-                 &uecfg.phy_cfg.pdcch.coreset_present[SRSRAN_UE_DL_NR_MAX_NOF_CORESET],
-                 true) == 0) {
-    logger.warning("Provided rnti=0x%x configuration does not contain any coreset", rnti);
-    return SRSRAN_ERROR;
-  }
+  VERIFY_INPUT(std::count(&uecfg.phy_cfg.pdcch.coreset_present[0],
+                          &uecfg.phy_cfg.pdcch.coreset_present[SRSRAN_UE_DL_NR_MAX_NOF_CORESET],
+                          true) > 0,
+               "Provided rnti=0x%x configuration does not contain any coreset",
+               rnti);
   return SRSRAN_SUCCESS;
 }
 

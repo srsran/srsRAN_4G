@@ -128,8 +128,8 @@ private:
 
   int prach_tti_tx = -1;
 
-  int  sr_tx_tti  = -1;
-  bool sr_pending = false;
+  std::atomic<int32_t> sr_tx_tti  = {-1};
+  std::atomic<bool>    sr_pending = {false};
 
   std::mutex phy_mutex;
 

@@ -410,7 +410,7 @@ int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr
     return SRSRAN_ERROR;
   }
 
-  rrc_h->set_radiolink_ul_state(rnti, snr > 0);
+  rrc_h->set_radiolink_ul_state(rnti, snr >= args.rlf_min_ul_snr_estim);
 
   return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, (uint32_t)ch);
 }

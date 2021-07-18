@@ -85,11 +85,5 @@ add_executable(task_scheduler_test task_scheduler_test.cc)
 target_link_libraries(task_scheduler_test srsran_common ${ATOMIC_LIBS})
 add_test(task_scheduler_test task_scheduler_test)
 
-add_executable(pnf_dummy pnf_dummy.cc)
-target_link_libraries(pnf_dummy srsran_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-
-add_executable(pnf_bridge pnf_bridge.cc)
-target_link_libraries(pnf_bridge srsran_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-
 add_executable(mac_pcap_net_test mac_pcap_net_test.cc)
 target_link_libraries(mac_pcap_net_test srsran_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
