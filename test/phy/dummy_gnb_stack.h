@@ -387,9 +387,6 @@ public:
         // Select grant and set data
         pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
         pdsch.data[1] = nullptr;
-
-        // Generate random data
-        srsran_random_byte_vector(random_gen, pdsch.data[0], pdsch.sch.grant.tb[0].tbs / 8);
       }
 
       return ret;
@@ -433,7 +430,6 @@ public:
       for (pusch_t& pusch : ul_sched.pusch) {
         pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
         pusch.data[1] = nullptr;
-        srsran_random_byte_vector(random_gen, pusch.data[0], pusch.sch.grant.tb[0].tbs / 8);
       }
 
       return ret;
