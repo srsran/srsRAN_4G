@@ -23,7 +23,8 @@ public:
   };
 
   struct metrics_t {
-    std::map<uint32_t, prach_metrics_t> prach = {}; ///< PRACH metrics indexed with premable index
+    std::map<uint32_t, prach_metrics_t> prach    = {}; ///< PRACH metrics indexed with premable index
+    uint32_t                            sr_count = 0;  ///< Counts number of transmitted SR
   };
 
 private:
@@ -95,11 +96,14 @@ public:
       return false;
     }
 
-    bool ret = (sr_count % sr_period == 0);
+    if (sr_count >= (sr_period - 1) and not ul_sch_tx) {
+      metrics.sr_count++;
+      sr_count = 0;
+      return true;
+    }
 
     sr_count++;
-
-    return ret;
+    return false;
   }
   bool is_valid() const { return valid; }
 

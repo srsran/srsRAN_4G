@@ -33,10 +33,27 @@ public:
     uint32_t count;
     float    avg_ta;
   };
+  struct pucch_metrics_t {
+    float    epre_db_avg = 0.0f;
+    float    epre_db_min = +INFINITY;
+    float    epre_db_max = -INFINITY;
+    float    rsrp_db_avg = 0.0f;
+    float    rsrp_db_min = +INFINITY;
+    float    rsrp_db_max = -INFINITY;
+    float    snr_db_avg  = 0.0f;
+    float    snr_db_min  = +INFINITY;
+    float    snr_db_max  = -INFINITY;
+    float    ta_us_avg   = 0.0f;
+    float    ta_us_min   = +INFINITY;
+    float    ta_us_max   = -INFINITY;
+    uint32_t count       = 0;
+  };
 
   struct metrics_t {
-    std::map<uint32_t, prach_metrics_t> prach = {}; ///< PRACH metrics indexed with premable index
-    srsenb::mac_ue_metrics_t            mac   = {}; ///< MAC metrics
+    std::map<uint32_t, prach_metrics_t> prach    = {}; ///< PRACH metrics indexed with premable index
+    srsenb::mac_ue_metrics_t            mac      = {}; ///< MAC metrics
+    uint32_t                            sr_count = 0;  ///< SR counter
+    pucch_metrics_t                     pucch    = {};
   };
 
 private:
@@ -44,10 +61,10 @@ private:
   bool                  use_dummy_sched = true;
   const uint16_t        rnti            = 0x1234;
   struct {
-    srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_location;
-    uint32_t                                                             mcs;
-    uint32_t                                                             freq_res = 0;
-    std::set<uint32_t>                                                   slots;
+    srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_location = {};
+    uint32_t                                                             mcs          = 0;
+    uint32_t                                                             freq_res     = 0;
+    std::set<uint32_t>                                                   slots        = {};
   } dl, ul;
   srsran::circular_array<uint32_t, SRSRAN_NOF_SF_X_FRAME> dl_data_to_ul_ack;
   uint32_t                                                ss_id   = 0;
@@ -259,6 +276,7 @@ private:
   {
     std::unique_lock<std::mutex> lock(metrics_mutex);
 
+    // Process HARQ-ACK
     for (uint32_t i = 0; i < cfg.ack.count; i++) {
       const srsran_harq_ack_bit_t* ack_bit  = &cfg.ack.bits[i];
       bool                         is_ok    = (value.ack[i] == 1) and value.valid;
@@ -269,6 +287,11 @@ private:
         metrics.mac.tx_errors += tb_count;
         logger.debug("NACK received!");
       }
+    }
+
+    // Process SR
+    if (value.valid and value.sr > 0) {
+      metrics.sr_count++;
     }
 
     return true;
@@ -314,8 +337,12 @@ public:
     dl.mcs = args.pdsch.mcs;
     ul.mcs = args.pusch.mcs;
 
-    srsran::string_parse_list(args.pdsch.slots, ',', dl.slots);
-    srsran::string_parse_list(args.pusch.slots, ',', ul.slots);
+    if (args.pdsch.slots != "none" and not args.pdsch.slots.empty()) {
+      srsran::string_parse_list(args.pdsch.slots, ',', dl.slots);
+    }
+    if (args.pusch.slots != "none" and not args.pusch.slots.empty()) {
+      srsran::string_parse_list(args.pusch.slots, ',', ul.slots);
+    }
 
     // Select DCI locations
     for (uint32_t slot = 0; slot < SRSRAN_NOF_SF_X_FRAME; slot++) {
@@ -474,14 +501,35 @@ public:
 
     // If any UCI information is triggered, schedule PUCCH
     if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
-      mac_interface_phy_nr::pucch_t pucch = {};
-      pucch.candidates[0].uci_cfg         = uci_cfg;
-      if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates[0].resource)) {
+      ul_sched.pucch.emplace_back();
+
+      uci_cfg.pucch.rnti = rnti;
+
+      mac_interface_phy_nr::pucch_t& pucch = ul_sched.pucch.back();
+      pucch.candidates.emplace_back();
+      pucch.candidates.back().uci_cfg = uci_cfg;
+      if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
         logger.error("Error getting UCI CFG");
         return SRSRAN_ERROR;
       }
 
-      ul_sched.pucch.push_back(pucch);
+      // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
+      if (uci_cfg.o_sr > 0 and uci_cfg.ack.count > 0 and
+          pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+        // Set SR negative
+        if (uci_cfg.o_sr > 0) {
+          uci_cfg.sr_positive_present = false;
+        }
+
+        // Append new resource
+        pucch.candidates.emplace_back();
+        pucch.candidates.back().uci_cfg = uci_cfg;
+        if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+          logger.error("Error getting UCI CFG");
+          return SRSRAN_ERROR;
+        }
+      }
+
       return SRSRAN_SUCCESS;
     }
 
@@ -498,7 +546,19 @@ public:
     }
 
     // Handle PHY metrics
-    // ...
+    metrics.pucch.epre_db_avg = SRSRAN_VEC_CMA(pucch_info.csi.epre_dB, metrics.pucch.epre_db_avg, metrics.pucch.count);
+    metrics.pucch.epre_db_min = SRSRAN_MIN(metrics.pucch.epre_db_min, pucch_info.csi.epre_dB);
+    metrics.pucch.epre_db_max = SRSRAN_MAX(metrics.pucch.epre_db_max, pucch_info.csi.epre_dB);
+    metrics.pucch.rsrp_db_avg = SRSRAN_VEC_CMA(pucch_info.csi.rsrp_dB, metrics.pucch.rsrp_db_avg, metrics.pucch.count);
+    metrics.pucch.rsrp_db_min = SRSRAN_MIN(metrics.pucch.rsrp_db_min, pucch_info.csi.rsrp_dB);
+    metrics.pucch.rsrp_db_max = SRSRAN_MAX(metrics.pucch.rsrp_db_max, pucch_info.csi.rsrp_dB);
+    metrics.pucch.snr_db_avg  = SRSRAN_VEC_CMA(pucch_info.csi.snr_dB, metrics.pucch.snr_db_avg, metrics.pucch.count);
+    metrics.pucch.snr_db_min  = SRSRAN_MIN(metrics.pucch.snr_db_min, pucch_info.csi.snr_dB);
+    metrics.pucch.snr_db_max  = SRSRAN_MAX(metrics.pucch.snr_db_max, pucch_info.csi.snr_dB);
+    metrics.pucch.ta_us_avg   = SRSRAN_VEC_CMA(pucch_info.csi.delay_us, metrics.pucch.ta_us_avg, metrics.pucch.count);
+    metrics.pucch.ta_us_min   = SRSRAN_MIN(metrics.pucch.ta_us_min, pucch_info.csi.delay_us);
+    metrics.pucch.ta_us_max   = SRSRAN_MAX(metrics.pucch.ta_us_max, pucch_info.csi.delay_us);
+    metrics.pucch.count++;
 
     return SRSRAN_SUCCESS;
   }

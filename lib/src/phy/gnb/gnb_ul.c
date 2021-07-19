@@ -210,6 +210,11 @@ static int gnb_ul_decode_pucch_format1(srsran_gnb_ul_t*                    q,
     return SRSRAN_ERROR;
   }
 
+  // As format 1 with positive SR is not encoded with any payload, set SR to 1
+  if (uci_cfg->sr_positive_present) {
+    uci_value->sr = 1;
+  }
+
   // Take valid decision
   uci_value->valid = (norm_corr > 0.5f);
 
@@ -248,7 +253,8 @@ int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
                             const srsran_pucch_nr_common_cfg_t* cfg,
                             const srsran_pucch_nr_resource_t*   resource,
                             const srsran_uci_cfg_nr_t*          uci_cfg,
-                            srsran_uci_value_nr_t*              uci_value)
+                            srsran_uci_value_nr_t*              uci_value,
+                            srsran_csi_trs_measurements_t*      meas)
 {
   if (q == NULL || slot_cfg == NULL || cfg == NULL || resource == NULL || uci_cfg == NULL || uci_value == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
@@ -257,17 +263,39 @@ int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
   // Estimate channel
   switch (resource->format) {
     case SRSRAN_PUCCH_NR_FORMAT_1:
-      return gnb_ul_decode_pucch_format1(q, slot_cfg, cfg, resource, uci_cfg, uci_value);
+      if (gnb_ul_decode_pucch_format1(q, slot_cfg, cfg, resource, uci_cfg, uci_value) < SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
     case SRSRAN_PUCCH_NR_FORMAT_2:
-      return gnb_ul_decode_pucch_format2(q, slot_cfg, cfg, resource, uci_cfg, uci_value);
+      if (gnb_ul_decode_pucch_format2(q, slot_cfg, cfg, resource, uci_cfg, uci_value) < SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
     case SRSRAN_PUCCH_NR_FORMAT_0:
     case SRSRAN_PUCCH_NR_FORMAT_3:
     case SRSRAN_PUCCH_NR_FORMAT_4:
     case SRSRAN_PUCCH_NR_FORMAT_ERROR:
       ERROR("Invalid or not implemented PUCCH-NR format %d", (int)resource->format);
+      return SRSRAN_ERROR;
   }
 
-  return SRSRAN_ERROR;
+  // Copy DMRS measurements
+  if (meas != NULL) {
+    meas->rsrp       = q->chest_pucch.rsrp;
+    meas->rsrp_dB    = q->chest_pucch.rsrp_dBfs;
+    meas->epre       = q->chest_pucch.epre;
+    meas->epre_dB    = q->chest_pucch.epre_dBfs;
+    meas->n0         = q->chest_pucch.noise_estimate;
+    meas->n0_dB      = q->chest_pucch.noise_estimate_dbm;
+    meas->snr_dB     = q->chest_pucch.snr_db;
+    meas->cfo_hz     = q->chest_pucch.cfo_hz;
+    meas->cfo_hz_max = NAN; // Unavailable
+    meas->delay_us   = q->chest_pucch.ta_us;
+    meas->nof_re     = 0; // Unavailable
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,

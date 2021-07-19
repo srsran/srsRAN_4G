@@ -478,17 +478,21 @@ static int ra_ul_nr_pucch_resource_default(uint32_t r_pucch, srsran_pucch_nr_res
 }
 
 static int ra_ul_nr_pucch_resource_hl(const srsran_pucch_nr_hl_cfg_t* cfg,
-                                      uint32_t                        O_uci,
+                                      const srsran_uci_cfg_nr_t*      uci_cfg,
                                       uint32_t                        pucch_resource_id,
                                       srsran_pucch_nr_resource_t*     resource)
 {
-  uint32_t N2 = cfg->sets[1].max_payload_size > 0 ? cfg->sets[1].max_payload_size : SRSRAN_UCI_NR_MAX_NOF_BITS;
-  uint32_t N3 = cfg->sets[2].max_payload_size > 0 ? cfg->sets[2].max_payload_size : SRSRAN_UCI_NR_MAX_NOF_BITS;
+  uint32_t O_uci = srsran_uci_nr_total_bits(uci_cfg);
+  uint32_t N2    = cfg->sets[1].max_payload_size > 0 ? cfg->sets[1].max_payload_size : SRSRAN_UCI_NR_MAX_NOF_BITS;
+  uint32_t N3    = cfg->sets[2].max_payload_size > 0 ? cfg->sets[2].max_payload_size : SRSRAN_UCI_NR_MAX_NOF_BITS;
 
   // If the UE transmits O UCI UCI information bits, that include HARQ-ACK information bits, the UE determines a PUCCH
   // resource set to be...
   uint32_t resource_set_id = 3;
-  if (O_uci <= 2 && cfg->sets[0].nof_resources > 0) {
+  if (uci_cfg->nof_csi == 0 && uci_cfg->ack.count <= 2) {
+    // a first set of PUCCH resources with pucch-ResourceSetId = 0 if O_UCI ≤ 2 including 1 or 2 HARQ-ACK
+    // information bits and a positive or negative SR on one SR transmission occasion if transmission of HARQ-ACK
+    // information and SR occurs simultaneously, or
     resource_set_id = 0;
   } else if (O_uci <= N2 && cfg->sets[1].nof_resources > 0) {
     resource_set_id = 1;
@@ -524,8 +528,6 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  uint32_t O_uci = srsran_uci_nr_total_bits(uci_cfg);
-
   // Use SR PUCCH resource
   // - At least one positive SR
   // - No HARQ-ACK
@@ -553,7 +555,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - At least one positive SR
   // - up to 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->sr_positive_present > 0 && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+  if (uci_cfg->sr_positive_present && uci_cfg->ack.count <= SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
       uci_cfg->nof_csi == 0) {
     uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
     if (sr_resource_id >= SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES) {
@@ -571,7 +573,8 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
 
     // Select PUCCH resource for HARQ-ACK
     srsran_pucch_nr_resource_t resource_harq = {};
-    if (ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, &resource_harq) < SRSRAN_SUCCESS) {
+    if (ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, &resource_harq) < SRSRAN_SUCCESS) {
+      ERROR("Error selecting HARQ-ACK resource");
       return SRSRAN_ERROR;
     }
 
@@ -595,6 +598,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     }
 
     // The impossible happened...
+    ERROR("The impossible happened...");
     return SRSRAN_ERROR;
   }
 
@@ -603,7 +607,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - More than 2 HARQ-ACK
   // - No CSI report
   if (uci_cfg->o_sr > 0 && uci_cfg->ack.count > SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
-    return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
+    return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
   }
 
   // Use format 2, 3 or 4 CSI report resource from higher layers
@@ -622,7 +626,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     uint32_t r_pucch = (2 * uci_cfg->pucch.n_cce_0) + 2 * uci_cfg->pucch.resource_id;
     return ra_ul_nr_pucch_resource_default(r_pucch, resource);
   }
-  return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
+  return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
 }
 
 uint32_t srsran_ra_ul_nr_nof_sr_bits(uint32_t K)

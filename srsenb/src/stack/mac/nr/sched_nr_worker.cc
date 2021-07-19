@@ -322,9 +322,28 @@ bool sched_worker_manager::save_sched_result(tti_point pdcch_tti, uint32_t cc, d
         // Put UCI configuration in PUCCH config
         ul_res.pucch.emplace_back();
         pucch_t& pucch = ul_res.pucch.back();
-        pucch.uci_cfg  = uci_cfg;
-        bool ret       = phy_cfg->get_pucch_uci_cfg(slot_cfg, pucch.uci_cfg, pucch.pucch_cfg, pucch.resource);
-        srsran_assert(ret, "Error getting PUCCH UCI cfg");
+        pucch.candidates.emplace_back();
+        pucch.candidates.back().uci_cfg = uci_cfg;
+        srsran_assert(phy_cfg->get_pucch_uci_cfg(
+                          slot_cfg, pucch.candidates.back().uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource),
+                      "Error getting PUCCH UCI cfg");
+
+        // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
+        if (uci_cfg.sr_positive_present and uci_cfg.ack.count > 0 and
+            pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+          // Set SR negative
+          if (uci_cfg.o_sr > 0) {
+            uci_cfg.sr_positive_present = false;
+          }
+
+          // Append new resource
+          pucch.candidates.emplace_back();
+          pucch.candidates.back().uci_cfg = uci_cfg;
+          srsran_assert(
+              phy_cfg->get_pucch_uci_cfg(
+                  slot_cfg, pucch.candidates.back().uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource),
+              "Error getting PUCCH UCI cfg");
+        }
       }
     }
   }

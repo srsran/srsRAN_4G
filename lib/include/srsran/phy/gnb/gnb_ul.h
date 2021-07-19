@@ -57,7 +57,8 @@ SRSRAN_API int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
                                        const srsran_pucch_nr_common_cfg_t* cfg,
                                        const srsran_pucch_nr_resource_t*   resource,
                                        const srsran_uci_cfg_nr_t*          uci_cfg,
-                                       srsran_uci_value_nr_t*              uci_value);
+                                       srsran_uci_value_nr_t*              uci_value,
+                                       srsran_csi_trs_measurements_t*      meas);
 
 SRSRAN_API uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,
                                              const srsran_pucch_nr_resource_t* resource,

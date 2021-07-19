@@ -206,9 +206,11 @@ public:
 class mac_interface_phy_nr
 {
 public:
-  const static int MAX_SSB        = 4;
-  const static int MAX_GRANTS     = 64;
-  const static int MAX_NZP_CSI_RS = 4;
+  const static int MAX_SSB              = 4;
+  const static int MAX_GRANTS           = 64;
+  const static int MAX_PUCCH_MSG        = 64;
+  const static int MAX_PUCCH_CANDIDATES = 2;
+  const static int MAX_NZP_CSI_RS       = 4;
 
   struct pdcch_dl_t {
     srsran_dci_cfg_nr_t dci_cfg = {};
@@ -255,8 +257,8 @@ public:
   };
 
   struct pucch_t {
-    srsran_pucch_nr_common_cfg_t                          pucch_cfg;  ///< UE dedicated PUCCH configuration
-    srsran::bounded_vector<pucch_candidate_t, MAX_GRANTS> candidates; ///< PUCCH candidates to decode
+    srsran_pucch_nr_common_cfg_t                                    pucch_cfg;  ///< UE dedicated PUCCH configuration
+    srsran::bounded_vector<pucch_candidate_t, MAX_PUCCH_CANDIDATES> candidates; ///< PUCCH candidates to decode
   };
 
   struct ul_sched_t {
@@ -265,8 +267,8 @@ public:
   };
 
   struct pucch_info_t {
-    srsran_uci_data_nr_t uci_data; ///< RNTI is available under cfg->pucch->rnti
-    // ... add signal measurements here
+    srsran_uci_data_nr_t          uci_data; ///< RNTI is available under cfg->pucch->rnti
+    srsran_csi_trs_measurements_t csi;      ///< DMRS based signal Channel State Information (CSI)
   };
 
   struct pusch_info_t {
