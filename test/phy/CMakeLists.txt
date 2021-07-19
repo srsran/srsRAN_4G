@@ -7,8 +7,8 @@
 #
 
 if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
-    set(NR_PHY_TEST_GNB_NOF_THREADS 3)
-    set(NR_PHY_TEST_UE_NOF_THREADS 3)
+    set(NR_PHY_TEST_GNB_NOF_THREADS 1)
+    set(NR_PHY_TEST_UE_NOF_THREADS 1)
 
     add_executable(nr_phy_test nr_phy_test.cc)
     target_link_libraries(nr_phy_test
