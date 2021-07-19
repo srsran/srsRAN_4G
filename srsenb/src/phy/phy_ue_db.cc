@@ -634,7 +634,8 @@ int phy_ue_db::send_uci_data(uint32_t                  tti,
 
   // Get ACK info
   srsran_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[tti];
-  srsran_enb_dl_get_ack(&cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell, &uci_cfg, &uci_value, &pdsch_ack);
+  const srsran_cell_t& cell      = cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell;
+  srsran_enb_dl_get_ack(&cell, &uci_cfg, &uci_value, &pdsch_ack);
 
   // Iterate over the ACK information
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSRAN_MAX_CARRIERS; ue_cc_idx++) {
@@ -663,22 +664,37 @@ int phy_ue_db::send_uci_data(uint32_t                  tti,
   if (uci_value.cqi.data_crc) {
     // Channel quality indicator itself
     if (uci_cfg.cqi.data_enable) {
-      uint8_t cqi_value = 0;
+      uint8_t  cqi_value   = 0;
+      uint32_t sb_idx      = 0;
+      uint32_t bw_part_idx = 0;
       switch (uci_cfg.cqi.type) {
         case SRSRAN_CQI_TYPE_WIDEBAND:
           cqi_value = uci_value.cqi.wideband.wideband_cqi;
+          printf("tti=%d, wide\n", tti);
+          stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);
           break;
         case SRSRAN_CQI_TYPE_SUBBAND_UE:
-          cqi_value = uci_value.cqi.subband_ue.subband_cqi;
+          cqi_value   = uci_value.cqi.subband_ue.subband_cqi;
+          bw_part_idx = srsran_cqi_periodic_sb_bw_part_idx(
+              &ue.cell_info[0].phy_cfg.dl_cfg.cqi_report, tti, cell.nof_prb, cell.frame_type);
+          sb_idx =
+              uci_value.cqi.subband_ue.subband_label + bw_part_idx * srsran_cqi_sb_get_Nj(bw_part_idx, cell.nof_prb);
+          stack->sb_cqi_info(tti, rnti, cqi_cc_idx, sb_idx, cqi_value);
           break;
         case SRSRAN_CQI_TYPE_SUBBAND_HL:
           cqi_value = uci_value.cqi.subband_hl.wideband_cqi_cw0;
+          // Todo: change interface
+          stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);
           break;
         case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
           cqi_value = uci_value.cqi.subband_ue_diff.wideband_cqi;
+          stack->sb_cqi_info(tti,
+                             rnti,
+                             cqi_cc_idx,
+                             uci_value.cqi.subband_ue_diff.position_subband,
+                             cqi_value + uci_value.cqi.subband_ue_diff.subband_diff_cqi);
           break;
       }
-      stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);
     }
 
     // Precoding Matrix indicator (TM4)

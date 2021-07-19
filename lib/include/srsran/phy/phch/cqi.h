@@ -154,9 +154,16 @@ SRSRAN_API bool srsran_cqi_periodic_is_subband(const srsran_cqi_report_cfg_t* cf
 SRSRAN_API bool
 srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* periodic_cfg, uint32_t tti, srsran_frame_type_t frame_type);
 
+SRSRAN_API uint32_t srsran_cqi_periodic_sb_bw_part_idx(const srsran_cqi_report_cfg_t* cfg,
+                                                       uint32_t                       tti,
+                                                       uint32_t                       nof_prb,
+                                                       srsran_frame_type_t            frame_type);
+
 SRSRAN_API int srsran_cqi_hl_get_no_subbands(int nof_prb);
 
 SRSRAN_API int srsran_cqi_hl_get_L(int nof_prb);
+
+SRSRAN_API int srsran_cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb);
 
 SRSRAN_API uint8_t srsran_cqi_from_snr(float snr);
 
