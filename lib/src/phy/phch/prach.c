@@ -154,6 +154,23 @@ bool srsran_prach_tti_opportunity_config_fdd(uint32_t config_idx, uint32_t curre
   return false;
 }
 
+bool srsran_prach_in_window_config_fdd(uint32_t config_idx, uint32_t current_tti, int allowed_subframe)
+{
+  if (srsran_prach_tti_opportunity_config_fdd(config_idx, current_tti, allowed_subframe)) {
+    return true;
+  }
+
+  uint32_t preamble_format = srsran_prach_get_preamble_format(config_idx);
+  float    T_tot           = (prach_Tseq[preamble_format] + prach_Tcp[preamble_format]) * SRSRAN_LTE_TS;
+  uint32_t tti_dur         = (uint32_t)ceilf(T_tot * 1000);
+  for (uint32_t i = 1; i < tti_dur; ++i) {
+    if (srsran_prach_tti_opportunity_config_fdd(config_idx, current_tti - i, allowed_subframe)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 uint32_t srsran_prach_nof_f_idx_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_config)
 {
   if (config_idx < 64 && tdd_ul_dl_config < 7) {

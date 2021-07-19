@@ -99,7 +99,7 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
   ul_mask |= pucch_mask;
 
   // Reserve PRBs for PRACH
-  if (srsran_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
+  if (srsran_prach_in_window_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
     reserve_ul_prbs(prach_mask, false); // TODO: set to true once test sib.conf files are updated
