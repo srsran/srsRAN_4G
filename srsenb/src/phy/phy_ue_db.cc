@@ -606,6 +606,45 @@ int phy_ue_db::fill_uci_cfg(uint32_t          tti,
   return uci_required ? 1 : SRSRAN_SUCCESS;
 }
 
+void phy_ue_db::send_cqi_data(uint32_t                      tti,
+                             uint16_t                       rnti,
+                             uint32_t                       cqi_cc_idx,
+                             const srsran_cqi_cfg_t&        cqi_cfg,
+                             const srsran_cqi_value_t&      cqi_value,
+                             const srsran_cqi_report_cfg_t& cqi_report_cfg,
+                             const srsran_cell_t&           cell,
+                             stack_interface_phy_lte*       stack)
+{
+  uint8_t  stack_value = 0;
+  switch (cqi_cfg.type) {
+    case SRSRAN_CQI_TYPE_WIDEBAND:
+      stack_value = cqi_value.wideband.wideband_cqi;
+      stack->cqi_info(tti, rnti, cqi_cc_idx, stack_value);
+      break;
+    case SRSRAN_CQI_TYPE_SUBBAND_UE:
+      stack_value = cqi_value.subband_ue.subband_cqi;
+      stack->sb_cqi_info(tti,
+                         rnti,
+                         cqi_cc_idx,
+                         srsran_cqi_get_sb_idx(tti, cqi_value.subband_ue.subband_label, &cqi_report_cfg, &cell),
+                         stack_value);
+      break;
+    case SRSRAN_CQI_TYPE_SUBBAND_HL:
+      stack_value = cqi_value.subband_hl.wideband_cqi_cw0;
+      // Todo: change interface
+      stack->cqi_info(tti, rnti, cqi_cc_idx, stack_value);
+      break;
+    case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
+      stack_value = cqi_value.subband_ue_diff.wideband_cqi;
+      stack->sb_cqi_info(tti,
+                         rnti,
+                         cqi_cc_idx,
+                         cqi_value.subband_ue_diff.position_subband,
+                         stack_value + cqi_value.subband_ue_diff.subband_diff_cqi);
+      break;
+  }
+}
+
 int phy_ue_db::send_uci_data(uint32_t                  tti,
                              uint16_t                  rnti,
                              uint32_t                  enb_cc_idx,
@@ -664,37 +703,7 @@ int phy_ue_db::send_uci_data(uint32_t                  tti,
   if (uci_value.cqi.data_crc) {
     // Channel quality indicator itself
     if (uci_cfg.cqi.data_enable) {
-      uint8_t  cqi_value   = 0;
-      uint32_t sb_idx      = 0;
-      uint32_t bw_part_idx = 0;
-      switch (uci_cfg.cqi.type) {
-        case SRSRAN_CQI_TYPE_WIDEBAND:
-          cqi_value = uci_value.cqi.wideband.wideband_cqi;
-          printf("tti=%d, wide\n", tti);
-          stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);
-          break;
-        case SRSRAN_CQI_TYPE_SUBBAND_UE:
-          cqi_value   = uci_value.cqi.subband_ue.subband_cqi;
-          bw_part_idx = srsran_cqi_periodic_sb_bw_part_idx(
-              &ue.cell_info[0].phy_cfg.dl_cfg.cqi_report, tti, cell.nof_prb, cell.frame_type);
-          sb_idx =
-              uci_value.cqi.subband_ue.subband_label + bw_part_idx * srsran_cqi_sb_get_Nj(bw_part_idx, cell.nof_prb);
-          stack->sb_cqi_info(tti, rnti, cqi_cc_idx, sb_idx, cqi_value);
-          break;
-        case SRSRAN_CQI_TYPE_SUBBAND_HL:
-          cqi_value = uci_value.cqi.subband_hl.wideband_cqi_cw0;
-          // Todo: change interface
-          stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);
-          break;
-        case SRSRAN_CQI_TYPE_SUBBAND_UE_DIFF:
-          cqi_value = uci_value.cqi.subband_ue_diff.wideband_cqi;
-          stack->sb_cqi_info(tti,
-                             rnti,
-                             cqi_cc_idx,
-                             uci_value.cqi.subband_ue_diff.position_subband,
-                             cqi_value + uci_value.cqi.subband_ue_diff.subband_diff_cqi);
-          break;
-      }
+      send_cqi_data(tti, rnti, cqi_cc_idx, uci_cfg.cqi, uci_value.cqi, ue.cell_info[0].phy_cfg.dl_cfg.cqi_report, cell, stack);
     }
 
     // Precoding Matrix indicator (TM4)

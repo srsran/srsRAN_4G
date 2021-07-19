@@ -248,7 +248,7 @@ cqi_format2_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_subband_t* msg
 
   n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->subband_cqi);
   n += snprintf(buff + n, buff_len - n, ", label=%d", msg->subband_label);
-
+  n += snprintf(buff + n, buff_len - n, ", sb_idx=%d", cfg->sb_idx);
   return n;
 }
 
@@ -559,7 +559,7 @@ static int cqi_hl_get_bwp_J(int nof_prb)
 
 /* Returns the number of subbands in the j-th bandwidth part
  */
-int srsran_cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb)
+static int cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb)
 {
   uint32_t J = cqi_hl_get_bwp_J(nof_prb);
   if (J == 1) {
@@ -573,6 +573,15 @@ int srsran_cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb)
       return Nj - 1;
     }
   }
+}
+
+uint32_t srsran_cqi_get_sb_idx(uint32_t tti,
+                               uint32_t subband_label,
+                               const srsran_cqi_report_cfg_t* cqi_report_cfg,
+                               const srsran_cell_t*           cell)
+{
+  uint32_t bw_part_idx = srsran_cqi_periodic_sb_bw_part_idx(cqi_report_cfg, tti, cell->nof_prb, cell->frame_type);
+  return subband_label + bw_part_idx * cqi_sb_get_Nj(bw_part_idx, cell->nof_prb);
 }
 
 /* Returns the number of bits to index a bandwidth part (L)

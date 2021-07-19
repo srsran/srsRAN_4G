@@ -118,6 +118,7 @@ typedef struct SRSRAN_API {
   uint32_t          scell_index;          ///< Indicates the cell/carrier the measurement belongs, use 0 for PCell
   uint32_t          L;
   uint32_t          N;
+  uint32_t          sb_idx;
   srsran_cqi_type_t type;
   uint32_t          ri_len;
 } srsran_cqi_cfg_t;
@@ -163,7 +164,10 @@ SRSRAN_API int srsran_cqi_hl_get_no_subbands(int nof_prb);
 
 SRSRAN_API int srsran_cqi_hl_get_L(int nof_prb);
 
-SRSRAN_API int srsran_cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb);
+SRSRAN_API uint32_t srsran_cqi_get_sb_idx(uint32_t                       tti,
+                                          uint32_t                       subband_label,
+                                          const srsran_cqi_report_cfg_t* cqi_report_cfg,
+                                          const srsran_cell_t*           cell);
 
 SRSRAN_API uint8_t srsran_cqi_from_snr(float snr);
 

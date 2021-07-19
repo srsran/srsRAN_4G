@@ -727,6 +727,22 @@ void srsran_bit_unpack(uint32_t value, uint8_t** bits, int nof_bits)
   *bits += nof_bits;
 }
 
+/**
+ * Unpacks nof_bits from LSBs of value in LSB order to *bits. Advances pointer past unpacked bits.
+ *
+ * @param[in] value nof_bits lowest order bits will be unpacked in MSB order
+ * @param[in] nof_bits Number of bits to unpack
+ * @param[out] bits Points to buffer pointer. The buffer pointer will be advanced by nof_bits
+ */
+void srsran_bit_unpack_lsb(uint32_t value, uint8_t** bits, int nof_bits)
+{
+  int i;
+  for (i = 0; i < nof_bits; i++) {
+    (*bits)[nof_bits - i - 1] = (value >> (nof_bits - i - 1)) & 0x1;
+  }
+  *bits += nof_bits;
+}
+
 void srsran_bit_pack_vector(uint8_t* unpacked, uint8_t* packed, int nof_bits)
 {
   uint32_t i, nbytes;

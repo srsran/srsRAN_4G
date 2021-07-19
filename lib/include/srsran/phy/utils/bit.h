@@ -76,6 +76,8 @@ SRSRAN_API void srsran_bit_unpack_l(uint64_t value, uint8_t** bits, int nof_bits
 
 SRSRAN_API void srsran_bit_unpack(uint32_t value, uint8_t** bits, int nof_bits);
 
+SRSRAN_API void srsran_bit_unpack_lsb(uint32_t value, uint8_t** bits, int nof_bits);
+
 SRSRAN_API void srsran_bit_fprint(FILE* stream, uint8_t* bits, int nof_bits);
 
 SRSRAN_API uint32_t srsran_bit_diff(const uint8_t* x, const uint8_t* y, int nbits);
