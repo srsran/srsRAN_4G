@@ -55,7 +55,7 @@ typedef struct {
 #define SRSRAN_UE_CATEGORY_MAX 21
 #define SRSRAN_RELEASE_MIN 8
 #define SRSRAN_RELEASE_MAX 15
-#define SRSRAN_RELEASE_DEFAULT (SRSRAN_RELEASE_MAX)
+#define SRSRAN_RELEASE_DEFAULT (SRSRAN_RELEASE_MIN)
 
 class phy_controller;
 class usim_interface_rrc;

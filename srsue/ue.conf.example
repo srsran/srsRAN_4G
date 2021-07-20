@@ -159,7 +159,7 @@ imei = 353490069873319
 #####################################################################
 [rrc]
 #ue_category       = 4
-#release           = 15
+#release           = 8
 #feature_group     = 0xe6041000
 #mbms_service_id   = -1
 #mbms_service_port = 4321
