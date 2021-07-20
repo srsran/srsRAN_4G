@@ -14,6 +14,7 @@
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/rlc/rlc_am_nr_packing.h"
 #include "srsran/srslog/event_trace.h"
 #include <iostream>
 
@@ -56,7 +57,52 @@ bool rlc_am_nr_tx::has_data()
 
 uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  return 0;
+  std::lock_guard<std::mutex> lock(mutex);
+
+  if (not tx_enabled) {
+    logger->debug("RLC entity not active. Not generating PDU.");
+    return 0;
+  }
+
+  logger->debug("MAC opportunity - %d bytes", nof_bytes);
+  // logger.debug("tx_window size - %zu PDUs", tx_window.size());
+
+  // Tx STATUS if requested
+  // TODO
+
+  // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
+  // TODO
+
+  // RETX if required
+  // TODO
+
+  // Build a PDU from SDU
+  unique_byte_buffer_t tx_sdu;
+  unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
+
+  // Read new SDU from TX queue
+  do {
+    tx_sdu = tx_sdu_queue.read();
+  } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
+
+  uint16_t hdr_size = 2;
+  if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
+    logger->warning("Segmentation not supported yet");
+    return 0;
+  }
+  rlc_am_nr_pdu_header_t hdr = {};
+  hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
+  hdr.p                      = 0;
+  hdr.si                     = rlc_nr_si_field_t::full_sdu;
+  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn                     = st.tx_next;
+
+  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu.get());
+  if (len > nof_bytes) {
+    logger->error("Error writing AMD PDU header");
+  }
+  memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
+  return tx_sdu->N_bytes;
 }
 
 void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) {}
