@@ -34,8 +34,8 @@ namespace srsue {
  *   NAS
  ********************************************************************/
 
-nas::nas(srsran::task_sched_handle task_sched_) :
-  nas_base("NAS"),
+nas::nas(srslog::basic_logger& logger_, srsran::task_sched_handle task_sched_) :
+  nas_base(logger_),
   plmn_searcher(this),
   task_sched(task_sched_),
   t3402(task_sched_.get_unique_timer()),

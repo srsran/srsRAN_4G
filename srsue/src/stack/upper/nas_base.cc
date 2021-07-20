@@ -14,7 +14,7 @@
 
 using namespace srsran;
 namespace srsue {
-nas_base::nas_base(const std::string& type_) : logger(srslog::fetch_basic_logger(type_)) {}
+nas_base::nas_base(srslog::basic_logger& logger_) : logger(logger_) {}
 
 int nas_base::parse_security_algorithm_list(std::string algorithm_string, bool* algorithm_caps)
 {

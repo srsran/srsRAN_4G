@@ -28,7 +28,7 @@ namespace srsue {
 class nas_base
 {
 public:
-  nas_base(const std::string& type_);
+  nas_base(srslog::basic_logger& logger_);
   // PCAP
   void start_pcap(srsran::nas_pcap* pcap_) { pcap = pcap_; }
 

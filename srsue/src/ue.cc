@@ -61,7 +61,7 @@ int ue::init(const all_args_t& args_)
       return SRSRAN_ERROR;
     }
 
-    std::unique_ptr<gw> gw_ptr(new gw());
+    std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
     if (!gw_ptr) {
       srsran::console("Error creating a GW instance.\n");
       return SRSRAN_ERROR;
@@ -123,7 +123,7 @@ int ue::init(const all_args_t& args_)
     std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr());
     std::unique_ptr<srsran::radio_null> nr_radio(new srsran::radio_null);
     std::unique_ptr<srsue::ue_phy_base> nr_phy;
-    std::unique_ptr<gw>                 gw_ptr(new gw());
+    std::unique_ptr<gw>                 gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
 
     // Init layers
     if (nr_radio->init(args.rf, nullptr)) {

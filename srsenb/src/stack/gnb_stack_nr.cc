@@ -23,7 +23,7 @@ gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(s
   m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP-NR"));
   m_rrc.reset(new rrc_nr(&task_sched));
   m_sdap.reset(new sdap());
-  m_gw.reset(new srsue::gw());
+  m_gw.reset(new srsue::gw(srslog::fetch_basic_logger("GW")));
   //  m_gtpu.reset(new srsenb::gtpu());
 
   ue_task_queue   = task_sched.make_task_queue();
