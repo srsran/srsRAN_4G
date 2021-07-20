@@ -359,15 +359,23 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::security_mode_complete:
       handle_security_mode_complete(&ul_dcch_msg.msg.c1().security_mode_complete());
-      send_ue_cap_enquiry();
+      send_ue_cap_enquiry({asn1::rrc::rat_type_opts::options::eutra});
       state = RRC_STATE_WAIT_FOR_UE_CAP_INFO;
       break;
     case ul_dcch_msg_type_c::c1_c_::types::security_mode_fail:
       handle_security_mode_failure(&ul_dcch_msg.msg.c1().security_mode_fail());
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
-      if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
-        send_connection_reconf(std::move(pdu));
+      if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info()) == SRSRAN_SUCCESS) {
+        if (not parent->cfg.cell_list_nr.empty() && endc_handler->is_endc_supported() &&
+            state == RRC_STATE_WAIT_FOR_UE_CAP_INFO) {
+          // request EUTRA-NR and NR capabilities as well
+          send_ue_cap_enquiry({asn1::rrc::rat_type_opts::options::eutra_nr, asn1::rrc::rat_type_opts::options::nr});
+          state = RRC_STATE_WAIT_FOR_UE_CAP_INFO_ENDC; // avoid endless loop
+        } else {
+          // send RRC reconfiguration to complete procedure
+          send_connection_reconf(std::move(pdu));
+        }
       } else {
         send_connection_reject(procedure_result_code::none);
         state = RRC_STATE_IDLE;
@@ -911,7 +919,7 @@ void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
 /*
  * UE capabilities info
  */
-void rrc::ue::send_ue_cap_enquiry()
+void rrc::ue::send_ue_cap_enquiry(const std::vector<asn1::rrc::rat_type_opts::options>& rats)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_ue_cap_enquiry().crit_exts.set_c1().set_ue_cap_enquiry_r8();
@@ -919,13 +927,20 @@ void rrc::ue::send_ue_cap_enquiry()
   ue_cap_enquiry_s* enq   = &dl_dcch_msg.msg.c1().ue_cap_enquiry();
   enq->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
 
-  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.resize(1);
-  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[0].value = rat_type_e::eutra;
+  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.resize(rats.size());
+  for (uint32_t i = 0; i < rats.size(); ++i) {
+    enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i].value = rats.at(i);
+  }
 
   send_dl_dcch(&dl_dcch_msg);
 }
 
-bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
+/**
+ * @brief Handle the reception of UE capability information message
+ *
+ * @return int SRSRAN_SUCCESS if unpacking was ok. SRSRAN_ERROR otherwise
+ */
+int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 {
   parent->logger.info("UECapabilityInformation transaction ID: %d", msg->rrc_transaction_id);
   ue_cap_info_r8_ies_s* msg_r8 = &msg->crit_exts.c1().ue_cap_info_r8();
@@ -940,7 +955,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
                         msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.size());
     if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
       parent->logger.error("Failed to unpack EUTRA capabilities message");
-      return false;
+      return SRSRAN_ERROR;
     }
     if (parent->logger.debug.enabled()) {
       asn1::json_writer js{};
@@ -953,7 +968,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
 
     if (endc_handler) {
-      endc_handler->handle_ue_capabilities(eutra_capabilities);
+      endc_handler->handle_eutra_capabilities(eutra_capabilities);
     }
   }
 
@@ -961,7 +976,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (pdu == nullptr) {
       parent->logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-      return false;
+      return SRSRAN_ERROR;
     }
     asn1::bit_ref bref2{pdu->msg, pdu->get_tailroom()};
     msg->pack(bref2);
@@ -972,13 +987,13 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     bref2 = asn1::bit_ref{pdu->msg, pdu->get_tailroom()};
     if (ue_rat_caps.pack(bref2) != asn1::SRSASN_SUCCESS) {
       parent->logger.error("Couldn't pack ue rat caps");
-      return false;
+      return SRSRAN_ERROR;
     }
     pdu->N_bytes = bref2.distance_bytes();
     parent->s1ap->send_ue_cap_info_indication(rnti, std::move(pdu));
   }
 
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 /*
