@@ -101,16 +101,16 @@ cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
   return cc_workers[cc_idx]->get_buffer_rx(antenna_idx);
 }
 
-void sf_worker::set_time(uint32_t tti_, const srsran::rf_timestamp_t& tx_time_)
+void sf_worker::set_context(const srsran::phy_common_interface::worker_context_t& w_ctx)
 {
-  tti_rx    = tti_;
+  tti_rx    = w_ctx.sf_idx;
   tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 
-  tx_time.copy(tx_time_);
+  context.copy(w_ctx);
 
   for (auto& w : cc_workers) {
-    w->set_tti(tti_);
+    w->set_tti(w_ctx.sf_idx);
   }
 }
 
@@ -147,14 +147,10 @@ void sf_worker::work_imp()
 
   // Get Transmission buffers
   srsran::rf_buffer_t tx_buffer = {};
-  for (uint32_t cc = 0; cc < phy->get_nof_carriers_lte(); cc++) {
-    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
-      tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
-    }
-  }
+  tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB(phy->get_nof_prb(0)));
 
   if (!running) {
-    phy->worker_end(this, true, tx_buffer, tx_time, false);
+    phy->worker_end(context, true, tx_buffer);
     return;
   }
 
@@ -192,14 +188,14 @@ void sf_worker::work_imp()
   if (sf_type == SRSRAN_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, dl_grants) < 0) {
       Error("Getting DL scheduling from MAC");
-      phy->worker_end(this, false, tx_buffer, tx_time, false);
+      phy->worker_end(context, true, tx_buffer);
       return;
     }
   } else {
     dl_grants[0].cfi = mbsfn_cfg.non_mbsfn_region_length;
     if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants)) {
       Error("Getting MCH packets from MAC");
-      phy->worker_end(this, false, tx_buffer, tx_time, false);
+      phy->worker_end(context, true, tx_buffer);
       return;
     }
   }
@@ -207,7 +203,7 @@ void sf_worker::work_imp()
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants_tx) < 0) {
     Error("Getting UL scheduling from MAC");
-    phy->worker_end(this, false, tx_buffer, tx_time, false);
+    phy->worker_end(context, true, tx_buffer);
     return;
   }
 
@@ -232,9 +228,15 @@ void sf_worker::work_imp()
   // Save grants
   phy->set_ul_grants(tti_tx_ul, ul_grants_tx);
 
+  // Set or combine RF ports
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers_lte(); cc++) {
+    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
+      tx_buffer.set_combine(phy->get_rf_port(cc), ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
+    }
+  }
+
   Debug("Sending to radio");
-  tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB(phy->get_nof_prb(0)));
-  phy->worker_end(this, true, tx_buffer, tx_time, false);
+  phy->worker_end(context, true, tx_buffer);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSRAN_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);

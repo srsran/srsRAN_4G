@@ -42,8 +42,7 @@ public:
   /* Functions used by main PHY thread */
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
-  void     set_tti(uint32_t tti);
-  void     set_tx_time(const srsran::rf_timestamp_t& tx_time);
+  void     set_context(const srsran::phy_common_interface::worker_context_t& w_ctx);
   void     set_prach(cf_t* prach_ptr, float prach_power);
   void     set_cfo_unlocked(const uint32_t& cc_idx, float cfo);
 
@@ -89,8 +88,7 @@ private:
   cf_t* prach_ptr   = nullptr;
   float prach_power = 0;
 
-  uint32_t               tti     = 0;
-  srsran::rf_timestamp_t tx_time = {};
+  srsran::phy_common_interface::worker_context_t context = {};
 };
 
 } // namespace lte

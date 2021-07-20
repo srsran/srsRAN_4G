@@ -130,11 +130,7 @@ public:
                           srsran_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, srsran_pdsch_ack_cc_t* ack);
 
-  void worker_end(void*                   h,
-                  bool                    tx_enable,
-                  srsran::rf_buffer_t&    buffer,
-                  srsran::rf_timestamp_t& tx_time,
-                  bool                    is_nr) override;
+  void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
   void set_cell(const srsran_cell_t& c);
 
@@ -371,8 +367,8 @@ private:
   bool is_mcch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
 
   // NR carriers buffering synchronization, LTE workers are in charge of transmitting
-  srsran::rf_buffer_t nr_tx_buffer;
-  bool                nr_tx_buffer_ready = false;
+  bool                tx_enabled = false;
+  srsran::rf_buffer_t tx_buffer  = {};
 };
 } // namespace srsue
 

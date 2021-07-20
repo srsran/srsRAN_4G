@@ -52,6 +52,7 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
     w_args.nof_max_prb             = cell_list[cell_index].carrier.nof_prb;
     w_args.nof_tx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
     w_args.nof_rx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
+    w_args.rf_port                 = cell_list[cell_index].rf_port;
     w_args.pusch_max_nof_iter      = args.pusch_max_nof_iter;
 
     if (not w->init(w_args)) {

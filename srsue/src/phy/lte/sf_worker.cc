@@ -103,20 +103,15 @@ uint32_t sf_worker::get_buffer_len()
   return cc_workers.at(0)->get_buffer_len();
 }
 
-void sf_worker::set_tti(uint32_t tti_)
+void sf_worker::set_context(const srsran::phy_common_interface::worker_context_t& w_ctx)
 {
-  tti = tti_;
+  context.copy(w_ctx);
 
   for (auto& cc_worker : cc_workers) {
-    cc_worker->set_tti(tti);
+    cc_worker->set_tti(w_ctx.sf_idx);
   }
 
-  logger.set_context(tti);
-}
-
-void sf_worker::set_tx_time(const srsran::rf_timestamp_t& tx_time_)
-{
-  tx_time.copy(tx_time_);
+  logger.set_context(w_ctx.sf_idx);
 }
 
 void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
@@ -153,9 +148,10 @@ void sf_worker::set_config_unlocked(uint32_t cc_idx, const srsran::phy_cfg_t& ph
 
 void sf_worker::work_imp()
 {
+  uint32_t            tti           = context.sf_idx;
   srsran::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
-    phy->worker_end(this, false, tx_signal_ptr, tx_time, false);
+    phy->worker_end(context, false, tx_signal_ptr);
     return;
   }
 
@@ -226,7 +222,7 @@ void sf_worker::work_imp()
   }
 
   // Call worker_end to transmit the signal
-  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, tx_time, false);
+  phy->worker_end(context, tx_signal_ready, tx_signal_ptr);
 
   if (rx_signal_ok) {
     update_measurements();

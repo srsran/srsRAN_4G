@@ -32,7 +32,7 @@ public:
   void init(phy_common* phy);
 
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
-  void  set_time(uint32_t tti_, const srsran::rf_timestamp_t& tx_time_);
+  void  set_context(const srsran::phy_common_interface::worker_context_t& w_ctx);
 
   int      add_rnti(uint16_t rnti, uint32_t cc_idx);
   void     rem_rnti(uint16_t rnti);
@@ -59,10 +59,9 @@ private:
   bool                  running   = false;
   std::mutex            work_mutex;
 
-  uint32_t               tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
-  srsran::rf_timestamp_t tx_time       = {};
-
-  std::vector<std::unique_ptr<cc_worker> > cc_workers;
+  uint32_t                                       tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
+  std::vector<std::unique_ptr<cc_worker> >       cc_workers;
+  srsran::phy_common_interface::worker_context_t context = {};
 
   srsran_softbuffer_tx_t temp_mbsfn_softbuffer = {};
 };

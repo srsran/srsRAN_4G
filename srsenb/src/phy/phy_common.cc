@@ -104,42 +104,37 @@ void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_s
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void*                   tx_sem_id,
-                            bool                    tx_enable,
-                            srsran::rf_buffer_t&    buffer,
-                            srsran::rf_timestamp_t& tx_time,
-                            bool                    is_nr)
+void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer)
 {
   // Wait for the green light to transmit in the current TTI
-  semaphore.wait(tx_sem_id);
+  semaphore.wait(w_ctx.worker_ptr);
 
-  // If this is for NR, save Tx buffers...
-  if (is_nr) {
-    nr_tx_buffer       = buffer;
-    nr_tx_buffer_ready = true;
+  // For combine buffer with previous buffers
+  if (tx_enable) {
+    tx_buffer.set_nof_samples(buffer.get_nof_samples());
+    tx_buffer.set_combine(buffer);
+  }
+
+  // If the current worker is not the last one, skip transmission
+  if (not w_ctx.last) {
+    // Release semaphore and let next worker to get in
     semaphore.release();
     return;
   }
 
-  // ... otherwise, append NR base-band from saved buffer if available
-  if (nr_tx_buffer_ready) {
-    uint32_t j = 0;
-    for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
-      if (buffer.get(i) == nullptr) {
-        buffer.set(i, nr_tx_buffer.get(j));
-        j++;
-      }
-    }
-    nr_tx_buffer_ready = false;
-  }
+  // Add current time alignment
+  srsran::rf_timestamp_t tx_time = w_ctx.tx_time; // get transmit time from the last worker
+
+  // Use last buffer number of samples
+  tx_buffer.set_nof_samples(buffer.get_nof_samples());
 
   // Run DL channel emulator if created
   if (dl_channel) {
-    dl_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
+    dl_channel->run(tx_buffer.to_cf_t(), tx_buffer.to_cf_t(), tx_buffer.get_nof_samples(), tx_time.get(0));
   }
 
   // Always transmit on single radio
-  radio->tx(buffer, tx_time);
+  radio->tx(tx_buffer, tx_time);
 
   // Allow next TTI to transmit
   semaphore.release();

@@ -172,18 +172,39 @@ void txrx::run_thread()
           timestamp.get(0).frac_secs,
           lte_worker->get_id());
 
-    lte_worker->set_time(tti, timestamp);
-
     // Trigger prach worker execution
     for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {
       prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
     }
 
-    // Launch NR worker only if available
+    // Set NR worker context and start
     if (nr_worker != nullptr) {
-      nr_worker->set_time(tti, timestamp);
+      srsran::phy_common_interface::worker_context_t context;
+      context.sf_idx     = tti;
+      context.worker_ptr = nr_worker;
+      context.last       = (lte_worker == nullptr); // Set last if standalone
+      context.tx_time.copy(timestamp);
+
+      nr_worker->set_context(context);
+
+      // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
       worker_com->semaphore.push(nr_worker);
       nr_workers->start_worker(nr_worker);
+    }
+
+    // Set LTE worker context and start
+    if (lte_worker != nullptr) {
+      srsran::phy_common_interface::worker_context_t context;
+      context.sf_idx     = tti;
+      context.worker_ptr = lte_worker;
+      context.last       = true;
+      context.tx_time.copy(timestamp);
+
+      lte_worker->set_context(context);
+
+      // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
+      worker_com->semaphore.push(lte_worker);
+      lte_workers->start_worker(lte_worker);
     }
 
     // Trigger phy worker execution

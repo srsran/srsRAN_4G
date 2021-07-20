@@ -18,19 +18,40 @@
 
 namespace srsran {
 
+/**
+ * @brief Descibes a physical layer common interface
+ */
 class phy_common_interface
 {
 public:
   /**
+   * @brief Describes a worker context
+   */
+  struct worker_context_t {
+    uint32_t               sf_idx     = 0;       ///< Subframe index
+    void*                  worker_ptr = nullptr; ///< Worker pointer for wait/release semaphore
+    bool                   last       = false;   ///< Indicates this worker is the last one in the sub-frame processing
+    srsran::rf_timestamp_t tx_time    = {};      ///< Transmit time, used only by last worker
+
+    void copy(const worker_context_t& other)
+    {
+      sf_idx     = other.sf_idx;
+      worker_ptr = other.worker_ptr;
+      last       = other.last;
+      tx_time.copy(other.tx_time);
+    }
+
+    worker_context_t() = default;
+    worker_context_t(const worker_context_t& other) { copy(other); }
+  };
+
+  /**
    * @brief Common PHY interface for workers to indicate they ended
-   * @param h Worker pointer used as unique identifier for synchronising Tx
+   * @param w_ctx Worker context
    * @param tx_enable Indicates whether the buffer has baseband samples to transmit
    * @param buffer Baseband buffer
-   * @param tx_time Transmit timestamp
-   * @param is_nr Indicates whether the worker is NR or not
    */
-  virtual void
-  worker_end(void* h, bool tx_enable, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) = 0;
+  virtual void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) = 0;
 };
 
 } // namespace srsran

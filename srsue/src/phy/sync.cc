@@ -519,11 +519,19 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
     worker_com->update_cfo_measurement(cc, cfo);
   }
 
-  lte_worker->set_tti(tti);
-
   // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
-  lte_worker->set_tx_time(last_rx_time);
+
+  // Set LTE worker context
+  if (lte_worker != nullptr) {
+    srsran::phy_common_interface::worker_context_t context;
+    context.sf_idx     = tti;
+    context.worker_ptr = lte_worker;
+    context.last       = true;
+    context.tx_time.copy(last_rx_time);
+
+    lte_worker->set_context(context);
+  }
 
   // Advance/reset prach subframe pointer
   if (prach_ptr) {
@@ -534,17 +542,35 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
     }
   }
 
-  // Start NR worker only if present
+  // Set NR worker context and start
   if (nr_worker != nullptr) {
+    srsran::phy_common_interface::worker_context_t context;
+    context.sf_idx     = tti;
+    context.worker_ptr = nr_worker;
+    context.last       = (lte_worker == nullptr); // Set last if standalone
+    context.tx_time.copy(last_rx_time);
+
+    nr_worker->set_context(context);
+
     // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
-    nr_worker->set_tti(tti);
     worker_com->semaphore.push(nr_worker);
     nr_worker_pool->start_worker(nr_worker);
   }
 
-  // Start LTE worker
-  worker_com->semaphore.push(lte_worker);
-  lte_worker_pool->start_worker(lte_worker);
+  // Set LTE worker context and start
+  if (lte_worker != nullptr) {
+    srsran::phy_common_interface::worker_context_t context;
+    context.sf_idx     = tti;
+    context.worker_ptr = lte_worker;
+    context.last       = true;
+    context.tx_time.copy(last_rx_time);
+
+    lte_worker->set_context(context);
+
+    // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
+    worker_com->semaphore.push(lte_worker);
+    lte_worker_pool->start_worker(lte_worker);
+  }
 }
 void sync::run_camping_state()
 {
@@ -1042,7 +1068,7 @@ void sync::set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, sr
 void sync::set_cells_to_meas(uint32_t earfcn_, const std::set<uint32_t>& pci)
 {
   std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
-  bool found = false;
+  bool                        found = false;
   for (size_t i = 0; i < intra_freq_meas.size() and not found; i++) {
     if (earfcn_ == intra_freq_meas[i]->get_earfcn()) {
       intra_freq_meas[i]->set_cells_to_meas(pci);

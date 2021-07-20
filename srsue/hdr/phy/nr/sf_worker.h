@@ -39,8 +39,7 @@ public:
   /* Functions used by main PHY thread */
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
-  void     set_tti(uint32_t tti);
-  void     set_tx_time(const srsran::rf_timestamp_t& tx_time_);
+  void     set_context(const srsran::phy_common_interface::worker_context_t& w_ctx);
   int      read_pdsch_d(cf_t* pdsch_d);
   void     start_plot();
 
@@ -52,13 +51,14 @@ private:
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  srsran::phy_common_interface& common;
-  state&                        phy_state;
-  srslog::basic_logger&         logger;
-  srsran::rf_timestamp_t        tx_time     = {};
-  uint32_t                      tti_rx      = 0;
-  cf_t*                         prach_ptr   = nullptr;
-  float                         prach_power = 0;
+  srsran::phy_common_interface&                  common;
+  state&                                         phy_state;
+  srslog::basic_logger&                          logger;
+  srsran::rf_timestamp_t                         tx_time     = {};
+  uint32_t                                       tti_rx      = 0;
+  cf_t*                                          prach_ptr   = nullptr;
+  float                                          prach_power = 0;
+  srsran::phy_common_interface::worker_context_t context     = {};
 };
 
 } // namespace nr

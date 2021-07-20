@@ -146,7 +146,9 @@ public:
     uint32_t nof_channels = 1;
 
     args_t(double srate_hz_, uint32_t buffer_sz_ms_, uint32_t nof_channels_) :
-      srate_hz(srate_hz_), buffer_sz_ms(buffer_sz_ms_), nof_channels(nof_channels_)
+      srate_hz(srate_hz_),
+      buffer_sz_ms(buffer_sz_ms_),
+      nof_channels(nof_channels_)
     {}
   };
 
@@ -179,21 +181,20 @@ public:
 
   void push_semaphore(void* worker_ptr) { semaphore.push(worker_ptr); }
 
-  void
-  worker_end(void* h, bool tx_enable, srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& tx_time, bool is_nr) override
+  void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override
   {
     // Synchronize worker
-    semaphore.wait(h);
+    semaphore.wait(w_ctx.worker_ptr);
 
     // Protect internal buffers and states
     std::unique_lock<std::mutex> lock(ringbuffers_mutex);
 
-    uint64_t tx_ts = srsran_timestamp_uint64(&tx_time.get(0), srate_hz);
+    uint64_t tx_ts = srsran_timestamp_uint64(&w_ctx.tx_time.get(0), srate_hz);
 
     // Check transmit timestamp is not in the past
     if (tx_ts < write_ts) {
       logger.error("Tx time (%f) is %d samples in the past",
-                   srsran_timestamp_real(tx_time.get_ptr(0)),
+                   srsran_timestamp_real(&w_ctx.tx_time.get(0)),
                    (uint32_t)(write_ts - tx_ts));
       semaphore.release();
       return;

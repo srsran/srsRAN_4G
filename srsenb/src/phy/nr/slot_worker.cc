@@ -18,7 +18,9 @@ namespace nr {
 slot_worker::slot_worker(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
                          srslog::basic_logger&         logger_) :
-  common(common_), stack(stack_), logger(logger_)
+  common(common_),
+  stack(stack_),
+  logger(logger_)
 {
   // Do nothing
 }
@@ -30,8 +32,7 @@ bool slot_worker::init(const args_t& args)
 
   // Copy common configurations
   cell_index = args.cell_index;
-  // FIXME:
-  // pdcch_cfg  = args.pdcch_cfg;
+  rf_port    = args.rf_port;
 
   // Allocate Tx buffers
   tx_buffer.resize(args.nof_tx_ports);
@@ -124,12 +125,12 @@ uint32_t slot_worker::get_buffer_len()
   return sf_len;
 }
 
-void slot_worker::set_time(const uint32_t& tti, const srsran::rf_timestamp_t& timestamp)
+void slot_worker::set_context(const srsran::phy_common_interface::worker_context_t& w_ctx)
 {
-  logger.set_context(tti);
-  ul_slot_cfg.idx = tti;
-  dl_slot_cfg.idx = TTI_ADD(tti, FDD_HARQ_DELAY_UL_MS);
-  tx_time.copy(timestamp);
+  logger.set_context(w_ctx.sf_idx);
+  ul_slot_cfg.idx = w_ctx.sf_idx;
+  dl_slot_cfg.idx = TTI_ADD(w_ctx.sf_idx, FDD_HARQ_DELAY_UL_MS);
+  context.copy(w_ctx);
 }
 
 bool slot_worker::work_ul()
@@ -326,27 +327,26 @@ void slot_worker::work_imp()
   stack.slot_indication(dl_slot_cfg);
 
   // Get Transmission buffers
+  uint32_t            nof_ant      = (uint32_t)tx_buffer.size();
   srsran::rf_buffer_t tx_rf_buffer = {};
-  for (uint32_t i = 0; i < (uint32_t)tx_buffer.size(); i++) {
-    tx_rf_buffer.set(i, tx_buffer[i]);
-  }
-
-  // Set number of samples
   tx_rf_buffer.set_nof_samples(sf_len);
+  for (uint32_t a = 0; a < nof_ant; a++) {
+    tx_rf_buffer.set(rf_port, a, nof_ant, tx_buffer[a]);
+  }
 
   // Process uplink
   if (not work_ul()) {
-    common.worker_end(this, false, tx_rf_buffer, tx_time, true);
+    common.worker_end(context, false, tx_rf_buffer);
     return;
   }
 
   // Process downlink
   if (not work_dl()) {
-    common.worker_end(this, false, tx_rf_buffer, tx_time, true);
+    common.worker_end(context, false, tx_rf_buffer);
     return;
   }
 
-  common.worker_end(this, true, tx_rf_buffer, tx_time, true);
+  common.worker_end(context, true, tx_rf_buffer);
 }
 bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_)
 {
