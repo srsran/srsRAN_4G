@@ -21,7 +21,10 @@ namespace sched_nr_impl {
 
 bool fill_dci_rar(prb_interval interv, const bwp_params& cell, srsran_dci_dl_nr_t& dci)
 {
-  dci.mcs = 5;
+  dci.mcs        = 5;
+  dci.ctx.format = srsran_dci_format_nr_1_0;
+  // TODO: Fill
+
   return true;
 }
 

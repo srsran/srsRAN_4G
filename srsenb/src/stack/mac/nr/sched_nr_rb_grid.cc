@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
 
 namespace srsenb {
@@ -63,15 +64,21 @@ bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
   logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
 
-alloc_result bwp_slot_allocator::alloc_rar(uint32_t                                    aggr_idx,
-                                           const srsenb::sched_nr_impl::pending_rar_t& rar,
-                                           prb_interval                                interv,
-                                           uint32_t                                    nof_grants)
+alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                                    aggr_idx,
+                                                    const srsenb::sched_nr_impl::pending_rar_t& rar,
+                                                    prb_interval                                interv,
+                                                    slot_ue_map_t&                              ues,
+                                                    uint32_t                                    max_nof_grants)
 {
-  static const uint32_t msg3_nof_prbs = 3;
+  static const uint32_t msg3_nof_prbs = 3, m = 0;
 
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_tti];
-  bwp_slot_grid& bwp_msg3_slot  = bwp_grid[pdcch_tti + 4];
+  tti_point      msg3_tti       = pdcch_tti + cfg.pusch_rach_list[m].msg3_delay;
+  bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_tti];
+  alloc_result   ret            = verify_pusch_space(bwp_msg3_slot, nullptr);
+  if (ret != alloc_result::success) {
+    return ret;
+  }
 
   if (bwp_pdcch_slot.dl_pdcchs.full()) {
     logger.warning("SCHED: Maximum number of DL allocations reached");
@@ -88,10 +95,10 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
   }
 
   // Check Msg3 RB collision
-  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * nof_grants;
+  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * max_nof_grants;
   uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.nof_prbs(), false));
-  prb_interval msg3_rbgs         = find_empty_interval_of_length(bwp_msg3_slot.ul_prbs.prbs(), total_ul_nof_rbgs);
-  if (msg3_rbgs.length() < total_ul_nof_rbgs) {
+  prb_interval msg3_rbs          = find_empty_interval_of_length(bwp_msg3_slot.ul_prbs.prbs(), total_ul_nof_rbgs);
+  if (msg3_rbs.length() < total_ul_nof_rbgs) {
     logger.debug("SCHED: No space in PUSCH for Msg3.");
     return alloc_result::sch_collision;
   }
@@ -105,6 +112,8 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
     return alloc_result::no_cch_space;
   }
 
+  // RAR allocation successful.
+
   // Generate DCI for RAR
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
   if (not fill_dci_rar(interv, *bwp_grid.cfg, pdcch.dci)) {
@@ -112,9 +121,38 @@ alloc_result bwp_slot_allocator::alloc_rar(uint32_t                             
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
   }
-
-  // RAR allocation successful.
+  // Generate RAR PDSCH
   bwp_pdcch_slot.dl_prbs.add(interv);
+
+  // Generate Msg3 grants in PUSCH
+  uint32_t          last_msg3 = msg3_rbs.start();
+  const int         mcs = 0, max_harq_msg3_retx = 4;
+  int               dai = 0;
+  srsran_slot_cfg_t slot_cfg;
+  slot_cfg.idx = msg3_tti.sf_idx();
+  for (const auto& grant : rar.msg3_grant) {
+    slot_ue& ue      = ues[grant.temp_crnti];
+    bool     success = ue.h_ul->new_tx(
+        msg3_tti, msg3_tti, prb_interval{last_msg3, last_msg3 + msg3_nof_prbs}, mcs, 100, max_harq_msg3_retx);
+    srsran_assert(success, "Failed to allocate Msg3");
+    last_msg3 += msg3_nof_prbs;
+    srsran_dci_ul_nr_t msg3_dci; // Create dummy Msg3 DCI
+    msg3_dci.ctx.coreset_id        = 1;
+    msg3_dci.ctx.rnti_type         = srsran_rnti_type_ra;
+    msg3_dci.ctx.ss_type           = srsran_search_space_type_rar;
+    msg3_dci.ctx.format            = srsran_dci_format_nr_0_0;
+    msg3_dci.cc_id                 = cfg.cc;
+    msg3_dci.bwp_id                = cfg.bwp_id;
+    msg3_dci.rv                    = 0;
+    msg3_dci.mcs                   = 0;
+    msg3_dci.time_domain_assigment = dai++;
+    bwp_msg3_slot.puschs.emplace_back();
+    pusch_t& pusch = bwp_msg3_slot.puschs.back();
+    success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_dci, pusch.sch);
+    srsran_assert(success, "Error converting DCI to PUSCH grant");
+    pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
+  }
+  bwp_msg3_slot.ul_prbs.add(msg3_rbs);
 
   return alloc_result::success;
 }
@@ -207,21 +245,18 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
 
 alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_mask)
 {
+  auto&        bwp_pdcch_slot = bwp_grid[ue.pdcch_tti];
+  auto&        bwp_pusch_slot = bwp_grid[ue.pusch_tti];
+  alloc_result ret            = verify_pusch_space(bwp_pusch_slot, &bwp_pdcch_slot);
+  if (ret != alloc_result::success) {
+    return ret;
+  }
+
   if (ue.h_ul == nullptr) {
     logger.warning("SCHED: Trying to allocate PUSCH for rnti=0x%x with no available HARQs", ue.rnti);
     return alloc_result::no_rnti_opportunity;
   }
-  auto& bwp_pdcch_slot = bwp_grid[ue.pdcch_tti];
-  auto& bwp_pusch_slot = bwp_grid[ue.pusch_tti];
-  if (not bwp_pusch_slot.is_ul) {
-    logger.warning("SCHED: Trying to allocate PUSCH in TDD non-UL slot index=%d", bwp_pusch_slot.slot_idx);
-    return alloc_result::no_sch_space;
-  }
-  pdcch_ul_list_t& pdcchs = bwp_pdcch_slot.ul_pdcchs;
-  if (pdcchs.full()) {
-    logger.warning("SCHED: Maximum number of UL allocations reached");
-    return alloc_result::no_grant_space;
-  }
+  pdcch_ul_list_t&  pdcchs     = bwp_pdcch_slot.ul_pdcchs;
   const rbg_bitmap& pusch_mask = bwp_pusch_slot.ul_prbs.rbgs();
   if ((pusch_mask & ul_mask).any()) {
     return alloc_result::sch_collision;
@@ -235,10 +270,10 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
 
   if (ue.h_ul->empty()) {
     srsran_assert(ue.cfg->ue_cfg()->fixed_ul_mcs >= 0, "Dynamic MCS not yet supported");
-    int  mcs = ue.cfg->ue_cfg()->fixed_ul_mcs;
-    int  tbs = 100;
-    bool ret = ue.h_ul->new_tx(ue.pusch_tti, ue.pusch_tti, ul_mask, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
-    srsran_assert(ret, "Failed to allocate UL HARQ");
+    int  mcs     = ue.cfg->ue_cfg()->fixed_ul_mcs;
+    int  tbs     = 100;
+    bool success = ue.h_ul->new_tx(ue.pusch_tti, ue.pusch_tti, ul_mask, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
+    srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
     srsran_assert(ue.h_ul->new_retx(ue.pusch_tti, ue.pusch_tti, ul_mask), "Failed to allocate UL HARQ retx");
   }
@@ -254,10 +289,34 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
   pusch_t&          pusch = bwp_pusch_slot.puschs.back();
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = ue.pusch_tti.sf_idx();
-  bool ret     = ue.cfg->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
-  srsran_assert(ret, "Error converting DCI to PUSCH grant");
+  bool success = ue.cfg->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
+  srsran_assert(success, "Error converting DCI to PUSCH grant");
   pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
 
+  return alloc_result::success;
+}
+
+alloc_result bwp_slot_allocator::verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid) const
+{
+  if (not pusch_grid.is_ul) {
+    logger.warning("SCHED: Trying to allocate PUSCH in TDD non-UL slot index=%d", pusch_grid.slot_idx);
+    return alloc_result::no_sch_space;
+  }
+  if (pdcch_grid != nullptr) {
+    // DCI needed
+    if (not pdcch_grid->is_dl) {
+      logger.warning("SCHED: Trying to allocate PDCCH in TDD non-DL slot index=%d", pdcch_grid->slot_idx);
+      return alloc_result::no_sch_space;
+    }
+    if (pdcch_grid->ul_pdcchs.full()) {
+      logger.warning("SCHED: Maximum number of PUSCH allocations reached");
+      return alloc_result::no_grant_space;
+    }
+  }
+  if (pusch_grid.puschs.full()) {
+    logger.warning("SCHED: Maximum number of PUSCH allocations reached");
+    return alloc_result::no_grant_space;
+  }
   return alloc_result::success;
 }
 

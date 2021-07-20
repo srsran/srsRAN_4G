@@ -81,7 +81,7 @@ void slot_cc_worker::run()
   bwp_alloc.new_slot(tti_rx + TX_ENB_DELAY);
 
   // Allocate pending RARs
-  cell.bwps[0].ra.run_slot(bwp_alloc);
+  cell.bwps[0].ra.run_slot(bwp_alloc, slot_ues);
 
   // TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
   alloc_dl_ues();

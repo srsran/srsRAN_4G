@@ -40,6 +40,7 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& 
   cell_cfg.bwps.resize(1);
   cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;
   cell_cfg.bwps[0].pdsch    = phy_cfg.pdsch;
+  cell_cfg.bwps[0].pusch    = phy_cfg.pusch;
   cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
 
   cell_cfg.bwps[0].pdcch.coreset_present[0]      = true;

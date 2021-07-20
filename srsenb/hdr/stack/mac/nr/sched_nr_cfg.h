@@ -47,6 +47,13 @@ struct bwp_params {
   uint32_t P;
   uint32_t N_rbg;
 
+  struct pusch_rach_time_cfg {
+    uint32_t msg3_delay; ///< Includes K2 and delta. See TS 36.214 6.1.2.1.1-2/4/5
+    uint32_t S;
+    uint32_t L;
+  };
+  std::vector<pusch_rach_time_cfg> pusch_rach_list;
+
   bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 };
 
