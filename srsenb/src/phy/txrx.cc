@@ -42,7 +42,6 @@ txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger), runni
 bool txrx::init(stack_interface_phy_lte*     stack_,
                 srsran::radio_interface_phy* radio_h_,
                 lte::worker_pool*            lte_workers_,
-                nr::worker_pool*             nr_workers_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 uint32_t                     prio_)
@@ -50,7 +49,6 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
   stack       = stack_;
   radio_h     = radio_h_;
   lte_workers = lte_workers_;
-  nr_workers  = nr_workers_;
   worker_com  = worker_com_;
   prach       = prach_;
   running     = true;
@@ -62,6 +60,12 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
   }
 
   start(prio_);
+  return true;
+}
+
+bool txrx::set_nr_workers(nr::worker_pool* nr_workers_)
+{
+  nr_workers = nr_workers_;
   return true;
 }
 
@@ -125,7 +129,7 @@ void txrx::run_thread()
     }
 
     nr::slot_worker* nr_worker = nullptr;
-    if (worker_com->get_nof_carriers_nr() > 0) {
+    if (nr_workers != nullptr and worker_com->get_nof_carriers_nr() > 0) {
       nr_worker = nr_workers->wait_worker(tti);
       if (nr_worker == nullptr) {
         running = false;

@@ -130,12 +130,6 @@ int phy::init(const phy_args_t&            args,
   if (not cfg.phy_cell_cfg.empty()) {
     lte_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
   }
-  if (not cfg.phy_cell_cfg_nr.empty()) {
-    // Not implemented
-    //    nr_workers = std::unique_ptr<nr::worker_pool>(
-    //        new nr::worker_pool(cfg.phy_cell_cfg_nr, workers_common, stack_, log_sink, MAX_WORKERS,
-    //        WORKERS_THREAD_PRIO));
-  }
 
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
@@ -146,7 +140,7 @@ int phy::init(const phy_args_t&            args,
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(stack_, radio, &lte_workers, nr_workers.get(), &workers_common, &prach, SF_RECV_THREAD_PRIO);
+  tx_rx.init(stack_, radio, &lte_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
 
   initialized = true;
 
@@ -298,6 +292,34 @@ void phy::configure_mbsfn(srsran::sib2_mbms_t* sib2, srsran::sib13_t* sib13, con
 void phy::start_plot()
 {
   lte_workers[0]->start_plot();
+}
+
+int phy::init_nr(const phy_cfg_t& cfg, stack_interface_phy_nr& stack)
+{
+  if (cfg.phy_cell_cfg_nr.empty()) {
+    return SRSRAN_SUCCESS;
+  }
+
+  nr_workers = std::unique_ptr<nr::worker_pool>(new nr::worker_pool(workers_common, stack, log_sink, MAX_WORKERS));
+
+  nr::worker_pool::args_t args = {};
+
+  if (not nr_workers->init(args, cfg.phy_cell_cfg_nr)) {
+    return SRSRAN_ERROR;
+  }
+
+  tx_rx.set_nr_workers(nr_workers.get());
+
+  return SRSRAN_SUCCESS;
+}
+
+int phy::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common_cfg)
+{
+  if (nr_workers.get() == nullptr) {
+    return SRSRAN_ERROR;
+  }
+
+  return nr_workers->set_common_cfg(common_cfg);
 }
 
 } // namespace srsenb
