@@ -60,5 +60,5 @@ add_nr_test(phy_dl_nr_test_rvd phy_dl_nr_test -P 52 -p 52 -m 0
         -R 0 52 1 100100100100 00000010000000)
 
 add_nr_test(phy_dl_nr_test_cfo_delay phy_dl_nr_test -P 52 -p 52 -m 27 -C 100.0 -D 4 -n 10)
-add_nr_test(phy_dl_nr_test_52prb phy_dl_nr_test -P 52 -p 52 -m 27 -T 256qam -v -d 1 1 -n 10)
-add_nr_test(phy_dl_nr_test_270prb phy_dl_nr_test -P 270 -p 270 -m 27 -T 256qam -v -d 1 1 -n 10)
+add_nr_test(phy_dl_nr_test_52prb phy_dl_nr_test -P 52 -p 52 -m 27 -T 256qam -d 1 1 -n 10)
+add_nr_test(phy_dl_nr_test_270prb phy_dl_nr_test -P 270 -p 270 -m 27 -T 256qam -d 1 1 -n 10)
