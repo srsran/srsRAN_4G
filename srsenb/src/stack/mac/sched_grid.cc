@@ -319,7 +319,7 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
   last_msg3_prb            = tti_alloc.get_pucch_width();
   tti_point tti_msg3_alloc = to_tx_ul(tti_rx) + MSG3_DELAY_MS;
-  if (srsran_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
+  if (srsran_prach_in_window_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
     last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
   }
 }
