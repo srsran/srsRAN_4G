@@ -323,6 +323,10 @@ enable = false
 # metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
 # metrics_csv_enable:   Write eNB metrics to CSV file.
 # metrics_csv_filename: File path to use for CSV metrics.
+# report_json_enable:   Write eNB report to JSON file (default disabled)
+# report_json_filename: Report JSON filename (default /tmp/enb_report.json)
+# alarms_log_enable:    Enable Alarms logging (default diabled)
+# alarms_filename:      Alarms logging filename (default /tmp/alarms.log)
 # tracing_enable:       Write source code tracing information to a file.
 # tracing_filename:     File path to use for tracing information.
 # tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
@@ -330,14 +334,16 @@ enable = false
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
+# max_mac_dl_kos:       Maximum number of consecutive KOs in DL before triggering the UE's release (default 100)
+# max_mac_ul_kos:       Maximum number of consecutive KOs in UL before triggering the UE's release (default 100)
 # max_prach_offset_us:  Maximum allowed RACH offset (in us)
 # nof_prealloc_ues:     Number of UE memory resources to preallocate during eNB initialization for faster UE creation (Default 8)
 # rlf_release_timer_ms: Time taken by eNB to release UE context after it detects an RLF
 # eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
 # gtpu_tunnel_timeout:  Time that GTPU takes to release indirect forwarding tunnel since the last received GTPU PDU (0 for no timer).
-#ts1_reloc_prep_timeout: S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds
-#ts1_reloc_overall_timeout: S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds
+# ts1_reloc_prep_timeout: S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds
+# ts1_reloc_overall_timeout: S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds
 # rlf_release_timer_ms: Time taken by eNB to release UE context after it detects an RLF
 # rlf_min_ul_snr_estim: SNR threshold in dB below which the enb is notified with rlf ko
 #
@@ -360,7 +366,8 @@ enable = false
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000
-#max_nof_kos          = 100
+#max_mac_dl_kos       = 100
+#max_mac_ul_kos       = 100
 #max_prach_offset_us  = 30
 #nof_prealloc_ues     = 8
 #rlf_release_timer_ms = 4000
