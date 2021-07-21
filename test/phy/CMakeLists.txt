@@ -35,7 +35,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                     --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
                     --gnb.stack.pdsch.start=0 # Start at RB 0
                     --gnb.stack.pdsch.length=52 # Full 10 MHz BW
-                    --gnb.stack.pdsch.mcs=28 # Maximum MCS
+                    --gnb.stack.pdsch.mcs=27 # Maximum MCS
                     --gnb.stack.pusch.slots=none
                     --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                     --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
