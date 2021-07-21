@@ -30,7 +30,17 @@ public:
        * - SSB: 5ms
        */
       R_CARRIER_CUSTOM_10MHZ = 0,
-    } carrier = R_CARRIER_CUSTOM_10MHZ;
+      /**
+       * @brief Carrier reference configuration for 10MHz serving cell bandwidth
+       * - BW: 20 MHZ (106 PRB)
+       * - PCI: 500
+       * - SCS: 15 kHz
+       * - SSB: 5ms
+       */
+      R_CARRIER_CUSTOM_20MHZ,
+      R_CARRIER_COUNT
+    } carrier                                       = R_CARRIER_CUSTOM_10MHZ;
+    const std::vector<std::string> R_CARRIER_STRING = {"10MHz", "20MHz", "Invalid"};
 
     enum {
       /**
@@ -60,7 +70,7 @@ public:
       /**
        * @brief PDSCH parameters described in TS 38.101-4 Table 5.2.2.2.1-2 for the test described in table 5.2.2.2.1-3
        */
-      R_PDSCH_2_1_1_TDD,
+      R_PDSCH_TS38101_5_2_1,
 
       /**
        * @brief Invalid PDSCH reference channel
@@ -68,7 +78,7 @@ public:
       R_PDSCH_COUNT
 
     } pdsch                                       = R_PDSCH_DEFAULT;
-    const std::vector<std::string> R_PDSCH_STRING = {"default", "R.PDSCH.2-1.1 TDD", "Invalid"};
+    const std::vector<std::string> R_PDSCH_STRING = {"default", "ts38101/5.2-1", "Invalid"};
 
     enum {
       /**
@@ -122,6 +132,7 @@ private:
    * Carrier make helper methods
    */
   static void make_carrier_custom_10MHz(srsran_carrier_nr_t& carrier);
+  static void make_carrier_custom_20MHz(srsran_carrier_nr_t& carrier);
 
   /**
    * TDD make helper methods

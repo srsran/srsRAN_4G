@@ -37,7 +37,14 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
       srsran_terminate("Invalid reference argument '%s'", e.c_str());
     }
 
-    if (param.front() == "pdsch") {
+    if (param.front() == "carrier") {
+      for (carrier = R_CARRIER_CUSTOM_10MHZ; carrier < R_CARRIER_COUNT; carrier = inc(carrier)) {
+        if (R_CARRIER_STRING[carrier] == param.back()) {
+          break;
+        }
+      }
+      srsran_assert(carrier != R_CARRIER_COUNT, "Invalid carrier reference configuration '%s'", param.back().c_str());
+    } else if (param.front() == "pdsch") {
       for (pdsch = R_PDSCH_DEFAULT; pdsch < R_PDSCH_COUNT; pdsch = inc(pdsch)) {
         if (R_PDSCH_STRING[pdsch] == param.back()) {
           break;
@@ -53,6 +60,17 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
 void phy_cfg_nr_default_t::make_carrier_custom_10MHz(srsran_carrier_nr_t& carrier)
 {
   carrier.nof_prb                    = 52;
+  carrier.max_mimo_layers            = 1;
+  carrier.pci                        = 500;
+  carrier.absolute_frequency_point_a = 633928;
+  carrier.absolute_frequency_ssb     = 634176;
+  carrier.offset_to_carrier          = 0;
+  carrier.scs                        = srsran_subcarrier_spacing_15kHz;
+}
+
+void phy_cfg_nr_default_t::make_carrier_custom_20MHz(srsran_carrier_nr_t& carrier)
+{
+  carrier.nof_prb                    = 106;
   carrier.max_mimo_layers            = 1;
   carrier.pci                        = 500;
   carrier.absolute_frequency_point_a = 633928;
@@ -315,7 +333,7 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
 void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
 {
   prach.config_idx   = 0;
-  prach.freq_offset  = 2;
+  prach.freq_offset  = 4;
   prach.root_seq_idx = 0;
   prach.is_nr        = true;
 }
@@ -326,6 +344,11 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
     case reference_cfg_t::R_CARRIER_CUSTOM_10MHZ:
       make_carrier_custom_10MHz(carrier);
       break;
+    case reference_cfg_t::R_CARRIER_CUSTOM_20MHZ:
+      make_carrier_custom_20MHz(carrier);
+      break;
+    case reference_cfg_t::R_CARRIER_COUNT:
+      srsran_terminate("Invalid carrier reference");
   }
 
   switch (reference_cfg.tdd) {
@@ -344,7 +367,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
     case reference_cfg_t::R_PDSCH_DEFAULT:
       make_pdsch_default(pdsch);
       break;
-    case reference_cfg_t::R_PDSCH_2_1_1_TDD:
+    case reference_cfg_t::R_PDSCH_TS38101_5_2_1:
       make_pdsch_2_1_1_tdd(carrier, pdsch);
       break;
     case reference_cfg_t::R_PDSCH_COUNT:
