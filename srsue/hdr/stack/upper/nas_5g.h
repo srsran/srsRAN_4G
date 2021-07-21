@@ -25,6 +25,7 @@
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/interfaces/ue_usim_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/upper/nas_5g_metrics.h"
 #include "srsue/hdr/stack/upper/nas_5gmm_state.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 
