@@ -23,6 +23,7 @@ namespace bpo = boost::program_options;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
+  std::string              reference_cfg_str = "";
   bpo::options_description options("Test bench options");
   bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
   bpo::options_description options_gnb_phy("gNb PHY related options");
@@ -39,6 +40,7 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("rnti",          bpo::value<uint16_t>(&rnti)->default_value(rnti),                              "UE RNTI")
         ("duration",      bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),        "Test duration in slots")
         ("lib.log.level", bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level), "PHY librray log level")
+        ("reference", bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str), "Reference PHY configuration arguments")
         ;
 
   options_gnb_stack.add_options()
@@ -100,8 +102,7 @@ test_bench::args_t::args_t(int argc, char** argv)
   }
 
   // Load default reference configuration
-  srsran::phy_cfg_nr_default_t::reference_cfg_t reference_cfg;
-  phy_cfg = srsran::phy_cfg_nr_default_t(reference_cfg);
+  phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
 
   cell_list.resize(1);
   cell_list[0].carrier = phy_cfg.carrier;
