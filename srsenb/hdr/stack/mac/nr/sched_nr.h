@@ -42,6 +42,7 @@ public:
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
 
   void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) override;
+  void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc) override;
   void ul_sr_info(tti_point tti_rx, uint16_t rnti) override;
 
   int get_dl_sched(tti_point pdsch_tti, uint32_t cc, dl_sched_t& result) override;

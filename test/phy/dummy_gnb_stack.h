@@ -71,8 +71,9 @@ private:
   srsran::phy_cfg_nr_t                                    phy_cfg = {};
   bool                                                    valid   = false;
 
-  srsenb::sched_nr  sched;
-  srsran::tti_point pdsch_tti, pusch_tti;
+  srsenb::sched_nr      sched;
+  srsran::tti_point     pdsch_tti, pusch_tti;
+  srslog::basic_logger& sched_logger;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -287,6 +288,8 @@ private:
         metrics.mac.tx_errors += tb_count;
         logger.debug("NACK received!");
       }
+
+      sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
     }
 
     // Process SR
@@ -320,9 +323,11 @@ public:
     phy_cfg(args.phy_cfg),
     ss_id(args.ss_id),
     sched(srsenb::sched_nr_interface::sched_cfg_t{}),
-    use_dummy_sched(args.use_dummy_sched)
+    use_dummy_sched(args.use_dummy_sched),
+    sched_logger(srslog::fetch_basic_logger("MAC"))
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
+    sched_logger.set_level(srslog::basic_levels::debug);
 
     // create sched object
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
@@ -400,6 +405,7 @@ public:
   int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override
   {
     logger.set_context(slot_cfg.idx);
+    sched_logger.set_context(slot_cfg.idx);
     if (not pdsch_tti.is_valid()) {
       pdsch_tti = srsran::tti_point{slot_cfg.idx};
     } else {
@@ -445,6 +451,7 @@ public:
   int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override
   {
     logger.set_context(slot_cfg.idx);
+    sched_logger.set_context(slot_cfg.idx);
     if (not pusch_tti.is_valid()) {
       pusch_tti = srsran::tti_point{slot_cfg.idx};
     } else {
@@ -537,6 +544,20 @@ public:
     return SRSRAN_SUCCESS;
   }
 
+  void dl_ack_info(uint16_t rnti_, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
+  {
+    if (not use_dummy_sched) {
+      sched.dl_ack_info(rnti_, cc, pid, tb_idx, ack);
+    }
+  }
+
+  void ul_crc_info(uint16_t rnti_, uint32_t cc, uint32_t pid, bool crc)
+  {
+    if (not use_dummy_sched) {
+      sched.ul_crc_info(rnti_, cc, pid, crc);
+    }
+  }
+
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
   {
     // Handle UCI data
@@ -578,6 +599,8 @@ public:
     }
     metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
     metrics.mac.rx_pkts++;
+
+    ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
 
     return SRSRAN_SUCCESS;
   }

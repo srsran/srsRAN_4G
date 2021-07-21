@@ -100,6 +100,7 @@ public:
   virtual int  get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)     = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
+  virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;
   virtual void ul_sr_info(tti_point, uint16_t rnti)                                             = 0;
 };
 

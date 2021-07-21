@@ -116,6 +116,7 @@ public:
   void new_tti(tti_point tti_rx_);
 
   void dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { dl_harqs[pid].ack_info(tb_idx, ack); }
+  void ul_crc_info(uint32_t pid, bool ack) { ul_harqs[pid].ack_info(0, ack); }
 
   dl_harq_proc* find_pending_dl_retx()
   {

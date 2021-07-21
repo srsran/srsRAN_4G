@@ -164,6 +164,11 @@ void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb
       rnti, cc, [pid, tb_idx, ack](ue_carrier& ue_cc) { ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack); });
 }
 
+void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
+{
+  sched_workers->enqueue_cc_feedback(rnti, cc, [pid, crc](ue_carrier& ue_cc) { ue_cc.harq_ent.ul_crc_info(pid, crc); });
+}
+
 void sched_nr::ul_sr_info(tti_point tti_rx, uint16_t rnti)
 {
   sched_workers->enqueue_event(rnti, [this, rnti, tti_rx]() { ue_db[rnti]->ul_sr_info(tti_rx); });
