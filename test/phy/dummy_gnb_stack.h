@@ -393,7 +393,7 @@ public:
 
     // Setup DL Data to ACK timing
     for (uint32_t i = 0; i < SRSRAN_NOF_SF_X_FRAME; i++) {
-      dl_data_to_ul_ack[i] = args.phy_cfg.harq_ack.dl_data_to_ul_ack[i % SRSRAN_MAX_NOF_DL_DATA_TO_UL];
+      dl_data_to_ul_ack[i] = args.phy_cfg.harq_ack.dl_data_to_ul_ack[i % args.phy_cfg.tdd.pattern1.period_ms];
     }
 
     // If reached this point the configuration is valid

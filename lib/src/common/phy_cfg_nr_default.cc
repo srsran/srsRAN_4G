@@ -44,6 +44,13 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
         }
       }
       srsran_assert(carrier != R_CARRIER_COUNT, "Invalid carrier reference configuration '%s'", param.back().c_str());
+    } else if (param.front() == "tdd") {
+      for (tdd = R_TDD_CUSTOM_6_4; tdd < R_TDD_COUNT; tdd = inc(tdd)) {
+        if (R_TDD_STRING[tdd] == param.back()) {
+          break;
+        }
+      }
+      srsran_assert(tdd != R_TDD_COUNT, "Invalid TDD reference configuration '%s'", param.back().c_str());
     } else if (param.front() == "pdsch") {
       for (pdsch = R_PDSCH_DEFAULT; pdsch < R_PDSCH_COUNT; pdsch = inc(pdsch)) {
         if (R_PDSCH_STRING[pdsch] == param.back()) {
@@ -86,6 +93,18 @@ void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_tdd_config_nr_t& tdd)
   tdd.pattern1.nof_dl_symbols = 0;
   tdd.pattern1.nof_ul_slots   = 4;
   tdd.pattern1.nof_ul_symbols = 0;
+
+  // Disable pattern 2
+  tdd.pattern2.period_ms = 0;
+}
+
+void phy_cfg_nr_default_t::make_tdd_fr1_15_1(srsran_tdd_config_nr_t& tdd)
+{
+  tdd.pattern1.period_ms      = 5;
+  tdd.pattern1.nof_dl_slots   = 3;
+  tdd.pattern1.nof_dl_symbols = 10;
+  tdd.pattern1.nof_ul_slots   = 1;
+  tdd.pattern1.nof_ul_symbols = 2;
 
   // Disable pattern 2
   tdd.pattern2.period_ms = 0;
@@ -253,7 +272,7 @@ void phy_cfg_nr_default_t::make_pucch_custom_one(srsran_pucch_nr_hl_cfg_t& pucch
   resource_big.format                     = SRSRAN_PUCCH_NR_FORMAT_2;
   resource_big.nof_prb                    = 1;
   resource_big.nof_symbols                = 2;
-  resource_big.start_symbol_idx           = 0;
+  resource_big.start_symbol_idx           = 12;
 
   // Resource for SR
   srsran_pucch_nr_resource_t resource_sr = {};
@@ -302,11 +321,14 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
 {
   // Generate as many entries as DL slots
   harq.nof_dl_data_to_ul_ack = SRSRAN_MIN(tdd_cfg.pattern1.nof_dl_slots, SRSRAN_MAX_NOF_DL_DATA_TO_UL);
+  if (tdd_cfg.pattern1.nof_dl_symbols > 0) {
+    harq.nof_dl_data_to_ul_ack++;
+  }
 
   // Set PDSCH to ACK timing delay to 4 or more
   for (uint32_t n = 0; n < harq.nof_dl_data_to_ul_ack; n++) {
     // Set the first slots into the first UL slot
-    if (n < (harq.nof_dl_data_to_ul_ack - 4)) {
+    if (harq.nof_dl_data_to_ul_ack >= 4 and n < (harq.nof_dl_data_to_ul_ack - 4)) {
       harq.dl_data_to_ul_ack[n] = harq.nof_dl_data_to_ul_ack - n;
       continue;
     }
@@ -318,7 +340,7 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
     }
 
     // Otherwise set delay to the first UL slot of the next TDD period
-    harq.dl_data_to_ul_ack[n] = 2 * harq.nof_dl_data_to_ul_ack - n;
+    harq.dl_data_to_ul_ack[n] = (tdd_cfg.pattern1.period_ms + tdd_cfg.pattern1.nof_dl_slots) - n;
   }
 
   // Zero the rest
@@ -355,6 +377,11 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
     case reference_cfg_t::R_TDD_CUSTOM_6_4:
       make_tdd_custom_6_4(tdd);
       break;
+    case reference_cfg_t::R_TDD_FR1_15_1:
+      make_tdd_fr1_15_1(tdd);
+      break;
+    case reference_cfg_t::R_TDD_COUNT:
+      srsran_terminate("Invalid TDD reference");
   }
 
   switch (reference_cfg.pdcch) {

@@ -39,15 +39,22 @@ public:
        */
       R_CARRIER_CUSTOM_20MHZ,
       R_CARRIER_COUNT
-    } carrier                                       = R_CARRIER_CUSTOM_10MHZ;
-    const std::vector<std::string> R_CARRIER_STRING = {"10MHz", "20MHz", "Invalid"};
+    } carrier                                                       = R_CARRIER_CUSTOM_10MHZ;
+    const std::array<std::string, R_CARRIER_COUNT> R_CARRIER_STRING = {"10MHz", "20MHz"};
 
     enum {
       /**
        * @brief TDD custom reference 5 slot DL and 5 slot UL
        */
       R_TDD_CUSTOM_6_4 = 0,
-    } tdd = R_TDD_CUSTOM_6_4;
+
+      /**
+       * @brief TDD pattern FR1.15-1 defined in TS38.101-4 Table A.1.2-1
+       */
+      R_TDD_FR1_15_1,
+      R_TDD_COUNT,
+    } tdd                                                   = R_TDD_CUSTOM_6_4;
+    const std::array<std::string, R_TDD_COUNT> R_TDD_STRING = {"6D+4U", "FR1.15-1"};
 
     enum {
       /**
@@ -77,8 +84,8 @@ public:
        */
       R_PDSCH_COUNT
 
-    } pdsch                                       = R_PDSCH_DEFAULT;
-    const std::vector<std::string> R_PDSCH_STRING = {"default", "ts38101/5.2-1", "Invalid"};
+    } pdsch                                                     = R_PDSCH_DEFAULT;
+    const std::array<std::string, R_PDSCH_COUNT> R_PDSCH_STRING = {"default", "ts38101/5.2-1"};
 
     enum {
       /**
@@ -138,6 +145,7 @@ private:
    * TDD make helper methods
    */
   static void make_tdd_custom_6_4(srsran_tdd_config_nr_t& tdd);
+  static void make_tdd_fr1_15_1(srsran_tdd_config_nr_t& tdd);
 
   /**
    * PDCCH make helper methods
