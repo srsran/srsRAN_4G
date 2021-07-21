@@ -125,9 +125,6 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
   // Add current time alignment
   srsran::rf_timestamp_t tx_time = w_ctx.tx_time; // get transmit time from the last worker
 
-  // Use last buffer number of samples
-  tx_buffer.set_nof_samples(buffer.get_nof_samples());
-
   // Run DL channel emulator if created
   if (dl_channel) {
     dl_channel->run(tx_buffer.to_cf_t(), tx_buffer.to_cf_t(), tx_buffer.get_nof_samples(), tx_time.get(0));
@@ -135,6 +132,9 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
 
   // Always transmit on single radio
   radio->tx(tx_buffer, tx_time);
+
+  // Reset transmit buffer
+  tx_buffer = {};
 
   // Allow next TTI to transmit
   semaphore.release();
