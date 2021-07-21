@@ -11,9 +11,44 @@
  */
 
 #include "srsran/common/phy_cfg_nr_default.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/srsran.h"
+#include <cctype>
+#include <list>
 
 namespace srsran {
+
+template <typename T>
+T inc(T v)
+{
+  return static_cast<T>(static_cast<int>(v) + 1);
+}
+
+phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
+{
+  std::list<std::string> param_list = {};
+  string_parse_list(args, ',', param_list);
+  for (std::string& e : param_list) {
+    std::list<std::string> param = {};
+    string_parse_list(e, '=', param);
+
+    // Skip if size is invalid
+    if (param.size() != 2) {
+      srsran_terminate("Invalid reference argument '%s'", e.c_str());
+    }
+
+    if (param.front() == "pdsch") {
+      for (pdsch = R_PDSCH_DEFAULT; pdsch < R_PDSCH_COUNT; pdsch = inc(pdsch)) {
+        if (R_PDSCH_STRING[pdsch] == param.back()) {
+          break;
+        }
+      }
+      srsran_assert(pdsch != R_PDSCH_COUNT, "Invalid PDSCH reference configuration '%s'", param.back().c_str());
+    } else {
+      srsran_terminate("Invalid %s reference component", param.front().c_str());
+    }
+  }
+}
 
 void phy_cfg_nr_default_t::make_carrier_custom_10MHz(srsran_carrier_nr_t& carrier)
 {
@@ -79,6 +114,91 @@ void phy_cfg_nr_default_t::make_pdsch_default(srsran_sch_hl_cfg_nr_t& pdsch)
 
   // Setup PDSCH DMRS type A position
   pdsch.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
+}
+
+void make_nzp_csi_rs_ts38101_table_5_2_1(const srsran_carrier_nr_t& carrier, srsran_csi_rs_nzp_set_t& trs)
+{
+  // Set defaults
+  trs = {};
+
+  trs.trs_info = true;
+  trs.count    = 4;
+
+  srsran_csi_rs_nzp_resource_t& res1 = trs.data[0];
+  srsran_csi_rs_nzp_resource_t& res2 = trs.data[1];
+  srsran_csi_rs_nzp_resource_t& res3 = trs.data[2];
+  srsran_csi_rs_nzp_resource_t& res4 = trs.data[3];
+
+  res1.resource_mapping.frequency_domain_alloc[0] = true;
+  res2.resource_mapping.frequency_domain_alloc[0] = true;
+  res3.resource_mapping.frequency_domain_alloc[0] = true;
+  res4.resource_mapping.frequency_domain_alloc[0] = true;
+
+  res1.resource_mapping.first_symbol_idx = 6;
+  res2.resource_mapping.first_symbol_idx = 10;
+  res3.resource_mapping.first_symbol_idx = 6;
+  res4.resource_mapping.first_symbol_idx = 10;
+
+  res1.resource_mapping.nof_ports = 1;
+  res2.resource_mapping.nof_ports = 1;
+  res3.resource_mapping.nof_ports = 1;
+  res4.resource_mapping.nof_ports = 1;
+
+  res1.resource_mapping.cdm = srsran_csi_rs_cdm_nocdm;
+  res2.resource_mapping.cdm = srsran_csi_rs_cdm_nocdm;
+  res3.resource_mapping.cdm = srsran_csi_rs_cdm_nocdm;
+  res4.resource_mapping.cdm = srsran_csi_rs_cdm_nocdm;
+
+  res1.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+  res2.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+  res3.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+  res4.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+
+  if (carrier.scs == srsran_subcarrier_spacing_15kHz) {
+    res1.periodicity.period = 20;
+    res2.periodicity.period = 20;
+    res3.periodicity.period = 20;
+    res4.periodicity.period = 20;
+
+    res1.periodicity.offset = 10;
+    res2.periodicity.offset = 10;
+    res3.periodicity.offset = 11;
+    res4.periodicity.offset = 11;
+  } else if (carrier.scs == srsran_subcarrier_spacing_30kHz) {
+    res1.periodicity.period = 40;
+    res2.periodicity.period = 40;
+    res3.periodicity.period = 40;
+    res4.periodicity.period = 40;
+
+    res1.periodicity.offset = 20;
+    res2.periodicity.offset = 20;
+    res3.periodicity.offset = 21;
+    res4.periodicity.offset = 21;
+  } else {
+    srsran_terminate("Invalid subcarrier spacing %d kHz", 15U << (uint32_t)carrier.scs);
+  }
+
+  res1.resource_mapping.freq_band = {0, carrier.nof_prb};
+  res2.resource_mapping.freq_band = {0, carrier.nof_prb};
+  res3.resource_mapping.freq_band = {0, carrier.nof_prb};
+  res4.resource_mapping.freq_band = {0, carrier.nof_prb};
+}
+
+void phy_cfg_nr_default_t::make_pdsch_2_1_1_tdd(const srsran_carrier_nr_t& carrier, srsran_sch_hl_cfg_nr_t& pdsch)
+{
+  // Select PDSCH time resource allocation
+  pdsch.common_time_ra[0].mapping_type = srsran_sch_mapping_type_A;
+  pdsch.common_time_ra[0].k            = 0;
+  pdsch.common_time_ra[0].sliv = srsran_ra_type2_to_riv(SRSRAN_NSYMB_PER_SLOT_NR - 2, 2, SRSRAN_NSYMB_PER_SLOT_NR);
+  pdsch.nof_common_time_ra     = 1;
+
+  // Setup PDSCH DMRS
+  pdsch.typeA_pos                 = srsran_dmrs_sch_typeA_pos_2;
+  pdsch.dmrs_typeA.present        = true;
+  pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos_2;
+
+  // Make default CSI-RS for tracking from TS38101 Table 5.2.1
+  make_nzp_csi_rs_ts38101_table_5_2_1(carrier, pdsch.nzp_csi_rs_sets[0]);
 }
 
 void phy_cfg_nr_default_t::make_pusch_default(srsran_sch_hl_cfg_nr_t& pusch)
@@ -224,6 +344,11 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
     case reference_cfg_t::R_PDSCH_DEFAULT:
       make_pdsch_default(pdsch);
       break;
+    case reference_cfg_t::R_PDSCH_2_1_1_TDD:
+      make_pdsch_2_1_1_tdd(carrier, pdsch);
+      break;
+    case reference_cfg_t::R_PDSCH_COUNT:
+      srsran_terminate("Invalid PDSCH reference configuration");
   }
 
   switch (reference_cfg.pusch) {

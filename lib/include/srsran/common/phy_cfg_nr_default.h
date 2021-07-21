@@ -56,7 +56,19 @@ public:
        * - No DMRS dedicated configuration
        */
       R_PDSCH_DEFAULT = 0,
-    } pdsch = R_PDSCH_DEFAULT;
+
+      /**
+       * @brief PDSCH parameters described in TS 38.101-4 Table 5.2.2.2.1-2 for the test described in table 5.2.2.2.1-3
+       */
+      R_PDSCH_2_1_1_TDD,
+
+      /**
+       * @brief Invalid PDSCH reference channel
+       */
+      R_PDSCH_COUNT
+
+    } pdsch                                       = R_PDSCH_DEFAULT;
+    const std::vector<std::string> R_PDSCH_STRING = {"default", "R.PDSCH.2-1.1 TDD", "Invalid"};
 
     enum {
       /**
@@ -98,6 +110,9 @@ public:
        */
       R_PRACH_DEFAULT_LTE,
     } prach = R_PRACH_DEFAULT_LTE;
+
+    reference_cfg_t() = default;
+    reference_cfg_t(const std::string& args);
   };
 
   phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg);
@@ -122,6 +137,7 @@ private:
    * PDSCH make helper methods
    */
   static void make_pdsch_default(srsran_sch_hl_cfg_nr_t& pdsch);
+  static void make_pdsch_2_1_1_tdd(const srsran_carrier_nr_t& carrier, srsran_sch_hl_cfg_nr_t& pdsch);
 
   /**
    * PUSCH make helper methods
