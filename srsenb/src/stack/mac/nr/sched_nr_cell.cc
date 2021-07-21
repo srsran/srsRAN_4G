@@ -56,7 +56,7 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
   static const uint32_t PRACH_RAR_OFFSET = 3;
   tti_point             pdcch_tti        = slot_grid.get_pdcch_tti();
-  tti_point             msg3_tti         = pdcch_tti + bwp_cfg->pusch_rach_list[0].msg3_delay;
+  tti_point             msg3_tti         = pdcch_tti + bwp_cfg->pusch_ra_list[0].msg3_delay;
   if (not slot_grid.res_grid()[msg3_tti].is_ul) {
     return;
   }

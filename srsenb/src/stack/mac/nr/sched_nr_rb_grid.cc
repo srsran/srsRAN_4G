@@ -73,7 +73,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   static const uint32_t msg3_nof_prbs = 3, m = 0;
 
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_tti];
-  tti_point      msg3_tti       = pdcch_tti + cfg.pusch_rach_list[m].msg3_delay;
+  tti_point      msg3_tti       = pdcch_tti + cfg.pusch_ra_list[m].msg3_delay;
   bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_tti];
   alloc_result   ret            = verify_pusch_space(bwp_msg3_slot, nullptr);
   if (ret != alloc_result::success) {

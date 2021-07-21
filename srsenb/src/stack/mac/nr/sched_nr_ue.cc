@@ -49,7 +49,7 @@ slot_ue ue_carrier::try_reserve(tti_point pdcch_tti)
   uint32_t k1 =
       sfu.cfg->phy().harq_ack.dl_data_to_ul_ack[sfu.pdsch_tti.sf_idx() % sfu.cfg->phy().harq_ack.nof_dl_data_to_ul_ack];
   sfu.uci_tti   = sfu.pdsch_tti + k1;
-  uint32_t k2   = k1;
+  uint32_t k2   = bwp_cfg.active_bwp().pusch_ra_list[0].K;
   sfu.pusch_tti = sfu.pdcch_tti + k2;
   sfu.dl_cqi    = dl_cqi;
   sfu.ul_cqi    = ul_cqi;
