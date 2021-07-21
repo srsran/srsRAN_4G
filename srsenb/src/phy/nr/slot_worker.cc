@@ -305,7 +305,14 @@ bool slot_worker::work_dl()
     if (logger.info.enabled()) {
       std::array<char, 512> str = {};
       srsran_gnb_dl_pdsch_info(&gnb_dl, &pdsch.sch, str.data(), (uint32_t)str.size());
-      logger.info("PDSCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
+
+      if (logger.debug.enabled()) {
+        std::array<char, 1024> str_extra = {};
+        srsran_sch_cfg_nr_info(&pdsch.sch, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info("PDSCH: cc=%d %s tti_tx=%d\n%s", cell_index, str.data(), dl_slot_cfg.idx, str_extra.data());
+      } else {
+        logger.info("PDSCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
+      }
     }
   }
 
