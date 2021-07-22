@@ -293,16 +293,7 @@ public:
 };
 
 class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr
-{
-public:
-  struct rx_data_ind_t {
-    uint32_t                     tti;
-    uint16_t                     rnti;
-    srsran::unique_byte_buffer_t tb;
-  };
-
-  virtual int rx_data_indication(rx_data_ind_t& grant) = 0;
-};
+{};
 
 } // namespace srsenb
 

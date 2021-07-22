@@ -55,9 +55,6 @@ public:
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override { return 0; }
 
   // Interface for PHY
-  int sf_indication(const uint32_t tti);
-  int rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& grant);
-
   void process_pdus();
   void rach_detected(const srsran_slot_cfg_t& slot_cfg, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
   int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;

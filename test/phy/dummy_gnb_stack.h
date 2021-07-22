@@ -400,8 +400,6 @@ public:
   ~gnb_dummy_stack() {}
   bool is_valid() const { return valid; }
 
-  int rx_data_indication(rx_data_ind_t& grant) override { return 0; }
-
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
 
   int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override

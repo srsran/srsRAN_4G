@@ -149,11 +149,6 @@ bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
   return true;
 }
 
-int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
-{
-  return m_mac->rx_data_indication(grant);
-}
-
 // Temporary GW interface
 void gnb_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
