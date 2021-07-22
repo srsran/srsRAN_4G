@@ -93,6 +93,7 @@ int ue::init(const all_args_t& args_)
 
     srsue::phy_args_nr_t phy_args_nr = {};
     phy_args_nr.max_nof_prb          = args.phy.nr_max_nof_prb;
+    phy_args_nr.rf_channel_offset    = args.phy.nof_lte_carriers;
     phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
     phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;
     phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;

@@ -28,9 +28,7 @@ static int       plot_worker_id = -1;
 namespace srsue {
 namespace nr {
 sf_worker::sf_worker(srsran::phy_common_interface& common_, state& phy_state_, srslog::basic_logger& log) :
-  phy_state(phy_state_),
-  common(common_),
-  logger(log)
+  phy_state(phy_state_), common(common_), logger(log)
 {
   for (uint32_t i = 0; i < phy_state.args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, log, phy_state);
@@ -87,7 +85,7 @@ void sf_worker::work_imp()
   // Check if PRACH is available
   if (prach_ptr != nullptr) {
     // PRACH is available, set buffer, transmit and return
-    tx_buffer.set(0, prach_ptr);
+    tx_buffer.set(phy_state.args.rf_channel_offset, prach_ptr);
     tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
     // Notify MAC about PRACH transmission
@@ -113,7 +111,7 @@ void sf_worker::work_imp()
 
   // Set Tx buffers
   for (uint32_t i = 0; i < (uint32_t)cc_workers.size(); i++) {
-    tx_buffer.set(i, cc_workers[i]->get_tx_buffer(0));
+    tx_buffer.set(i + phy_state.args.rf_channel_offset, cc_workers[i]->get_tx_buffer(0));
   }
   tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
