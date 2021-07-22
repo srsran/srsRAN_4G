@@ -212,7 +212,6 @@ void txrx::run_thread()
     }
 
     // Trigger phy worker execution
-    worker_com->semaphore.push(lte_worker);
     lte_workers->start_worker(lte_worker);
 
     // Advance stack in time
