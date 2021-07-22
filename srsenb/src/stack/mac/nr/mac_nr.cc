@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/mac_nr.h"
+#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/log_helper.h"
 #include "srsran/common/rwlock_guard.h"
@@ -24,7 +25,9 @@
 namespace srsenb {
 
 mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("MAC-NR")), task_sched(task_sched_)
+  logger(srslog::fetch_basic_logger("MAC-NR")),
+  task_sched(task_sched_),
+  sched(srsenb::sched_nr_interface::sched_cfg_t{})
 {
   stack_task_queue = task_sched.make_task_queue();
 }
@@ -51,6 +54,10 @@ int mac_nr::init(const mac_nr_args_t&    args_,
     pcap = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
     pcap->open(args.pcap.filename);
   }
+
+  // configure scheduler for 1 carrier
+  std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1);
+  sched.cell_cfg(cells_cfg);
 
   bcch_bch_payload = srsran::make_byte_buffer();
   if (bcch_bch_payload == nullptr) {
@@ -128,7 +135,10 @@ void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
     ++detected_rachs[enb_cc_idx];
 
     // Add new user to the scheduler so that it can RX/TX SRB0
-    // ..
+    srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
+    ue_cfg.fixed_dl_mcs                         = args.fixed_dl_mcs;
+    ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
+    sched.ue_cfg(rnti, ue_cfg);
 
     // Register new user in RRC
     if (rrc->add_user(rnti) == SRSRAN_ERROR) {
@@ -251,15 +261,45 @@ int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 
 int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
 {
-  return 0;
+  if (not pdsch_slot.valid()) {
+    pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+  } else {
+    pdsch_slot++;
+  }
+
+  int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
+  for (pdsch_t& pdsch : dl_sched.pdsch) {
+    // Set TBS
+    // Select grant and set data
+    pdsch.data[0] = nullptr; // FIXME: add ptr to PDU
+    pdsch.data[1] = nullptr;
+  }
+
+  return SRSRAN_SUCCESS;
 }
+
 int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
 {
-  return 0;
+  if (not pusch_slot.valid()) {
+    pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+  } else {
+    pusch_slot++;
+  }
+
+  int ret = sched.get_ul_sched(pusch_slot, 0, ul_sched);
+  for (pusch_t& pusch : ul_sched.pusch) {
+    pusch.data[0] = nullptr; // FIXME: add ptr to data to be filled
+    pusch.data[1] = nullptr;
+  }
+
+  return SRSRAN_SUCCESS;
 }
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
 {
-  return 0;
+  // FIXME: provide CRC/ACK feedback
+  // sched.dl_ack_info(rnti_, cc, pid, tb_idx, ack);
+  // sched.ul_crc_info(rnti_, cc, pid, crc);
+  return SRSRAN_SUCCESS;
 }
 int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
 {

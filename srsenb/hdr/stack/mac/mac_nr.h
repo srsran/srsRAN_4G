@@ -18,6 +18,7 @@
 
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/hdr/stack/mac/nr/ue_nr.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
@@ -27,6 +28,9 @@
 namespace srsenb {
 
 struct mac_nr_args_t {
+  srsran::phy_cfg_nr_t phy_base_cfg = {};
+  int                 fixed_dl_mcs = -1;
+  int                 fixed_ul_mcs = -1;
   srsenb::pcap_args_t pcap;
 };
 
@@ -91,6 +95,9 @@ private:
 
   std::atomic<bool> started = {false};
 
+  const static uint32_t NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
+  srsran::slot_point                  pdsch_slot, pusch_slot;
+  srsenb::sched_nr                    sched;
   srsenb::sched_interface::cell_cfg_t cfg = {};
 
   // Map of active UEs
