@@ -574,11 +574,6 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
     // Actual baseband transmission
     radio_h->tx(tx_buffer, tx_time);
 
-    // Reset tx buffer
-    tx_enabled = false;
-    for (uint32_t ch = 0; ch < SRSRAN_MAX_CHANNELS; ch++) {
-      tx_buffer.set(ch, nullptr);
-    }
   } else {
     if (radio_h->is_continuous_tx()) {
       if (is_pending_tx_end) {
@@ -600,8 +595,14 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
     }
   }
 
-  // Notify that last SF worker finished
+  // Notify that last SF worker finished. Releases all the threads waiting.
   last_worker();
+
+  // Reset tx buffer to prevent next SF uses previous data
+  tx_enabled = false;
+  for (uint32_t ch = 0; ch < SRSRAN_MAX_CHANNELS; ch++) {
+    tx_buffer.set(ch, nullptr);
+  }
 
   // Allow next TTI to transmit
   semaphore.release();

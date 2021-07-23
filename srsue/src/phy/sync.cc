@@ -522,17 +522,6 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
 
-  // Set LTE worker context
-  if (lte_worker != nullptr) {
-    srsran::phy_common_interface::worker_context_t context;
-    context.sf_idx     = tti;
-    context.worker_ptr = lte_worker;
-    context.last       = true;
-    context.tx_time.copy(last_rx_time);
-
-    lte_worker->set_context(context);
-  }
-
   // Advance/reset prach subframe pointer
   if (prach_ptr) {
     prach_sf_cnt++;
