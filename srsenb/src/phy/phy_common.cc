@@ -119,6 +119,12 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
   if (not w_ctx.last) {
     // Release semaphore and let next worker to get in
     semaphore.release();
+
+    // Wait for the last worker to finish
+    if (tx_enable) {
+      wait_last_worker();
+    }
+
     return;
   }
 
@@ -135,6 +141,9 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
 
   // Reset transmit buffer
   tx_buffer = {};
+
+  // Notify this is the last worker
+  last_worker();
 
   // Allow next TTI to transmit
   semaphore.release();

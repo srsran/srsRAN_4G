@@ -539,15 +539,21 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
   // For each channel set or combine baseband
   if (tx_enable) {
     tx_buffer.set_combine(buffer);
-  }
 
-  // Flag transmit enabled
-  tx_enabled = true;
+    // Flag transmit enabled
+    tx_enabled = true;
+  }
 
   // If the current worker is not the last one, skip transmission
   if (not w_ctx.last) {
     // Release semaphore and let next worker to get in
     semaphore.release();
+
+    // If this worker transmitted, hold the worker until last SF worker finishes
+    if (tx_enable) {
+      wait_last_worker();
+    }
+
     return;
   }
 
@@ -593,6 +599,9 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
       radio_h->tx_end();
     }
   }
+
+  // Notify that last SF worker finished
+  last_worker();
 
   // Allow next TTI to transmit
   semaphore.release();

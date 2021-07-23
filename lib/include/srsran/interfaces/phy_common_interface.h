@@ -23,6 +23,35 @@ namespace srsran {
  */
 class phy_common_interface
 {
+private:
+  std::mutex              tx_mutex;        ///< Protect Tx attributes
+  std::condition_variable tx_cvar;         ///< Tx condition variable
+  bool                    tx_hold = false; ///< Hold threads until the signal is transmitted
+
+protected:
+  /**
+   * @brief Waits for the last worker to call `last_worker()` to prevent that the current SF worker is released and
+   * overwrites the transmit signal prior transmission
+   */
+  void wait_last_worker()
+  {
+    std::unique_lock<std::mutex> lock(tx_mutex);
+    tx_hold = true;
+    while (tx_hold) {
+      tx_cvar.wait(lock);
+    }
+  }
+
+  /**
+   * @brief Notifies the last SF worker transmitted the baseband and all the workers waiting are released
+   */
+  void last_worker()
+  {
+    std::unique_lock<std::mutex> lock(tx_mutex);
+    tx_hold = false;
+    tx_cvar.notify_all();
+  }
+
 public:
   /**
    * @brief Describes a worker context
