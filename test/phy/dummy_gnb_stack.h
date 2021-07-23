@@ -28,6 +28,8 @@
 
 class gnb_dummy_stack : public srsenb::stack_interface_phy_nr
 {
+  const static uint32_t NUMEROLOGY_IDX = 0;
+
 public:
   struct prach_metrics_t {
     uint32_t count;
@@ -72,7 +74,7 @@ private:
   bool                                                    valid   = false;
 
   srsenb::sched_nr      sched;
-  srsran::tti_point     pdsch_tti, pusch_tti;
+  srsran::slot_point    pdsch_slot, pusch_slot;
   srslog::basic_logger& sched_logger;
 
   std::mutex metrics_mutex;
@@ -406,14 +408,14 @@ public:
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
-    if (not pdsch_tti.is_valid()) {
-      pdsch_tti = srsran::tti_point{slot_cfg.idx};
+    if (not pdsch_slot.valid()) {
+      pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
     } else {
-      pdsch_tti++;
+      pdsch_slot++;
     }
 
     if (not use_dummy_sched) {
-      int ret = sched.get_dl_sched(pdsch_tti, 0, dl_sched);
+      int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
 
       for (pdsch_t& pdsch : dl_sched.pdsch) {
         // Set TBS
@@ -452,14 +454,14 @@ public:
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
-    if (not pusch_tti.is_valid()) {
-      pusch_tti = srsran::tti_point{slot_cfg.idx};
+    if (not pusch_slot.valid()) {
+      pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
     } else {
-      pusch_tti++;
+      pusch_slot++;
     }
 
     if (not use_dummy_sched) {
-      int ret = sched.get_ul_sched(pusch_tti, 0, ul_sched);
+      int ret = sched.get_ul_sched(pusch_slot, 0, ul_sched);
 
       for (pusch_t& pusch : ul_sched.pusch) {
         pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();

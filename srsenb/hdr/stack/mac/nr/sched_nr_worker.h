@@ -37,10 +37,10 @@ public:
 
   explicit slot_cc_worker(serv_cell_manager& sched);
 
-  void start(tti_point pdcch_tti, ue_map_t& ue_db_);
+  void start(slot_point pdcch_slot, ue_map_t& ue_db_);
   void run();
   void finish();
-  bool running() const { return tti_rx.is_valid(); }
+  bool running() const { return slot_rx.valid(); }
 
   /// Enqueue feedback directed at a given UE in a given cell
   void enqueue_cc_feedback(uint16_t rnti, feedback_callback_t fdbk);
@@ -57,7 +57,7 @@ private:
   serv_cell_manager&       cell;
   srslog::basic_logger&    logger;
 
-  tti_point          tti_rx;
+  slot_point         slot_rx;
   bwp_slot_allocator bwp_alloc;
 
   // Process of UE cell-specific feedback
@@ -76,7 +76,7 @@ class sched_worker_manager
   struct slot_worker_ctxt {
     std::mutex                  slot_mutex; // lock of all workers of the same slot.
     std::condition_variable     cvar;
-    tti_point                   tti_rx;
+    slot_point                  slot_rx;
     int                         nof_workers_waiting = 0;
     std::atomic<int>            worker_count{0}; // variable shared across slot_cc_workers
     std::vector<slot_cc_worker> workers;
@@ -90,7 +90,7 @@ public:
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void run_slot(tti_point tti_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+  void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
   void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
   void enqueue_cc_feedback(uint16_t rnti, uint32_t cc, slot_cc_worker::feedback_callback_t fdbk)
@@ -99,7 +99,7 @@ public:
   }
 
 private:
-  bool save_sched_result(tti_point pdcch_tti, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+  bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
   const sched_params&                               cfg;
   ue_map_t&                                         ue_db;
@@ -124,7 +124,7 @@ private:
 
   std::mutex                                slot_mutex;
   std::condition_variable                   cvar;
-  tti_point                                 current_tti;
+  slot_point                                current_slot;
   std::atomic<int>                          worker_count{0}; // variable shared across slot_cc_workers
   std::vector<std::unique_ptr<cc_context> > cc_worker_list;
 };

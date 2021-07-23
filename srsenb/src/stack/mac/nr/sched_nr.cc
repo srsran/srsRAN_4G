@@ -34,40 +34,40 @@ public:
     }
   }
 
-  dl_sched_t& add_dl_result(tti_point tti, uint32_t cc)
+  dl_sched_t& add_dl_result(slot_point tti, uint32_t cc)
   {
     if (not has_dl_result(tti, cc)) {
-      results[tti.to_uint()][cc].tti_dl = tti;
-      results[tti.to_uint()][cc].dl_res = {};
+      results[tti.to_uint()][cc].slot_dl = tti;
+      results[tti.to_uint()][cc].dl_res  = {};
     }
     return results[tti.to_uint()][cc].dl_res;
   }
-  ul_sched_t& add_ul_result(tti_point tti, uint32_t cc)
+  ul_sched_t& add_ul_result(slot_point tti, uint32_t cc)
   {
     if (not has_ul_result(tti, cc)) {
-      results[tti.to_uint()][cc].tti_ul = tti;
-      results[tti.to_uint()][cc].ul_res = {};
+      results[tti.to_uint()][cc].slot_ul = tti;
+      results[tti.to_uint()][cc].ul_res  = {};
     }
     return results[tti.to_uint()][cc].ul_res;
   }
 
-  bool has_dl_result(tti_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].tti_dl == tti; }
+  bool has_dl_result(slot_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].slot_dl == tti; }
 
-  bool has_ul_result(tti_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].tti_ul == tti; }
+  bool has_ul_result(slot_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].slot_ul == tti; }
 
-  dl_sched_t pop_dl_result(tti_point tti, uint32_t cc)
+  dl_sched_t pop_dl_result(slot_point tti, uint32_t cc)
   {
     if (has_dl_result(tti, cc)) {
-      results[tti.to_uint()][cc].tti_dl.reset();
+      results[tti.to_uint()][cc].slot_dl.clear();
       return results[tti.to_uint()][cc].dl_res;
     }
     return {};
   }
 
-  ul_sched_t pop_ul_result(tti_point tti, uint32_t cc)
+  ul_sched_t pop_ul_result(slot_point tti, uint32_t cc)
   {
     if (has_ul_result(tti, cc)) {
-      results[tti.to_uint()][cc].tti_ul.reset();
+      results[tti.to_uint()][cc].slot_ul.clear();
       return results[tti.to_uint()][cc].ul_res;
     }
     return {};
@@ -75,8 +75,8 @@ public:
 
 private:
   struct slot_result_t {
-    tti_point  tti_dl;
-    tti_point  tti_ul;
+    slot_point slot_dl;
+    slot_point slot_ul;
     dl_sched_t dl_res;
     ul_sched_t ul_res;
   };
@@ -126,7 +126,7 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 }
 
 /// Generate {tti,cc} scheduling decision
-int sched_nr::generate_slot_result(tti_point pdcch_tti, uint32_t cc)
+int sched_nr::generate_slot_result(slot_point pdcch_tti, uint32_t cc)
 {
   // Copy results to intermediate buffer
   dl_sched_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
@@ -138,16 +138,16 @@ int sched_nr::generate_slot_result(tti_point pdcch_tti, uint32_t cc)
   return SRSRAN_SUCCESS;
 }
 
-int sched_nr::get_dl_sched(tti_point tti_tx, uint32_t cc, dl_sched_t& result)
+int sched_nr::get_dl_sched(slot_point slot_tx, uint32_t cc, dl_sched_t& result)
 {
-  if (not pending_results->has_dl_result(tti_tx, cc)) {
-    generate_slot_result(tti_tx, cc);
+  if (not pending_results->has_dl_result(slot_tx, cc)) {
+    generate_slot_result(slot_tx, cc);
   }
 
-  result = pending_results->pop_dl_result(tti_tx, cc);
+  result = pending_results->pop_dl_result(slot_tx, cc);
   return SRSRAN_SUCCESS;
 }
-int sched_nr::get_ul_sched(tti_point pusch_tti, uint32_t cc, ul_sched_t& result)
+int sched_nr::get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_sched_t& result)
 {
   if (not pending_results->has_ul_result(pusch_tti, cc)) {
     // sched result hasn't been generated
@@ -169,9 +169,9 @@ void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
   sched_workers->enqueue_cc_feedback(rnti, cc, [pid, crc](ue_carrier& ue_cc) { ue_cc.harq_ent.ul_crc_info(pid, crc); });
 }
 
-void sched_nr::ul_sr_info(tti_point tti_rx, uint16_t rnti)
+void sched_nr::ul_sr_info(slot_point slot_rx, uint16_t rnti)
 {
-  sched_workers->enqueue_event(rnti, [this, rnti, tti_rx]() { ue_db[rnti]->ul_sr_info(tti_rx); });
+  sched_workers->enqueue_event(rnti, [this, rnti, slot_rx]() { ue_db[rnti]->ul_sr_info(slot_rx); });
 }
 
 #define VERIFY_INPUT(cond, msg, ...)                                                                                   \

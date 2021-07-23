@@ -73,7 +73,7 @@ void test_nr_slot_type()
   srsran::slot_point slot1;
   TESTASSERT(not slot1.valid());
   srsran::slot_point slot2{0, 1, 5};
-  TESTASSERT(slot2.valid() and slot2.numerology_idx() == 0 and slot2.slot_idx() == 5 and slot2.sf_idx() == 5 and
+  TESTASSERT(slot2.valid() and slot2.numerology_idx() == 0 and slot2.slot_idx() == 5 and slot2.slot_idx() == 5 and
              slot2.sfn() == 1);
   srsran::slot_point slot3{slot2};
   TESTASSERT(slot3 == slot2);

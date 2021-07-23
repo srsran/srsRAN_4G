@@ -17,7 +17,7 @@
 #include "sched_nr_interface.h"
 #include "sched_nr_ue.h"
 #include "srsran/adt/pool/cached_alloc.h"
-#include "srsran/common/tti_point.h"
+#include "srsran/common/slot_point.h"
 #include <array>
 extern "C" {
 #include "srsran/config.h"
@@ -43,13 +43,13 @@ public:
 
   void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) override;
   void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc) override;
-  void ul_sr_info(tti_point tti_rx, uint16_t rnti) override;
+  void ul_sr_info(slot_point slot_rx, uint16_t rnti) override;
 
-  int get_dl_sched(tti_point pdsch_tti, uint32_t cc, dl_sched_t& result) override;
-  int get_ul_sched(tti_point pusch_tti, uint32_t cc, ul_sched_t& result) override;
+  int get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_sched_t& result) override;
+  int get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_sched_t& result) override;
 
 private:
-  int  generate_slot_result(tti_point pdcch_tti, uint32_t cc);
+  int  generate_slot_result(slot_point pdcch_tti, uint32_t cc);
   void ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
 
   // args

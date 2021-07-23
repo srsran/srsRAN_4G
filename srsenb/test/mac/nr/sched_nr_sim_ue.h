@@ -31,10 +31,10 @@ struct ue_nr_harq_ctxt_t {
   uint32_t              riv       = 0;
   srsran_dci_location_t dci_loc   = {};
   uint32_t              tbs       = 0;
-  tti_point             last_tti_tx, first_tti_tx, last_tti_ack;
+  slot_point            last_slot_tx, first_slot_tx, last_slot_ack;
 };
 struct sched_nr_cc_output_res_t {
-  tti_point                             tti;
+  slot_point                            slot;
   uint32_t                              cc;
   const sched_nr_interface::dl_sched_t* dl_cc_result;
   const sched_nr_interface::ul_sched_t* ul_cc_result;
@@ -46,7 +46,7 @@ struct ue_nr_cc_ctxt_t {
   srsran::circular_array<uint32_t, TTIMOD_SZ>      pending_acks;
 };
 
-struct ue_nr_tti_events {
+struct ue_nr_slot_events {
   struct ack_t {
     uint32_t pid;
     bool     ack;
@@ -56,14 +56,14 @@ struct ue_nr_tti_events {
     srsran::bounded_vector<ack_t, MAX_GRANTS> dl_acks;
     srsran::bounded_vector<ack_t, MAX_GRANTS> ul_acks;
   };
-  srsran::tti_point    tti_rx;
+  slot_point           slot_rx;
   std::vector<cc_data> cc_list;
 };
 
 struct sim_nr_ue_ctxt_t {
   uint16_t                     rnti;
   uint32_t                     preamble_idx;
-  srsran::tti_point            prach_tti_rx;
+  slot_point                   prach_slot_rx;
   sched_nr_interface::ue_cfg_t ue_cfg;
   std::vector<ue_nr_cc_ctxt_t> cc_list;
 
@@ -83,7 +83,7 @@ class sched_nr_ue_sim
 public:
   sched_nr_ue_sim(uint16_t                            rnti_,
                   const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                  tti_point                           prach_tti_rx,
+                  slot_point                          prach_slot_rx,
                   uint32_t                            preamble_idx);
 
   int update(const sched_nr_cc_output_res_t& cc_out);
@@ -108,7 +108,7 @@ public:
 
   int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx);
 
-  void new_slot(srsran::tti_point tti_tx);
+  void new_slot(slot_point slot_tx);
   void update(sched_nr_cc_output_res_t& cc_out);
 
   sched_nr_ue_sim&       at(uint16_t rnti) { return ue_db.at(rnti); }
@@ -131,10 +131,10 @@ public:
   }
   sched_nr*                                            get_sched() { return sched_ptr.get(); }
   srsran::const_span<sched_nr_impl::sched_cell_params> get_cell_params() { return cell_params; }
-  tti_point                                            get_tti_rx() const
+  slot_point                                           get_slot_rx() const
   {
     std::lock_guard<std::mutex> lock(mutex);
-    return current_tti_tx;
+    return current_slot_tx;
   }
 
   sim_nr_enb_ctxt_t get_enb_ctxt() const;
@@ -143,11 +143,11 @@ public:
   std::map<uint16_t, sched_nr_ue_sim>::iterator end() { return ue_db.end(); }
 
   // configurable by simulator concrete implementation
-  virtual void set_external_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_tti_events& pending_events) {}
+  virtual void set_external_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events) {}
 
 private:
-  int set_default_tti_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_tti_events& pending_events);
-  int apply_tti_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_tti_events& events);
+  int set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events);
+  int apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events);
 
   std::string                                   test_name;
   srslog::basic_logger&                         logger;
@@ -155,8 +155,8 @@ private:
   std::unique_ptr<sched_nr>                     sched_ptr;
   std::vector<sched_nr_impl::sched_cell_params> cell_params;
 
-  srsran::tti_point current_tti_tx;
-  int               cc_finished = 0;
+  slot_point current_slot_tx;
+  int        cc_finished = 0;
 
   std::map<uint16_t, sched_nr_ue_sim> ue_db;
 

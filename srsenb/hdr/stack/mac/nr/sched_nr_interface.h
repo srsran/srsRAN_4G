@@ -18,7 +18,7 @@
 #include "srsran/adt/optional.h"
 #include "srsran/adt/span.h"
 #include "srsran/common/phy_cfg_nr.h"
-#include "srsran/common/tti_point.h"
+#include "srsran/common/slot_point.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/phy/phch/dci_nr.h"
 
@@ -85,7 +85,7 @@ public:
     uint32_t ta_cmd;
     uint16_t temp_crnti;
     uint32_t msg3_size;
-    uint32_t prach_tti;
+    uint32_t prach_slot;
   };
 
   ///// Sched Result /////
@@ -96,12 +96,12 @@ public:
   virtual ~sched_nr_interface()                                                    = default;
   virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
   virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                       = 0;
-  virtual int  get_dl_sched(tti_point tti_rx, uint32_t cc, dl_sched_t& result)     = 0;
-  virtual int  get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)     = 0;
+  virtual int  get_dl_sched(slot_point slot_rx, uint32_t cc, dl_sched_t& result)   = 0;
+  virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_sched_t& result)   = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
   virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;
-  virtual void ul_sr_info(tti_point, uint16_t rnti)                                             = 0;
+  virtual void ul_sr_info(slot_point, uint16_t rnti)                                            = 0;
 };
 
 } // namespace srsenb

@@ -31,6 +31,11 @@ class slot_point
 
 public:
   slot_point() : numerology_(NOF_NUMEROLOGIES), count_(0) {}
+  slot_point(uint8_t numerology, uint32_t count) : numerology_(numerology), count_(count)
+  {
+    srsran_assert(numerology < NOF_NUMEROLOGIES, "Invalid numerology idx=%d passed", (int)numerology);
+    srsran_assert(count < nof_slots_per_hf(), "Invalid slot count=%d passed", (int)count);
+  }
   slot_point(uint8_t numerology, uint16_t sfn_val, uint8_t slot) :
     numerology_(numerology), count_(slot + sfn_val * nof_slots_per_frame())
   {
@@ -47,7 +52,7 @@ public:
   uint8_t nof_slots_per_frame() const { return nof_slots_per_subframe() * NOF_SUBFRAMES_PER_FRAME; }
 
   uint16_t sfn() const { return count_ / nof_slots_per_frame(); }
-  uint16_t sf_idx() const { return slot_idx() / nof_slots_per_subframe(); }
+  uint16_t subframe_idx() const { return slot_idx() / nof_slots_per_subframe(); }
   uint8_t  slot_idx() const { return count_ % nof_slots_per_frame(); }
   uint8_t  numerology_idx() const { return numerology_; }
   uint32_t to_uint() const { return count_; }
@@ -56,11 +61,7 @@ public:
   void clear() { numerology_ = NOF_NUMEROLOGIES; }
 
   // operators
-  bool operator==(const slot_point& other) const
-  {
-    srsran_assert(numerology_idx() == other.numerology_idx(), "Comparing slots of different numerologies");
-    return other.count_ == count_;
-  }
+  bool operator==(const slot_point& other) const { return other.count_ == count_ and other.numerology_ == numerology_; }
   bool operator!=(const slot_point& other) const { return not(*this == other); }
   bool operator<(const slot_point& other) const
   {
@@ -163,8 +164,9 @@ struct formatter<srsran::slot_point> {
 
 namespace srsenb {
 
-using slot_point = srsran::slot_point;
+using slot_point    = srsran::slot_point;
+using slot_interval = srsran::slot_interval;
 
-}
+} // namespace srsenb
 
 #endif // SRSRAN_SLOT_POINT_H
