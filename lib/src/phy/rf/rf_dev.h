@@ -216,7 +216,7 @@ static rf_dev_t dev_zmq = {"zmq",
                            .srsran_rf_send_timed_multi = rf_zmq_send_timed_multi};
 #endif
 
-/* Define implementation for bladeRF */
+/* Define implementation for Sidekiq */
 #ifdef ENABLE_SIDEKIQ
 
 #include "rf_skiq_imp.h"

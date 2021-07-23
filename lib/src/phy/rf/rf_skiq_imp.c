@@ -94,7 +94,7 @@ typedef struct {
 void rf_skiq_suppress_stdout(void* h)
 {
   SKIQ_RF_INFO("Suppressing stdout... lowering logging level to warning\n");
-  // rf_skiq_logging_level = SKIQ_LOG_WARNING;
+  rf_skiq_logging_level = SKIQ_LOG_WARNING;
 }
 
 static bool rf_skiq_is_streaming(rf_skiq_handler_t* h)

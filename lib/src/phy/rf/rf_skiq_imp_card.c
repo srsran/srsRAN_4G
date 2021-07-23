@@ -413,6 +413,7 @@ int rf_skiq_card_start_rx_streaming(rf_skiq_card_t* q, uint64_t timestamp)
   // Start all Rx in a row
   if (skiq_start_rx_streaming_multi_on_trigger(q->card, rx_hdl, q->nof_ports, skiq_trigger_src_synced, timestamp)) {
     ERROR("Failed to start card %d Rx streaming\n", q->card);
+    pthread_mutex_unlock(&q->mutex);
     return SRSRAN_ERROR;
   }
 
@@ -453,6 +454,7 @@ int rf_skiq_card_stop_rx_streaming(rf_skiq_card_t* q)
   // Stop all Rx in a row
   if (skiq_stop_rx_streaming_multi_immediate(q->card, rx_hdl, q->nof_ports)) {
     ERROR("Failed to stop card %d Rx streaming\n", q->card);
+    pthread_mutex_unlock(&q->mutex);
     return SRSRAN_ERROR;
   }
 
