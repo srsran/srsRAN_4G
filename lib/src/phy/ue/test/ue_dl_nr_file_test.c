@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/io/filesource.h"
+#include "srsran/phy/phch/ra_nr.h"
 #include "srsran/phy/ue/ue_dl_nr.h"
 #include "srsran/phy/utils/debug.h"
 #include <getopt.h>
@@ -26,28 +27,34 @@ static srsran_carrier_nr_t carrier = {
     1                                // max_mimo_layers
 };
 
-static char*                 filename  = NULL;
-static srsran_pdcch_cfg_nr_t pdcch_cfg = {};
-static uint16_t              rnti      = 0x1234;
-static srsran_rnti_type_t    rnti_type = srsran_rnti_type_c;
-static srsran_slot_cfg_t     slot_cfg  = {};
+static char*                  filename     = NULL;
+static srsran_pdcch_cfg_nr_t  pdcch_cfg    = {};
+static srsran_sch_hl_cfg_nr_t pdsch_hl_cfg = {};
+static uint16_t               rnti         = 0x1234;
+static srsran_rnti_type_t     rnti_type    = srsran_rnti_type_c;
+static srsran_slot_cfg_t      slot_cfg     = {};
+
+static srsran_softbuffer_rx_t softbuffer = {};
+static uint8_t*               data       = NULL;
 
 static void usage(char* prog)
 {
   printf("Usage: %s [pTLR] \n", prog);
   printf("\t-f File name [Default none]\n");
-  printf("\t-p Number of BWP (Carrier) PRB [Default %d]\n", carrier.nof_prb);
+  printf("\t-P Number of BWP (Carrier) PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-i Physical cell identifier [Default %d]\n", carrier.pci);
   printf("\t-n Slot index [Default %d]\n", slot_cfg.idx);
   printf("\t-R RNTI in hexadecimal [Default 0x%x]\n", rnti);
+  printf("\t-T RNTI type (c, ra) [Default %s]\n", srsran_rnti_type_str(rnti_type));
   printf("\t-S Use standard rates [Default %s]\n", srsran_symbol_size_is_standard() ? "yes" : "no");
+
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "fPivnSR")) != -1) {
+  while ((opt = getopt(argc, argv, "fPivnSRT")) != -1) {
     switch (opt) {
       case 'f':
         filename = argv[optind];
@@ -66,6 +73,17 @@ static int parse_args(int argc, char** argv)
         break;
       case 'R':
         rnti = (uint16_t)strtol(argv[optind], NULL, 16);
+        break;
+      case 'T':
+        if (strcmp(argv[optind], "c") == 0) {
+          rnti_type = srsran_rnti_type_c;
+        } else if (strcmp(argv[optind], "ra") == 0) {
+          rnti_type = srsran_rnti_type_ra;
+        } else {
+          printf("Invalid RNTI type '%s'\n", argv[optind]);
+          usage(argv[0]);
+          return SRSRAN_ERROR;
+        }
         break;
       case 'S':
         srsran_use_standard_symbol_size(true);
@@ -114,9 +132,33 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
     return SRSRAN_SUCCESS;
   }
 
-  char str[512] = {};
+  char str[1024] = {};
   srsran_dci_dl_nr_to_str(&ue_dl->dci, &dci_dl_rx, str, (uint32_t)sizeof(str));
   printf("Found DCI: %s\n", str);
+
+  // Convert DCI to PDSCH transmission
+  srsran_sch_cfg_nr_t pdsch_cfg = {};
+  if (srsran_ra_dl_dci_to_grant_nr(&carrier, slot, &pdsch_hl_cfg, &dci_dl_rx, &pdsch_cfg, &pdsch_cfg.grant) <
+      SRSRAN_SUCCESS) {
+    ERROR("Error decoding PDSCH search");
+    return SRSRAN_ERROR;
+  }
+
+  srsran_sch_cfg_nr_info(&pdsch_cfg, str, (uint32_t)sizeof(str));
+  printf("PDSCH: %s\n", str);
+
+  // Set softbuffer
+  pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer;
+
+  // Prepare PDSCH result
+  srsran_pdsch_res_nr_t pdsch_res = {};
+  pdsch_res.tb[0].payload         = data;
+
+  // Decode PDSCH
+  if (srsran_ue_dl_nr_decode_pdsch(ue_dl, slot, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding PDSCH search");
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -130,6 +172,18 @@ int main(int argc, char** argv)
   uint32_t sf_len = SRSRAN_SF_LEN_PRB(carrier.nof_prb);
   buffer[0]       = srsran_vec_cf_malloc(sf_len);
   if (buffer[0] == NULL) {
+    ERROR("Error malloc");
+    goto clean_exit;
+  }
+
+  if (srsran_softbuffer_rx_init_guru(&softbuffer, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSRAN_SUCCESS) {
+    ERROR("Error init soft-buffer");
+    goto clean_exit;
+  }
+
+  data = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
+  if (data == NULL) {
     ERROR("Error malloc");
     goto clean_exit;
   }
@@ -182,6 +236,11 @@ int main(int argc, char** argv)
     search_space->nof_candidates[L] = srsran_pdcch_nr_max_candidates_coreset(coreset, L);
   }
 
+  //  Configure RA search space
+  pdcch_cfg.ra_search_space_present = true;
+  pdcch_cfg.ra_search_space         = *search_space;
+  pdcch_cfg.ra_search_space.type    = srsran_search_space_type_common_1;
+
   if (srsran_ue_dl_nr_init(&ue_dl, buffer, &ue_dl_args)) {
     ERROR("Error UE DL");
     goto clean_exit;
@@ -213,8 +272,15 @@ int main(int argc, char** argv)
   ret = SRSRAN_SUCCESS;
 
 clean_exit:
+  if (buffer[0] != NULL) {
+    free(buffer[0]);
+  }
+  if (data != NULL) {
+    free(data);
+  }
   srsran_ue_dl_nr_free(&ue_dl);
   srsran_filesource_free(&filesource);
+  srsran_softbuffer_rx_free(&softbuffer);
 
   return ret;
 }
