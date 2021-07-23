@@ -80,6 +80,7 @@ void s1ap_nas_transport::init()
   m_nas_init.paging_timer = m_s1ap->m_s1ap_args.paging_timer;
   m_nas_init.integ_algo   = m_s1ap->m_s1ap_args.integrity_algo;
   m_nas_init.cipher_algo  = m_s1ap->m_s1ap_args.encryption_algo;
+  m_nas_init.request_imeisv = m_s1ap->m_s1ap_args.request_imeisv;
 
   // Init NAS interface
   m_nas_if.s1ap = s1ap::get_instance();

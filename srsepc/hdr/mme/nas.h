@@ -141,6 +141,7 @@ typedef struct {
   std::string                         short_net_name;
   srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  bool                                request_imeisv;
 } nas_init_t;
 
 typedef struct {
@@ -277,6 +278,7 @@ private:
   std::string m_dns;
   std::string m_full_net_name;
   std::string m_short_net_name;
+  bool        m_request_imeisv = false;
 
   // Timers timeout values
   uint16_t m_t3413 = 0;
