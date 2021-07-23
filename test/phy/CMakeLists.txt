@@ -60,16 +60,15 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
             )
 
-    # Disabled until fixed
-    #add_nr_test(nr_phy_test_10MHz_prach nr_phy_test
-    #        --duration=1000 # 100 slots
-    #        --gnb.stack.pdsch.slots=none # No PDSCH
-    #        --gnb.stack.pusch.slots=none # No PUSCH
-    #        --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-    #        --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
-    #        --ue.stack.prach.preamble=10 # Use preamble 10
-    #        --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
-    #        )
+    add_nr_test(nr_phy_test_10MHz_prach nr_phy_test
+            --duration=1000 # 100 slots
+            --gnb.stack.pdsch.slots=none # No PDSCH
+            --gnb.stack.pusch.slots=none # No PUSCH
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+            --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
+            --ue.stack.prach.preamble=10 # Use preamble 10
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+            )
 
     add_nr_test(nr_phy_test_10MHz_sr nr_phy_test
             --duration=1000 # 100 slots

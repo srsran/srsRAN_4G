@@ -30,6 +30,8 @@ worker_pool::worker_pool(srsran::phy_common_interface& common_,
 
 bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_list)
 {
+  nof_prach_workers = args.nof_prach_workers;
+
   // Configure logger
   srslog::basic_levels log_level = srslog::str_to_basic_level(args.log.phy_level);
   logger.set_level(log_level);
@@ -131,7 +133,7 @@ int worker_pool::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common
   prach_cfg.is_nr = true;
 
   // Set the PRACH configuration
-  prach.init(0, cell, prach_cfg, &prach_stack_adaptor, logger, 0, 1);
+  prach.init(0, cell, prach_cfg, &prach_stack_adaptor, logger, 0, nof_prach_workers);
   prach.set_max_prach_offset_us(1000);
 
   // Save current configuration

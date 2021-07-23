@@ -566,6 +566,11 @@ public:
       return SRSRAN_ERROR;
     }
 
+    // Skip next steps if uci data is invalid
+    if (not pucch_info.uci_data.value.valid) {
+      return SRSRAN_SUCCESS;
+    }
+
     // Handle PHY metrics
     metrics.pucch.epre_db_avg = SRSRAN_VEC_CMA(pucch_info.csi.epre_dB, metrics.pucch.epre_db_avg, metrics.pucch.count);
     metrics.pucch.epre_db_min = SRSRAN_MIN(metrics.pucch.epre_db_min, pucch_info.csi.epre_dB);

@@ -254,9 +254,6 @@ int main(int argc, char** argv)
                     metrics.gnb_stack.pucch.ta_us_min,
                     metrics.gnb_stack.pucch.ta_us_max);
     srsran::console("   +------------+------------+------------+------------+\n");
-  } else {
-    // In this case the gNb should not have detected any
-    TESTASSERT(metrics.gnb_stack.prach.empty());
   }
 
   // Print SR
