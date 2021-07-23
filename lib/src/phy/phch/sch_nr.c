@@ -549,6 +549,11 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
+  if (!tb->softbuffer.rx) {
+    ERROR("Missing softbuffer!");
+    return SRSRAN_ERROR;
+  }
+
   int8_t*  input_ptr    = e_bits;
   uint32_t nof_iter_sum = 0;
 
