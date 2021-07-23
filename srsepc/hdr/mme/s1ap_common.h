@@ -42,6 +42,7 @@ typedef struct {
   std::string                         pcap_filename;
   srsran::CIPHERING_ALGORITHM_ID_ENUM encryption_algo;
   srsran::INTEGRITY_ALGORITHM_ID_ENUM integrity_algo;
+  bool                                request_imeisv;
 } s1ap_args_t;
 
 typedef struct {
