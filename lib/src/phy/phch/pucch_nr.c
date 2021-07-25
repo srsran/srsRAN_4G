@@ -569,7 +569,7 @@ static int pucch_nr_format2_encode(srsran_pucch_nr_t*                  q,
     return SRSRAN_ERROR;
   }
 
-  // Calculate number of encoded symbols
+  // Calculate number of encoded bits
   int e = srsran_uci_nr_pucch_format_2_3_4_E(resource);
   if (e < SRSRAN_SUCCESS) {
     ERROR("Error selecting E");
@@ -614,8 +614,13 @@ static int pucch_nr_format2_decode(srsran_pucch_nr_t*                  q,
     return SRSRAN_ERROR;
   }
 
-  // Calculate number of encoded symbols
-  uint32_t E = srsran_uci_nr_pucch_format_2_3_4_E(resource);
+  // Calculate number of encoded bits
+  int e = srsran_uci_nr_pucch_format_2_3_4_E(resource);
+  if (e < SRSRAN_SUCCESS) {
+    ERROR("Error selecting E");
+    return SRSRAN_ERROR;
+  }
+  uint32_t E = (uint32_t)e;
 
   // Undo mapping to physical resources
   uint32_t l_start = resource->start_symbol_idx;
@@ -643,13 +648,13 @@ static int pucch_nr_format2_decode(srsran_pucch_nr_t*                  q,
   }
 
   // Equalise
-  if (srsran_predecoding_single(q->d, q->ce, q->d, NULL, E, 1.0f, chest_res->noise_estimate) < SRSRAN_SUCCESS) {
+  if (srsran_predecoding_single(q->d, q->ce, q->d, NULL, E / 2, 1.0f, chest_res->noise_estimate) < SRSRAN_SUCCESS) {
     ERROR("Error Pre-decoding");
     return SRSRAN_ERROR;
   }
 
   // Soft-demodulate
-  if (srsran_demod_soft_demodulate_b(SRSRAN_MOD_QPSK, q->d, llr, E) < SRSRAN_SUCCESS) {
+  if (srsran_demod_soft_demodulate_b(SRSRAN_MOD_QPSK, q->d, llr, E / 2) < SRSRAN_SUCCESS) {
     ERROR("Error soft-demodulate");
     return SRSRAN_ERROR;
   }

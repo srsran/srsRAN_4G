@@ -23,7 +23,7 @@
 #define SRSRAN_DUMMY_RX_HARQ_PROC_H
 
 #include <mutex>
-#include <srsenb/hdr/stack/mac/mac_metrics.h>
+#include <srsenb/hdr/stack/mac/common/mac_metrics.h>
 #include <srsran/adt/circular_array.h>
 #include <srsran/common/buffer_pool.h>
 #include <srsran/common/phy_cfg_nr.h>
@@ -69,5 +69,8 @@ public:
 
   uint32_t get_tbs() const { return tbs; }
 };
+
+class dummy_rx_harq_entity : public srsran::circular_array<dummy_rx_harq_proc, SRSRAN_MAX_HARQ_PROC_DL_NR>
+{};
 
 #endif // SRSRAN_DUMMY_RX_HARQ_PROC_H

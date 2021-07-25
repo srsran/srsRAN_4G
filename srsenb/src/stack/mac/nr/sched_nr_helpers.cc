@@ -30,7 +30,10 @@ namespace sched_nr_impl {
 
 bool fill_dci_rar(prb_interval interv, const bwp_params& cell, srsran_dci_dl_nr_t& dci)
 {
-  dci.mcs = 5;
+  dci.mcs        = 5;
+  dci.ctx.format = srsran_dci_format_nr_1_0;
+  // TODO: Fill
+
   return true;
 }
 
@@ -43,11 +46,12 @@ void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dc
   dci.cc_id  = ue.cc;
   dci.tpc    = 1;
   // harq
-  harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? ue.h_dl : ue.h_ul;
-  dci.pid      = h->pid;
-  dci.ndi      = h->ndi();
-  dci.mcs      = h->mcs();
-  dci.rv       = rv_idx[h->nof_retx() % 4];
+  harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? static_cast<harq_proc*>(ue.h_dl)
+                                                                    : static_cast<harq_proc*>(ue.h_ul);
+  dci.pid = h->pid;
+  dci.ndi = h->ndi();
+  dci.mcs = h->mcs();
+  dci.rv  = rv_idx[h->nof_retx() % 4];
   // PRB assignment
   const prb_grant& grant = h->prbs();
   if (grant.is_alloc_type0()) {
@@ -84,7 +88,7 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci)
 {
-  bool ret = ue.cfg->phy().get_dci_ctx_pdsch_rnti_c(ss_id, dci_pos, ue.rnti, dci.ctx);
+  bool ret = ue.cfg->phy().get_dci_ctx_pusch_rnti_c(ss_id, dci_pos, ue.rnti, dci.ctx);
   srsran_assert(ret, "Invalid DL DCI format");
 
   fill_dci_common(ue, bwp_cfg, dci);

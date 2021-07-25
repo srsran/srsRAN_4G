@@ -3048,7 +3048,7 @@ SRSASN_CODE pdcch_cfg_common_s::pack(bit_ref& bref) const
   if (ext) {
     ext_groups_packer_guard group_flags;
     group_flags[0] |= first_pdcch_monitoring_occasion_of_po.is_present();
-    group_flags.pack(bref);
+    HANDLE_CODE(group_flags.pack(bref));
 
     if (group_flags[0]) {
       varlength_field_pack_guard varlen_scope(bref, false);
@@ -3100,7 +3100,7 @@ SRSASN_CODE pdcch_cfg_common_s::unpack(cbit_ref& bref)
 
   if (ext) {
     ext_groups_unpacker_guard group_flags(1);
-    group_flags.unpack(bref);
+    HANDLE_CODE(group_flags.unpack(bref));
 
     if (group_flags[0]) {
       varlength_field_unpack_guard varlen_scope(bref, false);

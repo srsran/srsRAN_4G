@@ -218,6 +218,13 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_
       rnti, [tti, enb_cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti_point{tti}, enb_cc_idx, cqi_value); });
 }
 
+int sched::dl_sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi_value)
+{
+  return ue_db_access_locked(rnti, [tti, enb_cc_idx, cqi_value, sb_idx](sched_ue& ue) {
+    ue.set_dl_sb_cqi(tti_point{tti}, enb_cc_idx, sb_idx, cqi_value);
+  });
+}
+
 int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);

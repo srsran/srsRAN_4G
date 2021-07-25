@@ -118,11 +118,6 @@ public:
   bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
   void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsran::unique_byte_buffer_t pdu);
 
-  // SgNB handler
-  void handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
-                                const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15);
-  void handle_sgnb_addition_reject();
-
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 
   /// Helper to check UE ERABs

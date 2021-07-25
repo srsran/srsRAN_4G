@@ -41,6 +41,9 @@ class mac_interface_rrc_nr
 public:
   // Provides cell configuration including SIB periodicity, etc.
   virtual int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg) = 0;
+
+  /// Allocates a new user/RNTI at MAC. Returns RNTI on success or SRSRAN_INVALID_RNTI otherwise.
+  virtual uint16_t reserve_rnti() = 0;
 };
 
 class mac_interface_rlc_nr
@@ -154,6 +157,9 @@ public:
   // Provides MIB packed message
   virtual int read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer)   = 0;
   virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) = 0;
+
+  /// User management
+  virtual int add_user(uint16_t rnti) = 0;
 };
 class rrc_interface_rlc_nr
 {
@@ -192,6 +198,7 @@ public:
   // TBD
 };
 
+// Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_nr : public phy_interface_rrc_nr, public phy_interface_mac_nr
 {
 public:
@@ -208,9 +215,11 @@ public:
 class mac_interface_phy_nr
 {
 public:
-  const static int MAX_SSB        = 4;
-  const static int MAX_GRANTS     = 64;
-  const static int MAX_NZP_CSI_RS = 4;
+  const static int MAX_SSB              = 4;
+  const static int MAX_GRANTS           = 64;
+  const static int MAX_PUCCH_MSG        = 64;
+  const static int MAX_PUCCH_CANDIDATES = 2;
+  const static int MAX_NZP_CSI_RS       = 4;
 
   struct pdcch_dl_t {
     srsran_dci_cfg_nr_t dci_cfg = {};
@@ -245,10 +254,20 @@ public:
     std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
   };
 
+  /**
+   * @brief Describes a possible PUCCH candidate transmission
+   * @note The physical layer shall try decoding all the possible PUCCH candidates and report back to the stack the
+   * strongest of the candidates. This is thought to be used in the case of SR opportunities in which the UE could
+   * transmit HARQ-ACK in two possible resources.
+   */
+  struct pucch_candidate_t {
+    srsran_uci_cfg_nr_t        uci_cfg;  ///< UCI configuration for the opportunity
+    srsran_pucch_nr_resource_t resource; ///< PUCCH resource to use
+  };
+
   struct pucch_t {
-    srsran_uci_cfg_nr_t          uci_cfg;   ///< UCI configuration
-    srsran_pucch_nr_common_cfg_t pucch_cfg; ///< UE dedicated PUCCH configuration
-    srsran_pucch_nr_resource_t   resource;  ///< PUCCH resource
+    srsran_pucch_nr_common_cfg_t                                    pucch_cfg;  ///< UE dedicated PUCCH configuration
+    srsran::bounded_vector<pucch_candidate_t, MAX_PUCCH_CANDIDATES> candidates; ///< PUCCH candidates to decode
   };
 
   struct ul_sched_t {
@@ -257,8 +276,8 @@ public:
   };
 
   struct pucch_info_t {
-    srsran_uci_data_nr_t uci_data; ///< RNTI is available under cfg->pucch->rnti
-    // ... add signal measurements here
+    srsran_uci_data_nr_t          uci_data; ///< RNTI is available under cfg->pucch->rnti
+    srsran_csi_trs_measurements_t csi;      ///< DMRS based signal Channel State Information (CSI)
   };
 
   struct pusch_info_t {

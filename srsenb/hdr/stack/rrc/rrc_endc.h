@@ -57,6 +57,7 @@ public:
   void handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
                                 const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15);
   void handle_sgnb_addition_reject();
+  void handle_sgnb_addition_complete();
 
 private:
   // Send SgNB addition request to gNB
@@ -72,10 +73,15 @@ private:
   bool                                 endc_supported = false;
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
+  // temporary storage for NR reconfiguration
+  asn1::dyn_octstring nr_secondary_cell_group_cfg_r15;
+  asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
+
   // events
   struct sgnb_add_req_sent_ev {};
   struct sgnb_add_req_ack_ev {};
   struct sgnb_add_req_reject_ev {};
+  struct rrc_recfg_sent_ev {};
   struct prach_nr_received_ev {};
 
   using recfg_complete_ev  = asn1::rrc::rrc_conn_recfg_complete_s;
@@ -84,6 +90,7 @@ private:
   // states
   struct idle_st {};
   struct wait_sgnb_add_req_resp {};
+  struct prepare_recfg {};
   struct wait_recfg_comp {};
   struct wait_prach_nr {};
 
@@ -95,11 +102,8 @@ private:
 
 protected:
   // states
-  state_list<idle_st, wait_sgnb_add_req_resp, wait_recfg_comp, wait_prach_nr> states{this,
-                                                                                     idle_st{},
-                                                                                     wait_sgnb_add_req_resp{},
-                                                                                     wait_recfg_comp{},
-                                                                                     wait_prach_nr{}};
+  state_list<idle_st, wait_sgnb_add_req_resp, prepare_recfg, wait_recfg_comp, wait_prach_nr>
+      states{this, idle_st{}, wait_sgnb_add_req_resp{}, prepare_recfg{}, wait_recfg_comp{}, wait_prach_nr{}};
 
   // transitions
   using fsm = rrc_endc;
@@ -109,8 +113,9 @@ protected:
   // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
   row< idle_st,                wait_sgnb_add_req_resp, sgnb_add_req_sent_ev,   nullptr                                                >,
   // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
-  row< wait_sgnb_add_req_resp, wait_recfg_comp,        sgnb_add_req_ack_ev                                                            >,
+  row< wait_sgnb_add_req_resp, prepare_recfg,          sgnb_add_req_ack_ev                                                            >,
   row< wait_sgnb_add_req_resp, idle_st,                sgnb_add_req_reject_ev                                                         >,
+  row< prepare_recfg,          wait_recfg_comp,        rrc_recfg_sent_ev                                                              >,
   row< wait_recfg_comp,        idle_st,                recfg_complete_ev,      &fsm::handle_recfg_complete                            >
   // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
   >;

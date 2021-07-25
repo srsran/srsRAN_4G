@@ -196,7 +196,7 @@ public:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srsran::task_sched_handle t) : srsue::nas(t) {}
+  nas_test(srsran::task_sched_handle t) : srsue::nas(srslog::fetch_basic_logger("NAS"), t) {}
   bool is_registered() override { return false; }
 };
 

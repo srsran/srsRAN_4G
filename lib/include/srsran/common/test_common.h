@@ -154,6 +154,10 @@ inline void test_init(int argc, char** argv)
 inline void copy_msg_to_buffer(unique_byte_buffer_t& pdu, const_byte_span msg)
 {
   pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    srslog::fetch_basic_logger("ALL").error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
   memcpy(pdu->msg, msg.data(), msg.size());
   pdu->N_bytes = msg.size();
 }

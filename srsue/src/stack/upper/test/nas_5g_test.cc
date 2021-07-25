@@ -58,8 +58,8 @@ int amf_attach_request_test(srsran::nas_pcap* pcap)
   nas_cfg.ea5g              = "0,1,2,3";
 
   test_stack_dummy<srsue::nas_5g> stack(&pdcp_dummy);
-  srsue::nas_5g                   nas_5g(&stack.task_sched);
-  srsue::gw                       gw;
+  srsue::nas_5g                   nas_5g(srslog::fetch_basic_logger("NAS-5G"), &stack.task_sched);
+  srsue::gw                       gw(srslog::fetch_basic_logger("GW"));
 
   if (pcap != nullptr) {
     nas_5g.start_pcap(pcap);

@@ -24,6 +24,7 @@
 
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srsenb/test/common/dummy_classes.h"
+#include "srsenb/test/common/dummy_classes_common.h"
 #include "srsran/adt/span.h"
 
 using namespace srsenb;

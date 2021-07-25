@@ -76,7 +76,6 @@ bool slot_worker::init(const args_t& args)
     return false;
   }
 
-
   // Prepare UL arguments
   srsran_gnb_ul_args_t ul_args = {};
   ul_args.pusch.measure_time   = true;
@@ -158,22 +157,37 @@ bool slot_worker::work_ul()
 
   // For each PUCCH...
   for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
-    stack_interface_phy_nr::pucch_info_t pucch_info = {};
-    pucch_info.uci_data.cfg                         = pucch.uci_cfg;
+    srsran::bounded_vector<stack_interface_phy_nr::pucch_info_t, stack_interface_phy_nr::MAX_PUCCH_CANDIDATES>
+        pucch_info(pucch.candidates.size());
 
-    // Decode PUCCH
-    if (srsran_gnb_ul_get_pucch(&gnb_ul,
-                                &ul_slot_cfg,
-                                &pucch.pucch_cfg,
-                                &pucch.resource,
-                                &pucch_info.uci_data.cfg,
-                                &pucch_info.uci_data.value) < SRSRAN_SUCCESS) {
-      logger.error("Error getting PUCCH");
-      return false;
+    // For each candidate decode PUCCH
+    for (uint32_t i = 0; i < (uint32_t)pucch.candidates.size(); i++) {
+      pucch_info[i].uci_data.cfg = pucch.candidates[i].uci_cfg;
+
+      // Decode PUCCH
+      if (srsran_gnb_ul_get_pucch(&gnb_ul,
+                                  &ul_slot_cfg,
+                                  &pucch.pucch_cfg,
+                                  &pucch.candidates[i].resource,
+                                  &pucch_info[i].uci_data.cfg,
+                                  &pucch_info[i].uci_data.value,
+                                  &pucch_info[i].csi) < SRSRAN_SUCCESS) {
+        logger.error("Error getting PUCCH");
+        return false;
+      }
+    }
+
+    // Find most suitable PUCCH candidate
+    uint32_t best_candidate = 0;
+    for (uint32_t i = 1; i < (uint32_t)pucch_info.size(); i++) {
+      // Select candidate if exceeds the previous best candidate SNR
+      if (pucch_info[i].csi.snr_dB > pucch_info[best_candidate].csi.snr_dB) {
+        best_candidate = i;
+      }
     }
 
     // Inform stack
-    if (stack.pucch_info(ul_slot_cfg, pucch_info) < SRSRAN_SUCCESS) {
+    if (stack.pucch_info(ul_slot_cfg, pucch_info[best_candidate]) < SRSRAN_SUCCESS) {
       logger.error("Error pushing PUCCH information to stack");
       return false;
     }
@@ -181,7 +195,11 @@ bool slot_worker::work_ul()
     // Log PUCCH decoding
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srsran_gnb_ul_pucch_info(&gnb_ul, &pucch.resource, &pucch_info.uci_data, str.data(), (uint32_t)str.size());
+      srsran_gnb_ul_pucch_info(&gnb_ul,
+                               &pucch.candidates[0].resource,
+                               &pucch_info[best_candidate].uci_data,
+                               str.data(),
+                               (uint32_t)str.size());
 
       logger.info("PUCCH: %s", str.data());
     }

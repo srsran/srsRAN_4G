@@ -32,7 +32,7 @@ gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(s
   m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP-NR"));
   m_rrc.reset(new rrc_nr(&task_sched));
   m_sdap.reset(new sdap());
-  m_gw.reset(new srsue::gw());
+  m_gw.reset(new srsue::gw(srslog::fetch_basic_logger("GW")));
   //  m_gtpu.reset(new srsenb::gtpu());
 
   ue_task_queue   = task_sched.make_task_queue();
@@ -71,13 +71,8 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   // Init all layers
   mac_nr_args_t mac_args = {};
-  mac_args.log_level     = args.log.mac_level;
-  mac_args.log_hex_limit = args.log.mac_hex_limit;
   mac_args.pcap          = args.mac_pcap;
-  mac_args.sched         = args.mac.sched;
-  mac_args.tb_size       = args.mac.nr_tb_size;
-  mac_args.rnti          = args.coreless.rnti;
-  m_mac->init(mac_args, phy, this, m_rlc.get(), m_rrc.get());
+  m_mac->init(mac_args, phy, this, nullptr, m_rrc.get());
 
   rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
@@ -88,19 +83,12 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   pdcp_args.log_hex_limit  = args.log.pdcp_hex_limit;
   m_pdcp->init(pdcp_args, m_rlc.get(), m_rrc.get(), m_sdap.get());
 
-  m_rrc->init(rrc_cfg_, phy, m_mac.get(), m_rlc.get(), m_pdcp.get(), nullptr, nullptr, nullptr);
+  m_rrc->init(rrc_cfg_, phy, m_mac.get(), nullptr, nullptr, nullptr, nullptr, nullptr);
 
   m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
 
-  m_gw->init(args.coreless.gw_args, this);
-  char* err_str = nullptr;
-  if (m_gw->setup_if_addr(5,
-                          LIBLTE_MME_PDN_TYPE_IPV4,
-                          htonl(inet_addr(args.coreless.ip_addr.c_str())),
-                          nullptr,
-                          err_str)) {
-    printf("Error configuring TUN interface\n");
-  }
+  srsue::gw_args_t gw_args = {};
+  m_gw->init(gw_args, this);
 
   // TODO: add NGAP
   //  m_gtpu->init(args.s1ap.gtp_bind_addr, args.s1ap.mme_addr,
@@ -155,7 +143,6 @@ void gnb_stack_nr::run_tti_impl(uint32_t tti)
 
 void gnb_stack_nr::process_pdus()
 {
-  mac_task_queue.push([this]() { m_mac->process_pdus(); });
 }
 
 /********************************************************
@@ -179,12 +166,12 @@ int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
 // Temporary GW interface
 void gnb_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
 {
-  m_pdcp->write_sdu(args.coreless.rnti, lcid, std::move(sdu));
+  // not implemented
 }
 
 bool gnb_stack_nr::has_active_radio_bearer(uint32_t eps_bearer_id)
 {
-  return (eps_bearer_id == args.coreless.drb_lcid);
+  return false;
 }
 int gnb_stack_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {

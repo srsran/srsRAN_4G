@@ -81,11 +81,11 @@ public:
 
   void toggle_padding() override { srsran::console("padding not available for NR\n"); }
 
-  int slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
-  int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
-  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
-  int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override;
-  int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override;
+  int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
+  int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
+  int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
+  int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override;
+  int  pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override;
   void rach_detected(const rach_info_t& rach_info) override;
 
 private:

@@ -47,7 +47,7 @@ class rrc_interface_nas;
 class nas : public nas_interface_rrc, public srsran::timer_callback, public nas_base
 {
 public:
-  explicit nas(srsran::task_sched_handle task_sched_);
+  explicit nas(srslog::basic_logger& logger_, srsran::task_sched_handle task_sched_);
   virtual ~nas();
   int  init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();

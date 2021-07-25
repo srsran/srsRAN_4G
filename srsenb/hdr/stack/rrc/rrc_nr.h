@@ -23,6 +23,7 @@
 #define SRSENB_RRC_NR_H
 
 #include "rrc_config_common.h"
+#include "rrc_config_nr.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsran/asn1/rrc_nr.h"
@@ -32,6 +33,8 @@
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/threads.h"
 #include "srsran/common/timeout.h"
+#include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/interfaces/gnb_ngap_interfaces.h"
@@ -42,30 +45,6 @@
 namespace srsenb {
 
 enum class rrc_nr_state_t { RRC_IDLE, RRC_INACTIVE, RRC_CONNECTED };
-
-// TODO: Make this common to NR and LTE
-struct rrc_nr_cfg_sr_t {
-  uint32_t period;
-  //  asn1::rrc::sched_request_cfg_c::setup_s_::dsr_trans_max_e_ dsr_max;
-  uint32_t nof_prb;
-  uint32_t sf_mapping[80];
-  uint32_t nof_subframes;
-};
-
-struct rrc_nr_cfg_t {
-  asn1::rrc_nr::mib_s                                     mib;
-  asn1::rrc_nr::sib1_s                                    sib1;
-  asn1::rrc_nr::sys_info_ies_s::sib_type_and_info_item_c_ sibs[ASN1_RRC_NR_MAX_SIB];
-  uint32_t                                                nof_sibs;
-  rrc_nr_cfg_sr_t                                         sr_cfg;
-  rrc_cfg_cqi_t                                           cqi_cfg;
-  srsran_cell_t                                           cell;
-
-  std::string log_level;
-  uint32_t    log_hex_limit;
-
-  srsenb::core_less_args_t coreless;
-};
 
 class rrc_nr final : public rrc_interface_pdcp_nr,
                      public rrc_interface_mac_nr,
@@ -79,8 +58,8 @@ public:
   int32_t init(const rrc_nr_cfg_t&         cfg,
                phy_interface_stack_nr*     phy,
                mac_interface_rrc_nr*       mac,
-               rlc_interface_rrc_nr*       rlc,
-               pdcp_interface_rrc_nr*      pdcp,
+               rlc_interface_rrc*          rlc,
+               pdcp_interface_rrc*         pdcp,
                ngap_interface_rrc_nr*      ngap_,
                gtpu_interface_rrc_nr*      gtpu,
                rrc_eutra_interface_rrc_nr* rrc_eutra_);
@@ -90,7 +69,8 @@ public:
   void get_metrics(srsenb::rrc_metrics_t& m);
 
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
-  void         add_user(uint16_t rnti);
+  int          add_user(uint16_t rnti);
+  int          update_user(uint16_t new_rnti, uint16_t old_rnti);
   void         config_mac();
   int32_t      generate_sibs();
   int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
@@ -119,7 +99,7 @@ public:
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
 
-    int handle_sgnb_addition_request();
+    int handle_sgnb_addition_request(uint16_t eutra_rnti);
 
     // getters
     bool is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
@@ -128,14 +108,19 @@ public:
 
     // setters
 
+    int pack_rrc_reconfiguraiton();
+
   private:
-    rrc_nr*  parent;
-    uint16_t rnti;
+    rrc_nr*  parent = nullptr;
+    uint16_t rnti   = SRSRAN_INVALID_RNTI;
+
+    int pack_rrc_reconfiguraiton(asn1::dyn_octstring& packed_rrc_reconfig);
+    int pack_secondary_cell_group_config(asn1::dyn_octstring& packed_secondary_cell_config);
+    int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
     // state
     rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t                             transaction_id = 0;
-    srsran::timer_handler::unique_timer rrc_setup_periodic_timer;
   };
 
 private:
@@ -144,8 +129,8 @@ private:
   // interfaces
   phy_interface_stack_nr* phy  = nullptr;
   mac_interface_rrc_nr*   mac  = nullptr;
-  rlc_interface_rrc_nr*   rlc  = nullptr;
-  pdcp_interface_rrc_nr*  pdcp = nullptr;
+  rlc_interface_rrc*          rlc       = nullptr;
+  pdcp_interface_rrc*         pdcp      = nullptr;
   gtpu_interface_rrc_nr*  gtpu = nullptr;
   ngap_interface_rrc_nr*  ngap = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;

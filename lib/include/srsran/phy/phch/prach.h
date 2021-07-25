@@ -179,6 +179,8 @@ SRSRAN_API bool srsran_prach_tti_opportunity(srsran_prach_t* p, uint32_t current
 SRSRAN_API bool
 srsran_prach_tti_opportunity_config_fdd(uint32_t config_idx, uint32_t current_tti, int allowed_subframe);
 
+SRSRAN_API bool srsran_prach_in_window_config_fdd(uint32_t config_idx, uint32_t current_tti, int allowed_subframe);
+
 SRSRAN_API bool srsran_prach_tti_opportunity_config_tdd(uint32_t  config_idx,
                                                         uint32_t  tdd_ul_dl_config,
                                                         uint32_t  current_tti,

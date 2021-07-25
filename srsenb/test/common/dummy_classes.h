@@ -25,7 +25,6 @@
 #include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/enb_interfaces.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
-#include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
@@ -52,45 +51,6 @@ public:
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override { return last_rnti++; }
 
   uint16_t last_rnti = 70;
-};
-
-class rlc_dummy : public rlc_interface_rrc
-{
-public:
-  void clear_buffer(uint16_t rnti) override {}
-  void add_user(uint16_t rnti) override {}
-  void rem_user(uint16_t rnti) override {}
-  void add_bearer(uint16_t rnti, uint32_t lcid, srsran::rlc_config_t cnfg) override {}
-  void add_bearer_mrb(uint16_t rnti, uint32_t lcid) override {}
-  void del_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) override {}
-  bool has_bearer(uint16_t rnti, uint32_t lcid) override { return false; }
-  bool suspend_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
-  bool resume_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
-  void reestablish(uint16_t rnti) override {}
-};
-
-class pdcp_dummy : public pdcp_interface_rrc, public pdcp_interface_gtpu
-{
-public:
-  void reset(uint16_t rnti) override {}
-  void add_user(uint16_t rnti) override {}
-  void rem_user(uint16_t rnti) override {}
-  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn) override {}
-  void add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cnfg) override {}
-  void del_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg_) override {}
-  void enable_integrity(uint16_t rnti, uint32_t lcid) override {}
-  void enable_encryption(uint16_t rnti, uint32_t lcid) override {}
-  bool get_bearer_state(uint16_t rnti, uint32_t lcid, srsran::pdcp_lte_state_t* state) override { return true; }
-  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srsran::pdcp_lte_state_t& state) override { return true; }
-  void reestablish(uint16_t rnti) override {}
-  void send_status_report(uint16_t rnti) override {}
-  void send_status_report(uint16_t rnti, uint32_t lcid) override {}
-  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override
-  {
-    return {};
-  }
 };
 
 class s1ap_dummy : public s1ap_interface_rrc

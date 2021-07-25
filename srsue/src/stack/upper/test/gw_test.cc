@@ -42,7 +42,7 @@ int gw_test()
   gw_args.log.gw_level     = "debug";
   gw_args.log.gw_hex_limit = 100000;
   test_stack_dummy stack;
-  srsue::gw        gw;
+  srsue::gw        gw(srslog::fetch_basic_logger("GW"));
   gw.init(gw_args, &stack);
 
   uint32_t eps_bearer_id              = 5;

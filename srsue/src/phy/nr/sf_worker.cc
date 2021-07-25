@@ -119,7 +119,7 @@ void sf_worker::work_imp()
 
   // Perform UL processing
   for (auto& w : cc_workers) {
-    w->work_ul();
+    w.get()->work_ul();
   }
 
   // Set Tx buffers

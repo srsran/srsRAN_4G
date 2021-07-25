@@ -75,6 +75,10 @@ public:
   {
     return mac.cqi_info(tti, rnti, cc_idx, cqi_value);
   }
+  int sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t sb_idx, uint32_t cqi_value) final
+  {
+    return mac.sb_cqi_info(tti, rnti, cc_idx, sb_idx, cqi_value);
+  }
   int snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) final
   {
     return mac.snr_info(tti_rx, rnti, cc_idx, snr_db, ch);

@@ -48,7 +48,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   /* TEST: Check if there is space for PRACH */
   bool is_prach_tti_tx_ul =
-      srsran_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, to_tx_ul(sf_out.tti_rx).to_uint(), -1);
+      srsran_prach_in_window_config_fdd(cell_params.cfg.prach_config, to_tx_ul(sf_out.tti_rx).to_uint(), -1);
   if (is_prach_tti_tx_ul) {
     try_ul_fill({cell_params.cfg.prach_freq_offset, cell_params.cfg.prach_freq_offset + 6}, "PRACH");
   }
@@ -131,8 +131,7 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   // forbid Data in DL if its ACKs conflict with PRACH for PRB==6
   if (cell_params.nof_prb() == 6) {
-    if (srsran_prach_tti_opportunity_config_fdd(
-            cell_params.cfg.prach_config, to_tx_dl_ack(sf_out.tti_rx).to_uint(), -1)) {
+    if (srsran_prach_in_window_config_fdd(cell_params.cfg.prach_config, to_tx_dl_ack(sf_out.tti_rx).to_uint(), -1)) {
       dl_allocs.fill(0, dl_allocs.size());
     }
   }

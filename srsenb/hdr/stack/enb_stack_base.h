@@ -68,14 +68,6 @@ typedef struct {
   int stack_hex_limit;
 } stack_log_args_t;
 
-// Expert arguments to create GW without core NW
-typedef struct {
-  std::string      ip_addr;
-  srsue::gw_args_t gw_args;
-  uint8_t          drb_lcid;
-  uint16_t         rnti;
-} core_less_args_t;
-
 typedef struct {
   std::string      type;
   uint32_t         sync_queue_size; // Max allowed difference between PHY and Stack clocks (in TTI)
@@ -87,7 +79,6 @@ typedef struct {
   pcap_args_t      s1ap_pcap;
   stack_log_args_t log;
   embms_args_t     embms;
-  core_less_args_t coreless;
 } stack_args_t;
 
 struct stack_metrics_t;

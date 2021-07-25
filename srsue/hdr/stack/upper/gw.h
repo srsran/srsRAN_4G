@@ -52,7 +52,7 @@ struct gw_args_t {
 class gw : public gw_interface_stack, public srsran::thread
 {
 public:
-  gw();
+  gw(srslog::basic_logger& logger_);
   int  init(const gw_args_t& args_, stack_interface_gw* stack);
   void stop();
 

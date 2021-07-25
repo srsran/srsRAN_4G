@@ -297,11 +297,12 @@ public:
   virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds) = 0;
 
   /* DL information */
-  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) = 0;
-  virtual int dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)                          = 0;
-  virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)          = 0;
-  virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value)        = 0;
-  virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)        = 0;
+  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)        = 0;
+  virtual int dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)                                 = 0;
+  virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)                 = 0;
+  virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value)               = 0;
+  virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)               = 0;
+  virtual int dl_sb_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t sb_idx, uint32_t cqi) = 0;
 
   /* UL information */
   virtual int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc)                       = 0;

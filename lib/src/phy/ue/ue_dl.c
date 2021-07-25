@@ -864,9 +864,11 @@ void srsran_ue_dl_gen_cqi_periodic(srsran_ue_dl_t*     q,
   } else if (srsran_cqi_periodic_send(&cfg->cfg.cqi_report, tti, q->cell.frame_type)) {
     if (cfg->cfg.cqi_report.format_is_subband) {
       // TODO: Implement subband periodic reports
-      uci_data->cfg.cqi.type                    = SRSRAN_CQI_TYPE_SUBBAND;
-      uci_data->value.cqi.subband.subband_cqi   = wideband_value;
-      uci_data->value.cqi.subband.subband_label = 0;
+      uci_data->cfg.cqi.type                       = SRSRAN_CQI_TYPE_SUBBAND_UE;
+      uci_data->value.cqi.subband_ue.subband_cqi   = wideband_value;
+      uci_data->value.cqi.subband_ue.subband_label = tti / 100 % 2;
+      uci_data->cfg.cqi.L                          = srsran_cqi_hl_get_L(q->cell.nof_prb);
+      uci_data->cfg.cqi.subband_label_2_bits       = uci_data->cfg.cqi.L > 1;
     } else {
       uci_data->cfg.cqi.type                    = SRSRAN_CQI_TYPE_WIDEBAND;
       uci_data->value.cqi.wideband.wideband_cqi = wideband_value;

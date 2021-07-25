@@ -135,10 +135,11 @@ public:
   int notify_ue_erab_updates(uint16_t rnti, srsran::const_byte_span nas_pdu) override;
 
   // rrc_eutra_interface_rrc_nr
-  void sgnb_addition_ack(uint16_t                   rnti,
+  void sgnb_addition_ack(uint16_t                   eutra_rnti,
                          const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
                          const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15) override;
-  void sgnb_addition_reject(uint16_t rnti) override;
+  void sgnb_addition_reject(uint16_t eutra_rnti) override;
+  void sgnb_addition_complete(uint16_t eutra_rnti) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;

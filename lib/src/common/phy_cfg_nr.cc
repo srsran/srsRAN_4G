@@ -299,7 +299,18 @@ bool phy_cfg_nr_t::get_uci_cfg(const srsran_slot_cfg_t&     slot_cfg,
   }
 
   // Generate configuration for SR
-  // ...
+  uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {};
+  int      n = srsran_ue_ul_nr_sr_send_slot(pucch.sr_resources, slot_cfg.idx, sr_resource_id);
+  if (n < SRSRAN_SUCCESS) {
+    ERROR("Calculating SR opportunities");
+    return false;
+  }
+
+  if (n > 0) {
+    uci_cfg.pucch.sr_resource_id = sr_resource_id[0];
+    uci_cfg.o_sr                 = srsran_ra_ul_nr_nof_sr_bits((uint32_t)n);
+    uci_cfg.sr_positive_present  = true;
+  }
 
   // Generate configuration for CSI reports
   // ...

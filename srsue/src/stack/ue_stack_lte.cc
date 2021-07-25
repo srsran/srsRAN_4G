@@ -59,7 +59,7 @@ ue_stack_lte::ue_stack_lte() :
   rrc_nr(&task_sched),
   pdcp(&task_sched, "PDCP"),
   pdcp_nr(&task_sched, "PDCP-NR"),
-  nas(&task_sched),
+  nas(srslog::fetch_basic_logger("NAS", false), &task_sched),
   thread("STACK"),
   task_sched(512, 64),
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)

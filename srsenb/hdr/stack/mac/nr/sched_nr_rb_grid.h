@@ -81,6 +81,10 @@ private:
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 
+/**
+ * Class responsible for jointly filling the DL/UL sched result fields and allocate RB/PDCCH resources in the RB grid
+ * to avoid potential RB/PDCCH collisions
+ */
 class bwp_slot_allocator
 {
 public:
@@ -88,7 +92,11 @@ public:
 
   void new_slot(tti_point pdcch_tti_) { pdcch_tti = pdcch_tti_; }
 
-  alloc_result alloc_rar(uint32_t aggr_idx, const pending_rar_t& rar, prb_interval interv, uint32_t max_nof_grants);
+  alloc_result alloc_rar_and_msg3(uint32_t             aggr_idx,
+                                  const pending_rar_t& rar,
+                                  prb_interval         interv,
+                                  slot_ue_map_t&       ues,
+                                  uint32_t             max_nof_grants);
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
   alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
 
@@ -98,6 +106,8 @@ public:
   const bwp_params& cfg;
 
 private:
+  alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid = nullptr) const;
+
   srslog::basic_logger& logger;
   bwp_res_grid&         bwp_grid;
 

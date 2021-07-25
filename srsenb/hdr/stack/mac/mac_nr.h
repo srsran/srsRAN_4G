@@ -24,27 +24,19 @@
 
 #include "srsran/common/block_queue.h"
 #include "srsran/common/mac_pcap.h"
-#include "srsran/mac/mac_sch_pdu_nr.h"
 
+#include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/mac/nr/ue_nr.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
 namespace srsenb {
 
 struct mac_nr_args_t {
   srsenb::pcap_args_t pcap;
-
-  // params for the dummy user
-  srsenb::sched_interface::sched_args_t sched;
-  uint16_t                              rnti;
-  uint32_t                              drb_lcid;
-
-  // Add args
-  std::string log_level;
-  uint32_t    log_hex_limit;
-  uint32_t    tb_size = 64;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
@@ -56,7 +48,7 @@ public:
   int  init(const mac_nr_args_t&    args_,
             phy_interface_stack_nr* phy,
             stack_interface_mac*    stack_,
-            rlc_interface_mac_nr*   rlc_,
+            rlc_interface_mac*      rlc_,
             rrc_interface_mac_nr*   rrc_);
   void stop();
 
@@ -64,6 +56,7 @@ public:
 
   // MAC interface for RRC
   int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg) override;
+  uint16_t reserve_rnti() override;
   int read_pdu_bcch_bch(uint8_t* payload);
 
   // MAC interface for RLC
@@ -75,6 +68,7 @@ public:
   int rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& grant);
 
   void process_pdus();
+  void rach_detected(const srsran_slot_cfg_t& slot_cfg, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
   int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
   int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
   int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
@@ -83,25 +77,40 @@ public:
   void rach_detected(const rach_info_t& rach_info) override;
 
 private:
+  uint16_t add_ue(uint32_t enb_cc_idx);
+  int      remove_ue(uint16_t rnti);
+
+  // internal misc helpers
+  bool is_rnti_valid_unsafe(uint16_t rnti);
+  bool is_rnti_active_unsafe(uint16_t rnti);
+
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
   // Interaction with other components
-  phy_interface_stack_nr* phy_h   = nullptr;
-  stack_interface_mac*    stack_h = nullptr;
-  rlc_interface_mac_nr*   rlc_h   = nullptr;
-  rrc_interface_mac_nr*   rrc_h   = nullptr;
+  phy_interface_stack_nr* phy   = nullptr;
+  stack_interface_mac*    stack = nullptr;
+  rlc_interface_mac*      rlc   = nullptr;
+  rrc_interface_mac_nr*   rrc   = nullptr;
 
   // args
   srsran::task_sched_handle task_sched;
+  srsran::task_multiqueue::queue_handle stack_task_queue;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
   mac_nr_args_t                     args = {};
   srslog::basic_logger&             logger;
 
-  bool started = false;
+  std::atomic<bool> started = {false};
 
   srsenb::sched_interface::cell_cfg_t cfg = {};
+
+  // Map of active UEs
+  pthread_rwlock_t                    rwlock     = {};
+  static const uint16_t               FIRST_RNTI = 0x4601;
+  srsran::static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES> ue_db;
+
+  std::atomic<uint16_t>               ue_counter;
 
   // BCH buffers
   struct sib_info_t {
@@ -112,15 +121,8 @@ private:
   std::vector<sib_info_t>      bcch_dlsch_payload;
   srsran::unique_byte_buffer_t bcch_bch_payload = nullptr;
 
-  // UE-specific buffer
-  srsran::mac_sch_pdu_nr                    ue_tx_pdu;
-  std::vector<srsran::unique_byte_buffer_t> ue_tx_buffer;
-  srsran::block_queue<srsran::unique_byte_buffer_t>
-      ue_rx_pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
-
-  srsran::unique_byte_buffer_t ue_rlc_buffer;
-
-  srsran::mac_sch_pdu_nr ue_rx_pdu;
+  // Number of rach preambles detected for a cc.
+  std::vector<uint32_t> detected_rachs;
 };
 
 } // namespace srsenb

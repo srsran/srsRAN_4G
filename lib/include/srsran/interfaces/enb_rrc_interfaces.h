@@ -136,21 +136,40 @@ class rrc_nr_interface_rrc
 {
 public:
   /// Request addition of NR carrier for UE (TODO: add configuration check, QCI, security, etc.)
-  virtual int sgnb_addition_request(uint16_t rnti) = 0;
+  virtual int sgnb_addition_request(uint16_t eutra_rnti) = 0;
 
   /// Provide information whether the requested configuration was applied successfully by the UE
-  virtual int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response) = 0;
+  virtual int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response) = 0;
 };
 
 /// X2AP inspired interface for response from NR RRC to EUTRA RRC
 class rrc_eutra_interface_rrc_nr
 {
 public:
-  /// Signal successful addition of UE
-  virtual void sgnb_addition_ack(uint16_t                   rnti,
+  /**
+   * @brief Signal successful addition of UE
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC used to request the SgNB addition
+   * @param nr_secondary_cell_group_cfg_r15 Encoded part of the RRC Reconfiguration
+   * @param nr_radio_bearer_cfg1_r15 Encoded part of the RRC Reconfiguration
+   */
+  virtual void sgnb_addition_ack(uint16_t                   eutra_rnti,
                                  const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
                                  const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15) = 0;
-  virtual void sgnb_addition_reject(uint16_t rnti)                                    = 0;
+
+  /**
+   * @brief Signal unsuccessful SgNB addition
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC used to request the SgNB addition
+   */
+  virtual void sgnb_addition_reject(uint16_t eutra_rnti) = 0;
+
+  /**
+   * @brief Signal completion of SgNB addition after UE (with new NR identity) has attached
+   *
+   * @param nr_rnti The RNTI that the EUTRA RRC used to request the SgNB addition
+   */
+  virtual void sgnb_addition_complete(uint16_t eutra_rnti) = 0;
 };
 
 } // namespace srsenb

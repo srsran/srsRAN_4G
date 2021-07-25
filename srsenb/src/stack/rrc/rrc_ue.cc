@@ -1167,18 +1167,6 @@ void rrc::ue::update_scells()
   parent->logger.info("SCells activated for rnti=0x%x", rnti);
 }
 
-/// EN-DC helper
-void rrc::ue::handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
-                                       const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15)
-{
-  endc_handler->handle_sgnb_addition_ack(nr_secondary_cell_group_cfg_r15, nr_radio_bearer_cfg1_r15);
-}
-
-void rrc::ue::handle_sgnb_addition_reject()
-{
-  endc_handler->handle_sgnb_addition_reject();
-}
-
 /********************** HELPERS ***************************/
 
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg, std::string* octet_str)

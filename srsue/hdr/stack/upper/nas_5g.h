@@ -34,6 +34,7 @@
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/interfaces/ue_usim_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/upper/nas_5g_metrics.h"
 #include "srsue/hdr/stack/upper/nas_5gmm_state.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 
@@ -44,7 +45,7 @@ namespace srsue {
 class nas_5g : public nas_base, public nas_5g_interface_rrc_nr, public nas_5g_interface_procedures
 {
 public:
-  explicit nas_5g(srsran::task_sched_handle task_sched_);
+  explicit nas_5g(srslog::basic_logger& logger_, srsran::task_sched_handle task_sched_);
   virtual ~nas_5g();
   int  init(usim_interface_nas* usim_, rrc_nr_interface_nas_5g* rrc_nr_, gw_interface_nas* gw_, const nas_args_t& cfg_);
   void stop();

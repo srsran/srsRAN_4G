@@ -174,15 +174,28 @@ void sched_ue_cell::finish_tti(tti_point tti_rx)
   harq_ent.finish_tti(tti_rx);
 }
 
-int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
+void sched_ue_cell::check_cc_activation(uint32_t dl_cqi)
 {
-  CHECK_VALID_CC("DL CQI");
-  dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
-  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_ > 0) {
+  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi > 0) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;
     logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
   }
+}
+
+int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
+{
+  CHECK_VALID_CC("DL CQI");
+  dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
+  check_cc_activation(dl_cqi_);
+  return SRSRAN_SUCCESS;
+}
+
+int sched_ue_cell::set_dl_sb_cqi(tti_point tti_rx, uint32_t sb_idx, uint32_t dl_cqi_)
+{
+  CHECK_VALID_CC("DL CQI");
+  dl_cqi_ctxt.cqi_sb_info(tti_rx, sb_idx, dl_cqi_);
+  check_cc_activation(dl_cqi_);
   return SRSRAN_SUCCESS;
 }
 

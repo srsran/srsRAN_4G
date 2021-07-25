@@ -133,7 +133,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     meas_cfg.meas_gap_cfg_present = true;
     meas_cfg.meas_gap_cfg.set_setup();
     meas_cfg.meas_gap_cfg.setup().gap_offset.set_gp0() = 16;
-  } else {
+  } else if (is_in_state<prepare_recfg>()) {
     // only add reconfigure EN-DC extension/release 15.10 field if ENDC activation is active
     conn_recfg->non_crit_ext_present                                                                  = true;
     conn_recfg->non_crit_ext.non_crit_ext_present                                                     = true;
@@ -148,8 +148,21 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     rrc_conn_recfg_v1510_ies_s& reconf_v1510 = conn_recfg->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
                                                    .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
     reconf_v1510.nr_cfg_r15_present     = true;
+    reconf_v1510.nr_cfg_r15.set_setup();
+
+    reconf_v1510.nr_cfg_r15.setup().endc_release_and_add_r15                = false;
+    reconf_v1510.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present = true;
+    reconf_v1510.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15         = nr_secondary_cell_group_cfg_r15;
+
     reconf_v1510.sk_counter_r15_present = true;
     reconf_v1510.sk_counter_r15         = 0;
+
+    reconf_v1510.nr_radio_bearer_cfg1_r15_present = true;
+    reconf_v1510.nr_radio_bearer_cfg1_r15         = nr_radio_bearer_cfg1_r15;
+
+    // inform FSM
+    rrc_recfg_sent_ev recfg_sent{};
+    trigger(recfg_sent);
   }
 
   return true;
@@ -235,18 +248,22 @@ void rrc::ue::rrc_endc::handle_ue_meas_report(const meas_report_s& msg)
   trigger(sgnb_add_req);
 }
 
-void rrc::ue::rrc_endc::handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
-                                                 const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15)
+void rrc::ue::rrc_endc::handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15_,
+                                                 const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15_)
 {
   logger.info("Received SgNB addition acknowledgement for rnti=%d", rrc_ue->rnti);
 
-  // prepare reconfiguration message with NR fields
-  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-  if (pdu == nullptr) {
-    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    return;
-  }
-  // rrc_enb->send_connection_reconf(std::move(pdu));
+  // store received configurations
+  nr_secondary_cell_group_cfg_r15 = nr_secondary_cell_group_cfg_r15_;
+  nr_radio_bearer_cfg1_r15        = nr_radio_bearer_cfg1_r15_;
+
+  logger.debug(nr_secondary_cell_group_cfg_r15.data(),
+               nr_secondary_cell_group_cfg_r15.size(),
+               "nr-SecondaryCellGroupConfig-r15:");
+  logger.debug(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size(), "nr-RadioBearerConfig1-r15:");
+
+  sgnb_add_req_ack_ev sgnb_add_ack{};
+  trigger(sgnb_add_ack);
 }
 
 void rrc::ue::rrc_endc::handle_sgnb_addition_reject()
@@ -257,6 +274,11 @@ void rrc::ue::rrc_endc::handle_sgnb_addition_reject()
 void rrc::ue::rrc_endc::handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev)
 {
   logger.info("User rnti=0x%x successfully enabled EN-DC", rrc_ue->rnti);
+}
+
+void rrc::ue::rrc_endc::handle_sgnb_addition_complete()
+{
+  logger.info("Received SgNB addition complete for rnti=%d", rrc_ue->rnti);
 }
 
 } // namespace srsenb

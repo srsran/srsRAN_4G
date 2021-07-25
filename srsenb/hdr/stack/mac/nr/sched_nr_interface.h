@@ -72,9 +72,7 @@ public:
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
   };
 
-  struct sched_cfg_t {
-    uint32_t nof_concurrent_subframes = 1;
-  };
+  struct sched_cfg_t {};
 
   struct ue_cc_cfg_t {
     bool     active = false;
@@ -82,7 +80,9 @@ public:
   };
 
   struct ue_cfg_t {
-    uint32_t                                                   maxharq_tx = 4;
+    uint32_t                                                   maxharq_tx   = 4;
+    int                                                        fixed_dl_mcs = -1;
+    int                                                        fixed_ul_mcs = -1;
     srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
     srsran::phy_cfg_nr_t                                       phy_cfg = {};
   };
@@ -109,6 +109,7 @@ public:
   virtual int  get_ul_sched(tti_point tti_rx, uint32_t cc, ul_sched_t& result)     = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
+  virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;
   virtual void ul_sr_info(tti_point, uint16_t rnti)                                             = 0;
 };
 

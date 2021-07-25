@@ -21,6 +21,9 @@
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_cfg.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
+extern "C" {
+#include "srsran/phy/phch/ra_ul_nr.h"
+}
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -28,18 +31,34 @@ namespace sched_nr_impl {
 bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
   cell_cfg(cell), sched_cfg(sched_cfg_), cc(cc_), bwp_id(bwp_id_), cfg(cell.bwps[bwp_id_])
 {
+  srsran_assert(bwp_id != 0 or cfg.pdcch.coreset_present[0], "CORESET#0 has to be active for initial BWP");
+
   P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
   N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
 
-  srsran_assert(bwp_id != 0 or cfg.pdcch.coreset_present[0], "CORESET#0 has to be active for initial BWP");
+  pusch_ra_list.resize(cfg.pusch.nof_common_time_ra);
+  const uint32_t        coreset_id = 0;
+  srsran_sch_grant_nr_t grant;
+  for (uint32_t m = 0; m < cfg.pusch.nof_common_time_ra; ++m) {
+    int ret =
+        srsran_ra_ul_nr_time(&cfg.pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, coreset_id, m, &grant);
+    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
+    pusch_ra_list[m].msg3_delay = grant.k;
+    ret = srsran_ra_ul_nr_time(&cfg.pusch, srsran_rnti_type_c, srsran_search_space_type_ue, coreset_id, m, &grant);
+    pusch_ra_list[m].K = grant.k;
+    pusch_ra_list[m].S = grant.S;
+    pusch_ra_list[m].L = grant.L;
+    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
+  }
+  srsran_assert(not pusch_ra_list.empty(), "Time-Domain Resource Allocation not valid");
 }
 
 sched_cell_params::sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_) :
   cc(cc_), cell_cfg(cell), sched_cfg(sched_cfg_)
 {
   bwps.reserve(cell.bwps.size());
-  for (uint32_t i = 0; i < cell.bwps.size(); ++i) {
-    bwps.emplace_back(cell, sched_cfg_, cc, i);
+  for (uint32_t i = 0; i < cell_cfg.bwps.size(); ++i) {
+    bwps.emplace_back(cell_cfg, sched_cfg_, cc, i);
   }
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }

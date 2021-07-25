@@ -108,7 +108,7 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
   ul_mask |= pucch_mask;
 
   // Reserve PRBs for PRACH
-  if (srsran_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
+  if (srsran_prach_in_window_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
     reserve_ul_prbs(prach_mask, false); // TODO: set to true once test sib.conf files are updated
@@ -328,7 +328,7 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
   last_msg3_prb            = tti_alloc.get_pucch_width();
   tti_point tti_msg3_alloc = to_tx_ul(tti_rx) + MSG3_DELAY_MS;
-  if (srsran_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
+  if (srsran_prach_in_window_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
     last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
   }
 }

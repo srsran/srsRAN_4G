@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 
@@ -28,8 +28,10 @@ namespace sched_nr_impl {
 
 ra_sched::ra_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
 
-alloc_result
-ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
+alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
+                                            const pending_rar_t& rar,
+                                            slot_ue_map_t&       slot_ues,
+                                            uint32_t&            nof_grants_alloc)
 {
   const uint32_t    rar_aggr_level = 2;
   const prb_bitmap& prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].dl_prbs.prbs();
@@ -38,11 +40,11 @@ ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_
   for (nof_grants_alloc = rar.msg3_grant.size(); nof_grants_alloc > 0; nof_grants_alloc--) {
     ret                    = alloc_result::invalid_coderate;
     uint32_t start_prb_idx = 0;
-    for (uint32_t nprb = 1; nprb < bwp_cfg->cfg.rb_width and ret == alloc_result::invalid_coderate; ++nprb) {
+    for (uint32_t nprb = 4; nprb < bwp_cfg->cfg.rb_width and ret == alloc_result::invalid_coderate; ++nprb) {
       prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
       start_prb_idx       = interv.stop();
       if (interv.length() == nprb) {
-        ret = slot_grid.alloc_rar(rar_aggr_level, rar, interv, nof_grants_alloc);
+        ret = slot_grid.alloc_rar_and_msg3(rar_aggr_level, rar, interv, slot_ues, nof_grants_alloc);
       } else {
         ret = alloc_result::no_sch_space;
       }
@@ -59,10 +61,14 @@ ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_
   return ret;
 }
 
-void ra_sched::run_slot(bwp_slot_allocator& slot_grid)
+void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
   static const uint32_t PRACH_RAR_OFFSET = 3;
   tti_point             pdcch_tti        = slot_grid.get_pdcch_tti();
+  tti_point             msg3_tti         = pdcch_tti + bwp_cfg->pusch_ra_list[0].msg3_delay;
+  if (not slot_grid.res_grid()[msg3_tti].is_ul) {
+    return;
+  }
 
   for (auto it = pending_rars.begin(); it != pending_rars.end();) {
     pending_rar_t& rar = *it;
@@ -88,9 +94,9 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid)
       return;
     }
 
-    // Try to schedule DCI + RBGs for RAR Grant
+    // Try to schedule DCIs + RBGs for RAR Grants
     uint32_t     nof_rar_allocs = 0;
-    alloc_result ret            = allocate_pending_rar(slot_grid, rar, nof_rar_allocs);
+    alloc_result ret            = allocate_pending_rar(slot_grid, rar, slot_ues, nof_rar_allocs);
 
     if (ret == alloc_result::success) {
       // If RAR allocation was successful:
@@ -156,14 +162,15 @@ bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) : cfg(&bwp_cfg), ra(bwp_cfg), grid
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-serv_cell_ctxt::serv_cell_ctxt(const sched_cell_params& cell_cfg_) : cfg(&cell_cfg_)
+serv_cell_manager::serv_cell_manager(const sched_cell_params& cell_cfg_) :
+  cfg(cell_cfg_), logger(srslog::fetch_basic_logger("MAC"))
 {
-  for (uint32_t bwp_id = 0; bwp_id < cfg->cell_cfg.bwps.size(); ++bwp_id) {
+  for (uint32_t bwp_id = 0; bwp_id < cfg.cell_cfg.bwps.size(); ++bwp_id) {
     bwps.emplace_back(cell_cfg_.bwps[bwp_id]);
   }
 
   // Pre-allocate HARQs in common pool of softbuffers
-  harq_softbuffer_pool::get_instance().init_pool(cfg->nof_prb());
+  harq_softbuffer_pool::get_instance().init_pool(cfg.nof_prb());
 }
 
 } // namespace sched_nr_impl

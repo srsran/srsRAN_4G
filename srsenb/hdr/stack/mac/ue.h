@@ -22,7 +22,7 @@
 #ifndef SRSENB_UE_H
 #define SRSENB_UE_H
 
-#include "mac_metrics.h"
+#include "common/mac_metrics.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/pool/pool_interface.h"

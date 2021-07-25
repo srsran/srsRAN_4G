@@ -38,7 +38,7 @@
 
 namespace srsue {
 
-gw::gw() : thread("GW"), logger(srslog::fetch_basic_logger("GW", false)), tft_matcher(logger) {}
+gw::gw(srslog::basic_logger& logger_) : thread("GW"), logger(logger_), tft_matcher(logger) {}
 
 int gw::init(const gw_args_t& args_, stack_interface_gw* stack_)
 {

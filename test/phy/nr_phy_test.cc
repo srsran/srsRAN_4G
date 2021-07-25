@@ -63,6 +63,7 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("gnb.stack.pusch.slots",             bpo::value<std::string>(&gnb_stack.pusch.slots)->default_value(gnb_stack.pusch.slots),                      "Slots enabled for PUSCH")
         ("gnb.stack.pusch.mcs",               bpo::value<uint32_t>(&gnb_stack.pusch.mcs)->default_value(gnb_stack.pusch.mcs),                             "PUSCH scheduling modulation code scheme")
         ("gnb.stack.log.level",               bpo::value<std::string>(&gnb_stack.log_level)->default_value(gnb_stack.log_level),                          "Stack log level")
+        ("gnb.stack.use_dummy_sched",         bpo::value<bool>(&gnb_stack.use_dummy_sched)->default_value(true),                                          "Use dummy or real NR scheduler")
         ;
 
   options_gnb_phy.add_options()
@@ -233,14 +234,54 @@ int main(int argc, char** argv)
       TESTASSERT(metrics.ue_stack.prach.count(p.first) > 0);
     }
     srsran::console("   +------------+------------+------------+\n\n");
+  }
+
+  // Print PUCCH
+  if (metrics.gnb_stack.pucch.count > 0) {
+    srsran::console("PUCCH DMRS Receiver metrics:\n");
+    srsran::console("   +------------+------------+------------+------------+\n");
+    srsran::console("   | %10s | %10s | %10s | %10s |\n", "Measure", "Average", "Min", "Max");
+    srsran::console("   +------------+------------+------------+------------+\n");
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "EPRE (dB)",
+                    metrics.gnb_stack.pucch.epre_db_avg,
+                    metrics.gnb_stack.pucch.epre_db_min,
+                    metrics.gnb_stack.pucch.epre_db_min);
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "RSRP (dB)",
+                    metrics.gnb_stack.pucch.rsrp_db_avg,
+                    metrics.gnb_stack.pucch.rsrp_db_min,
+                    metrics.gnb_stack.pucch.rsrp_db_max);
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "SINR (dB)",
+                    metrics.gnb_stack.pucch.snr_db_avg,
+                    metrics.gnb_stack.pucch.snr_db_min,
+                    metrics.gnb_stack.pucch.snr_db_max);
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "TA (us)",
+                    metrics.gnb_stack.pucch.ta_us_avg,
+                    metrics.gnb_stack.pucch.ta_us_min,
+                    metrics.gnb_stack.pucch.ta_us_max);
+    srsran::console("   +------------+------------+------------+------------+\n");
   } else {
-    // In this case no PRACH should
+    // In this case the gNb should not have detected any
     TESTASSERT(metrics.gnb_stack.prach.empty());
+  }
+
+  // Print SR
+  if (metrics.ue_stack.sr_count > 0) {
+    srsran::console("SR:\n");
+    srsran::console("   +------------+------------+\n");
+    srsran::console("   | %10s | %10s |\n", "Transmit'd", "Received");
+    srsran::console("   +------------+------------+\n");
+    srsran::console("   | %10d | %10d |\n", metrics.ue_stack.sr_count, metrics.gnb_stack.sr_count);
+    srsran::console("   +------------+------------+\n");
   }
 
   // Assert metrics
   TESTASSERT(metrics.gnb_stack.mac.tx_errors == 0);
   TESTASSERT(metrics.gnb_stack.mac.rx_errors == 0);
+  TESTASSERT(metrics.ue_stack.sr_count == metrics.gnb_stack.sr_count);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;

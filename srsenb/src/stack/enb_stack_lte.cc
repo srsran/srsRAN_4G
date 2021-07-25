@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/enb.h"
+#include "srsenb/hdr/stack/rrc/rrc_config_nr.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/srslog/event_trace.h"
@@ -140,7 +141,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
-  // Init all layers
+  // Init all LTE layers
   if (!mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc)) {
     stack_logger.error("Couldn't initialize MAC");
     return SRSRAN_ERROR;
@@ -155,6 +156,21 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     stack_logger.error("Couldn't initialize S1AP");
     return SRSRAN_ERROR;
   }
+
+  // NR layers
+  mac_nr_args_t mac_args = {};
+  mac_args.pcap          = args.mac_pcap;
+  if (mac_nr.init(mac_args, nullptr, nullptr, &rlc_nr, &rrc_nr) != SRSRAN_SUCCESS) {
+    stack_logger.error("Couldn't initialize MAC-NR");
+    return SRSRAN_ERROR;
+  }
+
+  rrc_nr_cfg_t rrc_cfg_nr = {};
+  if (rrc_nr.init(rrc_cfg_nr, nullptr, &mac_nr, &rlc_nr, &pdcp_nr, nullptr, nullptr, &rrc) != SRSRAN_SUCCESS) {
+    stack_logger.error("Couldn't initialize RRC-NR");
+    return SRSRAN_ERROR;
+  }
+  // FIXME: Add RLC and PDCP
 
   gtpu_args_t gtpu_args;
   gtpu_args.embms_enable                 = args.embms.enable;

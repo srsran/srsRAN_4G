@@ -568,7 +568,8 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
           cqi_report_periodic.cqi_format_ind_periodic_r10.type().value ==
           asn1::rrc::cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::types::subband_cqi_r10;
       if (cfg->dl_cfg.cqi_report.format_is_subband) {
-        cfg->dl_cfg.cqi_report.subband_size = cqi_report_periodic.cqi_format_ind_periodic_r10.subband_cqi_r10().k;
+        cfg->dl_cfg.cqi_report.subband_wideband_ratio =
+            cqi_report_periodic.cqi_format_ind_periodic_r10.subband_cqi_r10().k;
       }
       if (cqi_report_periodic.ri_cfg_idx_present) {
         cfg->dl_cfg.cqi_report.ri_idx         = cqi_report_periodic.ri_cfg_idx;
@@ -595,7 +596,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
             asn1_type.cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.type().value ==
             asn1::rrc::cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::subband_cqi;
         if (cfg->dl_cfg.cqi_report.format_is_subband) {
-          cfg->dl_cfg.cqi_report.subband_size =
+          cfg->dl_cfg.cqi_report.subband_wideband_ratio =
               asn1_type.cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.subband_cqi().k;
         }
         if (asn1_type.cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present) {
@@ -871,7 +872,7 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
                   cqi_cfg.cqi_format_ind_periodic_r10.type().value ==
                   cqi_cfg_t::cqi_format_ind_periodic_r10_c_::types::subband_cqi_r10;
               if (cfg->dl_cfg.cqi_report.format_is_subband) {
-                cfg->dl_cfg.cqi_report.subband_size = cqi_cfg.cqi_format_ind_periodic_r10.subband_cqi_r10().k;
+                cfg->dl_cfg.cqi_report.subband_wideband_ratio = cqi_cfg.cqi_format_ind_periodic_r10.subband_cqi_r10().k;
               }
               if (cqi_cfg.ri_cfg_idx_present) {
                 cfg->dl_cfg.cqi_report.ri_idx         = cqi_cfg.ri_cfg_idx;
