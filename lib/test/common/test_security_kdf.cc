@@ -282,6 +282,28 @@ int test_generate_k_nh()
   return SRSRAN_SUCCESS;
 }
 
+int test_generate_res_star()
+{
+  auto&   logger = srslog::fetch_basic_logger("LOG", false);
+  uint8_t res_star_o[16];
+
+  uint8_t     ck[]   = {0x3c, 0xba, 0x90, 0x25, 0x75, 0xed, 0x80, 0xcb, 0xfa, 0x36, 0x25, 0xaf, 0xf0, 0x9d, 0xaf, 0xfc};
+  uint8_t     ik[]   = {0xba, 0x90, 0x25, 0x75, 0xed, 0x80, 0xcb, 0xfa, 0x36, 0x25, 0xaf, 0xf0, 0x9d, 0xaf, 0xfc, 0x3c};
+  uint8_t     rand[] = {0xfc, 0x2d, 0x98, 0xa3, 0x61, 0x20, 0x8b, 0xf7, 0x43, 0x63, 0x9c, 0x9e, 0x63, 0x2d, 0x73, 0x50};
+  uint8_t     res[]  = {0xfc, 0x3c, 0xba, 0x90, 0x25, 0x75, 0xed, 0x80};
+  std::string ssn    = "5G:mnc001.mcc001.3gppnetwork.org";
+
+  TESTASSERT(srsran::security_generate_res_star(ck, ik, ssn.c_str(), rand, res, sizeof(res), res_star_o) ==
+             SRSRAN_SUCCESS);
+
+  uint8_t res_star[] = {0xb0, 0xe3, 0x5b, 0x23, 0xdb, 0xd7, 0xa1, 0x8c, 0x84, 0x8b, 0xfa, 0xd9, 0x11, 0x35, 0xe3, 0xfd};
+
+  logger.info(res_star, 16, "RES STAR:");
+  TESTASSERT(arrcmp(res_star_o, res_star, sizeof(res_star)) == 0);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   auto& logger = srslog::fetch_basic_logger("LOG", false);
@@ -298,6 +320,7 @@ int main(int argc, char** argv)
   TESTASSERT(test_generate_k_enb_star() == SRSRAN_SUCCESS);
   TESTASSERT(test_generate_k_nh() == SRSRAN_SUCCESS);
 
+  TESTASSERT(test_generate_res_star() == SRSRAN_SUCCESS);
   TESTASSERT(test_set_ksg() == SRSRAN_SUCCESS);
   TESTASSERT(test_set_nr_rrc_up() == SRSRAN_SUCCESS);
 

@@ -396,4 +396,30 @@ bool usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
   return true;
 }
 
+bool usim_base::generate_res_star(uint8_t*    rand,
+                                  uint8_t*    res,
+                                  int         res_len,
+                                  const char* serving_network_name,
+                                  uint8_t*    res_star,
+                                  uint32_t*   res_star_len)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return false;
+  }
+
+  logger.info("Generate res_star");
+
+  logger.info(rand, 16, "RAND");
+  logger.info(res, res_len, "RES");
+  logger.info(
+      (uint8_t*)serving_network_name, strlen(serving_network_name), "Serving Network Name %s", serving_network_name);
+
+  srsran::security_generate_res_star(ck, ik, serving_network_name, rand, res, res_len, res_star);
+  *res_star_len = 16;
+  logger.info(res_star, *res_star_len, "res_star");
+
+  return true;
+}
+
 } // namespace srsue

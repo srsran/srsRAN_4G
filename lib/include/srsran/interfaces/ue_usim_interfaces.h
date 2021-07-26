@@ -47,6 +47,13 @@ public:
                                           uint8_t*                            k_nas_int,
                                           srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                           srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+
+  virtual bool generate_res_star(uint8_t*    rand,
+                                 uint8_t*    res,
+                                 int         res_len,
+                                 const char* serving_network_name,
+                                 uint8_t*    res_start,
+                                 uint32_t*   res_star_len) = 0;
 };
 
 // USIM interface for RRC

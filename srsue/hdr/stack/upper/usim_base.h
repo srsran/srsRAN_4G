@@ -100,6 +100,13 @@ public:
   bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
   bool update_nr_context(srsran::as_security_config_t* sec_cfg) final;
 
+  // 5G NAS interface
+  bool generate_res_star(uint8_t*    rand,
+                         uint8_t*    res,
+                         int         res_len,
+                         const char* serving_network_name,
+                         uint8_t*    res_start,
+                         uint32_t*   res_star_len) final;
   // Helpers
   std::string         get_mcc_str(const uint8_t* imsi_vec);
   virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) = 0;

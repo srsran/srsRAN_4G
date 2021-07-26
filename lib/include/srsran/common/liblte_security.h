@@ -147,6 +147,13 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
                                                 uint8*                                      k_up_int);
 
 LIBLTE_ERROR_ENUM liblte_security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_counter);
+LIBLTE_ERROR_ENUM liblte_security_generate_res_star(uint8_t*    ck,
+                                                    uint8_t*    ik,
+                                                    const char* serving_network_name,
+                                                    uint8_t*    rand,
+                                                    uint8_t*    res,
+                                                    size_t      res_len,
+                                                    uint8_t*    res_star);
 /*********************************************************************
     Name: liblte_security_128_eia2
 

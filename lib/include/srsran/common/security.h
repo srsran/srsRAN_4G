@@ -174,7 +174,13 @@ uint8_t security_generate_k_nr_up(uint8_t*                    k_gnb,
                                   uint8_t*                    k_up_int);
 
 uint8_t security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_count);
-
+uint8_t security_generate_res_star(uint8_t*    ck,
+                                   uint8_t*    ik,
+                                   const char* serving_network_name,
+                                   uint8_t*    rand,
+                                   uint8_t*    res,
+                                   size_t      res_len,
+                                   uint8_t*    res_star);
 /******************************************************************************
  * Integrity Protection
  *****************************************************************************/
