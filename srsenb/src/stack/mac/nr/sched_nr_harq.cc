@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_harq.h"
+#include "srsran/common/buffer_pool.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -99,6 +100,10 @@ bool harq_proc::new_retx(slot_point slot_tx_, slot_point slot_ack_)
   tb[0].n_rtx++;
   return true;
 }
+
+dl_harq_proc::dl_harq_proc(uint32_t id_, uint32_t nprb) :
+  harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_tx(nprb)), pdu(srsran::make_byte_buffer())
+{}
 
 harq_entity::harq_entity(uint32_t nprb, uint32_t nof_harq_procs)
 {

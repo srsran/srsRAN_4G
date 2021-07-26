@@ -56,10 +56,11 @@ public:
   bool new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant);
   bool new_retx(slot_point slot_tx, slot_point slot_ack);
 
+  const uint32_t pid;
+
+protected:
   // NOTE: Has to be used before first tx is dispatched
   bool set_tbs(uint32_t tbs);
-
-  const uint32_t pid;
 
 private:
   struct tb_t {
@@ -81,11 +82,10 @@ private:
 class dl_harq_proc : public harq_proc
 {
 public:
-  dl_harq_proc(uint32_t id_, uint32_t nprb) :
-    harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_tx(nprb))
-  {}
+  dl_harq_proc(uint32_t id_, uint32_t nprb);
 
   tx_harq_softbuffer& get_softbuffer() { return *softbuffer; }
+  uint8_t*            get_tx_pdu() { return pdu->msg; }
 
   bool set_tbs(uint32_t tbs)
   {
@@ -95,6 +95,7 @@ public:
 
 private:
   srsran::unique_pool_ptr<tx_harq_softbuffer> softbuffer;
+  srsran::unique_byte_buffer_t                pdu;
 };
 
 class ul_harq_proc : public harq_proc

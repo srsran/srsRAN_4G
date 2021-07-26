@@ -81,11 +81,13 @@ public:
   ////// RACH //////
 
   struct dl_sched_rar_info_t {
-    uint32_t preamble_idx;
-    uint32_t ta_cmd;
-    uint16_t temp_crnti;
-    uint32_t msg3_size;
-    uint32_t prach_slot;
+    uint32_t   preamble_idx;
+    uint32_t   ofdm_symbol_idx;
+    uint32_t   freq_idx;
+    uint32_t   ta_cmd;
+    uint16_t   temp_crnti;
+    uint32_t   msg3_size;
+    slot_point prach_slot;
   };
 
   ///// Sched Result /////

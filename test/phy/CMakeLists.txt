@@ -60,6 +60,21 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
             )
 
+    add_nr_test(nr_phy_test_10MHz_bidir_sched nr_phy_test
+            --duration=100 # 100 slots
+            --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
+            --gnb.stack.pdsch.start=0 # Start at RB 0
+            --gnb.stack.pdsch.length=52 # Full 10 MHz BW
+            --gnb.stack.pdsch.mcs=28 # Maximum MCS
+            --gnb.stack.pusch.slots=6,7,8,9 # All possible UL slots
+            --gnb.stack.pusch.start=0 # Start at RB 0
+            --gnb.stack.pusch.length=52 # Full 10 MHz BW
+            --gnb.stack.pusch.mcs=28 # Maximum MCS
+            --gnb.stack.use_dummy_sched=false # Use real NR scheduler
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+            )
+
     add_nr_test(nr_phy_test_10MHz_prach nr_phy_test
             --duration=1000 # 100 slots
             --gnb.stack.pdsch.slots=none # No PDSCH
