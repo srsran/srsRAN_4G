@@ -368,12 +368,12 @@ int test_cell_group_config()
 
   // pack it again
   cell_group_cfg_s cell_group_cfg_pack;
-  cell_group_cfg_pack.sp_cell_cfg_present                                        = true;
-  cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx_present                          = true;
+  cell_group_cfg_pack.sp_cell_cfg_present               = true;
+  cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx_present = true;
 
   // SP Cell Dedicated config
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded_present                        = true;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp_present            = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded_present             = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp_present = true;
 
   // PDCCH config
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg_present = true;
@@ -467,6 +467,86 @@ int test_cell_group_config()
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 1;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
 
+  // UL config dedicated
+  // PUCCH
+  auto& ul_config                         = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
+  ul_config.init_ul_bwp_present           = true;
+  ul_config.init_ul_bwp.pucch_cfg_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.set_setup();
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2.set_setup();
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2.setup().max_code_rate_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
+
+  // SR resources
+  ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list.resize(1);
+  auto& sr_res1                          = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
+  sr_res1.sched_request_res_id           = 1;
+  sr_res1.sched_request_id               = 0;
+  sr_res1.periodicity_and_offset_present = true;
+  sr_res1.periodicity_and_offset.set_sl40();
+  sr_res1.periodicity_and_offset.sl40() = 7;
+  sr_res1.res_present                   = true;
+  sr_res1.res                           = 0; // only PUCCH resource we have defined so far
+
+  // DL data
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(5);
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 8;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[1] = 7;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[2] = 6;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[3] = 5;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[4] = 4;
+
+  // PUCCH resources (only one format1 for the moment)
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list.resize(1);
+  auto& pucch_res1        = ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[0];
+  pucch_res1.pucch_res_id = 0;
+  pucch_res1.start_prb    = 0;
+  pucch_res1.format.set_format1();
+  pucch_res1.format.format1().init_cyclic_shift = 0;
+  pucch_res1.format.format1().nrof_symbols      = 14;
+  pucch_res1.format.format1().start_symbol_idx  = 0;
+  pucch_res1.format.format1().time_domain_occ   = 0;
+
+  // PUSCH config
+  ul_config.init_ul_bwp.pusch_cfg_present = true;
+  ul_config.init_ul_bwp.pusch_cfg.set_setup();
+  auto& pusch_cfg_ded                                = ul_config.init_ul_bwp.pusch_cfg.setup();
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a_present = true;
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a.set_setup();
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a.setup().dmrs_add_position_present = true;
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a.setup().dmrs_add_position = dmrs_ul_cfg_s::dmrs_add_position_opts::pos1;
+  // PUSH power control skipped
+  pusch_cfg_ded.res_alloc = pusch_cfg_s::res_alloc_opts::res_alloc_type1;
+
+  // UCI
+  pusch_cfg_ded.uci_on_pusch_present = true;
+  pusch_cfg_ded.uci_on_pusch.set_setup();
+  pusch_cfg_ded.uci_on_pusch.setup().beta_offsets_present = true;
+  pusch_cfg_ded.uci_on_pusch.setup().beta_offsets.set_semi_static();
+  auto& beta_offset_semi_static                        = pusch_cfg_ded.uci_on_pusch.setup().beta_offsets.semi_static();
+  beta_offset_semi_static.beta_offset_ack_idx1_present = true;
+  beta_offset_semi_static.beta_offset_ack_idx1         = 9;
+  beta_offset_semi_static.beta_offset_ack_idx2_present = true;
+  beta_offset_semi_static.beta_offset_ack_idx2         = 9;
+  beta_offset_semi_static.beta_offset_ack_idx3_present = true;
+  beta_offset_semi_static.beta_offset_ack_idx3         = 9;
+  beta_offset_semi_static.beta_offset_csi_part1_idx1_present = true;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2_present = true;
+  beta_offset_semi_static.beta_offset_csi_part1_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2         = 6;
+  beta_offset_semi_static.beta_offset_csi_part2_idx1_present = true;
+  beta_offset_semi_static.beta_offset_csi_part2_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part2_idx2_present = true;
+  beta_offset_semi_static.beta_offset_csi_part2_idx2         = 6;
+  pusch_cfg_ded.uci_on_pusch.setup().scaling                 = uci_on_pusch_s::scaling_opts::f1;
+
+  ul_config.first_active_ul_bwp_id_present = true;
+  ul_config.first_active_ul_bwp_id         = 0;
+
   // Serving cell config (only to setup)
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg_present = true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg.set_setup();
@@ -477,23 +557,23 @@ int test_cell_group_config()
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.set_setup();
 
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 17943;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
 
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = 0;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dmrs_type_a_position =
       asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci = 500;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present                    = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci                            = 500;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing =
       subcarrier_spacing_opts::khz30;
 
   // DL config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present              = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
       .absolute_freq_ssb_present = true;
@@ -593,7 +673,8 @@ int test_cell_group_config()
       .subcarrier_spacing = subcarrier_spacing_opts::khz15;
 
   // RACH config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present=true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
+      true;
   auto& rach_cfg_common_pack =
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
 
