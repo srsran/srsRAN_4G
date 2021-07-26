@@ -16,8 +16,10 @@
 
 #define JSON_OUTPUT 0
 
-#define HAVE_PCAP 0
+#define HAVE_PCAP 1
+#if HAVE_PCAP
 #include "srsran/common/test_pcap.h"
+#endif
 
 using namespace asn1;
 using namespace asn1::rrc_nr;
@@ -705,7 +707,7 @@ int test_cell_group_config()
                                          packed_dcch.size(),
                                          json_writer3.to_string().c_str());
 
-  srsran::write_rlc_am_sdu_nr(1, packed_dcch.data(), packed_dcch.size());
+  srsran::write_pdcp_sdu_nr(1, packed_dcch.data(), packed_dcch.size());
 #endif
 
   return SRSRAN_SUCCESS;
