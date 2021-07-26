@@ -550,7 +550,7 @@ static int cqi_hl_get_bwp_J(int nof_prb)
     return 2;
   } else if (nof_prb <= 63) {
     return 3;
-  } else if (nof_prb <= 63) {
+  } else if (nof_prb <= 110) {
     return 4;
   } else {
     return -1;

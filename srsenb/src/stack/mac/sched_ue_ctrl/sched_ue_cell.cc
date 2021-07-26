@@ -179,6 +179,7 @@ int sched_ue_cell::set_dl_wb_cqi(tti_point tti_rx, uint32_t dl_cqi_)
   CHECK_VALID_CC("DL CQI");
   dl_cqi_ctxt.cqi_wb_info(tti_rx, dl_cqi_);
   check_cc_activation(dl_cqi_);
+  logger.debug("SCHED: DL CQI cc=%d, cqi=%d", cell_cfg->enb_cc_idx, dl_cqi_);
   return SRSRAN_SUCCESS;
 }
 
@@ -187,6 +188,7 @@ int sched_ue_cell::set_dl_sb_cqi(tti_point tti_rx, uint32_t sb_idx, uint32_t dl_
   CHECK_VALID_CC("DL CQI");
   dl_cqi_ctxt.cqi_sb_info(tti_rx, sb_idx, dl_cqi_);
   check_cc_activation(dl_cqi_);
+  logger.debug("SCHED: DL CQI cc=%d, sb_idx=%d, cqi=%d", cell_cfg->enb_cc_idx, sb_idx, dl_cqi_);
   return SRSRAN_SUCCESS;
 }
 
