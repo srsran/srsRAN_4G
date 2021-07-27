@@ -1259,7 +1259,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         return false;
       }
     } else {
-      logger.warning("Option csi_meas_cfg not present");
+      logger.warning("Option csi_meas_cfg in spCellConfigDedicated not present");
       return false;
     }
 

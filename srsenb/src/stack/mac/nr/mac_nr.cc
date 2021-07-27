@@ -149,13 +149,13 @@ void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
     // Trigger scheduler RACH
     // scheduler.dl_rach_info(enb_cc_idx, rar_info);
 
-    logger.info("RACH:  cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+    logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 slot_cfg.idx,
                 enb_cc_idx,
                 preamble_idx,
                 time_adv,
                 rnti);
-    srsran::console("RACH:  cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+    srsran::console("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
                     slot_cfg.idx,
                     enb_cc_idx,
                     preamble_idx,
