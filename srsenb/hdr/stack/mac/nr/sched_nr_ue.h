@@ -41,7 +41,7 @@ public:
   uint32_t   cc = SCHED_NR_MAX_CARRIERS;
 
   // UE parameters common to all sectors
-  bool pending_sr;
+  bool pending_sr = false;
 
   // UE parameters that are sector specific
   const bwp_ue_cfg* cfg = nullptr;
@@ -49,8 +49,8 @@ public:
   slot_point        pdsch_slot;
   slot_point        pusch_slot;
   slot_point        uci_slot;
-  uint32_t          dl_cqi;
-  uint32_t          ul_cqi;
+  uint32_t          dl_cqi = 0;
+  uint32_t          ul_cqi = 0;
   dl_harq_proc*     h_dl = nullptr;
   ul_harq_proc*     h_ul = nullptr;
 };
