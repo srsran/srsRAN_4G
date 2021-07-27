@@ -589,7 +589,13 @@ uint32_t srsran_cqi_get_sb_idx(uint32_t tti,
  */
 int srsran_cqi_hl_get_L(int nof_prb)
 {
-  return (int)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb) / cqi_hl_get_bwp_J(nof_prb));
+  int subband_size = cqi_hl_get_subband_size(nof_prb);
+  int bwp_J        = cqi_hl_get_bwp_J(nof_prb);
+  if (subband_size <= 0 || bwp_J <= 0) {
+    ERROR("Invalid parameters");
+    return SRSRAN_ERROR;
+  }
+  return (int)ceil(log2((float)nof_prb / subband_size / bwp_J));
 }
 
 bool srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tti, srsran_frame_type_t frame_type)
