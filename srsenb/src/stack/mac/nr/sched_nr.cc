@@ -158,6 +158,12 @@ int sched_nr::get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_sched_t& result
   return SRSRAN_SUCCESS;
 }
 
+int sched_nr::dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info)
+{
+  sched_workers->enqueue_cc_event(cc, [this, cc, rar_info]() { cells[cc]->bwps[0].ra.dl_rach_info(rar_info); });
+  return SRSRAN_SUCCESS;
+}
+
 void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
 {
   sched_workers->enqueue_cc_feedback(

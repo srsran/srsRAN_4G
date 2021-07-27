@@ -25,7 +25,8 @@ coreset_region::coreset_region(const bwp_params& bwp_cfg_,
   coreset_id(coreset_id_),
   slot_idx(slot_idx_),
   pdcch_dl_list(dl_list_),
-  pdcch_ul_list(ul_list_)
+  pdcch_ul_list(ul_list_),
+  rar_cce_list(bwp_cfg_.rar_cce_list)
 {
   const bool* res_active = &coreset_cfg->freq_resources[0];
   nof_freq_res           = std::count(res_active, res_active + SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, true);
@@ -181,6 +182,8 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
       return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
     case pdcch_grant_type_t::ul_data:
       return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
+    case pdcch_grant_type_t::rar:
+      return rar_cce_list[slot_idx][record.aggr_idx];
     default:
       break;
   }

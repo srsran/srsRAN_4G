@@ -116,13 +116,13 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
 
   // Generate DCI for RAR
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  if (not fill_dci_rar(interv, *bwp_grid.cfg, pdcch.dci)) {
+  if (not fill_dci_rar(interv, rar.ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
   }
   // Generate RAR PDSCH
-  bwp_pdcch_slot.dl_prbs.add(interv);
+  bwp_pdcch_slot.dl_prbs |= interv;
 
   // Generate Msg3 grants in PUSCH
   uint32_t          last_msg3 = msg3_rbs.start();
@@ -131,26 +131,22 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = msg3_slot.slot_idx();
   for (const auto& grant : rar.msg3_grant) {
-    slot_ue& ue      = ues[grant.temp_crnti];
-    bool     success = ue.h_ul->new_tx(
-        msg3_slot, msg3_slot, prb_interval{last_msg3, last_msg3 + msg3_nof_prbs}, mcs, 100, max_harq_msg3_retx);
+    slot_ue&     ue = ues[grant.temp_crnti];
+    prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
+    bool         success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     last_msg3 += msg3_nof_prbs;
-    srsran_dci_ul_nr_t msg3_dci; // Create dummy Msg3 DCI
-    msg3_dci.ctx.coreset_id        = 1;
-    msg3_dci.ctx.rnti_type         = srsran_rnti_type_ra;
-    msg3_dci.ctx.ss_type           = srsran_search_space_type_rar;
-    msg3_dci.ctx.format            = srsran_dci_format_nr_0_0;
-    msg3_dci.cc_id                 = cfg.cc;
-    msg3_dci.bwp_id                = cfg.bwp_id;
-    msg3_dci.rv                    = 0;
-    msg3_dci.mcs                   = 0;
-    msg3_dci.time_domain_assigment = dai++;
+    pdcch_ul_t msg3_pdcch;
+    fill_dci_msg3(ue, *bwp_grid.cfg, msg3_pdcch.dci);
+    msg3_pdcch.dci.time_domain_assigment = dai++;
     bwp_msg3_slot.puschs.emplace_back();
     pusch_t& pusch = bwp_msg3_slot.puschs.back();
-    success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_dci, pusch.sch);
+    success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_pdcch.dci, pusch.sch);
     srsran_assert(success, "Error converting DCI to PUSCH grant");
     pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
+    if (ue.h_ul->nof_retx() > 0) {
+      bwp_pdcch_slot.ul_pdcchs.push_back(msg3_pdcch);
+    }
   }
   bwp_msg3_slot.ul_prbs.add(msg3_rbs);
 
@@ -244,7 +240,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   return alloc_result::success;
 }
 
-alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_mask)
+alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_prbs)
 {
   auto&        bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   auto&        bwp_pusch_slot = bwp_grid[ue.pusch_slot];
@@ -257,9 +253,8 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
     logger.warning("SCHED: Trying to allocate PUSCH for rnti=0x%x with no available HARQs", ue.rnti);
     return alloc_result::no_rnti_opportunity;
   }
-  pdcch_ul_list_t&  pdcchs     = bwp_pdcch_slot.ul_pdcchs;
-  const rbg_bitmap& pusch_mask = bwp_pusch_slot.ul_prbs.rbgs();
-  if ((pusch_mask & ul_mask).any()) {
+  pdcch_ul_list_t& pdcchs = bwp_pdcch_slot.ul_pdcchs;
+  if (bwp_pusch_slot.ul_prbs.collides(ul_prbs)) {
     return alloc_result::sch_collision;
   }
   const uint32_t aggr_idx = 2, ss_id = 1;
@@ -273,10 +268,11 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
     srsran_assert(ue.cfg->ue_cfg()->fixed_ul_mcs >= 0, "Dynamic MCS not yet supported");
     int  mcs     = ue.cfg->ue_cfg()->fixed_ul_mcs;
     int  tbs     = 100;
-    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_mask, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
+    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
     srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
-    srsran_assert(ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_mask), "Failed to allocate UL HARQ retx");
+    bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_prbs);
+    srsran_assert(success, "Failed to allocate UL HARQ retx");
   }
 
   // Allocation Successful
@@ -285,7 +281,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const rbg_bitmap& ul_m
   fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
   // Generate PUSCH
-  bwp_pusch_slot.ul_prbs |= ul_mask;
+  bwp_pusch_slot.ul_prbs |= ul_prbs;
   bwp_pusch_slot.puschs.emplace_back();
   pusch_t&          pusch = bwp_pusch_slot.puschs.back();
   srsran_slot_cfg_t slot_cfg;

@@ -89,7 +89,7 @@ public:
                                   slot_ue_map_t&       ues,
                                   uint32_t             max_nof_grants);
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
-  alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
+  alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
 
   slot_point          get_pdcch_tti() const { return pdcch_slot; }
   const bwp_res_grid& res_grid() const { return bwp_grid; }

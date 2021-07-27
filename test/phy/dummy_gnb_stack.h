@@ -73,9 +73,9 @@ private:
   srsran::phy_cfg_nr_t                                    phy_cfg = {};
   bool                                                    valid   = false;
 
-  srsenb::sched_nr      sched;
-  srsran::slot_point    pdsch_slot, pusch_slot;
-  srslog::basic_logger& sched_logger;
+  std::unique_ptr<srsenb::sched_nr> sched;
+  srsran::slot_point                pdsch_slot, pusch_slot;
+  srslog::basic_logger&             sched_logger;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -291,7 +291,7 @@ private:
         logger.debug("NACK received!");
       }
 
-      sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+      sched->dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
     }
 
     // Process SR
@@ -324,7 +324,6 @@ public:
     rnti(args.rnti),
     phy_cfg(args.phy_cfg),
     ss_id(args.ss_id),
-    sched(srsenb::sched_nr_interface::sched_cfg_t{}),
     use_dummy_sched(args.use_dummy_sched),
     sched_logger(srslog::fetch_basic_logger("MAC"))
   {
@@ -332,14 +331,18 @@ public:
     sched_logger.set_level(srslog::basic_levels::debug);
 
     // create sched object
+    srsenb::sched_nr_interface::sched_cfg_t sched_cfg{};
+    sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
+    sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
+    sched.reset(new srsenb::sched_nr{sched_cfg});
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
-    sched.cell_cfg(cells_cfg);
+    sched->cell_cfg(cells_cfg);
 
     // add UE to scheduler
     srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
     ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
     ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
-    sched.ue_cfg(args.rnti, ue_cfg);
+    sched->ue_cfg(args.rnti, ue_cfg);
 
     dl.mcs = args.pdsch.mcs;
     ul.mcs = args.pusch.mcs;
@@ -413,7 +416,7 @@ public:
     }
 
     if (not use_dummy_sched) {
-      int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
+      int ret = sched->get_dl_sched(pdsch_slot, 0, dl_sched);
 
       for (pdsch_t& pdsch : dl_sched.pdsch) {
         // Set TBS
@@ -459,7 +462,7 @@ public:
     }
 
     if (not use_dummy_sched) {
-      int ret = sched.get_ul_sched(pusch_slot, 0, ul_sched);
+      int ret = sched->get_ul_sched(pusch_slot, 0, ul_sched);
 
       for (pusch_t& pusch : ul_sched.pusch) {
         pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
@@ -547,14 +550,14 @@ public:
   void dl_ack_info(uint16_t rnti_, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
   {
     if (not use_dummy_sched) {
-      sched.dl_ack_info(rnti_, cc, pid, tb_idx, ack);
+      sched->dl_ack_info(rnti_, cc, pid, tb_idx, ack);
     }
   }
 
   void ul_crc_info(uint16_t rnti_, uint32_t cc, uint32_t pid, bool crc)
   {
     if (not use_dummy_sched) {
-      sched.ul_crc_info(rnti_, cc, pid, crc);
+      sched->ul_crc_info(rnti_, cc, pid, crc);
     }
   }
 
@@ -612,6 +615,18 @@ public:
 
   void rach_detected(const rach_info_t& rach_info) override
   {
+    if (not use_dummy_sched) {
+      srsenb::sched_nr_interface::dl_sched_rar_info_t ra_info;
+      ra_info.preamble_idx    = rach_info.preamble;
+      ra_info.ta_cmd          = rach_info.time_adv;
+      ra_info.ofdm_symbol_idx = 0;
+      ra_info.msg3_size       = 7;
+      ra_info.freq_idx        = 0;
+      ra_info.prach_slot      = pdsch_slot - TX_ENB_DELAY;
+      ra_info.temp_crnti      = rnti;
+      sched->dl_rach_info(0, ra_info);
+    }
+
     std::unique_lock<std::mutex> lock(metrics_mutex);
     prach_metrics_t&             prach_metrics = metrics.prach[rach_info.preamble];
     prach_metrics.avg_ta = SRSRAN_VEC_SAFE_CMA((float)rach_info.time_adv, prach_metrics.avg_ta, prach_metrics.count);

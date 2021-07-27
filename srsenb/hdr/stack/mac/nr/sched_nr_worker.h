@@ -42,6 +42,8 @@ public:
   void finish();
   bool running() const { return slot_rx.valid(); }
 
+  void enqueue_cc_event(srsran::move_callback<void()> ev);
+
   /// Enqueue feedback directed at a given UE in a given cell
   void enqueue_cc_feedback(uint16_t rnti, feedback_callback_t fdbk);
 
@@ -65,8 +67,9 @@ private:
     uint16_t            rnti;
     feedback_callback_t fdbk;
   };
-  std::mutex                feedback_mutex;
-  srsran::deque<feedback_t> pending_feedback, tmp_feedback_to_run;
+  std::mutex                                    feedback_mutex;
+  srsran::deque<feedback_t>                     pending_feedback, tmp_feedback_to_run;
+  srsran::deque<srsran::move_callback<void()> > pending_events, tmp_events_to_run;
 
   srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
 };
@@ -93,6 +96,7 @@ public:
   void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
 
   void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
+  void enqueue_cc_event(uint32_t cc, srsran::move_callback<void()> ev);
   void enqueue_cc_feedback(uint16_t rnti, uint32_t cc, slot_cc_worker::feedback_callback_t fdbk)
   {
     cc_worker_list[cc]->worker.enqueue_cc_feedback(rnti, std::move(fdbk));

@@ -42,6 +42,20 @@ bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, ui
     srsran_assert(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
   }
   srsran_assert(not pusch_ra_list.empty(), "Time-Domain Resource Allocation not valid");
+
+  for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
+    for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
+      rar_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].pdcch.coreset[0],
+                                                &cell_cfg.bwps[0].pdcch.ra_search_space,
+                                                0,
+                                                agg_idx,
+                                                sl,
+                                                rar_cce_list[sl][agg_idx].data());
+      srsran_assert(n >= 0, "Failed to configure RAR DCI locations");
+      rar_cce_list[sl][agg_idx].resize(n);
+    }
+  }
 }
 
 sched_cell_params::sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_) :

@@ -20,6 +20,13 @@ slot_cc_worker::slot_cc_worker(serv_cell_manager& cc_sched) :
   cell(cc_sched), cfg(cc_sched.cfg), bwp_alloc(cc_sched.bwps[0].grid), logger(srslog::fetch_basic_logger("MAC"))
 {}
 
+void slot_cc_worker::enqueue_cc_event(srsran::move_callback<void()> ev)
+{
+  std::lock_guard<std::mutex> lock(feedback_mutex);
+  pending_events.emplace_back();
+  pending_events.back() = std::move(ev);
+}
+
 void slot_cc_worker::enqueue_cc_feedback(uint16_t rnti, feedback_callback_t fdbk)
 {
   std::lock_guard<std::mutex> lock(feedback_mutex);
@@ -33,7 +40,13 @@ void slot_cc_worker::run_feedback(ue_map_t& ue_db)
   {
     std::lock_guard<std::mutex> lock(feedback_mutex);
     tmp_feedback_to_run.swap(pending_feedback);
+    tmp_events_to_run.swap(pending_events);
   }
+
+  for (srsran::move_callback<void()>& ev : tmp_events_to_run) {
+    ev();
+  }
+  tmp_events_to_run.clear();
 
   for (feedback_t& f : tmp_feedback_to_run) {
     if (ue_db.contains(f.rnti) and ue_db[f.rnti]->carriers[cfg.cc] != nullptr) {
@@ -102,6 +115,9 @@ void slot_cc_worker::finish()
 
 void slot_cc_worker::alloc_dl_ues()
 {
+  if (not cfg.sched_cfg.pdsch_enabled) {
+    return;
+  }
   if (slot_ues.empty()) {
     return;
   }
@@ -110,13 +126,15 @@ void slot_cc_worker::alloc_dl_ues()
     return;
   }
 
-  rbgmask_t dlmask(cfg.bwps[0].N_rbg);
-  dlmask.fill(0, dlmask.size(), true);
-  bwp_alloc.alloc_pdsch(ue, dlmask);
+  prb_interval prbs(0, cfg.bwps[0].N_rbg);
+  bwp_alloc.alloc_pdsch(ue, prbs);
 }
 
 void slot_cc_worker::alloc_ul_ues()
 {
+  if (not cfg.sched_cfg.pusch_enabled) {
+    return;
+  }
   if (slot_ues.empty()) {
     return;
   }
@@ -125,9 +143,8 @@ void slot_cc_worker::alloc_ul_ues()
     return;
   }
 
-  rbgmask_t ulmask(cfg.bwps[0].N_rbg);
-  ulmask.fill(0, ulmask.size(), true);
-  bwp_alloc.alloc_pusch(ue, ulmask);
+  prb_interval prbs(0, cfg.bwps[0].N_rbg);
+  bwp_alloc.alloc_pusch(ue, prbs);
 }
 
 void slot_cc_worker::log_result() const
@@ -169,6 +186,16 @@ void slot_cc_worker::log_result() const
                      ue.h_dl->nof_retx(),
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.pusch_slot);
+    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
+      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
+      fmt::format_to(fmtbuf,
+                     "SCHED: UL Msg3, cc={}, tc-rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}",
+                     cell.cfg.cc,
+                     ue.rnti,
+                     pdcch.dci.pid,
+                     ue.h_dl->nof_retx(),
+                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
+                     ue.pusch_slot);
     } else {
       fmt::format_to(fmtbuf, "SCHED: unknown rnti format");
     }
@@ -196,6 +223,11 @@ void sched_worker_manager::enqueue_event(uint16_t rnti, srsran::move_callback<vo
 {
   std::lock_guard<std::mutex> lock(event_mutex);
   next_slot_events.push_back(ue_event_t{rnti, std::move(ev)});
+}
+
+void sched_worker_manager::enqueue_cc_event(uint32_t cc, srsran::move_callback<void()> ev)
+{
+  cc_worker_list[cc]->worker.enqueue_cc_event(std::move(ev));
 }
 
 void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)

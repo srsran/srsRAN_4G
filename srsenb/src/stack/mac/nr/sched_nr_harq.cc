@@ -79,7 +79,7 @@ bool harq_proc::new_retx(slot_point slot_tx_, slot_point slot_ack_, const prb_gr
 {
   if (grant.is_alloc_type0() != prbs_.is_alloc_type0() or
       (grant.is_alloc_type0() and grant.rbgs().count() != prbs_.rbgs().count()) or
-      (grant.is_alloc_type1() and grant.prbs().length() == prbs_.prbs().length())) {
+      (grant.is_alloc_type1() and grant.prbs().length() != prbs_.prbs().length())) {
     return false;
   }
   if (new_retx(slot_tx_, slot_ack_)) {

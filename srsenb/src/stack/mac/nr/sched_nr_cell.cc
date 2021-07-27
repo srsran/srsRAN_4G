@@ -74,9 +74,9 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
       if (pdcch_slot >= rar_window.stop()) {
         fmt::memory_buffer str_buffer;
         fmt::format_to(str_buffer,
-                       "SCHED: Could not transmit RAR within the window (RA={}, Window={}, RAR={}",
-                       rar.prach_slot,
+                       "SCHED: Could not transmit RAR within the window Window={}, PRACH={}, RAR={}",
                        rar_window,
+                       rar.prach_slot,
                        pdcch_slot);
         srsran::console("%s\n", srsran::to_c_str(str_buffer));
         logger.warning("%s", srsran::to_c_str(str_buffer));

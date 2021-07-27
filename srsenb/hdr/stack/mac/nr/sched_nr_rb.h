@@ -59,7 +59,7 @@ struct prb_grant {
       alloc.rbgs.~rbg_bitmap();
       new (&alloc.interv) prb_interval(prbs);
     } else {
-      alloc.interv = alloc.interv;
+      alloc.interv = prbs;
     }
     return *this;
   }
