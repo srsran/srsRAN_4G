@@ -143,7 +143,7 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
   logger.debug(ak, AK_LEN, "AK:");
   logger.debug(sqn, SQN_LEN, "SQN:");
   logger.debug("mcc=%d, mnc=%d", mcc, mnc);
-  security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
+  security_generate_k_asme(ck, ik, sqn, mcc, mnc, k_asme);
   logger.info(k_asme, KEY_LEN, "K_ASME:");
 
   ret = AUTH_OK;

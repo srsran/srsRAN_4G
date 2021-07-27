@@ -159,8 +159,12 @@ auth_result_t usim::gen_auth_res_milenage(uint8_t* rand,
     }
   }
 
+  uint8_t ak_xor_sqn[6];
+  for (i = 0; i < 6; i++) {
+    ak_xor_sqn[i] = sqn[i] ^ ak[i];
+  }
   // Generate K_asme
-  security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
+  security_generate_k_asme(ck, ik, ak_xor_sqn, mcc, mnc, k_asme);
 
   return result;
 }
@@ -225,8 +229,14 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
   logger.debug(sqn, 6, "sqn:");
   logger.debug(amf, 2, "amf:");
   logger.debug(mac, 8, "mac:");
+
+  uint8_t ak_xor_sqn[6];
+  for (uint32_t i = 0; i < 6; i++) {
+    ak_xor_sqn[i] = sqn[i] ^ ak[i];
+  }
+
   // Generate K_asme
-  security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme_);
+  security_generate_k_asme(ck, ik, ak_xor_sqn, mcc, mnc, k_asme_);
 
   return result;
 }

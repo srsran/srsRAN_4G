@@ -18,7 +18,21 @@
  *****************************************************************************/
 
 #include "srsran/common/common.h"
+#include "srsran/srslog/srslog.h"
 
+#include <vector>
+
+#define AKA_RAND_LEN 16
+#define AKA_AUTN_LEN 16
+#define AKA_AUTS_LEN 14
+#define RES_MAX_LEN 16
+#define MAC_LEN 8
+#define IK_LEN 16
+#define CK_LEN 16
+#define AK_LEN 6
+#define SQN_LEN 6
+
+#define KEY_LEN 32
 namespace srsran {
 
 typedef enum {
@@ -73,16 +87,55 @@ struct as_security_config_t {
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
 };
 
+template <typename... Args>
+void log_error(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("SEC").error(format, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void log_warning(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("SEC").warning(format, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void log_info(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("SEC").info(format, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void log_debug(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("SEC").debug(format, std::forward<Args>(args)...);
+}
+
 /******************************************************************************
  * Key Generation
  *****************************************************************************/
-uint8_t security_generate_k_asme(uint8_t* ck,
-                                 uint8_t* ik,
-                                 uint8_t* ak,
-                                 uint8_t* sqn,
-                                 uint16_t mcc,
-                                 uint16_t mnc,
-                                 uint8_t* k_asme);
+
+int kdf_common(const uint8_t fc, const std::array<uint8_t, 32>& key, const std::vector<uint8_t>& P, uint8_t* output);
+int kdf_common(const uint8_t                  fc,
+               const std::array<uint8_t, 32>& key,
+               const std::vector<uint8_t>&    P0,
+               const std::vector<uint8_t>&    P1,
+               uint8_t*                       output);
+int kdf_common(const uint8_t                  fc,
+               const std::array<uint8_t, 32>& key,
+               const std::vector<uint8_t>&    P0,
+               const std::vector<uint8_t>&    P1,
+               const std::vector<uint8_t>&    P3,
+               uint8_t*                       output);
+
+uint8_t
+security_generate_k_asme(uint8_t* ck, uint8_t* ik, uint8_t* ak_xor_sqn, uint16_t mcc, uint16_t mnc, uint8_t* k_asme);
+
+uint8_t security_generate_k_ausf(uint8_t*    ck,
+                                 uint8_t*    ik,
+                                 uint8_t*    ak_xor_sqn,
+                                 const char* serving_network_name,
+                                 uint8_t*    k_ausf);
 
 uint8_t security_generate_k_enb(uint8_t* k_asme, uint32_t nas_count, uint8_t* k_enb);
 

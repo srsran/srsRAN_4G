@@ -192,22 +192,18 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_nas(uint8*                         
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   uint8             s[7];
 
-  if (k_asme != NULL && k_nas_enc != NULL) { //{}
-    if (enc_alg_id != LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_EEA0) {
-      // Construct S for KNASenc
-      s[0] = 0x15;       // FC
-      s[1] = 0x01;       // P0
-      s[2] = 0x00;       // First byte of L0
-      s[3] = 0x01;       // Second byte of L0
-      s[4] = enc_alg_id; // P1
-      s[5] = 0x00;       // First byte of L1
-      s[6] = 0x01;       // Second byte of L1
+  if (k_asme != NULL && k_nas_enc != NULL) {
+    // Construct S for KNASenc
+    s[0] = 0x15;       // FC
+    s[1] = 0x01;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = enc_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
 
-      // Derive KNASenc
-      sha256(k_asme, 32, s, 7, k_nas_enc, 0);
-    } else {
-      memset(k_nas_enc, 0, 32);
-    }
+    // Derive KNASenc
+    sha256(k_asme, 32, s, 7, k_nas_enc, 0);
   }
 
   if (k_asme != NULL && k_nas_int != NULL) {
