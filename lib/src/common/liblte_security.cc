@@ -1155,13 +1155,13 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
     for (i = 0; i < 16; i++) {
       input[i] = rand[i] ^ op_c[i];
     }
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
     // Compute out for RES and AK
     for (i = 0; i < 16; i++) {
       input[i] = temp[i] ^ op_c[i];
     }
     input[15] ^= 1;
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1181,7 +1181,7 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
       input[(i + 12) % 16] = temp[i] ^ op_c[i];
     }
     input[15] ^= 2;
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1196,7 +1196,7 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
       input[(i + 8) % 16] = temp[i] ^ op_c[i];
     }
     input[15] ^= 4;
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }

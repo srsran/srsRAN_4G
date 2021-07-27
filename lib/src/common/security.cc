@@ -242,4 +242,46 @@ uint8_t security_milenage_f5_star(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_
   return liblte_security_milenage_f5_star(k, op, rand, ak);
 }
 
+int security_xor_f2345(uint8_t* k, uint8_t* rand, uint8_t* res, uint8_t* ck, uint8_t* ik, uint8_t* ak)
+{
+  uint8_t xdout[16];
+  uint8_t cdout[8];
+  // Use RAND and K to compute RES, CK, IK and AK
+  for (uint32_t i = 0; i < 16; i++) {
+    xdout[i] = k[i] ^ rand[i];
+  }
+  for (uint32_t i = 0; i < 16; i++) {
+    res[i] = xdout[i];
+    ck[i]  = xdout[(i + 1) % 16];
+    ik[i]  = xdout[(i + 2) % 16];
+  }
+  for (uint32_t i = 0; i < 6; i++) {
+    ak[i] = xdout[i + 3];
+  }
+  return SRSRAN_SUCCESS;
+}
+
+int security_xor_f1(uint8_t* k, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8_t* mac_a)
+{
+  uint8_t xdout[16];
+  uint8_t cdout[8];
+  // Use RAND and K to compute RES, CK, IK and AK
+  for (uint32_t i = 0; i < 16; i++) {
+    xdout[i] = k[i] ^ rand[i];
+  }
+  // Generate cdout
+  for (uint32_t i = 0; i < 6; i++) {
+    cdout[i] = sqn[i];
+  }
+  for (uint32_t i = 0; i < 2; i++) {
+    cdout[6 + i] = amf[i];
+  }
+
+  // Generate MAC
+  for (uint32_t i = 0; i < 8; i++) {
+    mac_a[i] = xdout[i] ^ cdout[i];
+  }
+  return SRSRAN_SUCCESS;
+}
+
 } // namespace srsran

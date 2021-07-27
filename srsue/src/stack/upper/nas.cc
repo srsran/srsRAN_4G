@@ -1080,6 +1080,7 @@ void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, 
   logger.debug(auth_req.autn, 16, "Authentication request AUTN");
   auth_result_t auth_result =
       usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc, res, &res_len, ctxt.k_asme);
+  logger.debug(res, res_len, "Authentication request RES");
   if (LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE == auth_req.nas_ksi.tsc_flag) {
     ctxt.ksi = auth_req.nas_ksi.nas_ksi;
   } else {

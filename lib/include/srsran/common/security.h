@@ -192,5 +192,8 @@ security_milenage_f2345(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* res, ui
 
 uint8_t security_milenage_f5_star(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* ak);
 
+int security_xor_f2345(uint8_t* k, uint8_t* rand, uint8_t* res, uint8_t* ck, uint8_t* ik, uint8_t* ak);
+int security_xor_f1(uint8_t* k, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8_t* mac_a);
+
 } // namespace srsran
 #endif // SRSRAN_SECURITY_H

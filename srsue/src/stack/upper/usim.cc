@@ -176,20 +176,15 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
 {
   auth_result_t result = AUTH_OK;
   uint8_t       sqn[6];
-  uint8_t       xdout[16];
-  uint8_t       cdout[8];
+  uint8_t       res_[16];
+
+  logger.debug(k, 16, "K:");
 
   // Use RAND and K to compute RES, CK, IK and AK
-  for (uint32_t i = 0; i < 16; i++) {
-    xdout[i] = k[i] ^ rand[i];
-  }
-  for (uint32_t i = 0; i < 16; i++) {
-    res[i] = xdout[i];
-    ck[i]  = xdout[(i + 1) % 16];
-    ik[i]  = xdout[(i + 2) % 16];
-  }
-  for (uint32_t i = 0; i < 6; i++) {
-    ak[i] = xdout[i + 3];
+  security_xor_f2345(k, rand, res_, ck, ik, ak);
+
+  for (uint32_t i = 0; i < 8; i++) {
+    res[i] = res_[i];
   }
 
   *res_len = 8;
@@ -203,18 +198,8 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
     amf[i] = autn_enb[6 + i];
   }
 
-  // Generate cdout
-  for (uint32_t i = 0; i < 6; i++) {
-    cdout[i] = sqn[i];
-  }
-  for (uint32_t i = 0; i < 2; i++) {
-    cdout[6 + i] = amf[i];
-  }
-
   // Generate MAC
-  for (uint32_t i = 0; i < 8; i++) {
-    mac[i] = xdout[i] ^ cdout[i];
-  }
+  security_xor_f1(k, rand, sqn, amf, mac);
 
   // Construct AUTN
   for (uint32_t i = 0; i < 6; i++) {
@@ -234,6 +219,12 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
     }
   }
 
+  logger.debug(ck, CK_LEN, "CK:");
+  logger.debug(ik, IK_LEN, "IK:");
+  logger.debug(ak, AK_LEN, "AK:");
+  logger.debug(sqn, 6, "sqn:");
+  logger.debug(amf, 2, "amf:");
+  logger.debug(mac, 8, "mac:");
   // Generate K_asme
   security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme_);
 
