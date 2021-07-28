@@ -45,6 +45,10 @@ public:
   ~enb_stack_lte() final;
 
   // eNB stack base interface
+  int         init(const stack_args_t&      args_,
+                   const rrc_cfg_t&         rrc_cfg_,
+                   phy_interface_stack_lte* phy_,
+                   phy_interface_stack_nr*  phy_nr_);
   int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_);
   int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_);
   void        stop() final;
@@ -177,6 +181,7 @@ private:
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
+  phy_interface_stack_nr*  phy_nr = nullptr;
 
   // state
   std::atomic<bool> started{false};

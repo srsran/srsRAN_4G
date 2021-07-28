@@ -14,6 +14,7 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/common_nr.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 
 using namespace asn1::rrc_nr;
 
@@ -55,6 +56,8 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
     return SRSRAN_ERROR;
   }
 
+  // TODO: PHY isn't initialized at this stage yet
+  // config_phy();
   config_mac();
 
   logger.info("Started");
@@ -196,6 +199,20 @@ int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
     rrc_eutra->sgnb_addition_complete(new_rnti);
   }
   return SRSRAN_SUCCESS;
+}
+
+void rrc_nr::config_phy()
+{
+  static const srsran::phy_cfg_nr_t default_phy_cfg =
+      srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
+  srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
+  common_cfg.carrier                                    = default_phy_cfg.carrier;
+  common_cfg.pdcch                                      = default_phy_cfg.pdcch;
+  common_cfg.prach                                      = default_phy_cfg.prach;
+  if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
+    logger.error("Couldn't set common PHY config");
+    return;
+  }
 }
 
 void rrc_nr::config_mac()

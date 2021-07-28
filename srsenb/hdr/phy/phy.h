@@ -38,6 +38,11 @@ public:
             const phy_cfg_t&             cfg,
             srsran::radio_interface_phy* radio_,
             stack_interface_phy_lte*     stack_);
+  int  init(const phy_args_t&            args,
+            const phy_cfg_t&             cfg,
+            srsran::radio_interface_phy* radio_,
+            stack_interface_phy_lte*     stack_lte_,
+            stack_interface_phy_nr&      stack_nr_);
   void stop() override;
 
   std::string get_type() override { return "lte"; };

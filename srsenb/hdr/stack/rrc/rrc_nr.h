@@ -62,6 +62,7 @@ public:
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
   int          add_user(uint16_t rnti);
   int          update_user(uint16_t new_rnti, uint16_t old_rnti);
+  void         config_phy();
   void         config_mac();
   int32_t      generate_sibs();
   int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;

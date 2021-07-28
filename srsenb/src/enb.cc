@@ -70,7 +70,7 @@ int enb::init(const all_args_t& args_)
     }
 
     if (ret == SRSRAN_SUCCESS) {
-      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get()) != SRSRAN_SUCCESS) {
+      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get(), lte_phy.get()) != SRSRAN_SUCCESS) {
         srsran::console("Error initializing stack.\n");
         ret = SRSRAN_ERROR;
       }
@@ -82,9 +82,9 @@ int enb::init(const all_args_t& args_)
       return SRSRAN_ERROR;
     }
 
-    // Only Init PHY if radio couldn't be initialized
+    // Only Init PHY if radio could be initialized
     if (ret == SRSRAN_SUCCESS) {
-      if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
+      if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get(), *lte_stack)) {
         srsran::console("Error initializing PHY.\n");
         ret = SRSRAN_ERROR;
       }

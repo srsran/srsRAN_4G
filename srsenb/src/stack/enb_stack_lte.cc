@@ -65,6 +65,19 @@ std::string enb_stack_lte::get_type()
   return "lte";
 }
 
+int enb_stack_lte::init(const stack_args_t&      args_,
+                        const rrc_cfg_t&         rrc_cfg_,
+                        phy_interface_stack_lte* phy_,
+                        phy_interface_stack_nr*  phy_nr_)
+{
+  phy_nr = phy_nr_;
+  if (init(args_, rrc_cfg_, phy_)) {
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_)
 {
   phy = phy_;
@@ -151,13 +164,13 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   // NR layers
   mac_nr_args_t mac_args = {};
   mac_args.pcap          = args.mac_pcap;
-  if (mac_nr.init(mac_args, nullptr, nullptr, &rlc_nr, &rrc_nr) != SRSRAN_SUCCESS) {
+  if (mac_nr.init(mac_args, phy_nr, nullptr, &rlc_nr, &rrc_nr) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize MAC-NR");
     return SRSRAN_ERROR;
   }
 
   rrc_nr_cfg_t rrc_cfg_nr = {};
-  if (rrc_nr.init(rrc_cfg_nr, nullptr, &mac_nr, &rlc_nr, &pdcp_nr, nullptr, nullptr, &rrc) != SRSRAN_SUCCESS) {
+  if (rrc_nr.init(rrc_cfg_nr, phy_nr, &mac_nr, &rlc_nr, &pdcp_nr, nullptr, nullptr, &rrc) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC-NR");
     return SRSRAN_ERROR;
   }
