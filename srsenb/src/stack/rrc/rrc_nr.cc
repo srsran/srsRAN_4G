@@ -576,7 +576,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list.resize(1);
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row4();
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0x100);
+  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0b100);
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports =
       asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p4;
 
