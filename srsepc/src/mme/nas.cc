@@ -710,7 +710,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas_ctx->reset();
     // But don't erase imsi
     emm_ctx->imsi  = imsi;
-    //emm_ctx->state = EMM_STATE_DEREGISTERED;
+    emm_ctx->state = EMM_STATE_DEREGISTERED;
     memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
     ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
     ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
