@@ -94,7 +94,9 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
   assert((is_ul or not ulqam64_enabled) && "DL cannot use UL-QAM64 enable flag");
 
   uint32_t max_Qm = (is_ul) ? (ulqam64_enabled ? 6 : 4) : (use_tbs_index_alt ? 8 : 6);
-  max_coderate    = std::min(max_coderate, 0.930F * max_Qm);
+  if (!is_ul) {
+    max_coderate = std::min(max_coderate, 0.930F * max_Qm);
+  }
 
   int mcs = 0;
   do {
@@ -123,7 +125,9 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
     // update max coderate based on mcs
     srsran_mod_t mod = (is_ul) ? srsran_ra_ul_mod_from_mcs(mcs) : srsran_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
     uint32_t     Qm  = srsran_mod_bits_x_symbol(mod);
-    max_coderate     = std::min(0.930F * Qm, max_coderate);
+    if (!is_ul) {
+      max_coderate = std::min(0.930F * Qm, max_coderate);
+    }
 
     if (coderate <= max_coderate) {
       // solution was found
@@ -151,7 +155,7 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
 {
   // get max MCS/TBS that meets max coderate requirements
   tbs_info tb_max = compute_mcs_and_tbs(nof_prb, nof_re, cqi, max_mcs, is_ul, ulqam64_enabled, use_tbs_index_alt);
-  if (tb_max.tbs_bytes + 8 <= (int)req_bytes or tb_max.mcs == 0) {
+  if (tb_max.tbs_bytes + 8 <= (int)req_bytes or tb_max.mcs == 0 or req_bytes <= 0) {
     // if mcs cannot be lowered or a decrease in TBS index won't meet req_bytes requirement
     return tb_max;
   }

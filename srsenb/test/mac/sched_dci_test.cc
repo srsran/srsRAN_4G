@@ -271,6 +271,43 @@ int test_min_mcs_tbs_specific()
   return SRSRAN_SUCCESS;
 }
 
+void test_ul_mcs_tbs_derivation()
+{
+  uint32_t cqi     = 15;
+  uint32_t max_mcs = 28;
+
+  sched_cell_params_t cell_params;
+  prbmask_t           prbs;
+
+  auto compute_tbs_mcs = [&prbs, &cell_params, &max_mcs, &cqi](uint32_t Nprb, uint32_t prb_grant_size) {
+    sched_interface::cell_cfg_t   cell_cfg   = generate_default_cell_cfg(Nprb);
+    sched_interface::sched_args_t sched_args = {};
+    cell_params.set_cfg(0, cell_cfg, sched_args);
+    prbs.resize(Nprb);
+    prbs.fill(2, prb_grant_size);
+    uint32_t req_bytes = 1000000;
+    uint32_t N_srs     = 0;
+    uint32_t nof_symb  = 2 * (SRSRAN_CP_NSYMB(cell_params.cfg.cell.cp) - 1) - N_srs;
+    uint32_t nof_re    = nof_symb * prbs.count() * SRSRAN_NRE;
+    return compute_min_mcs_and_tbs_from_required_bytes(
+        prbs.count(), nof_re, cqi, max_mcs, req_bytes, true, false, false);
+  };
+
+  cqi = 0;
+  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 0);
+  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 0);
+
+  cqi = 5;
+  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 9);
+  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 9);
+
+  cqi = 15;
+  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 28);
+  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 28);
+  TESTASSERT(compute_tbs_mcs(75, 75 - 5).mcs == 28);
+  TESTASSERT(compute_tbs_mcs(100, 100 - 5).mcs == 28);
+}
+
 } // namespace srsenb
 
 int main()
@@ -286,6 +323,7 @@ int main()
   TESTASSERT(srsenb::test_mcs_lookup_specific() == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_mcs_tbs_consistency_all() == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_min_mcs_tbs_specific() == SRSRAN_SUCCESS);
+  srsenb::test_ul_mcs_tbs_derivation();
 
   printf("Success\n");
   return 0;
