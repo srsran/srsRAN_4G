@@ -125,6 +125,8 @@ protected:
   class rlc_am_base_tx
   {
   public:
+    explicit rlc_am_base_tx(srslog::basic_logger* logger_) : logger(logger_) {}
+
     virtual bool     configure(const rlc_config_t& cfg_)                           = 0;
     virtual void     reestablish()                                                 = 0;
     virtual void     stop()                                                        = 0;
@@ -140,9 +142,10 @@ protected:
 
     int write_sdu(unique_byte_buffer_t sdu);
 
-    byte_buffer_pool* pool       = nullptr;
-    bool              tx_enabled = false;
-    std::string       rb_name;
+    bool                  tx_enabled = false;
+    byte_buffer_pool*     pool       = nullptr;
+    srslog::basic_logger* logger;
+    std::string           rb_name;
 
     bsr_callback_t bsr_callback;
 
@@ -161,12 +164,17 @@ protected:
   class rlc_am_base_rx
   {
   public:
+    explicit rlc_am_base_rx(srslog::basic_logger* logger_) : logger(logger_) {}
+
     virtual bool     configure(const rlc_config_t& cfg_)             = 0;
     virtual void     reestablish()                                   = 0;
     virtual void     stop()                                          = 0;
     virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
     virtual uint32_t get_sdu_rx_latency_ms()                         = 0;
     virtual uint32_t get_rx_buffered_bytes()                         = 0;
+
+    srslog::basic_logger* logger;
+    byte_buffer_pool*     pool = nullptr;
   };
 
   rlc_am_base_tx* tx_base = nullptr;

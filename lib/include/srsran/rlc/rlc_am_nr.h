@@ -61,9 +61,7 @@ public:
     void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue);
 
   private:
-    rlc_am_nr*            parent = nullptr;
-    byte_buffer_pool*     pool   = nullptr;
-    srslog::basic_logger& logger;
+    rlc_am_nr* parent = nullptr;
 
     /****************************************************************************
      * Configurable parameters
@@ -100,9 +98,8 @@ public:
     uint32_t get_rx_buffered_bytes();
 
   private:
-    rlc_am_nr*            parent = nullptr;
-    byte_buffer_pool*     pool   = nullptr;
-    srslog::basic_logger& logger;
+    rlc_am_nr*        parent = nullptr;
+    byte_buffer_pool* pool   = nullptr;
 
     /****************************************************************************
      * Configurable parameters

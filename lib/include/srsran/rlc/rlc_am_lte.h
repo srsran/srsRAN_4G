@@ -145,7 +145,6 @@ public:
 
     rlc_am_lte*             parent = nullptr;
     byte_buffer_pool*       pool   = nullptr;
-    srslog::basic_logger&   logger;
     rlc_am_pdu_segment_pool segment_pool;
 
     /****************************************************************************
@@ -234,9 +233,8 @@ public:
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu* segment);
     void reset_status();
 
-    rlc_am_lte*           parent = nullptr;
-    byte_buffer_pool*     pool   = nullptr;
-    srslog::basic_logger& logger;
+    rlc_am_lte*       parent = nullptr;
+    byte_buffer_pool* pool   = nullptr;
 
     /****************************************************************************
      * Configurable parameters

@@ -27,19 +27,19 @@ rlc_am_nr::rlc_am_nr(srslog::basic_logger&      logger,
                      srsue::pdcp_interface_rlc* pdcp_,
                      srsue::rrc_interface_rlc*  rrc_,
                      srsran::timer_handler*     timers_) :
-  rlc_am_base(logger, lcid_, pdcp_, rrc_, timers_, new rlc_am_nr::rlc_am_nr_tx(this), new rlc_am_nr::rlc_am_nr_rx(this))
+  rlc_am_base(logger, lcid_, pdcp_, rrc_, timers_, nullptr, nullptr)
 {
-  tx = dynamic_cast<rlc_am_nr::rlc_am_nr_tx*>(tx_base);
-  rx = dynamic_cast<rlc_am_nr::rlc_am_nr_rx*>(rx_base);
+  tx      = new rlc_am_nr::rlc_am_nr_tx(this);
+  rx      = new rlc_am_nr::rlc_am_nr_rx(this);
+  tx_base = tx;
+  rx_base = rx;
 }
 
 /*******************************
  *     RLC AM NR
  *     Tx subclass implementation
  ***************************************************************************/
-rlc_am_nr::rlc_am_nr_tx::rlc_am_nr_tx(rlc_am_nr* parent_) :
-  parent(parent_), logger(parent_->logger), pool(byte_buffer_pool::get_instance())
-{}
+rlc_am_nr::rlc_am_nr_tx::rlc_am_nr_tx(rlc_am_nr* parent_) : parent(parent_), rlc_am_base_tx(&parent_->logger) {}
 
 bool rlc_am_nr::rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 {
@@ -98,7 +98,7 @@ void rlc_am_nr::rlc_am_nr_tx::stop() {}
  * Rx subclass implementation
  ***************************************************************************/
 rlc_am_nr::rlc_am_nr_rx::rlc_am_nr_rx(rlc_am_nr* parent_) :
-  parent(parent_), logger(parent_->logger), pool(byte_buffer_pool::get_instance())
+  parent(parent_), pool(byte_buffer_pool::get_instance()), rlc_am_base_rx(&parent_->logger)
 {}
 
 bool rlc_am_nr::rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
