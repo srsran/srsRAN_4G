@@ -277,8 +277,9 @@ int sched_ue_cell::get_ul_cqi() const
 
 int sched_ue_cell::get_dl_cqi(const rbgmask_t& rbgs) const
 {
-  float dl_cqi = std::get<1>(find_min_cqi_rbg(rbgs, dl_cqi_ctxt));
-  return std::max(0, (int)std::min(dl_cqi + dl_cqi_coeff, 15.0f));
+  int min_cqi;
+  find_min_cqi_rbgs(rbgs, dl_cqi_ctxt, min_cqi);
+  return std::max(0, (int)std::min(static_cast<float>(min_cqi) + dl_cqi_coeff, 15.0f));
 }
 
 int sched_ue_cell::get_dl_cqi() const
@@ -558,12 +559,12 @@ bool find_optimal_rbgmask(const sched_ue_cell&       ue_cell,
   //       We start with largest RBG allocation and continue removing RBGs. However, there is no guarantee this is
   //       going to be the optimal solution
 
-  // Subtract whole CQI subbands until objective is not met
+  // Subtract RBGs with lowest CQI until objective is not met
   // TODO: can be optimized
   rbgmask_t smaller_mask;
   tbs_info  tb2;
   do {
-    smaller_mask = remove_min_cqi_subband(newtxmask, ue_cell.dl_cqi());
+    smaller_mask = remove_min_cqi_rbgs(newtxmask, ue_cell.dl_cqi());
     tb2          = compute_mcs_and_tbs_lower_bound(ue_cell, tti_tx_dl, smaller_mask, dci_format);
     if (tb2.tbs_bytes >= (int)req_bytes.stop() or tb.tbs_bytes <= tb2.tbs_bytes) {
       tb        = tb2;
@@ -573,14 +574,6 @@ bool find_optimal_rbgmask(const sched_ue_cell&       ue_cell,
   if (tb.tbs_bytes <= (int)req_bytes.stop()) {
     return true;
   }
-  do {
-    smaller_mask = remove_min_cqi_rbg(newtxmask, ue_cell.dl_cqi());
-    tb2          = compute_mcs_and_tbs_lower_bound(ue_cell, tti_tx_dl, smaller_mask, dci_format);
-    if (tb2.tbs_bytes >= (int)req_bytes.stop() or tb.tbs_bytes <= tb2.tbs_bytes) {
-      tb        = tb2;
-      newtxmask = smaller_mask;
-    }
-  } while (tb2.tbs_bytes > (int)req_bytes.stop());
 
   return true;
 }

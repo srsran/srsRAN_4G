@@ -168,7 +168,7 @@ public:
   /// Get CQI of given subband index
   int get_subband_cqi(uint32_t subband_index) const
   {
-    if (subband_cqi_enabled()) {
+    if (not subband_cqi_enabled()) {
       return get_wb_cqi_info();
     }
     return bp_list[get_bp_index(subband_index)].last_feedback_tti.is_valid() ? subband_cqi[subband_index] : wb_cqi_avg;
@@ -226,14 +226,11 @@ private:
   srsran::bounded_vector<float, max_nof_subbands>                     subband_cqi;
 };
 
-/// Get {RBG index, CQI} tuple which correspond to the set RBG with the lowest CQI
-std::tuple<uint32_t, int> find_min_cqi_rbg(const rbgmask_t& mask, const sched_dl_cqi& dl_cqi);
+/// Get {RBG indexs, CQI} tuple which correspond to the set RBG with the lowest CQI
+rbgmask_t find_min_cqi_rbgs(const rbgmask_t& mask, const sched_dl_cqi& dl_cqi, int& cqi);
 
-/// Returns the same RBG mask, but with the RBGs of the subband with the lowest CQI reset
-rbgmask_t remove_min_cqi_subband(const rbgmask_t& rbgmask, const sched_dl_cqi& dl_cqi);
-
-/// Returns the same RBG mask, but with the RBG with the lowest CQI reset
-rbgmask_t remove_min_cqi_rbg(const rbgmask_t& rbgmask, const sched_dl_cqi& dl_cqi);
+/// Returns the same RBG mask, but with the RBGs with the lowest CQI reset
+rbgmask_t remove_min_cqi_rbgs(const rbgmask_t& rbgmask, const sched_dl_cqi& dl_cqi);
 
 } // namespace srsenb
 
