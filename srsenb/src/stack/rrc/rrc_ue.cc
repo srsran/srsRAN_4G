@@ -947,8 +947,7 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 
   for (uint32_t i = 0; i < msg_r8->ue_cap_rat_container_list.size(); i++) {
     if (msg_r8->ue_cap_rat_container_list[i].rat_type != rat_type_e::eutra) {
-      parent->logger.warning("Not handling UE capability information for RAT type %s",
-                             msg_r8->ue_cap_rat_container_list[i].rat_type.to_string());
+      // Not handling UE capability information for RATs other than EUTRA
       continue;
     }
     asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.data(),
