@@ -302,10 +302,10 @@ void test_ul_mcs_tbs_derivation()
   TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 9);
 
   cqi = 15;
-  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 28);
-  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 28);
-  TESTASSERT(compute_tbs_mcs(75, 75 - 5).mcs == 28);
-  TESTASSERT(compute_tbs_mcs(100, 100 - 5).mcs == 28);
+  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 23);
+  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 23);
+  TESTASSERT(compute_tbs_mcs(75, 75 - 5).mcs == 24);
+  TESTASSERT(compute_tbs_mcs(100, 100 - 5).mcs == 23);
 }
 
 } // namespace srsenb
