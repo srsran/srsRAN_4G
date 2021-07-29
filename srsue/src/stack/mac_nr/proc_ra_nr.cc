@@ -291,15 +291,20 @@ void proc_ra_nr::ra_error()
       reset();
     }
   } else {
-    // if the Random Access procedure is not completed
+    // try again, if RA failed
     if (preamble_backoff) {
       backoff_wait = rand() % preamble_backoff;
     } else {
       backoff_wait = 0;
     }
-    logger.warning("Backoff wait interval %d", backoff_wait);
-    backoff_timer.set(backoff_wait, [this](uint32_t tid) { timer_expired(tid); });
-    backoff_timer.run();
+    logger.debug("Backoff wait interval %d", backoff_wait);
+
+    if (backoff_wait > 0) {
+      backoff_timer.set(backoff_wait, [this](uint32_t tid) { timer_expired(tid); });
+      backoff_timer.run();
+    } else {
+      timer_expired(backoff_timer.id());
+    }
   }
 }
 
