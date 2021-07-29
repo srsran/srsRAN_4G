@@ -26,6 +26,10 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/nas_idle_procedures.h"
 
+#define LTE_MAC_OFFSET 1
+#define LTE_SEQ_OFFSET 5
+#define LTE_NAS_BEARER 0
+
 using namespace srsran;
 
 namespace srsue {
@@ -35,7 +39,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas(srslog::basic_logger& logger_, srsran::task_sched_handle task_sched_) :
-  nas_base(logger_),
+  nas_base(logger_, LTE_MAC_OFFSET, LTE_SEQ_OFFSET, LTE_NAS_BEARER),
   plmn_searcher(this),
   task_sched(task_sched_),
   t3402(task_sched_.get_unique_timer()),

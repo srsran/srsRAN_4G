@@ -14,7 +14,9 @@
 
 using namespace srsran;
 namespace srsue {
-nas_base::nas_base(srslog::basic_logger& logger_) : logger(logger_) {}
+nas_base::nas_base(srslog::basic_logger& logger_, uint32_t mac_offset_, uint32_t seq_offset_, uint32_t bearer_id_) :
+  logger(logger_), mac_offset(mac_offset_), seq_offset(seq_offset_), bearer_id(bearer_id_)
+{}
 
 int nas_base::parse_security_algorithm_list(std::string algorithm_string, bool* algorithm_caps)
 {
@@ -51,31 +53,13 @@ void nas_base::integrity_generate(uint8_t* key_128,
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
-      security_128_eia1(key_128,
-                        count,
-                        0, // Bearer always 0 for NAS
-                        direction,
-                        msg,
-                        msg_len,
-                        mac);
+      security_128_eia1(key_128, count, bearer_id, direction, msg, msg_len, mac);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
-      security_128_eia2(key_128,
-                        count,
-                        0, // Bearer always 0 for NAS
-                        direction,
-                        msg,
-                        msg_len,
-                        mac);
+      security_128_eia2(key_128, count, bearer_id, direction, msg, msg_len, mac);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA3:
-      security_128_eia3(key_128,
-                        count,
-                        0, // Bearer always 0 for NAS
-                        direction,
-                        msg,
-                        msg_len,
-                        mac);
+      security_128_eia3(key_128, count, bearer_id, direction, msg, msg_len, mac);
       break;
     default:
       break;
@@ -91,14 +75,18 @@ bool nas_base::integrity_check(byte_buffer_t* pdu)
     return false;
   }
 
-  if (pdu->N_bytes > 5) {
+  if (pdu->N_bytes > seq_offset) {
     uint8_t  exp_mac[4] = {0};
-    uint8_t* mac        = &pdu->msg[1];
+    uint8_t* mac        = &pdu->msg[mac_offset];
 
     // generate expected MAC
-    uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[5];
-    integrity_generate(
-        &k_nas_int[16], count_est, SECURITY_DIRECTION_DOWNLINK, &pdu->msg[5], pdu->N_bytes - 5, &exp_mac[0]);
+    uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[seq_offset];
+    integrity_generate(&k_nas_int[16],
+                       count_est,
+                       SECURITY_DIRECTION_DOWNLINK,
+                       &pdu->msg[seq_offset],
+                       pdu->N_bytes - seq_offset,
+                       &exp_mac[0]);
 
     // Check if expected mac equals the sent mac
     for (int i = 0; i < 4; i++) {
@@ -110,7 +98,7 @@ bool nas_base::integrity_check(byte_buffer_t* pdu)
                        exp_mac[1],
                        exp_mac[2],
                        exp_mac[3],
-                       pdu->msg[5],
+                       pdu->msg[seq_offset],
                        mac[0],
                        mac[1],
                        mac[2],
@@ -120,7 +108,7 @@ bool nas_base::integrity_check(byte_buffer_t* pdu)
     }
     logger.info("Integrity check ok. Local: count=%d, Received: count=%d  [%02x %02x %02x %02x]",
                 count_est,
-                pdu->msg[5],
+                pdu->msg[seq_offset],
                 mac[0],
                 mac[1],
                 mac[2],
@@ -152,32 +140,32 @@ void nas_base::cipher_encrypt(byte_buffer_t* pdu)
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&k_nas_enc[16],
                         ctxt.tx_count,
-                        0, // Bearer always 0 for NAS
+                        bearer_id,
                         SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+                        &pdu->msg[seq_offset + 1],
+                        pdu->N_bytes - seq_offset + 1,
+                        &pdu_tmp.msg[seq_offset + 1]);
+      memcpy(&pdu->msg[seq_offset + 1], &pdu_tmp.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_nas_enc[16],
                         ctxt.tx_count,
-                        0, // Bearer always 0 for NAS
+                        bearer_id,
                         SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+                        &pdu->msg[seq_offset + 1],
+                        pdu->N_bytes - seq_offset + 1,
+                        &pdu_tmp.msg[seq_offset + 1]);
+      memcpy(&pdu->msg[seq_offset + 1], &pdu_tmp.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&k_nas_enc[16],
                         ctxt.tx_count,
-                        0, // Bearer always 0 for NAS
+                        bearer_id,
                         SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+                        &pdu->msg[seq_offset + 1],
+                        pdu->N_bytes - seq_offset + 1,
+                        &pdu_tmp.msg[seq_offset + 1]);
+      memcpy(&pdu->msg[seq_offset + 1], &pdu_tmp.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     default:
       logger.error("Ciphering algorithm not known");
@@ -200,34 +188,34 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&k_nas_enc[16],
                         count_est,
-                        0, // Bearer always 0 for NAS
+                        bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &tmp_pdu.msg[6]);
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+                        &pdu->msg[seq_offset + 1],
+                        pdu->N_bytes - seq_offset + 1,
+                        &tmp_pdu.msg[seq_offset + 1]);
+      memcpy(&pdu->msg[seq_offset + 1], &tmp_pdu.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_nas_enc[16],
                         count_est,
-                        0, // Bearer always 0 for NAS
+                        bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &tmp_pdu.msg[6]);
+                        &pdu->msg[seq_offset + 1],
+                        pdu->N_bytes - seq_offset + 1,
+                        &tmp_pdu.msg[seq_offset + 1]);
       logger.debug(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+      memcpy(&pdu->msg[seq_offset + 1], &tmp_pdu.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&k_nas_enc[16],
                         count_est,
-                        0, // Bearer always 0 for NAS
+                        bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes - 6,
-                        &tmp_pdu.msg[6]);
+                        &pdu->msg[seq_offset + 1],
+                        pdu->N_bytes - seq_offset + 1,
+                        &tmp_pdu.msg[seq_offset + 1]);
       logger.debug(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+      memcpy(&pdu->msg[seq_offset + 1], &tmp_pdu.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     default:
       logger.error("Ciphering algorithms not known");

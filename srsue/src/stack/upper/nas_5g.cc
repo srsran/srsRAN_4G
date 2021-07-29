@@ -27,6 +27,10 @@
 #include <iostream>
 #include <unistd.h>
 
+#define MAC_5G_OFFSET 2
+#define SEQ_5G_OFFSET 6
+#define NAS_5G_BEARER 1
+
 using namespace srsran;
 using namespace srsran::nas_5g;
 
@@ -37,7 +41,7 @@ namespace srsue {
  ********************************************************************/
 
 nas_5g::nas_5g(srslog::basic_logger& logger_, srsran::task_sched_handle task_sched_) :
-  nas_base(logger_),
+  nas_base(logger_, MAC_5G_OFFSET, SEQ_5G_OFFSET, NAS_5G_BEARER),
   task_sched(task_sched_),
   t3502(task_sched_.get_unique_timer()),
   t3510(task_sched_.get_unique_timer()),
