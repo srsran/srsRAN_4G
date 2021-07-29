@@ -71,6 +71,9 @@ public:
 
     if (cc_idx < cell_list_lte.size()) {
       ret = cell_list_lte[cc_idx].cell.nof_prb;
+    } else if (cc_idx == 1 && !cell_list_nr.empty()) {
+      // for basic NSA config return width of first NR carrier
+      ret = cell_list_nr[0].carrier.nof_prb;
     }
 
     return ret;
@@ -81,6 +84,9 @@ public:
 
     if (cc_idx < cell_list_lte.size()) {
       ret = cell_list_lte[cc_idx].cell.nof_ports;
+    } else if (cc_idx == 1 && !cell_list_nr.empty()) {
+      // one RF port for basic NSA config
+      ret = 1;
     }
 
     return ret;
