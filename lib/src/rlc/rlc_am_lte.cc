@@ -1260,7 +1260,7 @@ rlc_am_lte::rlc_am_lte_rx::rlc_am_lte_rx(rlc_am_lte* parent_) :
   parent(parent_),
   pool(byte_buffer_pool::get_instance()),
   reordering_timer(parent_->timers->get_unique_timer()),
-  rlc_am_base_rx(&parent_->logger)
+  rlc_am_base_rx(parent_, &parent_->logger)
 {}
 
 rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx() {}
@@ -1319,9 +1319,32 @@ void rlc_am_lte::rlc_am_lte_rx::stop()
  *
  * @param payload Pointer to payload
  * @param nof_bytes Payload length
+ */
+void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  rlc_amd_pdu_header_t header      = {};
+  uint32_t             payload_len = nof_bytes;
+  rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
+  if (payload_len > nof_bytes) {
+    logger->info("Dropping corrupted PDU (%d B). Remaining length after header %d B.", nof_bytes, payload_len);
+    return;
+  }
+  if (header.rf != 0) {
+    handle_data_pdu_segment(payload, payload_len, header);
+  } else {
+    handle_data_pdu_full(payload, payload_len, header);
+  }
+}
+
+/** Called from stack thread when MAC has received a new RLC PDU
+ *
+ * @param payload Pointer to payload
+ * @param nof_bytes Payload length
  * @param header Reference to PDU header (unpacked by caller)
  */
-void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header)
+void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header)
 {
   std::map<uint32_t, rlc_amd_rx_pdu>::iterator it;
 
@@ -1690,31 +1713,6 @@ bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
   return do_status.load(std::memory_order_relaxed);
 }
 
-void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
-{
-  if (nof_bytes < 1) {
-    return;
-  }
-
-  if (rlc_am_is_control_pdu(payload)) {
-    parent->tx->handle_control_pdu(payload, nof_bytes);
-  } else {
-    std::lock_guard<std::mutex> lock(mutex);
-    rlc_amd_pdu_header_t        header      = {};
-    uint32_t                    payload_len = nof_bytes;
-    rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
-    if (payload_len > nof_bytes) {
-      logger->info("Dropping corrupted PDU (%d B). Remaining length after header %d B.", nof_bytes, payload_len);
-      return;
-    }
-    if (header.rf) {
-      handle_data_pdu_segment(payload, payload_len, header);
-    } else {
-      handle_data_pdu(payload, payload_len, header);
-    }
-  }
-}
-
 uint32_t rlc_am_lte::rlc_am_lte_rx::get_rx_buffered_bytes()
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -2023,7 +2021,7 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
     full_pdu->N_bytes += n;
   }
 
-  handle_data_pdu(full_pdu->msg, full_pdu->N_bytes, header);
+  handle_data_pdu_full(full_pdu->msg, full_pdu->N_bytes, header);
   return true;
 }
 

@@ -128,19 +128,20 @@ protected:
     explicit rlc_am_base_tx(srslog::basic_logger* logger_) : logger(logger_) {}
 
     virtual bool     configure(const rlc_config_t& cfg_)                           = 0;
+    virtual void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)      = 0;
+    virtual uint32_t get_buffer_state()                                            = 0;
+    virtual void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) = 0;
     virtual void     reestablish()                                                 = 0;
-    virtual void     stop()                                                        = 0;
     virtual void     empty_queue()                                                 = 0;
     virtual void     discard_sdu(uint32_t pdcp_sn)                                 = 0;
     virtual bool     sdu_queue_is_full()                                           = 0;
     virtual bool     has_data()                                                    = 0;
-    virtual uint32_t get_buffer_state()                                            = 0;
-    virtual void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) = 0;
-    virtual uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes)                = 0;
+    virtual void     stop()                                                        = 0;
 
     void set_bsr_callback(bsr_callback_t callback);
 
-    int write_sdu(unique_byte_buffer_t sdu);
+    int              write_sdu(unique_byte_buffer_t sdu);
+    virtual uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
 
     bool                  tx_enabled = false;
     byte_buffer_pool*     pool       = nullptr;
@@ -164,17 +165,20 @@ protected:
   class rlc_am_base_rx
   {
   public:
-    explicit rlc_am_base_rx(srslog::basic_logger* logger_) : logger(logger_) {}
+    explicit rlc_am_base_rx(rlc_am_base* parent_, srslog::basic_logger* logger_) : parent(parent_), logger(logger_) {}
 
-    virtual bool     configure(const rlc_config_t& cfg_)             = 0;
-    virtual void     reestablish()                                   = 0;
-    virtual void     stop()                                          = 0;
-    virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
-    virtual uint32_t get_sdu_rx_latency_ms()                         = 0;
-    virtual uint32_t get_rx_buffered_bytes()                         = 0;
+    virtual bool     configure(const rlc_config_t& cfg_)                   = 0;
+    virtual void     handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
+    virtual void     reestablish()                                         = 0;
+    virtual void     stop()                                                = 0;
+    virtual uint32_t get_sdu_rx_latency_ms()                               = 0;
+    virtual uint32_t get_rx_buffered_bytes()                               = 0;
 
-    srslog::basic_logger* logger;
-    byte_buffer_pool*     pool = nullptr;
+    void write_pdu(uint8_t* payload, uint32_t nof_bytes);
+
+    srslog::basic_logger* logger = nullptr;
+    byte_buffer_pool*     pool   = nullptr;
+    rlc_am_base*          parent = nullptr;
   };
 
   rlc_am_base_tx* tx_base = nullptr;

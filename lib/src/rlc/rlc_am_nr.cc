@@ -66,10 +66,7 @@ uint32_t rlc_am_nr::rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   return 0;
 }
 
-void rlc_am_nr::rlc_am_nr_tx::reestablish()
-{
-  stop();
-}
+void rlc_am_nr::rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) {}
 
 uint32_t rlc_am_nr::rlc_am_nr_tx::get_buffer_state()
 {
@@ -81,6 +78,11 @@ void rlc_am_nr::rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& pri
 int rlc_am_nr::rlc_am_nr_tx::write_sdu(unique_byte_buffer_t sdu)
 {
   return 0;
+}
+
+void rlc_am_nr::rlc_am_nr_tx::reestablish()
+{
+  stop();
 }
 
 void rlc_am_nr::rlc_am_nr_tx::discard_sdu(uint32_t discard_sn) {}
@@ -98,7 +100,7 @@ void rlc_am_nr::rlc_am_nr_tx::stop() {}
  * Rx subclass implementation
  ***************************************************************************/
 rlc_am_nr::rlc_am_nr_rx::rlc_am_nr_rx(rlc_am_nr* parent_) :
-  parent(parent_), pool(byte_buffer_pool::get_instance()), rlc_am_base_rx(&parent_->logger)
+  parent(parent_), pool(byte_buffer_pool::get_instance()), rlc_am_base_rx(parent_, &parent_->logger)
 {}
 
 bool rlc_am_nr::rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
@@ -108,9 +110,9 @@ bool rlc_am_nr::rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   return true;
 }
 
-void rlc_am_nr::rlc_am_nr_rx::stop() {}
+void rlc_am_nr::rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) {}
 
-void rlc_am_nr::rlc_am_nr_rx::write_pdu(uint8_t* payload, uint32_t nof_bytes) {}
+void rlc_am_nr::rlc_am_nr_rx::stop() {}
 
 void rlc_am_nr::rlc_am_nr_rx::reestablish()
 {

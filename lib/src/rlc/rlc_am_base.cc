@@ -212,4 +212,21 @@ void rlc_am_base::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
   bsr_callback = callback;
 }
 
+/*******************************************************
+ *     RLC AM RX entity
+ *     This class is used for common code between the
+ *     LTE and NR TX entitites
+ *******************************************************/
+void rlc_am_base::rlc_am_base_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
+{
+  if (nof_bytes < 1) {
+    return;
+  }
+
+  if (rlc_am_is_control_pdu(payload)) {
+    parent->tx_base->handle_control_pdu(payload, nof_bytes);
+  } else {
+    handle_data_pdu(payload, nof_bytes);
+  }
+}
 } // namespace srsran

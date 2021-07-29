@@ -210,8 +210,6 @@ public:
     void reestablish() final;
     void stop() final;
 
-    void write_pdu(uint8_t* payload, uint32_t nof_bytes) final;
-
     uint32_t get_rx_buffered_bytes() final; // returns sum of PDUs in rx_window
     uint32_t get_sdu_rx_latency_ms() final;
 
@@ -224,7 +222,8 @@ public:
     bool get_do_status();
 
   private:
-    void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
+    void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+    void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
     void handle_data_pdu_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
     void reassemble_rx_sdus();
     bool inside_rx_window(const int16_t sn);

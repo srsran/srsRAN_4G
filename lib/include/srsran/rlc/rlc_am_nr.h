@@ -46,19 +46,21 @@ public:
     explicit rlc_am_nr_tx(rlc_am_nr* parent_);
     ~rlc_am_nr_tx() = default;
 
-    bool configure(const rlc_config_t& cfg_);
-    void stop();
+    bool     configure(const rlc_config_t& cfg_) final;
+    uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+    void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+
+    void discard_sdu(uint32_t discard_sn) final;
+    bool sdu_queue_is_full() final;
+    void reestablish() final;
 
     int      write_sdu(unique_byte_buffer_t sdu);
-    uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void     discard_sdu(uint32_t discard_sn);
-    bool     sdu_queue_is_full();
-    void     reestablish();
-
-    void     empty_queue();
-    bool     has_data();
-    uint32_t get_buffer_state();
+    void     empty_queue() final;
+    bool     has_data() final;
+    uint32_t get_buffer_state() final;
     void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue);
+
+    void stop() final;
 
   private:
     rlc_am_nr* parent = nullptr;
@@ -89,11 +91,13 @@ public:
     explicit rlc_am_nr_rx(rlc_am_nr* parent_);
     ~rlc_am_nr_rx() = default;
 
-    bool configure(const rlc_config_t& cfg_);
+    bool configure(const rlc_config_t& cfg_) final;
+
+    void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+
     void stop();
     void reestablish();
 
-    void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
     uint32_t get_sdu_rx_latency_ms();
     uint32_t get_rx_buffered_bytes();
 
