@@ -27,6 +27,8 @@ slot_worker::slot_worker(srsran::phy_common_interface& common_,
 
 bool slot_worker::init(const args_t& args)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   // Calculate subframe length
   sf_len = SRSRAN_SF_LEN_PRB_NR(args.nof_max_prb);
 
@@ -104,6 +106,7 @@ slot_worker::~slot_worker()
 
 cf_t* slot_worker::get_buffer_rx(uint32_t antenna_idx)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (antenna_idx >= (uint32_t)rx_buffer.size()) {
     return nullptr;
   }
@@ -113,6 +116,7 @@ cf_t* slot_worker::get_buffer_rx(uint32_t antenna_idx)
 
 cf_t* slot_worker::get_buffer_tx(uint32_t antenna_idx)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (antenna_idx >= (uint32_t)tx_buffer.size()) {
     return nullptr;
   }

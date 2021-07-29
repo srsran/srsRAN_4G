@@ -86,6 +86,7 @@ private:
   srsran_gnb_ul_t                                gnb_ul      = {};
   std::vector<cf_t*>                             tx_buffer; ///< Baseband transmit buffers
   std::vector<cf_t*>                             rx_buffer; ///< Baseband receive buffers
+  std::mutex mutex; ///< Protect concurrent access from workers (and main process that inits the class)
 };
 
 } // namespace nr
