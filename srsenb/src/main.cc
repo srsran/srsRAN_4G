@@ -247,6 +247,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.ts1_reloc_prep_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_prep_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds.")
     ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds.")
     ("expert.rlf_min_ul_snr_estim", bpo::value<int>(&args->stack.mac.rlf_min_ul_snr_estim)->default_value(-2), "SNR threshold in dB below which the eNB is notified with rlf ko.")
+    ("expert.max_s1_setup_retries", bpo::value<uint32_t>(&args->stack.s1ap.max_s1_setup_retries)->default_value(12), "Max S1 setup retries")
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
