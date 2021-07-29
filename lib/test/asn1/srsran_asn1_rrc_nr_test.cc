@@ -16,7 +16,7 @@
 
 #define JSON_OUTPUT 0
 
-#define HAVE_PCAP 1
+#define HAVE_PCAP 0
 #if HAVE_PCAP
 #include "srsran/common/test_pcap.h"
 #endif
