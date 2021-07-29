@@ -375,8 +375,8 @@ bool s1ap::add_nas_ctx_to_mme_ue_s1ap_id_map(nas* nas_ctx)
     return false;
   }
   if (nas_ctx->m_emm_ctx.imsi != 0) {
-    std::map<uint32_t, nas*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_nas_ctx.find(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
-    if (ctx_it2 != m_mme_ue_s1ap_id_to_nas_ctx.end() && ctx_it2->second != nas_ctx) {
+    std::map<uint64_t, nas*>::iterator ctx_it2 = m_imsi_to_nas_ctx.find(nas_ctx->m_emm_ctx.imsi);
+    if (ctx_it2 != m_imsi_to_nas_ctx.end() && ctx_it2->second != nas_ctx) {
       m_logger.error("Context identified with MME UE S1AP Id does not match context identified by IMSI.");
       return false;
     }
