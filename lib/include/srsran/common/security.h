@@ -128,59 +128,79 @@ int kdf_common(const uint8_t                  fc,
                const std::vector<uint8_t>&    P3,
                uint8_t*                       output);
 
+uint8_t security_generate_k_asme(const uint8_t* ck,
+                                 const uint8_t* ik,
+                                 const uint8_t* ak_xor_sqn,
+                                 const uint16_t mcc,
+                                 const uint16_t mnc,
+                                 uint8_t*       k_asme);
+
+uint8_t security_generate_k_ausf(const uint8_t* ck,
+                                 const uint8_t* ik,
+                                 const uint8_t* ak_xor_sqn,
+                                 const char*    serving_network_name,
+                                 uint8_t*       k_ausf);
+
+uint8_t security_generate_k_amf(const uint8_t* k_seaf,
+                                const char*    supi_,
+                                const uint8_t* abba_,
+                                const uint32_t abba_len,
+                                uint8_t*       k_amf);
+
+uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_network_name, uint8_t* k_seaf);
+
+uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count, uint8_t* k_enb);
+
 uint8_t
-security_generate_k_asme(uint8_t* ck, uint8_t* ik, uint8_t* ak_xor_sqn, uint16_t mcc, uint16_t mnc, uint8_t* k_asme);
+security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci, const uint32_t earfcn, uint8_t* k_enb_star);
 
-uint8_t security_generate_k_ausf(uint8_t*    ck,
-                                 uint8_t*    ik,
-                                 uint8_t*    ak_xor_sqn,
-                                 const char* serving_network_name,
-                                 uint8_t*    k_ausf);
+uint8_t security_generate_nh(const uint8_t* k_asme, const uint8_t* sync, uint8_t* nh);
 
-uint8_t security_generate_k_enb(uint8_t* k_asme, uint32_t nas_count, uint8_t* k_enb);
+uint8_t security_generate_k_nas(const uint8_t*                    k_asme,
+                                const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                uint8_t*                          k_nas_enc,
+                                uint8_t*                          k_nas_int);
 
-uint8_t security_generate_k_enb_star(uint8_t* k_enb, uint32_t pci, uint32_t earfcn, uint8_t* k_enb_star);
+uint8_t security_generate_k_nas_5g(const uint8_t*                    k_amf,
+                                   const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                   const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                   uint8_t*                          k_nas_enc,
+                                   uint8_t*                          k_nas_int);
 
-uint8_t security_generate_nh(uint8_t* k_asme, uint8_t* sync, uint8_t* nh);
+uint8_t security_generate_k_rrc(const uint8_t*                    k_enb,
+                                const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                uint8_t*                          k_rrc_enc,
+                                uint8_t*                          k_rrc_int);
 
-uint8_t security_generate_k_nas(uint8_t*                    k_asme,
-                                CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                uint8_t*                    k_nas_enc,
-                                uint8_t*                    k_nas_int);
+uint8_t security_generate_k_up(const uint8_t*                    k_enb,
+                               const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                               const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                               uint8_t*                          k_up_enc,
+                               uint8_t*                          k_up_int);
 
-uint8_t security_generate_k_rrc(uint8_t*                    k_enb,
-                                CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                uint8_t*                    k_rrc_enc,
-                                uint8_t*                    k_rrc_int);
+uint8_t security_generate_k_nr_rrc(const uint8_t*                    k_gnb,
+                                   const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                   const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                   uint8_t*                          k_rrc_enc,
+                                   uint8_t*                          k_rrc_int);
 
-uint8_t security_generate_k_up(uint8_t*                    k_enb,
-                               CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                               INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                               uint8_t*                    k_up_enc,
-                               uint8_t*                    k_up_int);
+uint8_t security_generate_k_nr_up(const uint8_t*                    k_gnb,
+                                  const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                  const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                  uint8_t*                          k_up_enc,
+                                  uint8_t*                          k_up_int);
 
-uint8_t security_generate_k_nr_rrc(uint8_t*                    k_gnb,
-                                   CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                   INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                   uint8_t*                    k_rrc_enc,
-                                   uint8_t*                    k_rrc_int);
+uint8_t security_generate_sk_gnb(const uint8_t* k_enb, const uint16_t scg_count, uint8_t* sk_gnb);
 
-uint8_t security_generate_k_nr_up(uint8_t*                    k_gnb,
-                                  CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                  INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                  uint8_t*                    k_up_enc,
-                                  uint8_t*                    k_up_int);
-
-uint8_t security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_count);
-uint8_t security_generate_res_star(uint8_t*    ck,
-                                   uint8_t*    ik,
-                                   const char* serving_network_name,
-                                   uint8_t*    rand,
-                                   uint8_t*    res,
-                                   size_t      res_len,
-                                   uint8_t*    res_star);
+uint8_t security_generate_res_star(const uint8_t* ck,
+                                   const uint8_t* ik,
+                                   const char*    serving_network_name,
+                                   const uint8_t* rand,
+                                   const uint8_t* res,
+                                   const size_t   res_len,
+                                   uint8_t*       res_star);
 /******************************************************************************
  * Integrity Protection
  *****************************************************************************/

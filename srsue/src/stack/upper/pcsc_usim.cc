@@ -151,6 +151,76 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
   return ret;
 }
 
+auth_result_t pcsc_usim::generate_authentication_response_5g(uint8_t*    rand,
+                                                             uint8_t*    autn_enb,
+                                                             const char* serving_network_name,
+                                                             uint8_t*    abba,
+                                                             uint32_t    abba_len,
+                                                             uint8_t*    res_star,
+                                                             uint8_t*    k_amf)
+{
+  uint8_t res[16];
+  uint8_t k_ausf[32];
+  uint8_t k_seaf[32];
+  int     res_len;
+
+  auth_result_t ret = AUTH_FAILED;
+  if (!initiated) {
+    ERROR("USIM not initiated!");
+    return ret;
+  }
+
+  // Use RAND and AUTN to compute RES, CK, IK using SIM card
+  switch (sc.umts_auth(rand, autn_enb, res, &res_len, ik, ck, auts)) {
+    case 0:
+      logger.info("SCARD: USIM authentication successful.");
+      break;
+    case -1:
+      logger.error("SCARD: Failure during USIM UMTS authentication");
+      return ret;
+    case -2:
+      logger.info("SCARD: USIM synchronization failure, AUTS generated");
+      logger.debug(auts, AKA_AUTS_LEN, "AUTS");
+      memcpy(res, auts, AKA_AUTS_LEN);
+      res_len = AKA_AUTS_LEN;
+      return AUTH_SYNCH_FAILURE;
+    default:
+      logger.warning("SCARD: Unknown USIM failure.");
+      return ret;
+  }
+
+  // TODO: Extract ak and seq from auts
+  memset(ak, 0x00, AK_LEN);
+
+  // Extract sqn from autn
+  uint8_t sqn[SQN_LEN];
+  for (int i = 0; i < 6; i++) {
+    sqn[i] = autn_enb[i] ^ ak[i];
+  }
+
+  // Generate K_asme
+  logger.debug(ck, CK_LEN, "CK:");
+  logger.debug(ik, IK_LEN, "IK:");
+  logger.debug(ak, AK_LEN, "AK:");
+  logger.debug(sqn, SQN_LEN, "SQN:");
+  logger.debug("SSN=%s", serving_network_name);
+  // Generate RES STAR
+  security_generate_res_star(ck, ik, serving_network_name, rand, res, res_len, res_star);
+  logger.debug(res_star, 16, "RES STAR");
+  // Generate K_ausf
+  security_generate_k_ausf(ck, ik, sqn, serving_network_name, k_ausf);
+  logger.debug(k_ausf, 32, "K AUSF");
+  // Generate K_seaf
+  security_generate_k_seaf(k_ausf, serving_network_name, k_seaf);
+  logger.debug(k_seaf, 32, "K SEAF");
+  // Generate K_seaf
+  security_generate_k_amf(k_ausf, imsi_str.c_str(), abba, abba_len, k_amf);
+  logger.debug(k_amf, 32, "K AMF");
+
+  ret = AUTH_OK;
+  return ret;
+}
+
 std::string pcsc_usim::get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str)
 {
   uint32_t           mcc_len = 3;

@@ -348,6 +348,21 @@ void usim_base::restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx
   return;
 }
 
+bool usim_base::generate_nas_keys_5g(uint8_t*                            k_amf,
+                                     uint8_t*                            k_nas_enc,
+                                     uint8_t*                            k_nas_int,
+                                     srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                     srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return false;
+  }
+  // Generate K_nas_enc and K_nas_int
+  security_generate_k_nas_5g(k_amf, cipher_algo, integ_algo, k_nas_enc, k_nas_int);
+  return true;
+}
+
 /*
  *  NR RRC Interface
  */
@@ -360,7 +375,7 @@ bool usim_base::generate_nr_context(uint16_t sk_counter, srsran::as_security_con
   }
   logger.info("Generating Keys. SCG Counter %d", sk_counter);
 
-  srsran::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), k_gnb_ctx.sk_gnb.data(), sk_counter);
+  srsran::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), sk_counter, k_gnb_ctx.sk_gnb.data());
   logger.info(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
   if (update_nr_context(sec_cfg) == false) {
     return false;
@@ -393,32 +408,6 @@ bool usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
   logger.debug(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "NR K_RRC_enc");
   logger.debug(sec_cfg->k_up_int.data(), sec_cfg->k_up_int.size(), "NR K_UP_int");
   logger.debug(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "NR K_UP_enc");
-  return true;
-}
-
-bool usim_base::generate_res_star(uint8_t*    rand,
-                                  uint8_t*    res,
-                                  int         res_len,
-                                  const char* serving_network_name,
-                                  uint8_t*    res_star,
-                                  uint32_t*   res_star_len)
-{
-  if (!initiated) {
-    logger.error("USIM not initiated!");
-    return false;
-  }
-
-  logger.info("Generate res_star");
-
-  logger.info(rand, 16, "RAND");
-  logger.info(res, res_len, "RES");
-  logger.info(
-      (uint8_t*)serving_network_name, strlen(serving_network_name), "Serving Network Name %s", serving_network_name);
-
-  srsran::security_generate_res_star(ck, ik, serving_network_name, rand, res, res_len, res_star);
-  *res_star_len = 16;
-  logger.info(res_star, *res_star_len, "res_star");
-
   return true;
 }
 

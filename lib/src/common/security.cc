@@ -58,8 +58,12 @@ namespace srsran {
  * Key Generation
  *****************************************************************************/
 
-uint8_t
-security_generate_k_asme(uint8_t* ck, uint8_t* ik, uint8_t* ak_xor_sqn_, uint16_t mcc, uint16_t mnc, uint8_t* k_asme)
+uint8_t security_generate_k_asme(const uint8_t* ck,
+                                 const uint8_t* ik,
+                                 const uint8_t* ak_xor_sqn_,
+                                 const uint16_t mcc,
+                                 const uint16_t mnc,
+                                 uint8_t*       k_asme)
 {
   if (ck == NULL || ik == NULL || ak_xor_sqn_ == NULL || k_asme == NULL) {
     log_error("Invalid inputs");
@@ -100,11 +104,11 @@ security_generate_k_asme(uint8_t* ck, uint8_t* ik, uint8_t* ak_xor_sqn_, uint16_
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_ausf(uint8_t*    ck,
-                                 uint8_t*    ik,
-                                 uint8_t*    ak_xor_sqn_,
-                                 const char* serving_network_name,
-                                 uint8_t*    k_ausf)
+uint8_t security_generate_k_ausf(const uint8_t* ck,
+                                 const uint8_t* ik,
+                                 const uint8_t* ak_xor_sqn_,
+                                 const char*    serving_network_name,
+                                 uint8_t*       k_ausf)
 {
   if (ck == NULL || ik == NULL || ak_xor_sqn_ == NULL || serving_network_name == NULL || k_ausf == NULL) {
     log_error("Invalid inputs");
@@ -128,7 +132,7 @@ uint8_t security_generate_k_ausf(uint8_t*    ck,
   memcpy(ak_xor_sqn.data(), ak_xor_sqn_, ak_xor_sqn.size());
 
   uint8_t output[32];
-  if (kdf_common(FC_5G_RES_STAR_DERIVATION, key, ssn, ak_xor_sqn, output) != SRSRAN_SUCCESS) {
+  if (kdf_common(FC_5G_KAUSF_DERIVATION, key, ssn, ak_xor_sqn, output) != SRSRAN_SUCCESS) {
     log_error("Failed to run kdf_common");
     return SRSRAN_ERROR;
   }
@@ -137,7 +141,60 @@ uint8_t security_generate_k_ausf(uint8_t*    ck,
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_enb(uint8_t* k_asme, uint32_t nas_count_, uint8_t* k_enb)
+uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_network_name, uint8_t* k_seaf)
+{
+  if (k_ausf == NULL || serving_network_name == NULL || k_seaf == NULL) {
+    log_error("Invalid inputs");
+    return SRSRAN_ERROR;
+  }
+
+  std::array<uint8_t, 32> key;
+  memcpy(key.data(), k_ausf, 32);
+
+  // Serving Network Name
+  std::vector<uint8_t> ssn;
+  ssn.resize(strlen(serving_network_name));
+  memcpy(ssn.data(), serving_network_name, ssn.size());
+
+  if (kdf_common(FC_5G_KSEAF_DERIVATION, key, ssn, k_seaf) != SRSRAN_SUCCESS) {
+    log_error("Failed to run kdf_common");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+uint8_t security_generate_k_amf(const uint8_t* k_seaf,
+                                const char*    supi_,
+                                const uint8_t* abba_,
+                                const uint32_t abba_len,
+                                uint8_t*       k_amf)
+{
+  if (k_seaf == NULL || supi_ == NULL || abba_ == NULL || k_amf == NULL) {
+    log_error("Invalid inputs");
+    return SRSRAN_ERROR;
+  }
+
+  std::array<uint8_t, 32> key;
+  memcpy(key.data(), k_seaf, 32);
+
+  // SUPI
+  std::vector<uint8_t> supi;
+  supi.resize(strlen(supi_));
+  memcpy(supi.data(), supi_, supi.size());
+
+  // ABBA
+  std::vector<uint8_t> abba;
+  abba.resize(abba_len);
+  memcpy(abba.data(), abba_, abba.size());
+
+  if (kdf_common(FC_5G_KAMF_DERIVATION, key, supi, abba, k_amf) != SRSRAN_SUCCESS) {
+    log_error("Failed to run kdf_common");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count_, uint8_t* k_enb)
 {
   if (k_asme == NULL || k_enb == NULL) {
     log_error("Invalid inputs");
@@ -162,7 +219,8 @@ uint8_t security_generate_k_enb(uint8_t* k_asme, uint32_t nas_count_, uint8_t* k
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_enb_star(uint8_t* k_enb, uint32_t pci_, uint32_t earfcn_, uint8_t* k_enb_star)
+uint8_t
+security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci_, const uint32_t earfcn_, uint8_t* k_enb_star)
 {
   if (k_enb == NULL || k_enb_star == NULL) {
     log_error("Invalid inputs");
@@ -190,7 +248,7 @@ uint8_t security_generate_k_enb_star(uint8_t* k_enb, uint32_t pci_, uint32_t ear
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_nh(uint8_t* k_asme, uint8_t* sync_, uint8_t* nh)
+uint8_t security_generate_nh(const uint8_t* k_asme, const uint8_t* sync_, uint8_t* nh)
 {
   if (k_asme == NULL || sync_ == NULL || nh == NULL) {
     log_error("Invalid inputs");
@@ -211,11 +269,11 @@ uint8_t security_generate_nh(uint8_t* k_asme, uint8_t* sync_, uint8_t* nh)
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_nas(uint8_t*                    k_asme,
-                                CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                uint8_t*                    k_nas_enc,
-                                uint8_t*                    k_nas_int)
+uint8_t security_generate_k_nas(const uint8_t*                    k_asme,
+                                const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                uint8_t*                          k_nas_enc,
+                                uint8_t*                          k_nas_int)
 {
   if (k_asme == NULL || k_nas_enc == NULL || k_nas_int == NULL) {
     log_error("Invalid inputs");
@@ -260,11 +318,60 @@ uint8_t security_generate_k_nas(uint8_t*                    k_asme,
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_rrc(uint8_t*                    k_enb,
-                                CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                uint8_t*                    k_rrc_enc,
-                                uint8_t*                    k_rrc_int)
+uint8_t security_generate_k_nas_5g(const uint8_t*                    k_amf,
+                                   const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                   const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                   uint8_t*                          k_nas_enc,
+                                   uint8_t*                          k_nas_int)
+{
+  if (k_amf == NULL || k_nas_enc == NULL || k_nas_int == NULL) {
+    log_error("Invalid inputs");
+    return SRSRAN_ERROR;
+  }
+  std::array<uint8_t, 32> key;
+
+  memcpy(key.data(), k_amf, 32);
+
+  // Derive NAS ENC
+  // algorithm type distinguisher
+  std::vector<uint8_t> algo_distinguisher;
+  algo_distinguisher.resize(1);
+  algo_distinguisher[0] = ALGO_5G_DISTINGUISHER_NAS_ENC_ALG;
+
+  // algorithm type distinguisher
+  std::vector<uint8_t> algorithm_identity;
+  algorithm_identity.resize(1);
+  algorithm_identity[0] = enc_alg_id;
+
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_nas_enc) !=
+      SRSRAN_SUCCESS) {
+    log_error("Failed to run kdf_common");
+    return SRSRAN_ERROR;
+  }
+
+  // Derive NAS INT
+  // algorithm type distinguisher
+  algo_distinguisher.resize(1);
+  algo_distinguisher[0] = ALGO_5G_DISTINGUISHER_NAS_INT_ALG;
+
+  // algorithm type distinguisher
+  algorithm_identity.resize(1);
+  algorithm_identity[0] = int_alg_id;
+
+  // Derive NAS int
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_nas_int) !=
+      SRSRAN_SUCCESS) {
+    log_error("Failed to run kdf_common");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+uint8_t security_generate_k_rrc(const uint8_t*                    k_enb,
+                                const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                uint8_t*                          k_rrc_enc,
+                                uint8_t*                          k_rrc_int)
 {
   if (k_enb == NULL || k_rrc_enc == NULL || k_rrc_int == NULL) {
     log_error("Invalid inputs");
@@ -309,11 +416,11 @@ uint8_t security_generate_k_rrc(uint8_t*                    k_enb,
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_up(uint8_t*                    k_enb,
-                               CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                               INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                               uint8_t*                    k_up_enc,
-                               uint8_t*                    k_up_int)
+uint8_t security_generate_k_up(const uint8_t*                    k_enb,
+                               const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                               const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                               uint8_t*                          k_up_enc,
+                               uint8_t*                          k_up_int)
 {
   if (k_enb == NULL || k_up_enc == NULL || k_up_int == NULL) {
     log_error("Invalid inputs");
@@ -358,7 +465,7 @@ uint8_t security_generate_k_up(uint8_t*                    k_enb,
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_count_)
+uint8_t security_generate_sk_gnb(const uint8_t* k_enb, const uint16_t scg_count_, uint8_t* sk_gnb)
 {
   if (k_enb == NULL || sk_gnb == NULL) {
     log_error("Invalid inputs");
@@ -385,11 +492,11 @@ uint8_t security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_c
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_nr_rrc(uint8_t*                    k_gnb,
-                                   CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                   INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                   uint8_t*                    k_rrc_enc,
-                                   uint8_t*                    k_rrc_int)
+uint8_t security_generate_k_nr_rrc(const uint8_t*                    k_gnb,
+                                   const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                   const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                   uint8_t*                          k_rrc_enc,
+                                   uint8_t*                          k_rrc_int)
 {
   if (k_gnb == NULL || k_rrc_enc == NULL || k_rrc_int == NULL) {
     log_error("Invalid inputs");
@@ -434,11 +541,11 @@ uint8_t security_generate_k_nr_rrc(uint8_t*                    k_gnb,
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_k_nr_up(uint8_t*                    k_gnb,
-                                  CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
-                                  INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
-                                  uint8_t*                    k_up_enc,
-                                  uint8_t*                    k_up_int)
+uint8_t security_generate_k_nr_up(const uint8_t*                    k_gnb,
+                                  const CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                  const INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                  uint8_t*                          k_up_enc,
+                                  uint8_t*                          k_up_int)
 {
   if (k_gnb == NULL || k_up_enc == NULL || k_up_int == NULL) {
     log_error("Invalid inputs");
@@ -483,13 +590,13 @@ uint8_t security_generate_k_nr_up(uint8_t*                    k_gnb,
   return SRSRAN_SUCCESS;
 }
 
-uint8_t security_generate_res_star(uint8_t*    ck,
-                                   uint8_t*    ik,
-                                   const char* serving_network_name,
-                                   uint8_t*    rand_,
-                                   uint8_t*    res_,
-                                   size_t      res_len_,
-                                   uint8_t*    res_star)
+uint8_t security_generate_res_star(const uint8_t* ck,
+                                   const uint8_t* ik,
+                                   const char*    serving_network_name,
+                                   const uint8_t* rand_,
+                                   const uint8_t* res_,
+                                   const size_t   res_len_,
+                                   uint8_t*       res_star)
 {
   if (ck == NULL || ik == NULL || serving_network_name == NULL || rand_ == NULL || res_ == NULL || res_star == NULL) {
     log_error("Invalid inputs");
