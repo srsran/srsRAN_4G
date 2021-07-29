@@ -104,7 +104,7 @@ int phy::init(const phy_args_t&            args,
     return SRSRAN_ERROR;
   }
 
-  if (init_nr(cfg, stack_nr_) != SRSRAN_SUCCESS) {
+  if (init_nr(args, cfg, stack_nr_) != SRSRAN_SUCCESS) {
     phy_log.error("Couldn't initialize NR PHY");
     return SRSRAN_ERROR;
   }
@@ -326,7 +326,7 @@ void phy::start_plot()
   lte_workers[0]->start_plot();
 }
 
-int phy::init_nr(const phy_cfg_t& cfg, stack_interface_phy_nr& stack)
+int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_phy_nr& stack)
 {
   if (cfg.phy_cell_cfg_nr.empty()) {
     return SRSRAN_SUCCESS;
@@ -334,9 +334,11 @@ int phy::init_nr(const phy_cfg_t& cfg, stack_interface_phy_nr& stack)
 
   nr_workers = std::unique_ptr<nr::worker_pool>(new nr::worker_pool(workers_common, stack, log_sink, MAX_WORKERS));
 
-  nr::worker_pool::args_t args = {};
+  nr::worker_pool::args_t worker_args = {};
+  worker_args.log.phy_level           = args.log.phy_level;
+  worker_args.log.phy_hex_limit       = args.log.phy_hex_limit;
 
-  if (not nr_workers->init(args, cfg.phy_cell_cfg_nr)) {
+  if (not nr_workers->init(worker_args, cfg.phy_cell_cfg_nr)) {
     return SRSRAN_ERROR;
   }
 

@@ -59,6 +59,8 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1);
   sched.cell_cfg(cells_cfg);
 
+  detected_rachs.resize(cells_cfg.size());
+
   bcch_bch_payload = srsran::make_byte_buffer();
   if (bcch_bch_payload == nullptr) {
     return SRSRAN_ERROR;
@@ -111,16 +113,14 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   return SRSRAN_SUCCESS;
 }
 
-void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
-                           uint32_t                 enb_cc_idx,
-                           uint32_t                 preamble_idx,
-                           uint32_t                 time_adv)
+void mac_nr::rach_detected(const rach_info_t& rach_info)
 {
   static srsran::mutexed_tprof<srsran::avg_time_stats> rach_tprof("rach_tprof", "MAC-NR", 1);
-  logger.set_context(slot_cfg.idx);
+  logger.set_context(rach_info.slot_index);
   auto rach_tprof_meas = rach_tprof.start();
 
-  stack_task_queue.push([this, slot_cfg, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
+  uint32_t enb_cc_idx = 0;
+  stack_task_queue.push([this, rach_info, enb_cc_idx, rach_tprof_meas]() mutable {
     uint16_t rnti = add_ue(enb_cc_idx);
     if (rnti == SRSRAN_INVALID_RNTI) {
       return;
@@ -147,19 +147,24 @@ void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
     }
 
     // Trigger scheduler RACH
-    // scheduler.dl_rach_info(enb_cc_idx, rar_info);
+    srsenb::sched_nr_interface::dl_sched_rar_info_t rar_info = {};
+    rar_info.preamble_idx                                    = rach_info.preamble;
+    rar_info.temp_crnti                                      = rnti;
+    rar_info.prach_slot                                      = slot_point(0, rach_info.slot_index);
+    // TODO: fill remaining fields as required
+    sched.dl_rach_info(enb_cc_idx, rar_info);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
-                slot_cfg.idx,
+                rach_info.slot_index,
                 enb_cc_idx,
-                preamble_idx,
-                time_adv,
+                rach_info.preamble,
+                rach_info.time_adv,
                 rnti);
     srsran::console("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
-                    slot_cfg.idx,
+                    rach_info.slot_index,
                     enb_cc_idx,
-                    preamble_idx,
-                    time_adv,
+                    rach_info.preamble,
+                    rach_info.time_adv,
                     rnti);
   });
 }
@@ -318,7 +323,5 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
 
   return SRSRAN_SUCCESS;
 }
-
-void mac_nr::rach_detected(const mac_interface_phy_nr::rach_info_t& rach_info) {}
 
 } // namespace srsenb

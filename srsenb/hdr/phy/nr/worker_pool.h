@@ -41,6 +41,7 @@ private:
     void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) override
     {
       stack_interface_phy_nr::rach_info_t rach_info = {};
+      rach_info.slot_index                          = tti;
       rach_info.preamble                            = preamble_idx;
       rach_info.time_adv                            = time_adv;
 

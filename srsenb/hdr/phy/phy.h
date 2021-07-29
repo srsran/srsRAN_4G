@@ -69,7 +69,7 @@ public:
 
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
-  int init_nr(const phy_cfg_t& cfg, stack_interface_phy_nr& stack);
+  int init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_phy_nr& stack);
   int set_common_cfg(const common_cfg_t& common_cfg) override;
 
 private:

@@ -155,7 +155,9 @@ void txrx::run_thread()
           // WARNING:
           // - The number of ports for all cells must be the same
           // - Only one NR cell is currently supported
-          buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(p));
+          if (nr_worker != nullptr) {
+            buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(p));
+          }
         }
       }
     }

@@ -280,6 +280,7 @@ public:
   };
 
   struct rach_info_t {
+    uint32_t slot_index;
     uint32_t preamble;
     uint32_t time_adv;
   };

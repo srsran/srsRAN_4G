@@ -60,7 +60,6 @@ public:
 
   // Interface for PHY
   void process_pdus();
-  void rach_detected(const srsran_slot_cfg_t& slot_cfg, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
   int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
   int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
   int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
