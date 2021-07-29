@@ -52,14 +52,18 @@ int prach_worker::init(const srsran_cell_t&      cell_,
 
 #if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
   char title[32] = {};
-  snprintf(title, sizeof(title), "PRACH buffer %d", cc_idx);
+  snprintf(title, sizeof(title), "PRACH buffer %s %d", prach.is_nr ? "NR" : "LTE", cc_idx);
 
   sdrgui_init();
   plot_real_init(&plot_real);
   plot_real_setTitle(&plot_real, title);
   plot_real_setXAxisAutoScale(&plot_real, true);
   plot_real_setYAxisAutoScale(&plot_real, true);
-  plot_real_addToWindowGrid(&plot_real, (char*)"PRACH", 0, cc_idx);
+  if (prach.is_nr) {
+    plot_real_addToWindowGrid(&plot_real, (char*)"PRACH-NR", 1, cc_idx);
+  } else {
+    plot_real_addToWindowGrid(&plot_real, (char*)"PRACH", 0, cc_idx);
+  }
 #endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
 
   return 0;
