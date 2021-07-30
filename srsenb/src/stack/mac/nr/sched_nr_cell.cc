@@ -54,9 +54,8 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
 
 void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
-  static const uint32_t PRACH_RAR_OFFSET = 3;
-  slot_point            pdcch_slot       = slot_grid.get_pdcch_tti();
-  slot_point            msg3_slot        = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
+  slot_point pdcch_slot = slot_grid.get_pdcch_tti();
+  slot_point msg3_slot  = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
   if (not slot_grid.res_grid()[pdcch_slot].is_dl or not slot_grid.res_grid()[msg3_slot].is_ul) {
     // RAR only allowed if respective Msg3 slot is available for UL
     return;
@@ -68,8 +67,8 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
     // In case of RAR outside RAR window:
     // - if window has passed, discard RAR
     // - if window hasn't started, stop loop, as RARs are ordered by TTI
-    slot_interval rar_window{rar.prach_slot + PRACH_RAR_OFFSET,
-                             rar.prach_slot + PRACH_RAR_OFFSET + bwp_cfg->cfg.rar_window_size};
+    slot_point    tti_start{0, rar.prach_slot.sfn(), 0};
+    slot_interval rar_window{tti_start, tti_start + 2 * tti_start.nof_slots_per_frame()}; // TODO: use rar_window_size
     if (not rar_window.contains(pdcch_slot)) {
       if (pdcch_slot >= rar_window.stop()) {
         fmt::memory_buffer str_buffer;

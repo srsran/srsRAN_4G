@@ -112,12 +112,23 @@ sched_nr_sim_base::~sched_nr_sim_base()
   logger.info("=========== End %s ==========\n", test_name.c_str());
 }
 
-int sched_nr_sim_base::add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx)
+int sched_nr_sim_base::add_user(uint16_t                            rnti,
+                                const sched_nr_interface::ue_cfg_t& ue_cfg_,
+                                slot_point                          tti_rx,
+                                uint32_t                            preamble_idx)
 {
   TESTASSERT(ue_db.count(rnti) == 0);
 
   sched_ptr->ue_cfg(rnti, ue_cfg_);
   ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_slot_tx, preamble_idx)));
+
+  sched_nr_interface::dl_sched_rar_info_t rach_info{};
+  rach_info.temp_crnti   = rnti;
+  rach_info.prach_slot   = tti_rx;
+  rach_info.preamble_idx = preamble_idx;
+  rach_info.msg3_size    = 7;
+  sched_ptr->dl_rach_info(ue_cfg_.carriers[0].cc, rach_info);
+
   return SRSRAN_SUCCESS;
 }
 

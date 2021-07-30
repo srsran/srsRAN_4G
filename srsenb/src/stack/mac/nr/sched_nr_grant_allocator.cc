@@ -133,7 +133,8 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   for (const auto& grant : rar.msg3_grant) {
     slot_ue&     ue = ues[grant.temp_crnti];
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
-    bool         success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
+    ue.h_ul      = ue.harq_ent->find_empty_ul_harq();
+    bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     last_msg3 += msg3_nof_prbs;
     pdcch_ul_t msg3_pdcch;
@@ -144,9 +145,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
     success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_pdcch.dci, pusch.sch);
     srsran_assert(success, "Error converting DCI to PUSCH grant");
     pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
-    if (ue.h_ul->nof_retx() > 0) {
-      bwp_pdcch_slot.ul_pdcchs.push_back(msg3_pdcch);
-    }
+    ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);
   }
   bwp_msg3_slot.ul_prbs.add(msg3_rbs);
 

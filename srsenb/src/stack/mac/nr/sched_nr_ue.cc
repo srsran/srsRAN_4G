@@ -43,6 +43,7 @@ slot_ue ue_carrier::try_reserve(slot_point pdcch_slot)
   // copy cc-specific parameters and find available HARQs
   slot_ue sfu(rnti, slot_rx, cc);
   sfu.cfg           = &bwp_cfg;
+  sfu.harq_ent      = &harq_ent;
   sfu.pdcch_slot    = pdcch_slot;
   const uint32_t k0 = 0;
   sfu.pdsch_slot    = sfu.pdcch_slot + k0;

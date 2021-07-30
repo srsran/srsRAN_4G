@@ -38,7 +38,7 @@ void sched_nr_time_rr::sched_dl_users(slot_ue_map_t& ue_db, bwp_slot_allocator& 
 {
   // Start with retxs
   if (round_robin_apply(ue_db, slot_alloc.get_pdcch_tti().to_uint(), [&slot_alloc](slot_ue& ue) {
-        if (ue.h_dl != nullptr and not ue.h_dl->empty()) {
+        if (ue.h_dl != nullptr and ue.h_dl->has_pending_retx(slot_alloc.get_tti_rx())) {
           alloc_result res = slot_alloc.alloc_pdsch(ue, ue.h_dl->prbs());
           if (res == alloc_result::success) {
             return true;
@@ -65,7 +65,7 @@ void sched_nr_time_rr::sched_ul_users(slot_ue_map_t& ue_db, bwp_slot_allocator& 
 {
   // Start with retxs
   if (round_robin_apply(ue_db, slot_alloc.get_pdcch_tti().to_uint(), [&slot_alloc](slot_ue& ue) {
-        if (ue.h_ul != nullptr and not ue.h_ul->empty()) {
+        if (ue.h_ul != nullptr and ue.h_ul->has_pending_retx(slot_alloc.get_tti_rx())) {
           alloc_result res = slot_alloc.alloc_pusch(ue, ue.h_ul->prbs());
           if (res == alloc_result::success) {
             return true;

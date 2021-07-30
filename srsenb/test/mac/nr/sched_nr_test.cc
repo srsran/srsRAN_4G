@@ -88,7 +88,7 @@ void sched_nr_cfg_serialized_test()
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
   uecfg.fixed_dl_mcs                 = 15;
   uecfg.fixed_ul_mcs                 = 15;
-  sched_tester.add_user(0x46, uecfg, 0);
+  sched_tester.add_user(0x46, uecfg, slot_point{0, 0}, 0);
 
   std::vector<long> count_per_cc(nof_sectors, 0);
   for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
@@ -136,7 +136,7 @@ void sched_nr_cfg_parallel_cc_test()
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
   uecfg.fixed_dl_mcs                 = 15;
   uecfg.fixed_ul_mcs                 = 15;
-  sched_tester.add_user(0x46, uecfg, 0);
+  sched_tester.add_user(0x46, uecfg, slot_point{0, 0}, 0);
 
   std::array<std::atomic<long>, SRSRAN_MAX_CARRIERS> nano_count{};
   for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {

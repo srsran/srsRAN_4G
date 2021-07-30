@@ -106,7 +106,7 @@ public:
                     std::string                                        test_name);
   virtual ~sched_nr_sim_base();
 
-  int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx);
+  int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, slot_point tti_rx, uint32_t preamble_idx);
 
   void new_slot(slot_point slot_tx);
   void update(sched_nr_cc_output_res_t& cc_out);
