@@ -163,6 +163,8 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // NR layers
   mac_nr_args_t mac_args = {};
+  mac_args.fixed_dl_mcs  = 10;
+  mac_args.fixed_ul_mcs  = 10;
   mac_args.pcap          = args.mac_pcap;
   if (mac_nr.init(mac_args, phy_nr, nullptr, &rlc_nr, &rrc_nr) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize MAC-NR");

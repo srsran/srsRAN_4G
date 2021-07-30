@@ -18,7 +18,7 @@ worker_pool::worker_pool(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
                          srslog::sink&                 log_sink_,
                          uint32_t                      max_workers) :
-  pool(max_workers),
+  pool(max_workers, "NR-"),
   common(common_),
   stack(stack_),
   log_sink(log_sink_),
