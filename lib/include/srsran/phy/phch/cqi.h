@@ -162,6 +162,13 @@ SRSRAN_API uint32_t srsran_cqi_periodic_sb_bw_part_idx(const srsran_cqi_report_c
 
 SRSRAN_API int srsran_cqi_hl_get_no_subbands(int nof_prb);
 
+/**
+ * @brief Returns the number of bits to index a bandwidth part (L)
+ *
+ * @remark Implemented according to TS 38.213 section 7.2.2 Periodic CSI Reporting using PUCCH, paragraph that refers to
+ * `L-bit label indexed in the order of increasing frequency, where L = ceil(log2(nof_prb/k/J))`
+ *
+ */
 SRSRAN_API int srsran_cqi_hl_get_L(int nof_prb);
 
 SRSRAN_API uint32_t srsran_cqi_get_sb_idx(uint32_t                       tti,

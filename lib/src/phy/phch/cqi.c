@@ -447,7 +447,6 @@ static bool cqi_get_N_tdd(uint32_t I_cqi_pmi, uint32_t* N_p, uint32_t* N_offset)
 
 static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd, uint32_t H)
 {
-
   uint32_t N_p      = 0;
   uint32_t N_offset = 0;
 
@@ -471,7 +470,6 @@ static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd, uint32_t H)
 
 static bool ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti, bool is_fdd)
 {
-
   uint32_t M_ri        = 0;
   int      N_offset_ri = 0;
   uint32_t N_p         = 0;
@@ -575,8 +573,8 @@ static int cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb)
   }
 }
 
-uint32_t srsran_cqi_get_sb_idx(uint32_t tti,
-                               uint32_t subband_label,
+uint32_t srsran_cqi_get_sb_idx(uint32_t                       tti,
+                               uint32_t                       subband_label,
                                const srsran_cqi_report_cfg_t* cqi_report_cfg,
                                const srsran_cell_t*           cell)
 {
@@ -584,9 +582,6 @@ uint32_t srsran_cqi_get_sb_idx(uint32_t tti,
   return subband_label + bw_part_idx * cqi_sb_get_Nj(bw_part_idx, cell->nof_prb);
 }
 
-/* Returns the number of bits to index a bandwidth part (L)
- * L = ceil(log2(nof_prb/k/J))
- */
 int srsran_cqi_hl_get_L(int nof_prb)
 {
   int subband_size = cqi_hl_get_subband_size(nof_prb);
@@ -595,7 +590,7 @@ int srsran_cqi_hl_get_L(int nof_prb)
     ERROR("Invalid parameters");
     return SRSRAN_ERROR;
   }
-  return (int)ceil(log2((float)nof_prb / subband_size / bwp_J));
+  return (int)SRSRAN_CEIL_LOG2((double)nof_prb / (subband_size * bwp_J));
 }
 
 bool srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tti, srsran_frame_type_t frame_type)
