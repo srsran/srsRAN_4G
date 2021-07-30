@@ -344,6 +344,12 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
     ra_window_start  = TTI_ADD(tti, 3);
     logger.debug("Calculated ra_window_start=%d, ra_window_length=%d", ra_window_start, ra_window_length);
     state = WAITING_FOR_RESPONSE_RECEPTION;
+
+    if (rach_cfg.skip_rar) {
+      // temp hack for NSA eNB development
+      state = WAITING_FOR_COMPLETION;
+      ra_completion();
+    }
   });
 }
 

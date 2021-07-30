@@ -870,6 +870,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
         rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup());
+        rach_nr_cfg.skip_rar      = args.skip_rar;
         mac->set_config(rach_nr_cfg);
 
         // Make the RACH configuration for PHY
