@@ -120,7 +120,7 @@ private:
   std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
   struct cc_context {
     std::condition_variable cvar;
-    bool                    waiting = false;
+    int                     waiting = 0;
     slot_cc_worker          worker;
 
     cc_context(serv_cell_manager& sched) : worker(sched) {}

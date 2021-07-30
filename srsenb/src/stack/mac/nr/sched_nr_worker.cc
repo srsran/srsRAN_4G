@@ -237,9 +237,9 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
     std::unique_lock<std::mutex> lock(slot_mutex);
     while (current_slot.valid() and current_slot != slot_tx) {
       // Wait for previous slot to finish
-      cc_worker_list[cc]->waiting = true;
+      cc_worker_list[cc]->waiting++;
       cc_worker_list[cc]->cvar.wait(lock);
-      cc_worker_list[cc]->waiting = false;
+      cc_worker_list[cc]->waiting--;
     }
     if (not current_slot.valid()) {
       /* First Worker to start slot */
@@ -261,7 +261,7 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
       current_slot = slot_tx;
       worker_count.store(static_cast<int>(cc_worker_list.size()), std::memory_order_relaxed);
       for (auto& w : cc_worker_list) {
-        if (w->waiting) {
+        if (w->waiting > 0) {
           waiting_cvars.push_back(&w->cvar);
         }
       }
@@ -301,7 +301,7 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
     // All the workers of the same slot have finished. Synchronize scheduling decisions with UEs state
     for (auto& c : cc_worker_list) {
       c->worker.finish();
-      if (c->waiting) {
+      if (c->waiting > 0) {
         waiting_cvars.push_back(&c->cvar);
       }
     }
