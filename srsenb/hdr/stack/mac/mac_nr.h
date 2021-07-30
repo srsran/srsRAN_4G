@@ -75,6 +75,9 @@ private:
   bool is_rnti_valid_unsafe(uint16_t rnti);
   bool is_rnti_active_unsafe(uint16_t rnti);
 
+  // handle UCI data from either PUCCH or PUSCH
+  bool handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value);
+
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 

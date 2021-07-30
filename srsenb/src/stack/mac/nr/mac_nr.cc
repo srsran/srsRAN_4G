@@ -150,9 +150,9 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     srsenb::sched_nr_interface::dl_sched_rar_info_t rar_info = {};
     rar_info.preamble_idx                                    = rach_info.preamble;
     rar_info.temp_crnti                                      = rnti;
-    rar_info.prach_slot                                      = slot_point(0, rach_info.slot_index);
+    rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
-    sched.dl_rach_info(enb_cc_idx, rar_info);
+    // sched.dl_rach_info(enb_cc_idx, rar_info);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,
@@ -272,15 +272,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
     pdsch_slot++;
   }
 
-  int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
-  for (pdsch_t& pdsch : dl_sched.pdsch) {
-    // Set TBS
-    // Select grant and set data
-    pdsch.data[0] = nullptr; // FIXME: add ptr to PDU
-    pdsch.data[1] = nullptr;
-  }
-
-  return SRSRAN_SUCCESS;
+  return sched.get_dl_sched(pdsch_slot, 0, dl_sched);
 }
 
 int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
@@ -299,17 +291,40 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
 
   return SRSRAN_SUCCESS;
 }
+
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
 {
-  // FIXME: provide CRC/ACK feedback
-  // sched.dl_ack_info(rnti_, cc, pid, tb_idx, ack);
-  // sched.ul_crc_info(rnti_, cc, pid, crc);
+  if (not handle_uci_data(pucch_info.uci_data.cfg.pucch.rnti, pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
+    logger.error("Error handling UCI data from PUCCH reception");
+    return SRSRAN_ERROR;
+  }
   return SRSRAN_SUCCESS;
 }
+
+bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value)
+{
+  // Process HARQ-ACK
+  for (uint32_t i = 0; i < cfg.ack.count; i++) {
+    const srsran_harq_ack_bit_t* ack_bit = &cfg.ack.bits[i];
+    bool                         is_ok   = (value.ack[i] == 1) and value.valid;
+    sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+  }
+  return true;
+}
+
 int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
 {
-  // FIXME: does the PUSCH info call include received PDUs?
   uint16_t                     rnti = pusch_info.rnti;
+
+  // Handle UCI data
+  if (not handle_uci_data(rnti, pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
+    logger.error("Error handling UCI data from PUCCH reception");
+    return SRSRAN_ERROR;
+  }
+
+  sched.ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
+
+  // FIXME: move PDU from PHY
   srsran::unique_byte_buffer_t rx_pdu;
   auto                         process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
     srsran::rwlock_read_guard lock(rwlock);
