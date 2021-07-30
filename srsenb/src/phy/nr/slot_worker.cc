@@ -46,7 +46,7 @@ bool slot_worker::init(const args_t& args)
     }
   }
 
-  // Allocate Tx buffers
+  // Allocate Rx buffers
   rx_buffer.resize(args.nof_rx_ports);
   for (uint32_t i = 0; i < args.nof_rx_ports; i++) {
     rx_buffer[i] = srsran_vec_cf_malloc(sf_len);
