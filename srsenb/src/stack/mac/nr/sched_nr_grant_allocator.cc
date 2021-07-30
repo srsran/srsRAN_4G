@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_grant_allocator.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
 
@@ -289,6 +289,11 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   bool success = ue.cfg->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
   srsran_assert(success, "Error converting DCI to PUSCH grant");
   pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
+  if (ue.h_ul->nof_retx() == 0) {
+    ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
+  } else {
+    srsran_assert(pusch.sch.grant.tb[0].tbs == (int)ue.h_ul->tbs(), "The TBS did not remain constant in retx");
+  }
 
   return alloc_result::success;
 }

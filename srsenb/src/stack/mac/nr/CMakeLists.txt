@@ -11,7 +11,7 @@ set(SOURCES mac_nr.cc
             sched_nr.cc
             sched_nr_ue.cc
             sched_nr_worker.cc
-            sched_nr_rb_grid.cc
+        sched_nr_grant_allocator.cc
             sched_nr_harq.cc
             sched_nr_pdcch.cc
             sched_nr_cfg.cc

@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_SCHED_NR_RB_GRID_H
-#define SRSRAN_SCHED_NR_RB_GRID_H
+#ifndef SRSRAN_SCHED_NR_GRANT_ALLOCATOR_H
+#define SRSRAN_SCHED_NR_GRANT_ALLOCATOR_H
 
 #include "../sched_common.h"
 #include "lib/include/srsran/adt/circular_array.h"
@@ -108,4 +108,4 @@ private:
 } // namespace sched_nr_impl
 } // namespace srsenb
 
-#endif // SRSRAN_SCHED_NR_RB_GRID_H
+#endif // SRSRAN_SCHED_NR_GRANT_ALLOCATOR_H

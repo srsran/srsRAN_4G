@@ -14,7 +14,7 @@
 #define SRSRAN_SCHED_NR_CELL_H
 
 #include "sched_nr_cfg.h"
-#include "sched_nr_rb_grid.h"
+#include "sched_nr_grant_allocator.h"
 #include "srsran/adt/pool/cached_alloc.h"
 
 namespace srsenb {

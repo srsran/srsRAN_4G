@@ -18,6 +18,8 @@
 extern "C" {
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/fec/softbuffer.h"
+#include "srsran/phy/phch/sch_nr.h"
+#include "srsran/phy/utils/vector.h"
 }
 
 namespace srsenb {
@@ -26,7 +28,11 @@ class tx_harq_softbuffer
 {
 public:
   tx_harq_softbuffer() { bzero(&buffer, sizeof(buffer)); }
-  explicit tx_harq_softbuffer(uint32_t nof_prb_) { srsran_softbuffer_tx_init(&buffer, nof_prb_); }
+  explicit tx_harq_softbuffer(uint32_t nof_prb_)
+  {
+    // Note: for now we use same size regardless of nof_prb_
+    srsran_softbuffer_tx_init_guru(&buffer, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB);
+  }
   tx_harq_softbuffer(const tx_harq_softbuffer&) = delete;
   tx_harq_softbuffer(tx_harq_softbuffer&& other) noexcept
   {
@@ -64,7 +70,11 @@ class rx_harq_softbuffer
 {
 public:
   rx_harq_softbuffer() { bzero(&buffer, sizeof(buffer)); }
-  explicit rx_harq_softbuffer(uint32_t nof_prb_) { srsran_softbuffer_rx_init(&buffer, nof_prb_); }
+  explicit rx_harq_softbuffer(uint32_t nof_prb_)
+  {
+    // Note: for now we use same size regardless of nof_prb_
+    srsran_softbuffer_rx_init_guru(&buffer, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB);
+  }
   rx_harq_softbuffer(const rx_harq_softbuffer&) = delete;
   rx_harq_softbuffer(rx_harq_softbuffer&& other) noexcept
   {

@@ -11,7 +11,7 @@
  */
 
 #include "sched_nr_ue_ded_test_suite.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_grant_allocator.h"
 #include "srsran/common/test_common.h"
 
 namespace srsenb {
