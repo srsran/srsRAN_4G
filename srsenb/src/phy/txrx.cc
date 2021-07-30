@@ -191,7 +191,7 @@ void txrx::run_thread()
 
       nr_worker->set_context(context);
 
-      // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
+      // Start NR worker processing
       worker_com->semaphore.push(nr_worker);
       nr_workers->start_worker(nr_worker);
     }
@@ -206,13 +206,10 @@ void txrx::run_thread()
 
       lte_worker->set_context(context);
 
-      // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
+      // Start LTE worker processing
       worker_com->semaphore.push(lte_worker);
       lte_workers->start_worker(lte_worker);
     }
-
-    // Trigger phy worker execution
-    lte_workers->start_worker(lte_worker);
 
     // Advance stack in time
     stack->tti_clock();
