@@ -153,7 +153,9 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
   return SRSRAN_SUCCESS;
 }
 
-bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) : cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg) {}
+bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) :
+  cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg), data_sched(new sched_nr_time_rr())
+{}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -118,16 +118,7 @@ void slot_cc_worker::alloc_dl_ues()
   if (not cfg.sched_cfg.pdsch_enabled) {
     return;
   }
-  if (slot_ues.empty()) {
-    return;
-  }
-  slot_ue& ue = slot_ues.begin()->second;
-  if (ue.h_dl == nullptr) {
-    return;
-  }
-
-  prb_interval prbs(0, cfg.bwps[0].N_rbg);
-  bwp_alloc.alloc_pdsch(ue, prbs);
+  cell.bwps[0].data_sched->sched_dl_users(slot_ues, bwp_alloc);
 }
 
 void slot_cc_worker::alloc_ul_ues()
@@ -135,16 +126,7 @@ void slot_cc_worker::alloc_ul_ues()
   if (not cfg.sched_cfg.pusch_enabled) {
     return;
   }
-  if (slot_ues.empty()) {
-    return;
-  }
-  slot_ue& ue = slot_ues.begin()->second;
-  if (ue.h_ul == nullptr) {
-    return;
-  }
-
-  prb_interval prbs(0, cfg.bwps[0].N_rbg);
-  bwp_alloc.alloc_pusch(ue, prbs);
+  cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
 }
 
 void slot_cc_worker::log_result() const

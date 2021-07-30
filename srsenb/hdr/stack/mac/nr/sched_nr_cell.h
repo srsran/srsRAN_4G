@@ -15,6 +15,7 @@
 
 #include "sched_nr_cfg.h"
 #include "sched_nr_grant_allocator.h"
+#include "sched_nr_time_rr.h"
 #include "srsran/adt/pool/cached_alloc.h"
 
 namespace srsenb {
@@ -58,7 +59,8 @@ public:
   const bwp_params* cfg;
 
   // channel-specific schedulers
-  ra_sched ra;
+  ra_sched                       ra;
+  std::unique_ptr<sched_nr_base> data_sched;
 
   // Stores pending allocations and PRB bitmaps
   bwp_res_grid grid;
