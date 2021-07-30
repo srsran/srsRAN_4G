@@ -54,8 +54,8 @@ public:
     virtual void work_imp() = 0;
 
   private:
-    uint32_t     my_id     = 0;
-    thread_pool* my_parent = nullptr;
+    uint32_t          my_id     = 0;
+    thread_pool*      my_parent = nullptr;
     std::atomic<bool> running   = {true};
 
     void run_thread();
@@ -64,22 +64,24 @@ public:
     bool is_stopped() const;
   };
 
-  thread_pool(uint32_t nof_workers);
-  void     init_worker(uint32_t id, worker*, uint32_t prio = 0, uint32_t mask = 255);
-  void     stop();
-  worker*  wait_worker_id(uint32_t id);
-  worker*  wait_worker(uint32_t tti);
-  worker*  wait_worker_nb(uint32_t tti);
-  void     start_worker(worker*);
-  void     start_worker(uint32_t id);
-  worker*  get_worker(uint32_t id);
-  uint32_t get_nof_workers();
+  thread_pool(uint32_t nof_workers_, std::string id_ = "");
+  void        init_worker(uint32_t id, worker*, uint32_t prio = 0, uint32_t mask = 255);
+  void        stop();
+  worker*     wait_worker_id(uint32_t id);
+  worker*     wait_worker(uint32_t tti);
+  worker*     wait_worker_nb(uint32_t tti);
+  void        start_worker(worker*);
+  void        start_worker(uint32_t id);
+  worker*     get_worker(uint32_t id);
+  uint32_t    get_nof_workers();
+  std::string get_id();
 
 private:
   bool find_finished_worker(uint32_t tti, uint32_t* id);
 
   typedef enum { STOP, IDLE, START_WORK, WORKER_READY, WORKING } worker_status;
 
+  std::string                          id; // id is prepended to every worker
   std::vector<worker*>                 workers     = {};
   uint32_t                             nof_workers = 0;
   uint32_t                             max_workers = 0;

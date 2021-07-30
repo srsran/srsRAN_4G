@@ -41,7 +41,7 @@ void thread_pool::worker::setup(uint32_t id, thread_pool* parent, uint32_t prio,
 
 void thread_pool::worker::run_thread()
 {
-  set_name(std::string("WORKER") + std::to_string(my_id));
+  set_name(my_parent->get_id() + std::string("WORKER") + std::to_string(my_id));
   while (running.load(std::memory_order_relaxed)) {
     wait_to_start();
     if (running.load(std::memory_order_relaxed)) {
@@ -61,9 +61,9 @@ uint32_t thread_pool::worker::get_id()
   return my_id;
 }
 
-thread_pool::thread_pool(uint32_t max_workers_) : workers(max_workers_), status(max_workers_), cvar_worker(max_workers_)
+thread_pool::thread_pool(uint32_t max_workers_, std::string id_) :
+  workers(max_workers_), max_workers(max_workers_), status(max_workers_), cvar_worker(max_workers_), id(id_)
 {
-  max_workers = max_workers_;
   for (uint32_t i = 0; i < max_workers; i++) {
     workers[i] = NULL;
     status[i]  = IDLE;
@@ -251,6 +251,11 @@ thread_pool::worker* thread_pool::get_worker(uint32_t id)
 uint32_t thread_pool::get_nof_workers()
 {
   return nof_workers;
+}
+
+std::string thread_pool::get_id()
+{
+  return id;
 }
 
 /**************************************************************************
