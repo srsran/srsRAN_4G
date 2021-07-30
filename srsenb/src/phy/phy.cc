@@ -109,18 +109,6 @@ int phy::init(const phy_args_t&            args,
     return SRSRAN_ERROR;
   }
 
-  // perform initial config of PHY (during RRC init PHY isn't running yet)
-  static const srsran::phy_cfg_nr_t default_phy_cfg =
-      srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
-  srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
-  common_cfg.carrier                                    = default_phy_cfg.carrier;
-  common_cfg.pdcch                                      = default_phy_cfg.pdcch;
-  common_cfg.prach                                      = default_phy_cfg.prach;
-  if (set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
-    phy_log.error("Couldn't set common PHY config");
-    return SRSRAN_ERROR;
-  }
-
   return SRSRAN_SUCCESS;
 }
 
@@ -343,6 +331,18 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
   }
 
   tx_rx.set_nr_workers(nr_workers.get());
+
+  // perform initial config of PHY (during RRC init PHY isn't running yet)
+  static const srsran::phy_cfg_nr_t default_phy_cfg =
+      srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
+  srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
+  common_cfg.carrier                                    = default_phy_cfg.carrier;
+  common_cfg.pdcch                                      = default_phy_cfg.pdcch;
+  common_cfg.prach                                      = default_phy_cfg.prach;
+  if (set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
+    phy_log.error("Couldn't set common PHY config");
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }
