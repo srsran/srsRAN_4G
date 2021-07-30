@@ -1377,7 +1377,7 @@ uint32_t srsran_vec_max_fi_simd(const float* x, const int len)
       simd_f_t   a     = srsran_simd_f_load(&x[i]);
       simd_sel_t res   = srsran_simd_f_max(a, simd_max_values);
       simd_max_indexes = srsran_simd_i_select(simd_max_indexes, simd_indexes, res);
-      simd_max_values  = (simd_f_t)srsran_simd_i_select((simd_i_t)simd_max_values, (simd_i_t)a, res);
+      simd_max_values  = srsran_simd_f_select(simd_max_values, a, res);
       simd_indexes     = srsran_simd_i_add(simd_indexes, simd_inc);
     }
   } else {
@@ -1385,7 +1385,7 @@ uint32_t srsran_vec_max_fi_simd(const float* x, const int len)
       simd_f_t   a     = srsran_simd_f_loadu(&x[i]);
       simd_sel_t res   = srsran_simd_f_max(a, simd_max_values);
       simd_max_indexes = srsran_simd_i_select(simd_max_indexes, simd_indexes, res);
-      simd_max_values  = (simd_f_t)srsran_simd_i_select((simd_i_t)simd_max_values, (simd_i_t)a, res);
+      simd_max_values  = srsran_simd_f_select(simd_max_values, a, res);
       simd_indexes     = srsran_simd_i_add(simd_indexes, simd_inc);
     }
   }
@@ -1435,7 +1435,7 @@ uint32_t srsran_vec_max_abs_fi_simd(const float* x, const int len)
       simd_f_t   a     = srsran_simd_f_abs(srsran_simd_f_load(&x[i]));
       simd_sel_t res   = srsran_simd_f_max(a, simd_max_values);
       simd_max_indexes = srsran_simd_i_select(simd_max_indexes, simd_indexes, res);
-      simd_max_values  = (simd_f_t)srsran_simd_i_select((simd_i_t)simd_max_values, (simd_i_t)a, res);
+      simd_max_values  = srsran_simd_f_select(simd_max_values, a, res);
       simd_indexes     = srsran_simd_i_add(simd_indexes, simd_inc);
     }
   } else {
@@ -1443,7 +1443,7 @@ uint32_t srsran_vec_max_abs_fi_simd(const float* x, const int len)
       simd_f_t   a     = srsran_simd_f_abs(srsran_simd_f_loadu(&x[i]));
       simd_sel_t res   = srsran_simd_f_max(a, simd_max_values);
       simd_max_indexes = srsran_simd_i_select(simd_max_indexes, simd_indexes, res);
-      simd_max_values  = (simd_f_t)srsran_simd_i_select((simd_i_t)simd_max_values, (simd_i_t)a, res);
+      simd_max_values  = srsran_simd_f_select(simd_max_values, a, res);
       simd_indexes     = srsran_simd_i_add(simd_indexes, simd_inc);
     }
   }
@@ -1502,7 +1502,7 @@ uint32_t srsran_vec_max_ci_simd(const cf_t* x, const int len)
       simd_sel_t res = srsran_simd_f_max(z1, simd_max_values);
 
       simd_max_indexes = srsran_simd_i_select(simd_max_indexes, simd_indexes, res);
-      simd_max_values  = (simd_f_t)srsran_simd_i_select((simd_i_t)simd_max_values, (simd_i_t)z1, res);
+      simd_max_values  = srsran_simd_f_select(simd_max_values, z1, res);
       simd_indexes     = srsran_simd_i_add(simd_indexes, simd_inc);
     }
   } else {
@@ -1518,7 +1518,7 @@ uint32_t srsran_vec_max_ci_simd(const cf_t* x, const int len)
       simd_sel_t res = srsran_simd_f_max(z1, simd_max_values);
 
       simd_max_indexes = srsran_simd_i_select(simd_max_indexes, simd_indexes, res);
-      simd_max_values  = (simd_f_t)srsran_simd_i_select((simd_i_t)simd_max_values, (simd_i_t)z1, res);
+      simd_max_values  = srsran_simd_f_select(simd_max_values, z1, res);
       simd_indexes     = srsran_simd_i_add(simd_indexes, simd_inc);
     }
   }

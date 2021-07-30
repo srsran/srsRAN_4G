@@ -1168,7 +1168,7 @@ typedef __m128  simd_sel_t;
 #else /* LV_HAVE_AVX2 */
 #ifdef HAVE_NEON
 typedef int32x4_t simd_i_t;
-typedef int32x4_t simd_sel_t;
+typedef uint32x4_t simd_sel_t;
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -1300,7 +1300,7 @@ static inline simd_sel_t srsran_simd_f_max(simd_f_t a, simd_f_t b)
   return (simd_sel_t)_mm_cmpgt_ps(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  return (simd_sel_t)vcgtq_f32(a, b);
+  return vcgtq_f32(a, b);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -1319,7 +1319,7 @@ static inline simd_sel_t srsran_simd_f_min(simd_f_t a, simd_f_t b)
   return (simd_sel_t)_mm_cmplt_ps(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  return (simd_sel_t)vcltq_f32(a, b);
+  return vcltq_f32(a, b);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -1337,20 +1337,8 @@ static inline simd_f_t srsran_simd_f_select(simd_f_t a, simd_f_t b, simd_sel_t s
 #ifdef LV_HAVE_SSE
   return _mm_blendv_ps(a, b, selector);
 #else            /* LV_HAVE_SSE */
-#ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON
-  float*   a_ptr = (float*)&a;
-  float*   b_ptr = (float*)&b;
-  simd_f_t ret;
-  int*     sel   = (int*)&selector;
-  float*   c_ptr = (float*)&ret;
-  for (int i = 0; i < 4; i++) {
-    if (sel[i] == -1) {
-      c_ptr[i] = b_ptr[i];
-    } else {
-      c_ptr[i] = a_ptr[i];
-    }
-  }
-  return ret;
+#ifdef HAVE_NEON
+  return vbslq_f32(selector, b, a);
 #endif           /* HAVE_NEON */
 #endif           /* LV_HAVE_SSE */
 #endif           /* LV_HAVE_AVX2 */
@@ -1368,20 +1356,8 @@ static inline simd_i_t srsran_simd_i_select(simd_i_t a, simd_i_t b, simd_sel_t s
 #ifdef LV_HAVE_SSE
   return (__m128i)_mm_blendv_ps((__m128)a, (__m128)b, selector);
 #else            /* LV_HAVE_SSE */
-#ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON
-  int*     a_ptr = (int*)&a;
-  int*     b_ptr = (int*)&b;
-  simd_i_t ret;
-  int*     sel   = (int*)&selector;
-  int*     c_ptr = (int*)&ret;
-  for (int i = 0; i < 4; i++) {
-    if (sel[i] == -1) {
-      c_ptr[i] = b_ptr[i];
-    } else {
-      c_ptr[i] = a_ptr[i];
-    }
-  }
-  return ret;
+#ifdef HAVE_NEON
+  return vbslq_s32(selector, b, a);
 #endif           /* HAVE_NEON */
 #endif           /* LV_HAVE_SSE */
 #endif           /* LV_HAVE_AVX2 */
