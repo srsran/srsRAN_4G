@@ -1480,6 +1480,10 @@ int parse_args(int argc, char** argv, phy_test_bench::args_t& args)
 
 int main(int argc, char** argv)
 {
+  // First of all, initialise crash handler - Crash files from ctest executions will be stored in
+  // srsenb/test/phy/srsRAN.backtrace.crash
+  srsran_debug_handle_crash(argc, argv);
+
   phy_test_bench::args_t test_args;
 
   // Parse arguments
