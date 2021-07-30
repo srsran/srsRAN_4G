@@ -759,7 +759,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
 
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 17943;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 0x4602; // first RNTI assigned to new UE
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
 
