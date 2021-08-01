@@ -77,10 +77,10 @@ public:
   const std::string get_full_state_text();
 
 private:
-  std::atomic<state_t>    state{state_t::null}; // The GW might require to know the NAS state from another thread
-  deregistered_substate_t deregistered_substate = deregistered_substate_t::null;
-  registered_substate_t   registered_substate   = registered_substate_t::null;
-  srslog::basic_logger&   logger                = srslog::fetch_basic_logger("NAS");
+  std::atomic<state_t> state{state_t::null}; // The GW might require to know the NAS state from another thread
+  std::atomic<deregistered_substate_t> deregistered_substate{deregistered_substate_t::null};
+  std::atomic<registered_substate_t>   registered_substate{registered_substate_t::null};
+  srslog::basic_logger&                logger = srslog::fetch_basic_logger("NAS");
 };
 
 const char* emm_state_text(emm_state_t::state_t type);
@@ -88,4 +88,5 @@ const char* emm_deregistered_substate_text(emm_state_t::deregistered_substate_t 
 const char* emm_registered_substate_text(emm_state_t::registered_substate_t type);
 
 } // namespace srsue
+
 #endif
