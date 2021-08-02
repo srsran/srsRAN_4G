@@ -160,7 +160,7 @@ static const uint32_t phy_common_nr_valid_symbol_sz[PHY_COMMON_NR_NOF_VALID_SYMB
     {128, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096};
 
 static const uint32_t phy_common_nr_valid_std_symbol_sz[PHY_COMMON_NR_NOF_VALID_SYMB_SZ] =
-    {128, 256, 512, 1024, 1536, 2048};
+    {128, 256, 512, 1024, 1536, 2048, 4096};
 
 uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
 {
