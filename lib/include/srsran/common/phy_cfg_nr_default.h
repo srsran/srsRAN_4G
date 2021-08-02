@@ -40,7 +40,7 @@ public:
       R_CARRIER_CUSTOM_20MHZ,
       R_CARRIER_COUNT
     } carrier                                                       = R_CARRIER_CUSTOM_10MHZ;
-    const std::array<std::string, R_CARRIER_COUNT> R_CARRIER_STRING = {"10MHz", "20MHz"};
+    const std::array<std::string, R_CARRIER_COUNT> R_CARRIER_STRING = {{"10MHz", "20MHz"}};
 
     enum {
       /**
@@ -54,7 +54,7 @@ public:
       R_TDD_FR1_15_1,
       R_TDD_COUNT,
     } tdd                                                   = R_TDD_CUSTOM_6_4;
-    const std::array<std::string, R_TDD_COUNT> R_TDD_STRING = {"6D+4U", "FR1.15-1"};
+    const std::array<std::string, R_TDD_COUNT> R_TDD_STRING = {{"6D+4U", "FR1.15-1"}};
 
     enum {
       /**
@@ -85,7 +85,7 @@ public:
       R_PDSCH_COUNT
 
     } pdsch                                                     = R_PDSCH_DEFAULT;
-    const std::array<std::string, R_PDSCH_COUNT> R_PDSCH_STRING = {"default", "ts38101/5.2-1"};
+    const std::array<std::string, R_PDSCH_COUNT> R_PDSCH_STRING = {{"default", "ts38101/5.2-1"}};
 
     enum {
       /**
@@ -129,7 +129,7 @@ public:
     } prach = R_PRACH_DEFAULT_LTE;
 
     reference_cfg_t() = default;
-    reference_cfg_t(const std::string& args);
+    explicit reference_cfg_t(const std::string& args);
   };
 
   phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg);
