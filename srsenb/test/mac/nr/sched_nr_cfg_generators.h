@@ -18,14 +18,14 @@
 
 namespace srsenb {
 
-srsran_coreset_t get_default_coreset0()
+srsran_coreset_t get_default_coreset0(uint32_t nof_prb)
 {
   srsran_coreset_t coreset{};
   coreset.id                   = 0;
   coreset.duration             = 1;
   coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; ++i) {
-    coreset.freq_resources[i] = i < 8;
+    coreset.freq_resources[i] = i < (nof_prb / 6);
   }
   return coreset;
 }
@@ -44,7 +44,7 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& 
   cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
 
   cell_cfg.bwps[0].pdcch.coreset_present[0]      = true;
-  cell_cfg.bwps[0].pdcch.coreset[0]              = get_default_coreset0();
+  cell_cfg.bwps[0].pdcch.coreset[0]              = get_default_coreset0(phy_cfg.carrier.nof_prb);
   cell_cfg.bwps[0].pdcch.search_space_present[0] = true;
   auto& ss                                       = cell_cfg.bwps[0].pdcch.search_space[0];
   ss.id                                          = 0;
