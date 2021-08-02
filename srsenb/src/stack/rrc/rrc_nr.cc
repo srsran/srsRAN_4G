@@ -33,11 +33,11 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  gtpu_interface_rrc_nr*      gtpu_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
-  phy  = phy_;
-  mac  = mac_;
-  rlc  = rlc_;
-  pdcp = pdcp_;
-  ngap = ngap_;
+  phy       = phy_;
+  mac       = mac_;
+  rlc       = rlc_;
+  pdcp      = pdcp_;
+  ngap      = ngap_;
   gtpu      = gtpu_;
   rrc_eutra = rrc_eutra_;
 
@@ -450,9 +450,7 @@ int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstri
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
-{
-}
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_) {}
 
 void rrc_nr::ue::send_connection_setup()
 {
@@ -787,6 +785,11 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
       633928; // TODO: calculate from actual DL ARFCN
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
       .scs_specific_carrier_list.resize(1);
+
+  cell_group_cfg_pack.phys_cell_group_cfg_present = true;
+  cell_group_cfg_pack.phys_cell_group_cfg.pdsch_harq_ack_codebook =
+      phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value;
+
   auto& dl_carrier = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
                          .scs_specific_carrier_list[0];
   dl_carrier.offset_to_carrier  = 0;
