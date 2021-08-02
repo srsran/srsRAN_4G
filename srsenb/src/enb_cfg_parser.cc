@@ -1102,11 +1102,24 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     auto&             cfg                = *it;
     phy_cell_cfg_nr_t phy_cell_cfg       = {};
     phy_cell_cfg.carrier.max_mimo_layers = cell_cfg_.nof_ports;
-    phy_cell_cfg.carrier.nof_prb         = cell_cfg_.nof_prb; // TODO: convert NR PRBs
-    phy_cell_cfg.carrier.pci             = cfg.pci;
-    phy_cell_cfg.cell_id                 = cfg.cell_id;
-    phy_cell_cfg.root_seq_idx            = cfg.root_seq_idx;
-    phy_cell_cfg.rf_port                 = cfg.rf_port;
+    switch (cell_cfg_.nof_prb) {
+      case 25:
+        phy_cell_cfg.carrier.nof_prb = 25;
+        break;
+      case 50:
+        phy_cell_cfg.carrier.nof_prb = 52;
+        break;
+      case 100:
+        phy_cell_cfg.carrier.nof_prb = 106;
+        break;
+      default:
+        ERROR("The only accepted number of PRB is: 25, 50, 100");
+        return SRSRAN_ERROR;
+    }
+    phy_cell_cfg.carrier.pci  = cfg.pci;
+    phy_cell_cfg.cell_id      = cfg.cell_id;
+    phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
+    phy_cell_cfg.rf_port      = cfg.rf_port;
     phy_cell_cfg.num_ra_preambles =
         rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
 
