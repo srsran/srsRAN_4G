@@ -69,12 +69,19 @@ static int srsran_pdcch_nr_get_ncce(const srsran_coreset_t*      coreset,
     return SRSRAN_ERROR;
   }
 
+  // Calculate CORESET bandiwth in physical resource blocks
+  uint32_t coreset_bw = srsran_coreset_get_bw(coreset);
+
   // Every REG is 1PRB wide and a CCE is 6 REG. So, the number of N_CCE is a sixth of the bandwidth times the number of
   // symbols
-  uint32_t N_cce = srsran_coreset_get_bw(coreset) * coreset->duration / 6;
+  uint32_t N_cce = coreset_bw * coreset->duration / 6;
 
   if (N_cce < L) {
-    ERROR("Error number of CCE %d is lower than the aggregation level %d", N_cce, L);
+    ERROR("Error CORESET (total bandwidth of %d RBs and %d CCEs) cannot fit the aggregation level %d (%d)",
+          coreset_bw,
+          N_cce,
+          L,
+          aggregation_level);
     return SRSRAN_ERROR;
   }
 
