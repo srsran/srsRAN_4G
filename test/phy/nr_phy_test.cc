@@ -104,6 +104,9 @@ test_bench::args_t::args_t(int argc, char** argv)
   // Load default reference configuration
   phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
 
+  // Calculate sampling rate in Hz
+  srate_hz = (double)(srsran_min_symbol_sz_rb(phy_cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs));
+
   cell_list.resize(1);
   cell_list[0].carrier = phy_cfg.carrier;
   cell_list[0].rf_port = 0;

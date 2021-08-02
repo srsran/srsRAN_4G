@@ -9,7 +9,6 @@
 if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
     set(NR_PHY_TEST_GNB_NOF_THREADS 1)
     set(NR_PHY_TEST_UE_NOF_THREADS 1)
-    set(NR_PHY_TEST_BW 10MHz)
 
     add_executable(nr_phy_test nr_phy_test.cc)
     target_link_libraries(nr_phy_test
@@ -25,38 +24,55 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             ${Boost_LIBRARIES}
             ${ATOMIC_LIBS})
 
-    foreach (NR_PHY_TEST_TDD "6D+4U" "FR1.15-1")
-        set(NR_PHY_TEST_DURATION_MS 20)
+    foreach (NR_PHY_TEST_BW "10MHz" "20MHz")
+        foreach (NR_PHY_TEST_TDD "6D+4U" "FR1.15-1")
+            set(NR_PHY_TEST_DURATION_MS 20)
 
-        foreach (NR_PHY_TEST_PDSCH "default" "ts38101/5.2-1")
-            add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_${NR_PHY_TEST_TDD}_dl_${NR_PHY_TEST_PDSCH} nr_phy_test
-                    --reference=carrier=${NR_PHY_TEST_BW},tdd=${NR_PHY_TEST_TDD},pdsch=${NR_PHY_TEST_PDSCH}
+            foreach (NR_PHY_TEST_PDSCH "default" "ts38101/5.2-1")
+                add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_${NR_PHY_TEST_TDD}_dl_${NR_PHY_TEST_PDSCH} nr_phy_test
+                        --reference=carrier=${NR_PHY_TEST_BW},tdd=${NR_PHY_TEST_TDD},pdsch=${NR_PHY_TEST_PDSCH}
+                        --duration=${NR_PHY_TEST_DURATION_MS}
+                        --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
+                        --gnb.stack.pdsch.start=0 # Start at RB 0
+                        --gnb.stack.pdsch.length=52 # Full 10 MHz BW
+                        --gnb.stack.pdsch.mcs=27 # Maximum MCS
+                        --gnb.stack.pusch.slots=none
+                        --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+                        --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                        )
+            endforeach ()
+
+            add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_${NR_PHY_TEST_TDD}_ul_only nr_phy_test
+                    --reference=carrier=${NR_PHY_TEST_BW},tdd=${NR_PHY_TEST_TDD}
+                    --duration=${NR_PHY_TEST_DURATION_MS}
+                    --gnb.stack.pdsch.slots=6 # No PDSCH
+                    --gnb.stack.pusch.slots=6,7,8,9 # All possible UL slots
+                    --gnb.stack.pusch.start=0 # Start at RB 0
+                    --gnb.stack.pusch.length=52 # Full 10 MHz BW
+                    --gnb.stack.pusch.mcs=28 # Maximum MCS
+                    --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+                    --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                    )
+
+            add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_${NR_PHY_TEST_TDD}_bidir nr_phy_test
+                    --reference=carrier=${NR_PHY_TEST_BW},tdd=${NR_PHY_TEST_TDD}
                     --duration=${NR_PHY_TEST_DURATION_MS}
                     --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
                     --gnb.stack.pdsch.start=0 # Start at RB 0
                     --gnb.stack.pdsch.length=52 # Full 10 MHz BW
-                    --gnb.stack.pdsch.mcs=27 # Maximum MCS
-                    --gnb.stack.pusch.slots=none
+                    --gnb.stack.pdsch.mcs=28 # Maximum MCS
+                    --gnb.stack.pusch.slots=6,7,8,9 # All possible UL slots
+                    --gnb.stack.pusch.start=0 # Start at RB 0
+                    --gnb.stack.pusch.length=52 # Full 10 MHz BW
+                    --gnb.stack.pusch.mcs=28 # Maximum MCS
                     --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                     --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
                     )
         endforeach ()
 
-        add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_${NR_PHY_TEST_TDD}_ul_only nr_phy_test
-                --reference=carrier=${NR_PHY_TEST_BW},tdd=${NR_PHY_TEST_TDD}
-                --duration=${NR_PHY_TEST_DURATION_MS}
-                --gnb.stack.pdsch.slots=6 # No PDSCH
-                --gnb.stack.pusch.slots=6,7,8,9 # All possible UL slots
-                --gnb.stack.pusch.start=0 # Start at RB 0
-                --gnb.stack.pusch.length=52 # Full 10 MHz BW
-                --gnb.stack.pusch.mcs=28 # Maximum MCS
-                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
-                )
-
-        add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_${NR_PHY_TEST_TDD}_bidir nr_phy_test
-                --reference=carrier=${NR_PHY_TEST_BW},tdd=${NR_PHY_TEST_TDD}
-                --duration=${NR_PHY_TEST_DURATION_MS}
+        add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_bidir_sched nr_phy_test
+                --reference=carrier=${NR_PHY_TEST_BW}
+                --duration=100 # 100 slots
                 --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
                 --gnb.stack.pdsch.start=0 # Start at RB 0
                 --gnb.stack.pdsch.length=52 # Full 10 MHz BW
@@ -65,34 +81,20 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --gnb.stack.pusch.start=0 # Start at RB 0
                 --gnb.stack.pusch.length=52 # Full 10 MHz BW
                 --gnb.stack.pusch.mcs=28 # Maximum MCS
+                --gnb.stack.use_dummy_sched=false # Use real NR scheduler
                 --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                 --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
                 )
+
+        add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_prach nr_phy_test
+                --reference=carrier=${NR_PHY_TEST_BW}
+                --duration=1000 # 100 slots
+                --gnb.stack.pdsch.slots=none # No PDSCH
+                --gnb.stack.pusch.slots=none # No PUSCH
+                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+                --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
+                --ue.stack.prach.preamble=10 # Use preamble 10
+                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                )
     endforeach ()
-
-    add_nr_test(nr_phy_test_10MHz_bidir_sched nr_phy_test
-            --duration=100 # 100 slots
-            --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
-            --gnb.stack.pdsch.start=0 # Start at RB 0
-            --gnb.stack.pdsch.length=52 # Full 10 MHz BW
-            --gnb.stack.pdsch.mcs=28 # Maximum MCS
-            --gnb.stack.pusch.slots=6,7,8,9 # All possible UL slots
-            --gnb.stack.pusch.start=0 # Start at RB 0
-            --gnb.stack.pusch.length=52 # Full 10 MHz BW
-            --gnb.stack.pusch.mcs=28 # Maximum MCS
-            --gnb.stack.use_dummy_sched=false # Use real NR scheduler
-            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
-            )
-
-    add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_prach nr_phy_test
-            --reference=carrier=${NR_PHY_TEST_BW}
-            --duration=1000 # 100 slots
-            --gnb.stack.pdsch.slots=none # No PDSCH
-            --gnb.stack.pusch.slots=none # No PUSCH
-            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-            --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
-            --ue.stack.prach.preamble=10 # Use preamble 10
-            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
-            )
 endif ()

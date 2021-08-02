@@ -36,7 +36,7 @@ private:
 
 public:
   struct args_t {
-    double                          srate_hz     = 11.52e6;
+    double                          srate_hz     = (double)(768 * SRSRAN_SUBC_SPACING_NR(0));
     uint32_t                        nof_channels = 1;
     uint32_t                        buffer_sz_ms = 10;
     bool                            valid        = false;
