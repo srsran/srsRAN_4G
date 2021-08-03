@@ -3579,7 +3579,7 @@ bool reestablish_test()
     }
   }
 
-  TESTASSERT(tester.sdus.size() == 17);
+  TESTASSERT(tester.sdus.size() == 18);
 
   srslog::fetch_basic_logger("TEST").info("Received %zd SDUs", tester.sdus.size());
 
