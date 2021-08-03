@@ -549,8 +549,15 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
+  // Protect softbuffer access
   if (!tb->softbuffer.rx) {
     ERROR("Missing softbuffer!");
+    return SRSRAN_ERROR;
+  }
+
+  // Protect PDU access
+  if (!res->payload) {
+    ERROR("Missing payload pointer!");
     return SRSRAN_ERROR;
   }
 

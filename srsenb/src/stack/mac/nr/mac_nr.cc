@@ -283,13 +283,7 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
     pusch_slot++;
   }
 
-  int ret = sched.get_ul_sched(pusch_slot, 0, ul_sched);
-  for (pusch_t& pusch : ul_sched.pusch) {
-    pusch.data[0] = nullptr; // FIXME: add ptr to data to be filled
-    pusch.data[1] = nullptr;
-  }
-
-  return SRSRAN_SUCCESS;
+  return sched.get_ul_sched(pusch_slot, 0, ul_sched);
 }
 
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
@@ -314,7 +308,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
 
 int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
 {
-  uint16_t                     rnti = pusch_info.rnti;
+  uint16_t rnti = pusch_info.rnti;
 
   // Handle UCI data
   if (not handle_uci_data(rnti, pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {

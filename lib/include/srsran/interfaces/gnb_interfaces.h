@@ -240,9 +240,8 @@ public:
   };
 
   struct pusch_t {
-    uint32_t                            pid  = 0;  ///< HARQ process ID
-    srsran_sch_cfg_nr_t                 sch  = {}; ///< PUSCH configuration
-    std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
+    uint32_t            pid = 0;  ///< HARQ process ID
+    srsran_sch_cfg_nr_t sch = {}; ///< PUSCH configuration
   };
 
   /**
@@ -272,11 +271,19 @@ public:
   };
 
   struct pusch_info_t {
-    uint16_t              rnti;
-    uint32_t              pid = 0; ///< HARQ process ID
+    // Context
+    uint16_t rnti;    ///< UE temporal identifier
+    uint32_t pid = 0; ///< HARQ process ID
+
+    // SCH and UCI payload information
     srsran_pusch_res_nr_t pusch_data;
     srsran_uci_cfg_nr_t   uci_cfg; ///< Provides UCI configuration, so stack does not need to keep the pending state
-    // ... add signal measurements here
+
+    // Actual SCH PDU
+    srsran::unique_byte_buffer_t pdu = nullptr;
+
+    // PUSCH signal measurements
+    // ...
   };
 
   struct rach_info_t {

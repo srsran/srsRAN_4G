@@ -11,16 +11,15 @@
  */
 
 #include "srsenb/hdr/phy/nr/slot_worker.h"
-#include <srsran/common/common.h>
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
 
 namespace srsenb {
 namespace nr {
 slot_worker::slot_worker(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
                          srslog::basic_logger&         logger_) :
-  common(common_),
-  stack(stack_),
-  logger(logger_)
+  common(common_), stack(stack_), logger(logger_)
 {
   // Do nothing
 }
@@ -203,12 +202,13 @@ bool slot_worker::work_ul()
 
   // For each PUSCH...
   for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
-    // Get payload PDU
+    // Prepare PUSCH
     stack_interface_phy_nr::pusch_info_t pusch_info = {};
     pusch_info.uci_cfg                              = pusch.sch.uci;
     pusch_info.pid                                  = pusch.pid;
-    pusch_info.pusch_data.tb[0].payload             = pusch.data[0];
-    pusch_info.pusch_data.tb[1].payload             = pusch.data[1];
+    pusch_info.pdu                                  = srsran::make_byte_buffer();
+    pusch_info.pusch_data.tb[0].payload             = pusch_info.pdu->data();
+    pusch_info.pusch_data.tb[1].payload             = pusch_info.pdu->data();
 
     // Decode PUSCH
     if (srsran_gnb_ul_get_pusch(&gnb_ul, &ul_slot_cfg, &pusch.sch, &pusch.sch.grant, &pusch_info.pusch_data) <
@@ -369,7 +369,10 @@ bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsra
 
   // Set gNb UL carrier
   if (srsran_gnb_ul_set_carrier(&gnb_ul, &carrier) < SRSRAN_SUCCESS) {
-    logger.error("Error setting UL carrier");
+    logger.error("Error setting UL carrier (pci=%d, nof_prb=%d, max_mimo_layers=%d)",
+                 carrier.pci,
+                 carrier.nof_prb,
+                 carrier.max_mimo_layers);
     return false;
   }
 

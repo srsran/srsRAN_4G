@@ -77,7 +77,7 @@ public:
   void         new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) override
   {
     action->tb.enabled    = true;
-    action->tb.softbuffer = &rx_harq_proc[grant.pid].get_softbuffer(grant.ndi);
+    action->tb.softbuffer = &rx_harq_proc[grant.pid].get_softbuffer(grant.ndi, grant.tbs);
   }
   void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result) override {}
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action) override

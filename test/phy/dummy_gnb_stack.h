@@ -264,7 +264,8 @@ private:
     }
 
     // Set softbuffer
-    pusch_cfg.grant.tb[0].softbuffer.rx = &rx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi);
+    pusch_cfg.grant.tb[0].softbuffer.rx =
+        &rx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
 
     // Push scheduling results
     dl_sched.pdcch_ul.push_back(pdcch);
@@ -464,11 +465,6 @@ public:
     if (not use_dummy_sched) {
       int ret = sched->get_ul_sched(pusch_slot, 0, ul_sched);
 
-      for (pusch_t& pusch : ul_sched.pusch) {
-        pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
-        pusch.data[1] = nullptr;
-      }
-
       return ret;
     }
 
@@ -495,10 +491,6 @@ public:
 
     // Schedule PUSCH
     if (has_pusch) {
-      // Generate data
-      pusch.data[0] = rx_harq_proc[pusch.pid].get_tb(pusch.sch.grant.tb[0].tbs).data();
-      pusch.data[1] = nullptr;
-
       // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
         logger.error("Error setting UCI configuration in PUSCH");
