@@ -618,28 +618,77 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   sr_res1.periodicity_and_offset.set_sl40();
   sr_res1.periodicity_and_offset.sl40() = 7;
   sr_res1.res_present                   = true;
-  sr_res1.res                           = 0; // only PUCCH resource we have defined so far
+  sr_res1.res                           = 2; // PUCCH resource for SR
 
   // DL data
   ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(5);
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 8;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[1] = 7;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[2] = 6;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[3] = 5;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(6);
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 6;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[1] = 5;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[2] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[3] = 4;
   ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[4] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[5] = 4;
 
-  // PUCCH resources (only one format1 for the moment)
+  // PUCCH Resource for format 1
+  srsran_pucch_nr_resource_t resource_small = {};
+  resource_small.starting_prb               = 0;
+  resource_small.format                     = SRSRAN_PUCCH_NR_FORMAT_1;
+  resource_small.initial_cyclic_shift       = 0;
+  resource_small.nof_symbols                = 14;
+  resource_small.start_symbol_idx           = 0;
+  resource_small.time_domain_occ            = 0;
+
+  // PUCCH Resource for format 2
+  srsran_pucch_nr_resource_t resource_big = {};
+  resource_big.starting_prb               = 51;
+  resource_big.format                     = SRSRAN_PUCCH_NR_FORMAT_2;
+  resource_big.nof_prb                    = 1;
+  resource_big.nof_symbols                = 2;
+  resource_big.start_symbol_idx           = 12;
+
+  // Resource for SR
+  srsran_pucch_nr_resource_t resource_sr = {};
+  resource_sr.starting_prb               = 51;
+  resource_sr.format                     = SRSRAN_PUCCH_NR_FORMAT_1;
+  resource_sr.initial_cyclic_shift       = 0;
+  resource_sr.nof_symbols                = 14;
+  resource_sr.start_symbol_idx           = 0;
+  resource_sr.time_domain_occ            = 0;
+
+  // Make 3 possible resources
   ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list_present = true;
-  ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list.resize(1);
-  auto& pucch_res1        = ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[0];
-  pucch_res1.pucch_res_id = 0;
-  pucch_res1.start_prb    = 0;
-  pucch_res1.format.set_format1();
-  pucch_res1.format.format1().init_cyclic_shift = 0;
-  pucch_res1.format.format1().nrof_symbols      = 14;
-  pucch_res1.format.format1().start_symbol_idx  = 0;
-  pucch_res1.format.format1().time_domain_occ   = 0;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list.resize(3);
+  if (not srsran::make_phy_res_config(
+          resource_small, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[0], 0)) {
+    parent->logger.warning("Failed to create 1-2 bit NR PUCCH resource");
+  }
+  if (not srsran::make_phy_res_config(
+          resource_big, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[1], 1)) {
+    parent->logger.warning("Failed to create >2 bit NR PUCCH resource");
+  }
+  if (not srsran::make_phy_res_config(
+          resource_big, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[2], 2)) {
+    parent->logger.warning("Failed to create SR NR PUCCH resource");
+  }
+
+  // Make 2 PUCCH resource sets
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list.resize(2);
+
+  // Make PUCCH resource set for 1-2 bit
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[0].pucch_res_set_id = 0;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[0].res_list.resize(8);
+  for (auto& e : ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[0].res_list) {
+    e = 0;
+  }
+
+  // Make PUCCH resource set for >2 bit
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[1].pucch_res_set_id = 1;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[1].res_list.resize(8);
+  for (auto& e : ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[1].res_list) {
+    e = 1;
+  }
 
   // PUSCH config
   ul_config.init_ul_bwp.pusch_cfg_present = true;
@@ -946,7 +995,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   tdd_config.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
   tdd_config.pattern1.nrof_dl_slots        = 6;
   tdd_config.pattern1.nrof_dl_symbols      = 0;
-  tdd_config.pattern1.nrof_ul_slots        = 3;
+  tdd_config.pattern1.nrof_ul_slots        = 4;
   tdd_config.pattern1.nrof_ul_symbols      = 0;
 
   // make sufficiant space
