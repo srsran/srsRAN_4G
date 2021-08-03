@@ -85,11 +85,13 @@ public:
   dl_harq_proc(uint32_t id_, uint32_t nprb);
 
   tx_harq_softbuffer& get_softbuffer() { return *softbuffer; }
-  uint8_t*            get_tx_pdu() { return pdu->msg; }
+  srsran::unique_byte_buffer_t* get_tx_pdu() { return &pdu; }
 
+  // clear and reset softbuffer and PDU for new tx
   bool set_tbs(uint32_t tbs)
   {
     softbuffer->reset();
+    pdu->clear();
     return harq_proc::set_tbs(tbs);
   }
 

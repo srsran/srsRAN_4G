@@ -230,7 +230,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(ret, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
-  pdsch.data[0]                       = ue.h_dl->get_tx_pdu();
+  pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
   if (ue.h_dl->nof_retx() == 0) {
     ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
   } else {

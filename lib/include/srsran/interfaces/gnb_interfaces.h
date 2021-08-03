@@ -223,8 +223,8 @@ public:
   };
 
   struct pdsch_t {
-    srsran_sch_cfg_nr_t                 sch  = {}; ///< PDSCH configuration
-    std::array<uint8_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
+    srsran_sch_cfg_nr_t                               sch  = {}; ///< PDSCH configuration
+    std::array<srsran::byte_buffer_t*, SRSRAN_MAX_TB> data = {}; ///< Data pointer
   };
 
   struct ssb_t {

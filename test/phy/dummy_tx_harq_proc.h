@@ -49,12 +49,12 @@ public:
     srsran_random_free(random_gen);
   }
 
-  srsran::byte_buffer_t& get_tb(uint32_t tbs_)
+  srsran::byte_buffer_t* get_tb(uint32_t tbs_)
   {
     std::unique_lock<std::mutex> lock(mutex);
     tbs = tbs_;
     srsran_random_byte_vector(random_gen, data.msg, tbs / 8);
-    return data;
+    return &data;
   }
 
   srsran_softbuffer_tx_t& get_softbuffer(uint32_t ndi_)

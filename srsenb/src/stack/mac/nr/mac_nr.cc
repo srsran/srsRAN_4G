@@ -272,7 +272,21 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
     pdsch_slot++;
   }
 
-  return sched.get_dl_sched(pdsch_slot, 0, dl_sched);
+  int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
+  for (pdsch_t& pdsch : dl_sched.pdsch) {
+    for (auto& tb_data : pdsch.data) {
+      if (tb_data != nullptr) {
+        // TODO: exclude retx from packing
+        uint16_t                  rnti = pdsch.sch.grant.rnti;
+        srsran::rwlock_read_guard rw_lock(rwlock);
+        if (not is_rnti_active_unsafe(rnti)) {
+          continue;
+        }
+        ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+      }
+    }
+  }
+  return SRSRAN_SUCCESS;
 }
 
 int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)

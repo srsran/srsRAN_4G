@@ -202,7 +202,7 @@ private:
 
     // Set TBS
     // Select grant and set data
-    pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
+    pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs);
 
     // Set softbuffer
     pdsch.sch.grant.tb[0].softbuffer.tx = &tx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi);
@@ -422,7 +422,7 @@ public:
       for (pdsch_t& pdsch : dl_sched.pdsch) {
         // Set TBS
         // Select grant and set data
-        pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs).data();
+        pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs);
         pdsch.data[1] = nullptr;
       }
 

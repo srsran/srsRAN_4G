@@ -295,8 +295,16 @@ bool slot_worker::work_dl()
 
   // Encode PDSCH
   for (stack_interface_phy_nr::pdsch_t& pdsch : dl_sched.pdsch) {
+    // convert MAC to PHY buffer data structures
+    uint8_t* data[SRSRAN_MAX_TB] = {};
+    for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
+      if (pdsch.data[i] != nullptr) {
+        data[i] = pdsch.data[i]->msg;
+      }
+    }
+
     // Put PDSCH message
-    if (srsran_gnb_dl_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, pdsch.data.data()) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, data) < SRSRAN_SUCCESS) {
       logger.error("PDSCH: Error putting DL message");
       return false;
     }
