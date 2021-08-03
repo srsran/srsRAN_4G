@@ -732,6 +732,42 @@ bool make_phy_res_config(const pucch_res_s&          pucch_res,
   return true;
 }
 
+bool make_phy_res_config(const srsran_pucch_nr_resource_t& in_pucch_res,
+                         asn1::rrc_nr::pucch_res_s&        out_pucch_res,
+                         uint32_t                          pucch_res_id)
+{
+  out_pucch_res.pucch_res_id = pucch_res_id;
+  out_pucch_res.start_prb    = in_pucch_res.starting_prb;
+
+  switch (in_pucch_res.format) {
+    case SRSRAN_PUCCH_NR_FORMAT_0:
+      asn1::log_warning("SRSRAN_PUCCH_NR_FORMAT_0 conversion not supported");
+      return false;
+    case SRSRAN_PUCCH_NR_FORMAT_1:
+      out_pucch_res.format.set_format1();
+      out_pucch_res.format.format1().init_cyclic_shift = in_pucch_res.initial_cyclic_shift;
+      out_pucch_res.format.format1().nrof_symbols      = in_pucch_res.nof_symbols;
+      out_pucch_res.format.format1().start_symbol_idx  = in_pucch_res.start_symbol_idx;
+      out_pucch_res.format.format1().time_domain_occ   = in_pucch_res.time_domain_occ;
+      return true;
+    case SRSRAN_PUCCH_NR_FORMAT_2:
+      out_pucch_res.format.set_format2();
+      out_pucch_res.format.format2().nrof_symbols     = in_pucch_res.nof_symbols;
+      out_pucch_res.format.format2().start_symbol_idx = in_pucch_res.start_symbol_idx;
+      out_pucch_res.format.format2().nrof_prbs        = in_pucch_res.nof_prb;
+      return true;
+    case SRSRAN_PUCCH_NR_FORMAT_3:
+      asn1::log_warning("SRSRAN_PUCCH_NR_FORMAT_3 conversion not supported");
+      return true;
+    case SRSRAN_PUCCH_NR_FORMAT_4:
+      asn1::log_warning("SRSRAN_PUCCH_NR_FORMAT_4 conversion not supported");
+      return false;
+    default:
+      asn1::log_warning("Invalid NR PUCCH format");
+  }
+  return false;
+}
+
 bool make_phy_sr_resource(const sched_request_res_cfg_s& sched_request_res_cfg,
                           srsran_pucch_nr_sr_resource_t* in_srsran_pucch_nr_sr_resource)
 {

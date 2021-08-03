@@ -89,6 +89,9 @@ bool make_phy_max_code_rate(const asn1::rrc_nr::pucch_format_cfg_s& pucch_format
 bool make_phy_res_config(const asn1::rrc_nr::pucch_res_s& pucch_res,
                          uint32_t                         format_2_max_code_rate,
                          srsran_pucch_nr_resource_t*      srsran_pucch_nr_resource);
+bool make_phy_res_config(const srsran_pucch_nr_resource_t& in_pucch_res,
+                         asn1::rrc_nr::pucch_res_s&        out_pucch_res,
+                         uint32_t                          pucch_res_id);
 bool make_phy_sr_resource(const asn1::rrc_nr::sched_request_res_cfg_s& sched_request_res_cfg,
                           srsran_pucch_nr_sr_resource_t*               srsran_pucch_nr_sr_resource);
 bool make_phy_pusch_alloc_type(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg,
