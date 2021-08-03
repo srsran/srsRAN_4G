@@ -499,7 +499,7 @@ static int ra_ul_nr_pucch_resource_hl(const srsran_pucch_nr_hl_cfg_t* cfg,
   } else if (O_uci <= N3 && cfg->sets[2].nof_resources > 0) {
     resource_set_id = 2;
   } else if (cfg->sets[3].nof_resources == 0) {
-    ERROR("Invalid PUCCH resource configuration, N3=%d, O_uci=%d", N3, O_uci);
+    ERROR("Invalid PUCCH resource configuration, N2=%d, N3=%d, O_uci=%d", N2, N3, O_uci);
     return SRSRAN_ERROR;
   } else if (O_uci > SRSRAN_UCI_NR_MAX_NOF_BITS) {
     ERROR("The number of UCI bits (%d), exceeds the maximum (%d)", O_uci, SRSRAN_UCI_NR_MAX_NOF_BITS);

@@ -529,19 +529,28 @@ bool cc_worker::work_dl()
 
 bool cc_worker::work_ul()
 {
+  // Gather PDSCH ACK information independently if UL/DL
+  // If a HARQ ACK Feedback needs to be transmitted in this slot and it is NOT an UL slot, the accumulated HARQ feedback
+  // for this slot will be flushed
+  srsran_pdsch_ack_nr_t pdsch_ack  = {};
+  bool                  has_ul_ack = phy.get_pending_ack(ul_slot_cfg.idx, pdsch_ack);
+
   // Check if it is a UL slot, if not skip
   if (!srsran_tdd_nr_is_ul(&phy.cfg.tdd, 0, ul_slot_cfg.idx)) {
     // No NR signal shall be transmitted
     srsran_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
+
+    // Check if there is any pending ACK for this DL slot...
+    if (pdsch_ack.nof_cc > 1) {
+      // ... in this case log a warning to inform about miss-configuration
+      logger.warning("Detected HARQ feedback on DL slot");
+    }
+
     return true;
   }
 
   srsran_uci_data_nr_t uci_data = {};
   uint32_t             pid      = 0;
-
-  // Gather PDSCH ACK information
-  srsran_pdsch_ack_nr_t pdsch_ack  = {};
-  bool                  has_ul_ack = phy.get_pending_ack(ul_slot_cfg.idx, pdsch_ack);
 
   // Request grant to PHY state for this transmit TTI
   srsran_sch_cfg_nr_t pusch_cfg       = {};
