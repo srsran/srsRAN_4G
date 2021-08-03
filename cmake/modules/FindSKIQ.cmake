@@ -5,6 +5,7 @@
 # forth in the LICENSE file which can be found at the top level of
 # the distribution.
 #
+
 INCLUDE(FindPkgConfig)
 #PKG_CHECK_MODULES(SKIQ SKIQ)
 IF(NOT SKIQ_FOUND)
