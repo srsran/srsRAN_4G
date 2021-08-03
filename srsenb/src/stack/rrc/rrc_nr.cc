@@ -44,10 +44,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   // TODO: overwriting because we are not passing config right now
   cfg = update_default_cfg(cfg_);
 
-  // config logging
-  logger.set_level(srslog::str_to_basic_level(cfg.log_level));
-  logger.set_hex_dump_max_size(cfg.log_hex_limit);
-
   // derived
   slot_dur_ms = 1;
 
@@ -150,10 +146,6 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   sib2_s& sib2                             = cfg_default.sibs[0].set_sib2();
   sib2.cell_resel_info_common.q_hyst.value = sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
   // TODO: Fill SIB2 values
-
-  // set loglevel
-  cfg_default.log_level     = "debug";
-  cfg_default.log_hex_limit = 10000;
 
   return cfg_default;
 }
