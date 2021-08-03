@@ -207,8 +207,11 @@ bool slot_worker::work_ul()
     pusch_info.uci_cfg                              = pusch.sch.uci;
     pusch_info.pid                                  = pusch.pid;
     pusch_info.pdu                                  = srsran::make_byte_buffer();
-    pusch_info.pusch_data.tb[0].payload             = pusch_info.pdu->data();
-    pusch_info.pusch_data.tb[1].payload             = pusch_info.pdu->data();
+    if (pusch_info.pdu == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
+    pusch_info.pusch_data.tb[0].payload = pusch_info.pdu->data();
 
     // Decode PUSCH
     if (srsran_gnb_ul_get_pusch(&gnb_ul, &ul_slot_cfg, &pusch.sch, &pusch.sch.grant, &pusch_info.pusch_data) <
