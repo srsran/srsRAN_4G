@@ -182,7 +182,24 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   return true;
 }
 
-void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) {}
+void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
+{
+  // Get AMD PDU Header
+  rlc_am_nr_pdu_header_t header = {};
+  rlc_am_nr_read_data_pdu_header(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &header);
+
+  // Check poll bit
+  if (header.p != 0) {
+    logger->info("%s Status packet requested through polling bit", parent->rb_name);
+    bool do_status = true;
+
+    // 36.322 v10 Section 5.2.3
+    // if (RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) || RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr)) {
+    //  do_status = true;
+    //}
+    // else delay for reordering timer
+  }
+}
 
 void rlc_am_nr_rx::stop() {}
 
