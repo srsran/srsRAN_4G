@@ -276,7 +276,8 @@ bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_
   return true;
 }
 
-void rlc_am_undelivered_sdu_info_to_string(fmt::memory_buffer& buffer, const std::vector<pdcp_pdu_info>& info_queue)
+void rlc_am_undelivered_sdu_info_to_string(fmt::memory_buffer&                                      buffer,
+                                           const std::vector<pdcp_pdu_info<rlc_amd_pdu_header_t> >& info_queue)
 {
   fmt::format_to(buffer, "\n");
   for (const auto& pdcp_pdu : info_queue) {

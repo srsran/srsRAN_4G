@@ -17,6 +17,8 @@
 #include "srsran/common/common.h"
 #include "srsran/common/timers.h"
 #include "srsran/rlc/rlc_am_base.h"
+#include "srsran/rlc/rlc_am_data_structs.h"
+#include "srsran/rlc/rlc_am_nr_packing.h"
 #include "srsran/upper/byte_buffer_queue.h"
 #include <map>
 #include <mutex>
@@ -82,6 +84,9 @@ public:
       uint32_t pdu_without_poll;
       uint32_t byte_without_poll;
     } st = {};
+
+    using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+    rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
   };
 
   // Receiver sub-class

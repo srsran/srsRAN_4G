@@ -14,10 +14,13 @@
 #define SRSRAN_RLC_COMMON_H
 
 #include "srsran/adt/circular_buffer.h"
+#include "srsran/adt/circular_map.h"
+#include "srsran/adt/intrusive_list.h"
 #include "srsran/interfaces/rlc_interface_types.h"
 #include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/rlc/rlc_metrics.h"
-#include <stdlib.h>
+#include <cstdlib>
+#include <list>
 
 namespace srsran {
 

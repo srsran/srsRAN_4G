@@ -143,9 +143,9 @@ public:
     void check_sn_reached_max_retx(uint32_t sn);
     void get_buffer_state_nolock(uint32_t& new_tx, uint32_t& prio_tx);
 
-    rlc_am_lte*             parent = nullptr;
-    byte_buffer_pool*       pool   = nullptr;
-    rlc_am_pdu_segment_pool segment_pool;
+    rlc_am_lte*                                   parent = nullptr;
+    byte_buffer_pool*                             pool   = nullptr;
+    rlc_am_pdu_segment_pool<rlc_amd_pdu_header_t> segment_pool;
 
     /****************************************************************************
      * Configurable parameters
@@ -183,12 +183,12 @@ public:
     srsran::timer_handler::unique_timer status_prohibit_timer;
 
     // SDU info for PDCP notifications
-    buffered_pdcp_pdu_list undelivered_sdu_info_queue;
+    buffered_pdcp_pdu_list<rlc_amd_pdu_header_t> undelivered_sdu_info_queue;
 
     // Tx windows
-    rlc_ringbuffer_t<rlc_amd_tx_pdu, RLC_AM_WINDOW_SIZE> tx_window;
-    pdu_retx_queue                                       retx_queue;
-    pdcp_sn_vector_t                                     notify_info_vec;
+    rlc_ringbuffer_t<rlc_amd_tx_pdu<rlc_amd_pdu_header_t>, RLC_AM_WINDOW_SIZE> tx_window;
+    pdu_retx_queue                                                             retx_queue;
+    pdcp_sn_vector_t                                                           notify_info_vec;
 
     // Mutexes
     std::mutex mutex;

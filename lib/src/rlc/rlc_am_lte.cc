@@ -25,69 +25,9 @@
 
 namespace srsran {
 
-/*******************************
- *      RLC AM Segments
- ******************************/
-
-int rlc_am_pdu_segment_pool::segment_resource::id() const
-{
-  return std::distance(parent_pool->segments.cbegin(), this);
-}
-
-void rlc_am_pdu_segment_pool::segment_resource::release_pdcp_sn()
-{
-  pdcp_sn_ = invalid_pdcp_sn;
-  if (empty()) {
-    parent_pool->free_list.push_front(this);
-  }
-}
-
-void rlc_am_pdu_segment_pool::segment_resource::release_rlc_sn()
-{
-  rlc_sn_ = invalid_rlc_sn;
-  if (empty()) {
-    parent_pool->free_list.push_front(this);
-  }
-}
-
-rlc_am_pdu_segment_pool::rlc_am_pdu_segment_pool()
-{
-  for (segment_resource& s : segments) {
-    s.parent_pool = this;
-    free_list.push_front(&s);
-  }
-}
-
-bool rlc_am_pdu_segment_pool::make_segment(rlc_amd_tx_pdu& rlc_list, pdcp_pdu_info& pdcp_list)
-{
-  if (not has_segments()) {
-    return false;
-  }
-  segment_resource* segment = free_list.pop_front();
-  segment->rlc_sn_          = rlc_list.rlc_sn;
-  segment->pdcp_sn_         = pdcp_list.sn;
-  rlc_list.add_segment(*segment);
-  pdcp_list.add_segment(*segment);
-  return true;
-}
-
-void pdcp_pdu_info::ack_segment(rlc_am_pdu_segment& segment)
-{
-  // remove from list
-  list.pop(&segment);
-  // signal pool that the pdcp handle is released
-  segment.release_pdcp_sn();
-}
-
-rlc_amd_tx_pdu::~rlc_amd_tx_pdu()
-{
-  while (not list.empty()) {
-    // remove from list
-    rlc_am_pdu_segment* segment = list.pop_front();
-    // deallocate if also removed from PDCP
-    segment->release_rlc_sn();
-  }
-}
+using pdcp_pdu_info_lte  = pdcp_pdu_info<rlc_amd_pdu_header_t>;
+using rlc_amd_tx_pdu_lte = rlc_amd_tx_pdu<rlc_amd_pdu_header_t>;
+using rlc_am_pdu_segment = rlc_am_pdu_segment_pool<rlc_amd_pdu_header_t>::segment_resource;
 
 /****************************************************************************
  * RLC AM LTE entity
@@ -432,7 +372,7 @@ void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
   }
 
   // select first PDU in tx window for retransmission
-  rlc_amd_tx_pdu& pdu = tx_window[sn];
+  rlc_amd_tx_pdu_lte& pdu = tx_window[sn];
 
   // increment retx counter and inform upper layers
   pdu.retx_count++;
@@ -823,7 +763,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
 
   // insert newly assigned SN into window and use reference for in-place operations
   // NOTE: from now on, we can't return from this function anymore before increasing vt_s
-  rlc_amd_tx_pdu& tx_pdu = tx_window.add_pdu(header.sn);
+  rlc_amd_tx_pdu_lte& tx_pdu = tx_window.add_pdu(header.sn);
 
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;
@@ -843,7 +783,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
-      pdcp_pdu_info& pdcp_pdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
+      pdcp_pdu_info_lte& pdcp_pdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
       segment_pool.make_segment(tx_pdu, pdcp_pdu);
       if (tx_sdu->N_bytes == 0) {
         pdcp_pdu.fully_txed = true;
@@ -914,7 +854,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
                     undelivered_sdu_info_queue.nof_sdus());
       undelivered_sdu_info_queue.add_pdcp_sdu(tx_sdu->md.pdcp_sn);
     }
-    pdcp_pdu_info& pdcp_pdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
+    pdcp_pdu_info_lte& pdcp_pdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
 
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
@@ -1155,7 +1095,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(uint32_t rlc_sn)
       logger->debug("ACKed segment in RLC_SN=%d already discarded in PDCP. No need to notify the PDCP.", rlc_sn);
       continue;
     }
-    pdcp_pdu_info& info = undelivered_sdu_info_queue[pdcp_sn];
+    pdcp_pdu_info_lte& info = undelivered_sdu_info_queue[pdcp_sn];
 
     // Remove RLC SN from PDCP PDU undelivered list
     info.ack_segment(acked_segment);
