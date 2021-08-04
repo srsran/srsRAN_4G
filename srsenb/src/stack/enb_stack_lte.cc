@@ -177,7 +177,8 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     stack_logger.error("Couldn't initialize RRC-NR");
     return SRSRAN_ERROR;
   }
-  // FIXME: Add RLC and PDCP
+  rlc_nr.init(&pdcp_nr, &rrc_nr, &mac_nr, task_sched.get_timer_handler());
+  pdcp_nr.init(&rlc_nr, &rrc_nr, &gtpu);
 
   gtpu_args_t gtpu_args;
   gtpu_args.embms_enable                 = args.embms.enable;
