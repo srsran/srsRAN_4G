@@ -27,7 +27,8 @@ namespace srsenb {
 mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("MAC-NR")),
   task_sched(task_sched_),
-  sched(srsenb::sched_nr_interface::sched_cfg_t{})
+  sched(srsenb::sched_nr_interface::sched_cfg_t{}),
+  bcch_bch_payload(srsran::make_byte_buffer())
 {
   stack_task_queue = task_sched.make_task_queue();
 }
@@ -60,11 +61,6 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   sched.cell_cfg(cells_cfg);
 
   detected_rachs.resize(cells_cfg.size());
-
-  bcch_bch_payload = srsran::make_byte_buffer();
-  if (bcch_bch_payload == nullptr) {
-    return SRSRAN_ERROR;
-  }
 
   logger.info("Started");
 
@@ -203,9 +199,6 @@ uint16_t mac_nr::add_ue(uint32_t enb_cc_idx)
     }
   } while (inserted_ue == nullptr);
 
-  // Set PCAP if available
-  // ..
-
   return rnti;
 }
 
@@ -283,6 +276,11 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
           continue;
         }
         ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+
+        if (pcap != nullptr) {
+          uint32_t pid = 0; // TODO: get PID from PDCCH struct?
+          pcap->write_dl_crnti_nr(tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg.idx);
+        }
       }
     }
   }
