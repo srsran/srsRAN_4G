@@ -21,6 +21,9 @@
 #include "srsran/interfaces/rlc_interface_types.h"
 #include "srsran/interfaces/rrc_interface_types.h"
 #include "srsran/interfaces/sched_interface.h"
+// EUTRA interfaces that are used unmodified
+#include "srsran/interfaces/enb_mac_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
@@ -37,11 +40,9 @@ public:
   virtual uint16_t reserve_rnti() = 0;
 };
 
-class mac_interface_rlc_nr
-{
-public:
-  virtual int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) = 0;
-};
+// NR interface is identical to EUTRA interface
+class mac_interface_rlc_nr : public mac_interface_rlc
+{};
 
 /*****************************
  *      RLC INTERFACES
@@ -152,20 +153,18 @@ public:
   /// User management
   virtual int add_user(uint16_t rnti) = 0;
 };
-class rrc_interface_rlc_nr
+
+// NR interface is almost identical to EUTRA version
+class rrc_interface_rlc_nr : public rrc_interface_rlc
 {
 public:
-  virtual void        read_pdu_pcch(uint8_t* payload, uint32_t payload_size)                    = 0;
-  virtual void        max_retx_attempted(uint16_t rnti)                                         = 0;
-  virtual void        protocol_failure(uint16_t rnti)                                           = 0;
-  virtual void        write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) = 0;
-  virtual const char* get_rb_name(uint32_t lcid)                                                = 0;
+  virtual void        read_pdu_pcch(uint8_t* payload, uint32_t payload_size) = 0;
+  virtual const char* get_rb_name(uint32_t lcid)                             = 0;
 };
-class rrc_interface_pdcp_nr
+
+// NR interface identical to EUTRA version
+class rrc_interface_pdcp_nr : public rrc_interface_pdcp
 {
-public:
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
-  virtual void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid)                 = 0;
 };
 
 class phy_interface_rrc_nr
