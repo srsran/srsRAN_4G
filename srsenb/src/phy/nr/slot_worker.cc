@@ -206,11 +206,13 @@ bool slot_worker::work_ul()
     stack_interface_phy_nr::pusch_info_t pusch_info = {};
     pusch_info.uci_cfg                              = pusch.sch.uci;
     pusch_info.pid                                  = pusch.pid;
+    pusch_info.rnti                                 = pusch.sch.grant.rnti;
     pusch_info.pdu                                  = srsran::make_byte_buffer();
     if (pusch_info.pdu == nullptr) {
       logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return false;
     }
+    pusch_info.pdu->N_bytes             = pusch.sch.grant.tb[0].tbs;
     pusch_info.pusch_data.tb[0].payload = pusch_info.pdu->data();
 
     // Decode PUSCH

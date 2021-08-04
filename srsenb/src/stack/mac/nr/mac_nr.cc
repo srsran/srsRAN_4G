@@ -320,7 +320,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   return true;
 }
 
-int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
+int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::pusch_info_t& pusch_info)
 {
   uint16_t rnti = pusch_info.rnti;
 
@@ -332,9 +332,12 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
 
   sched.ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
 
-  // FIXME: move PDU from PHY
-  srsran::unique_byte_buffer_t rx_pdu;
-  auto                         process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
+  if (pusch_info.pusch_data.tb[0].crc && pcap) {
+    pcap->write_ul_crnti_nr(
+        pusch_info.pdu->msg, pusch_info.pdu->N_bytes, pusch_info.rnti, pusch_info.pid, slot_cfg.idx);
+  }
+
+  auto process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
     srsran::rwlock_read_guard lock(rwlock);
     if (is_rnti_active_unsafe(rnti)) {
       ue_db[rnti]->process_pdu(std::move(pdu));
@@ -342,7 +345,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
       logger.debug("Discarding PDU rnti=0x%x", rnti);
     }
   };
-  stack_task_queue.try_push(std::bind(process_pdu_task, std::move(rx_pdu)));
+  stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pusch_info.pdu)));
 
   return SRSRAN_SUCCESS;
 }

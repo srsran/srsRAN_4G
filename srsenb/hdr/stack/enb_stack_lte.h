@@ -126,7 +126,7 @@ public:
   {
     return mac_nr.pucch_info(slot_cfg, pucch_info);
   }
-  int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override
+  int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
   {
     return mac_nr.pusch_info(slot_cfg, pusch_info);
   }

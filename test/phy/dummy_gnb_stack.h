@@ -584,7 +584,7 @@ public:
     return SRSRAN_SUCCESS;
   }
 
-  int pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override
+  int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
   {
     // Handle UCI data
     if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
