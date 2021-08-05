@@ -1336,6 +1336,10 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
   }
 
   uint32_t lcid = get_lcid_for_drbid(drb_cfg.drb_id);
+  if (lcid == 0) {
+    logger.error("Cannot find valid LCID for DRB %d", drb_cfg.drb_id);
+    return false;
+  }
 
   // Setup PDCP
   if (!(drb_cfg.pdcp_cfg.drb_present == true)) {
