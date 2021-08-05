@@ -54,7 +54,7 @@ void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
 
 void rlc::add_user(uint16_t rnti)
 {
-  pthread_rwlock_rdlock(&rwlock);
+  pthread_rwlock_wrlock(&rwlock);
   if (users.count(rnti) == 0) {
     auto obj = make_rnti_obj<srsran::rlc>(rnti, logger.id().c_str());
     obj->init(&users[rnti],
