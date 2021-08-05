@@ -226,16 +226,15 @@ public:
     if (!suspended) {
       return false;
     }
-    pdu_t p;
+    unique_byte_buffer_t rx_pdu;
     // Do not block
-    while (rx_pdu_resume_queue.try_pop(p)) {
-      write_pdu(p.payload, p.nof_bytes);
-      free(p.payload);
+    while (rx_pdu_resume_queue.try_pop(rx_pdu)) {
+      write_pdu(rx_pdu->msg, rx_pdu->N_bytes);
     }
 
-    unique_byte_buffer_t s;
-    while (tx_sdu_resume_queue.try_pop(s)) {
-      write_sdu(std::move(s));
+    unique_byte_buffer_t tx_sdu;
+    while (tx_sdu_resume_queue.try_pop(tx_sdu)) {
+      write_sdu(std::move(tx_sdu));
     }
     suspended = false;
     return true;
@@ -288,13 +287,22 @@ private:
   // Enqueues the Rx PDU in the resume queue
   void queue_rx_pdu(uint8_t* payload, uint32_t nof_bytes)
   {
-    pdu_t p     = {};
-    p.nof_bytes = nof_bytes;
-    p.payload   = (uint8_t*)malloc(nof_bytes);
-    memcpy(p.payload, payload, nof_bytes);
+    unique_byte_buffer_t rx_pdu = srsran::make_byte_buffer();
+    if (rx_pdu == nullptr) {
+      srslog::fetch_basic_logger("RLC").warning("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return;
+    }
+
+    if (rx_pdu->get_tailroom() < nof_bytes) {
+      srslog::fetch_basic_logger("RLC").warning("Not enough space to store PDU.");
+      return;
+    }
+
+    memcpy(rx_pdu->msg, payload, nof_bytes);
+    rx_pdu->N_bytes = nof_bytes;
 
     // Do not block ever
-    if (!rx_pdu_resume_queue.try_push(p)) {
+    if (!rx_pdu_resume_queue.try_push(std::move(rx_pdu))) {
       srslog::fetch_basic_logger("RLC").warning("Dropping SDUs while bearer suspended.");
       return;
     }
@@ -310,12 +318,7 @@ private:
     }
   }
 
-  typedef struct {
-    uint8_t* payload;
-    uint32_t nof_bytes;
-  } pdu_t;
-
-  static_blocking_queue<pdu_t, 256>                rx_pdu_resume_queue;
+  static_blocking_queue<unique_byte_buffer_t, 256> rx_pdu_resume_queue;
   static_blocking_queue<unique_byte_buffer_t, 256> tx_sdu_resume_queue;
 };
 
