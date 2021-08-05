@@ -212,7 +212,7 @@ bool slot_worker::work_ul()
       logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return false;
     }
-    pusch_info.pdu->N_bytes             = pusch.sch.grant.tb[0].tbs;
+    pusch_info.pdu->N_bytes             = pusch.sch.grant.tb[0].tbs / 8;
     pusch_info.pusch_data.tb[0].payload = pusch_info.pdu->data();
 
     // Decode PUSCH
