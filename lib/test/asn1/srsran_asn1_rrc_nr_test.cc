@@ -384,7 +384,19 @@ int test_cell_group_config()
   rlc.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
   rlc.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
-  // Skip MAC logical channel config
+
+  // MAC logical channel config
+  rlc.mac_lc_ch_cfg_present                    = true;
+  rlc.mac_lc_ch_cfg.ul_specific_params_present = true;
+  rlc.mac_lc_ch_cfg.ul_specific_params.prio    = 11;
+  rlc.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate =
+      asn1::rrc_nr::lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::kbps0;
+  rlc.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur =
+      asn1::rrc_nr::lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::ms100;
+  rlc.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present      = true;
+  rlc.mac_lc_ch_cfg.ul_specific_params.lc_ch_group              = 6;
+  rlc.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present = true;
+  rlc.mac_lc_ch_cfg.ul_specific_params.sched_request_id         = 0;
 
   // mac-CellGroup-Config
   cell_group_cfg_pack.mac_cell_group_cfg_present                         = true;
