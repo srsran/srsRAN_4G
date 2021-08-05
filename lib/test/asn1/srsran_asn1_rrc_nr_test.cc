@@ -368,6 +368,38 @@ int test_cell_group_config()
 
   // pack it again
   cell_group_cfg_s cell_group_cfg_pack;
+
+  // RLC for DRB1
+  cell_group_cfg_pack.rlc_bearer_to_add_mod_list_present = true;
+  cell_group_cfg_pack.rlc_bearer_to_add_mod_list.resize(1);
+  auto& rlc                       = cell_group_cfg_pack.rlc_bearer_to_add_mod_list[0];
+  rlc.lc_ch_id                    = 1;
+  rlc.served_radio_bearer_present = true;
+  rlc.served_radio_bearer.set_drb_id();
+  rlc.served_radio_bearer.drb_id() = 1;
+  rlc.rlc_cfg_present              = true;
+  rlc.rlc_cfg.set_um_bi_dir();
+  rlc.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
+  rlc.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
+  rlc.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
+  rlc.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
+  rlc.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
+  // Skip MAC logical channel config
+
+  // mac-CellGroup-Config
+  cell_group_cfg_pack.mac_cell_group_cfg_present                         = true;
+  auto& mac_cell_group                                                   = cell_group_cfg_pack.mac_cell_group_cfg;
+  mac_cell_group.sched_request_cfg_present                               = true;
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list_present = true;
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list.resize(1);
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list[0].sched_request_id = 0;
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list[0].sr_trans_max =
+      asn1::rrc_nr::sched_request_to_add_mod_s::sr_trans_max_opts::n64;
+  mac_cell_group.bsr_cfg_present            = true;
+  mac_cell_group.bsr_cfg.periodic_bsr_timer = asn1::rrc_nr::bsr_cfg_s::periodic_bsr_timer_opts::sf20;
+  mac_cell_group.bsr_cfg.retx_bsr_timer     = asn1::rrc_nr::bsr_cfg_s::retx_bsr_timer_opts::sf320;
+  // Skip TAG and PHR config
+
   cell_group_cfg_pack.sp_cell_cfg_present               = true;
   cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx_present = true;
 
@@ -444,7 +476,7 @@ int test_cell_group_config()
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list.resize(1);
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row4();
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0x100);
+  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0b100);
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports =
       asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p4;
 
