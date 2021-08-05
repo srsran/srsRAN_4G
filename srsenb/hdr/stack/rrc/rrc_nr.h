@@ -120,6 +120,8 @@ public:
     // state
     rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t                             transaction_id = 0;
+
+    uint32_t drb1_lcid = 4;
   };
 
 private:

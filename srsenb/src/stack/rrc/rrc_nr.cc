@@ -490,6 +490,38 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_secondary_cell_config)
 {
   cell_group_cfg_s cell_group_cfg_pack;
+
+  // RLC for DRB1 (with fixed LCID)
+  cell_group_cfg_pack.rlc_bearer_to_add_mod_list_present = true;
+  cell_group_cfg_pack.rlc_bearer_to_add_mod_list.resize(1);
+  auto& rlc                       = cell_group_cfg_pack.rlc_bearer_to_add_mod_list[0];
+  rlc.lc_ch_id                    = drb1_lcid;
+  rlc.served_radio_bearer_present = true;
+  rlc.served_radio_bearer.set_drb_id();
+  rlc.served_radio_bearer.drb_id() = 1;
+  rlc.rlc_cfg_present              = true;
+  rlc.rlc_cfg.set_um_bi_dir();
+  rlc.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
+  rlc.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
+  rlc.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
+  rlc.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
+  rlc.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
+  // Skip MAC logical channel config
+
+  // mac-CellGroup-Config for BSR and SR
+  cell_group_cfg_pack.mac_cell_group_cfg_present                         = true;
+  auto& mac_cell_group                                                   = cell_group_cfg_pack.mac_cell_group_cfg;
+  mac_cell_group.sched_request_cfg_present                               = true;
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list_present = true;
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list.resize(1);
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list[0].sched_request_id = 0;
+  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list[0].sr_trans_max =
+      asn1::rrc_nr::sched_request_to_add_mod_s::sr_trans_max_opts::n64;
+  mac_cell_group.bsr_cfg_present            = true;
+  mac_cell_group.bsr_cfg.periodic_bsr_timer = asn1::rrc_nr::bsr_cfg_s::periodic_bsr_timer_opts::sf20;
+  mac_cell_group.bsr_cfg.retx_bsr_timer     = asn1::rrc_nr::bsr_cfg_s::retx_bsr_timer_opts::sf320;
+  // Skip TAG and PHR config
+
   cell_group_cfg_pack.sp_cell_cfg_present               = true;
   cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx_present = true;
 
