@@ -31,15 +31,13 @@
  */
 #define DCI_NR_MIN_SIZE 12
 
-#define CEIL_LOG2(N) (((N) == 0) ? 0 : ceil(log2((double)(N))))
-
 static uint32_t dci_nr_freq_resource_size_type1(uint32_t N)
 {
   if (N == 0) {
     return 0;
   }
 
-  return (int)CEIL_LOG2(N * (N + 1) / 2.0);
+  return (int)SRSRAN_CEIL_LOG2(N * (N + 1) / 2.0);
 }
 
 static uint32_t dci_nr_freq_resource_size(srsran_resource_alloc_t alloc_type, uint32_t N_RBG, uint32_t N_BWP_RB)
@@ -66,7 +64,7 @@ static uint32_t dci_nr_bwp_id_size(uint32_t N_BWP_RRC)
     N_BWP = N_BWP_RRC + 1;
   }
 
-  return (int)CEIL_LOG2(N_BWP);
+  return (int)SRSRAN_CEIL_LOG2(N_BWP);
 }
 
 static uint32_t dci_nr_time_res_size(uint32_t nof_time_res)
@@ -75,7 +73,7 @@ static uint32_t dci_nr_time_res_size(uint32_t nof_time_res)
     // 4 bits are necessary for PUSCH default time resource assigment (TS 38.214 Table 6.1.2.1.1-2)
     nof_time_res = SRSRAN_MAX_NOF_TIME_RA;
   }
-  return (uint32_t)CEIL_LOG2(nof_time_res);
+  return (uint32_t)SRSRAN_CEIL_LOG2(nof_time_res);
 }
 
 static uint32_t dci_nr_ptrs_size(const srsran_dci_cfg_nr_t* cfg)
@@ -160,9 +158,9 @@ static uint32_t dci_nr_srs_id_size(const srsran_dci_cfg_nr_t* cfg)
     for (uint32_t k = 1; k < SRSRAN_MIN(cfg->nof_ul_layers, cfg->nof_srs); k++) {
       N += cfg->nof_srs / k;
     }
-    return (uint32_t)CEIL_LOG2(N);
+    return (uint32_t)SRSRAN_CEIL_LOG2(N);
   }
-  return (uint32_t)CEIL_LOG2(N_srs);
+  return (uint32_t)SRSRAN_CEIL_LOG2(N_srs);
 }
 
 // Determines DCI format 0_0 according to TS 38.212 clause 7.3.1.1.1
@@ -1249,7 +1247,7 @@ static uint32_t dci_nr_format_1_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
   }
 
   // ZP CSI-RS trigger - 0, 1, or 2 bits
-  count += (int)CEIL_LOG2(cfg->nof_aperiodic_zp + 1);
+  count += (int)SRSRAN_CEIL_LOG2(cfg->nof_aperiodic_zp + 1);
 
   // For transport block 1:
   // Modulation and coding scheme – 5 bits
@@ -1292,7 +1290,7 @@ static uint32_t dci_nr_format_1_1_sizeof(const srsran_dci_cfg_nr_t* cfg, srsran_
   count += 3;
 
   // PDSCH-to-HARQ_feedback timing indicator – 0, 1, 2, or 3 bits
-  count += (int)CEIL_LOG2(cfg->nof_dl_to_ul_ack);
+  count += (int)SRSRAN_CEIL_LOG2(cfg->nof_dl_to_ul_ack);
 
   // Antenna port(s) – 4, 5, or 6 bits
   count += dci_nr_dl_ports_size(cfg);
@@ -1365,7 +1363,7 @@ static int dci_nr_format_1_1_pack(const srsran_dci_nr_t* q, const srsran_dci_dl_
   }
 
   // ZP CSI-RS trigger - 0, 1, or 2 bits
-  srsran_bit_unpack(dci->zp_csi_rs_id, &y, CEIL_LOG2(cfg->nof_aperiodic_zp + 1));
+  srsran_bit_unpack(dci->zp_csi_rs_id, &y, SRSRAN_CEIL_LOG2(cfg->nof_aperiodic_zp + 1));
 
   // For transport block 1:
   // Modulation and coding scheme – 5 bits
@@ -1408,7 +1406,7 @@ static int dci_nr_format_1_1_pack(const srsran_dci_nr_t* q, const srsran_dci_dl_
   srsran_bit_unpack(dci->pucch_resource, &y, 3);
 
   // PDSCH-to-HARQ_feedback timing indicator – 0, 1, 2, or 3 bits
-  srsran_bit_unpack(dci->harq_feedback, &y, (int)CEIL_LOG2(cfg->nof_dl_to_ul_ack));
+  srsran_bit_unpack(dci->harq_feedback, &y, (int)SRSRAN_CEIL_LOG2(cfg->nof_dl_to_ul_ack));
 
   // Antenna port(s) – 4, 5, or 6 bits
   srsran_bit_unpack(dci->ports, &y, dci_nr_dl_ports_size(cfg));
@@ -1495,7 +1493,7 @@ static int dci_nr_format_1_1_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   }
 
   // ZP CSI-RS trigger - 0, 1, or 2 bits
-  dci->zp_csi_rs_id = srsran_bit_pack(&y, CEIL_LOG2(cfg->nof_aperiodic_zp + 1));
+  dci->zp_csi_rs_id = srsran_bit_pack(&y, SRSRAN_CEIL_LOG2(cfg->nof_aperiodic_zp + 1));
 
   // For transport block 1:
   // Modulation and coding scheme – 5 bits
@@ -1538,7 +1536,7 @@ static int dci_nr_format_1_1_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   dci->pucch_resource = srsran_bit_pack(&y, 3);
 
   // PDSCH-to-HARQ_feedback timing indicator – 0, 1, 2, or 3 bits
-  dci->harq_feedback = srsran_bit_pack(&y, (int)CEIL_LOG2(cfg->nof_dl_to_ul_ack));
+  dci->harq_feedback = srsran_bit_pack(&y, (int)SRSRAN_CEIL_LOG2(cfg->nof_dl_to_ul_ack));
 
   // Antenna port(s) – 4, 5, or 6 bits
   dci->ports = srsran_bit_pack(&y, dci_nr_dl_ports_size(cfg));
@@ -1613,7 +1611,7 @@ dci_nr_format_1_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci
   }
 
   // ZP CSI-RS trigger - 0, 1, or 2 bits
-  if (CEIL_LOG2(cfg->nof_aperiodic_zp + 1) > 0) {
+  if (SRSRAN_CEIL_LOG2(cfg->nof_aperiodic_zp + 1) > 0) {
     len = srsran_print_check(str, str_len, len, "zp_csi_rs_id=%d ", dci->zp_csi_rs_id);
   }
 

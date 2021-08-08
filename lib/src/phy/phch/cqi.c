@@ -257,7 +257,7 @@ cqi_format2_subband_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_ue_subband_t* msg
 
   n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->subband_cqi);
   n += snprintf(buff + n, buff_len - n, ", label=%d", msg->subband_label);
-
+  n += snprintf(buff + n, buff_len - n, ", sb_idx=%d", cfg->sb_idx);
   return n;
 }
 
@@ -456,7 +456,6 @@ static bool cqi_get_N_tdd(uint32_t I_cqi_pmi, uint32_t* N_p, uint32_t* N_offset)
 
 static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd, uint32_t H)
 {
-
   uint32_t N_p      = 0;
   uint32_t N_offset = 0;
 
@@ -480,7 +479,6 @@ static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd, uint32_t H)
 
 static bool ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti, bool is_fdd)
 {
-
   uint32_t M_ri        = 0;
   int      N_offset_ri = 0;
   uint32_t N_p         = 0;
@@ -553,23 +551,55 @@ static int cqi_hl_get_bwp_J(int nof_prb)
 {
   if (nof_prb < 7) {
     return 0;
+  } else if (nof_prb <= 10) {
+    return 1;
   } else if (nof_prb <= 26) {
-    return 4;
+    return 2;
   } else if (nof_prb <= 63) {
-    return 6;
+    return 3;
   } else if (nof_prb <= 110) {
-    return 8;
+    return 4;
   } else {
     return -1;
   }
 }
 
-/* Returns the number of bits to index a bandwidth part (L)
- * L = ceil(log2(nof_prb/k/J))
+/* Returns the number of subbands in the j-th bandwidth part
  */
+static int cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb)
+{
+  uint32_t J = cqi_hl_get_bwp_J(nof_prb);
+  if (J == 1) {
+    return (uint32_t)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb));
+  } else {
+    // all bw parts have the same number of subbands except the last one
+    uint32_t Nj = (uint32_t)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb) / J);
+    if (j < J - 1) {
+      return Nj;
+    } else {
+      return Nj - 1;
+    }
+  }
+}
+
+uint32_t srsran_cqi_get_sb_idx(uint32_t                       tti,
+                               uint32_t                       subband_label,
+                               const srsran_cqi_report_cfg_t* cqi_report_cfg,
+                               const srsran_cell_t*           cell)
+{
+  uint32_t bw_part_idx = srsran_cqi_periodic_sb_bw_part_idx(cqi_report_cfg, tti, cell->nof_prb, cell->frame_type);
+  return subband_label + bw_part_idx * cqi_sb_get_Nj(bw_part_idx, cell->nof_prb);
+}
+
 int srsran_cqi_hl_get_L(int nof_prb)
 {
-  return (int)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb) / cqi_hl_get_bwp_J(nof_prb));
+  int subband_size = cqi_hl_get_subband_size(nof_prb);
+  int bwp_J        = cqi_hl_get_bwp_J(nof_prb);
+  if (subband_size <= 0 || bwp_J <= 0) {
+    ERROR("Invalid parameters");
+    return SRSRAN_ERROR;
+  }
+  return (int)SRSRAN_CEIL_LOG2((double)nof_prb / (subband_size * bwp_J));
 }
 
 bool srsran_cqi_periodic_ri_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tti, srsran_frame_type_t frame_type)
@@ -583,17 +613,49 @@ bool srsran_cqi_periodic_send(const srsran_cqi_report_cfg_t* cfg, uint32_t tti, 
   return cfg->periodic_configured && cqi_send(cfg->pmi_idx, tti, frame_type == SRSRAN_FDD, 1);
 }
 
+uint32_t cqi_sb_get_H(const srsran_cqi_report_cfg_t* cfg, uint32_t nof_prb)
+{
+  uint32_t K = cfg->subband_wideband_ratio;
+  uint32_t J = cqi_hl_get_bwp_J(nof_prb);
+  uint32_t H = J * K + 1;
+  return H;
+}
+
 bool srsran_cqi_periodic_is_subband(const srsran_cqi_report_cfg_t* cfg,
                                     uint32_t                       tti,
                                     uint32_t                       nof_prb,
                                     srsran_frame_type_t            frame_type)
 {
-  uint32_t K = cfg->subband_wideband_ratio;
-  uint32_t J = cqi_hl_get_bwp_J(nof_prb);
-  uint32_t H = J * K + 1;
+  uint32_t H = cqi_sb_get_H(cfg, nof_prb);
 
   // A periodic report is subband if it's a CQI opportunity and is not wideband
   return srsran_cqi_periodic_send(cfg, tti, frame_type) && !cqi_send(cfg->pmi_idx, tti, frame_type == SRSRAN_FDD, H);
+}
+
+uint32_t srsran_cqi_periodic_sb_bw_part_idx(const srsran_cqi_report_cfg_t* cfg,
+                                            uint32_t                       tti,
+                                            uint32_t                       nof_prb,
+                                            srsran_frame_type_t            frame_type)
+{
+  uint32_t H   = cqi_sb_get_H(cfg, nof_prb);
+  uint32_t N_p = 0, N_offset = 0;
+
+  if (frame_type == SRSRAN_FDD) {
+    if (!cqi_get_N_fdd(cfg->pmi_idx, &N_p, &N_offset)) {
+      return false;
+    }
+  } else {
+    if (!cqi_get_N_tdd(cfg->pmi_idx, &N_p, &N_offset)) {
+      return false;
+    }
+  }
+
+  uint32_t x = ((tti - N_offset) / N_p) % H;
+  if (x > 0) {
+    return (x - 1) % cqi_hl_get_bwp_J(nof_prb);
+  } else {
+    return 0;
+  }
 }
 
 // CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-1

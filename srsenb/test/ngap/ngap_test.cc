@@ -71,6 +71,24 @@ struct amf_dummy {
   srsran::unique_byte_buffer_t last_sdu;
 };
 
+class rrc_nr_dummy : public rrc_interface_ngap_nr
+{
+public:
+  int ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key)
+  {
+    return SRSRAN_SUCCESS;
+  }
+  int ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+  {
+    return SRSRAN_SUCCESS;
+  }
+  int ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
+  {
+    return SRSRAN_SUCCESS;
+  }
+  int  start_security_mode_procedure(uint16_t rnti) { return SRSRAN_SUCCESS; }
+  void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
+};
 struct dummy_socket_manager : public srsran::socket_manager_itf {
   dummy_socket_manager() : srsran::socket_manager_itf(srslog::fetch_basic_logger("TEST")) {}
 
@@ -152,7 +170,8 @@ int main(int argc, char** argv)
   args.gtp_bind_addr = "127.0.0.100";
   args.amf_addr      = "127.0.0.1";
   args.gnb_name      = "srsgnb01";
-  rrc_interface_ngap_nr rrc;
+
+  rrc_nr_dummy  rrc;
   ngap_obj.init(args, &rrc);
 
   // Start the log backend.

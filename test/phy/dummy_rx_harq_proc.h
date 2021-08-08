@@ -50,17 +50,12 @@ public:
 
   ~dummy_rx_harq_proc() { srsran_softbuffer_rx_free(&softbuffer); }
 
-  srsran::byte_buffer_t& get_tb(uint32_t tbs_)
-  {
-    tbs = tbs_;
-    return data;
-  }
-
-  srsran_softbuffer_rx_t& get_softbuffer(uint32_t ndi_)
+  srsran_softbuffer_rx_t& get_softbuffer(uint32_t ndi_, uint32_t tbs_)
   {
     if (ndi != ndi_ || first) {
       srsran_softbuffer_rx_reset(&softbuffer);
       ndi   = ndi_;
+      tbs   = tbs_;
       first = false;
     }
 

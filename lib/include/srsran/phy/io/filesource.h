@@ -33,7 +33,7 @@
 #define SRSRAN_FILESOURCE_H
 
 #include <stdint.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 #include "srsran/config.h"
 #include "srsran/phy/io/format.h"

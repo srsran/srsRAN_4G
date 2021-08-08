@@ -66,11 +66,7 @@ public:
    * @param tx_time timestamp to transmit samples
    * @param is_nr flag is true if it is called from NR
    */
-  void worker_end(void*                   tx_sem_id,
-                  bool                    tx_enable,
-                  srsran::rf_buffer_t&    buffer,
-                  srsran::rf_timestamp_t& tx_time,
-                  bool                    is_nr) override;
+  void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
   // Common objects
   phy_args_t params = {};
@@ -84,6 +80,9 @@ public:
 
     if (cc_idx < cell_list_lte.size()) {
       ret = cell_list_lte[cc_idx].cell.nof_prb;
+    } else if (cc_idx == 1 && !cell_list_nr.empty()) {
+      // for basic NSA config return width of first NR carrier
+      ret = cell_list_nr[0].carrier.nof_prb;
     }
 
     return ret;
@@ -94,6 +93,9 @@ public:
 
     if (cc_idx < cell_list_lte.size()) {
       ret = cell_list_lte[cc_idx].cell.nof_ports;
+    } else if (cc_idx == 1 && !cell_list_nr.empty()) {
+      // one RF port for basic NSA config
+      ret = 1;
     }
 
     return ret;
@@ -245,10 +247,9 @@ private:
   uint8_t                 mch_table[40]    = {};
   uint8_t                 mcch_table[10]   = {};
   uint32_t                mch_period_stop  = 0;
+  srsran::rf_buffer_t     tx_buffer        = {};
   bool                    is_mch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
   bool                    is_mcch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti);
-  srsran::rf_buffer_t     nr_tx_buffer;
-  bool                    nr_tx_buffer_ready = false;
 };
 
 } // namespace srsenb

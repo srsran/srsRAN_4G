@@ -33,7 +33,7 @@ using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 
 struct pending_rar_t {
   uint16_t                                                                   ra_rnti = 0;
-  tti_point                                                                  prach_tti;
+  slot_point                                                                 prach_slot;
   srsran::bounded_vector<dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant;
 };
 

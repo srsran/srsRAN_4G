@@ -109,6 +109,24 @@ struct plmn_id_t {
     mcc_to_string(mcc_num, &mcc_str);
     return mcc_str + mnc_str;
   }
+
+  std::string to_serving_network_name_string() const
+  {
+    char        buff[50];
+    std::string mcc_str, mnc_str;
+    uint16_t    mnc_num, mcc_num;
+    bytes_to_mnc(&mnc[0], &mnc_num, nof_mnc_digits);
+    bytes_to_mcc(&mcc[0], &mcc_num);
+    mnc_to_string(mnc_num, &mnc_str);
+    mcc_to_string(mcc_num, &mcc_str);
+    if (mnc_str.size() == 2) {
+      mnc_str = "0" + mnc_str;
+    }
+    snprintf(buff, sizeof(buff), "5G:mnc%s.mcc%s.3gppnetwork.org", mnc_str.c_str(), mcc_str.c_str());
+    std::string ssn_s = buff;
+    return ssn_s;
+  }
+
   bool operator==(const plmn_id_t& other) const
   {
     return std::equal(&mcc[0], &mcc[3], &other.mcc[0]) and nof_mnc_digits == other.nof_mnc_digits and

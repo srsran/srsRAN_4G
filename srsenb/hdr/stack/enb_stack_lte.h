@@ -44,13 +44,20 @@
 
 namespace srsenb {
 
-class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte, public srsran::thread
+class enb_stack_lte final : public enb_stack_base,
+                            public stack_interface_phy_lte,
+                            public stack_interface_phy_nr,
+                            public srsran::thread
 {
 public:
   enb_stack_lte(srslog::sink& log_sink);
   ~enb_stack_lte() final;
 
   // eNB stack base interface
+  int         init(const stack_args_t&      args_,
+                   const rrc_cfg_t&         rrc_cfg_,
+                   phy_interface_stack_lte* phy_,
+                   phy_interface_stack_nr*  phy_nr_);
   int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_);
   int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_);
   void        stop() final;
@@ -114,6 +121,26 @@ public:
   void toggle_padding() override { mac.toggle_padding(); }
   void tti_clock() override;
 
+  // mac_interface_phy_nr
+  int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return mac_nr.slot_indication(slot_cfg); }
+  int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, srsenb::mac_interface_phy_nr::dl_sched_t& dl_sched) override
+  {
+    return mac_nr.get_dl_sched(slot_cfg, dl_sched);
+  }
+  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, srsenb::mac_interface_phy_nr::ul_sched_t& ul_sched) override
+  {
+    return mac_nr.get_ul_sched(slot_cfg, ul_sched);
+  }
+  int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
+  {
+    return mac_nr.pucch_info(slot_cfg, pucch_info);
+  }
+  int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
+  {
+    return mac_nr.pusch_info(slot_cfg, pusch_info);
+  }
+  void rach_detected(const rach_info_t& rach_info) override { mac_nr.rach_detected(rach_info); }
+
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop
@@ -163,6 +190,7 @@ private:
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
+  phy_interface_stack_nr*  phy_nr = nullptr;
 
   // state
   std::atomic<bool> started{false};

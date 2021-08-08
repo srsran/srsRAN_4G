@@ -50,6 +50,7 @@ private:
     void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) override
     {
       stack_interface_phy_nr::rach_info_t rach_info = {};
+      rach_info.slot_index                          = tti;
       rach_info.preamble                            = preamble_idx;
       rach_info.time_adv                            = time_adv;
 
@@ -91,6 +92,7 @@ private:
   uint32_t                                   current_tti = 0; ///< Current TTI, read and write from same thread
   srslog::basic_logger&                      logger;
   prach_stack_adaptor_t                      prach_stack_adaptor;
+  uint32_t                                   nof_prach_workers = 0;
 
   // Current configuration
   std::mutex            common_cfg_mutex;
@@ -100,6 +102,7 @@ private:
 public:
   struct args_t {
     uint32_t               nof_phy_threads    = 3;
+    uint32_t               nof_prach_workers  = 0;
     uint32_t               prio               = 52;
     uint32_t               pusch_max_nof_iter = 10;
     srsran::phy_log_args_t log                = {};

@@ -52,6 +52,7 @@ extern "C" {
 #define SRSRAN_CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
 #define SRSRAN_FLOOR(NUM, DEN) ((NUM) / (DEN))
 #define SRSRAN_ROUND(NUM, DEN) ((uint32_t)round((double)(NUM) / (double)(DEN)))
+#define SRSRAN_CEIL_LOG2(N) (((N) == 0) ? 0 : ceil(log2((double)(N))))
 
 // Complex squared absolute value
 #define SRSRAN_CSQABS(X) (__real__(X) * __real__(X) + __imag__(X) * __imag__(X))

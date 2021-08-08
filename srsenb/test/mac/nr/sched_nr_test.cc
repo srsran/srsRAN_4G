@@ -47,22 +47,22 @@ struct task_job_manager {
 
   explicit task_job_manager(int max_concurrent_slots = 4) : slot_counter(max_concurrent_slots) {}
 
-  void start_slot(tti_point tti, int nof_sectors)
+  void start_slot(slot_point slot, int nof_sectors)
   {
     std::unique_lock<std::mutex> lock(mutex);
-    auto&                        sl = slot_counter[tti.to_uint() % slot_counter.size()];
+    auto&                        sl = slot_counter[slot.to_uint() % slot_counter.size()];
     while (sl.count > 0) {
       sl.cvar.wait(lock);
     }
     sl.count = nof_sectors;
   }
-  void finish_cc(tti_point tti, const dl_sched_t& dl_res, const sched_nr_interface::ul_sched_t& ul_res)
+  void finish_cc(slot_point slot, const dl_sched_t& dl_res, const sched_nr_interface::ul_sched_t& ul_res)
   {
     std::unique_lock<std::mutex> lock(mutex);
     TESTASSERT(dl_res.pdcch_dl.size() <= 1);
     res_count++;
     pdsch_count += dl_res.pdcch_dl.size();
-    auto& sl = slot_counter[tti.to_uint() % slot_counter.size()];
+    auto& sl = slot_counter[slot.to_uint() % slot_counter.size()];
     if (--sl.count == 0) {
       sl.cvar.notify_one();
     }
@@ -100,23 +100,23 @@ void sched_nr_cfg_serialized_test()
   sched_tester.add_user(0x46, uecfg, 0);
 
   std::vector<long> count_per_cc(nof_sectors, 0);
-  for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
-    tti_point tti_rx(nof_ttis % 10240);
-    tti_point tti_tx = tti_rx + TX_ENB_DELAY;
-    tasks.start_slot(tti_rx, nof_sectors);
-    sched_tester.new_slot(tti_tx);
+  for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
+    slot_point slot_rx(0, nof_slots % 10240);
+    slot_point slot_tx = slot_rx + TX_ENB_DELAY;
+    tasks.start_slot(slot_rx, nof_sectors);
+    sched_tester.new_slot(slot_tx);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
       sched_nr_interface::dl_sched_t dl_res;
       sched_nr_interface::ul_sched_t ul_res;
       auto                           tp1 = std::chrono::steady_clock::now();
-      TESTASSERT(sched_tester.get_sched()->get_dl_sched(tti_tx, cc, dl_res) == SRSRAN_SUCCESS);
-      TESTASSERT(sched_tester.get_sched()->get_ul_sched(tti_tx, cc, ul_res) == SRSRAN_SUCCESS);
+      TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
+      TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
       auto tp2 = std::chrono::steady_clock::now();
       count_per_cc[cc] += std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1).count();
-      sched_nr_cc_output_res_t out{tti_tx, cc, &dl_res, &ul_res};
+      sched_nr_cc_output_res_t out{slot_tx, cc, &dl_res, &ul_res};
       sched_tester.update(out);
-      tasks.finish_cc(tti_rx, dl_res, ul_res);
-      TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (tti_tx).sf_idx()) or dl_res.pdcch_dl.size() == 1);
+      tasks.finish_cc(slot_rx, dl_res, ul_res);
+      TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (slot_tx).slot_idx()) or dl_res.pdcch_dl.size() == 1);
     }
   }
 
@@ -148,24 +148,24 @@ void sched_nr_cfg_parallel_cc_test()
   sched_tester.add_user(0x46, uecfg, 0);
 
   std::array<std::atomic<long>, SRSRAN_MAX_CARRIERS> nano_count{};
-  for (uint32_t nof_ttis = 0; nof_ttis < max_nof_ttis; ++nof_ttis) {
-    tti_point tti_rx(nof_ttis % 10240);
-    tti_point tti_tx = tti_rx + TX_ENB_DELAY;
-    tasks.start_slot(tti_tx, nof_sectors);
-    sched_tester.new_slot(tti_tx);
+  for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
+    slot_point slot_rx(0, nof_slots % 10240);
+    slot_point slot_tx = slot_rx + TX_ENB_DELAY;
+    tasks.start_slot(slot_tx, nof_sectors);
+    sched_tester.new_slot(slot_tx);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
-      srsran::get_background_workers().push_task([cc, tti_tx, &tasks, &sched_tester, &nano_count]() {
+      srsran::get_background_workers().push_task([cc, slot_tx, &tasks, &sched_tester, &nano_count]() {
         sched_nr_interface::dl_sched_t dl_res;
         sched_nr_interface::ul_sched_t ul_res;
         auto                           tp1 = std::chrono::steady_clock::now();
-        TESTASSERT(sched_tester.get_sched()->get_dl_sched(tti_tx, cc, dl_res) == SRSRAN_SUCCESS);
-        TESTASSERT(sched_tester.get_sched()->get_ul_sched(tti_tx, cc, ul_res) == SRSRAN_SUCCESS);
+        TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
+        TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
         auto tp2 = std::chrono::steady_clock::now();
         nano_count[cc].fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1).count(),
                                  std::memory_order_relaxed);
-        sched_nr_cc_output_res_t out{tti_tx, cc, &dl_res, &ul_res};
+        sched_nr_cc_output_res_t out{slot_tx, cc, &dl_res, &ul_res};
         sched_tester.update(out);
-        tasks.finish_cc(tti_tx, dl_res, ul_res);
+        tasks.finish_cc(slot_tx, dl_res, ul_res);
       });
     }
   }

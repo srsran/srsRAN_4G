@@ -45,6 +45,15 @@ using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
 using bwp_cfg_t   = sched_nr_interface::bwp_cfg_t;
 
+using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
+using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
+void get_dci_locs(const srsran_coreset_t&      coreset,
+                  const srsran_search_space_t& search_space,
+                  uint16_t                     rnti,
+                  bwp_cce_pos_list&            cce_locs);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 struct bwp_params {
   const uint32_t     bwp_id;
   const uint32_t     cc;
@@ -65,6 +74,8 @@ struct bwp_params {
   std::vector<pusch_ra_time_cfg> pusch_ra_list;
 
   bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
+
+  bwp_cce_pos_list rar_cce_list;
 };
 
 struct sched_cell_params {
@@ -88,16 +99,8 @@ struct sched_params {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using prb_bitmap = srsran::bounded_bitset<SRSRAN_MAX_PRB_NR, true>;
-using rbgmask_t  = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
 
 using pdcchmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-
-using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
-using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
-void get_dci_locs(const srsran_coreset_t&      coreset,
-                  const srsran_search_space_t& search_space,
-                  uint16_t                     rnti,
-                  bwp_cce_pos_list&            cce_locs);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -168,6 +168,9 @@ srsran_mcs_table_t srsran_mcs_table_from_str(const char* str)
 static const uint32_t phy_common_nr_valid_symbol_sz[PHY_COMMON_NR_NOF_VALID_SYMB_SZ] =
     {128, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096};
 
+static const uint32_t phy_common_nr_valid_std_symbol_sz[PHY_COMMON_NR_NOF_VALID_SYMB_SZ] =
+    {128, 256, 512, 1024, 1536, 2048, 4096};
+
 uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
 {
   uint32_t nof_re = nof_prb * SRSRAN_NRE;
@@ -176,9 +179,14 @@ uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
     return 0;
   }
 
+  const uint32_t* symbol_table = phy_common_nr_valid_symbol_sz;
+  if (srsran_symbol_size_is_standard()) {
+    symbol_table = phy_common_nr_valid_std_symbol_sz;
+  }
+
   for (uint32_t i = 0; i < PHY_COMMON_NR_NOF_VALID_SYMB_SZ; i++) {
-    if (phy_common_nr_valid_symbol_sz[i] > nof_re) {
-      return phy_common_nr_valid_symbol_sz[i];
+    if (symbol_table[i] > nof_re) {
+      return symbol_table[i];
     }
   }
 

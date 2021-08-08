@@ -204,10 +204,10 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       return SRSRAN_ERROR;
     }
     bzero(handler, sizeof(rf_zmq_handler_t));
-    *h                        = handler;
-    handler->base_srate       = ZMQ_BASERATE_DEFAULT_HZ; // Sample rate for 100 PRB cell
+    *h                  = handler;
+    handler->base_srate = ZMQ_BASERATE_DEFAULT_HZ; // Sample rate for 100 PRB cell
     pthread_mutex_lock(&handler->rx_gain_mutex);
-    handler->rx_gain          = 0.0;
+    handler->rx_gain = 0.0;
     pthread_mutex_unlock(&handler->rx_gain_mutex);
     handler->info.max_rx_gain = ZMQ_MAX_GAIN_DB;
     handler->info.min_rx_gain = ZMQ_MIN_GAIN_DB;
@@ -480,7 +480,7 @@ int rf_zmq_set_rx_gain(void* h, double gain)
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
     pthread_mutex_lock(&handler->rx_gain_mutex);
-    handler->rx_gain          = gain;
+    handler->rx_gain = gain;
     pthread_mutex_unlock(&handler->rx_gain_mutex);
   }
   return SRSRAN_SUCCESS;
@@ -507,7 +507,7 @@ double rf_zmq_get_rx_gain(void* h)
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
     pthread_mutex_lock(&handler->rx_gain_mutex);
-    ret                       = handler->rx_gain;
+    ret = handler->rx_gain;
     pthread_mutex_unlock(&handler->rx_gain_mutex);
   }
   return ret;
@@ -626,23 +626,28 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->rx_config_mutex);
+    bool  mapped[SRSRAN_MAX_CHANNELS]  = {}; // Mapped mask, set to true when the physical channel is used
     cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
-    for (uint32_t i = 0; i < handler->nof_channels; i++) {
-      bool mapped = false;
 
-      // Find first matching frequency
-      for (uint32_t j = 0; j < handler->nof_channels && !mapped; j++) {
-        // Traverse all channels, break if mapped
-        if (buffers[j] == NULL && rf_zmq_rx_match_freq(&handler->receiver[j], handler->rx_freq_mhz[i])) {
-          // Available buffer and matched frequency with receiver
-          buffers[j] = (cf_t*)data[i];
-          mapped     = true;
+    // For each logical channel...
+    for (uint32_t logical = 0; logical < handler->nof_channels; logical++) {
+      bool unmatched = true;
+
+      // For each physical channel...
+      for (uint32_t physical = 0; physical < handler->nof_channels; physical++) {
+        // Consider a match if the physical channel is NOT mapped and the frequency match
+        if (!mapped[physical] && rf_zmq_rx_match_freq(&handler->receiver[physical], handler->rx_freq_mhz[logical])) {
+          // Not mapped and matched frequency with receiver
+          buffers[physical] = (cf_t*)data[logical];
+          mapped[physical]  = true;
+          unmatched         = false;
+          break;
         }
       }
 
       // If no matching frequency found; set data to zeros
-      if (!mapped && data[i]) {
-        memset(data[i], 0, sizeof(cf_t) * nsamples);
+      if (unmatched) {
+        srsran_vec_zero(data[logical], nsamples);
       }
     }
     pthread_mutex_unlock(&handler->rx_config_mutex);
@@ -840,17 +845,19 @@ int rf_zmq_send_timed_multi(void*  h,
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->tx_config_mutex);
-    cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
-    for (uint32_t i = 0; i < handler->nof_channels; i++) {
-      bool mapped = false;
+    bool  mapped[SRSRAN_MAX_CHANNELS]  = {}; // Mapped mask, set to true when the physical channel is used
+    cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched or zero transmission
 
-      // Find first matching frequency
-      for (uint32_t j = 0; j < handler->nof_channels && !mapped; j++) {
-        // Traverse all channels, break if mapped
-        if (buffers[j] == NULL && rf_zmq_tx_match_freq(&handler->transmitter[j], handler->tx_freq_mhz[i])) {
-          // Available buffer and matched frequency with receiver
-          buffers[j] = (cf_t*)data[i];
-          mapped     = true;
+    // For each logical channel...
+    for (uint32_t logical = 0; logical < handler->nof_channels; logical++) {
+      // For each physical channel...
+      for (uint32_t physical = 0; physical < handler->nof_channels; physical++) {
+        // Consider a match if the physical channel is NOT mapped and the frequency match
+        if (!mapped[physical] && rf_zmq_tx_match_freq(&handler->transmitter[physical], handler->tx_freq_mhz[logical])) {
+          // Not mapped and matched frequency with receiver
+          buffers[physical] = (cf_t*)data[logical];
+          mapped[physical]  = true;
+          break;
         }
       }
     }

@@ -32,6 +32,7 @@ namespace bpo = boost::program_options;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
+  std::string              reference_cfg_str = "";
   bpo::options_description options("Test bench options");
   bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
   bpo::options_description options_gnb_phy("gNb PHY related options");
@@ -48,6 +49,7 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("rnti",          bpo::value<uint16_t>(&rnti)->default_value(rnti),                              "UE RNTI")
         ("duration",      bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),        "Test duration in slots")
         ("lib.log.level", bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level), "PHY librray log level")
+        ("reference", bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str), "Reference PHY configuration arguments")
         ;
 
   options_gnb_stack.add_options()
@@ -109,8 +111,10 @@ test_bench::args_t::args_t(int argc, char** argv)
   }
 
   // Load default reference configuration
-  srsran::phy_cfg_nr_default_t::reference_cfg_t reference_cfg;
-  phy_cfg = srsran::phy_cfg_nr_default_t(reference_cfg);
+  phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
+
+  // Calculate sampling rate in Hz
+  srate_hz = (double)(srsran_min_symbol_sz_rb(phy_cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs));
 
   cell_list.resize(1);
   cell_list[0].carrier = phy_cfg.carrier;
@@ -263,9 +267,6 @@ int main(int argc, char** argv)
                     metrics.gnb_stack.pucch.ta_us_min,
                     metrics.gnb_stack.pucch.ta_us_max);
     srsran::console("   +------------+------------+------------+------------+\n");
-  } else {
-    // In this case the gNb should not have detected any
-    TESTASSERT(metrics.gnb_stack.prach.empty());
   }
 
   // Print SR

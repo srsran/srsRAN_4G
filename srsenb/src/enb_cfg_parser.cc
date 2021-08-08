@@ -22,6 +22,7 @@
 #include "enb_cfg_parser.h"
 #include "srsenb/hdr/enb.h"
 #include "srsran/asn1/rrc_utils.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/common/multiqueue.h"
 #include "srsran/phy/common/phy_common.h"
 #include <boost/algorithm/string.hpp>
@@ -837,6 +838,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
     cell_cfg.pci = cell_cfg.pci % SRSRAN_NUM_PCI;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn"));
+    parse_required_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq");
+    parse_required_field(cell_cfg.ul_freq_hz, cellroot, "ul_freq");
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", 0u); // will be derived from DL EARFCN If not set
     parse_default_field(
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
@@ -1100,32 +1103,57 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
   }
 
+  // Use helper class to derive NR carrier parameters
+  srsran::srsran_band_helper band_helper;
+
   // Create NR dedicated cell configuration from RRC configuration
   for (auto it = rrc_cfg_->cell_list_nr.begin(); it != rrc_cfg_->cell_list_nr.end(); ++it) {
     auto&             cfg                = *it;
     phy_cell_cfg_nr_t phy_cell_cfg       = {};
     phy_cell_cfg.carrier.max_mimo_layers = cell_cfg_.nof_ports;
-    phy_cell_cfg.carrier.nof_prb         = cell_cfg_.nof_prb;
-    phy_cell_cfg.carrier.pci             = cfg.pci;
-    phy_cell_cfg.cell_id                 = cfg.cell_id;
-    phy_cell_cfg.root_seq_idx            = cfg.root_seq_idx;
-    phy_cell_cfg.rf_port                 = cfg.rf_port;
+    switch (cell_cfg_.nof_prb) {
+      case 25:
+        phy_cell_cfg.carrier.nof_prb = 25;
+        break;
+      case 50:
+        phy_cell_cfg.carrier.nof_prb = 52;
+        break;
+      case 100:
+        phy_cell_cfg.carrier.nof_prb = 106;
+        break;
+      default:
+        ERROR("The only accepted number of PRB is: 25, 50, 100");
+        return SRSRAN_ERROR;
+    }
+    phy_cell_cfg.carrier.pci  = cfg.pci;
+    phy_cell_cfg.cell_id      = cfg.cell_id;
+    phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
+    phy_cell_cfg.rf_port      = cfg.rf_port;
     phy_cell_cfg.num_ra_preambles =
         rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
 
     if (cfg.dl_freq_hz > 0) {
       phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
     } else {
-      phy_cell_cfg.dl_freq_hz = 1e6 * srsran_band_fd(cfg.dl_earfcn);
+      phy_cell_cfg.dl_freq_hz = band_helper.nr_arfcn_to_freq(cfg.dl_earfcn);
     }
 
     if (cfg.ul_freq_hz > 0) {
       phy_cell_cfg.ul_freq_hz = cfg.ul_freq_hz;
     } else {
+      // auto-detect UL frequency
       if (cfg.ul_earfcn == 0) {
-        cfg.ul_earfcn = srsran_band_ul_earfcn(cfg.dl_earfcn);
+        // derive UL ARFCN from given DL ARFCN
+        uint16_t             nr_band   = band_helper.get_band_from_dl_freq_Hz(phy_cell_cfg.dl_freq_hz);
+        srsran_duplex_mode_t nr_duplex = band_helper.get_duplex_mode(nr_band);
+        if (nr_duplex == SRSRAN_DUPLEX_MODE_TDD) {
+          cfg.ul_earfcn = cfg.dl_earfcn;
+        } else {
+          ERROR("Can't derive UL ARFCN from DL ARFCN");
+          return SRSRAN_ERROR;
+        }
       }
-      phy_cell_cfg.ul_freq_hz = 1e6 * srsran_band_fu(cfg.ul_earfcn);
+      phy_cell_cfg.ul_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ul_earfcn);
     }
 
     phy_cfg_->phy_cell_cfg_nr.push_back(phy_cell_cfg);

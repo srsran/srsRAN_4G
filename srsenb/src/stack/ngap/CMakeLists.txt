@@ -18,5 +18,5 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES ngap.cc)
+set(SOURCES ngap.cc ngap_ue.cc ngap_ue_proc.cc)
 add_library(srsgnb_ngap STATIC ${SOURCES})

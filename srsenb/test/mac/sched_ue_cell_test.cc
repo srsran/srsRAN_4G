@@ -68,6 +68,73 @@ void test_neg_phr_scenario()
   TESTASSERT(tbinfo.tbs_bytes >= 10);
 }
 
+void test_interferer_subband_cqi_scenario()
+{
+  uint32_t                      Nprb      = 50;
+  sched_interface::cell_cfg_t   cell_cfg  = generate_default_cell_cfg(Nprb);
+  sched_interface::sched_args_t sched_cfg = {};
+  sched_cell_params_t           cell_params;
+  cell_params.set_cfg(0, cell_cfg, sched_cfg);
+  sched_interface::ue_cfg_t ue_cfg = generate_default_ue_cfg();
+
+  sched_ue_cell ue_cc(0x46, cell_params, tti_point(0));
+  ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.subband_wideband_ratio = 4;
+  ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.periodic_configured    = true;
+  ue_cc.set_ue_cfg(ue_cfg);
+
+  TESTASSERT(ue_cc.dl_cqi().subband_cqi_enabled());
+  TESTASSERT(ue_cc.dl_cqi().nof_bandwidth_parts() == 3);
+  TESTASSERT(ue_cc.dl_cqi().nof_subbands() == 9);
+
+  ue_cc.set_dl_wb_cqi(tti_point{0}, 10);
+  ue_cc.set_dl_sb_cqi(tti_point{40}, 1, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{80}, 3, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{160}, 8, 0); // interferer in last BP
+
+  rbgmask_t test_mask(cell_params.nof_rbgs);
+  test_mask.fill(0, 12);
+
+  rbgmask_t rbgs(cell_params.nof_rbgs);
+  tbs_info  tb;
+  rbgmask_t grant_mask(cell_params.nof_rbgs);
+  TESTASSERT(find_optimal_rbgmask(ue_cc,
+                                  tti_point{160 + TX_ENB_DELAY},
+                                  rbgs,
+                                  SRSRAN_DCI_FORMAT1,
+                                  srsran::interval<uint32_t>{0, 10000},
+                                  tb,
+                                  grant_mask));
+  TESTASSERT(grant_mask == test_mask);
+
+  ue_cc.set_dl_wb_cqi(tti_point{0}, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{40}, 1, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{80}, 3, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{160}, 8, 10); // interferer in last BP
+  TESTASSERT(find_optimal_rbgmask(ue_cc,
+                                  tti_point{160 + TX_ENB_DELAY},
+                                  rbgs,
+                                  SRSRAN_DCI_FORMAT1,
+                                  srsran::interval<uint32_t>{0, 10000},
+                                  tb,
+                                  grant_mask));
+  TESTASSERT(grant_mask == test_mask);
+
+  ue_cc.set_dl_wb_cqi(tti_point{0}, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{40}, 1, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{80}, 3, 15);
+  ue_cc.set_dl_sb_cqi(tti_point{160}, 8, 14); // interferer in last BP
+  TESTASSERT(find_optimal_rbgmask(ue_cc,
+                                  tti_point{160 + TX_ENB_DELAY},
+                                  rbgs,
+                                  SRSRAN_DCI_FORMAT1,
+                                  srsran::interval<uint32_t>{0, 10000},
+                                  tb,
+                                  grant_mask));
+  test_mask.reset();
+  test_mask.fill(0, cell_params.nof_rbgs);
+  TESTASSERT(grant_mask == test_mask);
+}
+
 int main()
 {
   srsenb::set_randseed(seed);
@@ -80,6 +147,7 @@ int main()
   srslog::init();
 
   test_neg_phr_scenario();
+  test_interferer_subband_cqi_scenario();
 
   srslog::flush();
 

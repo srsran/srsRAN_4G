@@ -175,16 +175,17 @@ public:
 };
 
 struct phy_args_nr_t {
-  uint32_t               nof_carriers     = 1;
-  uint32_t               max_nof_prb      = 106;
-  uint32_t               nof_phy_threads  = 3;
-  uint32_t               worker_cpu_mask  = 0;
-  srsran::phy_log_args_t log              = {};
-  srsran_ue_dl_nr_args_t dl               = {};
-  srsran_ue_ul_nr_args_t ul               = {};
-  std::set<uint32_t>     fixed_sr         = {1};
-  uint32_t               fix_wideband_cqi = 15; // Set to a non-zero value for fixing the wide-band CQI report
-  bool                   store_pdsch_ko   = false;
+  uint32_t               rf_channel_offset = 0; ///< Specifies the RF channel the NR carrier shall fill
+  uint32_t               nof_carriers      = 1;
+  uint32_t               max_nof_prb       = 106;
+  uint32_t               nof_phy_threads   = 3;
+  uint32_t               worker_cpu_mask   = 0;
+  srsran::phy_log_args_t log               = {};
+  srsran_ue_dl_nr_args_t dl                = {};
+  srsran_ue_ul_nr_args_t ul                = {};
+  std::set<uint32_t>     fixed_sr          = {1};
+  uint32_t               fix_wideband_cqi  = 15; // Set to a non-zero value for fixing the wide-band CQI report
+  bool                   store_pdsch_ko    = false;
 
   phy_args_nr_t()
   {

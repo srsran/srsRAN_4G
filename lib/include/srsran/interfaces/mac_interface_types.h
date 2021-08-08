@@ -140,6 +140,7 @@ struct rach_nr_cfg_t {
   uint32_t powerRampingStep;
   uint32_t ra_responseWindow;
   uint32_t ra_ContentionResolutionTimer;
+  bool     skip_rar;
 
   rach_nr_cfg_t() { reset(); }
   void reset()
@@ -149,6 +150,7 @@ struct rach_nr_cfg_t {
     powerRampingStep            = 0;
     preambleTransMax            = 0;
     ra_responseWindow           = 0;
+    skip_rar                    = false;
   }
 };
 

@@ -39,7 +39,7 @@ uint32_t mac_pcap::open(std::string filename_, uint32_t ue_id_)
     return SRSRAN_ERROR;
   }
 
-  // set DLT for selected RAT
+  // set UDP DLT
   dlt       = UDP_DLT;
   pcap_file = DLT_PCAP_Open(dlt, filename_.c_str());
   if (pcap_file == nullptr) {

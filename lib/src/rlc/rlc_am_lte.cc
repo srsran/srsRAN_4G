@@ -617,6 +617,11 @@ void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
 
   // select first PDU in tx window for retransmission
   rlc_amd_tx_pdu& pdu = tx_window[sn];
+
+  // increment retx counter and inform upper layers
+  pdu.retx_count++;
+  check_sn_reached_max_retx(sn);
+
   logger.info("%s Schedule SN=%d for reTx", RB_NAME, pdu.rlc_sn);
   rlc_amd_retx_t& retx = retx_queue.push();
   retx.is_segment      = false;
@@ -760,8 +765,6 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   memcpy(ptr, tx_window[retx.sn].buf->msg, tx_window[retx.sn].buf->N_bytes);
 
   retx_queue.pop();
-  tx_window[retx.sn].retx_count++;
-  check_sn_reached_max_retx(retx.sn);
 
   logger.info(payload,
               tx_window[retx.sn].buf->N_bytes,
@@ -919,9 +922,6 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
     retx_queue.front().is_segment = true;
     retx_queue.front().so_start   = retx.so_end;
   }
-
-  tx_window[retx.sn].retx_count++;
-  check_sn_reached_max_retx(retx.sn);
 
   // Write header and pdu
   uint8_t* ptr = payload;
@@ -1228,7 +1228,13 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
         std::lock_guard<std::mutex> lock(mutex);
         if (tx_window.has_sn(i)) {
           auto& pdu = tx_window[i];
+
+          // add to retx queue if it's not already there
           if (not retx_queue.has_sn(i)) {
+            // increment Retx counter and inform upper layers if needed
+            pdu.retx_count++;
+            check_sn_reached_max_retx(i);
+
             rlc_amd_retx_t& retx = retx_queue.push();
             srsran_expect(tx_window[i].rlc_sn == i, "Incorrect RLC SN=%d!=%d being accessed", tx_window[i].rlc_sn, i);
             retx.sn         = i;

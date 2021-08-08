@@ -60,55 +60,47 @@ rbgmask_t sched_dl_cqi::get_optim_rbgmask(const rbgmask_t& dl_mask, uint32_t req
   return emptymask;
 }
 
-std::tuple<uint32_t, int> find_min_cqi_rbg(const rbgmask_t& mask, const sched_dl_cqi& dl_cqi)
+rbgmask_t find_min_cqi_rbgs(const rbgmask_t& mask, const sched_dl_cqi& dl_cqi, int& min_cqi)
 {
   if (mask.none()) {
-    return std::make_tuple(mask.size(), -1);
+    min_cqi = -1;
+    return mask;
   }
 
-  int rbg = mask.find_lowest(0, mask.size());
   if (not dl_cqi.subband_cqi_enabled()) {
-    return std::make_tuple(rbg, dl_cqi.get_wb_cqi_info());
+    min_cqi = dl_cqi.get_wb_cqi_info();
+    return mask;
   }
 
-  int      min_cqi = std::numeric_limits<int>::max();
-  uint32_t min_rbg = mask.size();
+  rbgmask_t min_mask(mask.size());
+  int       rbg = mask.find_lowest(0, mask.size());
+  min_cqi       = std::numeric_limits<int>::max();
   for (; rbg != -1; rbg = mask.find_lowest(rbg, mask.size())) {
     uint32_t sb  = dl_cqi.rbg_to_sb_index(rbg);
     int      cqi = dl_cqi.get_subband_cqi(sb);
     if (cqi < min_cqi) {
       min_cqi = cqi;
-      min_rbg = rbg;
+      min_mask.reset();
+      min_mask.set(rbg);
+    } else if (cqi == min_cqi) {
+      min_mask.set(rbg);
     }
-    rbg = (int)srsran::ceil_div((sb + 1U) * mask.size(), dl_cqi.nof_subbands()); // skip to next subband index
+    rbg++;
   }
-  return min_cqi != std::numeric_limits<int>::max() ? std::make_tuple(min_rbg, min_cqi) : std::make_tuple(0u, -1);
+  min_cqi = min_cqi == std::numeric_limits<int>::max() ? -1 : min_cqi;
+
+  return min_mask;
 }
 
-rbgmask_t remove_min_cqi_subband(const rbgmask_t& rbgmask, const sched_dl_cqi& dl_cqi)
+rbgmask_t remove_min_cqi_rbgs(const rbgmask_t& rbgmask, const sched_dl_cqi& dl_cqi)
 {
-  std::tuple<uint32_t, int> tup = find_min_cqi_rbg(rbgmask, dl_cqi);
-  if (std::get<1>(tup) < 0) {
-    return rbgmask_t(rbgmask.size());
+  int       min_cqi;
+  rbgmask_t minmask = find_min_cqi_rbgs(rbgmask, dl_cqi, min_cqi);
+  if (min_cqi < 0) {
+    return minmask;
   }
-  uint32_t sb        = dl_cqi.rbg_to_sb_index(std::get<0>(tup));
-  uint32_t rbg_begin = sb * rbgmask.size() / dl_cqi.nof_subbands();
-  uint32_t rbg_end   = srsran::ceil_div((sb + 1) * rbgmask.size(), dl_cqi.nof_subbands());
-
-  rbgmask_t ret(rbgmask);
-  ret.fill(rbg_begin, rbg_end, false);
-  return ret;
-}
-
-rbgmask_t remove_min_cqi_rbg(const rbgmask_t& rbgmask, const sched_dl_cqi& dl_cqi)
-{
-  std::tuple<uint32_t, int> tup = find_min_cqi_rbg(rbgmask, dl_cqi);
-  if (std::get<1>(tup) < 0) {
-    return rbgmask_t(rbgmask.size());
-  }
-  rbgmask_t ret(rbgmask);
-  ret.set(std::get<0>(tup), false);
-  return ret;
+  minmask = ~minmask & rbgmask;
+  return minmask;
 }
 
 } // namespace srsenb

@@ -225,6 +225,41 @@ static rf_dev_t dev_zmq = {"zmq",
                            .srsran_rf_send_timed_multi = rf_zmq_send_timed_multi};
 #endif
 
+/* Define implementation for Sidekiq */
+#ifdef ENABLE_SIDEKIQ
+
+#include "rf_skiq_imp.h"
+
+static rf_dev_t dev_skiq = {.name                             = "Sidekiq",
+                            .srsran_rf_devname                = rf_skiq_devname,
+                            .srsran_rf_start_rx_stream        = rf_skiq_start_rx_stream,
+                            .srsran_rf_stop_rx_stream         = rf_skiq_stop_rx_stream,
+                            .srsran_rf_flush_buffer           = rf_skiq_flush_buffer,
+                            .srsran_rf_has_rssi               = rf_skiq_has_rssi,
+                            .srsran_rf_get_rssi               = rf_skiq_get_rssi,
+                            .srsran_rf_suppress_stdout        = rf_skiq_suppress_stdout,
+                            .srsran_rf_register_error_handler = rf_skiq_register_error_handler,
+                            .srsran_rf_open                   = rf_skiq_open,
+                            .srsran_rf_open_multi             = rf_skiq_open_multi,
+                            .srsran_rf_close                  = rf_skiq_close,
+                            .srsran_rf_set_rx_srate           = rf_skiq_set_rx_srate,
+                            .srsran_rf_set_tx_srate           = rf_skiq_set_tx_srate,
+                            .srsran_rf_set_rx_gain            = rf_skiq_set_rx_gain,
+                            .srsran_rf_set_tx_gain            = rf_skiq_set_tx_gain,
+                            .srsran_rf_set_tx_gain_ch         = rf_skiq_set_tx_gain_ch,
+                            .srsran_rf_set_rx_gain_ch         = rf_skiq_set_rx_gain_ch,
+                            .srsran_rf_get_rx_gain            = rf_skiq_get_rx_gain,
+                            .srsran_rf_get_tx_gain            = rf_skiq_get_tx_gain,
+                            .srsran_rf_get_info               = rf_skiq_get_info,
+                            .srsran_rf_set_rx_freq            = rf_skiq_set_rx_freq,
+                            .srsran_rf_set_tx_freq            = rf_skiq_set_tx_freq,
+                            .srsran_rf_get_time               = rf_skiq_get_time,
+                            .srsran_rf_recv_with_time         = rf_skiq_recv_with_time,
+                            .srsran_rf_recv_with_time_multi   = rf_skiq_recv_with_time_multi,
+                            .srsran_rf_send_timed             = rf_skiq_send_timed,
+                            .srsran_rf_send_timed_multi       = rf_skiq_send_timed_multi};
+#endif
+
 //#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
@@ -254,6 +289,9 @@ static rf_dev_t* available_devices[] = {
 #endif
 #ifdef ENABLE_ZEROMQ
     &dev_zmq,
+#endif
+#ifdef ENABLE_SIDEKIQ
+    &dev_skiq,
 #endif
 #ifdef ENABLE_DUMMY_DEV
     &dev_dummy,

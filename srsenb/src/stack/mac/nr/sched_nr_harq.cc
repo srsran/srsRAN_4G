@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_harq.h"
+#include "srsran/common/buffer_pool.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -36,9 +37,9 @@ bool harq_proc::ack_info(uint32_t tb_idx, bool ack)
   return true;
 }
 
-void harq_proc::new_tti(tti_point tti_rx)
+void harq_proc::new_slot(slot_point slot_rx)
 {
-  if (has_pending_retx(tti_rx) and nof_retx() + 1 >= max_nof_retx()) {
+  if (has_pending_retx(slot_rx) and nof_retx() + 1 >= max_nof_retx()) {
     tb[0].active = false;
   }
 }
@@ -52,8 +53,8 @@ void harq_proc::reset()
   tb[0].tbs       = std::numeric_limits<uint32_t>::max();
 }
 
-bool harq_proc::new_tx(tti_point        tti_tx_,
-                       tti_point        tti_ack_,
+bool harq_proc::new_tx(slot_point       slot_tx_,
+                       slot_point       slot_ack_,
                        const prb_grant& grant,
                        uint32_t         mcs,
                        uint32_t         tbs,
@@ -64,8 +65,8 @@ bool harq_proc::new_tx(tti_point        tti_tx_,
   }
   reset();
   max_retx     = max_retx_;
-  tti_tx       = tti_tx_;
-  tti_ack      = tti_ack_;
+  slot_tx      = slot_tx_;
+  slot_ack     = slot_ack_;
   prbs_        = grant;
   tb[0].ndi    = !tb[0].ndi;
   tb[0].mcs    = mcs;
@@ -83,31 +84,35 @@ bool harq_proc::set_tbs(uint32_t tbs)
   return true;
 }
 
-bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_, const prb_grant& grant)
+bool harq_proc::new_retx(slot_point slot_tx_, slot_point slot_ack_, const prb_grant& grant)
 {
   if (grant.is_alloc_type0() != prbs_.is_alloc_type0() or
       (grant.is_alloc_type0() and grant.rbgs().count() != prbs_.rbgs().count()) or
-      (grant.is_alloc_type1() and grant.prbs().length() == prbs_.prbs().length())) {
+      (grant.is_alloc_type1() and grant.prbs().length() != prbs_.prbs().length())) {
     return false;
   }
-  if (new_retx(tti_tx_, tti_ack_)) {
+  if (new_retx(slot_tx_, slot_ack_)) {
     prbs_ = grant;
     return true;
   }
   return false;
 }
 
-bool harq_proc::new_retx(tti_point tti_tx_, tti_point tti_ack_)
+bool harq_proc::new_retx(slot_point slot_tx_, slot_point slot_ack_)
 {
   if (empty()) {
     return false;
   }
-  tti_tx          = tti_tx_;
-  tti_ack         = tti_ack_;
+  slot_tx         = slot_tx_;
+  slot_ack        = slot_ack_;
   tb[0].ack_state = false;
   tb[0].n_rtx++;
   return true;
 }
+
+dl_harq_proc::dl_harq_proc(uint32_t id_, uint32_t nprb) :
+  harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_tx(nprb)), pdu(srsran::make_byte_buffer())
+{}
 
 harq_entity::harq_entity(uint32_t nprb, uint32_t nof_harq_procs)
 {
@@ -120,14 +125,14 @@ harq_entity::harq_entity(uint32_t nprb, uint32_t nof_harq_procs)
   }
 }
 
-void harq_entity::new_tti(tti_point tti_rx_)
+void harq_entity::new_slot(slot_point slot_rx_)
 {
-  tti_rx = tti_rx_;
+  slot_rx = slot_rx_;
   for (harq_proc& dl_h : dl_harqs) {
-    dl_h.new_tti(tti_rx);
+    dl_h.new_slot(slot_rx);
   }
   for (harq_proc& ul_h : ul_harqs) {
-    ul_h.new_tti(tti_rx);
+    ul_h.new_slot(slot_rx);
   }
 }
 

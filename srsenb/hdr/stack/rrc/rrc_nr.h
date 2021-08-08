@@ -71,6 +71,7 @@ public:
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
   int          add_user(uint16_t rnti);
   int          update_user(uint16_t new_rnti, uint16_t old_rnti);
+  void         config_phy();
   void         config_mac();
   int32_t      generate_sibs();
   int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
@@ -90,6 +91,13 @@ public:
   // Interface for EUTRA RRC
   int sgnb_addition_request(uint16_t rnti);
   int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response);
+
+  // Interfaces for NGAP
+  int  ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key);
+  int  ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates);
+  int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps);
+  int  start_security_mode_procedure(uint16_t rnti);
+  void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu);
 
   class ue
   {

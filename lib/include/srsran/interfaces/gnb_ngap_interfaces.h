@@ -59,6 +59,7 @@ public:
   virtual bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) = 0;
   virtual bool is_amf_connected()                                                            = 0;
   virtual void ue_ctxt_setup_complete(uint16_t rnti)                                         = 0;
+  virtual void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)                    = 0;
 };
 
 } // namespace srsenb

@@ -1382,7 +1382,7 @@ public:
         }
         break;
       case change_state_flush:
-        if (tti_counter >= 2 * FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS) {
+        if (tti_counter >= 2 * (FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS)) {
           logger.warning("******* Cell rotation: Reconfigure *******");
 
           std::array<bool, SRSRAN_MAX_CARRIERS> activation = {}; ///< Activation/Deactivation vector
@@ -1489,6 +1489,10 @@ int parse_args(int argc, char** argv, phy_test_bench::args_t& args)
 
 int main(int argc, char** argv)
 {
+  // First of all, initialise crash handler - Crash files from ctest executions will be stored in
+  // srsenb/test/phy/srsRAN.backtrace.crash
+  srsran_debug_handle_crash(argc, argv);
+
   phy_test_bench::args_t test_args;
 
   // Parse arguments
@@ -1507,20 +1511,23 @@ int main(int argc, char** argv)
   if (not valid_cfg) {
     // Verify that phy returns with an error if provided an invalid configuration
     TESTASSERT(err_code != SRSRAN_SUCCESS);
-    return 0;
+    return SRSRAN_SUCCESS;
   }
-  TESTASSERT(err_code == SRSRAN_SUCCESS);
 
   // Run Simulation
-  for (uint32_t i = 0; i < test_args.duration; i++) {
-    TESTASSERT(test_bench->run_tti() >= SRSRAN_SUCCESS);
+  for (uint32_t i = 0; i < test_args.duration and err_code >= SRSRAN_SUCCESS; i++) {
+    err_code = test_bench->run_tti();
   }
 
   test_bench->stop();
 
   srslog::flush();
 
-  std::cout << "Passed" << std::endl;
+  if (err_code >= SRSRAN_SUCCESS) {
+    std::cout << "Ok" << std::endl;
+  } else {
+    std::cout << "Error" << std::endl;
+  }
 
-  return SRSRAN_SUCCESS;
+  return err_code;
 }

@@ -169,8 +169,14 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 }
 
 //! Called when UE capabilities are received
-void rrc::ue::rrc_endc::handle_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps)
+void rrc::ue::rrc_endc::handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps)
 {
+  // skip any further checks if eNB runs without NR cells
+  if (rrc_enb->cfg.cell_list_nr.empty()) {
+    Debug("Skipping UE capabilities. No NR cell configured.");
+    return;
+  }
+
   // Only enabled ENDC support if UE caps have been exchanged and UE signals support
   if (eutra_caps.non_crit_ext_present) {
     if (eutra_caps.non_crit_ext.non_crit_ext_present) {
@@ -279,6 +285,11 @@ void rrc::ue::rrc_endc::handle_recfg_complete(wait_recfg_comp& s, const recfg_co
 void rrc::ue::rrc_endc::handle_sgnb_addition_complete()
 {
   logger.info("Received SgNB addition complete for rnti=%d", rrc_ue->rnti);
+}
+
+bool rrc::ue::rrc_endc::is_endc_supported()
+{
+  return endc_supported;
 }
 
 } // namespace srsenb

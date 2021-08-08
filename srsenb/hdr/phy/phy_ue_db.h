@@ -392,6 +392,15 @@ public:
                     const srsran_uci_cfg_t&   uci_cfg,
                     const srsran_uci_value_t& uci_value);
 
+  static void send_cqi_data(uint32_t                       tti,
+                            uint16_t                       rnti,
+                            uint32_t                       cqi_cc_idx,
+                            const srsran_cqi_cfg_t&        cqi_cfg,
+                            const srsran_cqi_value_t&      cqi_value,
+                            const srsran_cqi_report_cfg_t& cqi_report_cfg,
+                            const srsran_cell_t&           cell,
+                            stack_interface_phy_lte*       stack);
+
   /**
    * Set the latest UL Transport Block resource allocation for a given RNTI, eNb cell/carrier and UL HARQ process
    * identifier.

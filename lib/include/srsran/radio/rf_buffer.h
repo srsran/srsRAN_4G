@@ -121,6 +121,26 @@ public:
   {
     sample_buffer.at(logical_ch * nof_antennas + port_idx) = ptr;
   }
+  void set_combine(const uint32_t& channel_idx, cf_t* ptr)
+  {
+    if (sample_buffer.at(channel_idx) == nullptr) {
+      sample_buffer.at(channel_idx) = ptr;
+    } else if (ptr != nullptr) {
+      srsran_vec_sum_ccc(ptr, sample_buffer.at(channel_idx), sample_buffer.at(channel_idx), nof_samples);
+    }
+  }
+  void set_combine(const uint32_t& logical_ch, const uint32_t& port_idx, const uint32_t& nof_antennas, cf_t* ptr)
+  {
+    set_combine(logical_ch * nof_antennas + port_idx, ptr);
+  }
+  void set_combine(const rf_buffer_interface& other)
+  {
+    // Take the other number of samples always
+    set_nof_samples(other.get_nof_samples());
+    for (uint32_t ch = 0; ch < SRSRAN_MAX_CHANNELS; ch++) {
+      set_combine(ch, other.get(ch));
+    }
+  }
   void**   to_void() override { return (void**)sample_buffer.data(); }
   cf_t**   to_cf_t() override { return sample_buffer.data(); }
   uint32_t size() override { return nof_subframes * SRSRAN_SF_LEN_MAX; }

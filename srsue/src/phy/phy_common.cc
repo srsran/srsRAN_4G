@@ -54,10 +54,10 @@ void phy_common::init(phy_args_t*                  _args,
                       stack_interface_phy_lte*     _stack,
                       rsrp_insync_itf*             _chest_loop)
 {
-  radio_h        = _radio;
-  stack          = _stack;
-  args           = _args;
-  insync_itf     = _chest_loop;
+  radio_h    = _radio;
+  stack      = _stack;
+  args       = _args;
+  insync_itf = _chest_loop;
   sr.reset();
 
   // Instantiate UL channel emulator
@@ -540,48 +540,49 @@ bool phy_common::get_dl_pending_ack(srsran_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void*                   tx_sem_id,
-                            bool                    tx_enable,
-                            srsran::rf_buffer_t&    buffer,
-                            srsran::rf_timestamp_t& tx_time,
-                            bool                    is_nr)
+void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer)
 {
   // Wait for the green light to transmit in the current TTI
-  semaphore.wait(tx_sem_id);
+  semaphore.wait(w_ctx.worker_ptr);
 
-  // If this is for NR, save Tx buffers...
-  if (is_nr) {
-    nr_tx_buffer       = buffer;
-    nr_tx_buffer_ready = true;
+  // For each channel set or combine baseband
+  if (tx_enable) {
+    tx_buffer.set_combine(buffer);
+
+    // Flag transmit enabled
+    tx_enabled = true;
+  }
+
+  // If the current worker is not the last one, skip transmission
+  if (not w_ctx.last) {
+    // Release semaphore and let next worker to get in
     semaphore.release();
+
+    // If this worker transmitted, hold the worker until last SF worker finishes
+    if (tx_enable) {
+      wait_last_worker();
+    }
+
     return;
   }
 
-  // ... otherwise, append NR base-band from saved buffer if available
-  if (nr_tx_buffer_ready) {
-    // Load NR carrier base-band
-    for (uint32_t i = 0; i < args->nof_nr_carriers * args->nof_rx_ant; i++) {
-      uint32_t channel_idx = args->nof_lte_carriers * args->nof_rx_ant + i;
-      buffer.set(channel_idx, nr_tx_buffer.get(i));
-    }
-
-    // Remove NR buffer flag
-    nr_tx_buffer_ready = false;
-
-    // Make sure it transmits in this TTI
-    tx_enable = true;
-  }
-
-  // Add Time Alignment
+  // Add current time alignment
+  srsran::rf_timestamp_t tx_time = w_ctx.tx_time; // get transmit time from the last worker
   tx_time.sub((double)ta.get_sec());
 
-  // For each radio, transmit
-  if (tx_enable) {
+  // Check if any worker had a transmission
+  if (tx_enabled) {
+    // Set number of samples to the latest transmit buffer
+    tx_buffer.set_nof_samples(buffer.get_nof_samples());
+
+    // Run uplink channel emulator
     if (ul_channel) {
-      ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
+      ul_channel->run(tx_buffer.to_cf_t(), tx_buffer.to_cf_t(), tx_buffer.get_nof_samples(), tx_time.get(0));
     }
 
-    radio_h->tx(buffer, tx_time);
+    // Actual baseband transmission
+    radio_h->tx(tx_buffer, tx_time);
+
   } else {
     if (radio_h->is_continuous_tx()) {
       if (is_pending_tx_end) {
@@ -601,6 +602,15 @@ void phy_common::worker_end(void*                   tx_sem_id,
     } else {
       radio_h->tx_end();
     }
+  }
+
+  // Notify that last SF worker finished. Releases all the threads waiting.
+  last_worker();
+
+  // Reset tx buffer to prevent next SF uses previous data
+  tx_enabled = false;
+  for (uint32_t ch = 0; ch < SRSRAN_MAX_CHANNELS; ch++) {
+    tx_buffer.set(ch, nullptr);
   }
 
   // Allow next TTI to transmit

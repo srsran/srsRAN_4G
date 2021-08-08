@@ -40,10 +40,10 @@ public:
   bool init(stack_interface_phy_lte*     stack_,
             srsran::radio_interface_phy* radio_handler,
             lte::worker_pool*            lte_workers_,
-            nr::worker_pool*             nr_workers_,
             phy_common*                  worker_com,
             prach_worker_pool*           prach_,
             uint32_t                     prio);
+  bool set_nr_workers(nr::worker_pool* nr_workers_);
   void stop();
 
 private:

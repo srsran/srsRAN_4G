@@ -25,7 +25,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_ue::slot_ue(uint16_t rnti_, tti_point tti_rx_, uint32_t cc_) : rnti(rnti_), tti_rx(tti_rx_), cc(cc_) {}
+slot_ue::slot_ue(uint16_t rnti_, slot_point slot_rx_, uint32_t cc_) : rnti(rnti_), slot_rx(slot_rx_), cc(cc_) {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -37,41 +37,42 @@ ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const sched_cell_
   harq_ent(cell_params_.nof_prb())
 {}
 
-void ue_carrier::new_tti(tti_point pdcch_tti, const ue_cfg_t& uecfg_)
+void ue_carrier::new_slot(slot_point pdcch_slot, const ue_cfg_t& uecfg_)
 {
   if (bwp_cfg.ue_cfg() != &uecfg_) {
     bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], uecfg_);
   }
-  harq_ent.new_tti(pdcch_tti - TX_ENB_DELAY);
+  harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY);
 }
 
-slot_ue ue_carrier::try_reserve(tti_point pdcch_tti)
+slot_ue ue_carrier::try_reserve(slot_point pdcch_slot)
 {
-  tti_point tti_rx = pdcch_tti - TX_ENB_DELAY;
+  slot_point slot_rx = pdcch_slot - TX_ENB_DELAY;
 
   // copy cc-specific parameters and find available HARQs
-  slot_ue sfu(rnti, tti_rx, cc);
+  slot_ue sfu(rnti, slot_rx, cc);
   sfu.cfg           = &bwp_cfg;
-  sfu.pdcch_tti     = pdcch_tti;
+  sfu.pdcch_slot    = pdcch_slot;
   const uint32_t k0 = 0;
-  sfu.pdsch_tti     = sfu.pdcch_tti + k0;
+  sfu.pdsch_slot    = sfu.pdcch_slot + k0;
   uint32_t k1 =
-      sfu.cfg->phy().harq_ack.dl_data_to_ul_ack[sfu.pdsch_tti.sf_idx() % sfu.cfg->phy().harq_ack.nof_dl_data_to_ul_ack];
-  sfu.uci_tti   = sfu.pdsch_tti + k1;
-  uint32_t k2   = bwp_cfg.active_bwp().pusch_ra_list[0].K;
-  sfu.pusch_tti = sfu.pdcch_tti + k2;
-  sfu.dl_cqi    = dl_cqi;
-  sfu.ul_cqi    = ul_cqi;
+      sfu.cfg->phy()
+          .harq_ack.dl_data_to_ul_ack[sfu.pdsch_slot.slot_idx() % sfu.cfg->phy().harq_ack.nof_dl_data_to_ul_ack];
+  sfu.uci_slot   = sfu.pdsch_slot + k1;
+  uint32_t k2    = bwp_cfg.active_bwp().pusch_ra_list[0].K;
+  sfu.pusch_slot = sfu.pdcch_slot + k2;
+  sfu.dl_cqi     = dl_cqi;
+  sfu.ul_cqi     = ul_cqi;
 
   const srsran_tdd_config_nr_t& tdd_cfg = cell_params.cell_cfg.tdd;
-  if (srsran_tdd_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_tti.sf_idx())) {
+  if (srsran_tdd_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_slot.slot_idx())) {
     // If DL enabled
     sfu.h_dl = harq_ent.find_pending_dl_retx();
     if (sfu.h_dl == nullptr) {
       sfu.h_dl = harq_ent.find_empty_dl_harq();
     }
   }
-  if (srsran_tdd_nr_is_ul(&tdd_cfg, 0, sfu.pusch_tti.sf_idx())) {
+  if (srsran_tdd_nr_is_ul(&tdd_cfg, 0, sfu.pusch_slot.slot_idx())) {
     // If UL enabled
     sfu.h_ul = harq_ent.find_pending_ul_retx();
     if (sfu.h_ul == nullptr) {
@@ -104,12 +105,12 @@ void ue::set_cfg(const ue_cfg_t& cfg)
   ue_cfg = cfg;
 }
 
-slot_ue ue::try_reserve(tti_point pdcch_tti, uint32_t cc)
+slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
 {
   if (carriers[cc] == nullptr) {
     return slot_ue();
   }
-  slot_ue sfu = carriers[cc]->try_reserve(pdcch_tti);
+  slot_ue sfu = carriers[cc]->try_reserve(pdcch_slot);
   if (sfu.empty()) {
     return slot_ue();
   }

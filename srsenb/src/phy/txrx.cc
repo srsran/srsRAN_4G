@@ -51,7 +51,6 @@ txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger), runni
 bool txrx::init(stack_interface_phy_lte*     stack_,
                 srsran::radio_interface_phy* radio_h_,
                 lte::worker_pool*            lte_workers_,
-                nr::worker_pool*             nr_workers_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 uint32_t                     prio_)
@@ -59,7 +58,6 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
   stack       = stack_;
   radio_h     = radio_h_;
   lte_workers = lte_workers_;
-  nr_workers  = nr_workers_;
   worker_com  = worker_com_;
   prach       = prach_;
   running     = true;
@@ -71,6 +69,12 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
   }
 
   start(prio_);
+  return true;
+}
+
+bool txrx::set_nr_workers(nr::worker_pool* nr_workers_)
+{
+  nr_workers = nr_workers_;
   return true;
 }
 
@@ -134,7 +138,7 @@ void txrx::run_thread()
     }
 
     nr::slot_worker* nr_worker = nullptr;
-    if (worker_com->get_nof_carriers_nr() > 0) {
+    if (nr_workers != nullptr and worker_com->get_nof_carriers_nr() > 0) {
       nr_worker = nr_workers->wait_worker(tti);
       if (nr_worker == nullptr) {
         running = false;
@@ -160,7 +164,9 @@ void txrx::run_thread()
           // WARNING:
           // - The number of ports for all cells must be the same
           // - Only one NR cell is currently supported
-          buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(p));
+          if (nr_worker != nullptr) {
+            buffer.set(rf_port, p, worker_com->get_nof_ports(0), nr_worker->get_buffer_rx(p));
+          }
         }
       }
     }
@@ -181,23 +187,40 @@ void txrx::run_thread()
           timestamp.get(0).frac_secs,
           lte_worker->get_id());
 
-    lte_worker->set_time(tti, timestamp);
-
     // Trigger prach worker execution
     for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {
       prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
     }
 
-    // Launch NR worker only if available
+    // Set NR worker context and start
     if (nr_worker != nullptr) {
-      nr_worker->set_time(tti, timestamp);
+      srsran::phy_common_interface::worker_context_t context;
+      context.sf_idx     = tti;
+      context.worker_ptr = nr_worker;
+      context.last       = (lte_worker == nullptr); // Set last if standalone
+      context.tx_time.copy(timestamp);
+
+      nr_worker->set_context(context);
+
+      // Start NR worker processing
       worker_com->semaphore.push(nr_worker);
       nr_workers->start_worker(nr_worker);
     }
 
-    // Trigger phy worker execution
-    worker_com->semaphore.push(lte_worker);
-    lte_workers->start_worker(lte_worker);
+    // Set LTE worker context and start
+    if (lte_worker != nullptr) {
+      srsran::phy_common_interface::worker_context_t context;
+      context.sf_idx     = tti;
+      context.worker_ptr = lte_worker;
+      context.last       = true;
+      context.tx_time.copy(timestamp);
+
+      lte_worker->set_context(context);
+
+      // Start LTE worker processing
+      worker_com->semaphore.push(lte_worker);
+      lte_workers->start_worker(lte_worker);
+    }
 
     // Advance stack in time
     stack->tti_clock();

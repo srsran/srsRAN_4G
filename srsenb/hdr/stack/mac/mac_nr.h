@@ -27,6 +27,7 @@
 
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/hdr/stack/mac/nr/ue_nr.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
@@ -36,6 +37,9 @@
 namespace srsenb {
 
 struct mac_nr_args_t {
+  srsran::phy_cfg_nr_t phy_base_cfg = {};
+  int                 fixed_dl_mcs = -1;
+  int                 fixed_ul_mcs = -1;
   srsenb::pcap_args_t pcap;
 };
 
@@ -64,16 +68,12 @@ public:
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override { return 0; }
 
   // Interface for PHY
-  int sf_indication(const uint32_t tti);
-  int rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& grant);
-
   void process_pdus();
-  void rach_detected(const srsran_slot_cfg_t& slot_cfg, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
   int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
   int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
   int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
   int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override;
-  int  pusch_info(const srsran_slot_cfg_t& slot_cfg, const pusch_info_t& pusch_info) override;
+  int  pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override;
   void rach_detected(const rach_info_t& rach_info) override;
 
 private:
@@ -83,6 +83,9 @@ private:
   // internal misc helpers
   bool is_rnti_valid_unsafe(uint16_t rnti);
   bool is_rnti_active_unsafe(uint16_t rnti);
+
+  // handle UCI data from either PUCCH or PUSCH
+  bool handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value);
 
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
@@ -103,6 +106,9 @@ private:
 
   std::atomic<bool> started = {false};
 
+  const static uint32_t NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
+  srsran::slot_point                  pdsch_slot, pusch_slot;
+  srsenb::sched_nr                    sched;
   srsenb::sched_interface::cell_cfg_t cfg = {};
 
   // Map of active UEs

@@ -879,6 +879,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
         rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup());
+        rach_nr_cfg.skip_rar      = args.skip_rar;
         mac->set_config(rach_nr_cfg);
 
         // Make the RACH configuration for PHY
@@ -925,7 +926,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     }
     if (ul_cfg_common.init_ul_bwp.pucch_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.pucch_cfg_common.type() == setup_release_c<pucch_cfg_common_s>::types_opts::setup) {
-        logger.info("PUCCH cfg commont setup not handled");
+        logger.info("PUCCH cfg common setup not handled");
       } else {
         logger.warning("Option pucch_cfg_common not of type setup");
         return false;
@@ -935,7 +936,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
       return false;
     }
   } else {
-    logger.warning("Option init_ul_bwp not present");
+    logger.warning("Option init_ul_bwp in spCellConfigCommon not present");
     return false;
   }
   return true;
@@ -1216,7 +1217,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
             return false;
           }
         } else {
-          logger.warning("Option pucch_cfg not present");
+          logger.warning("Option pucch_cfg for initial UL BWP in spCellConfigDedicated not present");
           return false;
         }
         if (sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pusch_cfg_present) {
@@ -1230,15 +1231,15 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
             return false;
           }
         } else {
-          logger.warning("Option pusch_cfg not present");
+          logger.warning("Option pusch_cfg in spCellConfigDedicated not present");
           return false;
         }
       } else {
-        logger.warning("Option init_ul_bwp not present");
+        logger.warning("Option init_ul_bwp in spCellConfigDedicated not present");
         return false;
       }
     } else {
-      logger.warning("Option ul_cfg not present");
+      logger.warning("Option ul_cfg in spCellConfigDedicated not present");
       return false;
     }
 
@@ -1268,7 +1269,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         return false;
       }
     } else {
-      logger.warning("Option csi_meas_cfg not present");
+      logger.warning("Option csi_meas_cfg in spCellConfigDedicated not present");
       return false;
     }
 

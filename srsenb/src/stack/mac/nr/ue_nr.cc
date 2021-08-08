@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/nr/ue_nr.h"
+#include "srsran/common/buffer_pool.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
@@ -37,7 +38,13 @@ ue_nr::ue_nr(uint16_t                rnti_,
              rlc_interface_mac*      rlc_,
              phy_interface_stack_nr* phy_,
              srslog::basic_logger&   logger_) :
-  rnti(rnti_), sched(sched_), rrc(rrc_), rlc(rlc_), phy(phy_), logger(logger_)
+  rnti(rnti_),
+  sched(sched_),
+  rrc(rrc_),
+  rlc(rlc_),
+  phy(phy_),
+  logger(logger_),
+  ue_rlc_buffer(srsran::make_byte_buffer())
 {}
 
 ue_nr::~ue_nr() {}
@@ -91,47 +98,35 @@ uint32_t ue_nr::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_byt
   return rlc->read_pdu(rnti, lcid, payload, requested_bytes);
 }
 
-uint8_t* ue_nr::generate_pdu(uint32_t                              enb_cc_idx,
-                             uint32_t                              harq_pid,
-                             uint32_t                              tb_idx,
-                             const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
-                             uint32_t                              nof_pdu_elems,
-                             uint32_t                              grant_size)
+int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint8_t*                    ret = nullptr;
-  if (enb_cc_idx < SRSRAN_MAX_CARRIERS && harq_pid < SRSRAN_FDD_NOF_HARQ && tb_idx < SRSRAN_MAX_TB) {
-    srsran::byte_buffer_t* buffer = nullptr; // TODO: read from scheduler output
-    buffer->clear();
 
-    mac_pdu_dl.init_tx(buffer, grant_size);
+  mac_pdu_dl.init_tx(pdu, grant_size);
 
-    // read RLC PDU
-    ue_rlc_buffer->clear();
-    int lcid    = 4;
-    int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, grant_size - 2);
+  // read RLC PDU
+  ue_rlc_buffer->clear();
+  int lcid    = 4;
+  int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, grant_size - 2);
 
-    // Only create PDU if RLC has something to tx
-    if (pdu_len > 0) {
-      logger.info("Adding MAC PDU for RNTI=%d", rnti);
-      ue_rlc_buffer->N_bytes = pdu_len;
-      logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+  // Only create PDU if RLC has something to tx
+  if (pdu_len > 0) {
+    logger.info("Adding MAC PDU for RNTI=%d", rnti);
+    ue_rlc_buffer->N_bytes = pdu_len;
+    logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
 
-      // add to MAC PDU and pack
-      mac_pdu_dl.add_sdu(4, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
-      mac_pdu_dl.pack();
-    }
-
-    if (logger.info.enabled()) {
-      fmt::memory_buffer str_buffer;
-      // mac_pdu_dl.to_string(str_buffer);
-      logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
-    }
-  } else {
-    logger.error(
-        "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d", enb_cc_idx, harq_pid, tb_idx);
+    // add to MAC PDU and pack
+    mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
   }
-  return ret;
+
+  mac_pdu_dl.pack();
+
+  if (logger.info.enabled()) {
+    fmt::memory_buffer str_buffer;
+    // mac_pdu_dl.to_string(str_buffer);
+    logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
+  }
+  return SRSRAN_SUCCESS;
 }
 
 /******* METRICS interface ***************/

@@ -260,7 +260,7 @@ public:
 
     // Insert PDSCH transmission information
     if (srsran_harq_ack_insert_m(&ack, &ack_m) < SRSRAN_SUCCESS) {
-      ERROR("Error inserting ACK m value");
+      ERROR("Error inserting ACK m value for Tx slot %d", tti_tx);
     }
   }
 

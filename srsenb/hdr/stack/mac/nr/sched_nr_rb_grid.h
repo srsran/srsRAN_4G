@@ -70,8 +70,8 @@ struct bwp_slot_grid {
 struct bwp_res_grid {
   bwp_res_grid(const bwp_params& bwp_cfg_);
 
-  bwp_slot_grid&       operator[](tti_point tti) { return slots[tti.to_uint() % slots.capacity()]; };
-  const bwp_slot_grid& operator[](tti_point tti) const { return slots[tti.to_uint() % slots.capacity()]; };
+  bwp_slot_grid&       operator[](slot_point tti) { return slots[tti.to_uint() % slots.capacity()]; };
+  const bwp_slot_grid& operator[](slot_point tti) const { return slots[tti.to_uint() % slots.capacity()]; };
   uint32_t             id() const { return cfg->bwp_id; }
   uint32_t             nof_prbs() const { return cfg->cfg.rb_width; }
 
@@ -90,7 +90,7 @@ class bwp_slot_allocator
 public:
   explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_);
 
-  void new_slot(tti_point pdcch_tti_) { pdcch_tti = pdcch_tti_; }
+  void new_slot(slot_point pdcch_slot_) { pdcch_slot = pdcch_slot_; }
 
   alloc_result alloc_rar_and_msg3(uint32_t             aggr_idx,
                                   const pending_rar_t& rar,
@@ -98,9 +98,9 @@ public:
                                   slot_ue_map_t&       ues,
                                   uint32_t             max_nof_grants);
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
-  alloc_result alloc_pusch(slot_ue& ue, const rbgmask_t& dl_mask);
+  alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
 
-  tti_point           get_pdcch_tti() const { return pdcch_tti; }
+  slot_point          get_pdcch_tti() const { return pdcch_slot; }
   const bwp_res_grid& res_grid() const { return bwp_grid; }
 
   const bwp_params& cfg;
@@ -111,7 +111,7 @@ private:
   srslog::basic_logger& logger;
   bwp_res_grid&         bwp_grid;
 
-  tti_point pdcch_tti;
+  slot_point pdcch_slot;
 };
 
 } // namespace sched_nr_impl

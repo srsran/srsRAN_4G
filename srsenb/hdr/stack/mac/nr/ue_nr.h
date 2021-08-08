@@ -57,13 +57,8 @@ public:
   void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
   bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
 
-  uint8_t* generate_pdu(uint32_t                              enb_cc_idx,
-                        uint32_t                              harq_pid,
-                        uint32_t                              tb_idx,
-                        const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
-                        uint32_t                              nof_pdu_elems,
-                        uint32_t                              grant_size);
-  int      process_pdu(srsran::unique_byte_buffer_t pdu);
+  int generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size);
+  int process_pdu(srsran::unique_byte_buffer_t pdu);
 
   std::mutex metrics_mutex = {};
   void       metrics_read(mac_ue_metrics_t* metrics_);

@@ -984,6 +984,12 @@ void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recf
   uint64_t target_eci = (rrc_enb->cfg.enb_id << 8u) + target_cell->cell_common->cell_cfg.cell_id;
 
   rrc_enb->s1ap->send_ho_notify(rrc_ue->rnti, target_eci);
+
+  // Enable forwarding of GTPU SDUs coming from Source eNB Tunnel to PDCP
+  auto& fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
+  for (uint32_t teid : fwd_tunnels) {
+    rrc_enb->gtpu->set_tunnel_status(teid, true);
+  }
 }
 
 void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& erabs)
@@ -1020,11 +1026,6 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
                 drb_state.next_pdcp_tx_sn,
                 drb_state.next_pdcp_rx_sn);
     rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
-  }
-
-  // Enable forwarding of GTPU SDUs coming from Source eNB Tunnel to PDCP
-  for (uint32_t teid : s.pending_tunnels) {
-    rrc_enb->gtpu->set_tunnel_status(teid, true);
   }
 
   // Check if there is any pending Reconfiguration Complete. If there is, self-trigger

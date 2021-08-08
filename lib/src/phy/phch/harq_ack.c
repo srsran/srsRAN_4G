@@ -299,6 +299,11 @@ int srsran_harq_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, const srsran_harq_
   }
   srsran_harq_ack_cc_t* cc = &ack_info->cc[m->resource.scell_idx];
 
+  if (cc->M >= SRSRAN_UCI_NR_MAX_M) {
+    ERROR("Accumulated M HARQ feedback exceeds maximum (%d)", SRSRAN_UCI_NR_MAX_M);
+    return SRSRAN_ERROR;
+  }
+
   // Find insertion index
   uint32_t idx = cc->M; // Append at the end by default
   for (uint32_t i = 0; i < cc->M; i++) {
@@ -312,7 +317,7 @@ int srsran_harq_ack_insert_m(srsran_pdsch_ack_nr_t* ack_info, const srsran_harq_
   cc->M += 1;
 
   // Make space for insertion
-  for (uint32_t i = cc->M - 1; i > idx; i--) {
+  for (uint32_t i = cc->M - 1; i != idx; i--) {
     cc->m[i] = cc->m[i - 1];
   }
 

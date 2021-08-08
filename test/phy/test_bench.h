@@ -45,7 +45,7 @@ private:
 
 public:
   struct args_t {
-    double                          srate_hz     = 11.52e6;
+    double                          srate_hz     = (double)(768 * SRSRAN_SUBC_SPACING_NR(0));
     uint32_t                        nof_channels = 1;
     uint32_t                        buffer_sz_ms = 10;
     bool                            valid        = false;
@@ -147,7 +147,14 @@ public:
 
     // Set gNb time
     gnb_time.add(TX_ENB_DELAY * 1e-3);
-    gnb_worker->set_time(slot_idx, gnb_time);
+
+    // Set gnb context
+    srsran::phy_common_interface::worker_context_t gnb_context;
+    gnb_context.sf_idx     = slot_idx;
+    gnb_context.worker_ptr = gnb_worker;
+    gnb_context.last       = true; // Set last if standalone
+    gnb_context.tx_time.copy(gnb_time);
+    gnb_worker->set_context(gnb_context);
 
     // Start gNb work
     gnb_phy_com.push_semaphore(gnb_worker);
@@ -167,8 +174,14 @@ public:
 
     // Set UE time
     ue_time.add(TX_ENB_DELAY * 1e-3);
-    ue_worker->set_tti(slot_idx);
-    ue_worker->set_tx_time(ue_time);
+
+    // Set gnb context
+    srsran::phy_common_interface::worker_context_t ue_context;
+    ue_context.sf_idx     = slot_idx;
+    ue_context.worker_ptr = ue_worker;
+    ue_context.last       = true; // Set last if standalone
+    ue_context.tx_time.copy(gnb_time);
+    ue_worker->set_context(ue_context);
 
     // Run UE stack
     ue_stack.run_tti(slot_idx);

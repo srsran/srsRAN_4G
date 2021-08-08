@@ -68,18 +68,14 @@ uint32_t sf_worker::get_buffer_len()
   return cc_workers.at(0)->get_buffer_len();
 }
 
-void sf_worker::set_tti(uint32_t tti)
+void sf_worker::set_context(const srsran::phy_common_interface::worker_context_t& w_ctx)
 {
-  tti_rx = tti;
-  logger.set_context(tti);
+  tti_rx = w_ctx.sf_idx;
+  logger.set_context(w_ctx.sf_idx);
   for (auto& w : cc_workers) {
-    w->set_tti(tti);
+    w->set_tti(w_ctx.sf_idx);
   }
-}
-
-void sf_worker::set_tx_time(const srsran::rf_timestamp_t& tx_time_)
-{
-  tx_time.copy(tx_time_);
+  context.copy(w_ctx);
 }
 
 void sf_worker::work_imp()
@@ -98,7 +94,7 @@ void sf_worker::work_imp()
   // Check if PRACH is available
   if (prach_ptr != nullptr) {
     // PRACH is available, set buffer, transmit and return
-    tx_buffer.set(0, prach_ptr);
+    tx_buffer.set(phy_state.args.rf_channel_offset, prach_ptr);
     tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
     // Notify MAC about PRACH transmission
@@ -109,7 +105,7 @@ void sf_worker::work_imp()
                                 0);
 
     // Transmit NR PRACH
-    common.worker_end(this, true, tx_buffer, tx_time, true);
+    common.worker_end(context, true, tx_buffer);
 
     // Reset PRACH pointer
     prach_ptr = nullptr;
@@ -124,12 +120,12 @@ void sf_worker::work_imp()
 
   // Set Tx buffers
   for (uint32_t i = 0; i < (uint32_t)cc_workers.size(); i++) {
-    tx_buffer.set(i, cc_workers[i]->get_tx_buffer(0));
+    tx_buffer.set(i + phy_state.args.rf_channel_offset, cc_workers[i]->get_tx_buffer(0));
   }
   tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
   // Always call worker_end before returning
-  common.worker_end(this, true, tx_buffer, tx_time, true);
+  common.worker_end(context, true, tx_buffer);
 
   // Tell the plotting thread to draw the plots
 #ifdef ENABLE_GUI

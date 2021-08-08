@@ -20,7 +20,8 @@
  */
 
 #include "srsenb/hdr/phy/nr/slot_worker.h"
-#include <srsran/common/common.h>
+#include "srsran/common/buffer_pool.h"
+#include "srsran/common/common.h"
 
 namespace srsenb {
 namespace nr {
@@ -34,13 +35,14 @@ slot_worker::slot_worker(srsran::phy_common_interface& common_,
 
 bool slot_worker::init(const args_t& args)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   // Calculate subframe length
   sf_len = SRSRAN_SF_LEN_PRB_NR(args.nof_max_prb);
 
   // Copy common configurations
   cell_index = args.cell_index;
-  // FIXME:
-  // pdcch_cfg  = args.pdcch_cfg;
+  rf_port    = args.rf_port;
 
   // Allocate Tx buffers
   tx_buffer.resize(args.nof_tx_ports);
@@ -52,7 +54,7 @@ bool slot_worker::init(const args_t& args)
     }
   }
 
-  // Allocate Tx buffers
+  // Allocate Rx buffers
   rx_buffer.resize(args.nof_rx_ports);
   for (uint32_t i = 0; i < args.nof_rx_ports; i++) {
     rx_buffer[i] = srsran_vec_cf_malloc(sf_len);
@@ -112,6 +114,7 @@ slot_worker::~slot_worker()
 
 cf_t* slot_worker::get_buffer_rx(uint32_t antenna_idx)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (antenna_idx >= (uint32_t)rx_buffer.size()) {
     return nullptr;
   }
@@ -121,6 +124,7 @@ cf_t* slot_worker::get_buffer_rx(uint32_t antenna_idx)
 
 cf_t* slot_worker::get_buffer_tx(uint32_t antenna_idx)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (antenna_idx >= (uint32_t)tx_buffer.size()) {
     return nullptr;
   }
@@ -133,12 +137,12 @@ uint32_t slot_worker::get_buffer_len()
   return sf_len;
 }
 
-void slot_worker::set_time(const uint32_t& tti, const srsran::rf_timestamp_t& timestamp)
+void slot_worker::set_context(const srsran::phy_common_interface::worker_context_t& w_ctx)
 {
-  logger.set_context(tti);
-  ul_slot_cfg.idx = tti;
-  dl_slot_cfg.idx = TTI_ADD(tti, FDD_HARQ_DELAY_UL_MS);
-  tx_time.copy(timestamp);
+  logger.set_context(w_ctx.sf_idx);
+  ul_slot_cfg.idx = w_ctx.sf_idx;
+  dl_slot_cfg.idx = TTI_ADD(w_ctx.sf_idx, FDD_HARQ_DELAY_UL_MS);
+  context.copy(w_ctx);
 }
 
 bool slot_worker::work_ul()
@@ -207,12 +211,18 @@ bool slot_worker::work_ul()
 
   // For each PUSCH...
   for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
-    // Get payload PDU
+    // Prepare PUSCH
     stack_interface_phy_nr::pusch_info_t pusch_info = {};
     pusch_info.uci_cfg                              = pusch.sch.uci;
     pusch_info.pid                                  = pusch.pid;
-    pusch_info.pusch_data.tb[0].payload             = pusch.data[0];
-    pusch_info.pusch_data.tb[1].payload             = pusch.data[1];
+    pusch_info.rnti                                 = pusch.sch.grant.rnti;
+    pusch_info.pdu                                  = srsran::make_byte_buffer();
+    if (pusch_info.pdu == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return false;
+    }
+    pusch_info.pdu->N_bytes             = pusch.sch.grant.tb[0].tbs;
+    pusch_info.pusch_data.tb[0].payload = pusch_info.pdu->data();
 
     // Decode PUSCH
     if (srsran_gnb_ul_get_pusch(&gnb_ul, &ul_slot_cfg, &pusch.sch, &pusch.sch.grant, &pusch_info.pusch_data) <
@@ -299,8 +309,16 @@ bool slot_worker::work_dl()
 
   // Encode PDSCH
   for (stack_interface_phy_nr::pdsch_t& pdsch : dl_sched.pdsch) {
+    // convert MAC to PHY buffer data structures
+    uint8_t* data[SRSRAN_MAX_TB] = {};
+    for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
+      if (pdsch.data[i] != nullptr) {
+        data[i] = pdsch.data[i]->msg;
+      }
+    }
+
     // Put PDSCH message
-    if (srsran_gnb_dl_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, pdsch.data.data()) < SRSRAN_SUCCESS) {
+    if (srsran_gnb_dl_pdsch_put(&gnb_dl, &dl_slot_cfg, &pdsch.sch, data) < SRSRAN_SUCCESS) {
       logger.error("PDSCH: Error putting DL message");
       return false;
     }
@@ -309,7 +327,14 @@ bool slot_worker::work_dl()
     if (logger.info.enabled()) {
       std::array<char, 512> str = {};
       srsran_gnb_dl_pdsch_info(&gnb_dl, &pdsch.sch, str.data(), (uint32_t)str.size());
-      logger.info("PDSCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
+
+      if (logger.debug.enabled()) {
+        std::array<char, 1024> str_extra = {};
+        srsran_sch_cfg_nr_info(&pdsch.sch, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info("PDSCH: cc=%d %s tti_tx=%d\n%s", cell_index, str.data(), dl_slot_cfg.idx, str_extra.data());
+      } else {
+        logger.info("PDSCH: cc=%d %s tti_tx=%d", cell_index, str.data(), dl_slot_cfg.idx);
+      }
     }
   }
 
@@ -335,27 +360,26 @@ void slot_worker::work_imp()
   stack.slot_indication(dl_slot_cfg);
 
   // Get Transmission buffers
+  uint32_t            nof_ant      = (uint32_t)tx_buffer.size();
   srsran::rf_buffer_t tx_rf_buffer = {};
-  for (uint32_t i = 0; i < (uint32_t)tx_buffer.size(); i++) {
-    tx_rf_buffer.set(i, tx_buffer[i]);
-  }
-
-  // Set number of samples
   tx_rf_buffer.set_nof_samples(sf_len);
+  for (uint32_t a = 0; a < nof_ant; a++) {
+    tx_rf_buffer.set(rf_port, a, nof_ant, tx_buffer[a]);
+  }
 
   // Process uplink
   if (not work_ul()) {
-    common.worker_end(this, false, tx_rf_buffer, tx_time, true);
+    common.worker_end(context, false, tx_rf_buffer);
     return;
   }
 
   // Process downlink
   if (not work_dl()) {
-    common.worker_end(this, false, tx_rf_buffer, tx_time, true);
+    common.worker_end(context, false, tx_rf_buffer);
     return;
   }
 
-  common.worker_end(this, true, tx_rf_buffer, tx_time, true);
+  common.worker_end(context, true, tx_rf_buffer);
 }
 bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_)
 {
@@ -367,7 +391,10 @@ bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsra
 
   // Set gNb UL carrier
   if (srsran_gnb_ul_set_carrier(&gnb_ul, &carrier) < SRSRAN_SUCCESS) {
-    logger.error("Error setting UL carrier");
+    logger.error("Error setting UL carrier (pci=%d, nof_prb=%d, max_mimo_layers=%d)",
+                 carrier.pci,
+                 carrier.nof_prb,
+                 carrier.max_mimo_layers);
     return false;
   }
 

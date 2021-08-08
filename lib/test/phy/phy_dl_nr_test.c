@@ -396,10 +396,7 @@ int main(int argc, char** argv)
           if (data_tx[tb] == NULL) {
             continue;
           }
-
-          for (uint32_t i = 0; i < pdsch_cfg.grant.tb[tb].tbs; i++) {
-            data_tx[tb][i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
-          }
+          srsran_random_byte_vector(rand_gen, data_tx[tb], pdsch_cfg.grant.tb[tb].tbs/8);
           pdsch_cfg.grant.tb[tb].softbuffer.tx = &softbuffer_tx;
         }
 

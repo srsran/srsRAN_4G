@@ -34,7 +34,10 @@
 
 namespace srsenb {
 
-class phy final : public enb_phy_base, public phy_interface_stack_lte, public srsran::phy_interface_radio
+class phy final : public enb_phy_base,
+                  public phy_interface_stack_lte,
+                  public phy_interface_stack_nr,
+                  public srsran::phy_interface_radio
 {
 public:
   phy(srslog::sink& log_sink);
@@ -44,6 +47,11 @@ public:
             const phy_cfg_t&             cfg,
             srsran::radio_interface_phy* radio_,
             stack_interface_phy_lte*     stack_);
+  int  init(const phy_args_t&            args,
+            const phy_cfg_t&             cfg,
+            srsran::radio_interface_phy* radio_,
+            stack_interface_phy_lte*     stack_lte_,
+            stack_interface_phy_nr&      stack_nr_);
   void stop() override;
 
   std::string get_type() override { return "lte"; };
@@ -69,6 +77,9 @@ public:
   void radio_failure() override{};
 
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
+
+  int init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_phy_nr& stack);
+  int set_common_cfg(const common_cfg_t& common_cfg) override;
 
 private:
   srsran::phy_cfg_mbsfn_t mbsfn_config = {};

@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/mac_nr.h"
+#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/log_helper.h"
 #include "srsran/common/rwlock_guard.h"
@@ -33,7 +34,10 @@
 namespace srsenb {
 
 mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("MAC-NR")), task_sched(task_sched_)
+  logger(srslog::fetch_basic_logger("MAC-NR")),
+  task_sched(task_sched_),
+  sched(srsenb::sched_nr_interface::sched_cfg_t{}),
+  bcch_bch_payload(srsran::make_byte_buffer())
 {
   stack_task_queue = task_sched.make_task_queue();
 }
@@ -61,10 +65,11 @@ int mac_nr::init(const mac_nr_args_t&    args_,
     pcap->open(args.pcap.filename);
   }
 
-  bcch_bch_payload = srsran::make_byte_buffer();
-  if (bcch_bch_payload == nullptr) {
-    return SRSRAN_ERROR;
-  }
+  // configure scheduler for 1 carrier
+  std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1);
+  sched.cell_cfg(cells_cfg);
+
+  detected_rachs.resize(cells_cfg.size());
 
   logger.info("Started");
 
@@ -113,16 +118,14 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   return SRSRAN_SUCCESS;
 }
 
-void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
-                           uint32_t                 enb_cc_idx,
-                           uint32_t                 preamble_idx,
-                           uint32_t                 time_adv)
+void mac_nr::rach_detected(const rach_info_t& rach_info)
 {
   static srsran::mutexed_tprof<srsran::avg_time_stats> rach_tprof("rach_tprof", "MAC-NR", 1);
-  logger.set_context(slot_cfg.idx);
+  logger.set_context(rach_info.slot_index);
   auto rach_tprof_meas = rach_tprof.start();
 
-  stack_task_queue.push([this, slot_cfg, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
+  uint32_t enb_cc_idx = 0;
+  stack_task_queue.push([this, rach_info, enb_cc_idx, rach_tprof_meas]() mutable {
     uint16_t rnti = add_ue(enb_cc_idx);
     if (rnti == SRSRAN_INVALID_RNTI) {
       return;
@@ -137,7 +140,10 @@ void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
     ++detected_rachs[enb_cc_idx];
 
     // Add new user to the scheduler so that it can RX/TX SRB0
-    // ..
+    srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
+    ue_cfg.fixed_dl_mcs                         = args.fixed_dl_mcs;
+    ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
+    sched.ue_cfg(rnti, ue_cfg);
 
     // Register new user in RRC
     if (rrc->add_user(rnti) == SRSRAN_ERROR) {
@@ -146,19 +152,24 @@ void mac_nr::rach_detected(const srsran_slot_cfg_t& slot_cfg,
     }
 
     // Trigger scheduler RACH
-    // scheduler.dl_rach_info(enb_cc_idx, rar_info);
+    srsenb::sched_nr_interface::dl_sched_rar_info_t rar_info = {};
+    rar_info.preamble_idx                                    = rach_info.preamble;
+    rar_info.temp_crnti                                      = rnti;
+    rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
+    // TODO: fill remaining fields as required
+    // sched.dl_rach_info(enb_cc_idx, rar_info);
 
-    logger.info("RACH:  cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
-                slot_cfg.idx,
+    logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+                rach_info.slot_index,
                 enb_cc_idx,
-                preamble_idx,
-                time_adv,
+                rach_info.preamble,
+                rach_info.time_adv,
                 rnti);
-    srsran::console("RACH:  cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
-                    slot_cfg.idx,
+    srsran::console("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+                    rach_info.slot_index,
                     enb_cc_idx,
-                    preamble_idx,
-                    time_adv,
+                    rach_info.preamble,
+                    rach_info.time_adv,
                     rnti);
   });
 }
@@ -196,9 +207,6 @@ uint16_t mac_nr::add_ue(uint32_t enb_cc_idx)
       logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
     }
   } while (inserted_ue == nullptr);
-
-  // Set PCAP if available
-  // ..
 
   return rnti;
 }
@@ -260,22 +268,83 @@ int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 
 int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
 {
-  return 0;
+  if (not pdsch_slot.valid()) {
+    pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+  } else {
+    pdsch_slot++;
+  }
+
+  int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
+  for (pdsch_t& pdsch : dl_sched.pdsch) {
+    for (auto& tb_data : pdsch.data) {
+      if (tb_data != nullptr) {
+        // TODO: exclude retx from packing
+        uint16_t                  rnti = pdsch.sch.grant.rnti;
+        srsran::rwlock_read_guard rw_lock(rwlock);
+        if (not is_rnti_active_unsafe(rnti)) {
+          continue;
+        }
+        ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+
+        if (pcap != nullptr) {
+          uint32_t pid = 0; // TODO: get PID from PDCCH struct?
+          pcap->write_dl_crnti_nr(tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg.idx);
+        }
+      }
+    }
+  }
+  return SRSRAN_SUCCESS;
 }
+
 int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
 {
-  return 0;
+  if (not pusch_slot.valid()) {
+    pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+  } else {
+    pusch_slot++;
+  }
+
+  return sched.get_ul_sched(pusch_slot, 0, ul_sched);
 }
+
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
 {
-  return 0;
+  if (not handle_uci_data(pucch_info.uci_data.cfg.pucch.rnti, pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
+    logger.error("Error handling UCI data from PUCCH reception");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
 }
-int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pusch_info_t& pusch_info)
+
+bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value)
 {
-  // FIXME: does the PUSCH info call include received PDUs?
-  uint16_t                     rnti = pusch_info.rnti;
-  srsran::unique_byte_buffer_t rx_pdu;
-  auto                         process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
+  // Process HARQ-ACK
+  for (uint32_t i = 0; i < cfg.ack.count; i++) {
+    const srsran_harq_ack_bit_t* ack_bit = &cfg.ack.bits[i];
+    bool                         is_ok   = (value.ack[i] == 1) and value.valid;
+    sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+  }
+  return true;
+}
+
+int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::pusch_info_t& pusch_info)
+{
+  uint16_t rnti = pusch_info.rnti;
+
+  // Handle UCI data
+  if (not handle_uci_data(rnti, pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
+    logger.error("Error handling UCI data from PUCCH reception");
+    return SRSRAN_ERROR;
+  }
+
+  sched.ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
+
+  if (pusch_info.pusch_data.tb[0].crc && pcap) {
+    pcap->write_ul_crnti_nr(
+        pusch_info.pdu->msg, pusch_info.pdu->N_bytes, pusch_info.rnti, pusch_info.pid, slot_cfg.idx);
+  }
+
+  auto process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
     srsran::rwlock_read_guard lock(rwlock);
     if (is_rnti_active_unsafe(rnti)) {
       ue_db[rnti]->process_pdu(std::move(pdu));
@@ -283,11 +352,9 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
       logger.debug("Discarding PDU rnti=0x%x", rnti);
     }
   };
-  stack_task_queue.try_push(std::bind(process_pdu_task, std::move(rx_pdu)));
+  stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pusch_info.pdu)));
 
   return SRSRAN_SUCCESS;
 }
-
-void mac_nr::rach_detected(const mac_interface_phy_nr::rach_info_t& rach_info) {}
 
 } // namespace srsenb

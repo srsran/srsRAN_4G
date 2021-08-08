@@ -45,6 +45,7 @@ public:
     uint32_t nof_max_prb        = SRSRAN_MAX_PRB_NR;
     uint32_t nof_tx_ports       = 1;
     uint32_t nof_rx_ports       = 1;
+    uint32_t rf_port            = 0;
     uint32_t pusch_max_nof_iter = 10;
   };
 
@@ -59,7 +60,7 @@ public:
   cf_t*    get_buffer_rx(uint32_t antenna_idx);
   cf_t*    get_buffer_tx(uint32_t antenna_idx);
   uint32_t get_buffer_len();
-  void     set_time(const uint32_t& tti, const srsran::rf_timestamp_t& timestamp);
+  void     set_context(const srsran::phy_common_interface::worker_context_t& w_ctx);
 
 private:
   /**
@@ -83,16 +84,18 @@ private:
   stack_interface_phy_nr&       stack;
   srslog::basic_logger&         logger;
 
-  uint32_t               sf_len      = 0;
-  uint32_t               cell_index  = 0;
-  srsran_slot_cfg_t      dl_slot_cfg = {};
-  srsran_slot_cfg_t      ul_slot_cfg = {};
-  srsran_pdcch_cfg_nr_t  pdcch_cfg   = {};
-  srsran::rf_timestamp_t tx_time     = {};
-  srsran_gnb_dl_t        gnb_dl      = {};
-  srsran_gnb_ul_t        gnb_ul      = {};
-  std::vector<cf_t*>     tx_buffer; ///< Baseband transmit buffers
-  std::vector<cf_t*>     rx_buffer; ///< Baseband receive buffers
+  uint32_t                                       sf_len      = 0;
+  uint32_t                                       cell_index  = 0;
+  uint32_t                                       rf_port     = 0;
+  srsran_slot_cfg_t                              dl_slot_cfg = {};
+  srsran_slot_cfg_t                              ul_slot_cfg = {};
+  srsran::phy_common_interface::worker_context_t context     = {};
+  srsran_pdcch_cfg_nr_t                          pdcch_cfg   = {};
+  srsran_gnb_dl_t                                gnb_dl      = {};
+  srsran_gnb_ul_t                                gnb_ul      = {};
+  std::vector<cf_t*>                             tx_buffer; ///< Baseband transmit buffers
+  std::vector<cf_t*>                             rx_buffer; ///< Baseband receive buffers
+  std::mutex mutex; ///< Protect concurrent access from workers (and main process that inits the class)
 };
 
 } // namespace nr

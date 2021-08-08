@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/ngap/ngap.h"
+#include "srsenb/hdr/stack/ngap/ngap_ue.h"
 #include "srsran/common/int_helpers.h"
 
 using srsran::s1ap_mccmnc_to_plmn;
@@ -110,6 +111,8 @@ ngap::ngap(srsran::task_sched_handle   task_sched_,
 {
   amf_task_queue = task_sched.make_task_queue();
 }
+
+ngap::~ngap() {}
 
 int ngap::init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_)
 {
@@ -213,7 +216,7 @@ void ngap::initial_ue(uint16_t                                rnti,
                       asn1::ngap_nr::rrcestablishment_cause_e cause,
                       srsran::unique_byte_buffer_t            pdu)
 {
-  std::unique_ptr<ue> ue_ptr{new ue{this}};
+  std::unique_ptr<ue> ue_ptr{new ue{this, rrc, logger}};
   ue_ptr->ctxt.rnti       = rnti;
   ue_ptr->ctxt.gnb_cc_idx = gnb_cc_idx;
   ue* u                   = users.add_user(std::move(ue_ptr));
@@ -221,7 +224,7 @@ void ngap::initial_ue(uint16_t                                rnti,
     logger.error("Failed to add rnti=0x%x", rnti);
     return;
   }
-  u->send_initialuemessage(cause, std::move(pdu), false);
+  u->send_initial_ue_message(cause, std::move(pdu), false);
 }
 
 void ngap::initial_ue(uint16_t                                rnti,
@@ -230,7 +233,7 @@ void ngap::initial_ue(uint16_t                                rnti,
                       srsran::unique_byte_buffer_t            pdu,
                       uint32_t                                s_tmsi)
 {
-  std::unique_ptr<ue> ue_ptr{new ue{this}};
+  std::unique_ptr<ue> ue_ptr{new ue{this, rrc, logger}};
   ue_ptr->ctxt.rnti       = rnti;
   ue_ptr->ctxt.gnb_cc_idx = gnb_cc_idx;
   ue* u                   = users.add_user(std::move(ue_ptr));
@@ -238,7 +241,7 @@ void ngap::initial_ue(uint16_t                                rnti,
     logger.error("Failed to add rnti=0x%x", rnti);
     return;
   }
-  u->send_initialuemessage(cause, std::move(pdu), true, s_tmsi);
+  u->send_initial_ue_message(cause, std::move(pdu), true, s_tmsi);
 }
 
 void ngap::ue_ctxt_setup_complete(uint16_t rnti)
@@ -248,6 +251,27 @@ void ngap::ue_ctxt_setup_complete(uint16_t rnti)
     return;
   }
   u->ue_ctxt_setup_complete();
+}
+
+void ngap::ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)
+{
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    return;
+  }
+  u->notify_rrc_reconf_complete(outcome);
+}
+
+void ngap::write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+{
+  logger.info(pdu->msg, pdu->N_bytes, "Received RRC SDU");
+
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    logger.info("The rnti=0x%x does not exist", rnti);
+    return;
+  }
+  u->send_ul_nas_transport(std::move(pdu));
 }
 
 /*********************************************************
@@ -377,11 +401,11 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
 
   switch (rx_pdu.type().value) {
     case ngap_pdu_c::types_opts::init_msg:
-      return handle_initiatingmessage(rx_pdu.init_msg());
+      return handle_initiating_message(rx_pdu.init_msg());
     case ngap_pdu_c::types_opts::successful_outcome:
-      return handle_successfuloutcome(rx_pdu.successful_outcome());
+      return handle_successful_outcome(rx_pdu.successful_outcome());
     case ngap_pdu_c::types_opts::unsuccessful_outcome:
-      return handle_unsuccessfuloutcome(rx_pdu.unsuccessful_outcome());
+      return handle_unsuccessful_outcome(rx_pdu.unsuccessful_outcome());
     default:
       logger.error("Unhandled PDU type %d", rx_pdu.type().value);
       return false;
@@ -390,42 +414,44 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
   return true;
 }
 
-bool ngap::handle_initiatingmessage(const asn1::ngap_nr::init_msg_s& msg)
+bool ngap::handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg)
 {
   switch (msg.value.type().value) {
     case ngap_elem_procs_o::init_msg_c::types_opts::dl_nas_transport:
-      return handle_dlnastransport(msg.value.dl_nas_transport());
+      return handle_dl_nas_transport(msg.value.dl_nas_transport());
     case ngap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request:
-      return handle_initialctxtsetuprequest(msg.value.init_context_setup_request());
+      return handle_initial_ctxt_setup_request(msg.value.init_context_setup_request());
+    case ngap_elem_procs_o::init_msg_c::types_opts::ue_context_release_cmd:
+      return handle_ue_ctxt_release_cmd(msg.value.ue_context_release_cmd());
     default:
       logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
   return true;
 }
 
-bool ngap::handle_successfuloutcome(const successful_outcome_s& msg)
+bool ngap::handle_successful_outcome(const successful_outcome_s& msg)
 {
   switch (msg.value.type().value) {
     case ngap_elem_procs_o::successful_outcome_c::types_opts::ng_setup_resp:
-      return handle_ngsetupresponse(msg.value.ng_setup_resp());
+      return handle_ng_setup_response(msg.value.ng_setup_resp());
     default:
       logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string());
   }
   return true;
 }
 
-bool ngap::handle_unsuccessfuloutcome(const asn1::ngap_nr::unsuccessful_outcome_s& msg)
+bool ngap::handle_unsuccessful_outcome(const asn1::ngap_nr::unsuccessful_outcome_s& msg)
 {
   switch (msg.value.type().value) {
     case ngap_elem_procs_o::unsuccessful_outcome_c::types_opts::ng_setup_fail:
-      return handle_ngsetupfailure(msg.value.ng_setup_fail());
+      return handle_ng_setup_failure(msg.value.ng_setup_fail());
     default:
       logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string());
   }
   return true;
 }
 
-bool ngap::handle_ngsetupresponse(const asn1::ngap_nr::ng_setup_resp_s& msg)
+bool ngap::handle_ng_setup_response(const asn1::ngap_nr::ng_setup_resp_s& msg)
 {
   ngsetupresponse = msg;
   amf_connected   = true;
@@ -436,7 +462,7 @@ bool ngap::handle_ngsetupresponse(const asn1::ngap_nr::ng_setup_resp_s& msg)
   return true;
 }
 
-bool ngap::handle_ngsetupfailure(const asn1::ngap_nr::ng_setup_fail_s& msg)
+bool ngap::handle_ng_setup_failure(const asn1::ngap_nr::ng_setup_fail_s& msg)
 {
   std::string cause = get_cause(msg.protocol_ies.cause.value);
   logger.error("NG Setup Failure. Cause: %s", cause.c_str());
@@ -444,14 +470,18 @@ bool ngap::handle_ngsetupfailure(const asn1::ngap_nr::ng_setup_fail_s& msg)
   return true;
 }
 
-bool ngap::handle_dlnastransport(const asn1::ngap_nr::dl_nas_transport_s& msg)
+bool ngap::handle_dl_nas_transport(const asn1::ngap_nr::dl_nas_transport_s& msg)
 {
   if (msg.ext) {
     logger.warning("Not handling NGAP message extension");
   }
   ue* u =
       handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
+
   if (u == nullptr) {
+    logger.warning("Couldn't find user with ran_ue_ngap_id %d and %d",
+                   msg.protocol_ies.ran_ue_ngap_id.value.value,
+                   msg.protocol_ies.amf_ue_ngap_id.value.value);
     return false;
   }
 
@@ -479,49 +509,79 @@ bool ngap::handle_dlnastransport(const asn1::ngap_nr::dl_nas_transport_s& msg)
     logger.warning("Not handling AllowedNSSAI");
   }
 
-  // TODO: Pass NAS PDU once RRC interface is ready
-  /* srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == nullptr) {
     logger.error("Fatal Error: Couldn't allocate buffer in ngap::run_thread().");
     return false;
   }
   memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
   pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
-  rrc->write_dl_info(u->ctxt.rnti, std::move(pdu)); */
+  rrc->write_dl_info(u->ctxt.rnti, std::move(pdu));
   return true;
 }
 
-bool ngap::handle_initialctxtsetuprequest(const asn1::ngap_nr::init_context_setup_request_s& msg)
+bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg)
 {
   ue* u =
       handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
   if (u == nullptr) {
+    logger.warning("Can not find UE");
     return false;
   }
 
-  u->ctxt.amf_pointer   = msg.protocol_ies.guami.value.amf_pointer.to_number();
-  u->ctxt.amf_set_id    = msg.protocol_ies.guami.value.amf_set_id.to_number();
-  u->ctxt.amf_region_id = msg.protocol_ies.guami.value.amf_region_id.to_number();
-
-  // Setup UE ctxt in RRC once interface is ready
-  /* if (not rrc->setup_ue_ctxt(u->ctxt.rnti, msg)) {
-    return false;
-  } */
-
-  /* if (msg.protocol_ies.nas_pdu_present) {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    if (pdu == nullptr) {
-      logger.error("Fatal Error: Couldn't allocate buffer in ngap::run_thread().");
-      return false;
-    }
-    memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
-    pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
-    rrc->write_dl_info(u->ctxt.rnti, std::move(pdu));
-  } */
+  u->handle_initial_ctxt_setup_request(msg);
 
   return true;
 }
 
+bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+{
+  // TODO: UE Context Release Command contains a list of ue_ngap_ids
+
+  return true;
+}
+
+bool ngap::handle_pdu_session_resource_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+{
+  // TODO
+  logger.warning("Not implemented yet");
+  return true;
+}
+
+/*******************************************************************************
+/* NGAP message senders
+********************************************************************************/
+
+bool ngap::send_error_indication(const asn1::ngap_nr::cause_c& cause,
+                                 srsran::optional<uint32_t>    ran_ue_ngap_id,
+                                 srsran::optional<uint32_t>    amf_ue_ngap_id)
+{
+  if (amf_connected == false) {
+    logger.warning("AMF not connected.");
+    return false;
+  }
+
+  ngap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_ERROR_IND);
+  auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
+
+  uint16_t rnti                    = SRSRAN_INVALID_RNTI;
+  container.ran_ue_ngap_id_present = ran_ue_ngap_id.has_value();
+  if (ran_ue_ngap_id.has_value()) {
+    container.ran_ue_ngap_id.value = ran_ue_ngap_id.value();
+    ue* user_ptr                   = users.find_ue_gnbid(ran_ue_ngap_id.value());
+    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.rnti : SRSRAN_INVALID_RNTI;
+  }
+  container.amf_ue_ngap_id_present = amf_ue_ngap_id.has_value();
+  if (amf_ue_ngap_id.has_value()) {
+    container.amf_ue_ngap_id.value = amf_ue_ngap_id.value();
+  }
+
+  container.cause_present = true;
+  container.cause.value   = cause;
+
+  return sctp_send_ngap_pdu(tx_pdu, rnti, "Error Indication");
+}
 /*******************************************************************************
 /* NGAP connection helpers
 ********************************************************************************/
@@ -603,134 +663,6 @@ bool ngap::setup_ng()
   container.default_paging_drx.value.value = asn1::ngap_nr::paging_drx_opts::v256; // Todo: add to args, config file
 
   return sctp_send_ngap_pdu(pdu, 0, "ngSetupRequest");
-}
-
-/*******************************************************************************
-/* NGAP message senders
-********************************************************************************/
-
-bool ngap::ue::send_initialuemessage(asn1::ngap_nr::rrcestablishment_cause_e cause,
-                                     srsran::unique_byte_buffer_t            pdu,
-                                     bool                                    has_tmsi,
-                                     uint32_t                                s_tmsi)
-{
-  if (not ngap_ptr->amf_connected) {
-    return false;
-  }
-
-  ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_INIT_UE_MSG);
-  init_ue_msg_ies_container& container = tx_pdu.init_msg().value.init_ue_msg().protocol_ies;
-
-  // 5G-S-TMSI
-  if (has_tmsi) {
-    container.five_g_s_tmsi_present = true;
-    srsran::uint32_to_uint8(s_tmsi, container.five_g_s_tmsi.value.five_g_tmsi.data());
-    container.five_g_s_tmsi.value.amf_set_id.from_number(ctxt.amf_set_id);
-    container.five_g_s_tmsi.value.amf_pointer.from_number(ctxt.amf_pointer);
-  }
-
-  // RAN_UE_NGAP_ID
-  container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
-
-  // NAS_PDU
-  container.nas_pdu.value.resize(pdu->N_bytes);
-  memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
-
-  // RRC Establishment Cause
-  container.rrcestablishment_cause.value = cause;
-
-  // User Location Info
-
-  // userLocationInformationNR
-  container.user_location_info.value.set_user_location_info_nr();
-  container.user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
-  container.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
-
-  return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialUEMessage");
-}
-
-bool ngap::ue::send_ulnastransport(srsran::unique_byte_buffer_t pdu)
-{
-  if (not ngap_ptr->amf_connected) {
-    return false;
-  }
-
-  ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_UL_NAS_TRANSPORT);
-  asn1::ngap_nr::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
-
-  // AMF UE NGAP ID
-  container.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
-
-  // RAN UE NGAP ID
-  container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
-
-  // NAS PDU
-  container.nas_pdu.value.resize(pdu->N_bytes);
-  memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
-
-  // User Location Info
-  // userLocationInformationNR
-  container.user_location_info.value.set_user_location_info_nr();
-  container.user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
-  container.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
-
-  return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UplinkNASTransport");
-}
-
-void ngap::ue::ue_ctxt_setup_complete()
-{
-  ngap_pdu_c tx_pdu;
-  // Handle PDU Session List once RRC interface is ready
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
-  auto& container = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
-}
-
-bool ngap::send_error_indication(const asn1::ngap_nr::cause_c& cause,
-                                 srsran::optional<uint32_t>    ran_ue_ngap_id,
-                                 srsran::optional<uint32_t>    amf_ue_ngap_id)
-{
-  if (not amf_connected) {
-    return false;
-  }
-
-  ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_ERROR_IND);
-  auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
-
-  uint16_t rnti                    = SRSRAN_INVALID_RNTI;
-  container.ran_ue_ngap_id_present = ran_ue_ngap_id.has_value();
-  if (ran_ue_ngap_id.has_value()) {
-    container.ran_ue_ngap_id.value = ran_ue_ngap_id.value();
-    ue* user_ptr                   = users.find_ue_gnbid(ran_ue_ngap_id.value());
-    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.rnti : SRSRAN_INVALID_RNTI;
-  }
-  container.amf_ue_ngap_id_present = amf_ue_ngap_id.has_value();
-  if (amf_ue_ngap_id.has_value()) {
-    container.amf_ue_ngap_id.value = amf_ue_ngap_id.value();
-  }
-
-  container.cause_present = true;
-  container.cause.value   = cause;
-
-  return sctp_send_ngap_pdu(tx_pdu, rnti, "Error Indication");
-}
-
-/*******************************************************************************
-/*               ngap::ue Class
-********************************************************************************/
-
-ngap::ue::ue(ngap* ngap_ptr_) : ngap_ptr(ngap_ptr_)
-{
-  ctxt.ran_ue_ngap_id = ngap_ptr->next_gnb_ue_ngap_id++;
-  gettimeofday(&ctxt.init_timestamp, nullptr);
-
-  stream_id = ngap_ptr->next_ue_stream_id;
 }
 
 /*******************************************************************************

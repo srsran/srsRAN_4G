@@ -539,10 +539,9 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
     nof_samples   = nof_samples - past_nsamples;   // Subtracts the number of trimmed samples
 
     // Prints discarded samples
-    logger.debug("Detected RF overlap of %.1f us. Discarding %d samples. Power=%+.1f dBfs",
+    logger.debug("Detected RF overlap of %.1f us. Discarding %d samples.",
                  srsran_timestamp_real(&ts_overlap) * 1.0e6,
-                 past_nsamples,
-                 srsran_convert_power_to_dB(srsran_vec_avg_power_cf(&buffer.get(0)[nof_samples], past_nsamples)));
+                 past_nsamples);
 
   } else if (past_nsamples < 0 and not is_start_of_burst) {
     // if the gap is bigger than TX_MAX_GAP_ZEROS, stop burst

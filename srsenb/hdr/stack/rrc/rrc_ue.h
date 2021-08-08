@@ -25,6 +25,7 @@
 #include "mac_controller.h"
 #include "rrc.h"
 #include "srsran/adt/pool/batch_mem_pool.h"
+#include "srsran/asn1/rrc/uecap.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 
@@ -86,7 +87,7 @@ public:
                               bool                         phy_cfg_updated = true,
                               srsran::const_byte_span      nas_pdu         = {});
   void send_security_mode_command();
-  void send_ue_cap_enquiry();
+  void send_ue_cap_enquiry(const std::vector<asn1::rrc::rat_type_opts::options>& rats);
   void send_ue_info_req();
 
   void parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
@@ -113,7 +114,7 @@ public:
   void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srsran::unique_byte_buffer_t pdu);
   void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
   void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
-  bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
+  int  handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
   void handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg);
   bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
   void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsran::unique_byte_buffer_t pdu);

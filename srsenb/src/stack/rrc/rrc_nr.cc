@@ -23,6 +23,7 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/common_nr.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 
 using namespace asn1::rrc_nr;
 
@@ -41,20 +42,16 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  gtpu_interface_rrc_nr*      gtpu_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
-  phy  = phy_;
-  mac  = mac_;
-  rlc  = rlc_;
-  pdcp = pdcp_;
-  ngap = ngap_;
+  phy       = phy_;
+  mac       = mac_;
+  rlc       = rlc_;
+  pdcp      = pdcp_;
+  ngap      = ngap_;
   gtpu      = gtpu_;
   rrc_eutra = rrc_eutra_;
 
   // TODO: overwriting because we are not passing config right now
   cfg = update_default_cfg(cfg_);
-
-  // config logging
-  logger.set_level(srslog::str_to_basic_level(cfg.log_level));
-  logger.set_hex_dump_max_size(cfg.log_hex_limit);
 
   // derived
   slot_dur_ms = 1;
@@ -64,6 +61,8 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
     return SRSRAN_ERROR;
   }
 
+  // TODO: PHY isn't initialized at this stage yet
+  // config_phy();
   config_mac();
 
   logger.info("Started");
@@ -157,10 +156,6 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   sib2.cell_resel_info_common.q_hyst.value = sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
   // TODO: Fill SIB2 values
 
-  // set loglevel
-  cfg_default.log_level     = "debug";
-  cfg_default.log_hex_limit = 10000;
-
   return cfg_default;
 }
 
@@ -205,6 +200,20 @@ int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
     rrc_eutra->sgnb_addition_complete(new_rnti);
   }
   return SRSRAN_SUCCESS;
+}
+
+void rrc_nr::config_phy()
+{
+  static const srsran::phy_cfg_nr_t default_phy_cfg =
+      srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
+  srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
+  common_cfg.carrier                                    = default_phy_cfg.carrier;
+  common_cfg.pdcch                                      = default_phy_cfg.pdcch;
+  common_cfg.prach                                      = default_phy_cfg.prach;
+  if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
+    logger.error("Couldn't set common PHY config");
+    return;
+  }
 }
 
 void rrc_nr::config_mac()
@@ -376,6 +385,28 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_
 void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
 
 /*******************************************************************************
+  NGAP interface
+*******************************************************************************/
+
+int rrc_nr::ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key)
+{
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+{
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
+{
+  return SRSRAN_SUCCESS;
+}
+int rrc_nr::start_security_mode_procedure(uint16_t rnti)
+{
+  return SRSRAN_SUCCESS;
+}
+void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
+
+/*******************************************************************************
   Interface for EUTRA RRC
 *******************************************************************************/
 
@@ -420,9 +451,7 @@ int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstri
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
-{
-}
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_) {}
 
 void rrc_nr::ue::send_connection_setup()
 {
@@ -491,10 +520,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list[0].precoder_granularity =
       asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
 
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 1;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
-
   // search spaces
   pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list_present = true;
   pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list.resize(1);
@@ -550,7 +575,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list.resize(1);
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row4();
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0x100);
+  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0b100);
   pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports =
       asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p4;
 
@@ -568,14 +593,221 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.set_setup();
   pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_set_id = 0;
   pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.resize(1);
-  // pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list[0]=
-  // pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list
+
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 1;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
+
+  // UL config dedicated
+  // PUCCH
+  auto& ul_config                         = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
+  ul_config.init_ul_bwp_present           = true;
+  ul_config.init_ul_bwp.pucch_cfg_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.set_setup();
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2.set_setup();
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2.setup().max_code_rate_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
+
+  // SR resources
+  ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list.resize(1);
+  auto& sr_res1                          = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
+  sr_res1.sched_request_res_id           = 1;
+  sr_res1.sched_request_id               = 0;
+  sr_res1.periodicity_and_offset_present = true;
+  sr_res1.periodicity_and_offset.set_sl40();
+  sr_res1.periodicity_and_offset.sl40() = 7;
+  sr_res1.res_present                   = true;
+  sr_res1.res                           = 2; // PUCCH resource for SR
+
+  // DL data
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(6);
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 6;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[1] = 5;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[2] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[3] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[4] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[5] = 4;
+
+  // PUCCH Resource for format 1
+  srsran_pucch_nr_resource_t resource_small = {};
+  resource_small.starting_prb               = 0;
+  resource_small.format                     = SRSRAN_PUCCH_NR_FORMAT_1;
+  resource_small.initial_cyclic_shift       = 0;
+  resource_small.nof_symbols                = 14;
+  resource_small.start_symbol_idx           = 0;
+  resource_small.time_domain_occ            = 0;
+
+  // PUCCH Resource for format 2
+  srsran_pucch_nr_resource_t resource_big = {};
+  resource_big.starting_prb               = 51;
+  resource_big.format                     = SRSRAN_PUCCH_NR_FORMAT_2;
+  resource_big.nof_prb                    = 1;
+  resource_big.nof_symbols                = 2;
+  resource_big.start_symbol_idx           = 12;
+
+  // Resource for SR
+  srsran_pucch_nr_resource_t resource_sr = {};
+  resource_sr.starting_prb               = 51;
+  resource_sr.format                     = SRSRAN_PUCCH_NR_FORMAT_1;
+  resource_sr.initial_cyclic_shift       = 0;
+  resource_sr.nof_symbols                = 14;
+  resource_sr.start_symbol_idx           = 0;
+  resource_sr.time_domain_occ            = 0;
+
+  // Make 3 possible resources
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list.resize(3);
+  if (not srsran::make_phy_res_config(
+          resource_small, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[0], 0)) {
+    parent->logger.warning("Failed to create 1-2 bit NR PUCCH resource");
+  }
+  if (not srsran::make_phy_res_config(
+          resource_big, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[1], 1)) {
+    parent->logger.warning("Failed to create >2 bit NR PUCCH resource");
+  }
+  if (not srsran::make_phy_res_config(
+          resource_big, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[2], 2)) {
+    parent->logger.warning("Failed to create SR NR PUCCH resource");
+  }
+
+  // Make 2 PUCCH resource sets
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list.resize(2);
+
+  // Make PUCCH resource set for 1-2 bit
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[0].pucch_res_set_id = 0;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[0].res_list.resize(8);
+  for (auto& e : ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[0].res_list) {
+    e = 0;
+  }
+
+  // Make PUCCH resource set for >2 bit
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[1].pucch_res_set_id = 1;
+  ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[1].res_list.resize(8);
+  for (auto& e : ul_config.init_ul_bwp.pucch_cfg.setup().res_set_to_add_mod_list[1].res_list) {
+    e = 1;
+  }
+
+  // PUSCH config
+  ul_config.init_ul_bwp.pusch_cfg_present = true;
+  ul_config.init_ul_bwp.pusch_cfg.set_setup();
+  auto& pusch_cfg_ded                                = ul_config.init_ul_bwp.pusch_cfg.setup();
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a_present = true;
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a.set_setup();
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a.setup().dmrs_add_position_present = true;
+  pusch_cfg_ded.dmrs_ul_for_pusch_map_type_a.setup().dmrs_add_position = dmrs_ul_cfg_s::dmrs_add_position_opts::pos1;
+  // PUSH power control skipped
+  pusch_cfg_ded.res_alloc = pusch_cfg_s::res_alloc_opts::res_alloc_type1;
+
+  // UCI
+  pusch_cfg_ded.uci_on_pusch_present = true;
+  pusch_cfg_ded.uci_on_pusch.set_setup();
+  pusch_cfg_ded.uci_on_pusch.setup().beta_offsets_present = true;
+  pusch_cfg_ded.uci_on_pusch.setup().beta_offsets.set_semi_static();
+  auto& beta_offset_semi_static                        = pusch_cfg_ded.uci_on_pusch.setup().beta_offsets.semi_static();
+  beta_offset_semi_static.beta_offset_ack_idx1_present = true;
+  beta_offset_semi_static.beta_offset_ack_idx1         = 9;
+  beta_offset_semi_static.beta_offset_ack_idx2_present = true;
+  beta_offset_semi_static.beta_offset_ack_idx2         = 9;
+  beta_offset_semi_static.beta_offset_ack_idx3_present = true;
+  beta_offset_semi_static.beta_offset_ack_idx3         = 9;
+  beta_offset_semi_static.beta_offset_csi_part1_idx1_present = true;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2_present = true;
+  beta_offset_semi_static.beta_offset_csi_part1_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2         = 6;
+  beta_offset_semi_static.beta_offset_csi_part2_idx1_present = true;
+  beta_offset_semi_static.beta_offset_csi_part2_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part2_idx2_present = true;
+  beta_offset_semi_static.beta_offset_csi_part2_idx2         = 6;
+  pusch_cfg_ded.uci_on_pusch.setup().scaling                 = uci_on_pusch_s::scaling_opts::f1;
+
+  ul_config.first_active_ul_bwp_id_present = true;
+  ul_config.first_active_ul_bwp_id         = 0;
+  // Serving cell config (only to setup)
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg.set_setup();
+
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.set_setup();
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.setup().nrof_harq_processes_for_pdsch_present =
+      true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg.setup().nrof_harq_processes_for_pdsch =
+      pdsch_serving_cell_cfg_s::nrof_harq_processes_for_pdsch_opts::n16;
 
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.set_setup();
 
+  // nzp-CSI-RS Resource
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list.resize(1);
+  auto& nzp_csi_res =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list[0];
+  nzp_csi_res.nzp_csi_rs_res_id = 0;
+  nzp_csi_res.res_map.freq_domain_alloc.set_row2();
+  nzp_csi_res.res_map.freq_domain_alloc.row2().from_number(0b100000000000);
+  nzp_csi_res.res_map.nrof_ports                       = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
+  nzp_csi_res.res_map.first_ofdm_symbol_in_time_domain = 4;
+  nzp_csi_res.res_map.cdm_type                         = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
+  nzp_csi_res.res_map.density.set_one();
+  nzp_csi_res.res_map.freq_band.start_rb = 0;
+  nzp_csi_res.res_map.freq_band.nrof_rbs = 52;
+  nzp_csi_res.pwr_ctrl_offset            = 0;
+  // Skip pwr_ctrl_offset_ss_present
+  nzp_csi_res.scrambling_id                  = 0;
+  nzp_csi_res.periodicity_and_offset_present = true;
+  nzp_csi_res.periodicity_and_offset.set_slots80();
+  nzp_csi_res.periodicity_and_offset.slots80() = 0;
+  // optional
+  nzp_csi_res.qcl_info_periodic_csi_rs_present = true;
+  nzp_csi_res.qcl_info_periodic_csi_rs         = 0;
+
+  // nzp-CSI-RS ResourceSet
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list_present =
+      true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list.resize(1);
+  auto& nzp_csi_res_set =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list[0];
+  nzp_csi_res_set.nzp_csi_res_set_id = 0;
+  nzp_csi_res_set.nzp_csi_rs_res.resize(1);
+  nzp_csi_res_set.nzp_csi_rs_res[0] = 0;
+  // Skip TRS info
+
+  // CSI report config
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list.resize(1);
+  auto& csi_report =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
+  csi_report.report_cfg_id                       = 0;
+  csi_report.res_for_ch_meas                     = 0;
+  csi_report.csi_im_res_for_interference_present = true;
+  csi_report.csi_im_res_for_interference         = 1;
+  csi_report.report_cfg_type.set_periodic();
+  csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
+  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 8;
+  csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
+  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
+  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 0; // was 17 in orig PCAP
+  csi_report.report_quant.set_cri_ri_pmi_cqi();
+  // Report freq config (optional)
+  csi_report.report_freq_cfg_present                = true;
+  csi_report.report_freq_cfg.cqi_format_ind_present = true;
+  csi_report.report_freq_cfg.cqi_format_ind =
+      asn1::rrc_nr::csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+  csi_report.time_restrict_for_ch_meass = asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+  csi_report.time_restrict_for_interference_meass =
+      asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
+  csi_report.group_based_beam_report.set_disabled();
+  // Skip CQI table (optional)
+  csi_report.cqi_table_present = true;
+  csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
+  csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
+
+  // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 17943;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 0x4602; // first RNTI assigned to new UE
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
 
@@ -595,19 +827,25 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
       .absolute_freq_ssb_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
-      632640;
+      634176; // TODO: calculate from actual DL ARFCN
 
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list
       .push_back(78);
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_point_a =
-      632316;
+      633928; // TODO: calculate from actual DL ARFCN
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
       .scs_specific_carrier_list.resize(1);
+
+  cell_group_cfg_pack.phys_cell_group_cfg_present = true;
+  cell_group_cfg_pack.phys_cell_group_cfg.pdsch_harq_ack_codebook =
+      phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value;
+
   auto& dl_carrier = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
                          .scs_specific_carrier_list[0];
   dl_carrier.offset_to_carrier  = 0;
   dl_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
   dl_carrier.carrier_bw         = 52;
+
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.generic_params
       .location_and_bw = 14025;
@@ -758,7 +996,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   tdd_config.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
   tdd_config.pattern1.nrof_dl_slots        = 6;
   tdd_config.pattern1.nrof_dl_symbols      = 0;
-  tdd_config.pattern1.nrof_ul_slots        = 3;
+  tdd_config.pattern1.nrof_ul_slots        = 4;
   tdd_config.pattern1.nrof_ul_symbols      = 0;
 
   // make sufficiant space

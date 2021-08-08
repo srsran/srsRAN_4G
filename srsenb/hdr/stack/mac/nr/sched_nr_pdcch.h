@@ -75,6 +75,7 @@ private:
   uint32_t                coreset_id;
   uint32_t                slot_idx;
   uint32_t                nof_freq_res = 0;
+  const bwp_cce_pos_list& rar_cce_list;
 
   // List of PDCCH grants
   struct alloc_record {

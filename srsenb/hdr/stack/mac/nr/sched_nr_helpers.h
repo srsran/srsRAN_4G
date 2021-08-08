@@ -27,11 +27,13 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+class slot_ue;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_rar(prb_interval interv, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
+bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
 
-class slot_ue;
+bool fill_dci_msg3(const slot_ue& ue, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& dci);
 
 /// Generate PDCCH DL DCI fields
 void fill_dl_dci_ue_fields(const slot_ue&        ue,

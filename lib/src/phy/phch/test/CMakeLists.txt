@@ -124,7 +124,7 @@ target_link_libraries(pssch_pscch_file_test srsran_phy)
 
 # TM2 file tests
 add_lte_test(pssch_pscch_file_test_ideal_tm2_p100 pssch_pscch_file_test -p 100 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
-set_property(TEST pssch_pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2 num_decoded_tb=1")
+set_property(TEST pssch_pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=[2,3] num_decoded_tb=1")
 
 # TM4 file tests (first SF is sf_idx = 6 such that the PSSCH sf_idx=0)
 add_lte_test(pssch_pscch_file_test_ideal_tm4_p100 pssch_pscch_file_test -p 100 -t 4 -s 10 -n 10 -d -m 6 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)

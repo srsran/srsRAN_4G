@@ -64,9 +64,10 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
 void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
   static const uint32_t PRACH_RAR_OFFSET = 3;
-  tti_point             pdcch_tti        = slot_grid.get_pdcch_tti();
-  tti_point             msg3_tti         = pdcch_tti + bwp_cfg->pusch_ra_list[0].msg3_delay;
-  if (not slot_grid.res_grid()[msg3_tti].is_ul) {
+  slot_point            pdcch_slot       = slot_grid.get_pdcch_tti();
+  slot_point            msg3_slot        = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
+  if (not slot_grid.res_grid()[pdcch_slot].is_dl or not slot_grid.res_grid()[msg3_slot].is_ul) {
+    // RAR only allowed if respective Msg3 slot is available for UL
     return;
   }
 
@@ -76,16 +77,16 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
     // In case of RAR outside RAR window:
     // - if window has passed, discard RAR
     // - if window hasn't started, stop loop, as RARs are ordered by TTI
-    tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
-                            rar.prach_tti + PRACH_RAR_OFFSET + bwp_cfg->cfg.rar_window_size};
-    if (not rar_window.contains(pdcch_tti)) {
-      if (pdcch_tti >= rar_window.stop()) {
+    slot_interval rar_window{rar.prach_slot + PRACH_RAR_OFFSET,
+                             rar.prach_slot + PRACH_RAR_OFFSET + bwp_cfg->cfg.rar_window_size};
+    if (not rar_window.contains(pdcch_slot)) {
+      if (pdcch_slot >= rar_window.stop()) {
         fmt::memory_buffer str_buffer;
         fmt::format_to(str_buffer,
-                       "SCHED: Could not transmit RAR within the window (RA={}, Window={}, RAR={}",
-                       rar.prach_tti,
+                       "SCHED: Could not transmit RAR within the window Window={}, PRACH={}, RAR={}",
                        rar_window,
-                       pdcch_tti);
+                       rar.prach_slot,
+                       pdcch_slot);
         srsran::console("%s\n", srsran::to_c_str(str_buffer));
         logger.warning("%s", srsran::to_c_str(str_buffer));
         it = pending_rars.erase(it);
@@ -122,24 +123,27 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
   }
 }
 
+/// See TS 38.321, 5.1.3 - RAP transmission
 int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 {
-  logger.info("SCHED: New PRACH tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
-              rar_info.prach_tti,
+  logger.info("SCHED: New PRACH slot=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
+              rar_info.prach_slot.to_uint(),
               rar_info.preamble_idx,
               rar_info.temp_crnti,
               rar_info.ta_cmd,
               rar_info.msg3_size);
 
-  // RA-RNTI = 1 + t_id + f_id
-  // t_id = index of first subframe specified by PRACH (0<=t_id<10)
-  // f_id = index of the PRACH within subframe, in ascending order of freq domain (0<=f_id<6) (for FDD, f_id=0)
-  uint16_t ra_rnti = 1 + (uint16_t)(rar_info.prach_tti % 10u);
+  // RA-RNTI = 1 + s_id + 14 × t_id + 14 × 80 × f_id + 14 × 80 × 8 × ul_carrier_id
+  // s_id = index of the first OFDM symbol (0 <= s_id < 14)
+  // t_id = index of first slot of the PRACH (0 <= t_id < 80)
+  // f_id = index of the PRACH in the freq domain (0 <= f_id < 8) (for FDD, f_id=0)
+  // ul_carrier_id = 0 for NUL and 1 for SUL carrier
+  uint16_t ra_rnti = 1 + rar_info.ofdm_symbol_idx + 14 * rar_info.prach_slot.slot_idx() + 14 * 80 * rar_info.freq_idx;
 
   // find pending rar with same RA-RNTI
   for (pending_rar_t& r : pending_rars) {
-    if (r.prach_tti.to_uint() == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
-      if (r.msg3_grant.size() >= sched_interface::MAX_RAR_LIST) {
+    if (r.prach_slot == rar_info.prach_slot and ra_rnti == r.ra_rnti) {
+      if (r.msg3_grant.full()) {
         logger.warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached");
         return SRSRAN_ERROR;
       }
@@ -150,8 +154,8 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 
   // create new RAR
   pending_rar_t p;
-  p.ra_rnti   = ra_rnti;
-  p.prach_tti = tti_point{rar_info.prach_tti};
+  p.ra_rnti    = ra_rnti;
+  p.prach_slot = rar_info.prach_slot;
   p.msg3_grant.push_back(rar_info);
   pending_rars.push_back(p);
 

@@ -60,12 +60,8 @@ static uint8_t autn_enb[] =
 static constexpr uint16_t mcc = 208;
 static constexpr uint16_t mnc = 93;
 
-int main(int argc, char** argv)
+int gen_auth_response_test()
 {
-  auto& logger = srslog::fetch_basic_logger("USIM", false);
-  // Start the log backend.
-  srslog::init();
-
   uint8_t res[16];
   int     res_len;
   uint8_t k_asme[32];
@@ -78,8 +74,60 @@ int main(int argc, char** argv)
   args.using_op = true;
   args.op       = "11111111111111111111111111111111";
 
+  auto&       logger = srslog::fetch_basic_logger("USIM", false);
   srsue::usim usim(logger);
   usim.init(&args);
 
   TESTASSERT(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
+  return SRSRAN_SUCCESS;
+}
+
+int mcc_mnc_msin_test()
+{
+  usim_args_t args;
+  args.algo     = "milenage";
+  args.imei     = "356092040793011";
+  args.imsi     = "208930000000001";
+  args.k        = "8BAF473F2F8FD09487CCCBD7097C6862";
+  args.using_op = true;
+  args.op       = "11111111111111111111111111111111";
+
+  auto&       logger = srslog::fetch_basic_logger("USIM", false);
+  srsue::usim usim(logger);
+  usim.init(&args);
+
+  uint8_t mcc_correct[]      = {0x2, 0x0, 0x8};
+  uint8_t mnc_correct[]      = {0x9, 0x3, 0xf};
+  uint8_t msin_correct_bcd[] = {0x00, 0x00, 0x00, 0x00, 0x10};
+
+  uint8_t mcc_test[3];
+  usim.get_home_mcc_bytes(mcc_test, 3);
+
+  TESTASSERT(mcc_correct[0] == mcc_test[0]);
+  TESTASSERT(mcc_correct[1] == mcc_test[1]);
+  TESTASSERT(mcc_correct[2] == mcc_test[2]);
+
+  uint8_t mnc_test[3];
+  usim.get_home_mnc_bytes(mnc_test, 3);
+  TESTASSERT(mnc_correct[0] == mnc_test[0]);
+  TESTASSERT(mnc_correct[1] == mnc_test[1]);
+  TESTASSERT(mnc_correct[2] == mnc_test[2]);
+
+  uint8_t msin_test[5];
+  usim.get_home_msin_bcd(msin_test, 5);
+
+  TESTASSERT(msin_correct_bcd[0] == msin_test[0]);
+  TESTASSERT(msin_correct_bcd[1] == msin_test[1]);
+  TESTASSERT(msin_correct_bcd[2] == msin_test[2]);
+  TESTASSERT(msin_correct_bcd[3] == msin_test[3]);
+  TESTASSERT(msin_correct_bcd[4] == msin_test[4]);
+  return SRSRAN_SUCCESS;
+}
+
+int main(int argc, char** argv)
+{
+  // Start the log backend.
+  srslog::init();
+  TESTASSERT(gen_auth_response_test() == SRSRAN_SUCCESS);
+  TESTASSERT(mcc_mnc_msin_test() == SRSRAN_SUCCESS);
 }

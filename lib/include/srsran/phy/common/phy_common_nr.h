@@ -56,7 +56,7 @@ extern "C" {
 /**
  * @brief Defines the symbol duration, including cyclic prefix
  */
-#define SRSRAN_SUBC_SPACING_NR(NUM) (15000U << (NUM))
+#define SRSRAN_SUBC_SPACING_NR(NUM) (15000U << (uint32_t)(NUM))
 
 /**
  * @brief Defines the number of slots per SF. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.

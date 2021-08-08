@@ -300,15 +300,20 @@ void proc_ra_nr::ra_error()
       reset();
     }
   } else {
-    // if the Random Access procedure is not completed
+    // try again, if RA failed
     if (preamble_backoff) {
       backoff_wait = rand() % preamble_backoff;
     } else {
       backoff_wait = 0;
     }
-    logger.warning("Backoff wait interval %d", backoff_wait);
-    backoff_timer.set(backoff_wait, [this](uint32_t tid) { timer_expired(tid); });
-    backoff_timer.run();
+    logger.debug("Backoff wait interval %d", backoff_wait);
+
+    if (backoff_wait > 0) {
+      backoff_timer.set(backoff_wait, [this](uint32_t tid) { timer_expired(tid); });
+      backoff_timer.run();
+    } else {
+      timer_expired(backoff_timer.id());
+    }
   }
 }
 
@@ -348,6 +353,12 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
     ra_window_start  = TTI_ADD(tti, 3);
     logger.debug("Calculated ra_window_start=%d, ra_window_length=%d", ra_window_start, ra_window_length);
     state = WAITING_FOR_RESPONSE_RECEPTION;
+
+    if (rach_cfg.skip_rar) {
+      // temp hack for NSA eNB development
+      state = WAITING_FOR_COMPLETION;
+      ra_completion();
+    }
   });
 }
 
