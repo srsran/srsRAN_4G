@@ -712,6 +712,13 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
 
 bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 {
+  if (s1setup_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
+    return false;
+  }
+
   s1setupresponse = msg;
   mme_connected   = true;
   s1_setup_proc_t::s1setupresult res;
@@ -1086,6 +1093,13 @@ bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 
 bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
 {
+  if (s1setup_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
+    return false;
+  }
+
   std::string cause = get_cause(msg.protocol_ies.cause.value);
   logger.error("S1 Setup Failure. Cause: %s", cause.c_str());
   srsran::console("S1 Setup Failure. Cause: %s\n", cause.c_str());
@@ -1099,6 +1113,14 @@ bool s1ap::handle_handover_preparation_failure(const ho_prep_fail_s& msg)
   if (u == nullptr) {
     return false;
   }
+
+  if (u->ho_prep_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
+    return false;
+  }
+
   u->ho_prep_proc.trigger(msg);
   return true;
 }
@@ -1108,6 +1130,13 @@ bool s1ap::handle_handover_command(const asn1::s1ap::ho_cmd_s& msg)
   ue* u =
       handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
+    return false;
+  }
+
+  if (u->ho_prep_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
     return false;
   }
   u->ho_prep_proc.trigger(msg);
