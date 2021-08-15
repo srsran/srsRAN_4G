@@ -88,7 +88,25 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
 
-    rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+    // Handle MAC CEs
+    switch (subpdu.get_lcid()) {
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI:
+        logger.info("CRNTI CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR:
+        logger.info("SHORT_BSR CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
+        logger.info("LONG_BSR CE not implemented.");
+        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR:
+        logger.info("SHORT_TRUNC_BSR CE not implemented.");
+        break;
+      default:
+        if (subpdu.is_sdu()) {
+          rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+        }
+    }
   }
   return SRSRAN_SUCCESS;
 }

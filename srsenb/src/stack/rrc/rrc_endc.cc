@@ -134,6 +134,11 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     meas_cfg.meas_gap_cfg.set_setup();
     meas_cfg.meas_gap_cfg.setup().gap_offset.set_gp0() = 16;
   } else if (is_in_state<prepare_recfg>()) {
+    // FIXME: use bearer manager to remove EUTRA DRB
+    conn_recfg->rr_cfg_ded.drb_to_release_list_present = true;
+    conn_recfg->rr_cfg_ded.drb_to_release_list.resize(1);
+    conn_recfg->rr_cfg_ded.drb_to_release_list[0] = 1;
+
     // only add reconfigure EN-DC extension/release 15.10 field if ENDC activation is active
     conn_recfg->non_crit_ext_present                                                                  = true;
     conn_recfg->non_crit_ext.non_crit_ext_present                                                     = true;

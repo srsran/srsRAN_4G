@@ -465,17 +465,17 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
       add_lcid_drb(lc_ch_id, drb_id);
     }
   } else {
-    logger.warning("In RLC bearer cfg does not contain served radio bearer");
+    logger.error("In RLC bearer cfg does not contain served radio bearer");
     return false;
   }
 
   if (rlc_bearer_cfg.rlc_cfg_present == true) {
     if (srsran::make_rlc_config_t(rlc_bearer_cfg.rlc_cfg, &rlc_cfg) != SRSRAN_SUCCESS) {
-      logger.warning("Failed to build RLC config");
+      logger.error("Failed to build RLC config");
       return false;
     }
   } else {
-    logger.warning("In RLC bearer cfg does not contain rlc cfg");
+    logger.error("In RLC bearer cfg does not contain rlc cfg");
     return false;
   }
 
@@ -486,6 +486,9 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
     logical_channel_config_t logical_channel_cfg;
     logical_channel_cfg = srsran::make_mac_logical_channel_cfg_t(lc_ch_id, rlc_bearer_cfg.mac_lc_ch_cfg);
     mac->setup_lcid(logical_channel_cfg);
+  } else {
+    logger.error("Bearer config for LCID %d does not contain mac-LogicalChannelConfig.", lc_ch_id);
+    return false;
   }
   return true;
 }
@@ -1345,6 +1348,10 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
   }
 
   uint32_t lcid = get_lcid_for_drbid(drb_cfg.drb_id);
+  if (lcid == 0) {
+    logger.error("Cannot find valid LCID for DRB %d", drb_cfg.drb_id);
+    return false;
+  }
 
   // Setup PDCP
   if (!(drb_cfg.pdcp_cfg.drb_present == true)) {
