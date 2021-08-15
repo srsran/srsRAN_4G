@@ -679,12 +679,20 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
   rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
 
   // Send HO Command to UE
-  if (not rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
+  std::string octet_str;
+  if (not rrc_ue->send_dl_dcch(&dl_dcch_msg, nullptr, &octet_str)) {
     asn1::s1ap::cause_c cause;
     cause.set_protocol().value = asn1::s1ap::cause_protocol_opts::unspecified;
     trigger(ho_cancel_ev{cause});
     return;
   }
+
+  // Log rrc release event.
+  event_logger::get().log_rrc_event(rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                    octet_str,
+                                    static_cast<unsigned>(rrc_event_type::con_reconf),
+                                    static_cast<unsigned>(procedure_result_code::none),
+                                    rrc_ue->rnti);
 
   /* Start S1AP eNBStatusTransfer Procedure */
   asn1::s1ap::cause_c cause = start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd);
