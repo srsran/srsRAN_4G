@@ -73,7 +73,7 @@ int srsran_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, 
 static void ra_ul_nr_time_hl(const srsran_sch_time_ra_t* hl_ra_cfg, srsran_sch_grant_nr_t* grant)
 {
   // Compute S and L from SLIV from higher layers
-  ra_helper_compute_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
+  srsran_sliv_to_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
   grant->k       = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
