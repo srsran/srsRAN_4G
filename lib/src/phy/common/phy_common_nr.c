@@ -11,6 +11,7 @@
  */
 
 #include "srsran/phy/common/phy_common_nr.h"
+#include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 #include <stdlib.h>
 #include <string.h>
@@ -388,4 +389,127 @@ void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t* a,
   dst->cfo_hz_max = SRSRAN_MAX(a->cfo_hz_max, b->cfo_hz_max);
   dst->delay_us   = SRSRAN_VEC_PMA(a->delay_us, a->nof_re, b->delay_us, b->nof_re);
   dst->nof_re     = nof_re_sum;
+}
+
+typedef struct {
+  uint32_t mux_pattern;
+  uint32_t nof_prb;
+  uint32_t nof_symb;
+  uint32_t offset_rb;
+} coreset_zero_entry_t;
+
+static const coreset_zero_entry_t coreset_zero_15_15[16] = {
+    {1, 24, 2, 0},
+    {1, 24, 2, 2},
+    {1, 24, 2, 4},
+    {1, 24, 3, 0},
+    {1, 24, 3, 2},
+    {1, 24, 3, 4},
+    {1, 48, 1, 12},
+    {1, 48, 1, 16},
+    {1, 48, 2, 12},
+    {1, 48, 2, 16},
+    {1, 48, 3, 12},
+    {1, 48, 3, 16},
+    {1, 96, 1, 38},
+    {1, 96, 2, 38},
+    {1, 96, 3, 38},
+    {},
+};
+
+static const coreset_zero_entry_t coreset_zero_15_30[16] = {
+    {1, 24, 2, 5},
+    {1, 24, 2, 6},
+    {1, 24, 2, 7},
+    {1, 24, 2, 8},
+    {1, 24, 3, 5},
+    {1, 24, 3, 6},
+    {1, 24, 3, 7},
+    {1, 24, 3, 8},
+    {1, 48, 1, 18},
+    {1, 48, 1, 20},
+    {1, 48, 2, 18},
+    {1, 48, 2, 20},
+    {1, 48, 3, 18},
+    {1, 48, 3, 20},
+    {},
+    {},
+};
+
+static const coreset_zero_entry_t coreset_zero_30_15[16] = {
+    {1, 48, 1, 2},
+    {1, 48, 1, 6},
+    {1, 48, 2, 2},
+    {1, 48, 2, 6},
+    {1, 48, 3, 2},
+    {1, 48, 3, 6},
+    {1, 96, 1, 28},
+    {1, 96, 2, 28},
+    {1, 96, 3, 28},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+};
+
+int srsran_coreset_zero(srsran_subcarrier_spacing_t ssb_scs,
+                        srsran_subcarrier_spacing_t pdcch_scs,
+                        uint32_t                    idx,
+                        srsran_coreset_t*           coreset)
+{
+  // Verify inputs
+  if (coreset == NULL || idx >= 16) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Default entry to NULL
+  const coreset_zero_entry_t* entry = NULL;
+
+  // Table 13-1: Set of resource blocks and slot symbols of CORESET for Type0-PDCCH search space set
+  // when {SS/PBCH block, PDCCH} SCS is {15, 15} kHz for frequency bands with minimum channel
+  // bandwidth 5 MHz or 10 MHz
+  if (ssb_scs == srsran_subcarrier_spacing_15kHz && pdcch_scs == srsran_subcarrier_spacing_15kHz) {
+    entry = &coreset_zero_15_15[idx];
+  }
+  // Table 13-2: Set of resource blocks and slot symbols of CORESET for Type0-PDCCH search space set
+  // when {SS/PBCH block, PDCCH} SCS is {15, 30} kHz for frequency bands with minimum channel
+  // bandwidth 5 MHz or 10 MHz
+  if (ssb_scs == srsran_subcarrier_spacing_15kHz && pdcch_scs == srsran_subcarrier_spacing_30kHz) {
+    entry = &coreset_zero_15_30[idx];
+  }
+
+  // Table 13-3: Set of resource blocks and slot symbols of CORESET for Type0-PDCCH search space set
+  // when {SS/PBCH block, PDCCH} SCS is {30, 15} kHz for frequency bands with minimum channel
+  // bandwidth 5 MHz or 10 MHz
+  if (ssb_scs == srsran_subcarrier_spacing_30kHz && pdcch_scs == srsran_subcarrier_spacing_15kHz) {
+    entry = &coreset_zero_30_15[idx];
+  }
+
+  // Check a valid entry has been selected
+  if (entry == NULL) {
+    ERROR("Unhandled case ssb_scs=%d, pdcch_scs=%d", (int)ssb_scs, (int)pdcch_scs);
+    return SRSRAN_ERROR;
+  }
+
+  if (entry->nof_prb == 0) {
+    ERROR("Reserved case ssb_scs=%d, pdcch_scs=%d, idx=%d", (int)ssb_scs, (int)pdcch_scs, idx);
+    return SRSRAN_ERROR;
+  }
+
+  // Set CORESET fields
+  coreset->id                         = 0;
+  coreset->dmrs_scrambling_id_present = false;
+  coreset->mapping_type               = srsran_coreset_mapping_type_non_interleaved;
+  coreset->duration                   = entry->nof_symb;
+  coreset->offset_rb                  = entry->offset_rb;
+
+  // Set CORESET frequency resource mask
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    coreset->freq_resources[i] = (i < (entry->nof_prb / 6));
+  }
+
+  return SRSRAN_SUCCESS;
 }
