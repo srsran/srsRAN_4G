@@ -15,9 +15,36 @@
 
 namespace srsran {
 
-void test_slot_table()
+void test_optional_array()
 {
   optional_array<int, 5> table1;
+  TESTASSERT(table1.size() == 0 and table1.empty());
+
+  TESTASSERT(not table1.contains(0));
+  table1.insert(0, 5);
+  TESTASSERT(table1.size() == 1 and not table1.empty());
+  table1.erase(0);
+  TESTASSERT(table1.size() == 0 and table1.empty());
+  table1.insert(1, 3);
+  table1.insert(4, 2);
+  TESTASSERT(table1.size() == 2);
+  TESTASSERT(table1[4] == 2 and table1[1] == 3);
+
+  size_t count   = 0;
+  int    array[] = {3, 2};
+  for (int e : table1) {
+    TESTASSERT(array[count++] == e);
+  }
+
+  auto it = table1.begin();
+  TESTASSERT(*it == 3);
+  table1.erase(it);
+  TESTASSERT(table1.size() == 1);
+}
+
+void test_optional_vector()
+{
+  optional_vector<int> table1;
   TESTASSERT(table1.size() == 0 and table1.empty());
 
   TESTASSERT(not table1.contains(0));
@@ -51,7 +78,8 @@ int main(int argc, char** argv)
 
   srsran::test_init(argc, argv);
 
-  srsran::test_slot_table();
+  srsran::test_optional_array();
+  srsran::test_optional_vector();
 
   printf("Success\n");
   return SRSRAN_SUCCESS;

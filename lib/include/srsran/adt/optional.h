@@ -22,6 +22,8 @@ template <typename T>
 class optional
 {
 public:
+  using value_type = T;
+
   optional() : has_val_(false) {}
   optional(const T& t) : has_val_(true) { storage.emplace(t); }
   optional(T&& t) : has_val_(true) { storage.emplace(std::move(t)); }
