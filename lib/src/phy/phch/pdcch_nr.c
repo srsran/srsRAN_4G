@@ -310,7 +310,8 @@ static uint32_t pdcch_nr_cp(const srsran_pdcch_nr_t*     q,
                             cf_t*                        symbols,
                             bool                         put)
 {
-  uint32_t L = 1U << dci_location->L;
+  uint32_t offset_k = q->coreset.offset_rb * SRSRAN_NRE;
+  uint32_t L        = 1U << dci_location->L;
 
   // Calculate begin and end sub-carrier index for the selected candidate
   uint32_t k_begin = (dci_location->ncce * SRSRAN_NRE * 6) / q->coreset.duration;
@@ -327,9 +328,9 @@ static uint32_t pdcch_nr_cp(const srsran_pdcch_nr_t*     q,
         for (uint32_t i = r * 6 * SRSRAN_NRE; i < (r + 1) * 6 * SRSRAN_NRE; i++, k++) {
           if (k >= k_begin && k < k_end && k % 4 != 1) {
             if (put) {
-              slot_grid[q->carrier.nof_prb * SRSRAN_NRE * l + i] = symbols[count++];
+              slot_grid[q->carrier.nof_prb * SRSRAN_NRE * l + i + offset_k] = symbols[count++];
             } else {
-              symbols[count++] = slot_grid[q->carrier.nof_prb * SRSRAN_NRE * l + i];
+              symbols[count++] = slot_grid[q->carrier.nof_prb * SRSRAN_NRE * l + i + offset_k];
             }
           }
         }

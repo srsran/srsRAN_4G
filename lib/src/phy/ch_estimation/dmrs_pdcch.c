@@ -290,6 +290,9 @@ void srsran_dmrs_pdcch_estimator_free(srsran_dmrs_pdcch_estimator_t* q)
 static void
 srsran_dmrs_pdcch_extract(srsran_dmrs_pdcch_estimator_t* q, uint32_t cinit, const cf_t* sf_symbol, cf_t* lse)
 {
+  // Get CORESET offset
+  uint32_t offset_k = q->coreset.offset_rb * SRSRAN_NRE;
+
   // Initialise pseudo-random sequence
   srsran_sequence_state_t sequence_state = {};
   srsran_sequence_state_init(&sequence_state, cinit);
@@ -328,7 +331,7 @@ srsran_dmrs_pdcch_extract(srsran_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
         uint32_t k = n * SRSRAN_NRE + 4 * k_prime + 1;
 
         // Extract symbol
-        lse[idx] = sf_symbol[k];
+        lse[idx] = sf_symbol[k + offset_k];
       }
     }
 

@@ -16,6 +16,7 @@
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/upper/usim.h"
+#include "srsran/common/band_helper.h"
 
 #define Error(fmt, ...) rrc_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define Warning(fmt, ...) rrc_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -784,6 +785,45 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
       if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
           asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
         const pdcch_cfg_common_s& pdcch_cfg_common = dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+
+        // Load CORESET Zero
+        if (pdcch_cfg_common.ctrl_res_set_zero_present) {
+          srsran::srsran_band_helper band_helper;
+
+          // Get band number
+          uint16_t band = band_helper.get_band_from_dl_arfcn(phy_cfg.carrier.absolute_frequency_point_a);
+
+          // Get pointA and SSB absolute frequencies
+          double pointA_abs_freq_Hz = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.absolute_frequency_point_a);
+          double ssb_abs_freq_Hz    = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.absolute_frequency_ssb);
+
+          // Calculate integer SSB to pointA frequency offset in Hz
+          uint32_t ssb_pointA_freq_offset_Hz =
+              (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+
+          // TODO: Select subcarrier spacing from SSB (depending on band)
+          srsran_subcarrier_spacing_t ssb_scs = srsran_subcarrier_spacing_30kHz ;
+
+          // Select PDCCH subcarrrier spacing from PDCCH BWP
+          srsran_subcarrier_spacing_t pdcch_scs = phy_cfg.carrier.scs;
+
+          // Make CORESET Zero from provided field and given subcarrier spacing
+          srsran_coreset_t coreset0 = {};
+          if (srsran_coreset_zero(
+                  ssb_pointA_freq_offset_Hz, ssb_scs, pdcch_scs, pdcch_cfg_common.ctrl_res_set_zero, &coreset0) <
+              SRSASN_SUCCESS) {
+            logger.warning("Not possible to create CORESET Zero (ssb_scs=%s, pdcch_scs=%s, idx=%d)",
+                           srsran_subcarrier_spacing_to_str(ssb_scs),
+                           srsran_subcarrier_spacing_to_str(pdcch_scs),
+                           pdcch_cfg_common.ctrl_res_set_zero);
+            return false;
+          }
+
+          // Write CORESET Zero in index 0
+          phy_cfg.pdcch.coreset[0]         = coreset0;
+          phy_cfg.pdcch.coreset_present[0] = true;
+        }
+
         if (pdcch_cfg_common.common_ctrl_res_set_present) {
           srsran_coreset_t coreset;
           if (make_phy_coreset_cfg(pdcch_cfg_common.common_ctrl_res_set, &coreset) == true) {
