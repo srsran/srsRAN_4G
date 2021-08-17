@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_OPTIONAL_TABLE_H
-#define SRSRAN_OPTIONAL_TABLE_H
+#ifndef SRSRAN_OPTIONAL_ARRAY_H
+#define SRSRAN_OPTIONAL_ARRAY_H
 
 #include "optional.h"
 #include "srsran/common/srsran_assert.h"
@@ -27,7 +27,7 @@ namespace srsran {
  * @tparam N static size of max nof items
  */
 template <typename T, size_t N>
-class optional_table
+class optional_array
 {
   template <typename Obj>
   class iterator_impl
@@ -42,7 +42,7 @@ class optional_table
     using reference         = Obj&;
 
     iterator_impl() = default;
-    iterator_impl(optional_table<T, N>* parent_, size_t idx_) : parent(parent_), idx(idx_)
+    iterator_impl(optional_array<T, N>* parent_, size_t idx_) : parent(parent_), idx(idx_)
     {
       if (idx < parent->capacity() and not parent->contains(idx)) {
         ++(*this);
@@ -69,9 +69,9 @@ class optional_table
     bool operator!=(const It& other) const { return not(*this == other); }
 
   protected:
-    friend class optional_table<T, N>;
+    friend class optional_array<T, N>;
 
-    optional_table<T, N>* parent = nullptr;
+    optional_array<T, N>* parent = nullptr;
     size_t                idx    = N;
   };
 
@@ -79,14 +79,14 @@ public:
   using iterator       = iterator_impl<T>;
   using const_iterator = iterator_impl<const T>;
 
-  optional_table() {}
-  optional_table(const optional_table&) = default;
-  optional_table(optional_table&& other) noexcept : vec(std::move(other.vec)), nof_elems(other.nof_elems)
+  optional_array()                      = default;
+  optional_array(const optional_array&) = default;
+  optional_array(optional_array&& other) noexcept : vec(std::move(other.vec)), nof_elems(other.nof_elems)
   {
     other.nof_elems = 0;
   }
-  optional_table& operator=(const optional_table&) = default;
-  optional_table& operator                         =(optional_table&& other) noexcept
+  optional_array& operator=(const optional_array&) = default;
+  optional_array& operator                         =(optional_array&& other) noexcept
   {
     vec       = std::move(other.vec);
     nof_elems = other.nof_elems;
@@ -95,12 +95,12 @@ public:
   }
 
   // Find first position that is empty
-  size_t find_first_empty()
+  size_t find_first_empty(size_t start_guess = 0)
   {
     if (nof_elems == capacity()) {
       return N;
     }
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = start_guess; i < N; ++i) {
       if (not vec[i].has_value()) {
         return i;
       }
@@ -150,4 +150,4 @@ private:
 
 } // namespace srsran
 
-#endif // SRSRAN_OPTIONAL_TABLE_H
+#endif // SRSRAN_OPTIONAL_ARRAY_H

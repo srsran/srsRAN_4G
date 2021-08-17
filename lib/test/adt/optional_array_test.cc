@@ -10,14 +10,14 @@
  *
  */
 
-#include "srsran/adt/optional_table.h"
+#include "srsran/adt/optional_array.h"
 #include "srsran/common/test_common.h"
 
 namespace srsran {
 
 void test_slot_table()
 {
-  optional_table<int, 5> table1;
+  optional_array<int, 5> table1;
   TESTASSERT(table1.size() == 0 and table1.empty());
 
   TESTASSERT(not table1.contains(0));
