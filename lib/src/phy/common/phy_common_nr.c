@@ -361,6 +361,25 @@ srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str)
   return srsran_subcarrier_spacing_invalid;
 }
 
+const char* srsran_subcarrier_spacing_to_str(srsran_subcarrier_spacing_t scs)
+{
+  switch (scs) {
+    case srsran_subcarrier_spacing_15kHz:
+      return "15kHz";
+    case srsran_subcarrier_spacing_30kHz:
+      return "30kHz";
+    case srsran_subcarrier_spacing_60kHz:
+      return "60kHz";
+    case srsran_subcarrier_spacing_120kHz:
+      return "120kHz";
+    case srsran_subcarrier_spacing_240kHz:
+      return "240kHz";
+    case srsran_subcarrier_spacing_invalid:
+    default:
+      return "invalid";
+  }
+}
+
 void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t* a,
                                          const srsran_csi_trs_measurements_t* b,
                                          srsran_csi_trs_measurements_t*       dst)
@@ -395,7 +414,11 @@ typedef struct {
   uint32_t mux_pattern;
   uint32_t nof_prb;
   uint32_t nof_symb;
-  uint32_t offset_rb;
+  uint32_t offset_rb; ///< Defined by TS 36.213 section 13 UE procedure for monitoring Type0-PDCCH CSS sets:
+  ///< Offset respect to the SCS of the CORESET for Type0-PDCCH CSS set, provided by
+  ///< subCarrierSpacingCommon, from the smallest RB index of the CORESET for Type0-PDCCH CSS set
+  ///< to the smallest RB index of the common RB overlapping with the first RB of the
+  ///< corresponding SS/PBCH block.
 } coreset_zero_entry_t;
 
 static const coreset_zero_entry_t coreset_zero_15_15[16] = {
@@ -455,13 +478,15 @@ static const coreset_zero_entry_t coreset_zero_30_15[16] = {
     {},
 };
 
-int srsran_coreset_zero(srsran_subcarrier_spacing_t ssb_scs,
+int srsran_coreset_zero(uint32_t                    ssb_pointA_freq_offset_Hz,
+                        srsran_subcarrier_spacing_t ssb_scs,
                         srsran_subcarrier_spacing_t pdcch_scs,
                         uint32_t                    idx,
                         srsran_coreset_t*           coreset)
 {
   // Verify inputs
   if (coreset == NULL || idx >= 16) {
+    ERROR("Invalid CORESET Zero inputs. coreset=%p, idx=%d", coreset, idx);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -490,21 +515,39 @@ int srsran_coreset_zero(srsran_subcarrier_spacing_t ssb_scs,
 
   // Check a valid entry has been selected
   if (entry == NULL) {
-    ERROR("Unhandled case ssb_scs=%d, pdcch_scs=%d", (int)ssb_scs, (int)pdcch_scs);
+    ERROR("Unhandled case ssb_scs=%s, pdcch_scs=%s",
+          srsran_subcarrier_spacing_to_str(ssb_scs),
+          srsran_subcarrier_spacing_to_str(pdcch_scs));
     return SRSRAN_ERROR;
   }
 
   if (entry->nof_prb == 0) {
-    ERROR("Reserved case ssb_scs=%d, pdcch_scs=%d, idx=%d", (int)ssb_scs, (int)pdcch_scs, idx);
+    ERROR("Reserved case ssb_scs=%s, pdcch_scs=%s, idx=%d",
+          srsran_subcarrier_spacing_to_str(ssb_scs),
+          srsran_subcarrier_spacing_to_str(pdcch_scs),
+          idx);
     return SRSRAN_ERROR;
   }
+
+  // Calculate CORESET offset in RB
+  uint32_t ssb_half_bw_Hz = SRSRAN_SUBC_SPACING_NR(ssb_scs) * (SRSRAN_SSB_BW_SUBC / 2U);
+  if (ssb_pointA_freq_offset_Hz > ssb_half_bw_Hz) {
+    // Move SSB center to lowest SSB subcarrier
+    ssb_pointA_freq_offset_Hz -= ssb_half_bw_Hz;
+  } else {
+    ssb_pointA_freq_offset_Hz = 0;
+  }
+  uint32_t ssb_pointA_freq_offset_rb =
+      SRSRAN_FLOOR(ssb_pointA_freq_offset_Hz, SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(pdcch_scs));
+  uint32_t offset_rb =
+      (ssb_pointA_freq_offset_rb > entry->offset_rb) ? (ssb_pointA_freq_offset_rb - entry->offset_rb) : 0;
 
   // Set CORESET fields
   coreset->id                         = 0;
   coreset->dmrs_scrambling_id_present = false;
   coreset->mapping_type               = srsran_coreset_mapping_type_non_interleaved;
   coreset->duration                   = entry->nof_symb;
-  coreset->offset_rb                  = entry->offset_rb;
+  coreset->offset_rb                  = offset_rb;
 
   // Set CORESET frequency resource mask
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
