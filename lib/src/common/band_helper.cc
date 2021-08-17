@@ -67,6 +67,18 @@ uint16_t srsran_band_helper::get_band_from_dl_freq_Hz(double freq) const
   return UINT16_MAX;
 }
 
+uint16_t srsran_band_helper::get_band_from_dl_arfcn(uint32_t arfcn) const
+{
+  for (const nr_band& band : nr_band_table_fr1) {
+    // Check given ARFCN is between the first and last possible ARFCN and matches step
+    if (arfcn >= band.dl_nref_first and arfcn <= band.dl_nref_last and
+        (arfcn - band.dl_nref_first) % band.dl_nref_step == 0) {
+      return band.band;
+    }
+  }
+  return UINT16_MAX;
+}
+
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const
 {
   // Look for the given band and SCS
