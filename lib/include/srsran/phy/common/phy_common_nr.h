@@ -405,18 +405,19 @@ typedef struct SRSRAN_API {
  * @brief CORESET parameters as defined in TS 38.331 V15.10.0 - ControlResourceSet
  */
 typedef struct SRSRAN_API {
-  uint32_t                      id;
-  srsran_coreset_mapping_type_t mapping_type;
-  uint32_t                      duration;
-  bool                          freq_resources[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE];
-  srsran_coreset_bundle_size_t  interleaver_size;
-  uint32_t offset_rb; ///< Integer offset in resource blocks from the pointA (lowest subcarrier of resource grid) to the
-                      ///< lowest resource block of the CORESET region (used by CORESET Zero only)
+  uint32_t                              id;
+  srsran_coreset_mapping_type_t         mapping_type;
+  uint32_t                              duration;
+  bool                                  freq_resources[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE];
   bool                                  dmrs_scrambling_id_present;
   uint32_t                              dmrs_scrambling_id;
   srsran_coreset_precoder_granularity_t precoder_granularity;
-  srsran_coreset_bundle_size_t          reg_bundle_size;
+  srsran_coreset_bundle_size_t          interleaver_size; ///< Referenced in TS 38.211 section 7.3.2.2 as R
+  srsran_coreset_bundle_size_t          reg_bundle_size;  ///< Referenced in TS 38.211 section 7.3.2.2 as L
   uint32_t                              shift_index;
+  uint32_t offset_rb; ///< Integer offset in resource blocks from the pointA (lowest subcarrier of resource grid) to the
+                      ///< lowest resource block of the CORESET region (used by CORESET Zero only)
+
   /** Missing TCI parameters */
 } srsran_coreset_t;
 
@@ -622,14 +623,16 @@ SRSRAN_API void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measure
 /**
  * @brief Setup CORESET Zero from a configuration index
  * @remark Defined by TS 38.213 tables 13-1, 13-2, 13-3, 13-4, 13-5, 13-6,  13-7,  13-8,  13-9,  13-10
+ * @param n_cell_id Physical Cell identifier
  * @param ssb_pointA_freq_offset_Hz Integer frequency offset in Hz between the SS/PBCH block center and pointA
  * @param ssb_scs SS/PBCH block subcarrier spacing
  * @param pdcch_scs PDCCH subcarrier spacing
  * @param idx CORESET Zero configuration index
  * @param[out] coreset Points to the resultant CORESET
- * @return SRSLTE_SUCCESS if the given inputs lead to a valid CORESET configuration, otherise SRSLTE_ERROR code
+ * @return SRSRAN_SUCCESS if the given inputs lead to a valid CORESET configuration, otherise SRSRAN_ERROR code
  */
-SRSRAN_API int srsran_coreset_zero(uint32_t                    ssb_pointA_freq_offset_Hz,
+SRSRAN_API int srsran_coreset_zero(uint32_t                    n_cell_id,
+                                   uint32_t                    ssb_pointA_freq_offset_Hz,
                                    srsran_subcarrier_spacing_t ssb_scs,
                                    srsran_subcarrier_spacing_t pdcch_scs,
                                    uint32_t                    idx,

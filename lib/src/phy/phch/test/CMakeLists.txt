@@ -663,4 +663,5 @@ add_nr_test(pusch_nr_ack20_csi4_test pusch_nr_test -p 50 -m 20 -A 20 -C 4)
 
 add_executable(pdcch_nr_test pdcch_nr_test.c)
 target_link_libraries(pdcch_nr_test srsran_phy)
-add_nr_test(pdcch_nr_test pdcch_nr_test)
+add_nr_test(pdcch_nr_test_non_interleaved pdcch_nr_test)
+add_nr_test(pdcch_nr_test_interleaved pdcch_nr_test -I)

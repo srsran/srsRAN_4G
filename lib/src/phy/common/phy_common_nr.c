@@ -478,7 +478,8 @@ static const coreset_zero_entry_t coreset_zero_30_15[16] = {
     {},
 };
 
-int srsran_coreset_zero(uint32_t                    ssb_pointA_freq_offset_Hz,
+int srsran_coreset_zero(uint32_t                    n_cell_id,
+                        uint32_t                    ssb_pointA_freq_offset_Hz,
                         srsran_subcarrier_spacing_t ssb_scs,
                         srsran_subcarrier_spacing_t pdcch_scs,
                         uint32_t                    idx,
@@ -545,9 +546,15 @@ int srsran_coreset_zero(uint32_t                    ssb_pointA_freq_offset_Hz,
   // Set CORESET fields
   coreset->id                         = 0;
   coreset->dmrs_scrambling_id_present = false;
-  coreset->mapping_type               = srsran_coreset_mapping_type_non_interleaved;
   coreset->duration                   = entry->nof_symb;
   coreset->offset_rb                  = offset_rb;
+
+  // Set CCE-to-REG mapping according to TS 38.211 section 7.3.2.2
+  coreset->mapping_type         = srsran_coreset_mapping_type_interleaved;
+  coreset->reg_bundle_size      = srsran_coreset_bundle_size_n6;
+  coreset->interleaver_size     = srsran_coreset_bundle_size_n2;
+  coreset->precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+  coreset->shift_index          = n_cell_id;
 
   // Set CORESET frequency resource mask
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
