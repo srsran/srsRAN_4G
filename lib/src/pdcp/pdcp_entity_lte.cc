@@ -51,6 +51,15 @@ pdcp_entity_lte::~pdcp_entity_lte()
 
 bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
 {
+  if (active) {
+    // Already configured
+    if (cnfg_ != cfg) {
+      logger.error("Bearer reconfiguration not supported. LCID=%d.", rrc->get_rb_name(lcid));
+      return false;
+    }
+    return true;
+  }
+
   cfg                          = cnfg_;
   maximum_pdcp_sn              = (1u << cfg.sn_len) - 1u;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
