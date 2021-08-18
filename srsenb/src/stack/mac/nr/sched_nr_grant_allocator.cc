@@ -64,11 +64,11 @@ bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
   logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
 
-alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                                    aggr_idx,
-                                                    const srsenb::sched_nr_impl::pending_rar_t& rar,
-                                                    prb_interval                                interv,
-                                                    slot_ue_map_t&                              ues,
-                                                    uint32_t                                    max_nof_grants)
+alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                                ra_rnti,
+                                                    uint32_t                                aggr_idx,
+                                                    prb_interval                            interv,
+                                                    slot_ue_map_t&                          ues,
+                                                    srsran::const_span<dl_sched_rar_info_t> pending_rars)
 {
   static const uint32_t msg3_nof_prbs = 3, m = 0;
 
@@ -95,7 +95,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   }
 
   // Check Msg3 RB collision
-  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * max_nof_grants;
+  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * pending_rars.size();
   uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.nof_prbs(), false));
   prb_interval msg3_rbs          = find_empty_interval_of_length(bwp_msg3_slot.ul_prbs.prbs(), total_ul_nof_rbgs);
   if (msg3_rbs.length() < total_ul_nof_rbgs) {
@@ -114,9 +114,9 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
 
   // RAR allocation successful.
 
-  // Generate DCI for RAR
+  // Generate DCI for RAR with given RA-RNTI
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  if (not fill_dci_rar(interv, rar.ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
+  if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
@@ -130,7 +130,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   int               dai = 0;
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = msg3_slot.slot_idx();
-  for (const auto& grant : rar.msg3_grant) {
+  for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue&     ue = ues[grant.temp_crnti];
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
     ue.h_ul      = ue.harq_ent->find_empty_ul_harq();

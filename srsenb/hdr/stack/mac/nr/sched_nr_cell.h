@@ -23,12 +23,6 @@ namespace sched_nr_impl {
 
 using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 
-struct pending_rar_t {
-  uint16_t                                                                   ra_rnti = 0;
-  slot_point                                                                 prach_slot;
-  srsran::bounded_vector<dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant;
-};
-
 /// RAR/Msg3 scheduler
 class ra_sched
 {
@@ -40,6 +34,13 @@ public:
   size_t empty() const { return pending_rars.empty(); }
 
 private:
+  struct pending_rar_t {
+    uint16_t                                                                   ra_rnti = 0;
+    slot_point                                                                 prach_slot;
+    slot_interval                                                              rar_win;
+    srsran::bounded_vector<dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant;
+  };
+
   alloc_result allocate_pending_rar(bwp_slot_allocator&  slot_grid,
                                     const pending_rar_t& rar,
                                     slot_ue_map_t&       slot_ues,

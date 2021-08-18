@@ -27,7 +27,8 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
   const uint32_t    rar_aggr_level = 2;
   const prb_bitmap& prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].dl_prbs.prbs();
 
-  alloc_result ret = alloc_result::other_cause;
+  alloc_result                            ret = alloc_result::other_cause;
+  srsran::const_span<dl_sched_rar_info_t> msg3_grants{rar.msg3_grant};
   for (nof_grants_alloc = rar.msg3_grant.size(); nof_grants_alloc > 0; nof_grants_alloc--) {
     ret                    = alloc_result::invalid_coderate;
     uint32_t start_prb_idx = 0;
@@ -35,7 +36,8 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
       prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
       start_prb_idx       = interv.stop();
       if (interv.length() == nprb) {
-        ret = slot_grid.alloc_rar_and_msg3(rar_aggr_level, rar, interv, slot_ues, nof_grants_alloc);
+        ret = slot_grid.alloc_rar_and_msg3(
+            rar.ra_rnti, rar_aggr_level, interv, slot_ues, msg3_grants.subspan(0, nof_grants_alloc));
       } else {
         ret = alloc_result::no_sch_space;
       }
@@ -56,7 +58,19 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
   slot_point pdcch_slot = slot_grid.get_pdcch_tti();
   slot_point msg3_slot  = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
-  if (not slot_grid.res_grid()[pdcch_slot].is_dl or not slot_grid.res_grid()[msg3_slot].is_ul) {
+  if (not slot_grid.res_grid()[pdcch_slot].is_dl) {
+    // RAR only allowed if PDCCH is available
+    return;
+  }
+
+  // Mark RAR window start, regardless of whether PUSCH is available
+  for (auto& rar : pending_rars) {
+    if (rar.rar_win.empty()) {
+      rar.rar_win = {pdcch_slot, pdcch_slot + bwp_cfg->cfg.rar_window_size};
+    }
+  }
+
+  if (not slot_grid.res_grid()[msg3_slot].is_ul) {
     // RAR only allowed if respective Msg3 slot is available for UL
     return;
   }
@@ -67,14 +81,12 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
     // In case of RAR outside RAR window:
     // - if window has passed, discard RAR
     // - if window hasn't started, stop loop, as RARs are ordered by TTI
-    slot_point    tti_start{0, rar.prach_slot.sfn(), 0};
-    slot_interval rar_window{tti_start, tti_start + 2 * tti_start.nof_slots_per_frame()}; // TODO: use rar_window_size
-    if (not rar_window.contains(pdcch_slot)) {
-      if (pdcch_slot >= rar_window.stop()) {
+    if (not rar.rar_win.contains(pdcch_slot)) {
+      if (pdcch_slot >= rar.rar_win.stop()) {
         fmt::memory_buffer str_buffer;
         fmt::format_to(str_buffer,
                        "SCHED: Could not transmit RAR within the window Window={}, PRACH={}, RAR={}",
-                       rar_window,
+                       rar.rar_win,
                        rar.prach_slot,
                        pdcch_slot);
         srsran::console("%s\n", srsran::to_c_str(str_buffer));

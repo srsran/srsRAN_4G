@@ -23,7 +23,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-struct pending_rar_t;
+using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -83,11 +83,11 @@ public:
 
   void new_slot(slot_point pdcch_slot_) { pdcch_slot = pdcch_slot_; }
 
-  alloc_result alloc_rar_and_msg3(uint32_t             aggr_idx,
-                                  const pending_rar_t& rar,
-                                  prb_interval         interv,
-                                  slot_ue_map_t&       ues,
-                                  uint32_t             max_nof_grants);
+  alloc_result alloc_rar_and_msg3(uint16_t                                ra_rnti,
+                                  uint32_t                                aggr_idx,
+                                  prb_interval                            interv,
+                                  slot_ue_map_t&                          ues,
+                                  srsran::const_span<dl_sched_rar_info_t> pending_rars);
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
   alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
 
