@@ -13,15 +13,18 @@
 #include "srsran/phy/ch_estimation/dmrs_pdcch.h"
 #include "srsran/phy/ch_estimation/chest_common.h"
 #include "srsran/phy/common/sequence.h"
+#include "srsran/phy/phch/pdcch_nr.h"
 #include "srsran/phy/utils/convolution.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 #include <complex.h>
 #include <math.h>
 
+#define NOF_PILOTS_X_RB 3
+
 /// @brief Every frequency resource is 6 Resource blocks, every resource block carries 3 pilots. So 18 possible pilots
 /// per frequency resource.
-#define NOF_PILOTS_X_FREQ_RES 18
+#define NOF_PILOTS_X_FREQ_RES (NOF_PILOTS_X_RB * 6)
 
 ///@brief Maximum number of pilots in a PDCCH candidate location
 #define DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE                                                                            \
@@ -51,13 +54,12 @@ static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uin
                              2UL * n_id);
 }
 
-static void dmrs_pdcch_put_symbol_noninterleaved(const srsran_carrier_nr_t*   carrier,
-                                                 const srsran_coreset_t*      coreset,
-                                                 const srsran_dci_location_t* dci_location,
-                                                 uint32_t                     cinit,
-                                                 cf_t*                        sf_symbol)
+static void dmrs_pdcch_put_symbol(const srsran_carrier_nr_t* carrier,
+                                  const srsran_coreset_t*    coreset,
+                                  const bool                 rb_mask[SRSRAN_MAX_PRB_NR],
+                                  uint32_t                   cinit,
+                                  cf_t*                      sf_symbol)
 {
-  uint32_t L            = 1U << dci_location->L;
   uint32_t nof_freq_res = SRSRAN_MIN(carrier->nof_prb / 6, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE);
 
   // Initialise sequence for this symbol
@@ -65,67 +67,45 @@ static void dmrs_pdcch_put_symbol_noninterleaved(const srsran_carrier_nr_t*   ca
   srsran_sequence_state_init(&sequence_state, cinit);
   uint32_t sequence_skip = 0; // Accumulates pilot locations to skip
 
-  // Calculate Resource block indexes range, every CCE is 6 REG, 1 REG is 6 RE in resource blocks
-  uint32_t rb_coreset_idx_begin = (dci_location->ncce * 6) / coreset->duration;
-  uint32_t rb_coreset_idx_end   = ((dci_location->ncce + L) * 6) / coreset->duration;
-
   // CORESET Resource Block counter
   uint32_t rb_coreset_idx = 0;
-  for (uint32_t i = 0; i < nof_freq_res; i++) {
+
+  // For each frequency resource (6 RB groups)
+  for (uint32_t res_idx = 0; res_idx < nof_freq_res; res_idx++) {
     // Skip frequency resource if outside of the CORESET
-    if (!coreset->freq_resources[i]) {
+    if (!coreset->freq_resources[res_idx]) {
       // Skip possible DMRS locations in this region
       sequence_skip += NOF_PILOTS_X_FREQ_RES;
       continue;
     }
 
-    // Skip if the frequency resource highest RB is lower than the first CCE resource block.
-    if ((rb_coreset_idx + 6) <= rb_coreset_idx_begin) {
-      // Skip possible DMRS locations in this region
-      sequence_skip += NOF_PILOTS_X_FREQ_RES;
-
-      // Since this is part of the CORESET, count the RB as CORESET
-      rb_coreset_idx += 6;
-      continue;
-    }
-
-    // Return if the first RB of the frequency resource is greater than the last CCE resource block
-    if (rb_coreset_idx > rb_coreset_idx_end) {
-      return;
-    }
-
-    // Skip all discarded possible pilot locations
-    srsran_sequence_state_advance(&sequence_state, 2 * sequence_skip);
-    sequence_skip = 0;
-
-    // Generate pilots
-    cf_t rl[NOF_PILOTS_X_FREQ_RES];
-    srsran_sequence_state_gen_f(&sequence_state, M_SQRT1_2, (float*)rl, NOF_PILOTS_X_FREQ_RES * 2);
-
-    // For each RB in the frequency resource
-    for (uint32_t j = 0; j < 6; j++) {
-      // Calculate absolute RB index
-      uint32_t n = i * 6 + j;
-
-      // Skip if lower than begin
-      if (rb_coreset_idx < rb_coreset_idx_begin) {
-        rb_coreset_idx++;
+    // For each RB in the enabled frequency resource
+    for (uint32_t rb = 0; rb < 6; rb++, rb_coreset_idx++) {
+      // Skip if mask is disabled
+      if (!rb_mask[rb_coreset_idx]) {
+        sequence_skip += NOF_PILOTS_X_RB;
         continue;
       }
 
-      // Return if greater than end
-      if (rb_coreset_idx >= rb_coreset_idx_end) {
-        return;
-      }
+      // Skip all discarded possible pilot locations
+      srsran_sequence_state_advance(&sequence_state, 2 * sequence_skip);
+      sequence_skip = 0;
+
+      // Generate pilots for the given RB
+      cf_t rl[NOF_PILOTS_X_RB];
+      srsran_sequence_state_gen_f(&sequence_state, M_SQRT1_2, (float*)rl, NOF_PILOTS_X_RB * 2);
+
+      //  Absolute RB index in the resource grid
+      uint32_t n = res_idx * 6 + rb;
 
       // Write pilots in the symbol
-      for (uint32_t k_prime = 0; k_prime < 3; k_prime++) {
-        // Calculate sub-carrier index
+      for (uint32_t k_prime = 0; k_prime < NOF_PILOTS_X_RB; k_prime++) {
+        // Calculate absolute sub-carrier index in the resource grid
         uint32_t k = n * SRSRAN_NRE + 4 * k_prime + 1;
 
-        sf_symbol[k] = rl[3 * j + k_prime];
+        // Write DMRS
+        sf_symbol[k] = rl[k_prime];
       }
-      rb_coreset_idx++;
     }
   }
 }
@@ -140,17 +120,19 @@ int srsran_dmrs_pdcch_put(const srsran_carrier_nr_t*   carrier,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (coreset->mapping_type == srsran_coreset_mapping_type_interleaved) {
-    ERROR("Error interleaved CORESET mapping is not currently implemented");
-    return SRSRAN_ERROR;
-  }
-
   if (coreset->duration < SRSRAN_CORESET_DURATION_MIN || coreset->duration > SRSRAN_CORESET_DURATION_MAX) {
     ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)",
           coreset->duration,
           SRSRAN_CORESET_DURATION_MIN,
           SRSRAN_CORESET_DURATION_MAX);
     return SRSRAN_ERROR;
+  }
+
+  // Calculate CCE-to-REG mapping mask
+  bool rb_mask[SRSRAN_MAX_PRB_NR] = {};
+  if (srsran_pdcch_nr_cce_to_reg_mapping(coreset, dci_location, rb_mask) < SRSRAN_SUCCESS) {
+    ERROR("Error in CCE-to-REG mapping");
+    return SRSRAN_SUCCESS;
   }
 
   // Use cell id if the DMR scrambling id is not provided by higher layers
@@ -169,8 +151,7 @@ int srsran_dmrs_pdcch_put(const srsran_carrier_nr_t*   carrier,
     DMRS_PDCCH_INFO_TX("n=%d; l=%d; cinit=%08x", slot_idx, l, cinit);
 
     // Put data
-    dmrs_pdcch_put_symbol_noninterleaved(
-        carrier, coreset, dci_location, cinit, &sf_symbols[carrier->nof_prb * SRSRAN_NRE * l]);
+    dmrs_pdcch_put_symbol(carrier, coreset, rb_mask, cinit, &sf_symbols[carrier->nof_prb * SRSRAN_NRE * l]);
   }
 
   return SRSRAN_SUCCESS;
@@ -301,7 +282,7 @@ srsran_dmrs_pdcch_extract(srsran_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
   uint32_t sequence_skip = 0;
 
   // Counts enabled frequency domain resources
-  uint32_t rb_coreset_idx = 0;
+  uint32_t lse_count = 0;
 
   // Iterate over all possible frequency resources
   uint32_t freq_domain_res_size = SRSRAN_MIN(q->carrier.nof_prb / 6, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE);
@@ -321,26 +302,23 @@ srsran_dmrs_pdcch_extract(srsran_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
     srsran_sequence_state_gen_f(&sequence_state, M_SQRT1_2, (float*)rl, NOF_PILOTS_X_FREQ_RES * 2);
 
     // Iterate all PRBs in the enabled frequency domain resource
-    for (uint32_t j = 0, idx = rb_coreset_idx * NOF_PILOTS_X_FREQ_RES; j < 6; j++) {
+    cf_t* lse_ptr = &lse[lse_count];
+    for (uint32_t j = 0; j < 6; j++) {
       // Calculate Grid PRB index (n)
       uint32_t n = i * 6 + j;
 
       // For each pilot in the PRB
-      for (uint32_t k_prime = 0; k_prime < 3; k_prime++, idx++) {
+      for (uint32_t k_prime = 0; k_prime < 3; k_prime++) {
         // Calculate sub-carrier index
         uint32_t k = n * SRSRAN_NRE + 4 * k_prime + 1;
 
         // Extract symbol
-        lse[idx] = sf_symbol[k + offset_k];
+        lse[lse_count++] = sf_symbol[k + offset_k];
       }
     }
 
     // Calculate least squared estimates
-    cf_t* lse_ptr = &lse[rb_coreset_idx * NOF_PILOTS_X_FREQ_RES];
     srsran_vec_prod_conj_ccc(lse_ptr, rl, lse_ptr, NOF_PILOTS_X_FREQ_RES);
-
-    // Increment frequency domain resource counter
-    rb_coreset_idx++;
   }
 }
 
@@ -424,21 +402,18 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  uint32_t L = 1U << dci_location->L;
-  if (q->coreset.mapping_type == srsran_coreset_mapping_type_interleaved) {
-    ERROR("Error interleaved mapping not implemented");
-    return SRSRAN_ERROR;
-  }
-
   // Check that CORESET duration is not less than minimum
   if (q->coreset.duration < SRSRAN_CORESET_DURATION_MIN) {
     ERROR("Invalid CORESET duration");
     return SRSRAN_ERROR;
   }
 
-  // Get base pilot;
-  uint32_t pilot_idx  = (dci_location->ncce * 18) / q->coreset.duration;
-  uint32_t nof_pilots = (L * 18) / q->coreset.duration;
+  // Calculate CCE-to-REG mapping mask
+  bool rb_mask[SRSRAN_MAX_PRB_NR] = {};
+  if (srsran_pdcch_nr_cce_to_reg_mapping(&q->coreset, dci_location, rb_mask) < SRSRAN_SUCCESS) {
+    ERROR("Error in CCE-to-REG mapping");
+    return SRSRAN_SUCCESS;
+  }
 
   // Initialise measurements
   float rsrp                              = 0.0f; //< Averages linear RSRP
@@ -447,24 +422,36 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
   float sync_err_avg                      = 0.0f; //< Averages synchronization
   cf_t  corr[SRSRAN_CORESET_DURATION_MAX] = {};   //< Saves correlation for the different symbols
 
-  // Iterate the CORESET duration
+  // For each CORESET symbol
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
+    // Temporal least square estimates
+    cf_t     tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE];
+    uint32_t nof_pilots = 0;
+
+    // For each RB in the CORESET
+    for (uint32_t rb = 0; rb < q->coreset_bw; rb++) {
+      // Skip RB if unused
+      if (!rb_mask[rb]) {
+        continue;
+      }
+
+      // Copy LSE
+      srsran_vec_cf_copy(&tmp[nof_pilots], &q->lse[l][rb * NOF_PILOTS_X_RB], NOF_PILOTS_X_RB);
+      nof_pilots += NOF_PILOTS_X_RB;
+    }
+
     if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
       DMRS_PDCCH_DEBUG_RX("Measuring PDCCH l=%d; lse=", l);
-      srsran_vec_fprint_c(stdout, &q->lse[l][pilot_idx], nof_pilots);
+      srsran_vec_fprint_c(stdout, tmp, nof_pilots);
     }
 
     // Measure synchronization error and accumulate for average
-    float tmp_sync_err = srsran_vec_estimate_frequency(&q->lse[l][pilot_idx], nof_pilots);
+    float tmp_sync_err = srsran_vec_estimate_frequency(tmp, nof_pilots);
     sync_err_avg += tmp_sync_err;
 
 #if DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
-    cf_t tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE];
-
     // Pre-compensate synchronization error
-    srsran_vec_apply_cfo(&q->lse[l][pilot_idx], tmp_sync_err, tmp, nof_pilots);
-#else  // DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
-    const cf_t* tmp = &q->lse[l][pilot_idx];
+    srsran_vec_apply_cfo(tmp, tmp_sync_err, tmp, nof_pilots);
 #endif // DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
 
     // Correlate DMRS
@@ -530,10 +517,6 @@ int srsran_dmrs_pdcch_get_ce(const srsran_dmrs_pdcch_estimator_t* q,
   }
 
   uint32_t L = 1U << dci_location->L;
-  if (q->coreset.mapping_type == srsran_coreset_mapping_type_interleaved) {
-    ERROR("Error interleaved mapping not implemented");
-    return SRSRAN_ERROR;
-  }
 
   // Check that CORESET duration is not less than minimum
   if (q->coreset.duration < SRSRAN_CORESET_DURATION_MIN) {
@@ -541,16 +524,30 @@ int srsran_dmrs_pdcch_get_ce(const srsran_dmrs_pdcch_estimator_t* q,
     return SRSRAN_ERROR;
   }
 
-  // Calculate begin and end sub-carrier index for the selected candidate
-  uint32_t k_begin = (dci_location->ncce * SRSRAN_NRE * 6) / q->coreset.duration;
-  uint32_t k_end   = k_begin + (L * 6 * SRSRAN_NRE) / q->coreset.duration;
+  // Calculate CCE-to-REG mapping mask
+  bool rb_mask[SRSRAN_MAX_PRB_NR] = {};
+  if (srsran_pdcch_nr_cce_to_reg_mapping(&q->coreset, dci_location, rb_mask) < SRSRAN_SUCCESS) {
+    ERROR("Error in CCE-to-REG mapping");
+    return SRSRAN_SUCCESS;
+  }
 
   // Extract CE for PDCCH
   uint32_t count = 0;
+
+  // For each PDCCH symbol
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
-    for (uint32_t k = k_begin; k < k_end; k++) {
-      if (k % 4 != 1) {
-        ce->ce[count++] = q->ce[q->coreset_bw * SRSRAN_NRE * l + k];
+    // For each CORESET RB
+    for (uint32_t rb = 0; rb < q->coreset_bw; rb++) {
+      // Skip RB if unused
+      if (!rb_mask[rb]) {
+        continue;
+      }
+
+      // Copy RB, skipping DMRS
+      for (uint32_t k = rb * SRSRAN_NRE; k < (rb + 1) * SRSRAN_NRE; k++) {
+        if (k % 4 != 1) {
+          ce->ce[count++] = q->ce[q->coreset_bw * SRSRAN_NRE * l + k];
+        }
       }
     }
   }

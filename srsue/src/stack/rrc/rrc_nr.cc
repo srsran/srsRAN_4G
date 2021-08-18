@@ -11,12 +11,12 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/common/security.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/upper/usim.h"
-#include "srsran/common/band_helper.h"
 
 #define Error(fmt, ...) rrc_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define Warning(fmt, ...) rrc_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -31,7 +31,9 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this)
+  logger(srslog::fetch_basic_logger("RRC-NR")),
+  task_sched(task_sched_),
+  conn_recfg_proc(this)
 {}
 
 rrc_nr::~rrc_nr() = default;
@@ -802,16 +804,19 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
               (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
 
           // TODO: Select subcarrier spacing from SSB (depending on band)
-          srsran_subcarrier_spacing_t ssb_scs = srsran_subcarrier_spacing_30kHz ;
+          srsran_subcarrier_spacing_t ssb_scs = srsran_subcarrier_spacing_30kHz;
 
           // Select PDCCH subcarrrier spacing from PDCCH BWP
           srsran_subcarrier_spacing_t pdcch_scs = phy_cfg.carrier.scs;
 
           // Make CORESET Zero from provided field and given subcarrier spacing
           srsran_coreset_t coreset0 = {};
-          if (srsran_coreset_zero(
-                  ssb_pointA_freq_offset_Hz, ssb_scs, pdcch_scs, pdcch_cfg_common.ctrl_res_set_zero, &coreset0) <
-              SRSASN_SUCCESS) {
+          if (srsran_coreset_zero(phy_cfg.carrier.pci,
+                                  ssb_pointA_freq_offset_Hz,
+                                  ssb_scs,
+                                  pdcch_scs,
+                                  pdcch_cfg_common.ctrl_res_set_zero,
+                                  &coreset0) < SRSASN_SUCCESS) {
             logger.warning("Not possible to create CORESET Zero (ssb_scs=%s, pdcch_scs=%s, idx=%d)",
                            srsran_subcarrier_spacing_to_str(ssb_scs),
                            srsran_subcarrier_spacing_to_str(pdcch_scs),
