@@ -192,8 +192,6 @@ private:
   rrc*                  rrc_ptr = nullptr;
 
   // Static functions
-  static uint8_t value_to_range(const report_cfg_eutra_s::trigger_quant_opts::options q, float value);
-  static float   range_to_value(const report_cfg_eutra_s::trigger_quant_opts::options q, const uint8_t range);
   static uint8_t value_to_range_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const float value);
   static float   range_to_value_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const uint8_t range);
   static uint8_t offset_val(const meas_obj_eutra_s& meas_obj);

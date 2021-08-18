@@ -147,6 +147,7 @@ public:
   bool              has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const;
   uint32_t          nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
   srsran::plmn_id_t get_plmn(uint32_t idx) const;
+  asn1::rrc::plmn_id_s get_plmn_asn1(uint32_t idx) const;
 
   uint16_t get_tac() const { return has_sib1() ? (uint16_t)sib1.cell_access_related_info.tac.to_number() : 0; }
 
@@ -161,6 +162,7 @@ public:
   const asn1::rrc::sib_type13_r9_s* sib13ptr() const { return has_sib13() ? &sib13 : nullptr; }
 
   uint32_t get_cell_id() const { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
+  asn1::fixed_bitstring<28> get_cell_id_bit() const { return sib1.cell_access_related_info.cell_id; }
 
   bool has_sib13() const { return has_valid_sib13; }
 

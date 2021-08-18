@@ -139,6 +139,8 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   t311 = task_sched.get_unique_timer();
   t304 = task_sched.get_unique_timer();
 
+  var_rlf_report.init(task_sched);
+
   transaction_id = 0;
 
   cell_clean_cnt = 0;
@@ -674,6 +676,9 @@ void rrc::radio_link_failure_process()
   // TODO: Generate and store failure report
   srsran::console("Warning: Detected Radio-Link Failure\n");
 
+  // Store the information in VarRLF-Report
+  var_rlf_report.set_failure(meas_cells, rrc_rlf_report::rlf);
+
   if (state == RRC_STATE_CONNECTED) {
     if (security_is_activated) {
       logger.info("Detected Radio-Link Failure with active AS security. Starting ConnectionReestablishment...");
@@ -857,6 +862,9 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
   // Clean reestablishment type
   reestablishment_successful = false;
 
+  // set the reestablishmentCellId in the VarRLF-Report to the global cell identity of the selected cell;
+  var_rlf_report.set_reest_gci(meas_cells.serving_cell().get_cell_id_bit(), meas_cells.serving_cell().get_plmn_asn1(0));
+
   if (cause.value != reest_cause_opts::ho_fail) {
     if (cause.value != reest_cause_opts::other_fail) {
       pci = meas_cells.serving_cell().get_pci();
@@ -945,6 +953,15 @@ void rrc::send_con_restablish_complete()
   ul_dcch_msg.msg.set_c1().set_rrc_conn_reest_complete().crit_exts.set_rrc_conn_reest_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
+  // Include rlf-InfoAvailable
+  if (var_rlf_report.has_info()) {
+    ul_dcch_msg.msg.c1().rrc_conn_reest_complete().crit_exts.rrc_conn_reest_complete_r8().non_crit_ext_present = true;
+    ul_dcch_msg.msg.c1()
+        .rrc_conn_reest_complete()
+        .crit_exts.rrc_conn_reest_complete_r8()
+        .non_crit_ext.rlf_info_available_r9_present = true;
+  }
+
   send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 
   reestablishment_successful = true;
@@ -960,6 +977,13 @@ void rrc::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
       &ul_dcch_msg.msg.set_c1().set_rrc_conn_setup_complete().crit_exts.set_c1().set_rrc_conn_setup_complete_r8();
 
   ul_dcch_msg.msg.c1().rrc_conn_setup_complete().rrc_transaction_id = transaction_id;
+
+  // Include rlf-InfoAvailable
+  if (var_rlf_report.has_info()) {
+    rrc_conn_setup_complete->non_crit_ext_present                                     = true;
+    rrc_conn_setup_complete->non_crit_ext.non_crit_ext_present                        = true;
+    rrc_conn_setup_complete->non_crit_ext.non_crit_ext.rlf_info_available_r10_present = true;
+  }
 
   rrc_conn_setup_complete->sel_plmn_id = 1;
   rrc_conn_setup_complete->ded_info_nas.resize(nas_msg->N_bytes);
@@ -1004,6 +1028,13 @@ void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
   rrc_conn_recfg_complete_r8_ies_s* rrc_conn_recfg_complete_r8 =
       &ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
+
+  // Include rlf-InfoAvailable
+  if (var_rlf_report.has_info()) {
+    rrc_conn_recfg_complete_r8->non_crit_ext_present                                     = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext_present                        = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.rlf_info_available_r10_present = true;
+  }
 
   if (contains_nr_complete == true) {
     logger.debug("Preparing RRC Connection Reconfig Complete with NR Complete");
@@ -1055,6 +1086,10 @@ void rrc::start_go_idle()
 void rrc::ho_failed()
 {
   ho_handler.trigger(ho_proc::t304_expiry{});
+
+  // Store the information in VarRLF-Report
+  var_rlf_report.set_failure(meas_cells, rrc_rlf_report::hof);
+
   start_con_restablishment(reest_cause_e::ho_fail);
 }
 
@@ -1757,6 +1792,10 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
     case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_release:
       rrc_connection_release(c1->rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause.to_string());
       break;
+    case dl_dcch_msg_type_c::c1_c_::types::ue_info_request_r9:
+      transaction_id = c1->ue_info_request_r9().rrc_transaction_id;
+      handle_ue_info_request(c1->ue_info_request_r9());
+      break;
     default:
       logger.error("The provided DL-CCCH message type is not recognized or supported");
       break;
@@ -2131,6 +2170,42 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
         }
       }
     }
+  }
+
+  send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
+}
+
+/*******************************************************************************
+ *
+ *
+ *
+ * UEInformationRequest message
+ *
+ *
+ *
+ *******************************************************************************/
+void rrc::handle_ue_info_request(const ue_info_request_r9_s& request)
+{
+  logger.debug("Preparing UEInformationResponse message");
+
+  ul_dcch_msg_s          ul_dcch_msg;
+  ue_info_resp_r9_ies_s* resp =
+      &ul_dcch_msg.msg.set_c1().set_ue_info_resp_r9().crit_exts.set_c1().set_ue_info_resp_r9();
+  ul_dcch_msg.msg.c1().ue_info_resp_r9().rrc_transaction_id = transaction_id;
+
+  // if rach-ReportReq is set to true, set the contents of the rach-Report in the UEInformationResponse message as
+  // follows
+  if (request.crit_exts.c1().ue_info_request_r9().rach_report_req_r9) {
+    // todo...
+  }
+
+  // Include rlf-Report if rlf-ReportReq is set to true
+  if (request.crit_exts.c1().ue_info_request_r9().rlf_report_req_r9 && var_rlf_report.has_info()) {
+    resp->rlf_report_r9_present = true;
+    resp->rlf_report_r9         = var_rlf_report.get_report();
+
+    // fixme: should be cleared upon successful delivery
+    var_rlf_report.clear();
   }
 
   send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
