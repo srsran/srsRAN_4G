@@ -336,8 +336,10 @@ static int pdcch_nr_cce_to_reg_mapping_non_interleaved(const srsran_coreset_t*  
       uint32_t i = x;
 
       // For each REG in the REG bundle
-      for (uint32_t reg = 0; reg < L; reg++) {
-        rb_mask[(i * L + reg) / coreset->duration] = true;
+      uint32_t rb_start = (i * L) / coreset->duration;
+      uint32_t rb_end   = ((i + 1) * L) / coreset->duration;
+      for (uint32_t rb = rb_start; rb < rb_end; rb++) {
+        rb_mask[rb] = true;
       }
     }
   }
@@ -377,9 +379,11 @@ static int pdcch_nr_cce_to_reg_mapping_interleaved(const srsran_coreset_t*      
       uint32_t c = x / R;
       uint32_t i = (r * C + c + n_shift) % (N_CORESET_REG / L);
 
-      // For each REG in the REG bundle i
-      for (uint32_t reg = 0; reg < L; reg++) {
-        rb_mask[(i * L + reg) / coreset->duration] = true;
+      // For each REG in the REG bundle
+      uint32_t rb_start = (i * L) / coreset->duration;
+      uint32_t rb_end   = ((i + 1) * L) / coreset->duration;
+      for (uint32_t rb = rb_start; rb < rb_end; rb++) {
+        rb_mask[rb] = true;
       }
     }
   }
