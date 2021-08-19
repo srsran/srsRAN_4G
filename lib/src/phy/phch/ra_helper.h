@@ -61,7 +61,7 @@ static int ra_helper_freq_type0(const srsran_carrier_nr_t*    carrier,
   return 0;
 }
 
-static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srsran_sch_grant_nr_t* grant)
+static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t start_rb, uint32_t riv, srsran_sch_grant_nr_t* grant)
 {
   uint32_t start = 0;
   uint32_t len   = 0;
@@ -71,6 +71,9 @@ static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srsran_sch_gr
     ERROR("RIV 0x%x for BWP size %d resulted in freq=%d:%d", riv, N_bwp_size, start, len);
     return SRSRAN_ERROR;
   }
+
+  // Apply numbering start
+  start += start_rb;
 
   for (uint32_t i = 0; i < start; i++) {
     grant->prb_idx[i] = false;

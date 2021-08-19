@@ -168,6 +168,7 @@ static int work_gnb_dl(srsran_gnb_dl_t*       gnb_dl,
   dci_dl.ctx.location          = *dci_location;
   dci_dl.ctx.ss_type           = search_space->type;
   dci_dl.ctx.coreset_id        = 1;
+  dci_dl.ctx.coreset_start_rb  = 0;
   dci_dl.freq_domain_assigment = 0;
   dci_dl.time_domain_assigment = 0;
   dci_dl.vrb_to_prb_mapping    = 0;

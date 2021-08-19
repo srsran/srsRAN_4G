@@ -223,12 +223,13 @@ bool phy_cfg_nr_t::get_dci_ctx_pdsch_rnti_c(uint32_t                     ss_id,
   const srsran_search_space_t& ss = pdcch.search_space[ss_id];
 
   // Fill context
-  ctx.location   = location;
-  ctx.ss_type    = ss.type;
-  ctx.coreset_id = ss.coreset_id;
-  ctx.rnti_type  = srsran_rnti_type_c;
-  ctx.format     = format;
-  ctx.rnti       = rnti;
+  ctx.location         = location;
+  ctx.ss_type          = ss.type;
+  ctx.coreset_id       = ss.coreset_id;
+  ctx.coreset_start_rb = srsran_coreset_start_rb(&pdcch.coreset[ss.coreset_id]);
+  ctx.rnti_type        = srsran_rnti_type_c;
+  ctx.format           = format;
+  ctx.rnti             = rnti;
 
   return true;
 }
@@ -248,12 +249,13 @@ bool phy_cfg_nr_t::get_dci_ctx_pusch_rnti_c(uint32_t                     ss_id,
   const srsran_search_space_t& ss = pdcch.search_space[ss_id];
 
   // Fill context
-  ctx.location   = location;
-  ctx.ss_type    = ss.type;
-  ctx.coreset_id = ss.coreset_id;
-  ctx.rnti_type  = srsran_rnti_type_c;
-  ctx.format     = format;
-  ctx.rnti       = rnti;
+  ctx.location         = location;
+  ctx.ss_type          = ss.type;
+  ctx.coreset_id       = ss.coreset_id;
+  ctx.coreset_start_rb = srsran_coreset_start_rb(&pdcch.coreset[ss.coreset_id]);
+  ctx.rnti_type        = srsran_rnti_type_c;
+  ctx.format           = format;
+  ctx.rnti             = rnti;
 
   return true;
 }

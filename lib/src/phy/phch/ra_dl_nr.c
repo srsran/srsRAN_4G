@@ -292,10 +292,26 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
+  // For a PDSCH scheduled with a DCI format 1_0 in any type of PDCCH common search space, regardless of which
+  // bandwidth part is the active bandwidth part, RB numbering starts from the lowest RB of the CORESET in which the
+  // DCI was received; otherwise RB numbering starts from the lowest RB in the determined downlink bandwidth part.
+  uint32_t start_rb = 0;
+  if (dci_dl->ctx.format == srsran_dci_format_nr_1_0 && SRSRAN_SEARCH_SPACE_IS_COMMON(dci_dl->ctx.ss_type)) {
+    start_rb = dci_dl->ctx.coreset_start_rb;
+  }
+
+  // when DCI format 1_0 is decoded in any common search space in which case the size of CORESET 0 shall be used if
+  // CORESET 0 is configured for the cell and the size of initial DL bandwidth part shall be used if CORESET 0 is not
+  // configured for the cell.
+  uint32_t type1_bwp_sz = carrier->nof_prb;
+  if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_dl->ctx.ss_type) && dci_dl->coreset0_bw != 0) {
+    type1_bwp_sz = dci_dl->coreset0_bw;
+  }
+
   // The UE shall assume that when the scheduling grant is received with DCI format 1_0 , then downlink resource
   // allocation type 1 is used.
   if (dci_dl->ctx.format == srsran_dci_format_nr_1_0) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(type1_bwp_sz, start_rb, dci_dl->freq_domain_assigment, grant);
   }
 
   // If the scheduling DCI is configured to indicate the downlink resource allocation type as part of the Frequency
@@ -309,7 +325,7 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
   // Otherwise the UE shall use the downlink frequency resource allocation type as defined by the higher layer parameter
   // resourceAllocation.
   if (cfg->alloc == srsran_resource_alloc_type1) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(type1_bwp_sz, start_rb, dci_dl->freq_domain_assigment, grant);
   }
 
   if (cfg->alloc == srsran_resource_alloc_type0) {
