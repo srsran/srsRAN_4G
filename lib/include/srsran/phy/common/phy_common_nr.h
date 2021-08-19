@@ -519,6 +519,18 @@ SRSRAN_API uint32_t srsran_coreset_get_bw(const srsran_coreset_t* coreset);
 SRSRAN_API uint32_t srsran_coreset_get_sz(const srsran_coreset_t* coreset);
 
 /**
+ * @brief Calculates the starting resource block index in the resource grid
+ *
+ * @remark Intended to be used for common search space as specifies the lat clause in TS 38.214 section 5.1.2.2 Resource
+ * allocation in frequency domain
+ *
+ * @param coreset provides the given CORESET configuration
+ * @return The index of the lowest resource block in the resource grid used by the given CORESET if the CORESET
+ * configuration is valid; Otherwise, 0.
+ */
+SRSRAN_API uint32_t srsran_coreset_start_rb(const srsran_coreset_t* coreset);
+
+/**
  * @brief Get the NR PDSCH mapping type in string
  * @param mapping_type Mapping type
  * @return Constant string with PDSCH mapping type

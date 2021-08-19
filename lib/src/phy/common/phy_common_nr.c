@@ -115,6 +115,26 @@ uint32_t srsran_coreset_get_sz(const srsran_coreset_t* coreset)
   return srsran_coreset_get_bw(coreset) * SRSRAN_NRE * coreset->duration;
 }
 
+uint32_t srsran_coreset_start_rb(const srsran_coreset_t* coreset)
+{
+  // Protect CORESET access
+  if (coreset == NULL) {
+    return 0;
+  }
+
+  // Iterates all the possible frequency resources trying to find the first enabled
+  for (uint32_t res = 0; res < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; res++) {
+    // If the frequency resource is enabled...
+    if (coreset->freq_resources[res]) {
+      // ... return the lowest resource block index
+      return 6 * res + coreset->offset_rb;
+    }
+  }
+
+  // Returns the start resource index
+  return 0;
+}
+
 const char* srsran_sch_mapping_type_to_str(srsran_sch_mapping_type_t mapping_type)
 {
   switch (mapping_type) {
