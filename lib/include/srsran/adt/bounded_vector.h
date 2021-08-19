@@ -14,7 +14,7 @@
 #define SRSRAN_BOUNDED_VECTOR_H
 
 #include "srsran/adt/detail/type_storage.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <iterator>
 #include <memory>
 #include <type_traits>

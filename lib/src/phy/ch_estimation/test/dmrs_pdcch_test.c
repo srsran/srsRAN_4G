@@ -10,9 +10,9 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/phy/ch_estimation/dmrs_pdcch.h"
 #include "srsran/phy/phch/pdcch_nr.h"
+#include "srsran/support/srsran_test.h"
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -10,10 +10,10 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/phy/phch/dci_nr.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/random.h"
+#include "srsran/support/srsran_test.h"
 #include <getopt.h>
 
 static uint32_t        nof_repetitions = 1024;

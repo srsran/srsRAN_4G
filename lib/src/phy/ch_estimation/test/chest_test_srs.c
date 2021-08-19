@@ -10,8 +10,8 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/srsran.h"
+#include "srsran/support/srsran_test.h"
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>

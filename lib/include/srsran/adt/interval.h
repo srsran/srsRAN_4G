@@ -14,7 +14,7 @@
 #define SRSRAN_INTERVAL_H
 
 #include "srsran/srslog/bundled/fmt/format.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <cassert>
 #include <string>
 #include <type_traits>

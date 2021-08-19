@@ -14,7 +14,7 @@
 #define SRSRAN_OPTIONAL_H
 
 #include "detail/type_storage.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 namespace srsran {
 

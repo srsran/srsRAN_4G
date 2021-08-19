@@ -14,7 +14,7 @@
 #define SRSRAN_MOVE_CALLBACK_H
 
 #include "detail/type_storage.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

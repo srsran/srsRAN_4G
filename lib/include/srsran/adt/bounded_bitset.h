@@ -14,7 +14,7 @@
 #define SRSRAN_DYN_BITSET_H
 
 #include "srsran/srslog/bundled/fmt/format.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <cstdint>
 #include <inttypes.h>
 #include <string>

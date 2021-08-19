@@ -14,7 +14,7 @@
 #define SRSASN_COMMON_UTILS_H
 
 #include "srsran/srslog/srslog.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <algorithm>
 #include <array>
 #include <cmath>

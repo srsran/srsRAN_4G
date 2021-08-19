@@ -24,8 +24,8 @@
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/rlc/rlc_am_base.h"
 #include "srsran/rlc/rlc_common.h"
+#include "srsran/support/srsran_assert.h"
 #include "srsran/upper/byte_buffer_queue.h"
-#include "support/srsran_assert.h"
 #include <deque>
 #include <list>
 #include <map>

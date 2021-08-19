@@ -10,8 +10,8 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/common/timers.h"
+#include "srsran/support/srsran_test.h"
 #include <iostream>
 #include <random>
 #include <srsran/common/tti_sync_cv.h>
@@ -21,7 +21,7 @@ using namespace srsran;
 
 static_assert(timer_handler::max_timer_duration() == 1073741823, "Invalid max duration");
 
-int timers_test1()
+void timers_test1()
 {
   timer_handler timers;
   uint32_t      dur = 5;
@@ -110,8 +110,6 @@ int timers_test1()
   }
   // TEST: timer dtor is called and removes "timer" from "timers"
   TESTASSERT(timers.nof_timers() == 0);
-
-  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -119,7 +117,7 @@ int timers_test1()
  * - calling stop() early, forbids the timer from getting expired
  * - calling stop() after timer has expired should be a noop
  */
-int timers_test2()
+void timers_test2()
 {
   timer_handler timers;
   uint32_t      duration = 2;
@@ -145,15 +143,13 @@ int timers_test2()
   // TEST 2: call utimer.stop() after it expires and assert it is still expired
   utimer2.stop();
   TESTASSERT(utimer2.is_expired());
-
-  return SRSRAN_SUCCESS;
 }
 
 /**
  * Description:
  * - setting a new duration while the timer is already running should not stop timer, and should extend timeout
  */
-int timers_test3()
+void timers_test3()
 {
   timer_handler timers;
   uint32_t      duration = 5;
@@ -176,8 +172,6 @@ int timers_test3()
   }
   timers.step_all();
   TESTASSERT(not utimer.is_running() and utimer.is_expired());
-
-  return SRSRAN_SUCCESS;
 }
 
 struct timers_test4_ctxt {
@@ -218,7 +212,7 @@ static void timers2_test4_thread(timers_test4_ctxt* ctx)
   }
 }
 
-int timers_test4()
+void timers_test4()
 {
   timer_handler                         timers;
   timers_test4_ctxt                     ctx;
@@ -295,14 +289,12 @@ int timers_test4()
   for (uint32_t i = 0; i < nof_timers; i++) {
     TESTASSERT(not ctx.timers[i].is_running());
   }
-
-  return SRSRAN_SUCCESS;
 }
 
 /**
  * Description: Delaying a callback using the timer_handler
  */
-int timers_test5()
+void timers_test5()
 {
   timer_handler timers;
   TESTASSERT(timers.nof_timers() == 0);
@@ -354,14 +346,12 @@ int timers_test5()
   TESTASSERT(timers.nof_timers() == 1);
   TESTASSERT(vals.size() == 3);
   TESTASSERT(vals[2] == 3);
-
-  return SRSRAN_SUCCESS;
 }
 
 /**
  * Description: Check if erasure of a running timer is safe
  */
-int timers_test6()
+void timers_test6()
 {
   timer_handler timers;
 
@@ -399,8 +389,6 @@ int timers_test6()
   // TEST: The second timer's callback should be the one being called, and should be called only once
   timers.step_all();
   TESTASSERT(vals.size() == 1 and vals[0] == 3);
-
-  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -408,7 +396,7 @@ int timers_test6()
  * - check if timer update is safe when its new updated wheel position matches the previous wheel position
  * - multime timers can exist in the same wheel position
  */
-int timers_test7()
+void timers_test7()
 {
   timer_handler timers;
   size_t        wheel_size = timer_handler::get_wheel_size();
@@ -449,19 +437,17 @@ int timers_test7()
   TESTASSERT(not t2.is_expired() and t2.is_running());
   TESTASSERT(t3.is_expired() and not t3.is_running());
   TESTASSERT(timers.nof_running_timers() == 1 and timers.nof_timers() == 3);
-
-  return SRSRAN_SUCCESS;
 }
 
 int main()
 {
-  TESTASSERT(timers_test1() == SRSRAN_SUCCESS);
-  TESTASSERT(timers_test2() == SRSRAN_SUCCESS);
-  TESTASSERT(timers_test3() == SRSRAN_SUCCESS);
-  TESTASSERT(timers_test4() == SRSRAN_SUCCESS);
-  TESTASSERT(timers_test5() == SRSRAN_SUCCESS);
-  TESTASSERT(timers_test6() == SRSRAN_SUCCESS);
-  TESTASSERT(timers_test7() == SRSRAN_SUCCESS);
+  timers_test1();
+  timers_test2();
+  timers_test3();
+  timers_test4();
+  timers_test5();
+  timers_test6();
+  timers_test7();
   printf("Success\n");
   return 0;
 }

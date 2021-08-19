@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/common/test_common.h"
+#include "srsran/support/srsran_test.h"
 #include "srsue/hdr/stack/upper/usim.h"
 
 using namespace srsue;

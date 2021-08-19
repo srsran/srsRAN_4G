@@ -11,8 +11,8 @@
  */
 
 #include "polar_interleaver_gold.h"
-#include "srsran/common/test_common.h"
 #include "srsran/phy/fec/polar/polar_interleaver.h"
+#include "srsran/support/srsran_test.h"
 
 int main(int argc, char** argv)
 {

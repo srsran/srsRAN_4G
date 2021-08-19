@@ -11,12 +11,12 @@
  */
 
 #include "srsran/common/slot_point.h"
-#include "srsran/common/test_common.h"
 #include "srsran/common/tti_point.h"
+#include "srsran/support/srsran_test.h"
 
 using srsran::tti_point;
 
-int test_tti_type()
+void test_tti_type()
 {
   // TEST: constructors
   tti_point tti1;
@@ -63,8 +63,6 @@ int test_tti_type()
   TESTASSERT(tti_point{1u - 2u} == tti_point{10239});
   TESTASSERT(tti_point{1u - 100u} == tti_point{10141});
   TESTASSERT(tti_point{10239u + 3u} == tti_point{2});
-
-  return SRSRAN_SUCCESS;
 }
 
 void test_nr_slot_type()

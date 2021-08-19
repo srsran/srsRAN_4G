@@ -15,7 +15,7 @@
 
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/interval.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 extern "C" {
 #include "srsran/phy/phch/ra.h"
 }

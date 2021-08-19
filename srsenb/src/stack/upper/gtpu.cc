@@ -17,7 +17,7 @@
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 #include <errno.h>
 #include <linux/ip.h>

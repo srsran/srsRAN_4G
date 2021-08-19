@@ -15,7 +15,7 @@
 
 #include "detail/type_storage.h"
 #include "expected.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <array>
 
 namespace srsran {

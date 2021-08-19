@@ -9,10 +9,10 @@
  * the distribution.
  *
  */
-#include "srsran/common/test_common.h"
 #include "srsran/phy/fec/block/block.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/random.h"
+#include "srsran/support/srsran_test.h"
 #include <memory.h>
 #include <srsran/phy/utils/vector.h>
 #include <stdio.h>

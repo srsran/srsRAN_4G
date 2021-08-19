@@ -22,7 +22,7 @@
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
-#include "support/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 using namespace asn1::rrc;
 
