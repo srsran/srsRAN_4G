@@ -43,7 +43,6 @@ struct bwp_slot_grid {
   uint32_t          slot_idx;
   const bwp_params* cfg;
 
-  bool              is_dl, is_ul;
   bwp_rb_bitmap     dl_prbs;
   bwp_rb_bitmap     ul_prbs;
   pdcch_dl_list_t   dl_pdcchs;
@@ -56,6 +55,9 @@ struct bwp_slot_grid {
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);
   void reset();
+
+  bool is_dl() const { return cfg->slots[slot_idx].is_dl; }
+  bool is_ul() const { return cfg->slots[slot_idx].is_ul; }
 };
 
 struct bwp_res_grid {

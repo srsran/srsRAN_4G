@@ -55,6 +55,7 @@ public:
     srsran_sch_hl_cfg_nr_t pdsch           = {};
     srsran_sch_hl_cfg_nr_t pusch           = {};
     uint32_t               rar_window_size = 8;
+    uint32_t               numerology_idx  = 0;
   };
 
   struct cell_cfg_t {

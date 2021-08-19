@@ -58,20 +58,8 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
   slot_point pdcch_slot = slot_grid.get_pdcch_tti();
   slot_point msg3_slot  = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
-  if (not slot_grid.res_grid()[pdcch_slot].is_dl) {
-    // RAR only allowed if PDCCH is available
-    return;
-  }
-
-  // Mark RAR window start, regardless of whether PUSCH is available
-  for (auto& rar : pending_rars) {
-    if (rar.rar_win.empty()) {
-      rar.rar_win = {pdcch_slot, pdcch_slot + bwp_cfg->cfg.rar_window_size};
-    }
-  }
-
-  if (not slot_grid.res_grid()[msg3_slot].is_ul) {
-    // RAR only allowed if respective Msg3 slot is available for UL
+  if (not bwp_cfg->slots[pdcch_slot.slot_idx()].is_dl or not bwp_cfg->slots[msg3_slot.slot_idx()].is_ul) {
+    // RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
     return;
   }
 
@@ -156,8 +144,14 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 
   // create new RAR
   pending_rar_t p;
-  p.ra_rnti    = ra_rnti;
-  p.prach_slot = rar_info.prach_slot;
+  p.ra_rnti                            = ra_rnti;
+  p.prach_slot                         = rar_info.prach_slot;
+  const static uint32_t prach_duration = 1;
+  for (slot_point t = rar_info.prach_slot + prach_duration; t < rar_info.prach_slot + bwp_cfg->slots.size(); ++t) {
+    if (bwp_cfg->slots[t.slot_idx()].is_dl) {
+      p.rar_win = {t, t + bwp_cfg->cfg.rar_window_size};
+    }
+  }
   p.msg3_grant.push_back(rar_info);
   pending_rars.push_back(p);
 

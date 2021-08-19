@@ -28,6 +28,15 @@ bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, ui
   P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
   N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
 
+  // Derive params of individual slots
+  uint32_t nof_slots = SRSRAN_NSLOTS_PER_FRAME_NR(cfg.numerology_idx);
+  for (size_t sl = 0; sl < nof_slots; ++sl) {
+    slot_cfg sl_cfg{};
+    sl_cfg.is_dl = srsran_tdd_nr_is_dl(&cell_cfg.tdd, cfg.numerology_idx, sl);
+    sl_cfg.is_ul = srsran_tdd_nr_is_ul(&cell_cfg.tdd, cfg.numerology_idx, sl);
+    slots.push_back(sl_cfg);
+  }
+
   pusch_ra_list.resize(cfg.pusch.nof_common_time_ra);
   const uint32_t        coreset_id = 0;
   srsran_sch_grant_nr_t grant;

@@ -17,15 +17,11 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-#define NUMEROLOGY_IDX 0
-
 bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
-  cfg(&bwp_cfg_),
-  is_dl(srsran_tdd_nr_is_dl(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_)),
-  is_ul(srsran_tdd_nr_is_ul(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_))
+  cfg(&bwp_cfg_)
 {
   for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
     if (cfg->cfg.pdcch.coreset_present[cs_idx]) {
@@ -166,7 +162,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
   bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];
-  if (not bwp_pdsch_slot.is_dl) {
+  if (not bwp_pdsch_slot.is_dl()) {
     logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdsch_slot.slot_idx);
     return alloc_result::no_sch_space;
   }
@@ -299,13 +295,13 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
 
 alloc_result bwp_slot_allocator::verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid) const
 {
-  if (not pusch_grid.is_ul) {
+  if (not pusch_grid.is_ul()) {
     logger.warning("SCHED: Trying to allocate PUSCH in TDD non-UL slot index=%d", pusch_grid.slot_idx);
     return alloc_result::no_sch_space;
   }
   if (pdcch_grid != nullptr) {
     // DCI needed
-    if (not pdcch_grid->is_dl) {
+    if (not pdcch_grid->is_dl()) {
       logger.warning("SCHED: Trying to allocate PDCCH in TDD non-DL slot index=%d", pdcch_grid->slot_idx);
       return alloc_result::no_sch_space;
     }
