@@ -13,8 +13,8 @@
 #ifndef SRSRAN_DYN_BITSET_H
 #define SRSRAN_DYN_BITSET_H
 
-#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/bundled/fmt/format.h"
+#include "support/srsran_assert.h"
 #include <cstdint>
 #include <inttypes.h>
 #include <string>

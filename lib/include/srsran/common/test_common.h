@@ -19,9 +19,9 @@
 
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/crash_handler.h"
-#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srslog/srslog.h"
+#include "support/srsran_assert.h"
 #include <atomic>
 #include <cstdio>
 

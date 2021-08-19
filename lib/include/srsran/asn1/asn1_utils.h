@@ -13,8 +13,8 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
-#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/srslog.h"
+#include "support/srsran_assert.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
