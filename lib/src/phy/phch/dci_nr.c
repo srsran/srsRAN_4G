@@ -839,7 +839,7 @@ static uint32_t dci_nr_rar_sizeof()
   return count;
 }
 
-static int dci_nr_rar_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, srsran_dci_msg_nr_t* msg)
+static int dci_nr_rar_pack(const srsran_dci_ul_nr_t* dci, srsran_dci_msg_nr_t* msg)
 {
   // Fields described by TS 38.213 Table 8.2-1: Random Access Response Grant Content field size
   uint8_t* y = msg->payload;
@@ -865,7 +865,7 @@ static int dci_nr_rar_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* d
   return SRSRAN_SUCCESS;
 }
 
-static int dci_nr_rar_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci)
+static int dci_nr_rar_unpack(srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci)
 {
   // Fields described by TS 38.213 Table 8.2-1: Random Access Response Grant Content field size
   uint8_t* y = msg->payload;
@@ -2006,7 +2006,11 @@ int srsran_dci_nr_dl_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, 
 
 int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, srsran_dci_msg_nr_t* msg)
 {
-  if (q == NULL || msg == NULL || dci == NULL) {
+  if (msg == NULL || dci == NULL) {
+    return SRSRAN_ERROR;
+  }
+
+  if (dci->ctx.format != srsran_dci_format_nr_rar && q == NULL) {
     return SRSRAN_ERROR;
   }
 
@@ -2020,7 +2024,7 @@ int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dc
     case srsran_dci_format_nr_0_1:
       return dci_nr_format_0_1_pack(q, dci, msg);
     case srsran_dci_format_nr_rar:
-      return dci_nr_rar_pack(q, dci, msg);
+      return dci_nr_rar_pack(dci, msg);
     default:
       ERROR("Unsupported DCI format %d", msg->ctx.format);
   }
@@ -2030,7 +2034,11 @@ int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dc
 
 int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci)
 {
-  if (q == NULL || msg == NULL || dci == NULL) {
+  if (msg == NULL || dci == NULL) {
+    return SRSRAN_ERROR;
+  }
+
+  if (msg->ctx.format != srsran_dci_format_nr_rar && q == NULL) {
     return SRSRAN_ERROR;
   }
 
@@ -2044,7 +2052,7 @@ int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, 
     case srsran_dci_format_nr_0_1:
       return dci_nr_format_0_1_unpack(q, msg, dci);
     case srsran_dci_format_nr_rar:
-      return dci_nr_rar_unpack(q, msg, dci);
+      return dci_nr_rar_unpack(msg, dci);
     default:
       ERROR("Unsupported DCI format %d", msg->ctx.format);
   }

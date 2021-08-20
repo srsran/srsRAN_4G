@@ -277,7 +277,7 @@ SRSRAN_API int srsran_dci_nr_dl_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_
 
 /**
  * @brief Packs an UL NR DCI into a DCI message
- * @param q NR DCI object with precomputed DCI parameters
+ * @param q NR DCI object with precomputed DCI parameters (not required for RAR type, set to NULL)
  * @param dci UL NR DCI to pack (serialize)
  * @param[out] msg resultant DCI message
  * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
@@ -286,7 +286,7 @@ SRSRAN_API int srsran_dci_nr_ul_pack(const srsran_dci_nr_t* q, const srsran_dci_
 
 /**
  * @brief Unpacks an NR DCI message into an UL NR DCI
- * @param q NR DCI object with precomputed DCI parameters
+ * @param q NR DCI object with precomputed DCI parameters (not required for RAR type, set to NULL)
  * @param msg  DCI message to unpack (deserialize)
  * @param[out] dci Resultant unpacked UL DCI
  * @return SRSRAN_SUCCESS if provided arguments are valid, SRSRAN_ERROR code otherwise
