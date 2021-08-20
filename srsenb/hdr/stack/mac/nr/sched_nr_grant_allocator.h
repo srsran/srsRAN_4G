@@ -85,6 +85,7 @@ public:
 
   void new_slot(slot_point pdcch_slot_) { pdcch_slot = pdcch_slot_; }
 
+  alloc_result alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs);
   alloc_result alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                   uint32_t                                aggr_idx,
                                   prb_interval                            interv,

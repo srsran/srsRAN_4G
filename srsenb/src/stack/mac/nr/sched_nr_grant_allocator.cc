@@ -60,6 +60,27 @@ bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
   logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
 
+alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs)
+{
+  bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
+  if (not bwp_pdcch_slot.is_dl()) {
+    logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdcch_slot.slot_idx);
+    return alloc_result::no_sch_space;
+  }
+  pdcch_dl_list_t& pdsch_grants = bwp_pdcch_slot.dl_pdcchs;
+  if (pdsch_grants.full()) {
+    logger.warning("SCHED: Maximum number of DL allocations reached");
+    return alloc_result::no_grant_space;
+  }
+  if (bwp_pdcch_slot.dl_prbs.collides(prbs)) {
+    return alloc_result::sch_collision;
+  }
+
+  // TODO: Allocate PDCCH and PDSCH
+
+  return alloc_result::success;
+}
+
 alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                                     uint32_t                                aggr_idx,
                                                     prb_interval                            interv,
