@@ -334,7 +334,8 @@ public:
     sched_logger(srslog::fetch_basic_logger("MAC"))
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
-    sched_logger.set_level(srslog::basic_levels::debug);
+    sched_logger.set_level(srslog::str_to_basic_level(args.log_level));
+    srslog::fetch_basic_logger("MAC-NR").set_level(srslog::str_to_basic_level(args.log_level));
 
     // create sched object
     srsenb::sched_nr_interface::sched_cfg_t sched_cfg{};
