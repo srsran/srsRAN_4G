@@ -195,8 +195,10 @@ uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
   if (srsran_symbol_size_is_standard()) {
     symbol_table = phy_common_nr_valid_std_symbol_sz;
 
-    // Add extra RE to ensure a minimum guard band and prevent 100 RB use an FFT size of 1536
-    nof_re += (3 * nof_re) / 10;
+    // Force bandwidths bigger than 79 RB to use 2048 FFT
+    if (nof_prb > 79 && nof_prb < 1536 / 12) {
+      return 2048;
+    }
   }
 
   for (uint32_t i = 0; i < PHY_COMMON_NR_NOF_VALID_SYMB_SZ; i++) {
