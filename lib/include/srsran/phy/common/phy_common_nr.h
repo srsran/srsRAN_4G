@@ -36,7 +36,6 @@ extern "C" {
 #define SRSRAN_SF_LEN_PRB_NR(nof_prb) (srsran_min_symbol_sz_rb(nof_prb) * 15)
 
 #define SRSRAN_SLOT_MAX_LEN_RE_NR (SRSRAN_SLOT_LEN_RE_NR(SRSRAN_MAX_PRB_NR))
-#define SRSRAN_SLOT_MAX_NOF_BITS_NR (SRSRAN_SLOT_MAX_LEN_RE_NR * SRSRAN_MAX_QM)
 #define SRSRAN_MAX_LAYERS_NR 8
 
 /**
@@ -113,6 +112,11 @@ extern "C" {
  * @remark deduced from in TS 36.214 V15.10.0 5.1.3.2 Transport block size determination
  */
 #define SRSRAN_PDSCH_MAX_RE_NR (SRSRAN_MAX_NRE_NR * SRSRAN_MAX_PRB_NR)
+
+/**
+ * @brief defines the maximum number of bits that can be transmitted in a slot
+ */
+#define SRSRAN_SLOT_MAX_NOF_BITS_NR (SRSRAN_PDSCH_MAX_RE_NR * SRSRAN_MAX_QM)
 
 /**
  * @brief Maximum number of PDSCH time domain resource allocations. This is defined by TS 38.331 v15.10.0
