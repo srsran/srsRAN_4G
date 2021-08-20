@@ -215,7 +215,8 @@ static int dci_nr_format_0_0_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_
   msg->ctx = dci->ctx;
 
   // Check RNTI type
-  if (rnti_type != srsran_rnti_type_c && rnti_type != srsran_rnti_type_cs && rnti_type != srsran_rnti_type_mcs_c) {
+  if (rnti_type != srsran_rnti_type_c && rnti_type != srsran_rnti_type_cs && rnti_type != srsran_rnti_type_mcs_c &&
+      rnti_type != srsran_rnti_type_tc) {
     return SRSRAN_ERROR;
   }
 
@@ -285,7 +286,8 @@ static int dci_nr_format_0_0_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   uint32_t N_UL_BWP_RB = SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type) ? q->cfg.bwp_ul_initial_bw : q->cfg.bwp_ul_active_bw;
 
   // Check RNTI type
-  if (rnti_type != srsran_rnti_type_c && rnti_type != srsran_rnti_type_cs && rnti_type != srsran_rnti_type_mcs_c) {
+  if (rnti_type != srsran_rnti_type_c && rnti_type != srsran_rnti_type_cs && rnti_type != srsran_rnti_type_mcs_c &&
+      rnti_type != srsran_rnti_type_tc) {
     ERROR("Unsupported %s", srsran_rnti_type_str(rnti_type));
     return SRSRAN_ERROR;
   }
@@ -813,6 +815,7 @@ dci_nr_format_0_1_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci
 
 static uint32_t dci_nr_rar_sizeof()
 {
+  // Fields described by TS 38.213 Table 8.2-1: Random Access Response Grant Content field size
   uint32_t count = 0;
 
   // Frequency hopping flag - 1 bit
@@ -838,6 +841,7 @@ static uint32_t dci_nr_rar_sizeof()
 
 static int dci_nr_rar_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, srsran_dci_msg_nr_t* msg)
 {
+  // Fields described by TS 38.213 Table 8.2-1: Random Access Response Grant Content field size
   uint8_t* y = msg->payload;
 
   // Frequency hopping flag - 1 bit
@@ -863,10 +867,7 @@ static int dci_nr_rar_pack(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* d
 
 static int dci_nr_rar_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, srsran_dci_ul_nr_t* dci)
 {
-  if (msg == NULL || dci == NULL) {
-    return SRSRAN_ERROR;
-  }
-
+  // Fields described by TS 38.213 Table 8.2-1: Random Access Response Grant Content field size
   uint8_t* y = msg->payload;
 
   // Copy DCI MSG fields
