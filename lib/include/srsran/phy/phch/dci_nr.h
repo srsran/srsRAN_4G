@@ -300,7 +300,7 @@ SRSRAN_API int srsran_dci_nr_ul_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uint32_t str_len);
+SRSRAN_API uint32_t srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uint32_t str_len);
 
 /**
  * @brief Stringifies a DL NR DCI structure
@@ -310,8 +310,10 @@ SRSRAN_API int srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uin
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int
-srsran_dci_dl_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci, char* str, uint32_t str_len);
+SRSRAN_API uint32_t srsran_dci_dl_nr_to_str(const srsran_dci_nr_t*    q,
+                                            const srsran_dci_dl_nr_t* dci,
+                                            char*                     str,
+                                            uint32_t                  str_len);
 
 /**
  * @brief Stringifies an UL NR DCI structure
@@ -321,7 +323,9 @@ srsran_dci_dl_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_dl_nr_t* dci,
  * @param str_len Destination string length
  * @return The number of written characters
  */
-SRSRAN_API int
-srsran_dci_ul_nr_to_str(const srsran_dci_nr_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
+SRSRAN_API uint32_t srsran_dci_ul_nr_to_str(const srsran_dci_nr_t*    q,
+                                            const srsran_dci_ul_nr_t* dci,
+                                            char*                     str,
+                                            uint32_t                  str_len);
 
 #endif // SRSRAN_DCI_NR_H
