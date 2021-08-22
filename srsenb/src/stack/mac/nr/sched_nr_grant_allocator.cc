@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/nr/sched_nr_rb_grid.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_grant_allocator.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
 
@@ -73,11 +73,11 @@ bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
   logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
 
-alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                                    aggr_idx,
-                                                    const srsenb::sched_nr_impl::pending_rar_t& rar,
-                                                    prb_interval                                interv,
-                                                    slot_ue_map_t&                              ues,
-                                                    uint32_t                                    max_nof_grants)
+alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                                ra_rnti,
+                                                    uint32_t                                aggr_idx,
+                                                    prb_interval                            interv,
+                                                    slot_ue_map_t&                          ues,
+                                                    srsran::const_span<dl_sched_rar_info_t> pending_rars)
 {
   static const uint32_t msg3_nof_prbs = 3, m = 0;
 
@@ -104,7 +104,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   }
 
   // Check Msg3 RB collision
-  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * max_nof_grants;
+  uint32_t     total_ul_nof_prbs = msg3_nof_prbs * pending_rars.size();
   uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.nof_prbs(), false));
   prb_interval msg3_rbs          = find_empty_interval_of_length(bwp_msg3_slot.ul_prbs.prbs(), total_ul_nof_rbgs);
   if (msg3_rbs.length() < total_ul_nof_rbgs) {
@@ -123,9 +123,9 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
 
   // RAR allocation successful.
 
-  // Generate DCI for RAR
+  // Generate DCI for RAR with given RA-RNTI
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  if (not fill_dci_rar(interv, rar.ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
+  if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
@@ -139,10 +139,11 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
   int               dai = 0;
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = msg3_slot.slot_idx();
-  for (const auto& grant : rar.msg3_grant) {
+  for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue&     ue = ues[grant.temp_crnti];
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
-    bool         success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
+    ue.h_ul      = ue.harq_ent->find_empty_ul_harq();
+    bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     last_msg3 += msg3_nof_prbs;
     pdcch_ul_t msg3_pdcch;
@@ -153,9 +154,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint32_t                    
     success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_pdcch.dci, pusch.sch);
     srsran_assert(success, "Error converting DCI to PUSCH grant");
     pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
-    if (ue.h_ul->nof_retx() > 0) {
-      bwp_pdcch_slot.ul_pdcchs.push_back(msg3_pdcch);
-    }
+    ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);
   }
   bwp_msg3_slot.ul_prbs.add(msg3_rbs);
 
@@ -298,6 +297,11 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   bool success = ue.cfg->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
   srsran_assert(success, "Error converting DCI to PUSCH grant");
   pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
+  if (ue.h_ul->nof_retx() == 0) {
+    ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
+  } else {
+    srsran_assert(pusch.sch.grant.tb[0].tbs == (int)ue.h_ul->tbs(), "The TBS did not remain constant in retx");
+  }
 
   return alloc_result::success;
 }

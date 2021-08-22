@@ -127,16 +127,7 @@ void slot_cc_worker::alloc_dl_ues()
   if (not cfg.sched_cfg.pdsch_enabled) {
     return;
   }
-  if (slot_ues.empty()) {
-    return;
-  }
-  slot_ue& ue = slot_ues.begin()->second;
-  if (ue.h_dl == nullptr) {
-    return;
-  }
-
-  prb_interval prbs(0, cfg.bwps[0].N_rbg);
-  bwp_alloc.alloc_pdsch(ue, prbs);
+  cell.bwps[0].data_sched->sched_dl_users(slot_ues, bwp_alloc);
 }
 
 void slot_cc_worker::alloc_ul_ues()
@@ -144,16 +135,7 @@ void slot_cc_worker::alloc_ul_ues()
   if (not cfg.sched_cfg.pusch_enabled) {
     return;
   }
-  if (slot_ues.empty()) {
-    return;
-  }
-  slot_ue& ue = slot_ues.begin()->second;
-  if (ue.h_ul == nullptr) {
-    return;
-  }
-
-  prb_interval prbs(0, cfg.bwps[0].N_rbg);
-  bwp_alloc.alloc_pusch(ue, prbs);
+  cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
 }
 
 void slot_cc_worker::log_result() const
@@ -164,14 +146,15 @@ void slot_cc_worker::log_result() const
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, f={}, dai={}, tti_pdsch={}, tti_ack={}",
+                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, dai={}, tbs={}, tti_pdsch={}, tti_ack={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      cell.cfg.cc,
                      ue.rnti,
                      pdcch.dci.pid,
-                     ue.h_dl->nof_retx(),
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
+                     ue.h_dl->nof_retx(),
                      pdcch.dci.dai,
+                     ue.h_dl->tbs(),
                      ue.pdsch_slot,
                      ue.uci_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
@@ -187,13 +170,14 @@ void slot_cc_worker::log_result() const
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}",
+                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, tbs={}, tti_pusch={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      cell.cfg.cc,
                      ue.rnti,
                      pdcch.dci.pid,
-                     ue.h_dl->nof_retx(),
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
+                     ue.h_dl->nof_retx(),
+                     ue.h_ul->tbs(),
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];

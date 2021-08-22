@@ -53,7 +53,8 @@ public:
   bool pending_sr = false;
 
   // UE parameters that are sector specific
-  const bwp_ue_cfg* cfg = nullptr;
+  const bwp_ue_cfg* cfg      = nullptr;
+  harq_entity*      harq_ent = nullptr;
   slot_point        pdcch_slot;
   slot_point        pdsch_slot;
   slot_point        pusch_slot;

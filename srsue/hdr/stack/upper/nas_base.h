@@ -37,7 +37,7 @@ namespace srsue {
 class nas_base
 {
 public:
-  nas_base(srslog::basic_logger& logger_);
+  nas_base(srslog::basic_logger& logger_, uint32_t mac_offset, uint32_t seq_offset_, uint32_t bearer_id_);
   // PCAP
   void start_pcap(srsran::nas_pcap* pcap_) { pcap = pcap_; }
 
@@ -70,6 +70,10 @@ protected:
   bool integrity_check(srsran::byte_buffer_t* pdu);
   void cipher_encrypt(srsran::byte_buffer_t* pdu);
   void cipher_decrypt(srsran::byte_buffer_t* pdu);
+
+  uint32_t mac_offset = 0;
+  uint32_t seq_offset = 0;
+  uint32_t bearer_id  = 0;
 };
 
 } // namespace srsue

@@ -63,7 +63,7 @@ public:
     srsran_pdcch_cfg_nr_t  pdcch           = {};
     srsran_sch_hl_cfg_nr_t pdsch           = {};
     srsran_sch_hl_cfg_nr_t pusch           = {};
-    uint32_t               rar_window_size = 3;
+    uint32_t               rar_window_size = 8;
   };
 
   struct cell_cfg_t {

@@ -24,7 +24,7 @@
 
 #include "sched_nr_cell.h"
 #include "sched_nr_cfg.h"
-#include "sched_nr_rb_grid.h"
+#include "sched_nr_grant_allocator.h"
 #include "sched_nr_ue.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/adt/optional.h"
@@ -80,7 +80,7 @@ private:
   srsran::deque<feedback_t>                     pending_feedback, tmp_feedback_to_run;
   srsran::deque<srsran::move_callback<void()> > pending_events, tmp_events_to_run;
 
-  srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS> slot_ues;
+  slot_ue_map_t slot_ues;
 };
 
 class sched_worker_manager
