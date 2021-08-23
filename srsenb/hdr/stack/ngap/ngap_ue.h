@@ -44,22 +44,22 @@ public:
   void ue_ctxt_setup_complete();
   void notify_rrc_reconf_complete(const bool reconf_complete_outcome);
 
-  srsran::proc_t<ngap_ue_initial_context_setup_proc> initial_context_setup_proc;
-  srsran::proc_t<ngap_ue_ue_context_release_proc>    ue_context_release_proc;
-
   ngap_ue_ctxt_t ctxt      = {};
   uint16_t       stream_id = 1;
 
 private:
   // args
-  ngap*                  ngap_ptr;
-  rrc_interface_ngap_nr* rrc_ptr;
+  ngap* ngap_ptr = nullptr;
 
   // state
   bool release_requested = false;
 
   // logger
   srslog::basic_logger& logger;
+
+  // procedures
+  srsran::proc_t<ngap_ue_initial_context_setup_proc> initial_context_setup_proc;
+  srsran::proc_t<ngap_ue_ue_context_release_proc>    ue_context_release_proc;
 };
 
 } // namespace srsenb

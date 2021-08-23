@@ -52,17 +52,17 @@ proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap_nr::ini
   return proc_outcome_t::yield;
 };
 
-proc_outcome_t ngap_ue_initial_context_setup_proc::react(bool security_mode_command_outcome)
+proc_outcome_t ngap_ue_initial_context_setup_proc::react(bool rrc_reconf_outcome)
 {
-  if(security_mode_command_outcome == true) {
+  if (rrc_reconf_outcome == true) {
     parent->send_initial_ctxt_setup_response();
     return proc_outcome_t::success;
-  } 
-  // TODO: error handling if security mode command fails
+  }
+
   return proc_outcome_t::error;
 }
 
-proc_outcome_t ngap_ue_initial_context_setup_proc::step() 
+proc_outcome_t ngap_ue_initial_context_setup_proc::step()
 {
   return proc_outcome_t::yield;
 }

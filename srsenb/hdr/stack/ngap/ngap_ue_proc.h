@@ -37,7 +37,7 @@ public:
                                               rrc_interface_ngap_nr*    rrc_,
                                               ngap_ue_ctxt_t*           ue_ctxt);
   srsran::proc_outcome_t init(const asn1::ngap_nr::init_context_setup_request_s& msg);
-  srsran::proc_outcome_t react(const bool security_mode_command_outcome);
+  srsran::proc_outcome_t react(const bool rrc_reconf_outcome);
   srsran::proc_outcome_t step();
   static const char*     name() { return "Initial Context Setup"; }
 

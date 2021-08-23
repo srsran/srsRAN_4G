@@ -26,9 +26,8 @@ namespace srsenb {
 ngap::ue::ue(ngap* ngap_ptr_, rrc_interface_ngap_nr* rrc_ptr_, srslog::basic_logger& logger_) :
   logger(logger_),
   ngap_ptr(ngap_ptr_),
-  rrc_ptr(rrc_ptr_),
-  initial_context_setup_proc(this, rrc_ptr, &ctxt),
-  ue_context_release_proc(this, rrc_ptr, &ctxt)
+  initial_context_setup_proc(this, rrc_ptr_, &ctxt),
+  ue_context_release_proc(this, rrc_ptr_, &ctxt)
 {
   ctxt.ran_ue_ngap_id = ngap_ptr->next_gnb_ue_ngap_id++;
   gettimeofday(&ctxt.init_timestamp, nullptr);
@@ -81,6 +80,10 @@ bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e c
   container.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
   container.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
   container.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
+
+  // UE context request for setup in the NAS registration request
+  container.ue_context_request_present = true;
+  container.ue_context_request.value   = asn1::ngap_nr::ue_context_request_opts::options::requested;
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialUEMessage");
 }
@@ -138,7 +141,7 @@ bool ngap::ue::send_initial_ctxt_setup_response()
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
   init_context_setup_resp_s& container = tx_pdu.successful_outcome().value.init_context_setup_resp();
 
   // AMF UE NGAP ID
@@ -147,13 +150,7 @@ bool ngap::ue::send_initial_ctxt_setup_response()
   // RAN UE NGAP ID
   container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
-  /* // TODO: PDU Session Resource Setup Response List - Integrate PDU Session and Bearer management into NGAP
-  container.protocol_ies.pdu_session_res_setup_list_cxt_res_present = true;
-
-  // Case PDU Session Resource Failed to Setup List
-  container.protocol_ies.pdu_session_res_failed_to_setup_list_cxt_res_present = true; */
-
-  return true;
+  return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
 }
 
 bool ngap::ue::send_initial_ctxt_setup_failure(cause_c cause)
