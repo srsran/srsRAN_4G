@@ -27,7 +27,8 @@ ngap::ue::ue(ngap* ngap_ptr_, rrc_interface_ngap_nr* rrc_ptr_, srslog::basic_log
   logger(logger_),
   ngap_ptr(ngap_ptr_),
   initial_context_setup_proc(this, rrc_ptr_, &ctxt),
-  ue_context_release_proc(this, rrc_ptr_, &ctxt)
+  ue_context_release_proc(this, rrc_ptr_, &ctxt),
+  ue_pdu_session_res_setup_proc(this, rrc_ptr_, &ctxt)
 {
   ctxt.ran_ue_ngap_id = ngap_ptr->next_gnb_ue_ngap_id++;
   gettimeofday(&ctxt.init_timestamp, nullptr);
@@ -197,6 +198,15 @@ bool ngap::ue::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_releas
   // TODO: Release UE context
   if (not ue_context_release_proc.launch(msg)) {
     logger.error("Failed to start UE Context Release Procedure");
+    return false;
+  }
+  return true;
+}
+
+bool ngap::ue::handle_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+{
+  if (not ue_pdu_session_res_setup_proc.launch(msg)) {
+    logger.error("Failed to start UE PDU Session Resource Setup Procedure");
     return false;
   }
   return true;

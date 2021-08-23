@@ -73,6 +73,8 @@ protected:
   uint32_t mac_offset = 0;
   uint32_t seq_offset = 0;
   uint32_t bearer_id  = 0;
+
+  const std::string gw_setup_failure_str = "Failed to setup/configure GW interface";
 };
 
 } // namespace srsue

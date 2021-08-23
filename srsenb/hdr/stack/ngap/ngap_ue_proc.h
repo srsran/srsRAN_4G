@@ -79,6 +79,23 @@ private:
   ngap_interface_ngap_proc* parent;
 };
 
+class ngap_ue_pdu_session_res_setup_proc
+{
+public:
+  explicit ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
+                                              rrc_interface_ngap_nr*    rrc_,
+                                              ngap_ue_ctxt_t*           ue_ctxt);
+  srsran::proc_outcome_t init(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+  srsran::proc_outcome_t step();
+  static const char*     name() { return "UE PDU Session Resource Setup"; }
+
+private:
+  ngap_ue_ctxt_t*           ue_ctxt;
+  ngap_interface_ngap_proc* parent;
+  rrc_interface_ngap_nr*    rrc = nullptr;
+  srslog::basic_logger&     logger;
+};
+
 } // namespace srsenb
 
 #endif

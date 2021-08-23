@@ -39,6 +39,8 @@ public:
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
   bool handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
+  bool handle_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
 
   bool was_uectxtrelease_requested() const { return release_requested; }
   void ue_ctxt_setup_complete();
@@ -60,6 +62,7 @@ private:
   // procedures
   srsran::proc_t<ngap_ue_initial_context_setup_proc> initial_context_setup_proc;
   srsran::proc_t<ngap_ue_ue_context_release_proc>    ue_context_release_proc;
+  srsran::proc_t<ngap_ue_pdu_session_res_setup_proc> ue_pdu_session_res_setup_proc;
 };
 
 } // namespace srsenb

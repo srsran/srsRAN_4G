@@ -263,8 +263,6 @@ private:
 
   srsran::proc_manager_list_t      callbacks;
   srsran::proc_t<plmn_search_proc> plmn_searcher;
-
-  const std::string gw_setup_failure_str = "Failed to setup/configure GW interface";
 };
 
 } // namespace srsue

@@ -13,6 +13,7 @@
 #ifndef SRSUE_NAS_CONFIG_H
 #define SRSUE_NAS_CONFIG_H
 
+#include "srsran/interfaces/ue_nas_interfaces.h"
 #include <string>
 
 namespace srsue {
@@ -34,9 +35,12 @@ public:
   bool           force_imsi_attach;
   std::string    eia;
   std::string    eea;
+  nas_sim_args_t sim;
+
+  // 5G args
   std::string    ia5g;
   std::string    ea5g;
-  nas_sim_args_t sim;
+  std::vector<pdu_session_cfg_t> pdu_session_cfgs;
 };
 
 } // namespace srsue

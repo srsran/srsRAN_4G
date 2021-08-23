@@ -33,6 +33,9 @@
 
 using srsran::byte_buffer_t;
 
+#define MAX_PDU_SESSIONS 15
+#define MAX_TRANS_ID 255
+
 namespace srsue {
 
 /**
@@ -72,7 +75,7 @@ private:
 
   bool running = false;
 
-  bool initial_sec_command = false;
+  bool                                             initial_sec_command = false;
   srsran::nas_5g::mobile_identity_5gs_t::guti_5g_s guti_5g;
 
   srsran::nas_5g::nas_5gs_msg initial_registration_request_stored;
@@ -110,20 +113,25 @@ private:
   // Procedures
   // Forward declartion
   class registration_procedure;
+  class pdu_session_establishment_procedure;
 
-  srsran::proc_t<registration_procedure> registration_proc;
+  srsran::proc_t<registration_procedure>              registration_proc;
+  srsran::proc_t<pdu_session_establishment_procedure> pdu_session_establishment_proc;
 
   // Message sender
-  int  send_registration_request();
-  int  send_authentication_response(const uint8_t res[16]);
-  int  send_security_mode_reject(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause);
-  int  send_authentication_failure(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause,
-                                   const uint8_t*                                                auth_fail_param);
-  int  send_security_mode_complete(const srsran::nas_5g::security_mode_command_t& security_mode_command);
-  int  send_registration_complete();
+  int send_registration_request();
+  int send_authentication_response(const uint8_t res[16]);
+  int send_security_mode_reject(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause);
+  int send_authentication_failure(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause,
+                                  const uint8_t*                                                auth_fail_param);
+  int send_security_mode_complete(const srsran::nas_5g::security_mode_command_t& security_mode_command);
+  int send_registration_complete();
+  int send_pdu_session_establishment_request(uint32_t                 transaction_identity,
+                                             uint16_t                 pdu_session_id,
+                                             const pdu_session_cfg_t& pdu_session);
 
   void fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_caps);
-  int apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
+  int  apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
 
   // message handler
   int handle_registration_accept(srsran::nas_5g::registration_accept_t& registration_accept);
@@ -138,6 +146,33 @@ private:
       srsran::nas_5g::deregistration_accept_ue_terminated_t& deregistration_accept_ue_terminated);
   int handle_deregistration_request_ue_terminated(
       srsran::nas_5g::deregistration_request_ue_terminated_t& deregistration_request_ue_terminated);
+  int handle_dl_nas_transport(srsran::nas_5g::dl_nas_transport_t& dl_nas_transport);
+
+  // message handler container
+  int handle_n1_sm_information(std::vector<uint8_t> payload_container_contents);
+
+  // Transaction ID management
+  std::array<bool, MAX_TRANS_ID> pdu_trans_ids;
+  uint32_t                       allocate_next_proc_trans_id();
+  void                           release_proc_trans_id(uint32_t proc_id);
+
+  int trigger_pdu_session_est();
+
+  // PDU Session Management
+  int  add_pdu_session(uint16_t pdu_session_id, uint16_t pdu_session_type, srsran::nas_5g::pdu_address_t pdu_address);
+  int  init_pdu_sessions(std::vector<pdu_session_cfg_t> pdu_session_cfgs);
+  int  configure_pdu_session(uint16_t pdu_session_id);
+  bool unestablished_pdu_sessions();
+  int  get_unestablished_pdu_session(uint16_t& pdu_session_id, pdu_session_cfg_t& pdu_session_cfg);
+
+  struct pdu_session_t {
+    bool              configured;
+    bool              established;
+    uint16_t          pdu_session_id;
+    pdu_session_cfg_t pdu_session_cfg;
+  };
+
+  std::array<pdu_session_t, MAX_PDU_SESSIONS> pdu_sessions;
 };
 } // namespace srsue
 #endif

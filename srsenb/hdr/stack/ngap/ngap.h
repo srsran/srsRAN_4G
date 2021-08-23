@@ -125,7 +125,7 @@ private:
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
-  bool handle_pdu_session_resource_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+  bool handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
 
   class user_list
   {

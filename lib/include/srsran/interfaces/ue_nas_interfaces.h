@@ -13,10 +13,26 @@
 #ifndef SRSRAN_UE_NAS_INTERFACES_H
 #define SRSRAN_UE_NAS_INTERFACES_H
 
+#include "srsran/asn1/nas_5g_ies.h"
 #include "srsran/interfaces/rrc_interface_types.h"
 
 namespace srsue {
 
+enum apn_types {
+  ipv4         = 0b001,
+  ipv6         = 0b010,
+  ipv4v6       = 0b011,
+  unstructured = 0b100,
+  ethernet     = 0b101,
+};
+class pdu_session_cfg_t
+{
+public:
+  std::string apn_name;
+  apn_types   apn_type;
+  std::string apn_user;
+  std::string apn_pass;
+};
 class nas_interface_rrc
 {
 public:
@@ -49,6 +65,13 @@ class nas_5g_interface_procedures
 {
 public:
   virtual int send_registration_request() = 0;
+  virtual int send_pdu_session_establishment_request(uint32_t                 transaction_identity,
+                                                     uint16_t                 pdu_session_id,
+                                                     const pdu_session_cfg_t& pdu_session) = 0;
+  virtual int
+  add_pdu_session(uint16_t pdu_session_id, uint16_t pdu_session_type, srsran::nas_5g::pdu_address_t pdu_address) = 0;
+
+  virtual uint32_t allocate_next_proc_trans_id() = 0;
 };
 
 } // namespace srsue

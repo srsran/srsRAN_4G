@@ -89,4 +89,41 @@ proc_outcome_t ngap_ue_ue_context_release_proc::step()
   return proc_outcome_t::success;
 }
 
+ngap_ue_pdu_session_res_setup_proc::ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
+                                                                       rrc_interface_ngap_nr*    rrc_,
+                                                                       ngap_ue_ctxt_t*           ue_ctxt_) :
+  logger(srslog::fetch_basic_logger("NGAP UE"))
+{
+  parent  = parent_;
+  rrc     = rrc_;
+  ue_ctxt = ue_ctxt_;
+}
+
+proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+{
+  if (msg.protocol_ies.pdu_session_res_setup_list_su_req.value.size() != 1) {
+    logger.error("Not handling multiple su requests");
+    return proc_outcome_t::error;
+  }
+  asn1::ngap_nr::pdu_session_res_setup_item_su_req_s su_req =
+      msg.protocol_ies.pdu_session_res_setup_list_su_req.value[0];
+
+  if (su_req.pdu_session_nas_pdu_present) {
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Fatal Error: Couldn't allocate buffer in ngap_ue_initial_context_setup_proc::init().");
+      return proc_outcome_t::error;
+    }
+    memcpy(pdu->msg, su_req.pdu_session_nas_pdu.data(), su_req.pdu_session_nas_pdu.size());
+    pdu->N_bytes = su_req.pdu_session_nas_pdu.size();
+    rrc->write_dl_info(ue_ctxt->rnti, std::move(pdu));
+  }
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t ngap_ue_pdu_session_res_setup_proc::step()
+{
+  return proc_outcome_t::success;
+}
+
 } // namespace srsenb

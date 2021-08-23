@@ -414,6 +414,8 @@ bool ngap::handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg)
       return handle_initial_ctxt_setup_request(msg.value.init_context_setup_request());
     case ngap_elem_procs_o::init_msg_c::types_opts::ue_context_release_cmd:
       return handle_ue_ctxt_release_cmd(msg.value.ue_context_release_cmd());
+    case ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request:
+      return handle_ue_pdu_session_res_setup_request(msg.value.pdu_session_res_setup_request());
     default:
       logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
@@ -532,10 +534,16 @@ bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cm
   return true;
 }
 
-bool ngap::handle_pdu_session_resource_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
 {
-  // TODO
-  logger.warning("Not implemented yet");
+  ue* u =
+      handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
+  if (u == nullptr) {
+    logger.warning("Can not find UE");
+    return false;
+  }
+
+  u->handle_pdu_session_res_setup_request(msg);
   return true;
 }
 
