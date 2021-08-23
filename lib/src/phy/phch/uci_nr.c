@@ -33,6 +33,40 @@ uint32_t srsran_uci_nr_crc_len(uint32_t A)
   return (A <= 11) ? 0 : (A < 20) ? 6 : 11;
 }
 
+static inline int uci_nr_pusch_cfg_valid(const srsran_uci_nr_pusch_cfg_t* cfg)
+{
+  // No data pointer
+  if (cfg == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Unset configuration is unset
+  if (cfg->nof_re == 0 && cfg->nof_layers == 0 && !isnormal(cfg->R)) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Detect invalid number of layers
+  if (cfg->nof_layers == 0) {
+    ERROR("Invalid number of layers %d", cfg->nof_layers);
+    return SRSRAN_ERROR;
+  }
+
+  // Detect invalid number of RE
+  if (cfg->nof_re == 0) {
+    ERROR("Invalid number of RE %d", cfg->nof_re);
+    return SRSRAN_ERROR;
+  }
+
+  // Detect invalid Rate
+  if (!isnormal(cfg->R)) {
+    ERROR("Invalid R %f", cfg->R);
+    return SRSRAN_ERROR;
+  }
+
+  // Otherwise it is set and valid
+  return 1;
+}
+
 int srsran_uci_nr_init(srsran_uci_nr_t* q, const srsran_uci_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {
@@ -1015,10 +1049,6 @@ uint32_t srsran_uci_nr_info(const srsran_uci_data_nr_t* uci_data, char* str, uin
 
 static int uci_nr_pusch_Q_prime_ack(const srsran_uci_nr_pusch_cfg_t* cfg, uint32_t O_ack)
 {
-  if (cfg == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
   uint32_t L_ack = srsran_uci_nr_crc_len(O_ack);              // Number of CRC bits
   uint32_t Qm    = srsran_mod_bits_x_symbol(cfg->modulation); // modulation order of the PUSCH
 
@@ -1046,14 +1076,15 @@ static int uci_nr_pusch_Q_prime_ack(const srsran_uci_nr_pusch_cfg_t* cfg, uint32
 
 int srsran_uci_nr_pusch_ack_nof_bits(const srsran_uci_nr_pusch_cfg_t* cfg, uint32_t O_ack)
 {
-  // Check inputs
-  if (cfg == NULL) {
+  // Validate configuration
+  int err = uci_nr_pusch_cfg_valid(cfg);
+  if (err < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  if (cfg->nof_layers == 0) {
-    ERROR("Invalid number of layers (%d)", cfg->nof_layers);
-    return SRSRAN_ERROR;
+  // Configuration is unset
+  if (err == 0) {
+    return 0;
   }
 
   int Q_ack_prime = uci_nr_pusch_Q_prime_ack(cfg, O_ack);
@@ -1177,9 +1208,15 @@ static int uci_nr_pusch_Q_prime_csi1(const srsran_uci_nr_pusch_cfg_t* cfg, uint3
 
 int srsran_uci_nr_pusch_csi1_nof_bits(const srsran_uci_cfg_nr_t* cfg)
 {
-  // Check inputs
-  if (cfg == NULL) {
+  // Validate configuration
+  int err = uci_nr_pusch_cfg_valid(&cfg->pusch);
+  if (err < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Configuration is unset
+  if (err == 0) {
+    return 0;
   }
 
   int O_csi1 = srsran_csi_part1_nof_bits(cfg->csi, cfg->nof_csi);

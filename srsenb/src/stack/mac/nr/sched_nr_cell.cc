@@ -174,19 +174,20 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 /// See TS 38.321, 5.1.3 - RAP transmission
 int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 {
-  logger.info("SCHED: New PRACH slot=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
-              rar_info.prach_slot.to_uint(),
-              rar_info.preamble_idx,
-              rar_info.temp_crnti,
-              rar_info.ta_cmd,
-              rar_info.msg3_size);
-
   // RA-RNTI = 1 + s_id + 14 × t_id + 14 × 80 × f_id + 14 × 80 × 8 × ul_carrier_id
   // s_id = index of the first OFDM symbol (0 <= s_id < 14)
   // t_id = index of first slot of the PRACH (0 <= t_id < 80)
   // f_id = index of the PRACH in the freq domain (0 <= f_id < 8) (for FDD, f_id=0)
   // ul_carrier_id = 0 for NUL and 1 for SUL carrier
   uint16_t ra_rnti = 1 + rar_info.ofdm_symbol_idx + 14 * rar_info.prach_slot.slot_idx() + 14 * 80 * rar_info.freq_idx;
+
+  logger.info("SCHED: New PRACH slot=%d, preamble=%d, ra-rnti=0x%x, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
+              rar_info.prach_slot.to_uint(),
+              rar_info.preamble_idx,
+              ra_rnti,
+              rar_info.temp_crnti,
+              rar_info.ta_cmd,
+              rar_info.msg3_size);
 
   // find pending rar with same RA-RNTI
   for (pending_rar_t& r : pending_rars) {

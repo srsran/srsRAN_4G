@@ -44,6 +44,7 @@ typedef struct {
 
 /**
  * @brief Uplink Control Information bits configuration for PUSCH transmission
+ * @attention Set nof_layers, nof_re or R to 0 to indicate this structure is not initialised.
  */
 typedef struct {
   uint32_t     l0; ///< First OFDM symbol that does not carry DMRS of the PUSCH, after the first DMRS symbol(s)
@@ -53,12 +54,12 @@ typedef struct {
   uint32_t     K_sum;                                ///< Sum of UL-SCH code block sizes, set to zero if no UL-SCH
   srsran_mod_t modulation;                           ///< Modulation for the PUSCH
   uint32_t     nof_layers;                           ///< Number of layers for PUSCH
+  uint32_t     nof_re;                               ///< Total number of resource elements allocated for the grant
   float        R;                                    ///< Code rate of the PUSCH
   float        alpha;                                ///< Higher layer parameter scaling
   float        beta_harq_ack_offset;
   float        beta_csi1_offset;
   float        beta_csi2_offset;
-  uint32_t     nof_re;
   bool         csi_part2_present;
 } srsran_uci_nr_pusch_cfg_t;
 
