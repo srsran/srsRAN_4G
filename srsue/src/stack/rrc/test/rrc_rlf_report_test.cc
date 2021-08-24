@@ -22,7 +22,7 @@ int test_single()
   rrc_rlf_report                  rlf_report;
   meas_cell_list<meas_cell_eutra> list{&task_sched};
 
-  phy_meas_t pmeas;
+  phy_meas_t pmeas{};
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;
   pmeas.earfcn = 3400;
@@ -55,7 +55,7 @@ int test_neighbours()
   rrc_rlf_report                  rlf_report;
   meas_cell_list<meas_cell_eutra> list{&task_sched};
 
-  phy_meas_t pmeas;
+  phy_meas_t pmeas{};
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;
   pmeas.earfcn = 3400;
@@ -101,7 +101,7 @@ int test_reest()
   rrc_rlf_report                  rlf_report;
   meas_cell_list<meas_cell_eutra> list{&task_sched};
 
-  phy_meas_t pmeas;
+  phy_meas_t pmeas{};
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;
   pmeas.earfcn = 3400;
@@ -144,7 +144,7 @@ int test_ho()
 
   rlf_report.init(&task_sched);
 
-  phy_meas_t pmeas;
+  phy_meas_t pmeas{};
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;
   pmeas.earfcn = 3400;
