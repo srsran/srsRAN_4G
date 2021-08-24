@@ -95,6 +95,15 @@ int srsran_ue_ul_nr_set_carrier(srsran_ue_ul_nr_t* q, const srsran_carrier_nr_t*
   return SRSRAN_SUCCESS;
 }
 
+void srsran_ue_ul_nr_set_freq_offset(srsran_ue_ul_nr_t* q, float freq_offset_hz)
+{
+  if (q == NULL) {
+    return;
+  }
+
+  q->freq_offset_hz = freq_offset_hz;
+}
+
 int srsran_ue_ul_nr_encode_pusch(srsran_ue_ul_nr_t*            q,
                                  const srsran_slot_cfg_t*      slot_cfg,
                                  const srsran_sch_cfg_nr_t*    pusch_cfg,
@@ -128,6 +137,12 @@ int srsran_ue_ul_nr_encode_pusch(srsran_ue_ul_nr_t*            q,
   float    max_peak = cabsf(q->ifft.cfg.out_buffer[max_idx]);
   if (isnormal(max_peak)) {
     srsran_vec_sc_prod_cfc(q->ifft.cfg.out_buffer, 0.99f / max_peak, q->ifft.cfg.out_buffer, q->ifft.sf_sz);
+  }
+
+  // Apply frequency offset
+  if (isnormal(q->freq_offset_hz)) {
+    srsran_vec_apply_cfo(
+        q->ifft.cfg.out_buffer, -q->freq_offset_hz / (1000.0f * q->ifft.sf_sz), q->ifft.cfg.out_buffer, q->ifft.sf_sz);
   }
 
   return SRSRAN_SUCCESS;
@@ -219,6 +234,19 @@ int srsran_ue_ul_nr_encode_pucch(srsran_ue_ul_nr_t*                  q,
   // Generate signal
   srsran_ofdm_tx_sf(&q->ifft);
 
+  // Normalise to peak
+  uint32_t max_idx  = srsran_vec_max_abs_ci(q->ifft.cfg.out_buffer, q->ifft.sf_sz);
+  float    max_peak = cabsf(q->ifft.cfg.out_buffer[max_idx]);
+  if (isnormal(max_peak)) {
+    srsran_vec_sc_prod_cfc(q->ifft.cfg.out_buffer, 0.99f / max_peak, q->ifft.cfg.out_buffer, q->ifft.sf_sz);
+  }
+
+  // Apply frequency offset
+  if (isnormal(q->freq_offset_hz)) {
+    srsran_vec_apply_cfo(
+        q->ifft.cfg.out_buffer, -q->freq_offset_hz / (1000.0f * q->ifft.sf_sz), q->ifft.cfg.out_buffer, q->ifft.sf_sz);
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -248,6 +276,8 @@ int srsran_ue_ul_nr_pusch_info(const srsran_ue_ul_nr_t*     q,
 
   // Append PDSCH info
   len += srsran_pusch_nr_tx_info(&q->pusch, cfg, &cfg->grant, uci_value, &str[len], str_len - len);
+
+  len = srsran_print_check(str, str_len, len, " cfo=%.0f", q->freq_offset_hz);
 
   return len;
 }
