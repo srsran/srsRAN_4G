@@ -59,6 +59,7 @@ private:
   cf_t*                                          prach_ptr   = nullptr;
   float                                          prach_power = 0;
   srsran::phy_common_interface::worker_context_t context     = {};
+  float                                          ul_ext_cfo  = 0.0f; ///< UL CFO external offset in Hz
 };
 
 } // namespace nr

@@ -343,12 +343,13 @@ uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* s
   return srsran_print_check(str,
                             str_len,
                             0,
-                            "rsrp=%+.1f epre=%+.1f n0=%+.1f snr=%+.1f cfo=%+.1f delay=%+.1f",
+                            "rsrp=%+.1f epre=%+.1f n0=%+.1f snr=%+.1f cfo=%+.1f cfo_max=%.0f delay=%+.1f",
                             meas->rsrp_dB,
                             meas->epre_dB,
                             meas->n0_dB,
                             meas->snr_dB,
                             meas->cfo_hz,
+                            meas->cfo_hz_max,
                             meas->delay_us);
 }
 

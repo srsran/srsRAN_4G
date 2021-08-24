@@ -60,6 +60,13 @@ private:
   std::mutex                                                                  csi_measurements_mutex;
   std::array<srsran_csi_channel_measurements_t, SRSRAN_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
 
+  /// TRS measurements
+  mutable std::mutex            trs_measurements_mutex;
+  srsran_csi_trs_measurements_t trs_measurements = {};
+
+  /// Other measurements
+  std::atomic<float> ul_ext_cfo_hz = {0.0f};
+
   /**
    * @brief Resets all metrics (unprotected)
    */
@@ -453,6 +460,64 @@ public:
       return;
     }
   }
+
+  /**
+   * @brief Processes a new Tracking Reference Signal (TRS) measurement
+   * @param new_measure New measurement
+   * @param resource_set_id NZP-CSI-RS resource set identifier used for the channel measurement if it is configured from
+   * a NZP-CSI-RS
+   * @param K_csi_rs Number of NZP-CSI-RS resources used for the measurement, set to 0 if another type of signal is
+   * measured (i.e. SSB)
+   */
+  void new_csi_trs_measurement(const srsran_csi_trs_measurements_t& new_meas,
+                               uint32_t                             resource_set_id = 0,
+                               uint32_t                             K_csi_rs        = 0)
+  {
+    // Compute channel metrics and push it
+    ch_metrics_t new_ch_metrics = {};
+    new_ch_metrics.sinr         = new_meas.snr_dB;
+    new_ch_metrics.rsrp         = new_meas.rsrp_dB;
+    new_ch_metrics.rsrq         = 0.0f; // Not supported
+    new_ch_metrics.rssi         = 0.0f; // Not supported
+    new_ch_metrics.sync_err     = new_meas.delay_us;
+    set_channel_metrics(new_ch_metrics);
+
+    // Compute synch metrics and report it to the PHY state
+    sync_metrics_t new_sync_metrics = {};
+    new_sync_metrics.cfo            = new_meas.cfo_hz;
+    set_sync_metrics(sync_metrics);
+
+    // Convert to CSI channel measurement and report new NZP-CSI-RS measurement to the PHY state
+    srsran_csi_channel_measurements_t measurements = {};
+    measurements.cri                               = 0;
+    measurements.wideband_rsrp_dBm                 = new_meas.rsrp_dB;
+    measurements.wideband_epre_dBm                 = new_meas.epre_dB;
+    measurements.wideband_snr_db                   = new_meas.snr_dB;
+    measurements.nof_ports                         = 1; // Other values are not supported
+    measurements.K_csi_rs                          = K_csi_rs;
+    new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
+
+    trs_measurements_mutex.lock();
+    trs_measurements.rsrp_dB = SRSRAN_VEC_SAFE_EMA(new_meas.rsrp_dB, trs_measurements.rsrp_dB, args.trs_epre_ema_alpha);
+    trs_measurements.epre_dB = SRSRAN_VEC_SAFE_EMA(new_meas.epre_dB, trs_measurements.epre_dB, args.trs_rsrp_ema_alpha);
+    trs_measurements.cfo_hz  = SRSRAN_VEC_SAFE_EMA(new_meas.cfo_hz, trs_measurements.cfo_hz, args.trs_cfo_ema_alpha);
+    trs_measurements.nof_re++;
+    trs_measurements_mutex.unlock();
+  }
+
+  float get_dl_cfo()
+  {
+    std::lock_guard<std::mutex> lock(trs_measurements_mutex);
+    return trs_measurements.cfo_hz;
+  }
+
+  float get_ul_cfo() const
+  {
+    std::lock_guard<std::mutex> lock(trs_measurements_mutex);
+    return trs_measurements.cfo_hz + ul_ext_cfo_hz;
+  }
+
+  void set_ul_ext_cfo(float ext_cfo_hz) { ul_ext_cfo_hz = ext_cfo_hz; }
 };
 } // namespace nr
 } // namespace srsue

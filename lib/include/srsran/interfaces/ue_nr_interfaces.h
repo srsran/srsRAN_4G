@@ -166,17 +166,21 @@ public:
 };
 
 struct phy_args_nr_t {
-  uint32_t               rf_channel_offset = 0; ///< Specifies the RF channel the NR carrier shall fill
-  uint32_t               nof_carriers      = 1;
-  uint32_t               max_nof_prb       = 106;
-  uint32_t               nof_phy_threads   = 3;
-  uint32_t               worker_cpu_mask   = 0;
-  srsran::phy_log_args_t log               = {};
-  srsran_ue_dl_nr_args_t dl                = {};
-  srsran_ue_ul_nr_args_t ul                = {};
-  std::set<uint32_t>     fixed_sr          = {1};
-  uint32_t               fix_wideband_cqi  = 15; // Set to a non-zero value for fixing the wide-band CQI report
-  bool                   store_pdsch_ko    = false;
+  uint32_t               rf_channel_offset  = 0; ///< Specifies the RF channel the NR carrier shall fill
+  uint32_t               nof_carriers       = 1;
+  uint32_t               max_nof_prb        = 106;
+  uint32_t               nof_phy_threads    = 3;
+  uint32_t               worker_cpu_mask    = 0;
+  srsran::phy_log_args_t log                = {};
+  srsran_ue_dl_nr_args_t dl                 = {};
+  srsran_ue_ul_nr_args_t ul                 = {};
+  std::set<uint32_t>     fixed_sr           = {1};
+  uint32_t               fix_wideband_cqi   = 15; // Set to a non-zero value for fixing the wide-band CQI report
+  bool                   store_pdsch_ko     = false;
+  float                  trs_epre_ema_alpha = 0.1f; ///< EPRE measurement exponential average alpha
+  float                  trs_rsrp_ema_alpha = 0.1f; ///< RSRP measurement exponential average alpha
+  float                  trs_cfo_ema_alpha  = 0.1f; ///< RSRP measurement exponential average alpha
+  bool                   enable_worker_cfo  = true; ///< Enable/Disable open loop CFO correction at the workers
 
   phy_args_nr_t()
   {
