@@ -139,6 +139,10 @@ void phy_cfg_nr_default_t::make_pdcch_custom_common_ss(srsran_pdcch_cfg_nr_t& pd
     pdcch.search_space[1].nof_candidates[L] =
         SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&pdcch.coreset[1], L));
   }
+
+  pdcch.ra_search_space_present = true;
+  pdcch.ra_search_space         = pdcch.search_space[1];
+  pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
 }
 
 void phy_cfg_nr_default_t::make_pdsch_default(srsran_sch_hl_cfg_nr_t& pdsch)

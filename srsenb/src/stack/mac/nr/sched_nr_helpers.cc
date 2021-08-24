@@ -54,6 +54,10 @@ bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_c
   dci.ctx.rnti              = ra_rnti;
   dci.ctx.coreset_id        = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
   dci.freq_domain_assigment = srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, interv.start(), interv.length());
+  dci.time_domain_assigment = 0;
+  dci.tpc                   = 1;
+  dci.bwp_id                = bwp_cfg.bwp_id;
+  dci.cc_id                 = bwp_cfg.cc;
   // TODO: Fill
 
   return true;
