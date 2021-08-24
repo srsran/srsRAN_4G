@@ -349,8 +349,19 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         // TEST: No UL allocs except for Msg3 before Msg4
         for (uint32_t i = 0; i < ul_cc_res.pusch.size(); ++i) {
           if (ul_cc_res.pusch[i].dci.rnti == rnti) {
-            CONDERROR(not ue.rar_tti_rx.is_valid(), "No UL allocs before RAR allowed");
-            srsran::tti_point expected_msg3_tti = ue.rar_tti_rx + MSG3_DELAY_MS;
+            tti_point rar_tti_rx = ue.rar_tti_rx;
+            if (not rar_tti_rx.is_valid()) {
+              for (uint32_t j = 0; j < dl_cc_res.rar.size(); ++j) {
+                for (const auto& grant : dl_cc_res.rar[i].msg3_grant) {
+                  if (grant.data.temp_crnti == ue.rnti) {
+                    rar_tti_rx = sf_out.tti_rx;
+                    break;
+                  }
+                }
+              }
+            }
+            CONDERROR(not rar_tti_rx.is_valid(), "No UL allocs before RAR allowed");
+            srsran::tti_point expected_msg3_tti = rar_tti_rx + MSG3_DELAY_MS;
             CONDERROR(expected_msg3_tti > sf_out.tti_rx, "No UL allocs before Msg3 is scheduled");
             if (expected_msg3_tti < sf_out.tti_rx) {
               bool msg3_retx =
