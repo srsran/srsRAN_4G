@@ -15,7 +15,7 @@
 
 #include "optional.h"
 #include "span.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <array>
 
 namespace srsran {
