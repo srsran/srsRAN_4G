@@ -11,6 +11,7 @@
  */
 
 #include "sched_nr_cfg_generators.h"
+#include "sched_nr_common_test.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
 #include "srsran/common/test_common.h"
 #include "srsran/support/srsran_test.h"
@@ -53,8 +54,10 @@ void test_single_prach()
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, 0));
     alloc.new_slot(pdcch_slot);
     rasched.run_slot(alloc, slot_ues);
+    const bwp_slot_grid* result = &alloc.res_grid()[alloc.get_pdcch_tti()];
+    test_pdcch_consistency(result->dl_pdcchs);
     ++pdcch_slot;
-    return &alloc.res_grid()[alloc.get_pdcch_tti()];
+    return result;
   };
 
   // Start Run
@@ -64,6 +67,7 @@ void test_single_prach()
     TESTASSERT(result->dl_pdcchs.empty());
   }
 
+  // A PRACH arrives...
   sched_nr_interface::dl_sched_rar_info_t rainfo{};
   rainfo.preamble_idx = 10;
   rainfo.temp_crnti   = rnti;
@@ -72,6 +76,7 @@ void test_single_prach()
   TESTASSERT_SUCCESS(rasched.dl_rach_info(rainfo));
   uint16_t ra_rnti = 1 + rainfo.ofdm_symbol_idx + 14 * rainfo.prach_slot.slot_idx() + 14 * 80 * rainfo.freq_idx;
 
+  // RAR is scheduled
   while (true) {
     result = run_slot();
     if (result->is_dl()) {
@@ -79,6 +84,7 @@ void test_single_prach()
       const auto& pdcch = result->dl_pdcchs[0];
       TESTASSERT_EQ(pdcch.dci.ctx.rnti, ra_rnti);
       TESTASSERT_EQ(pdcch.dci.ctx.rnti_type, srsran_rnti_type_ra);
+      TESTASSERT(pdcch_slot < prach_slot + bwp_cfg.cell_cfg.bwps[0].rar_window_size);
       break;
     } else {
       TESTASSERT(result->dl_pdcchs.empty());

@@ -6,6 +6,8 @@
 # the distribution.
 #
 
+add_library(sched_nr_test_suite sched_nr_common_test.cc sched_nr_ue_ded_test_suite.cc)
+
 add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc sched_nr_ue_ded_test_suite.cc)
 target_link_libraries(sched_nr_test
         srsgnb_mac
@@ -23,4 +25,4 @@ target_link_libraries(sched_nr_prb_test
 add_test(sched_nr_prb_test sched_nr_prb_test)
 
 add_executable(sched_nr_rar_test sched_nr_rar_test.cc)
-target_link_libraries(sched_nr_rar_test srsgnb_mac srsran_common)
+target_link_libraries(sched_nr_rar_test srsgnb_mac sched_nr_test_suite srsran_common)

@@ -49,7 +49,7 @@ bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_c
 {
   dci.mcs                   = 5;
   dci.ctx.format            = srsran_dci_format_nr_1_0;
-  dci.ctx.ss_type           = srsran_search_space_type_rar;
+  dci.ctx.ss_type           = srsran_search_space_type_common_1;
   dci.ctx.rnti_type         = srsran_rnti_type_ra;
   dci.ctx.rnti              = ra_rnti;
   dci.ctx.coreset_id        = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
