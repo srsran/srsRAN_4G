@@ -51,8 +51,10 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   dl_cqi_ctxt(cell_cfg_.nof_prb(), 0, cell_cfg_.sched_cfg->init_dl_cqi)
 {
   float target_bler = cell_cfg->sched_cfg->target_bler;
-  delta_inc         = cell_cfg->sched_cfg->adaptive_link_step_size; // delta_{down} of OLLA
-  delta_dec         = (1 - target_bler) * delta_inc / target_bler;
+  dl_delta_inc      = cell_cfg->sched_cfg->adaptive_dl_mcs_step_size; // delta_{down} of OLLA
+  dl_delta_dec      = (1 - target_bler) * dl_delta_inc / target_bler;
+  ul_delta_inc      = cell_cfg->sched_cfg->adaptive_ul_mcs_step_size; // delta_{down} of OLLA
+  ul_delta_dec      = (1 - target_bler) * ul_delta_inc / target_bler;
   max_cqi_coeff     = cell_cfg->sched_cfg->max_delta_dl_cqi;
   max_snr_coeff     = cell_cfg->sched_cfg->max_delta_ul_snr;
 }
@@ -202,8 +204,8 @@ int sched_ue_cell::set_ul_crc(tti_point tti_rx, bool crc_res)
     if (ul_harq != nullptr) {
       int mcs = ul_harq->get_mcs(0);
       // Note: Avoid keeping increasing the snr delta offset, if MCS is already is at its limit
-      float delta_dec_eff = mcs <= 0 ? 0 : delta_dec;
-      float delta_inc_eff = mcs >= (int)max_mcs_ul ? 0 : delta_inc;
+      float delta_dec_eff = mcs <= 0 ? 0 : ul_delta_dec;
+      float delta_inc_eff = mcs >= (int)max_mcs_ul ? 0 : ul_delta_inc;
       ul_snr_coeff += crc_res ? delta_inc_eff : -delta_dec_eff;
       ul_snr_coeff = std::min(std::max(-max_snr_coeff, ul_snr_coeff), max_snr_coeff);
       logger.info("SCHED: UL adaptive link: rnti=0x%x, snr_estim=%.2f, last_mcs=%d, snr_offset=%f",
@@ -239,8 +241,8 @@ int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
   if (cell_cfg->sched_cfg->target_bler > 0 and fixed_mcs_dl < 0) {
     int mcs = std::get<2>(p2);
     // Note: Avoid keeping increasing the snr delta offset, if MCS is already is at its limit
-    float delta_dec_eff = mcs <= 0 ? 0 : delta_dec;
-    float delta_inc_eff = mcs >= (int)max_mcs_dl ? 0 : delta_inc;
+    float delta_dec_eff = mcs <= 0 ? 0 : dl_delta_dec;
+    float delta_inc_eff = mcs >= (int)max_mcs_dl ? 0 : dl_delta_inc;
     dl_cqi_coeff += ack ? delta_inc_eff : -delta_dec_eff;
     dl_cqi_coeff = std::min(std::max(-max_cqi_coeff, dl_cqi_coeff), max_cqi_coeff);
     logger.info("SCHED: DL adaptive link: rnti=0x%x, cqi=%d, last_mcs=%d, cqi_offset=%f",
