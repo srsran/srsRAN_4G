@@ -497,10 +497,16 @@ public:
     measurements.K_csi_rs                          = K_csi_rs;
     new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
 
+    // Update tracking information
     trs_measurements_mutex.lock();
     trs_measurements.rsrp_dB = SRSRAN_VEC_SAFE_EMA(new_meas.rsrp_dB, trs_measurements.rsrp_dB, args.trs_epre_ema_alpha);
     trs_measurements.epre_dB = SRSRAN_VEC_SAFE_EMA(new_meas.epre_dB, trs_measurements.epre_dB, args.trs_rsrp_ema_alpha);
-    trs_measurements.cfo_hz  = SRSRAN_VEC_SAFE_EMA(new_meas.cfo_hz, trs_measurements.cfo_hz, args.trs_cfo_ema_alpha);
+    // Consider CFO measurement invalid if the SNR is negative. In this case, set CFO to 0.
+    if (trs_measurements.snr_dB > 0.0f) {
+      trs_measurements.cfo_hz = SRSRAN_VEC_SAFE_EMA(new_meas.cfo_hz, trs_measurements.cfo_hz, args.trs_cfo_ema_alpha);
+    } else {
+      trs_measurements.cfo_hz = 0.0f;
+    }
     trs_measurements.nof_re++;
     trs_measurements_mutex.unlock();
   }
