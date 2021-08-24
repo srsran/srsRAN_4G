@@ -209,6 +209,7 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
   for (slot_point t = rar_info.prach_slot + prach_duration; t < rar_info.prach_slot + bwp_cfg->slots.size(); ++t) {
     if (bwp_cfg->slots[t.slot_idx()].is_dl) {
       p.rar_win = {t, t + bwp_cfg->cfg.rar_window_size};
+      break;
     }
   }
   p.msg3_grant.push_back(rar_info);

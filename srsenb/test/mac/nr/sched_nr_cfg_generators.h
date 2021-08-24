@@ -30,7 +30,8 @@ srsran_coreset_t get_default_coreset0(uint32_t nof_prb)
   return coreset;
 }
 
-sched_nr_interface::cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_cfg)
+sched_nr_interface::cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{
+                                                        srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
   sched_nr_interface::cell_cfg_t cell_cfg{};
 
