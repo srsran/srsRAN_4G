@@ -341,5 +341,10 @@ alloc_result bwp_slot_allocator::verify_pusch_space(bwp_slot_grid& pusch_grid, b
   return alloc_result::success;
 }
 
+void bwp_slot_allocator::log_bwp_sched_result()
+{
+  log_sched_bwp_result(logger, get_pdcch_tti(), bwp_grid, *slot_ues);
+}
+
 } // namespace sched_nr_impl
 } // namespace srsenb

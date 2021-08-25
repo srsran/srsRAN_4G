@@ -157,7 +157,7 @@ struct formatter<srsran::slot_point> {
   template <typename FormatContext>
   auto format(srsran::slot_point slot, FormatContext& ctx) -> decltype(std::declval<FormatContext>().out())
   {
-    return format_to(ctx.out(), "{}/{}", slot.sfn(), slot.slot_idx());
+    return format_to(ctx.out(), "{}:{}", slot.sfn(), slot.slot_idx());
   }
 };
 } // namespace fmt

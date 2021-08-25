@@ -101,7 +101,7 @@ void slot_cc_worker::run()
   alloc_ul_ues();
 
   // Log CC scheduler result
-  log_result();
+  bwp_alloc.log_bwp_sched_result();
 
   // releases UE resources
   slot_ues.clear();

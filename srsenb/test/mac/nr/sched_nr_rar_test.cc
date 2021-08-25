@@ -17,6 +17,9 @@
 #include "srsran/support/srsran_test.h"
 #include <random>
 
+uint32_t seed = 155556739;
+// std::chrono::system_clock::now().time_since_epoch().count();
+
 namespace srsenb {
 
 void test_single_prach()
@@ -24,20 +27,20 @@ void test_single_prach()
   using namespace sched_nr_impl;
   const uint16_t               rnti       = 0x1234;
   static srslog::basic_logger& mac_logger = srslog::fetch_basic_logger("MAC");
-  std::random_device           r;
-  std::default_random_engine   rgen(r());
+  std::default_random_engine   rand_gen(seed);
+  std::default_random_engine   rgen(rand_gen());
 
   sched_nr_interface::sched_cfg_t             sched_cfg{};
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(1);
   sched_params                                schedparams{sched_cfg};
   schedparams.cells.emplace_back(0, cells_cfg[0], sched_cfg);
-  bwp_params    bwp_cfg(cells_cfg[0], sched_cfg, 0, 0);
-  slot_ue_map_t slot_ues;
+  const bwp_params& bwpparams = schedparams.cells[0].bwps[0];
+  slot_ue_map_t     slot_ues;
 
-  ra_sched rasched(bwp_cfg);
+  ra_sched rasched(bwpparams);
   TESTASSERT(rasched.empty());
 
-  std::unique_ptr<bwp_res_grid> res_grid(new bwp_res_grid{bwp_cfg});
+  std::unique_ptr<bwp_res_grid> res_grid(new bwp_res_grid{bwpparams});
   bwp_slot_allocator            alloc(*res_grid);
 
   // Create UE
@@ -54,6 +57,8 @@ void test_single_prach()
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, 0));
     alloc.new_slot(pdcch_slot, slot_ues);
     rasched.run_slot(alloc);
+
+    alloc.log_bwp_sched_result();
     const bwp_slot_grid* result = &alloc.res_grid()[alloc.get_pdcch_tti()];
     test_pdcch_consistency(result->dl_pdcchs);
     ++pdcch_slot;
@@ -77,14 +82,17 @@ void test_single_prach()
   uint16_t ra_rnti = 1 + rainfo.ofdm_symbol_idx + 14 * rainfo.prach_slot.slot_idx() + 14 * 80 * rainfo.freq_idx;
 
   // RAR is scheduled
+  const uint32_t prach_duration = 1;
   while (true) {
-    result = run_slot();
-    if (result->is_dl()) {
-      TESTASSERT(result->dl_pdcchs.size() == 1);
+    slot_point current_slot = pdcch_slot;
+    result                  = run_slot();
+    if (bwpparams.slots[current_slot.slot_idx()].is_dl and
+        bwpparams.slots[(current_slot + bwpparams.pusch_ra_list[0].msg3_delay).slot_idx()].is_ul) {
+      TESTASSERT_EQ(result->dl_pdcchs.size(), 1);
       const auto& pdcch = result->dl_pdcchs[0];
       TESTASSERT_EQ(pdcch.dci.ctx.rnti, ra_rnti);
       TESTASSERT_EQ(pdcch.dci.ctx.rnti_type, srsran_rnti_type_ra);
-      TESTASSERT(pdcch_slot < prach_slot + bwp_cfg.cell_cfg.bwps[0].rar_window_size);
+      TESTASSERT(current_slot < prach_slot + prach_duration + bwpparams.cfg.rar_window_size);
       break;
     } else {
       TESTASSERT(result->dl_pdcchs.empty());
@@ -102,6 +110,8 @@ int main(int argc, char** argv)
   mac_logger.set_level(srslog::basic_levels::info);
 
   srsran::test_init(argc, argv);
+
+  printf("Test seed=%u\n", seed);
 
   srsenb::test_single_prach();
 }

@@ -100,6 +100,7 @@ public:
   slot_point          get_pdcch_tti() const { return pdcch_slot; }
   slot_point          get_tti_rx() const { return pdcch_slot - TX_ENB_DELAY; }
   const bwp_res_grid& res_grid() const { return bwp_grid; }
+  void                log_bwp_sched_result();
 
   const bwp_params& cfg;
 
