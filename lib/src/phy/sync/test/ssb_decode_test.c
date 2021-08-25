@@ -82,7 +82,7 @@ static void gen_pbch_msg(srsran_pbch_msg_nr_t* pbch_msg, uint32_t ssb_idx)
   SRSRAN_MEM_ZERO(pbch_msg, srsran_pbch_msg_nr_t, 1);
 
   // Generate payload
-  srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_NR_PAYLOAD_SZ);
+  srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_MSG_NR_SZ);
 
   pbch_msg->ssb_idx = ssb_idx;
   pbch_msg->crc     = true;

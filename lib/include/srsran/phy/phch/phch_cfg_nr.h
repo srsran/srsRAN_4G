@@ -50,14 +50,6 @@ typedef enum {
 } srsran_dmrs_sch_len_t;
 
 /**
- * @brief Determines whether the first pilot goes into symbol index 2 or 3
- */
-typedef enum {
-  srsran_dmrs_sch_typeA_pos_2 = 0, // Start in slot symbol index 2 (default)
-  srsran_dmrs_sch_typeA_pos_3      // Start in slot symbol index 3
-} srsran_dmrs_sch_typeA_pos_t;
-
-/**
  * @brief Determines additional symbols if possible to be added
  */
 typedef enum {

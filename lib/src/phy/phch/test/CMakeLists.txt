@@ -627,6 +627,10 @@ add_executable(dci_nr_test dci_nr_test.c)
 target_link_libraries(dci_nr_test srsran_phy)
 add_nr_test(dci_nr_test dci_nr_test)
 
+add_executable(mib_nr_test mib_nr_test.c)
+target_link_libraries(mib_nr_test srsran_phy)
+add_nr_test(mib_nr_test mib_nr_test)
+
 add_executable(pucch_nr_test pucch_nr_test.c)
 target_link_libraries(pucch_nr_test srsran_phy)
 add_nr_test(pucch_nr_test pucch_nr_test)
