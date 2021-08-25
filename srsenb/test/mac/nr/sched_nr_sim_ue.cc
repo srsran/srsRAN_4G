@@ -11,6 +11,7 @@
  */
 
 #include "sched_nr_sim_ue.h"
+#include "sched_nr_common_test.h"
 #include "sched_nr_ue_ded_test_suite.h"
 #include "srsran/common/test_common.h"
 
@@ -157,6 +158,12 @@ void sched_nr_sim_base::update(sched_nr_cc_output_res_t& cc_out)
 
   sim_nr_enb_ctxt_t ctxt;
   ctxt = get_enb_ctxt();
+
+  // Run common tests
+  test_dl_pdcch_consistency(cc_out.dl_cc_result->pdcch_dl);
+  test_pdsch_consistency(cc_out.dl_cc_result->pdsch);
+
+  // Run UE-dedicated tests
   test_dl_sched_result(ctxt, cc_out);
 
   for (auto& u : ue_db) {

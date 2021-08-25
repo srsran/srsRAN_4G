@@ -17,8 +17,7 @@
 #include "srsran/support/srsran_test.h"
 #include <random>
 
-uint32_t seed = 155556739;
-// std::chrono::system_clock::now().time_since_epoch().count();
+uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 namespace srsenb {
 
@@ -53,6 +52,7 @@ void test_single_prach()
   const bwp_slot_grid* result   = nullptr;
   auto                 run_slot = [&alloc, &rasched, &pdcch_slot, &slot_ues, &u]() -> const bwp_slot_grid* {
     mac_logger.set_context(pdcch_slot.to_uint());
+    u.carriers[0]->new_slot(pdcch_slot, u.cfg());
     slot_ues.clear();
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, 0));
     alloc.new_slot(pdcch_slot, slot_ues);
@@ -60,7 +60,7 @@ void test_single_prach()
 
     alloc.log_bwp_sched_result();
     const bwp_slot_grid* result = &alloc.res_grid()[alloc.get_pdcch_tti()];
-    test_pdcch_consistency(result->dl_pdcchs);
+    test_dl_pdcch_consistency(result->dl_pdcchs);
     ++pdcch_slot;
     return result;
   };
@@ -83,6 +83,7 @@ void test_single_prach()
 
   // RAR is scheduled
   const uint32_t prach_duration = 1;
+  slot_point     rar_slot;
   while (true) {
     slot_point current_slot = pdcch_slot;
     result                  = run_slot();
@@ -93,11 +94,18 @@ void test_single_prach()
       TESTASSERT_EQ(pdcch.dci.ctx.rnti, ra_rnti);
       TESTASSERT_EQ(pdcch.dci.ctx.rnti_type, srsran_rnti_type_ra);
       TESTASSERT(current_slot < prach_slot + prach_duration + bwpparams.cfg.rar_window_size);
+      rar_slot = current_slot;
       break;
     } else {
       TESTASSERT(result->dl_pdcchs.empty());
     }
   }
+
+  slot_point msg3_slot = rar_slot + bwpparams.pusch_ra_list[0].msg3_delay;
+  while (pdcch_slot <= msg3_slot) {
+    result = run_slot();
+  }
+  TESTASSERT(result->puschs.size() == 1);
 }
 
 } // namespace srsenb
@@ -111,7 +119,7 @@ int main(int argc, char** argv)
 
   srsran::test_init(argc, argv);
 
-  printf("Test seed=%u\n", seed);
+  printf("Test random seed=%u\n\n", seed);
 
   srsenb::test_single_prach();
 }

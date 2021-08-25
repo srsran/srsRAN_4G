@@ -129,7 +129,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   }
 
   // RAR allocation successful.
-
+  bwp_pdcch_slot.dl_prbs |= interv;
   // Generate DCI for RAR with given RA-RNTI
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
   if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
@@ -137,22 +137,29 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
   }
+  auto& phy_cfg = (*slot_ues)[pending_rars[0].temp_crnti].cfg->phy();
+  pdcch.dci_cfg = phy_cfg.get_dci_cfg();
   // Generate RAR PDSCH
-  bwp_pdcch_slot.dl_prbs |= interv;
+  // TODO: Properly fill Msg3 grants
+  bwp_pdcch_slot.pdschs.emplace_back();
+  pdsch_t&          pdsch = bwp_pdcch_slot.pdschs.back();
+  srsran_slot_cfg_t slot_cfg;
+  slot_cfg.idx = pdcch_slot.slot_idx();
+  bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+  srsran_assert(success, "Error converting DCI to grant");
 
   // Generate Msg3 grants in PUSCH
-  uint32_t          last_msg3 = msg3_rbs.start();
-  const int         mcs = 0, max_harq_msg3_retx = 4;
-  int               dai = 0;
-  srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = msg3_slot.slot_idx();
+  uint32_t  last_msg3 = msg3_rbs.start();
+  const int mcs = 0, max_harq_msg3_retx = 4;
+  int       dai = 0;
+  slot_cfg.idx  = msg3_slot.slot_idx();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 
     // Allocate Msg3
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
-    ue.h_ul      = ue.harq_ent->find_empty_ul_harq();
-    bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
+    ue.h_ul = ue.harq_ent->find_empty_ul_harq();
+    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     last_msg3 += msg3_nof_prbs;
     pdcch_ul_t msg3_pdcch; // dummy PDCCH for retx=0

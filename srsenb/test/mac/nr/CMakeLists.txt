@@ -8,9 +8,10 @@
 
 add_library(sched_nr_test_suite sched_nr_common_test.cc sched_nr_ue_ded_test_suite.cc)
 
-add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc sched_nr_ue_ded_test_suite.cc)
+add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc)
 target_link_libraries(sched_nr_test
         srsgnb_mac
+        sched_nr_test_suite
         srsran_common
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})

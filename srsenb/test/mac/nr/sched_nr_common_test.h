@@ -18,8 +18,9 @@
 
 namespace srsenb {
 
-void test_pdcch_consistency(srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcch);
+void test_dl_pdcch_consistency(srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcch);
+void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> dl_pdcch);
 
-}
+} // namespace srsenb
 
 #endif // SRSRAN_SCHED_NR_COMMON_TEST_H
