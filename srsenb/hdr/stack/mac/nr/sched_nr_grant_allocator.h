@@ -83,13 +83,16 @@ class bwp_slot_allocator
 public:
   explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_);
 
-  void new_slot(slot_point pdcch_slot_) { pdcch_slot = pdcch_slot_; }
+  void new_slot(slot_point pdcch_slot_, slot_ue_map_t& ues_)
+  {
+    pdcch_slot = pdcch_slot_;
+    slot_ues   = &ues_;
+  }
 
   alloc_result alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs);
   alloc_result alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                   uint32_t                                aggr_idx,
                                   prb_interval                            interv,
-                                  slot_ue_map_t&                          ues,
                                   srsran::const_span<dl_sched_rar_info_t> pending_rars);
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
   alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
@@ -106,7 +109,8 @@ private:
   srslog::basic_logger& logger;
   bwp_res_grid&         bwp_grid;
 
-  slot_point pdcch_slot;
+  slot_point     pdcch_slot;
+  slot_ue_map_t* slot_ues;
 };
 
 } // namespace sched_nr_impl

@@ -91,10 +91,10 @@ void slot_cc_worker::run()
 {
   srsran_assert(running(), "scheduler worker::run() called for non-active worker");
 
-  bwp_alloc.new_slot(slot_rx + TX_ENB_DELAY);
+  bwp_alloc.new_slot(slot_rx + TX_ENB_DELAY, slot_ues);
 
   // Allocate pending RARs
-  cell.bwps[0].ra.run_slot(bwp_alloc, slot_ues);
+  cell.bwps[0].ra.run_slot(bwp_alloc);
 
   // TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
   alloc_dl_ues();

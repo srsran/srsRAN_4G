@@ -84,7 +84,6 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, ui
 alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                                     uint32_t                                aggr_idx,
                                                     prb_interval                            interv,
-                                                    slot_ue_map_t&                          ues,
                                                     srsran::const_span<dl_sched_rar_info_t> pending_rars)
 {
   static const uint32_t msg3_nof_prbs = 3, m = 0;
@@ -148,7 +147,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = msg3_slot.slot_idx();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
-    slot_ue& ue = ues[grant.temp_crnti];
+    slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 
     // Allocate Msg3
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};

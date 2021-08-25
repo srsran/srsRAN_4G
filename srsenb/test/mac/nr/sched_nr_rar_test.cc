@@ -52,8 +52,8 @@ void test_single_prach()
     mac_logger.set_context(pdcch_slot.to_uint());
     slot_ues.clear();
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, 0));
-    alloc.new_slot(pdcch_slot);
-    rasched.run_slot(alloc, slot_ues);
+    alloc.new_slot(pdcch_slot, slot_ues);
+    rasched.run_slot(alloc);
     const bwp_slot_grid* result = &alloc.res_grid()[alloc.get_pdcch_tti()];
     test_pdcch_consistency(result->dl_pdcchs);
     ++pdcch_slot;

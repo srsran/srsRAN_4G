@@ -54,7 +54,7 @@ public:
   explicit ra_sched(const bwp_params& bwp_cfg_);
 
   int  dl_rach_info(const dl_sched_rar_info_t& rar_info);
-  void run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues);
+  void run_slot(bwp_slot_allocator& slot_grid);
   bool empty() const { return pending_rars.empty(); }
 
 private:
@@ -65,10 +65,8 @@ private:
     srsran::bounded_vector<dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant;
   };
 
-  alloc_result allocate_pending_rar(bwp_slot_allocator&  slot_grid,
-                                    const pending_rar_t& rar,
-                                    slot_ue_map_t&       slot_ues,
-                                    uint32_t&            nof_grants_alloc);
+  alloc_result
+  allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc);
 
   const bwp_params*     bwp_cfg = nullptr;
   srslog::basic_logger& logger;
