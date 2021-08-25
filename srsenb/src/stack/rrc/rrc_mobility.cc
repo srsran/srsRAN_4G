@@ -494,12 +494,24 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   mob_info.target_pci            = target_cell.cell_cfg.pci;
   mob_info.t304                  = target_cell.cell_cfg.t304;
   mob_info.new_ue_id.from_number(rrc_ue->rnti);
-  mob_info.rr_cfg_common.pusch_cfg_common       = target_cell.sib2.rr_cfg_common.pusch_cfg_common;
-  mob_info.rr_cfg_common.prach_cfg.root_seq_idx = target_cell.sib2.rr_cfg_common.prach_cfg.root_seq_idx;
-  mob_info.rr_cfg_common.ul_cp_len              = target_cell.sib2.rr_cfg_common.ul_cp_len;
-  mob_info.rr_cfg_common.p_max_present          = true;
-  mob_info.rr_cfg_common.p_max                  = rrc_enb->cfg.sib1.p_max;
-  mob_info.carrier_freq_present                 = false; // same frequency handover for now
+
+  mob_info.rr_cfg_common.rach_cfg_common_present    = true;
+  mob_info.rr_cfg_common.rach_cfg_common            = target_cell.sib2.rr_cfg_common.rach_cfg_common;
+  mob_info.rr_cfg_common.prach_cfg.root_seq_idx     = target_cell.sib2.rr_cfg_common.prach_cfg.root_seq_idx;
+  mob_info.rr_cfg_common.pdsch_cfg_common_present   = true;
+  mob_info.rr_cfg_common.pdsch_cfg_common           = target_cell.sib2.rr_cfg_common.pdsch_cfg_common;
+  mob_info.rr_cfg_common.pusch_cfg_common           = target_cell.sib2.rr_cfg_common.pusch_cfg_common;
+  mob_info.rr_cfg_common.pucch_cfg_common_present   = true;
+  mob_info.rr_cfg_common.pucch_cfg_common           = target_cell.sib2.rr_cfg_common.pucch_cfg_common;
+  mob_info.rr_cfg_common.srs_ul_cfg_common_present  = true;
+  mob_info.rr_cfg_common.srs_ul_cfg_common          = target_cell.sib2.rr_cfg_common.srs_ul_cfg_common;
+  mob_info.rr_cfg_common.ul_pwr_ctrl_common_present = true;
+  mob_info.rr_cfg_common.ul_pwr_ctrl_common         = target_cell.sib2.rr_cfg_common.ul_pwr_ctrl_common;
+  mob_info.rr_cfg_common.p_max_present              = true;
+  mob_info.rr_cfg_common.p_max                      = rrc_enb->cfg.sib1.p_max;
+  mob_info.rr_cfg_common.ul_cp_len                  = target_cell.sib2.rr_cfg_common.ul_cp_len;
+
+  mob_info.carrier_freq_present                   = false; // same frequency handover for now
   asn1::number_to_enum(mob_info.carrier_bw.dl_bw, target_cell.mib.dl_bw.to_number());
   if (target_cell.cell_cfg.dl_earfcn != src_dl_earfcn) {
     mob_info.carrier_freq_present         = true;
