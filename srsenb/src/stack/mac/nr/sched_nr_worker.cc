@@ -129,66 +129,6 @@ void slot_cc_worker::alloc_ul_ues()
   cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
 }
 
-void slot_cc_worker::log_result() const
-{
-  const bwp_slot_grid& bwp_slot = cell.bwps[0].grid[slot_rx + TX_ENB_DELAY];
-  for (const pdcch_dl_t& pdcch : bwp_slot.dl_pdcchs) {
-    fmt::memory_buffer fmtbuf;
-    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
-      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
-      fmt::format_to(
-          fmtbuf,
-          "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, dai={}, tbs={}, tti_pdsch={}, tti_ack={}",
-          ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
-          cell.cfg.cc,
-          ue.rnti,
-          pdcch.dci.pid,
-          srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-          ue.h_dl->nof_retx(),
-          pdcch.dci.dai,
-          ue.h_dl->tbs(),
-          ue.pdsch_slot,
-          ue.uci_slot);
-    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
-      fmt::format_to(fmtbuf, "SCHED: DL RAR, cc={}, ra-rnti=0x{:x}", cell.cfg.cc, pdcch.dci.ctx.rnti);
-    } else {
-      fmt::format_to(fmtbuf, "SCHED: unknown format");
-    }
-
-    logger.info("%s", srsran::to_c_str(fmtbuf));
-  }
-  for (const pdcch_ul_t& pdcch : bwp_slot.ul_pdcchs) {
-    fmt::memory_buffer fmtbuf;
-    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
-      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
-      fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, tbs={}, tti_pusch={}",
-                     ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
-                     cell.cfg.cc,
-                     ue.rnti,
-                     pdcch.dci.pid,
-                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-                     ue.h_dl->nof_retx(),
-                     ue.h_ul->tbs(),
-                     ue.pusch_slot);
-    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
-      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
-      fmt::format_to(fmtbuf,
-                     "SCHED: UL Msg3, cc={}, tc-rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}",
-                     cell.cfg.cc,
-                     ue.rnti,
-                     pdcch.dci.pid,
-                     ue.h_dl->nof_retx(),
-                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-                     ue.pusch_slot);
-    } else {
-      fmt::format_to(fmtbuf, "SCHED: unknown rnti format");
-    }
-
-    logger.info("%s", srsran::to_c_str(fmtbuf));
-  }
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 sched_worker_manager::sched_worker_manager(ue_map_t&                                         ue_db_,

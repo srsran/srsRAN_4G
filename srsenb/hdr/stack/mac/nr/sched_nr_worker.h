@@ -53,7 +53,6 @@ private:
 
   void alloc_dl_ues();
   void alloc_ul_ues();
-  void log_result() const;
 
   const sched_cell_params& cfg;
   serv_cell_manager&       cell;

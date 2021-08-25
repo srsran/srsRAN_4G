@@ -179,9 +179,9 @@ void sched_nr_cfg_parallel_cc_test()
 int main()
 {
   auto& test_logger = srslog::fetch_basic_logger("TEST");
-  test_logger.set_level(srslog::basic_levels::warning);
+  test_logger.set_level(srslog::basic_levels::info);
   auto& mac_logger = srslog::fetch_basic_logger("MAC");
-  mac_logger.set_level(srslog::basic_levels::warning);
+  mac_logger.set_level(srslog::basic_levels::info);
   auto& pool_logger = srslog::fetch_basic_logger("POOL");
   pool_logger.set_level(srslog::basic_levels::info);
 

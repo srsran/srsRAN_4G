@@ -49,6 +49,10 @@ void test_bwp_prb_grant()
   TESTASSERT(grant.is_alloc_type0() and grant.rbgs().count() == 1);
   grant = grant2;
   TESTASSERT(grant.is_alloc_type1() and grant.prbs().length() == 3);
+
+  // TEST: formatting
+  TESTASSERT_EQ("[2, 5)", fmt::format("{}", grant2));
+  TESTASSERT_EQ("0x10000", fmt::format("0x{:x}", grant3));
 }
 
 void test_bwp_rb_bitmap()

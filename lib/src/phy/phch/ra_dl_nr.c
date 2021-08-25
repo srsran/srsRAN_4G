@@ -340,3 +340,4 @@ uint32_t srsran_ra_nr_type1_riv(uint32_t N_prb, uint32_t start_rb, uint32_t leng
 {
   return srsran_sliv_from_s_and_l(N_prb, start_rb, length_rb);
 }
+
