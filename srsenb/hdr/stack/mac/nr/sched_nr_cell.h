@@ -53,8 +53,13 @@ class ra_sched
 public:
   explicit ra_sched(const bwp_params& bwp_cfg_);
 
-  int  dl_rach_info(const dl_sched_rar_info_t& rar_info);
+  /// Addition of detected PRACH into the queue
+  int dl_rach_info(const dl_sched_rar_info_t& rar_info);
+
+  /// Allocate pending RARs
   void run_slot(bwp_slot_allocator& slot_grid);
+
+  /// Check if there are pending RARs
   bool empty() const { return pending_rars.empty(); }
 
 private:

@@ -24,10 +24,10 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
+mac_nr::mac_nr(srsran::task_sched_handle task_sched_, const sched_nr_interface::sched_cfg_t& sched_cfg) :
   logger(srslog::fetch_basic_logger("MAC-NR")),
   task_sched(task_sched_),
-  sched(srsenb::sched_nr_interface::sched_cfg_t{}),
+  sched(sched_cfg),
   bcch_bch_payload(srsran::make_byte_buffer())
 {
   stack_task_queue = task_sched.make_task_queue();
@@ -56,12 +56,6 @@ int mac_nr::init(const mac_nr_args_t&    args_,
     pcap->open(args.pcap.filename);
   }
 
-  // configure scheduler for 1 carrier
-  std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1);
-  sched.cell_cfg(cells_cfg);
-
-  detected_rachs.resize(cells_cfg.size());
-
   logger.info("Started");
 
   started = true;
@@ -82,16 +76,19 @@ void mac_nr::stop()
 
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics) {}
 
-int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
+int mac_nr::cell_cfg(const sched_interface::cell_cfg_t&                 cell,
+                     srsran::const_span<sched_nr_interface::cell_cfg_t> nr_cells)
 {
-  cfg = *cell_cfg;
+  cfg = cell;
+  sched.cell_cfg(nr_cells);
+  detected_rachs.resize(nr_cells.size());
 
   // read SIBs from RRC (SIB1 for now only)
   for (int i = 0; i < 1 /* srsenb::sched_interface::MAX_SIBS */; i++) {
-    if (cell_cfg->sibs->len > 0) {
+    if (cell.sibs->len > 0) {
       sib_info_t sib  = {};
       sib.index       = i;
-      sib.periodicity = cell_cfg->sibs->period_rf;
+      sib.periodicity = cell.sibs->period_rf;
       sib.payload     = srsran::make_byte_buffer();
       if (sib.payload == nullptr) {
         logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -109,6 +106,34 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
   return SRSRAN_SUCCESS;
 }
 
+int mac_nr::ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg)
+{
+  sched.ue_cfg(rnti, ue_cfg);
+  return SRSRAN_SUCCESS;
+}
+
+uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
+{
+  uint16_t rnti = alloc_ue(enb_cc_idx);
+  if (rnti == SRSRAN_INVALID_RNTI) {
+    return rnti;
+  }
+
+  // Add new user to the scheduler so that it can RX/TX SRB0
+  srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
+  ue_cfg.fixed_dl_mcs                         = args.fixed_dl_mcs;
+  ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
+  sched.ue_cfg(rnti, ue_cfg);
+
+  // Register new user in RRC
+  if (rrc->add_user(rnti) == SRSRAN_ERROR) {
+    // ue_rem(rnti);
+    return SRSRAN_SUCCESS;
+  }
+
+  return rnti;
+}
+
 void mac_nr::rach_detected(const rach_info_t& rach_info)
 {
   static srsran::mutexed_tprof<srsran::avg_time_stats> rach_tprof("rach_tprof", "MAC-NR", 1);
@@ -117,12 +142,8 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
 
   uint32_t enb_cc_idx = 0;
   stack_task_queue.push([this, rach_info, enb_cc_idx, rach_tprof_meas]() mutable {
-    uint16_t rnti = add_ue(enb_cc_idx);
-    if (rnti == SRSRAN_INVALID_RNTI) {
-      return;
-    }
-
     rach_tprof_meas.defer_stop();
+    uint16_t rnti = reserve_rnti(enb_cc_idx);
 
     // TODO: Generate RAR data
     // ..
@@ -130,25 +151,14 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     // Log this event.
     ++detected_rachs[enb_cc_idx];
 
-    // Add new user to the scheduler so that it can RX/TX SRB0
-    srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
-    ue_cfg.fixed_dl_mcs                         = args.fixed_dl_mcs;
-    ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
-    sched.ue_cfg(rnti, ue_cfg);
-
-    // Register new user in RRC
-    if (rrc->add_user(rnti) == SRSRAN_ERROR) {
-      // ue_rem(rnti);
-      return;
-    }
-
     // Trigger scheduler RACH
     srsenb::sched_nr_interface::dl_sched_rar_info_t rar_info = {};
     rar_info.preamble_idx                                    = rach_info.preamble;
     rar_info.temp_crnti                                      = rnti;
+    rar_info.ta_cmd                                          = rach_info.time_adv;
     rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
-    // sched.dl_rach_info(enb_cc_idx, rar_info);
+    sched.dl_rach_info(enb_cc_idx, rar_info);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,
@@ -165,7 +175,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
   });
 }
 
-uint16_t mac_nr::add_ue(uint32_t enb_cc_idx)
+uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 {
   ue_nr*   inserted_ue = nullptr;
   uint16_t rnti        = SRSRAN_INVALID_RNTI;
@@ -214,16 +224,6 @@ int mac_nr::remove_ue(uint16_t rnti)
   }
 
   return SRSRAN_SUCCESS;
-}
-
-uint16_t mac_nr::reserve_rnti()
-{
-  uint16_t rnti = add_ue(0);
-  if (rnti == SRSRAN_INVALID_RNTI) {
-    return rnti;
-  }
-
-  return rnti;
 }
 
 bool mac_nr::is_rnti_valid_unsafe(uint16_t rnti)

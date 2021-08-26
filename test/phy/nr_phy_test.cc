@@ -115,8 +115,9 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   ue_stack.rnti = rnti;
 
-  gnb_stack.rnti    = rnti;
-  gnb_stack.phy_cfg = phy_cfg;
+  gnb_stack.rnti          = rnti;
+  gnb_stack.phy_cfg       = phy_cfg;
+  gnb_stack.wait_preamble = ue_stack.prach_preamble > 0;
 
   if (gnb_stack.pdsch.rb_length == 0) {
     gnb_stack.pdsch.rb_length = phy_cfg.carrier.nof_prb;
@@ -271,8 +272,8 @@ int main(int argc, char** argv)
   }
 
   // Assert metrics
-  TESTASSERT(metrics.gnb_stack.mac.tx_errors == 0);
-  TESTASSERT(metrics.gnb_stack.mac.rx_errors == 0);
+  TESTASSERT_EQ(0, metrics.gnb_stack.mac.tx_errors);
+  TESTASSERT_EQ(0, metrics.gnb_stack.mac.rx_errors);
   TESTASSERT(metrics.ue_stack.sr_count == metrics.gnb_stack.sr_count);
 
   // If reached here, the test is successful

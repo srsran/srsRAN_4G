@@ -23,21 +23,21 @@
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_mac_interfaces.h"
 
 namespace srsenb {
 
 struct mac_nr_args_t {
   srsran::phy_cfg_nr_t phy_base_cfg = {};
-  int                 fixed_dl_mcs = -1;
-  int                 fixed_ul_mcs = -1;
-  srsenb::pcap_args_t pcap;
+  int                  fixed_dl_mcs = -1;
+  int                  fixed_ul_mcs = -1;
+  srsenb::pcap_args_t  pcap;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
 public:
-  mac_nr(srsran::task_sched_handle task_sched_);
+  mac_nr(srsran::task_sched_handle task_sched_, const srsenb::sched_nr_interface::sched_cfg_t& sched_cfg = {});
   ~mac_nr();
 
   int  init(const mac_nr_args_t&    args_,
@@ -50,9 +50,11 @@ public:
   void get_metrics(srsenb::mac_metrics_t& metrics);
 
   // MAC interface for RRC
-  int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg) override;
-  uint16_t reserve_rnti() override;
-  int read_pdu_bcch_bch(uint8_t* payload);
+  int      cell_cfg(const sched_interface::cell_cfg_t&                 cell,
+                    srsran::const_span<sched_nr_interface::cell_cfg_t> nr_cells) override;
+  uint16_t reserve_rnti(uint32_t enb_cc_idx) override;
+  int      read_pdu_bcch_bch(uint8_t* payload);
+  int      ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override;
 
   // MAC interface for RLC
   // TODO:
@@ -68,7 +70,8 @@ public:
   void rach_detected(const rach_info_t& rach_info) override;
 
 private:
-  uint16_t add_ue(uint32_t enb_cc_idx);
+  uint16_t add_ue_(uint32_t enb_cc_idx);
+  uint16_t alloc_ue(uint32_t enb_cc_idx);
   int      remove_ue(uint16_t rnti);
 
   // internal misc helpers
@@ -91,7 +94,7 @@ private:
   rrc_interface_mac_nr*   rrc   = nullptr;
 
   // args
-  srsran::task_sched_handle task_sched;
+  srsran::task_sched_handle             task_sched;
   srsran::task_multiqueue::queue_handle stack_task_queue;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
@@ -100,17 +103,17 @@ private:
 
   std::atomic<bool> started = {false};
 
-  const static uint32_t NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
+  const static uint32_t               NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
   srsran::slot_point                  pdsch_slot, pusch_slot;
   srsenb::sched_nr                    sched;
   srsenb::sched_interface::cell_cfg_t cfg = {};
 
   // Map of active UEs
-  pthread_rwlock_t                    rwlock     = {};
-  static const uint16_t               FIRST_RNTI = 0x4601;
+  pthread_rwlock_t                                                              rwlock     = {};
+  static const uint16_t                                                         FIRST_RNTI = 0x4601;
   srsran::static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES> ue_db;
 
-  std::atomic<uint16_t>               ue_counter;
+  std::atomic<uint16_t> ue_counter;
 
   // BCH buffers
   struct sib_info_t {

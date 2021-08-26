@@ -12,6 +12,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
@@ -210,23 +211,25 @@ void rrc_nr::config_phy()
 void rrc_nr::config_mac()
 {
   // Fill MAC scheduler configuration for SIBs
-  srsenb::sched_interface::cell_cfg_t sched_cfg;
-  set_sched_cell_cfg_sib1(&sched_cfg, cfg.sib1);
+  // TODO: use parsed cell NR cfg configuration
+  std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
+  sched_interface::cell_cfg_t                         cell_cfg;
+  set_sched_cell_cfg_sib1(&cell_cfg, cfg.sib1);
 
   // set SIB length
   for (uint32_t i = 0; i < nof_si_messages + 1; i++) {
-    sched_cfg.sibs[i].len = sib_buffer[i]->N_bytes;
+    cell_cfg.sibs[i].len = sib_buffer[i]->N_bytes;
   }
 
   // PUCCH width
-  sched_cfg.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
-  logger.info("Allocating %d PRBs for PUCCH", sched_cfg.nrb_pucch);
+  cell_cfg.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+  logger.info("Allocating %d PRBs for PUCCH", cell_cfg.nrb_pucch);
 
   // Copy Cell configuration
-  sched_cfg.cell = cfg.cell;
+  cell_cfg.cell = cfg.cell;
 
   // Configure MAC scheduler
-  mac->cell_cfg(&sched_cfg);
+  mac->cell_cfg(cell_cfg, sched_cells_cfg);
 }
 
 int32_t rrc_nr::generate_sibs()
@@ -405,7 +408,7 @@ int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti)
 {
   task_sched.defer_task([this, eutra_rnti]() {
     // try to allocate new user
-    uint16_t nr_rnti = mac->reserve_rnti();
+    uint16_t nr_rnti = mac->reserve_rnti(0);
     if (nr_rnti == SRSRAN_INVALID_RNTI) {
       logger.error("Failed to allocate RNTI at MAC");
       rrc_eutra->sgnb_addition_reject(eutra_rnti);

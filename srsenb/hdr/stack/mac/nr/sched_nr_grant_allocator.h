@@ -44,15 +44,16 @@ struct bwp_slot_grid {
   uint32_t          slot_idx;
   const bwp_params* cfg;
 
-  bwp_rb_bitmap     dl_prbs;
-  bwp_rb_bitmap     ul_prbs;
-  pdcch_dl_list_t   dl_pdcchs;
-  pdcch_ul_list_t   ul_pdcchs;
-  pdsch_list_t      pdschs;
-  rar_list_t        rar;
-  slot_coreset_list coresets;
-  pusch_list_t      puschs;
-  harq_ack_list_t   pending_acks;
+  bwp_rb_bitmap          dl_prbs;
+  bwp_rb_bitmap          ul_prbs;
+  pdcch_dl_list_t        dl_pdcchs;
+  pdcch_ul_list_t        ul_pdcchs;
+  pdsch_list_t           pdschs;
+  rar_list_t             rar;
+  slot_coreset_list      coresets;
+  pusch_list_t           puschs;
+  harq_ack_list_t        pending_acks;
+  srsran_softbuffer_tx_t rar_softbuffer;
 
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);

@@ -91,7 +91,7 @@ public:
     uint32_t   freq_idx;
     uint32_t   ta_cmd;
     uint16_t   temp_crnti;
-    uint32_t   msg3_size;
+    uint32_t   msg3_size = 7;
     slot_point prach_slot;
   };
 

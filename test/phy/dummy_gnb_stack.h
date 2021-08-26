@@ -15,7 +15,10 @@
 
 #include "dummy_rx_harq_proc.h"
 #include "dummy_tx_harq_proc.h"
+#include "srsenb/hdr/stack/mac/mac_nr.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/test/common/dummy_classes_nr.h"
+#include "srsenb/test/common/rlc_test_dummy.h"
 #include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include <mutex>
 #include <set>
@@ -73,9 +76,12 @@ private:
   srsran::phy_cfg_nr_t                                    phy_cfg = {};
   bool                                                    valid   = false;
 
-  std::unique_ptr<srsenb::sched_nr> sched;
-  srsran::slot_point                pdsch_slot, pusch_slot;
-  srslog::basic_logger&             sched_logger;
+  srsran::task_scheduler          task_sched;
+  srsenb::rrc_nr_dummy            rrc_obj;
+  srsenb::rlc_dummy               rlc_obj;
+  std::unique_ptr<srsenb::mac_nr> mac;
+  srsran::slot_point              pdsch_slot, pusch_slot;
+  srslog::basic_logger&           sched_logger;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -291,8 +297,6 @@ private:
         metrics.mac.tx_errors += tb_count;
         logger.debug("NACK received!");
       }
-
-      sched->dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
     }
 
     // Process SR
@@ -305,13 +309,14 @@ private:
 
 public:
   struct args_t {
-    srsran::phy_cfg_nr_t phy_cfg;                          ///< Physical layer configuration
-    bool                 use_dummy_sched         = true;   ///< Use dummy or real NR scheduler
-    uint16_t             rnti                    = 0x1234; ///< C-RNTI
-    uint32_t             ss_id                   = 1;      ///< Search Space identifier
-    uint32_t             pdcch_aggregation_level = 0;      ///< PDCCH aggregation level
-    uint32_t             pdcch_dl_candidate      = 0;      ///< PDCCH DL DCI candidate index
-    uint32_t             pdcch_ul_candidate      = 1;      ///< PDCCH UL DCI candidate index
+    srsran::phy_cfg_nr_t phy_cfg;                ///< Physical layer configuration
+    bool                 use_dummy_sched = true; ///< Use dummy or real NR scheduler
+    bool     wait_preamble           = false;  ///< Whether a UE is created automatically or the stack waits for a PRACH
+    uint16_t rnti                    = 0x1234; ///< C-RNTI
+    uint32_t ss_id                   = 1;      ///< Search Space identifier
+    uint32_t pdcch_aggregation_level = 0;      ///< PDCCH aggregation level
+    uint32_t pdcch_dl_candidate      = 0;      ///< PDCCH DL DCI candidate index
+    uint32_t pdcch_ul_candidate      = 1;      ///< PDCCH UL DCI candidate index
     struct {
       uint32_t    rb_start  = 0;  ///< Start frequency domain resource block
       uint32_t    rb_length = 10; ///< Number of frequency domain resource blocks
@@ -335,15 +340,20 @@ public:
     srsenb::sched_nr_interface::sched_cfg_t sched_cfg{};
     sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
     sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
-    sched.reset(new srsenb::sched_nr{sched_cfg});
+    mac.reset(new srsenb::mac_nr{&task_sched, sched_cfg});
+    mac->init(srsenb::mac_nr_args_t{}, nullptr, nullptr, &rlc_obj, &rrc_obj);
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
-    sched->cell_cfg(cells_cfg);
+    mac->cell_cfg(srsenb::sched_interface::cell_cfg_t{}, cells_cfg);
 
     // add UE to scheduler
-    srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-    ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
-    ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
-    sched->ue_cfg(args.rnti, ue_cfg);
+    if (not use_dummy_sched and not args.wait_preamble) {
+      mac->reserve_rnti(0);
+
+      srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
+      ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
+      ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
+      mac->ue_cfg(args.rnti, ue_cfg);
+    }
 
     dl.mcs = args.pdsch.mcs;
     ul.mcs = args.pusch.mcs;
@@ -417,9 +427,7 @@ public:
     }
 
     if (not use_dummy_sched) {
-      srsenb::sched_nr_interface::dl_sched_res_t dl_res;
-      int                                        ret = sched->get_dl_sched(pdsch_slot, 0, dl_res);
-      dl_sched                                       = dl_res.dl_sched;
+      int ret = mac->get_dl_sched(slot_cfg, dl_sched);
 
       for (pdsch_t& pdsch : dl_sched.pdsch) {
         // Set TBS
@@ -465,7 +473,7 @@ public:
     }
 
     if (not use_dummy_sched) {
-      int ret = sched->get_ul_sched(pusch_slot, 0, ul_sched);
+      int ret = mac->get_ul_sched(slot_cfg, ul_sched);
 
       return ret;
     }
@@ -541,22 +549,12 @@ public:
     return SRSRAN_SUCCESS;
   }
 
-  void dl_ack_info(uint16_t rnti_, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
-  {
-    if (not use_dummy_sched) {
-      sched->dl_ack_info(rnti_, cc, pid, tb_idx, ack);
-    }
-  }
-
-  void ul_crc_info(uint16_t rnti_, uint32_t cc, uint32_t pid, bool crc)
-  {
-    if (not use_dummy_sched) {
-      sched->ul_crc_info(rnti_, cc, pid, crc);
-    }
-  }
-
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
   {
+    if (not use_dummy_sched) {
+      mac->pucch_info(slot_cfg, pucch_info);
+    }
+
     // Handle UCI data
     if (not handle_uci_data(pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
       logger.error("Error handling UCI data from PUCCH reception");
@@ -588,6 +586,10 @@ public:
 
   int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
   {
+    if (not use_dummy_sched) {
+      mac->pusch_info(slot_cfg, pusch_info);
+    }
+
     // Handle UCI data
     if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
       logger.error("Error handling UCI data from PUCCH reception");
@@ -602,23 +604,19 @@ public:
     metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
     metrics.mac.rx_pkts++;
 
-    ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
-
     return SRSRAN_SUCCESS;
   }
 
   void rach_detected(const rach_info_t& rach_info) override
   {
     if (not use_dummy_sched) {
-      srsenb::sched_nr_interface::dl_sched_rar_info_t ra_info;
-      ra_info.preamble_idx    = rach_info.preamble;
-      ra_info.ta_cmd          = rach_info.time_adv;
-      ra_info.ofdm_symbol_idx = 0;
-      ra_info.msg3_size       = 7;
-      ra_info.freq_idx        = 0;
-      ra_info.prach_slot      = pdsch_slot - TX_ENB_DELAY;
-      ra_info.temp_crnti      = rnti;
-      sched->dl_rach_info(0, ra_info);
+      mac->rach_detected(rach_info);
+      task_sched.run_pending_tasks();
+
+      srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
+      ue_cfg.fixed_dl_mcs                         = ue_cfg.fixed_dl_mcs;
+      ue_cfg.fixed_ul_mcs                         = ue_cfg.fixed_ul_mcs;
+      mac->ue_cfg(rnti, ue_cfg);
     }
 
     std::unique_lock<std::mutex> lock(metrics_mutex);
