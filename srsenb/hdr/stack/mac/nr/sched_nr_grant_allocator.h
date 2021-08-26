@@ -32,6 +32,7 @@ using slot_coreset_list                 = std::array<srsran::optional<coreset_re
 
 using pdsch_t      = mac_interface_phy_nr::pdsch_t;
 using pdsch_list_t = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
+using rar_list_t   = sched_nr_interface::sched_rar_list_t;
 
 struct harq_ack_t {
   const srsran::phy_cfg_nr_t* phy_cfg;
@@ -48,6 +49,7 @@ struct bwp_slot_grid {
   pdcch_dl_list_t   dl_pdcchs;
   pdcch_ul_list_t   ul_pdcchs;
   pdsch_list_t      pdschs;
+  rar_list_t        rar;
   slot_coreset_list coresets;
   pusch_list_t      puschs;
   harq_ack_list_t   pending_acks;

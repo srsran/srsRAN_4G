@@ -47,12 +47,14 @@ struct task_job_manager {
     }
     sl.count = nof_sectors;
   }
-  void finish_cc(slot_point slot, const dl_sched_t& dl_res, const sched_nr_interface::ul_sched_t& ul_res)
+  void finish_cc(slot_point                                slot,
+                 const sched_nr_interface::dl_sched_res_t& dl_res,
+                 const sched_nr_interface::ul_sched_t&     ul_res)
   {
     std::unique_lock<std::mutex> lock(mutex);
-    TESTASSERT(dl_res.pdcch_dl.size() <= 1);
+    TESTASSERT(dl_res.dl_sched.pdcch_dl.size() <= 1);
     res_count++;
-    pdsch_count += dl_res.pdcch_dl.size();
+    pdsch_count += dl_res.dl_sched.pdcch_dl.size();
     auto& sl = slot_counter[slot.to_uint() % slot_counter.size()];
     if (--sl.count == 0) {
       sl.cvar.notify_one();
@@ -97,9 +99,9 @@ void sched_nr_cfg_serialized_test()
     tasks.start_slot(slot_rx, nof_sectors);
     sched_tester.new_slot(slot_tx);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
-      sched_nr_interface::dl_sched_t dl_res;
-      sched_nr_interface::ul_sched_t ul_res;
-      auto                           tp1 = std::chrono::steady_clock::now();
+      sched_nr_interface::dl_sched_res_t dl_res;
+      sched_nr_interface::ul_sched_t     ul_res;
+      auto                               tp1 = std::chrono::steady_clock::now();
       TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
       TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
       auto tp2 = std::chrono::steady_clock::now();
@@ -107,7 +109,8 @@ void sched_nr_cfg_serialized_test()
       sched_nr_cc_output_res_t out{slot_tx, cc, &dl_res, &ul_res};
       sched_tester.update(out);
       tasks.finish_cc(slot_rx, dl_res, ul_res);
-      TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (slot_tx).slot_idx()) or dl_res.pdcch_dl.size() == 1);
+      TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (slot_tx).slot_idx()) or
+                 dl_res.dl_sched.pdcch_dl.size() == 1);
     }
   }
 
@@ -146,9 +149,9 @@ void sched_nr_cfg_parallel_cc_test()
     sched_tester.new_slot(slot_tx);
     for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
       srsran::get_background_workers().push_task([cc, slot_tx, &tasks, &sched_tester, &nano_count]() {
-        sched_nr_interface::dl_sched_t dl_res;
-        sched_nr_interface::ul_sched_t ul_res;
-        auto                           tp1 = std::chrono::steady_clock::now();
+        sched_nr_interface::dl_sched_res_t dl_res;
+        sched_nr_interface::ul_sched_t     ul_res;
+        auto                               tp1 = std::chrono::steady_clock::now();
         TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
         TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
         auto tp2 = std::chrono::steady_clock::now();

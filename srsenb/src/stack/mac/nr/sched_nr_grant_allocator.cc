@@ -153,6 +153,8 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   const int mcs = 0, max_harq_msg3_retx = 4;
   int       dai = 0;
   slot_cfg.idx  = msg3_slot.slot_idx();
+  bwp_pdcch_slot.rar.emplace_back();
+  sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 
@@ -165,6 +167,13 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     pdcch_ul_t msg3_pdcch; // dummy PDCCH for retx=0
     fill_dci_msg3(ue, *bwp_grid.cfg, msg3_pdcch.dci);
     msg3_pdcch.dci.time_domain_assigment = dai++;
+
+    // Generate RAR grant
+    rar_out.grants.emplace_back();
+    auto& rar_grant           = rar_out.grants.back();
+    rar_grant.data            = grant;
+    rar_grant.grant.rba       = msg3_pdcch.dci.freq_domain_assigment;
+    rar_grant.grant.trunc_mcs = msg3_pdcch.dci.mcs;
 
     // Generate PUSCH
     bwp_msg3_slot.puschs.emplace_back();

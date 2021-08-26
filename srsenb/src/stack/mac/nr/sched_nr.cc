@@ -34,7 +34,7 @@ public:
     }
   }
 
-  dl_sched_t& add_dl_result(slot_point tti, uint32_t cc)
+  dl_sched_res_t& add_dl_result(slot_point tti, uint32_t cc)
   {
     if (not has_dl_result(tti, cc)) {
       results[tti.to_uint()][cc].slot_dl = tti;
@@ -55,7 +55,7 @@ public:
 
   bool has_ul_result(slot_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].slot_ul == tti; }
 
-  dl_sched_t pop_dl_result(slot_point tti, uint32_t cc)
+  dl_sched_res_t pop_dl_result(slot_point tti, uint32_t cc)
   {
     if (has_dl_result(tti, cc)) {
       results[tti.to_uint()][cc].slot_dl.clear();
@@ -75,10 +75,10 @@ public:
 
 private:
   struct slot_result_t {
-    slot_point slot_dl;
-    slot_point slot_ul;
-    dl_sched_t dl_res;
-    ul_sched_t ul_res;
+    slot_point     slot_dl;
+    slot_point     slot_ul;
+    dl_sched_res_t dl_res;
+    ul_sched_t     ul_res;
   };
 
   srsran::circular_array<std::vector<slot_result_t>, TTIMOD_SZ> results;
@@ -129,8 +129,8 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 int sched_nr::generate_slot_result(slot_point pdcch_tti, uint32_t cc)
 {
   // Copy results to intermediate buffer
-  dl_sched_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
-  ul_sched_t& ul_res = pending_results->add_ul_result(pdcch_tti, cc);
+  dl_sched_res_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
+  ul_sched_t&     ul_res = pending_results->add_ul_result(pdcch_tti, cc);
 
   // Generate {slot_idx,cc} result
   sched_workers->run_slot(pdcch_tti, cc, dl_res, ul_res);
@@ -138,7 +138,7 @@ int sched_nr::generate_slot_result(slot_point pdcch_tti, uint32_t cc)
   return SRSRAN_SUCCESS;
 }
 
-int sched_nr::get_dl_sched(slot_point slot_tx, uint32_t cc, dl_sched_t& result)
+int sched_nr::get_dl_sched(slot_point slot_tx, uint32_t cc, dl_sched_res_t& result)
 {
   if (not pending_results->has_dl_result(slot_tx, cc)) {
     generate_slot_result(slot_tx, cc);

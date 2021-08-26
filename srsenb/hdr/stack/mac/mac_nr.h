@@ -81,6 +81,9 @@ private:
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
+  // Encoding
+  srsran::byte_buffer_t* assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
+
   // Interaction with other components
   phy_interface_stack_nr* phy   = nullptr;
   stack_interface_mac*    stack = nullptr;

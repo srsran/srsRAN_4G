@@ -417,7 +417,9 @@ public:
     }
 
     if (not use_dummy_sched) {
-      int ret = sched->get_dl_sched(pdsch_slot, 0, dl_sched);
+      srsenb::sched_nr_interface::dl_sched_res_t dl_res;
+      int                                        ret = sched->get_dl_sched(pdsch_slot, 0, dl_res);
+      dl_sched                                       = dl_res.dl_sched;
 
       for (pdsch_t& pdsch : dl_sched.pdsch) {
         // Set TBS

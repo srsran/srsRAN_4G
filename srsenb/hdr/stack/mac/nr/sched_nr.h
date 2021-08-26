@@ -47,7 +47,7 @@ public:
   void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc) override;
   void ul_sr_info(slot_point slot_rx, uint16_t rnti) override;
 
-  int get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_sched_t& result) override;
+  int get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_sched_res_t& result) override;
   int get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_sched_t& result) override;
 
 private:

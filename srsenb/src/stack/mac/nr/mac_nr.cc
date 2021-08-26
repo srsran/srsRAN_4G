@@ -265,23 +265,35 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
     pdsch_slot++;
   }
 
-  int ret = sched.get_dl_sched(pdsch_slot, 0, dl_sched);
-  for (pdsch_t& pdsch : dl_sched.pdsch) {
-    for (auto& tb_data : pdsch.data) {
-      if (tb_data != nullptr) {
-        // TODO: exclude retx from packing
-        uint16_t                  rnti = pdsch.sch.grant.rnti;
-        srsran::rwlock_read_guard rw_lock(rwlock);
-        if (not is_rnti_active_unsafe(rnti)) {
-          continue;
-        }
-        ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+  sched_nr_interface::dl_sched_res_t dl_res;
+  int                                ret = sched.get_dl_sched(pdsch_slot, 0, dl_res);
+  if (ret != SRSRAN_SUCCESS) {
+    return ret;
+  }
+  dl_sched = dl_res.dl_sched;
 
-        if (pcap != nullptr) {
-          uint32_t pid = 0; // TODO: get PID from PDCCH struct?
-          pcap->write_dl_crnti_nr(tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg.idx);
+  uint32_t                  rar_count = 0;
+  srsran::rwlock_read_guard rw_lock(rwlock);
+  for (pdsch_t& pdsch : dl_sched.pdsch) {
+    if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
+      uint16_t rnti = pdsch.sch.grant.rnti;
+      if (not is_rnti_active_unsafe(rnti)) {
+        continue;
+      }
+      for (auto& tb_data : pdsch.data) {
+        if (tb_data != nullptr) {
+          // TODO: exclude retx from packing
+          ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+
+          if (pcap != nullptr) {
+            uint32_t pid = 0; // TODO: get PID from PDCCH struct?
+            pcap->write_dl_crnti_nr(tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg.idx);
+          }
         }
       }
+    } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
+      sched_nr_interface::sched_rar_t& rar = dl_res.rar[rar_count++];
+      pdsch.data[0]                        = assemble_rar(rar.grants);
     }
   }
   return SRSRAN_SUCCESS;
@@ -307,11 +319,11 @@ int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
   return SRSRAN_SUCCESS;
 }
 
-bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value)
+bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg_, const srsran_uci_value_nr_t& value)
 {
   // Process HARQ-ACK
-  for (uint32_t i = 0; i < cfg.ack.count; i++) {
-    const srsran_harq_ack_bit_t* ack_bit = &cfg.ack.bits[i];
+  for (uint32_t i = 0; i < cfg_.ack.count; i++) {
+    const srsran_harq_ack_bit_t* ack_bit = &cfg_.ack.bits[i];
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
     sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
   }
@@ -349,6 +361,11 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
   }
 
   return SRSRAN_SUCCESS;
+}
+
+srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants)
+{
+  return nullptr;
 }
 
 } // namespace srsenb

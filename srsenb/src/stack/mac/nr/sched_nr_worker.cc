@@ -155,7 +155,7 @@ void sched_worker_manager::enqueue_cc_event(uint32_t cc, srsran::move_callback<v
   cc_worker_list[cc]->worker.enqueue_cc_event(std::move(ev));
 }
 
-void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
+void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {
   srsran::bounded_vector<std::condition_variable*, SRSRAN_MAX_CARRIERS> waiting_cvars;
   {
@@ -238,19 +238,23 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
     }
   }
 
-  // Copy results to intermediate buffer
+  // Post-process and copy results to intermediate buffer
   save_sched_result(slot_tx, cc, dl_res, ul_res);
 }
 
-bool sched_worker_manager::save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
+bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
+                                             uint32_t        cc,
+                                             dl_sched_res_t& dl_res,
+                                             ul_sched_t&     ul_res)
 {
   // NOTE: Unlocked region
   auto& bwp_slot = cells[cc]->bwps[0].grid[pdcch_slot];
 
-  dl_res.pdcch_dl = bwp_slot.dl_pdcchs;
-  dl_res.pdcch_ul = bwp_slot.ul_pdcchs;
-  dl_res.pdsch    = bwp_slot.pdschs;
-  ul_res.pusch    = bwp_slot.puschs;
+  dl_res.dl_sched.pdcch_dl = bwp_slot.dl_pdcchs;
+  dl_res.dl_sched.pdcch_ul = bwp_slot.ul_pdcchs;
+  dl_res.dl_sched.pdsch    = bwp_slot.pdschs;
+  dl_res.rar               = bwp_slot.rar;
+  ul_res.pusch             = bwp_slot.puschs;
 
   // Group pending HARQ ACKs
   srsran_pdsch_ack_nr_t ack           = {};

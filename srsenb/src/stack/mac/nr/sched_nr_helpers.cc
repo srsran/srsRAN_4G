@@ -117,13 +117,14 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                           const bwp_res_grid&   res_grid,
                           const slot_ue_map_t&  slot_ues)
 {
-  const bwp_slot_grid& bwp_slot = res_grid[pdcch_slot];
+  const bwp_slot_grid& bwp_slot  = res_grid[pdcch_slot];
+  size_t               rar_count = 0;
   for (const pdcch_dl_t& pdcch : bwp_slot.dl_pdcchs) {
     fmt::memory_buffer fmtbuf;
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, grant={}, nrtx={}, dai={}, tbs={}, "
+                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, prbs={}, nrtx={}, dai={}, tbs={}, "
                      "pdsch_slot={}, tti_ack={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
@@ -137,17 +138,19 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      ue.pdsch_slot,
                      ue.uci_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
-      const pdsch_t& pdsch = bwp_slot.pdschs[std::distance(bwp_slot.dl_pdcchs.data(), &pdcch)];
+      const pdsch_t&           pdsch = bwp_slot.pdschs[std::distance(bwp_slot.dl_pdcchs.data(), &pdcch)];
       srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + pdsch.sch.grant.nof_prb};
-      uint32_t start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
+      uint32_t                 start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
       uint32_t end_idx = std::distance(prbs.begin(), std::find(prbs.begin() + start_idx, prbs.end(), false));
       fmt::format_to(fmtbuf,
-                     "SCHED: DL RAR, cc={}, ra-rnti=0x{:x}, grant={}, pdsch_slot={}, msg3_slot={}",
+                     "SCHED: DL RAR, cc={}, ra-rnti=0x{:x}, prbs={}, pdsch_slot={}, msg3_slot={}, nof_grants={}",
                      res_grid.cfg->cc,
                      pdcch.dci.ctx.rnti,
                      srsran::interval<uint32_t>{start_idx, end_idx},
                      pdcch_slot,
-                     pdcch_slot + res_grid.cfg->pusch_ra_list[0].msg3_delay);
+                     pdcch_slot + res_grid.cfg->pusch_ra_list[0].msg3_delay,
+                     bwp_slot.rar[rar_count].grants.size());
+      rar_count++;
     } else {
       fmt::format_to(fmtbuf, "SCHED: unknown format");
     }

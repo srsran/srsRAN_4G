@@ -34,10 +34,10 @@ struct ue_nr_harq_ctxt_t {
   slot_point            last_slot_tx, first_slot_tx, last_slot_ack;
 };
 struct sched_nr_cc_output_res_t {
-  slot_point                            slot;
-  uint32_t                              cc;
-  const sched_nr_interface::dl_sched_t* dl_cc_result;
-  const sched_nr_interface::ul_sched_t* ul_cc_result;
+  slot_point                                slot;
+  uint32_t                                  cc;
+  const sched_nr_interface::dl_sched_res_t* dl_cc_result;
+  const sched_nr_interface::ul_sched_t*     ul_cc_result;
 };
 
 struct ue_nr_cc_ctxt_t {
