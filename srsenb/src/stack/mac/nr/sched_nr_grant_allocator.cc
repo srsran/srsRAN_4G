@@ -21,7 +21,8 @@ bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
-  cfg(&bwp_cfg_)
+  cfg(&bwp_cfg_),
+  rar_softbuffer(harq_softbuffer_pool::get_instance().get_tx(bwp_cfg_.cfg.rb_width))
 {
   for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
     if (cfg->cfg.pdcch.coreset_present[cs_idx]) {
@@ -29,7 +30,6 @@ bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
       coresets[cs_id].emplace(*cfg, cs_id, slot_idx_, dl_pdcchs, ul_pdcchs);
     }
   }
-  srsran_softbuffer_tx_init_guru(&rar_softbuffer, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB);
 }
 
 void bwp_slot_grid::reset()
@@ -148,7 +148,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   slot_cfg.idx = pdcch_slot.slot_idx();
   bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(success, "Error converting DCI to grant");
-  pdsch.sch.grant.tb[0].softbuffer.tx = &bwp_pdcch_slot.rar_softbuffer;
+  pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();
 
   // Generate Msg3 grants in PUSCH
   uint32_t  last_msg3 = msg3_rbs.start();

@@ -53,7 +53,8 @@ struct bwp_slot_grid {
   slot_coreset_list      coresets;
   pusch_list_t           puschs;
   harq_ack_list_t        pending_acks;
-  srsran_softbuffer_tx_t rar_softbuffer;
+
+  srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);
