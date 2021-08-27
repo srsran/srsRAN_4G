@@ -50,7 +50,7 @@ public:
   // A UE should have <= 3 DRBs active, and each DRB should have two tunnels active at the same time at most
   const static size_t MAX_TUNNELS_PER_UE = 6;
 
-  enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from };
+  enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from, inactive };
 
   struct tunnel {
     uint16_t rnti      = SRSRAN_INVALID_RNTI;
@@ -101,13 +101,13 @@ public:
 
   void activate_tunnel(uint32_t teid);
   void suspend_tunnel(uint32_t teid);
+  void deactivate_tunnel(uint32_t teid);
   void set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
   void handle_rx_pdcp_sdu(uint32_t teid);
   void buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
   void setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);
 
   bool remove_tunnel(uint32_t teid);
-  bool remove_bearer(uint16_t rnti, uint32_t lcid);
   bool remove_rnti(uint16_t rnti);
 
 private:

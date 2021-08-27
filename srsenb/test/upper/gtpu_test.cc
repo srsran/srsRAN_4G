@@ -358,6 +358,13 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   }
   srsran::span<uint8_t> encoded_data2{tenb_pdcp.last_sdu->msg + 20u, tenb_pdcp.last_sdu->msg + 30u};
   TESTASSERT(std::all_of(encoded_data2.begin(), encoded_data2.end(), [N_pdus](uint8_t b) { return b == N_pdus - 1; }));
+  if (event != tunnel_test_event::ue_removal_no_marker) {
+    // The User is removed in SeNB in case it hasn't and there was no reestablishment
+    if (std::uniform_int_distribution<uint32_t>{0, 1}(g) > 0) {
+      senb_gtpu.rem_bearer(0x46, 3);
+    }
+    senb_gtpu.rem_user(0x46);
+  }
 
   return SRSRAN_SUCCESS;
 }
