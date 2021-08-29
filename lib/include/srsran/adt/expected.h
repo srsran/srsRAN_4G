@@ -22,7 +22,7 @@
 #ifndef SRSRAN_EXPECTED_H
 #define SRSRAN_EXPECTED_H
 
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <memory>
 #include <system_error>
 

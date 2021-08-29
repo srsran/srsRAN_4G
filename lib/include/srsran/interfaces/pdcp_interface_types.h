@@ -165,6 +165,15 @@ public:
 
   // TODO: Support the following configurations
   // bool do_rohc;
+
+  bool operator==(const pdcp_config_t& other) const
+  {
+    return bearer_id == other.bearer_id and rb_type == other.rb_type and tx_direction == other.tx_direction and
+           rx_direction == other.rx_direction and sn_len == other.sn_len and hdr_len_bytes == other.hdr_len_bytes and
+           t_reordering == other.t_reordering and discard_timer == other.discard_timer and rat == other.rat and
+           status_report_required == other.status_report_required;
+  }
+  bool operator!=(const pdcp_config_t& other) const { return not(*this == other); }
 };
 
 // Specifies in which direction security (integrity and ciphering) are enabled for PDCP

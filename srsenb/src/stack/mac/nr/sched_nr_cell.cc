@@ -26,6 +26,64 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+si_sched::si_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
+
+void si_sched::run_slot(bwp_slot_allocator& slot_alloc)
+{
+  const uint32_t    si_aggr_level = 2;
+  slot_point        pdcch_slot    = slot_alloc.get_pdcch_tti();
+  const prb_bitmap& prbs          = slot_alloc.res_grid()[pdcch_slot].dl_prbs.prbs();
+
+  // Update SI windows
+  uint32_t N = bwp_cfg->slots.size();
+  for (sched_si_t& si : pending_sis) {
+    uint32_t x = (si.n - 1) * si.win_len;
+
+    if (not si.win_start.valid() and (pdcch_slot.sfn() % si.period == x / N) and
+        pdcch_slot.slot_idx() == x % bwp_cfg->slots.size()) {
+      // If start o SI message window
+      si.win_start = pdcch_slot;
+    } else if (si.win_start.valid() and si.win_start + si.win_len >= pdcch_slot) {
+      // If end of SI message window
+      logger.warning(
+          "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
+      si.win_start.clear();
+    }
+  }
+
+  // Schedule pending SIs
+  if (bwp_cfg->slots[pdcch_slot.slot_idx()].is_dl) {
+    for (sched_si_t& si : pending_sis) {
+      if (not si.win_start.valid()) {
+        continue;
+      }
+
+      // TODO: NOTE 2: The UE is not required to monitor PDCCH monitoring occasion(s) corresponding to each transmitted
+      // SSB in SI-window.
+
+      // Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
+      si.result              = alloc_result::invalid_coderate;
+      uint32_t prb_start_idx = 0;
+      for (uint32_t nprbs = 4; nprbs < bwp_cfg->cfg.rb_width and si.result == alloc_result::invalid_coderate; ++nprbs) {
+        prb_interval grant = find_empty_interval_of_length(prbs, nprbs, prb_start_idx);
+        prb_start_idx      = grant.start();
+        if (grant.length() != nprbs) {
+          si.result = alloc_result::no_sch_space;
+          break;
+        }
+        si.result = slot_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant);
+        if (si.result == alloc_result::success) {
+          // SIB scheduled successfully
+          si.win_start.clear();
+          si.n_tx++;
+        }
+      }
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 ra_sched::ra_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
 
 alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
@@ -43,7 +101,7 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
     uint32_t start_prb_idx = 0;
     for (uint32_t nprb = 4; nprb < bwp_cfg->cfg.rb_width and ret == alloc_result::invalid_coderate; ++nprb) {
       prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
-      start_prb_idx       = interv.stop();
+      start_prb_idx       = interv.start();
       if (interv.length() == nprb) {
         ret = slot_grid.alloc_rar_and_msg3(
             rar.ra_rnti, rar_aggr_level, interv, slot_ues, msg3_grants.subspan(0, nof_grants_alloc));
@@ -67,20 +125,8 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 {
   slot_point pdcch_slot = slot_grid.get_pdcch_tti();
   slot_point msg3_slot  = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
-  if (not slot_grid.res_grid()[pdcch_slot].is_dl) {
-    // RAR only allowed if PDCCH is available
-    return;
-  }
-
-  // Mark RAR window start, regardless of whether PUSCH is available
-  for (auto& rar : pending_rars) {
-    if (rar.rar_win.empty()) {
-      rar.rar_win = {pdcch_slot, pdcch_slot + bwp_cfg->cfg.rar_window_size};
-    }
-  }
-
-  if (not slot_grid.res_grid()[msg3_slot].is_ul) {
-    // RAR only allowed if respective Msg3 slot is available for UL
+  if (not bwp_cfg->slots[pdcch_slot.slot_idx()].is_dl or not bwp_cfg->slots[msg3_slot.slot_idx()].is_ul) {
+    // RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
     return;
   }
 
@@ -137,19 +183,20 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 /// See TS 38.321, 5.1.3 - RAP transmission
 int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 {
-  logger.info("SCHED: New PRACH slot=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
-              rar_info.prach_slot.to_uint(),
-              rar_info.preamble_idx,
-              rar_info.temp_crnti,
-              rar_info.ta_cmd,
-              rar_info.msg3_size);
-
   // RA-RNTI = 1 + s_id + 14 × t_id + 14 × 80 × f_id + 14 × 80 × 8 × ul_carrier_id
   // s_id = index of the first OFDM symbol (0 <= s_id < 14)
   // t_id = index of first slot of the PRACH (0 <= t_id < 80)
   // f_id = index of the PRACH in the freq domain (0 <= f_id < 8) (for FDD, f_id=0)
   // ul_carrier_id = 0 for NUL and 1 for SUL carrier
   uint16_t ra_rnti = 1 + rar_info.ofdm_symbol_idx + 14 * rar_info.prach_slot.slot_idx() + 14 * 80 * rar_info.freq_idx;
+
+  logger.info("SCHED: New PRACH slot=%d, preamble=%d, ra-rnti=0x%x, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
+              rar_info.prach_slot.to_uint(),
+              rar_info.preamble_idx,
+              ra_rnti,
+              rar_info.temp_crnti,
+              rar_info.ta_cmd,
+              rar_info.msg3_size);
 
   // find pending rar with same RA-RNTI
   for (pending_rar_t& r : pending_rars) {
@@ -165,8 +212,14 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 
   // create new RAR
   pending_rar_t p;
-  p.ra_rnti    = ra_rnti;
-  p.prach_slot = rar_info.prach_slot;
+  p.ra_rnti                            = ra_rnti;
+  p.prach_slot                         = rar_info.prach_slot;
+  const static uint32_t prach_duration = 1;
+  for (slot_point t = rar_info.prach_slot + prach_duration; t < rar_info.prach_slot + bwp_cfg->slots.size(); ++t) {
+    if (bwp_cfg->slots[t.slot_idx()].is_dl) {
+      p.rar_win = {t, t + bwp_cfg->cfg.rar_window_size};
+    }
+  }
   p.msg3_grant.push_back(rar_info);
   pending_rars.push_back(p);
 

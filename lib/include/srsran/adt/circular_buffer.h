@@ -25,7 +25,7 @@
 #include "srsran/adt/detail/type_storage.h"
 #include "srsran/adt/expected.h"
 #include "srsran/adt/pool/pool_utils.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 #include <array>
 #include <cassert>

@@ -19,9 +19,9 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/utils/vector.h"
+#include "srsran/support/srsran_test.h"
 #include <getopt.h>
 #include <srsran/srsran.h>
 #include <stdlib.h>

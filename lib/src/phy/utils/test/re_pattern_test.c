@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/phy/utils/re_pattern.h"
+#include "srsran/support/srsran_test.h"
 
 int main(int argc, char** argv)
 {

@@ -558,7 +558,7 @@ bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
   if (flags & MSG_NOTIFICATION) {
     // Received notification
     union sctp_notification* notification = (union sctp_notification*)pdu->msg;
-    logger.debug("SCTP Notification %d", notification->sn_header.sn_type);
+    logger.info("SCTP Notification %04x", notification->sn_header.sn_type);
     if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
       logger.info("SCTP Association Shutdown. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);

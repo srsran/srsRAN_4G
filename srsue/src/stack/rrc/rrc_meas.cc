@@ -139,50 +139,6 @@ void rrc::rrc_meas::run_tti()
   meas_cfg.report_triggers();
 }
 
-uint8_t rrc::rrc_meas::value_to_range(const report_cfg_eutra_s::trigger_quant_opts::options quant, const float value)
-{
-  uint8_t range = 0;
-  switch (quant) {
-    case report_cfg_eutra_s::trigger_quant_opts::rsrp:
-      if (value < -140) {
-        range = 0;
-      } else if (value < -44) {
-        range = 1u + (uint8_t)(value + 140);
-      } else {
-        range = 97;
-      }
-      break;
-    case report_cfg_eutra_s::trigger_quant_opts::rsrq:
-      if (value < -19.5) {
-        range = 0;
-      } else if (value < -3) {
-        range = 1u + (uint8_t)(2 * (value + 19.5));
-      } else {
-        range = 34;
-      }
-      break;
-    default:
-      break;
-  }
-  return range;
-}
-
-float rrc::rrc_meas::range_to_value(const report_cfg_eutra_s::trigger_quant_opts::options quant, const uint8_t range)
-{
-  float val = 0;
-  switch (quant) {
-    case report_cfg_eutra_s::trigger_quant_opts::rsrp:
-      val = -140 + (float)range;
-      break;
-    case report_cfg_eutra_s::trigger_quant_opts::rsrq:
-      val = -19.5f + (float)range / 2;
-      break;
-    default:
-      break;
-  }
-  return val;
-}
-
 // For thresholds, the actual value is (field value – 156) dBm, except for field value 127, in which case the actual
 // value is infinity.
 float rrc::rrc_meas::range_to_value_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const uint8_t range)
@@ -312,8 +268,8 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* 
           break;
       }
       rc.pci                     = (uint16_t)cell.pci;
-      rc.meas_result.rsrp_result = value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrp, rsrp_value);
-      rc.meas_result.rsrq_result = value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrq, rsrq_value);
+      rc.meas_result.rsrp_result = rrc_value_to_range(quant_rsrp, rsrp_value);
+      rc.meas_result.rsrq_result = rrc_value_to_range(quant_rsrq, rsrq_value);
 
       logger.info("MEAS:  Adding to report neighbour=%d, pci=%d, earfcn=%d, rsrp=%+.1f, rsrq=%+.1f",
                   neigh_list.size(),
@@ -457,10 +413,8 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
   meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
 
   report->meas_id = (uint8_t)measId;
-  report->meas_result_pcell.rsrp_result =
-      value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrp, serv_cell->get_rsrp());
-  report->meas_result_pcell.rsrq_result =
-      value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrq, serv_cell->get_rsrq());
+  report->meas_result_pcell.rsrp_result = rrc_value_to_range(quant_rsrp, serv_cell->get_rsrp());
+  report->meas_result_pcell.rsrq_result = rrc_value_to_range(quant_rsrq, serv_cell->get_rsrq());
 
   logger.info("MEAS:  Generate report MeasId=%d, Pcell rsrp=%f rsrq=%f",
               report->meas_id,
@@ -814,6 +768,14 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
                                                       float               Ofs,
                                                       float               Ocs)
 {
+  auto asn1_quant_convert = [](report_cfg_eutra_s::trigger_quant_e_ q) {
+    if (q == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+      return quant_rsrp;
+    } else {
+      return quant_rsrq;
+    }
+  };
+
   double hyst = 0.5 * report_cfg.trigger_type.event().hysteresis;
   float  Ms   = is_rsrp(report_cfg.trigger_quant.value) ? serv_cell->get_rsrp() : serv_cell->get_rsrq();
 
@@ -832,17 +794,21 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
       bool  exit_condition  = false;
       if (event_id.type() == eutra_event_s::event_id_c_::types::event_a1) {
         if (event_id.event_a1().a1_thres.type().value == thres_eutra_c::types::thres_rsrp) {
-          thresh = range_to_value(report_cfg.trigger_quant, event_id.event_a1().a1_thres.thres_rsrp());
+          thresh = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant),
+                                      event_id.event_a1().a1_thres.thres_rsrp());
         } else {
-          thresh = range_to_value(report_cfg.trigger_quant, event_id.event_a1().a1_thres.thres_rsrq());
+          thresh = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant),
+                                      event_id.event_a1().a1_thres.thres_rsrq());
         }
         enter_condition = Ms - hyst > thresh;
         exit_condition  = Ms + hyst < thresh;
       } else {
         if (event_id.event_a2().a2_thres.type() == thres_eutra_c::types::thres_rsrp) {
-          thresh = range_to_value(report_cfg.trigger_quant, event_id.event_a2().a2_thres.thres_rsrp());
+          thresh = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant),
+                                      event_id.event_a2().a2_thres.thres_rsrp());
         } else {
-          thresh = range_to_value(report_cfg.trigger_quant, event_id.event_a2().a2_thres.thres_rsrq());
+          thresh = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant),
+                                      event_id.event_a2().a2_thres.thres_rsrq());
         }
         enter_condition = Ms + hyst < thresh;
         exit_condition  = Ms - hyst > thresh;
@@ -893,7 +859,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
             } else {
               range = event_id.event_a4().a4_thres.thres_rsrq();
             }
-            thresh          = range_to_value(report_cfg.trigger_quant.value, range);
+            thresh          = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant.value), range);
             enter_condition = Mn + Ofn + Ocn - hyst > thresh;
             exit_condition  = Mn + Ofn + Ocn + hyst < thresh;
             break;
@@ -908,8 +874,8 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
             } else {
               range2 = event_id.event_a5().a5_thres2.thres_rsrq();
             }
-            th1             = range_to_value(report_cfg.trigger_quant.value, range);
-            th2             = range_to_value(report_cfg.trigger_quant.value, range2);
+            th1             = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant.value), range);
+            th2             = rrc_range_to_value(asn1_quant_convert(report_cfg.trigger_quant.value), range2);
             enter_condition = (Ms + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
             exit_condition  = (Ms - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
             break;
@@ -1479,19 +1445,18 @@ void rrc::rrc_meas::var_meas_cfg::log_debug_trigger_value_eutra(const eutra_even
     switch (e.type()) {
       case eutra_event_s::event_id_c_::types_opts::event_a1:
         logger.debug("MEAS:     A1-threshold=%.1f dBm",
-                     range_to_value(report_cfg_eutra_s::trigger_quant_opts::rsrp, e.event_a1().a1_thres.thres_rsrp()));
+                     rrc_range_to_value(quant_rsrp, e.event_a1().a1_thres.thres_rsrp()));
         break;
       case eutra_event_s::event_id_c_::types_opts::event_a2:
         logger.debug("MEAS:     A2-threshold=%.1f dBm",
-                     range_to_value(report_cfg_eutra_s::trigger_quant_opts::rsrp, e.event_a2().a2_thres.thres_rsrp()));
+                     rrc_range_to_value(quant_rsrp, e.event_a2().a2_thres.thres_rsrp()));
         break;
       case eutra_event_s::event_id_c_::types_opts::event_a3:
-        logger.debug("MEAS:     A3-offset=%.1f dB",
-                     range_to_value(report_cfg_eutra_s::trigger_quant_opts::rsrp, e.event_a3().a3_offset));
+        logger.debug("MEAS:     A3-offset=%.1f dB", rrc_range_to_value(quant_rsrp, e.event_a3().a3_offset));
         break;
       case eutra_event_s::event_id_c_::types_opts::event_a4:
         logger.debug("MEAS:     A4-threshold=%.1f dBm",
-                     range_to_value(report_cfg_eutra_s::trigger_quant_opts::rsrp, e.event_a4().a4_thres.thres_rsrp()));
+                     rrc_range_to_value(quant_rsrp, e.event_a4().a4_thres.thres_rsrp()));
         break;
       default:
         logger.debug("MEAS:     Unsupported");
@@ -1606,7 +1571,7 @@ bool rrc::rrc_meas::var_meas_cfg::parse_meas_config(const meas_cfg_s* cfg, bool 
     // set the parameter s-Measure within VarMeasConfig to the lowest value of the RSRP ranges indicated by the
     // received value of s-Measure
     if (cfg->s_measure) {
-      s_measure_value = range_to_value(report_cfg_eutra_s::trigger_quant_opts::options::rsrp, cfg->s_measure);
+      s_measure_value = rrc_range_to_value(quant_rsrp, cfg->s_measure);
     }
   }
 

@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsran/common/test_common.h"
 #include "srsran/phy/ch_estimation/csi_rs.h"
+#include "srsran/support/srsran_test.h"
 
 static srsran_carrier_nr_t carrier = {};
 

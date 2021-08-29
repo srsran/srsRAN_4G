@@ -23,7 +23,7 @@
 #include "srsenb/hdr/stack/mac/sched_lte_common.h"
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
 #include "srsran/common/common_lte.h"
-#include "srsran/common/test_common.h"
+#include "srsran/support/srsran_test.h"
 
 namespace srsenb {
 
@@ -260,7 +260,7 @@ int test_min_mcs_tbs_specific()
   CONDERROR(result.tbs_bytes * 8 != 120, "Invalid min TBS calculation");
 
   args.req_bytes = 50;
-  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSRAN_SUCCESS);
+  TESTASSERT_SUCCESS(test_min_mcs_tbs_dl_helper(cell_params, args, &result));
   CONDERROR(result.tbs_bytes < (int)args.req_bytes, "Invalid MCS calculation");
   CONDERROR(result.tbs_bytes * 8 != 424, "Invalid min TBS calculation");
 
@@ -273,7 +273,7 @@ int test_min_mcs_tbs_specific()
 
   // Check equality case
   args.req_bytes = 109;
-  TESTASSERT(test_min_mcs_tbs_dl_helper(cell_params, args, &result) == SRSRAN_SUCCESS);
+  TESTASSERT_SUCCESS(test_min_mcs_tbs_dl_helper(cell_params, args, &result));
   CONDERROR(result.tbs_bytes < (int)args.req_bytes, "Invalid MCS calculation");
   CONDERROR(result.tbs_bytes * 8 != 872, "Invalid min TBS calculation");
 
@@ -303,18 +303,18 @@ void test_ul_mcs_tbs_derivation()
   };
 
   cqi = 0;
-  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 0);
-  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 0);
+  TESTASSERT_EQ(0, compute_tbs_mcs(25, 25 - 4).mcs);
+  TESTASSERT_EQ(0, compute_tbs_mcs(50, 50 - 5).mcs);
 
   cqi = 5;
-  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 9);
-  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 9);
+  TESTASSERT_EQ(9, compute_tbs_mcs(25, 25 - 4).mcs);
+  TESTASSERT_EQ(9, compute_tbs_mcs(50, 50 - 5).mcs);
 
   cqi = 15;
-  TESTASSERT(compute_tbs_mcs(25, 25 - 4).mcs == 23);
-  TESTASSERT(compute_tbs_mcs(50, 50 - 5).mcs == 23);
-  TESTASSERT(compute_tbs_mcs(75, 75 - 5).mcs == 24);
-  TESTASSERT(compute_tbs_mcs(100, 100 - 5).mcs == 23);
+  TESTASSERT_EQ(23, compute_tbs_mcs(25, 25 - 4).mcs);
+  TESTASSERT_EQ(23, compute_tbs_mcs(50, 50 - 5).mcs);
+  TESTASSERT_EQ(24, compute_tbs_mcs(75, 75 - 5).mcs);
+  TESTASSERT_EQ(23, compute_tbs_mcs(100, 100 - 5).mcs);
 }
 
 } // namespace srsenb

@@ -64,11 +64,13 @@ public:
     srsran_sch_hl_cfg_nr_t pdsch           = {};
     srsran_sch_hl_cfg_nr_t pusch           = {};
     uint32_t               rar_window_size = 8;
+    uint32_t               numerology_idx  = 0;
   };
 
   struct cell_cfg_t {
     srsran_carrier_nr_t                                          carrier = {};
     srsran_tdd_config_nr_t                                       tdd     = {};
+    srsran::phy_cfg_nr_t::ssb_cfg_t                              ssb     = {};
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
   };
 

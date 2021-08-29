@@ -22,11 +22,11 @@
 #include "srsran/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srsran/common/network_utils.h"
-#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
+#include "srsran/support/srsran_assert.h"
 
 #include <errno.h>
 #include <linux/ip.h>

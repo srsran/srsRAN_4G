@@ -23,7 +23,7 @@
 #define SRSRAN_MOVE_CALLBACK_H
 
 #include "detail/type_storage.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -69,7 +69,7 @@ public:
   constexpr empty_table_t() = default;
   R         call(void* src, Args... args) const final
   {
-    srsran_terminate("ERROR: bad function call (cause: function ptr is empty)");
+    srsran_assertion_failure("bad function call (cause: function ptr is empty)");
   }
   void move(void* src, void* dest) const final {}
   void dtor(void* src) const final {}

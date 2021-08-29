@@ -65,6 +65,12 @@ struct bwp_params {
   uint32_t P;
   uint32_t N_rbg;
 
+  struct slot_cfg {
+    bool is_dl;
+    bool is_ul;
+  };
+  srsran::bounded_vector<slot_cfg, SRSRAN_NOF_SF_X_FRAME> slots;
+
   struct pusch_ra_time_cfg {
     uint32_t msg3_delay; ///< Includes K2 and delta. See TS 36.214 6.1.2.1.1-2/4/5
     uint32_t K;

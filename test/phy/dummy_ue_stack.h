@@ -37,6 +37,7 @@ public:
   };
 
 private:
+  srsran_rnti_type_t             dl_rnti_type   = srsran_rnti_type_c;
   uint16_t                       rnti           = 0;
   bool                           valid          = false;
   uint32_t                       sr_period      = 0;
@@ -81,7 +82,7 @@ public:
     }
   }
   int          sf_indication(const uint32_t tti) override { return 0; }
-  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override { return {rnti, srsran_rnti_type_c}; }
+  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override { return {rnti, dl_rnti_type}; }
   sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) override { return {rnti, srsran_rnti_type_c}; }
   void         new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) override
   {
@@ -98,7 +99,11 @@ public:
     action->tb.payload    = tx_harq_proc[grant.pid].get_tb(grant.tbs);
     action->tb.softbuffer = &tx_harq_proc[grant.pid].get_softbuffer(grant.ndi);
   }
-  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) override {}
+  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) override
+  {
+    dl_rnti_type = srsran_rnti_type_ra;
+    rnti         = 1 + s_id + 14 * t_id + 14 * 80 * f_id + 14 * 80 * 8 * ul_carrier_id;
+  }
   bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx) override
   {
     if (sr_period == 0) {

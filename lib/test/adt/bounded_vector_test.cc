@@ -20,7 +20,7 @@
  */
 
 #include "srsran/adt/bounded_vector.h"
-#include "srsran/common/test_common.h"
+#include "srsran/support/srsran_test.h"
 
 namespace srsran {
 
@@ -61,7 +61,7 @@ struct moveonly {
   moveonly& operator=(moveonly&&) noexcept = default;
 };
 
-int test_ctor()
+void test_ctor()
 {
   // TEST: default ctor
   bounded_vector<int, 10> a;
@@ -97,11 +97,9 @@ int test_ctor()
   bounded_vector<int, 20> a6(std::move(a5));
   TESTASSERT(a6.size() == 7);
   TESTASSERT(a5.size() == 0);
-
-  return SRSRAN_SUCCESS;
 }
 
-int test_obj_add_rem()
+void test_obj_add_rem()
 {
   // TEST: push_back / emplace_back
   bounded_vector<C, 10> a;
@@ -163,11 +161,9 @@ int test_obj_add_rem()
   a2.clear();
   a = std::move(a2);
   TESTASSERT(a.empty() and a2.empty());
-
-  return SRSRAN_SUCCESS;
 }
 
-int test_move_only_type()
+void test_move_only_type()
 {
   bounded_vector<moveonly, 10> a(5);
   TESTASSERT(a.size() == 5);
@@ -184,24 +180,21 @@ int test_move_only_type()
 
   a2.push_back(moveonly());
   TESTASSERT(a2.size() == 7);
-
-  return SRSRAN_SUCCESS;
 }
 
-int assert_dtor_consistency()
+void assert_dtor_consistency()
 {
   TESTASSERT(C::nof_dtor == C::nof_copy_ctor + C::nof_value_ctor + C::nof_move_ctor);
-  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsran
 
 int main()
 {
-  TESTASSERT(srsran::test_ctor() == SRSRAN_SUCCESS);
-  TESTASSERT(srsran::test_obj_add_rem() == SRSRAN_SUCCESS);
-  TESTASSERT(srsran::test_move_only_type() == SRSRAN_SUCCESS);
-  TESTASSERT(srsran::assert_dtor_consistency() == SRSRAN_SUCCESS);
+  srsran::test_ctor();
+  srsran::test_obj_add_rem();
+  srsran::test_move_only_type();
+  srsran::assert_dtor_consistency();
   printf("Success\n");
   return 0;
 }

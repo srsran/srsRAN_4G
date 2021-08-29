@@ -102,8 +102,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 int pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
   if (valid_lcid(lcid)) {
-    logger.error("Bearer %s already configured.", rrc->get_rb_name(lcid));
-    return SRSRAN_ERROR;
+    return pdcp_array[lcid]->configure(cfg) ? SRSRAN_SUCCESS : SRSRAN_ERROR;
   }
 
   std::unique_ptr<pdcp_entity_base> entity;

@@ -1665,6 +1665,9 @@ srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
   rrc_ptr->t304.run();
 
+  // Indicate RLF-Report that a new HO has been received
+  rrc_ptr->var_rlf_report.received_ho_command(rrc_ptr->meas_cells.serving_cell().get_cell_id_bit());
+
   // starting at start synchronising to the DL of the target PCell
   rrc_ptr->set_serving_cell(target_cell, false);
   Info("Starting cell selection of target cell PCI=%d EARFCN=%d", target_cell.pci, target_cell.earfcn);

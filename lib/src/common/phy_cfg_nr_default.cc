@@ -43,7 +43,7 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
 
     // Skip if size is invalid
     if (param.size() != 2) {
-      srsran_terminate("Invalid reference argument '%s'", e.c_str());
+      srsran_assertion_failure("Invalid reference argument '%s'", e.c_str());
     }
 
     if (param.front() == "carrier") {
@@ -68,7 +68,7 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
       }
       srsran_assert(pdsch != R_PDSCH_COUNT, "Invalid PDSCH reference configuration '%s'", param.back().c_str());
     } else {
-      srsran_terminate("Invalid %s reference component", param.front().c_str());
+      srsran_assertion_failure("Invalid %s reference component", param.front().c_str());
     }
   }
 }
@@ -148,6 +148,10 @@ void phy_cfg_nr_default_t::make_pdcch_custom_common_ss(srsran_pdcch_cfg_nr_t& pd
     pdcch.search_space[1].nof_candidates[L] =
         SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&pdcch.coreset[1], L));
   }
+
+  pdcch.ra_search_space_present = true;
+  pdcch.ra_search_space         = pdcch.search_space[1];
+  pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
 }
 
 void phy_cfg_nr_default_t::make_pdsch_default(srsran_sch_hl_cfg_nr_t& pdsch)
@@ -221,7 +225,7 @@ void make_nzp_csi_rs_ts38101_table_5_2_1(const srsran_carrier_nr_t& carrier, srs
     res3.periodicity.offset = 21;
     res4.periodicity.offset = 21;
   } else {
-    srsran_terminate("Invalid subcarrier spacing %d kHz", 15U << (uint32_t)carrier.scs);
+    srsran_assertion_failure("Invalid subcarrier spacing %d kHz", 15U << (uint32_t)carrier.scs);
   }
 
   res1.resource_mapping.freq_band = {0, carrier.nof_prb};
@@ -379,7 +383,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
       make_carrier_custom_20MHz(carrier);
       break;
     case reference_cfg_t::R_CARRIER_COUNT:
-      srsran_terminate("Invalid carrier reference");
+      srsran_assertion_failure("Invalid carrier reference");
   }
 
   switch (reference_cfg.tdd) {
@@ -390,7 +394,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
       make_tdd_fr1_15_1(tdd);
       break;
     case reference_cfg_t::R_TDD_COUNT:
-      srsran_terminate("Invalid TDD reference");
+      srsran_assertion_failure("Invalid TDD reference");
   }
 
   switch (reference_cfg.pdcch) {
@@ -407,7 +411,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
       make_pdsch_2_1_1_tdd(carrier, pdsch);
       break;
     case reference_cfg_t::R_PDSCH_COUNT:
-      srsran_terminate("Invalid PDSCH reference configuration");
+      srsran_assertion_failure("Invalid PDSCH reference configuration");
   }
 
   switch (reference_cfg.pusch) {

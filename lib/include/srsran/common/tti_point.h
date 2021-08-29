@@ -24,8 +24,8 @@
 
 #include "srsran/adt/interval.h"
 #include "srsran/common/common.h"
-#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/srslog.h"
+#include "srsran/support/srsran_assert.h"
 #include <cstdint>
 #include <limits>
 

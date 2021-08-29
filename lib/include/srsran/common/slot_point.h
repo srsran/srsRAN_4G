@@ -23,7 +23,7 @@
 #define SRSRAN_SLOT_POINT_H
 
 #include "srsran/adt/interval.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 namespace srsran {
 

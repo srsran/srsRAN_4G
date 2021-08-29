@@ -22,8 +22,8 @@
 #ifndef SRSRAN_INTERVAL_H
 #define SRSRAN_INTERVAL_H
 
-#include "srsran/common/srsran_assert.h"
 #include "srsran/srslog/bundled/fmt/format.h"
+#include "srsran/support/srsran_assert.h"
 #include <cassert>
 #include <string>
 #include <type_traits>

@@ -23,7 +23,7 @@
 #define SRSRAN_LINEAR_ALLOCATOR_H
 
 #include "pool_utils.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 namespace srsran {
 

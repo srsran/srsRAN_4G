@@ -27,11 +27,11 @@
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/enb_events.h"
-#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
+#include "srsran/support/srsran_assert.h"
 
 using namespace asn1::rrc;
 
@@ -1429,7 +1429,7 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
     } else if (srb.srb_id == 2) {
       srb_cfg = &parent->cfg.srb2_cfg;
     } else {
-      srsran_terminate("Invalid LTE SRB id=%d", srb.srb_id);
+      srsran_assertion_failure("Invalid LTE SRB id=%d", srb.srb_id);
     }
 
     if (srb_cfg->rlc_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types_opts::explicit_value) {

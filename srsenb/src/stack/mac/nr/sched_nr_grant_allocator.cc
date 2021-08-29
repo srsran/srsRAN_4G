@@ -26,15 +26,11 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-#define NUMEROLOGY_IDX 0
-
 bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
-  cfg(&bwp_cfg_),
-  is_dl(srsran_tdd_nr_is_dl(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_)),
-  is_ul(srsran_tdd_nr_is_ul(&bwp_cfg_.cell_cfg.tdd, NUMEROLOGY_IDX, slot_idx_))
+  cfg(&bwp_cfg_)
 {
   for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
     if (cfg->cfg.pdcch.coreset_present[cs_idx]) {
@@ -72,6 +68,27 @@ bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
 bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
   logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
+
+alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs)
+{
+  bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
+  if (not bwp_pdcch_slot.is_dl()) {
+    logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdcch_slot.slot_idx);
+    return alloc_result::no_sch_space;
+  }
+  pdcch_dl_list_t& pdsch_grants = bwp_pdcch_slot.dl_pdcchs;
+  if (pdsch_grants.full()) {
+    logger.warning("SCHED: Maximum number of DL allocations reached");
+    return alloc_result::no_grant_space;
+  }
+  if (bwp_pdcch_slot.dl_prbs.collides(prbs)) {
+    return alloc_result::sch_collision;
+  }
+
+  // TODO: Allocate PDCCH and PDSCH
+
+  return alloc_result::success;
+}
 
 alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                                     uint32_t                                aggr_idx,
@@ -140,15 +157,19 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = msg3_slot.slot_idx();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
-    slot_ue&     ue = ues[grant.temp_crnti];
+    slot_ue& ue = ues[grant.temp_crnti];
+
+    // Allocate Msg3
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
     ue.h_ul      = ue.harq_ent->find_empty_ul_harq();
     bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     last_msg3 += msg3_nof_prbs;
-    pdcch_ul_t msg3_pdcch;
+    pdcch_ul_t msg3_pdcch; // dummy PDCCH for retx=0
     fill_dci_msg3(ue, *bwp_grid.cfg, msg3_pdcch.dci);
     msg3_pdcch.dci.time_domain_assigment = dai++;
+
+    // Generate PUSCH
     bwp_msg3_slot.puschs.emplace_back();
     pusch_t& pusch = bwp_msg3_slot.puschs.back();
     success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_pdcch.dci, pusch.sch);
@@ -175,7 +196,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
   bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];
-  if (not bwp_pdsch_slot.is_dl) {
+  if (not bwp_pdsch_slot.is_dl()) {
     logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdsch_slot.slot_idx);
     return alloc_result::no_sch_space;
   }
@@ -308,13 +329,13 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
 
 alloc_result bwp_slot_allocator::verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid) const
 {
-  if (not pusch_grid.is_ul) {
+  if (not pusch_grid.is_ul()) {
     logger.warning("SCHED: Trying to allocate PUSCH in TDD non-UL slot index=%d", pusch_grid.slot_idx);
     return alloc_result::no_sch_space;
   }
   if (pdcch_grid != nullptr) {
     // DCI needed
-    if (not pdcch_grid->is_dl) {
+    if (not pdcch_grid->is_dl()) {
       logger.warning("SCHED: Trying to allocate PDCCH in TDD non-DL slot index=%d", pdcch_grid->slot_idx);
       return alloc_result::no_sch_space;
     }

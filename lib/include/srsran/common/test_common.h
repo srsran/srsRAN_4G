@@ -23,12 +23,12 @@
 #define SRSRAN_TEST_COMMON_H
 
 #include "srsran/config.h"
+#include "srsran/support/srsran_test.h"
 
 #ifdef __cplusplus
 
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/crash_handler.h"
-#include "srsran/common/srsran_assert.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srslog/srslog.h"
 #include <atomic>
@@ -167,20 +167,6 @@ inline void copy_msg_to_buffer(unique_byte_buffer_t& pdu, const_byte_span msg)
 #define CONDERROR(cond, fmt, ...) srsran_assert(not(cond), fmt, ##__VA_ARGS__)
 
 #define TESTERROR(fmt, ...) CONDERROR(true, fmt, ##__VA_ARGS__)
-
-#define TESTASSERT(cond) srsran_assert((cond), "Fail at \"%s\"", (#cond))
-
-#else // if C
-
-#include <stdio.h>
-
-#define TESTASSERT(cond)                                                                                               \
-  do {                                                                                                                 \
-    if (!(cond)) {                                                                                                     \
-      printf("[%s][Line %d] Fail at \"%s\"\n", __FUNCTION__, __LINE__, (#cond));                                       \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  } while (0)
 
 #endif // __cplusplus
 

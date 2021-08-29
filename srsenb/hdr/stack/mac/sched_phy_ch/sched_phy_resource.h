@@ -24,7 +24,7 @@
 
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/interval.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 extern "C" {
 #include "srsran/phy/phch/ra.h"
 }
@@ -55,7 +55,7 @@ inline uint32_t cell_nof_prb_to_rbg(uint32_t nof_prbs)
     case 100:
       return 25;
     default:
-      srsran_terminate("Provided nof PRBs not valid");
+      srsran_assertion_failure("Provided nof PRBs not valid");
   }
   return 0;
 }
@@ -77,7 +77,7 @@ inline uint32_t cell_nof_rbg_to_prb(uint32_t nof_rbgs)
     case 25:
       return 100;
     default:
-      srsran_terminate("Provided nof PRBs not valid");
+      srsran_assertion_failure("Provided nof PRBs not valid");
   }
   return 0;
 }

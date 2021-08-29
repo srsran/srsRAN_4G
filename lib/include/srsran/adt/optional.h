@@ -23,7 +23,7 @@
 #define SRSRAN_OPTIONAL_H
 
 #include "detail/type_storage.h"
-#include "srsran/common/srsran_assert.h"
+#include "srsran/support/srsran_assert.h"
 
 namespace srsran {
 
@@ -31,6 +31,8 @@ template <typename T>
 class optional
 {
 public:
+  using value_type = T;
+
   optional() : has_val_(false) {}
   optional(const T& t) : has_val_(true) { storage.emplace(t); }
   optional(T&& t) : has_val_(true) { storage.emplace(std::move(t)); }

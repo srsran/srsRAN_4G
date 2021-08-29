@@ -52,6 +52,15 @@ void pdcp_entity_nr::reestablish()
 
 bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
 {
+  if (active) {
+    // Already configured
+    if (cnfg_ != cfg) {
+      logger.error("Bearer reconfiguration not supported. LCID=%d.", rrc->get_rb_name(lcid));
+      return false;
+    }
+    return true;
+  }
+
   cfg         = cnfg_;
   window_size = 1 << (cfg.sn_len - 1);
 

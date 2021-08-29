@@ -20,10 +20,10 @@
  */
 
 #include "srsran/common/bcd_helpers.h"
-#include "srsran/common/test_common.h"
 #include "srsran/common/tsan_options.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include "srsran/support/srsran_test.h"
 #include "srsran/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include "srsue/hdr/stack/upper/nas.h"

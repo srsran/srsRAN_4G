@@ -30,6 +30,30 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+/// SIB scheduler
+class si_sched
+{
+public:
+  explicit si_sched(const bwp_params& bwp_cfg_);
+
+  void run_slot(bwp_slot_allocator& slot_alloc);
+
+private:
+  const bwp_params*     bwp_cfg = nullptr;
+  srslog::basic_logger& logger;
+
+  struct sched_si_t {
+    uint32_t     n       = 0;
+    uint32_t     len     = 0;
+    uint32_t     win_len = 0;
+    uint32_t     period  = 0;
+    uint32_t     n_tx    = 0;
+    alloc_result result  = alloc_result::invalid_coderate;
+    slot_point   win_start;
+  };
+  srsran::bounded_vector<sched_si_t, 10> pending_sis;
+};
+
 using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 
 /// RAR/Msg3 scheduler
@@ -38,9 +62,9 @@ class ra_sched
 public:
   explicit ra_sched(const bwp_params& bwp_cfg_);
 
-  int    dl_rach_info(const dl_sched_rar_info_t& rar_info);
-  void   run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues);
-  size_t empty() const { return pending_rars.empty(); }
+  int  dl_rach_info(const dl_sched_rar_info_t& rar_info);
+  void run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues);
+  bool empty() const { return pending_rars.empty(); }
 
 private:
   struct pending_rar_t {

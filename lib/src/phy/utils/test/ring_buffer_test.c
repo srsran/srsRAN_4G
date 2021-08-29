@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsran/common/test_common.h"
+#include "srsran/support/srsran_test.h"
 #include <complex.h>
 #include <math.h>
 #include <pthread.h>

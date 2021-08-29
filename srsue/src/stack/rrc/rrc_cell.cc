@@ -42,6 +42,15 @@ srsran::plmn_id_t meas_cell_eutra::get_plmn(uint32_t idx) const
   }
 }
 
+asn1::rrc::plmn_id_s meas_cell_eutra::get_plmn_asn1(uint32_t idx) const
+{
+  if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
+    return sib1.cell_access_related_info.plmn_id_list[idx].plmn_id;
+  } else {
+    return {};
+  }
+}
+
 void meas_cell_eutra::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
 {
   sib1           = sib1_;

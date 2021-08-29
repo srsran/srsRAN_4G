@@ -25,6 +25,7 @@
 #include "rrc_cell.h"
 #include "rrc_common.h"
 #include "rrc_metrics.h"
+#include "rrc_rlf_report.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/block_queue.h"
@@ -227,6 +228,9 @@ private:
 
   const char* get_rb_name(uint32_t lcid) { return srsran::is_lte_rb(lcid) ? rb_id_str[lcid].c_str() : "invalid RB"; }
 
+  // Var-RLF-Report class
+  rrc_rlf_report var_rlf_report;
+
   // Measurements private subclass
   class rrc_meas;
   std::unique_ptr<rrc_meas> measurements;
@@ -384,6 +388,7 @@ private:
   void     handle_con_reest(const asn1::rrc::rrc_conn_reest_s& setup);
   void     handle_rrc_con_reconfig(uint32_t lcid, const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void     handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
+  void     handle_ue_info_request(const ue_info_request_r9_s& request);
   void     add_srb(const asn1::rrc::srb_to_add_mod_s& srb_cnfg);
   void     add_drb(const asn1::rrc::drb_to_add_mod_s& drb_cnfg);
   void     release_drb(uint32_t drb_id);
