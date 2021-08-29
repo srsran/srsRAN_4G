@@ -355,17 +355,13 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
     return false;
   }
 
-  const auto& pcell_pucch_cfg   = get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->sib2.rr_cfg_common.pucch_cfg_common;
-  uint32_t    c                 = SRSRAN_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
-  uint32_t    delta_pucch_shift = pcell_pucch_cfg.delta_pucch_shift.to_number();
-  delta_pucch_shift             = SRSRAN_MAX(1, delta_pucch_shift);
-  uint32_t max_users            = 12 * c / delta_pucch_shift;
+  uint32_t max_users = 12;
 
   // Allocate all CQI resources for all carriers now
   // Find freq-time resources with least number of users
   int      i_min = 0, j_min = 0;
   uint32_t min_users = std::numeric_limits<uint32_t>::max();
-  for (uint32_t i = 0; i < cfg.cqi_cfg.nof_prb; i++) {
+  for (uint32_t i = 0; i < cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi; i++) {
     for (uint32_t j = 0; j < cfg.cqi_cfg.nof_subframes; j++) {
       if (pucch_res->cqi_sched.nof_users[i][j] < min_users) {
         i_min     = i;
@@ -410,9 +406,6 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
 
   // Compute n_pucch_2
   uint16_t n_pucch = i_min * max_users + pucch_res->cqi_sched.nof_users[i_min][j_min];
-  if (pcell_pucch_cfg.ncs_an) {
-    n_pucch += pcell_pucch_cfg.ncs_an;
-  }
 
   cell->cqi_res_present   = true;
   cell->cqi_res.pmi_idx   = pmi_idx;

@@ -222,7 +222,7 @@ void rrc_nr::config_mac()
   }
 
   // PUCCH width
-  cell_cfg.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+  cell_cfg.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, /* TODO: where is n_rb2 in NR? */ 0);
   logger.info("Allocating %d PRBs for PUCCH", cell_cfg.nrb_pucch);
 
   // Copy Cell configuration

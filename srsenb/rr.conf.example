@@ -45,7 +45,6 @@ phy_cnfg =
     simultaneousAckCQI = true;
     period = 40;                   // in ms
     //subframe = [0, 10, 20, 30];  // Optional vector of subframe indices every period where CQI resources will be allocated (default uses all)
-    nof_prb = 1;
     m_ri = 8; // RI period in CQI period
     //subband_k = 1; // If enabled and > 0, configures sub-band CQI reporting and defines K (see 36.213 7.2.2). If disabled, configures wideband CQI
   };
