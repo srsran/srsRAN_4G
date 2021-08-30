@@ -180,7 +180,7 @@ private:
   const std::chrono::milliseconds TTI_WARN_THRESHOLD_MS{5};
   const uint32_t                  SYNC_QUEUE_WARN_THRESHOLD = 5;
 
-  bool                running;
+  std::atomic<bool>   running{false};
   srsue::stack_args_t args;
 
   srsran::tti_point current_tti;
