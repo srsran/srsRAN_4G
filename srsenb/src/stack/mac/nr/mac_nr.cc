@@ -125,12 +125,6 @@ uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
   ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
   sched.ue_cfg(rnti, ue_cfg);
 
-  // Register new user in RRC
-  if (rrc->add_user(rnti) == SRSRAN_ERROR) {
-    // ue_rem(rnti);
-    return SRSRAN_SUCCESS;
-  }
-
   return rnti;
 }
 
