@@ -33,6 +33,12 @@ using srsran::byte_buffer_t;
 
 namespace srsue {
 
+/**
+ * @brief This class implements the NAS layer of a 5G UE.
+ *
+ * The class is *NOT* thread-safe.
+ *
+ */
 class nas_5g : public nas_base, public nas_5g_interface_rrc_nr, public nas_5g_interface_procedures
 {
 public:

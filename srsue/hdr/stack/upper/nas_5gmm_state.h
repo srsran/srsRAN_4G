@@ -74,9 +74,9 @@ public:
   const std::string get_full_state_text();
 
 private:
-  std::atomic<state_t>    state{state_t::null};
-  std::atomic<deregistered_substate_t> deregistered_substate{deregistered_substate_t::null};
-  std::atomic<registered_substate_t>   registered_substate{registered_substate_t::null};
+  state_t                 state                 = state_t::null;
+  deregistered_substate_t deregistered_substate = deregistered_substate_t::null;
+  registered_substate_t   registered_substate   = registered_substate_t::null;
   srslog::basic_logger&   logger                = srslog::fetch_basic_logger("NAS-5G");
 };
 
