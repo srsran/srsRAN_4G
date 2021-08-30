@@ -493,15 +493,19 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
   }
 
   ul_harq.at(cc_idx)->new_grant_ul(grant, action);
-  metrics[cc_idx].tx_pkts++;
 
-  if (grant.phich_available) {
-    if (!grant.hi_value) {
-      metrics[cc_idx].tx_errors++;
-    } else {
-      metrics[cc_idx].tx_brate += ul_harq.at(cc_idx)->get_current_tbs(grant.pid) * 8;
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    metrics[cc_idx].tx_pkts++;
+
+    if (grant.phich_available) {
+      if (!grant.hi_value) {
+        metrics[cc_idx].tx_errors++;
+      } else {
+        metrics[cc_idx].tx_brate += ul_harq.at(cc_idx)->get_current_tbs(grant.pid) * 8;
+      }
     }
-  }
+  } // end of holding metrics mutex
 }
 
 void mac::new_mch_dl(const srsran_pdsch_grant_t& phy_grant, tb_action_dl_t* action)
@@ -623,6 +627,8 @@ void mac::mch_start_rx(uint32_t lcid)
 
 void mac::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+
   int   tx_pkts          = 0;
   int   tx_errors        = 0;
   int   tx_brate         = 0;
