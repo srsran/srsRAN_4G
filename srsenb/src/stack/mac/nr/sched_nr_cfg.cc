@@ -21,7 +21,12 @@ namespace srsenb {
 namespace sched_nr_impl {
 
 bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
-  cell_cfg(cell), sched_cfg(sched_cfg_), cc(cc_), bwp_id(bwp_id_), cfg(cell.bwps[bwp_id_])
+  cell_cfg(cell),
+  sched_cfg(sched_cfg_),
+  cc(cc_),
+  bwp_id(bwp_id_),
+  cfg(cell.bwps[bwp_id_]),
+  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name))
 {
   srsran_assert(bwp_id != 0 or cfg.pdcch.coreset_present[0], "CORESET#0 has to be active for initial BWP");
 

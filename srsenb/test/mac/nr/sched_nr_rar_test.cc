@@ -58,7 +58,7 @@ void test_single_prach()
     alloc.new_slot(pdcch_slot, slot_ues);
     rasched.run_slot(alloc);
 
-    alloc.log_bwp_sched_result();
+    log_sched_bwp_result(mac_logger, alloc.get_pdcch_tti(), alloc.res_grid(), slot_ues);
     const bwp_slot_grid* result = &alloc.res_grid()[alloc.get_pdcch_tti()];
     test_dl_pdcch_consistency(result->dl_pdcchs);
     ++pdcch_slot;

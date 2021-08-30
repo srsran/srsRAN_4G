@@ -38,8 +38,7 @@ public:
 
   explicit slot_cc_worker(serv_cell_manager& sched);
 
-  void start(slot_point pdcch_slot, ue_map_t& ue_db_);
-  void run();
+  void run(slot_point pdcch_slot, ue_map_t& ue_db_);
   void finish();
   bool running() const { return slot_rx.valid(); }
 

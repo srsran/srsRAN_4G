@@ -43,6 +43,7 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci);
 
+/// Log Scheduling Result for a given BWP and slot
 void log_sched_bwp_result(srslog::basic_logger& logger,
                           slot_point            pdcch_slot,
                           const bwp_res_grid&   res_grid,

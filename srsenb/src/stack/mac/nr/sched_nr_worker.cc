@@ -58,8 +58,8 @@ void slot_cc_worker::run_feedback(ue_map_t& ue_db)
   tmp_feedback_to_run.clear();
 }
 
-/// Called at the beginning of TTI in a locked context, to reserve available UE resources
-void slot_cc_worker::start(slot_point pdcch_slot, ue_map_t& ue_db)
+/// Called within a locked context, to generate {slot, cc} scheduling decision
+void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
 {
   srsran_assert(not running(), "scheduler worker::start() called for active worker");
   slot_rx = pdcch_slot - TX_ENB_DELAY;
@@ -85,12 +85,8 @@ void slot_cc_worker::start(slot_point pdcch_slot, ue_map_t& ue_db)
     }
     // UE acquired successfully for scheduling in this {slot, cc}
   }
-}
 
-void slot_cc_worker::run()
-{
-  srsran_assert(running(), "scheduler worker::run() called for non-active worker");
-
+  // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
   bwp_alloc.new_slot(slot_rx + TX_ENB_DELAY, slot_ues);
 
   // Allocate pending RARs
@@ -101,7 +97,7 @@ void slot_cc_worker::run()
   alloc_ul_ues();
 
   // Log CC scheduler result
-  bwp_alloc.log_bwp_sched_result();
+  log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), cell.bwps[0].grid, slot_ues);
 
   // releases UE resources
   slot_ues.clear();
@@ -207,11 +203,8 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_re
     }
   }
 
-  // process pending feedback and pre-cache UE state for slot decision
-  cc_worker_list[cc]->worker.start(slot_tx, ue_db);
-
-  // Get {slot, cc} scheduling decision
-  cc_worker_list[cc]->worker.run();
+  // process pending feedback, generate {slot, cc} scheduling decision
+  cc_worker_list[cc]->worker.run(slot_tx, ue_db);
 
   // decrement the number of active workers
   int rem_workers = worker_count.fetch_sub(1, std::memory_order_release) - 1;

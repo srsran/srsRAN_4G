@@ -57,7 +57,7 @@ public:
   int dl_rach_info(const dl_sched_rar_info_t& rar_info);
 
   /// Allocate pending RARs
-  void run_slot(bwp_slot_allocator& slot_grid);
+  void run_slot(bwp_slot_allocator& slot_alloc);
 
   /// Check if there are pending RARs
   bool empty() const { return pending_rars.empty(); }

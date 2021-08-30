@@ -53,8 +53,9 @@ struct bwp_params {
   const sched_cfg_t& sched_cfg;
 
   // derived params
-  uint32_t P;
-  uint32_t N_rbg;
+  srslog::basic_logger& logger;
+  uint32_t              P;
+  uint32_t              N_rbg;
 
   struct slot_cfg {
     bool is_dl;
@@ -70,9 +71,9 @@ struct bwp_params {
   };
   std::vector<pusch_ra_time_cfg> pusch_ra_list;
 
-  bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
-
   bwp_cce_pos_list rar_cce_list;
+
+  bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 };
 
 struct sched_cell_params {

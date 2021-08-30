@@ -110,9 +110,9 @@ ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_
   return ret;
 }
 
-void ra_sched::run_slot(bwp_slot_allocator& slot_grid)
+void ra_sched::run_slot(bwp_slot_allocator& slot_alloc)
 {
-  slot_point pdcch_slot = slot_grid.get_pdcch_tti();
+  slot_point pdcch_slot = slot_alloc.get_pdcch_tti();
   slot_point msg3_slot  = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
   if (not bwp_cfg->slots[pdcch_slot.slot_idx()].is_dl or not bwp_cfg->slots[msg3_slot.slot_idx()].is_ul) {
     // RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
@@ -143,7 +143,7 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid)
 
     // Try to schedule DCIs + RBGs for RAR Grants
     uint32_t     nof_rar_allocs = 0;
-    alloc_result ret            = allocate_pending_rar(slot_grid, rar, nof_rar_allocs);
+    alloc_result ret            = allocate_pending_rar(slot_alloc, rar, nof_rar_allocs);
 
     if (ret == alloc_result::success) {
       // If RAR allocation was successful:

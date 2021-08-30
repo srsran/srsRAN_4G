@@ -66,8 +66,9 @@ public:
   };
 
   struct sched_cfg_t {
-    bool pdsch_enabled = true;
-    bool pusch_enabled = true;
+    bool        pdsch_enabled = true;
+    bool        pusch_enabled = true;
+    std::string logger_name   = "MAC";
   };
 
   struct ue_cc_cfg_t {
