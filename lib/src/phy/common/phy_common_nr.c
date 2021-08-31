@@ -191,22 +191,31 @@ uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
     return 0;
   }
 
+  // Select all valid symbol sizes by default
   const uint32_t* symbol_table = phy_common_nr_valid_symbol_sz;
+
+  // Select standard LTE symbol sizes table
   if (srsran_symbol_size_is_standard()) {
     symbol_table = phy_common_nr_valid_std_symbol_sz;
 
-    // Force bandwidths bigger than 79 RB to use 2048 FFT
-    if (nof_prb > 79 && nof_prb < 1536 / 12) {
+    // As the selected symbol size is the minimum that fits the entire number of RE, 106 RB would select into 1536 point
+    // symbol size. However, it shall use 2048 point symbol size to match LTE standard rate. Because of this, it forces
+    // bandwidths bigger than 79 RB that would use 1536 symbol size to select 2048.
+    if (nof_prb > 79 && nof_prb < 1536 / SRSRAN_NRE) {
       return 2048;
     }
   }
 
+  // For each symbol size in the table...
   for (uint32_t i = 0; i < PHY_COMMON_NR_NOF_VALID_SYMB_SZ; i++) {
+    // Check if the number of RE fit in the symbol
     if (symbol_table[i] > nof_re) {
+      // Returns the smallest symbol size that fits the number of RE
       return symbol_table[i];
     }
   }
 
+  // The number of RE exceeds the maximum symbol size
   return 0;
 }
 
