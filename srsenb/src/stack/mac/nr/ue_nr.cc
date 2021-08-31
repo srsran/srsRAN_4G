@@ -58,7 +58,7 @@ void ue_nr::set_tti(uint32_t tti)
 
 int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
 {
-  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
+  logger.debug(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
   mac_pdu_ul.init_rx(true);
   if (mac_pdu_ul.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
@@ -67,17 +67,17 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
 
   if (logger.info.enabled()) {
     fmt::memory_buffer str_buffer;
-    // mac_pdu_ul.to_string(str_buffer);
+    mac_pdu_ul.to_string(str_buffer);
     logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
   }
 
   for (uint32_t i = 0; i < mac_pdu_ul.get_num_subpdus(); ++i) {
     srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
-    logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
-                i,
-                mac_pdu_ul.get_num_subpdus(),
-                subpdu.get_lcid(),
-                subpdu.get_sdu_length());
+    logger.debug("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
+                 i,
+                 mac_pdu_ul.get_num_subpdus(),
+                 subpdu.get_lcid(),
+                 subpdu.get_sdu_length());
 
     // Handle MAC CEs
     switch (subpdu.get_lcid()) {
@@ -135,7 +135,7 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 
   if (logger.info.enabled()) {
     fmt::memory_buffer str_buffer;
-    // mac_pdu_dl.to_string(str_buffer);
+    mac_pdu_dl.to_string(str_buffer);
     logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
   }
   return SRSRAN_SUCCESS;

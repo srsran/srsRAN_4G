@@ -127,7 +127,13 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   // Pack PDU
   tx_pdu.pack();
 
-  logger.debug(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, "Generated MAC PDU (%d B)", phy_tx_pdu->N_bytes);
+  if (logger.info.enabled()) {
+    // log pretty printed PDU
+    fmt::memory_buffer buff;
+    tx_pdu.to_string(buff);
+    logger.info("%s", srsran::to_c_str(buff));
+    logger.debug(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, "Generated MAC PDU (%d B)", phy_tx_pdu->N_bytes);
+  }
 
   return phy_tx_pdu;
 }
