@@ -113,7 +113,7 @@ private:
   static const uint16_t                                                         FIRST_RNTI = 0x4601;
   srsran::static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES> ue_db;
 
-  std::atomic<uint16_t> ue_counter;
+  std::atomic<uint16_t> ue_counter{0};
 
   // BCH buffers
   struct sib_info_t {
