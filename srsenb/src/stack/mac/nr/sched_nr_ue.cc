@@ -12,6 +12,7 @@
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_ue.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_pdcch.h"
+#include "srsran/common/string_helpers.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -83,7 +84,7 @@ slot_ue ue_carrier::try_reserve(slot_point pdcch_slot)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) :
-  rnti(rnti_), sched_cfg(sched_cfg_), ue_cfg(cfg)
+  rnti(rnti_), sched_cfg(sched_cfg_), ue_cfg(cfg), buffers(srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
 {
   for (uint32_t cc = 0; cc < cfg.carriers.size(); ++cc) {
     if (cfg.carriers[cc].active) {

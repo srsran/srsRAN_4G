@@ -16,6 +16,7 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "sched_nr_ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
@@ -52,8 +53,8 @@ public:
   slot_point        uci_slot;
   uint32_t          dl_cqi = 0;
   uint32_t          ul_cqi = 0;
-  dl_harq_proc*     h_dl = nullptr;
-  ul_harq_proc*     h_ul = nullptr;
+  dl_harq_proc*     h_dl   = nullptr;
+  ul_harq_proc*     h_ul   = nullptr;
 };
 
 class ue_carrier
@@ -88,6 +89,7 @@ public:
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
   void ul_sr_info(slot_point slot_rx) { pending_sr = true; }
+  void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
 
   bool     has_ca() const { return ue_cfg.carriers.size() > 1; }
   uint32_t pcell_cc() const { return ue_cfg.carriers[0].cc; }
@@ -98,7 +100,8 @@ private:
   const uint16_t      rnti;
   const sched_params& sched_cfg;
 
-  bool pending_sr = false;
+  bool              pending_sr = false;
+  ue_buffer_manager buffers;
 
   ue_cfg_t ue_cfg;
 };
