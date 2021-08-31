@@ -177,7 +177,6 @@ int registration_request_unpacking_packing_test(srsran::nas_pcap* pcap)
              key_set_identifier_t::security_context_flag_type_::options::native_security_context);
   TESTASSERT(reg_request_msg.ng_ksi.nas_key_set_identifier ==
              key_set_identifier_t::nas_key_set_identifier_type_::options::no_key_is_available_or_reserved);
-  TESTASSERT(reg_request_msg.mobile_identity_5gs.length == 11);
   TESTASSERT(reg_request_msg.mobile_identity_5gs.type() == mobile_identity_5gs_t::identity_types_::options::guti_5g);
   mobile_identity_5gs_t::guti_5g_s guti_5g_ = reg_request_msg.mobile_identity_5gs.guti_5g();
   TESTASSERT(guti_5g_.amf_pointer == 0x0);
@@ -211,7 +210,6 @@ int registration_request_unpacking_packing_test(srsran::nas_pcap* pcap)
   TESTASSERT(reg_request_msg.ue_security_capability.eps_caps_present == false);
 
   TESTASSERT(reg_request_msg.s1_ue_network_capability_present == true);
-  TESTASSERT(reg_request_msg.s1_ue_network_capability.length == 7);
 
   TESTASSERT(reg_request_msg.s1_ue_network_capability.eea0_supported == true);
   TESTASSERT(reg_request_msg.s1_ue_network_capability.eea1_128_supported == true);
@@ -376,7 +374,6 @@ int registration_request_unpacking_packing_test_2(srsran::nas_pcap* pcap)
              key_set_identifier_t::security_context_flag_type_::options::native_security_context);
   TESTASSERT(reg_request_msg.ng_ksi.nas_key_set_identifier ==
              key_set_identifier_t::nas_key_set_identifier_type_::options::no_key_is_available_or_reserved);
-  TESTASSERT(reg_request_msg.mobile_identity_5gs.length == 54);
   TESTASSERT(reg_request_msg.mobile_identity_5gs.type() == mobile_identity_5gs_t::identity_types_::options::suci);
   TESTASSERT(reg_request_msg.mobile_identity_5gs.suci().supi_format.value ==
              mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi);
@@ -475,7 +472,6 @@ int deregistration_request_unpacking_packing_test(srsran::nas_pcap* pcap)
   TESTASSERT(dereg_request_msg.ng_ksi.security_context_flag ==
              key_set_identifier_t::security_context_flag_type_::options::native_security_context);
   TESTASSERT(dereg_request_msg.ng_ksi.nas_key_set_identifier == 0);
-  TESTASSERT(dereg_request_msg.mobile_identity_5gs.length == 11);
   TESTASSERT(dereg_request_msg.mobile_identity_5gs.type() == mobile_identity_5gs_t::identity_types_::options::guti_5g);
   mobile_identity_5gs_t::guti_5g_s guti_5g_ = dereg_request_msg.mobile_identity_5gs.guti_5g();
   TESTASSERT(guti_5g_.amf_pointer == 0x0);
@@ -551,14 +547,14 @@ int authentication_request_unpacking_packing_test(srsran::nas_pcap* pcap)
   TESTASSERT(auth_request_msg.ng_ksi.security_context_flag ==
              key_set_identifier_t::security_context_flag_type_::options::native_security_context);
   TESTASSERT(auth_request_msg.ng_ksi.nas_key_set_identifier == 0);
-  TESTASSERT(auth_request_msg.abba.length == 2);
+  TESTASSERT(auth_request_msg.abba.abba_contents.size() == 2);
   TESTASSERT(auth_request_msg.abba.abba_contents[0] == 0x00);
   TESTASSERT(auth_request_msg.abba.abba_contents[1] == 0x00);
   TESTASSERT(auth_request_msg.authentication_parameter_rand_present == true);
   TESTASSERT(auth_request_msg.authentication_parameter_rand.rand[0] == 0x16);
   TESTASSERT(auth_request_msg.authentication_parameter_rand.rand[15] == 0x71);
   TESTASSERT(auth_request_msg.authentication_parameter_autn_present == true);
-  TESTASSERT(auth_request_msg.authentication_parameter_autn.length == 16);
+  TESTASSERT(auth_request_msg.authentication_parameter_autn.autn.size() == 16);
   TESTASSERT(auth_request_msg.authentication_parameter_autn.autn[0] == 0xa3);
   TESTASSERT(auth_request_msg.authentication_parameter_autn.autn[15] == 0xed);
 
@@ -609,7 +605,6 @@ int authentication_resp_request_unpacking_packing_test(srsran::nas_pcap* pcap)
   authentication_response_t& auth_resp = nas_msg.authentication_response();
 
   TESTASSERT(auth_resp.authentication_response_parameter_present == true);
-  TESTASSERT(auth_resp.authentication_response_parameter.length == 16);
   TESTASSERT(auth_resp.authentication_response_parameter.res.size() == 16);
   TESTASSERT(auth_resp.authentication_response_parameter.res[0] == 0xa1);
   TESTASSERT(auth_resp.authentication_response_parameter.res[15] == 0x08);
@@ -763,7 +758,6 @@ int security_command_unpacking_packing_test(srsran::nas_pcap* pcap)
   TESTASSERT(sec_command_msg.imeisv_request.imeisv_request == true);
 
   TESTASSERT(sec_command_msg.additional_5g_security_information_present == true);
-  TESTASSERT(sec_command_msg.additional_5g_security_information.length == 1);
   TESTASSERT(sec_command_msg.additional_5g_security_information.rinmr == false);
   TESTASSERT(sec_command_msg.additional_5g_security_information.hdp == false);
 
@@ -1011,7 +1005,6 @@ int security_complete_unpacking_packing_test(srsran::nas_pcap* pcap)
   TESTASSERT(imeisv.imeisv[15] == 5);
 
   TESTASSERT(sec_complete_msg.nas_message_container_present == true);
-  TESTASSERT(sec_complete_msg.nas_message_container.length == 87);
   TESTASSERT(sec_complete_msg.nas_message_container.nas_message_container.size() == 87);
   nas_5gs_msg inner_message;
   TESTASSERT(inner_message.unpack(sec_complete_msg.nas_message_container.nas_message_container) == SRSRAN_SUCCESS);
@@ -1246,7 +1239,6 @@ int deregistration_request_unpacking_packing_test_2(srsran::nas_pcap* pcap)
              key_set_identifier_t::security_context_flag_type_::options::native_security_context);
   TESTASSERT(dereg_req_ue_o.ng_ksi.nas_key_set_identifier == 0);
   TESTASSERT(dereg_req_ue_o.mobile_identity_5gs.type() == mobile_identity_5gs_t::identity_types_::options::guti_5g);
-  TESTASSERT(dereg_req_ue_o.mobile_identity_5gs.length == 11);
   mobile_identity_5gs_t::guti_5g_s guti_5g = dereg_req_ue_o.mobile_identity_5gs.guti_5g();
 
   TESTASSERT(guti_5g.mcc[0] == 0);
@@ -1345,7 +1337,6 @@ int pdu_session_establishment_request_unpacking_packing_test(srsran::nas_pcap* p
   ul_nas_transport_t& ul_nas = nas_msg.ul_nas_transport();
   TESTASSERT(ul_nas.payload_container_type.payload_container_type ==
              payload_container_type_t::Payload_container_type_type_::options::n1_sm_information);
-  TESTASSERT(ul_nas.payload_container.length == 6);
   TESTASSERT(ul_nas.payload_container.payload_container_contents.size() == 6);
   TESTASSERT(ul_nas.payload_container.payload_container_contents[0] == 0x2e);
   TESTASSERT(ul_nas.payload_container.payload_container_contents[5] == 0xff);
@@ -1382,11 +1373,9 @@ int pdu_session_establishment_request_unpacking_packing_test(srsran::nas_pcap* p
   TESTASSERT(ul_nas.request_type.request_type_value ==
              request_type_t::Request_type_value_type_::options::initial_request);
   TESTASSERT(ul_nas.s_nssai_present == true);
-  TESTASSERT(ul_nas.s_nssai.length == 4);
   TESTASSERT(ul_nas.s_nssai.sst == 1);
   TESTASSERT(ul_nas.s_nssai.sd == 66051);
   TESTASSERT(ul_nas.dnn_present == true);
-  TESTASSERT(ul_nas.dnn.length == 9);
   TESTASSERT(ul_nas.dnn.dnn_value.size() == 9);
   TESTASSERT(ul_nas.dnn.dnn_value[0] == 0x08);
   TESTASSERT(ul_nas.dnn.dnn_value[1] == 0x69);
@@ -1501,7 +1490,6 @@ int pdu_session_est_req_accecpt(srsran::nas_pcap* pcap)
   dl_nas_transport_t& dl_nas = nas_msg.dl_nas_transport();
   TESTASSERT(dl_nas.payload_container_type.payload_container_type ==
              payload_container_type_t::Payload_container_type_type_::options::n1_sm_information);
-  TESTASSERT(dl_nas.payload_container.length == 29);
   TESTASSERT(dl_nas.payload_container.payload_container_contents.size() == 29);
   TESTASSERT(dl_nas.payload_container.payload_container_contents[0] == 0x2e);
   TESTASSERT(dl_nas.payload_container.payload_container_contents[28] == 0x01);
@@ -1521,8 +1509,6 @@ int pdu_session_est_req_accecpt(srsran::nas_pcap* pcap)
   TESTASSERT(pdu_sess_est_acc.selected_pdu_session_type.pdu_session_type_value ==
              pdu_session_type_t::PDU_session_type_value_type_::options::ipv4);
 
-  TESTASSERT(pdu_sess_est_acc.authorized__qo_s_rules.length == 8);
-  TESTASSERT(pdu_sess_est_acc.session_ambr.length == 6);
   TESTASSERT(pdu_sess_est_acc.session_ambr.unit_session_ambr_for_downlink ==
              session_ambr_t::unit_session_AMBR_type_::options::inc_by_1_kbps);
   TESTASSERT(pdu_sess_est_acc.session_ambr.session_ambr_for_downlink == 59395);
