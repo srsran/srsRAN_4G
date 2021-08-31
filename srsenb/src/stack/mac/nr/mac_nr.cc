@@ -281,7 +281,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
         continue;
       }
       for (auto& tb_data : pdsch.data) {
-        if (tb_data != nullptr) {
+        if (tb_data != nullptr and tb_data->N_bytes == 0) {
           // TODO: exclude retx from packing
           ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
 

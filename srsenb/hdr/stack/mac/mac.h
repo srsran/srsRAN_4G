@@ -139,7 +139,7 @@ private:
   /* Map of active UEs */
   static const uint16_t            FIRST_RNTI = 0x46;
   rnti_map_t<unique_rnti_ptr<ue> > ue_db;
-  std::atomic<uint16_t>            ue_counter;
+  std::atomic<uint16_t>            ue_counter{0};
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               enb_cc_idx,
