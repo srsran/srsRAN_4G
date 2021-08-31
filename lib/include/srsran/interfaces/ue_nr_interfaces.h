@@ -31,6 +31,26 @@ public:
   virtual void set_phy_config_complete(bool status) = 0;
 };
 
+class rrc_interface_phy_sa_nr
+{
+public:
+  /**
+   * @brief Describes a cell search result
+   */
+  struct cell_search_result_t {
+    uint32_t                      pci             = 0;     ///< Physical Cell Identifier
+    bool                          barred          = false; ///< Set to true if the cell is barred
+    bool                          intra_freq_meas = false; ///< Set to true if intra frequency measurement is enabled
+    srsran_csi_trs_measurements_t measurements    = {};    ///< Measurements from SSB block
+  };
+
+  /**
+   * @brief Informs RRC about cell search process completion
+   * @param result Cell search result completion
+   */
+  virtual void cell_search_found_cell(const cell_search_result_t& result) = 0;
+};
+
 class mac_interface_phy_nr
 {
 public:
@@ -249,14 +269,78 @@ public:
   virtual bool set_config(const srsran::phy_cfg_nr_t& cfg) = 0;
 };
 
+class phy_interface_rrc_sa_nr
+{
+public:
+  /**
+   * @brief Describe the possible NR standalone physical layer possible states
+   */
+  typedef enum {
+    PHY_NR_SA_STATE_IDLE = 0,    ///< There is no process going on
+    PHY_NR_SA_STATE_CELL_SEARCH, ///< Cell search is currently in progress
+    PHY_NR_SA_STATE_CELL_SELECT, ///< Cell selection is in progress or it is camped on a cell
+  } phy_nr_sa_state_t;
+
+  /**
+   * @brief Retrieves the physical layer state
+   * @return
+   */
+  virtual phy_nr_sa_state_t get_state() const = 0;
+
+  /**
+   * @brief Stops the ongoing process and transitions to IDLE
+   */
+  virtual void reset() = 0;
+
+  /**
+   * @brief Describes cell search arguments
+   */
+  struct cell_search_args_t {
+    // TBD
+  };
+
+  /**
+   * @brief Start cell search
+   * @param args Cell Search arguments
+   * @return true if the physical layer started successfully the cell search process
+   */
+  virtual bool start_cell_search(const cell_search_args_t& req) = 0;
+
+  /**
+   * @brief Describes cell select arguments
+   */
+  struct cell_select_args_t {
+    srsran::phy_cfg_nr_t phy_cfg; ///< Serving cell configuration
+  };
+
+  /**
+   * @brief Start cell search
+   * @param args Cell Search arguments
+   * @return true if the physical layer started successfully the cell search process
+   */
+  virtual bool start_cell_select(const cell_search_args_t& req) = 0;
+};
+
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_nr : public mac_interface_phy_nr,
                                public rrc_interface_phy_nr,
                                public srsran::stack_interface_phy_nr
 {};
 
+/**
+ * @brief Combines the stack interfaces for PHY to access stack (MAC and RRC) including the standalone interface
+ */
+class stack_interface_phy_sa_nr : public stack_interface_phy_nr, public rrc_interface_phy_sa_nr
+{};
+
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_nr : public phy_interface_mac_nr, public phy_interface_rrc_nr
+{};
+
+/**
+ * @brief Combines the PHY interfaces for stack (MAC and RRC) to access PHY for NSA including the standalone interfaces
+ */
+class phy_interface_stack_sa_nr : public phy_interface_stack_nr, public phy_interface_rrc_sa_nr
 {};
 
 } // namespace srsue

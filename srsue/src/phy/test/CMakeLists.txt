@@ -71,3 +71,12 @@ target_link_libraries(nr_cell_search_rf
         srsran_radio
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
+
+add_executable(nr_sa_cell_search_test nr_sa_cell_search_test.cc)
+target_link_libraries(nr_sa_cell_search_test
+        srsue_phy
+        srsran_common
+        srsran_phy
+        srsran_radio
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
