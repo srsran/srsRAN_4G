@@ -11,6 +11,7 @@
  */
 
 #include "srsran/common/mac_pcap.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/common/test_common.h"
 #include "srsran/config.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
@@ -217,8 +218,13 @@ int mac_dl_sch_pdu_pack_test5()
     pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
+  // pretty print PDU
+  fmt::memory_buffer buff;
+  tx_pdu.to_string(buff);
+
   auto& mac_logger = srslog::fetch_basic_logger("MAC");
-  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
+  mac_logger.info(
+      tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B): %s", tx_buffer.N_bytes, srsran::to_c_str(buff));
 
   return SRSRAN_SUCCESS;
 }
@@ -587,6 +593,13 @@ int mac_dl_sch_pdu_unpack_and_pack_test6()
     // 4th is padding
     subpdu = pdu_rx.get_subpdu(3);
     TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+
+    // pretty print PDU
+    fmt::memory_buffer buff;
+    pdu_rx.to_string(buff);
+
+    auto& mac_logger = srslog::fetch_basic_logger("MAC");
+    mac_logger.info("Received PDU: %s", srsran::to_c_str(buff));
   }
 
   // Let's pack the entire PDU again

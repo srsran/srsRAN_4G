@@ -102,6 +102,8 @@ public:
   // Used by BSR procedure to determine size of BSR types
   static uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
 
+  void to_string(fmt::memory_buffer& buffer);
+
 private:
   srslog::basic_logger* logger;
 
@@ -140,6 +142,8 @@ public:
   uint32_t add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_sch_subpdu_nr::max_num_lcg_lbsr> bsr_);
 
   uint32_t get_remaing_len();
+
+  void to_string(fmt::memory_buffer& buffer);
 
 private:
   uint32_t size_header_sdu(const uint32_t lcid_, const uint32_t nbytes);

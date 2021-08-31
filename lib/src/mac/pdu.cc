@@ -1000,7 +1000,6 @@ uint8_t sch_subh::phr_report_table(float phr_value)
 
 void rar_pdu::to_string(fmt::memory_buffer& buffer)
 {
-  std::string msg("MAC PDU for RAR: ");
   fmt::format_to(buffer, "MAC PDU for RAR: ");
   pdu::to_string(buffer);
 }
