@@ -708,5 +708,7 @@ int main()
   TESTASSERT(mac_nr_ul_periodic_bsr_test() == SRSRAN_SUCCESS);
   TESTASSERT(mac_nr_dl_retx_test() == SRSRAN_SUCCESS);
 
+  srslog::flush();
+
   return SRSRAN_SUCCESS;
 }
