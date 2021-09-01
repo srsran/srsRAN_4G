@@ -36,7 +36,7 @@ protected:
   constexpr static uint32_t pbr_infinity  = -1;
 
 public:
-  explicit ue_buffer_manager(srslog::basic_logger& logger_) : logger(logger_) {}
+  explicit ue_buffer_manager(srslog::basic_logger& logger_);
 
   // Bearer configuration
   void config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
@@ -88,7 +88,7 @@ protected:
   };
   std::array<logical_channel, MAX_NOF_LCIDS> channels;
 
-  std::array<int, MAX_NOF_LCGS> lcg_bsr{0};
+  std::array<int, MAX_NOF_LCGS> lcg_bsr;
 };
 
 } // namespace srsenb

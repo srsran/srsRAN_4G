@@ -18,6 +18,12 @@
 namespace srsenb {
 
 template <bool isNR>
+ue_buffer_manager<isNR>::ue_buffer_manager(srslog::basic_logger& logger_) : logger(logger_)
+{
+  std::fill(lcg_bsr.begin(), lcg_bsr.end(), 0);
+}
+
+template <bool isNR>
 void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
 {
   if (not is_lcid_valid(lcid)) {
