@@ -38,6 +38,7 @@ namespace srsenb {
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_phy_nr,
+                            public pdcp_interface_gtpu,
                             public srsran::thread
 {
 public:
@@ -131,6 +132,10 @@ public:
     return mac_nr.pusch_info(slot_cfg, pusch_info);
   }
   void rach_detected(const rach_info_t& rach_info) override { mac_nr.rach_detected(rach_info); }
+
+  // pdcp_interface_gtpu
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override;
+  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;

@@ -187,7 +187,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   gtpu_args.mme_addr                     = args.s1ap.mme_addr;
   gtpu_args.gtp_bind_addr                = args.s1ap.gtp_bind_addr;
   gtpu_args.indirect_tunnel_timeout_msec = args.gtpu_indirect_tunnel_timeout_msec;
-  if (gtpu.init(gtpu_args, &pdcp) != SRSRAN_SUCCESS) {
+  if (gtpu.init(gtpu_args, this) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize GTPU");
     return SRSRAN_ERROR;
   }
@@ -276,6 +276,19 @@ void enb_stack_lte::run_thread()
   while (started.load(std::memory_order_relaxed)) {
     task_sched.run_next_task();
   }
+}
+
+void enb_stack_lte::write_sdu(uint16_t                     rnti,
+                              uint32_t                     lcid /* to be replaced with eps_bearer_id */,
+                              srsran::unique_byte_buffer_t sdu,
+                              int                          pdcp_sn)
+{
+  pdcp.write_sdu(rnti, lcid, std::move(sdu), pdcp_sn);
+}
+
+std::map<uint32_t, srsran::unique_byte_buffer_t> enb_stack_lte::get_buffered_pdus(uint16_t rnti, uint32_t lcid)
+{
+  return pdcp.get_buffered_pdus(rnti, lcid);
 }
 
 } // namespace srsenb
