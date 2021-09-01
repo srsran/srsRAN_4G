@@ -31,7 +31,7 @@
 #include "upper/nas.h"
 #include "upper/usim.h"
 
-#include "bearer_manager.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/multiqueue.h"
 #include "srsran/common/string_helpers.h"

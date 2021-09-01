@@ -6,12 +6,12 @@
 # the distribution.
 #
 
-
 set(SOURCES arch_select.cc
             enb_events.cc
             backtrace.c
             byte_buffer.cc
             band_helper.cc
+            bearer_manager.cc
             buffer_pool.cc
             crash_handler.cc
             gen_mch_tables.c
