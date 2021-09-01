@@ -118,11 +118,17 @@ public:
     int pack_secondary_cell_group_config(asn1::dyn_octstring& packed_secondary_cell_config);
     int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
+    int add_drb();
+
     // state
     rrc_nr_state_t state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t        transaction_id = 0;
 
-    uint32_t drb1_lcid = 4;
+    // RRC configs for UEs
+    asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
+    asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
+
+    const uint32_t drb1_lcid = 4;
   };
 
 private:
