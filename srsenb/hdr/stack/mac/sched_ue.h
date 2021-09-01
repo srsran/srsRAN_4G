@@ -32,8 +32,7 @@ typedef enum { UCI_PUSCH_NONE = 0, UCI_PUSCH_CQI, UCI_PUSCH_ACK, UCI_PUSCH_ACK_C
  */
 class sched_ue
 {
-  using ue_cfg_t     = sched_interface::ue_cfg_t;
-  using bearer_cfg_t = sched_interface::ue_bearer_cfg_t;
+  using ue_cfg_t = sched_interface::ue_cfg_t;
 
 public:
   sched_ue(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg);
@@ -48,7 +47,7 @@ public:
   void phy_config_enabled(tti_point tti_rx, bool enabled);
   void set_cfg(const ue_cfg_t& cfg);
 
-  void set_bearer_cfg(uint32_t lc_id, const bearer_cfg_t& cfg);
+  void set_bearer_cfg(uint32_t lc_id, const mac_lc_ch_cfg_t& cfg);
   void rem_bearer(uint32_t lc_id);
 
   void dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue);

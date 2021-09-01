@@ -10,6 +10,7 @@
  *
  */
 
+#include "common/sched_config.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/common/common.h"
 #include "srsran/srsran.h"
@@ -116,14 +117,6 @@ public:
     std::vector<scell_cfg_t> scell_list;
   };
 
-  struct ue_bearer_cfg_t {
-    int      priority                                     = 1;
-    uint32_t bsd                                          = 1000; // msec
-    uint32_t pbr                                          = -1;
-    int      group                                        = 0;
-    enum direction_t { IDLE = 0, UL, DL, BOTH } direction = IDLE;
-  };
-
   struct ant_info_ded_t {
     enum class tx_mode_t { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920, nulltype } tx_mode = tx_mode_t::tm1;
     enum class codebook_t {
@@ -153,7 +146,7 @@ public:
     bool                                continuous_pusch = false;
     srsran_uci_offset_cfg_t             uci_offset       = {15, 12, 10};
     srsran_pucch_cfg_t                  pucch_cfg        = {};
-    std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers       = {};
+    std::array<mac_lc_ch_cfg_t, MAX_LC> ue_bearers       = {};
     std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell
     ant_info_ded_t                      dl_ant_info;
     bool                                use_tbs_index_alt = false;
@@ -258,7 +251,7 @@ public:
   virtual bool ue_exists(uint16_t rnti)                   = 0;
 
   /* Manages UE bearers and associated configuration */
-  virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const ue_bearer_cfg_t& cfg) = 0;
+  virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const mac_lc_ch_cfg_t& cfg) = 0;
   virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                             = 0;
 
   virtual uint32_t get_ul_buffer(uint16_t rnti) = 0;

@@ -14,10 +14,10 @@
 #define SRSENB_UE_NR_H
 
 #include "srsenb/hdr/stack/mac/common/mac_metrics.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
 #include <mutex>
 #include <vector>

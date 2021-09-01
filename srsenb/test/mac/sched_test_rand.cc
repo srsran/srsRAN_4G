@@ -19,7 +19,7 @@
 #include <set>
 #include <unistd.h>
 
-#include "srsran/interfaces/sched_interface.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/phy/utils/debug.h"
 
 #include "sched_common_test_suite.h"

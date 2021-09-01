@@ -161,7 +161,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   ue_cfg.supported_cc_list.resize(1);
   ue_cfg.supported_cc_list[0].active     = true;
   ue_cfg.supported_cc_list[0].enb_cc_idx = target_cell->enb_cc_idx;
-  ue_cfg.ue_bearers[0].direction         = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[0].direction         = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.supported_cc_list[0].dl_cfg.tm  = SRSRAN_TM1;
   uint16_t rnti                          = mac->reserve_new_crnti(ue_cfg);
   if (rnti == SRSRAN_INVALID_RNTI) {

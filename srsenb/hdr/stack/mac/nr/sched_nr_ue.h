@@ -16,7 +16,7 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
-#include "sched_nr_ue_buffer_manager.h"
+#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
@@ -100,8 +100,8 @@ private:
   const uint16_t      rnti;
   const sched_params& sched_cfg;
 
-  bool              pending_sr = false;
-  ue_buffer_manager buffers;
+  bool                    pending_sr = false;
+  ue_buffer_manager<true> buffers;
 
   ue_cfg_t ue_cfg;
 };

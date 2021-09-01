@@ -14,9 +14,9 @@
 #define SRSENB_SCHEDULER_H
 
 #include "sched_grid.h"
+#include "sched_interface.h"
 #include "sched_ue.h"
 #include "srsenb/hdr/common/common_enb.h"
-#include "srsran/interfaces/sched_interface.h"
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -47,7 +47,7 @@ public:
 
   void phy_config_enabled(uint16_t rnti, bool enabled);
 
-  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const ue_bearer_cfg_t& cfg) final;
+  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const mac_lc_ch_cfg_t& cfg) final;
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) final;
 
   uint32_t get_ul_buffer(uint16_t rnti) final;

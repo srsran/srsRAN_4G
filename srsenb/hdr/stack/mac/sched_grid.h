@@ -13,8 +13,8 @@
 #ifndef SRSRAN_SCHED_GRID_H
 #define SRSRAN_SCHED_GRID_H
 
-#include "lib/include/srsran/interfaces/sched_interface.h"
 #include "sched_common.h"
+#include "sched_interface.h"
 #include "sched_phy_ch/sched_result.h"
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"

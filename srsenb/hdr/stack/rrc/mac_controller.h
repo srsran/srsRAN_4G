@@ -15,8 +15,8 @@
 
 #include "rrc_bearer_cfg.h"
 #include "rrc_cell_cfg.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/interfaces/rrc_interface_types.h"
-#include "srsran/interfaces/sched_interface.h"
 #include <bitset>
 
 namespace srsenb {
@@ -55,7 +55,7 @@ public:
                               const srsran::rrc_ue_capabilities_t&      uecaps);
   void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
-  void set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::direction_t dir);
+  void set_radio_bearer_state(mac_lc_ch_cfg_t::direction_t dir);
 
   const ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
   bool            is_crnti_set() const { return crnti_set; }

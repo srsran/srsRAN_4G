@@ -13,9 +13,9 @@
 #ifndef SRSENB_SCHEDULER_HARQ_H
 #define SRSENB_SCHEDULER_HARQ_H
 
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/common/tti_point.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/srslog/srslog.h"
 
 namespace srsenb {

@@ -13,8 +13,8 @@
 #ifndef SRSRAN_SCHED_HELPERS_H
 #define SRSRAN_SCHED_HELPERS_H
 
+#include "sched_interface.h"
 #include "srsenb/hdr/stack/mac/sched_lte_common.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/srslog/srslog.h"
 
 namespace srsenb {
@@ -95,8 +95,6 @@ void log_dl_cc_results(srslog::basic_logger&                  logger,
 void log_phich_cc_results(srslog::basic_logger&                  logger,
                           uint32_t                               enb_cc_idx,
                           const sched_interface::ul_sched_res_t& result);
-
-const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
 
 } // namespace srsenb
 

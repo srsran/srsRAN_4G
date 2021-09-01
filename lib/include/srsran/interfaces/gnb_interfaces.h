@@ -15,12 +15,12 @@
 
 #include "srsran/srsran.h"
 
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/common/security.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
 #include "srsran/interfaces/rrc_interface_types.h"
-#include "srsran/interfaces/sched_interface.h"
 // EUTRA interfaces that are used unmodified
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"

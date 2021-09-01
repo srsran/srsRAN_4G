@@ -14,7 +14,7 @@
 #define SRSRAN_SCHED_SIM_UE_H
 
 #include "sched_common_test_suite.h"
-#include "srsran/interfaces/sched_interface.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/srslog/srslog.h"
 #include <bitset>
 #include <map>
@@ -80,7 +80,7 @@ public:
          uint32_t                         preamble_idx);
 
   void set_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
-  void bearer_cfg(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg);
+  void bearer_cfg(uint32_t lc_id, const mac_lc_ch_cfg_t& cfg);
 
   int update(const sf_output_res_t& sf_out);
 
@@ -106,7 +106,7 @@ public:
 
   int add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx);
   int ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_);
-  int bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg);
+  int bearer_cfg(uint16_t rnti, uint32_t lc_id, const mac_lc_ch_cfg_t& cfg);
   int rem_user(uint16_t rnti);
 
   void new_tti(srsran::tti_point tti_rx);

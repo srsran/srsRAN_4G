@@ -61,7 +61,7 @@ void ue_sim::set_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   }
 }
 
-void ue_sim::bearer_cfg(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
+void ue_sim::bearer_cfg(uint32_t lc_id, const mac_lc_ch_cfg_t& cfg)
 {
   ctxt.ue_cfg.ue_bearers.at(lc_id) = cfg;
 }
@@ -269,7 +269,7 @@ int sched_sim_base::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_
   return SRSRAN_SUCCESS;
 }
 
-int sched_sim_base::bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
+int sched_sim_base::bearer_cfg(uint16_t rnti, uint32_t lc_id, const mac_lc_ch_cfg_t& cfg)
 {
   ue_db.at(rnti).bearer_cfg(lc_id, cfg);
   return sched_ptr->bearer_ue_cfg(rnti, lc_id, cfg);

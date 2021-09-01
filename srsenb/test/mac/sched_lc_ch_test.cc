@@ -81,12 +81,12 @@ int test_lc_ch_pbr_infinity()
   srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
   ue_cfg                                                    = generate_setup_ue_cfg(ue_cfg);
   ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))]           = {};
-  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))].direction = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))]           = {};
-  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].direction = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].priority  = 5;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))]           = {};
-  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].direction = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].priority  = 3;
 
   lch_handler.set_cfg(ue_cfg);
@@ -131,14 +131,14 @@ int test_lc_ch_pbr_finite()
   srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
   ue_cfg                                                    = generate_setup_ue_cfg(ue_cfg);
   ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))]           = {};
-  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid((lte_srb::srb1))].direction = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))]           = {};
-  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].direction = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].pbr       = 256; // kBps
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].bsd       = 50;  // msec
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb1))].priority  = 5;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))]           = {};
-  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].direction = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].direction = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].pbr       = 8;  // kBps
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].bsd       = 50; // msec
   ue_cfg.ue_bearers[drb_to_lcid((lte_drb::drb2))].priority  = 3;

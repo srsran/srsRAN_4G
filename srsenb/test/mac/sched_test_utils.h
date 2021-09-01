@@ -15,8 +15,8 @@
 
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/test_common.h"
-#include "srsran/interfaces/sched_interface.h"
 #include <algorithm>
 #include <chrono>
 #include <unordered_map>
@@ -71,10 +71,10 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
   ue_cfg.supported_cc_list[0].enb_cc_idx                  = 0;
   ue_cfg.supported_cc_list[0].active                      = true;
   ue_cfg.supported_cc_list[0].dl_cfg.tm                   = SRSRAN_TM1;
-  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group     = 1;
 
   ue_cfg.pucch_cfg.sr_configured = true;
@@ -88,9 +88,9 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg2()
 {
   srsenb::sched_interface::ue_cfg_t ue_cfg = generate_default_ue_cfg();
 
-  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+  ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
   ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group     = 1;
 
   return ue_cfg;
@@ -99,7 +99,7 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg2()
 inline srsenb::sched_interface::ue_cfg_t generate_rach_ue_cfg(const srsenb::sched_interface::ue_cfg_t& final_cfg)
 {
   srsenb::sched_interface::ue_cfg_t cfg                = {};
-  cfg.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  cfg.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
   cfg.supported_cc_list.resize(1);
   cfg.supported_cc_list[0].enb_cc_idx = final_cfg.supported_cc_list[0].enb_cc_idx;
   cfg.supported_cc_list[0].active     = true;
@@ -111,7 +111,7 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
   srsenb::sched_interface::ue_cfg_t cfg = generate_rach_ue_cfg(final_cfg);
 
   cfg.maxharq_tx                                       = final_cfg.maxharq_tx;
-  cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  cfg.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
   cfg.supported_cc_list[0].dl_cfg.tm                   = SRSRAN_TM1;
   cfg.continuous_pusch                                 = final_cfg.continuous_pusch;
 
@@ -150,11 +150,11 @@ struct tti_ev {
     uint32_t dl_nof_retxs = 0; ///< update DL buffer retx
   };
   struct user_cfg_ev {
-    uint16_t                                                  rnti;
-    std::unique_ptr<ue_ctxt_test_cfg>                         ue_sim_cfg;       ///< optional ue_cfg call
-    std::unique_ptr<srsenb::sched_interface::ue_bearer_cfg_t> bearer_cfg;       ///< optional bearer_cfg call
-    std::unique_ptr<user_buffer_ev>                           buffer_ev;        ///< update of a user dl/ul buffer
-    bool                                                      rem_user = false; ///< whether to remove a ue
+    uint16_t                                 rnti;
+    std::unique_ptr<ue_ctxt_test_cfg>        ue_sim_cfg;       ///< optional ue_cfg call
+    std::unique_ptr<srsenb::mac_lc_ch_cfg_t> bearer_cfg;       ///< optional bearer_cfg call
+    std::unique_ptr<user_buffer_ev>          buffer_ev;        ///< update of a user dl/ul buffer
+    bool                                     rem_user = false; ///< whether to remove a ue
   };
   std::vector<user_cfg_ev> user_updates;
 };
@@ -259,11 +259,9 @@ struct sched_sim_event_generator {
     ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
     user->ue_sim_cfg.reset(new ue_ctxt_test_cfg{ue_sim_cfg});
     // it should by now have a DRB1. Add other DRBs manually
-    user->ue_sim_cfg->ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction =
-        srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    user->ue_sim_cfg->ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction =
-        srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    user->ue_sim_cfg->ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group = 1;
+    user->ue_sim_cfg->ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+    user->ue_sim_cfg->ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+    user->ue_sim_cfg->ue_cfg.ue_bearers[drb_to_lcid(lte_drb::drb1)].group     = 1;
     return user;
   }
 

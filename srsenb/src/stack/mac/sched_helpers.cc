@@ -450,20 +450,4 @@ int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
   return ret;
 }
 
-const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir)
-{
-  switch (dir) {
-    case sched_interface::ue_bearer_cfg_t::IDLE:
-      return "idle";
-    case sched_interface::ue_bearer_cfg_t::BOTH:
-      return "bi-dir";
-    case sched_interface::ue_bearer_cfg_t::DL:
-      return "DL";
-    case sched_interface::ue_bearer_cfg_t::UL:
-      return "UL";
-    default:
-      return "unrecognized direction";
-  }
-}
-
 } // namespace srsenb

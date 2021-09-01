@@ -55,7 +55,7 @@ enum class nr_drb {
   invalid
 };
 const uint32_t MAX_NR_DRB_ID      = 29;
-const uint32_t MAX_NR_NOF_BEARERS = MAX_NR_DRB_ID + MAX_NR_SRB_ID;
+const uint32_t MAX_NR_NOF_BEARERS = MAX_NR_DRB_ID + MAX_NR_SRB_ID; // 32
 
 constexpr bool is_nr_lcid(uint32_t lcid)
 {

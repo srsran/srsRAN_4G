@@ -20,7 +20,7 @@ namespace srsenb {
 /**
  * Structure used in UE logical channel configuration
  */
-struct logical_channel_cfg_t {
+struct mac_lc_ch_cfg_t {
   enum direction_t { IDLE = 0, UL, DL, BOTH } direction = IDLE;
   int      priority                                     = 1;    // channel priority (1 is highest)
   uint32_t bsd                                          = 1000; // msec
@@ -30,7 +30,29 @@ struct logical_channel_cfg_t {
   bool is_active() const { return direction != IDLE; }
   bool is_dl() const { return direction == DL or direction == BOTH; }
   bool is_ul() const { return direction == UL or direction == BOTH; }
+  bool operator==(const mac_lc_ch_cfg_t& other) const
+  {
+    return direction == other.direction and priority == other.priority and bsd == other.bsd and pbr == other.pbr and
+           group == other.group;
+  }
+  bool operator!=(const mac_lc_ch_cfg_t& other) const { return not(*this == other); }
 };
+
+inline const char* to_string(mac_lc_ch_cfg_t::direction_t dir)
+{
+  switch (dir) {
+    case mac_lc_ch_cfg_t::direction_t::IDLE:
+      return "idle";
+    case mac_lc_ch_cfg_t::direction_t::BOTH:
+      return "bi-dir";
+    case mac_lc_ch_cfg_t::direction_t::DL:
+      return "DL";
+    case mac_lc_ch_cfg_t::direction_t::UL:
+      return "UL";
+    default:
+      return "unrecognized direction";
+  }
+}
 
 } // namespace srsenb
 
