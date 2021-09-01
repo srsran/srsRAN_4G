@@ -29,6 +29,7 @@
 #include "upper/rlc.h"
 
 #include "enb_stack_base.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/mac_pcap_net.h"
 #include "srsran/interfaces/enb_interfaces.h"
 #include "srsran/srslog/srslog.h"
@@ -38,6 +39,7 @@ namespace srsenb {
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_phy_nr,
+                            public stack_interface_rrc,
                             public pdcp_interface_gtpu,
                             public srsran::thread
 {
@@ -137,6 +139,11 @@ public:
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override;
   std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
 
+  // interface for bearer manager
+  void add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) override;
+  void remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id) override;
+  void reset_eps_bearers(uint16_t rnti) override;
+
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop
@@ -183,6 +190,8 @@ private:
   srsenb::rlc    rlc_nr;
   srsenb::pdcp   pdcp_nr;
   srsenb::rrc_nr rrc_nr;
+
+  srsran::bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

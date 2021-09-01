@@ -57,7 +57,7 @@ const char* to_string(test_event event)
 
 struct mobility_tester {
   explicit mobility_tester(const test_event& args_) :
-    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&task_sched)
+    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&stack, &task_sched)
   {
     logger.set_level(srslog::basic_levels::info);
     logger.set_hex_dump_max_size(1024);
@@ -93,6 +93,7 @@ struct mobility_tester {
   test_dummies::pdcp_mobility_dummy pdcp;
   test_dummies::phy_mobility_dummy  phy;
   test_dummies::s1ap_mobility_dummy s1ap;
+  test_dummies::enb_stack_dummy     stack;
   gtpu_dummy                        gtpu;
 
   void tic()
