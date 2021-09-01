@@ -29,23 +29,23 @@ ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const sched_cell_
   harq_ent(cell_params_.nof_prb())
 {}
 
-void ue_carrier::new_slot(slot_point pdcch_slot, const ue_cfg_t& uecfg_)
+slot_ue ue_carrier::try_reserve(slot_point      pdcch_slot,
+                                const ue_cfg_t& uecfg_,
+                                uint32_t        dl_pending_bytes,
+                                uint32_t        ul_pending_bytes)
 {
+  slot_point slot_rx = pdcch_slot - TX_ENB_DELAY;
+
+  // update CC/BWP config if there were changes
   if (bwp_cfg.ue_cfg() != &uecfg_) {
     bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], uecfg_);
   }
-  harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY);
-}
-
-slot_ue ue_carrier::try_reserve(slot_point pdcch_slot)
-{
-  slot_point slot_rx = pdcch_slot - TX_ENB_DELAY;
 
   // copy cc-specific parameters and find available HARQs
   slot_ue sfu(rnti, slot_rx, cc);
   sfu.cfg           = &bwp_cfg;
-  sfu.harq_ent      = &harq_ent;
   sfu.pdcch_slot    = pdcch_slot;
+  sfu.harq_ent      = &harq_ent;
   const uint32_t k0 = 0;
   sfu.pdsch_slot    = sfu.pdcch_slot + k0;
   uint32_t k1 =
@@ -57,45 +57,81 @@ slot_ue ue_carrier::try_reserve(slot_point pdcch_slot)
   sfu.dl_cqi     = dl_cqi;
   sfu.ul_cqi     = ul_cqi;
 
+  // set UE-common parameters
+  sfu.dl_pending_bytes = dl_pending_bytes;
+  sfu.ul_pending_bytes = ul_pending_bytes;
+
   const srsran_tdd_config_nr_t& tdd_cfg = cell_params.cell_cfg.tdd;
   if (srsran_tdd_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_slot.slot_idx())) {
     // If DL enabled
     sfu.h_dl = harq_ent.find_pending_dl_retx();
-    if (sfu.h_dl == nullptr) {
+    if (sfu.h_dl == nullptr and sfu.dl_pending_bytes > 0) {
       sfu.h_dl = harq_ent.find_empty_dl_harq();
     }
   }
   if (srsran_tdd_nr_is_ul(&tdd_cfg, 0, sfu.pusch_slot.slot_idx())) {
     // If UL enabled
     sfu.h_ul = harq_ent.find_pending_ul_retx();
-    if (sfu.h_ul == nullptr) {
+    if (sfu.h_ul == nullptr and sfu.ul_pending_bytes > 0) {
       sfu.h_ul = harq_ent.find_empty_ul_harq();
     }
   }
 
-  if (sfu.h_dl == nullptr and sfu.h_ul == nullptr) {
-    // there needs to be at least one available HARQ for newtx/retx
-    sfu.release();
-    return sfu;
-  }
   return sfu;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) :
-  rnti(rnti_), sched_cfg(sched_cfg_), ue_cfg(cfg), buffers(srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
+  rnti(rnti_), sched_cfg(sched_cfg_), buffers(srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
 {
-  for (uint32_t cc = 0; cc < cfg.carriers.size(); ++cc) {
-    if (cfg.carriers[cc].active) {
-      carriers[cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[cc]));
-    }
-  }
+  set_cfg(cfg);
 }
 
 void ue::set_cfg(const ue_cfg_t& cfg)
 {
   ue_cfg = cfg;
+  for (auto& ue_cc_cfg : cfg.carriers) {
+    if (ue_cc_cfg.active and carriers[ue_cc_cfg.cc] == nullptr) {
+      carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[ue_cc_cfg.cc]));
+    }
+  }
+}
+
+void ue::new_slot(slot_point pdcch_slot)
+{
+  for (auto& ue_cc_cfg : ue_cfg.carriers) {
+    auto& cc = carriers[ue_cc_cfg.cc];
+    if (cc != nullptr) {
+      // Update CC HARQ state
+      cc->harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY);
+    }
+  }
+
+  // Compute pending DL/UL bytes for {rnti, pdcch_slot}
+  if (sched_cfg.sched_cfg.auto_refill_buffer) {
+    dl_pending_bytes = 1000000;
+    ul_pending_bytes = 1000000;
+  } else {
+    dl_pending_bytes = buffers.get_dl_tx_total();
+    ul_pending_bytes = buffers.get_bsr();
+    for (auto& ue_cc_cfg : ue_cfg.carriers) {
+      auto& cc = carriers[ue_cc_cfg.cc];
+      if (cc != nullptr) {
+        // Discount UL HARQ pending bytes to BSR
+        for (uint32_t pid = 0; pid < cc->harq_ent.nof_dl_harqs(); ++pid) {
+          ul_pending_bytes -= cc->harq_ent.ul_harq(pid).tbs();
+          if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {
+            last_sr_slot.clear();
+          }
+        }
+      }
+    }
+    if (ul_pending_bytes == 0 and last_sr_slot.valid()) {
+      // If unanswered SR is pending
+      ul_pending_bytes = 512;
+    }
+  }
 }
 
 slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
@@ -103,13 +139,11 @@ slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
   if (carriers[cc] == nullptr) {
     return slot_ue();
   }
-  slot_ue sfu = carriers[cc]->try_reserve(pdcch_slot);
+
+  slot_ue sfu = carriers[cc]->try_reserve(pdcch_slot, cfg(), dl_pending_bytes, ul_pending_bytes);
   if (sfu.empty()) {
     return slot_ue();
   }
-
-  // set UE-common parameters
-  sfu.pending_sr = pending_sr;
 
   return sfu;
 }

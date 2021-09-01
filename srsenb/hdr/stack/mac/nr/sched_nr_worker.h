@@ -39,7 +39,6 @@ public:
   explicit slot_cc_worker(serv_cell_manager& sched);
 
   void run(slot_point pdcch_slot, ue_map_t& ue_db_);
-  void finish();
   bool running() const { return slot_rx.valid(); }
 
   void enqueue_cc_event(srsran::move_callback<void()> ev);
@@ -102,6 +101,8 @@ public:
   }
 
 private:
+  void update_ue_db(slot_point slot_tx, bool update_ca_users);
+
   bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
 
   const sched_params&                               cfg;

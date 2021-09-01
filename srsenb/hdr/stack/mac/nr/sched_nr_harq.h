@@ -41,6 +41,7 @@ public:
   uint32_t         ndi() const { return tb[0].ndi; }
   uint32_t         mcs() const { return tb[0].mcs; }
   const prb_grant& prbs() const { return prbs_; }
+  slot_point       harq_slot_tx() const { return slot_tx; }
   slot_point       harq_slot_ack() const { return slot_ack; }
 
   bool ack_info(uint32_t tb_idx, bool ack);
@@ -125,6 +126,11 @@ public:
 
   void dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { dl_harqs[pid].ack_info(tb_idx, ack); }
   void ul_crc_info(uint32_t pid, bool ack) { ul_harqs[pid].ack_info(0, ack); }
+
+  uint32_t            nof_dl_harqs() const { return dl_harqs.size(); }
+  uint32_t            nof_ul_harqs() const { return ul_harqs.size(); }
+  const dl_harq_proc& dl_harq(uint32_t pid) const { return dl_harqs[pid]; }
+  const ul_harq_proc& ul_harq(uint32_t pid) const { return ul_harqs[pid]; }
 
   dl_harq_proc* find_pending_dl_retx()
   {

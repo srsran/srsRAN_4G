@@ -151,6 +151,17 @@ void sched_nr::ul_sr_info(slot_point slot_rx, uint16_t rnti)
   sched_workers->enqueue_event(rnti, [this, rnti, slot_rx]() { ue_db[rnti]->ul_sr_info(slot_rx); });
 }
 
+void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
+{
+  sched_workers->enqueue_event(rnti, [this, rnti, lcg_id, bsr]() { ue_db[rnti]->ul_bsr(lcg_id, bsr); });
+}
+
+void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx)
+{
+  sched_workers->enqueue_event(rnti,
+                               [this, rnti, lcid, newtx, retx]() { ue_db[rnti]->rlc_buffer_state(lcid, newtx, retx); });
+}
+
 #define VERIFY_INPUT(cond, msg, ...)                                                                                   \
   do {                                                                                                                 \
     if (not(cond)) {                                                                                                   \

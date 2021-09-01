@@ -29,11 +29,7 @@ enum class pdcch_grant_type_t { sib, rar, dl_data, ul_data };
 
 class slot_ue;
 
-using bwp_cfg_t       = sched_nr_interface::bwp_cfg_t;
-using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
-using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
-using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
-using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+using bwp_cfg_t = sched_nr_interface::bwp_cfg_t;
 
 class coreset_region
 {

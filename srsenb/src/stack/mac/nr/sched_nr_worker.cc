@@ -75,8 +75,6 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
       continue;
     }
 
-    u.carriers[cfg.cc]->new_slot(pdcch_slot, u.cfg());
-
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, cfg.cc));
     if (slot_ues[rnti].empty()) {
       // Failed to generate slot UE because UE has no conditions for DL/UL tx
@@ -102,11 +100,6 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
   // releases UE resources
   slot_ues.clear();
   slot_rx = {};
-}
-
-void slot_cc_worker::finish()
-{
-  // synchronize results
 }
 
 void slot_cc_worker::alloc_dl_ues()
@@ -151,6 +144,28 @@ void sched_worker_manager::enqueue_cc_event(uint32_t cc, srsran::move_callback<v
   cc_worker_list[cc]->worker.enqueue_cc_event(std::move(ev));
 }
 
+/**
+ * Update UEs state that is non-CC specific (e.g. SRs, buffer status, UE configuration)
+ * @param slot_tx
+ * @param update_ca_users to update only UEs with CA enabled or not
+ */
+void sched_worker_manager::update_ue_db(slot_point slot_tx, bool update_ca_users)
+{
+  // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config)
+  for (ue_event_t& ev : slot_events) {
+    if (not ue_db.contains(ev.rnti) or ue_db[ev.rnti]->has_ca() == update_ca_users) {
+      ev.callback();
+    }
+  }
+
+  // prepare UEs internal state for new slot
+  for (auto& u : ue_db) {
+    if (u.second->has_ca() == update_ca_users) {
+      u.second->new_slot(slot_tx);
+    }
+  }
+}
+
 void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {
   srsran::bounded_vector<std::condition_variable*, SRSRAN_MAX_CARRIERS> waiting_cvars;
@@ -165,18 +180,14 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_re
     if (not current_slot.valid()) {
       /* First Worker to start slot */
 
-      // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config) for UEs with CA
+      // process non-cc specific feedback if pending for UEs with CA
       // NOTE: there is no parallelism in these operations
       slot_events.clear();
       {
         std::lock_guard<std::mutex> ev_lock(event_mutex);
         next_slot_events.swap(slot_events);
       }
-      for (ue_event_t& ev : slot_events) {
-        if (not ue_db.contains(ev.rnti) or ue_db[ev.rnti]->has_ca()) {
-          ev.callback();
-        }
-      }
+      update_ue_db(slot_tx, true);
 
       // mark the start of slot. awake remaining workers if locking on the mutex
       current_slot = slot_tx;
@@ -197,11 +208,7 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_re
   /* Parallel Region */
 
   // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config) for UEs without CA
-  for (ue_event_t& ev : slot_events) {
-    if (ue_db.contains(ev.rnti) and not ue_db[ev.rnti]->has_ca() and ue_db[ev.rnti]->pcell_cc() == cc) {
-      ev.callback();
-    }
-  }
+  update_ue_db(slot_tx, false);
 
   // process pending feedback, generate {slot, cc} scheduling decision
   cc_worker_list[cc]->worker.run(slot_tx, ue_db);
@@ -218,7 +225,6 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_re
 
     // All the workers of the same slot have finished. Synchronize scheduling decisions with UEs state
     for (auto& c : cc_worker_list) {
-      c->worker.finish();
       if (c->waiting > 0) {
         waiting_cvars.push_back(&c->cvar);
       }

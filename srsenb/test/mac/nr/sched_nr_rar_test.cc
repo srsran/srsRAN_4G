@@ -29,7 +29,11 @@ void test_single_prach()
   std::default_random_engine   rand_gen(seed);
   std::default_random_engine   rgen(rand_gen());
 
-  sched_nr_interface::sched_cfg_t             sched_cfg{};
+  // Set scheduler configuration
+  sched_nr_interface::sched_cfg_t sched_cfg{};
+  sched_cfg.auto_refill_buffer = std::uniform_int_distribution<uint32_t>{0, 1}(rgen) > 0;
+
+  // Set cells configuration
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(1);
   sched_params                                schedparams{sched_cfg};
   schedparams.cells.emplace_back(0, cells_cfg[0], sched_cfg);
@@ -52,10 +56,14 @@ void test_single_prach()
   const bwp_slot_grid* result   = nullptr;
   auto                 run_slot = [&alloc, &rasched, &pdcch_slot, &slot_ues, &u]() -> const bwp_slot_grid* {
     mac_logger.set_context(pdcch_slot.to_uint());
-    u.carriers[0]->new_slot(pdcch_slot, u.cfg());
+    u.new_slot(pdcch_slot);
     slot_ues.clear();
-    slot_ues.insert(rnti, u.try_reserve(pdcch_slot, 0));
+    slot_ue sfu = u.try_reserve(pdcch_slot, 0);
+    if (not sfu.empty()) {
+      slot_ues.insert(rnti, std::move(sfu));
+    }
     alloc.new_slot(pdcch_slot, slot_ues);
+
     rasched.run_slot(alloc);
 
     log_sched_bwp_result(mac_logger, alloc.get_pdcch_tti(), alloc.res_grid(), slot_ues);

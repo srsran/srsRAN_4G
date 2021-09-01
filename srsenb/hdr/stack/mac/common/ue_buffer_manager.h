@@ -70,6 +70,7 @@ public:
   // UL BSR methods
   bool                                 is_lcg_active(uint32_t lcg) const;
   int                                  get_bsr(uint32_t lcg) const;
+  int                                  get_bsr() const;
   const std::array<int, MAX_NOF_LCGS>& get_bsr_state() const { return lcg_bsr; }
 
   static bool is_lcid_valid(uint32_t lcid) { return lcid <= MAX_LC_ID; }

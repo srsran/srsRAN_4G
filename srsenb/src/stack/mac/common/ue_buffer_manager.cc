@@ -77,6 +77,18 @@ int ue_buffer_manager<isNR>::get_bsr(uint32_t lcg) const
 }
 
 template <bool isNR>
+int ue_buffer_manager<isNR>::get_bsr() const
+{
+  uint32_t count = 0;
+  for (uint32_t lcg = 0; is_lcg_valid(lcg); ++lcg) {
+    if (is_lcg_active(lcg)) {
+      count += lcg_bsr[lcg];
+    }
+  }
+  return count;
+}
+
+template <bool isNR>
 void ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
 {
   if (not is_lcg_valid(lcg_id)) {
