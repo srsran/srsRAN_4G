@@ -108,7 +108,7 @@ void mac_sch_subpdu_nr::set_c_rnti(const uint16_t crnti_)
   header_length         = 1;
   sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
   sdu                   = ce_write_buffer.data();
-  uint16_t crnti        = htole32(crnti_);
+  uint16_t crnti        = htole16(crnti_);
   ce_write_buffer.at(0) = (uint8_t)((crnti & 0xff00) >> 8);
   ce_write_buffer.at(1) = (uint8_t)((crnti & 0x00ff));
 }
@@ -291,7 +291,7 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
       // UL-SCH case
       switch (get_lcid()) {
         case mac_sch_subpdu_nr::CRNTI:
-          fmt::format_to(buffer, "CRNTI: {:#04x}", get_c_rnti());
+          fmt::format_to(buffer, "C-RNTI: {:#04x}", get_c_rnti());
           break;
         case mac_sch_subpdu_nr::SHORT_TRUNC_BSR:
           fmt::format_to(buffer, "SHORT_TRUNC_BSR: len={}", get_total_length());
