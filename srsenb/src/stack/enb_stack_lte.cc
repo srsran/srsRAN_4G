@@ -98,7 +98,7 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   rlc_nr(rlc_nr_logger),
   gtpu(&task_sched, gtpu_logger, &rx_sockets),
   s1ap(&task_sched, s1ap_logger, &rx_sockets),
-  rrc(this, &task_sched),
+  rrc(&task_sched, bearers),
   rrc_nr(&task_sched),
   mac_pcap(),
   pending_stack_metrics(64)
@@ -333,21 +333,6 @@ void enb_stack_lte::run_thread()
   while (started.load(std::memory_order_relaxed)) {
     task_sched.run_next_task();
   }
-}
-
-void enb_stack_lte::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid)
-{
-  bearers.add_eps_bearer(rnti, eps_bearer_id, rat, lcid);
-}
-
-void enb_stack_lte::remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)
-{
-  bearers.remove_eps_bearer(rnti, eps_bearer_id);
-}
-
-void enb_stack_lte::remove_eps_bearers(uint16_t rnti)
-{
-  bearers.rem_user(rnti);
 }
 
 } // namespace srsenb

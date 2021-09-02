@@ -32,8 +32,8 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), stack(stack_), task_sched(task_sched_), rx_pdu_queue(128)
+rrc::rrc(srsran::task_sched_handle task_sched_, enb_bearer_manager& manager_) :
+  logger(srslog::fetch_basic_logger("RRC")), bearer_manager(manager_), task_sched(task_sched_), rx_pdu_queue(128)
 {}
 
 rrc::~rrc() {}
@@ -655,7 +655,7 @@ void rrc::rem_user(uint16_t rnti)
     gtpu->rem_user(rnti);
 
     // Now remove RLC and PDCP
-    stack->remove_eps_bearers(rnti);
+    bearer_manager.rem_user(rnti);
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
 

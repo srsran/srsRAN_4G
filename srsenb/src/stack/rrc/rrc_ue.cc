@@ -1443,8 +1443,8 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       parent->rlc->del_bearer(rnti, drb_to_lcid((lte_drb)drb_id));
 
       // deregister EPS bearer
-      uint8_t eps_bearer_id = 0; // FIXME: lookup EPS bearer ID for drb_id
-      parent->stack->remove_eps_bearer(rnti, eps_bearer_id);
+      uint8_t eps_bearer_id = parent->bearer_manager.get_lcid_bearer(rnti, drb_to_lcid((lte_drb)drb_id)).eps_bearer_id;
+      parent->bearer_manager.remove_eps_bearer(rnti, eps_bearer_id);
     }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
@@ -1460,7 +1460,7 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
     parent->rlc->add_bearer(rnti, drb.lc_ch_id, rlc_cfg);
 
     // register EPS bearer over LTE PDCP
-    parent->stack->add_eps_bearer(rnti, drb.eps_bearer_id, srsran::srsran_rat_t::lte, drb.lc_ch_id);
+    parent->bearer_manager.add_eps_bearer(rnti, drb.eps_bearer_id, srsran::srsran_rat_t::lte, drb.lc_ch_id);
   }
 }
 

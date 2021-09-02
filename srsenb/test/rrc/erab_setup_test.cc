@@ -33,8 +33,8 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
   logger.set_hex_dump_max_size(1024);
   logger.set_level(srslog::basic_levels::info);
 
-  test_dummies::enb_stack_dummy     stack;
-  srsenb::rrc                       rrc{&stack, &task_sched};
+  enb_bearer_manager                bearers;
+  srsenb::rrc                       rrc{&task_sched, bearers};
   mac_dummy                         mac;
   rlc_dummy                         rlc;
   test_dummies::pdcp_mobility_dummy pdcp;

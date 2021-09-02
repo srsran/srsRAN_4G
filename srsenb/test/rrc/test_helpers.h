@@ -201,13 +201,6 @@ public:
   phy_rrc_cfg_list_t last_cfg;
 };
 
-class enb_stack_dummy : public stack_interface_rrc
-{
-  void add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) {}
-  void remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id) {}
-  void remove_eps_bearers(uint16_t rnti){};
-};
-
 } // namespace test_dummies
 
 namespace test_helpers {

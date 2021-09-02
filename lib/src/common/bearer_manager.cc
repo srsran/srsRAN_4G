@@ -83,9 +83,10 @@ void ue_bearer_manager::add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat
 {
   srsran::rwlock_write_guard rw_lock(rwlock);
   if (impl.add_eps_bearer(eps_bearer_id, rat, lcid)) {
-    logger.info("Registered EPS bearer ID %d for lcid=%d over %s-PDCP", eps_bearer_id, lcid, to_string(rat).c_str());
+    logger.info(
+        "Bearers: Registered EPS bearer ID %d for lcid=%d over %s-PDCP", eps_bearer_id, lcid, to_string(rat).c_str());
   } else {
-    logger.error("EPS bearer ID %d already registered", eps_bearer_id);
+    logger.error("Bearers: EPS bearer ID %d already registered", eps_bearer_id);
   }
 }
 
@@ -93,16 +94,16 @@ void ue_bearer_manager::remove_eps_bearer(uint8_t eps_bearer_id)
 {
   srsran::rwlock_write_guard rw_lock(rwlock);
   if (impl.remove_eps_bearer(eps_bearer_id)) {
-    logger.info("Removed mapping for EPS bearer ID %d", eps_bearer_id);
+    logger.info("Bearers: Removed mapping for EPS bearer ID %d", eps_bearer_id);
   } else {
-    logger.error("Can't remove EPS bearer ID %d", eps_bearer_id);
+    logger.error("Bearers: Can't remove EPS bearer ID %d", eps_bearer_id);
   }
 }
 
 void ue_bearer_manager::reset()
 {
   impl.reset();
-  logger.info("Reset EPS bearer manager");
+  logger.info("Bearers: Reset EPS bearer manager");
 }
 
 } // namespace srsue
@@ -121,13 +122,13 @@ void enb_bearer_manager::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, sr
   }
 
   if (user_it->second.add_eps_bearer(eps_bearer_id, rat, lcid)) {
-    logger.info("Registered EPS bearer ID %d for rnti=0x%x, lcid=%d over %s-PDCP",
+    logger.info("Bearers: Registered eps-BearerID=%d for rnti=0x%x, lcid=%d over %s-PDCP",
                 eps_bearer_id,
                 rnti,
                 lcid,
                 to_string(rat).c_str());
   } else {
-    logger.error("EPS bearer ID %d for rnti=0x%x already registered", eps_bearer_id, rnti);
+    logger.error("Bearers: EPS bearer ID %d for rnti=0x%x already registered", eps_bearer_id, rnti);
   }
 }
 
@@ -135,24 +136,20 @@ void enb_bearer_manager::remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)
 {
   auto user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
-    logger.error("No EPS bearer registered for rnti=0x%x", rnti);
+    logger.error("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
     return;
   }
 
   if (user_it->second.remove_eps_bearer(eps_bearer_id)) {
-    logger.info("Removed mapping for EPS bearer ID %d for rnti=0x%x", eps_bearer_id, rnti);
+    logger.info("Bearers: Removed mapping for EPS bearer ID %d for rnti=0x%x", eps_bearer_id, rnti);
   } else {
-    logger.error("Can't remove EPS bearer ID %d, rnti=0x%x", eps_bearer_id, rnti);
+    logger.error("Bearers: Can't remove EPS bearer ID %d, rnti=0x%x", eps_bearer_id, rnti);
   }
 }
 
 void enb_bearer_manager::rem_user(uint16_t rnti)
 {
-  if (users_map.erase(rnti)) {
-    logger.info("Removed rnti=0x%x from EPS bearer manager", rnti);
-  } else {
-    logger.error("No EPS bearer registered for rnti=0x%x", rnti);
-  }
+  logger.info("Bearers: Removed rnti=0x%x from EPS bearer manager", rnti);
 }
 
 bool enb_bearer_manager::has_active_radio_bearer(uint16_t rnti, uint32_t eps_bearer_id)

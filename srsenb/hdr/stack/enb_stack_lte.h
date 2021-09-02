@@ -41,7 +41,6 @@ class gtpu_pdcp_adapter;
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_phy_nr,
-                            public stack_interface_rrc,
                             public srsran::thread
 {
 public:
@@ -135,11 +134,6 @@ public:
     return mac_nr.pusch_info(slot_cfg, pusch_info);
   }
   void rach_detected(const rach_info_t& rach_info) override { mac_nr.rach_detected(rach_info); }
-
-  // interface for bearer manager
-  void add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) override;
-  void remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id) override;
-  void remove_eps_bearers(uint16_t rnti) override;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
