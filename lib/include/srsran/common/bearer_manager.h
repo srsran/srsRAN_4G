@@ -49,6 +49,8 @@ public:
   struct radio_bearer_t {
     srsran::srsran_rat_t rat;
     uint32_t             lcid;
+    uint32_t             eps_bearer_id;
+    bool                 is_valid() const { return rat != srsran_rat_t::nulltype; }
   };
 
   /// Single user interface (for UE)
@@ -69,6 +71,8 @@ public:
   // Stack interface to retrieve active RB
   radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id);
 
+  radio_bearer_t get_lcid_bearer(uint16_t rnti, uint32_t lcid);
+
   /// Multi-user interface (see comments above)
   void           add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid);
   void           remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id);
@@ -81,10 +85,14 @@ private:
   srslog::basic_logger& logger;
 
   typedef std::map<uint32_t, radio_bearer_t> eps_rb_map_t;
-  std::map<uint16_t, eps_rb_map_t>           users_map;
+  struct user_bearers {
+    eps_rb_map_t                 bearers;
+    std::map<uint32_t, uint32_t> lcid_to_eps_bearer_id;
+  };
+  std::map<uint16_t, user_bearers> users_map;
 
   const uint16_t default_key = 0xffff; // dummy RNTI used for public interface without explicit RNTI
-  radio_bearer_t invalid_rb  = {srsran::srsran_rat_t::nulltype, 0};
+  radio_bearer_t invalid_rb  = {srsran::srsran_rat_t::nulltype, 0, 0};
 };
 
 } // namespace srsran

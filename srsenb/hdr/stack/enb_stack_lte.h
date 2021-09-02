@@ -36,6 +36,8 @@
 
 namespace srsenb {
 
+class gtpu_pdcp_adapter;
+
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_phy_nr,
@@ -178,6 +180,10 @@ private:
   srsran::task_scheduler    task_sched;
   srsran::task_queue_handle enb_task_queue, sync_task_queue, metrics_task_queue;
 
+  // bearer management
+  srsran::bearer_manager             bearers; // helper to manage mapping between EPS and radio bearers
+  std::unique_ptr<gtpu_pdcp_adapter> gtpu_adapter;
+
   srsenb::mac  mac;
   srsenb::rlc  rlc;
   srsenb::pdcp pdcp;
@@ -191,10 +197,8 @@ private:
   srsenb::pdcp   pdcp_nr;
   srsenb::rrc_nr rrc_nr;
 
-  srsran::bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
-
   // RAT-specific interfaces
-  phy_interface_stack_lte* phy = nullptr;
+  phy_interface_stack_lte* phy    = nullptr;
   phy_interface_stack_nr*  phy_nr = nullptr;
 
   // state

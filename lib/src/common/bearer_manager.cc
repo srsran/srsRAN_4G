@@ -32,19 +32,20 @@ void bearer_manager::add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t 
 void bearer_manager::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid)
 {
   srsran::rwlock_write_guard rw_lock(rwlock);
-  auto user_it = users_map.find(rnti);
+  auto                       user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
     // add empty bearer map
-    users_map.emplace(rnti, eps_rb_map_t{});
-    user_it = users_map.find(rnti);
+    auto p  = users_map.emplace(rnti, user_bearers{});
+    user_it = p.first;
   }
 
-  auto bearer_it = user_it->second.find(eps_bearer_id);
-  if (bearer_it != user_it->second.end()) {
+  auto bearer_it = user_it->second.bearers.find(eps_bearer_id);
+  if (bearer_it != user_it->second.bearers.end()) {
     logger.error("EPS bearer ID %d already registered", eps_bearer_id);
     return;
   }
-  user_it->second.emplace(eps_bearer_id, radio_bearer_t{rat, lcid});
+  user_it->second.bearers.emplace(eps_bearer_id, radio_bearer_t{rat, lcid, eps_bearer_id});
+  user_it->second.lcid_to_eps_bearer_id.emplace(lcid, eps_bearer_id);
   logger.info("Registered EPS bearer ID %d for lcid=%d over %s-PDCP", eps_bearer_id, lcid, to_string(rat).c_str());
 }
 
@@ -63,12 +64,14 @@ void bearer_manager::remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)
     return;
   }
 
-  auto bearer_it = user_it->second.find(eps_bearer_id);
-  if (bearer_it == user_it->second.end()) {
+  auto bearer_it = user_it->second.bearers.find(eps_bearer_id);
+  if (bearer_it == user_it->second.bearers.end()) {
     logger.error("Can't remove EPS bearer ID %d", eps_bearer_id);
     return;
   }
-  user_it->second.erase(bearer_it);
+  uint32_t lcid = bearer_it->second.lcid;
+  user_it->second.bearers.erase(bearer_it);
+  user_it->second.lcid_to_eps_bearer_id.erase(lcid);
   logger.info("Removed mapping for EPS bearer ID %d", eps_bearer_id);
 }
 
@@ -87,7 +90,8 @@ void bearer_manager::reset(uint16_t rnti)
     return;
   }
 
-  user_it->second.clear();
+  user_it->second.lcid_to_eps_bearer_id.clear();
+  user_it->second.bearers.clear();
   logger.info("Reset EPS bearer manager");
 }
 
@@ -106,13 +110,29 @@ bool bearer_manager::has_active_radio_bearer(uint16_t rnti, uint32_t eps_bearer_
     return false;
   }
 
-  return user_it->second.find(eps_bearer_id) != user_it->second.end();
+  return user_it->second.bearers.find(eps_bearer_id) != user_it->second.bearers.end();
 }
 
 // Stack interface
 bearer_manager::radio_bearer_t bearer_manager::get_radio_bearer(uint32_t eps_bearer_id)
 {
   return get_radio_bearer(default_key, eps_bearer_id);
+}
+
+bearer_manager::radio_bearer_t bearer_manager::get_lcid_bearer(uint16_t rnti, uint32_t lcid)
+{
+  srsran::rwlock_read_guard rw_lock(rwlock);
+
+  auto user_it = users_map.find(rnti);
+  if (user_it == users_map.end()) {
+    return invalid_rb;
+  }
+
+  auto lcid_it = user_it->second.lcid_to_eps_bearer_id.find(lcid);
+  if (lcid_it != user_it->second.lcid_to_eps_bearer_id.end()) {
+    return user_it->second.bearers.at(lcid_it->second);
+  }
+  return invalid_rb;
 }
 
 bearer_manager::radio_bearer_t bearer_manager::get_radio_bearer(uint16_t rnti, uint32_t eps_bearer_id)
@@ -124,10 +144,10 @@ bearer_manager::radio_bearer_t bearer_manager::get_radio_bearer(uint16_t rnti, u
     return invalid_rb;
   }
 
-  if (user_it->second.find(eps_bearer_id) != user_it->second.end()) {
-    return user_it->second.at(eps_bearer_id);
+  if (user_it->second.bearers.find(eps_bearer_id) != user_it->second.bearers.end()) {
+    return user_it->second.bearers.at(eps_bearer_id);
   }
   return invalid_rb;
 }
 
-} // namespace srsue
+} // namespace srsran
