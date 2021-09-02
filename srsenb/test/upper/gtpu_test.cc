@@ -161,7 +161,7 @@ void test_gtpu_tunnel_manager()
   gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"));
   tunnels.init(gtpu_args, nullptr);
   TESTASSERT(tunnels.find_tunnel(0) == nullptr);
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_lcid).empty());
   TESTASSERT(tunnels.find_rnti_tunnels(0x46) == nullptr);
 
   // Creation of tunnels for different users and lcids
@@ -174,19 +174,19 @@ void test_gtpu_tunnel_manager()
   tun2 = tunnels.add_tunnel(0x47, drb1_lcid + 1, 7, sgw_addr);
   TESTASSERT(tun2 != nullptr);
   TESTASSERT(tunnels.find_tunnel(tun2->teid_in) == tun2);
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 1);
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x47, drb1_lcid).size() == 1);
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x47, drb1_lcid + 1).size() == 1);
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x47, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x47, drb1_lcid + 1).size() == 1);
 
   // TEST: Creation/Removal of indirect tunnel
   const gtpu_tunnel* fwd_tun = tunnels.add_tunnel(0x46, drb1_lcid, 8, sgw_addr);
   TESTASSERT(fwd_tun != nullptr);
   TESTASSERT(tunnels.find_tunnel(fwd_tun->teid_in) == fwd_tun);
   tunnels.setup_forwarding(tun->teid_in, fwd_tun->teid_in);
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 2);
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_lcid).size() == 2);
   // Removing a tunnel also clears any associated forwarding tunnel
   TESTASSERT(tunnels.remove_tunnel(tun->teid_in));
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).empty());
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_lcid).empty());
 
   // TEST: Prioritization of one TEID over another
   const gtpu_tunnel* before_tun = tunnels.add_tunnel(0x46, drb1_lcid, 7, sgw_addr);
@@ -200,9 +200,9 @@ void test_gtpu_tunnel_manager()
     tunnels.handle_rx_pdcp_sdu(before_tun->teid_in);
   }
   // Removing active TEID, will automatically switch TEID paths
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 2);
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_lcid).size() == 2);
   tunnels.remove_tunnel(before_tun->teid_in);
-  TESTASSERT(tunnels.find_rnti_lcid_tunnels(0x46, drb1_lcid).size() == 1);
+  TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_lcid).size() == 1);
   TESTASSERT(after_tun->state == gtpu_tunnel_manager::tunnel_state::pdcp_active);
 }
 
