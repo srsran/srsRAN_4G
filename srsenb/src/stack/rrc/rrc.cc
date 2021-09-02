@@ -655,6 +655,7 @@ void rrc::rem_user(uint16_t rnti)
     gtpu->rem_user(rnti);
 
     // Now remove RLC and PDCP
+    stack->remove_eps_bearers(rnti);
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
 

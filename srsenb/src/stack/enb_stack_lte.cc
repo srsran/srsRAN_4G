@@ -25,11 +25,11 @@ namespace srsenb {
 class gtpu_pdcp_adapter final : public gtpu_interface_pdcp, public pdcp_interface_gtpu
 {
 public:
-  gtpu_pdcp_adapter(srslog::basic_logger&   logger_,
-                    pdcp*                   pdcp_lte,
-                    pdcp*                   pdcp_nr,
-                    gtpu*                   gtpu_,
-                    srsran::bearer_manager& bearers_) :
+  gtpu_pdcp_adapter(srslog::basic_logger& logger_,
+                    pdcp*                 pdcp_lte,
+                    pdcp*                 pdcp_nr,
+                    gtpu*                 gtpu_,
+                    enb_bearer_manager&   bearers_) :
     logger(logger_), pdcp_obj(pdcp_lte), pdcp_nr_obj(pdcp_nr), gtpu_obj(gtpu_), bearers(&bearers_)
   {}
 
@@ -69,11 +69,11 @@ public:
   }
 
 private:
-  srslog::basic_logger&   logger;
-  gtpu*                   gtpu_obj    = nullptr;
-  pdcp*                   pdcp_obj    = nullptr;
-  pdcp*                   pdcp_nr_obj = nullptr;
-  srsran::bearer_manager* bearers     = nullptr;
+  srslog::basic_logger& logger;
+  gtpu*                 gtpu_obj    = nullptr;
+  pdcp*                 pdcp_obj    = nullptr;
+  pdcp*                 pdcp_nr_obj = nullptr;
+  enb_bearer_manager*   bearers     = nullptr;
 };
 
 enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
@@ -345,9 +345,9 @@ void enb_stack_lte::remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)
   bearers.remove_eps_bearer(rnti, eps_bearer_id);
 }
 
-void enb_stack_lte::reset_eps_bearers(uint16_t rnti)
+void enb_stack_lte::remove_eps_bearers(uint16_t rnti)
 {
-  bearers.reset(rnti);
+  bearers.rem_user(rnti);
 }
 
 } // namespace srsenb
