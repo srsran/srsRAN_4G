@@ -305,12 +305,11 @@ int mac_rar_pdu_test7()
   TESTASSERT(memcmp(msg3_grant.data(), tv_msg3_grant, msg3_grant.size()) == 0);
 
   // pack again
-  const uint32_t pdu_size = 11;
   byte_buffer_t  tx_buffer;
   tx_buffer.clear();
 
   srsran::mac_rar_pdu_nr tx_pdu;
-  tx_pdu.init_tx(&tx_buffer, pdu_size);
+  tx_pdu.init_tx(&tx_buffer, sizeof(mac_dl_rar_pdu));
 
   mac_rar_subpdu_nr& rar_subpdu = tx_pdu.add_subpdu();
   rar_subpdu.set_ta(tv_ta);
