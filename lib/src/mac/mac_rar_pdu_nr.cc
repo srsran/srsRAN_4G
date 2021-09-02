@@ -253,7 +253,10 @@ int mac_rar_pdu_nr::pack()
   }
 
   // fill up with padding, if any
-  buffer->N_bytes += remaining_len;
+  if (remaining_len > 0) {
+    memset(buffer->msg + buffer->N_bytes, 0, remaining_len);
+    buffer->N_bytes += remaining_len;
+  }
 
   ret = SRSRAN_SUCCESS;
 
