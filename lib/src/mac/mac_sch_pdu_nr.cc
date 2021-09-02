@@ -280,56 +280,53 @@ inline bool mac_sch_subpdu_nr::is_ul_ccch()
 
 void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
 {
-  // Add space for new subPDU
-  fmt::format_to(buffer, " ");
-
   // print subPDU
   if (is_sdu()) {
-    fmt::format_to(buffer, "LCID={} len={}", get_lcid(), get_sdu_length());
+    fmt::format_to(buffer, " LCID={} len={}", get_lcid(), get_sdu_length());
   } else {
     if (parent->is_ulsch()) {
       // UL-SCH case
       switch (get_lcid()) {
         case mac_sch_subpdu_nr::CRNTI:
-          fmt::format_to(buffer, "C-RNTI: {:#04x}", get_c_rnti());
+          fmt::format_to(buffer, " C-RNTI: {:#04x}", get_c_rnti());
           break;
         case mac_sch_subpdu_nr::SHORT_TRUNC_BSR:
-          fmt::format_to(buffer, "SHORT_TRUNC_BSR: len={}", get_total_length());
+          fmt::format_to(buffer, " SHORT_TRUNC_BSR: len={}", get_total_length());
           break;
         case mac_sch_subpdu_nr::LONG_TRUNC_BSR:
-          fmt::format_to(buffer, "LONG_TRUNC_BSR: len={}", get_total_length());
+          fmt::format_to(buffer, " LONG_TRUNC_BSR: len={}", get_total_length());
           break;
         case mac_sch_subpdu_nr::SHORT_BSR: {
           lcg_bsr_t sbsr = get_sbsr();
-          fmt::format_to(buffer, "SBSR: lcg={} bs={}", sbsr.lcg_id, sbsr.buffer_size);
+          fmt::format_to(buffer, " SBSR: lcg={} bs={}", sbsr.lcg_id, sbsr.buffer_size);
         } break;
         case mac_sch_subpdu_nr::LONG_BSR:
-          fmt::format_to(buffer, "LBSR: len={}", get_total_length());
+          fmt::format_to(buffer, " LBSR: len={}", get_total_length());
           break;
         case mac_sch_subpdu_nr::SE_PHR:
-          fmt::format_to(buffer, "SE_PHR: ph={} pc={}", get_phr(), get_pcmax());
+          fmt::format_to(buffer, " SE_PHR: ph={} pc={}", get_phr(), get_pcmax());
           break;
         case mac_sch_subpdu_nr::PADDING:
-          fmt::format_to(buffer, "PAD: len={}", get_sdu_length());
+          fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
         default:
-          fmt::format_to(buffer, "CE={}", get_lcid());
+          fmt::format_to(buffer, " CE={}", get_lcid());
           break;
       }
     } else {
       // DL-SCH PDU
       switch (get_lcid()) {
         case mac_sch_subpdu_nr::TA_CMD:
-          fmt::format_to(buffer, "TA: id={} command={}", get_ta().tag_id, get_ta().ta_command);
+          fmt::format_to(buffer, " TA: id={} command={}", get_ta().tag_id, get_ta().ta_command);
           break;
         case mac_sch_subpdu_nr::CON_RES_ID:
-          fmt::format_to(buffer, "CONRES: len={}", get_total_length());
+          fmt::format_to(buffer, " CONRES: len={}", get_total_length());
           break;
         case mac_sch_subpdu_nr::PADDING:
-          fmt::format_to(buffer, "PAD: len={}", get_sdu_length());
+          fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
         default:
-          fmt::format_to(buffer, "CE={}", get_lcid());
+          fmt::format_to(buffer, " CE={}", get_lcid());
           break;
       }
     }
