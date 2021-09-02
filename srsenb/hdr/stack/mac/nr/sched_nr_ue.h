@@ -114,8 +114,8 @@ private:
   ue_cfg_t ue_cfg;
 };
 
-using ue_map_t      = srsran::static_circular_map<uint16_t, std::unique_ptr<ue>, SCHED_NR_MAX_USERS>;
-using slot_ue_map_t = srsran::static_circular_map<uint16_t, slot_ue, SCHED_NR_MAX_USERS>;
+using ue_map_t      = rnti_map_t<std::unique_ptr<ue> >;
+using slot_ue_map_t = rnti_map_t<slot_ue>;
 
 } // namespace sched_nr_impl
 

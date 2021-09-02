@@ -147,20 +147,21 @@ void sched_worker_manager::enqueue_cc_event(uint32_t cc, srsran::move_callback<v
 /**
  * Update UEs state that is non-CC specific (e.g. SRs, buffer status, UE configuration)
  * @param slot_tx
- * @param update_ca_users to update only UEs with CA enabled or not
+ * @param locked_context to update only UEs with CA enabled or not
  */
-void sched_worker_manager::update_ue_db(slot_point slot_tx, bool update_ca_users)
+void sched_worker_manager::update_ue_db(slot_point slot_tx, bool locked_context)
 {
   // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config)
   for (ue_event_t& ev : slot_events) {
-    if (not ue_db.contains(ev.rnti) or ue_db[ev.rnti]->has_ca() == update_ca_users) {
+    if ((locked_context and not ue_db.contains(ev.rnti)) or
+        (ue_db.contains(ev.rnti) and ue_db[ev.rnti]->has_ca() == locked_context)) {
       ev.callback();
     }
   }
 
   // prepare UEs internal state for new slot
   for (auto& u : ue_db) {
-    if (u.second->has_ca() == update_ca_users) {
+    if (u.second->has_ca() == locked_context) {
       u.second->new_slot(slot_tx);
     }
   }

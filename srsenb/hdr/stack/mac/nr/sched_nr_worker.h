@@ -101,7 +101,7 @@ public:
   }
 
 private:
-  void update_ue_db(slot_point slot_tx, bool update_ca_users);
+  void update_ue_db(slot_point slot_tx, bool locked_context);
 
   bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
 
