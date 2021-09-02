@@ -13,6 +13,7 @@
 #ifndef SRSRAN_MAC_RAR_PDU_NR_H
 #define SRSRAN_MAC_RAR_PDU_NR_H
 
+#include "srsran/common/byte_buffer.h"
 #include "srsran/common/common.h"
 #include "srsran/config.h"
 #include "srsran/phy/common/phy_common_nr.h"
@@ -51,12 +52,19 @@ public:
   uint8_t                             get_backoff() const;
 
   // setter
-  uint32_t write_subpdu(const uint8_t* start_);
-  void     set_backoff(const uint8_t backoff_indicator_);
+  void write_subpdu(const uint8_t* start_);
+  void set_backoff(const uint8_t backoff_indicator_);
+  void set_ta(const uint32_t ta_);
+  void set_temp_crnti(const uint16_t temp_crnti_);
+  void set_rapid(const uint8_t rapid_);
+  void set_ul_grant(std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> ul_grant_);
+  void set_is_last_subpdu();
 
-  std::string to_string();
+  void to_string(fmt::memory_buffer& buffer);
 
 private:
+  const uint32_t MAC_RAR_NBYTES = 7; // see TS 38.321 Sec 6.2.3
+
   int header_length  = 1; // RAR PDU subheader is always 1 B
   int payload_length = 0; // only used if MAC RAR is included
 
@@ -66,7 +74,7 @@ private:
   uint16_t                            rapid             = 0;
   uint8_t                             backoff_indicator = 0;
   rar_subh_type_t                     type              = BACKOFF;
-  bool                                E_bit             = 0;
+  bool                                E_bit             = true;
 
   srslog::basic_logger& logger;
 
@@ -79,7 +87,8 @@ public:
   mac_rar_pdu_nr();
   ~mac_rar_pdu_nr() = default;
 
-  bool                     pack();
+  int                      init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_);
+  int                      pack();
   bool                     unpack(const uint8_t* payload, const uint32_t& len);
   uint32_t                 get_num_subpdus();
   // Returns reference to a single subPDU
@@ -92,13 +101,20 @@ public:
   void set_si_rapid(uint16_t si_rapid_); // configured through SIB1 for on-demand SI request (See 38.331 Sec 5.2.1)
   bool has_si_rapid();
 
-  std::string to_string();
+  // returns reference to added RAR subPDU
+  mac_rar_subpdu_nr& add_subpdu();
+
+  void to_string(fmt::memory_buffer& buffer);
 
 private:
   std::vector<mac_rar_subpdu_nr> subpdus;
+  uint32_t                       pdu_len       = 0;
   uint32_t                       remaining_len = 0;
+
   uint16_t                       si_rapid      = 0;
   bool                           si_rapid_set  = false;
+
+  byte_buffer_t*                 buffer = nullptr;
   srslog::basic_logger&          logger;
 };
 
