@@ -22,21 +22,58 @@ using namespace srsran;
 
 namespace srsenb {
 
-class gtpu_pdcp_adapter : public gtpu_interface_pdcp
+class gtpu_pdcp_adapter final : public gtpu_interface_pdcp, public pdcp_interface_gtpu
 {
 public:
-  gtpu_pdcp_adapter(gtpu* gtpu_, srsran::bearer_manager& bearers_) : gtpu_obj(gtpu_), bearers(&bearers_) {}
+  gtpu_pdcp_adapter(srslog::basic_logger&   logger_,
+                    pdcp*                   pdcp_lte,
+                    pdcp*                   pdcp_nr,
+                    gtpu*                   gtpu_,
+                    srsran::bearer_manager& bearers_) :
+    logger(logger_), pdcp_obj(pdcp_lte), pdcp_nr_obj(pdcp_nr), gtpu_obj(gtpu_), bearers(&bearers_)
+  {}
 
   /// Converts LCID to EPS-BearerID and sends corresponding PDU to GTPU
-  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override
   {
     auto bearer = bearers->get_lcid_bearer(rnti, lcid);
+    if (not bearer.is_valid()) {
+      logger.error("Bearer rnti=0x%x, lcid=%d not found", rnti, lcid);
+      return;
+    }
     gtpu_obj->write_pdu(rnti, bearer.eps_bearer_id, std::move(pdu));
+  }
+  void write_sdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override
+  {
+    auto bearer = bearers->get_radio_bearer(rnti, eps_bearer_id);
+    // route SDU to PDCP entity
+    if (bearer.rat == srsran_rat_t::lte) {
+      pdcp_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
+    } else if (bearer.rat == srsran_rat_t::nr) {
+      pdcp_nr_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
+    } else {
+      logger.warning("Can't deliver SDU for EPS bearer %d. Dropping it.", eps_bearer_id);
+    }
+  }
+  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t eps_bearer_id) override
+  {
+    auto bearer = bearers->get_radio_bearer(rnti, eps_bearer_id);
+    // route SDU to PDCP entity
+    if (bearer.rat == srsran_rat_t::lte) {
+      return pdcp_obj->get_buffered_pdus(rnti, bearer.lcid);
+    } else if (bearer.rat == srsran_rat_t::nr) {
+      return pdcp_nr_obj->get_buffered_pdus(rnti, bearer.lcid);
+    }
+    logger.error("Bearer rnti=0x%x, eps-BearerID=%d not found", rnti, eps_bearer_id);
+    return {};
   }
 
 private:
-  gtpu*                   gtpu_obj = nullptr;
-  srsran::bearer_manager* bearers  = nullptr;
+  srslog::basic_logger&   logger;
+  gtpu*                   gtpu_obj    = nullptr;
+  pdcp*                   pdcp_obj    = nullptr;
+  pdcp*                   pdcp_nr_obj = nullptr;
+  srsran::bearer_manager* bearers     = nullptr;
 };
 
 enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
@@ -163,7 +200,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   // setup bearer managers
-  gtpu_adapter.reset(new gtpu_pdcp_adapter(&gtpu, bearers));
+  gtpu_adapter.reset(new gtpu_pdcp_adapter(stack_logger, &pdcp, &pdcp_nr, &gtpu, bearers));
 
   // Init all LTE layers
   if (!mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc)) {
@@ -198,7 +235,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     return SRSRAN_ERROR;
   }
   rlc_nr.init(&pdcp_nr, &rrc_nr, &mac_nr, task_sched.get_timer_handler());
-  pdcp_nr.init(&rlc_nr, &rrc_nr, &gtpu);
+  pdcp_nr.init(&rlc_nr, &rrc_nr, gtpu_adapter.get());
 
   gtpu_args_t gtpu_args;
   gtpu_args.embms_enable                 = args.embms.enable;
@@ -207,7 +244,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   gtpu_args.mme_addr                     = args.s1ap.mme_addr;
   gtpu_args.gtp_bind_addr                = args.s1ap.gtp_bind_addr;
   gtpu_args.indirect_tunnel_timeout_msec = args.gtpu_indirect_tunnel_timeout_msec;
-  if (gtpu.init(gtpu_args, this) != SRSRAN_SUCCESS) {
+  if (gtpu.init(gtpu_args, gtpu_adapter.get()) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize GTPU");
     return SRSRAN_ERROR;
   }
@@ -296,25 +333,6 @@ void enb_stack_lte::run_thread()
   while (started.load(std::memory_order_relaxed)) {
     task_sched.run_next_task();
   }
-}
-
-void enb_stack_lte::write_sdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu, int pdcp_sn)
-{
-  auto bearer = bearers.get_radio_bearer(rnti, eps_bearer_id);
-  // route SDU to PDCP entity
-  if (bearer.rat == srsran_rat_t::lte) {
-    pdcp.write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
-  } else if (bearer.rat == srsran_rat_t::nr) {
-    pdcp_nr.write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
-  } else {
-    stack_logger.warning("Can't deliver SDU for EPS bearer %d. Dropping it.", eps_bearer_id);
-  }
-}
-
-std::map<uint32_t, srsran::unique_byte_buffer_t> enb_stack_lte::get_buffered_pdus(uint16_t rnti, uint32_t lcid)
-{
-  // TODO: use eps_bearer_id as lookup too
-  return pdcp.get_buffered_pdus(rnti, lcid);
 }
 
 void enb_stack_lte::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid)
