@@ -712,6 +712,7 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rrc_ue->rnti);
 
+  // Log HO command.
   event_logger::get().log_handover_command(
       rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
       reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.target_pci,
@@ -1110,6 +1111,14 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
     f->trigger(srsran::failure_ev{});
     return;
   }
+
+  // Log HO command.
+  event_logger::get().log_handover_command(
+      f->rrc_ue->get_cell_list().get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      reconf_r8.mob_ctrl_info.target_pci,
+      reconf_r8.mob_ctrl_info.carrier_freq.dl_carrier_freq,
+      reconf_r8.mob_ctrl_info.new_ue_id.to_number(),
+      f->rrc_ue->rnti);
 }
 
 void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev)
