@@ -142,9 +142,6 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rach_tprof_meas.defer_stop();
     uint16_t rnti = reserve_rnti(enb_cc_idx);
 
-    // TODO: Generate RAR data
-    // ..
-
     // Log this event.
     ++detected_rachs[enb_cc_idx];
 
@@ -373,11 +370,29 @@ srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interfac
   for (auto& rar_grant : grants) {
     srsran::mac_rar_subpdu_nr& rar_subpdu = rar_pdu.add_subpdu();
 
+    // set values directly coming from scheduler
     rar_subpdu.set_ta(rar_grant.data.ta_cmd);
     rar_subpdu.set_rapid(rar_grant.data.preamble_idx);
     rar_subpdu.set_temp_crnti(rar_grant.data.temp_crnti);
-    // TODO: where do we get full Msg3 grant data from?
-    // rar_subpdu.set_ul_grant(msg3_grant);
+
+    // convert Msg3 grant to raw UL grant
+    srsran_dci_nr_t     dci     = {};
+    srsran_dci_msg_nr_t dci_msg = {};
+    if (srsran_dci_nr_ul_pack(&dci, &rar_grant.msg3_dci, &dci_msg) != SRSRAN_SUCCESS) {
+      logger.error("Couldn't pack Msg3 UL grant");
+      return nullptr;
+    }
+
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srsran_dci_ul_nr_to_str(&dci, &rar_grant.msg3_dci, str.data(), str.size());
+      logger.info("Setting RAR Grant %s", str.data());
+    }
+
+    // copy only the required bits
+    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant = {};
+    std::copy(std::begin(dci_msg.payload), std::begin(dci_msg.payload)+SRSRAN_RAR_UL_GRANT_NBITS, packed_ul_grant.begin());
+    rar_subpdu.set_ul_grant(packed_ul_grant);
   }
 
   if (rar_pdu.pack() != SRSRAN_SUCCESS) {
