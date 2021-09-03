@@ -88,7 +88,7 @@ public:
   ////// RACH //////
 
   struct dl_sched_rar_info_t {
-    uint32_t   preamble_idx;
+    uint32_t   preamble_idx; // is this the RAPID?
     uint32_t   ofdm_symbol_idx;
     uint32_t   freq_idx;
     uint32_t   ta_cmd;

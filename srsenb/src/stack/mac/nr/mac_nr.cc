@@ -16,7 +16,9 @@
 #include "srsran/common/log_helper.h"
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/common/time_prof.h"
+#include "srsran/mac/mac_rar_pdu_nr.h"
 #include <pthread.h>
 #include <string.h>
 #include <strings.h>
@@ -28,7 +30,8 @@ mac_nr::mac_nr(srsran::task_sched_handle task_sched_, const sched_nr_interface::
   logger(srslog::fetch_basic_logger("MAC-NR")),
   task_sched(task_sched_),
   sched(sched_cfg),
-  bcch_bch_payload(srsran::make_byte_buffer())
+  bcch_bch_payload(srsran::make_byte_buffer()),
+  rar_pdu_buffer(srsran::make_byte_buffer())
 {
   stack_task_queue = task_sched.make_task_queue();
 }
@@ -289,6 +292,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
       }
     } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
       sched_nr_interface::sched_rar_t& rar = dl_res.rar[rar_count++];
+      // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
       pdsch.data[0]                        = assemble_rar(rar.grants);
     }
   }
@@ -361,7 +365,31 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
 
 srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants)
 {
-  return nullptr;
+  srsran::mac_rar_pdu_nr rar_pdu;
+
+  uint32_t pdsch_tbs = 10; // FIXME: how big is the PDSCH?
+  rar_pdu.init_tx(rar_pdu_buffer.get(), pdsch_tbs);
+
+  for (auto& rar_grant : grants) {
+    srsran::mac_rar_subpdu_nr& rar_subpdu = rar_pdu.add_subpdu();
+
+    rar_subpdu.set_ta(rar_grant.data.ta_cmd);
+    rar_subpdu.set_rapid(rar_grant.data.preamble_idx);
+    rar_subpdu.set_temp_crnti(rar_grant.data.temp_crnti);
+    // TODO: where do we get full Msg3 grant data from?
+    // rar_subpdu.set_ul_grant(msg3_grant);
+  }
+
+  if (rar_pdu.pack() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't assemble RAR PDU");
+    return nullptr;
+  }
+
+  fmt::memory_buffer buff;
+  rar_pdu.to_string(buff);
+  logger.info("DL %s", srsran::to_c_str(buff));
+
+  return rar_pdu_buffer.get();
 }
 
 } // namespace srsenb

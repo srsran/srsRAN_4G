@@ -13,6 +13,7 @@
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
+
 namespace srsue {
 
 mux_nr::mux_nr(mac_interface_mux_nr& mac_, srslog::basic_logger& logger_) : mac(mac_), logger(logger_) {}

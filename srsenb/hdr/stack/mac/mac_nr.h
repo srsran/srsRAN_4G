@@ -86,6 +86,7 @@ private:
 
   // Encoding
   srsran::byte_buffer_t* assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
+  srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
 
   // Interaction with other components
   phy_interface_stack_nr* phy   = nullptr;
@@ -124,7 +125,7 @@ private:
   std::vector<sib_info_t>      bcch_dlsch_payload;
   srsran::unique_byte_buffer_t bcch_bch_payload = nullptr;
 
-  // Number of rach preambles detected for a cc.
+  // Number of rach preambles detected for a CC
   std::vector<uint32_t> detected_rachs;
 };
 
