@@ -845,7 +845,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
 
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 0x4602; // first RNTI assigned to new UE
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = rnti;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
 
@@ -985,7 +985,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
       asn1::rrc_nr::rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
   rach_cfg_common_pack.setup().prach_root_seq_idx.set(
       asn1::rrc_nr::rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839);
-  rach_cfg_common_pack.setup().prach_root_seq_idx.set_l839() = 1;
+  rach_cfg_common_pack.setup().prach_root_seq_idx.set_l839() = 0; // matches value in phy_cfg_nr_default_t()
   rach_cfg_common_pack.setup().restricted_set_cfg =
       asn1::rrc_nr::rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
 
