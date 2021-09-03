@@ -24,7 +24,7 @@ namespace srsenb {
 
 ue_nr::ue_nr(uint16_t                rnti_,
              uint32_t                enb_cc_idx,
-             sched_interface*        sched_,
+             sched_nr_interface*     sched_,
              rrc_interface_mac_nr*   rrc_,
              rlc_interface_mac*      rlc_,
              phy_interface_stack_nr* phy_,
@@ -81,9 +81,20 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
 
     // Handle MAC CEs
     switch (subpdu.get_lcid()) {
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI:
-        logger.info("CRNTI CE not implemented.");
-        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
+        uint16_t c_rnti = subpdu.get_c_rnti();
+        if (true /*sched->ue_exists(c_crnti)*/) {
+          rrc->update_user(rnti, c_rnti);
+          rnti = c_rnti;
+          sched->ul_bsr(rnti, 0, 1); // provide UL grant regardless of other BSR content for UE to complete RA
+        } else {
+          logger.warning("Updating user C-RNTI: rnti=0x%x already released.", c_rnti);
+          // Disable scheduling for all bearers. The new rnti will be removed on msg3 timer expiry in the RRC
+          for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; ++lcid) {
+            // sched->bearer_ue_rem(rnti, lcid);
+          }
+        }
+      } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR:
         logger.info("SHORT_BSR CE not implemented.");
         break;
@@ -144,8 +155,8 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 /******* METRICS interface ***************/
 void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
 {
-  uint32_t ul_buffer = sched->get_ul_buffer(rnti);
-  uint32_t dl_buffer = sched->get_dl_buffer(rnti);
+  uint32_t ul_buffer = 0; // sched->get_ul_buffer(rnti);
+  uint32_t dl_buffer = 0; // sched->get_dl_buffer(rnti);
 
   std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.rnti      = rnti;
@@ -153,7 +164,7 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   ue_metrics.dl_buffer = dl_buffer;
 
   // set PCell sector id
-  std::array<int, SRSRAN_MAX_CARRIERS> cc_list = sched->get_enb_ue_cc_map(rnti);
+  std::array<int, SRSRAN_MAX_CARRIERS> cc_list; //= sched->get_enb_ue_cc_map(rnti);
   auto                                 it      = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                            = std::distance(cc_list.begin(), it);
 

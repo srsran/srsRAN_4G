@@ -135,6 +135,7 @@ public:
 
   /// User management
   virtual int add_user(uint16_t rnti) = 0;
+  virtual int update_user(uint16_t new_rnti, uint16_t old_rnti) = 0;
 };
 
 // NR interface is almost identical to EUTRA version

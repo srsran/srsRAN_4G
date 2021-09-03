@@ -14,7 +14,7 @@
 #define SRSENB_UE_NR_H
 
 #include "srsenb/hdr/stack/mac/common/mac_metrics.h"
-#include "srsenb/hdr/stack/mac/sched_interface.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_interface.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
@@ -33,7 +33,7 @@ class ue_nr : public srsran::read_pdu_interface
 public:
   ue_nr(uint16_t                rnti,
         uint32_t                enb_cc_idx,
-        sched_interface*        sched_,
+        sched_nr_interface*     sched_,
         rrc_interface_mac_nr*   rrc_,
         rlc_interface_mac*      rlc,
         phy_interface_stack_nr* phy_,
@@ -68,7 +68,7 @@ private:
   rrc_interface_mac_nr*   rrc = nullptr;
   phy_interface_stack_nr* phy = nullptr;
   srslog::basic_logger&   logger;
-  sched_interface*        sched = nullptr;
+  sched_nr_interface*     sched = nullptr;
 
   uint64_t conres_id    = 0;
   uint16_t rnti         = 0;
