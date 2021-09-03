@@ -90,8 +90,7 @@ public:
   using radio_bearer_t = srsran::detail::ue_bearer_manager_impl::radio_bearer_t;
 
   ue_bearer_manager();
-  ue_bearer_manager(const ue_bearer_manager&)     = delete;
-  ue_bearer_manager(ue_bearer_manager&&) noexcept = default;
+  ue_bearer_manager(const ue_bearer_manager&) = delete;
   ue_bearer_manager& operator=(const ue_bearer_manager&) = delete;
   ~ue_bearer_manager();
 
