@@ -103,8 +103,8 @@ public:
   using ul_sched_t = mac_interface_phy_nr::ul_sched_t;
 
   struct sched_rar_grant_t {
-    dl_sched_rar_info_t    data;
-    srsran_dci_rar_grant_t grant = {};
+    dl_sched_rar_info_t data;
+    srsran_dci_ul_nr_t  msg3_dci = {};
   };
   struct sched_rar_t {
     srsran::bounded_vector<sched_rar_grant_t, MAX_GRANTS> grants;
