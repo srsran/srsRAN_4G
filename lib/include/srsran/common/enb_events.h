@@ -31,7 +31,8 @@ public:
 
   /// Logs into the underlying log channel any RRC event.
   virtual void log_rrc_event(uint32_t           enb_cc_idx,
-                             const std::string& asn1,
+                             const std::string& asn1_oct_str,
+                             const std::string& asn1_txt_str,
                              unsigned           type,
                              unsigned           additional_info,
                              uint16_t           rnti) = 0;

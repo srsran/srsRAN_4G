@@ -511,7 +511,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   mob_info.rr_cfg_common.p_max                      = rrc_enb->cfg.sib1.p_max;
   mob_info.rr_cfg_common.ul_cp_len                  = target_cell.sib2.rr_cfg_common.ul_cp_len;
 
-  mob_info.carrier_freq_present                   = false; // same frequency handover for now
+  mob_info.carrier_freq_present = false; // same frequency handover for now
   asn1::number_to_enum(mob_info.carrier_bw.dl_bw, target_cell.mib.dl_bw.to_number());
   if (target_cell.cell_cfg.dl_earfcn != src_dl_earfcn) {
     mob_info.carrier_freq_present         = true;
@@ -700,8 +700,11 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
   }
 
   // Log rrc release event.
+  asn1::json_writer json_writer;
+  dl_dcch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reconf),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rrc_ue->rnti);
@@ -836,11 +839,11 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     if (ho_req.transparent_container->erab_info_list_present) {
       const auto& lst = ho_req.transparent_container->erab_info_list;
       const auto* it  = std::find_if(
-          lst.begin(),
-          lst.end(),
-          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+           lst.begin(),
+           lst.end(),
+           [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
             return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
-          });
+           });
       if (it == lst.end()) {
         continue;
       }
@@ -1019,7 +1022,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     const auto& drbs   = rrc_ue->bearer_list.get_established_drbs();
     lte_drb     drbid  = lte_lcid_to_drb(erab_it->second.lcid);
     auto        drb_it = std::find_if(
-        drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
+               drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
     if (drb_it == drbs.end()) {
       logger.warning("The DRB id=%d does not exist", drbid);
     }

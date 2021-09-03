@@ -23,7 +23,8 @@ class null_event_logger : public event_logger_interface
 {
 public:
   void log_rrc_event(uint32_t           enb_cc_idx,
-                     const std::string& asn1,
+                     const std::string& asn1_oct_str,
+                     const std::string& asn1_txt_str,
                      unsigned           type,
                      unsigned           additional_info,
                      uint16_t           rnti) override
@@ -58,6 +59,7 @@ DECLARE_METRIC("rnti", metric_rnti, uint16_t, "");
 /// ASN1 message metrics.
 DECLARE_METRIC("asn1_length", metric_asn1_length, uint32_t, "");
 DECLARE_METRIC("asn1_message", metric_asn1_message, std::string, "");
+DECLARE_METRIC("asn1_message_txt", metric_asn1_message_txt, std::string, ""); //: TODO:
 
 /// Context for sector start/stop.
 DECLARE_METRIC("pci", metric_pci, uint32_t, "");
@@ -75,6 +77,7 @@ DECLARE_METRIC_SET("event_data",
                    metric_rnti,
                    metric_asn1_length,
                    metric_asn1_message,
+                   metric_asn1_message_txt,
                    metric_asn1_type,
                    metric_additional);
 using rrc_event_t = srslog::
@@ -107,7 +110,8 @@ public:
   explicit logging_event_logger(srslog::log_channel& c) : event_channel(c) {}
 
   void log_rrc_event(uint32_t           enb_cc_idx,
-                     const std::string& asn1,
+                     const std::string& asn1_oct_str,
+                     const std::string& asn1_txt_str,
                      unsigned           type,
                      unsigned           additional_info,
                      uint16_t           rnti) override
@@ -119,8 +123,9 @@ public:
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("rrc_log");
     ctx.get<mset_rrc_event>().write<metric_rnti>(rnti);
-    ctx.get<mset_rrc_event>().write<metric_asn1_length>(asn1.size());
-    ctx.get<mset_rrc_event>().write<metric_asn1_message>(asn1);
+    ctx.get<mset_rrc_event>().write<metric_asn1_length>(asn1_oct_str.size());
+    ctx.get<mset_rrc_event>().write<metric_asn1_message>(asn1_oct_str);
+    ctx.get<mset_rrc_event>().write<metric_asn1_message_txt>(asn1_txt_str);
     ctx.get<mset_rrc_event>().write<metric_asn1_type>(type);
     ctx.get<mset_rrc_event>().write<metric_additional>(additional_info);
     event_channel(ctx);
