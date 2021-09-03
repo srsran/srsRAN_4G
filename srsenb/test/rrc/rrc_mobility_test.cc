@@ -305,9 +305,9 @@ int test_s1ap_tenb_mobility(test_event test_params)
   asn1::s1ap::cause_c cause;
   int                 rnti = tester.rrc.start_ho_ue_resource_alloc(ho_req, container, cause);
   if (test_params == test_event::wrong_target_cell) {
-    TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT_EQ(SRSRAN_INVALID_RNTI, rnti);
     TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
-    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed);
+    TESTASSERT_EQ(asn1::s1ap::cause_radio_network_opts::cell_not_available, cause.radio_network().value);
     TESTASSERT(tester.rrc.get_nof_users() == 0);
     return SRSRAN_SUCCESS;
   }

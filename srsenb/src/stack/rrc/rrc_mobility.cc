@@ -150,7 +150,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   const enb_cell_common* target_cell = cell_common_list->get_cell_id(rrc_details::eci_to_cellid(target_eci));
   if (target_cell == nullptr) {
     logger.error("The S1-handover target cell_id=0x%x does not exist", rrc_details::eci_to_cellid(target_eci));
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::cell_not_available;
     return SRSRAN_INVALID_RNTI;
   }
 
@@ -166,7 +166,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   uint16_t rnti                          = mac->reserve_new_crnti(ue_cfg);
   if (rnti == SRSRAN_INVALID_RNTI) {
     logger.error("Failed to allocate C-RNTI resources");
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
     return SRSRAN_INVALID_RNTI;
   }
 
@@ -228,7 +228,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
       meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
-    Info("Skipping MeasReport for non-EUTRA neighbor.");
+    Error("MeasReports regarding non-EUTRA are not supported!");
     return;
   }
   const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
