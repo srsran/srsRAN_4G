@@ -85,6 +85,7 @@ struct general_args_t {
   std::string metrics_csv_filename;
   bool        report_json_enable;
   std::string report_json_filename;
+  bool        report_json_asn1_oct;
   bool        alarms_log_enable;
   std::string alarms_filename;
   bool        print_buffer_state;

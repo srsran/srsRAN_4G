@@ -81,12 +81,15 @@ class event_logger
   event_logger() = default;
 
 public:
+  /// ASN1 output printing format.
+  enum class asn1_output_format { text, octets };
+
   /// Returns the instance of the event logger.
   static event_logger_interface& get();
 
   /// Uses the specified log channel for event logging.
   /// NOTE: This method is not thread safe.
-  static void configure(srslog::log_channel& c);
+  static void configure(srslog::log_channel& c, asn1_output_format asn1_format);
 
 private:
   static std::unique_ptr<event_logger_interface> pimpl;

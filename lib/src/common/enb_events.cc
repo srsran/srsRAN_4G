@@ -76,7 +76,6 @@ DECLARE_METRIC("rnti", metric_rnti, uint16_t, "");
 /// ASN1 message metrics.
 DECLARE_METRIC("asn1_length", metric_asn1_length, uint32_t, "");
 DECLARE_METRIC("asn1_message", metric_asn1_message, std::string, "");
-DECLARE_METRIC("asn1_message_txt", metric_asn1_message_txt, std::string, ""); //: TODO:
 
 /// Context for sector start/stop.
 DECLARE_METRIC("pci", metric_pci, uint32_t, "");
@@ -94,7 +93,6 @@ DECLARE_METRIC_SET("event_data",
                    metric_rnti,
                    metric_asn1_length,
                    metric_asn1_message,
-                   metric_asn1_message_txt,
                    metric_asn1_type,
                    metric_additional);
 using rrc_event_t = srslog::
@@ -158,7 +156,9 @@ using rlf_detected_t = srslog::build_context_type<metric_type_tag,
 class logging_event_logger : public event_logger_interface
 {
 public:
-  explicit logging_event_logger(srslog::log_channel& c) : event_channel(c) {}
+  logging_event_logger(srslog::log_channel& c, event_logger::asn1_output_format asn1_format) :
+    event_channel(c), asn1_format(asn1_format)
+  {}
 
   void log_rrc_event(uint32_t           enb_cc_idx,
                      const std::string& asn1_oct_str,
@@ -169,14 +169,15 @@ public:
   {
     rrc_event_t ctx("");
 
+    const std::string& asn1 = (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : asn1_txt_str;
+
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("rrc_log");
     ctx.get<mset_rrc_event>().write<metric_rnti>(rnti);
-    ctx.get<mset_rrc_event>().write<metric_asn1_length>(asn1_oct_str.size());
-    ctx.get<mset_rrc_event>().write<metric_asn1_message>(asn1_oct_str);
-    ctx.get<mset_rrc_event>().write<metric_asn1_message_txt>(asn1_txt_str);
+    ctx.get<mset_rrc_event>().write<metric_asn1_length>(asn1.size());
+    ctx.get<mset_rrc_event>().write<metric_asn1_message>(asn1);
     ctx.get<mset_rrc_event>().write<metric_asn1_type>(type);
     ctx.get<mset_rrc_event>().write<metric_additional>(additional_info);
     event_channel(ctx);
@@ -245,12 +246,14 @@ public:
   {
     meas_report_event_t ctx("");
 
+    const std::string& asn1 = (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : asn1_txt_str;
+
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("measurement_report");
-    ctx.get<mset_meas_report_event>().write<metric_asn1_length>(asn1_oct_str.size());
-    ctx.get<mset_meas_report_event>().write<metric_asn1_message>(asn1_oct_str);
+    ctx.get<mset_meas_report_event>().write<metric_asn1_length>(asn1.size());
+    ctx.get<mset_meas_report_event>().write<metric_asn1_message>(asn1);
     ctx.get<mset_meas_report_event>().write<metric_rnti>(rnti);
     event_channel(ctx);
   }
@@ -262,12 +265,14 @@ public:
   {
     rlf_report_event_t ctx("");
 
+    const std::string& asn1 = (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : asn1_txt_str;
+
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("rlf_report");
-    ctx.get<mset_rlf_report_event>().write<metric_asn1_length>(asn1_oct_str.size());
-    ctx.get<mset_rlf_report_event>().write<metric_asn1_message>(asn1_oct_str);
+    ctx.get<mset_rlf_report_event>().write<metric_asn1_length>(asn1.size());
+    ctx.get<mset_rlf_report_event>().write<metric_asn1_message>(asn1);
     ctx.get<mset_rlf_report_event>().write<metric_rnti>(rnti);
     event_channel(ctx);
   }
@@ -318,7 +323,8 @@ public:
   }
 
 private:
-  srslog::log_channel& event_channel;
+  srslog::log_channel&             event_channel;
+  event_logger::asn1_output_format asn1_format;
 };
 
 } // namespace
@@ -330,7 +336,7 @@ event_logger_interface& event_logger::get()
   return *pimpl;
 }
 
-void event_logger::configure(srslog::log_channel& c)
+void event_logger::configure(srslog::log_channel& c, asn1_output_format asn1_format)
 {
-  pimpl = std::unique_ptr<logging_event_logger>(new logging_event_logger(c));
+  pimpl = std::unique_ptr<logging_event_logger>(new logging_event_logger(c, asn1_format));
 }
