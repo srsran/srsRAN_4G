@@ -20,6 +20,7 @@
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
+#include "srsran/common/enb_events.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
@@ -276,6 +277,10 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
       old_it->second->send_connection_reconf();
     }
   }
+
+  // Log event.
+  event_logger::get().log_connection_resume(
+      ue_ptr->get_cell_list().get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, new_rnti, old_rnti);
 }
 
 // Note: this method is not part of UE methods, because the UE context may not exist anymore when reject is sent

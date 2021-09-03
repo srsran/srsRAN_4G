@@ -228,11 +228,16 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 {
   activity_timer.stop();
+
+  std::string event_type = "Unknown";
   if (timeout_id == phy_dl_rlf_timer.id()) {
+    event_type = "dl_rlf";
     parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
   } else if (timeout_id == phy_ul_rlf_timer.id()) {
+    event_type = "ul_rlf";
     parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
   } else if (timeout_id == rlc_rlf_timer.id()) {
+    event_type = "rlc_rlf";
     parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
   }
 
@@ -243,6 +248,10 @@ void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 
   parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
   con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+
+  // Log event.
+  event_logger::get().log_rlf_detected(
+      ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, event_type, rnti);
 }
 
 void rrc::ue::max_rlc_retx_reached()
@@ -907,8 +916,12 @@ void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsra
 {
   auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
   if (resp_r9.rlf_report_r9_present) {
-    std::string msg_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
-    event_logger::get().log_rlf(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, msg_str, rnti);
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    event_logger::get().log_rlf_report(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                       asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+                                       json_writer.to_string(),
+                                       rnti);
   }
   if (resp_r9.rach_report_r9_present) {
     // TODO: Handle RACH-Report

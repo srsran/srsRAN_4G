@@ -151,6 +151,8 @@ public:
 
   void save_ul_message(srsran::unique_byte_buffer_t pdu) { last_ul_msg = std::move(pdu); }
 
+  const ue_cell_ded_list& get_cell_list() const { return ue_cell_list; }
+
   uint16_t rnti   = 0;
   rrc*     parent = nullptr;
 

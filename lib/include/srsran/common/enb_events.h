@@ -49,11 +49,30 @@ public:
   /// Logs into the underlying log channel when a sector has been stopped.
   virtual void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
 
-  /// Logs into the underlying log channel a measurement report event..
-  virtual void log_measurement_report(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) = 0;
+  /// Logs into the underlying log channel a measurement report event.
+  virtual void log_measurement_report(uint32_t           enb_cc_idx,
+                                      const std::string& asn1_oct_str,
+                                      const std::string& asn1_txt_str,
+                                      uint16_t           rnti) = 0;
 
-  /// Logs into the underlying log channel a RLF event.
-  virtual void log_rlf(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) = 0;
+  /// Logs into the underlying log channel a RLF report.
+  virtual void log_rlf_report(uint32_t           enb_cc_idx,
+                              const std::string& asn1_oct_str,
+                              const std::string& asn1_txt_str,
+                              uint16_t           rnti) = 0;
+
+  /// Logs into the underlying log channel a RLF detection event.
+  virtual void log_rlf_detected(uint32_t enb_cc_idx, const std::string& type, uint16_t rnti) = 0;
+
+  /// Logs into the underlying log channel a handover command event.
+  virtual void log_handover_command(uint32_t enb_cc_idx,
+                                    uint32_t target_pci,
+                                    uint32_t target_earfcn,
+                                    uint16_t new_ue_rnti,
+                                    uint16_t rnti) = 0;
+
+  /// Logs into the underlying log channel a connection resume event.
+  virtual void log_connection_resume(uint32_t enb_cc_idx, uint16_t resume_rnti, uint16_t rnti) = 0;
 };
 
 /// Singleton class to provide global access to the event_logger_interface interface.

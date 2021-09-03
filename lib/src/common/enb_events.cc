@@ -33,8 +33,24 @@ public:
   void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
   void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
   void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
-  void log_measurement_report(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override {}
-  void log_rlf(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override {}
+  void log_measurement_report(uint32_t           enb_cc_idx,
+                              const std::string& asn1_oct_str,
+                              const std::string& asn1_txt_str,
+                              uint16_t           rnti) override
+  {}
+  void log_rlf_report(uint32_t           enb_cc_idx,
+                      const std::string& asn1_oct_str,
+                      const std::string& asn1_txt_str,
+                      uint16_t           rnti) override
+  {}
+  void log_rlf_detected(uint32_t enb_cc_idx, const std::string& type, uint16_t rnti) override {}
+  void log_handover_command(uint32_t enb_cc_idx,
+                            uint32_t target_pci,
+                            uint32_t target_earfcn,
+                            uint16_t new_ue_rnti,
+                            uint16_t rnti) override
+  {}
+  void log_connection_resume(uint32_t enb_cc_idx, uint16_t resume_rnti, uint16_t rnti) override {}
 };
 
 } // namespace
@@ -52,6 +68,7 @@ namespace {
 DECLARE_METRIC("type", metric_type_tag, std::string, "");
 DECLARE_METRIC("timestamp", metric_timestamp_tag, double, "");
 DECLARE_METRIC("sector_id", metric_sector_id, uint32_t, "");
+DECLARE_METRIC("cell_id", metric_cell_id, uint32_t, "");
 DECLARE_METRIC("event_name", metric_event_name, std::string, "");
 
 DECLARE_METRIC("rnti", metric_rnti, uint16_t, "");
@@ -90,10 +107,13 @@ DECLARE_METRIC_SET("event_data", mset_s1apctx_event, metric_ue_mme_id, metric_ue
 using s1apctx_event_t = srslog::
     build_context_type<metric_type_tag, metric_timestamp_tag, metric_sector_id, metric_event_name, mset_s1apctx_event>;
 
-/// Context for the RLF event.
-DECLARE_METRIC_SET("event_data", mset_rlfctx_event, metric_asn1_length, metric_asn1_message, metric_rnti);
-using rlfctx_event_t = srslog::
-    build_context_type<metric_type_tag, metric_timestamp_tag, metric_sector_id, metric_event_name, mset_rlfctx_event>;
+/// Context for the RLF report event.
+DECLARE_METRIC_SET("event_data", mset_rlf_report_event, metric_asn1_length, metric_asn1_message, metric_rnti);
+using rlf_report_event_t = srslog::build_context_type<metric_type_tag,
+                                                      metric_timestamp_tag,
+                                                      metric_sector_id,
+                                                      metric_event_name,
+                                                      mset_rlf_report_event>;
 
 /// Context for measurement report.
 DECLARE_METRIC_SET("event_data", mset_meas_report_event, metric_asn1_length, metric_asn1_message, metric_rnti);
@@ -102,6 +122,37 @@ using meas_report_event_t = srslog::build_context_type<metric_type_tag,
                                                        metric_sector_id,
                                                        metric_event_name,
                                                        mset_meas_report_event>;
+
+/// Context for the handover command event.
+DECLARE_METRIC("target_pci", metric_target_pci, uint32_t, "");
+DECLARE_METRIC("target_earfcn", metric_target_earfcn, uint32_t, "");
+DECLARE_METRIC("new_ue_rnti", metric_new_ue_rnti, uint32_t, "");
+DECLARE_METRIC_SET("event_data",
+                   mset_ho_cmd_event,
+                   metric_rnti,
+                   metric_target_pci,
+                   metric_target_earfcn,
+                   metric_new_ue_rnti);
+using ho_cmd_t = srslog::
+    build_context_type<metric_type_tag, metric_timestamp_tag, metric_sector_id, metric_event_name, mset_ho_cmd_event>;
+
+/// Context for the connection resume event.
+DECLARE_METRIC("resume_rnti", metric_resume_rnti, uint32_t, "");
+DECLARE_METRIC_SET("event_data", mset_conn_resume_event, metric_rnti, metric_resume_rnti);
+using conn_resume_t = srslog::build_context_type<metric_type_tag,
+                                                 metric_timestamp_tag,
+                                                 metric_sector_id,
+                                                 metric_event_name,
+                                                 mset_conn_resume_event>;
+
+/// Context for the RLF detected event.
+DECLARE_METRIC("type", metric_rlf_type, std::string, "");
+DECLARE_METRIC_SET("event_data", mset_rlf_detected_event, metric_rnti, metric_rlf_type);
+using rlf_detected_t = srslog::build_context_type<metric_type_tag,
+                                                  metric_timestamp_tag,
+                                                  metric_sector_id,
+                                                  metric_event_name,
+                                                  mset_rlf_detected_event>;
 
 /// Logs events into the configured log channel.
 class logging_event_logger : public event_logger_interface
@@ -187,7 +238,10 @@ public:
     event_channel(ctx);
   }
 
-  void log_measurement_report(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override
+  void log_measurement_report(uint32_t           enb_cc_idx,
+                              const std::string& asn1_oct_str,
+                              const std::string& asn1_txt_str,
+                              uint16_t           rnti) override
   {
     meas_report_event_t ctx("");
 
@@ -195,23 +249,71 @@ public:
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("measurement_report");
-    ctx.get<mset_meas_report_event>().write<metric_asn1_length>(asn1.size());
-    ctx.get<mset_meas_report_event>().write<metric_asn1_message>(asn1);
+    ctx.get<mset_meas_report_event>().write<metric_asn1_length>(asn1_oct_str.size());
+    ctx.get<mset_meas_report_event>().write<metric_asn1_message>(asn1_oct_str);
     ctx.get<mset_meas_report_event>().write<metric_rnti>(rnti);
     event_channel(ctx);
   }
 
-  void log_rlf(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override
+  void log_rlf_report(uint32_t           enb_cc_idx,
+                      const std::string& asn1_oct_str,
+                      const std::string& asn1_txt_str,
+                      uint16_t           rnti) override
   {
-    rlfctx_event_t ctx("");
+    rlf_report_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     ctx.write<metric_sector_id>(enb_cc_idx);
-    ctx.write<metric_event_name>("radio_link_failure");
-    ctx.get<mset_rlfctx_event>().write<metric_asn1_length>(asn1.size());
-    ctx.get<mset_rlfctx_event>().write<metric_asn1_message>(asn1);
-    ctx.get<mset_rlfctx_event>().write<metric_rnti>(rnti);
+    ctx.write<metric_event_name>("rlf_report");
+    ctx.get<mset_rlf_report_event>().write<metric_asn1_length>(asn1_oct_str.size());
+    ctx.get<mset_rlf_report_event>().write<metric_asn1_message>(asn1_oct_str);
+    ctx.get<mset_rlf_report_event>().write<metric_rnti>(rnti);
+    event_channel(ctx);
+  }
+
+  void log_rlf_detected(uint32_t enb_cc_idx, const std::string& type, uint16_t rnti) override
+  {
+    rlf_detected_t ctx("");
+
+    ctx.write<metric_type_tag>("event");
+    ctx.write<metric_timestamp_tag>(get_time_stamp());
+    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_event_name>("rlf_detected");
+    ctx.get<mset_rlf_detected_event>().write<metric_rnti>(rnti);
+    ctx.get<mset_rlf_detected_event>().write<metric_rlf_type>(type);
+    event_channel(ctx);
+  }
+
+  void log_handover_command(uint32_t enb_cc_idx,
+                            uint32_t target_pci,
+                            uint32_t target_earfcn,
+                            uint16_t new_ue_rnti,
+                            uint16_t rnti) override
+  {
+    ho_cmd_t ctx("");
+
+    ctx.write<metric_type_tag>("event");
+    ctx.write<metric_timestamp_tag>(get_time_stamp());
+    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_event_name>("ho_command");
+    ctx.get<mset_ho_cmd_event>().write<metric_rnti>(rnti);
+    ctx.get<mset_ho_cmd_event>().write<metric_target_pci>(target_pci);
+    ctx.get<mset_ho_cmd_event>().write<metric_target_earfcn>(target_earfcn);
+    ctx.get<mset_ho_cmd_event>().write<metric_new_ue_rnti>(new_ue_rnti);
+    event_channel(ctx);
+  }
+
+  void log_connection_resume(uint32_t enb_cc_idx, uint16_t resume_rnti, uint16_t rnti) override
+  {
+    conn_resume_t ctx("");
+
+    ctx.write<metric_type_tag>("event");
+    ctx.write<metric_timestamp_tag>(get_time_stamp());
+    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_event_name>("connection_resume");
+    ctx.get<mset_conn_resume_event>().write<metric_rnti>(rnti);
+    ctx.get<mset_conn_resume_event>().write<metric_resume_rnti>(resume_rnti);
     event_channel(ctx);
   }
 

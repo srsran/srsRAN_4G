@@ -269,9 +269,12 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
     }
   }
 
+  asn1::json_writer json_writer;
+  msg.to_json(json_writer);
   event_logger::get().log_measurement_report(
       rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
       asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+      json_writer.to_string(),
       rrc_ue->rnti);
 }
 
@@ -708,6 +711,13 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
                                     static_cast<unsigned>(rrc_event_type::con_reconf),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rrc_ue->rnti);
+
+  event_logger::get().log_handover_command(
+      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.target_pci,
+      reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.carrier_freq.dl_carrier_freq,
+      reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.new_ue_id.to_number(),
+      rrc_ue->rnti);
 
   /* Start S1AP eNBStatusTransfer Procedure */
   asn1::s1ap::cause_c cause = start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd);
