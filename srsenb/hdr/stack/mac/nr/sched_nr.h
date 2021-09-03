@@ -40,6 +40,7 @@ public:
   ~sched_nr() override;
   int  cell_cfg(srsran::const_span<cell_cfg_t> cell_list) override;
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
+  void ue_rem(uint16_t rnti) override;
 
   int dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info);
 
