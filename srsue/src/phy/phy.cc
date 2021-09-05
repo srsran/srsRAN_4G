@@ -463,16 +463,16 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 
   Info("Setting configuration");
 
-  // The PRACH configuration shall be updated only if:
-  // - The new configuration belongs to the primary cell
-  // - The PRACH configuration is present
-  if (!cc_idx && config_.prach_cfg_present) {
-    prach_cfg = config_.prach_cfg;
-    prach_cfg.tdd_config = tdd_config;
-  }
-
   // Apply configurations asynchronously to avoid race conditions
   cmd_worker.add_cmd([this, config_, cc_idx]() {
+    // The PRACH configuration shall be updated only if:
+    // - The new configuration belongs to the primary cell
+    // - The PRACH configuration is present
+    if (!cc_idx && config_.prach_cfg_present) {
+      prach_cfg            = config_.prach_cfg;
+      prach_cfg.tdd_config = tdd_config;
+    }
+
     logger_phy.info("Setting new PHY configuration cc_idx=%d...", cc_idx);
     lte_workers.set_config(cc_idx, config_);
 

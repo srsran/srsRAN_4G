@@ -99,7 +99,8 @@ add_nr_test(dmrs_pdsch_test dmrs_pdsch_test)
 add_executable(dmrs_pdcch_test dmrs_pdcch_test.c)
 target_link_libraries(dmrs_pdcch_test srsran_phy)
 
-add_nr_test(dmrs_pdcch_test dmrs_pdcch_test)
+add_nr_test(dmrs_pdcch_test_non_interleaved dmrs_pdcch_test)
+add_nr_test(dmrs_pdcch_test_interleaved dmrs_pdcch_test -I)
 
 
 ########################################################################

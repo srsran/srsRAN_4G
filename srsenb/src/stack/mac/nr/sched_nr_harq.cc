@@ -114,6 +114,21 @@ dl_harq_proc::dl_harq_proc(uint32_t id_, uint32_t nprb) :
   harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_tx(nprb)), pdu(srsran::make_byte_buffer())
 {}
 
+bool dl_harq_proc::new_tx(slot_point       slot_tx,
+                          slot_point       slot_ack,
+                          const prb_grant& grant,
+                          uint32_t         mcs,
+                          uint32_t         tbs,
+                          uint32_t         max_retx)
+{
+  if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs, tbs, max_retx)) {
+    softbuffer->reset();
+    pdu->clear();
+    return true;
+  }
+  return false;
+}
+
 harq_entity::harq_entity(uint32_t nprb, uint32_t nof_harq_procs)
 {
   // Create HARQs

@@ -62,6 +62,13 @@ public:
   uint16_t get_band_from_dl_freq_Hz(double dl_freq_Hz) const;
 
   /**
+   * @brief Get the lowest band that includes a given Downlink ARFCN
+   * @param arfcn Given ARFCN
+   * @return The band number if the ARFCN is bounded in a band, UINT16_MAX otherwise
+   */
+  uint16_t get_band_from_dl_arfcn(uint32_t arfcn) const;
+
+  /**
    * @brief Selects the SSB pattern case according to the band number and subcarrier spacing
    * @remark Described by TS 38.101-1 Table 5.4.3.3-1: Applicable SS raster entries per operating band
    * @param band NR Band number

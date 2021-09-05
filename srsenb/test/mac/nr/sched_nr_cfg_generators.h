@@ -27,7 +27,7 @@
 
 namespace srsenb {
 
-srsran_coreset_t get_default_coreset0(uint32_t nof_prb)
+inline srsran_coreset_t get_default_coreset0(uint32_t nof_prb)
 {
   srsran_coreset_t coreset{};
   coreset.id                   = 0;
@@ -39,7 +39,8 @@ srsran_coreset_t get_default_coreset0(uint32_t nof_prb)
   return coreset;
 }
 
-sched_nr_interface::cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_cfg)
+inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
+    const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
   sched_nr_interface::cell_cfg_t cell_cfg{};
 
@@ -73,7 +74,7 @@ sched_nr_interface::cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& 
   return cell_cfg;
 }
 
-std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(
+inline std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(
     uint32_t                    nof_sectors,
     const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
@@ -85,9 +86,9 @@ std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(
   return cells;
 }
 
-sched_nr_interface::ue_cfg_t get_default_ue_cfg(uint32_t                    nof_cc,
-                                                const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{
-                                                    srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
+inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
+    uint32_t                    nof_cc,
+    const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
   sched_nr_interface::ue_cfg_t uecfg{};
   uecfg.carriers.resize(nof_cc);

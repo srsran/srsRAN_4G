@@ -37,6 +37,7 @@
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_mac_interfaces.h"
 #include "srsran/interfaces/gnb_ngap_interfaces.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include <map>
@@ -127,8 +128,8 @@ public:
     int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
     // state
-    rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
-    uint8_t                             transaction_id = 0;
+    rrc_nr_state_t state          = rrc_nr_state_t::RRC_IDLE;
+    uint8_t        transaction_id = 0;
 
     uint32_t drb1_lcid = 4;
   };
@@ -137,12 +138,12 @@ private:
   rrc_nr_cfg_t cfg = {};
 
   // interfaces
-  phy_interface_stack_nr* phy  = nullptr;
-  mac_interface_rrc_nr*   mac  = nullptr;
+  phy_interface_stack_nr*     phy       = nullptr;
+  mac_interface_rrc_nr*       mac       = nullptr;
   rlc_interface_rrc*          rlc       = nullptr;
   pdcp_interface_rrc*         pdcp      = nullptr;
-  gtpu_interface_rrc_nr*  gtpu = nullptr;
-  ngap_interface_rrc_nr*  ngap = nullptr;
+  gtpu_interface_rrc_nr*      gtpu      = nullptr;
+  ngap_interface_rrc_nr*      ngap      = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
 
   // args

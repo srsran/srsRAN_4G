@@ -264,7 +264,7 @@ int sched_ue_cell::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
 int sched_ue_cell::set_ul_snr(tti_point tti_rx, float ul_snr, uint32_t ul_ch_code)
 {
   CHECK_VALID_CC("UL SNR estimate");
-  if (ue_cfg->ue_bearers[1].direction == sched_interface::ue_bearer_cfg_t::IDLE) {
+  if (ue_cfg->ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE) {
     // Ignore Msg3 SNR samples as Msg3 uses a separate power control loop
     return SRSRAN_SUCCESS;
   }

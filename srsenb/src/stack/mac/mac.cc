@@ -156,7 +156,7 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
   return ret;
 }
 
-int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
+int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, mac_lc_ch_cfg_t* cfg)
 {
   srsran::rwlock_read_guard lock(rwlock);
   return check_ue_active(rnti) ? scheduler.bearer_ue_cfg(rnti, lc_id, *cfg) : -1;
@@ -561,7 +561,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     uecfg.supported_cc_list.emplace_back();
     uecfg.supported_cc_list.back().active     = true;
     uecfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
-    uecfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    uecfg.ue_bearers[0].direction             = mac_lc_ch_cfg_t::BOTH;
     uecfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
     if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
       return;

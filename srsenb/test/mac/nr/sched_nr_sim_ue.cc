@@ -20,6 +20,7 @@
  */
 
 #include "sched_nr_sim_ue.h"
+#include "sched_nr_common_test.h"
 #include "sched_nr_ue_ded_test_suite.h"
 #include "srsran/common/test_common.h"
 
@@ -49,8 +50,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_output_res_t& cc_out)
 {
   update_dl_harqs(cc_out);
 
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdcch_dl.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->pdcch_dl[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result->dl_sched.pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result->dl_sched.pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }
@@ -71,8 +72,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_output_res_t& cc_out)
 void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
 {
   uint32_t cc = cc_out.cc;
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->pdcch_dl.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->pdcch_dl[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result->dl_sched.pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result->dl_sched.pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }
@@ -166,6 +167,12 @@ void sched_nr_sim_base::update(sched_nr_cc_output_res_t& cc_out)
 
   sim_nr_enb_ctxt_t ctxt;
   ctxt = get_enb_ctxt();
+
+  // Run common tests
+  test_dl_pdcch_consistency(cc_out.dl_cc_result->dl_sched.pdcch_dl);
+  test_pdsch_consistency(cc_out.dl_cc_result->dl_sched.pdsch);
+
+  // Run UE-dedicated tests
   test_dl_sched_result(ctxt, cc_out);
 
   for (auto& u : ue_db) {

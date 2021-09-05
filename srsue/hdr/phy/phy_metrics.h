@@ -36,7 +36,7 @@ struct info_metrics_t {
 
 #define PHY_METRICS_SET(PARAM)                                                                                         \
   do {                                                                                                                 \
-    PARAM = PARAM + (other.PARAM - PARAM) / count;                                                                     \
+    PARAM = SRSRAN_VEC_SAFE_CMA(other.PARAM, PARAM, count);                                                            \
   } while (false)
 
 struct sync_metrics_t {
@@ -50,12 +50,12 @@ struct sync_metrics_t {
 
   void set(const sync_metrics_t& other)
   {
-    count++;
     ta_us       = other.ta_us;
     distance_km = other.distance_km;
     speed_kmph  = other.speed_kmph;
     PHY_METRICS_SET(cfo);
     PHY_METRICS_SET(sfo);
+    count++;
   }
 
   void reset()

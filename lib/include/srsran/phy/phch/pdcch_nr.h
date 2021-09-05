@@ -107,6 +107,17 @@ int srsran_pdcch_nr_locations_coreset(const srsran_coreset_t*      coreset,
 
 SRSRAN_API int srsran_pdcch_nr_max_candidates_coreset(const srsran_coreset_t* coreset, uint32_t aggregation_level);
 
+/**
+ * @brief Function for generating a RB mask indicating the CCE-to-REG mapping
+ * @param coreset A given CORESET
+ * @param dci_location The DCI location for the PDCCH transmission
+ * @param[out] rb_mask The resultant mask indicating the locations of PDCCH payload
+ * @return SRSRAN_SUCCESS if the provided parameters are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_pdcch_nr_cce_to_reg_mapping(const srsran_coreset_t*      coreset,
+                                                  const srsran_dci_location_t* dci_location,
+                                                  bool                         rb_mask[SRSRAN_MAX_PRB_NR]);
+
 SRSRAN_API int srsran_pdcch_nr_init_tx(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* args);
 
 SRSRAN_API int srsran_pdcch_nr_init_rx(srsran_pdcch_nr_t* q, const srsran_pdcch_nr_args_t* args);

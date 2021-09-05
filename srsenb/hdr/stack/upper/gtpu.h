@@ -59,14 +59,14 @@ public:
   // A UE should have <= 3 DRBs active, and each DRB should have two tunnels active at the same time at most
   const static size_t MAX_TUNNELS_PER_UE = 6;
 
-  enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from };
+  enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from, inactive };
 
   struct tunnel {
-    uint16_t rnti      = SRSRAN_INVALID_RNTI;
-    uint32_t lcid      = srsran::INVALID_LCID;
-    uint32_t teid_in   = 0;
-    uint32_t teid_out  = 0;
-    uint32_t spgw_addr = 0;
+    uint16_t rnti          = SRSRAN_INVALID_RNTI;
+    uint32_t eps_bearer_id = srsran::INVALID_EPS_BEARER_ID;
+    uint32_t teid_in       = 0;
+    uint32_t teid_out      = 0;
+    uint32_t spgw_addr     = 0;
 
     tunnel_state                                    state = tunnel_state::pdcp_active;
     srsran::unique_timer                            rx_timer;
@@ -85,38 +85,41 @@ public:
     }
   };
 
-  struct lcid_tunnel {
-    uint32_t lcid;
+  struct bearer_teid_pair {
+    uint32_t eps_bearer_id;
     uint32_t teid;
 
-    bool operator<(const lcid_tunnel& other) const
+    bool operator<(const bearer_teid_pair& other) const
     {
-      return lcid < other.lcid or (lcid == other.lcid and teid < other.teid);
+      return eps_bearer_id < other.eps_bearer_id or (eps_bearer_id == other.eps_bearer_id and teid < other.teid);
     }
-    bool operator==(const lcid_tunnel& other) const { return lcid == other.lcid and teid == other.teid; }
+    bool operator==(const bearer_teid_pair& other) const
+    {
+      return eps_bearer_id == other.eps_bearer_id and teid == other.teid;
+    }
   };
-  using ue_lcid_tunnel_list = srsran::bounded_vector<lcid_tunnel, MAX_TUNNELS_PER_UE>;
+  using ue_bearer_tunnel_list = srsran::bounded_vector<bearer_teid_pair, MAX_TUNNELS_PER_UE>;
 
   explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
   void init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_);
 
-  bool                      has_teid(uint32_t teid) const { return tunnels.contains(teid); }
-  const tunnel*             find_tunnel(uint32_t teid);
-  ue_lcid_tunnel_list*      find_rnti_tunnels(uint16_t rnti);
-  srsran::span<lcid_tunnel> find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid);
+  bool                           has_teid(uint32_t teid) const { return tunnels.contains(teid); }
+  const tunnel*                  find_tunnel(uint32_t teid);
+  ue_bearer_tunnel_list*         find_rnti_tunnels(uint16_t rnti);
+  srsran::span<bearer_teid_pair> find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer_id);
 
-  const tunnel* add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr);
+  const tunnel* add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t teidout, uint32_t spgw_addr);
   bool          update_rnti(uint16_t old_rnti, uint16_t new_rnti);
 
   void activate_tunnel(uint32_t teid);
   void suspend_tunnel(uint32_t teid);
+  void deactivate_tunnel(uint32_t teid);
   void set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
   void handle_rx_pdcp_sdu(uint32_t teid);
   void buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
   void setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);
 
   bool remove_tunnel(uint32_t teid);
-  bool remove_bearer(uint16_t rnti, uint32_t lcid);
   bool remove_rnti(uint16_t rnti);
 
 private:
@@ -128,8 +131,8 @@ private:
   pdcp_interface_gtpu*      pdcp      = nullptr;
   srslog::basic_logger&     logger;
 
-  rnti_map_t<ue_lcid_tunnel_list> ue_teidin_db;
-  tunnel_list_t                   tunnels;
+  rnti_map_t<ue_bearer_tunnel_list> ue_teidin_db;
+  tunnel_list_t                     tunnels;
 };
 
 using gtpu_tunnel_state = gtpu_tunnel_manager::tunnel_state;
@@ -148,17 +151,17 @@ public:
 
   // gtpu_interface_rrc
   srsran::expected<uint32_t> add_bearer(uint16_t            rnti,
-                                        uint32_t            lcid,
+                                        uint32_t            eps_bearer_id,
                                         uint32_t            addr,
                                         uint32_t            teid_out,
                                         const bearer_props* props = nullptr) override;
   void                       set_tunnel_status(uint32_t teidin, bool dl_active) override;
-  void                       rem_bearer(uint16_t rnti, uint32_t lcid) override;
+  void                       rem_bearer(uint16_t rnti, uint32_t eps_bearer_id) override;
   void                       mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
   void                       rem_user(uint16_t rnti) override;
 
   // gtpu_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
+  void write_pdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_buffer_t pdu) override;
 
   // stack interface
   void handle_gtpu_s1u_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr);
@@ -199,9 +202,9 @@ private:
     std::string           m1u_multiaddr;
     std::string           m1u_if_addr;
 
-    bool initiated    = false;
-    int  m1u_sd       = -1;
-    int  lcid_counter = 0;
+    bool initiated      = false;
+    int  m1u_sd         = -1;
+    int  bearer_counter = 0;
   };
   m1u_handler m1u;
 

@@ -62,7 +62,7 @@ class rrc final : public rrc_interface_pdcp,
                   public rrc_eutra_interface_rrc_nr
 {
 public:
-  explicit rrc(srsran::task_sched_handle task_sched_);
+  explicit rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_);
   ~rrc();
 
   int32_t init(const rrc_cfg_t&       cfg_,
@@ -175,6 +175,7 @@ public:
 private:
   // args
   srsran::task_sched_handle task_sched;
+  stack_interface_rrc*      stack  = nullptr;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;
   rlc_interface_rrc*        rlc  = nullptr;

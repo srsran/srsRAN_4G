@@ -22,70 +22,58 @@
 #ifndef SRSRAN_SCHED_LCH_H
 #define SRSRAN_SCHED_LCH_H
 
+#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/adt/pool/cached_alloc.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/mac/pdu.h"
 #include "srsran/srslog/srslog.h"
 
 namespace srsenb {
 
-class lch_ue_manager
+class lch_ue_manager : private ue_buffer_manager<false>
 {
-  constexpr static uint32_t pbr_infinity = -1;
-  constexpr static uint32_t MAX_LC       = sched_interface::MAX_LC;
+  using base_type = ue_buffer_manager<false>;
 
 public:
-  lch_ue_manager() : logger(srslog::fetch_basic_logger("MAC")) {}
+  lch_ue_manager() : ue_buffer_manager(srslog::fetch_basic_logger("MAC")) {}
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
   void new_tti();
 
-  void config_lcid(uint32_t lcg_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg);
-  void ul_bsr(uint8_t lcg_id, uint32_t bsr);
+  // Inherited methods from ue_buffer_manager base class
+  using base_type::config_lcid;
+  using base_type::dl_buffer_state;
+  using base_type::get_bsr;
+  using base_type::get_bsr_state;
+  using base_type::get_dl_retx;
+  using base_type::get_dl_tx;
+  using base_type::get_dl_tx_total;
+  using base_type::is_bearer_active;
+  using base_type::is_bearer_dl;
+  using base_type::is_bearer_ul;
+  using base_type::is_lcg_active;
+  using base_type::ul_bsr;
+
   void ul_buffer_add(uint8_t lcid, uint32_t bytes);
-  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
 
   int alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
 
-  bool is_bearer_active(uint32_t lcid) const;
-  bool is_bearer_ul(uint32_t lcid) const;
-  bool is_bearer_dl(uint32_t lcid) const;
-
   bool has_pending_dl_txs() const;
-  int  get_dl_tx_total() const;
-  int  get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
   int  get_dl_tx_total_with_overhead(uint32_t lcid) const;
-  int  get_dl_tx(uint32_t lcid) const;
   int  get_dl_tx_with_overhead(uint32_t lcid) const;
-  int  get_dl_retx(uint32_t lcid) const;
   int  get_dl_retx_with_overhead(uint32_t lcid) const;
 
-  bool is_lcg_active(uint32_t lcg) const;
-  int  get_bsr(uint32_t lcid) const;
-  int  get_bsr_with_overhead(uint32_t lcid) const;
-  int  get_max_prio_lcid() const;
-
-  const std::array<int, 4>& get_bsr_state() const;
+  int get_bsr_with_overhead(uint32_t lcid) const;
+  int get_max_prio_lcid() const;
 
   // Control Element Command queue
   using ce_cmd = srsran::dl_sch_lcid;
   srsran::deque<ce_cmd> pending_ces;
 
 private:
-  struct ue_bearer_t {
-    sched_interface::ue_bearer_cfg_t cfg         = {};
-    int                              bucket_size = 0;
-    int                              buf_tx      = 0;
-    int                              buf_retx    = 0;
-    int                              Bj          = 0;
-  };
-
   int alloc_retx_bytes(uint8_t lcid, int rem_bytes);
   int alloc_tx_bytes(uint8_t lcid, int rem_bytes);
 
-  size_t                                           prio_idx = 0;
-  srslog::basic_logger&                            logger;
-  std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
-  std::array<int, 4>                               lcg_bsr = {};
+  size_t prio_idx = 0;
 };
 
 /**

@@ -39,19 +39,20 @@ static srsran_carrier_nr_t carrier = {
     1                                // max_mimo_layers
 };
 
-static uint32_t                  n_prb        = 0;  // Set to 0 for steering
-static uint32_t                  mcs          = 30; // Set to 30 for steering
-static srsran_sch_cfg_nr_t       pdsch_cfg    = {};
-static uint32_t                  nof_slots    = 10;
-static uint32_t                  rv_idx       = 0;
-static uint32_t                  delay_n      = 0;    // Integer delay
-static float                     cfo_hz       = 0.0f; // CFO Hz
-static srsran_dmrs_sch_type_t    dmrs_type    = srsran_dmrs_sch_type_1;
-static srsran_dmrs_sch_add_pos_t dmrs_add_pos = srsran_dmrs_sch_add_pos_2;
+static uint32_t                  n_prb             = 0;  // Set to 0 for steering
+static uint32_t                  mcs               = 30; // Set to 30 for steering
+static srsran_sch_cfg_nr_t       pdsch_cfg         = {};
+static uint32_t                  nof_slots         = 10;
+static uint32_t                  rv_idx            = 0;
+static uint32_t                  delay_n           = 0;    // Integer delay
+static float                     cfo_hz            = 0.0f; // CFO Hz
+static srsran_dmrs_sch_type_t    dmrs_type         = srsran_dmrs_sch_type_1;
+static srsran_dmrs_sch_add_pos_t dmrs_add_pos      = srsran_dmrs_sch_add_pos_2;
+static bool                      interleaved_pdcch = false;
 
 static void usage(char* prog)
 {
-  printf("Usage: %s [rRPdpmnTLDCv] \n", prog);
+  printf("Usage: %s [rRPdpmnTILDCv] \n", prog);
   printf("\t-P Number of BWP (Carrier) PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
   printf("\t-n Number of slots to simulate [Default %d]\n", nof_slots);
@@ -61,6 +62,7 @@ static void usage(char* prog)
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srsran_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
   printf("\t-R Reserve RE: [rb_begin] [rb_end] [rb_stride] [sc_mask] [symbol_mask]\n");
+  printf("\t-I Enable interleaved CCE-to-REG [Default %s]\n", interleaved_pdcch ? "Enabled" : "Disabled");
   printf("\t-L Provide number of layers [Default %d]\n", carrier.max_mimo_layers);
   printf("\t-D Delay signal an integer number of samples [Default %d samples]\n", delay_n);
   printf("\t-C Frequency shift (CFO) signal in Hz [Default %+.0f Hz]\n", cfo_hz);
@@ -70,7 +72,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "rRPdpmnTLDCv")) != -1) {
+  while ((opt = getopt(argc, argv, "rRIPdpmnTLDCv")) != -1) {
     switch (opt) {
       case 'P':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -132,6 +134,9 @@ static int parse_args(int argc, char** argv)
           return SRSRAN_ERROR;
         }
       } break;
+      case 'I':
+        interleaved_pdcch ^= true;
+        break;
       case 'L':
         carrier.max_mimo_layers = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
@@ -172,6 +177,7 @@ static int work_gnb_dl(srsran_gnb_dl_t*       gnb_dl,
   dci_dl.ctx.location          = *dci_location;
   dci_dl.ctx.ss_type           = search_space->type;
   dci_dl.ctx.coreset_id        = 1;
+  dci_dl.ctx.coreset_start_rb  = 0;
   dci_dl.freq_domain_assigment = 0;
   dci_dl.time_domain_assigment = 0;
   dci_dl.vrb_to_prb_mapping    = 0;
@@ -272,8 +278,20 @@ int main(int argc, char** argv)
   srsran_coreset_t* coreset    = &pdcch_cfg.coreset[1];
   pdcch_cfg.coreset_present[1] = true;
   coreset->duration            = 1;
+
+  uint32_t coreset_bw_rb = carrier.nof_prb;
+
+  if (interleaved_pdcch) {
+    coreset->mapping_type         = srsran_coreset_mapping_type_interleaved;
+    coreset->reg_bundle_size      = srsran_coreset_bundle_size_n6;
+    coreset->interleaver_size     = srsran_coreset_bundle_size_n2;
+    coreset->precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+    coreset->shift_index          = carrier.pci;
+    coreset_bw_rb                 = SRSRAN_FLOOR(carrier.nof_prb, 12) * 12;
+  }
+
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    coreset->freq_resources[i] = i < carrier.nof_prb / 6;
+    coreset->freq_resources[i] = i < coreset_bw_rb / 6;
   }
 
   // Configure Search Space

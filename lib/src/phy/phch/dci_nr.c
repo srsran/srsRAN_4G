@@ -1999,7 +1999,8 @@ int srsran_dci_nr_dl_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_t* msg, 
   }
 
   // Copy DCI MSG fields
-  dci->ctx = msg->ctx;
+  dci->ctx         = msg->ctx;
+  dci->coreset0_bw = q->cfg.coreset0_bw;
 
   // Pack DCI
   switch (msg->ctx.format) {

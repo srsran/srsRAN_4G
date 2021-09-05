@@ -23,7 +23,7 @@ set(SOURCES mac_nr.cc
             sched_nr.cc
             sched_nr_ue.cc
             sched_nr_worker.cc
-        sched_nr_grant_allocator.cc
+            sched_nr_grant_allocator.cc
             sched_nr_harq.cc
             sched_nr_pdcch.cc
             sched_nr_cfg.cc
@@ -34,3 +34,4 @@ set(SOURCES mac_nr.cc
             harq_softbuffer.cc)
 
 add_library(srsgnb_mac STATIC ${SOURCES})
+target_link_libraries(srsgnb_mac srsenb_mac_common)

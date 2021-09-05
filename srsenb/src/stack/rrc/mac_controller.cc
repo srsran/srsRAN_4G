@@ -32,28 +32,28 @@ using ue_cfg_t = sched_interface::ue_cfg_t;
 /********* Helper Methods ********/
 
 // TS 36.331 9.1.1.2 - CCCH configuration
-sched_interface::ue_bearer_cfg_t get_bearer_default_ccch_config()
+mac_lc_ch_cfg_t get_bearer_default_ccch_config()
 {
-  sched_interface::ue_bearer_cfg_t bearer = {};
-  bearer.direction                        = sched_interface::ue_bearer_cfg_t::BOTH;
-  bearer.priority                         = 1;
-  bearer.pbr                              = -1;
-  bearer.bsd                              = -1;
-  bearer.group                            = 0;
+  mac_lc_ch_cfg_t bearer = {};
+  bearer.direction       = mac_lc_ch_cfg_t::BOTH;
+  bearer.priority        = 1;
+  bearer.pbr             = -1;
+  bearer.bsd             = -1;
+  bearer.group           = 0;
   return bearer;
 }
 
 // TS 36.331 9.2.1.1 - SRB1
-sched_interface::ue_bearer_cfg_t get_bearer_default_srb1_config()
+mac_lc_ch_cfg_t get_bearer_default_srb1_config()
 {
   return get_bearer_default_ccch_config();
 }
 
 // TS 36.331 9.2.1.2 - SRB2
-sched_interface::ue_bearer_cfg_t get_bearer_default_srb2_config()
+mac_lc_ch_cfg_t get_bearer_default_srb2_config()
 {
-  sched_interface::ue_bearer_cfg_t bearer = get_bearer_default_srb1_config();
-  bearer.priority                         = 3;
+  mac_lc_ch_cfg_t bearer = get_bearer_default_srb1_config();
+  bearer.priority        = 3;
   return bearer;
 }
 
@@ -242,7 +242,7 @@ void mac_controller::apply_current_bearers_cfg()
   for (const drb_to_add_mod_s& drb : drbs) {
     auto& bcfg     = current_sched_ue_cfg.ue_bearers[drb.lc_ch_id];
     bcfg           = {};
-    bcfg.direction = sched_interface::ue_bearer_cfg_t::BOTH;
+    bcfg.direction = mac_lc_ch_cfg_t::BOTH;
     bcfg.group     = 1;
     bcfg.priority  = 4;
     if (drb.lc_ch_cfg_present and drb.lc_ch_cfg.ul_specific_params_present) {
@@ -292,7 +292,7 @@ void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_i
 
   // Stop any SRB UL (including SRs)
   for (uint32_t i = srb_to_lcid(lte_srb::srb1); i <= srb_to_lcid(lte_srb::srb2); ++i) {
-    current_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
+    current_sched_ue_cfg.ue_bearers[i].direction = mac_lc_ch_cfg_t::DL;
   }
 
   update_mac(mac_controller::config_tx);
@@ -306,7 +306,7 @@ void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_p
   }
 }
 
-void mac_controller::set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::direction_t dir)
+void mac_controller::set_radio_bearer_state(mac_lc_ch_cfg_t::direction_t dir)
 {
   for (uint32_t i = srb_to_lcid(lte_srb::srb0); i <= srb_to_lcid(lte_srb::srb2); ++i) {
     current_sched_ue_cfg.ue_bearers[i].direction = dir;
@@ -328,7 +328,7 @@ void mac_controller::set_drb_activation(bool active)
 {
   for (const drb_to_add_mod_s& drb : bearer_list.get_established_drbs()) {
     current_sched_ue_cfg.ue_bearers[drb_to_lcid((lte_drb)drb.drb_id)].direction =
-        active ? sched_interface::ue_bearer_cfg_t::BOTH : sched_interface::ue_bearer_cfg_t::IDLE;
+        active ? mac_lc_ch_cfg_t::BOTH : mac_lc_ch_cfg_t::IDLE;
   }
 }
 
@@ -397,7 +397,7 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
         srslog::fetch_basic_logger("RRC").warning("Invalid SRB ID %d", (int)srb.srb_id);
         bcfg = {};
     }
-    bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    bcfg.direction = srsenb::mac_lc_ch_cfg_t::BOTH;
     if (srb.lc_ch_cfg_present and
         srb.lc_ch_cfg.type().value == srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::explicit_value and
         srb.lc_ch_cfg.explicit_value().ul_specific_params_present) {

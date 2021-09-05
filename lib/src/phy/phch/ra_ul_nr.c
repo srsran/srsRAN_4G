@@ -82,7 +82,7 @@ int srsran_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, 
 static void ra_ul_nr_time_hl(const srsran_sch_time_ra_t* hl_ra_cfg, srsran_sch_grant_nr_t* grant)
 {
   // Compute S and L from SLIV from higher layers
-  ra_helper_compute_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
+  srsran_sliv_to_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
   grant->k       = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
@@ -449,13 +449,13 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
 
   // TS 38.213 PUSCH scheduled by RAR UL grant
   if (dci_ul->ctx.format == srsran_dci_format_nr_rar) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(carrier->nof_prb, 0, dci_ul->freq_domain_assigment, grant);
   }
 
   // The UE shall assume that when the scheduling PDCCH is received with DCI format 0_0, then uplink resource
   // allocation type 1 is used.
   if (dci_ul->ctx.format == srsran_dci_format_nr_0_0) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(carrier->nof_prb, 0, dci_ul->freq_domain_assigment, grant);
   }
 
   // If the scheduling DCI is configured to indicate the uplink resource allocation type as part of the Frequency domain
@@ -468,7 +468,7 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
   // Otherwise the UE shall use the uplink frequency resource allocation type as defined by the higher layer parameter
   // resourceAllocation.
   if (cfg->alloc == srsran_resource_alloc_type1) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_ul->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(carrier->nof_prb, 0, dci_ul->freq_domain_assigment, grant);
   }
 
   if (cfg->alloc == srsran_resource_alloc_type0) {

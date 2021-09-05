@@ -67,8 +67,8 @@ void slot_cc_worker::run_feedback(ue_map_t& ue_db)
   tmp_feedback_to_run.clear();
 }
 
-/// Called at the beginning of TTI in a locked context, to reserve available UE resources
-void slot_cc_worker::start(slot_point pdcch_slot, ue_map_t& ue_db)
+/// Called within a locked context, to generate {slot, cc} scheduling decision
+void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
 {
   srsran_assert(not running(), "scheduler worker::start() called for active worker");
   slot_rx = pdcch_slot - TX_ENB_DELAY;
@@ -84,8 +84,6 @@ void slot_cc_worker::start(slot_point pdcch_slot, ue_map_t& ue_db)
       continue;
     }
 
-    u.carriers[cfg.cc]->new_slot(pdcch_slot, u.cfg());
-
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, cfg.cc));
     if (slot_ues[rnti].empty()) {
       // Failed to generate slot UE because UE has no conditions for DL/UL tx
@@ -94,32 +92,23 @@ void slot_cc_worker::start(slot_point pdcch_slot, ue_map_t& ue_db)
     }
     // UE acquired successfully for scheduling in this {slot, cc}
   }
-}
 
-void slot_cc_worker::run()
-{
-  srsran_assert(running(), "scheduler worker::run() called for non-active worker");
-
-  bwp_alloc.new_slot(slot_rx + TX_ENB_DELAY);
+  // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
+  bwp_alloc.new_slot(slot_rx + TX_ENB_DELAY, slot_ues);
 
   // Allocate pending RARs
-  cell.bwps[0].ra.run_slot(bwp_alloc, slot_ues);
+  cell.bwps[0].ra.run_slot(bwp_alloc);
 
   // TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
   alloc_dl_ues();
   alloc_ul_ues();
 
   // Log CC scheduler result
-  log_result();
+  log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), cell.bwps[0].grid, slot_ues);
 
   // releases UE resources
   slot_ues.clear();
   slot_rx = {};
-}
-
-void slot_cc_worker::finish()
-{
-  // synchronize results
 }
 
 void slot_cc_worker::alloc_dl_ues()
@@ -136,66 +125,6 @@ void slot_cc_worker::alloc_ul_ues()
     return;
   }
   cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
-}
-
-void slot_cc_worker::log_result() const
-{
-  const bwp_slot_grid& bwp_slot = cell.bwps[0].grid[slot_rx + TX_ENB_DELAY];
-  for (const pdcch_dl_t& pdcch : bwp_slot.dl_pdcchs) {
-    fmt::memory_buffer fmtbuf;
-    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
-      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
-      fmt::format_to(
-          fmtbuf,
-          "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, dai={}, tbs={}, tti_pdsch={}, tti_ack={}",
-          ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
-          cell.cfg.cc,
-          ue.rnti,
-          pdcch.dci.pid,
-          srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-          ue.h_dl->nof_retx(),
-          pdcch.dci.dai,
-          ue.h_dl->tbs(),
-          ue.pdsch_slot,
-          ue.uci_slot);
-    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
-      fmt::format_to(fmtbuf, "SCHED: DL RAR, cc={}, ra-rnti=0x{:x}", cell.cfg.cc, pdcch.dci.ctx.rnti);
-    } else {
-      fmt::format_to(fmtbuf, "SCHED: unknown format");
-    }
-
-    logger.info("%s", srsran::to_c_str(fmtbuf));
-  }
-  for (const pdcch_ul_t& pdcch : bwp_slot.ul_pdcchs) {
-    fmt::memory_buffer fmtbuf;
-    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
-      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
-      fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, tbs={}, tti_pusch={}",
-                     ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
-                     cell.cfg.cc,
-                     ue.rnti,
-                     pdcch.dci.pid,
-                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-                     ue.h_dl->nof_retx(),
-                     ue.h_ul->tbs(),
-                     ue.pusch_slot);
-    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
-      const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
-      fmt::format_to(fmtbuf,
-                     "SCHED: UL Msg3, cc={}, tc-rnti=0x{:x}, pid={}, nrtx={}, f={}, tti_pusch={}",
-                     cell.cfg.cc,
-                     ue.rnti,
-                     pdcch.dci.pid,
-                     ue.h_dl->nof_retx(),
-                     srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-                     ue.pusch_slot);
-    } else {
-      fmt::format_to(fmtbuf, "SCHED: unknown rnti format");
-    }
-
-    logger.info("%s", srsran::to_c_str(fmtbuf));
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -224,7 +153,29 @@ void sched_worker_manager::enqueue_cc_event(uint32_t cc, srsran::move_callback<v
   cc_worker_list[cc]->worker.enqueue_cc_event(std::move(ev));
 }
 
-void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
+/**
+ * Update UEs state that is non-CC specific (e.g. SRs, buffer status, UE configuration)
+ * @param slot_tx
+ * @param update_ca_users to update only UEs with CA enabled or not
+ */
+void sched_worker_manager::update_ue_db(slot_point slot_tx, bool update_ca_users)
+{
+  // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config)
+  for (ue_event_t& ev : slot_events) {
+    if (not ue_db.contains(ev.rnti) or ue_db[ev.rnti]->has_ca() == update_ca_users) {
+      ev.callback();
+    }
+  }
+
+  // prepare UEs internal state for new slot
+  for (auto& u : ue_db) {
+    if (u.second->has_ca() == update_ca_users) {
+      u.second->new_slot(slot_tx);
+    }
+  }
+}
+
+void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {
   srsran::bounded_vector<std::condition_variable*, SRSRAN_MAX_CARRIERS> waiting_cvars;
   {
@@ -238,18 +189,14 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
     if (not current_slot.valid()) {
       /* First Worker to start slot */
 
-      // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config) for UEs with CA
+      // process non-cc specific feedback if pending for UEs with CA
       // NOTE: there is no parallelism in these operations
       slot_events.clear();
       {
         std::lock_guard<std::mutex> ev_lock(event_mutex);
         next_slot_events.swap(slot_events);
       }
-      for (ue_event_t& ev : slot_events) {
-        if (not ue_db.contains(ev.rnti) or ue_db[ev.rnti]->has_ca()) {
-          ev.callback();
-        }
-      }
+      update_ue_db(slot_tx, true);
 
       // mark the start of slot. awake remaining workers if locking on the mutex
       current_slot = slot_tx;
@@ -270,17 +217,10 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
   /* Parallel Region */
 
   // process non-cc specific feedback if pending (e.g. SRs, buffer updates, UE config) for UEs without CA
-  for (ue_event_t& ev : slot_events) {
-    if (ue_db.contains(ev.rnti) and not ue_db[ev.rnti]->has_ca() and ue_db[ev.rnti]->pcell_cc() == cc) {
-      ev.callback();
-    }
-  }
+  update_ue_db(slot_tx, false);
 
-  // process pending feedback and pre-cache UE state for slot decision
-  cc_worker_list[cc]->worker.start(slot_tx, ue_db);
-
-  // Get {slot, cc} scheduling decision
-  cc_worker_list[cc]->worker.run();
+  // process pending feedback, generate {slot, cc} scheduling decision
+  cc_worker_list[cc]->worker.run(slot_tx, ue_db);
 
   // decrement the number of active workers
   int rem_workers = worker_count.fetch_sub(1, std::memory_order_release) - 1;
@@ -294,7 +234,6 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
 
     // All the workers of the same slot have finished. Synchronize scheduling decisions with UEs state
     for (auto& c : cc_worker_list) {
-      c->worker.finish();
       if (c->waiting > 0) {
         waiting_cvars.push_back(&c->cvar);
       }
@@ -307,19 +246,23 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t&
     }
   }
 
-  // Copy results to intermediate buffer
+  // Post-process and copy results to intermediate buffer
   save_sched_result(slot_tx, cc, dl_res, ul_res);
 }
 
-bool sched_worker_manager::save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res)
+bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
+                                             uint32_t        cc,
+                                             dl_sched_res_t& dl_res,
+                                             ul_sched_t&     ul_res)
 {
   // NOTE: Unlocked region
   auto& bwp_slot = cells[cc]->bwps[0].grid[pdcch_slot];
 
-  dl_res.pdcch_dl = bwp_slot.dl_pdcchs;
-  dl_res.pdcch_ul = bwp_slot.ul_pdcchs;
-  dl_res.pdsch    = bwp_slot.pdschs;
-  ul_res.pusch    = bwp_slot.puschs;
+  dl_res.dl_sched.pdcch_dl = bwp_slot.dl_pdcchs;
+  dl_res.dl_sched.pdcch_ul = bwp_slot.ul_pdcchs;
+  dl_res.dl_sched.pdsch    = bwp_slot.pdschs;
+  dl_res.rar               = bwp_slot.rar;
+  ul_res.pusch             = bwp_slot.puschs;
 
   // Group pending HARQ ACKs
   srsran_pdsch_ack_nr_t ack           = {};

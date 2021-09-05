@@ -145,7 +145,7 @@ void rrc::ue::set_radiolink_dl_state(bool crc_res)
       parent->logger.info(
           "DL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_dl_rlf_timer.time_elapsed());
       phy_dl_rlf_timer.stop();
-      mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::BOTH);
+      mac_ctrl.set_radio_bearer_state(mac_lc_ch_cfg_t::BOTH);
     }
     return;
   }
@@ -160,7 +160,7 @@ void rrc::ue::set_radiolink_dl_state(bool crc_res)
   consecutive_kos_dl++;
   if (consecutive_kos_dl > parent->cfg.max_mac_dl_kos) {
     parent->logger.info("Max KOs in DL reached, starting RLF timer rnti=0x%x", rnti);
-    mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE);
+    mac_ctrl.set_radio_bearer_state(mac_lc_ch_cfg_t::IDLE);
     phy_dl_rlf_timer.run();
   }
 }
@@ -177,7 +177,7 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
       parent->logger.info(
           "UL RLF timer stopped for rnti=0x%x (time elapsed=%dms)", rnti, phy_ul_rlf_timer.time_elapsed());
       phy_ul_rlf_timer.stop();
-      mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::BOTH);
+      mac_ctrl.set_radio_bearer_state(mac_lc_ch_cfg_t::BOTH);
     }
     return;
   }
@@ -199,7 +199,7 @@ void rrc::ue::set_radiolink_ul_state(bool crc_res)
   consecutive_kos_ul++;
   if (consecutive_kos_ul > parent->cfg.max_mac_ul_kos) {
     parent->logger.info("Max KOs in UL reached, starting RLF timer rnti=0x%x", rnti);
-    mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE);
+    mac_ctrl.set_radio_bearer_state(mac_lc_ch_cfg_t::IDLE);
     phy_ul_rlf_timer.run();
   }
 }
@@ -259,7 +259,7 @@ void rrc::ue::max_rlc_retx_reached()
   parent->logger.info("Max RLC retx reached for rnti=0x%x", rnti);
 
   // Turn off scheduling but give UE chance to start re-establishment
-  mac_ctrl.set_radio_bearer_state(sched_interface::ue_bearer_cfg_t::IDLE);
+  mac_ctrl.set_radio_bearer_state(mac_lc_ch_cfg_t::IDLE);
   rlc_rlf_timer.run();
 }
 
@@ -1450,6 +1450,10 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
       parent->rlc->del_bearer(rnti, drb_to_lcid((lte_drb)drb_id));
+
+      // deregister EPS bearer
+      uint8_t eps_bearer_id = 0; // FIXME: lookup EPS bearer ID for drb_id
+      parent->stack->remove_eps_bearer(rnti, eps_bearer_id);
     }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
@@ -1463,6 +1467,9 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       rlc_cfg.am.max_retx_thresh = parent->cfg.qci_cfg.at(erab.qos_params.qci).enb_dl_max_retx_thres;
     }
     parent->rlc->add_bearer(rnti, drb.lc_ch_id, rlc_cfg);
+
+    // register EPS bearer over LTE PDCP
+    parent->stack->add_eps_bearer(rnti, drb.eps_bearer_id, srsran::srsran_rat_t::lte, drb.lc_ch_id);
   }
 }
 

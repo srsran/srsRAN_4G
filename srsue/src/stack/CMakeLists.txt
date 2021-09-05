@@ -23,7 +23,7 @@ add_subdirectory(mac)
 add_subdirectory(rrc)
 add_subdirectory(upper)
 
-set(SOURCES ue_stack_lte.cc bearer_manager.cc)
+set(SOURCES ue_stack_lte.cc)
 add_library(srsue_stack STATIC ${SOURCES})
 
 add_subdirectory(mac_nr)

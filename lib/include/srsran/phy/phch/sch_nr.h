@@ -38,8 +38,12 @@
 #include "srsran/phy/fec/ldpc/ldpc_rm.h"
 #include "srsran/phy/phch/phch_cfg_nr.h"
 
+/**
+ * @brief Maximum number of codeblocks for a NR shared channel transmission. It assumes a rate of 1.0 for the maximum
+ * amount of bits a resource grid can fit
+ */
 #define SRSRAN_SCH_NR_MAX_NOF_CB_LDPC                                                                                  \
-  ((SRSRAN_SLOT_MAX_NOF_BITS_NR + (SRSRAN_LDPC_BG2_MAX_LEN_CB - 1)) / SRSRAN_LDPC_BG2_MAX_LEN_CB)
+  ((SRSRAN_SLOT_MAX_NOF_BITS_NR + (SRSRAN_LDPC_MAX_LEN_CB - 1)) / SRSRAN_LDPC_MAX_LEN_CB)
 
 /**
  * @brief Groups NR-PUSCH data for reception

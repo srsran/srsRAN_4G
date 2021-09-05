@@ -23,12 +23,14 @@
 #define SRSRAN_SCHED_NR_HELPERS_H
 
 #include "sched_nr_cfg.h"
+#include "sched_nr_ue.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
 
 class slot_ue;
 class ul_harq_proc;
+struct bwp_res_grid;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -49,6 +51,12 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci);
+
+/// Log Scheduling Result for a given BWP and slot
+void log_sched_bwp_result(srslog::basic_logger& logger,
+                          slot_point            pdcch_slot,
+                          const bwp_res_grid&   res_grid,
+                          const slot_ue_map_t&  slot_ues);
 
 } // namespace sched_nr_impl
 } // namespace srsenb

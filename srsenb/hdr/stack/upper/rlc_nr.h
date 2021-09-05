@@ -23,6 +23,7 @@
 #define SRSENB_RLC_NR_H
 
 #include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_mac_interfaces.h"
 #include "srsran/rlc/rlc.h"
 #include <map>
 

@@ -66,7 +66,7 @@ const char* to_string(test_event event)
 
 struct mobility_tester {
   explicit mobility_tester(const test_event& args_) :
-    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&task_sched)
+    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&stack, &task_sched)
   {
     logger.set_level(srslog::basic_levels::info);
     logger.set_hex_dump_max_size(1024);
@@ -102,6 +102,7 @@ struct mobility_tester {
   test_dummies::pdcp_mobility_dummy pdcp;
   test_dummies::phy_mobility_dummy  phy;
   test_dummies::s1ap_mobility_dummy s1ap;
+  test_dummies::enb_stack_dummy     stack;
   gtpu_dummy                        gtpu;
 
   void tic()
@@ -332,7 +333,7 @@ int test_s1ap_tenb_mobility(test_event test_params)
   auto& mac_ue = tester.mac.ue_db[0x46];
   TESTASSERT(mac_ue.supported_cc_list[0].active);
   TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
-  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction == mac_lc_ch_cfg_t::BOTH);
   // Check Security Configuration
   TESTASSERT(tester.pdcp.bearers.count(0x46));
   TESTASSERT(tester.pdcp.bearers[0x46].count(srb_to_lcid(lte_srb::srb1)) and
@@ -393,9 +394,9 @@ int test_s1ap_tenb_mobility(test_event test_params)
   copy_msg_to_buffer(pdu, recfg_complete);
   tester.rrc.write_pdu(0x46, srb_to_lcid(lte_srb::srb1), std::move(pdu));
   tester.tic();
-  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == mac_lc_ch_cfg_t::BOTH);
   TESTASSERT(mac_ue.pucch_cfg.I_sr == recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
   TESTASSERT(mac_ue.pucch_cfg.n_pucch_sr ==
              recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
@@ -483,8 +484,8 @@ int test_intraenb_mobility(srsran::log_sink_spy& spy, test_event test_params)
   TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
              tester.cfg.cell_list[1].meas_cfg.meas_gap_period);
   auto* ue_cfg = &tester.mac.ue_db[tester.rnti];
-  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == srsenb::sched_interface::ue_bearer_cfg_t::DL);
-  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == srsenb::sched_interface::ue_bearer_cfg_t::DL);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == srsenb::mac_lc_ch_cfg_t::DL);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == srsenb::mac_lc_ch_cfg_t::DL);
 
   /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished, PHY is configured */
   tester.pdcp.last_sdu.sdu = nullptr;
@@ -494,12 +495,9 @@ int test_intraenb_mobility(srsran::log_sink_spy& spy, test_event test_params)
   TESTASSERT(tester.phy.phy_cfg_set);
   TESTASSERT(tester.phy.last_cfg.size() == 1 and ue_cfg->supported_cc_list.size() == 1);
   TESTASSERT(tester.phy.last_cfg[0].enb_cc_idx == ue_cfg->supported_cc_list[0].enb_cc_idx);
-  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb0)].direction ==
-             srsenb::sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb1)].direction ==
-             srsenb::sched_interface::ue_bearer_cfg_t::BOTH);
-  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb2)].direction ==
-             srsenb::sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb0)].direction == srsenb::mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == srsenb::mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(ue_cfg->ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == srsenb::mac_lc_ch_cfg_t::BOTH);
 
   /* Test Case: The UE receives a duplicate C-RNTI CE. Nothing should happen */
   if (test_params == test_event::duplicate_crnti_ce) {

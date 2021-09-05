@@ -403,7 +403,7 @@ srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t         
   erab_t::gtpu_tunnel bearer;
   bearer.teid_out                   = teid_out;
   bearer.addr                       = addr;
-  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.lcid, addr, teid_out, props);
+  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.id, addr, teid_out, props);
   if (teidin.is_error()) {
     logger->error("Adding erab_id=%d to GTPU", erab_id);
     return srsran::default_error_t();
@@ -420,7 +420,7 @@ void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
     logger->warning("Removing erab_id=%d from GTPU", erab_id);
     return;
   }
-  gtpu->rem_bearer(rnti, it->second.lcid);
+  gtpu->rem_bearer(rnti, it->second.id);
 }
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)

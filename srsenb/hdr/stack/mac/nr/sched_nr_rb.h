@@ -243,4 +243,21 @@ inline prb_interval find_empty_interval_of_length(const prb_bitmap& mask, size_t
 } // namespace sched_nr_impl
 } // namespace srsenb
 
+namespace fmt {
+
+template <>
+struct formatter<srsenb::sched_nr_impl::prb_grant> : public formatter<srsenb::sched_nr_impl::rbg_bitmap> {
+  template <typename FormatContext>
+  auto format(const srsenb::sched_nr_impl::prb_grant& grant, FormatContext& ctx)
+      -> decltype(std::declval<FormatContext>().out())
+  {
+    if (grant.is_alloc_type1()) {
+      return formatter<srsran::interval<uint32_t> >{}.format(grant.prbs(), ctx);
+    }
+    return formatter<srsenb::sched_nr_impl::rbg_bitmap>::format(grant.rbgs(), ctx);
+  }
+};
+
+} // namespace fmt
+
 #endif // SRSRAN_SCHED_NR_RB_H

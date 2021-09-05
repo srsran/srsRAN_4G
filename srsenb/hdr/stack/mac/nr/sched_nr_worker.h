@@ -36,8 +36,9 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-using dl_sched_t = sched_nr_interface::dl_sched_t;
-using ul_sched_t = sched_nr_interface::ul_sched_t;
+using dl_sched_t     = sched_nr_interface::dl_sched_t;
+using ul_sched_t     = sched_nr_interface::ul_sched_t;
+using dl_sched_res_t = sched_nr_interface::dl_sched_res_t;
 
 class slot_cc_worker
 {
@@ -46,9 +47,7 @@ public:
 
   explicit slot_cc_worker(serv_cell_manager& sched);
 
-  void start(slot_point pdcch_slot, ue_map_t& ue_db_);
-  void run();
-  void finish();
+  void run(slot_point pdcch_slot, ue_map_t& ue_db_);
   bool running() const { return slot_rx.valid(); }
 
   void enqueue_cc_event(srsran::move_callback<void()> ev);
@@ -62,7 +61,6 @@ private:
 
   void alloc_dl_ues();
   void alloc_ul_ues();
-  void log_result() const;
 
   const sched_cell_params& cfg;
   serv_cell_manager&       cell;
@@ -102,7 +100,7 @@ public:
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+  void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
 
   void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
   void enqueue_cc_event(uint32_t cc, srsran::move_callback<void()> ev);
@@ -112,7 +110,9 @@ public:
   }
 
 private:
-  bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_t& dl_res, ul_sched_t& ul_res);
+  void update_ue_db(slot_point slot_tx, bool update_ca_users);
+
+  bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
 
   const sched_params&                               cfg;
   ue_map_t&                                         ue_db;

@@ -36,10 +36,14 @@ namespace sched_nr_impl {
 
 const static size_t MAX_GRANTS = sched_nr_interface::MAX_GRANTS;
 
-using pucch_t      = mac_interface_phy_nr::pucch_t;
-using pucch_list_t = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
-using pusch_t      = mac_interface_phy_nr::pusch_t;
-using pusch_list_t = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
+using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
+using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
+using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
+using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+using pucch_t         = mac_interface_phy_nr::pucch_t;
+using pucch_list_t    = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
+using pusch_t         = mac_interface_phy_nr::pusch_t;
+using pusch_list_t    = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
 
 using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
@@ -62,8 +66,9 @@ struct bwp_params {
   const sched_cfg_t& sched_cfg;
 
   // derived params
-  uint32_t P;
-  uint32_t N_rbg;
+  srslog::basic_logger& logger;
+  uint32_t              P;
+  uint32_t              N_rbg;
 
   struct slot_cfg {
     bool is_dl;
@@ -79,9 +84,9 @@ struct bwp_params {
   };
   std::vector<pusch_ra_time_cfg> pusch_ra_list;
 
-  bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
-
   bwp_cce_pos_list rar_cce_list;
+
+  bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 };
 
 struct sched_cell_params {
@@ -165,48 +170,6 @@ public:
 
   uint16_t               rnti;
   std::vector<cc_params> cc_params;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-struct resource_guard {
-public:
-  resource_guard()                            = default;
-  resource_guard(const resource_guard& other) = delete;
-  resource_guard(resource_guard&& other)      = delete;
-  resource_guard& operator=(const resource_guard& other) = delete;
-  resource_guard& operator=(resource_guard&& other) = delete;
-  bool            busy() const { return flag; }
-
-  struct token {
-    token() = default;
-    token(resource_guard& parent) : flag(parent.busy() ? nullptr : &parent.flag)
-    {
-      if (flag != nullptr) {
-        *flag = true;
-      }
-    }
-    token(token&&) noexcept = default;
-    token& operator=(token&&) noexcept = default;
-    void   release() { flag.reset(); }
-    bool   owns_token() const { return flag != nullptr; }
-    bool   empty() const { return flag == nullptr; }
-
-  private:
-    struct release_deleter {
-      void operator()(bool* ptr)
-      {
-        if (ptr != nullptr) {
-          srsran_assert(*ptr == true, "resource token: detected inconsistency token state");
-          *ptr = false;
-        }
-      }
-    };
-    std::unique_ptr<bool, release_deleter> flag;
-  };
-
-private:
-  bool flag = false;
 };
 
 } // namespace sched_nr_impl

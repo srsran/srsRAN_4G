@@ -30,6 +30,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             srsran_radio
             srsenb_phy
             srsgnb_mac
+            srsran_mac
             ${CMAKE_THREAD_LIBS_INIT}
             ${Boost_LIBRARIES}
             ${CMAKE_THREAD_LIBS_INIT}
@@ -85,6 +86,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
         add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_bidir_sched nr_phy_test
                 --reference=carrier=${NR_PHY_TEST_BW}
                 --duration=100 # 100 slots
+                --rnti=17921 # 0x4601
                 --gnb.stack.pdsch.slots=0,1,2,3,4,5 # All possible DL slots
                 --gnb.stack.pdsch.start=0 # Start at RB 0
                 --gnb.stack.pdsch.length=52 # Full 10 MHz BW

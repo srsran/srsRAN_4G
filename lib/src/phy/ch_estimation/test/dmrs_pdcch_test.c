@@ -28,32 +28,34 @@
 #include <strings.h>
 #include <unistd.h>
 
-static srsran_carrier_nr_t    carrier  = {};
-static srsran_dmrs_pdcch_ce_t pdcch_ce = {};
-static uint16_t               rnti     = 0x1234;
+static srsran_carrier_nr_t    carrier     = {};
+static srsran_dmrs_pdcch_ce_t pdcch_ce    = {};
+static uint16_t               rnti        = 0x1234;
+static bool                   interleaved = false;
 
 void usage(char* prog)
 {
-  printf("Usage: %s [recov]\n", prog);
-
+  printf("Usage: %s [recoIv]\n", prog);
   printf("\t-r nof_prb [Default %d]\n", carrier.nof_prb);
   printf("\t-e extended cyclic prefix [Default normal]\n");
-
   printf("\t-c cell_id [Default %d]\n", carrier.pci);
-
+  printf("\t-I Enable interleaved CCE-to-REG [Default %s]\n", interleaved ? "Enabled" : "Disabled");
   printf("\t-v increase verbosity\n");
 }
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "recov")) != -1) {
+  while ((opt = getopt(argc, argv, "recoIv")) != -1) {
     switch (opt) {
       case 'r':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
         carrier.pci = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'I':
+        interleaved ^= true;
         break;
       case 'v':
         srsran_verbose++;
@@ -129,7 +131,18 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  srsran_coreset_t              coreset      = {};
+  srsran_coreset_t coreset = {};
+  if (interleaved) {
+    coreset.mapping_type         = srsran_coreset_mapping_type_interleaved;
+    coreset.reg_bundle_size      = srsran_coreset_bundle_size_n6;
+    coreset.interleaver_size     = srsran_coreset_bundle_size_n2;
+    coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+    coreset.shift_index          = carrier.pci;
+
+    carrier.nof_prb = 52;
+    carrier.pci     = 500;
+  }
+
   srsran_search_space_t         search_space = {};
   srsran_dmrs_pdcch_estimator_t estimator    = {};
 
@@ -138,8 +151,6 @@ int main(int argc, char** argv)
 
   uint32_t test_counter = 0;
   uint32_t test_passed  = 0;
-
-  coreset.mapping_type = srsran_coreset_mapping_type_non_interleaved;
 
   uint32_t nof_frequency_resource = SRSRAN_MIN(SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, carrier.nof_prb / 6);
   for (uint32_t frequency_resources = 1; frequency_resources < (1U << nof_frequency_resource); frequency_resources++) {
@@ -150,7 +161,14 @@ int main(int argc, char** argv)
       nof_freq_resources += mask;
     }
 
-    for (coreset.duration = 1; coreset.duration <= 3; coreset.duration++) {
+    for (coreset.duration = SRSRAN_CORESET_DURATION_MIN; coreset.duration <= SRSRAN_CORESET_DURATION_MAX;
+         coreset.duration++) {
+      // Skip case if CORESET bandwidth is not enough
+      uint32_t N = srsran_coreset_get_bw(&coreset) * coreset.duration;
+      if (interleaved && N % 12 != 0) {
+        continue;
+      }
+
       for (search_space.type = srsran_search_space_type_common_0; search_space.type <= srsran_search_space_type_ue;
            search_space.type++) {
         for (uint32_t i = 0; i < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {

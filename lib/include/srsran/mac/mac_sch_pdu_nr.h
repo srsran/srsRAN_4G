@@ -137,7 +137,7 @@ public:
   const mac_sch_subpdu_nr& get_subpdu(const uint32_t& index);
   bool                     is_ulsch();
 
-  void init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool is_ulsch_ = false);
+  int  init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool is_ulsch_ = false);
   void init_rx(bool ulsch_ = false);
 
   // Add SDU or CEs to PDU

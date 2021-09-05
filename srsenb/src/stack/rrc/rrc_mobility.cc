@@ -170,7 +170,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   ue_cfg.supported_cc_list.resize(1);
   ue_cfg.supported_cc_list[0].active     = true;
   ue_cfg.supported_cc_list[0].enb_cc_idx = target_cell->enb_cc_idx;
-  ue_cfg.ue_bearers[0].direction         = sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[0].direction         = mac_lc_ch_cfg_t::BOTH;
   ue_cfg.supported_cc_list[0].dl_cfg.tm  = SRSRAN_TM1;
   uint16_t rnti                          = mac->reserve_new_crnti(ue_cfg);
   if (rnti == SRSRAN_INVALID_RNTI) {
@@ -503,12 +503,24 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   mob_info.target_pci            = target_cell.cell_cfg.pci;
   mob_info.t304                  = target_cell.cell_cfg.t304;
   mob_info.new_ue_id.from_number(rrc_ue->rnti);
-  mob_info.rr_cfg_common.pusch_cfg_common       = target_cell.sib2.rr_cfg_common.pusch_cfg_common;
-  mob_info.rr_cfg_common.prach_cfg.root_seq_idx = target_cell.sib2.rr_cfg_common.prach_cfg.root_seq_idx;
-  mob_info.rr_cfg_common.ul_cp_len              = target_cell.sib2.rr_cfg_common.ul_cp_len;
-  mob_info.rr_cfg_common.p_max_present          = true;
-  mob_info.rr_cfg_common.p_max                  = rrc_enb->cfg.sib1.p_max;
-  mob_info.carrier_freq_present                 = false; // same frequency handover for now
+
+  mob_info.rr_cfg_common.rach_cfg_common_present    = true;
+  mob_info.rr_cfg_common.rach_cfg_common            = target_cell.sib2.rr_cfg_common.rach_cfg_common;
+  mob_info.rr_cfg_common.prach_cfg.root_seq_idx     = target_cell.sib2.rr_cfg_common.prach_cfg.root_seq_idx;
+  mob_info.rr_cfg_common.pdsch_cfg_common_present   = true;
+  mob_info.rr_cfg_common.pdsch_cfg_common           = target_cell.sib2.rr_cfg_common.pdsch_cfg_common;
+  mob_info.rr_cfg_common.pusch_cfg_common           = target_cell.sib2.rr_cfg_common.pusch_cfg_common;
+  mob_info.rr_cfg_common.pucch_cfg_common_present   = true;
+  mob_info.rr_cfg_common.pucch_cfg_common           = target_cell.sib2.rr_cfg_common.pucch_cfg_common;
+  mob_info.rr_cfg_common.srs_ul_cfg_common_present  = true;
+  mob_info.rr_cfg_common.srs_ul_cfg_common          = target_cell.sib2.rr_cfg_common.srs_ul_cfg_common;
+  mob_info.rr_cfg_common.ul_pwr_ctrl_common_present = true;
+  mob_info.rr_cfg_common.ul_pwr_ctrl_common         = target_cell.sib2.rr_cfg_common.ul_pwr_ctrl_common;
+  mob_info.rr_cfg_common.p_max_present              = true;
+  mob_info.rr_cfg_common.p_max                      = rrc_enb->cfg.sib1.p_max;
+  mob_info.rr_cfg_common.ul_cp_len                  = target_cell.sib2.rr_cfg_common.ul_cp_len;
+
+  mob_info.carrier_freq_present                   = false; // same frequency handover for now
   asn1::number_to_enum(mob_info.carrier_bw.dl_bw, target_cell.mib.dl_bw.to_number());
   if (target_cell.cell_cfg.dl_earfcn != src_dl_earfcn) {
     mob_info.carrier_freq_present         = true;

@@ -63,7 +63,7 @@ public:
     srsran_pdcch_cfg_nr_t  pdcch           = {};
     srsran_sch_hl_cfg_nr_t pdsch           = {};
     srsran_sch_hl_cfg_nr_t pusch           = {};
-    uint32_t               rar_window_size = 8;
+    uint32_t               rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
     uint32_t               numerology_idx  = 0;
   };
 
@@ -75,8 +75,10 @@ public:
   };
 
   struct sched_cfg_t {
-    bool pdsch_enabled = true;
-    bool pusch_enabled = true;
+    bool        pdsch_enabled      = true;
+    bool        pusch_enabled      = true;
+    bool        auto_refill_buffer = true;
+    std::string logger_name        = "MAC";
   };
 
   struct ue_cc_cfg_t {
@@ -100,7 +102,7 @@ public:
     uint32_t   freq_idx;
     uint32_t   ta_cmd;
     uint16_t   temp_crnti;
-    uint32_t   msg3_size;
+    uint32_t   msg3_size = 7;
     slot_point prach_slot;
   };
 
@@ -109,11 +111,24 @@ public:
   using dl_sched_t = mac_interface_phy_nr::dl_sched_t;
   using ul_sched_t = mac_interface_phy_nr::ul_sched_t;
 
-  virtual ~sched_nr_interface()                                                    = default;
-  virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
-  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                       = 0;
-  virtual int  get_dl_sched(slot_point slot_rx, uint32_t cc, dl_sched_t& result)   = 0;
-  virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_sched_t& result)   = 0;
+  struct sched_rar_grant_t {
+    dl_sched_rar_info_t    data;
+    srsran_dci_rar_grant_t grant = {};
+  };
+  struct sched_rar_t {
+    srsran::bounded_vector<sched_rar_grant_t, MAX_GRANTS> grants;
+  };
+  using sched_rar_list_t = srsran::bounded_vector<sched_rar_t, MAX_GRANTS>;
+  struct dl_sched_res_t {
+    sched_rar_list_t rar;
+    dl_sched_t       dl_sched;
+  };
+
+  virtual ~sched_nr_interface()                                                      = default;
+  virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg)   = 0;
+  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                         = 0;
+  virtual int  get_dl_sched(slot_point slot_rx, uint32_t cc, dl_sched_res_t& result) = 0;
+  virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_sched_t& result)     = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
   virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;

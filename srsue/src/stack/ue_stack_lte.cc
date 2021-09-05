@@ -34,7 +34,6 @@ using namespace srsran;
 namespace srsue {
 
 ue_stack_lte::ue_stack_lte() :
-  running(false),
   args(),
   stack_logger(srslog::fetch_basic_logger("STCK", false)),
   mac_logger(srslog::fetch_basic_logger("MAC")),
@@ -49,8 +48,6 @@ ue_stack_lte::ue_stack_lte() :
   pdcp_nr_logger(srslog::fetch_basic_logger("PDCP-NR", false)),
   mac_pcap(),
   mac_nr_pcap(),
-  usim(nullptr),
-  phy(nullptr),
   rlc("RLC"),
   mac("MAC", &task_sched),
   rrc(this, &task_sched),

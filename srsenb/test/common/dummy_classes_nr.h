@@ -23,18 +23,38 @@
 #define SRSRAN_DUMMY_NR_CLASSES_H
 
 #include "srsran/interfaces/gnb_interfaces.h"
+#include "srsran/interfaces/gnb_mac_interfaces.h"
 
 namespace srsenb {
 
-class mac_dummy : public mac_interface_rrc_nr
+class rrc_nr_dummy : public rrc_interface_mac_nr
 {
 public:
-  int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg_)
+  int read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
+  int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
+  int add_user(uint16_t rnti) { return SRSRAN_SUCCESS; }
+};
+
+class rlc_nr_dummy : public rlc_interface_mac_nr
+{
+public:
+  int  read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override { return SRSRAN_SUCCESS; }
+  void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) override {}
+  void write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override {}
+};
+
+class mac_nr_dummy : public mac_interface_rrc_nr
+{
+public:
+  int cell_cfg(const sched_interface::cell_cfg_t&                 cell,
+               srsran::const_span<sched_nr_interface::cell_cfg_t> nr_cells) override
   {
-    cellcfgobj = *cell_cfg_;
+    cellcfgobj = cell;
     return SRSRAN_SUCCESS;
   }
-  uint16_t reserve_rnti() { return 0x4601; }
+  uint16_t reserve_rnti(uint32_t enb_cc_idx) override { return 0x4601; }
+
+  int ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override { return SRSRAN_SUCCESS; }
 
   srsenb::sched_interface::cell_cfg_t cellcfgobj;
 };

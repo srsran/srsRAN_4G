@@ -86,10 +86,8 @@ void si_sched::run_slot(bwp_slot_allocator& slot_alloc)
 
 ra_sched::ra_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
 
-alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
-                                            const pending_rar_t& rar,
-                                            slot_ue_map_t&       slot_ues,
-                                            uint32_t&            nof_grants_alloc)
+alloc_result
+ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
 {
   const uint32_t    rar_aggr_level = 2;
   const prb_bitmap& prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].dl_prbs.prbs();
@@ -103,8 +101,8 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
       prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
       start_prb_idx       = interv.start();
       if (interv.length() == nprb) {
-        ret = slot_grid.alloc_rar_and_msg3(
-            rar.ra_rnti, rar_aggr_level, interv, slot_ues, msg3_grants.subspan(0, nof_grants_alloc));
+        ret =
+            slot_grid.alloc_rar_and_msg3(rar.ra_rnti, rar_aggr_level, interv, msg3_grants.subspan(0, nof_grants_alloc));
       } else {
         ret = alloc_result::no_sch_space;
       }
@@ -121,9 +119,9 @@ alloc_result ra_sched::allocate_pending_rar(bwp_slot_allocator&  slot_grid,
   return ret;
 }
 
-void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
+void ra_sched::run_slot(bwp_slot_allocator& slot_alloc)
 {
-  slot_point pdcch_slot = slot_grid.get_pdcch_tti();
+  slot_point pdcch_slot = slot_alloc.get_pdcch_tti();
   slot_point msg3_slot  = pdcch_slot + bwp_cfg->pusch_ra_list[0].msg3_delay;
   if (not bwp_cfg->slots[pdcch_slot.slot_idx()].is_dl or not bwp_cfg->slots[msg3_slot.slot_idx()].is_ul) {
     // RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
@@ -154,7 +152,7 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_grid, slot_ue_map_t& slot_ues)
 
     // Try to schedule DCIs + RBGs for RAR Grants
     uint32_t     nof_rar_allocs = 0;
-    alloc_result ret            = allocate_pending_rar(slot_grid, rar, slot_ues, nof_rar_allocs);
+    alloc_result ret            = allocate_pending_rar(slot_alloc, rar, nof_rar_allocs);
 
     if (ret == alloc_result::success) {
       // If RAR allocation was successful:
@@ -218,6 +216,7 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
   for (slot_point t = rar_info.prach_slot + prach_duration; t < rar_info.prach_slot + bwp_cfg->slots.size(); ++t) {
     if (bwp_cfg->slots[t.slot_idx()].is_dl) {
       p.rar_win = {t, t + bwp_cfg->cfg.rar_window_size};
+      break;
     }
   }
   p.msg3_grant.push_back(rar_info);

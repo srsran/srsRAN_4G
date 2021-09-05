@@ -23,6 +23,7 @@
 #define SRSENB_MAC_H
 
 #include "sched.h"
+#include "sched_interface.h"
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srsran/adt/circular_map.h"
@@ -35,7 +36,6 @@
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/enb_rrc_interface_types.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/srslog/srslog.h"
 #include "ta.h"
 #include "ue.h"
@@ -95,7 +95,7 @@ public:
   void phy_config_enabled(uint16_t rnti, bool enabled) override;
 
   /* Manages UE bearers and associated configuration */
-  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override;
+  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, mac_lc_ch_cfg_t* cfg) override;
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override;
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override;
 
@@ -148,7 +148,7 @@ private:
   /* Map of active UEs */
   static const uint16_t            FIRST_RNTI = 0x46;
   rnti_map_t<unique_rnti_ptr<ue> > ue_db;
-  std::atomic<uint16_t>            ue_counter;
+  std::atomic<uint16_t>            ue_counter{0};
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               enb_cc_idx,

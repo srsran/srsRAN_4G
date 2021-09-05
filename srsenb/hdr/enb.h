@@ -40,6 +40,7 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/interfaces_common.h"
@@ -47,7 +48,6 @@
 #include "srsran/common/security.h"
 #include "srsran/interfaces/enb_command_interface.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/interfaces/ue_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/system/sys_metrics_processor.h"

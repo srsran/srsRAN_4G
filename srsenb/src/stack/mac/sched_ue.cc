@@ -113,7 +113,7 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
  *
  *******************************************************/
 
-void sched_ue::set_bearer_cfg(uint32_t lc_id, const bearer_cfg_t& cfg_)
+void sched_ue::set_bearer_cfg(uint32_t lc_id, const mac_lc_ch_cfg_t& cfg_)
 {
   cfg.ue_bearers[lc_id] = cfg_;
   lch_handler.config_lcid(lc_id, cfg_);
@@ -121,8 +121,8 @@ void sched_ue::set_bearer_cfg(uint32_t lc_id, const bearer_cfg_t& cfg_)
 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
-  cfg.ue_bearers[lc_id] = sched_interface::ue_bearer_cfg_t{};
-  lch_handler.config_lcid(lc_id, sched_interface::ue_bearer_cfg_t{});
+  cfg.ue_bearers[lc_id] = mac_lc_ch_cfg_t{};
+  lch_handler.config_lcid(lc_id, mac_lc_ch_cfg_t{});
 }
 
 void sched_ue::phy_config_enabled(tti_point tti_rx, bool enabled)

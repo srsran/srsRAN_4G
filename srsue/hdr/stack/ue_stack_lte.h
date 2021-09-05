@@ -40,7 +40,7 @@
 #include "upper/nas.h"
 #include "upper/usim.h"
 
-#include "bearer_manager.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/multiqueue.h"
 #include "srsran/common/string_helpers.h"
@@ -189,7 +189,7 @@ private:
   const std::chrono::milliseconds TTI_WARN_THRESHOLD_MS{5};
   const uint32_t                  SYNC_QUEUE_WARN_THRESHOLD = 5;
 
-  bool                running;
+  std::atomic<bool>   running{false};
   srsue::stack_args_t args;
 
   srsran::tti_point current_tti;

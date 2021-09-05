@@ -97,6 +97,8 @@ void gw::stop()
 
 void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
 {
+  std::lock_guard<std::mutex> lock(gw_mutex);
+
   std::chrono::duration<double> secs = std::chrono::high_resolution_clock::now() - metrics_tp;
 
   double dl_tput_mbps_real_time = (dl_tput_bytes * 8 / (double)1e6) / secs.count();
@@ -124,7 +126,10 @@ void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
 void gw::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   logger.info(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us", pdu->get_latency_us().count());
-  dl_tput_bytes += pdu->N_bytes;
+  {
+    std::unique_lock<std::mutex> lock(gw_mutex);
+    dl_tput_bytes += pdu->N_bytes;
+  }
   if (!if_up) {
     logger.warning("TUN/TAP not up - dropping gw RX message");
   } else if (pdu->N_bytes < 20) {
@@ -152,7 +157,10 @@ void gw::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
                 "RX MCH PDU (%d B). Stack latency: %ld us",
                 pdu->N_bytes,
                 pdu->get_latency_us().count());
-    dl_tput_bytes += pdu->N_bytes;
+    {
+      std::unique_lock<std::mutex> lock(gw_mutex);
+      dl_tput_bytes += pdu->N_bytes;
+    }
 
     // Hack to drop initial 2 bytes
     pdu->msg += 2;

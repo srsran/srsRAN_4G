@@ -120,12 +120,13 @@ typedef struct SRSRAN_API {
  * @brief Describes the NR DCI search context
  */
 typedef struct SRSRAN_API {
-  srsran_dci_location_t      location;   ///< DCI location
-  srsran_search_space_type_t ss_type;    ///< Search space type
-  uint32_t                   coreset_id; ///< CORESET identifier
-  srsran_rnti_type_t         rnti_type;  ///< RNTI type
-  srsran_dci_format_nr_t     format;     ///< DCI format
-  uint16_t                   rnti;       ///< UE temporal RNTI
+  srsran_dci_location_t      location;         ///< DCI location
+  srsran_search_space_type_t ss_type;          ///< Search space type
+  uint32_t                   coreset_id;       ///< CORESET identifier
+  uint32_t                   coreset_start_rb; ///< CORESET lowest RB index in the resource grid
+  srsran_rnti_type_t         rnti_type;        ///< RNTI type
+  srsran_dci_format_nr_t     format;           ///< DCI format
+  uint16_t                   rnti;             ///< UE temporal RNTI
 } srsran_dci_ctx_t;
 
 /**
@@ -190,6 +191,9 @@ typedef struct SRSRAN_API {
   uint32_t cbg_info;     ///< CBG transmission information (CBGTI)
   uint32_t cbg_flush;    ///< CBG flushing out information (CBGFI)
   uint32_t dmrs_id;      ///< DMRS sequence initialization
+
+  // DL context from unpacking. Required for resource allocation
+  uint32_t coreset0_bw; ///< CORESET0 size used for frequency resource allocation
 
 } srsran_dci_dl_nr_t;
 

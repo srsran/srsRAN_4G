@@ -44,6 +44,13 @@ class usim_interface_nas;
 class gw_interface_nas;
 class rrc_interface_nas;
 
+/**
+ * @brief This class implements the NAS layer of a EUTRA UE.
+ *
+ * The class is *NOT* thread-safe.
+ *
+ */
+
 class nas : public nas_interface_rrc, public srsran::timer_callback, public nas_base
 {
 public:

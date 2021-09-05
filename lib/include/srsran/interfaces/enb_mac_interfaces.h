@@ -19,8 +19,8 @@
  *
  */
 
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/interfaces/rrc_interface_types.h"
-#include "srsran/interfaces/sched_interface.h"
 
 #ifndef SRSRAN_ENB_MAC_INTERFACES_H
 #define SRSRAN_ENB_MAC_INTERFACES_H
@@ -248,14 +248,14 @@ public:
   virtual int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface::ue_cfg_t& cfg) = 0;
 
   /* Manages UE bearers and associated configuration */
-  virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) = 0;
-  virtual int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                                        = 0;
-  virtual void phy_config_enabled(uint16_t rnti, bool enabled)                                     = 0;
+  virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, mac_lc_ch_cfg_t* cfg) = 0;
+  virtual int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                       = 0;
+  virtual void phy_config_enabled(uint16_t rnti, bool enabled)                    = 0;
   virtual void write_mcch(const srsran::sib2_mbms_t* sib2_,
                           const srsran::sib13_t*     sib13_,
                           const srsran::mcch_msg_t*  mcch_,
                           const uint8_t*             mcch_payload,
-                          const uint8_t              mcch_payload_length)                                       = 0;
+                          const uint8_t              mcch_payload_length)                      = 0;
 
   /**
    * Allocate a C-RNTI for a new user, without adding it to the phy layer and scheduler yet

@@ -22,9 +22,9 @@
 #ifndef SRSRAN_SCHED_LTE_COMMON_H
 #define SRSRAN_SCHED_LTE_COMMON_H
 
+#include "sched_interface.h"
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/common/tti_point.h"
-#include "srsran/interfaces/sched_interface.h"
 
 namespace srsenb {
 

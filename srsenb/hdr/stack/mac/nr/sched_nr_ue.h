@@ -25,6 +25,7 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
@@ -50,7 +51,7 @@ public:
   uint32_t   cc = SCHED_NR_MAX_CARRIERS;
 
   // UE parameters common to all sectors
-  bool pending_sr = false;
+  int dl_pending_bytes = 0, ul_pending_bytes = 0;
 
   // UE parameters that are sector specific
   const bwp_ue_cfg* cfg      = nullptr;
@@ -61,16 +62,15 @@ public:
   slot_point        uci_slot;
   uint32_t          dl_cqi = 0;
   uint32_t          ul_cqi = 0;
-  dl_harq_proc*     h_dl = nullptr;
-  ul_harq_proc*     h_ul = nullptr;
+  dl_harq_proc*     h_dl   = nullptr;
+  ul_harq_proc*     h_ul   = nullptr;
 };
 
 class ue_carrier
 {
 public:
   ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const sched_cell_params& cell_params_);
-  void    new_slot(slot_point pdcch_slot, const ue_cfg_t& uecfg_);
-  slot_ue try_reserve(slot_point pdcch_slot);
+  slot_ue try_reserve(slot_point pdcch_slot, const ue_cfg_t& uecfg_, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
 
   const uint16_t rnti;
   const uint32_t cc;
@@ -91,23 +91,34 @@ class ue
 public:
   ue(uint16_t rnti, const ue_cfg_t& cfg, const sched_params& sched_cfg_);
 
+  void new_slot(slot_point pdcch_slot);
+
   slot_ue try_reserve(slot_point pdcch_slot, uint32_t cc);
 
   void            set_cfg(const ue_cfg_t& cfg);
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
-  void ul_sr_info(slot_point slot_rx) { pending_sr = true; }
+  void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
+  void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
+  void ul_sr_info(slot_point slot_rx) { last_sr_slot = slot_rx; }
 
-  bool     has_ca() const { return ue_cfg.carriers.size() > 1; }
+  bool has_ca() const
+  {
+    return ue_cfg.carriers.size() > 1 and std::count_if(ue_cfg.carriers.begin() + 1,
+                                                        ue_cfg.carriers.end(),
+                                                        [](const ue_cc_cfg_t& cc) { return cc.active; }) > 0;
+  }
   uint32_t pcell_cc() const { return ue_cfg.carriers[0].cc; }
 
+  ue_buffer_manager<true>                                        buffers;
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
 private:
   const uint16_t      rnti;
   const sched_params& sched_cfg;
 
-  bool pending_sr = false;
+  slot_point last_sr_slot;
+  int        ul_pending_bytes = 0, dl_pending_bytes = 0;
 
   ue_cfg_t ue_cfg;
 };

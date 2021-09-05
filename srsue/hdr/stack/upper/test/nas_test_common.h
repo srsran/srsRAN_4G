@@ -164,7 +164,7 @@ public:
   }
   bool switch_on()
   {
-    nas->switch_on();
+    task_sched.defer_task([this]() { nas->switch_on(); });
     return true;
   }
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }

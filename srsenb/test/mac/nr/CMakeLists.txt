@@ -18,9 +18,12 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc sched_nr_ue_ded_test_suite.cc)
+add_library(sched_nr_test_suite sched_nr_common_test.cc sched_nr_ue_ded_test_suite.cc)
+
+add_executable(sched_nr_test sched_nr_test.cc sched_nr_sim_ue.cc)
 target_link_libraries(sched_nr_test
         srsgnb_mac
+        sched_nr_test_suite
         srsran_common
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
@@ -33,3 +36,7 @@ target_link_libraries(sched_nr_prb_test
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
 add_test(sched_nr_prb_test sched_nr_prb_test)
+
+add_executable(sched_nr_rar_test sched_nr_rar_test.cc)
+target_link_libraries(sched_nr_rar_test srsgnb_mac sched_nr_test_suite srsran_common)
+add_test(sched_nr_rar_test sched_nr_rar_test)

@@ -30,7 +30,8 @@ bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
-  cfg(&bwp_cfg_)
+  cfg(&bwp_cfg_),
+  rar_softbuffer(harq_softbuffer_pool::get_instance().get_tx(bwp_cfg_.cfg.rb_width))
 {
   for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
     if (cfg->cfg.pdcch.coreset_present[cs_idx]) {
@@ -66,7 +67,7 @@ bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
-  logger(srslog::fetch_basic_logger("MAC")), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
+  logger(bwp_grid_.cfg->logger), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
 {}
 
 alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs)
@@ -93,7 +94,6 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, ui
 alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                                     uint32_t                                aggr_idx,
                                                     prb_interval                            interv,
-                                                    slot_ue_map_t&                          ues,
                                                     srsran::const_span<dl_sched_rar_info_t> pending_rars)
 {
   static const uint32_t msg3_nof_prbs = 3, m = 0;
@@ -105,17 +105,13 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   if (ret != alloc_result::success) {
     return ret;
   }
-
-  if (bwp_pdcch_slot.dl_pdcchs.full()) {
-    logger.warning("SCHED: Maximum number of DL allocations reached");
-    return alloc_result::no_grant_space;
+  ret = verify_pdsch_space(bwp_pdcch_slot, bwp_pdcch_slot);
+  if (ret != alloc_result::success) {
+    return ret;
   }
 
   // Check DL RB collision
-  const prb_bitmap& pdsch_mask = bwp_pdcch_slot.dl_prbs.prbs();
-  prb_bitmap        dl_mask(pdsch_mask.size());
-  dl_mask.fill(interv.start(), interv.stop());
-  if ((pdsch_mask & dl_mask).any()) {
+  if (bwp_pdcch_slot.dl_prbs.collides(interv)) {
     logger.debug("SCHED: Provided RBG mask collides with allocation previously made.");
     return alloc_result::sch_collision;
   }
@@ -139,7 +135,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   }
 
   // RAR allocation successful.
-
+  bwp_pdcch_slot.dl_prbs |= interv;
   // Generate DCI for RAR with given RA-RNTI
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
   if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
@@ -147,27 +143,44 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
   }
+  auto& phy_cfg = (*slot_ues)[pending_rars[0].temp_crnti].cfg->phy();
+  pdcch.dci_cfg = phy_cfg.get_dci_cfg();
   // Generate RAR PDSCH
-  bwp_pdcch_slot.dl_prbs |= interv;
+  // TODO: Properly fill Msg3 grants
+  bwp_pdcch_slot.pdschs.emplace_back();
+  pdsch_t&          pdsch = bwp_pdcch_slot.pdschs.back();
+  srsran_slot_cfg_t slot_cfg;
+  slot_cfg.idx = pdcch_slot.slot_idx();
+  bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+  srsran_assert(success, "Error converting DCI to grant");
+  pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();
 
   // Generate Msg3 grants in PUSCH
-  uint32_t          last_msg3 = msg3_rbs.start();
-  const int         mcs = 0, max_harq_msg3_retx = 4;
-  int               dai = 0;
-  srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = msg3_slot.slot_idx();
+  uint32_t  last_msg3 = msg3_rbs.start();
+  const int mcs = 0, max_harq_msg3_retx = 4;
+  int       dai = 0;
+  slot_cfg.idx  = msg3_slot.slot_idx();
+  bwp_pdcch_slot.rar.emplace_back();
+  sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
-    slot_ue& ue = ues[grant.temp_crnti];
+    slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 
     // Allocate Msg3
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
-    ue.h_ul      = ue.harq_ent->find_empty_ul_harq();
-    bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
+    ue.h_ul = ue.harq_ent->find_empty_ul_harq();
+    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     last_msg3 += msg3_nof_prbs;
     pdcch_ul_t msg3_pdcch; // dummy PDCCH for retx=0
     fill_dci_msg3(ue, *bwp_grid.cfg, msg3_pdcch.dci);
     msg3_pdcch.dci.time_domain_assigment = dai++;
+
+    // Generate RAR grant
+    rar_out.grants.emplace_back();
+    auto& rar_grant           = rar_out.grants.back();
+    rar_grant.data            = grant;
+    rar_grant.grant.rba       = msg3_pdcch.dci.freq_domain_assigment;
+    rar_grant.grant.trunc_mcs = msg3_pdcch.dci.mcs;
 
     // Generate PUSCH
     bwp_msg3_slot.puschs.emplace_back();
@@ -196,14 +209,9 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
   bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];
-  if (not bwp_pdsch_slot.is_dl()) {
-    logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdsch_slot.slot_idx);
-    return alloc_result::no_sch_space;
-  }
-  pdcch_dl_list_t& pdsch_grants = bwp_pdsch_slot.dl_pdcchs;
-  if (pdsch_grants.full()) {
-    logger.warning("SCHED: Maximum number of DL allocations reached");
-    return alloc_result::no_grant_space;
+  alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot);
+  if (result != alloc_result::success) {
+    return result;
   }
   if (bwp_pdcch_slot.dl_prbs.collides(dl_grant)) {
     return alloc_result::sch_collision;
@@ -324,6 +332,23 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
     srsran_assert(pusch.sch.grant.tb[0].tbs == (int)ue.h_ul->tbs(), "The TBS did not remain constant in retx");
   }
 
+  return alloc_result::success;
+}
+
+alloc_result bwp_slot_allocator::verify_pdsch_space(bwp_slot_grid& bwp_pdsch, bwp_slot_grid& bwp_pdcch) const
+{
+  if (not bwp_pdsch.is_dl() or not bwp_pdcch.is_dl()) {
+    logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", bwp_pdsch.slot_idx);
+    return alloc_result::no_sch_space;
+  }
+  if (bwp_pdcch.dl_pdcchs.full()) {
+    logger.warning("SCHED: Maximum number of DL PDCCH allocations reached");
+    return alloc_result::no_cch_space;
+  }
+  if (bwp_pdsch.pdschs.full()) {
+    logger.warning("SCHED: Maximum number of DL PDSCH grants reached");
+    return alloc_result::no_sch_space;
+  }
   return alloc_result::success;
 }
 

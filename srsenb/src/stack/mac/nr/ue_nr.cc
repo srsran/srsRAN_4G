@@ -120,7 +120,10 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  mac_pdu_dl.init_tx(pdu, grant_size);
+  if (mac_pdu_dl.init_tx(pdu, grant_size) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't initialize MAC PDU buffer");
+    return SRSRAN_ERROR;
+  }
 
   // read RLC PDU
   ue_rlc_buffer->clear();

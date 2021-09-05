@@ -47,10 +47,10 @@ int test_sib_generation()
 {
   srsran::task_scheduler task_sched;
 
-  mac_dummy  mac_obj;
-  rlc_dummy  rlc_obj;
-  pdcp_dummy pdcp_obj;
-  rrc_nr     rrc_obj(&task_sched);
+  mac_nr_dummy mac_obj;
+  rlc_dummy    rlc_obj;
+  pdcp_dummy   pdcp_obj;
+  rrc_nr       rrc_obj(&task_sched);
 
   // set cfg
   rrc_nr_cfg_t default_cfg = {};
@@ -76,10 +76,10 @@ int test_rrc_setup()
 {
   srsran::task_scheduler task_sched;
 
-  mac_dummy  mac_obj;
-  rlc_dummy  rlc_obj;
-  pdcp_dummy pdcp_obj;
-  rrc_nr     rrc_obj(&task_sched);
+  mac_nr_dummy mac_obj;
+  rlc_dummy    rlc_obj;
+  pdcp_dummy   pdcp_obj;
+  rrc_nr       rrc_obj(&task_sched);
 
   // set cfg
   rrc_nr_cfg_t default_cfg = {};

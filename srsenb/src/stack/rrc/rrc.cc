@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc.h"
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_endc.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
@@ -33,7 +34,6 @@
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/sched_interface.h"
 
 using srsran::byte_buffer_t;
 
@@ -41,8 +41,8 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(128)
+rrc::rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_) :
+  logger(srslog::fetch_basic_logger("RRC")), stack(stack_), task_sched(task_sched_), rx_pdu_queue(128)
 {}
 
 rrc::~rrc() {}

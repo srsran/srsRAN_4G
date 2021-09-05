@@ -22,6 +22,7 @@
 #ifndef SRSRAN_RA_HELPER_H
 #define SRSRAN_RA_HELPER_H
 
+#include "srsran/phy/common/sliv.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 #include <stdint.h>
@@ -69,37 +70,19 @@ static int ra_helper_freq_type0(const srsran_carrier_nr_t*    carrier,
   return 0;
 }
 
-static inline void ra_helper_compute_s_and_l(uint32_t N, uint32_t v, uint32_t* S, uint32_t* L)
-{
-  uint32_t low  = v % N;
-  uint32_t high = v / N;
-  if (high + 1 + low <= N) {
-    *S = low;
-    *L = high + 1;
-  } else {
-    *S = N - 1 - low;
-    *L = N - high + 1;
-  }
-}
-
-static inline uint32_t ra_helper_from_s_and_l(uint32_t N, uint32_t S, uint32_t L)
-{
-  if ((L - 1) <= N / 2) {
-    return N * (L - 1) + S;
-  }
-  return N * (N - L + 1) + (N - 1 - S);
-}
-
-static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srsran_sch_grant_nr_t* grant)
+static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t start_rb, uint32_t riv, srsran_sch_grant_nr_t* grant)
 {
   uint32_t start = 0;
   uint32_t len   = 0;
-  ra_helper_compute_s_and_l(N_bwp_size, riv, &start, &len);
+  srsran_sliv_to_s_and_l(N_bwp_size, riv, &start, &len);
 
   if (start + len > N_bwp_size) {
     ERROR("RIV 0x%x for BWP size %d resulted in freq=%d:%d", riv, N_bwp_size, start, len);
     return SRSRAN_ERROR;
   }
+
+  // Apply numbering start
+  start += start_rb;
 
   for (uint32_t i = 0; i < start; i++) {
     grant->prb_idx[i] = false;

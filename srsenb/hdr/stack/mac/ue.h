@@ -23,6 +23,7 @@
 #define SRSENB_UE_H
 
 #include "common/mac_metrics.h"
+#include "sched_interface.h"
 #include "srsran/adt/circular_array.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/pool/pool_interface.h"
@@ -30,7 +31,6 @@
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/tti_point.h"
-#include "srsran/interfaces/sched_interface.h"
 #include "srsran/mac/pdu.h"
 #include "srsran/mac/pdu_queue.h"
 #include "srsran/srslog/srslog.h"

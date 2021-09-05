@@ -295,10 +295,11 @@ bool cc_worker::decode_pdsch_dl()
       srsran_sch_cfg_nr_info(&pdsch_cfg, str_extra.data(), (uint32_t)str_extra.size());
       logger.info(pdsch_res.tb[0].payload,
                   pdsch_cfg.grant.tb[0].tbs / 8,
-                  "PDSCH: cc=%d pid=%d %s\n%s",
+                  "PDSCH: cc=%d pid=%d %s cfo=%.1f\n%s",
                   cc_idx,
                   pid,
                   str.data(),
+                  ue_dl.chest.cfo,
                   str_extra.data());
     } else {
       logger.info(pdsch_res.tb[0].payload,
@@ -390,27 +391,13 @@ bool cc_worker::measure_csi()
         logger.debug("SSB-CSI: %s", str.data());
       }
 
-      // Compute channel metrics and push it
-      ch_metrics_t ch_metrics = {};
-      ch_metrics.sinr         = meas.snr_dB;
-      ch_metrics.rsrp         = meas.rsrp_dB;
-      ch_metrics.rsrq         = 0.0f; // Not supported
-      ch_metrics.rssi         = 0.0f; // Not supported
-      ch_metrics.sync_err =
-          meas.delay_us / (float)(ue_dl.fft->fft_plan.size * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs));
-      phy.set_channel_metrics(ch_metrics);
-
-      // Compute synch metrics and report it to the PHY state
-      sync_metrics_t sync_metrics = {};
-      sync_metrics.cfo            = meas.cfo_hz;
-      phy.set_sync_metrics(sync_metrics);
-
       // Report SSB candidate channel measurement to the PHY state
-      // ...
+      phy.new_csi_trs_measurement(meas);
     }
   }
 
   // Iterate all NZP-CSI-RS marked as TRS and perform channel measurements
+  bool estimate_fft = false;
   for (uint32_t resource_set_id = 0; resource_set_id < SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS; resource_set_id++) {
     // Select NZP-CSI-RS set
     const srsran_csi_rs_nzp_set_t& nzp_set = phy.cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
@@ -418,6 +405,12 @@ bool cc_worker::measure_csi()
     // Skip set if not set as TRS (it will be processed later)
     if (not nzp_set.trs_info) {
       continue;
+    }
+
+    // Run FFT if not done before in this slot
+    if (not estimate_fft) {
+      srsran_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
+      estimate_fft = true;
     }
 
     // Perform measurement, n > 0 is any measurement is performed, n = 0 otherwise
@@ -439,30 +432,7 @@ bool cc_worker::measure_csi()
       logger.debug("NZP-CSI-RS (TRS): id=%d %s", resource_set_id, str.data());
     }
 
-    // Compute channel metrics and push it
-    ch_metrics_t ch_metrics = {};
-    ch_metrics.sinr         = trs_measurements.snr_dB;
-    ch_metrics.rsrp         = trs_measurements.rsrp_dB;
-    ch_metrics.rsrq         = 0.0f; // Not supported
-    ch_metrics.rssi         = 0.0f; // Not supported
-    ch_metrics.sync_err =
-        trs_measurements.delay_us / (float)(ue_dl.fft->fft_plan.size * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs));
-    phy.set_channel_metrics(ch_metrics);
-
-    // Compute synch metrics and report it to the PHY state
-    sync_metrics_t sync_metrics = {};
-    sync_metrics.cfo            = trs_measurements.cfo_hz;
-    phy.set_sync_metrics(sync_metrics);
-
-    // Convert to CSI channel measurement and report new NZP-CSI-RS measurement to the PHY state
-    srsran_csi_channel_measurements_t measurements = {};
-    measurements.cri                               = 0;
-    measurements.wideband_rsrp_dBm                 = trs_measurements.rsrp_dB;
-    measurements.wideband_epre_dBm                 = trs_measurements.epre_dB;
-    measurements.wideband_snr_db                   = trs_measurements.snr_dB;
-    measurements.nof_ports                         = 1; // Other values are not supported
-    measurements.K_csi_rs                          = (uint32_t)n;
-    phy.new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
+    phy.new_csi_trs_measurement(trs_measurements, resource_set_id, (uint32_t)n);
   }
 
   // Iterate all NZP-CSI-RS not marked as TRS and perform channel measurements
@@ -473,6 +443,12 @@ bool cc_worker::measure_csi()
     // Skip set if set as TRS (it was processed previously)
     if (nzp_set.trs_info) {
       continue;
+    }
+
+    // Run FFT if not done before in this slot
+    if (not estimate_fft) {
+      srsran_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
+      estimate_fft = true;
     }
 
     // Perform channel measurement, n > 0 is any measurement is performed, n = 0 otherwise
@@ -513,6 +489,22 @@ bool cc_worker::work_dl()
     return true;
   }
 
+  // Measure CSI
+  if (not measure_csi()) {
+    logger.error("Error measuring, aborting work DL");
+    return false;
+  }
+
+  // Compensate CFO from TRS measurements
+  if (std::isnormal(phy.args.enable_worker_cfo)) {
+    float dl_cfo_hz = phy.get_dl_cfo();
+    for (cf_t* b : rx_buffer) {
+      if (b != nullptr and ue_ul.ifft.sf_sz != 0) {
+        srsran_vec_apply_cfo(b, dl_cfo_hz / (1000.0f * ue_ul.ifft.sf_sz), b, ue_ul.ifft.sf_sz);
+      }
+    }
+  }
+
   // Run FFT
   srsran_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
@@ -525,12 +517,6 @@ bool cc_worker::work_dl()
   // Decode PDSCH
   if (not decode_pdsch_dl()) {
     logger.error("Error decoding PDSCH, aborting work DL");
-    return false;
-  }
-
-  // Measure CSI
-  if (not measure_csi()) {
-    logger.error("Error measuring, aborting work DL");
     return false;
   }
 
@@ -590,6 +576,9 @@ bool cc_worker::work_ul()
 
   // Add CSI reports to UCI data if available
   phy.get_periodic_csi(ul_slot_cfg.idx, uci_data);
+
+  // Setup frequency offset
+  srsran_ue_ul_nr_set_freq_offset(&ue_ul, phy.get_ul_cfo());
 
   if (has_pusch_grant) {
     // Notify MAC about PUSCH found grant

@@ -24,34 +24,17 @@
 
 #include "srsran/srsran.h"
 
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/common/security.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
 #include "srsran/interfaces/rrc_interface_types.h"
-#include "srsran/interfaces/sched_interface.h"
 // EUTRA interfaces that are used unmodified
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
-
-/*****************************
- *      MAC INTERFACES
- ****************************/
-class mac_interface_rrc_nr
-{
-public:
-  // Provides cell configuration including SIB periodicity, etc.
-  virtual int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg) = 0;
-
-  /// Allocates a new user/RNTI at MAC. Returns RNTI on success or SRSRAN_INVALID_RNTI otherwise.
-  virtual uint16_t reserve_rnti() = 0;
-};
-
-// NR interface is identical to EUTRA interface
-class mac_interface_rlc_nr : public mac_interface_rlc
-{};
 
 /*****************************
  *      RLC INTERFACES
@@ -173,8 +156,7 @@ public:
 
 // NR interface identical to EUTRA version
 class rrc_interface_pdcp_nr : public rrc_interface_pdcp
-{
-};
+{};
 
 class phy_interface_rrc_nr
 {
@@ -304,7 +286,7 @@ public:
   virtual int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)         = 0;
   virtual int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)         = 0;
   virtual int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) = 0;
-  virtual int  pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) = 0;
+  virtual int  pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info)       = 0;
   virtual void rach_detected(const rach_info_t& rach_info)                                   = 0;
 };
 

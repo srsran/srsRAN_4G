@@ -39,8 +39,9 @@ using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
 
-using pdsch_t      = mac_interface_phy_nr::pdsch_t;
-using pdsch_list_t = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
+using pdsch_t          = mac_interface_phy_nr::pdsch_t;
+using pdsch_list_t     = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
+using sched_rar_list_t = sched_nr_interface::sched_rar_list_t;
 
 struct harq_ack_t {
   const srsran::phy_cfg_nr_t* phy_cfg;
@@ -49,17 +50,20 @@ struct harq_ack_t {
 using harq_ack_list_t = srsran::bounded_vector<harq_ack_t, MAX_GRANTS>;
 
 struct bwp_slot_grid {
-  uint32_t          slot_idx;
-  const bwp_params* cfg;
+  uint32_t          slot_idx = 0;
+  const bwp_params* cfg      = nullptr;
 
   bwp_rb_bitmap     dl_prbs;
   bwp_rb_bitmap     ul_prbs;
   pdcch_dl_list_t   dl_pdcchs;
   pdcch_ul_list_t   ul_pdcchs;
   pdsch_list_t      pdschs;
+  sched_rar_list_t  rar;
   slot_coreset_list coresets;
   pusch_list_t      puschs;
   harq_ack_list_t   pending_acks;
+
+  srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
   bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);
@@ -70,7 +74,7 @@ struct bwp_slot_grid {
 };
 
 struct bwp_res_grid {
-  bwp_res_grid(const bwp_params& bwp_cfg_);
+  explicit bwp_res_grid(const bwp_params& bwp_cfg_);
 
   bwp_slot_grid&       operator[](slot_point tti) { return slots[tti.to_uint() % slots.capacity()]; };
   const bwp_slot_grid& operator[](slot_point tti) const { return slots[tti.to_uint() % slots.capacity()]; };
@@ -83,6 +87,8 @@ private:
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Class responsible for jointly filling the DL/UL sched result fields and allocate RB/PDCCH resources in the RB grid
  * to avoid potential RB/PDCCH collisions
@@ -92,13 +98,16 @@ class bwp_slot_allocator
 public:
   explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_);
 
-  void new_slot(slot_point pdcch_slot_) { pdcch_slot = pdcch_slot_; }
+  void new_slot(slot_point pdcch_slot_, slot_ue_map_t& ues_)
+  {
+    pdcch_slot = pdcch_slot_;
+    slot_ues   = &ues_;
+  }
 
   alloc_result alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs);
   alloc_result alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                   uint32_t                                aggr_idx,
                                   prb_interval                            interv,
-                                  slot_ue_map_t&                          ues,
                                   srsran::const_span<dl_sched_rar_info_t> pending_rars);
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
   alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
@@ -110,12 +119,14 @@ public:
   const bwp_params& cfg;
 
 private:
+  alloc_result verify_pdsch_space(bwp_slot_grid& pdsch_grid, bwp_slot_grid& pdcch_grid) const;
   alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid = nullptr) const;
 
   srslog::basic_logger& logger;
   bwp_res_grid&         bwp_grid;
 
-  slot_point pdcch_slot;
+  slot_point     pdcch_slot;
+  slot_ue_map_t* slot_ues;
 };
 
 } // namespace sched_nr_impl

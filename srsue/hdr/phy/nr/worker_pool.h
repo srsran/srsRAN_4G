@@ -58,6 +58,12 @@ public:
   void       clear_pending_grants() override;
   void       get_metrics(phy_metrics_t& m);
   int        tx_request(const tx_request_t& request) override;
+
+  /**
+   * @brief Sets external CFO to compensate UL signal frequency offset
+   * @param ext_cfo_hz External CFO in Hz
+   */
+  void set_ul_ext_cfo(float ext_cfo_hz) { phy_state.set_ul_ext_cfo(ext_cfo_hz); }
 };
 
 } // namespace nr

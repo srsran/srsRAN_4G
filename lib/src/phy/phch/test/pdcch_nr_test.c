@@ -35,8 +35,9 @@ static srsran_carrier_nr_t carrier = {
     1                                // max_mimo_layers
 };
 
-static uint16_t rnti       = 0x1234;
-static bool     fast_sweep = true;
+static uint16_t rnti        = 0x1234;
+static bool     fast_sweep  = true;
+static bool     interleaved = false;
 
 typedef struct {
   uint64_t time_us;
@@ -78,22 +79,26 @@ static int test(srsran_pdcch_nr_t*      tx,
 
 static void usage(char* prog)
 {
-  printf("Usage: %s [pFv] \n", prog);
+  printf("Usage: %s [pFIv] \n", prog);
   printf("\t-p Number of carrier PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-F Fast CORESET frequency resource sweeping [Default %s]\n", fast_sweep ? "Enabled" : "Disabled");
+  printf("\t-I Enable interleaved CCE-to-REG [Default %s]\n", interleaved ? "Enabled" : "Disabled");
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "pFv")) != -1) {
+  while ((opt = getopt(argc, argv, "pFIv")) != -1) {
     switch (opt) {
       case 'p':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'F':
         fast_sweep ^= true;
+        break;
+      case 'I':
+        interleaved ^= true;
         break;
       case 'v':
         srsran_verbose++;
@@ -144,16 +149,34 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srsran_coreset_t coreset                = {};
-  uint32_t         nof_frequency_resource = SRSRAN_MIN(SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, carrier.nof_prb / 6);
+  srsran_coreset_t coreset = {};
+  if (interleaved) {
+    coreset.mapping_type         = srsran_coreset_mapping_type_interleaved;
+    coreset.reg_bundle_size      = srsran_coreset_bundle_size_n6;
+    coreset.interleaver_size     = srsran_coreset_bundle_size_n2;
+    coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+    coreset.shift_index          = carrier.pci;
+
+    carrier.nof_prb = 52;
+    carrier.pci     = 500;
+  }
+
+  uint32_t nof_frequency_resource = SRSRAN_MIN(SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, carrier.nof_prb / 6);
   for (uint32_t frequency_resources = 1; frequency_resources < (1U << nof_frequency_resource);
        frequency_resources          = (fast_sweep) ? ((frequency_resources << 1U) | 1U) : (frequency_resources + 1)) {
     for (uint32_t i = 0; i < nof_frequency_resource; i++) {
       uint32_t mask             = ((frequency_resources >> i) & 1U);
       coreset.freq_resources[i] = (mask == 1);
     }
+
     for (coreset.duration = SRSRAN_CORESET_DURATION_MIN; coreset.duration <= SRSRAN_CORESET_DURATION_MAX;
          coreset.duration++) {
+      // Skip case if CORESET bandwidth is not enough
+      uint32_t N = srsran_coreset_get_bw(&coreset) * coreset.duration;
+      if (interleaved && N % 12 != 0) {
+        continue;
+      }
+
       srsran_search_space_t search_space               = {};
       search_space.type                                = srsran_search_space_type_ue;
       search_space.formats[search_space.nof_formats++] = srsran_dci_format_nr_0_0;

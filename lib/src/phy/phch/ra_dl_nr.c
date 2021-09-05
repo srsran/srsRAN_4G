@@ -124,7 +124,7 @@ int srsran_ra_dl_nr_time_default_A(uint32_t m, srsran_dmrs_sch_typeA_pos_t dmrs_
 static void ra_dl_nr_time_hl(const srsran_sch_time_ra_t* hl_ra_cfg, srsran_sch_grant_nr_t* grant)
 {
   // Compute S and L from SLIV from higher layers
-  ra_helper_compute_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
+  srsran_sliv_to_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
   grant->k       = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
@@ -301,10 +301,26 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
+  // For a PDSCH scheduled with a DCI format 1_0 in any type of PDCCH common search space, regardless of which
+  // bandwidth part is the active bandwidth part, RB numbering starts from the lowest RB of the CORESET in which the
+  // DCI was received; otherwise RB numbering starts from the lowest RB in the determined downlink bandwidth part.
+  uint32_t start_rb = 0;
+  if (dci_dl->ctx.format == srsran_dci_format_nr_1_0 && SRSRAN_SEARCH_SPACE_IS_COMMON(dci_dl->ctx.ss_type)) {
+    start_rb = dci_dl->ctx.coreset_start_rb;
+  }
+
+  // when DCI format 1_0 is decoded in any common search space in which case the size of CORESET 0 shall be used if
+  // CORESET 0 is configured for the cell and the size of initial DL bandwidth part shall be used if CORESET 0 is not
+  // configured for the cell.
+  uint32_t type1_bwp_sz = carrier->nof_prb;
+  if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_dl->ctx.ss_type) && dci_dl->coreset0_bw != 0) {
+    type1_bwp_sz = dci_dl->coreset0_bw;
+  }
+
   // The UE shall assume that when the scheduling grant is received with DCI format 1_0 , then downlink resource
   // allocation type 1 is used.
   if (dci_dl->ctx.format == srsran_dci_format_nr_1_0) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(type1_bwp_sz, start_rb, dci_dl->freq_domain_assigment, grant);
   }
 
   // If the scheduling DCI is configured to indicate the downlink resource allocation type as part of the Frequency
@@ -318,7 +334,7 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
   // Otherwise the UE shall use the downlink frequency resource allocation type as defined by the higher layer parameter
   // resourceAllocation.
   if (cfg->alloc == srsran_resource_alloc_type1) {
-    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
+    return ra_helper_freq_type1(type1_bwp_sz, start_rb, dci_dl->freq_domain_assigment, grant);
   }
 
   if (cfg->alloc == srsran_resource_alloc_type0) {
@@ -331,5 +347,6 @@ int srsran_ra_dl_nr_freq(const srsran_carrier_nr_t*    carrier,
 
 uint32_t srsran_ra_nr_type1_riv(uint32_t N_prb, uint32_t start_rb, uint32_t length_rb)
 {
-  return ra_helper_from_s_and_l(N_prb, start_rb, length_rb);
+  return srsran_sliv_from_s_and_l(N_prb, start_rb, length_rb);
 }
+

@@ -45,7 +45,6 @@ extern "C" {
 #define SRSRAN_SF_LEN_PRB_NR(nof_prb) (srsran_min_symbol_sz_rb(nof_prb) * 15)
 
 #define SRSRAN_SLOT_MAX_LEN_RE_NR (SRSRAN_SLOT_LEN_RE_NR(SRSRAN_MAX_PRB_NR))
-#define SRSRAN_SLOT_MAX_NOF_BITS_NR (SRSRAN_SLOT_MAX_LEN_RE_NR * SRSRAN_MAX_QM)
 #define SRSRAN_MAX_LAYERS_NR 8
 
 /**
@@ -122,6 +121,11 @@ extern "C" {
  * @remark deduced from in TS 36.214 V15.10.0 5.1.3.2 Transport block size determination
  */
 #define SRSRAN_PDSCH_MAX_RE_NR (SRSRAN_MAX_NRE_NR * SRSRAN_MAX_PRB_NR)
+
+/**
+ * @brief defines the maximum number of bits that can be transmitted in a slot
+ */
+#define SRSRAN_SLOT_MAX_NOF_BITS_NR (SRSRAN_PDSCH_MAX_RE_NR * SRSRAN_MAX_QM)
 
 /**
  * @brief Maximum number of PDSCH time domain resource allocations. This is defined by TS 38.331 v15.10.0
@@ -414,17 +418,19 @@ typedef struct SRSRAN_API {
  * @brief CORESET parameters as defined in TS 38.331 V15.10.0 - ControlResourceSet
  */
 typedef struct SRSRAN_API {
-  uint32_t                      id;
-  srsran_coreset_mapping_type_t mapping_type;
-  uint32_t                      duration;
-  bool                          freq_resources[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE];
-  srsran_coreset_bundle_size_t  interleaver_size;
-
+  uint32_t                              id;
+  srsran_coreset_mapping_type_t         mapping_type;
+  uint32_t                              duration;
+  bool                                  freq_resources[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE];
   bool                                  dmrs_scrambling_id_present;
   uint32_t                              dmrs_scrambling_id;
   srsran_coreset_precoder_granularity_t precoder_granularity;
-  srsran_coreset_bundle_size_t          reg_bundle_size;
+  srsran_coreset_bundle_size_t          interleaver_size; ///< Referenced in TS 38.211 section 7.3.2.2 as R
+  srsran_coreset_bundle_size_t          reg_bundle_size;  ///< Referenced in TS 38.211 section 7.3.2.2 as L
   uint32_t                              shift_index;
+  uint32_t offset_rb; ///< Integer offset in resource blocks from the pointA (lowest subcarrier of resource grid) to the
+                      ///< lowest resource block of the CORESET region (used by CORESET Zero only)
+
   /** Missing TCI parameters */
 } srsran_coreset_t;
 
@@ -526,6 +532,18 @@ SRSRAN_API uint32_t srsran_coreset_get_bw(const srsran_coreset_t* coreset);
 SRSRAN_API uint32_t srsran_coreset_get_sz(const srsran_coreset_t* coreset);
 
 /**
+ * @brief Calculates the starting resource block index in the resource grid
+ *
+ * @remark Intended to be used for common search space as specifies the lat clause in TS 38.214 section 5.1.2.2 Resource
+ * allocation in frequency domain
+ *
+ * @param coreset provides the given CORESET configuration
+ * @return The index of the lowest resource block in the resource grid used by the given CORESET if the CORESET
+ * configuration is valid; Otherwise, 0.
+ */
+SRSRAN_API uint32_t srsran_coreset_start_rb(const srsran_coreset_t* coreset);
+
+/**
  * @brief Get the NR PDSCH mapping type in string
  * @param mapping_type Mapping type
  * @return Constant string with PDSCH mapping type
@@ -611,12 +629,39 @@ SRSRAN_API uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* me
 SRSRAN_API srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str);
 
 /**
+ * @brief Converts a given subcarrier spacing to string
+ * @param scs Subcarrier spacing
+ * @return A constant string pointer
+ */
+SRSRAN_API const char* srsran_subcarrier_spacing_to_str(srsran_subcarrier_spacing_t scs);
+
+/**
  * @brief Combine Channel State Information from Tracking Reference Signals (CSI-TRS)
  * @param[in] a CSI-RS measurement
  * @param[in] b CSI-RS measurement
  * @param[out] dst Destination of the combined
  */
-SRSRAN_API void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t *a, const srsran_csi_trs_measurements_t *b, srsran_csi_trs_measurements_t *dst);
+SRSRAN_API void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t* a,
+                                                    const srsran_csi_trs_measurements_t* b,
+                                                    srsran_csi_trs_measurements_t*       dst);
+
+/**
+ * @brief Setup CORESET Zero from a configuration index
+ * @remark Defined by TS 38.213 tables 13-1, 13-2, 13-3, 13-4, 13-5, 13-6,  13-7,  13-8,  13-9,  13-10
+ * @param n_cell_id Physical Cell identifier
+ * @param ssb_pointA_freq_offset_Hz Integer frequency offset in Hz between the SS/PBCH block center and pointA
+ * @param ssb_scs SS/PBCH block subcarrier spacing
+ * @param pdcch_scs PDCCH subcarrier spacing
+ * @param idx CORESET Zero configuration index
+ * @param[out] coreset Points to the resultant CORESET
+ * @return SRSRAN_SUCCESS if the given inputs lead to a valid CORESET configuration, otherise SRSRAN_ERROR code
+ */
+SRSRAN_API int srsran_coreset_zero(uint32_t                    n_cell_id,
+                                   uint32_t                    ssb_pointA_freq_offset_Hz,
+                                   srsran_subcarrier_spacing_t ssb_scs,
+                                   srsran_subcarrier_spacing_t pdcch_scs,
+                                   uint32_t                    idx,
+                                   srsran_coreset_t*           coreset);
 
 #ifdef __cplusplus
 }

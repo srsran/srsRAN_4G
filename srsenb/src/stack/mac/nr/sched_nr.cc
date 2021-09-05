@@ -33,24 +33,16 @@ static int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class sched_result_manager
+class ul_sched_result_buffer
 {
 public:
-  explicit sched_result_manager(uint32_t nof_cc_)
+  explicit ul_sched_result_buffer(uint32_t nof_cc_)
   {
     for (auto& v : results) {
       v.resize(nof_cc_);
     }
   }
 
-  dl_sched_t& add_dl_result(slot_point tti, uint32_t cc)
-  {
-    if (not has_dl_result(tti, cc)) {
-      results[tti.to_uint()][cc].slot_dl = tti;
-      results[tti.to_uint()][cc].dl_res  = {};
-    }
-    return results[tti.to_uint()][cc].dl_res;
-  }
   ul_sched_t& add_ul_result(slot_point tti, uint32_t cc)
   {
     if (not has_ul_result(tti, cc)) {
@@ -60,18 +52,7 @@ public:
     return results[tti.to_uint()][cc].ul_res;
   }
 
-  bool has_dl_result(slot_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].slot_dl == tti; }
-
   bool has_ul_result(slot_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].slot_ul == tti; }
-
-  dl_sched_t pop_dl_result(slot_point tti, uint32_t cc)
-  {
-    if (has_dl_result(tti, cc)) {
-      results[tti.to_uint()][cc].slot_dl.clear();
-      return results[tti.to_uint()][cc].dl_res;
-    }
-    return {};
-  }
 
   ul_sched_t pop_ul_result(slot_point tti, uint32_t cc)
   {
@@ -84,9 +65,7 @@ public:
 
 private:
   struct slot_result_t {
-    slot_point slot_dl;
     slot_point slot_ul;
-    dl_sched_t dl_res;
     ul_sched_t ul_res;
   };
 
@@ -113,7 +92,7 @@ int sched_nr::cell_cfg(srsran::const_span<cell_cfg_t> cell_list)
     cells.emplace_back(new serv_cell_manager{cfg.cells[cc]});
   }
 
-  pending_results.reset(new sched_result_manager(cell_list.size()));
+  pending_results.reset(new ul_sched_result_buffer(cell_list.size()));
   sched_workers.reset(new sched_nr_impl::sched_worker_manager(ue_db, cfg, cells));
 
   return SRSRAN_SUCCESS;
@@ -134,36 +113,28 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
   }
 }
 
-/// Generate {tti,cc} scheduling decision
-int sched_nr::generate_slot_result(slot_point pdcch_tti, uint32_t cc)
+/// Generate {pdcch_slot,cc} scheduling decision
+int sched_nr::get_dl_sched(slot_point slot_dl, uint32_t cc, dl_sched_res_t& result)
 {
-  // Copy results to intermediate buffer
-  dl_sched_t& dl_res = pending_results->add_dl_result(pdcch_tti, cc);
-  ul_sched_t& ul_res = pending_results->add_ul_result(pdcch_tti, cc);
+  // Copy UL results to intermediate buffer
+  ul_sched_t& ul_res = pending_results->add_ul_result(slot_dl, cc);
 
   // Generate {slot_idx,cc} result
-  sched_workers->run_slot(pdcch_tti, cc, dl_res, ul_res);
+  sched_workers->run_slot(slot_dl, cc, result, ul_res);
 
   return SRSRAN_SUCCESS;
 }
 
-int sched_nr::get_dl_sched(slot_point slot_tx, uint32_t cc, dl_sched_t& result)
+/// Fetch {ul_slot,cc} UL scheduling decision
+int sched_nr::get_ul_sched(slot_point slot_ul, uint32_t cc, ul_sched_t& result)
 {
-  if (not pending_results->has_dl_result(slot_tx, cc)) {
-    generate_slot_result(slot_tx, cc);
-  }
-
-  result = pending_results->pop_dl_result(slot_tx, cc);
-  return SRSRAN_SUCCESS;
-}
-int sched_nr::get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_sched_t& result)
-{
-  if (not pending_results->has_ul_result(pusch_tti, cc)) {
+  if (not pending_results->has_ul_result(slot_ul, cc)) {
     // sched result hasn't been generated
+    result = {};
     return SRSRAN_SUCCESS;
   }
 
-  result = pending_results->pop_ul_result(pusch_tti, cc);
+  result = pending_results->pop_ul_result(slot_ul, cc);
   return SRSRAN_SUCCESS;
 }
 
@@ -187,6 +158,17 @@ void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
 void sched_nr::ul_sr_info(slot_point slot_rx, uint16_t rnti)
 {
   sched_workers->enqueue_event(rnti, [this, rnti, slot_rx]() { ue_db[rnti]->ul_sr_info(slot_rx); });
+}
+
+void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
+{
+  sched_workers->enqueue_event(rnti, [this, rnti, lcg_id, bsr]() { ue_db[rnti]->ul_bsr(lcg_id, bsr); });
+}
+
+void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx)
+{
+  sched_workers->enqueue_event(rnti,
+                               [this, rnti, lcid, newtx, retx]() { ue_db[rnti]->rlc_buffer_state(lcid, newtx, retx); });
 }
 
 #define VERIFY_INPUT(cond, msg, ...)                                                                                   \

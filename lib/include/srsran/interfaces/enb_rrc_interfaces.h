@@ -19,9 +19,9 @@
  *
  */
 
+#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/asn1/s1ap_utils.h"
 #include "srsran/interfaces/enb_rrc_interface_types.h"
-#include "srsran/interfaces/sched_interface.h"
 
 #ifndef SRSRAN_ENB_RRC_INTERFACES_H
 #define SRSRAN_ENB_RRC_INTERFACES_H

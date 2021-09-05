@@ -396,6 +396,7 @@ static int ue_dl_nr_find_dci_ss(srsran_ue_dl_nr_t*           q,
         ctx.location.ncce    = candidates[ncce_idx];
         ctx.ss_type          = search_space->type;
         ctx.coreset_id       = search_space->coreset_id;
+        ctx.coreset_start_rb = srsran_coreset_start_rb(&q->cfg.coreset[search_space->coreset_id]);
         ctx.rnti_type        = rnti_type;
         ctx.rnti             = rnti;
         ctx.format           = dci_format;

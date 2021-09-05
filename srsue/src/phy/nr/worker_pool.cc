@@ -88,7 +88,7 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
   if (prach_buffer->is_ready_to_send(tti, phy_state.cfg.carrier.pci)) {
     uint32_t nof_prach_sf       = 0;
     float    prach_target_power = 0.0f;
-    cf_t*    prach_ptr          = prach_buffer->generate(0.0f, &nof_prach_sf, &prach_target_power);
+    cf_t*    prach_ptr = prach_buffer->generate(-phy_state.get_ul_cfo() / 15000, &nof_prach_sf, &prach_target_power);
     worker->set_prach(prach_ptr, prach_target_power);
   }
 

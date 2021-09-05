@@ -57,11 +57,15 @@ typedef struct SRSRAN_API {
   srsran_pusch_nr_t pusch;
   srsran_pucch_nr_t pucch;
   srsran_dmrs_sch_t dmrs;
+
+  float freq_offset_hz;
 } srsran_ue_ul_nr_t;
 
 SRSRAN_API int srsran_ue_ul_nr_init(srsran_ue_ul_nr_t* q, cf_t* output, const srsran_ue_ul_nr_args_t* args);
 
 SRSRAN_API int srsran_ue_ul_nr_set_carrier(srsran_ue_ul_nr_t* q, const srsran_carrier_nr_t* carrier);
+
+SRSRAN_API void srsran_ue_ul_nr_set_freq_offset(srsran_ue_ul_nr_t* q, float freq_offset_hz);
 
 SRSRAN_API int srsran_ue_ul_nr_encode_pusch(srsran_ue_ul_nr_t*            q,
                                             const srsran_slot_cfg_t*      slot_cfg,

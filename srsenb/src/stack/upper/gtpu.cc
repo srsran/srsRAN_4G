@@ -57,7 +57,7 @@ const gtpu_tunnel_manager::tunnel* gtpu_tunnel_manager::find_tunnel(uint32_t tei
   return it != tunnels.end() ? &it->second : nullptr;
 }
 
-gtpu_tunnel_manager::ue_lcid_tunnel_list* gtpu_tunnel_manager::find_rnti_tunnels(uint16_t rnti)
+gtpu_tunnel_manager::ue_bearer_tunnel_list* gtpu_tunnel_manager::find_rnti_tunnels(uint16_t rnti)
 {
   if (not ue_teidin_db.contains(rnti)) {
     return nullptr;
@@ -65,26 +65,28 @@ gtpu_tunnel_manager::ue_lcid_tunnel_list* gtpu_tunnel_manager::find_rnti_tunnels
   return &ue_teidin_db[rnti];
 }
 
-srsran::span<gtpu_tunnel_manager::lcid_tunnel> gtpu_tunnel_manager::find_rnti_lcid_tunnels(uint16_t rnti, uint32_t lcid)
+srsran::span<gtpu_tunnel_manager::bearer_teid_pair>
+gtpu_tunnel_manager::find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer_id)
 {
-  if (not is_lte_rb(lcid)) {
-    logger.warning("Searching for bearer with invalid lcid=%d", lcid);
+  if (not is_lte_rb(eps_bearer_id)) {
+    logger.warning("Searching for bearer with invalid eps-BearerID=%d", eps_bearer_id);
     return {};
   }
   auto* ue_ptr = find_rnti_tunnels(rnti);
   if (ue_ptr == nullptr) {
     return {};
   }
-  auto lcid_it_begin = std::lower_bound(ue_ptr->begin(), ue_ptr->end(), lcid_tunnel{lcid, 0});
-  auto lcid_it_end   = std::lower_bound(ue_ptr->begin(), ue_ptr->end(), lcid_tunnel{lcid + 1, 0});
+  auto bearer_it_begin = std::lower_bound(ue_ptr->begin(), ue_ptr->end(), bearer_teid_pair{eps_bearer_id, 0});
+  auto bearer_it_end   = std::lower_bound(ue_ptr->begin(), ue_ptr->end(), bearer_teid_pair{eps_bearer_id + 1, 0});
 
-  return srsran::span<lcid_tunnel>(&(*lcid_it_begin), &(*lcid_it_end));
+  return srsran::span<bearer_teid_pair>(&(*bearer_it_begin), &(*bearer_it_end));
 }
 
-const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid, uint32_t teidout, uint32_t spgw_addr)
+const gtpu_tunnel*
+gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t teidout, uint32_t spgw_addr)
 {
-  if (not is_lte_rb(lcid)) {
-    logger.warning("Adding TEID with invalid lcid=%d", lcid);
+  if (not is_lte_rb(eps_bearer_id)) {
+    logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
     return nullptr;
   }
   auto ret_pair = tunnels.insert(tunnel());
@@ -92,15 +94,15 @@ const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid,
     logger.warning("Unable to create new GTPU TEID In");
     return nullptr;
   }
-  tunnel* tun    = &tunnels[ret_pair.value()];
-  tun->teid_in   = ret_pair.value();
-  tun->rnti      = rnti;
-  tun->lcid      = lcid;
-  tun->teid_out  = teidout;
-  tun->spgw_addr = spgw_addr;
+  tunnel* tun        = &tunnels[ret_pair.value()];
+  tun->teid_in       = ret_pair.value();
+  tun->rnti          = rnti;
+  tun->eps_bearer_id = eps_bearer_id;
+  tun->teid_out      = teidout;
+  tun->spgw_addr     = spgw_addr;
 
   if (not ue_teidin_db.contains(rnti)) {
-    auto ret = ue_teidin_db.insert(rnti, ue_lcid_tunnel_list());
+    auto ret = ue_teidin_db.insert(rnti, ue_bearer_tunnel_list());
     if (ret.is_error()) {
       logger.error("Failed to allocate rnti=0x%x", rnti);
       return nullptr;
@@ -113,16 +115,16 @@ const gtpu_tunnel* gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t lcid,
     tunnels.erase(tun->teid_in);
     return nullptr;
   }
-  ue_tunnels.push_back(lcid_tunnel{lcid, tun->teid_in});
+  ue_tunnels.push_back(bearer_teid_pair{eps_bearer_id, tun->teid_in});
   std::sort(ue_tunnels.begin(), ue_tunnels.end());
 
   fmt::memory_buffer str_buffer;
   srsran::gtpu_ntoa(str_buffer, htonl(spgw_addr));
-  logger.info("New tunnel created - " TEID_IN_FMT ", " TEID_OUT_FMT ", rnti=0x%x, lcid=%d, remote addr=%s",
+  logger.info("New tunnel created - " TEID_IN_FMT ", " TEID_OUT_FMT ", rnti=0x%x, eps-BearerID=%d, remote addr=%s",
               tun->teid_in,
               teidout,
               rnti,
-              lcid,
+              eps_bearer_id,
               srsran::to_c_str(str_buffer));
 
   return tun;
@@ -138,22 +140,22 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
   // create new RNTI and update TEIDs of old rnti to reflect new rnti
-  if (not ue_teidin_db.insert(new_rnti, ue_lcid_tunnel_list())) {
+  if (not ue_teidin_db.insert(new_rnti, ue_bearer_tunnel_list())) {
     logger.error("Failure to create new rnti=0x%x", new_rnti);
     return false;
   }
   std::swap(ue_teidin_db[new_rnti], *old_rnti_ptr);
-  ue_lcid_tunnel_list&                                 new_rnti_obj = ue_teidin_db[new_rnti];
+  ue_bearer_tunnel_list&                               new_rnti_obj = ue_teidin_db[new_rnti];
   srsran::bounded_vector<uint32_t, MAX_TUNNELS_PER_UE> to_remove;
-  for (lcid_tunnel& bearer : new_rnti_obj) {
+  for (bearer_teid_pair& bearer : new_rnti_obj) {
     tunnels[bearer.teid].rnti = new_rnti;
     // Remove forwarding path
     if (tunnels[bearer.teid].state == tunnel_state::forward_to) {
       tunnels[bearer.teid].state      = tunnel_state::pdcp_active;
       tunnels[bearer.teid].fwd_tunnel = nullptr;
-      logger.info("Taking down forwarding tunnel for rnti=0x%x, lcid=%d. New default " TEID_IN_FMT,
+      logger.info("Taking down forwarding tunnel for rnti=0x%x, eps-BearerID=%d. New default " TEID_IN_FMT,
                   new_rnti,
-                  bearer.lcid,
+                  bearer.eps_bearer_id,
                   bearer.teid);
     } else if (tunnels[bearer.teid].state == tunnel_state::forwarded_from) {
       to_remove.push_back(bearer.teid);
@@ -174,39 +176,25 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
 {
   tunnel& tun = tunnels[teidin];
 
-  // erase keeping the relative order
-  auto& ue      = ue_teidin_db[tun.rnti];
-  auto  lcid_it = std::lower_bound(ue.begin(), ue.end(), lcid_tunnel{tun.lcid, tun.teid_in});
-  srsran_assert(lcid_it->teid == tun.teid_in and lcid_it->lcid == tun.lcid, "TEID in undefined state");
-  ue.erase(lcid_it);
+  // update forwarding paths if required
+  deactivate_tunnel(teidin);
 
-  logger.info("Removed rnti=0x%x,lcid=%d tunnel with " TEID_IN_FMT, tun.rnti, tun.lcid, teidin);
+  // erase keeping the relative order
+  auto& ue        = ue_teidin_db[tun.rnti];
+  auto  bearer_it = std::lower_bound(ue.begin(), ue.end(), bearer_teid_pair{tun.eps_bearer_id, tun.teid_in});
+  srsran_assert(bearer_it->teid == tun.teid_in and bearer_it->eps_bearer_id == tun.eps_bearer_id,
+                "TEID in undefined state");
+  ue.erase(bearer_it);
+
+  logger.info("Removed rnti=0x%x,eps-BearerID=%d tunnel with " TEID_IN_FMT, tun.rnti, tun.eps_bearer_id, teidin);
   tunnels.erase(teidin);
   return true;
-}
-
-bool gtpu_tunnel_manager::remove_bearer(uint16_t rnti, uint32_t lcid)
-{
-  logger.info("Removing rnti=0x%x,lcid=%d", rnti, lcid);
-  bool removed = false;
-  for (srsran::span<lcid_tunnel> to_rem = find_rnti_lcid_tunnels(rnti, lcid); not to_rem.empty();
-       to_rem                           = find_rnti_lcid_tunnels(rnti, lcid)) {
-    uint32_t teid = to_rem.front().teid;
-    bool     ret  = remove_tunnel(teid);
-    srsran_expect(ret,
-                  "Inconsistency detected between internal data structures for rnti=0x%x,lcid=%d," TEID_IN_FMT,
-                  rnti,
-                  lcid,
-                  teid);
-    removed |= ret;
-  }
-  return removed;
 }
 
 bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
 {
   if (not ue_teidin_db.contains(rnti)) {
-    logger.warning("removing rnti. rnti=0x%x not found.", rnti);
+    logger.warning("Removing rnti. rnti=0x%x not found.", rnti);
     return false;
   }
   logger.info("Removing rnti=0x%x", rnti);
@@ -240,7 +228,8 @@ void gtpu_tunnel_manager::activate_tunnel(uint32_t teid)
 
   for (auto& sdu_pair : *tun.buffer) {
     uint32_t pdcp_sn = sdu_pair.first;
-    pdcp->write_sdu(tun.rnti, tun.lcid, std::move(sdu_pair.second), pdcp_sn == undefined_pdcp_sn ? -1 : pdcp_sn);
+    pdcp->write_sdu(
+        tun.rnti, tun.eps_bearer_id, std::move(sdu_pair.second), pdcp_sn == undefined_pdcp_sn ? -1 : pdcp_sn);
   }
   tun.buffer.reset();
   tun.state = tunnel_state::pdcp_active;
@@ -258,10 +247,28 @@ void gtpu_tunnel_manager::suspend_tunnel(uint32_t teid)
   tun.state = tunnel_state::buffering;
 }
 
+void gtpu_tunnel_manager::deactivate_tunnel(uint32_t teid)
+{
+  tunnel& tun = tunnels[teid];
+
+  if (tun.state == tunnel_state::forwarded_from) {
+    // Deactivate respective MME->SeNB forwarding tunnel
+    for (auto bearer_tun : find_rnti_bearer_tunnels(tun.rnti, tun.eps_bearer_id)) {
+      if (bearer_tun.teid != tun.teid_in) {
+        const gtpu_tunnel_manager::tunnel* mmeenb_tun = find_tunnel(bearer_tun.teid);
+        if (mmeenb_tun->state == gtpu_tunnel_manager::tunnel_state::forward_to and mmeenb_tun->fwd_tunnel == &tun) {
+          deactivate_tunnel(mmeenb_tun->teid_in);
+        }
+      }
+    }
+  }
+
+  tun.state = tunnel_state::inactive;
+}
+
 void gtpu_tunnel_manager::set_tunnel_priority(uint32_t before_teid, uint32_t after_teid)
 {
   tunnel& before_tun = tunnels[before_teid];
-  tunnel& after_tun  = tunnels[after_teid];
 
   // GTPU should not forward SDUs from main tunnel until the SeNB-TeNB tunnel has been flushed
   suspend_tunnel(after_teid);
@@ -340,8 +347,10 @@ void gtpu_tunnel_manager::setup_forwarding(uint32_t rx_teid, uint32_t tx_teid)
   fmt::format_to(addrbuf, ":0x{:x} > ", rx_tun.teid_out);
   srsran::gtpu_ntoa(addrbuf, htonl(tx_tun.spgw_addr));
   fmt::format_to(addrbuf, ":0x{:x}", tx_tun.teid_out);
-  logger.info(
-      "Created forwarding tunnel for rnti=0x%x, lcid=%d, %s", rx_tun.rnti, rx_tun.lcid, srsran::to_c_str(addrbuf));
+  logger.info("Created forwarding tunnel for rnti=0x%x, eps-BearerID=%d, %s",
+              rx_tun.rnti,
+              rx_tun.eps_bearer_id,
+              srsran::to_c_str(addrbuf));
 }
 
 /********************
@@ -429,11 +438,11 @@ void gtpu::stop()
 }
 
 // gtpu_interface_pdcp
-void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+void gtpu::write_pdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_buffer_t pdu)
 {
-  srsran::span<gtpu_tunnel_manager::lcid_tunnel> teids = tunnels.find_rnti_lcid_tunnels(rnti, lcid);
+  srsran::span<gtpu_tunnel_manager::bearer_teid_pair> teids = tunnels.find_rnti_bearer_tunnels(rnti, eps_bearer_id);
   if (teids.empty()) {
-    logger.warning("The rnti=0x%x,lcid=%d does not have any pdcp_active tunnel", rnti, lcid);
+    logger.warning("The rnti=0x%x,eps-BearerID=%d does not have any pdcp_active tunnel", rnti, eps_bearer_id);
     return;
   }
   const gtpu_tunnel& tx_tun = *tunnels.find_tunnel(teids[0].teid);
@@ -481,10 +490,10 @@ void gtpu::send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buf
 }
 
 srsran::expected<uint32_t>
-gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props)
+gtpu::add_bearer(uint16_t rnti, uint32_t eps_bearer_id, uint32_t addr, uint32_t teid_out, const bearer_props* props)
 {
   // Allocate a TEID for the incoming tunnel
-  const gtpu_tunnel* new_tun = tunnels.add_tunnel(rnti, lcid, teid_out, addr);
+  const gtpu_tunnel* new_tun = tunnels.add_tunnel(rnti, eps_bearer_id, teid_out, addr);
   if (new_tun == nullptr) {
     return default_error_t();
   }
@@ -525,13 +534,18 @@ void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
   }
 }
 
-void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
+void gtpu::rem_bearer(uint16_t rnti, uint32_t eps_bearer_id)
 {
-  if (tunnels.find_rnti_lcid_tunnels(rnti, lcid).empty()) {
-    logger.error("Removing non-existent bearer rnti=0x%x,lcid=%d", rnti, lcid);
+  srsran::span<gtpu_tunnel_manager::bearer_teid_pair> bearer_tuns =
+      tunnels.find_rnti_bearer_tunnels(rnti, eps_bearer_id);
+  if (bearer_tuns.empty()) {
+    logger.info("Removing bearer rnti=0x%x,eps-BearerID=%d without any active tunnels", rnti, eps_bearer_id);
     return;
   }
-  tunnels.remove_bearer(rnti, lcid);
+  do {
+    rem_tunnel(bearer_tuns.front().teid);
+    bearer_tuns = tunnels.find_rnti_bearer_tunnels(rnti, eps_bearer_id);
+  } while (not bearer_tuns.empty());
 }
 
 void gtpu::mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti)
@@ -541,27 +555,33 @@ void gtpu::mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti)
 
 void gtpu::rem_tunnel(uint32_t teidin)
 {
-  if (not tunnels.has_teid(teidin)) {
+  const gtpu_tunnel_manager::tunnel* tun = tunnels.find_tunnel(teidin);
+  if (tun == nullptr) {
     logger.warning("Removing tunnel - " TEID_IN_FMT " does not exist", teidin);
     return;
+  }
+  if (tun->state == gtpu_tunnel_manager::tunnel_state::forwarded_from) {
+    // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
+    // END MARKER should be forwarded to TeNB if forwarding is activated
+    send_end_marker(tun->teid_in);
+  } else if (tun->state == gtpu_tunnel_manager::tunnel_state::forward_to) {
+    // Delete respective forwarding SeNB-TeNB tunnel
+    send_end_marker(tun->fwd_tunnel->teid_in);
+    rem_tunnel(tun->fwd_tunnel->teid_in);
   }
   tunnels.remove_tunnel(teidin);
 }
 
 void gtpu::rem_user(uint16_t rnti)
 {
-  const auto* tun_lst = tunnels.find_rnti_tunnels(rnti);
+  const gtpu_tunnel_manager::ue_bearer_tunnel_list* tun_lst = tunnels.find_rnti_tunnels(rnti);
   if (tun_lst == nullptr) {
     logger.info("Removing user - rnti=0x%x not found.", rnti);
     return;
   }
-  for (gtpu_tunnel_manager::lcid_tunnel tun_elem : *tun_lst) {
-    const gtpu_tunnel* tun = tunnels.find_tunnel(tun_elem.teid);
-    if (tun != nullptr and tun->state == gtpu_tunnel_manager::tunnel_state::forwarded_from) {
-      // In case of forwarding tunnel tx endpoint, send one extra End Marker on removal
-      send_end_marker(tun->teid_in);
-      rem_tunnel(tun->teid_in);
-    }
+  while (not tun_lst->empty()) {
+    // Note: May send End-Marker to active forwarding tunnels during their removal
+    rem_tunnel(tun_lst->front().teid);
   }
   tunnels.remove_rnti(rnti);
 }
@@ -569,7 +589,7 @@ void gtpu::rem_user(uint16_t rnti)
 void gtpu::handle_end_marker(const gtpu_tunnel& rx_tunnel)
 {
   uint16_t rnti = rx_tunnel.rnti;
-  logger.info("Received GTPU End Marker for " TEID_IN_FMT ", rnti=0x%x.", rx_tunnel.teid_in, rnti);
+  logger.info("Rx GTPU End Marker, " TEID_IN_FMT ", rnti=0x%x.", rx_tunnel.teid_in, rnti);
 
   if (rx_tunnel.state == gtpu_tunnel_state::forward_to) {
     // TS 36.300, Sec 10.1.2.2.1 - Path Switch upon handover
@@ -646,8 +666,8 @@ void gtpu::handle_msg_data_pdu(const gtpu_header_t&         header,
     pdcp_sn = (header.ext_buffer[1] << 8U) + header.ext_buffer[2];
   }
 
-  uint16_t rnti = rx_tunnel.rnti;
-  uint16_t lcid = rx_tunnel.lcid;
+  uint16_t rnti          = rx_tunnel.rnti;
+  uint16_t eps_bearer_id = rx_tunnel.eps_bearer_id;
 
   log_message(rx_tunnel, true, srsran::make_span(pdu));
 
@@ -664,7 +684,7 @@ void gtpu::handle_msg_data_pdu(const gtpu_header_t&         header,
       break;
     }
     case gtpu_tunnel_manager::tunnel_state::pdcp_active: {
-      pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn == undefined_pdcp_sn ? -1 : (int)pdcp_sn);
+      pdcp->write_sdu(rnti, eps_bearer_id, std::move(pdu), pdcp_sn == undefined_pdcp_sn ? -1 : (int)pdcp_sn);
       break;
     }
     case gtpu_tunnel_manager::tunnel_state::forwarded_from:
@@ -692,7 +712,7 @@ int gtpu::create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in)
   tunnels.setup_forwarding(rx_teid_in, tx_teid_in);
 
   // Get all buffered PDCP PDUs, and forward them through tx tunnel
-  std::map<uint32_t, srsran::unique_byte_buffer_t> pdus = pdcp->get_buffered_pdus(rx_tun->rnti, rx_tun->lcid);
+  std::map<uint32_t, srsran::unique_byte_buffer_t> pdus = pdcp->get_buffered_pdus(rx_tun->rnti, rx_tun->eps_bearer_id);
   for (auto& pdu_pair : pdus) {
     uint32_t pdcp_sn = pdu_pair.first;
     log_message(*tx_tun, false, srsran::make_span(pdu_pair.second), pdcp_sn);
@@ -774,12 +794,12 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
  ***************************************************************************/
 bool gtpu::send_end_marker(uint32_t teidin)
 {
-  logger.info("TX GTPU End Marker.");
   const gtpu_tunnel* tx_tun = tunnels.find_tunnel(teidin);
   if (tx_tun == nullptr) {
     logger.error("TEID=%d not found to send the end marker to", teidin);
     return false;
   }
+  logger.info("Tx GTPU End Marker, " TEID_IN_FMT ", rnti=0x%x", teidin, tx_tun->rnti);
 
   gtpu_header_t        header = {};
   unique_byte_buffer_t pdu    = make_byte_buffer();
@@ -801,7 +821,12 @@ bool gtpu::send_end_marker(uint32_t teidin)
   servaddr.sin_addr.s_addr    = htonl(tx_tun->spgw_addr);
   servaddr.sin_port           = htons(GTPU_PORT);
 
-  return sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) > 0;
+  bool success =
+      sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) > 0;
+  if (success) {
+    tunnels.deactivate_tunnel(tx_tun->teid_in);
+  }
+  return success;
 }
 
 /****************************************************************************
@@ -852,11 +877,11 @@ void gtpu::log_message(const gtpu_tunnel& tun, bool is_rx, srsran::span<uint8_t>
     fmt::format_to(strbuf2, "> {}:0x{:0x}, ", srsran::to_c_str(addrbuf), tun.teid_in);
   }
   fmt::format_to(strbuf,
-                 "{} S1-U SDU, {}rnti=0x{:0x}, lcid={}, n_bytes={}, IPv{}",
+                 "{} S1-U SDU, {}rnti=0x{:0x}, eps-BearerID={}, n_bytes={}, IPv{}",
                  dir,
                  fmt::to_string(strbuf2),
                  tun.rnti,
-                 tun.lcid,
+                 tun.eps_bearer_id,
                  pdu.size(),
                  (int)ip_pkt->version);
   if (ip_pkt->version == 4) {
@@ -918,8 +943,8 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   }
   logger.info("M1-U initialized");
 
-  initiated    = true;
-  lcid_counter = 1;
+  initiated      = true;
+  bearer_counter = 1;
 
   // Assign a handler to rx M1U packets
   auto rx_callback = [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from) {
@@ -937,7 +962,7 @@ void gtpu::m1u_handler::handle_rx_packet(srsran::unique_byte_buffer_t pdu, const
 
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, logger);
-  pdcp->write_sdu(SRSRAN_MRNTI, lcid_counter, std::move(pdu));
+  pdcp->write_sdu(SRSRAN_MRNTI, bearer_counter, std::move(pdu));
 }
 
 } // namespace srsenb

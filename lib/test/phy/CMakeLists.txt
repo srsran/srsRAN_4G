@@ -66,11 +66,25 @@ add_lte_test(pucch_ca_test pucch_ca_test)
 
 add_executable(phy_dl_nr_test phy_dl_nr_test.c)
 target_link_libraries(phy_dl_nr_test srsran_phy srsran_common srsran_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-add_nr_test(phy_dl_nr_test phy_dl_nr_test -p 100 -m 28 )
-add_nr_test(phy_dl_nr_test_rvd phy_dl_nr_test -P 52 -p 52 -m 0
-        -R 0 52 1 010010010010 00000000010000
-        -R 0 52 1 100100100100 00000010000000)
 
-add_nr_test(phy_dl_nr_test_cfo_delay phy_dl_nr_test -P 52 -p 52 -m 27 -C 100.0 -D 4 -n 10)
-add_nr_test(phy_dl_nr_test_52prb phy_dl_nr_test -P 52 -p 52 -m 27 -T 256qam -d 1 1 -n 10)
-add_nr_test(phy_dl_nr_test_270prb phy_dl_nr_test -P 270 -p 270 -m 27 -T 256qam -d 1 1 -n 10)
+# Create a test case for each possible bandwidth described in TS 38.104 Table 5.3.2-1: Transmission bandwidth
+# configuration N RB for FR1
+foreach(rb 25 52 79 106 133 160 216 270)
+  # Basic test with 25 RB grant, maximum MCS, 64QAM
+  add_nr_test(phy_dl_nr_test_${rb}prb phy_dl_nr_test -P ${rb} -p 25 -m 28)
+
+  # Full BW grant, minimum MCS, with reserved RE
+  add_nr_test(phy_dl_nr_test_${rb}prb_rvd phy_dl_nr_test -P ${rb} -p ${rb} -m 0
+          -R 0 ${rb} 1 010010010010 00000000010000
+          -R 0 ${rb} 1 100100100100 00000010000000)
+
+  # 25 RB grant with interleaved PDCCH
+  add_nr_test(phy_dl_nr_test_${rb}prb_interleaved phy_dl_nr_test -P ${rb} -p 25 -m 10 -I)
+
+  # Maximum throughput with 256QAM
+  add_nr_test(phy_dl_nr_test_${rb}prb_256qam phy_dl_nr_test -P ${rb} -p ${rb} -m 27 -T 256qam -v -d 1 1 -n 10)
+
+  # Maximum throughput with 64QAM and CFO+Delay impairments
+  add_nr_test(phy_dl_nr_test_${rb}prb_cfo_delay phy_dl_nr_test -P ${rb} -p ${rb} -m 27 -C 100.0 -D 4 -n 10)
+
+endforeach()
