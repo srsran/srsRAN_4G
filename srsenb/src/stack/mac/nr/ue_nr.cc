@@ -141,9 +141,9 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 
   // Only create PDU if RLC has something to tx
   if (pdu_len > 0) {
-    logger.info("Adding MAC PDU for RNTI=%d", rnti);
+    logger.debug("Adding MAC PDU for RNTI=%d", rnti);
     ue_rlc_buffer->N_bytes = pdu_len;
-    logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+    logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
 
     // add to MAC PDU and pack
     mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
