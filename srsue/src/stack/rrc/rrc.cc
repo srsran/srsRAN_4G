@@ -2756,12 +2756,39 @@ void rrc::release_drb(uint32_t drb_id)
 {
   if (drbs.find(drb_id) != drbs.end()) {
     logger.info("Releasing DRB Id %d", drb_id);
+
+    // remvove RLC and PDCP for this LCID
+    uint32_t lcid = get_lcid_for_drb_id(drb_id);
+    rlc->del_bearer(lcid);
+    pdcp->del_bearer(lcid);
+    // TODO: implement bearer removal at MAC
+
     // remove EPS bearer associated with this DRB from Stack (GW will trigger service request if needed)
     stack->remove_eps_bearer(get_eps_bearer_id_for_drb_id(drb_id));
     drbs.erase(drb_id);
   } else {
     logger.error("Couldn't release DRB Id %d. Doesn't exist.", drb_id);
   }
+}
+
+/**
+ * @brief check if this DRB id exists and return it's LCID
+ *
+ * if the DRB couldn't be found, 0 is returned. This is an invalid
+ * LCID for DRB and the caller should handle it.
+ */
+uint32_t rrc::get_lcid_for_drb_id(const uint32_t& drb_id)
+{
+  uint32_t                    lcid     = 0;
+  if (drbs.find(drb_id) != drbs.end()) {
+    asn1::rrc::drb_to_add_mod_s drb_cnfg = drbs[drb_id];
+    if (drb_cnfg.lc_ch_id_present) {
+      lcid = drb_cnfg.lc_ch_id;
+    } else {
+      lcid = srsran::MAX_LTE_SRB_ID + drb_cnfg.drb_id;
+    }
+  }
+  return lcid;
 }
 
 uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
