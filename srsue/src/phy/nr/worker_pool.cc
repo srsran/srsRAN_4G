@@ -191,6 +191,7 @@ void worker_pool::get_metrics(phy_metrics_t& m)
 {
   phy_state.get_metrics(m);
 }
+
 int worker_pool::tx_request(const phy_interface_mac_nr::tx_request_t& request)
 {
   return 0;
