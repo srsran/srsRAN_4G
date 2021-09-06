@@ -704,6 +704,11 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   float rsrp_sss = SRSRAN_CSQABS(corr_sss);
   float rsrp     = (rsrp_pss + rsrp_sss) / 2.0f;
 
+  // avoid taking log of 0 (NaN)
+  if (rsrp == 0.0) {
+    rsrp = 1.0;
+  }
+
   // Compute Noise
   float n0_pss = 1e-9; // Almost 0
   float n0_sss = 1e-9; // Almost 0
