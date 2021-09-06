@@ -18,6 +18,7 @@
 #include "srsran/common/block_queue.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
+#include "srsran/mac/bsr_nr.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
 #include <mutex>
 #include <vector>
@@ -64,6 +65,9 @@ public:
   uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
+  // helper methods
+  uint32_t buff_size_field_to_bytes(uint32_t buff_size_index, const srsran::bsr_format_nr_t& format);
+
   rlc_interface_mac*      rlc = nullptr;
   rrc_interface_mac_nr*   rrc = nullptr;
   phy_interface_stack_nr* phy = nullptr;
