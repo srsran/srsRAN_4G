@@ -712,7 +712,8 @@ void rrc::config_mac()
     logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
 
     // Copy base cell configuration
-    item.cell = cfg.cell;
+    item.cell    = cfg.cell;
+    item.cell.id = cfg.cell_list[ccidx].pci;
 
     // copy secondary cell list info
     sched_cfg[ccidx].scell_list.reserve(cfg.cell_list[ccidx].scell_list.size());

@@ -70,19 +70,20 @@ DECLARE_METRIC_SET("ue_container",
                    metric_bsr,
                    mlist_bearers);
 
-/// Sector container metrics.
+/// Cell container metrics.
 DECLARE_METRIC("sector_id", metric_sector_id, uint32_t, "");
-DECLARE_METRIC("sector_rach", metric_sector_rach, uint32_t, "");
+DECLARE_METRIC("pci", metric_pci, uint32_t, "");
+DECLARE_METRIC("nof_rach", metric_nof_rach, uint32_t, "");
 DECLARE_METRIC_LIST("ue_list", mlist_ues, std::vector<mset_ue_container>);
-DECLARE_METRIC_SET("sector_container", mset_sector_container, metric_sector_id, metric_sector_rach, mlist_ues);
+DECLARE_METRIC_SET("cell_container", mset_cell_container, metric_sector_id, metric_pci, metric_nof_rach, mlist_ues);
 
 /// Metrics root object.
 DECLARE_METRIC("type", metric_type_tag, std::string, "");
 DECLARE_METRIC("timestamp", metric_timestamp_tag, double, "");
-DECLARE_METRIC_LIST("sector_list", mlist_sector, std::vector<mset_sector_container>);
+DECLARE_METRIC_LIST("cell_list", mlist_cell, std::vector<mset_cell_container>);
 
 /// Metrics context.
-using metric_context_t = srslog::build_context_type<metric_type_tag, metric_timestamp_tag, mlist_sector>;
+using metric_context_t = srslog::build_context_type<metric_type_tag, metric_timestamp_tag, mlist_cell>;
 
 } // namespace
 
@@ -170,7 +171,7 @@ void metrics_json::set_metrics(const enb_metrics_t& m, const uint32_t period_use
   if (!enb) {
     return;
   }
-  if (m.stack.mac.cc_rach_counter.empty()) {
+  if (m.stack.mac.cc_info.empty()) {
     return;
   }
 
@@ -178,27 +179,28 @@ void metrics_json::set_metrics(const enb_metrics_t& m, const uint32_t period_use
 
   // Fill root object.
   ctx.write<metric_type_tag>("metrics");
-  auto& sector_list = ctx.get<mlist_sector>();
-  sector_list.resize(m.stack.mac.cc_rach_counter.size());
+  auto& cell_list = ctx.get<mlist_cell>();
+  cell_list.resize(m.stack.mac.cc_info.size());
 
-  // For each sector...
-  for (unsigned cc_idx = 0, e = sector_list.size(); cc_idx != e; ++cc_idx) {
-    auto& sector = sector_list[cc_idx];
-    sector.write<metric_sector_id>(cc_idx);
-    sector.write<metric_sector_rach>(m.stack.mac.cc_rach_counter[cc_idx]);
+  // For each cell...
+  for (unsigned cc_idx = 0, e = cell_list.size(); cc_idx != e; ++cc_idx) {
+    auto& cell = cell_list[cc_idx];
+    cell.write<metric_sector_id>(cc_idx);
+    cell.write<metric_nof_rach>(m.stack.mac.cc_info[cc_idx].cc_rach_counter);
+    cell.write<metric_pci>(m.stack.mac.cc_info[cc_idx].pci);
 
-    // For each UE in this sector...
+    // For each UE in this cell...
     for (unsigned i = 0; i != m.stack.rrc.ues.size(); ++i) {
       if (!has_valid_metric_ranges(m, i)) {
         continue;
       }
 
-      // Only record UEs that belong to this sector.
+      // Only record UEs that belong to this cell.
       if (m.stack.mac.ues[i].cc_idx != cc_idx) {
         continue;
       }
-      sector.get<mlist_ues>().emplace_back();
-      fill_ue_metrics(sector.get<mlist_ues>().back(), m, i);
+      cell.get<mlist_ues>().emplace_back();
+      fill_ue_metrics(cell.get<mlist_ues>().back(), m, i);
     }
   }
 
