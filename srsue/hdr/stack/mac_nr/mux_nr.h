@@ -47,7 +47,7 @@ public:
   srsran::unique_byte_buffer_t get_pdu(uint32_t max_pdu_len);
 
   // Interface for BSR procedure
-  void generate_bsr_mac_ce(const bsr_interface_mux_nr::bsr_format_nr_t& format);
+  void generate_bsr_mac_ce(const srsran::bsr_format_nr_t& format);
 
 private:
   // internal helper methods
