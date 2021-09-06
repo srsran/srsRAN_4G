@@ -29,15 +29,23 @@ namespace srsenb {
 class rrc::ue::rrc_endc : public srsran::fsm_t<rrc::ue::rrc_endc>
 {
 public:
-  // public events
-  struct user_crnti_upd_ev {
-    uint16_t crnti;
-    uint16_t temp_crnti;
-  };
-  struct ho_cancel_ev {
-    asn1::s1ap::cause_c cause;
+  // public events called from EUTRA-RRC
+  struct sgnb_add_req_sent_ev {};
 
-    ho_cancel_ev(const asn1::s1ap::cause_c& cause_) : cause(cause_) {}
+  /// called when 5G RRC accepted new user
+  struct sgnb_add_req_ack_ev {
+    sgnb_addition_ack_params_t params;
+  };
+
+  struct sgnb_add_req_reject_ev {};
+
+  /**
+   * @brief Non-standard event sent from NR-RRC to EUTRA when UE has attached to NR cell
+   *
+   * sent after Reconfig complete and contention resolution on NR side
+   */
+  struct sgnb_add_complete_ev {
+    uint16_t nr_rnti; /// RNTI assigned to UE on NR carrier
   };
 
   rrc_endc(srsenb::rrc::ue* outer_ue);
@@ -45,17 +53,14 @@ public:
   bool fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
-  void handle_sgnb_addition_ack(const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
-                                const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15);
-  void handle_sgnb_addition_reject();
-  void handle_sgnb_addition_complete();
+
   bool is_endc_supported();
 
 private:
   // Send SgNB addition request to gNB
   bool start_sgnb_addition();
 
-  bool is_endc_activation_running() const { return not is_in_state<idle_st>(); }
+  bool is_endc_activation_running() const { return not is_in_state<endc_deactivated_st>(); }
 
   rrc::ue*              rrc_ue  = nullptr;
   rrc*                  rrc_enb = nullptr;
@@ -65,51 +70,57 @@ private:
   bool                                 endc_supported = false;
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
-  // temporary storage for NR reconfiguration
-  asn1::dyn_octstring nr_secondary_cell_group_cfg_r15;
-  asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
+  // fixed ENDC variables
+  const uint32_t eutra_drb_id = 1; // The DRB ID that converted to NR
+  const uint32_t lcid_drb_nr  = 4;
 
-  // events
-  struct sgnb_add_req_sent_ev {};
-  struct sgnb_add_req_ack_ev {};
-  struct sgnb_add_req_reject_ev {};
+  // internal events
   struct rrc_recfg_sent_ev {};
-  struct prach_nr_received_ev {};
-
-  using recfg_complete_ev  = asn1::rrc::rrc_conn_recfg_complete_s;
-  using status_transfer_ev = asn1::s1ap::bearers_subject_to_status_transfer_list_l;
 
   // states
-  struct idle_st {};
-  struct wait_sgnb_add_req_resp {};
-  struct prepare_recfg {};
-  struct wait_recfg_comp {};
-  struct wait_prach_nr {};
+  struct endc_deactivated_st {}; // initial state where user is served over EUTRA only
+  struct wait_sgnb_add_req_resp_st {};
+  struct prepare_recfg_st {
+    sgnb_addition_ack_params_t sgnb_config; // Store NR cell group config, etc.
+
+    void enter(rrc_endc* f, const sgnb_add_req_ack_ev& ev);
+
+    explicit prepare_recfg_st(rrc_endc* parent_);
+
+  private:
+    srslog::basic_logger& logger;
+  };
+  struct wait_add_complete_st {}; // user needs to complete RA procedure and send C-RNTI CE
+  struct endc_activated_st {};    // user has enabled EN-DC successfully and is currently served
 
   // FSM guards
 
   // FSM transition handlers
-  void handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev);
-  void handle_sgnb_addition_request_sent(const sgnb_add_req_sent_ev& ev);
+  void handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, const sgnb_add_req_ack_ev& ev);
 
 protected:
   // states
-  state_list<idle_st, wait_sgnb_add_req_resp, prepare_recfg, wait_recfg_comp, wait_prach_nr>
-      states{this, idle_st{}, wait_sgnb_add_req_resp{}, prepare_recfg{}, wait_recfg_comp{}, wait_prach_nr{}};
+  state_list<endc_deactivated_st, wait_sgnb_add_req_resp_st, prepare_recfg_st, wait_add_complete_st, endc_activated_st>
+      states{this,
+             endc_deactivated_st{},
+             wait_sgnb_add_req_resp_st{},
+             prepare_recfg_st{this},
+             wait_add_complete_st{},
+             endc_activated_st{}};
 
   // transitions
   using fsm = rrc_endc;
   // clang-format off
-  using transitions = transition_table<
-  //      Start                Target                  Event                   Action                      Guard
-  // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
-  row< idle_st,                wait_sgnb_add_req_resp, sgnb_add_req_sent_ev,   nullptr                                                >,
-  // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
-  row< wait_sgnb_add_req_resp, prepare_recfg,          sgnb_add_req_ack_ev                                                            >,
-  row< wait_sgnb_add_req_resp, idle_st,                sgnb_add_req_reject_ev                                                         >,
-  row< prepare_recfg,          wait_recfg_comp,        rrc_recfg_sent_ev                                                              >,
-  row< wait_recfg_comp,        idle_st,                recfg_complete_ev,      &fsm::handle_recfg_complete                            >
-  // +-----------------------+-----------------------+------------------------+----------------------------+-------------------------+
+  using transitions = transition_table<  
+  //  Start                       Target                     Event                    Action                         Guard
+  // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
+  row< endc_deactivated_st,       wait_sgnb_add_req_resp_st, sgnb_add_req_sent_ev,   nullptr                                                >,
+  // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
+  row< wait_sgnb_add_req_resp_st, prepare_recfg_st,          sgnb_add_req_ack_ev,     &fsm::handle_sgnb_add_req_ack                         >,
+  row< wait_sgnb_add_req_resp_st, endc_deactivated_st,       sgnb_add_req_reject_ev                                                         >,
+  row< prepare_recfg_st,          wait_add_complete_st,      rrc_recfg_sent_ev                                                              >,
+  row< wait_add_complete_st,      endc_activated_st,         sgnb_add_complete_ev                                                           >
+  // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
   >;
   // clang-format on
 };

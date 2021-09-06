@@ -186,11 +186,9 @@ int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
   }
   ue* ue_ptr = old_it->second.get();
 
-  // Assume that SgNB addition is running
   logger.info("Resuming rnti=0x%x RRC connection due to received C-RNTI CE from rnti=0x%x.", old_rnti, new_rnti);
-  if (ue_ptr->is_connected()) {
-    rrc_eutra->sgnb_addition_complete(new_rnti);
-  }
+  ue_ptr->crnti_ce_received();
+
   return SRSRAN_SUCCESS;
 }
 
@@ -404,9 +402,9 @@ void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
   Interface for EUTRA RRC
 *******************************************************************************/
 
-int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti)
+int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params)
 {
-  task_sched.defer_task([this, eutra_rnti]() {
+  task_sched.defer_task([this, eutra_rnti, params]() {
     // try to allocate new user
     uint16_t nr_rnti = mac->reserve_rnti(0);
     if (nr_rnti == SRSRAN_INVALID_RNTI) {
@@ -427,7 +425,7 @@ int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti)
       logger.warning("Unrecognised rnti: 0x%x", nr_rnti);
       return;
     }
-    user_it->second->handle_sgnb_addition_request(eutra_rnti);
+    user_it->second->handle_sgnb_addition_request(eutra_rnti, params);
   });
 
   // return straight away
@@ -436,6 +434,8 @@ int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti)
 
 int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response)
 {
+  // user has completeted the reconfiguration and has acked on 4G side, wait until RA on NR
+  logger.info("Received Reconfiguration complete for RNTI=0x%x", eutra_rnti);
   return SRSRAN_SUCCESS;
 }
 
@@ -1101,34 +1101,48 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::handle_sgnb_addition_request(uint16_t eutra_rnti)
+int rrc_nr::ue::handle_sgnb_addition_request(uint16_t eutra_rnti_, const sgnb_addition_req_params_t& req_params)
 {
   // Add DRB1 to RLC and PDCP
   if (add_drb() != SRSRAN_SUCCESS) {
     parent->logger.error("Failed to configure DRB");
-    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti);
+    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti_);
     return SRSRAN_ERROR;
   }
 
   // provide hard-coded NR configs
-  asn1::dyn_octstring nr_secondary_cell_group_cfg;
-  if (pack_rrc_reconfiguraiton(nr_secondary_cell_group_cfg) == SRSRAN_ERROR) {
+  rrc_eutra_interface_rrc_nr::sgnb_addition_ack_params_t ack_params = {};
+  if (pack_rrc_reconfiguraiton(ack_params.nr_secondary_cell_group_cfg_r15) == SRSRAN_ERROR) {
     parent->logger.error("Failed to pack RRC Reconfiguration. Sending SgNB addition reject.");
-    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti);
+    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti_);
     return SRSRAN_ERROR;
   }
 
-  asn1::dyn_octstring radio_bearer_config_buffer;
-  if (pack_nr_radio_bearer_config(radio_bearer_config_buffer) == SRSRAN_ERROR) {
+  if (pack_nr_radio_bearer_config(ack_params.nr_radio_bearer_cfg1_r15) == SRSRAN_ERROR) {
     parent->logger.error("Failed to pack NR radio bearer config. Sending SgNB addition reject.");
-    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti);
+    parent->rrc_eutra->sgnb_addition_reject(eutra_rnti_);
     return SRSRAN_ERROR;
   }
 
   // send response to EUTRA
-  parent->rrc_eutra->sgnb_addition_ack(eutra_rnti, nr_secondary_cell_group_cfg, radio_bearer_config_buffer);
+  ack_params.nr_rnti       = rnti;
+  ack_params.eps_bearer_id = req_params.eps_bearer_id;
+  parent->rrc_eutra->sgnb_addition_ack(eutra_rnti_, ack_params);
+
+  // recognize RNTI as ENDC user
+  endc       = true;
+  eutra_rnti = eutra_rnti_;
 
   return SRSRAN_SUCCESS;
+}
+
+void rrc_nr::ue::crnti_ce_received()
+{
+  // Assume NSA mode active
+  if (endc) {
+    // send SgNB addition complete for ENDC users
+    parent->rrc_eutra->sgnb_addition_complete(eutra_rnti, rnti);
+  }
 }
 
 /**

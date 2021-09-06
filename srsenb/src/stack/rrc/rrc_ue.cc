@@ -396,7 +396,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       } else {
         parent->logger.warning("Received MeasReport but no mobility configuration is available");
       }
-      if (endc_handler) {
+      if (endc_handler != nullptr) {
         endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
       }
       break;
@@ -1009,7 +1009,7 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
 
-    if (endc_handler) {
+    if (endc_handler != nullptr) {
       endc_handler->handle_eutra_capabilities(eutra_capabilities);
     }
   }
