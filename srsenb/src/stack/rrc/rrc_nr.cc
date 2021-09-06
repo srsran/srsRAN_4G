@@ -1085,7 +1085,7 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
   sec_cfg.key_to_use_present                         = true;
   sec_cfg.key_to_use                                 = asn1::rrc_nr::security_cfg_s::key_to_use_opts::secondary;
   sec_cfg.security_algorithm_cfg_present             = true;
-  sec_cfg.security_algorithm_cfg.ciphering_algorithm = ciphering_algorithm_opts::nea2;
+  sec_cfg.security_algorithm_cfg.ciphering_algorithm = ciphering_algorithm_opts::nea0;
 
   // pack it
   packed_nr_bearer_config.resize(128);
