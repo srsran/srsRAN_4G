@@ -294,7 +294,7 @@ bool cc_worker::decode_pdsch_dl()
                   str_extra.data());
     } else {
       logger.info(pdsch_res.tb[0].payload,
-                  pdsch_cfg.grant.tb[0].tbs / 8,
+                  pdsch_res.tb[0].crc ? pdsch_cfg.grant.tb[0].tbs / 8 : 0,
                   "PDSCH: cc=%d pid=%d %s ack_tti_tx=%d",
                   cc_idx,
                   pid,
