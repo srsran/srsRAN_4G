@@ -73,11 +73,20 @@ public:
   {
     return SRSRAN_SUCCESS;
   }
+  int set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+  {
+    return SRSRAN_SUCCESS;
+  }
   int ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
   {
     return SRSRAN_SUCCESS;
   }
-  int  start_security_mode_procedure(uint16_t rnti) { return SRSRAN_SUCCESS; }
+  int start_security_mode_procedure(uint16_t rnti) { return SRSRAN_SUCCESS; }
+  int establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+  {
+    return SRSRAN_SUCCESS;
+  }
+  int  allocate_lcid(uint16_t rnti) { return SRSRAN_SUCCESS; }
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
 };
 struct dummy_socket_manager : public srsran::socket_manager_itf {
@@ -162,8 +171,9 @@ int main(int argc, char** argv)
   args.amf_addr      = "127.0.0.1";
   args.gnb_name      = "srsgnb01";
 
-  rrc_nr_dummy  rrc;
-  ngap_obj.init(args, &rrc);
+  rrc_nr_dummy        rrc;
+  gtpu_interface_rrc* gtpu = nullptr;
+  ngap_obj.init(args, &rrc, gtpu);
 
   // Start the log backend.
   srsran::test_init(argc, argv);

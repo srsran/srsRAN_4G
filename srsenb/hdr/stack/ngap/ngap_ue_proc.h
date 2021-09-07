@@ -21,6 +21,7 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
+#include "srsenb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
 
 #include <map>
 #include <string>
@@ -35,7 +36,8 @@ class ngap_ue_initial_context_setup_proc
 public:
   explicit ngap_ue_initial_context_setup_proc(ngap_interface_ngap_proc* parent_,
                                               rrc_interface_ngap_nr*    rrc_,
-                                              ngap_ue_ctxt_t*           ue_ctxt);
+                                              ngap_ue_ctxt_t*           ue_ctxt,
+                                              srslog::basic_logger&     logger_);
   srsran::proc_outcome_t init(const asn1::ngap_nr::init_context_setup_request_s& msg);
   srsran::proc_outcome_t react(const bool rrc_reconf_outcome);
   srsran::proc_outcome_t step();
@@ -54,7 +56,8 @@ class ngap_ue_ue_context_release_proc
 public:
   explicit ngap_ue_ue_context_release_proc(ngap_interface_ngap_proc* parent_,
                                            rrc_interface_ngap_nr*    rrc_,
-                                           ngap_ue_ctxt_t*           ue_ctxt);
+                                           ngap_ue_ctxt_t*           ue_ctxt,
+                                           srslog::basic_logger&     logger_);
   srsran::proc_outcome_t init(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
   srsran::proc_outcome_t step();
   static const char*     name() { return "UE Context Release"; }
@@ -70,7 +73,7 @@ private:
 class ngap_ue_ue_context_modification_proc
 {
 public:
-  explicit ngap_ue_ue_context_modification_proc(ngap_interface_ngap_proc* parent_);
+  explicit ngap_ue_ue_context_modification_proc(ngap_interface_ngap_proc* parent_, srslog::basic_logger& logger_);
   srsran::proc_outcome_t init();
   srsran::proc_outcome_t step();
   static const char*     name() { return "UE Context Modification"; }
@@ -84,7 +87,9 @@ class ngap_ue_pdu_session_res_setup_proc
 public:
   explicit ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
                                               rrc_interface_ngap_nr*    rrc_,
-                                              ngap_ue_ctxt_t*           ue_ctxt);
+                                              ngap_ue_ctxt_t*           ue_ctxt,
+                                              ngap_ue_bearer_manager*   bearer_manager,
+                                              srslog::basic_logger&     logger_);
   srsran::proc_outcome_t init(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
   srsran::proc_outcome_t step();
   static const char*     name() { return "UE PDU Session Resource Setup"; }
@@ -92,6 +97,7 @@ public:
 private:
   ngap_ue_ctxt_t*           ue_ctxt;
   ngap_interface_ngap_proc* parent;
+  ngap_ue_bearer_manager*   bearer_manager;
   rrc_interface_ngap_nr*    rrc = nullptr;
   srslog::basic_logger&     logger;
 };

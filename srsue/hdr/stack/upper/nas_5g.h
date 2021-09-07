@@ -118,6 +118,9 @@ private:
   srsran::proc_t<registration_procedure>              registration_proc;
   srsran::proc_t<pdu_session_establishment_procedure> pdu_session_establishment_proc;
 
+  // Network information
+  srsran::nas_5g::network_name_t full_network_name;
+
   // Message sender
   int send_registration_request();
   int send_authentication_response(const uint8_t res[16]);
@@ -146,6 +149,7 @@ private:
       srsran::nas_5g::deregistration_accept_ue_terminated_t& deregistration_accept_ue_terminated);
   int handle_deregistration_request_ue_terminated(
       srsran::nas_5g::deregistration_request_ue_terminated_t& deregistration_request_ue_terminated);
+  int handle_configuration_update_command(srsran::nas_5g::configuration_update_command_t& configuration_update_command);
   int handle_dl_nas_transport(srsran::nas_5g::dl_nas_transport_t& dl_nas_transport);
 
   // message handler container

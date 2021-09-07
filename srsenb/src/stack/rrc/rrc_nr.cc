@@ -390,6 +390,10 @@ int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_max
 {
   return SRSRAN_SUCCESS;
 }
+int rrc_nr::set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+{
+  return SRSRAN_SUCCESS;
+}
 int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
 {
   return SRSRAN_SUCCESS;
@@ -398,6 +402,16 @@ int rrc_nr::start_security_mode_procedure(uint16_t rnti)
 {
   return SRSRAN_SUCCESS;
 }
+int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+{
+  return SRSRAN_SUCCESS;
+}
+
+int rrc_nr::allocate_lcid(uint16_t rnti)
+{
+  return SRSRAN_SUCCESS;
+}
+
 void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
 
 /*******************************************************************************

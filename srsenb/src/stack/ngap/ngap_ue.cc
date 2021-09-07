@@ -23,12 +23,16 @@ namespace srsenb {
 /*               ngap_ptr::ue Class
 ********************************************************************************/
 
-ngap::ue::ue(ngap* ngap_ptr_, rrc_interface_ngap_nr* rrc_ptr_, srslog::basic_logger& logger_) :
+ngap::ue::ue(ngap*                  ngap_ptr_,
+             rrc_interface_ngap_nr* rrc_ptr_,
+             gtpu_interface_rrc*    gtpu_ptr_,
+             srslog::basic_logger&  logger_) :
   logger(logger_),
   ngap_ptr(ngap_ptr_),
-  initial_context_setup_proc(this, rrc_ptr_, &ctxt),
-  ue_context_release_proc(this, rrc_ptr_, &ctxt),
-  ue_pdu_session_res_setup_proc(this, rrc_ptr_, &ctxt)
+  bearer_manager(rrc_ptr_, gtpu_ptr_, logger_),
+  initial_context_setup_proc(this, rrc_ptr_, &ctxt, logger_),
+  ue_context_release_proc(this, rrc_ptr_, &ctxt, logger_),
+  ue_pdu_session_res_setup_proc(this, rrc_ptr_, &ctxt, &bearer_manager, logger_)
 {
   ctxt.ran_ue_ngap_id = ngap_ptr->next_gnb_ue_ngap_id++;
   gettimeofday(&ctxt.init_timestamp, nullptr);
@@ -178,6 +182,46 @@ bool ngap::ue::send_initial_ctxt_setup_failure(cause_c cause)
   container.protocol_ies.pdu_session_res_failed_to_setup_list_cxt_res_present = true; */
 
   return true;
+}
+
+bool ngap::ue::send_pdu_session_resource_setup_response(
+    uint16_t                                    pdu_session_id,
+    uint32_t                                    teid_out,
+    asn1::bounded_bitstring<1, 160, true, true> transport_layer_address)
+{
+  if (not ngap_ptr->amf_connected) {
+    logger.warning("AMF not connected");
+    return false;
+  }
+  // TODO: QOS Params
+  ngap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP);
+  pdu_session_res_setup_resp_s& container     = tx_pdu.successful_outcome().value.pdu_session_res_setup_resp();
+  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container.protocol_ies.pdu_session_res_setup_list_su_res_present = true;
+  pdu_session_res_setup_item_su_res_s su_res;
+  su_res.pdu_session_res_setup_resp_transfer.resize(512);
+  su_res.pdu_session_id = pdu_session_id;
+  pdu_session_res_setup_resp_transfer_s resp_transfer;
+
+  gtp_tunnel_s& gtp_tunnel = resp_transfer.dlqos_flow_per_tnl_info.uptransport_layer_info.set_gtp_tunnel();
+
+  gtp_tunnel.gtp_teid.from_number(teid_out);
+  gtp_tunnel.transport_layer_address = transport_layer_address;
+  asn1::ngap_nr::associated_qos_flow_list_l qos_flow_list;
+  asn1::ngap_nr::associated_qos_flow_item_s qos_flow_item;
+  qos_flow_item.qos_flow_id = 1;
+  qos_flow_list.push_back(qos_flow_item);
+  resp_transfer.dlqos_flow_per_tnl_info.associated_qos_flow_list = qos_flow_list;
+
+  asn1::bit_ref bref(su_res.pdu_session_res_setup_resp_transfer.data(),
+                     su_res.pdu_session_res_setup_resp_transfer.size());
+  resp_transfer.pack(bref);
+  su_res.pdu_session_res_setup_resp_transfer.resize(bref.distance_bytes());
+
+  container.protocol_ies.pdu_session_res_setup_list_su_res.value.push_back(su_res);
+  return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "PDUSessionResourceSetupResponse");
 }
 
 /*******************************************************************************

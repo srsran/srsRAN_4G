@@ -581,7 +581,7 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
                      pdu->N_bytes - SEQ_5G_OFFSET,
                      &pdu->msg[MAC_5G_OFFSET]);
 
-  logger.info("Sending PDU Session Establishment Complete in UL NAS transport.");
+  logger.info("Sending PDU Session Establishment Request in UL NAS transport.");
   rrc_nr->write_sdu(std::move(pdu));
 
   return SRSRAN_SUCCESS;

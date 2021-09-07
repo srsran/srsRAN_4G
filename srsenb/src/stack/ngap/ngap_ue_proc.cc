@@ -18,13 +18,9 @@ namespace srsenb {
 
 ngap_ue_initial_context_setup_proc::ngap_ue_initial_context_setup_proc(ngap_interface_ngap_proc* parent_,
                                                                        rrc_interface_ngap_nr*    rrc_,
-                                                                       ngap_ue_ctxt_t*           ue_ctxt_) :
-  logger(srslog::fetch_basic_logger("NGAP UE"))
-{
-  parent  = parent_;
-  rrc     = rrc_;
-  ue_ctxt = ue_ctxt_;
-};
+                                                                       ngap_ue_ctxt_t*           ue_ctxt_,
+                                                                       srslog::basic_logger&     logger_) :
+  logger(logger_), parent(parent_), rrc(rrc_), ue_ctxt(ue_ctxt_){};
 
 proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap_nr::init_context_setup_request_s& msg)
 {
@@ -69,8 +65,9 @@ proc_outcome_t ngap_ue_initial_context_setup_proc::step()
 
 ngap_ue_ue_context_release_proc::ngap_ue_ue_context_release_proc(ngap_interface_ngap_proc* parent_,
                                                                  rrc_interface_ngap_nr*    rrc_,
-                                                                 ngap_ue_ctxt_t*           ue_ctxt_) :
-  logger(srslog::fetch_basic_logger("NGAP UE"))
+                                                                 ngap_ue_ctxt_t*           ue_ctxt_,
+                                                                 srslog::basic_logger&     logger_) :
+  logger(logger_)
 {
   parent  = parent_;
   rrc     = rrc_;
@@ -81,6 +78,7 @@ proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap_nr::ue_con
 {
   // ue_ngap_ids_c ue_ngap_ids = msg.protocol_ies.ue_ngap_ids.value;
   // cause_c       cause       = msg.protocol_ies.cause.value;
+  logger.info("Started %s", name());
   return proc_outcome_t::success;
 }
 
@@ -91,33 +89,81 @@ proc_outcome_t ngap_ue_ue_context_release_proc::step()
 
 ngap_ue_pdu_session_res_setup_proc::ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
                                                                        rrc_interface_ngap_nr*    rrc_,
-                                                                       ngap_ue_ctxt_t*           ue_ctxt_) :
-  logger(srslog::fetch_basic_logger("NGAP UE"))
-{
-  parent  = parent_;
-  rrc     = rrc_;
-  ue_ctxt = ue_ctxt_;
-}
+                                                                       ngap_ue_ctxt_t*           ue_ctxt_,
+                                                                       ngap_ue_bearer_manager*   bearer_manager_,
+                                                                       srslog::basic_logger&     logger_) :
+  parent(parent_), rrc(rrc_), ue_ctxt(ue_ctxt_), bearer_manager(bearer_manager_), logger(logger_)
+{}
 
 proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
 {
   if (msg.protocol_ies.pdu_session_res_setup_list_su_req.value.size() != 1) {
-    logger.error("Not handling multiple su requests");
+    logger.error("Not handling zero or multiple su requests");
     return proc_outcome_t::error;
   }
+
   asn1::ngap_nr::pdu_session_res_setup_item_su_req_s su_req =
       msg.protocol_ies.pdu_session_res_setup_list_su_req.value[0];
 
-  if (su_req.pdu_session_nas_pdu_present) {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    if (pdu == nullptr) {
-      logger.error("Fatal Error: Couldn't allocate buffer in ngap_ue_initial_context_setup_proc::init().");
-      return proc_outcome_t::error;
-    }
-    memcpy(pdu->msg, su_req.pdu_session_nas_pdu.data(), su_req.pdu_session_nas_pdu.size());
-    pdu->N_bytes = su_req.pdu_session_nas_pdu.size();
-    rrc->write_dl_info(ue_ctxt->rnti, std::move(pdu));
+  asn1::cbit_ref pdu_session_bref(su_req.pdu_session_res_setup_request_transfer.data(),
+                                  su_req.pdu_session_res_setup_request_transfer.size());
+
+  asn1::ngap_nr::pdu_session_res_setup_request_transfer_s pdu_ses_res_setup_req_trans;
+
+  if (pdu_ses_res_setup_req_trans.unpack(pdu_session_bref) != SRSRAN_SUCCESS) {
+    logger.error("Unable to unpack PDU session response setup request");
+    return proc_outcome_t::error;
   }
+
+  if (pdu_ses_res_setup_req_trans.protocol_ies.qos_flow_setup_request_list.value.size() != 1) {
+    logger.error("Expected one item in QoS flow setup request list");
+    return proc_outcome_t::error;
+  }
+
+  if (pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.type() !=
+      asn1::ngap_nr::up_transport_layer_info_c::types::gtp_tunnel) {
+    logger.error("Expected GTP Tunnel");
+    return proc_outcome_t::error;
+  }
+  asn1::ngap_nr::qos_flow_setup_request_item_s qos_flow_setup =
+      pdu_ses_res_setup_req_trans.protocol_ies.qos_flow_setup_request_list.value[0];
+  srsran::const_span<uint8_t> nas_pdu_dummy;
+  asn1::ngap_nr::cause_c      cause;
+  uint32_t                    teid_out = 0;
+  int                         lcid;
+
+  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[0] << 24u;
+  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[1] << 16u;
+  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[2] << 8u;
+  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[3];
+
+  // TODO: Check cause
+
+  if (bearer_manager->add_pdu_session(
+          ue_ctxt->rnti,
+          su_req.pdu_session_id,
+          qos_flow_setup.qos_flow_level_qos_params,
+          pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address,
+          teid_out,
+          cause) != SRSRAN_SUCCESS) {
+    logger.warning("Failed to add pdu session\n");
+    return proc_outcome_t::error;
+  }
+
+  // QoS parameter mapping in config in LTE enb
+  // Transport Layer Address required by the procedure for the reponse
+  asn1::bounded_bitstring<1, 160, true, true> transport_layer_address;
+  transport_layer_address =
+      pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address;
+  if (su_req.pdu_session_nas_pdu_present) {
+    lcid = rrc->allocate_lcid(ue_ctxt->rnti);
+    if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
+        SRSRAN_SUCCESS) {
+      parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_out, transport_layer_address);
+      return proc_outcome_t::success;
+    }
+  }
+
   return proc_outcome_t::yield;
 }
 
