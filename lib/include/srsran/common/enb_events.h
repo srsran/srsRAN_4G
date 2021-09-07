@@ -44,10 +44,10 @@ public:
   virtual void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;
 
   /// Logs into the underlying log channel when a sector has been started.
-  virtual void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
+  virtual void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id, const std::string &hnb_name) = 0;
 
   /// Logs into the underlying log channel when a sector has been stopped.
-  virtual void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
+  virtual void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id, const std::string &hnb_name) = 0;
 
   /// Logs into the underlying log channel a measurement report event.
   virtual void log_measurement_report(uint32_t           enb_cc_idx,

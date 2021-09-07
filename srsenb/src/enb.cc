@@ -102,8 +102,10 @@ int enb::init(const all_args_t& args_)
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 
   // Now that everything is setup, log sector start events.
+  const std::string& sib9_hnb_name =
+      rrc_cfg.sibs[8].sib9().hnb_name_present ? rrc_cfg.sibs[8].sib9().hnb_name.to_string() : "";
   for (unsigned i = 0, e = rrc_cfg.cell_list.size(); i != e; ++i) {
-    event_logger::get().log_sector_start(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id);
+    event_logger::get().log_sector_start(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id, sib9_hnb_name);
   }
 
   if (ret == SRSRAN_SUCCESS) {
@@ -134,8 +136,10 @@ void enb::stop()
     }
 
     // Now that everything is teared down, log sector stop events.
+    const std::string& sib9_hnb_name =
+        rrc_cfg.sibs[8].sib9().hnb_name_present ? rrc_cfg.sibs[8].sib9().hnb_name.to_string() : "";
     for (unsigned i = 0, e = rrc_cfg.cell_list.size(); i != e; ++i) {
-      event_logger::get().log_sector_stop(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id);
+      event_logger::get().log_sector_stop(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id, sib9_hnb_name);
     }
 
     started = false;

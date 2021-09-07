@@ -33,8 +33,8 @@ public:
   {}
   void log_s1_ctx_create(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
   void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
-  void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
-  void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
+  void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id, const std::string& hnb_name) override {}
+  void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id, const std::string& hnb_name) override {}
   void log_measurement_report(uint32_t           enb_cc_idx,
                               const std::string& asn1_oct_str,
                               const std::string& asn1_txt_str,
@@ -236,7 +236,7 @@ public:
     event_channel(ctx);
   }
 
-  void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override
+  void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id, const std::string& hnb_name) override
   {
     register_pci(cc_idx, pci);
 
@@ -249,11 +249,11 @@ public:
     ctx.write<metric_event_name>("sector_start");
     ctx.get<mset_sector_event>().write<metric_pci>(pci);
     ctx.get<mset_sector_event>().write<metric_cell_identity>(fmt::to_string(cell_id));
-    ctx.get<mset_sector_event>().write<metric_sib9_home_enb_name>("TODO");
+    ctx.get<mset_sector_event>().write<metric_sib9_home_enb_name>(hnb_name);
     event_channel(ctx);
   }
 
-  void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override
+  void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id, const std::string& hnb_name) override
   {
     sector_event_t ctx("");
 
@@ -264,7 +264,7 @@ public:
     ctx.write<metric_event_name>("sector_stop");
     ctx.get<mset_sector_event>().write<metric_pci>(pci);
     ctx.get<mset_sector_event>().write<metric_cell_identity>(fmt::to_string(cell_id));
-    ctx.get<mset_sector_event>().write<metric_sib9_home_enb_name>("TODO");
+    ctx.get<mset_sector_event>().write<metric_sib9_home_enb_name>(hnb_name);
     event_channel(ctx);
   }
 
