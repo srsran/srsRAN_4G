@@ -71,11 +71,11 @@ DECLARE_METRIC_SET("ue_container",
                    mlist_bearers);
 
 /// Cell container metrics.
-DECLARE_METRIC("sector_id", metric_sector_id, uint32_t, "");
+DECLARE_METRIC("carrier_id", metric_carrier_id, uint32_t, "");
 DECLARE_METRIC("pci", metric_pci, uint32_t, "");
 DECLARE_METRIC("nof_rach", metric_nof_rach, uint32_t, "");
 DECLARE_METRIC_LIST("ue_list", mlist_ues, std::vector<mset_ue_container>);
-DECLARE_METRIC_SET("cell_container", mset_cell_container, metric_sector_id, metric_pci, metric_nof_rach, mlist_ues);
+DECLARE_METRIC_SET("cell_container", mset_cell_container, metric_carrier_id, metric_pci, metric_nof_rach, mlist_ues);
 
 /// Metrics root object.
 DECLARE_METRIC("type", metric_type_tag, std::string, "");
@@ -185,7 +185,7 @@ void metrics_json::set_metrics(const enb_metrics_t& m, const uint32_t period_use
   // For each cell...
   for (unsigned cc_idx = 0, e = cell_list.size(); cc_idx != e; ++cc_idx) {
     auto& cell = cell_list[cc_idx];
-    cell.write<metric_sector_id>(cc_idx);
+    cell.write<metric_carrier_id>(cc_idx);
     cell.write<metric_nof_rach>(m.stack.mac.cc_info[cc_idx].cc_rach_counter);
     cell.write<metric_pci>(m.stack.mac.cc_info[cc_idx].pci);
 

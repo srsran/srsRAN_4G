@@ -69,7 +69,7 @@ namespace {
 /// Common metrics to all events.
 DECLARE_METRIC("type", metric_type_tag, std::string, "");
 DECLARE_METRIC("timestamp", metric_timestamp_tag, double, "");
-DECLARE_METRIC("sector_id", metric_sector_id, uint32_t, "");
+DECLARE_METRIC("carrier_id", metric_carrier_id, uint32_t, "");
 DECLARE_METRIC("cell_id", metric_cell_id, uint32_t, "");
 DECLARE_METRIC("event_name", metric_event_name, std::string, "");
 
@@ -86,7 +86,7 @@ DECLARE_METRIC("sib9_home_enb_name", metric_sib9_home_enb_name, std::string, "")
 DECLARE_METRIC_SET("event_data", mset_sector_event, metric_pci, metric_cell_identity, metric_sib9_home_enb_name);
 using sector_event_t = srslog::build_context_type<metric_type_tag,
                                                   metric_timestamp_tag,
-                                                  metric_sector_id,
+                                                  metric_carrier_id,
                                                   metric_cell_id,
                                                   metric_event_name,
                                                   mset_sector_event>;
@@ -103,7 +103,7 @@ DECLARE_METRIC_SET("event_data",
                    metric_additional);
 using rrc_event_t = srslog::build_context_type<metric_type_tag,
                                                metric_timestamp_tag,
-                                               metric_sector_id,
+                                               metric_carrier_id,
                                                metric_cell_id,
                                                metric_event_name,
                                                mset_rrc_event>;
@@ -114,7 +114,7 @@ DECLARE_METRIC("enb_ue_s1ap_id", metric_ue_enb_id, uint32_t, "");
 DECLARE_METRIC_SET("event_data", mset_s1apctx_event, metric_ue_mme_id, metric_ue_enb_id, metric_rnti);
 using s1apctx_event_t = srslog::build_context_type<metric_type_tag,
                                                    metric_timestamp_tag,
-                                                   metric_sector_id,
+                                                   metric_carrier_id,
                                                    metric_cell_id,
                                                    metric_event_name,
                                                    mset_s1apctx_event>;
@@ -123,7 +123,7 @@ using s1apctx_event_t = srslog::build_context_type<metric_type_tag,
 DECLARE_METRIC_SET("event_data", mset_rlf_report_event, metric_asn1_length, metric_asn1_message, metric_rnti);
 using rlf_report_event_t = srslog::build_context_type<metric_type_tag,
                                                       metric_timestamp_tag,
-                                                      metric_sector_id,
+                                                      metric_carrier_id,
                                                       metric_cell_id,
                                                       metric_event_name,
                                                       mset_rlf_report_event>;
@@ -132,7 +132,7 @@ using rlf_report_event_t = srslog::build_context_type<metric_type_tag,
 DECLARE_METRIC_SET("event_data", mset_meas_report_event, metric_asn1_length, metric_asn1_message, metric_rnti);
 using meas_report_event_t = srslog::build_context_type<metric_type_tag,
                                                        metric_timestamp_tag,
-                                                       metric_sector_id,
+                                                       metric_carrier_id,
                                                        metric_cell_id,
                                                        metric_event_name,
                                                        mset_meas_report_event>;
@@ -149,7 +149,7 @@ DECLARE_METRIC_SET("event_data",
                    metric_new_ue_rnti);
 using ho_cmd_t = srslog::build_context_type<metric_type_tag,
                                             metric_timestamp_tag,
-                                            metric_sector_id,
+                                            metric_carrier_id,
                                             metric_cell_id,
                                             metric_event_name,
                                             mset_ho_cmd_event>;
@@ -159,7 +159,7 @@ DECLARE_METRIC("resume_rnti", metric_resume_rnti, uint32_t, "");
 DECLARE_METRIC_SET("event_data", mset_conn_resume_event, metric_rnti, metric_resume_rnti);
 using conn_resume_t = srslog::build_context_type<metric_type_tag,
                                                  metric_timestamp_tag,
-                                                 metric_sector_id,
+                                                 metric_carrier_id,
                                                  metric_cell_id,
                                                  metric_event_name,
                                                  mset_conn_resume_event>;
@@ -169,7 +169,7 @@ DECLARE_METRIC("type", metric_rlf_type, std::string, "");
 DECLARE_METRIC_SET("event_data", mset_rlf_detected_event, metric_rnti, metric_rlf_type);
 using rlf_detected_t = srslog::build_context_type<metric_type_tag,
                                                   metric_timestamp_tag,
-                                                  metric_sector_id,
+                                                  metric_carrier_id,
                                                   metric_cell_id,
                                                   metric_event_name,
                                                   mset_rlf_detected_event>;
@@ -195,7 +195,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("rrc_log");
     ctx.get<mset_rrc_event>().write<metric_rnti>(rnti);
@@ -212,7 +212,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("s1_context_create");
     ctx.get<mset_s1apctx_event>().write<metric_ue_mme_id>(mme_id);
@@ -227,7 +227,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("s1_context_delete");
     ctx.get<mset_s1apctx_event>().write<metric_ue_mme_id>(mme_id);
@@ -244,7 +244,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_carrier_id>(cc_idx);
     ctx.write<metric_cell_id>(pci);
     ctx.write<metric_event_name>("sector_start");
     ctx.get<mset_sector_event>().write<metric_pci>(pci);
@@ -259,7 +259,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_carrier_id>(cc_idx);
     ctx.write<metric_cell_id>(get_pci(cc_idx));
     ctx.write<metric_event_name>("sector_stop");
     ctx.get<mset_sector_event>().write<metric_pci>(pci);
@@ -279,7 +279,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("measurement_report");
     ctx.get<mset_meas_report_event>().write<metric_asn1_length>(asn1.size());
@@ -299,7 +299,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("rlf_report");
     ctx.get<mset_rlf_report_event>().write<metric_asn1_length>(asn1.size());
@@ -314,7 +314,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("rlf_detected");
     ctx.get<mset_rlf_detected_event>().write<metric_rnti>(rnti);
@@ -332,7 +332,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("ho_command");
     ctx.get<mset_ho_cmd_event>().write<metric_rnti>(rnti);
@@ -348,7 +348,7 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(enb_cc_idx);
+    ctx.write<metric_carrier_id>(enb_cc_idx);
     ctx.write<metric_cell_id>(get_pci(enb_cc_idx));
     ctx.write<metric_event_name>("connection_resume");
     ctx.get<mset_conn_resume_event>().write<metric_rnti>(rnti);
