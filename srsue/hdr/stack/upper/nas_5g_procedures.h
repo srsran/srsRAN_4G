@@ -30,6 +30,7 @@ public:
   explicit registration_procedure(nas_5g_interface_procedures* parent_nas_);
   srsran::proc_outcome_t init();
   srsran::proc_outcome_t step();
+  srsran::proc_outcome_t then();
   static const char*     name() { return "Registration Procedure"; }
 
 private:

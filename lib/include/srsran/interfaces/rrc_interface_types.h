@@ -185,6 +185,49 @@ inline std::string to_string(const scg_failure_cause_t& cause)
                                             "nulltype"};
   return enum_to_text(options, (uint32_t)scg_failure_cause_t::nulltype, (uint32_t)cause);
 }
+
+enum class nr_establishment_cause_t {
+  emergency,
+  highPriorityAccess,
+  mt_Access,
+  mo_Signalling,
+  mo_Data,
+  mo_VoiceCall,
+  mo_VideoCall,
+  mo_SMS,
+  mps_PriorityAccess,
+  mcs_PriorityAccess,
+  spare6,
+  spare5,
+  spare4,
+  spare3,
+  spare2,
+  spare1,
+  nulltype
+};
+inline std::string to_string(const nr_establishment_cause_t& cause)
+{
+  constexpr static const char* options[] = {
+      "emergency",
+      "highPriorityAccess",
+      "mt_Access",
+      "mo_Signalling",
+      "mo_Data",
+      "mo_VoiceCall",
+      "mo_VideoCall",
+      "mo_SMS",
+      "mps_PriorityAccess",
+      "mcs_PriorityAccess",
+      "spare6",
+      "spare5",
+      "spare4",
+      "spare3",
+      "spare2",
+      "spare1",
+  };
+  return enum_to_text(options, (uint32_t)nr_establishment_cause_t::nulltype, (uint32_t)cause);
+}
+
 /***************************
  *      PHY Config
  **************************/

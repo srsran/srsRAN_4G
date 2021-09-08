@@ -35,4 +35,5 @@ srsran::proc_outcome_t nas_5g::registration_procedure::step()
   return srsran::proc_outcome_t::success;
 }
 
+
 } // namespace srsue

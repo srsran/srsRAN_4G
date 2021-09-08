@@ -2471,7 +2471,7 @@ public:
 private:
   SRSASN_CODE         unpack(asn1::cbit_ref& bref);
   SRSASN_CODE         pack(asn1::bit_ref& bref);
-  srslog::detail::any msg_container;
+  srslog::detail::any msg_container = srslog::detail::any{registration_request_t()};
 };
 } // namespace nas_5g
 } // namespace srsran

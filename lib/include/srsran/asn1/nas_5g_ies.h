@@ -329,26 +329,26 @@ private:
 class capability_5gmm_t
 {
 public:
-  bool sgc;
-  bool iphc_cp_c_io_t_5g;
-  bool n3_data;
-  bool cp_c_io_t_5g;
-  bool restrict_ec;
-  bool lpp;
-  bool ho_attach;
-  bool s1_mode;
-  bool racs;
-  bool nssaa;
-  bool lcs_5g;
-  bool v2_xcnpc5;
-  bool v2_xcepc5;
-  bool v2_x;
-  bool up_c_io_t_5g;
-  bool srvcc_5g;
-  bool ehc_cp_c_io_t_5g;
-  bool multiple_up;
-  bool wusa;
-  bool cag;
+  bool sgc               = false;
+  bool iphc_cp_c_io_t_5g = false;
+  bool n3_data           = false;
+  bool cp_c_io_t_5g      = false;
+  bool restrict_ec       = false;
+  bool lpp               = false;
+  bool ho_attach         = false;
+  bool s1_mode           = false;
+  bool racs              = false;
+  bool nssaa             = false;
+  bool lcs_5g            = false;
+  bool v2_xcnpc5         = false;
+  bool v2_xcepc5         = false;
+  bool v2_x              = false;
+  bool up_c_io_t_5g      = false;
+  bool srvcc_5g          = false;
+  bool ehc_cp_c_io_t_5g  = false;
+  bool multiple_up       = false;
+  bool wusa              = false;
+  bool cag               = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -360,39 +360,39 @@ public:
 class ue_security_capability_t
 {
 public:
-  bool ea0_5g_supported;
-  bool ea1_128_5g_supported;
-  bool ea2_128_5g_supported;
-  bool ea3_128_5g_supported;
-  bool ea4_5g_supported;
-  bool ea5_5g_supported;
-  bool ea6_5g_supported;
-  bool ea7_5g_supported;
-  bool ia0_5g_supported;
-  bool ia1_128_5g_supported;
-  bool ia2_128_5g_supported;
-  bool ia3_128_5g_supported;
-  bool ia4_5g_supported;
-  bool ia5_5g_supported;
-  bool ia6_5g_supported;
-  bool ia7_5g_supported;
-  bool eps_caps_present;
-  bool eea0_supported;
-  bool eea1_128_supported;
-  bool eea2_128_supported;
-  bool eea3_128_supported;
-  bool eea4_supported;
-  bool eea5_supported;
-  bool eea6_supported;
-  bool eea7_supported;
-  bool eia0_supported;
-  bool eia1_128_supported;
-  bool eia2_128_supported;
-  bool eia3_128_supported;
-  bool eia4_supported;
-  bool eia5_supported;
-  bool eia6_supported;
-  bool eia7_supported;
+  bool ea0_5g_supported     = false;
+  bool ea1_128_5g_supported = false;
+  bool ea2_128_5g_supported = false;
+  bool ea3_128_5g_supported = false;
+  bool ea4_5g_supported     = false;
+  bool ea5_5g_supported     = false;
+  bool ea6_5g_supported     = false;
+  bool ea7_5g_supported     = false;
+  bool ia0_5g_supported     = false;
+  bool ia1_128_5g_supported = false;
+  bool ia2_128_5g_supported = false;
+  bool ia3_128_5g_supported = false;
+  bool ia4_5g_supported     = false;
+  bool ia5_5g_supported     = false;
+  bool ia6_5g_supported     = false;
+  bool ia7_5g_supported     = false;
+  bool eps_caps_present     = false;
+  bool eea0_supported       = false;
+  bool eea1_128_supported   = false;
+  bool eea2_128_supported   = false;
+  bool eea3_128_supported   = false;
+  bool eea4_supported       = false;
+  bool eea5_supported       = false;
+  bool eea6_supported       = false;
+  bool eea7_supported       = false;
+  bool eia0_supported       = false;
+  bool eia1_128_supported   = false;
+  bool eia2_128_supported   = false;
+  bool eia3_128_supported   = false;
+  bool eia4_supported       = false;
+  bool eia5_supported       = false;
+  bool eia6_supported       = false;
+  bool eia7_supported       = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -463,67 +463,67 @@ public:
 class s1_ue_network_capability_t
 {
 public:
-  bool eea0_supported;
-  bool eea1_128_supported;
-  bool eea2_128_supported;
-  bool eea3_128_supported;
-  bool eea4_supported;
-  bool eea5_supported;
-  bool eea6_supported;
-  bool eea7_supported;
-  bool eia0_supported;
-  bool eia1_128_supported;
-  bool eia2_128_supported;
-  bool eia3_128_supported;
-  bool eia4_supported;
-  bool eia5_supported;
-  bool eia6_supported;
-  bool eia7_supported;
-  bool uea0_supported;
-  bool uea1_128_supported;
-  bool uea2_128_supported;
-  bool uea3_128_supported;
-  bool uea4_supported;
-  bool uea5_supported;
-  bool uea6_supported;
-  bool uea7_supported;
-  bool ucs2_support;
-  bool uia1_128_supported;
-  bool uia2_128_supported;
-  bool uia3_128_supported;
-  bool uia4_supported;
-  bool uia5_supported;
-  bool uia6_supported;
-  bool uia7_supported;
-  bool pro_se_dd_supported;
-  bool pro_se_supported;
-  bool h245_ash_supported;
-  bool acc_csfb_supported;
-  bool llp_supported;
-  bool lcs_supported;
-  bool srvcc_capability_supported;
-  bool nf_capability_supported;
-  bool e_pco_supported;
-  bool hc_cp_c_io_t_supported;
-  bool e_rw_o_pdn_supported;
-  bool s1_u_data_supported;
-  bool up_c_io_t_supported;
-  bool cp_c_io_t_supported;
-  bool pro_se_relay_supported;
-  bool pro_se_dc_supported;
-  bool max_15_eps_bearer_supported;
-  bool sgc_supported;
-  bool n1mode_supported;
-  bool dcnr_supported;
-  bool cp_backoff_supported;
-  bool restrict_ec_supported;
-  bool v2_x_pc5_supported;
-  bool multiple_drb_supported;
-  bool nr_pc5_supported;
-  bool up_mt_edt_supported;
-  bool cp_mt_edt_supported;
-  bool wus_supported;
-  bool racs_supported;
+  bool eea0_supported              = false;
+  bool eea1_128_supported          = false;
+  bool eea2_128_supported          = false;
+  bool eea3_128_supported          = false;
+  bool eea4_supported              = false;
+  bool eea5_supported              = false;
+  bool eea6_supported              = false;
+  bool eea7_supported              = false;
+  bool eia0_supported              = false;
+  bool eia1_128_supported          = false;
+  bool eia2_128_supported          = false;
+  bool eia3_128_supported          = false;
+  bool eia4_supported              = false;
+  bool eia5_supported              = false;
+  bool eia6_supported              = false;
+  bool eia7_supported              = false;
+  bool uea0_supported              = false;
+  bool uea1_128_supported          = false;
+  bool uea2_128_supported          = false;
+  bool uea3_128_supported          = false;
+  bool uea4_supported              = false;
+  bool uea5_supported              = false;
+  bool uea6_supported              = false;
+  bool uea7_supported              = false;
+  bool ucs2_support                = false;
+  bool uia1_128_supported          = false;
+  bool uia2_128_supported          = false;
+  bool uia3_128_supported          = false;
+  bool uia4_supported              = false;
+  bool uia5_supported              = false;
+  bool uia6_supported              = false;
+  bool uia7_supported              = false;
+  bool pro_se_dd_supported         = false;
+  bool pro_se_supported            = false;
+  bool h245_ash_supported          = false;
+  bool acc_csfb_supported          = false;
+  bool llp_supported               = false;
+  bool lcs_supported               = false;
+  bool srvcc_capability_supported  = false;
+  bool nf_capability_supported     = false;
+  bool e_pco_supported             = false;
+  bool hc_cp_c_io_t_supported      = false;
+  bool e_rw_o_pdn_supported        = false;
+  bool s1_u_data_supported         = false;
+  bool up_c_io_t_supported         = false;
+  bool cp_c_io_t_supported         = false;
+  bool pro_se_relay_supported      = false;
+  bool pro_se_dc_supported         = false;
+  bool max_15_eps_bearer_supported = false;
+  bool sgc_supported               = false;
+  bool n1mode_supported            = false;
+  bool dcnr_supported              = false;
+  bool cp_backoff_supported        = false;
+  bool restrict_ec_supported       = false;
+  bool v2_x_pc5_supported          = false;
+  bool multiple_drb_supported      = false;
+  bool nr_pc5_supported            = false;
+  bool up_mt_edt_supported         = false;
+  bool cp_mt_edt_supported         = false;
+  bool wus_supported               = false;
+  bool racs_supported              = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -535,22 +535,22 @@ public:
 class uplink_data_status_t
 {
 public:
-  bool psi_7;
-  bool psi_6;
-  bool psi_5;
-  bool psi_4;
-  bool psi_3;
-  bool psi_2;
-  bool psi_1;
-  bool psi_0;
-  bool psi_15;
-  bool psi_14;
-  bool psi_13;
-  bool psi_12;
-  bool psi_11;
-  bool psi_10;
-  bool psi_9;
-  bool psi_8;
+  bool psi_7  = false;
+  bool psi_6  = false;
+  bool psi_5  = false;
+  bool psi_4  = false;
+  bool psi_3  = false;
+  bool psi_2  = false;
+  bool psi_1  = false;
+  bool psi_0  = false;
+  bool psi_15 = false;
+  bool psi_14 = false;
+  bool psi_13 = false;
+  bool psi_12 = false;
+  bool psi_11 = false;
+  bool psi_10 = false;
+  bool psi_9  = false;
+  bool psi_8  = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -562,22 +562,22 @@ public:
 class pdu_session_status_t
 {
 public:
-  bool psi_7;
-  bool psi_6;
-  bool psi_5;
-  bool psi_4;
-  bool psi_3;
-  bool psi_2;
-  bool psi_1;
-  bool psi_0;
-  bool psi_15;
-  bool psi_14;
-  bool psi_13;
-  bool psi_12;
-  bool psi_11;
-  bool psi_10;
-  bool psi_9;
-  bool psi_8;
+  bool psi_7  = false;
+  bool psi_6  = false;
+  bool psi_5  = false;
+  bool psi_4  = false;
+  bool psi_3  = false;
+  bool psi_2  = false;
+  bool psi_1  = false;
+  bool psi_0  = false;
+  bool psi_15 = false;
+  bool psi_14 = false;
+  bool psi_13 = false;
+  bool psi_12 = false;
+  bool psi_11 = false;
+  bool psi_10 = false;
+  bool psi_9  = false;
+  bool psi_8  = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -589,8 +589,8 @@ public:
 class mico_indication_t
 {
 public:
-  bool sprti;
-  bool aai;
+  bool sprti = false;
+  bool aai   = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -602,8 +602,8 @@ public:
 class ue_status_t
 {
 public:
-  bool n1_mode_reg;
-  bool s1_mode_reg;
+  bool n1_mode_reg = false;
+  bool s1_mode_reg = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -615,22 +615,22 @@ public:
 class allowed_pdu_session_status_t
 {
 public:
-  bool psi_7;
-  bool psi_6;
-  bool psi_5;
-  bool psi_4;
-  bool psi_3;
-  bool psi_2;
-  bool psi_1;
-  bool psi_0;
-  bool psi_15;
-  bool psi_14;
-  bool psi_13;
-  bool psi_12;
-  bool psi_11;
-  bool psi_10;
-  bool psi_9;
-  bool psi_8;
+  bool psi_7  = false;
+  bool psi_6  = false;
+  bool psi_5  = false;
+  bool psi_4  = false;
+  bool psi_3  = false;
+  bool psi_2  = false;
+  bool psi_1  = false;
+  bool psi_0  = false;
+  bool psi_15 = false;
+  bool psi_14 = false;
+  bool psi_13 = false;
+  bool psi_12 = false;
+  bool psi_11 = false;
+  bool psi_10 = false;
+  bool psi_9  = false;
+  bool psi_8  = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -767,8 +767,8 @@ public:
 class network_slicing_indication_t
 {
 public:
-  bool nssci;
-  bool dcni;
+  bool nssci = false;
+  bool dcni  = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -871,22 +871,22 @@ public:
 class eps_bearer_context_status_t
 {
 public:
-  bool ebi_7;
-  bool ebi_6;
-  bool ebi_5;
-  bool ebi_4;
-  bool ebi_3;
-  bool ebi_2;
-  bool ebi_1;
-  bool ebi_0;
-  bool ebi_15;
-  bool ebi_14;
-  bool ebi_13;
-  bool ebi_12;
-  bool ebi_11;
-  bool ebi_10;
-  bool ebi_9;
-  bool ebi_8;
+  bool ebi_7  = false;
+  bool ebi_6  = false;
+  bool ebi_5  = false;
+  bool ebi_4  = false;
+  bool ebi_3  = false;
+  bool ebi_2  = false;
+  bool ebi_1  = false;
+  bool ebi_0  = false;
+  bool ebi_15 = false;
+  bool ebi_14 = false;
+  bool ebi_13 = false;
+  bool ebi_12 = false;
+  bool ebi_11 = false;
+  bool ebi_10 = false;
+  bool ebi_9  = false;
+  bool ebi_8  = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1010,7 +1010,7 @@ public:
 class additional_information_requested_t
 {
 public:
-  bool cipher_key;
+  bool cipher_key = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1032,7 +1032,7 @@ public:
 class n5gc_indication_t
 {
 public:
-  bool n5gcreg;
+  bool n5gcreg = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1181,22 +1181,22 @@ public:
 class pdu_session_reactivation_result_t
 {
 public:
-  bool psi_7;
-  bool psi_6;
-  bool psi_5;
-  bool psi_4;
-  bool psi_3;
-  bool psi_2;
-  bool psi_1;
-  bool psi_0;
-  bool psi_15;
-  bool psi_14;
-  bool psi_13;
-  bool psi_12;
-  bool psi_11;
-  bool psi_10;
-  bool psi_9;
-  bool psi_8;
+  bool psi_7  = false;
+  bool psi_6  = false;
+  bool psi_5  = false;
+  bool psi_4  = false;
+  bool psi_3  = false;
+  bool psi_2  = false;
+  bool psi_1  = false;
+  bool psi_0  = false;
+  bool psi_15 = false;
+  bool psi_14 = false;
+  bool psi_13 = false;
+  bool psi_12 = false;
+  bool psi_11 = false;
+  bool psi_10 = false;
+  bool psi_9  = false;
+  bool psi_8  = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1326,7 +1326,7 @@ public:
 class non_3_gpp_nw_provided_policies_t
 {
 public:
-  bool n3_en;
+  bool n3_en = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1632,7 +1632,7 @@ public:
 class sms_indication_t
 {
 public:
-  bool sms_availability_indication;
+  bool sms_availability_indication = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1785,8 +1785,9 @@ public:
   };
   typedef nas_enumerated<ciphering_algorithm_type_, 4> ciphering_algorithm_type;
 
-  ciphering_algorithm_type            ciphering_algorithm;
-  integrity_protection_algorithm_type integrity_protection_algorithm;
+  ciphering_algorithm_type            ciphering_algorithm = ciphering_algorithm_type_::options::ea0_5g;
+  integrity_protection_algorithm_type integrity_protection_algorithm =
+      integrity_protection_algorithm_type_::options::ia0_5g;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1808,7 +1809,7 @@ public:
   };
   typedef nas_enumerated<imeisv_request_type_, 3> imeisv_request_type;
 
-  imeisv_request_type imeisv_request;
+  imeisv_request_type imeisv_request = imeisv_request_type_::options::imeisv_not_requested;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1852,8 +1853,9 @@ public:
   };
   typedef nas_enumerated<ciphering_algorithm_type_, 3> ciphering_algorithm_type;
 
-  ciphering_algorithm_type            ciphering_algorithm;
-  integrity_protection_algorithm_type integrity_protection_algorithm;
+  ciphering_algorithm_type            ciphering_algorithm = ciphering_algorithm_type_::options::eea0;
+  integrity_protection_algorithm_type integrity_protection_algorithm =
+      integrity_protection_algorithm_type_::options::eia0;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1865,8 +1867,8 @@ public:
 class additional_5g_security_information_t
 {
 public:
-  bool rinmr;
-  bool hdp;
+  bool rinmr = false;
+  bool hdp   = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1878,44 +1880,44 @@ public:
 class s1_ue_security_capability_t
 {
 public:
-  bool eea0;
-  bool eea1_128;
-  bool eea2_128;
-  bool eea3_128;
-  bool eea4;
-  bool eea5;
-  bool eea6;
-  bool eea7;
-  bool eia0;
-  bool eia1_128;
-  bool eia2_128;
-  bool eia3_128;
-  bool eia4;
-  bool eia5;
-  bool eia6;
-  bool eia7;
-  bool uea0;
-  bool uea1;
-  bool uea2;
-  bool uea3;
-  bool uea4;
-  bool uea5;
-  bool uea6;
-  bool uea7;
-  bool uia1;
-  bool uia2;
-  bool uia3;
-  bool uia4;
-  bool uia5;
-  bool uia6;
-  bool uia7;
-  bool gea1;
-  bool gea2;
-  bool gea3;
-  bool gea4;
-  bool gea5;
-  bool gea6;
-  bool gea7;
+  bool eea0     = false;
+  bool eea1_128 = false;
+  bool eea2_128 = false;
+  bool eea3_128 = false;
+  bool eea4     = false;
+  bool eea5     = false;
+  bool eea6     = false;
+  bool eea7     = false;
+  bool eia0     = false;
+  bool eia1_128 = false;
+  bool eia2_128 = false;
+  bool eia3_128 = false;
+  bool eia4     = false;
+  bool eia5     = false;
+  bool eia6     = false;
+  bool eia7     = false;
+  bool uea0     = false;
+  bool uea1     = false;
+  bool uea2     = false;
+  bool uea3     = false;
+  bool uea4     = false;
+  bool uea5     = false;
+  bool uea6     = false;
+  bool uea7     = false;
+  bool uia1     = false;
+  bool uia2     = false;
+  bool uia3     = false;
+  bool uia4     = false;
+  bool uia5     = false;
+  bool uia6     = false;
+  bool uia7     = false;
+  bool gea1     = false;
+  bool gea2     = false;
+  bool gea3     = false;
+  bool gea4     = false;
+  bool gea5     = false;
+  bool gea6     = false;
+  bool gea7     = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2157,7 +2159,7 @@ public:
 class always_on_pdu_session_requested_t
 {
 public:
-  bool apsi;
+  bool apsi = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2271,7 +2273,7 @@ public:
   };
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
-  bool                        si6_lla;
+  bool                        si6_lla                = false;
   PDU_session_type_value_type pdu_session_type_value = PDU_session_type_value_type_::options::ipv4;
   std::array<uint8_t, 4>      ipv4;
   std::array<uint8_t, 16>     ipv6;
@@ -2437,7 +2439,7 @@ public:
 class always_on_pdu_session_indication_t
 {
 public:
-  bool apsr;
+  bool apsr = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2515,7 +2517,7 @@ public:
 class control_plane_only_indication_t
 {
 public:
-  bool cpoi;
+  bool cpoi = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2527,9 +2529,9 @@ public:
 class allowed_ssc_mode_t
 {
 public:
-  bool ssc3;
-  bool ssc2;
-  bool ssc1;
+  bool ssc3 = false;
+  bool ssc2 = false;
+  bool ssc1 = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2564,8 +2566,8 @@ public:
 class re_attempt_indicator_t
 {
 public:
-  bool eplmnc;
-  bool ratc;
+  bool eplmnc = false;
+  bool ratc   = false;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
