@@ -33,6 +33,11 @@ int bands_test_nr()
   // b32 b75
   TESTASSERT(bands.nr_arfcn_to_freq(290400) == 1452.0e6);
   TESTASSERT(bands.nr_arfcn_to_freq(294400) == 1472.0e6);
+  // b5
+  TESTASSERT(bands.get_duplex_mode(5) == SRSRAN_DUPLEX_MODE_FDD);
+  TESTASSERT(bands.nr_arfcn_to_freq(176300) == 881.5e6);
+  TESTASSERT(bands.get_ul_arfcn_from_dl_arfcn(176300) == 167300);
+  TESTASSERT(bands.nr_arfcn_to_freq(167300) == 836.5e6);
   // b3
   TESTASSERT(bands.nr_arfcn_to_freq(342000) == 1710.0e6);
   TESTASSERT(bands.nr_arfcn_to_freq(348000) == 1740.0e6);
