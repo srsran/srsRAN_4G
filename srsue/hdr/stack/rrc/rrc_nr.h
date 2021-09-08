@@ -42,7 +42,6 @@ struct rrc_nr_args_t {
   core_less_args_t      coreless;
   uint32_t              sim_nr_meas_pci;
   bool                  pdcp_short_sn_support;
-  bool                  skip_rar;
   std::string           supported_bands_nr_str;
   std::vector<uint32_t> supported_bands_nr;
   std::vector<uint32_t> supported_bands_eutra;

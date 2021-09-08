@@ -132,7 +132,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("rrc.mbms_service_port",   bpo::value<uint32_t>(&args->stack.rrc.mbms_service_port)->default_value(4321),                    "Port of the MBMS service")
     ("rrc.nr_measurement_pci",  bpo::value<uint32_t>(&args->stack.rrc_nr.sim_nr_meas_pci)->default_value(500),                    "NR PCI for the simulated NR measurement")
     ("rrc.nr_short_sn_support", bpo::value<bool>(&args->stack.rrc_nr.pdcp_short_sn_support)->default_value(true),                 "Announce PDCP short SN support")
-    ("rrc.skip_nr_rar",         bpo::value<bool>(&args->stack.rrc_nr.skip_rar)->default_value(false),                             "Whether to skip RAR reception (temporary feature)")
 
     ("nas.apn",               bpo::value<string>(&args->stack.nas.apn_name)->default_value(""),          "Set Access Point Name (APN) for data services")
     ("nas.apn_protocol",      bpo::value<string>(&args->stack.nas.apn_protocol)->default_value(""),  "Set Access Point Name (APN) protocol for data services")
