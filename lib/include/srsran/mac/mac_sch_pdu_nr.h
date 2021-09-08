@@ -111,10 +111,63 @@ private:
   int      header_length = 0;
   int      sdu_length    = 0;
   bool     F_bit         = false;
-  uint8_t* sdu           = nullptr;
 
-  static const uint8_t mac_ce_payload_len = 8 + 1;         // Long BSR has max. 9 octets (see sizeof_ce() too)
-  std::array<uint8_t, mac_ce_payload_len> ce_write_buffer; // Buffer for CE payload
+  /// This helper class manages a SDU pointer that can point to either a user provided external buffer or to a small
+  /// internal buffer, useful for storing very short SDUs.
+  class sdu_buffer
+  {
+    static const uint8_t mac_ce_payload_len = 8 + 1;         // Long BSR has max. 9 octets (see sizeof_ce() too)
+    std::array<uint8_t, mac_ce_payload_len> ce_write_buffer; // Buffer for CE payload
+    uint8_t*                                sdu = nullptr;
+
+  public:
+    sdu_buffer() = default;
+
+    sdu_buffer(const sdu_buffer& other) : ce_write_buffer(other.ce_write_buffer)
+    {
+      // First check if we need to use internal storage.
+      if (other.sdu == other.ce_write_buffer.data()) {
+        sdu = ce_write_buffer.data();
+        return;
+      }
+      sdu = other.sdu;
+    }
+
+    sdu_buffer& operator=(const sdu_buffer& other)
+    {
+      if (this == &other) {
+        return *this;
+      }
+      ce_write_buffer = other.ce_write_buffer;
+      if (other.sdu == other.ce_write_buffer.data()) {
+        sdu = ce_write_buffer.data();
+        return *this;
+      }
+      sdu = other.sdu;
+      return *this;
+    }
+
+    explicit operator bool() const { return sdu; }
+
+    /// Set the SDU pointer to use the internal buffer.
+    uint8_t* use_internal_storage()
+    {
+      sdu = ce_write_buffer.data();
+      return sdu;
+    }
+
+    /// Set the SDU pointer to point to the provided buffer.
+    uint8_t* set_storage_to(uint8_t* p)
+    {
+      sdu = p;
+      return sdu;
+    }
+
+    /// Returns the SDU pointer.
+    uint8_t* ptr() { return sdu; }
+  };
+
+  sdu_buffer sdu;
 
   mac_sch_pdu_nr* parent = nullptr;
 };
