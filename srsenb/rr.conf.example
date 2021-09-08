@@ -98,3 +98,8 @@ cell_list =
   }
   // Add here more cells
 );
+
+nr_cell_list =
+(
+  // no NR cells
+);
