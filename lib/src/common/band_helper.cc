@@ -32,7 +32,7 @@ double srsran_band_helper::nr_arfcn_to_freq(uint32_t nr_arfcn)
   return (params.F_REF_Offs_MHz * 1e6 + params.delta_F_global_kHz * (nr_arfcn - params.N_REF_Offs) * 1e3);
 }
 
-// Implements 5.4.2.1 in TS 38.401
+// Implements 5.4.2.1 in TS 38.104
 std::vector<uint32_t> srsran_band_helper::get_bands_nr(uint32_t                             nr_arfcn,
                                                        srsran_band_helper::delta_f_raster_t delta_f_raster)
 {
@@ -76,6 +76,24 @@ uint16_t srsran_band_helper::get_band_from_dl_arfcn(uint32_t arfcn) const
       return band.band;
     }
   }
+  return UINT16_MAX;
+}
+
+uint32_t srsran_band_helper::get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const
+{
+  // return same ARFCN for TDD bands
+  if (get_duplex_mode(get_band_from_dl_arfcn(dl_arfcn)) == SRSRAN_DUPLEX_MODE_TDD) {
+    return dl_arfcn;
+  }
+
+  // derive UL ARFCN for FDD bands
+  for (const auto& band : nr_band_table_fr1) {
+    if (band.band == get_band_from_dl_arfcn(dl_arfcn)) {
+      uint32_t offset = (dl_arfcn - band.dl_nref_first) / band.dl_nref_step;
+      return (band.ul_nref_first + offset * band.ul_nref_step);
+    }
+  }
+
   return UINT16_MAX;
 }
 

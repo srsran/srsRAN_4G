@@ -60,6 +60,17 @@ public:
   uint16_t get_band_from_dl_arfcn(uint32_t arfcn) const;
 
   /**
+   * @brief Get the respective UL ARFCN of a DL ARFCN
+   *
+   * For paired spectrum (FDD) the function returns the respective ARFCN in the same band.
+   * For unparied spectrum (TDD) the function returns the same ARFCN.
+   *
+   * @param dl_arfcn   The DL ARFCN
+   * @return uint32_t
+   */
+  uint32_t get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const;
+
+  /**
    * @brief Selects the SSB pattern case according to the band number and subcarrier spacing
    * @remark Described by TS 38.101-1 Table 5.4.3.3-1: Applicable SS raster entries per operating band
    * @param band NR Band number
