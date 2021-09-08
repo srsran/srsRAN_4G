@@ -55,8 +55,8 @@ public:
   };
   typedef nas_enumerated<follow_on_request_bit_type_, 1> follow_on_request_bit_type;
 
-  follow_on_request_bit_type follow_on_request_bit;
-  registration_type_type     registration_type;
+  follow_on_request_bit_type follow_on_request_bit = follow_on_request_bit_type_::options::no_follow_on_request_pending;
+  registration_type_type     registration_type     = registration_type_type_::options::initial_registration;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -87,8 +87,9 @@ public:
   };
   typedef nas_enumerated<nas_key_set_identifier_type_, 3> nas_key_set_identifier_type;
 
-  security_context_flag_type  security_context_flag;
-  nas_key_set_identifier_type nas_key_set_identifier;
+  security_context_flag_type  security_context_flag = security_context_flag_type_::options::native_security_context;
+  nas_key_set_identifier_type nas_key_set_identifier =
+      nas_key_set_identifier_type_::options::no_key_is_available_or_reserved;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -274,42 +275,42 @@ public:
 
   guti_5g_s& set_guti_5g()
   {
-    set(identity_types::guti_5g);
+    set(identity_types::guti_5g);  
     choice_container = srslog::detail::any{guti_5g_s()};
     return *srslog::detail::any_cast<guti_5g_s>(&choice_container);
   }
 
   imei_s& set_imei()
   {
-    set(identity_types::imei);
+    set(identity_types::imei);  
     choice_container = srslog::detail::any{imei_s()};
     return *srslog::detail::any_cast<imei_s>(&choice_container);
   }
 
   s_tmsi_5g_s& set_s_tmsi_5g()
   {
-    set(identity_types::s_tmsi_5g);
+    set(identity_types::s_tmsi_5g);  
     choice_container = srslog::detail::any{s_tmsi_5g_s()};
     return *srslog::detail::any_cast<s_tmsi_5g_s>(&choice_container);
   }
 
   imeisv_s& set_imeisv()
   {
-    set(identity_types::imeisv);
+    set(identity_types::imeisv);  
     choice_container = srslog::detail::any{imeisv_s()};
     return *srslog::detail::any_cast<imeisv_s>(&choice_container);
   }
 
   mac_address_s& set_mac_address()
   {
-    set(identity_types::mac_address);
+    set(identity_types::mac_address);  
     choice_container = srslog::detail::any{mac_address_s()};
     return *srslog::detail::any_cast<mac_address_s>(&choice_container);
   }
 
   eui_64_s& set_eui_64()
   {
-    set(identity_types::eui_64);
+    set(identity_types::eui_64);  
     choice_container = srslog::detail::any{eui_64_s()};
     return *srslog::detail::any_cast<eui_64_s>(&choice_container);
   }
@@ -318,7 +319,7 @@ public:
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 private:
-  identity_types      type_;
+  identity_types      type_ = identity_types_::options::no_identity;
   srslog::detail::any choice_container;
 
 }; // mobile_identity_5gs_t
@@ -428,6 +429,8 @@ public:
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 }; // s_nssai_t
+
+
 
 // IE: NSSAI
 // Reference: 9.11.3.37
@@ -649,7 +652,7 @@ public:
   };
   typedef nas_enumerated<UE_usage_setting_type_, 1> UE_usage_setting_type;
 
-  UE_usage_setting_type ue_usage_setting;
+  UE_usage_setting_type ue_usage_setting = UE_usage_setting_type_::options::voice_centric;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -674,7 +677,7 @@ public:
   };
   typedef nas_enumerated<drx_value_type_, 4> drx_value_type;
 
-  drx_value_type drx_value;
+  drx_value_type drx_value = drx_value_type_::options::drx_value_not_specified;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -740,7 +743,7 @@ public:
   };
   typedef nas_enumerated<Payload_container_type_type_, 4> Payload_container_type_type;
 
-  Payload_container_type_type payload_container_type;
+  Payload_container_type_type payload_container_type = Payload_container_type_type_::options::n1_sm_information;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -821,10 +824,10 @@ public:
   };
   typedef nas_enumerated<PNB_EPS_CIoT_type_, 2> PNB_EPS_CIoT_type;
 
-  PNB_EPS_CIoT_type  pnb_eps_c_io_t;
-  PNB_5GS_CIoT_type  pnb_5gs_c_io_t;
-  NG_RAN_RCU_type    ng_ran_rcu;
-  SMS_requested_type sms_requested;
+  PNB_EPS_CIoT_type  pnb_eps_c_io_t = PNB_EPS_CIoT_type_::options::no_additional_information;
+  PNB_5GS_CIoT_type  pnb_5gs_c_io_t = PNB_5GS_CIoT_type_::options::no_additional_information;
+  NG_RAN_RCU_type    ng_ran_rcu     = NG_RAN_RCU_type_::options::ue_radio_capability_update_not_needed;
+  SMS_requested_type sms_requested  = SMS_requested_type_::options::sms_over_nas_not_supported;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1056,7 +1059,7 @@ public:
   };
   typedef nas_enumerated<nb_n1_mode_drx_value_type_, 4> nb_n1_mode_drx_value_type;
 
-  nb_n1_mode_drx_value_type nb_n1_mode_drx_value;
+  nb_n1_mode_drx_value_type nb_n1_mode_drx_value = nb_n1_mode_drx_value_type_::options::drx_value_not_specified;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1110,10 +1113,11 @@ public:
   };
   typedef nas_enumerated<registration_result_type_, 3> registration_result_type;
 
-  Emergency_registered_type  emergency_registered;
-  NSSAA_to_be_performed_type nssaa_to_be_performed;
-  SMS_allowed_type           sms_allowed;
-  registration_result_type   registration_result;
+  Emergency_registered_type emergency_registered =
+      Emergency_registered_type_::options::not_registered_for_emergency_services;
+  NSSAA_to_be_performed_type nssaa_to_be_performed = NSSAA_to_be_performed_type_::options::nssaa_is_to_be_performed;
+  SMS_allowed_type           sms_allowed           = SMS_allowed_type_::options::sms_over_nas_not_allowed;
+  registration_result_type   registration_result   = registration_result_type_::options::access_3_gpp;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1300,7 +1304,7 @@ public:
   };
   typedef nas_enumerated<NSSAI_inclusion_mode_type_, 2> NSSAI_inclusion_mode_type;
 
-  NSSAI_inclusion_mode_type nssai_inclusion_mode;
+  NSSAI_inclusion_mode_type nssai_inclusion_mode = NSSAI_inclusion_mode_type_::options::nssai_inclusion_mode_a;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1344,7 +1348,8 @@ public:
   };
   typedef nas_enumerated<Deletion_request_type_, 3> Deletion_request_type;
 
-  Deletion_request_type deletion_request;
+  Deletion_request_type deletion_request =
+      Deletion_request_type_::options::ue_radio_capability_id_deletion_not_requested;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1439,7 +1444,7 @@ public:
   };
   typedef nas_enumerated<cause_5gmm_type_, 8> cause_5gmm_type;
 
-  cause_5gmm_type cause_5gmm;
+  cause_5gmm_type cause_5gmm = cause_5gmm_type_::options::illegal_ue;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1482,9 +1487,10 @@ public:
   };
   typedef nas_enumerated<access_type_type_, 2> access_type_type;
 
-  switch_off_type               switch_off;
-  re_registration_required_type re_registration_required;
-  access_type_type              access_type;
+  switch_off_type               switch_off = switch_off_type_::options::normal_de_registration;
+  re_registration_required_type re_registration_required =
+      re_registration_required_type_::options::re_registration_not_required;
+  access_type_type access_type = access_type_type_::options::access_3_gpp;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1526,7 +1532,7 @@ public:
   };
   typedef nas_enumerated<Service_type_value_type_, 4> Service_type_value_type;
 
-  Service_type_value_type service_type_value;
+  Service_type_value_type service_type_value = Service_type_value_type_::options::signalling;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1550,7 +1556,8 @@ public:
   };
   typedef nas_enumerated<control_plane_service_type_value_type_, 3> control_plane_service_type_value_type;
 
-  control_plane_service_type_value_type control_plane_service_type_value;
+  control_plane_service_type_value_type control_plane_service_type_value =
+      control_plane_service_type_value_type_::options::mobile_originating_request;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1613,7 +1620,7 @@ public:
   };
   typedef nas_enumerated<value_type_, 3> value_type;
 
-  value_type value;
+  value_type value = value_type_::options::no_adjustment_for_daylight_saving_time;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1647,7 +1654,7 @@ public:
   };
   typedef nas_enumerated<SCMR_type_, 1> SCMR_type;
 
-  SCMR_type scmr;
+  SCMR_type scmr = SCMR_type_::options::no_additional_information;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1734,7 +1741,7 @@ public:
   };
   typedef nas_enumerated<identity_types_, 3> identity_types;
 
-  identity_types type_of_identity;
+  identity_types type_of_identity = identity_types_::options::suci;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1930,7 +1937,7 @@ public:
   };
   typedef nas_enumerated<Access_type_value_type_, 2> Access_type_value_type;
 
-  Access_type_value_type access_type_value;
+  Access_type_value_type access_type_value = Access_type_value_type_::options::access_3_gpp;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1969,7 +1976,7 @@ public:
   };
   typedef nas_enumerated<Request_type_value_type_, 3> Request_type_value_type;
 
-  Request_type_value_type request_type_value;
+  Request_type_value_type request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2002,7 +2009,8 @@ public:
   };
   typedef nas_enumerated<MA_PDU_session_information_value_type_, 4> MA_PDU_session_information_value_type;
 
-  MA_PDU_session_information_value_type ma_pdu_session_information_value;
+  MA_PDU_session_information_value_type ma_pdu_session_information_value =
+      MA_PDU_session_information_value_type_::options::ma_pdu_session_network_upgrade_is_allowed;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2026,7 +2034,8 @@ public:
   };
   typedef nas_enumerated<Downlink_data_expected_type_, 2> Downlink_data_expected_type;
 
-  Downlink_data_expected_type downlink_data_expected;
+  Downlink_data_expected_type downlink_data_expected =
+      Downlink_data_expected_type_::options::no_information_regarding_ddx_is_conveyed;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2060,8 +2069,8 @@ public:
   };
   typedef nas_enumerated<max_data_rate_UPIP_downlink_type_, 8> max_data_rate_UPIP_downlink_type;
 
-  max_data_rate_UPIP_uplink_type   max_data_rate_upip_uplink;
-  max_data_rate_UPIP_downlink_type max_data_rate_upip_downlink;
+  max_data_rate_UPIP_uplink_type   max_data_rate_upip_uplink   = max_data_rate_UPIP_uplink_type_::options::kbps_64;
+  max_data_rate_UPIP_downlink_type max_data_rate_upip_downlink = max_data_rate_UPIP_downlink_type_::options::kbps_64;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2087,7 +2096,7 @@ public:
   };
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
-  PDU_session_type_value_type pdu_session_type_value;
+  PDU_session_type_value_type pdu_session_type_value = PDU_session_type_value_type_::options::ipv4;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2114,7 +2123,7 @@ public:
   };
   typedef nas_enumerated<SSC_mode_value_type_, 3> SSC_mode_value_type;
 
-  SSC_mode_value_type ssc_mode_value;
+  SSC_mode_value_type ssc_mode_value = ssc_mode_t::SSC_mode_value_type_::options::ssc_mode_1;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2239,7 +2248,7 @@ public:
   };
   typedef nas_enumerated<CID_Length_type_, 2> CID_Length_type;
 
-  CID_Length_type cid__length;
+  CID_Length_type cid__length = CID_Length_type_::options::ethernet_header_compression_not_used;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2263,7 +2272,7 @@ public:
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
   bool                        si6_lla;
-  PDU_session_type_value_type pdu_session_type_value;
+  PDU_session_type_value_type pdu_session_type_value = PDU_session_type_value_type_::options::ipv4;
   std::array<uint8_t, 4>      ipv4;
   std::array<uint8_t, 16>     ipv6;
   std::array<uint8_t, 16>     smf_i_pv6_link_local_address;
@@ -2325,9 +2334,9 @@ public:
   };
   typedef nas_enumerated<unit_session_AMBR_type_, 8> unit_session_AMBR_type;
 
-  unit_session_AMBR_type unit_session_ambr_for_downlink;
+  unit_session_AMBR_type unit_session_ambr_for_downlink = unit_session_AMBR_type_::options::not_used;
   uint16_t               session_ambr_for_downlink;
-  unit_session_AMBR_type unit_session_ambr_for_uplink;
+  unit_session_AMBR_type unit_session_ambr_for_uplink = unit_session_AMBR_type_::options::not_used;
   uint16_t               session_ambr_for_uplink;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2391,7 +2400,7 @@ public:
   };
   typedef nas_enumerated<cause_value_type_, 8> cause_value_type;
 
-  cause_value_type cause_value;
+  cause_value_type cause_value = cause_value_type_::options::operator_determined_barring;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2470,7 +2479,7 @@ public:
   };
   typedef nas_enumerated<EPT_S1_type_, 1> EPT_S1_type;
 
-  EPT_S1_type ept_s1;
+  EPT_S1_type ept_s1 = EPT_S1_type_::options::ethernet_pdn_type_in_s1_mode_not_supported;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2542,7 +2551,8 @@ public:
   };
   typedef nas_enumerated<abo_type_, 1> abo_type;
 
-  abo_type abo;
+  abo_type abo =
+      congestion_re_attempt_indicator_5gsm_t::abo_type_::options::the_back_off_timer_is_applied_in_the_registered_plmn;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
