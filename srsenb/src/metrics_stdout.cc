@@ -78,20 +78,18 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   }
 
   if (metrics.rf.rf_error) {
-    printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
+    fmt::print("RF status: O={}, U={}, L={}\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 
   if (metrics.stack.rrc.ues.size() == 0) {
     return;
   }
 
-  std::ios::fmtflags f(cout.flags()); // For avoiding Coverity defect: Not restoring ostream format
-
   if (++n_reports > 10) {
     n_reports = 0;
-    cout << endl;
-    cout << "------DL-------------------------------UL--------------------------------------------" << endl;
-    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  pusch  pucch  phr mcs brate   ok  nok  (%)   bsr" << endl;
+    fmt::print("\n");
+    fmt::print("-------------------DL--------------------|-------------------------UL-------------------------\n");
+    fmt::print("rnti  cqi  ri  mcs  brate   ok  nok  (%) | pusch  pucch  phr  mcs  brate   ok  nok  (%)    bsr\n");
   }
 
   for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
@@ -100,77 +98,87 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       break;
     }
     if (metrics.stack.mac.ues[i].tx_errors > metrics.stack.mac.ues[i].tx_pkts) {
-      printf("tx caution errors %d > %d\n", metrics.stack.mac.ues[i].tx_errors, metrics.stack.mac.ues[i].tx_pkts);
+      fmt::print("tx caution errors {} > {}\n", metrics.stack.mac.ues[i].tx_errors, metrics.stack.mac.ues[i].tx_pkts);
     }
     if (metrics.stack.mac.ues[i].rx_errors > metrics.stack.mac.ues[i].rx_pkts) {
-      printf("rx caution errors %d > %d\n", metrics.stack.mac.ues[i].rx_errors, metrics.stack.mac.ues[i].rx_pkts);
+      fmt::print("rx caution errors {} > {}\n", metrics.stack.mac.ues[i].rx_errors, metrics.stack.mac.ues[i].rx_pkts);
     }
 
-    cout << int_to_hex_string(metrics.stack.mac.ues[i].rnti, 4) << " ";
+    fmt::print("{:>4x}", metrics.stack.mac.ues[i].rnti);
     if (not iszero(metrics.stack.mac.ues[i].dl_cqi)) {
-      cout << float_to_string(metrics.stack.mac.ues[i].dl_cqi, 1, 3);
+      fmt::print("  {:>3}", int(metrics.stack.mac.ues[i].dl_cqi));
     } else {
-      cout << "n/a";
+      fmt::print("  {:>3.3}", "n/a");
     }
-    cout << float_to_string(metrics.stack.mac.ues[i].dl_ri, 1, 4);
+    fmt::print("   {:>1}", int(metrics.stack.mac.ues[i].dl_ri));
     if (not isnan(metrics.phy[i].dl.mcs)) {
-      cout << float_to_string(metrics.phy[i].dl.mcs, 1, 4);
+      fmt::print("   {:>2}", int(metrics.phy[i].dl.mcs));
     } else {
-      cout << float_to_string(0, 2, 4);
+      fmt::print("   {:>2}", 0);
     }
     if (metrics.stack.mac.ues[i].tx_brate > 0) {
-      cout << float_to_eng_string((float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3), 1);
+      fmt::print(
+          " {:>6.6}",
+          float_to_eng_string((float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3), 1));
     } else {
-      cout << float_to_string(0, 1, 6) << "";
+      fmt::print(" {:>6}", 0);
     }
-    cout << std::setw(5) << metrics.stack.mac.ues[i].tx_pkts - metrics.stack.mac.ues[i].tx_errors;
-    cout << std::setw(5) << metrics.stack.mac.ues[i].tx_errors;
+    fmt::print(" {:>4}", metrics.stack.mac.ues[i].tx_pkts - metrics.stack.mac.ues[i].tx_errors);
+    fmt::print(" {:>4}", metrics.stack.mac.ues[i].tx_errors);
     if (metrics.stack.mac.ues[i].tx_pkts > 0 && metrics.stack.mac.ues[i].tx_errors) {
-      cout << float_to_string((float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts, 1, 4)
-           << "%";
+      fmt::print(" {:>3}%", int((float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts));
     } else {
-      cout << float_to_string(0, 1, 4) << "%";
+      fmt::print(" {:>3}%", 0);
     }
-    cout << "  ";
+
+    fmt::print(" |");
+
+    auto clamp_sinr = [](float sinr) {
+      if (sinr > 99.9f) {
+        return 99.9f;
+      }
+      if (sinr < -99.9f) {
+        return -99.9f;
+      }
+      return sinr;
+    };
 
     if (not isnan(metrics.phy[i].ul.pusch_sinr) and not iszero(metrics.phy[i].ul.pusch_sinr)) {
-      cout << float_to_string(metrics.phy[i].ul.pusch_sinr, 2, 5);
+      fmt::print(" {:>5.1f}", clamp_sinr(metrics.phy[i].ul.pusch_sinr));
     } else {
-      cout << "  n/a";
+      fmt::print(" {:>5.5}", "n/a");
     }
 
     if (not isnan(metrics.phy[i].ul.pucch_sinr) and not iszero(metrics.phy[i].ul.pucch_sinr)) {
-      cout << float_to_string(metrics.phy[i].ul.pucch_sinr, 2, 6);
+      fmt::print("  {:>5.1f}", clamp_sinr(metrics.phy[i].ul.pucch_sinr));
     } else {
-      cout << "   n/a";
+      fmt::print("  {:>5.5}", "n/a");
     }
-    cout << " ";
 
-    cout << float_to_string(metrics.stack.mac.ues[i].phr, 2, 5);
+    fmt::print("  {:>3}", int(metrics.stack.mac.ues[i].phr));
     if (not isnan(metrics.phy[i].ul.mcs)) {
-      cout << float_to_string(metrics.phy[i].ul.mcs, 1, 4);
+      fmt::print("   {:>2}", int(metrics.phy[i].ul.mcs));
     } else {
-      cout << float_to_string(0, 1, 4);
+      fmt::print("   {:>2}", 0);
     }
     if (metrics.stack.mac.ues[i].rx_brate > 0) {
-      cout << float_to_eng_string((float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3), 1);
+      fmt::print(
+          " {:>6.6}",
+          float_to_eng_string((float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3), 1));
     } else {
-      cout << float_to_string(0, 1) << "";
+      fmt::print(" {:>6}", 0);
     }
-    cout << std::setw(5) << metrics.stack.mac.ues[i].rx_pkts - metrics.stack.mac.ues[i].rx_errors;
-    cout << std::setw(5) << metrics.stack.mac.ues[i].rx_errors;
+    fmt::print(" {:>4}", metrics.stack.mac.ues[i].rx_pkts - metrics.stack.mac.ues[i].rx_errors);
+    fmt::print(" {:>4}", metrics.stack.mac.ues[i].rx_errors);
 
     if (metrics.stack.mac.ues[i].rx_pkts > 0 && metrics.stack.mac.ues[i].rx_errors > 0) {
-      cout << float_to_string((float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts, 1, 4)
-           << "%";
+      fmt::print(" {:>3}%", int((float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts));
     } else {
-      cout << float_to_string(0, 1, 4) << "%";
+      fmt::print(" {:>3}%", 0);
     }
-    cout << float_to_eng_string(metrics.stack.mac.ues[i].ul_buffer, 2);
-    cout << endl;
+    fmt::print(" {:>6.6}", float_to_eng_string(metrics.stack.mac.ues[i].ul_buffer, 2));
+    fmt::print("\n");
   }
-
-  cout.flags(f); // For avoiding Coverity defect: Not restoring ostream format
 }
 
 std::string metrics_stdout::float_to_string(float f, int digits, int field_width)
@@ -187,13 +195,6 @@ std::string metrics_stdout::float_to_string(float f, int digits, int field_width
     precision = 0;
   }
   os << std::setw(field_width) << std::fixed << std::setprecision(precision) << f;
-  return os.str();
-}
-
-std::string metrics_stdout::int_to_hex_string(int value, int field_width)
-{
-  std::ostringstream os;
-  os << std::hex << std::setw(field_width) << value;
   return os.str();
 }
 
