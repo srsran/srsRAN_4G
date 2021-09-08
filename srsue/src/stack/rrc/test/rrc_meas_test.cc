@@ -101,9 +101,9 @@ class mac_test : public srsue::mac_interface_rrc
 {
 public:
   srsran::task_sched_handle task_sched;
-  rrc*                      rrc_ptr;
+  srsue::rrc*               rrc_ptr;
 
-  mac_test(rrc* rrc_, srsran::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
+  mac_test(srsue::rrc* rrc_, srsran::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
 
   int get_dlsch_with_sib1(bcch_dl_sch_msg_s& dlsch_msg)
   {
