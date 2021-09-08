@@ -741,16 +741,21 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   cqi_report_cnfg.add_field(new parser::field<bool>("simultaneousAckCQI", &rrc_cfg_->cqi_cfg.simultaneousAckCQI));
   cqi_report_cnfg.add_field(new field_sf_mapping(rrc_cfg_->cqi_cfg.sf_mapping, &rrc_cfg_->cqi_cfg.nof_subframes, 1));
 
-  /* RRC config section */
-  parser::section rrc_cnfg("cell_list");
-  rrc_cnfg.set_optional(&rrc_cfg_->meas_cfg_present);
-  rrc_cnfg.add_field(new rr_sections::cell_list_section(args_, rrc_cfg_));
+  // EUTRA RRC and cell config section
+  parser::section cell_cnfg("cell_list");
+  cell_cnfg.set_optional(&rrc_cfg_->meas_cfg_present);
+  cell_cnfg.add_field(new rr_sections::cell_list_section(args_, rrc_cfg_));
+
+  // NR RRC and cell config section
+  parser::section nr_cell_cnfg("nr_cell_list");
+  nr_cell_cnfg.add_field(new rr_sections::nr_cell_list_section(args_, rrc_cfg_));
 
   // Run parser with two sections
   parser p(args_->enb_files.rr_config);
   p.add_section(&mac_cnfg);
   p.add_section(&phy_cfg_);
-  p.add_section(&rrc_cnfg);
+  p.add_section(&cell_cnfg);
+  p.add_section(&nr_cell_cnfg);
 
   return p.parse();
 }
@@ -864,15 +869,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
       HANDLEPARSERCODE(parse_scell_list(cell_cfg, cellroot));
     }
 
-    std::string type = "lte";
-    if (cellroot.exists("type")) {
-      cellroot.lookupValue("type", type);
-    }
-    if (type == "lte") {
-      rrc_cfg->cell_list.push_back(cell_cfg);
-    } else if (type == "nr") {
-      rrc_cfg->cell_list_nr.push_back(cell_cfg);
-    }
+    rrc_cfg->cell_list.push_back(cell_cfg);
   }
 
   // Configuration check
@@ -895,9 +892,64 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
   return SRSRAN_SUCCESS;
 }
 
+static int parse_nr_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
+{
+  for (uint32_t n = 0; n < (uint32_t)root.getLength(); ++n) {
+    cell_cfg_t cell_cfg = {};
+    auto&      cellroot = root[n];
+
+    parse_opt_field(cell_cfg.rf_port, cellroot, "rf_port");
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.cell_id, cellroot, "cell_id"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
+    cell_cfg.pci = cell_cfg.pci % SRSRAN_NOF_NID_NR;
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_arfcn"));
+    // frequencies get derived from ARFCN
+
+    // Add further cell-specific parameters
+
+    rrc_cfg->cell_list_nr.push_back(cell_cfg);
+  }
+
+  // Configuration check
+  for (auto it = rrc_cfg->cell_list_nr.begin(); it != rrc_cfg->cell_list_nr.end(); ++it) {
+    // check against NR cells
+    for (auto it2 = it + 1; it2 != rrc_cfg->cell_list_nr.end(); it2++) {
+      // Check RF port is not repeated
+      if (it->rf_port == it2->rf_port) {
+        ERROR("Repeated RF port for multiple cells");
+        return SRSRAN_ERROR;
+      }
+
+      // Check cell ID is not repeated
+      if (it->cell_id == it2->cell_id) {
+        ERROR("Repeated Cell identifier");
+        return SRSRAN_ERROR;
+      }
+    }
+
+    // also check RF port against EUTRA cells
+    for (auto it_eutra = rrc_cfg->cell_list.begin(); it_eutra != rrc_cfg->cell_list.end(); ++it_eutra) {
+      // Check RF port is not repeated
+      if (it->rf_port == it_eutra->rf_port) {
+        ERROR("Repeated RF port for multiple cells");
+        return SRSRAN_ERROR;
+      }
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int cell_list_section::parse(libconfig::Setting& root)
 {
   HANDLEPARSERCODE(parse_cell_list(args, rrc_cfg, root));
+  return 0;
+}
+
+int nr_cell_list_section::parse(libconfig::Setting& root)
+{
+  HANDLEPARSERCODE(parse_nr_cell_list(args, rrc_cfg, root));
   return 0;
 }
 
