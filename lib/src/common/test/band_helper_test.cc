@@ -36,8 +36,18 @@ int bands_test_nr()
   // b5
   TESTASSERT(bands.get_duplex_mode(5) == SRSRAN_DUPLEX_MODE_FDD);
   TESTASSERT(bands.nr_arfcn_to_freq(176300) == 881.5e6);
+  TESTASSERT(bands.freq_to_nr_arfcn(881.5e6) == 176300);
   TESTASSERT(bands.get_ul_arfcn_from_dl_arfcn(176300) == 167300);
   TESTASSERT(bands.nr_arfcn_to_freq(167300) == 836.5e6);
+
+  // check actual freqs for FDD carrier (example values are for 52 PRB)
+  srsran_carrier_nr_t carrier        = {};
+  carrier.absolute_frequency_point_a = 175364;
+  carrier.nof_prb                    = 52;
+  TESTASSERT(bands.get_center_freq_from_abs_freq_point_a(carrier) == SRSRAN_SUCCESS);
+  TESTASSERT(carrier.dl_center_freq == 881.5e6);
+  TESTASSERT(carrier.ul_center_freq == 836.5e6);
+
   // b3
   TESTASSERT(bands.nr_arfcn_to_freq(342000) == 1710.0e6);
   TESTASSERT(bands.nr_arfcn_to_freq(348000) == 1740.0e6);
