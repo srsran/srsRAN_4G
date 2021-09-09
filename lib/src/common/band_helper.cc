@@ -29,7 +29,19 @@ constexpr std::array<srsran_band_helper::nr_band_ss_raster, srsran_band_helper::
 double srsran_band_helper::nr_arfcn_to_freq(uint32_t nr_arfcn)
 {
   nr_raster_params params = get_raster_params(nr_arfcn);
+  if (not is_valid_raster_param(params)) {
+    return 0.0;
+  }
   return (params.F_REF_Offs_MHz * 1e6 + params.delta_F_global_kHz * (nr_arfcn - params.N_REF_Offs) * 1e3);
+}
+
+uint32_t srsran_band_helper::freq_to_nr_arfcn(double freq)
+{
+  nr_raster_params params = get_raster_params(freq);
+  if (not is_valid_raster_param(params)) {
+    return 0;
+  }
+  return (((freq + params.F_REF_Offs_MHz * 1e6) / 1e3 / params.delta_F_global_kHz) + params.N_REF_Offs);
 }
 
 // Implements 5.4.2.1 in TS 38.104
@@ -94,7 +106,31 @@ uint32_t srsran_band_helper::get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const
     }
   }
 
-  return UINT16_MAX;
+  return 0;
+}
+
+int srsran_band_helper::get_center_freq_from_abs_freq_point_a(srsran_carrier_nr_t& carrier)
+{
+  // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier
+  // TODO: add offset_to_carrier
+  double abs_freq_point_a_freq = nr_arfcn_to_freq(carrier.absolute_frequency_point_a);
+  carrier.dl_center_freq =
+      abs_freq_point_a_freq +
+      (carrier.nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
+       SRSRAN_NRE);
+
+  // UL depends on duplex
+  if (get_duplex_mode(get_band_from_dl_arfcn(carrier.absolute_frequency_point_a)) == SRSRAN_DUPLEX_MODE_TDD) {
+    // TDD case
+    carrier.ul_center_freq = carrier.dl_center_freq;
+  } else {
+    // FDD case
+    uint32_t dl_arfcn      = freq_to_nr_arfcn(carrier.dl_center_freq);
+    uint32_t ul_arfcn      = get_ul_arfcn_from_dl_arfcn(dl_arfcn);
+    carrier.ul_center_freq = nr_arfcn_to_freq(ul_arfcn);
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const
@@ -196,6 +232,26 @@ srsran_band_helper::nr_raster_params srsran_band_helper::get_raster_params(uint3
     }
   }
   return {}; // return empty params
+}
+
+srsran_band_helper::nr_raster_params srsran_band_helper::get_raster_params(double freq)
+{
+  for (auto& fr : nr_fr_params) {
+    if (freq >= fr.freq_range_start * 1e6 && freq <= fr.freq_range_end * 1e6) {
+      return fr;
+    }
+  }
+  return {}; // return empty params
+}
+
+bool srsran_band_helper::is_valid_raster_param(const srsran_band_helper::nr_raster_params& raster)
+{
+  for (auto& fr : nr_fr_params) {
+    if (fr == raster) {
+      return true;
+    }
+  }
+  return false;
 }
 
 } // namespace srsran

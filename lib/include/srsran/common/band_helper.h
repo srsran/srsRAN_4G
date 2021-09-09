@@ -31,6 +31,9 @@ public:
   // Return frequency of given NR-ARFCN in Hz
   double nr_arfcn_to_freq(uint32_t nr_arfcn);
 
+  // Frequency in Hz to NR-ARFCN
+  uint32_t freq_to_nr_arfcn(double freq);
+
   // Possible values of delta f_raster in Table 5.4.2.3-1 and Table 5.4.2.3-2
   enum delta_f_raster_t {
     DEFAULT = 0, // for bands with 2 possible values for delta_f_raster (e.g. 15 and 30 kHz), the lower is chosen
@@ -69,6 +72,16 @@ public:
    * @return uint32_t
    */
   uint32_t get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const;
+
+  /**
+   * @brief Compute the DL and UL center frequency for a NR carrier
+   *
+   * Results are stored inside the carrier struct.
+   *
+   * @param carrier  Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
+   * @return int SRSRAN_SUCESS The center frequency
+   */
+  int get_center_freq_from_abs_freq_point_a(srsran_carrier_nr_t& carrier);
 
   /**
    * @brief Selects the SSB pattern case according to the band number and subcarrier spacing
@@ -165,25 +178,36 @@ private:
   }};
 
   struct nr_raster_params {
+    double   freq_range_start;
+    double   freq_range_end;
     double   delta_F_global_kHz;
     double   F_REF_Offs_MHz;
     uint32_t N_REF_Offs;
     uint32_t N_REF_min;
     uint32_t N_REF_max;
+
+    bool operator==(const nr_raster_params& rhs) const
+    {
+      return freq_range_start == rhs.freq_range_start && freq_range_end == rhs.freq_range_end &&
+             delta_F_global_kHz == rhs.delta_F_global_kHz && F_REF_Offs_MHz == rhs.F_REF_Offs_MHz &&
+             N_REF_Offs == rhs.N_REF_Offs && N_REF_min == rhs.N_REF_min && N_REF_max == rhs.N_REF_max;
+    }
   };
 
   // Helper to calculate F_REF according to Table 5.4.2.1-1
   nr_raster_params get_raster_params(uint32_t nr_arfcn);
+  nr_raster_params get_raster_params(double freq);
+  bool             is_valid_raster_param(const nr_raster_params& raster);
 
   static const uint32_t max_nr_arfcn                            = 3279165;
   static constexpr std::array<nr_raster_params, 3> nr_fr_params = {{
       // clang-format off
     // Frequency range 0 - 3000 MHz
-    {5, 0.0, 0, 0, 599999},
+    {0, 3000, 5, 0.0, 0, 0, 599999},
     // Frequency range 3000 - 24250 MHz
-    {15, 3000.0, 600000, 600000, 2016666},
+    {3000, 24250, 15, 3000.0, 600000, 600000, 2016666},
     // Frequency range 24250 - 100000 MHz
-    {60, 24250.08, 2016667, 2016667, max_nr_arfcn}
+    {24250, 100000, 60, 24250.08, 2016667, 2016667, max_nr_arfcn}
       // clang-format on
   }};
 
