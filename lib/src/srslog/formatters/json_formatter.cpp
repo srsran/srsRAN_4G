@@ -28,7 +28,11 @@ void json_formatter::format(detail::log_entry_metadata&& metadata, fmt::memory_b
   if (metadata.fmtstring) {
     if (metadata.store) {
       fmt::basic_format_args<fmt::basic_printf_context_t<char> > args(*metadata.store);
-      fmt::vprintf(buffer, fmt::to_string_view(metadata.fmtstring), args);
+      try {
+        fmt::vprintf(buffer, fmt::to_string_view(metadata.fmtstring), args);
+      } catch (...) {
+        fmt::print(stderr, "srsLog error - Invalid format string: \"{}\"\n", metadata.fmtstring);
+      }
       fmt::format_to(buffer, fmt::to_string_view("\""));
     } else {
       fmt::format_to(buffer, "{}\"", metadata.fmtstring);
@@ -58,7 +62,11 @@ void json_formatter::format_context_begin(const detail::log_entry_metadata& md,
     if (md.store) {
       fmt::format_to(buffer, "  \"log_entry\": \"");
       fmt::basic_format_args<fmt::basic_printf_context_t<char> > args(*md.store);
-      fmt::vprintf(buffer, fmt::to_string_view(md.fmtstring), args);
+      try {
+        fmt::vprintf(buffer, fmt::to_string_view(md.fmtstring), args);
+      } catch (...) {
+        fmt::print(stderr, "srsLog error - Invalid format string: \"{}\"\n", md.fmtstring);
+      }
       fmt::format_to(buffer, "\",\n");
     } else {
       fmt::format_to(buffer, "  \"log_entry\": \"{}\",\n", md.fmtstring);
