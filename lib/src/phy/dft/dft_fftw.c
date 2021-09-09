@@ -71,7 +71,7 @@ __attribute__((constructor)) static void srsran_dft_load()
 }
 
 // This function is called in the ending of any executable where it is linked
-__attribute__((destructor)) static void srsran_dft_exit()
+__attribute__((destructor)) void srsran_dft_exit()
 {
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];

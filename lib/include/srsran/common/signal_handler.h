@@ -33,6 +33,8 @@ extern "C" {
 static srslog::sink* log_sink = nullptr;
 static std::atomic<bool> running  = {true};
 
+void srsran_dft_exit();
+
 static void srsran_signal_handler(int signal)
 {
   switch (signal) {
@@ -43,6 +45,7 @@ static void srsran_signal_handler(int signal)
       if (log_sink) {
         log_sink->flush();
       }
+      srsran_dft_exit();
       raise(SIGKILL);
     default:
       // all other registered signals try to stop the app gracefully
