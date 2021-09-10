@@ -653,6 +653,7 @@ uint8_t srsran_band_get_band(uint32_t dl_earfcn)
   uint32_t i = SRSRAN_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
     ERROR("Invalid DL_EARFCN=%d", dl_earfcn);
+    return 0;
   }
   i--;
   while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
@@ -666,6 +667,7 @@ double srsran_band_fd(uint32_t dl_earfcn)
   uint32_t i = SRSRAN_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
     ERROR("Invalid DL_EARFCN=%d", dl_earfcn);
+    return 0;
   }
   i--;
   while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
@@ -679,6 +681,7 @@ double srsran_band_fu(uint32_t ul_earfcn)
   uint32_t i = SRSRAN_NOF_LTE_BANDS - 1;
   if (ul_earfcn > lte_bands[i].ul_earfcn_offset) {
     ERROR("Invalid UL_EARFCN=%d", ul_earfcn);
+    return 0;
   }
   i--;
   while (i > 0 && (lte_bands[i].ul_earfcn_offset > ul_earfcn || lte_bands[i].ul_earfcn_offset == 0)) {
@@ -692,6 +695,7 @@ uint32_t srsran_band_ul_earfcn(uint32_t dl_earfcn)
   uint32_t i = SRSRAN_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
     ERROR("Invalid DL_EARFCN=%d", dl_earfcn);
+    return 0;
   }
   i--;
   while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {

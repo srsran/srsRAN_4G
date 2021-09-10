@@ -1104,6 +1104,10 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
     } else {
       phy_cell_cfg.dl_freq_hz = 1e6 * srsran_band_fd(cfg.dl_earfcn);
+      if (phy_cell_cfg.dl_freq_hz == 0.0) {
+        ERROR("Couldn't derive DL frequency for EARFCN=%d", cfg.dl_earfcn);
+        return SRSRAN_ERROR;
+      }
     }
 
     if (cfg.ul_freq_hz > 0) {
@@ -1113,6 +1117,10 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
         cfg.ul_earfcn = srsran_band_ul_earfcn(cfg.dl_earfcn);
       }
       phy_cell_cfg.ul_freq_hz = 1e6 * srsran_band_fu(cfg.ul_earfcn);
+      if (phy_cell_cfg.ul_freq_hz == 0.0) {
+        ERROR("Couldn't derive UL frequency for EARFCN=%d", cfg.ul_earfcn);
+        return SRSRAN_ERROR;
+      }
     }
 
     for (auto scell_it = cfg.scell_list.begin(); scell_it != cfg.scell_list.end();) {
