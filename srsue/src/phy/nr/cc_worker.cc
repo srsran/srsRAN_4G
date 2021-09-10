@@ -85,7 +85,7 @@ bool cc_worker::update_cfg()
   }
 
   double abs_freq_point_a_freq =
-      srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.absolute_frequency_point_a);
+      srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.dl_absolute_frequency_point_a);
   double abs_freq_ssb_freq = srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.absolute_frequency_ssb);
 
   double carrier_center_freq =

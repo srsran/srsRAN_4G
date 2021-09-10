@@ -109,28 +109,24 @@ uint32_t srsran_band_helper::get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const
   return 0;
 }
 
-int srsran_band_helper::get_center_freq_from_abs_freq_point_a(srsran_carrier_nr_t& carrier)
+double srsran_band_helper::get_dl_center_freq(const srsran_carrier_nr_t& carrier)
+{
+  return get_center_freq_from_abs_freq_point_a(carrier.nof_prb, carrier.dl_absolute_frequency_point_a);
+}
+
+double srsran_band_helper::get_ul_center_freq(const srsran_carrier_nr_t& carrier)
+{
+  return get_center_freq_from_abs_freq_point_a(carrier.nof_prb, carrier.ul_absolute_frequency_point_a);
+}
+
+double srsran_band_helper::get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn)
 {
   // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier
   // TODO: add offset_to_carrier
-  double abs_freq_point_a_freq = nr_arfcn_to_freq(carrier.absolute_frequency_point_a);
-  carrier.dl_center_freq =
-      abs_freq_point_a_freq +
-      (carrier.nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
-       SRSRAN_NRE);
-
-  // UL depends on duplex
-  if (get_duplex_mode(get_band_from_dl_arfcn(carrier.absolute_frequency_point_a)) == SRSRAN_DUPLEX_MODE_TDD) {
-    // TDD case
-    carrier.ul_center_freq = carrier.dl_center_freq;
-  } else {
-    // FDD case
-    uint32_t dl_arfcn      = freq_to_nr_arfcn(carrier.dl_center_freq);
-    uint32_t ul_arfcn      = get_ul_arfcn_from_dl_arfcn(dl_arfcn);
-    carrier.ul_center_freq = nr_arfcn_to_freq(ul_arfcn);
-  }
-
-  return SRSRAN_SUCCESS;
+  double abs_freq_point_a_freq = nr_arfcn_to_freq(freq_point_a_arfcn);
+  return abs_freq_point_a_freq +
+         (nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
+          SRSRAN_NRE);
 }
 
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const

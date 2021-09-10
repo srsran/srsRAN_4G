@@ -69,19 +69,9 @@ public:
    * For unparied spectrum (TDD) the function returns the same ARFCN.
    *
    * @param dl_arfcn   The DL ARFCN
-   * @return uint32_t
+   * @return uint32_t the UL ARFCN
    */
   uint32_t get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const;
-
-  /**
-   * @brief Compute the DL and UL center frequency for a NR carrier
-   *
-   * Results are stored inside the carrier struct.
-   *
-   * @param carrier  Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
-   * @return int SRSRAN_SUCESS The center frequency
-   */
-  int get_center_freq_from_abs_freq_point_a(srsran_carrier_nr_t& carrier);
 
   /**
    * @brief Selects the SSB pattern case according to the band number and subcarrier spacing
@@ -98,6 +88,22 @@ public:
    * @return A valid SRSRAN_DUPLEX_MODE if the band is valid, SRSRAN_DUPLEX_MODE_INVALID otherwise
    */
   srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
+
+  /**
+   * @brief Compute the DL center frequency for a NR carrier
+   *
+   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
+   * @return double Frequency in Hz
+   */
+  double get_dl_center_freq(const srsran_carrier_nr_t& carrier);
+
+  /**
+   * @brief Compute the UL center frequency for a NR carrier
+   *
+   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
+   * @return double Frequency in Hz
+   */
+  double get_ul_center_freq(const srsran_carrier_nr_t& carrier);
 
   class sync_raster_t
   {
@@ -130,6 +136,9 @@ public:
   sync_raster_t get_sync_raster(uint16_t band, srsran_subcarrier_spacing_t scs) const;
 
 private:
+  // internal helper
+  double get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn);
+
   // Elements of TS 38.101-1 Table 5.2-1: NR operating bands in FR1
   struct nr_operating_band {
     uint16_t             band;

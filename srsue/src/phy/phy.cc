@@ -649,20 +649,16 @@ void phy::set_earfcn(std::vector<uint32_t> earfcns)
 
 bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
-  // Derive actual RF frequencies for NR carrier
-  double abs_freq_point_a_freq = srsran::srsran_band_helper().nr_arfcn_to_freq(cfg.carrier.absolute_frequency_point_a);
+  srsran::srsran_band_helper band_helper;
+  double                     dl_freq_hz = band_helper.get_dl_center_freq(cfg.carrier);
+  double                     ul_freq_hz = band_helper.get_ul_center_freq(cfg.carrier);
 
-  // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier
-  // TODO: add offset_to_carrier
-  double carrier_center_freq =
-      abs_freq_point_a_freq +
-      (cfg.carrier.nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
-       SRSRAN_NRE);
-
+  // tune radio
   for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
-    logger_phy.info("Tuning channel %d to %.2f GHz", i + common.args->nof_lte_carriers, carrier_center_freq / 1e6);
-    radio->set_rx_freq(i + common.args->nof_lte_carriers, carrier_center_freq);
-    radio->set_tx_freq(i + common.args->nof_lte_carriers, carrier_center_freq);
+    logger_phy.info("Tuning Rx channel %d to %.2f GHz", i + common.args->nof_lte_carriers, dl_freq_hz / 1e6);
+    radio->set_rx_freq(i + common.args->nof_lte_carriers, dl_freq_hz);
+    logger_phy.info("Tuning Tx channel %d to %.2f GHz", i + common.args->nof_lte_carriers, ul_freq_hz / 1e6);
+    radio->set_tx_freq(i + common.args->nof_lte_carriers, ul_freq_hz);
   }
 
   return nr_workers.set_config(cfg);

@@ -136,7 +136,7 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
   phy_state.cfg = cfg;
 
   logger.info(
-      "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.absolute_frequency_point_a, cfg.carrier.pci);
+      "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.dl_absolute_frequency_point_a, cfg.carrier.pci);
 
   // Set carrier information
   info_metrics_t info = {};

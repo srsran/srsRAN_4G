@@ -773,16 +773,16 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
 
 bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_common)
 {
-  if (dl_cfg_common.init_dl_bwp_present) {
-    if (dl_cfg_common.freq_info_dl_present) {
-      if (make_phy_carrier_cfg(dl_cfg_common.freq_info_dl, &phy_cfg.carrier) == false) {
-        logger.warning("Warning while making carrier phy config");
-        return false;
-      }
-    } else {
-      logger.warning("Option freq_info_dl not present");
+  if (dl_cfg_common.freq_info_dl_present) {
+    if (make_phy_carrier_cfg(dl_cfg_common.freq_info_dl, &phy_cfg.carrier) == false) {
+      logger.warning("Warning while making carrier phy config");
       return false;
     }
+  } else {
+    logger.warning("Option freq_info_dl not present, S-UL not supported.");
+    return false;
+  }
+  if (dl_cfg_common.init_dl_bwp_present) {
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
       if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
           asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
@@ -790,13 +790,12 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
 
         // Load CORESET Zero
         if (pdcch_cfg_common.ctrl_res_set_zero_present) {
-          srsran::srsran_band_helper band_helper;
-
           // Get band number
-          uint16_t band = band_helper.get_band_from_dl_arfcn(phy_cfg.carrier.absolute_frequency_point_a);
+          srsran::srsran_band_helper band_helper;
+          uint16_t band = band_helper.get_band_from_dl_arfcn(phy_cfg.carrier.dl_absolute_frequency_point_a);
 
           // Get pointA and SSB absolute frequencies
-          double pointA_abs_freq_Hz = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.absolute_frequency_point_a);
+          double pointA_abs_freq_Hz = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.dl_absolute_frequency_point_a);
           double ssb_abs_freq_Hz    = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.absolute_frequency_ssb);
 
           // Calculate integer SSB to pointA frequency offset in Hz
@@ -914,6 +913,10 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
 
 bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_common)
 {
+  if (ul_cfg_common.freq_info_ul_present && ul_cfg_common.freq_info_ul.absolute_freq_point_a_present) {
+    // Update UL frequency point if provided
+    phy_cfg.carrier.ul_absolute_frequency_point_a = ul_cfg_common.freq_info_ul.absolute_freq_point_a;
+  }
   if (ul_cfg_common.init_ul_bwp_present) {
     if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
