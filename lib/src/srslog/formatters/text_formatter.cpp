@@ -70,6 +70,9 @@ void text_formatter::format(detail::log_entry_metadata&& metadata, fmt::memory_b
         fmt::vprintf(buffer, fmt::to_string_view(metadata.fmtstring), args);
       } catch (...) {
         fmt::print(stderr, "srsLog error - Invalid format string: \"{}\"\n", metadata.fmtstring);
+#ifdef STOP_ON_WARNING
+        std::abort();
+#endif
       }
       fmt::format_to(buffer, "\n");
     } else {
@@ -114,6 +117,9 @@ void text_formatter::format_context_end(const detail::log_entry_metadata& md,
       fmt::vprintf(buffer, fmt::to_string_view(md.fmtstring), args);
     } catch (...) {
       fmt::print(stderr, "srsLog error - Invalid format string: \"{}\"\n", md.fmtstring);
+#ifdef STOP_ON_WARNING
+      std::abort();
+#endif
     }
     fmt::format_to(buffer, "\n");
   } else {
