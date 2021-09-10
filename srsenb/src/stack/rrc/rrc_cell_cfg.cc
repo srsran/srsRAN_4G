@@ -359,7 +359,7 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
 
   // Allocate all CQI resources for all carriers now
   // Find freq-time resources with least number of users
-  int      i_min = 0, j_min = 0;
+  int      i_min = -1, j_min = -1;
   uint32_t min_users = std::numeric_limits<uint32_t>::max();
   for (uint32_t i = 0; i < cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi; i++) {
     for (uint32_t j = 0; j < cfg.cqi_cfg.nof_subframes; j++) {
@@ -370,7 +370,7 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
       }
     }
   }
-  if (pucch_res->cqi_sched.nof_users[i_min][j_min] > max_users) {
+  if (pucch_res->cqi_sched.nof_users[i_min][j_min] > max_users || i_min == -1 || j_min == -1) {
     logger.error("Not enough PUCCH resources to allocate Scheduling Request");
     return false;
   }
