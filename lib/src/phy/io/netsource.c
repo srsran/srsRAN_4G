@@ -30,7 +30,7 @@ int srsran_netsource_init(srsran_netsource_t* q, const char* address, uint16_t p
 
   if (q->sockfd < 0) {
     perror("socket");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   // Make sockets reusable
@@ -46,16 +46,19 @@ int srsran_netsource_init(srsran_netsource_t* q, const char* address, uint16_t p
   q->type = type;
 
   q->servaddr.sin_family      = AF_INET;
-  q->servaddr.sin_addr.s_addr = inet_addr(address);
+  if (inet_pton(q->servaddr.sin_family, address, &q->servaddr.sin_addr) != 1) {
+    perror("inet_pton");
+    return SRSRAN_ERROR;
+  }
   q->servaddr.sin_port        = htons(port);
 
   if (bind(q->sockfd, (struct sockaddr*)&q->servaddr, sizeof(struct sockaddr_in))) {
     perror("bind");
-    return -1;
+    return SRSRAN_ERROR;
   }
   q->connfd = 0;
 
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 void srsran_netsource_free(srsran_netsource_t* q)
@@ -73,9 +76,9 @@ int srsran_netsource_read(srsran_netsource_t* q, void* buffer, int nbytes)
 
     if (n == -1) {
       if (errno == EAGAIN) {
-        return 0;
+        return SRSRAN_SUCCESS;
       } else {
-        return -1;
+        return SRSRAN_ERROR;
       }
     } else {
       return n;
@@ -88,7 +91,7 @@ int srsran_netsource_read(srsran_netsource_t* q, void* buffer, int nbytes)
       q->connfd        = accept(q->sockfd, (struct sockaddr*)&q->cliaddr, &clilen);
       if (q->connfd < 0) {
         perror("accept");
-        return -1;
+        return SRSRAN_ERROR;
       }
     }
     int n = read(q->connfd, buffer, nbytes);
@@ -96,7 +99,7 @@ int srsran_netsource_read(srsran_netsource_t* q, void* buffer, int nbytes)
       printf("Connection closed\n");
       close(q->connfd);
       q->connfd = 0;
-      return 0;
+      return SRSRAN_SUCCESS;
     }
     if (n == -1) {
       perror("read");
@@ -127,7 +130,7 @@ int srsran_netsource_set_nonblocking(srsran_netsource_t* q)
     perror("fcntl");
     return -1;
   }
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 int srsran_netsource_set_timeout(srsran_netsource_t* q, uint32_t microseconds)
@@ -137,7 +140,7 @@ int srsran_netsource_set_timeout(srsran_netsource_t* q, uint32_t microseconds)
   t.tv_usec = microseconds;
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval))) {
     perror("setsockopt");
-    return -1;
+    return SRSRAN_ERROR;
   }
-  return 0;
+  return SRSRAN_SUCCESS;
 }

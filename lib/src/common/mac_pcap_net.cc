@@ -49,9 +49,11 @@ uint32_t mac_pcap_net::open(std::string client_ip_addr_,
               client_udp_port_,
               bind_addr_str.c_str(),
               bind_udp_port_);
-  client_addr.sin_family      = AF_INET;
-  client_addr.sin_addr.s_addr = inet_addr(client_ip_addr_.c_str());
-  client_addr.sin_port        = htons(client_udp_port_);
+
+  if (not net_utils::set_sockaddr(&client_addr, client_ip_addr_.c_str(), client_udp_port_)) {
+    logger.error("Invalid client_ip_addr: %s", client_ip_addr_.c_str());
+    return SRSRAN_ERROR;
+  }
   running                     = true;
   ue_id                       = ue_id_;
   // start writer thread

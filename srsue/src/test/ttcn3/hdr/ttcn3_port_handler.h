@@ -20,6 +20,7 @@
 
 #include "srsran/common/epoll_helper.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/network_utils.h"
 #include "srsran/srslog/srslog.h"
 #include "ttcn3_common.h"
 #include <arpa/inet.h>
@@ -179,10 +180,10 @@ public:
 
     // Port bind
     struct sockaddr_in bind_addr = {};
-    bind_addr.sin_family         = AF_INET;
-    inet_pton(AF_INET, net_ip.c_str(), &(bind_addr.sin_addr));
-    bind_addr.sin_port = htons(net_port);
-
+    if (not srsran::net_utils::set_sockaddr(&bind_addr, net_ip.c_str(), net_port)) {
+      srsran::console("Invalid net_ip: %s\n", net_ip.c_str());
+      return SRSRAN_ERROR;
+    }
     int one = 1;
     setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     ret = bind(sock_fd, (struct sockaddr*)&bind_addr, sizeof(bind_addr));

@@ -30,7 +30,7 @@ int srsran_netsink_init(srsran_netsink_t* q, const char* address, uint16_t port,
   q->sockfd = socket(AF_INET, type == SRSRAN_NETSINK_TCP ? SOCK_STREAM : SOCK_DGRAM, 0);
   if (q->sockfd < 0) {
     perror("socket");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   int enable = 1;
@@ -44,12 +44,15 @@ int srsran_netsink_init(srsran_netsink_t* q, const char* address, uint16_t port,
 #endif
 
   q->servaddr.sin_family      = AF_INET;
-  q->servaddr.sin_addr.s_addr = inet_addr(address);
+  if (inet_pton(q->servaddr.sin_family, address, &q->servaddr.sin_addr) != 1) {
+    perror("inet_pton");
+    return SRSRAN_ERROR;
+  }
   q->servaddr.sin_port        = htons(port);
   q->connected                = false;
   q->type                     = type;
 
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 void srsran_netsink_free(srsran_netsink_t* q)
@@ -64,9 +67,9 @@ int srsran_netsink_set_nonblocking(srsran_netsink_t* q)
 {
   if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
     perror("fcntl");
-    return -1;
+    return SRSRAN_ERROR;
   }
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 int srsran_netsink_write(srsran_netsink_t* q, void* buffer, int nof_bytes)
@@ -74,11 +77,11 @@ int srsran_netsink_write(srsran_netsink_t* q, void* buffer, int nof_bytes)
   if (!q->connected) {
     if (connect(q->sockfd, &q->servaddr, sizeof(q->servaddr)) < 0) {
       if (errno == ECONNREFUSED || errno == EINPROGRESS) {
-        return 0;
+        return SRSRAN_SUCCESS;
       } else {
         perror("connect");
         exit(-1);
-        return -1;
+        return SRSRAN_ERROR;
       }
     } else {
       q->connected = true;
@@ -93,10 +96,10 @@ int srsran_netsink_write(srsran_netsink_t* q, void* buffer, int nof_bytes)
         q->sockfd = socket(AF_INET, q->type == SRSRAN_NETSINK_TCP ? SOCK_STREAM : SOCK_DGRAM, 0);
         if (q->sockfd < 0) {
           perror("socket");
-          return -1;
+          return SRSRAN_ERROR;
         }
         q->connected = false;
-        return 0;
+        return SRSRAN_SUCCESS;
       }
     }
   }
