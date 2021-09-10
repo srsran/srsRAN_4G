@@ -32,7 +32,8 @@ public:
     struct gtpu_tunnel {
       uint32_t                                    teid_out = 0;
       uint32_t                                    teid_in  = 0;
-      asn1::bounded_bitstring<1, 160, true, true> address;
+      asn1::bounded_bitstring<1, 160, true, true> address_out;
+      asn1::bounded_bitstring<1, 160, true, true> address_in;
     };
     uint8_t                                    id   = 0;
     uint8_t                                    lcid = 0;
@@ -48,6 +49,9 @@ public:
                       const asn1::ngap_nr::qos_flow_level_qos_params_s&  qos,
                       const asn1::bounded_bitstring<1, 160, true, true>& addr,
                       uint32_t                                           teid_out,
+                      uint16_t&                                          lcid,
+                      asn1::bounded_bitstring<1, 160, true, true>&       addr_in,
+                      uint32_t&                                          teid_in,
                       asn1::ngap_nr::cause_c&                            cause);
 
 private:

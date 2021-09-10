@@ -476,11 +476,15 @@ void gtpu::send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buf
   }
 }
 
-srsran::expected<uint32_t>
-gtpu::add_bearer(uint16_t rnti, uint32_t eps_bearer_id, uint32_t addr, uint32_t teid_out, const bearer_props* props)
+srsran::expected<uint32_t> gtpu::add_bearer(uint16_t            rnti,
+                                            uint32_t            eps_bearer_id,
+                                            uint32_t            addr_out,
+                                            uint32_t            teid_out,
+                                            uint32_t&           addr_in,
+                                            const bearer_props* props)
 {
   // Allocate a TEID for the incoming tunnel
-  const gtpu_tunnel* new_tun = tunnels.add_tunnel(rnti, eps_bearer_id, teid_out, addr);
+  const gtpu_tunnel* new_tun = tunnels.add_tunnel(rnti, eps_bearer_id, teid_out, addr_out);
   if (new_tun == nullptr) {
     return default_error_t();
   }
@@ -503,6 +507,13 @@ gtpu::add_bearer(uint16_t rnti, uint32_t eps_bearer_id, uint32_t addr, uint32_t 
       }
     }
   }
+
+  // Return bind address for S1AP and NGAP setup
+  struct in_addr inaddr;
+  if ((inet_pton(AF_INET, gtp_bind_addr.c_str(), &inaddr)) < 1) {
+    logger.error("Invalid address or failure during conversion: %s\n", gtp_bind_addr.c_str());
+  }
+  addr_in = ntohl(inaddr.s_addr);
 
   return teid_in;
 }

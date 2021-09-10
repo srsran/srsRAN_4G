@@ -145,6 +145,7 @@ public:
                                         uint32_t            eps_bearer_id,
                                         uint32_t            addr,
                                         uint32_t            teid_out,
+                                        uint32_t&           addr_in,
                                         const bearer_props* props = nullptr) override;
   void                       set_tunnel_status(uint32_t teidin, bool dl_active) override;
   void                       rem_bearer(uint16_t rnti, uint32_t eps_bearer_id) override;

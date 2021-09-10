@@ -23,25 +23,27 @@ ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 int ngap_ue_bearer_manager::add_pdu_session(uint16_t                                           rnti,
                                             uint8_t                                            pdu_session_id,
                                             const asn1::ngap_nr::qos_flow_level_qos_params_s&  qos,
-                                            const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                                            const asn1::bounded_bitstring<1, 160, true, true>& addr_out,
                                             uint32_t                                           teid_out,
+                                            uint16_t&                                          lcid,
+                                            asn1::bounded_bitstring<1, 160, true, true>&       addr_in,
+                                            uint32_t&                                          teid_in,
                                             asn1::ngap_nr::cause_c&                            cause)
 {
   // RRC call for QoS parameter and lcid <-> ID mapping
-  int lcid = rrc->allocate_lcid(rnti);
+  lcid = rrc->allocate_lcid(rnti);
 
   // Only add session if gtpu was successful
   pdu_session_t::gtpu_tunnel tunnel;
 
-  if (addr.length() > 32) {
+  if (addr_out.length() > 32) {
     logger.error("Only addresses with length <= 32 (IPv4) are supported");
     cause.set_radio_network().value = asn1::ngap_nr::cause_radio_network_opts::invalid_qos_combination;
     return SRSRAN_ERROR;
   }
 
-  // TODO long term remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
-
-  int rtn = add_gtpu_bearer(rnti, lcid, pdu_session_id, teid_out, addr, tunnel);
+  // TODO: remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
+  int rtn = add_gtpu_bearer(rnti, lcid, pdu_session_id, teid_out, addr_out, tunnel);
   if (rtn != SRSRAN_SUCCESS) {
     logger.error("Adding PDU Session ID=%d to GTPU", pdu_session_id);
     return SRSRAN_ERROR;
@@ -51,6 +53,11 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
   pdu_session_list[pdu_session_id].lcid       = lcid;
   pdu_session_list[pdu_session_id].qos_params = qos;
   pdu_session_list[pdu_session_id].tunnels.push_back(tunnel);
+
+  // return values
+  teid_in = tunnel.teid_in;
+  addr_in = tunnel.address_in;
+
   return SRSRAN_SUCCESS;
 }
 
@@ -58,25 +65,35 @@ int ngap_ue_bearer_manager::add_gtpu_bearer(uint16_t                            
                                             uint32_t                                    lcid,
                                             uint32_t                                    pdu_session_id,
                                             uint32_t                                    teid_out,
-                                            asn1::bounded_bitstring<1, 160, true, true> address,
+                                            asn1::bounded_bitstring<1, 160, true, true> address_out,
                                             pdu_session_t::gtpu_tunnel&                 tunnel,
                                             const gtpu_interface_rrc::bearer_props*     props)
 {
   // Initialize ERAB tunnel in GTPU right-away. DRBs are only created during RRC setup/reconf
-  srsran::expected<uint32_t> rtn = gtpu->add_bearer(rnti, lcid, address.to_number(), teid_out, props);
+  uint32_t                   addr_in;
+  srsran::expected<uint32_t> rtn = gtpu->add_bearer(rnti, lcid, address_out.to_number(), teid_out, addr_in, props);
   if (rtn.is_error()) {
     logger.error("Failed adding pdu_session_id=%d to GTPU", pdu_session_id);
     return SRSRAN_ERROR;
   }
-  tunnel.teid_out = teid_out;
-  tunnel.address  = address;
-  tunnel.teid_in  = rtn.value();
 
-  logger.info("Added GTPU tunnel for rnti %x, lcid %d, pdu_session_id=%d, address %s",
+  tunnel.teid_out    = teid_out;
+  tunnel.address_out = address_out;
+
+  logger.info("Addr in %x", addr_in);
+
+  tunnel.address_in.from_number(addr_in);
+  tunnel.teid_in = rtn.value();
+
+  logger.info("Added GTPU tunnel rnti 0x%04x, lcid %d, pdu_session_id=%d, teid_out %d, teid_in %d, address out 0x%x, "
+              "address in 0x%x",
               rnti,
               lcid,
               pdu_session_id,
-              address.to_string());
+              tunnel.teid_out,
+              tunnel.teid_in,
+              tunnel.address_out.to_number(),
+              tunnel.address_in.to_number());
   return SRSRAN_SUCCESS;
 }
 

@@ -128,9 +128,7 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
   asn1::ngap_nr::qos_flow_setup_request_item_s qos_flow_setup =
       pdu_ses_res_setup_req_trans.protocol_ies.qos_flow_setup_request_list.value[0];
   srsran::const_span<uint8_t> nas_pdu_dummy;
-  asn1::ngap_nr::cause_c      cause;
   uint32_t                    teid_out = 0;
-  int                         lcid;
 
   teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[0] << 24u;
   teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[1] << 16u;
@@ -138,6 +136,10 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
   teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[3];
 
   // TODO: Check cause
+  asn1::ngap_nr::cause_c                      cause;
+  uint32_t                                    teid_in;
+  uint16_t                                    lcid;
+  asn1::bounded_bitstring<1, 160, true, true> addr_in;
 
   if (bearer_manager->add_pdu_session(
           ue_ctxt->rnti,
@@ -145,21 +147,25 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
           qos_flow_setup.qos_flow_level_qos_params,
           pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address,
           teid_out,
+          lcid,
+          addr_in,
+          teid_in,
           cause) != SRSRAN_SUCCESS) {
     logger.warning("Failed to add pdu session\n");
     return proc_outcome_t::error;
   }
 
+  logger.info("Added PDU Session with LCID %d, teid_out %d, teid_in %d, addr_in %s",
+              lcid,
+              teid_out,
+              teid_in,
+              addr_in.to_string());
+
   // QoS parameter mapping in config in LTE enb
-  // Transport Layer Address required by the procedure for the reponse
-  asn1::bounded_bitstring<1, 160, true, true> transport_layer_address;
-  transport_layer_address =
-      pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address;
   if (su_req.pdu_session_nas_pdu_present) {
-    lcid = rrc->allocate_lcid(ue_ctxt->rnti);
     if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
         SRSRAN_SUCCESS) {
-      parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_out, transport_layer_address);
+      parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_in, addr_in);
       return proc_outcome_t::success;
     }
   }

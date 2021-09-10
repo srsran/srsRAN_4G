@@ -184,10 +184,9 @@ bool ngap::ue::send_initial_ctxt_setup_failure(cause_c cause)
   return true;
 }
 
-bool ngap::ue::send_pdu_session_resource_setup_response(
-    uint16_t                                    pdu_session_id,
-    uint32_t                                    teid_out,
-    asn1::bounded_bitstring<1, 160, true, true> transport_layer_address)
+bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                                    pdu_session_id,
+                                                        uint32_t                                    teid_in,
+                                                        asn1::bounded_bitstring<1, 160, true, true> addr_in)
 {
   if (not ngap_ptr->amf_connected) {
     logger.warning("AMF not connected");
@@ -207,8 +206,8 @@ bool ngap::ue::send_pdu_session_resource_setup_response(
 
   gtp_tunnel_s& gtp_tunnel = resp_transfer.dlqos_flow_per_tnl_info.uptransport_layer_info.set_gtp_tunnel();
 
-  gtp_tunnel.gtp_teid.from_number(teid_out);
-  gtp_tunnel.transport_layer_address = transport_layer_address;
+  gtp_tunnel.gtp_teid.from_number(teid_in);
+  gtp_tunnel.transport_layer_address = addr_in;
   asn1::ngap_nr::associated_qos_flow_list_l qos_flow_list;
   asn1::ngap_nr::associated_qos_flow_item_s qos_flow_item;
   qos_flow_item.qos_flow_id = 1;
