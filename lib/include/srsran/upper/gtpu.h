@@ -58,8 +58,11 @@ namespace srsran {
 #define GTPU_MSG_END_MARKER 254
 #define GTPU_MSG_DATA_PDU 255
 
+#define GTPU_EXT_NO_MORE_EXTENSION_HEADERS 0x00
 #define GTPU_EXT_HEADER_PDCP_PDU_NUMBER 0b11000000
+#define GTPU_EXT_HEADER_PDU_SESSION_CONTAINER 0x85
 
+#define GTPU_EXT_HEADER_PDU_SESSION_CONTAINER_LEN 4
 struct gtpu_header_t {
   uint8_t              flags             = 0;
   uint8_t              message_type      = 0;
