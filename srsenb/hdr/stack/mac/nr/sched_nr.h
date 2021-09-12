@@ -49,13 +49,14 @@ public:
   ~sched_nr() override;
   int  cell_cfg(srsran::const_span<cell_cfg_t> cell_list) override;
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
+  void ue_rem(uint16_t rnti) override;
 
   int dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info);
 
   void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) override;
   void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc) override;
   void ul_sr_info(slot_point slot_rx, uint16_t rnti) override;
-  void ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr);
+  void ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) override;
   void dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx);
 
   int get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_sched_res_t& result) override;

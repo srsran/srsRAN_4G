@@ -43,7 +43,6 @@ bool mac_rar_subpdu_nr::read_subpdu(const uint8_t* ptr)
     rapid = *ptr & 0x3f;
     // if PDU is not configured with SI request, extract MAC RAR
     if (parent->has_si_rapid() == false) {
-      const uint32_t MAC_RAR_NBYTES = 7;
       if (parent->get_remaining_len() >= MAC_RAR_NBYTES) {
         uint8_t* rar = const_cast<uint8_t*>(ptr + 1);
         // check reserved bits
@@ -90,9 +89,42 @@ bool mac_rar_subpdu_nr::has_more_subpdus()
 }
 
 // Section 6.1.2
-uint32_t mac_rar_subpdu_nr::write_subpdu(const uint8_t* start_)
+void mac_rar_subpdu_nr::write_subpdu(const uint8_t* start_)
 {
-  return 0;
+  uint8_t* ptr = const_cast<uint8_t*>(start_);
+
+  if (type == RAPID) {
+    // write E/T/RAPID MAC subheader
+    *ptr = (uint8_t)((E_bit ? 1 : 0) << 7) | ((int)rar_subh_type_t::RAPID << 6) | ((uint8_t)rapid & 0x3f);
+    ptr += 1;
+
+    // if PDU is not configured with SI request, insert MAC RAR
+    if (parent->has_si_rapid() == false) {
+      // high 7 bits of TA go into first octet
+      *ptr = (uint8_t)((ta >> 5) & 0x7f);
+      ptr += 1;
+
+      // low 5 bit of TA and first 3 bit of UL grant
+      *ptr = (uint8_t)((ta & 0x1f) << 3) | (ul_grant.at(0) << 2) | (ul_grant.at(1) << 1) | (ul_grant.at(2));
+      ptr += 1;
+
+      // add remaining 3 full octets of UL grant
+      uint8_t* x = &ul_grant.at(3);
+      *(ptr + 0) = (uint8_t)srsran_bit_pack(&x, 8);
+      *(ptr + 1) = (uint8_t)srsran_bit_pack(&x, 8);
+      *(ptr + 2) = (uint8_t)srsran_bit_pack(&x, 8);
+      ptr += 3;
+
+      // 2 byte C-RNTI
+      *(ptr + 0) = (uint8_t)((temp_crnti & 0xff00) >> 8);
+      *(ptr + 1) = (uint8_t)(temp_crnti & 0x00ff);
+      ptr += 2;
+    }
+  } else {
+    // write E/T/R/R/BI MAC subheader
+    *ptr = (uint8_t)((E_bit ? 1 : 0) << 7) | ((int)rar_subh_type_t::BACKOFF << 6) | ((uint8_t)backoff_indicator & 0xf);
+    ptr += 1;
+  }
 }
 
 uint32_t mac_rar_subpdu_nr::get_total_length()
@@ -127,6 +159,8 @@ bool mac_rar_subpdu_nr::has_backoff() const
 
 void mac_rar_subpdu_nr::set_backoff(const uint8_t backoff_indicator_)
 {
+  type              = rar_subh_type_t::BACKOFF;
+  payload_length    = 0;
   backoff_indicator = backoff_indicator_;
 }
 
@@ -140,28 +174,102 @@ std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> mac_rar_subpdu_nr::get_ul
   return ul_grant;
 }
 
-std::string mac_rar_subpdu_nr::to_string()
+void mac_rar_subpdu_nr::set_ta(const uint32_t ta_)
 {
-  std::stringstream ss;
+  ta = ta_;
+}
+
+void mac_rar_subpdu_nr::set_temp_crnti(const uint16_t temp_crnti_)
+{
+  temp_crnti = temp_crnti_;
+}
+
+void mac_rar_subpdu_nr::set_rapid(const uint8_t rapid_)
+{
+  type           = rar_subh_type_t::RAPID;
+  payload_length = MAC_RAR_NBYTES;
+  rapid          = rapid_;
+}
+
+void mac_rar_subpdu_nr::set_ul_grant(std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> ul_grant_)
+{
+  ul_grant = ul_grant_;
+}
+
+void mac_rar_subpdu_nr::set_is_last_subpdu()
+{
+  E_bit = false;
+}
+
+void mac_rar_subpdu_nr::to_string(fmt::memory_buffer& buffer)
+{
+  // Add space for new subPDU
+  fmt::format_to(buffer, " ");
+
   if (has_rapid()) {
-    ss << "RAPID: " << rapid << ", Temp C-RNTI: " << std::hex << temp_crnti << ", TA: " << ta << ", UL Grant: ";
+    char tmp[16] = {};
+    srsran_vec_sprint_hex(tmp, sizeof(tmp), ul_grant.data(), UL_GRANT_NBITS);
+    fmt::format_to(buffer, "RAPID: {}, Temp C-RNTI: {:#04x}, TA: {}, UL Grant: {}", rapid, temp_crnti, ta, tmp);
   } else {
-    ss << "Backoff Indicator: " << backoff_indicator << " ";
+    fmt::format_to(buffer, "Backoff Indicator: {}", backoff_indicator);
   }
-
-  char tmp[16] = {};
-  srsran_vec_sprint_hex(tmp, sizeof(tmp), ul_grant.data(), UL_GRANT_NBITS);
-  ss << tmp;
-
-  return ss.str();
 }
 
 mac_rar_pdu_nr::mac_rar_pdu_nr() : logger(srslog::fetch_basic_logger("MAC-NR")) {}
 
-bool mac_rar_pdu_nr::pack()
+int mac_rar_pdu_nr::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_)
 {
-  // not implemented yet
-  return false;
+  if (buffer_ == nullptr || buffer_->msg == nullptr) {
+    logger.error("Invalid buffer");
+    return SRSRAN_ERROR;
+  }
+  buffer = buffer_;
+  subpdus.clear();
+  pdu_len       = pdu_len_;
+  remaining_len = pdu_len_;
+  return SRSRAN_SUCCESS;
+}
+
+mac_rar_subpdu_nr& mac_rar_pdu_nr::add_subpdu()
+{
+  mac_rar_subpdu_nr rar_subpdu(this);
+  subpdus.push_back(rar_subpdu);
+  return subpdus.back();
+}
+
+int mac_rar_pdu_nr::pack()
+{
+  int ret = SRSRAN_ERROR;
+  if (buffer == nullptr) {
+    logger.error("Invalid buffer");
+    return ret;
+  }
+
+  // set E_bit for last subPDU
+  subpdus.back().set_is_last_subpdu();
+
+  // write subPDUs one by one
+  for (uint32_t i = 0; i < subpdus.size(); ++i) {
+    mac_rar_subpdu_nr& subpdu = subpdus.at(i);
+    if (remaining_len >= subpdu.get_total_length()) {
+      subpdu.write_subpdu(buffer->msg + buffer->N_bytes);
+      buffer->N_bytes += subpdu.get_total_length();
+      remaining_len -= subpdu.get_total_length();
+    } else {
+      logger.error("Not enough space in PDU to write subPDU");
+      return ret;
+    }
+  }
+
+  // fill up with padding, if any
+  if (remaining_len > 0) {
+    memset(buffer->msg + buffer->N_bytes, 0, remaining_len);
+    buffer->N_bytes += remaining_len;
+  }
+
+  ret = SRSRAN_SUCCESS;
+
+  return ret;
 }
 
 bool mac_rar_pdu_nr::has_si_rapid()
@@ -221,13 +329,12 @@ uint32_t mac_rar_pdu_nr::get_remaining_len()
   return remaining_len;
 }
 
-std::string mac_rar_pdu_nr::to_string()
+void mac_rar_pdu_nr::to_string(fmt::memory_buffer& buffer)
 {
-  std::stringstream ss;
+  fmt::format_to(buffer, "DL");
   for (auto& subpdu : subpdus) {
-    ss << subpdu.to_string() << " ";
+    subpdu.to_string(buffer);
   }
-  return ss.str();
 }
 
 } // namespace srsran

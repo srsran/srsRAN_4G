@@ -22,6 +22,7 @@
 #ifndef SRSRAN_BEARER_MANAGER_H
 #define SRSRAN_BEARER_MANAGER_H
 
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/common/common.h"
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/srslog/srslog.h"
@@ -30,10 +31,53 @@
 
 namespace srsran {
 
+namespace detail {
+
+/**
+ * @brief Implementation of UE bearer manager internal functionality that is common to both srsue and
+ * srsenb applications
+ */
+class ue_bearer_manager_impl
+{
+public:
+  struct radio_bearer_t {
+    srsran::srsran_rat_t rat;
+    uint32_t             lcid;
+    uint32_t             eps_bearer_id;
+    bool                 is_valid() const { return rat != srsran_rat_t::nulltype; }
+  };
+  static const radio_bearer_t invalid_rb;
+
+  /// Registers EPS bearer with PDCP RAT type and LCID
+  bool add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid);
+
+  /// Single EPS bearer is removed from map when the associated DRB is deleted
+  bool remove_eps_bearer(uint8_t eps_bearer_id);
+
+  void reset();
+
+  bool has_active_radio_bearer(uint32_t eps_bearer_id);
+
+  radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id);
+
+  radio_bearer_t get_lcid_bearer(uint32_t lcid);
+
+private:
+  using eps_rb_map_t = std::map<uint32_t, radio_bearer_t>;
+
+  eps_rb_map_t                 bearers;
+  std::map<uint32_t, uint32_t> lcid_to_eps_bearer_id;
+};
+
+} // namespace detail
+} // namespace srsran
+
+namespace srsue {
+
 /**
  * @brief Helper class to manage the mapping between EPS bearer and radio bearer
  *
- * The class maps EPS bearers that are known to NAS and GW (UE) or GTPU (eNB)
+ * The class maps EPS bearers that are known to NAS and GW (UE)
  * to radio bearer (RB) that are only known to RRC.
  * Since the lifetime of a EPS bearer is usually longer than the lifetime of a RB,
  * the GW/GTPU needs to query the Stack to check whether a
@@ -49,20 +93,15 @@ namespace srsran {
  * used by the eNB.
  *
  */
-class bearer_manager
+class ue_bearer_manager
 {
 public:
-  bearer_manager();
-  ~bearer_manager();
+  using radio_bearer_t = srsran::detail::ue_bearer_manager_impl::radio_bearer_t;
 
-  struct radio_bearer_t {
-    srsran::srsran_rat_t rat;
-    uint32_t             lcid;
-    uint32_t             eps_bearer_id;
-    bool                 is_valid() const { return rat != srsran_rat_t::nulltype; }
-  };
-
-  /// Single user interface (for UE)
+  ue_bearer_manager();
+  ue_bearer_manager(const ue_bearer_manager&) = delete;
+  ue_bearer_manager& operator=(const ue_bearer_manager&) = delete;
+  ~ue_bearer_manager();
 
   // RRC interface
   /// Registers EPS bearer with PDCP RAT type and LCID
@@ -74,36 +113,43 @@ public:
   /// All registered bearer are removed (e.g. after connection release)
   void reset();
 
-  // GW interface
-  bool has_active_radio_bearer(uint32_t eps_bearer_id);
+  bool has_active_radio_bearer(uint32_t eps_bearer_id) { return impl.has_active_radio_bearer(eps_bearer_id); }
 
-  // Stack interface to retrieve active RB
-  radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id);
+  radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id) { return impl.get_radio_bearer(eps_bearer_id); }
 
-  radio_bearer_t get_lcid_bearer(uint16_t rnti, uint32_t lcid);
+  radio_bearer_t get_lcid_bearer(uint32_t lcid) { return impl.get_lcid_bearer(lcid); }
+
+private:
+  pthread_rwlock_t                       rwlock = {}; /// RW lock to protect access from RRC/GW threads
+  srslog::basic_logger&                  logger;
+  srsran::detail::ue_bearer_manager_impl impl;
+};
+
+} // namespace srsue
+
+namespace srsenb {
+
+class enb_bearer_manager
+{
+public:
+  using radio_bearer_t = srsran::detail::ue_bearer_manager_impl::radio_bearer_t;
+
+  enb_bearer_manager();
 
   /// Multi-user interface (see comments above)
   void           add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid);
   void           remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id);
-  void           reset(uint16_t rnti);
+  void           rem_user(uint16_t rnti);
   bool           has_active_radio_bearer(uint16_t rnti, uint32_t eps_bearer_id);
   radio_bearer_t get_radio_bearer(uint16_t rnti, uint32_t eps_bearer_id);
+  radio_bearer_t get_lcid_bearer(uint16_t rnti, uint32_t lcid);
 
 private:
-  pthread_rwlock_t      rwlock = {}; /// RW lock to protect access from RRC/GW threads
   srslog::basic_logger& logger;
 
-  typedef std::map<uint32_t, radio_bearer_t> eps_rb_map_t;
-  struct user_bearers {
-    eps_rb_map_t                 bearers;
-    std::map<uint32_t, uint32_t> lcid_to_eps_bearer_id;
-  };
-  std::map<uint16_t, user_bearers> users_map;
-
-  const uint16_t default_key = 0xffff; // dummy RNTI used for public interface without explicit RNTI
-  radio_bearer_t invalid_rb  = {srsran::srsran_rat_t::nulltype, 0, 0};
+  srsenb::rnti_map_t<srsran::detail::ue_bearer_manager_impl> users_map;
 };
 
-} // namespace srsran
+} // namespace srsenb
 
 #endif // SRSRAN_BEARER_MANAGER_H

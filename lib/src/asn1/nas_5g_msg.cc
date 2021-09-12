@@ -3630,7 +3630,7 @@ SRSASN_CODE nas_5gs_msg::pack(unique_byte_buffer_t& buf)
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE nas_5gs_msg::pack(std::vector<uint8_t> buf)
+SRSASN_CODE nas_5gs_msg::pack(std::vector<uint8_t>& buf)
 {
   buf.resize(SRSRAN_MAX_BUFFER_SIZE_BYTES);
   asn1::bit_ref msg_bref(buf.data(), buf.size());
@@ -3892,7 +3892,7 @@ SRSASN_CODE nas_5gs_msg::unpack_outer_hdr(const unique_byte_buffer_t& buf)
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE nas_5gs_msg::unpack_outer_hdr(const std::vector<uint8_t> buf)
+SRSASN_CODE nas_5gs_msg::unpack_outer_hdr(const std::vector<uint8_t>& buf)
 {
   asn1::cbit_ref msg_bref(buf.data(), buf.size());
   HANDLE_CODE(hdr.unpack_outer(msg_bref));
@@ -3906,7 +3906,7 @@ SRSASN_CODE nas_5gs_msg::unpack(const unique_byte_buffer_t& buf)
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE nas_5gs_msg::unpack(const std::vector<uint8_t> buf)
+SRSASN_CODE nas_5gs_msg::unpack(const std::vector<uint8_t>& buf)
 {
   asn1::cbit_ref msg_bref(buf.data(), buf.size());
   HANDLE_CODE(unpack(msg_bref));

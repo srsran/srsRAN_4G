@@ -64,7 +64,6 @@ public:
   };
   typedef nas_enumerated<follow_on_request_bit_type_, 1> follow_on_request_bit_type;
 
-  uint32_t                   length;
   follow_on_request_bit_type follow_on_request_bit;
   registration_type_type     registration_type;
 
@@ -97,7 +96,6 @@ public:
   };
   typedef nas_enumerated<nas_key_set_identifier_type_, 3> nas_key_set_identifier_type;
 
-  uint32_t                    length;
   security_context_flag_type  security_context_flag;
   nas_key_set_identifier_type nas_key_set_identifier;
 
@@ -232,7 +230,6 @@ public:
 
   }; // eui_64
 
-  uint32_t length;
   // Getters
 
   suci_s& suci()
@@ -340,27 +337,26 @@ private:
 class capability_5gmm_t
 {
 public:
-  uint32_t length;
-  bool     sgc;
-  bool     iphc_cp_c_io_t_5g;
-  bool     n3_data;
-  bool     cp_c_io_t_5g;
-  bool     restrict_ec;
-  bool     lpp;
-  bool     ho_attach;
-  bool     s1_mode;
-  bool     racs;
-  bool     nssaa;
-  bool     lcs_5g;
-  bool     v2_xcnpc5;
-  bool     v2_xcepc5;
-  bool     v2_x;
-  bool     up_c_io_t_5g;
-  bool     srvcc_5g;
-  bool     ehc_cp_c_io_t_5g;
-  bool     multiple_up;
-  bool     wusa;
-  bool     cag;
+  bool sgc;
+  bool iphc_cp_c_io_t_5g;
+  bool n3_data;
+  bool cp_c_io_t_5g;
+  bool restrict_ec;
+  bool lpp;
+  bool ho_attach;
+  bool s1_mode;
+  bool racs;
+  bool nssaa;
+  bool lcs_5g;
+  bool v2_xcnpc5;
+  bool v2_xcepc5;
+  bool v2_x;
+  bool up_c_io_t_5g;
+  bool srvcc_5g;
+  bool ehc_cp_c_io_t_5g;
+  bool multiple_up;
+  bool wusa;
+  bool cag;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -372,46 +368,47 @@ public:
 class ue_security_capability_t
 {
 public:
-  uint32_t length;
-  bool     ea0_5g_supported;
-  bool     ea1_128_5g_supported;
-  bool     ea2_128_5g_supported;
-  bool     ea3_128_5g_supported;
-  bool     ea4_5g_supported;
-  bool     ea5_5g_supported;
-  bool     ea6_5g_supported;
-  bool     ea7_5g_supported;
-  bool     ia0_5g_supported;
-  bool     ia1_128_5g_supported;
-  bool     ia2_128_5g_supported;
-  bool     ia3_128_5g_supported;
-  bool     ia4_5g_supported;
-  bool     ia5_5g_supported;
-  bool     ia6_5g_supported;
-  bool     ia7_5g_supported;
-  bool     eps_caps_present;
-  bool     eea0_supported;
-  bool     eea1_128_supported;
-  bool     eea2_128_supported;
-  bool     eea3_128_supported;
-  bool     eea4_supported;
-  bool     eea5_supported;
-  bool     eea6_supported;
-  bool     eea7_supported;
-  bool     eia0_supported;
-  bool     eia1_128_supported;
-  bool     eia2_128_supported;
-  bool     eia3_128_supported;
-  bool     eia4_supported;
-  bool     eia5_supported;
-  bool     eia6_supported;
-  bool     eia7_supported;
+  bool ea0_5g_supported;
+  bool ea1_128_5g_supported;
+  bool ea2_128_5g_supported;
+  bool ea3_128_5g_supported;
+  bool ea4_5g_supported;
+  bool ea5_5g_supported;
+  bool ea6_5g_supported;
+  bool ea7_5g_supported;
+  bool ia0_5g_supported;
+  bool ia1_128_5g_supported;
+  bool ia2_128_5g_supported;
+  bool ia3_128_5g_supported;
+  bool ia4_5g_supported;
+  bool ia5_5g_supported;
+  bool ia6_5g_supported;
+  bool ia7_5g_supported;
+  bool eps_caps_present;
+  bool eea0_supported;
+  bool eea1_128_supported;
+  bool eea2_128_supported;
+  bool eea3_128_supported;
+  bool eea4_supported;
+  bool eea5_supported;
+  bool eea6_supported;
+  bool eea7_supported;
+  bool eia0_supported;
+  bool eia1_128_supported;
+  bool eia2_128_supported;
+  bool eia3_128_supported;
+  bool eia4_supported;
+  bool eia5_supported;
+  bool eia6_supported;
+  bool eia7_supported;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 }; // ue_security_capability_t
 
+// IE: S-NSSAI
+// Reference: 9.11.2.8
 // IE: S-NSSAI
 // Reference: 9.11.2.8
 class s_nssai_t
@@ -430,7 +427,7 @@ public:
   };
   typedef nas_enumerated<SST_type_, 8> SST_type;
 
-  uint32_t length;
+  SST_type type;
   uint8_t  sst;
   uint32_t sd;
   uint8_t  mapped_hplmn_sst;
@@ -446,7 +443,6 @@ public:
 class nssai_t
 {
 public:
-  uint32_t               length;
   std::vector<s_nssai_t> s_nssai_list;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -459,7 +455,6 @@ public:
 class tracking_area_identity_5gs_t
 {
 public:
-  uint32_t               length;
   std::array<uint8_t, 3> mcc;
   std::array<uint8_t, 3> mnc;
   uint32_t               tac;
@@ -474,68 +469,67 @@ public:
 class s1_ue_network_capability_t
 {
 public:
-  uint32_t length;
-  bool     eea0_supported;
-  bool     eea1_128_supported;
-  bool     eea2_128_supported;
-  bool     eea3_128_supported;
-  bool     eea4_supported;
-  bool     eea5_supported;
-  bool     eea6_supported;
-  bool     eea7_supported;
-  bool     eia0_supported;
-  bool     eia1_128_supported;
-  bool     eia2_128_supported;
-  bool     eia3_128_supported;
-  bool     eia4_supported;
-  bool     eia5_supported;
-  bool     eia6_supported;
-  bool     eia7_supported;
-  bool     uea0_supported;
-  bool     uea1_128_supported;
-  bool     uea2_128_supported;
-  bool     uea3_128_supported;
-  bool     uea4_supported;
-  bool     uea5_supported;
-  bool     uea6_supported;
-  bool     uea7_supported;
-  bool     ucs2_support;
-  bool     uia1_128_supported;
-  bool     uia2_128_supported;
-  bool     uia3_128_supported;
-  bool     uia4_supported;
-  bool     uia5_supported;
-  bool     uia6_supported;
-  bool     uia7_supported;
-  bool     pro_se_dd_supported;
-  bool     pro_se_supported;
-  bool     h245_ash_supported;
-  bool     acc_csfb_supported;
-  bool     llp_supported;
-  bool     lcs_supported;
-  bool     srvcc_capability_supported;
-  bool     nf_capability_supported;
-  bool     e_pco_supported;
-  bool     hc_cp_c_io_t_supported;
-  bool     e_rw_o_pdn_supported;
-  bool     s1_u_data_supported;
-  bool     up_c_io_t_supported;
-  bool     cp_c_io_t_supported;
-  bool     pro_se_relay_supported;
-  bool     pro_se_dc_supported;
-  bool     max_15_eps_bearer_supported;
-  bool     sgc_supported;
-  bool     n1mode_supported;
-  bool     dcnr_supported;
-  bool     cp_backoff_supported;
-  bool     restrict_ec_supported;
-  bool     v2_x_pc5_supported;
-  bool     multiple_drb_supported;
-  bool     nr_pc5_supported;
-  bool     up_mt_edt_supported;
-  bool     cp_mt_edt_supported;
-  bool     wus_supported;
-  bool     racs_supported;
+  bool eea0_supported;
+  bool eea1_128_supported;
+  bool eea2_128_supported;
+  bool eea3_128_supported;
+  bool eea4_supported;
+  bool eea5_supported;
+  bool eea6_supported;
+  bool eea7_supported;
+  bool eia0_supported;
+  bool eia1_128_supported;
+  bool eia2_128_supported;
+  bool eia3_128_supported;
+  bool eia4_supported;
+  bool eia5_supported;
+  bool eia6_supported;
+  bool eia7_supported;
+  bool uea0_supported;
+  bool uea1_128_supported;
+  bool uea2_128_supported;
+  bool uea3_128_supported;
+  bool uea4_supported;
+  bool uea5_supported;
+  bool uea6_supported;
+  bool uea7_supported;
+  bool ucs2_support;
+  bool uia1_128_supported;
+  bool uia2_128_supported;
+  bool uia3_128_supported;
+  bool uia4_supported;
+  bool uia5_supported;
+  bool uia6_supported;
+  bool uia7_supported;
+  bool pro_se_dd_supported;
+  bool pro_se_supported;
+  bool h245_ash_supported;
+  bool acc_csfb_supported;
+  bool llp_supported;
+  bool lcs_supported;
+  bool srvcc_capability_supported;
+  bool nf_capability_supported;
+  bool e_pco_supported;
+  bool hc_cp_c_io_t_supported;
+  bool e_rw_o_pdn_supported;
+  bool s1_u_data_supported;
+  bool up_c_io_t_supported;
+  bool cp_c_io_t_supported;
+  bool pro_se_relay_supported;
+  bool pro_se_dc_supported;
+  bool max_15_eps_bearer_supported;
+  bool sgc_supported;
+  bool n1mode_supported;
+  bool dcnr_supported;
+  bool cp_backoff_supported;
+  bool restrict_ec_supported;
+  bool v2_x_pc5_supported;
+  bool multiple_drb_supported;
+  bool nr_pc5_supported;
+  bool up_mt_edt_supported;
+  bool cp_mt_edt_supported;
+  bool wus_supported;
+  bool racs_supported;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -547,23 +541,22 @@ public:
 class uplink_data_status_t
 {
 public:
-  uint32_t length;
-  bool     psi_7;
-  bool     psi_6;
-  bool     psi_5;
-  bool     psi_4;
-  bool     psi_3;
-  bool     psi_2;
-  bool     psi_1;
-  bool     psi_0;
-  bool     psi_15;
-  bool     psi_14;
-  bool     psi_13;
-  bool     psi_12;
-  bool     psi_11;
-  bool     psi_10;
-  bool     psi_9;
-  bool     psi_8;
+  bool psi_7;
+  bool psi_6;
+  bool psi_5;
+  bool psi_4;
+  bool psi_3;
+  bool psi_2;
+  bool psi_1;
+  bool psi_0;
+  bool psi_15;
+  bool psi_14;
+  bool psi_13;
+  bool psi_12;
+  bool psi_11;
+  bool psi_10;
+  bool psi_9;
+  bool psi_8;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -575,23 +568,22 @@ public:
 class pdu_session_status_t
 {
 public:
-  uint32_t length;
-  bool     psi_7;
-  bool     psi_6;
-  bool     psi_5;
-  bool     psi_4;
-  bool     psi_3;
-  bool     psi_2;
-  bool     psi_1;
-  bool     psi_0;
-  bool     psi_15;
-  bool     psi_14;
-  bool     psi_13;
-  bool     psi_12;
-  bool     psi_11;
-  bool     psi_10;
-  bool     psi_9;
-  bool     psi_8;
+  bool psi_7;
+  bool psi_6;
+  bool psi_5;
+  bool psi_4;
+  bool psi_3;
+  bool psi_2;
+  bool psi_1;
+  bool psi_0;
+  bool psi_15;
+  bool psi_14;
+  bool psi_13;
+  bool psi_12;
+  bool psi_11;
+  bool psi_10;
+  bool psi_9;
+  bool psi_8;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -603,9 +595,8 @@ public:
 class mico_indication_t
 {
 public:
-  uint32_t length;
-  bool     sprti;
-  bool     aai;
+  bool sprti;
+  bool aai;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -617,9 +608,8 @@ public:
 class ue_status_t
 {
 public:
-  uint32_t length;
-  bool     n1_mode_reg;
-  bool     s1_mode_reg;
+  bool n1_mode_reg;
+  bool s1_mode_reg;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -631,23 +621,22 @@ public:
 class allowed_pdu_session_status_t
 {
 public:
-  uint32_t length;
-  bool     psi_7;
-  bool     psi_6;
-  bool     psi_5;
-  bool     psi_4;
-  bool     psi_3;
-  bool     psi_2;
-  bool     psi_1;
-  bool     psi_0;
-  bool     psi_15;
-  bool     psi_14;
-  bool     psi_13;
-  bool     psi_12;
-  bool     psi_11;
-  bool     psi_10;
-  bool     psi_9;
-  bool     psi_8;
+  bool psi_7;
+  bool psi_6;
+  bool psi_5;
+  bool psi_4;
+  bool psi_3;
+  bool psi_2;
+  bool psi_1;
+  bool psi_0;
+  bool psi_15;
+  bool psi_14;
+  bool psi_13;
+  bool psi_12;
+  bool psi_11;
+  bool psi_10;
+  bool psi_9;
+  bool psi_8;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -669,7 +658,6 @@ public:
   };
   typedef nas_enumerated<UE_usage_setting_type_, 1> UE_usage_setting_type;
 
-  uint32_t              length;
   UE_usage_setting_type ue_usage_setting;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -695,7 +683,6 @@ public:
   };
   typedef nas_enumerated<drx_value_type_, 4> drx_value_type;
 
-  uint32_t       length;
   drx_value_type drx_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -708,7 +695,6 @@ public:
 class eps_nas_message_container_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> eps_nas_message_container;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -734,7 +720,6 @@ public:
 class ladn_indication_t
 {
 public:
-  uint32_t           length;
   std::vector<dnn_t> ladn_dnn_values;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -764,7 +749,6 @@ public:
   };
   typedef nas_enumerated<Payload_container_type_type_, 4> Payload_container_type_type;
 
-  uint32_t                    length;
   Payload_container_type_type payload_container_type;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -777,7 +761,6 @@ public:
 class payload_container_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> payload_container_contents;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -790,9 +773,8 @@ public:
 class network_slicing_indication_t
 {
 public:
-  uint32_t length;
-  bool     nssci;
-  bool     dcni;
+  bool nssci;
+  bool dcni;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -848,7 +830,6 @@ public:
   };
   typedef nas_enumerated<PNB_EPS_CIoT_type_, 2> PNB_EPS_CIoT_type;
 
-  uint32_t           length;
   PNB_EPS_CIoT_type  pnb_eps_c_io_t;
   PNB_5GS_CIoT_type  pnb_5gs_c_io_t;
   NG_RAN_RCU_type    ng_ran_rcu;
@@ -864,8 +845,6 @@ public:
 class mobile_station_classmark_2_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -876,8 +855,6 @@ public:
 class supported_codec_list_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -888,7 +865,6 @@ public:
 class message_container_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> nas_message_container;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -901,23 +877,22 @@ public:
 class eps_bearer_context_status_t
 {
 public:
-  uint32_t length;
-  bool     ebi_7;
-  bool     ebi_6;
-  bool     ebi_5;
-  bool     ebi_4;
-  bool     ebi_3;
-  bool     ebi_2;
-  bool     ebi_1;
-  bool     ebi_0;
-  bool     ebi_15;
-  bool     ebi_14;
-  bool     ebi_13;
-  bool     ebi_12;
-  bool     ebi_11;
-  bool     ebi_10;
-  bool     ebi_9;
-  bool     ebi_8;
+  bool ebi_7;
+  bool ebi_6;
+  bool ebi_5;
+  bool ebi_4;
+  bool ebi_3;
+  bool ebi_2;
+  bool ebi_1;
+  bool ebi_0;
+  bool ebi_15;
+  bool ebi_14;
+  bool ebi_13;
+  bool ebi_12;
+  bool ebi_11;
+  bool ebi_10;
+  bool ebi_9;
+  bool ebi_8;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -977,7 +952,6 @@ public:
   };
   typedef nas_enumerated<eDRX_value_type_, 4> eDRX_value_type;
 
-  uint32_t                length;
   Paging_Time_Window_type paging__time__window;
   eDRX_value_type         e_drx_value;
 
@@ -1007,7 +981,6 @@ public:
   };
   typedef nas_enumerated<Unit_type_, 3> Unit_type;
 
-  uint32_t  length;
   Unit_type unit;
   uint8_t   timer_value;
 
@@ -1021,7 +994,6 @@ public:
 class ue_radio_capability_id_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> ue_radio_capability_id;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1034,8 +1006,6 @@ public:
 class mapped_nssai_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1046,8 +1016,7 @@ public:
 class additional_information_requested_t
 {
 public:
-  uint32_t length;
-  bool     cipher_key;
+  bool cipher_key;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1059,8 +1028,6 @@ public:
 class wus_assistance_information_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1071,8 +1038,7 @@ public:
 class n5gc_indication_t
 {
 public:
-  uint32_t length;
-  bool     n5gcreg;
+  bool n5gcreg;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1099,7 +1065,6 @@ public:
   };
   typedef nas_enumerated<nb_n1_mode_drx_value_type_, 4> nb_n1_mode_drx_value_type;
 
-  uint32_t                  length;
   nb_n1_mode_drx_value_type nb_n1_mode_drx_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1154,7 +1119,6 @@ public:
   };
   typedef nas_enumerated<registration_result_type_, 3> registration_result_type;
 
-  uint32_t                   length;
   Emergency_registered_type  emergency_registered;
   NSSAA_to_be_performed_type nssaa_to_be_performed;
   SMS_allowed_type           sms_allowed;
@@ -1170,8 +1134,6 @@ public:
 class plmn_list_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1194,8 +1156,6 @@ public:
   };
   typedef nas_enumerated<type_of_list_type_, 2> type_of_list_type;
 
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1206,8 +1166,6 @@ public:
 class rejected_nssai_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1218,8 +1176,6 @@ public:
 class network_feature_support_5gs_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1230,23 +1186,22 @@ public:
 class pdu_session_reactivation_result_t
 {
 public:
-  uint32_t length;
-  bool     psi_7;
-  bool     psi_6;
-  bool     psi_5;
-  bool     psi_4;
-  bool     psi_3;
-  bool     psi_2;
-  bool     psi_1;
-  bool     psi_0;
-  bool     psi_15;
-  bool     psi_14;
-  bool     psi_13;
-  bool     psi_12;
-  bool     psi_11;
-  bool     psi_10;
-  bool     psi_9;
-  bool     psi_8;
+  bool psi_7;
+  bool psi_6;
+  bool psi_5;
+  bool psi_4;
+  bool psi_3;
+  bool psi_2;
+  bool psi_1;
+  bool psi_0;
+  bool psi_15;
+  bool psi_14;
+  bool psi_13;
+  bool psi_12;
+  bool psi_11;
+  bool psi_10;
+  bool psi_9;
+  bool psi_8;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1258,8 +1213,6 @@ public:
 class pdu_session_reactivation_result_error_cause_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1270,8 +1223,6 @@ public:
 class ladn_information_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1282,8 +1233,6 @@ public:
 class service_area_list_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1294,8 +1243,7 @@ public:
 class gprs_timer_2_t
 {
 public:
-  uint32_t length;
-  uint8_t  timer_value;
+  uint8_t timer_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1307,8 +1255,6 @@ public:
 class emergency_number_list_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1319,8 +1265,6 @@ public:
 class extended_emergency_number_list_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1331,8 +1275,6 @@ public:
 class sor_transparent_container_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1343,7 +1285,6 @@ public:
 class eap_message_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> eap_message;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1368,7 +1309,6 @@ public:
   };
   typedef nas_enumerated<NSSAI_inclusion_mode_type_, 2> NSSAI_inclusion_mode_type;
 
-  uint32_t                  length;
   NSSAI_inclusion_mode_type nssai_inclusion_mode;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1381,8 +1321,6 @@ public:
 class operator_defined_access_category_definitions_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1393,8 +1331,7 @@ public:
 class non_3_gpp_nw_provided_policies_t
 {
 public:
-  uint32_t length;
-  bool     n3_en;
+  bool n3_en;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1416,7 +1353,6 @@ public:
   };
   typedef nas_enumerated<Deletion_request_type_, 3> Deletion_request_type;
 
-  uint32_t              length;
   Deletion_request_type deletion_request;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1429,8 +1365,6 @@ public:
 class ciphering_key_data_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1441,8 +1375,6 @@ public:
 class cag_information_list_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1453,9 +1385,8 @@ public:
 class truncated_5g_s_tmsi_configuration_t
 {
 public:
-  uint32_t length;
-  uint8_t  truncated_amf__set_id_value;
-  uint8_t  truncated_amf__pointer_value;
+  uint8_t truncated_amf__set_id_value;
+  uint8_t truncated_amf__pointer_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1517,7 +1448,6 @@ public:
   };
   typedef nas_enumerated<cause_5gmm_type_, 8> cause_5gmm_type;
 
-  uint32_t        length;
   cause_5gmm_type cause_5gmm;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1561,7 +1491,6 @@ public:
   };
   typedef nas_enumerated<access_type_type_, 2> access_type_type;
 
-  uint32_t                      length;
   switch_off_type               switch_off;
   re_registration_required_type re_registration_required;
   access_type_type              access_type;
@@ -1576,8 +1505,6 @@ public:
 class spare_half_octet_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1608,7 +1535,6 @@ public:
   };
   typedef nas_enumerated<Service_type_value_type_, 4> Service_type_value_type;
 
-  uint32_t                length;
   Service_type_value_type service_type_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1633,7 +1559,6 @@ public:
   };
   typedef nas_enumerated<control_plane_service_type_value_type_, 3> control_plane_service_type_value_type;
 
-  uint32_t                              length;
   control_plane_service_type_value_type control_plane_service_type_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1646,8 +1571,6 @@ public:
 class network_name_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -1658,13 +1581,12 @@ public:
 class time_zone_t
 {
 public:
-  uint32_t length;
-  uint8_t  year;
-  uint8_t  month;
-  uint8_t  day;
-  uint8_t  hour;
-  uint8_t  second;
-  uint8_t  time_zone;
+  uint8_t year;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hour;
+  uint8_t second;
+  uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1676,8 +1598,7 @@ public:
 class time_zone_and_time_t
 {
 public:
-  uint32_t length;
-  uint8_t  time_zone;
+  uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1701,7 +1622,6 @@ public:
   };
   typedef nas_enumerated<value_type_, 3> value_type;
 
-  uint32_t   length;
   value_type value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1714,8 +1634,7 @@ public:
 class sms_indication_t
 {
 public:
-  uint32_t length;
-  bool     sms_availability_indication;
+  bool sms_availability_indication;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1737,7 +1656,6 @@ public:
   };
   typedef nas_enumerated<SCMR_type_, 1> SCMR_type;
 
-  uint32_t  length;
   SCMR_type scmr;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1750,7 +1668,6 @@ public:
 class abba_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> abba_contents;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1763,7 +1680,6 @@ public:
 class authentication_parameter_rand_t
 {
 public:
-  uint32_t                length;
   std::array<uint8_t, 16> rand;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1776,7 +1692,6 @@ public:
 class authentication_parameter_autn_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> autn;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1789,7 +1704,6 @@ public:
 class authentication_response_parameter_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> res;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1802,7 +1716,6 @@ public:
 class authentication_failure_parameter_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> auth_failure;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1830,7 +1743,6 @@ public:
   };
   typedef nas_enumerated<identity_types_, 3> identity_types;
 
-  uint32_t       length;
   identity_types type_of_identity;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1875,7 +1787,6 @@ public:
   };
   typedef nas_enumerated<ciphering_algorithm_type_, 4> ciphering_algorithm_type;
 
-  uint32_t                            length;
   ciphering_algorithm_type            ciphering_algorithm;
   integrity_protection_algorithm_type integrity_protection_algorithm;
 
@@ -1899,7 +1810,6 @@ public:
   };
   typedef nas_enumerated<imeisv_request_type_, 3> imeisv_request_type;
 
-  uint32_t            length;
   imeisv_request_type imeisv_request;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1944,7 +1854,6 @@ public:
   };
   typedef nas_enumerated<ciphering_algorithm_type_, 3> ciphering_algorithm_type;
 
-  uint32_t                            length;
   ciphering_algorithm_type            ciphering_algorithm;
   integrity_protection_algorithm_type integrity_protection_algorithm;
 
@@ -1958,9 +1867,8 @@ public:
 class additional_5g_security_information_t
 {
 public:
-  uint32_t length;
-  bool     rinmr;
-  bool     hdp;
+  bool rinmr;
+  bool hdp;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1972,45 +1880,44 @@ public:
 class s1_ue_security_capability_t
 {
 public:
-  uint32_t length;
-  bool     eea0;
-  bool     eea1_128;
-  bool     eea2_128;
-  bool     eea3_128;
-  bool     eea4;
-  bool     eea5;
-  bool     eea6;
-  bool     eea7;
-  bool     eia0;
-  bool     eia1_128;
-  bool     eia2_128;
-  bool     eia3_128;
-  bool     eia4;
-  bool     eia5;
-  bool     eia6;
-  bool     eia7;
-  bool     uea0;
-  bool     uea1;
-  bool     uea2;
-  bool     uea3;
-  bool     uea4;
-  bool     uea5;
-  bool     uea6;
-  bool     uea7;
-  bool     uia1;
-  bool     uia2;
-  bool     uia3;
-  bool     uia4;
-  bool     uia5;
-  bool     uia6;
-  bool     uia7;
-  bool     gea1;
-  bool     gea2;
-  bool     gea3;
-  bool     gea4;
-  bool     gea5;
-  bool     gea6;
-  bool     gea7;
+  bool eea0;
+  bool eea1_128;
+  bool eea2_128;
+  bool eea3_128;
+  bool eea4;
+  bool eea5;
+  bool eea6;
+  bool eea7;
+  bool eia0;
+  bool eia1_128;
+  bool eia2_128;
+  bool eia3_128;
+  bool eia4;
+  bool eia5;
+  bool eia6;
+  bool eia7;
+  bool uea0;
+  bool uea1;
+  bool uea2;
+  bool uea3;
+  bool uea4;
+  bool uea5;
+  bool uea6;
+  bool uea7;
+  bool uia1;
+  bool uia2;
+  bool uia3;
+  bool uia4;
+  bool uia5;
+  bool uia6;
+  bool uia7;
+  bool gea1;
+  bool gea2;
+  bool gea3;
+  bool gea4;
+  bool gea5;
+  bool gea6;
+  bool gea7;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2032,7 +1939,6 @@ public:
   };
   typedef nas_enumerated<Access_type_value_type_, 2> Access_type_value_type;
 
-  uint32_t               length;
   Access_type_value_type access_type_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2045,8 +1951,7 @@ public:
 class pdu_session_identity_2_t
 {
 public:
-  uint32_t length;
-  uint8_t  pdu_session_identity_2_value;
+  uint8_t pdu_session_identity_2_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2073,7 +1978,6 @@ public:
   };
   typedef nas_enumerated<Request_type_value_type_, 3> Request_type_value_type;
 
-  uint32_t                length;
   Request_type_value_type request_type_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2086,7 +1990,6 @@ public:
 class additional_information_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> additional_information_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2108,7 +2011,6 @@ public:
   };
   typedef nas_enumerated<MA_PDU_session_information_value_type_, 4> MA_PDU_session_information_value_type;
 
-  uint32_t                              length;
   MA_PDU_session_information_value_type ma_pdu_session_information_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2133,7 +2035,6 @@ public:
   };
   typedef nas_enumerated<Downlink_data_expected_type_, 2> Downlink_data_expected_type;
 
-  uint32_t                    length;
   Downlink_data_expected_type downlink_data_expected;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2168,7 +2069,6 @@ public:
   };
   typedef nas_enumerated<max_data_rate_UPIP_downlink_type_, 8> max_data_rate_UPIP_downlink_type;
 
-  uint32_t                         length;
   max_data_rate_UPIP_uplink_type   max_data_rate_upip_uplink;
   max_data_rate_UPIP_downlink_type max_data_rate_upip_downlink;
 
@@ -2196,7 +2096,6 @@ public:
   };
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
-  uint32_t                    length;
   PDU_session_type_value_type pdu_session_type_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2224,7 +2123,6 @@ public:
   };
   typedef nas_enumerated<SSC_mode_value_type_, 3> SSC_mode_value_type;
 
-  uint32_t            length;
   SSC_mode_value_type ssc_mode_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2237,8 +2135,6 @@ public:
 class capability_5gsm_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -2249,7 +2145,6 @@ public:
 class maximum_number_of_supported_packet_filters_t
 {
 public:
-  uint32_t length;
   uint16_t maximum_number_of_supported_packet_filters;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2262,8 +2157,7 @@ public:
 class always_on_pdu_session_requested_t
 {
 public:
-  uint32_t length;
-  bool     apsi;
+  bool apsi;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2275,7 +2169,6 @@ public:
 class sm_pdu_dn_request_container_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> dn_specific_identity;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2288,8 +2181,6 @@ public:
 class extended_protocol_configuration_options_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -2300,8 +2191,6 @@ public:
 class ip_header_compression_configuration_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -2312,7 +2201,6 @@ public:
 class ds_tt__ethernet_port_mac_address_t
 {
 public:
-  uint32_t               length;
   std::array<uint8_t, 6> ds_tt__ethernet_port_mac_address_contents;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2325,7 +2213,6 @@ public:
 class ue_ds_tt_residence_time_t
 {
 public:
-  uint32_t               length;
   std::array<uint8_t, 8> ue_ds_tt_residence_time_contents;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2338,7 +2225,6 @@ public:
 class port_management_information_container_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> port_management_information_container;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2362,7 +2248,6 @@ public:
   };
   typedef nas_enumerated<CID_Length_type_, 2> CID_Length_type;
 
-  uint32_t        length;
   CID_Length_type cid__length;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2386,7 +2271,6 @@ public:
   };
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
-  uint32_t                    length;
   bool                        si6_lla;
   PDU_session_type_value_type pdu_session_type_value;
   std::array<uint8_t, 4>      ipv4;
@@ -2404,7 +2288,6 @@ class qo_s_rules_t
 {
 public:
   struct qos_rule_t {};
-  uint32_t                length;
   std::vector<qos_rule_t> qos_rules;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2451,7 +2334,6 @@ public:
   };
   typedef nas_enumerated<unit_session_AMBR_type_, 8> unit_session_AMBR_type;
 
-  uint32_t               length;
   unit_session_AMBR_type unit_session_ambr_for_downlink;
   uint16_t               session_ambr_for_downlink;
   unit_session_AMBR_type unit_session_ambr_for_uplink;
@@ -2518,7 +2400,6 @@ public:
   };
   typedef nas_enumerated<cause_value_type_, 8> cause_value_type;
 
-  uint32_t         length;
   cause_value_type cause_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2543,7 +2424,6 @@ public:
   };
   typedef nas_enumerated<Unit_type_, 3> Unit_type;
 
-  uint32_t  length;
   Unit_type unit;
   uint8_t   timer_value;
 
@@ -2557,8 +2437,7 @@ public:
 class always_on_pdu_session_indication_t
 {
 public:
-  uint32_t length;
-  bool     apsr;
+  bool apsr;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2570,8 +2449,6 @@ public:
 class mapped_eps_bearer_contexts_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -2582,8 +2459,6 @@ public:
 class qo_s_flow_descriptions_t
 {
 public:
-  uint32_t length;
-
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
@@ -2604,7 +2479,6 @@ public:
   };
   typedef nas_enumerated<EPT_S1_type_, 1> EPT_S1_type;
 
-  uint32_t    length;
   EPT_S1_type ept_s1;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2617,7 +2491,6 @@ public:
 class serving_plmn_rate_control_t
 {
 public:
-  uint32_t length;
   uint16_t serving_plmn_rate_control_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2630,7 +2503,6 @@ public:
 class atsss_container_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> nas_message_container;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2643,8 +2515,7 @@ public:
 class control_plane_only_indication_t
 {
 public:
-  uint32_t length;
-  bool     cpoi;
+  bool cpoi;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2656,10 +2527,9 @@ public:
 class allowed_ssc_mode_t
 {
 public:
-  uint32_t length;
-  bool     ssc3;
-  bool     ssc2;
-  bool     ssc1;
+  bool ssc3;
+  bool ssc2;
+  bool ssc1;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2681,7 +2551,6 @@ public:
   };
   typedef nas_enumerated<abo_type_, 1> abo_type;
 
-  uint32_t length;
   abo_type abo;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2694,9 +2563,8 @@ public:
 class re_attempt_indicator_t
 {
 public:
-  uint32_t length;
-  bool     eplmnc;
-  bool     ratc;
+  bool eplmnc;
+  bool ratc;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);

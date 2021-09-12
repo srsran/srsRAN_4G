@@ -415,12 +415,7 @@ srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t         
 
 void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 {
-  auto it = erabs.find(erab_id);
-  if (it == erabs.end()) {
-    logger->warning("Removing erab_id=%d from GTPU", erab_id);
-    return;
-  }
-  gtpu->rem_bearer(rnti, it->second.id);
+  gtpu->rem_bearer(rnti, erab_id);
 }
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)

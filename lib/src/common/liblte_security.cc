@@ -21,6 +21,8 @@
 #include "srsran/common/ssl.h"
 #include "srsran/common/zuc.h"
 
+#include <arpa/inet.h>
+
 /*******************************************************************************
                               LOCAL FUNCTION PROTOTYPES
 *******************************************************************************/
@@ -120,6 +122,70 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_enb(uint8* k_asme, uint32 nas_count
   return (err);
 }
 
+LIBLTE_ERROR_ENUM liblte_security_generate_res_star(uint8_t*    ck,
+                                                    uint8_t*    ik,
+                                                    const char* serving_network_name,
+                                                    uint8_t*    rand,
+                                                    uint8_t*    res,
+                                                    size_t      res_len,
+                                                    uint8_t*    res_star)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8_t           key[32];
+  uint8_t*          s;
+
+  if (ck != NULL && ik != NULL && serving_network_name != NULL && rand != NULL && res != NULL && res_star != NULL) {
+    // Construct S
+    uint16_t ssn_length  = strlen(serving_network_name);
+    uint16_t rand_length = 16;
+    uint32_t s_len       = 1 + ssn_length + 2 + rand_length + 2 + res_len + 2;
+
+    uint8_t output[32] = {};
+
+    s = (uint8_t*)calloc(s_len, sizeof(uint8_t));
+    if (s == nullptr) {
+      return err;
+    }
+
+    uint32_t i = 0;
+    s[i]       = 0x6B; // FC
+    i++;
+
+    // SSN
+    memcpy(&s[i], serving_network_name, strlen(serving_network_name));
+    i += ssn_length;
+    uint16_t ssn_length_value = htons(ssn_length);
+    memcpy(&s[i], &ssn_length_value, sizeof(ssn_length));
+    i += sizeof(ssn_length_value);
+
+    // RAND
+    memcpy(&s[i], rand, rand_length);
+    i += rand_length;
+    uint16_t rand_length_value = htons(rand_length);
+    memcpy(&s[i], &rand_length_value, sizeof(rand_length));
+    i += sizeof(rand_length_value);
+
+    // RES
+    memcpy(&s[i], res, res_len);
+    i += res_len;
+    uint16_t res_length_value = htons(res_len);
+    memcpy(&s[i], &res_length_value, sizeof(res_length_value));
+    i += sizeof(res_length_value);
+
+    // The input key Key shall be equal to the concatenation CK || IK of CK and IK.
+    memcpy(key, ck, 16);
+    memcpy(key + 16, ik, 16);
+
+    // Derive output
+    sha256(key, 32, s, s_len, output, 0);
+    memcpy(res_star, output + 16, 16);
+
+    free(s);
+    err = LIBLTE_SUCCESS;
+  }
+  return (err);
+}
+
 /*********************************************************************
     Name: liblte_security_generate_k_enb_star
 
@@ -192,22 +258,18 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_nas(uint8*                         
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   uint8             s[7];
 
-  if (k_asme != NULL && k_nas_enc != NULL) { //{}
-    if (enc_alg_id != LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_EEA0) {
-      // Construct S for KNASenc
-      s[0] = 0x15;       // FC
-      s[1] = 0x01;       // P0
-      s[2] = 0x00;       // First byte of L0
-      s[3] = 0x01;       // Second byte of L0
-      s[4] = enc_alg_id; // P1
-      s[5] = 0x00;       // First byte of L1
-      s[6] = 0x01;       // Second byte of L1
+  if (k_asme != NULL && k_nas_enc != NULL) {
+    // Construct S for KNASenc
+    s[0] = 0x15;       // FC
+    s[1] = 0x01;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = enc_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
 
-      // Derive KNASenc
-      sha256(k_asme, 32, s, 7, k_nas_enc, 0);
-    } else {
-      memset(k_nas_enc, 0, 32);
-    }
+    // Derive KNASenc
+    sha256(k_asme, 32, s, 7, k_nas_enc, 0);
   }
 
   if (k_asme != NULL && k_nas_int != NULL) {
@@ -1155,13 +1217,13 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
     for (i = 0; i < 16; i++) {
       input[i] = rand[i] ^ op_c[i];
     }
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
     // Compute out for RES and AK
     for (i = 0; i < 16; i++) {
       input[i] = temp[i] ^ op_c[i];
     }
     input[15] ^= 1;
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1181,7 +1243,7 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
       input[(i + 12) % 16] = temp[i] ^ op_c[i];
     }
     input[15] ^= 2;
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1196,7 +1258,7 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
       input[(i + 8) % 16] = temp[i] ^ op_c[i];
     }
     input[15] ^= 4;
-    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }

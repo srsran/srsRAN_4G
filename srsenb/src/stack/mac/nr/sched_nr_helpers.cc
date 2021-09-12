@@ -172,12 +172,12 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
                      "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, tbs={}, tti_pusch={}",
-                     ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
+                     ue.h_ul->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
-                     ue.h_dl->nof_retx(),
+                     ue.h_ul->nof_retx(),
                      ue.h_ul->tbs(),
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
@@ -187,7 +187,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
-                     ue.h_dl->nof_retx(),
+                     ue.h_ul->nof_retx(),
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.pusch_slot);
     } else {

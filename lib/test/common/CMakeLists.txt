@@ -51,6 +51,10 @@ add_executable(test_f12345 test_f12345.cc)
 target_link_libraries(test_f12345 srsran_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_f12345 test_f12345)
 
+add_executable(test_security_kdf test_security_kdf.cc)
+target_link_libraries(test_security_kdf srsran_common ${CMAKE_THREAD_LIBS_INIT})
+add_test(test_security_kdf test_security_kdf)
+
 add_executable(timeout_test timeout_test.cc)
 target_link_libraries(timeout_test srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 

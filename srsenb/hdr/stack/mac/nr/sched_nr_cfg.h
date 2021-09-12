@@ -24,10 +24,11 @@
 
 #include "sched_nr_interface.h"
 #include "sched_nr_rb.h"
+#include "srsenb/hdr/common/common_enb.h"
 
 namespace srsenb {
 
-const static size_t SCHED_NR_MAX_USERS     = 4;
+const static size_t SCHED_NR_MAX_USERS     = SRSENB_MAX_UES;
 const static size_t SCHED_NR_NOF_SUBFRAMES = 10;
 const static size_t SCHED_NR_NOF_HARQS     = 16;
 static const size_t MAX_NOF_AGGR_LEVELS    = 5;

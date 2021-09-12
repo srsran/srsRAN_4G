@@ -50,7 +50,6 @@ class gtpu_pdcp_adapter;
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_phy_nr,
-                            public stack_interface_rrc,
                             public srsran::thread
 {
 public:
@@ -145,11 +144,6 @@ public:
   }
   void rach_detected(const rach_info_t& rach_info) override { mac_nr.rach_detected(rach_info); }
 
-  // interface for bearer manager
-  void add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) override;
-  void remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id) override;
-  void reset_eps_bearers(uint16_t rnti) override;
-
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop
@@ -185,7 +179,7 @@ private:
   srsran::task_queue_handle enb_task_queue, sync_task_queue, metrics_task_queue;
 
   // bearer management
-  srsran::bearer_manager             bearers; // helper to manage mapping between EPS and radio bearers
+  enb_bearer_manager                 bearers; // helper to manage mapping between EPS and radio bearers
   std::unique_ptr<gtpu_pdcp_adapter> gtpu_adapter;
 
   srsenb::mac  mac;

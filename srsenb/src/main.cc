@@ -231,6 +231,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.lte_sample_rates", bpo::value<bool>(&use_standard_lte_rates)->default_value(false), "Whether to use default LTE sample rates instead of shorter variants.")
     ("expert.report_json_enable",  bpo::value<bool>(&args->general.report_json_enable)->default_value(false), "Write eNB report to JSON file (default disabled)")
     ("expert.report_json_filename", bpo::value<string>(&args->general.report_json_filename)->default_value("/tmp/enb_report.json"), "Report JSON filename (default /tmp/enb_report.json)")
+    ("expert.report_json_asn1_oct",  bpo::value<bool>(&args->general.report_json_asn1_oct)->default_value(false), "Prints ASN1 messages encoded as an octet string instead of plain text in the JSON report file")
     ("expert.alarms_log_enable",  bpo::value<bool>(&args->general.alarms_log_enable)->default_value(false), "Enable Alarms logging (default diabled)")
     ("expert.alarms_filename", bpo::value<string>(&args->general.alarms_filename)->default_value("/tmp/enb_alarms.log"), "Alarms logging filename (default /tmp/alarms.log)")
     ("expert.tracing_enable",  bpo::value<bool>(&args->general.tracing_enable)->default_value(false), "Events tracing")
@@ -587,7 +588,10 @@ int main(int argc, char* argv[])
 
   // Configure the event logger just before starting the eNB class.
   if (args.general.report_json_enable) {
-    event_logger::configure(json_channel);
+    event_logger::asn1_output_format format = (args.general.report_json_asn1_oct)
+                                                  ? event_logger::asn1_output_format::octets
+                                                  : event_logger::asn1_output_format::text;
+    event_logger::configure(json_channel, format);
   }
 
   if (mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE) == -1) {

@@ -240,7 +240,7 @@ private:
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
 
-  bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
+  ue_bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
 
   // Metrics helper
   uint32_t ul_dropped_sdus = 0;

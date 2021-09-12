@@ -237,11 +237,16 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
 void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 {
   activity_timer.stop();
+
+  std::string event_type = "Unknown";
   if (timeout_id == phy_dl_rlf_timer.id()) {
+    event_type = "dl_rlf";
     parent->logger.info("DL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_dl_rlf_timer.time_elapsed());
   } else if (timeout_id == phy_ul_rlf_timer.id()) {
+    event_type = "ul_rlf";
     parent->logger.info("UL RLF timer for rnti=0x%x expired after %d ms", rnti, phy_ul_rlf_timer.time_elapsed());
   } else if (timeout_id == rlc_rlf_timer.id()) {
+    event_type = "rlc_rlf";
     parent->logger.info("RLC RLF timer for rnti=0x%x expired after %d ms", rnti, rlc_rlf_timer.time_elapsed());
   }
 
@@ -252,6 +257,10 @@ void rrc::ue::rlf_timer_expired(uint32_t timeout_id)
 
   parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
   con_release_result = procedure_result_code::radio_conn_with_ue_lost;
+
+  // Log event.
+  event_logger::get().log_rlf_detected(
+      ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, event_type, rnti);
 }
 
 void rrc::ue::max_rlc_retx_reached()
@@ -421,8 +430,11 @@ std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 {
   // Log event.
+  asn1::json_writer json_writer;
+  msg->to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_request),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -486,8 +498,11 @@ void rrc::ue::send_connection_setup()
   send_dl_ccch(&dl_ccch_msg, &octet_str);
 
   // Log event.
+  asn1::json_writer json_writer;
+  dl_ccch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_setup),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -498,8 +513,11 @@ void rrc::ue::send_connection_setup()
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
   // Log event.
+  asn1::json_writer json_writer;
+  msg->to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_setup_complete),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -551,8 +569,11 @@ void rrc::ue::send_connection_reject(procedure_result_code cause)
   send_dl_ccch(&dl_ccch_msg, &octet_str);
 
   // Log event.
+  asn1::json_writer json_writer;
+  dl_ccch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reject),
                                     static_cast<unsigned>(cause),
                                     rnti);
@@ -564,8 +585,11 @@ void rrc::ue::send_connection_reject(procedure_result_code cause)
 void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 {
   // Log event.
+  asn1::json_writer json_writer;
+  msg->to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reest_req),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -698,8 +722,11 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 
   // Log event.
+  asn1::json_writer json_writer;
+  dl_ccch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reest),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -708,8 +735,11 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
 void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsran::unique_byte_buffer_t pdu)
 {
   // Log event.
+  asn1::json_writer json_writer;
+  msg->to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reest_complete),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -749,8 +779,11 @@ void rrc::ue::send_connection_reest_rej(procedure_result_code cause)
   send_dl_ccch(&dl_ccch_msg, &octet_str);
 
   // Log event.
+  asn1::json_writer json_writer;
+  dl_ccch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reest_reject),
                                     static_cast<unsigned>(cause),
                                     rnti);
@@ -825,8 +858,11 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
   send_dl_dcch(&dl_dcch_msg, std::move(pdu), &octet_str);
 
   // Log event.
+  asn1::json_writer json_writer;
+  dl_dcch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reconf),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -846,8 +882,11 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran:
   }
 
   // Log event.
+  asn1::json_writer json_writer;
+  msg->to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reconf_complete),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rnti);
@@ -886,8 +925,12 @@ void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srsra
 {
   auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
   if (resp_r9.rlf_report_r9_present) {
-    std::string msg_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
-    event_logger::get().log_rlf(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, msg_str, rnti);
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    event_logger::get().log_rlf_report(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                       asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+                                       json_writer.to_string(),
+                                       rnti);
   }
   if (resp_r9.rach_report_r9_present) {
     // TODO: Handle RACH-Report
@@ -1028,8 +1071,11 @@ void rrc::ue::send_connection_release()
   send_dl_dcch(&dl_dcch_msg, nullptr, &octet_str);
 
   // Log rrc release event.
+  asn1::json_writer json_writer;
+  dl_dcch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_release),
                                     static_cast<unsigned>(con_release_result),
                                     rnti);
@@ -1452,8 +1498,8 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       parent->rlc->del_bearer(rnti, drb_to_lcid((lte_drb)drb_id));
 
       // deregister EPS bearer
-      uint8_t eps_bearer_id = 0; // FIXME: lookup EPS bearer ID for drb_id
-      parent->stack->remove_eps_bearer(rnti, eps_bearer_id);
+      uint8_t eps_bearer_id = parent->bearer_manager.get_lcid_bearer(rnti, drb_to_lcid((lte_drb)drb_id)).eps_bearer_id;
+      parent->bearer_manager.remove_eps_bearer(rnti, eps_bearer_id);
     }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
@@ -1469,7 +1515,7 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
     parent->rlc->add_bearer(rnti, drb.lc_ch_id, rlc_cfg);
 
     // register EPS bearer over LTE PDCP
-    parent->stack->add_eps_bearer(rnti, drb.eps_bearer_id, srsran::srsran_rat_t::lte, drb.lc_ch_id);
+    parent->bearer_manager.add_eps_bearer(rnti, drb.eps_bearer_id, srsran::srsran_rat_t::lte, drb.lc_ch_id);
   }
 }
 

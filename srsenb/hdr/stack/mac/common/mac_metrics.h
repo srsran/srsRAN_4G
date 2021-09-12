@@ -46,10 +46,18 @@ struct mac_ue_metrics_t {
   float    phr;
 };
 
+/// MAC misc information for each cc.
+struct mac_cc_info_t {
+  /// PCI value.
+  uint32_t pci;
+  /// RACH preamble counter per cc.
+  uint32_t cc_rach_counter;
+};
+
 /// Main MAC metrics.
 struct mac_metrics_t {
-  /// RACH preamble counter per cc.
-  std::vector<uint32_t> cc_rach_counter;
+  /// Per CC info.
+  std::vector<mac_cc_info_t> cc_info;
   /// Per UE MAC metrics.
   std::vector<mac_ue_metrics_t> ues;
 };

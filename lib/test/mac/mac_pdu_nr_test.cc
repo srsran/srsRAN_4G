@@ -20,6 +20,7 @@
  */
 
 #include "srsran/common/mac_pcap.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/common/test_common.h"
 #include "srsran/config.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
@@ -32,6 +33,7 @@
 
 #define PCAP 0
 #define PCAP_CRNTI (0x1001)
+#define PCAP_RAR_RNTI (0x0016)
 #define PCAP_TTI (666)
 
 using namespace srsran;
@@ -226,8 +228,13 @@ int mac_dl_sch_pdu_pack_test5()
     pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
+  // pretty print PDU
+  fmt::memory_buffer buff;
+  tx_pdu.to_string(buff);
+
   auto& mac_logger = srslog::fetch_basic_logger("MAC");
-  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
+  mac_logger.info(
+      tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B): %s", tx_buffer.N_bytes, srsran::to_c_str(buff));
 
   return SRSRAN_SUCCESS;
 }
@@ -254,7 +261,7 @@ int mac_dl_sch_pdu_unpack_test6()
   return SRSRAN_SUCCESS;
 }
 
-int mac_rar_pdu_unpack_test7()
+int mac_rar_pdu_test7()
 {
   // MAC PDU with RAR PDU with single RAPID=0
   // rapid=0
@@ -282,13 +289,17 @@ int mac_rar_pdu_unpack_test7()
   uint8_t mac_dl_rar_pdu[] = {0x40, 0x05, 0xa0, 0x00, 0x11, 0x46, 0x46, 0x16, 0x00, 0x00, 0x00};
 
   if (pcap_handle) {
-    pcap_handle->write_dl_ra_rnti_nr(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu), 0x0016, true, PCAP_TTI);
+    pcap_handle->write_dl_ra_rnti_nr(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu), PCAP_RAR_RNTI, true, PCAP_TTI);
   }
 
   srsran::mac_rar_pdu_nr pdu;
   TESTASSERT(pdu.unpack(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu)) == true);
 
-  std::cout << pdu.to_string() << std::endl;
+  fmt::memory_buffer buff;
+  pdu.to_string(buff);
+
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info("Rx PDU: %s", srsran::to_c_str(buff));
 
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
@@ -301,6 +312,30 @@ int mac_rar_pdu_unpack_test7()
 
   std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> msg3_grant = subpdu.get_ul_grant();
   TESTASSERT(memcmp(msg3_grant.data(), tv_msg3_grant, msg3_grant.size()) == 0);
+
+  // pack again
+  byte_buffer_t  tx_buffer;
+  tx_buffer.clear();
+
+  srsran::mac_rar_pdu_nr tx_pdu;
+  tx_pdu.init_tx(&tx_buffer, sizeof(mac_dl_rar_pdu));
+
+  mac_rar_subpdu_nr& rar_subpdu = tx_pdu.add_subpdu();
+  rar_subpdu.set_ta(tv_ta);
+  rar_subpdu.set_rapid(tv_rapid);
+  rar_subpdu.set_temp_crnti(tv_tcrnti);
+  rar_subpdu.set_ul_grant(msg3_grant);
+
+  TESTASSERT(tx_pdu.pack() == SRSRAN_SUCCESS);
+  TESTASSERT(tx_buffer.N_bytes == sizeof(mac_dl_rar_pdu));
+  TESTASSERT(memcmp(tx_buffer.msg, mac_dl_rar_pdu, tx_buffer.N_bytes) == 0);
+
+  tx_pdu.to_string(buff);
+  mac_logger.info("Tx PDU: %s", srsran::to_c_str(buff));
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_ra_rnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_RAR_RNTI, true, PCAP_TTI);
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -596,6 +631,13 @@ int mac_dl_sch_pdu_unpack_and_pack_test6()
     // 4th is padding
     subpdu = pdu_rx.get_subpdu(3);
     TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+
+    // pretty print PDU
+    fmt::memory_buffer buff;
+    pdu_rx.to_string(buff);
+
+    auto& mac_logger = srslog::fetch_basic_logger("MAC");
+    mac_logger.info("Rx PDU: %s", srsran::to_c_str(buff));
   }
 
   // Let's pack the entire PDU again
@@ -620,6 +662,13 @@ int mac_dl_sch_pdu_unpack_and_pack_test6()
 
     // finish PDU packing
     pdu_tx.pack();
+
+    // pretty print PDU
+    fmt::memory_buffer buff;
+    pdu_tx.to_string(buff);
+
+    auto& mac_logger = srslog::fetch_basic_logger("MAC");
+    mac_logger.info("Tx PDU: %s", srsran::to_c_str(buff));
 
     // compare PDUs
     TESTASSERT(tx_buffer.N_bytes == sizeof(tv));
@@ -701,7 +750,7 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
-  if (mac_rar_pdu_unpack_test7()) {
+  if (mac_rar_pdu_test7()) {
     fprintf(stderr, "mac_rar_pdu_unpack_test7() failed.\n");
     return SRSRAN_ERROR;
   }
@@ -754,6 +803,8 @@ int main(int argc, char** argv)
   if (pcap_handle) {
     pcap_handle->close();
   }
+
+  srslog::flush();
 
   return SRSRAN_SUCCESS;
 }

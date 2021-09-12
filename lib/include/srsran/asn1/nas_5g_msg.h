@@ -1822,11 +1822,11 @@ public:
   nas_5gs_hdr hdr;
 
   SRSASN_CODE pack(unique_byte_buffer_t& buf);
-  SRSASN_CODE pack(std::vector<uint8_t> buf);
+  SRSASN_CODE pack(std::vector<uint8_t>& buf);
   SRSASN_CODE unpack(const unique_byte_buffer_t& buf);
-  SRSASN_CODE unpack(const std::vector<uint8_t> buf);
+  SRSASN_CODE unpack(const std::vector<uint8_t>& buf);
   SRSASN_CODE unpack_outer_hdr(const unique_byte_buffer_t& buf);
-  SRSASN_CODE unpack_outer_hdr(const std::vector<uint8_t> buf);
+  SRSASN_CODE unpack_outer_hdr(const std::vector<uint8_t>& buf);
 
   void set(msg_types::options e = msg_types::nulltype) { hdr.message_type = e; };
   // Getters

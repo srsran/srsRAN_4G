@@ -37,7 +37,6 @@ inline const char* to_string(rrc_cfg_cqi_mode_t mode)
 struct rrc_cfg_cqi_t {
   uint32_t           sf_mapping[80];
   uint32_t           nof_subframes;
-  uint32_t           nof_prb;
   uint32_t           period;
   uint32_t           m_ri;
   bool               is_subband_enabled;

@@ -109,6 +109,20 @@ public:
   bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
   bool update_nr_context(srsran::as_security_config_t* sec_cfg) final;
 
+  // 5G NAS interface
+  virtual auth_result_t generate_authentication_response_5g(uint8_t*    rand,
+                                                            uint8_t*    autn_enb,
+                                                            const char* serving_network_name,
+                                                            uint8_t*    abba,
+                                                            uint32_t    abba_len,
+                                                            uint8_t*    res_star,
+                                                            uint8_t*    k_amf) = 0;
+
+  bool generate_nas_keys_5g(uint8_t*                            k_amf,
+                            uint8_t*                            k_nas_enc,
+                            uint8_t*                            k_nas_int,
+                            srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                            srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
   // Helpers
   std::string         get_mcc_str(const uint8_t* imsi_vec);
   virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) = 0;

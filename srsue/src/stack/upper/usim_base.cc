@@ -357,6 +357,21 @@ void usim_base::restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx
   return;
 }
 
+bool usim_base::generate_nas_keys_5g(uint8_t*                            k_amf,
+                                     uint8_t*                            k_nas_enc,
+                                     uint8_t*                            k_nas_int,
+                                     srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                     srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return false;
+  }
+  // Generate K_nas_enc and K_nas_int
+  security_generate_k_nas_5g(k_amf, cipher_algo, integ_algo, k_nas_enc, k_nas_int);
+  return true;
+}
+
 /*
  *  NR RRC Interface
  */
@@ -369,7 +384,7 @@ bool usim_base::generate_nr_context(uint16_t sk_counter, srsran::as_security_con
   }
   logger.info("Generating Keys. SCG Counter %d", sk_counter);
 
-  srsran::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), k_gnb_ctx.sk_gnb.data(), sk_counter);
+  srsran::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), sk_counter, k_gnb_ctx.sk_gnb.data());
   logger.info(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
   if (update_nr_context(sec_cfg) == false) {
     return false;

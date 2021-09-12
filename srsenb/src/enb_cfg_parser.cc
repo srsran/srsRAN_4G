@@ -745,7 +745,6 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
       "mode", &rrc_cfg_->cqi_cfg.mode, rrc_cfg_cqi_mode_text, RRC_CFG_CQI_MODE_N_ITEMS));
   cqi_report_cnfg.add_field(new parser::field<uint32>("period", &rrc_cfg_->cqi_cfg.period));
   cqi_report_cnfg.add_field(new parser::field<uint32>("m_ri", &rrc_cfg_->cqi_cfg.m_ri));
-  cqi_report_cnfg.add_field(new parser::field<uint32>("nof_prb", &rrc_cfg_->cqi_cfg.nof_prb));
   cqi_report_cnfg.add_field(
       new parser::field<uint32>("subband_k", &rrc_cfg_->cqi_cfg.subband_k, &rrc_cfg_->cqi_cfg.is_subband_enabled));
   cqi_report_cnfg.add_field(new parser::field<bool>("simultaneousAckCQI", &rrc_cfg_->cqi_cfg.simultaneousAckCQI));
@@ -1236,7 +1235,8 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   }
 
   // Check PUCCH and PRACH configuration
-  uint32_t nrb_pucch         = std::max(rrc_cfg_->sr_cfg.nof_prb, rrc_cfg_->cqi_cfg.nof_prb);
+  uint32_t nrb_pucch =
+      std::max(rrc_cfg_->sr_cfg.nof_prb, (uint32_t)rrc_cfg_->sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi);
   uint32_t prach_freq_offset = rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
   if (args_->enb.n_prb > 6) {
     uint32_t lower_bound = nrb_pucch;

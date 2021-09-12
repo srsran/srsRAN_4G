@@ -325,7 +325,8 @@ enable = false
 # metrics_csv_filename: File path to use for CSV metrics.
 # report_json_enable:   Write eNB report to JSON file (default disabled)
 # report_json_filename: Report JSON filename (default /tmp/enb_report.json)
-# alarms_log_enable:    Enable Alarms logging (default diabled)
+# report_json_asn1_oct: Prints ASN1 messages encoded as an octet string instead of plain text in the JSON report file
+# alarms_log_enable:    Enable Alarms logging (default disabled)
 # alarms_filename:      Alarms logging filename (default /tmp/alarms.log)
 # tracing_enable:       Write source code tracing information to a file.
 # tracing_filename:     File path to use for tracing information.
@@ -357,6 +358,7 @@ enable = false
 #metrics_csv_filename = /tmp/enb_metrics.csv
 #report_json_enable   = true
 #report_json_filename = /tmp/enb_report.json
+#report_json_asn1_oct = false
 #alarms_log_enable    = true
 #alarms_filename      = /tmp/enb_alarms.log
 #tracing_enable       = true

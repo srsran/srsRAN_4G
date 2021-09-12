@@ -29,6 +29,7 @@
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
+#include "srsran/common/enb_events.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
@@ -41,8 +42,8 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(stack_interface_rrc* stack_, srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC")), stack(stack_), task_sched(task_sched_), rx_pdu_queue(128)
+rrc::rrc(srsran::task_sched_handle task_sched_, enb_bearer_manager& manager_) :
+  logger(srslog::fetch_basic_logger("RRC")), bearer_manager(manager_), task_sched(task_sched_), rx_pdu_queue(128)
 {}
 
 rrc::~rrc() {}
@@ -285,6 +286,10 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
       old_it->second->send_connection_reconf();
     }
   }
+
+  // Log event.
+  event_logger::get().log_connection_resume(
+      ue_ptr->get_cell_list().get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, old_rnti, new_rnti);
 }
 
 // Note: this method is not part of UE methods, because the UE context may not exist anymore when reject is sent
@@ -664,6 +669,7 @@ void rrc::rem_user(uint16_t rnti)
     gtpu->rem_user(rnti);
 
     // Now remove RLC and PDCP
+    bearer_manager.rem_user(rnti);
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
 
@@ -711,11 +717,12 @@ void rrc::config_mac()
     item.n1pucch_an           = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;
     item.nrb_cqi              = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi;
 
-    item.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+    item.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, item.nrb_cqi);
     logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
 
     // Copy base cell configuration
-    item.cell = cfg.cell;
+    item.cell    = cfg.cell;
+    item.cell.id = cfg.cell_list[ccidx].pci;
 
     // copy secondary cell list info
     sched_cfg[ccidx].scell_list.reserve(cfg.cell_list[ccidx].scell_list.size());

@@ -149,12 +149,7 @@ slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
     return slot_ue();
   }
 
-  slot_ue sfu = carriers[cc]->try_reserve(pdcch_slot, cfg(), dl_pending_bytes, ul_pending_bytes);
-  if (sfu.empty()) {
-    return slot_ue();
-  }
-
-  return sfu;
+  return carriers[cc]->try_reserve(pdcch_slot, cfg(), dl_pending_bytes, ul_pending_bytes);
 }
 
 } // namespace sched_nr_impl

@@ -110,24 +110,68 @@ auth_result_t usim::generate_authentication_response(uint8_t* rand,
                                                      int*     res_len,
                                                      uint8_t* k_asme_)
 {
+  auth_result_t auth_result;
+  uint8_t       ak_xor_sqn[6];
+
   if (auth_algo_xor == auth_algo) {
-    return gen_auth_res_xor(rand, autn_enb, mcc, mnc, res, res_len, k_asme_);
+    auth_result = gen_auth_res_xor(rand, autn_enb, res, res_len, ak_xor_sqn);
   } else {
-    return gen_auth_res_milenage(rand, autn_enb, mcc, mnc, res, res_len, k_asme_);
+    auth_result = gen_auth_res_milenage(rand, autn_enb, res, res_len, ak_xor_sqn);
   }
+
+  if (auth_result == AUTH_OK) {
+    // Generate K_asme
+    security_generate_k_asme(ck, ik, ak_xor_sqn, mcc, mnc, k_asme_);
+  }
+  return auth_result;
+}
+
+auth_result_t usim::generate_authentication_response_5g(uint8_t*    rand,
+                                                        uint8_t*    autn_enb,
+                                                        const char* serving_network_name,
+                                                        uint8_t*    abba,
+                                                        uint32_t    abba_len,
+                                                        uint8_t*    res_star,
+                                                        uint8_t*    k_amf)
+{
+  auth_result_t auth_result;
+  uint8_t       ak_xor_sqn[6];
+  uint8_t       res[16];
+  uint8_t       k_ausf[32];
+  uint8_t       k_seaf[32];
+  int           res_len;
+
+  if (auth_algo_xor == auth_algo) {
+    auth_result = gen_auth_res_xor(rand, autn_enb, res, &res_len, ak_xor_sqn);
+  } else {
+    auth_result = gen_auth_res_milenage(rand, autn_enb, res, &res_len, ak_xor_sqn);
+  }
+
+  if (auth_result == AUTH_OK) {
+    // Generate RES STAR
+    security_generate_res_star(ck, ik, serving_network_name, rand, res, res_len, res_star);
+    logger.debug(res_star, 16, "RES STAR");
+    // Generate K_ausf
+    security_generate_k_ausf(ck, ik, ak_xor_sqn, serving_network_name, k_ausf);
+    logger.debug(k_ausf, 32, "K AUSF");
+    // Generate K_seaf
+    security_generate_k_seaf(k_ausf, serving_network_name, k_seaf);
+    logger.debug(k_seaf, 32, "K SEAF");
+    // Generate K_seaf
+    logger.debug(abba, abba_len, "ABBA:");
+    logger.debug("IMSI: %s", imsi_str.c_str());
+    security_generate_k_amf(k_seaf, imsi_str.c_str(), abba, abba_len, k_amf);
+    logger.debug(k_amf, 32, "K AMF");
+  }
+  return auth_result;
 }
 
 /*******************************************************************************
   Helpers
 *******************************************************************************/
 
-auth_result_t usim::gen_auth_res_milenage(uint8_t* rand,
-                                          uint8_t* autn_enb,
-                                          uint16_t mcc,
-                                          uint16_t mnc,
-                                          uint8_t* res,
-                                          int*     res_len,
-                                          uint8_t* k_asme)
+auth_result_t
+usim::gen_auth_res_milenage(uint8_t* rand, uint8_t* autn_enb, uint8_t* res, int* res_len, uint8_t* ak_xor_sqn)
 {
   auth_result_t result = AUTH_OK;
   uint32_t      i;
@@ -168,37 +212,34 @@ auth_result_t usim::gen_auth_res_milenage(uint8_t* rand,
     }
   }
 
-  // Generate K_asme
-  security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
+  for (i = 0; i < 6; i++) {
+    ak_xor_sqn[i] = sqn[i] ^ ak[i];
+  }
+
+  logger.debug(ck, CK_LEN, "CK:");
+  logger.debug(ik, IK_LEN, "IK:");
+  logger.debug(ak, AK_LEN, "AK:");
+  logger.debug(sqn, 6, "sqn:");
+  logger.debug(amf, 2, "amf:");
+  logger.debug(mac, 8, "mac:");
 
   return result;
 }
 
 // 3GPP TS 34.108 version 10.0.0 Section 8
-auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
-                                     uint8_t* autn_enb,
-                                     uint16_t mcc,
-                                     uint16_t mnc,
-                                     uint8_t* res,
-                                     int*     res_len,
-                                     uint8_t* k_asme_)
+auth_result_t usim::gen_auth_res_xor(uint8_t* rand, uint8_t* autn_enb, uint8_t* res, int* res_len, uint8_t* ak_xor_sqn)
 {
   auth_result_t result = AUTH_OK;
   uint8_t       sqn[6];
-  uint8_t       xdout[16];
-  uint8_t       cdout[8];
+  uint8_t       res_[16];
+
+  logger.debug(k, 16, "K:");
 
   // Use RAND and K to compute RES, CK, IK and AK
-  for (uint32_t i = 0; i < 16; i++) {
-    xdout[i] = k[i] ^ rand[i];
-  }
-  for (uint32_t i = 0; i < 16; i++) {
-    res[i] = xdout[i];
-    ck[i]  = xdout[(i + 1) % 16];
-    ik[i]  = xdout[(i + 2) % 16];
-  }
-  for (uint32_t i = 0; i < 6; i++) {
-    ak[i] = xdout[i + 3];
+  security_xor_f2345(k, rand, res_, ck, ik, ak);
+
+  for (uint32_t i = 0; i < 8; i++) {
+    res[i] = res_[i];
   }
 
   *res_len = 8;
@@ -212,18 +253,8 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
     amf[i] = autn_enb[6 + i];
   }
 
-  // Generate cdout
-  for (uint32_t i = 0; i < 6; i++) {
-    cdout[i] = sqn[i];
-  }
-  for (uint32_t i = 0; i < 2; i++) {
-    cdout[6 + i] = amf[i];
-  }
-
   // Generate MAC
-  for (uint32_t i = 0; i < 8; i++) {
-    mac[i] = xdout[i] ^ cdout[i];
-  }
+  security_xor_f1(k, rand, sqn, amf, mac);
 
   // Construct AUTN
   for (uint32_t i = 0; i < 6; i++) {
@@ -243,8 +274,16 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
     }
   }
 
-  // Generate K_asme
-  security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme_);
+  logger.debug(ck, CK_LEN, "CK:");
+  logger.debug(ik, IK_LEN, "IK:");
+  logger.debug(ak, AK_LEN, "AK:");
+  logger.debug(sqn, 6, "sqn:");
+  logger.debug(amf, 2, "amf:");
+  logger.debug(mac, 8, "mac:");
+
+  for (uint32_t i = 0; i < 6; i++) {
+    ak_xor_sqn[i] = sqn[i] ^ ak[i];
+  }
 
   return result;
 }

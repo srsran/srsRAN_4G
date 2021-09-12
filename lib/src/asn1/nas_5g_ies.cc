@@ -130,6 +130,7 @@ SRSASN_CODE mobile_identity_5gs_t::pack(asn1::bit_ref& bref)
 SRSASN_CODE mobile_identity_5gs_t::unpack(asn1::cbit_ref& bref)
 {
   // Length
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   uint8_t tmp;
   HANDLE_CODE(bref.unpack(tmp, 5));
@@ -456,6 +457,7 @@ SRSASN_CODE capability_5gmm_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.1
 SRSASN_CODE capability_5gmm_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 13) {
     asn1::log_error("Decoding Failed (5GMM capability): Length (%d) is not in range of min: 1 and max 13 bytes",
@@ -557,6 +559,7 @@ SRSASN_CODE ue_security_capability_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.54
 SRSASN_CODE ue_security_capability_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 8) {
     asn1::log_error("Decoding Failed (UE security capability): Length (%d) is not in range of min: 2 and max 8 bytes",
@@ -631,6 +634,7 @@ SRSASN_CODE nssai_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.37
 SRSASN_CODE nssai_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 144) {
     asn1::log_error("Decoding Failed (NSSAI): Length (%d) is not in range of min: 2 and max 144 bytes", length);
@@ -758,6 +762,7 @@ SRSASN_CODE s1_ue_network_capability_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.48
 SRSASN_CODE s1_ue_network_capability_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 13) {
     asn1::log_error(
@@ -902,6 +907,7 @@ SRSASN_CODE uplink_data_status_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.57
 SRSASN_CODE uplink_data_status_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 32) {
     asn1::log_error("Decoding Failed (Uplink data status): Length (%d) is not in range of min: 2 and max 32 bytes",
@@ -972,6 +978,7 @@ SRSASN_CODE pdu_session_status_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.44
 SRSASN_CODE pdu_session_status_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 32) {
     asn1::log_error("Decoding Failed (PDU session status): Length (%d) is not in range of min: 2 and max 32 bytes",
@@ -1051,6 +1058,7 @@ SRSASN_CODE ue_status_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.56
 SRSASN_CODE ue_status_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (UE status): Length (%d) does not equal expected length 1", length);
@@ -1105,6 +1113,7 @@ SRSASN_CODE allowed_pdu_session_status_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.13
 SRSASN_CODE allowed_pdu_session_status_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 32) {
     asn1::log_error(
@@ -1161,6 +1170,7 @@ SRSASN_CODE ue_usage_setting_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.55
 SRSASN_CODE ue_usage_setting_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (UE usage setting): Length (%d) does not equal expected length 1", length);
@@ -1200,6 +1210,7 @@ SRSASN_CODE drx_parameters_5gs_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.2A
 SRSASN_CODE drx_parameters_5gs_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (5GS DRX parameters): Length (%d) does not equal expected length 1", length);
@@ -1231,6 +1242,7 @@ SRSASN_CODE eps_nas_message_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.24
 SRSASN_CODE eps_nas_message_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   eps_nas_message_container.resize(length);
   HANDLE_CODE(bref.unpack_bytes(eps_nas_message_container.data(), length));
@@ -1252,7 +1264,7 @@ SRSASN_CODE ladn_indication_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MIN 0 not check because auf uint underflow
+  // min. length of 0 not checked: uint underflow
   if (length > 808) {
     asn1::log_error("Encoding Failed (LADN indication): Packed length (%d) is not in range of max 808 bytes", length);
     return asn1::SRSASN_ERROR_ENCODE_FAIL;
@@ -1265,8 +1277,9 @@ SRSASN_CODE ladn_indication_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.29
 SRSASN_CODE ladn_indication_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MIN 0 not check because auf uint underflow
+  // min. length of 0 not checked: uint underflow
   if (length > 808) {
     asn1::log_error("Decoding Failed (LADN indication): Length (%d) is not in range of max 808 bytes", length);
     return asn1::SRSASN_ERROR_DECODE_FAIL;
@@ -1308,7 +1321,7 @@ SRSASN_CODE payload_container_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 1) {
     asn1::log_error("Encoding Failed (Payload container): Packed length (%d) is not in range of min: 1 bytes", length);
     return asn1::SRSASN_ERROR_ENCODE_FAIL;
@@ -1321,8 +1334,9 @@ SRSASN_CODE payload_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.39
 SRSASN_CODE payload_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 1) {
     asn1::log_error("Decoding Failed (Payload container): Length (%d) is not in range of min: 1 bytes", length);
     return asn1::SRSASN_ERROR_DECODE_FAIL;
@@ -1380,6 +1394,7 @@ SRSASN_CODE update_type_5gs_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.9A
 SRSASN_CODE update_type_5gs_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8)); // 2 Spare bits
   bref.advance_bits(2);
   HANDLE_CODE(pnb_eps_c_io_t.unpack(bref));
@@ -1415,6 +1430,7 @@ SRSASN_CODE mobile_station_classmark_2_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.31C
 SRSASN_CODE mobile_station_classmark_2_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 3) {
     asn1::log_error("Decoding Failed (Mobile station classmark 2): Length (%d) does not equal expected length 3",
@@ -1453,6 +1469,7 @@ SRSASN_CODE supported_codec_list_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.51A
 SRSASN_CODE supported_codec_list_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 3) {
     asn1::log_error("Decoding Failed (Supported codec list): Length (%d) is not in range of min: 3 bytes", length);
@@ -1490,6 +1507,7 @@ SRSASN_CODE message_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.33
 SRSASN_CODE message_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   if (length < 1 || length > 65532) {
     asn1::log_error("Decoding Failed (message container): Length (%d) is not in range of min: 1 and max 65532 bytes",
@@ -1542,6 +1560,7 @@ SRSASN_CODE eps_bearer_context_status_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.23A
 SRSASN_CODE eps_bearer_context_status_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 2) {
     asn1::log_error("Decoding Failed (EPS bearer context status): Length (%d) does not equal expected length 2",
@@ -1594,6 +1613,7 @@ SRSASN_CODE extended_drx_parameters_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.26A
 SRSASN_CODE extended_drx_parameters_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (Extended DRX parameters): Length (%d) does not equal expected length 1", length);
@@ -1630,6 +1650,7 @@ SRSASN_CODE gprs_timer_3_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.2.5
 SRSASN_CODE gprs_timer_3_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (GPRS timer 3): Length (%d) does not equal expected length 1", length);
@@ -1660,6 +1681,7 @@ SRSASN_CODE ue_radio_capability_id_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.68
 SRSASN_CODE ue_radio_capability_id_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   ue_radio_capability_id.resize(length);
   HANDLE_CODE(bref.unpack_bytes(ue_radio_capability_id.data(), length));
@@ -1692,6 +1714,7 @@ SRSASN_CODE mapped_nssai_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.31B
 SRSASN_CODE mapped_nssai_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 40) {
     asn1::log_error("Decoding Failed (Mapped NSSAI): Length (%d) is not in range of min: 2 and max 40 bytes", length);
@@ -1726,6 +1749,7 @@ SRSASN_CODE additional_information_requested_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.12A
 SRSASN_CODE additional_information_requested_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8)); // 7 Spare bits
   bref.advance_bits(7);
   HANDLE_CODE(bref.unpack(cipher_key, 1));
@@ -1758,6 +1782,7 @@ SRSASN_CODE wus_assistance_information_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.71
 SRSASN_CODE wus_assistance_information_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1) {
     asn1::log_error("Decoding Failed (WUS assistance information): Length (%d) is not in range of min: 1 bytes",
@@ -1818,6 +1843,7 @@ SRSASN_CODE nb_n1_mode_drx_parameters_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.73
 SRSASN_CODE nb_n1_mode_drx_parameters_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (NB-N1 mode DRX parameters): Length (%d) does not equal expected length 1",
@@ -1861,6 +1887,7 @@ SRSASN_CODE registration_result_5gs_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.6
 SRSASN_CODE registration_result_5gs_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (5GS registration result): Length (%d) does not equal expected length 1", length);
@@ -1896,6 +1923,7 @@ SRSASN_CODE plmn_list_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.45
 SRSASN_CODE plmn_list_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   // TODO proper unpacking
   bref.advance_bits(length * 8);
@@ -1929,6 +1957,7 @@ SRSASN_CODE tracking_area_identity_list_5gs_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.9
 SRSASN_CODE tracking_area_identity_list_5gs_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 7) {
     asn1::log_error("Decoding Failed (5GS tracking area identity list): Length (%d) does not equal expected length 7",
@@ -1962,6 +1991,7 @@ SRSASN_CODE rejected_nssai_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.46
 SRSASN_CODE rejected_nssai_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   // TODO proper unpacking
   bref.advance_bits(length * 8);
@@ -1995,6 +2025,7 @@ SRSASN_CODE network_feature_support_5gs_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.5
 SRSASN_CODE network_feature_support_5gs_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 3) {
     asn1::log_error(
@@ -2049,6 +2080,7 @@ SRSASN_CODE pdu_session_reactivation_result_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.42
 SRSASN_CODE pdu_session_reactivation_result_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 32) {
     asn1::log_error(
@@ -2108,6 +2140,7 @@ SRSASN_CODE pdu_session_reactivation_result_error_cause_t::pack(asn1::bit_ref& b
 // Reference: 9.11.3.43
 SRSASN_CODE pdu_session_reactivation_result_error_cause_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   if (length < 2 || length > 512) {
     asn1::log_error("Decoding Failed (PDU session reactivation result error cause): Length (%d) is not in range of "
@@ -2134,7 +2167,7 @@ SRSASN_CODE ladn_information_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MIN 0 not check because auf uint underflow
+  // min. length of 0 not checked: uint underflow
   if (length > 1712) {
     asn1::log_error("Encoding Failed (LADN information): Packed length (%d) is not in range of max 1712 bytes", length);
     return asn1::SRSASN_ERROR_ENCODE_FAIL;
@@ -2147,8 +2180,9 @@ SRSASN_CODE ladn_information_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.30
 SRSASN_CODE ladn_information_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MIN 0 not check because auf uint underflow
+  // min. length of 0 not checked: uint underflow
   if (length > 1712) {
     asn1::log_error("Decoding Failed (LADN information): Length (%d) is not in range of max 1712 bytes", length);
     return asn1::SRSASN_ERROR_DECODE_FAIL;
@@ -2180,6 +2214,7 @@ SRSASN_CODE service_area_list_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.49
 SRSASN_CODE service_area_list_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   // TODO proper unpacking
   bref.advance_bits(length * 8);
@@ -2211,6 +2246,7 @@ SRSASN_CODE gprs_timer_2_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.2.4
 SRSASN_CODE gprs_timer_2_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (GPRS timer 2): Length (%d) does not equal expected length 1", length);
@@ -2247,6 +2283,7 @@ SRSASN_CODE emergency_number_list_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.23
 SRSASN_CODE emergency_number_list_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 3 || length > 48) {
     asn1::log_error("Decoding Failed (Emergency number list): Length (%d) is not in range of min: 3 and max 48 bytes",
@@ -2272,7 +2309,7 @@ SRSASN_CODE extended_emergency_number_list_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 4) {
     asn1::log_error(
         "Encoding Failed (Extended emergency number list): Packed length (%d) is not in range of min: 4 bytes", length);
@@ -2286,8 +2323,9 @@ SRSASN_CODE extended_emergency_number_list_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.26
 SRSASN_CODE extended_emergency_number_list_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 4) {
     asn1::log_error("Decoding Failed (Extended emergency number list): Length (%d) is not in range of min: 4 bytes",
                     length);
@@ -2325,6 +2363,7 @@ SRSASN_CODE sor_transparent_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.51
 SRSASN_CODE sor_transparent_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   if (length < 17) {
     asn1::log_error("Decoding Failed (SOR transparent container): Length (%d) is not in range of min: 17 bytes",
@@ -2362,6 +2401,7 @@ SRSASN_CODE eap_message_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.2.2
 SRSASN_CODE eap_message_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   if (length < 4 || length > 1500) {
     asn1::log_error("Decoding Failed (EAP message): Length (%d) is not in range of min: 4 and max 1500 bytes", length);
@@ -2413,6 +2453,7 @@ SRSASN_CODE operator_defined_access_category_definitions_t::pack(asn1::bit_ref& 
 // Reference: 9.11.3.38
 SRSASN_CODE operator_defined_access_category_definitions_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   // TODO proper unpacking
   bref.advance_bits(length * 8);
@@ -2486,6 +2527,7 @@ SRSASN_CODE ciphering_key_data_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.18C
 SRSASN_CODE ciphering_key_data_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   if (length < 31 || length > 2672) {
     asn1::log_error("Decoding Failed (Ciphering key data): Length (%d) is not in range of min: 31 and max 2672 bytes",
@@ -2519,6 +2561,7 @@ SRSASN_CODE cag_information_list_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.18A
 SRSASN_CODE cag_information_list_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
   // TODO proper unpacking
   bref.advance_bits(length * 8);
@@ -2553,6 +2596,7 @@ SRSASN_CODE truncated_5g_s_tmsi_configuration_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.70
 SRSASN_CODE truncated_5g_s_tmsi_configuration_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (Truncated 5G-S-TMSI configuration): Length (%d) does not equal expected length 1",
@@ -2675,6 +2719,7 @@ SRSASN_CODE network_name_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.35
 SRSASN_CODE network_name_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   // TODO proper unpacking
   bref.advance_bits(length * 8);
@@ -2749,6 +2794,7 @@ SRSASN_CODE daylight_saving_time_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.19
 SRSASN_CODE daylight_saving_time_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (Daylight saving time): Length (%d) does not equal expected length 1", length);
@@ -2822,6 +2868,7 @@ SRSASN_CODE abba_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.10
 SRSASN_CODE abba_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2) {
     asn1::log_error("Decoding Failed (ABBA): Length (%d) is not in range of min: 2 bytes", length);
@@ -2874,6 +2921,7 @@ SRSASN_CODE authentication_parameter_autn_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.15
 SRSASN_CODE authentication_parameter_autn_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 16) {
     asn1::log_error("Decoding Failed (Authentication parameter AUTN): Length (%d) does not equal expected length 16",
@@ -2911,6 +2959,7 @@ SRSASN_CODE authentication_response_parameter_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.17
 SRSASN_CODE authentication_response_parameter_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 16) {
     asn1::log_error(
@@ -2948,6 +2997,7 @@ SRSASN_CODE authentication_failure_parameter_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.14
 SRSASN_CODE authentication_failure_parameter_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 14) {
     asn1::log_error("Decoding Failed (Authentication failure parameter): Length (%d) does not equal expected length 14",
@@ -3074,6 +3124,7 @@ SRSASN_CODE additional_5g_security_information_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.12
 SRSASN_CODE additional_5g_security_information_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error(
@@ -3157,6 +3208,7 @@ SRSASN_CODE s1_ue_security_capability_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.48A
 SRSASN_CODE s1_ue_security_capability_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 2 || length > 5) {
     asn1::log_error(
@@ -3286,15 +3338,15 @@ SRSASN_CODE s_nssai_t::pack(asn1::bit_ref& bref)
   asn1::bit_ref bref_length = bref;
   HANDLE_CODE(bref.advance_bits(8));
 
-  if (length == s_nssai_t::SST_type_::options::sst) {
+  if (type == s_nssai_t::SST_type_::options::sst) {
     HANDLE_CODE(bref.pack(sst, 8));
-  } else if (length == s_nssai_t::SST_type_::options::sst_and_mapped_hplmn_sst) {
+  } else if (type == s_nssai_t::SST_type_::options::sst_and_mapped_hplmn_sst) {
     HANDLE_CODE(bref.pack(sst, 8));
     HANDLE_CODE(bref.pack(mapped_hplmn_sst, 8));
-  } else if (length == s_nssai_t::SST_type_::options::sst_and_sd) {
+  } else if (type == s_nssai_t::SST_type_::options::sst_and_sd) {
     HANDLE_CODE(bref.pack(sst, 8));
     HANDLE_CODE(bref.pack(sd, 24));
-  } else if (length == s_nssai_t::SST_type_::options::sst_sd_mapped_hplmn_sst_and_mapped_hplmn_sd) {
+  } else if (type == s_nssai_t::SST_type_::options::sst_sd_mapped_hplmn_sst_and_mapped_hplmn_sd) {
     HANDLE_CODE(bref.pack(sst, 8));
     HANDLE_CODE(bref.pack(sd, 24));
     HANDLE_CODE(bref.pack(mapped_hplmn_sst, 8));
@@ -3319,26 +3371,31 @@ SRSASN_CODE s_nssai_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.2.8
 SRSASN_CODE s_nssai_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 8) {
     asn1::log_error("Decoding Failed (S-NSSAI): Length (%d) is not in range of min: 1 and max 8 bytes", length);
     return asn1::SRSASN_ERROR_DECODE_FAIL;
   }
   if (length == s_nssai_t::SST_type_::options::sst) {
+    type = s_nssai_t::SST_type_::options::sst;
     HANDLE_CODE(bref.unpack(sst, 8));
   } else if (length == s_nssai_t::SST_type_::options::sst_and_mapped_hplmn_sst) {
+    type = s_nssai_t::SST_type_::options::sst_and_mapped_hplmn_sst;
     HANDLE_CODE(bref.unpack(sst, 8));
     HANDLE_CODE(bref.unpack(mapped_hplmn_sst, 8));
   } else if (length == s_nssai_t::SST_type_::options::sst_and_sd) {
+    type = s_nssai_t::SST_type_::options::sst_and_sd;
     HANDLE_CODE(bref.unpack(sst, 8));
     HANDLE_CODE(bref.unpack(sd, 24));
   } else if (length == s_nssai_t::SST_type_::options::sst_sd_mapped_hplmn_sst_and_mapped_hplmn_sd) {
+    type = s_nssai_t::SST_type_::options::sst_sd_mapped_hplmn_sst_and_mapped_hplmn_sd;
     HANDLE_CODE(bref.unpack(sst, 8));
     HANDLE_CODE(bref.unpack(sd, 24));
     HANDLE_CODE(bref.unpack(mapped_hplmn_sst, 8));
     HANDLE_CODE(bref.unpack(mapped_hplmn_sd, 24));
   } else {
-    asn1::log_error("Not such a length type for s_nssai");
+    asn1::log_error("Not such a type for s_nssai");
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -3368,6 +3425,7 @@ SRSASN_CODE dnn_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.2.1B
 SRSASN_CODE dnn_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 100) {
     asn1::log_error("Decoding Failed (DNN): Length (%d) is not in range of min: 1 and max 100 bytes", length);
@@ -3403,6 +3461,7 @@ SRSASN_CODE additional_information_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.2.1
 SRSASN_CODE additional_information_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1) {
     asn1::log_error("Decoding Failed (Additional information): Length (%d) is not in range of min: 1 bytes", length);
@@ -3533,6 +3592,7 @@ SRSASN_CODE capability_5gsm_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.1
 SRSASN_CODE capability_5gsm_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 13) {
     asn1::log_error("Decoding Failed (5GSM capability): Length (%d) is not in range of min: 1 and max 13 bytes",
@@ -3612,6 +3672,7 @@ SRSASN_CODE sm_pdu_dn_request_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.15
 SRSASN_CODE sm_pdu_dn_request_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 253) {
     asn1::log_error(
@@ -3637,7 +3698,7 @@ SRSASN_CODE extended_protocol_configuration_options_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 1) {
     asn1::log_error(
         "Encoding Failed (Extended protocol configuration options): Packed length (%d) is not in range of min: 1 bytes",
@@ -3652,8 +3713,9 @@ SRSASN_CODE extended_protocol_configuration_options_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.6
 SRSASN_CODE extended_protocol_configuration_options_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 1) {
     asn1::log_error(
         "Decoding Failed (Extended protocol configuration options): Length (%d) is not in range of min: 1 bytes",
@@ -3679,7 +3741,7 @@ SRSASN_CODE ip_header_compression_configuration_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
 
-  // MAX 255 not check because auf uint overflow
+  // max. length of 255 not checked: uint overflow
   if (length < 3) {
     asn1::log_error(
         "Encoding Failed (IP header compression configuration): Packed length (%d) is not in range of min: 3 bytes",
@@ -3694,8 +3756,9 @@ SRSASN_CODE ip_header_compression_configuration_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.24
 SRSASN_CODE ip_header_compression_configuration_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
-  // MAX 255 not check because auf uint overflow
+  // max. length of 255 not checked: uint overflow
   if (length < 3) {
     asn1::log_error(
         "Decoding Failed (IP header compression configuration): Length (%d) is not in range of min: 3 bytes", length);
@@ -3734,6 +3797,7 @@ SRSASN_CODE ds_tt__ethernet_port_mac_address_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.25
 SRSASN_CODE ds_tt__ethernet_port_mac_address_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 6) {
     asn1::log_error("Decoding Failed (DS-TT Ethernet port MAC address): Length (%d) does not equal expected length 6",
@@ -3770,6 +3834,7 @@ SRSASN_CODE ue_ds_tt_residence_time_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.26
 SRSASN_CODE ue_ds_tt_residence_time_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 8) {
     asn1::log_error("Decoding Failed (UE-DS-TT residence time): Length (%d) does not equal expected length 8", length);
@@ -3792,7 +3857,7 @@ SRSASN_CODE port_management_information_container_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 1) {
     asn1::log_error(
         "Encoding Failed (Port management information container): Packed length (%d) is not in range of min: 1 bytes",
@@ -3807,8 +3872,9 @@ SRSASN_CODE port_management_information_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.27
 SRSASN_CODE port_management_information_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 1) {
     asn1::log_error(
         "Decoding Failed (Port management information container): Length (%d) is not in range of min: 1 bytes", length);
@@ -3848,6 +3914,7 @@ SRSASN_CODE ethernet_header_compression_configuration_t::pack(asn1::bit_ref& bre
 // Reference: 9.11.4.28
 SRSASN_CODE ethernet_header_compression_configuration_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error(
@@ -3903,6 +3970,7 @@ SRSASN_CODE pdu_address_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.10
 SRSASN_CODE pdu_address_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 5 || length > 29) {
     asn1::log_error("Decoding Failed (PDU address): Length (%d) is not in range of min: 5 and max 29 bytes", length);
@@ -3949,7 +4017,7 @@ SRSASN_CODE qo_s_rules_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 4) {
     asn1::log_error("Encoding Failed (QoS rules): Packed length (%d) is not in range of min: 4 bytes", length);
     return asn1::SRSASN_ERROR_ENCODE_FAIL;
@@ -3962,8 +4030,9 @@ SRSASN_CODE qo_s_rules_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.13
 SRSASN_CODE qo_s_rules_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 4) {
     asn1::log_error("Decoding Failed (QoS rules): Length (%d) is not in range of min: 4 bytes", length);
     return asn1::SRSASN_ERROR_DECODE_FAIL;
@@ -4000,6 +4069,7 @@ SRSASN_CODE session_ambr_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.14
 SRSASN_CODE session_ambr_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 6) {
     asn1::log_error("Decoding Failed (Session-AMBR): Length (%d) does not equal expected length 6", length);
@@ -4079,7 +4149,7 @@ SRSASN_CODE mapped_eps_bearer_contexts_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 4) {
     asn1::log_error("Encoding Failed (Mapped EPS bearer contexts): Packed length (%d) is not in range of min: 4 bytes",
                     length);
@@ -4093,8 +4163,9 @@ SRSASN_CODE mapped_eps_bearer_contexts_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.8
 SRSASN_CODE mapped_eps_bearer_contexts_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 4) {
     asn1::log_error("Decoding Failed (Mapped EPS bearer contexts): Length (%d) is not in range of min: 4 bytes",
                     length);
@@ -4119,7 +4190,7 @@ SRSASN_CODE qo_s_flow_descriptions_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 3) {
     asn1::log_error("Encoding Failed (QoS flow descriptions): Packed length (%d) is not in range of min: 3 bytes",
                     length);
@@ -4133,8 +4204,9 @@ SRSASN_CODE qo_s_flow_descriptions_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.12
 SRSASN_CODE qo_s_flow_descriptions_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MAX 65535 not check because auf uint overflow
+  // max. length of 65535 not checked: uint overflow
   if (length < 3) {
     asn1::log_error("Decoding Failed (QoS flow descriptions): Length (%d) is not in range of min: 3 bytes", length);
     return asn1::SRSASN_ERROR_DECODE_FAIL;
@@ -4174,6 +4246,7 @@ SRSASN_CODE network_feature_support_5gsm_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.18
 SRSASN_CODE network_feature_support_5gsm_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length < 1 || length > 13) {
     asn1::log_error(
@@ -4216,6 +4289,7 @@ SRSASN_CODE serving_plmn_rate_control_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.20
 SRSASN_CODE serving_plmn_rate_control_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 2) {
     asn1::log_error("Decoding Failed (Serving PLMN rate control): Length (%d) does not equal expected length 2",
@@ -4238,8 +4312,8 @@ SRSASN_CODE atsss_container_t::pack(asn1::bit_ref& bref)
   bref.align_bytes_zero();
   uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);
 
-  // MIN 0 not check because auf uint underflow
-  // MAX 65535 not check because auf uint overflow
+  // min. length of 0 not checked: uint underflow
+  // max. length of 65535 not checked: uint overflow
   HANDLE_CODE(bref_length.pack(length, 16));
   return SRSASN_SUCCESS;
 }
@@ -4248,12 +4322,9 @@ SRSASN_CODE atsss_container_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.22
 SRSASN_CODE atsss_container_t::unpack(asn1::cbit_ref& bref)
 {
+  uint16_t length = 0;
   HANDLE_CODE(bref.unpack(length, 16));
-  // MIN 0 not check because auf uint underflow
-  if (length > 65535) {
-    asn1::log_error("Decoding Failed (ATSSS container): Length (%d) is not in range of max 65535 bytes", length);
-    return asn1::SRSASN_ERROR_DECODE_FAIL;
-  }
+  // min. length of 0 not checked: uint underflow
   nas_message_container.resize(length);
   HANDLE_CODE(bref.unpack_bytes(nas_message_container.data(), length));
   return SRSASN_SUCCESS;
@@ -4352,6 +4423,7 @@ SRSASN_CODE re_attempt_indicator_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.4.17
 SRSASN_CODE re_attempt_indicator_t::unpack(asn1::cbit_ref& bref)
 {
+  uint8_t length = 0;
   HANDLE_CODE(bref.unpack(length, 8));
   if (length != 1) {
     asn1::log_error("Decoding Failed (Re-attempt indicator): Length (%d) does not equal expected length 1", length);

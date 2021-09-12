@@ -74,7 +74,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
     } else {
       sdu_length = sizeof_ce(lcid, parent->is_ulsch());
     }
-    sdu = (uint8_t*)ptr;
+    sdu.set_storage_to((uint8_t*)ptr);
   } else {
     srslog::fetch_basic_logger("MAC-NR").warning("Invalid LCID (%d) in MAC PDU", lcid);
     return SRSRAN_ERROR;
@@ -84,8 +84,8 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
 
 void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
-  lcid          = lcid_;
-  sdu           = const_cast<uint8_t*>(payload_);
+  lcid = lcid_;
+  sdu.set_storage_to(const_cast<uint8_t*>(payload_));
   header_length = is_ul_ccch() ? 1 : 2;
   sdu_length    = len_;
   if (is_ul_ccch()) {
@@ -113,34 +113,34 @@ void mac_sch_subpdu_nr::set_padding(const uint32_t len_)
 // Turn a subPDU into a C-RNTI CE, error checking takes place in the caller
 void mac_sch_subpdu_nr::set_c_rnti(const uint16_t crnti_)
 {
-  lcid                  = CRNTI;
-  header_length         = 1;
-  sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
-  sdu                   = ce_write_buffer.data();
-  uint16_t crnti        = htole32(crnti_);
-  ce_write_buffer.at(0) = (uint8_t)((crnti & 0xff00) >> 8);
-  ce_write_buffer.at(1) = (uint8_t)((crnti & 0x00ff));
+  lcid           = CRNTI;
+  header_length  = 1;
+  sdu_length     = sizeof_ce(lcid, parent->is_ulsch());
+  uint16_t crnti = htole16(crnti_);
+  uint8_t* ptr   = sdu.use_internal_storage();
+  ptr[0]         = (uint8_t)((crnti & 0xff00) >> 8);
+  ptr[1]         = (uint8_t)((crnti & 0x00ff));
 }
 
 // Turn a subPDU into a single entry PHR CE, error checking takes place in the caller
 void mac_sch_subpdu_nr::set_se_phr(const uint8_t phr_, const uint8_t pcmax_)
 {
-  lcid                  = SE_PHR;
-  header_length         = 1;
-  sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
-  sdu                   = ce_write_buffer.data();
-  ce_write_buffer.at(0) = (uint8_t)(phr_ & 0x3f);
-  ce_write_buffer.at(1) = (uint8_t)(pcmax_ & 0x3f);
+  lcid          = SE_PHR;
+  header_length = 1;
+  sdu_length    = sizeof_ce(lcid, parent->is_ulsch());
+  uint8_t* ptr  = sdu.use_internal_storage();
+  ptr[0]        = (uint8_t)(phr_ & 0x3f);
+  ptr[1]        = (uint8_t)(pcmax_ & 0x3f);
 }
 
 // Turn a subPDU into a single short BSR
 void mac_sch_subpdu_nr::set_sbsr(const lcg_bsr_t bsr_)
 {
-  lcid                  = SHORT_BSR;
-  header_length         = 1;
-  sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
-  sdu                   = ce_write_buffer.data();
-  ce_write_buffer.at(0) = ((bsr_.lcg_id & 0x07) << 5) | (bsr_.buffer_size & 0x1f);
+  lcid          = SHORT_BSR;
+  header_length = 1;
+  sdu_length    = sizeof_ce(lcid, parent->is_ulsch());
+  uint8_t* ptr  = sdu.use_internal_storage();
+  ptr[0]        = ((bsr_.lcg_id & 0x07) << 5) | (bsr_.buffer_size & 0x1f);
 }
 
 // Turn a subPDU into a long BSR with variable size
@@ -172,7 +172,7 @@ uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
 
   // copy SDU payload
   if (sdu) {
-    memcpy(ptr, sdu, sdu_length);
+    memcpy(ptr, sdu.ptr(), sdu_length);
   } else {
     // clear memory
     memset(ptr, 0, sdu_length);
@@ -201,13 +201,14 @@ uint32_t mac_sch_subpdu_nr::get_lcid()
 
 uint8_t* mac_sch_subpdu_nr::get_sdu()
 {
-  return sdu;
+  return sdu.ptr();
 }
 
 uint16_t mac_sch_subpdu_nr::get_c_rnti()
 {
   if (parent->is_ulsch() && lcid == CRNTI) {
-    return le16toh((uint16_t)sdu[0] << 8 | sdu[1]);
+    uint8_t* ptr = sdu.ptr();
+    return le16toh((uint16_t)ptr[0] << 8 | ptr[1]);
   }
   return 0;
 }
@@ -215,7 +216,8 @@ uint16_t mac_sch_subpdu_nr::get_c_rnti()
 uint8_t mac_sch_subpdu_nr::get_phr()
 {
   if (parent->is_ulsch() && lcid == SE_PHR) {
-    return sdu[0] & 0x3f;
+    uint8_t* ptr = sdu.ptr();
+    return ptr[0] & 0x3f;
   }
   return 0;
 }
@@ -223,7 +225,8 @@ uint8_t mac_sch_subpdu_nr::get_phr()
 uint8_t mac_sch_subpdu_nr::get_pcmax()
 {
   if (parent->is_ulsch() && lcid == SE_PHR) {
-    return sdu[1] & 0x3f;
+    uint8_t* ptr = sdu.ptr();
+    return ptr[1] & 0x3f;
   }
   return 0;
 }
@@ -232,8 +235,9 @@ mac_sch_subpdu_nr::ta_t mac_sch_subpdu_nr::get_ta()
 {
   ta_t ta = {};
   if (lcid == TA_CMD) {
-    ta.tag_id     = (sdu[0] & 0xc0) >> 6;
-    ta.ta_command = sdu[0] & 0x3f;
+    uint8_t* ptr  = sdu.ptr();
+    ta.tag_id     = (ptr[0] & 0xc0) >> 6;
+    ta.ta_command = ptr[0] & 0x3f;
   }
   return ta;
 }
@@ -242,8 +246,9 @@ mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
 {
   lcg_bsr_t sbsr = {};
   if (parent->is_ulsch() && lcid == SHORT_BSR) {
-    sbsr.lcg_id      = (sdu[0] & 0xe0) >> 5;
-    sbsr.buffer_size = sdu[0] & 0x1f;
+    uint8_t* ptr     = sdu.ptr();
+    sbsr.lcg_id      = (ptr[0] & 0xe0) >> 5;
+    sbsr.buffer_size = ptr[0] & 0x1f;
   }
   return sbsr;
 }
@@ -285,6 +290,61 @@ uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
 inline bool mac_sch_subpdu_nr::is_ul_ccch()
 {
   return (parent->is_ulsch() && (lcid == CCCH_SIZE_48 || lcid == CCCH_SIZE_64));
+}
+
+void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
+{
+  // print subPDU
+  if (is_sdu()) {
+    fmt::format_to(buffer, " LCID={} len={}", get_lcid(), get_sdu_length());
+  } else {
+    if (parent->is_ulsch()) {
+      // UL-SCH case
+      switch (get_lcid()) {
+        case mac_sch_subpdu_nr::CRNTI:
+          fmt::format_to(buffer, " C-RNTI: {:#04x}", get_c_rnti());
+          break;
+        case mac_sch_subpdu_nr::SHORT_TRUNC_BSR:
+          fmt::format_to(buffer, " SHORT_TRUNC_BSR: len={}", get_total_length());
+          break;
+        case mac_sch_subpdu_nr::LONG_TRUNC_BSR:
+          fmt::format_to(buffer, " LONG_TRUNC_BSR: len={}", get_total_length());
+          break;
+        case mac_sch_subpdu_nr::SHORT_BSR: {
+          lcg_bsr_t sbsr = get_sbsr();
+          fmt::format_to(buffer, " SBSR: lcg={} bs={}", sbsr.lcg_id, sbsr.buffer_size);
+        } break;
+        case mac_sch_subpdu_nr::LONG_BSR:
+          fmt::format_to(buffer, " LBSR: len={}", get_total_length());
+          break;
+        case mac_sch_subpdu_nr::SE_PHR:
+          fmt::format_to(buffer, " SE_PHR: ph={} pc={}", get_phr(), get_pcmax());
+          break;
+        case mac_sch_subpdu_nr::PADDING:
+          fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
+          break;
+        default:
+          fmt::format_to(buffer, " CE={}", get_lcid());
+          break;
+      }
+    } else {
+      // DL-SCH PDU
+      switch (get_lcid()) {
+        case mac_sch_subpdu_nr::TA_CMD:
+          fmt::format_to(buffer, " TA: id={} command={}", get_ta().tag_id, get_ta().ta_command);
+          break;
+        case mac_sch_subpdu_nr::CON_RES_ID:
+          fmt::format_to(buffer, " CONRES: len={}", get_total_length());
+          break;
+        case mac_sch_subpdu_nr::PADDING:
+          fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
+          break;
+        default:
+          fmt::format_to(buffer, " CE={}", get_lcid());
+          break;
+      }
+    }
+  }
 }
 
 void mac_sch_pdu_nr::pack()
@@ -443,6 +503,14 @@ uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
   subpdus.push_back(subpdu);
 
   return SRSRAN_SUCCESS;
+}
+
+void mac_sch_pdu_nr::to_string(fmt::memory_buffer& buffer)
+{
+  fmt::format_to(buffer, "{}", is_ulsch() ? "UL" : "DL");
+  for (auto& subpdu : subpdus) {
+    subpdu.to_string(buffer);
+  }
 }
 
 } // namespace srsran

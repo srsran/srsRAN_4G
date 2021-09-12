@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/stack/mac_nr/demux_nr.h"
 #include "srsran/common/buffer_pool.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 
 namespace srsue {
@@ -52,21 +53,27 @@ void demux_nr::process_pdus()
 /// Handling of DLSCH PDUs only
 void demux_nr::handle_pdu(srsran::unique_byte_buffer_t pdu)
 {
-  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
+  logger.debug(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
   rx_pdu.init_rx();
   if (rx_pdu.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
     return;
   }
 
+  if (logger.info.enabled()) {
+    fmt::memory_buffer str_buffer;
+    rx_pdu.to_string(str_buffer);
+    logger.info("%s", srsran::to_c_str(str_buffer));
+  }
+
   for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
     srsran::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);
-    logger.info("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
-                i + 1,
-                rx_pdu.get_num_subpdus(),
-                subpdu.get_c_rnti(),
-                subpdu.get_lcid(),
-                subpdu.get_sdu_length());
+    logger.debug("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
+                 i + 1,
+                 rx_pdu.get_num_subpdus(),
+                 subpdu.get_c_rnti(),
+                 subpdu.get_lcid(),
+                 subpdu.get_sdu_length());
 
     // Handle Timing Advance CE
     switch (subpdu.get_lcid()) {

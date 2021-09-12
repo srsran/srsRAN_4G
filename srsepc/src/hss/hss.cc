@@ -311,8 +311,12 @@ void hss::gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx,
   m_logger.debug(sqn, 6, "User SQN : ");
   m_logger.debug(mac, 8, "User MAC : ");
 
+  uint8_t ak_xor_sqn[6];
+  for (int i = 0; i < 6; i++) {
+    ak_xor_sqn[i] = sqn[i] ^ ak[i];
+  }
   // Generate K_asme
-  srsran::security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
+  srsran::security_generate_k_asme(ck, ik, ak_xor_sqn, mcc, mnc, k_asme);
 
   m_logger.debug("User MCC : %x  MNC : %x ", mcc, mnc);
   m_logger.debug(k_asme, 32, "User k_asme : ");
@@ -405,8 +409,12 @@ void hss::gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_
     autn[8 + i] = mac[i];
   }
 
+  uint8_t ak_xor_sqn[6];
+  for (int i = 0; i < 6; i++) {
+    ak_xor_sqn[i] = sqn[i] ^ ak[i];
+  }
   // Generate K_asme
-  srsran::security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
+  srsran::security_generate_k_asme(ck, ik, ak_xor_sqn, mcc, mnc, k_asme);
 
   m_logger.debug("User MCC : %x  MNC : %x ", mcc, mnc);
   m_logger.debug(k_asme, 32, "User k_asme : ");

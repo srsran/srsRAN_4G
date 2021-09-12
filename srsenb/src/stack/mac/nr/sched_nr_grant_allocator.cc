@@ -158,34 +158,27 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Generate Msg3 grants in PUSCH
   uint32_t  last_msg3 = msg3_rbs.start();
   const int mcs = 0, max_harq_msg3_retx = 4;
-  int       dai = 0;
-  slot_cfg.idx  = msg3_slot.slot_idx();
+  slot_cfg.idx = msg3_slot.slot_idx();
   bwp_pdcch_slot.rar.emplace_back();
   sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 
-    // Allocate Msg3
+    // Generate RAR grant
+    rar_out.grants.emplace_back();
+    auto& rar_grant = rar_out.grants.back();
+    rar_grant.data  = grant;
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
+    last_msg3 += msg3_nof_prbs;
     ue.h_ul = ue.harq_ent->find_empty_ul_harq();
     success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
-    last_msg3 += msg3_nof_prbs;
-    pdcch_ul_t msg3_pdcch; // dummy PDCCH for retx=0
-    fill_dci_msg3(ue, *bwp_grid.cfg, msg3_pdcch.dci);
-    msg3_pdcch.dci.time_domain_assigment = dai++;
-
-    // Generate RAR grant
-    rar_out.grants.emplace_back();
-    auto& rar_grant           = rar_out.grants.back();
-    rar_grant.data            = grant;
-    rar_grant.grant.rba       = msg3_pdcch.dci.freq_domain_assigment;
-    rar_grant.grant.trunc_mcs = msg3_pdcch.dci.mcs;
+    fill_dci_msg3(ue, *bwp_grid.cfg, rar_grant.msg3_dci);
 
     // Generate PUSCH
     bwp_msg3_slot.puschs.emplace_back();
     pusch_t& pusch = bwp_msg3_slot.puschs.back();
-    success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, msg3_pdcch.dci, pusch.sch);
+    success        = ue.cfg->phy().get_pusch_cfg(slot_cfg, rar_grant.msg3_dci, pusch.sch);
     srsran_assert(success, "Error converting DCI to PUSCH grant");
     pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
     ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);

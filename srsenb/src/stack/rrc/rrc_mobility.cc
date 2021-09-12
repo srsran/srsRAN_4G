@@ -159,7 +159,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   const enb_cell_common* target_cell = cell_common_list->get_cell_id(rrc_details::eci_to_cellid(target_eci));
   if (target_cell == nullptr) {
     logger.error("The S1-handover target cell_id=0x%x does not exist", rrc_details::eci_to_cellid(target_eci));
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::cell_not_available;
     return SRSRAN_INVALID_RNTI;
   }
 
@@ -175,7 +175,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   uint16_t rnti                          = mac->reserve_new_crnti(ue_cfg);
   if (rnti == SRSRAN_INVALID_RNTI) {
     logger.error("Failed to allocate C-RNTI resources");
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
     return SRSRAN_INVALID_RNTI;
   }
 
@@ -237,7 +237,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
       meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
-    Info("Skipping MeasReport for non-EUTRA neighbor.");
+    Error("MeasReports regarding non-EUTRA are not supported!");
     return;
   }
   const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
@@ -278,9 +278,12 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
     }
   }
 
+  asn1::json_writer json_writer;
+  msg.to_json(json_writer);
   event_logger::get().log_measurement_report(
       rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
       asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+      json_writer.to_string(),
       rrc_ue->rnti);
 }
 
@@ -520,7 +523,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   mob_info.rr_cfg_common.p_max                      = rrc_enb->cfg.sib1.p_max;
   mob_info.rr_cfg_common.ul_cp_len                  = target_cell.sib2.rr_cfg_common.ul_cp_len;
 
-  mob_info.carrier_freq_present                   = false; // same frequency handover for now
+  mob_info.carrier_freq_present = false; // same frequency handover for now
   asn1::number_to_enum(mob_info.carrier_bw.dl_bw, target_cell.mib.dl_bw.to_number());
   if (target_cell.cell_cfg.dl_earfcn != src_dl_earfcn) {
     mob_info.carrier_freq_present         = true;
@@ -709,11 +712,22 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
   }
 
   // Log rrc release event.
+  asn1::json_writer json_writer;
+  dl_dcch_msg.to_json(json_writer);
   event_logger::get().log_rrc_event(rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                     octet_str,
+                                    json_writer.to_string(),
                                     static_cast<unsigned>(rrc_event_type::con_reconf),
                                     static_cast<unsigned>(procedure_result_code::none),
                                     rrc_ue->rnti);
+
+  // Log HO command.
+  event_logger::get().log_handover_command(
+      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.target_pci,
+      reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.carrier_freq.dl_carrier_freq,
+      reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info.new_ue_id.to_number(),
+      rrc_ue->rnti);
 
   /* Start S1AP eNBStatusTransfer Procedure */
   asn1::s1ap::cause_c cause = start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd);
@@ -845,11 +859,11 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     if (ho_req.transparent_container->erab_info_list_present) {
       const auto& lst = ho_req.transparent_container->erab_info_list;
       const auto* it  = std::find_if(
-          lst.begin(),
-          lst.end(),
-          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+           lst.begin(),
+           lst.end(),
+           [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
             return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
-          });
+           });
       if (it == lst.end()) {
         continue;
       }
@@ -1028,7 +1042,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     const auto& drbs   = rrc_ue->bearer_list.get_established_drbs();
     lte_drb     drbid  = lte_lcid_to_drb(erab_it->second.lcid);
     auto        drb_it = std::find_if(
-        drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
+               drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
     if (drb_it == drbs.end()) {
       logger.warning("The DRB id=%d does not exist", drbid);
     }
@@ -1106,6 +1120,14 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
     f->trigger(srsran::failure_ev{});
     return;
   }
+
+  // Log HO command.
+  event_logger::get().log_handover_command(
+      f->rrc_ue->get_cell_list().get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      reconf_r8.mob_ctrl_info.target_pci,
+      reconf_r8.mob_ctrl_info.carrier_freq.dl_carrier_freq,
+      reconf_r8.mob_ctrl_info.new_ue_id.to_number(),
+      f->rrc_ue->rnti);
 }
 
 void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev)

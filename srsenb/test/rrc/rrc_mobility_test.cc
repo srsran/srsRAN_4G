@@ -66,7 +66,7 @@ const char* to_string(test_event event)
 
 struct mobility_tester {
   explicit mobility_tester(const test_event& args_) :
-    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&stack, &task_sched)
+    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&task_sched, bearers)
   {
     logger.set_level(srslog::basic_levels::info);
     logger.set_hex_dump_max_size(1024);
@@ -102,7 +102,7 @@ struct mobility_tester {
   test_dummies::pdcp_mobility_dummy pdcp;
   test_dummies::phy_mobility_dummy  phy;
   test_dummies::s1ap_mobility_dummy s1ap;
-  test_dummies::enb_stack_dummy     stack;
+  enb_bearer_manager                bearers;
   gtpu_dummy                        gtpu;
 
   void tic()
@@ -314,9 +314,9 @@ int test_s1ap_tenb_mobility(test_event test_params)
   asn1::s1ap::cause_c cause;
   int                 rnti = tester.rrc.start_ho_ue_resource_alloc(ho_req, container, cause);
   if (test_params == test_event::wrong_target_cell) {
-    TESTASSERT(rnti == SRSRAN_INVALID_RNTI);
+    TESTASSERT_EQ(SRSRAN_INVALID_RNTI, rnti);
     TESTASSERT(cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
-    TESTASSERT(cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::ho_target_not_allowed);
+    TESTASSERT_EQ(asn1::s1ap::cause_radio_network_opts::cell_not_available, cause.radio_network().value);
     TESTASSERT(tester.rrc.get_nof_users() == 0);
     return SRSRAN_SUCCESS;
   }
