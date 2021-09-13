@@ -179,10 +179,12 @@ sink& fetch_stderr_sink(const std::string&             id = "stderr",
 /// Specifying a max_size value different to zero will make the sink create a
 /// new file each time the current file exceeds this value. The units of
 /// max_size are bytes.
+/// Setting force_flush to true will flush the sink after every write.
 /// NOTE: Any '#' characters in the path will get removed.
 sink& fetch_file_sink(const std::string&             path,
-                      size_t                         max_size = 0,
-                      std::unique_ptr<log_formatter> f        = get_default_log_formatter());
+                      size_t                         max_size    = 0,
+                      bool                           force_flush = false,
+                      std::unique_ptr<log_formatter> f           = get_default_log_formatter());
 
 /// Returns an instance of a sink that writes into syslog
 /// preamble: The string  prepended to every message, If ident is "", the program name is used.

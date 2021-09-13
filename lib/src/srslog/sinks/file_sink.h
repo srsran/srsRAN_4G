@@ -24,9 +24,10 @@ namespace srslog {
 class file_sink : public sink
 {
 public:
-  file_sink(std::string name, size_t max_size, std::unique_ptr<log_formatter> f) :
+  file_sink(std::string name, size_t max_size, bool force_flush, std::unique_ptr<log_formatter> f) :
     sink(std::move(f)),
     max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024)),
+    force_flush(force_flush),
     base_filename(std::move(name))
   {}
 
@@ -51,6 +52,10 @@ public:
 
     if (auto err_str = handle_rotation(buffer.size())) {
       return err_str;
+    }
+
+    if (force_flush) {
+      flush();
     }
 
     return handler.write(buffer);
@@ -88,6 +93,7 @@ private:
 
 private:
   const size_t      max_size;
+  const bool        force_flush;
   const std::string base_filename;
   file_utils::file  handler;
   size_t            current_size = 0;

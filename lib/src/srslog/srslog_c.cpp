@@ -181,7 +181,7 @@ srslog_sink* srslog_fetch_stderr_sink(void)
   return c_cast<srslog_sink>(&fetch_stderr_sink());
 }
 
-srslog_sink* srslog_fetch_file_sink(const char* path, size_t max_size)
+srslog_sink* srslog_fetch_file_sink(const char* path, size_t max_size, srslog_bool force_flush)
 {
-  return c_cast<srslog_sink>(&fetch_file_sink(path, max_size));
+  return c_cast<srslog_sink>(&fetch_file_sink(path, max_size, force_flush));
 }

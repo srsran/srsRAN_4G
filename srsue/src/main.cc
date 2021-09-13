@@ -725,7 +725,7 @@ int main(int argc, char* argv[])
 
   // Set up the JSON log channel used by metrics.
   srslog::sink& json_sink =
-      srslog::fetch_file_sink(args.general.metrics_json_filename, 0, srslog::create_json_formatter());
+      srslog::fetch_file_sink(args.general.metrics_json_filename, 0, false, srslog::create_json_formatter());
   srslog::log_channel& json_channel = srslog::fetch_log_channel("JSON_channel", json_sink, {});
   json_channel.set_enabled(args.general.metrics_json_enable);
 
