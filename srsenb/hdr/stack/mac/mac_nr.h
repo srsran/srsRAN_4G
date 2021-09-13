@@ -107,7 +107,7 @@ private:
   const static uint32_t               NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
   srsran::slot_point                  pdsch_slot, pusch_slot;
   srsenb::sched_nr                    sched;
-  srsenb::sched_interface::cell_cfg_t cfg = {};
+  srsran::const_span<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
   pthread_rwlock_t                                                              rwlock     = {};

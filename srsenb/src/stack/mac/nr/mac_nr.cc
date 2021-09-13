@@ -77,21 +77,38 @@ void mac_nr::stop()
   }
 }
 
-void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics) {}
+void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
+{
+  srsran::rwlock_read_guard lock(rwlock);
+  metrics.ues.reserve(ue_db.size());
+  for (auto& u : ue_db) {
+    if (not sched.ue_exists(u.first)) {
+      continue;
+    }
+    metrics.ues.emplace_back();
+    u.second->metrics_read(&metrics.ues.back());
+  }
+  metrics.cc_info.resize(detected_rachs.size());
+  for (unsigned cc = 0, e = detected_rachs.size(); cc != e; ++cc) {
+    metrics.cc_info[cc].cc_rach_counter = detected_rachs[cc];
+    metrics.cc_info[cc].pci             = (cc < cell_config.size()) ? cell_config[cc].carrier.pci : 0;
+  }
+}
 
-int mac_nr::cell_cfg(const sched_interface::cell_cfg_t&                 cell,
+int mac_nr::cell_cfg(const sched_interface::cell_cfg_t&                 eutra_cell_config,
                      srsran::const_span<sched_nr_interface::cell_cfg_t> nr_cells)
 {
-  cfg = cell;
+  cell_config = nr_cells;
   sched.cell_cfg(nr_cells);
   detected_rachs.resize(nr_cells.size());
 
   // read SIBs from RRC (SIB1 for now only)
   for (int i = 0; i < 1 /* srsenb::sched_interface::MAX_SIBS */; i++) {
-    if (cell.sibs->len > 0) {
+    // TODO: add flag for SIBs into cell config
+    if (true) {
       sib_info_t sib  = {};
       sib.index       = i;
-      sib.periodicity = cell.sibs->period_rf;
+      sib.periodicity = 4; // TODO: read period_rf from config
       sib.payload     = srsran::make_byte_buffer();
       if (sib.payload == nullptr) {
         logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
