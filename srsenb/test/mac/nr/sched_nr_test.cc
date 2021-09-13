@@ -83,6 +83,8 @@ void sched_nr_cfg_serialized_test()
   task_job_manager tasks;
 
   sched_nr_interface::sched_cfg_t             cfg;
+  cfg.auto_refill_buffer = true;
+
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Serialized Test");
@@ -131,7 +133,9 @@ void sched_nr_cfg_parallel_cc_test()
   uint32_t         max_nof_ttis = 1000;
   task_job_manager tasks;
 
-  sched_nr_interface::sched_cfg_t             cfg;
+  sched_nr_interface::sched_cfg_t cfg;
+  cfg.auto_refill_buffer = true;
+
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Parallel CC Test");
