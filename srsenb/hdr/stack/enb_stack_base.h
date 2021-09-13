@@ -60,7 +60,6 @@ typedef struct {
 } stack_log_args_t;
 
 typedef struct {
-  std::string      type;
   uint32_t         sync_queue_size; // Max allowed difference between PHY and Stack clocks (in TTI)
   uint32_t         gtpu_indirect_tunnel_timeout_msec;
   mac_args_t       mac;
