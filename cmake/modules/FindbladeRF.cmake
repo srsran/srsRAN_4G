@@ -8,18 +8,21 @@
 
 if(NOT BLADERF_FOUND)
   pkg_check_modules (BLADERF_PKG libbladeRF)
-  find_path(BLADERF_INCLUDE_DIRS NAMES libbladeRF.h
-    PATHS
-    ${BLADERF_PKG_INCLUDE_DIRS}
-    /usr/include
-    /usr/local/include
+
+  find_path(BLADERF_INCLUDE_DIRS 
+    NAMES libbladeRF.h
+    HINTS $ENV{BLADERF_DIR}/include
+    PATHS ${BLADERF_PKG_INCLUDE_DIRS}
+          /usr/include
+          /usr/local/include
   )
 
-  find_library(BLADERF_LIBRARIES NAMES bladeRF
-    PATHS
-    ${BLADERF_PKG_LIBRARY_DIRS}
-    /usr/lib
-    /usr/local/lib
+  find_library(BLADERF_LIBRARIES 
+    NAMES bladeRF
+    HINTS $ENV{BLADERF_DIR}/lib
+    PATHS ${BLADERF_PKG_LIBRARY_DIRS}
+          /usr/lib
+          /usr/local/lib
   )
 
 if(BLADERF_INCLUDE_DIRS AND BLADERF_LIBRARIES)
