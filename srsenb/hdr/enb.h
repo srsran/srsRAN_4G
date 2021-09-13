@@ -155,7 +155,8 @@ private:
   rrc_cfg_t rrc_cfg = {};
 
   // eNB components
-  std::unique_ptr<enb_stack_base>     stack = nullptr;
+  std::unique_ptr<enb_stack_base>     eutra_stack = nullptr;
+  std::unique_ptr<enb_stack_base>     nr_stack    = nullptr;
   std::unique_ptr<srsran::radio_base> radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
 

@@ -30,7 +30,8 @@ enb::enb(srslog::sink& log_sink) :
 
 enb::~enb()
 {
-  stack.reset();
+  eutra_stack.reset();
+  nr_stack.reset();
 }
 
 int enb::init(const all_args_t& args_)
@@ -50,54 +51,68 @@ int enb::init(const all_args_t& args_)
   srsran::byte_buffer_pool::get_instance()->enable_logger(true);
 
   // Create layers
-  if (args.stack.type == "lte") {
-    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(log_sink));
-    if (!lte_stack) {
-      srsran::console("Error creating eNB stack.\n");
+  std::unique_ptr<enb_stack_lte> tmp_eutra_stack;
+  if (not rrc_cfg.cell_list.empty()) {
+    // add EUTRA stack
+    tmp_eutra_stack.reset(new enb_stack_lte(log_sink));
+    if (tmp_eutra_stack == nullptr) {
+      srsran::console("Error creating EUTRA stack.\n");
       return SRSRAN_ERROR;
     }
+  }
 
-    std::unique_ptr<srsran::radio> lte_radio = std::unique_ptr<srsran::radio>(new srsran::radio);
-    if (!lte_radio) {
-      srsran::console("Error creating radio multi instance.\n");
+  std::unique_ptr<gnb_stack_nr> tmp_nr_stack;
+  if (not rrc_cfg.cell_list_nr.empty()) {
+    // add NR stack
+    tmp_nr_stack.reset(new gnb_stack_nr());
+    if (tmp_nr_stack == nullptr) {
+      srsran::console("Error creating NR stack.\n");
       return SRSRAN_ERROR;
     }
+  }
 
-    std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(log_sink));
-    if (!lte_phy) {
-      srsran::console("Error creating LTE PHY instance.\n");
-      return SRSRAN_ERROR;
-    }
-
-    if (ret == SRSRAN_SUCCESS) {
-      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get(), lte_phy.get()) != SRSRAN_SUCCESS) {
-        srsran::console("Error initializing stack.\n");
-        ret = SRSRAN_ERROR;
-      }
-    }
-
-    // Init Radio
-    if (lte_radio->init(args.rf, lte_phy.get())) {
-      srsran::console("Error initializing radio.\n");
-      return SRSRAN_ERROR;
-    }
-
-    // Only Init PHY if radio could be initialized
-    if (ret == SRSRAN_SUCCESS) {
-      if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get(), *lte_stack)) {
-        srsran::console("Error initializing PHY.\n");
-        ret = SRSRAN_ERROR;
-      }
-    }
-
-    stack = std::move(lte_stack);
-    phy   = std::move(lte_phy);
-    radio = std::move(lte_radio);
-
-  } else {
-    srsran::console("Stack type %s not supported.\n", args.stack.type.c_str());
+  // Radio is RAT agnostic
+  std::unique_ptr<srsran::radio> tmp_radio = std::unique_ptr<srsran::radio>(new srsran::radio);
+  if (tmp_radio == nullptr) {
+    srsran::console("Error creating radio multi instance.\n");
     return SRSRAN_ERROR;
   }
+
+  // PHY is RAT agnostic too
+  std::unique_ptr<srsenb::phy> tmp_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(log_sink));
+  if (tmp_phy == nullptr) {
+    srsran::console("Error creating PHY instance.\n");
+    return SRSRAN_ERROR;
+  }
+
+  // initialize layers
+  if (tmp_eutra_stack->init(args.stack, rrc_cfg, tmp_phy.get(), tmp_phy.get()) != SRSRAN_SUCCESS) {
+    srsran::console("Error initializing stack.\n");
+    ret = SRSRAN_ERROR;
+  }
+
+  // Init Radio
+  if (tmp_radio->init(args.rf, tmp_phy.get())) {
+    srsran::console("Error initializing radio.\n");
+    return SRSRAN_ERROR;
+  }
+
+  // Only Init PHY if radio could be initialized
+  if (ret == SRSRAN_SUCCESS) {
+    if (tmp_phy->init(args.phy, phy_cfg, tmp_radio.get(), tmp_eutra_stack.get(), *tmp_eutra_stack)) {
+      srsran::console("Error initializing PHY.\n");
+      ret = SRSRAN_ERROR;
+    }
+  }
+
+  if (tmp_eutra_stack) {
+    eutra_stack = std::move(tmp_eutra_stack);
+  }
+  if (tmp_nr_stack) {
+    nr_stack = std::move(tmp_nr_stack);
+  }
+  phy   = std::move(tmp_phy);
+  radio = std::move(tmp_radio);
 
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 
@@ -127,8 +142,12 @@ void enb::stop()
       phy->stop();
     }
 
-    if (stack) {
-      stack->stop();
+    if (eutra_stack) {
+      eutra_stack->stop();
+    }
+
+    if (nr_stack) {
+      nr_stack->stop();
     }
 
     if (radio) {
@@ -167,7 +186,9 @@ bool enb::get_metrics(enb_metrics_t* m)
 {
   radio->get_metrics(&m->rf);
   phy->get_metrics(m->phy);
-  stack->get_metrics(&m->stack);
+  if (eutra_stack) {
+    eutra_stack->get_metrics(&m->stack);
+  }
   m->running = started;
   m->sys     = sys_proc.get_metrics();
   return true;
@@ -200,7 +221,7 @@ std::string enb::get_build_string()
 
 void enb::toggle_padding()
 {
-  stack->toggle_padding();
+  eutra_stack->toggle_padding();
 }
 
 } // namespace srsenb
