@@ -119,6 +119,7 @@ public:
   virtual int  cell_cfg(srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg)   = 0;
   virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                         = 0;
   virtual void ue_rem(uint16_t rnti)                                                 = 0;
+  virtual bool ue_exists(uint16_t rnti)                                              = 0;
   virtual int  get_dl_sched(slot_point slot_rx, uint32_t cc, dl_sched_res_t& result) = 0;
   virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_sched_t& result)     = 0;
 
