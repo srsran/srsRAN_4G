@@ -19,7 +19,7 @@
 #define SRSRAN_ENB_STACK_LTE_H
 
 #include "mac/mac.h"
-#include "mac/mac_nr.h"
+#include "mac/nr/mac_nr.h"
 #include "rrc/rrc.h"
 #include "rrc/rrc_nr.h"
 #include "s1ap/s1ap.h"

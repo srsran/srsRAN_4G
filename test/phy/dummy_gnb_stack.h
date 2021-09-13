@@ -15,7 +15,7 @@
 
 #include "dummy_rx_harq_proc.h"
 #include "dummy_tx_harq_proc.h"
-#include "srsenb/hdr/stack/mac/mac_nr.h"
+#include "srsenb/hdr/stack/mac/nr/mac_nr.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/common/rlc_test_dummy.h"

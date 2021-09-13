@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/mac_nr.h"
+#include "srsenb/hdr/stack/mac/nr/mac_nr.h"
 #include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/log_helper.h"

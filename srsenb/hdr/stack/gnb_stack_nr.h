@@ -19,7 +19,7 @@
 #define SRSRAN_GNB_STACK_NR_H
 
 #include "s1ap/s1ap.h"
-#include "srsenb/hdr/stack/mac/mac_nr.h"
+#include "srsenb/hdr/stack/mac/nr/mac_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/stack/upper/pdcp_nr.h"
 #include "srsenb/hdr/stack/upper/rlc_nr.h"
