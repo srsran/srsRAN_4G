@@ -492,9 +492,11 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
   Debug("SYNC:  Worker %d synchronized", lte_worker->get_id());
 
   // Collect and provide metrics from last successful sync
-  metrics.sfo   = sfo;
-  metrics.cfo   = cfo;
-  metrics.ta_us = worker_com->ta.get_usec();
+  metrics.sfo         = sfo;
+  metrics.cfo         = cfo;
+  metrics.ta_us       = worker_com->ta.get_usec();
+  metrics.distance_km = worker_com->ta.get_km();
+  metrics.speed_kmph  = worker_com->ta.get_speed_kmph(tti);
   for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
     worker_com->set_sync_metrics(i, metrics);
   }
