@@ -207,7 +207,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
         temp_crnti = subpdu.get_temp_crnti();
 
         // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-        phy->set_ul_grant(subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
+        phy->set_ul_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
 
         // reset all parameters that are used before rar
         rar_rnti = SRSRAN_INVALID_RNTI;

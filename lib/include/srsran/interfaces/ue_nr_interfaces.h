@@ -54,8 +54,9 @@ public:
   } mac_nr_grant_dl_t;
 
   typedef struct {
-    srsran::unique_byte_buffer_t payload; // TB when decoded successfully, nullptr otherwise
-    bool                         ack;     // HARQ information
+    uint32_t                     rx_slot_idx; // Slot when DL TB has been decoded
+    srsran::unique_byte_buffer_t payload;     // TB when decoded successfully, nullptr otherwise
+    bool                         ack;         // HARQ information
   } tb_action_dl_result_t;
 
   // UL grant as conveyed between PHY and MAC
@@ -212,7 +213,8 @@ public:
   } tx_request_t;
 
   // MAC informs PHY about UL grant included in RAR PDU
-  virtual int set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+  virtual int set_ul_grant(uint32_t                                       rar_slot_idx,
+                           std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                            uint16_t                                       rnti,
                            srsran_rnti_type_t                             rnti_type) = 0;
 

@@ -622,11 +622,12 @@ int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran
   return SRSRAN_SUCCESS;
 }
 
-int phy::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+int phy::set_ul_grant(uint32_t                                       rar_slot_idx,
+                      std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                       uint16_t                                       rnti,
                       srsran_rnti_type_t                             rnti_type)
 {
-  return nr_workers.set_ul_grant(packed_ul_grant, rnti, rnti_type);
+  return nr_workers.set_ul_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
 }
 
 void phy::send_prach(const uint32_t prach_occasion,
