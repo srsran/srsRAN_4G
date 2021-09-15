@@ -149,8 +149,8 @@ private:
   srsran::task_multiqueue::queue_handle stack_task_dispatch_queue;
 
   // pointer to MAC PCAP object
-  srsran::mac_pcap* pcap              = nullptr;
-  bool              is_first_ul_grant = false;
+  srsran::mac_pcap* pcap = nullptr;
+  std::atomic<bool> is_first_ul_grant{false};
 
   std::mutex    metrics_mutex                = {};
   mac_metrics_t metrics[SRSRAN_MAX_CARRIERS] = {};
