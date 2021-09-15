@@ -113,6 +113,8 @@ void bsr_proc::timer_expired(uint32_t timer_id)
 
 uint32_t bsr_proc::get_buffer_state()
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   uint32_t buffer = 0;
   for (int i = 0; i < NOF_LCG; i++) {
     buffer += get_buffer_state_lcg(i);
