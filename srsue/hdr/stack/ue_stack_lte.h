@@ -234,7 +234,7 @@ private:
   ue_bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
 
   // Metrics helper
-  uint32_t ul_dropped_sdus = 0;
+  std::atomic<uint32_t> ul_dropped_sdus{0};
 };
 
 } // namespace srsue
