@@ -114,11 +114,13 @@ bool proc_ra_nr::has_rar_rnti()
 
 bool proc_ra_nr::has_temp_crnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return temp_crnti != SRSRAN_INVALID_RNTI;
 }
 
 uint16_t proc_ra_nr::get_temp_crnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return temp_crnti;
 }
 
@@ -180,6 +182,7 @@ void proc_ra_nr::ra_preamble_transmission()
 // 5.1.4 Random Access Preamble transmission
 void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (state != WAITING_FOR_RESPONSE_RECEPTION) {
     logger.warning(
         "Wrong state for ra reponse reception %s (expected state %s)",
@@ -265,6 +268,7 @@ void proc_ra_nr::ra_contention_resolution(uint64_t rx_contention_id)
 
 void proc_ra_nr::ra_completion()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (state != WAITING_FOR_COMPLETION) {
     logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
@@ -279,6 +283,7 @@ void proc_ra_nr::ra_completion()
 
 void proc_ra_nr::ra_error()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   temp_crnti = SRSRAN_INVALID_RNTI;
   preamble_transmission_counter++;
   contention_resolution_timer.stop();

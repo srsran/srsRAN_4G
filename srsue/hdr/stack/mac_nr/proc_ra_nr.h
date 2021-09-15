@@ -64,6 +64,7 @@ private:
   int      ra_window_length = -1, ra_window_start = -1;
   uint16_t rar_rnti  = SRSRAN_INVALID_RNTI;
   uint16_t temp_crnti = SRSRAN_INVALID_RNTI;
+  std::mutex mutex;
 
   srsran::rach_nr_cfg_t rach_cfg   = {};
   bool                  configured = false;
