@@ -100,9 +100,9 @@ private:
 
   srsran::ul_harq_cfg_t harq_cfg = {};
 
-  float    average_retx = 0.0;
-  uint64_t nof_pkts     = 0;
-  ra_proc* ra_procedure = nullptr;
+  std::atomic<float> average_retx{0};
+  uint64_t           nof_pkts     = 0;
+  ra_proc*           ra_procedure = nullptr;
 
   uint8_t cc_idx = 0;
 };
