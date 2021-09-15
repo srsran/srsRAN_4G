@@ -34,7 +34,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-extern bool simulate_rlf;
+extern std::atomic<bool> simulate_rlf;
 
 using namespace std;
 using namespace srsue;
@@ -639,7 +639,7 @@ static void* input_loop(void*)
           metrics_screen->toggle_print(do_metrics);
         }
       } else if (key == "rlf") {
-        simulate_rlf = true;
+        simulate_rlf.store(true, std::memory_order_relaxed);
         cout << "Sending Radio Link Failure" << endl;
       } else if (key == "q") {
         // let the signal handler do the job

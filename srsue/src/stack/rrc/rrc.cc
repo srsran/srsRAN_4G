@@ -32,7 +32,7 @@
 #include <numeric>
 #include <string.h>
 
-bool simulate_rlf = false;
+std::atomic<bool> simulate_rlf{false};
 
 using namespace srsran;
 using namespace asn1::rrc;
@@ -203,9 +203,9 @@ void rrc::run_tti()
     return;
   }
 
-  if (simulate_rlf) {
+  if (simulate_rlf.load(std::memory_order_relaxed)) {
     radio_link_failure_process();
-    simulate_rlf = false;
+    simulate_rlf.store(false, std::memory_order_relaxed);
   }
 
   // Process pending PHY measurements in IDLE/CONNECTED
@@ -2779,7 +2779,7 @@ void rrc::release_drb(uint32_t drb_id)
  */
 uint32_t rrc::get_lcid_for_drb_id(const uint32_t& drb_id)
 {
-  uint32_t                    lcid     = 0;
+  uint32_t lcid = 0;
   if (drbs.find(drb_id) != drbs.end()) {
     asn1::rrc::drb_to_add_mod_s drb_cnfg = drbs[drb_id];
     if (drb_cnfg.lc_ch_id_present) {
