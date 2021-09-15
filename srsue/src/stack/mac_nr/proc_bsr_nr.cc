@@ -136,8 +136,15 @@ bool proc_bsr_nr::check_new_data(const mac_buffer_states_t& new_buffer_state)
   return false;
 }
 
+/**
+ * @brief Called by Mux through PHY worker whenever a new SBSR CE
+ * needs to be included in a MAC PDU.
+ *
+ * @return SBSR CE for subPDU containing the buffer state of the highest priority LCG
+ */
 srsran::mac_sch_subpdu_nr::lcg_bsr_t proc_bsr_nr::generate_sbsr()
 {
+  std::lock_guard<std::mutex>          lock(mutex);
   srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
   if (buffer_state.nof_lcgs_with_data > 0) {
     sbsr.lcg_id      = buffer_state.last_non_zero_lcg;
