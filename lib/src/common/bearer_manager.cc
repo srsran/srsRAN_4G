@@ -102,6 +102,7 @@ void ue_bearer_manager::remove_eps_bearer(uint8_t eps_bearer_id)
 
 void ue_bearer_manager::reset()
 {
+  srsran::rwlock_write_guard rw_lock(rwlock);
   impl.reset();
   logger.info("Bearers: Reset EPS bearer manager");
 }
