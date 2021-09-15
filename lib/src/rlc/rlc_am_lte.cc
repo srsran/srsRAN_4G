@@ -203,13 +203,19 @@ uint32_t rlc_am_lte::get_bearer()
 rlc_bearer_metrics_t rlc_am_lte::get_metrics()
 {
   // update values that aren't calculated on the fly
-  metrics.rx_latency_ms     = rx.get_sdu_rx_latency_ms();
-  metrics.rx_buffered_bytes = rx.get_rx_buffered_bytes();
+  uint32_t latency        = rx.get_sdu_rx_latency_ms();
+  uint32_t buffered_bytes = rx.get_rx_buffered_bytes();
+
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+  metrics.rx_latency_ms     = latency;
+  metrics.rx_buffered_bytes = buffered_bytes;
+
   return metrics;
 }
 
 void rlc_am_lte::reset_metrics()
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics = {};
 }
 
@@ -220,6 +226,7 @@ void rlc_am_lte::reset_metrics()
 void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu)
 {
   if (tx.write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_tx_sdus++;
   }
 }
@@ -227,6 +234,8 @@ void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu)
 void rlc_am_lte::discard_sdu(uint32_t discard_sn)
 {
   tx.discard_sdu(discard_sn);
+
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics.num_lost_sdus++;
 }
 
@@ -252,14 +261,19 @@ uint32_t rlc_am_lte::get_buffer_state()
 uint32_t rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t read_bytes = tx.read_pdu(payload, nof_bytes);
+
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics.num_tx_pdus++;
   metrics.num_tx_pdu_bytes += read_bytes;
+
   return read_bytes;
 }
 
 void rlc_am_lte::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   rx.write_pdu(payload, nof_bytes);
+
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics.num_rx_pdus++;
   metrics.num_rx_pdu_bytes += nof_bytes;
 }
@@ -407,6 +421,8 @@ void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
       pdcp_sns.push_back(segment.pdcp_sn());
     }
     parent->pdcp->notify_failure(parent->lcid, pdcp_sns);
+
+    std::lock_guard<std::mutex> lock(parent->metrics_mutex);
     parent->metrics.num_lost_pdus++;
   }
 }
@@ -1758,7 +1774,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
                                      std::chrono::high_resolution_clock::now() - rx_sdu->get_timestamp())
                                      .count());
           parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
-          parent->metrics.num_rx_sdus++;
+          {
+            std::lock_guard<std::mutex> lock(parent->metrics_mutex);
+            parent->metrics.num_rx_sdus++;
+          }
 
           rx_sdu = srsran::make_byte_buffer();
           if (rx_sdu == nullptr) {
@@ -1808,7 +1827,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
                                  std::chrono::high_resolution_clock::now() - rx_sdu->get_timestamp())
                                  .count());
       parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
-      parent->metrics.num_rx_sdus++;
+      {
+        std::lock_guard<std::mutex> lock(parent->metrics_mutex);
+        parent->metrics.num_rx_sdus++;
+      }
 
       rx_sdu = srsran::make_byte_buffer();
       if (rx_sdu == NULL) {
@@ -1985,9 +2007,9 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
   if (not lock.owns_lock()) {
     return 0;
   }
-  rlc_status_pdu_t            status = {};
-  status.ack_sn                      = vr_ms;
-  uint32_t i                         = vr_r;
+  rlc_status_pdu_t status = {};
+  status.ack_sn           = vr_ms;
+  uint32_t i              = vr_r;
   while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status.N_nack < RLC_AM_WINDOW_SIZE) {
     if (not rx_window.has_sn(i)) {
       status.N_nack++;
