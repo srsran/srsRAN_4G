@@ -553,17 +553,29 @@ bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
     // Received notification
     union sctp_notification* notification = (union sctp_notification*)pdu->msg;
     logger.info("SCTP Notification %04x", notification->sn_header.sn_type);
+    bool restart_s1 = false;
     if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
       logger.info("SCTP Association Shutdown. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-      rx_socket_handler->remove_socket(mme_socket.get_socket());
-      mme_socket.close();
+      restart_s1 = true;
     } else if (notification->sn_header.sn_type == SCTP_PEER_ADDR_CHANGE &&
                notification->sn_paddr_change.spc_state == SCTP_ADDR_UNREACHABLE) {
       logger.info("SCTP peer addres unreachable. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
+      restart_s1 = true;
+    }
+    if (restart_s1) {
+      logger.info("Restarting S1 connection");
+      srsran::console("Restarting S1 connection\n");
       rx_socket_handler->remove_socket(mme_socket.get_socket());
       mme_socket.close();
+      while (users.size() != 0) {
+        std::unordered_map<uint32_t, std::unique_ptr<ue> >::iterator it   = users.begin();
+        uint16_t                                                     rnti = it->second->ctxt.rnti;
+        rrc->release_erabs(rnti);
+        rrc->release_ue(rnti);
+        users.erase(it->second.get());
+      }
     }
   } else if (pdu->N_bytes == 0) {
     logger.error("SCTP return 0 bytes. Closing socket");
