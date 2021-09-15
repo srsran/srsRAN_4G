@@ -95,8 +95,7 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
   }
 }
 
-int mac_nr::cell_cfg(const sched_interface::cell_cfg_t&                 eutra_cell_config,
-                     srsran::const_span<sched_nr_interface::cell_cfg_t> nr_cells)
+int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells)
 {
   cell_config = nr_cells;
   sched.cell_cfg(nr_cells);

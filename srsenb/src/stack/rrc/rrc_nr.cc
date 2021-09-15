@@ -211,6 +211,8 @@ void rrc_nr::config_mac()
   // Fill MAC scheduler configuration for SIBs
   // TODO: use parsed cell NR cfg configuration
   std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
+
+  // FIXME: entire SI configuration, etc needs to be ported to NR
   sched_interface::cell_cfg_t                         cell_cfg;
   set_sched_cell_cfg_sib1(&cell_cfg, cfg.sib1);
 
@@ -226,8 +228,8 @@ void rrc_nr::config_mac()
   // Copy Cell configuration
   cell_cfg.cell = cfg.cell;
 
-  // Configure MAC scheduler
-  mac->cell_cfg(cell_cfg, sched_cells_cfg);
+  // Configure MAC/scheduler
+  mac->cell_cfg(sched_cells_cfg);
 }
 
 int32_t rrc_nr::generate_sibs()

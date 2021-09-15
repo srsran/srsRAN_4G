@@ -38,12 +38,7 @@ public:
 class mac_nr_dummy : public mac_interface_rrc_nr
 {
 public:
-  int cell_cfg(const sched_interface::cell_cfg_t&                 cell,
-               srsran::const_span<sched_nr_interface::cell_cfg_t> nr_cells) override
-  {
-    cellcfgobj = cell;
-    return SRSRAN_SUCCESS;
-  }
+  int cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells) override { return SRSRAN_SUCCESS; }
   uint16_t reserve_rnti(uint32_t enb_cc_idx) override { return 0x4601; }
 
   int ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override { return SRSRAN_SUCCESS; }
