@@ -747,7 +747,9 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   cell_cnfg.add_field(new rr_sections::cell_list_section(args_, rrc_cfg_));
 
   // NR RRC and cell config section
+  bool            nr_cell_cnfg_present = false;
   parser::section nr_cell_cnfg("nr_cell_list");
+  nr_cell_cnfg.set_optional(&nr_cell_cnfg_present);
   nr_cell_cnfg.add_field(new rr_sections::nr_cell_list_section(args_, rrc_cfg_));
 
   // Run parser with two sections
