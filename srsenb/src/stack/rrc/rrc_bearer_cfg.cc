@@ -280,15 +280,6 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
       return SRSRAN_ERROR;
     }
   }
-  if (qos.alloc_retention_prio.pre_emption_cap.value == asn1::s1ap::pre_emption_cap_opts::may_trigger_pre_emption and
-      qos.alloc_retention_prio.prio_level < qci_cfg.lc_cfg.prio) {
-    logger->error("Provided E-RAB id=%d QoS not supported (priority %d < %d)",
-                  erab_id,
-                  qos.alloc_retention_prio.prio_level,
-                  qci_cfg.lc_cfg.prio);
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
-    return SRSRAN_ERROR;
-  }
 
   // Consider ERAB as accepted
   erabs[erab_id].id         = erab_id;
