@@ -15,6 +15,8 @@
 
 #include "srsran/srslog/bundled/fmt/format.h"
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -117,6 +119,49 @@ const char* to_c_str(fmt::basic_memory_buffer<char, N>& mem_buffer)
 {
   mem_buffer.push_back('\0');
   return mem_buffer.data();
+}
+
+static inline bool replace(std::string& str, const std::string& from, const std::string& to)
+{
+  size_t start_pos = str.find(from);
+  if (start_pos == std::string::npos)
+    return false;
+  str.replace(start_pos, from.length(), to);
+  return true;
+}
+
+static inline std::vector<std::string> split_string(const std::string& str, char delimiter)
+{
+  std::vector<std::string> tokens;
+  std::string              token;
+  std::istringstream       tokenStream(str);
+
+  while (std::getline(tokenStream, token, delimiter)) {
+    tokens.push_back(token);
+  }
+  return tokens;
+}
+
+static inline void get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len)
+{
+  const char* pos = key_str.c_str();
+
+  for (uint count = 0; count < len; count++) {
+    sscanf(pos, "%2hhx", &key[count]);
+    pos += 2;
+  }
+  return;
+}
+
+static inline std::string hex_string(uint8_t* hex, int size)
+{
+  std::stringstream ss;
+
+  ss << std::hex << std::setfill('0');
+  for (int i = 0; i < size; i++) {
+    ss << std::setw(2) << static_cast<unsigned>(hex[i]);
+  }
+  return ss.str();
 }
 
 } // namespace srsran
