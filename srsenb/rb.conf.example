@@ -12,9 +12,9 @@
 //       t_reordering = 35;
 //       t_status_prohibit = 0;
 //     };
-//   };
-//   enb_specific = {
-//    dl_max_retx_thresh = 32;
+//     enb_specific = {
+//      dl_max_retx_thresh = 32;
+//     };
 //   };
 // }
 
@@ -30,9 +30,9 @@
 //       t_reordering = 35;
 //       t_status_prohibit = 0;
 //     };
-//   };
-//   enb_specific = {
-//    dl_max_retx_thresh = 32;
+//     enb_specific = {
+//      dl_max_retx_thresh = 32;
+//     };
 //   };
 // }
 
