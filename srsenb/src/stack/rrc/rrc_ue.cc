@@ -1163,11 +1163,13 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
     return SRSRAN_ERROR;
   }
   if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+    parent->logger.error("Couldn't add E-RAB id=%d for rnti=0x%x", erab_id, rnti);
     return SRSRAN_ERROR;
   }
   if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
     bearer_list.release_erab(erab_id);
+    parent->logger.error("Couldn't add E-RAB id=%d for rnti=0x%x", erab_id, rnti);
     return SRSRAN_ERROR;
   }
   return SRSRAN_SUCCESS;
