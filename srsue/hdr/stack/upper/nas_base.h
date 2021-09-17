@@ -38,28 +38,33 @@ protected:
   srsran::nas_pcap* pcap = nullptr;
 
   // Security context
+  // Base context applies for LTE and 5G
+  struct nas_sec_base_ctxt {
+    uint8_t                             k_nas_enc[32] = {};
+    uint8_t                             k_nas_int[32] = {};
+    srsran::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+    srsran::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+    uint32_t                            tx_count;
+    uint32_t                            rx_count;
+  };
+
+  // Only applies for LTE
   struct nas_sec_ctxt {
     uint8_t                              ksi;
     uint8_t                              k_asme[32];
-    uint32_t                             tx_count;
-    uint32_t                             rx_count;
     uint32_t                             k_enb_count;
-    srsran::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
-    srsran::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
   };
 
+  // Only applies for 5G
   struct nas_5g_sec_ctxt {
     uint8_t  ksi;
     uint8_t  k_amf[32];
-    uint32_t tx_count;
-    uint32_t rx_count;
   };
 
-  nas_sec_ctxt    ctxt          = {};
-  nas_5g_sec_ctxt ctxt_5g       = {};
-  uint8_t         k_nas_enc[32] = {};
-  uint8_t         k_nas_int[32] = {};
+  nas_sec_base_ctxt ctxt_base = {};
+  nas_sec_ctxt      ctxt      = {};
+  nas_5g_sec_ctxt   ctxt_5g   = {};
 
   int parse_security_algorithm_list(std::string algorithm_string, bool* algorithm_caps);
 

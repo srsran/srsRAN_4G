@@ -428,7 +428,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
 
   nas_msg.hdr.security_header_type =
       nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered_with_new_5G_nas_context;
-  nas_msg.hdr.sequence_number = ctxt.tx_count;
+  nas_msg.hdr.sequence_number = ctxt_base.tx_count;
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack security mode complete");
@@ -436,8 +436,8 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   }
 
   cipher_encrypt(pdu.get());
-  integrity_generate(&k_nas_int[16],
-                     ctxt.tx_count,
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
                      SECURITY_DIRECTION_UPLINK,
                      &pdu->msg[SEQ_5G_OFFSET],
                      pdu->N_bytes - SEQ_5G_OFFSET,
@@ -449,7 +449,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
 
   logger.info("Sending Security Mode Complete");
   rrc_nr->write_sdu(std::move(pdu));
-  ctxt.tx_count++;
+  ctxt_base.tx_count++;
 
   return SRSRAN_SUCCESS;
 }
@@ -545,7 +545,7 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   env_nas_msg.hdr.security_header_type = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
 
   // TODO move that seq number setting to the security part
-  env_nas_msg.hdr.sequence_number = ctxt.tx_count;
+  env_nas_msg.hdr.sequence_number = ctxt_base.tx_count;
 
   ul_nas_transport_t& ul_nas_msg = env_nas_msg.set_ul_nas_transport();
   ul_nas_msg.payload_container_type.payload_container_type.value =
@@ -583,8 +583,8 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   }
 
   cipher_encrypt(pdu.get());
-  integrity_generate(&k_nas_int[16],
-                     ctxt.tx_count,
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
                      SECURITY_DIRECTION_UPLINK,
                      &pdu->msg[SEQ_5G_OFFSET],
                      pdu->N_bytes - SEQ_5G_OFFSET,
@@ -853,10 +853,11 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
                                          srsran::unique_byte_buffer_t pdu)
 {
   logger.info("Handling Security Mode Command");
-  ctxt.cipher_algo =
+  ctxt_base.cipher_algo =
       (CIPHERING_ALGORITHM_ID_ENUM)security_mode_command.selected_nas_security_algorithms.ciphering_algorithm.value;
-  ctxt.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)
-                        security_mode_command.selected_nas_security_algorithms.integrity_protection_algorithm.value;
+  ctxt_base.integ_algo =
+      (INTEGRITY_ALGORITHM_ID_ENUM)
+          security_mode_command.selected_nas_security_algorithms.integrity_protection_algorithm.value;
 
   // Check replayed ue security capabilities
   if (!check_replayed_ue_security_capabilities(security_mode_command.replayed_ue_security_capabilities)) {
@@ -868,20 +869,21 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
   initial_sec_command = false; // TODO
 
   if (initial_sec_command) {
-    ctxt.rx_count       = 0;
-    ctxt.tx_count       = 0;
+    ctxt_base.rx_count  = 0;
+    ctxt_base.tx_count  = 0;
     initial_sec_command = false;
   }
 
   // Generate NAS keys
   logger.debug(ctxt_5g.k_amf, 32, "K AMF");
-  logger.debug("cipher_algo %d, integ_algo %d", ctxt.cipher_algo, ctxt.integ_algo);
+  logger.debug("cipher_algo %d, integ_algo %d", ctxt_base.cipher_algo, ctxt_base.integ_algo);
 
-  usim->generate_nas_keys_5g(ctxt_5g.k_amf, k_nas_enc, k_nas_int, ctxt.cipher_algo, ctxt.integ_algo);
-  logger.info(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-  logger.info(k_nas_int, 32, "NAS integrity key - k_nas_int");
+  usim->generate_nas_keys_5g(
+      ctxt_5g.k_amf, ctxt_base.k_nas_enc, ctxt_base.k_nas_int, ctxt_base.cipher_algo, ctxt_base.integ_algo);
+  logger.info(ctxt_base.k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+  logger.info(ctxt_base.k_nas_int, 32, "NAS integrity key - k_nas_int");
 
-  logger.debug("Generating integrity check. integ_algo:%d, count_dl:%d", ctxt.integ_algo, ctxt.rx_count);
+  logger.debug("Generating integrity check. integ_algo:%d, count_dl:%d", ctxt_base.integ_algo, ctxt_base.rx_count);
 
   if (not integrity_check(pdu.get())) {
     logger.warning("Sending Security Mode Reject due to integrity check failure");
@@ -890,7 +892,7 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
   }
 
   send_security_mode_complete(security_mode_command);
-  ctxt.rx_count++;
+  ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
 
