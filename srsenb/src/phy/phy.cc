@@ -97,9 +97,10 @@ int phy::init(const phy_args_t&            args,
               const phy_cfg_t&             cfg,
               srsran::radio_interface_phy* radio_,
               stack_interface_phy_lte*     stack_lte_,
-              stack_interface_phy_nr&      stack_nr_)
+              stack_interface_phy_nr&      stack_nr_,
+              enb_time_interface*          enb_)
 {
-  if (init(args, cfg, radio_, stack_lte_) != SRSRAN_SUCCESS) {
+  if (init(args, cfg, radio_, stack_lte_, enb_) != SRSRAN_SUCCESS) {
     phy_log.error("Couldn't initialize LTE PHY");
     return SRSRAN_ERROR;
   }
@@ -115,7 +116,8 @@ int phy::init(const phy_args_t&            args,
 int phy::init(const phy_args_t&            args,
               const phy_cfg_t&             cfg,
               srsran::radio_interface_phy* radio_,
-              stack_interface_phy_lte*     stack_)
+              stack_interface_phy_lte*     stack_lte_,
+              enb_time_interface*          enb_)
 {
   if (cfg.phy_cell_cfg.size() > SRSRAN_MAX_CARRIERS) {
     phy_log.error(
@@ -142,7 +144,7 @@ int phy::init(const phy_args_t&            args,
 
   workers_common.params = args;
 
-  workers_common.init(cfg.phy_cell_cfg, cfg.phy_cell_cfg_nr, radio, stack_);
+  workers_common.init(cfg.phy_cell_cfg, cfg.phy_cell_cfg_nr, radio, stack_lte_);
 
   parse_common_config(cfg);
 
@@ -154,13 +156,18 @@ int phy::init(const phy_args_t&            args,
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
     prach_cfg.root_seq_idx = cfg.phy_cell_cfg[cc].root_seq_idx;
-    prach.init(
-        cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, phy_log, PRACH_WORKER_THREAD_PRIO, args.nof_prach_threads);
+    prach.init(cc,
+               cfg.phy_cell_cfg[cc].cell,
+               prach_cfg,
+               stack_lte_,
+               phy_log,
+               PRACH_WORKER_THREAD_PRIO,
+               args.nof_prach_threads);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(stack_, radio, &lte_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
+  tx_rx.init(enb_, radio, &lte_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
 
   initialized = true;
 

@@ -59,36 +59,46 @@ int enb::init(const all_args_t& args_)
       srsran::console("Error creating EUTRA stack.\n");
       return SRSRAN_ERROR;
     }
+    x2.set_eutra_stack(tmp_eutra_stack.get());
   }
 
   std::unique_ptr<gnb_stack_nr> tmp_nr_stack;
   if (not rrc_cfg.cell_list_nr.empty()) {
     // add NR stack
-    tmp_nr_stack.reset(new gnb_stack_nr());
+    tmp_nr_stack.reset(new gnb_stack_nr(log_sink));
     if (tmp_nr_stack == nullptr) {
       srsran::console("Error creating NR stack.\n");
       return SRSRAN_ERROR;
     }
+    x2.set_nr_stack(tmp_nr_stack.get());
   }
 
-  // Radio is RAT agnostic
+  // Radio and PHY are RAT agnostic
   std::unique_ptr<srsran::radio> tmp_radio = std::unique_ptr<srsran::radio>(new srsran::radio);
   if (tmp_radio == nullptr) {
     srsran::console("Error creating radio multi instance.\n");
     return SRSRAN_ERROR;
   }
 
-  // PHY is RAT agnostic too
   std::unique_ptr<srsenb::phy> tmp_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(log_sink));
   if (tmp_phy == nullptr) {
     srsran::console("Error creating PHY instance.\n");
     return SRSRAN_ERROR;
   }
 
-  // initialize layers
-  if (tmp_eutra_stack->init(args.stack, rrc_cfg, tmp_phy.get(), tmp_phy.get()) != SRSRAN_SUCCESS) {
-    srsran::console("Error initializing stack.\n");
-    ret = SRSRAN_ERROR;
+  // initialize layers, if they exist
+  if (tmp_eutra_stack) {
+    if (tmp_eutra_stack->init(args.stack, rrc_cfg, tmp_phy.get(), &x2) != SRSRAN_SUCCESS) {
+      srsran::console("Error initializing EUTRA stack.\n");
+      ret = SRSRAN_ERROR;
+    }
+  }
+
+  if (tmp_nr_stack) {
+    if (tmp_nr_stack->init(args.stack, rrc_nr_cfg, tmp_phy.get(), &x2) != SRSRAN_SUCCESS) {
+      srsran::console("Error initializing NR stack.\n");
+      ret = SRSRAN_ERROR;
+    }
   }
 
   // Init Radio
@@ -99,7 +109,7 @@ int enb::init(const all_args_t& args_)
 
   // Only Init PHY if radio could be initialized
   if (ret == SRSRAN_SUCCESS) {
-    if (tmp_phy->init(args.phy, phy_cfg, tmp_radio.get(), tmp_eutra_stack.get(), *tmp_eutra_stack)) {
+    if (tmp_phy->init(args.phy, phy_cfg, tmp_radio.get(), tmp_eutra_stack.get(), *tmp_nr_stack, this)) {
       srsran::console("Error initializing PHY.\n");
       ret = SRSRAN_ERROR;
     }
@@ -221,7 +231,19 @@ std::string enb::get_build_string()
 
 void enb::toggle_padding()
 {
-  eutra_stack->toggle_padding();
+  if (eutra_stack) {
+    eutra_stack->toggle_padding();
+  }
+}
+
+void enb::tti_clock()
+{
+  if (eutra_stack) {
+    eutra_stack->tti_clock();
+  }
+  if (nr_stack) {
+    nr_stack->tti_clock();
+  }
 }
 
 } // namespace srsenb

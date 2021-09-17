@@ -19,9 +19,7 @@
 #define SRSRAN_ENB_STACK_LTE_H
 
 #include "mac/mac.h"
-#include "mac/nr/mac_nr.h"
 #include "rrc/rrc.h"
-#include "rrc/rrc_nr.h"
 #include "s1ap/s1ap.h"
 #include "srsran/common/task_scheduler.h"
 #include "upper/gtpu.h"
@@ -40,7 +38,7 @@ class gtpu_pdcp_adapter;
 
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
-                            public stack_interface_phy_nr,
+                            public rrc_eutra_interface_rrc_nr,
                             public srsran::thread
 {
 public:
@@ -48,12 +46,7 @@ public:
   ~enb_stack_lte() final;
 
   // eNB stack base interface
-  int         init(const stack_args_t&      args_,
-                   const rrc_cfg_t&         rrc_cfg_,
-                   phy_interface_stack_lte* phy_,
-                   phy_interface_stack_nr*  phy_nr_);
-  int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_);
-  int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_);
+  int init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_, x2_interface* x2_);
   void        stop() final;
   std::string get_type() final;
   bool        get_metrics(stack_metrics_t* metrics) final;
@@ -115,25 +108,16 @@ public:
   void toggle_padding() override { mac.toggle_padding(); }
   void tti_clock() override;
 
-  // mac_interface_phy_nr
-  int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return mac_nr.slot_indication(slot_cfg); }
-  int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, srsenb::mac_interface_phy_nr::dl_sched_t& dl_sched) override
+  // rrc_eutra_interface_rrc_nr
+  void sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params) final
   {
-    return mac_nr.get_dl_sched(slot_cfg, dl_sched);
+    rrc.sgnb_addition_ack(eutra_rnti, params);
   }
-  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, srsenb::mac_interface_phy_nr::ul_sched_t& ul_sched) override
+  void sgnb_addition_reject(uint16_t eutra_rnti) final { rrc.sgnb_addition_reject(eutra_rnti); }
+  void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) final
   {
-    return mac_nr.get_ul_sched(slot_cfg, ul_sched);
+    rrc.sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
-  int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
-  {
-    return mac_nr.pucch_info(slot_cfg, pucch_info);
-  }
-  int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
-  {
-    return mac_nr.pusch_info(slot_cfg, pusch_info);
-  }
-  void rach_detected(const rach_info_t& rach_info) override { mac_nr.rach_detected(rach_info); }
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
@@ -155,10 +139,6 @@ private:
   srslog::basic_logger& s1ap_logger;
   srslog::basic_logger& gtpu_logger;
   srslog::basic_logger& stack_logger;
-  srslog::basic_logger& rrc_nr_logger;
-  srslog::basic_logger& mac_nr_logger;
-  srslog::basic_logger& rlc_nr_logger;
-  srslog::basic_logger& pdcp_nr_logger;
 
   // PCAP and trace option
   srsran::mac_pcap     mac_pcap;
@@ -180,15 +160,8 @@ private:
   srsenb::gtpu gtpu;
   srsenb::s1ap s1ap;
 
-  // NR components for NSA mode
-  srsenb::mac_nr mac_nr;
-  srsenb::rlc    rlc_nr;
-  srsenb::pdcp   pdcp_nr;
-  srsenb::rrc_nr rrc_nr;
-
   // RAT-specific interfaces
   phy_interface_stack_lte* phy    = nullptr;
-  phy_interface_stack_nr*  phy_nr = nullptr;
 
   // state
   std::atomic<bool> started{false};

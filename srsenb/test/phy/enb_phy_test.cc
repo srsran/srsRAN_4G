@@ -710,7 +710,7 @@ public:
     return SRSRAN_SUCCESS;
   }
   void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) override { notify_set_sched_dl_tti_mask(); }
-  void tti_clock() override { notify_tti_clock(); }
+  void tti_clock() { notify_tti_clock(); }
   int  run_tti(bool enable_assert)
   {
     std::lock_guard<std::mutex> lock(phy_mac_mutex);
@@ -1150,7 +1150,7 @@ typedef std::unique_ptr<dummy_ue> unique_dummy_ue_phy_t;
 
 typedef std::unique_ptr<srsenb::phy> unique_srsenb_phy_t;
 
-class phy_test_bench
+class phy_test_bench : public srsenb::enb_time_interface
 {
 public:
   struct args_t {
@@ -1328,7 +1328,7 @@ public:
     stack->set_active_cell_list(args.ue_cell_list);
 
     /// Initiate eNb PHY with the given RNTI
-    if (enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get()) < 0) {
+    if (enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get(), this) < 0) {
       return SRSRAN_ERROR;
     }
     enb_phy->set_config(args.rnti, phy_rrc_cfg);
@@ -1350,7 +1350,7 @@ public:
     enb_phy->stop();
   }
 
-  ~phy_test_bench() = default;
+  virtual ~phy_test_bench() = default;
 
   int run_tti()
   {
@@ -1421,6 +1421,11 @@ public:
     tti_counter++;
 
     return ret;
+  }
+
+  void tti_clock() final
+  {
+    // nothing to do
   }
 };
 

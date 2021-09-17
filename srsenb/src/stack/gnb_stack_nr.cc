@@ -11,21 +11,25 @@
  */
 
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
+#include "srsran/common/standard_streams.h"
 #include "srsran/srsran.h"
 #include <srsran/interfaces/enb_metrics_interface.h>
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB"), rlc_logger(srslog::fetch_basic_logger("RLC-NR"))
+gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
+  task_sched{512, 128},
+  thread("gNB"),
+  mac_logger(srslog::fetch_basic_logger("MAC-NR", log_sink)),
+  rlc_logger(srslog::fetch_basic_logger("RLC-NR", log_sink, false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP-NR", log_sink, false)),
+  rrc_logger(srslog::fetch_basic_logger("RRC-NR", log_sink, false)),
+  stack_logger(srslog::fetch_basic_logger("STCK-NR", log_sink, false)),
+  mac(&task_sched),
+  rrc(&task_sched),
+  pdcp(&task_sched, pdcp_logger),
+  rlc(rlc_logger)
 {
-  m_mac.reset(new mac_nr(&task_sched));
-  m_rlc.reset(new rlc_nr("RLC-NR"));
-  m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP-NR"));
-  m_rrc.reset(new rrc_nr(&task_sched));
-  m_sdap.reset(new sdap());
-  m_gw.reset(new srsue::gw(srslog::fetch_basic_logger("GW")));
-  //  m_gtpu.reset(new srsenb::gtpu());
-
   ue_task_queue   = task_sched.make_task_queue();
   sync_task_queue = task_sched.make_task_queue();
   gw_task_queue   = task_sched.make_task_queue();
@@ -42,46 +46,48 @@ std::string gnb_stack_nr::get_type()
   return "nr";
 }
 
-int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rrc_cfg_, phy_interface_stack_nr* phy_)
-{
-  phy = phy_;
-  if (init(args_, rrc_cfg_)) {
-    return SRSRAN_ERROR;
-  }
-  return SRSRAN_SUCCESS;
-}
-
-int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rrc_cfg_)
+int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
+                       const rrc_nr_cfg_t&         rrc_cfg_,
+                       phy_interface_stack_nr*     phy_,
+                       x2_interface*               x2_)
 {
   args = args_;
+  // rrc_cfg = rrc_cfg_;
+  phy = phy_;
 
-  // verify configuration correctness
-  //  gtpu_log.init("GTPU", logger);
-  //  gtpu_log.set_level(args.log.gtpu_level);
-  //  gtpu_log.set_hex_limit(args.log.gtpu_hex_limit);
+  // setup logging
+  mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
+  stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
+
+  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
+  pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
+  rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
+  stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
 
   // Init all layers
   mac_nr_args_t mac_args = {};
+  mac_args.fixed_dl_mcs  = 28;
+  mac_args.fixed_ul_mcs  = 10;
   mac_args.pcap          = args.mac_pcap;
-  m_mac->init(mac_args, phy, this, nullptr, m_rrc.get());
+  mac_args.pcap.filename = "/tmp/enb_mac_nr.pcap";
+  if (mac.init(mac_args, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
+    stack_logger.error("Couldn't initialize MAC-NR");
+    return SRSRAN_ERROR;
+  }
 
-  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
-  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
-  m_rlc->init(m_pdcp.get(), m_rrc.get(), m_mac.get(), task_sched.get_timer_handler());
+  rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
+  pdcp.init(&rlc, &rrc, nullptr);
 
-  pdcp_nr_args_t pdcp_args = {};
-  pdcp_args.log_level      = args.log.pdcp_level;
-  pdcp_args.log_hex_limit  = args.log.pdcp_hex_limit;
-  m_pdcp->init(pdcp_args, m_rlc.get(), m_rrc.get(), m_sdap.get());
+  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, nullptr, nullptr, x2_) != SRSRAN_SUCCESS) {
+    stack_logger.error("Couldn't initialize RRC");
+    return SRSRAN_ERROR;
+  }
 
-  m_rrc->init(rrc_cfg_, phy, m_mac.get(), nullptr, nullptr, nullptr, nullptr, nullptr);
-
-  m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
-
-  srsue::gw_args_t gw_args = {};
-  m_gw->init(gw_args, this);
-
-  // TODO: add NGAP
+  // TODO: add SDAP, NGAP
   //  m_gtpu->init(args.s1ap.gtp_bind_addr, args.s1ap.mme_addr,
   //      args.expert.m1u_multiaddr, args.expert.m1u_if_addr, nullptr, &gtpu_log,
   //      args.expert.enable_mbsfn);
@@ -96,11 +102,9 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 void gnb_stack_nr::stop()
 {
   if (running) {
-    m_gw->stop();
-    //    m_gtpu->stop();
-    m_rrc->stop();
-    m_pdcp->stop();
-    m_mac->stop();
+    rrc.stop();
+    pdcp.stop();
+    mac.stop();
 
     srsran::get_background_workers().stop();
     running = false;
@@ -120,13 +124,12 @@ void gnb_stack_nr::run_thread()
   }
 }
 
-void gnb_stack_nr::run_tti(uint32_t tti)
+void gnb_stack_nr::tti_clock()
 {
-  current_tti = tti;
-  sync_task_queue.push([this, tti]() { run_tti_impl(tti); });
+  sync_task_queue.push([this]() { tti_clock_impl(); });
 }
 
-void gnb_stack_nr::run_tti_impl(uint32_t tti)
+void gnb_stack_nr::tti_clock_impl()
 {
   //  m_ngap->run_tti();
   task_sched.tic();
@@ -144,8 +147,8 @@ void gnb_stack_nr::process_pdus()
 
 bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
 {
-  m_mac->get_metrics(metrics->mac);
-  m_rrc->get_metrics(metrics->rrc);
+  mac.get_metrics(metrics->mac);
+  rrc.get_metrics(metrics->rrc);
   return true;
 }
 
@@ -161,25 +164,28 @@ bool gnb_stack_nr::has_active_radio_bearer(uint32_t eps_bearer_id)
 }
 int gnb_stack_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
-  return m_mac->slot_indication(slot_cfg);
+  return mac.slot_indication(slot_cfg);
 }
 int gnb_stack_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
 {
-  return m_mac->get_dl_sched(slot_cfg, dl_sched);
+  return mac.get_dl_sched(slot_cfg, dl_sched);
 }
 int gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
 {
-  return m_mac->get_ul_sched(slot_cfg, ul_sched);
+  return mac.get_ul_sched(slot_cfg, ul_sched);
 }
 int gnb_stack_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
 {
-  return m_mac->pucch_info(slot_cfg, pucch_info);
+  return mac.pucch_info(slot_cfg, pucch_info);
 }
 int gnb_stack_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::pusch_info_t& pusch_info)
 {
-  return m_mac->pusch_info(slot_cfg, pusch_info);
+  return mac.pusch_info(slot_cfg, pusch_info);
 }
 
-void gnb_stack_nr::rach_detected(const rach_info_t& rach_info) {}
+void gnb_stack_nr::rach_detected(const rach_info_t& rach_info)
+{
+  mac.rach_detected(rach_info);
+}
 
 } // namespace srsenb

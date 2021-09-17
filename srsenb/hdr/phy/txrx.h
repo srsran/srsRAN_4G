@@ -18,6 +18,7 @@
 #include "srsenb/hdr/phy/lte/worker_pool.h"
 #include "srsenb/hdr/phy/nr/worker_pool.h"
 #include "srsran/config.h"
+#include "srsran/interfaces/enb_time_interface.h"
 #include "srsran/phy/channel/channel.h"
 #include "srsran/radio/radio.h"
 #include <atomic>
@@ -28,7 +29,7 @@ class txrx final : public srsran::thread
 {
 public:
   txrx(srslog::basic_logger& logger);
-  bool init(stack_interface_phy_lte*     stack_,
+  bool init(enb_time_interface*          enb_,
             srsran::radio_interface_phy* radio_handler,
             lte::worker_pool*            lte_workers_,
             phy_common*                  worker_com,
@@ -40,7 +41,7 @@ public:
 private:
   void run_thread() override;
 
-  stack_interface_phy_lte*     stack   = nullptr;
+  enb_time_interface*          enb     = nullptr;
   srsran::radio_interface_phy* radio_h = nullptr;
   srslog::basic_logger&        logger;
   lte::worker_pool*            lte_workers = nullptr;
