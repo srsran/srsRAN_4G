@@ -71,6 +71,9 @@ public:
   int disable_data();
   int start_service_request();
 
+  // Metrics getter
+  void get_metrics(nas_5g_metrics_t& metrics);
+
 private:
   rrc_nr_interface_nas_5g* rrc_nr = nullptr;
   usim_interface_nas*      usim   = nullptr;
@@ -179,6 +182,7 @@ private:
   bool unestablished_pdu_sessions();
   int  get_unestablished_pdu_session(uint16_t& pdu_session_id, pdu_session_cfg_t& pdu_session_cfg);
   int  reset_pdu_sessions();
+  uint32_t num_of_est_pdu_sessions();
 
   struct pdu_session_t {
     bool              configured;

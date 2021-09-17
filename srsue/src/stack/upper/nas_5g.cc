@@ -1018,8 +1018,13 @@ int nas_5g::reset_pdu_sessions()
     pdu_session.established    = false;
     pdu_session.pdu_session_id = 0;
   }
-
   return SRSRAN_SUCCESS;
+}
+
+void nas_5g::get_metrics(nas_5g_metrics_t& metrics)
+{
+  metrics.nof_active_pdu_sessions = num_of_est_pdu_sessions();
+  metrics.state                   = state.get_state();
 }
 
 /*******************************************************************************
@@ -1133,6 +1138,17 @@ int nas_5g::init_pdu_sessions(std::vector<pdu_session_cfg_t> pdu_session_cfgs)
     pdu_sessions[i].pdu_session_cfg = pdu_session_cfg;
   }
   return SRSRAN_SUCCESS;
+}
+
+uint32_t nas_5g::num_of_est_pdu_sessions()
+{
+  uint32_t i = 0;
+  for (auto pdu_session : pdu_sessions) {
+    if (pdu_session.established == true) {
+      i++;
+    }
+  }
+  return i;
 }
 
 int nas_5g::configure_pdu_session(uint16_t pdu_session_id)

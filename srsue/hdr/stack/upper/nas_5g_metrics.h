@@ -18,7 +18,7 @@
 namespace srsue {
 
 struct nas_5g_metrics_t {
-  uint32_t              nof_active_5g_bearers;
+  uint32_t              nof_active_pdu_sessions;
   mm5g_state_t::state_t state;
 };
 
