@@ -49,7 +49,10 @@ class nas_5g : public nas_base, public nas_5g_interface_rrc_nr, public nas_5g_in
 public:
   explicit nas_5g(srslog::basic_logger& logger_, srsran::task_sched_handle task_sched_);
   virtual ~nas_5g();
-  int  init(usim_interface_nas* usim_, rrc_nr_interface_nas_5g* rrc_nr_, gw_interface_nas* gw_, const nas_args_t& cfg_);
+  int  init(usim_interface_nas*      usim_,
+            rrc_nr_interface_nas_5g* rrc_nr_,
+            gw_interface_nas*        gw_,
+            const nas_5g_args_t&     cfg_);
   void stop();
   void run_tti();
 
@@ -80,8 +83,8 @@ private:
 
   srsran::nas_5g::nas_5gs_msg initial_registration_request_stored;
 
-  nas_args_t   cfg = {};
-  mm5g_state_t state;
+  nas_5g_args_t cfg = {};
+  mm5g_state_t  state;
 
   // Security
   bool ia5g_caps[8] = {};
@@ -125,7 +128,8 @@ private:
   int send_registration_request();
   int send_authentication_response(const uint8_t res[16]);
   int send_security_mode_reject(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause);
-  int send_authentication_failure(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause, const uint8_t res_star[16]);
+  int send_authentication_failure(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause,
+                                  const uint8_t                                                 res_star[16]);
   int send_security_mode_complete(const srsran::nas_5g::security_mode_command_t& security_mode_command);
   int send_registration_complete();
   int send_pdu_session_establishment_request(uint32_t                 transaction_identity,

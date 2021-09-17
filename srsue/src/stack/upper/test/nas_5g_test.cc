@@ -42,11 +42,18 @@ int amf_attach_request_test(srsran::nas_pcap* pcap)
   args.op   = "63BFA50EE6523365FF14C1F45F88737D";
   usim.init(&args);
 
-  nas_args_t nas_cfg;
-  nas_cfg.force_imsi_attach = true;
-  nas_cfg.apn_name          = "test123";
-  nas_cfg.ia5g              = "0,1,2,3";
-  nas_cfg.ea5g              = "0,1,2,3";
+  nas_5g_args_t nas_5g_cfg;
+  nas_5g_cfg.force_imsi_attach = true;
+  pdu_session_cfg_t pdu_session;
+  pdu_session.apn_name = "test123";
+
+  nas_5g_cfg.pdu_session_cfgs.push_back(pdu_session);
+
+  nas_5g_cfg.eia = "0,1,2,3";
+  nas_5g_cfg.eea = "0,1,2,3";
+
+  nas_5g_cfg.ia5g = "0,1,2,3";
+  nas_5g_cfg.ea5g = "0,1,2,3";
 
   test_stack_dummy<srsue::nas_5g> stack(&pdcp_dummy);
   srsue::nas_5g                   nas_5g(srslog::fetch_basic_logger("NAS-5G"), &stack.task_sched);
@@ -64,7 +71,7 @@ int amf_attach_request_test(srsran::nas_pcap* pcap)
   gw.init(gw_args, &stack);
   stack.init(&nas_5g);
 
-  nas_5g.init(&usim, &rrc_nr_dummy, &gw, nas_cfg);
+  nas_5g.init(&usim, &rrc_nr_dummy, &gw, nas_5g_cfg);
   rrc_nr_dummy.init(&nas_5g);
 
   // trigger test

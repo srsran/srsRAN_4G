@@ -43,5 +43,22 @@ public:
   std::vector<pdu_session_cfg_t> pdu_session_cfgs;
 };
 
+class nas_5g_args_t
+{
+public:
+  nas_5g_args_t() : force_imsi_attach(false) {}
+  ~nas_5g_args_t() = default;
+  bool force_imsi_attach;
+
+  // Need EPS sec capabilities in 5G
+  std::string eia;
+  std::string eea;
+
+  // 5G Security capabilities
+  std::string                    ia5g;
+  std::string                    ea5g;
+  std::vector<pdu_session_cfg_t> pdu_session_cfgs;
+};
+
 } // namespace srsue
 #endif // SRSUE_NAS_COMMON_H

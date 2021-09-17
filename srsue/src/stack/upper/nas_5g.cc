@@ -69,7 +69,7 @@ void nas_5g::stop()
 int nas_5g::init(usim_interface_nas*      usim_,
                  rrc_nr_interface_nas_5g* rrc_nr_,
                  gw_interface_nas*        gw_,
-                 const nas_args_t&        cfg_)
+                 const nas_5g_args_t&     cfg_)
 {
   usim   = usim_;
   rrc_nr = rrc_nr_;
