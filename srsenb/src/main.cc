@@ -559,7 +559,7 @@ int main(int argc, char* argv[])
           : srslog::fetch_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size)));
 
   // Alarms log channel creation.
-  srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
+  srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename, 0, true);
   srslog::log_channel& alarms_channel = srslog::fetch_log_channel("alarms", alarm_sink, {"ALRM", '\0', false});
   alarms_channel.set_enabled(args.general.alarms_log_enable);
 
@@ -582,7 +582,7 @@ int main(int argc, char* argv[])
 
   // Set up the JSON log channel used by metrics and events.
   srslog::sink& json_sink =
-      srslog::fetch_file_sink(args.general.report_json_filename, 0, srslog::create_json_formatter());
+      srslog::fetch_file_sink(args.general.report_json_filename, 0, false, srslog::create_json_formatter());
   srslog::log_channel& json_channel = srslog::fetch_log_channel("JSON_channel", json_sink, {});
   json_channel.set_enabled(args.general.report_json_enable);
 

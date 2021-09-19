@@ -1358,11 +1358,13 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
   }
 
   // As the carrier structure requires parameters from different objects, set fields separately
-  out_carrier_nr->absolute_frequency_ssb     = absolute_frequency_ssb;
-  out_carrier_nr->absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
-  out_carrier_nr->offset_to_carrier          = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
-  out_carrier_nr->nof_prb                    = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
-  out_carrier_nr->scs                        = scs;
+  out_carrier_nr->absolute_frequency_ssb        = absolute_frequency_ssb;
+  out_carrier_nr->dl_absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
+  out_carrier_nr->ul_absolute_frequency_point_a =
+      out_carrier_nr->dl_absolute_frequency_point_a; // needs to be updated for FDD
+  out_carrier_nr->offset_to_carrier = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  out_carrier_nr->nof_prb           = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+  out_carrier_nr->scs               = scs;
   return true;
 }
 

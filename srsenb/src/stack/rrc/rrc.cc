@@ -568,12 +568,10 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
   EN-DC/NSA helper functions
 *******************************************************************************/
 
-void rrc::sgnb_addition_ack(uint16_t                   eutra_rnti,
-                            const asn1::dyn_octstring& nr_secondary_cell_group_cfg_r15,
-                            const asn1::dyn_octstring& nr_radio_bearer_cfg1_r15)
+void rrc::sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params)
 {
-  users.at(eutra_rnti)
-      ->endc_handler->handle_sgnb_addition_ack(nr_secondary_cell_group_cfg_r15, nr_radio_bearer_cfg1_r15);
+  logger.info("Received SgNB addition acknowledgement for rnti=%d", eutra_rnti);
+  users.at(eutra_rnti)->endc_handler->trigger(ue::rrc_endc::sgnb_add_req_ack_ev{params});
 
   // trigger RRC Reconfiguration to send NR config to UE
   users.at(eutra_rnti)->send_connection_reconf();
@@ -581,12 +579,14 @@ void rrc::sgnb_addition_ack(uint16_t                   eutra_rnti,
 
 void rrc::sgnb_addition_reject(uint16_t eutra_rnti)
 {
-  users.at(eutra_rnti)->endc_handler->handle_sgnb_addition_reject();
+  logger.error("Received SgNB addition reject for rnti=%d", eutra_rnti);
+  users.at(eutra_rnti)->endc_handler->trigger(ue::rrc_endc::sgnb_add_req_reject_ev{});
 }
 
-void rrc::sgnb_addition_complete(uint16_t eutra_rnti)
+void rrc::sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti)
 {
-  users.at(eutra_rnti)->endc_handler->handle_sgnb_addition_complete();
+  logger.info("User rnti=0x%x successfully enabled EN-DC", eutra_rnti);
+  users.at(eutra_rnti)->endc_handler->trigger(ue::rrc_endc::sgnb_add_complete_ev{nr_rnti});
 }
 
 /*******************************************************************************

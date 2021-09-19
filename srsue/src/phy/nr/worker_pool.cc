@@ -108,7 +108,9 @@ void worker_pool::send_prach(const uint32_t prach_occasion,
   prach_buffer->prepare_to_send(preamble_index);
 }
 
-int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+// called from Stack thread when processing RAR PDU
+int worker_pool::set_ul_grant(uint32_t                                       rar_slot_idx,
+                              std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                               uint16_t                                       rnti,
                               srsran_rnti_type_t                             rnti_type)
 {
@@ -122,21 +124,24 @@ int worker_pool::set_ul_grant(std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> pac
   srsran_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSRAN_RAR_UL_GRANT_NBITS);
 
   srsran_dci_ul_nr_t dci_ul = {};
-
   if (srsran_dci_nr_ul_unpack(NULL, &dci_msg, &dci_ul) < SRSRAN_SUCCESS) {
     logger.error("Couldn't unpack UL grant");
     return SRSRAN_ERROR;
   }
 
+  // initialize with Rx TTI of RAR
+  srsran_slot_cfg_t msg3_slot_cfg = {};
+  msg3_slot_cfg.idx               = rar_slot_idx;
+
   if (logger.info.enabled()) {
     std::array<char, 512> str;
     srsran_dci_nr_t       dci = {};
     srsran_dci_ul_nr_to_str(&dci, &dci_ul, str.data(), str.size());
-    logger.set_context(phy_state.rar_grant_slot.idx);
+    logger.set_context(msg3_slot_cfg.idx);
     logger.info("Setting RAR Grant: %s", str.data());
   }
 
-  phy_state.set_ul_pending_grant(phy_state.rar_grant_slot, dci_ul);
+  phy_state.set_ul_pending_grant(msg3_slot_cfg, dci_ul);
 
   return SRSRAN_SUCCESS;
 }
@@ -145,7 +150,7 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
   phy_state.cfg = cfg;
 
   logger.info(
-      "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.absolute_frequency_point_a, cfg.carrier.pci);
+      "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.dl_absolute_frequency_point_a, cfg.carrier.pci);
 
   // Set carrier information
   info_metrics_t info = {};
@@ -200,6 +205,7 @@ void worker_pool::get_metrics(phy_metrics_t& m)
 {
   phy_state.get_metrics(m);
 }
+
 int worker_pool::tx_request(const phy_interface_mac_nr::tx_request_t& request)
 {
   return 0;

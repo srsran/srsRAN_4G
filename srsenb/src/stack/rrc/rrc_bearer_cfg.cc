@@ -267,19 +267,14 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   }
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
 
-  erabs[erab_id].id         = erab_id;
-  erabs[erab_id].lcid       = lcid;
-  erabs[erab_id].qos_params = qos;
-  erabs[erab_id].address    = addr;
-  erabs[erab_id].teid_out   = teid_out;
-
+  // perform checks on QCI config
   if (addr.length() > 32) {
     logger->error("Only addresses with length <= 32 are supported");
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
     return SRSRAN_ERROR;
   }
   if (qos.gbr_qos_info_present and not qci_cfg.configured) {
-    logger->warning("Provided E-RAB id=%d QoS not supported", erab_id);
+    logger->error("Provided E-RAB id=%d QoS not supported", erab_id);
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
     return SRSRAN_ERROR;
   }
@@ -289,20 +284,18 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     int16_t  pbr_kbps = qci_cfg.lc_cfg.prioritised_bit_rate.to_number();
     uint64_t pbr      = pbr_kbps < 0 ? std::numeric_limits<uint64_t>::max() : pbr_kbps * 1000u;
     if (req_bitrate > pbr) {
-      logger->warning("Provided E-RAB id=%d QoS not supported (guaranteed bitrates)", erab_id);
+      logger->error("Provided E-RAB id=%d QoS not supported (guaranteed bitrates)", erab_id);
       cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
       return SRSRAN_ERROR;
     }
   }
-  if (qos.alloc_retention_prio.pre_emption_cap.value == asn1::s1ap::pre_emption_cap_opts::may_trigger_pre_emption and
-      qos.alloc_retention_prio.prio_level < qci_cfg.lc_cfg.prio) {
-    logger->warning("Provided E-RAB id=%d QoS not supported (priority %d < %d)",
-                    erab_id,
-                    qos.alloc_retention_prio.prio_level,
-                    qci_cfg.lc_cfg.prio);
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
-    return SRSRAN_ERROR;
-  }
+
+  // Consider ERAB as accepted
+  erabs[erab_id].id         = erab_id;
+  erabs[erab_id].lcid       = lcid;
+  erabs[erab_id].qos_params = qos;
+  erabs[erab_id].address    = addr;
+  erabs[erab_id].teid_out   = teid_out;
 
   if (not nas_pdu.empty()) {
     erab_info_list[erab_id].assign(nas_pdu.begin(), nas_pdu.end());

@@ -90,7 +90,7 @@ public:
   void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) final;
 
   // Interface for EUTRA RRC
-  int sgnb_addition_request(uint16_t rnti);
+  int sgnb_addition_request(uint16_t rnti, const sgnb_addition_req_params_t& params);
   int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response);
 
   // Interfaces for NGAP
@@ -108,12 +108,14 @@ public:
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
 
-    int handle_sgnb_addition_request(uint16_t eutra_rnti);
+    int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);
+    void crnti_ce_received();
 
     // getters
     bool is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
     bool is_idle() { return state == rrc_nr_state_t::RRC_IDLE; }
     bool is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
+    bool is_endc() { return endc; }
 
     // setters
 
@@ -138,6 +140,10 @@ public:
     asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
 
     const uint32_t drb1_lcid = 4;
+
+    // NSA specific variables
+    bool     endc       = false;
+    uint16_t eutra_rnti = SRSRAN_INVALID_RNTI;
   };
 
 private:

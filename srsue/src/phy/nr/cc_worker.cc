@@ -94,7 +94,7 @@ bool cc_worker::update_cfg()
   }
 
   double abs_freq_point_a_freq =
-      srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.absolute_frequency_point_a);
+      srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.dl_absolute_frequency_point_a);
   double abs_freq_ssb_freq = srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.absolute_frequency_ssb);
 
   double carrier_center_freq =
@@ -303,7 +303,7 @@ bool cc_worker::decode_pdsch_dl()
                   str_extra.data());
     } else {
       logger.info(pdsch_res.tb[0].payload,
-                  pdsch_cfg.grant.tb[0].tbs / 8,
+                  pdsch_res.tb[0].crc ? pdsch_cfg.grant.tb[0].tbs / 8 : 0,
                   "PDSCH: cc=%d pid=%d %s ack_tti_tx=%d",
                   cc_idx,
                   pid,
@@ -345,13 +345,10 @@ bool cc_worker::decode_pdsch_dl()
 
   // Notify MAC about PDSCH decoding result
   mac_interface_phy_nr::tb_action_dl_result_t mac_dl_result = {};
-  mac_dl_result.ack                                         = pdsch_res.tb[0].crc;
-  mac_dl_result.payload = mac_dl_result.ack ? std::move(data) : nullptr; // only pass data when successful
+  mac_dl_result.rx_slot_idx = dl_slot_cfg.idx; // Rx TTI for this TB (required for correct Msg3 timing)
+  mac_dl_result.ack         = pdsch_res.tb[0].crc;
+  mac_dl_result.payload     = mac_dl_result.ack ? std::move(data) : nullptr; // only pass data when successful
   phy.stack->tb_decoded(cc_idx, mac_dl_grant, std::move(mac_dl_result));
-
-  if (pdsch_cfg.grant.rnti_type == srsran_rnti_type_ra) {
-    phy.rar_grant_slot = dl_slot_cfg;
-  }
 
   if (pdsch_res.tb[0].crc) {
     // Generate DL metrics

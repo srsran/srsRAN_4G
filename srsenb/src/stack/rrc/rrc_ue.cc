@@ -405,7 +405,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       } else {
         parent->logger.warning("Received MeasReport but no mobility configuration is available");
       }
-      if (endc_handler) {
+      if (endc_handler != nullptr) {
         endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
       }
       break;
@@ -1018,7 +1018,7 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
 
-    if (endc_handler) {
+    if (endc_handler != nullptr) {
       endc_handler->handle_eutra_capabilities(eutra_capabilities);
     }
   }
@@ -1172,11 +1172,13 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
     return SRSRAN_ERROR;
   }
   if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+    parent->logger.error("Couldn't add E-RAB id=%d for rnti=0x%x", erab_id, rnti);
     return SRSRAN_ERROR;
   }
   if (bearer_list.add_gtpu_bearer(erab_id) != SRSRAN_SUCCESS) {
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::radio_res_not_available;
     bearer_list.release_erab(erab_id);
+    parent->logger.error("Couldn't add E-RAB id=%d for rnti=0x%x", erab_id, rnti);
     return SRSRAN_ERROR;
   }
   return SRSRAN_SUCCESS;

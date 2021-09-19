@@ -109,6 +109,11 @@ void sched_nr::ue_rem(uint16_t rnti)
   sched_workers->enqueue_event(rnti, [this, rnti]() { ue_db.erase(rnti); });
 }
 
+bool sched_nr::ue_exists(uint16_t rnti)
+{
+  return ue_db.contains(rnti);
+}
+
 void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {

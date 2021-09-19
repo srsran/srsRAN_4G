@@ -126,7 +126,11 @@ void enb_bearer_manager::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, sr
   auto user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
     // add empty bearer map
-    auto p  = users_map.insert(rnti, srsran::detail::ue_bearer_manager_impl{});
+    auto p = users_map.insert(rnti, srsran::detail::ue_bearer_manager_impl{});
+    if (!p) {
+      logger.error("Bearers: Unable to add a new bearer map for rnti=0x%x", rnti);
+      return;
+    }
     user_it = p.value();
   }
 
@@ -158,7 +162,14 @@ void enb_bearer_manager::remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)
 
 void enb_bearer_manager::rem_user(uint16_t rnti)
 {
+  auto user_it = users_map.find(rnti);
+  if (user_it == users_map.end()) {
+    logger.error("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
+    return;
+  }
+
   logger.info("Bearers: Removed rnti=0x%x from EPS bearer manager", rnti);
+  users_map.erase(user_it);
 }
 
 bool enb_bearer_manager::has_active_radio_bearer(uint16_t rnti, uint32_t eps_bearer_id)

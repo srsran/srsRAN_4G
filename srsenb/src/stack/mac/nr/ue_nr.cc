@@ -105,13 +105,20 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         }
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR:
-        logger.info("SHORT_BSR CE not implemented.");
-        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
+        srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
+        uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
+        // FIXME: a UE might send a zero BSR but still needs an UL grant to finish RA procedure
+        if (buffer_size_bytes == 0) {
+          buffer_size_bytes++;
+        }
+        sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+      } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
         logger.info("LONG_BSR CE not implemented.");
         break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR:
-        logger.info("SHORT_TRUNC_BSR CE not implemented.");
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR:
+        logger.info("LONG_TRUNC_BSR CE not implemented.");
         break;
       default:
         if (subpdu.is_sdu()) {
@@ -143,9 +150,9 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 
   // Only create PDU if RLC has something to tx
   if (pdu_len > 0) {
-    logger.info("Adding MAC PDU for RNTI=%d", rnti);
+    logger.debug("Adding MAC PDU for RNTI=%d", rnti);
     ue_rlc_buffer->N_bytes = pdu_len;
-    logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+    logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
 
     // add to MAC PDU and pack
     mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
@@ -217,6 +224,43 @@ void ue_nr::metrics_cnt()
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.nof_tti++;
+}
+
+/** Converts the buffer size field of a BSR (5 or 8-bit Buffer Size field) into Bytes
+ * @param buff_size_field The buffer size field contained in the MAC PDU
+ * @param format          The BSR format that determines the buffer size field length
+ * @return uint32_t       The actual buffer size level in Bytes
+ */
+uint32_t ue_nr::buff_size_field_to_bytes(uint32_t buff_size_index, const srsran::bsr_format_nr_t& format)
+{
+  using namespace srsran;
+
+  // early exit
+  if (buff_size_index == 0) {
+    return 0;
+  }
+
+  const uint32_t max_offset = 1; // make the reported value bigger than the 2nd biggest
+
+  switch (format) {
+    case SHORT_BSR:
+    case SHORT_TRUNC_BSR:
+      if (buff_size_index >= buffer_size_levels_5bit_max_idx) {
+        return buffer_size_levels_5bit[buffer_size_levels_5bit_max_idx] + max_offset;
+      } else {
+        return buffer_size_levels_5bit[buff_size_index];
+      }
+      break;
+    case LONG_BSR:
+    case LONG_TRUNC_BSR:
+      if (buff_size_index > buffer_size_levels_8bit_max_idx) {
+        return buffer_size_levels_8bit[buffer_size_levels_8bit_max_idx] + max_offset;
+      } else {
+        return buffer_size_levels_8bit[buff_size_index];
+      }
+      break;
+  }
+  return 0;
 }
 
 } // namespace srsenb

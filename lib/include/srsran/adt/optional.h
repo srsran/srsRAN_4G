@@ -33,7 +33,7 @@ class optional
 public:
   using value_type = T;
 
-  optional() : has_val_(false) {}
+  optional() : has_val_(false), empty() {}
   optional(const T& t) : has_val_(true) { storage.emplace(t); }
   optional(T&& t) : has_val_(true) { storage.emplace(std::move(t)); }
   optional(const optional<T>& other) : has_val_(other.has_value())
@@ -107,8 +107,11 @@ public:
   }
 
 private:
-  bool                    has_val_;
-  detail::type_storage<T> storage;
+  bool has_val_;
+  union {
+    char                    empty;
+    detail::type_storage<T> storage;
+  };
 };
 
 template <typename T>

@@ -33,7 +33,7 @@
 #include "srsran/interfaces/epc_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include <cstddef>
-#include <fstream>
+
 #include <map>
 
 #define LTE_FDD_ENB_IND_HE_N_BITS 5
@@ -103,7 +103,6 @@ private:
   void resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
   void resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
 
-  std::vector<std::string> split_string(const std::string& str, char delimiter);
   void                     get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len);
 
   void increment_ue_sqn(hss_ue_ctx_t* ue_ctx);

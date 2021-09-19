@@ -24,7 +24,7 @@
 
 #include "dummy_rx_harq_proc.h"
 #include "dummy_tx_harq_proc.h"
-#include "srsenb/hdr/stack/mac/mac_nr.h"
+#include "srsenb/hdr/stack/mac/nr/mac_nr.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/common/rlc_test_dummy.h"
@@ -353,7 +353,7 @@ public:
     mac.reset(new srsenb::mac_nr{&task_sched, sched_cfg});
     mac->init(srsenb::mac_nr_args_t{}, nullptr, nullptr, &rlc_obj, &rrc_obj);
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
-    mac->cell_cfg(srsenb::sched_interface::cell_cfg_t{}, cells_cfg);
+    mac->cell_cfg(cells_cfg);
 
     // add UE to scheduler
     if (not use_dummy_sched and not args.wait_preamble) {

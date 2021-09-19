@@ -30,14 +30,15 @@ void s1ap_pcap::enable()
 {
   enable_write = true;
 }
-void s1ap_pcap::open(const char* filename)
+void s1ap_pcap::open(const char* filename_)
 {
-  pcap_file    = DLT_PCAP_Open(S1AP_LTE_DLT, filename);
+  filename     = filename_;
+  pcap_file    = DLT_PCAP_Open(S1AP_LTE_DLT, filename.c_str());
   enable_write = true;
 }
 void s1ap_pcap::close()
 {
-  fprintf(stdout, "Saving S1AP PCAP file\n");
+  fprintf(stdout, "Saving S1AP PCAP file (DLT=%d) to %s\n", S1AP_LTE_DLT, filename.c_str());
   DLT_PCAP_Close(pcap_file);
 }
 

@@ -99,8 +99,6 @@ public:
   /// Semaphore for aligning UL work
   srsran::tti_semaphore<void*> dl_ul_semaphore;
 
-  srsran_slot_cfg_t rar_grant_slot = {};
-
   state()
   {
     // Hard-coded values, this should be set when the measurements take place

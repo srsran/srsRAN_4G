@@ -78,13 +78,20 @@ public:
   {
     uint32_t ret = 0;
 
-    if (cc_idx < cell_list_lte.size()) {
-      ret = cell_list_lte[cc_idx].cell.nof_prb;
-    } else if (cc_idx == 1 && !cell_list_nr.empty()) {
-      // for basic NSA config return width of first NR carrier
-      ret = cell_list_nr[0].carrier.nof_prb;
+    if (cc_idx >= get_nof_carriers()) {
+      // invalid CC index
+      return ret;
     }
 
+    if (cc_idx < cell_list_lte.size()) {
+      ret = cell_list_lte[cc_idx].cell.nof_prb;
+    } else if (cc_idx >= cell_list_lte.size()) {
+      // offset CC index by all LTE carriers
+      cc_idx -= cell_list_lte.size();
+      if (cc_idx < cell_list_nr.size()) {
+        ret = cell_list_nr[cc_idx].carrier.nof_prb;
+      }
+    }
     return ret;
   };
   uint32_t get_nof_ports(uint32_t cc_idx)

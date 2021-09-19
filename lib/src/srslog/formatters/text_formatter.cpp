@@ -75,7 +75,15 @@ void text_formatter::format(detail::log_entry_metadata&& metadata, fmt::memory_b
   if (metadata.fmtstring) {
     if (metadata.store) {
       fmt::basic_format_args<fmt::basic_printf_context_t<char> > args(*metadata.store);
-      fmt::vprintf(buffer, fmt::to_string_view(metadata.fmtstring), args);
+      try {
+        fmt::vprintf(buffer, fmt::to_string_view(metadata.fmtstring), args);
+      } catch (...) {
+        fmt::print(stderr, "srsLog error - Invalid format string: \"{}\"\n", metadata.fmtstring);
+        fmt::format_to(buffer, " -> srsLog error - Invalid format string: \"{}\"", metadata.fmtstring);
+#ifdef STOP_ON_WARNING
+        std::abort();
+#endif
+      }
       fmt::format_to(buffer, "\n");
     } else {
       fmt::format_to(buffer, "{}\n", metadata.fmtstring);
@@ -115,7 +123,15 @@ void text_formatter::format_context_end(const detail::log_entry_metadata& md,
   if (md.store) {
     fmt::format_to(buffer, "]: ");
     fmt::basic_format_args<fmt::basic_printf_context_t<char> > args(*md.store);
-    fmt::vprintf(buffer, fmt::to_string_view(md.fmtstring), args);
+    try {
+      fmt::vprintf(buffer, fmt::to_string_view(md.fmtstring), args);
+    } catch (...) {
+      fmt::print(stderr, "srsLog error - Invalid format string: \"{}\"\n", md.fmtstring);
+      fmt::format_to(buffer, " -> srsLog error - Invalid format string: \"{}\"", md.fmtstring);
+#ifdef STOP_ON_WARNING
+      std::abort();
+#endif
+    }
     fmt::format_to(buffer, "\n");
   } else {
     fmt::format_to(buffer, "]: {}\n", md.fmtstring);

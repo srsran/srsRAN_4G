@@ -84,7 +84,21 @@ public:
 
   int parse(Setting& root) override;
 
-  const char* get_name() override { return "meas_cell_list"; }
+  const char* get_name() override { return "cell_list"; }
+
+private:
+  rrc_cfg_t*  rrc_cfg;
+  all_args_t* args;
+};
+
+class nr_cell_list_section final : public parser::field_itf
+{
+public:
+  explicit nr_cell_list_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
+
+  int parse(Setting& root) override;
+
+  const char* get_name() override { return "nr_cell_list"; }
 
 private:
   rrc_cfg_t*  rrc_cfg;

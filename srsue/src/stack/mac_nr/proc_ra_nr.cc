@@ -123,11 +123,13 @@ bool proc_ra_nr::has_rar_rnti()
 
 bool proc_ra_nr::has_temp_crnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return temp_crnti != SRSRAN_INVALID_RNTI;
 }
 
 uint16_t proc_ra_nr::get_temp_crnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return temp_crnti;
 }
 
@@ -189,6 +191,7 @@ void proc_ra_nr::ra_preamble_transmission()
 // 5.1.4 Random Access Preamble transmission
 void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (state != WAITING_FOR_RESPONSE_RECEPTION) {
     logger.warning(
         "Wrong state for ra reponse reception %s (expected state %s)",
@@ -216,7 +219,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
         temp_crnti = subpdu.get_temp_crnti();
 
         // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-        phy->set_ul_grant(subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
+        phy->set_ul_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
 
         // reset all parameters that are used before rar
         rar_rnti = SRSRAN_INVALID_RNTI;
@@ -274,6 +277,7 @@ void proc_ra_nr::ra_contention_resolution(uint64_t rx_contention_id)
 
 void proc_ra_nr::ra_completion()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (state != WAITING_FOR_COMPLETION) {
     logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
@@ -288,6 +292,7 @@ void proc_ra_nr::ra_completion()
 
 void proc_ra_nr::ra_error()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   temp_crnti = SRSRAN_INVALID_RNTI;
   preamble_transmission_counter++;
   contention_resolution_timer.stop();
@@ -356,12 +361,6 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
     ra_window_start  = TTI_ADD(tti, 3);
     logger.debug("Calculated ra_window_start=%d, ra_window_length=%d", ra_window_start, ra_window_length);
     state = WAITING_FOR_RESPONSE_RECEPTION;
-
-    if (rach_cfg.skip_rar) {
-      // temp hack for NSA eNB development
-      state = WAITING_FOR_COMPLETION;
-      ra_completion();
-    }
   });
 }
 

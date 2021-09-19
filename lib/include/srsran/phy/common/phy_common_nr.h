@@ -372,7 +372,8 @@ typedef enum SRSRAN_API {
 typedef struct SRSRAN_API {
   uint32_t                    pci;
   uint32_t                    absolute_frequency_ssb;
-  uint32_t                    absolute_frequency_point_a;
+  uint32_t                    dl_absolute_frequency_point_a;
+  uint32_t                    ul_absolute_frequency_point_a;
   uint32_t                    offset_to_carrier; ///< Offset between point A and the lowest subcarrier of the lowest RB
   srsran_subcarrier_spacing_t scs;
   uint32_t                    nof_prb; ///< @brief See TS 38.101-1 Table 5.3.2-1 for more details

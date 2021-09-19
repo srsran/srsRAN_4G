@@ -35,7 +35,7 @@
 #include <SoapySDR/Logger.h>
 #include <SoapySDR/Time.h>
 #include <SoapySDR/Version.h>
-#include <Types.h>
+#include <SoapySDR/Types.h>
 
 #define HAVE_ASYNC_THREAD 0
 

@@ -102,32 +102,33 @@ const char* srsran_rf_get_devname(srsran_rf_t* rf)
 int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uint32_t nof_channels)
 {
   rf->thread_gain_run = false;
-  /* Try to open the device if name is provided */
-  if (devname) {
-    if (devname[0] != '\0') {
-      int i = 0;
-      while (available_devices[i] != NULL) {
-        if (!strcasecmp(available_devices[i]->name, devname)) {
-          rf->dev = available_devices[i];
-          return available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels);
-        }
-        i++;
+
+  // Try to open the device if name is provided
+  if (devname && devname[0] != '\0') {
+    int i = 0;
+    while (available_devices[i] != NULL) {
+      if (!strcasecmp(available_devices[i]->name, devname)) {
+        rf->dev = available_devices[i];
+        return available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels);
       }
-      printf("Device %s not found. Switching to auto mode\n", devname);
+      i++;
+    }
+    // provided device not found, abort
+    return SRSRAN_ERROR;
+  } else {
+    // auto-mode, try to open in order of apperance in available_devices[] array
+    int i = 0;
+    while (available_devices[i] != NULL) {
+      if (!available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels)) {
+        rf->dev = available_devices[i];
+        return SRSRAN_SUCCESS;
+      }
+      i++;
     }
   }
 
-  /* If in auto mode or provided device not found, try to open in order of apperance in available_devices[] array */
-  int i = 0;
-  while (available_devices[i] != NULL) {
-    if (!available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels)) {
-      rf->dev = available_devices[i];
-      return 0;
-    }
-    i++;
-  }
   ERROR("No compatible RF frontend found");
-  return -1;
+  return SRSRAN_ERROR;
 }
 
 const char* srsran_rf_name(srsran_rf_t* rf)

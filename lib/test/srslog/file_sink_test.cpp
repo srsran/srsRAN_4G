@@ -31,7 +31,7 @@ static constexpr char log_filename[] = "file_sink_test.log";
 static bool when_data_is_written_to_file_then_contents_are_valid()
 {
   file_test_utils::scoped_file_deleter deleter(log_filename);
-  file_sink file(log_filename, 0, std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy));
+  file_sink file(log_filename, 0, false, std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy));
 
   std::vector<std::string> entries;
   for (unsigned i = 0; i != 10; ++i) {
@@ -54,7 +54,7 @@ class file_sink_subclass : public file_sink
 {
 public:
   file_sink_subclass(std::string name, size_t max_size) :
-    file_sink(std::move(name), max_size, std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy))
+    file_sink(std::move(name), max_size, false, std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy))
   {}
 
   uint32_t get_num_of_files() const { return get_file_index(); }

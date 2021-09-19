@@ -368,7 +368,7 @@ int mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
   while (offset < len) {
     mac_sch_subpdu_nr sch_pdu(this);
     if (sch_pdu.read_subheader(payload + offset) == SRSRAN_ERROR) {
-      logger.error("Malformed MAC PDU (len=%d, offset=%d)\n", len, offset);
+      logger.error("Malformed MAC PDU (len=%d, offset=%d)", len, offset);
       return SRSRAN_ERROR;
     }
     offset += sch_pdu.get_total_length();
@@ -381,7 +381,7 @@ int mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
     subpdus.push_back(sch_pdu);
   }
   if (offset != len) {
-    logger.error("Malformed MAC PDU (len=%d, offset=%d)\n", len, offset);
+    logger.error("Malformed MAC PDU (len=%d, offset=%d)", len, offset);
     return SRSRAN_ERROR;
   }
 

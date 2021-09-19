@@ -30,6 +30,7 @@ proc_sr_nr::proc_sr_nr(srslog::basic_logger& logger) : logger(logger) {}
 
 int32_t proc_sr_nr::init(mac_interface_sr_nr* mac_, phy_interface_mac_nr* phy_, rrc_interface_mac* rrc_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   rrc        = rrc_;
   mac        = mac_;
   phy        = phy_;
@@ -41,6 +42,12 @@ int32_t proc_sr_nr::init(mac_interface_sr_nr* mac_, phy_interface_mac_nr* phy_, 
 }
 
 void proc_sr_nr::reset()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  reset_unsafe();
+}
+
+void proc_sr_nr::reset_unsafe()
 {
   is_pending_sr = false;
 }
@@ -79,6 +86,7 @@ int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
 
 void proc_sr_nr::step(uint32_t tti)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (!initiated) {
     return;
   }
@@ -93,7 +101,7 @@ void proc_sr_nr::step(uint32_t tti)
     // 2> initiate a Random Access procedure (see clause 5.1) on the SpCell and cancel the pending SR.
     logger.info("SR:    PUCCH not configured. Starting RA procedure");
     mac->start_ra();
-    reset();
+    reset_unsafe();
     return;
   }
 
@@ -111,12 +119,13 @@ void proc_sr_nr::step(uint32_t tti)
     // ... TODO
 
     mac->start_ra();
-    reset();
+    reset_unsafe();
   }
 }
 
 bool proc_sr_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   // 2> when the MAC entity has an SR transmission occasion on the valid PUCCH resource for SR configured; and
   if (!initiated || !cfg.enabled || !is_pending_sr) {
     return false;
@@ -156,6 +165,7 @@ bool proc_sr_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, boo
 
 void proc_sr_nr::start()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (initiated) {
     if (not is_pending_sr) {
       logger.info("SR:    Starting procedure");

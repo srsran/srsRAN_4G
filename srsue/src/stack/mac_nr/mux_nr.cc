@@ -179,13 +179,13 @@ bool mux_nr::msg3_is_empty()
   return msg3_buff->N_bytes == 0;
 }
 
-void mux_nr::generate_bsr_mac_ce(const bsr_interface_mux_nr::bsr_format_nr_t& format)
+void mux_nr::generate_bsr_mac_ce(const srsran::bsr_format_nr_t& format)
 {
   switch (format) {
-    case bsr_interface_mux_nr::SHORT_BSR:
+    case srsran::SHORT_BSR:
       add_bsr_ce = sbsr_ce;
       break;
-    case bsr_interface_mux_nr::LONG_BSR:
+    case srsran::LONG_BSR:
       add_bsr_ce = lbsr_ce;
     default:
       logger.error("MUX can only be instructred to generate short or long BSRs.");

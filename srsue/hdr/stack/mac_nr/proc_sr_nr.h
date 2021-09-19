@@ -22,10 +22,11 @@
 #ifndef SRSUE_PROC_SR_NR_H
 #define SRSUE_PROC_SR_NR_H
 
-#include "srsue/hdr/stack/mac_nr/mac_nr_interfaces.h"
 #include "srsran/interfaces/ue_mac_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/srslog/srslog.h"
+#include "srsue/hdr/stack/mac_nr/mac_nr_interfaces.h"
+#include <mutex>
 #include <stdint.h>
 
 /// Scheduling Request procedure as defined in 5.4.4 of 38.321
@@ -48,6 +49,7 @@ public:
   bool    sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx);
 
 private:
+  void reset_unsafe();
   int  sr_counter    = 0;
   bool is_pending_sr = false;
 
@@ -58,7 +60,8 @@ private:
   phy_interface_mac_nr* phy = nullptr;
   srslog::basic_logger& logger;
 
-  bool initiated = false;
+  bool       initiated = false;
+  std::mutex mutex;
 };
 
 } // namespace srsue
