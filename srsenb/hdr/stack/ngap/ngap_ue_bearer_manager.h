@@ -54,6 +54,8 @@ public:
                       uint32_t&                                          teid_in,
                       asn1::ngap_nr::cause_c&                            cause);
 
+  int reset_pdu_sessions(uint16_t rnti);
+
 private:
   gtpu_interface_rrc*              gtpu = nullptr;
   rrc_interface_ngap_nr*           rrc  = nullptr;

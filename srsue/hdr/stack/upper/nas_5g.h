@@ -80,7 +80,7 @@ private:
 
   srsran::nas_5g::nas_5gs_msg initial_registration_request_stored;
 
-  nas_args_t   cfg   = {};
+  nas_args_t   cfg = {};
   mm5g_state_t state;
 
   // Security
@@ -132,10 +132,12 @@ private:
   int send_pdu_session_establishment_request(uint32_t                 transaction_identity,
                                              uint16_t                 pdu_session_id,
                                              const pdu_session_cfg_t& pdu_session);
+  int send_deregistration_request_ue_originating();
 
   void fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_caps);
   int  apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
-
+  int  handle_deregistration_accept_ue_originating(
+       srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating);
   // message handler
   int handle_registration_accept(srsran::nas_5g::registration_accept_t& registration_accept);
   int handle_registration_reject(srsran::nas_5g::registration_reject_t& registration_reject);
@@ -168,6 +170,7 @@ private:
   int  configure_pdu_session(uint16_t pdu_session_id);
   bool unestablished_pdu_sessions();
   int  get_unestablished_pdu_session(uint16_t& pdu_session_id, pdu_session_cfg_t& pdu_session_cfg);
+  int  reset_pdu_sessions();
 
   struct pdu_session_t {
     bool              configured;

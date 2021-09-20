@@ -450,6 +450,11 @@ int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran:
   return SRSRAN_SUCCESS;
 }
 
+int rrc_nr::release_bearers(uint16_t rnti)
+{
+  return SRSRAN_SUCCESS;
+}
+
 int rrc_nr::allocate_lcid(uint16_t rnti)
 {
   return SRSRAN_SUCCESS;

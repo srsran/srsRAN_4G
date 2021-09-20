@@ -61,6 +61,15 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
   return SRSRAN_SUCCESS;
 }
 
+int ngap_ue_bearer_manager::reset_pdu_sessions(uint16_t rnti)
+{
+  for (auto iter = pdu_session_list.begin(); iter != pdu_session_list.end(); iter++) {
+    auto pdu_session_id = iter->first;
+    rem_gtpu_bearer(pdu_session_id, rnti);
+  }
+  return true;
+}
+
 int ngap_ue_bearer_manager::add_gtpu_bearer(uint16_t                                    rnti,
                                             uint32_t                                    lcid,
                                             uint32_t                                    pdu_session_id,

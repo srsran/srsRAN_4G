@@ -136,6 +136,7 @@ void nas_5g::run_tti()
       break;
     case mm5g_state_t::state_t::deregistered_initiated:
       logger.debug("UE detaching...");
+      send_deregistration_request_ue_originating();
       break;
     default:
       break;
@@ -221,6 +222,9 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
       break;
     case msg_opts::options::dl_nas_transport:
       handle_dl_nas_transport(nas_msg.dl_nas_transport());
+      break;
+    case msg_opts::options::deregistration_accept_ue_originating:
+      handle_deregistration_accept_ue_originating(nas_msg.deregistration_accept_ue_originating());
       break;
     default:
       logger.error(
@@ -587,6 +591,51 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   return SRSRAN_SUCCESS;
 }
 
+int nas_5g::send_deregistration_request_ue_originating()
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+
+  logger.info("Generating Deregistration Request (UE Originating)");
+
+  nas_5gs_msg                              nas_msg;
+  deregistration_request_ue_originating_t& deregistration_request = nas_msg.set_deregistration_request_ue_originating();
+
+  // Note 5.5.2.2.2 : AMF does not send a Deregistration Accept NAS message if De-registration type IE indicates "switch
+  // off"
+  deregistration_request.de_registration_type.switch_off.value =
+      de_registration_type_t::switch_off_type_::options::normal_de_registration;
+
+  mobile_identity_5gs_t::suci_s& suci = deregistration_request.mobile_identity_5gs.set_suci();
+  suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
+  usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+  usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+
+  deregistration_request.ng_ksi.nas_key_set_identifier.value =
+      key_set_identifier_t::nas_key_set_identifier_type_::options::no_key_is_available_or_reserved;
+
+  if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
+    logger.error("Failed to pack Deregistration Request (UE Originating).");
+    return SRSRAN_ERROR;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
+  }
+
+  logger.info("Sending Deregistration Request (UE Originating)");
+  rrc_nr->write_sdu(std::move(pdu));
+
+  reset_pdu_sessions();
+
+  // TODO: Delete / Reset context (ctxt & ctxt_5g)
+
+  return SRSASN_SUCCESS;
+}
+
 // Message handler
 int nas_5g::handle_registration_accept(registration_accept_t& registration_accept)
 {
@@ -797,6 +846,13 @@ int nas_5g::handle_n1_sm_information(std::vector<uint8_t> payload_container_cont
   return SRSRAN_SUCCESS;
 }
 
+int nas_5g::handle_deregistration_accept_ue_originating(
+    srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating)
+{
+  logger.info("Received Deregistration Request (UE Originating)");
+  return SRSASN_SUCCESS;
+}
+
 /*******************************************************************************
  * NAS Timers
  ******************************************************************************/
@@ -823,7 +879,7 @@ int nas_5g::switch_on()
 int nas_5g::switch_off()
 {
   logger.info("Switching off");
-  // TODO
+  state.set_deregistered_initiated();
   return SRSRAN_SUCCESS;
 }
 
@@ -844,6 +900,16 @@ int nas_5g::start_service_request()
 {
   logger.info("Service Request");
   // TODO
+  return SRSRAN_SUCCESS;
+}
+
+int nas_5g::reset_pdu_sessions()
+{
+  for (auto pdu_session : pdu_sessions) {
+    pdu_session.established    = false;
+    pdu_session.pdu_session_id = 0;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -905,7 +971,7 @@ void nas_5g::fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_ca
 }
 
 /*******************************************************************************
- * Helpers for Session Management 
+ * Helpers for Session Management
  ******************************************************************************/
 
 int nas_5g::trigger_pdu_session_est()
