@@ -338,11 +338,11 @@ public:
     srslog::fetch_basic_logger("MAC-NR").set_level(srslog::str_to_basic_level(args.log_level));
 
     // create sched object
-    srsenb::sched_nr_interface::sched_cfg_t sched_cfg{};
-    sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
-    sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
-    mac.reset(new srsenb::mac_nr{&task_sched, sched_cfg});
-    mac->init(srsenb::mac_nr_args_t{}, nullptr, nullptr, &rlc_obj, &rrc_obj);
+    mac.reset(new srsenb::mac_nr{&task_sched});
+    srsenb::mac_nr_args_t mac_args{};
+    mac_args.sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
+    mac_args.sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
+    mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
 

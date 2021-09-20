@@ -28,16 +28,17 @@
 namespace srsenb {
 
 struct mac_nr_args_t {
-  srsran::phy_cfg_nr_t phy_base_cfg = {};
-  int                  fixed_dl_mcs = -1;
-  int                  fixed_ul_mcs = -1;
-  srsenb::pcap_args_t  pcap;
+  srsran::phy_cfg_nr_t            phy_base_cfg = {};
+  int                             fixed_dl_mcs = -1;
+  int                             fixed_ul_mcs = -1;
+  sched_nr_interface::sched_cfg_t sched_cfg    = {};
+  srsenb::pcap_args_t             pcap;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
 public:
-  mac_nr(srsran::task_sched_handle task_sched_, const srsenb::sched_nr_interface::sched_cfg_t& sched_cfg = {});
+  explicit mac_nr(srsran::task_sched_handle task_sched_);
   ~mac_nr();
 
   int  init(const mac_nr_args_t&    args_,
@@ -83,7 +84,7 @@ private:
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
   // Encoding
-  srsran::byte_buffer_t* assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
+  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
   srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
 
   // Interaction with other components
@@ -102,10 +103,10 @@ private:
 
   std::atomic<bool> started = {false};
 
-  const static uint32_t                              NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
-  srsran::slot_point                                 pdsch_slot, pusch_slot;
-  srsenb::sched_nr                                   sched;
-  std::vector<sched_nr_interface::cell_cfg_t>        cell_config;
+  const static uint32_t                       NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
+  srsran::slot_point                          pdsch_slot, pusch_slot;
+  std::unique_ptr<srsenb::sched_nr>           sched;
+  std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
   pthread_rwlock_t                                                              rwlock     = {};
