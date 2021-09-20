@@ -91,7 +91,7 @@ int ngap_ue_bearer_manager::add_gtpu_bearer(uint16_t                            
   tunnel.address_in.from_number(addr_in);
   tunnel.teid_in = rtn.value();
 
-  logger.info("Added GTPU tunnel rnti 0x%04x, lcid %d, pdu_session_id=%d, teid_out %d, teid_in %d, address out 0x%x, "
+  logger.info("Added GTPU tunnel rnti 0x%04x, pdu_session_id=%d, teid_out %d, teid_in %d, address out 0x%x, "
               "address in 0x%x",
               rnti,
               pdu_session_id,
