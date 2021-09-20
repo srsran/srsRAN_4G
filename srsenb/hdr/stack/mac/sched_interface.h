@@ -58,6 +58,7 @@ public:
     int         max_aggr_level          = 3;
     bool        adaptive_aggr_level     = false;
     bool        pucch_mux_enabled       = false;
+    int         pucch_harq_max_rb       = 0;
     float       target_bler             = 0.05;
     float       max_delta_dl_cqi        = 5;
     float       max_delta_ul_snr        = 5;

@@ -181,6 +181,15 @@ bool sf_cch_allocator::alloc_dfs_node(const alloc_record& record, uint32_t start
         // PUCCH allocation would collide with other PUCCH/PUSCH grants. Try another CCE position
         continue;
       }
+      int low_rb = node.pucch_n_prb < (int)cc_cfg->cfg.cell.nof_prb / 2
+                       ? node.pucch_n_prb
+                       : cc_cfg->cfg.cell.nof_prb - node.pucch_n_prb - 1;
+      if (cc_cfg->sched_cfg->pucch_harq_max_rb > 0 && low_rb >= cc_cfg->sched_cfg->pucch_harq_max_rb) {
+        // PUCCH allocation would fall outside the maximum allowed PUCCH HARQ region. Try another CCE position
+        logger.info("Skipping PDCCH allocation for CCE=%d due to PUCCH HARQ falling outside region\n",
+                    node.dci_pos.ncce);
+        continue;
+      }
     }
 
     node.current_mask.reset();

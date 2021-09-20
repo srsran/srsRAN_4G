@@ -80,9 +80,15 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
   pucch_mask.resize(cc_cfg->nof_prb());
   pucch_nrb                    = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
   srsran_pucch_cfg_t pucch_cfg = cell_params_.pucch_cfg_common;
-  pucch_cfg.n_pucch =
-      cc_cfg->nof_cce_table[cell_params_.sched_cfg->max_nof_ctrl_symbols - 1] - 1 + cc_cfg->cfg.n1pucch_an;
-  pucch_nrb                    = std::max(pucch_nrb, srsran_pucch_m(&pucch_cfg, cc_cfg->cfg.cell.cp) / 2 + 1);
+  uint32_t           harq_pucch = 0;
+  if (cc_cfg->sched_cfg->pucch_harq_max_rb > 0) {
+    harq_pucch = cc_cfg->sched_cfg->pucch_harq_max_rb;
+  } else {
+    pucch_cfg.n_pucch =
+        cc_cfg->nof_cce_table[cell_params_.sched_cfg->max_nof_ctrl_symbols - 1] - 1 + cc_cfg->cfg.n1pucch_an;
+    harq_pucch = srsran_pucch_m(&pucch_cfg, cc_cfg->cfg.cell.cp) / 2 + 1;
+  }
+  pucch_nrb = std::max(pucch_nrb, harq_pucch);
   if (pucch_nrb > 0) {
     pucch_mask.fill(0, pucch_nrb);
     pucch_mask.fill(cc_cfg->nof_prb() - pucch_nrb, cc_cfg->nof_prb());
