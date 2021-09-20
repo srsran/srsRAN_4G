@@ -143,6 +143,7 @@ private:
   int handle_registration_accept(srsran::nas_5g::registration_accept_t& registration_accept);
   int handle_registration_reject(srsran::nas_5g::registration_reject_t& registration_reject);
   int handle_authentication_request(srsran::nas_5g::authentication_request_t& authentication_request);
+  int handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject);
   int handle_identity_request(srsran::nas_5g::identity_request_t& identity_request);
   int handle_service_accept(srsran::nas_5g::service_accept_t& service_accept);
   int handle_service_reject(srsran::nas_5g::service_reject_t& service_reject);

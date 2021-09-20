@@ -199,6 +199,9 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
     case msg_opts::options::registration_reject:
       handle_registration_reject(nas_msg.registration_reject());
       break;
+    case msg_opts::options::authentication_reject:
+      handle_authentication_reject(nas_msg.authentication_reject());
+      break;
     case msg_opts::options::authentication_request:
       handle_authentication_request(nas_msg.authentication_request());
       break;
@@ -403,7 +406,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
     imeisv.imeisv[14] = ue_svn_oct1;
     imeisv.imeisv[15] = ue_svn_oct2;
   }
-
+  // TODO: Save TMSI
   registration_request_t& modified_registration_request = initial_registration_request_stored.registration_request();
   modified_registration_request.capability_5gmm_present = true;
   modified_registration_request.requested_nssai_present = true;
@@ -475,7 +478,6 @@ int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::op
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
 
-  logger.info("Sending Authentication Failure");
   rrc_nr->write_sdu(std::move(pdu));
 
   return SRSRAN_SUCCESS;
@@ -776,11 +778,6 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 
   logger.info(ctxt_5g.k_amf, 32, "Generated k_amf:");
 
-  if (ctxt.ksi == authentication_request.ng_ksi.nas_key_set_identifier.value) {
-    send_authentication_failure(cause_5gmm_t::cause_5gmm_type_::ng_ksi_already_in_use, res);
-    return SRSRAN_ERROR;
-  }
-
   if (auth_result == AUTH_OK) {
     logger.info("Network authentication successful");
     send_authentication_response(res_star);
@@ -796,6 +793,13 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
     logger.error("Unhandled authentication failure cause");
   }
 
+  return SRSRAN_SUCCESS;
+}
+
+int nas_5g::handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject)
+{
+  logger.info("Handling Authentication Reject");
+  state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
   return SRSRAN_SUCCESS;
 }
 
