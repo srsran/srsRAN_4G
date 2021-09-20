@@ -232,6 +232,29 @@ static int csi_rs_nof_cdm_groups(const srsran_csi_rs_resource_mapping_t* resourc
   return SRSRAN_ERROR;
 }
 
+bool srsran_csi_rs_resource_mapping_is_valid(const srsran_csi_rs_resource_mapping_t* res)
+{
+  if (res == NULL) {
+    return false;
+  }
+
+  if (csi_rs_nof_cdm_groups(res) < 1) {
+    return false;
+  }
+
+  uint32_t l_list[CSI_RS_MAX_SYMBOLS_SLOT] = {};
+  if (csi_rs_location_get_l_list(res, 0, l_list) < SRSRAN_SUCCESS) {
+    return false;
+  }
+
+  uint32_t k_list[CSI_RS_MAX_SUBC_PRB] = {};
+  if (csi_rs_location_get_k_list(res, 0, k_list) < SRSRAN_SUCCESS) {
+    return false;
+  }
+
+  return true;
+}
+
 uint32_t csi_rs_count(srsran_csi_rs_density_t density, uint32_t nprb)
 {
   switch (density) {

@@ -1070,6 +1070,15 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
   }
   zp_csi_rs_resource.resource_mapping.freq_band.nof_rb   = zp_csi_rs_res.res_map.freq_band.nrof_rbs;
   zp_csi_rs_resource.resource_mapping.freq_band.start_rb = zp_csi_rs_res.res_map.freq_band.start_rb;
+
+  // Validate CSI-RS resource mapping
+  if (not srsran_csi_rs_resource_mapping_is_valid(&zp_csi_rs_resource.resource_mapping)) {
+    asn1::json_writer json_writer;
+    zp_csi_rs_res.res_map.to_json(json_writer);
+    asn1::log_error("Resource mapping is invalid or not implemented: %s", json_writer.to_string());
+    return false;
+  }
+
   if (zp_csi_rs_res.periodicity_and_offset_present) {
     switch (zp_csi_rs_res.periodicity_and_offset.type()) {
       case csi_res_periodicity_and_offset_c::types_opts::options::slots4:
@@ -1227,6 +1236,14 @@ bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& asn1_nzp
   }
   csi_rs_nzp_resource.resource_mapping.freq_band.nof_rb   = asn1_nzp_csi_rs_res.res_map.freq_band.nrof_rbs;
   csi_rs_nzp_resource.resource_mapping.freq_band.start_rb = asn1_nzp_csi_rs_res.res_map.freq_band.start_rb;
+
+  // Validate CSI-RS resource mapping
+  if (not srsran_csi_rs_resource_mapping_is_valid(&csi_rs_nzp_resource.resource_mapping)) {
+    asn1::json_writer json_writer;
+    asn1_nzp_csi_rs_res.res_map.to_json(json_writer);
+    asn1::log_error("Resource mapping is invalid or not implemented: %s", json_writer.to_string());
+    return false;
+  }
 
   csi_rs_nzp_resource.power_control_offset = asn1_nzp_csi_rs_res.pwr_ctrl_offset;
   if (asn1_nzp_csi_rs_res.pwr_ctrl_offset_ss_present) {
