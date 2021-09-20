@@ -63,6 +63,31 @@ const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type)
   return "unknown";
 }
 
+const char* srsran_ss_type_str(srsran_search_space_type_t ss_type)
+{
+  switch (ss_type) {
+    case srsran_search_space_type_common_0:
+      return "common0";
+    case srsran_search_space_type_common_0A:
+      return "common0A";
+    case srsran_search_space_type_common_1:
+      return "common1";
+    case srsran_search_space_type_common_2:
+      return "common2";
+    case srsran_search_space_type_common_3:
+      return "common3";
+    case srsran_search_space_type_ue:
+      return "ue";
+    case srsran_search_space_type_rar:
+      return "rar";
+    case srsran_search_space_type_cg:
+      return "cg";
+    default:; // Do nothing
+      break;
+  }
+  return "unknown";
+}
+
 const char* srsran_dci_format_nr_string(srsran_dci_format_nr_t format)
 {
   switch (format) {

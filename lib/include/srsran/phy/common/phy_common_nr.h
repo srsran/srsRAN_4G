@@ -493,6 +493,13 @@ SRSRAN_API const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type);
 SRSRAN_API const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type);
 
 /**
+ * @brief Get the Search Space Type string for a given type
+ * @param ss_type The given Search Space Type
+ * @return The string describing the SS Type
+ */
+SRSRAN_API const char* srsran_ss_type_str(srsran_search_space_type_t ss_type);
+
+/**
  * @brief Get the RNTI type name for NR
  * @param rnti_type RNTI type name
  * @return Constant string with the RNTI type name
