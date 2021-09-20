@@ -719,7 +719,7 @@ int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
   float cfo_max = 0.0f;
   for (uint32_t i = 1; i < count; i++) {
     float time_diff    = srsran_symbol_distance_s(measurements[i - 1].l0, measurements[i].l0, carrier->scs);
-    float phase_diff   = cargf(measurements[i - 1].corr * conjf(measurements[i].corr));
+    float phase_diff   = cargf(measurements[i].corr * conjf(measurements[i - 1].corr));
     float cfo_max_temp = 0.0f;
 
     // Avoid zero division

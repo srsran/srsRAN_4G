@@ -180,6 +180,7 @@ struct phy_args_nr_t {
   bool                   store_pdsch_ko     = false;
   float                  trs_epre_ema_alpha = 0.1f; ///< EPRE measurement exponential average alpha
   float                  trs_rsrp_ema_alpha = 0.1f; ///< RSRP measurement exponential average alpha
+  float                  trs_sinr_ema_alpha = 0.1f; ///< SINR measurement exponential average alpha
   float                  trs_cfo_ema_alpha  = 0.1f; ///< RSRP measurement exponential average alpha
   bool                   enable_worker_cfo  = true; ///< Enable/Disable open loop CFO correction at the workers
 

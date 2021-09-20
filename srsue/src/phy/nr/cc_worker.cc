@@ -487,10 +487,11 @@ bool cc_worker::work_dl()
 
   // Compensate CFO from TRS measurements
   if (std::isnormal(phy.args.enable_worker_cfo)) {
-    float dl_cfo_hz = phy.get_dl_cfo();
+    float dl_cfo_hz   = phy.get_dl_cfo();
+    float dl_cfo_norm = -dl_cfo_hz / (1000.0f * ue_ul.ifft.sf_sz);
     for (cf_t* b : rx_buffer) {
       if (b != nullptr and ue_ul.ifft.sf_sz != 0) {
-        srsran_vec_apply_cfo(b, dl_cfo_hz / (1000.0f * ue_ul.ifft.sf_sz), b, ue_ul.ifft.sf_sz);
+        srsran_vec_apply_cfo(b, dl_cfo_norm, b, ue_ul.ifft.sf_sz);
       }
     }
   }

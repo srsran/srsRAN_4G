@@ -697,7 +697,7 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   // Compute CFO in Hz
   float distance_s = srsran_symbol_distance_s(SRSRAN_PSS_NR_SYMBOL_IDX, SRSRAN_SSS_NR_SYMBOL_IDX, q->cfg.scs);
   float cfo_hz_max = 1.0f / distance_s;
-  float cfo_hz     = cargf(corr_pss * conjf(corr_sss)) / (2.0f * M_PI) * cfo_hz_max;
+  float cfo_hz     = cargf(corr_sss * conjf(corr_pss)) / (2.0f * M_PI) * cfo_hz_max;
 
   // Compute average RSRP
   float rsrp_pss = SRSRAN_CSQABS(corr_pss);
