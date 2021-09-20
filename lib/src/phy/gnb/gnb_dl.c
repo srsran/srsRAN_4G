@@ -13,6 +13,11 @@
 #include "srsran/phy/gnb/gnb_dl.h"
 #include <complex.h>
 
+static float gnb_dl_get_norm_factor(uint32_t nof_prb)
+{
+  return 0.05f / sqrtf(nof_prb);
+}
+
 static int gnb_dl_alloc_prb(srsran_gnb_dl_t* q, uint32_t new_nof_prb)
 {
   if (q->max_prb < new_nof_prb) {
@@ -162,9 +167,19 @@ void srsran_gnb_dl_gen_signal(srsran_gnb_dl_t* q)
     return;
   }
 
+  float norm_factor = gnb_dl_get_norm_factor(q->pdcch.carrier.nof_prb);
+
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
     srsran_ofdm_tx_sf(&q->fft[i]);
+
+    srsran_vec_sc_prod_cfc(q->fft[i].cfg.out_buffer, norm_factor, q->fft[i].cfg.out_buffer, (uint32_t)q->fft[i].sf_sz);
   }
+}
+
+float srsran_gnb_dl_get_maximum_signal_power_dBfs(uint32_t nof_prb)
+{
+  return srsran_convert_amplitude_to_dB(gnb_dl_get_norm_factor(nof_prb)) +
+         srsran_convert_power_to_dB((float)nof_prb * SRSRAN_NRE) + 3.0f;
 }
 
 int srsran_gnb_dl_base_zero(srsran_gnb_dl_t* q)

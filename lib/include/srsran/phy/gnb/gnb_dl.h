@@ -67,6 +67,8 @@ SRSRAN_API int srsran_gnb_dl_pdsch_put(srsran_gnb_dl_t*           q,
                                        const srsran_sch_cfg_nr_t* cfg,
                                        uint8_t*                   data[SRSRAN_MAX_TB]);
 
+SRSRAN_API float srsran_gnb_dl_get_maximum_signal_power_dBfs(uint32_t nof_prb);
+
 SRSRAN_API int
 srsran_gnb_dl_pdsch_info(const srsran_gnb_dl_t* q, const srsran_sch_cfg_nr_t* cfg, char* str, uint32_t str_len);
 
