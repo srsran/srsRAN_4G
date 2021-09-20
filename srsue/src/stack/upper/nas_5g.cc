@@ -667,6 +667,29 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
 int nas_5g::handle_registration_reject(registration_reject_t& registration_reject)
 {
   logger.info("Handling Registration Reject");
+
+  state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
+
+  switch (registration_reject.cause_5gmm.cause_5gmm.value) {
+    case (cause_5gmm_t::cause_5gmm_type_::options::illegal_ue):
+      logger.error("Registration Reject: Illegal UE");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::plmn_not_allowed):
+      logger.error("Registration Reject: PLMN not allowed");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::ue_security_capabilities_mismatch):
+      logger.error("Registration Reject: UE security capabilities mismatch");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::mac_failure):
+      logger.error("Registration Reject: MAC Failure");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::maximum_number_of_pdu_sessions_reached_):
+      logger.error("Registration Reject: Maximum number of pdu sessions reached");
+      break;
+    default:
+      logger.error("Unhandled Registration Reject cause");
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -710,19 +733,27 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
                                                 authentication_request.abba.abba_contents.size(),
                                                 res_star,
                                                 ctxt_5g.k_amf);
+
   logger.info(ctxt_5g.k_amf, 32, "Generated k_amf:");
+  
+  if (ctxt.ksi == authentication_request.ng_ksi.nas_key_set_identifier.value) {
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type_::ng_ksi_already_in_use, res);
+    return SRSRAN_ERROR;
+  }
+
   if (auth_result == AUTH_OK) {
     logger.info("Network authentication successful");
     send_authentication_response(res_star);
     logger.info(res_star, 16, "Generated res_star (%d):", 16);
 
+  } else if (auth_result == AUTH_FAILED) {
+    logger.error("Network authentication failure.");
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure, res);
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     logger.error("Network authentication synchronization failure.");
-    // send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure, res);
   } else {
-    logger.warning("Network authentication failure");
-    srsran::console("Warning: Network authentication failure\n");
-    // send_authentication_failure(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE, nullptr);
+    logger.error("Unhandled authentication failure cause");
   }
 
   return SRSRAN_SUCCESS;
