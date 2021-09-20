@@ -50,7 +50,21 @@ __attribute__((constructor)) static void srsran_dft_load()
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];
   get_fftw_wisdom_file(full_path, sizeof(full_path));
-  fftwf_import_wisdom_from_filename(full_path);
+  // lockf needs a file descriptor open for writing, so this must be r+
+  FILE* fd = fopen(full_path, "r+");
+  if (fd == NULL) {
+    return;
+  }
+  if (lockf(fileno(fd), F_LOCK, 0) == -1) {
+    perror("lockf()");
+    return;
+  }
+  fftwf_import_wisdom_from_file(fd);
+  if (lockf(fileno(fd), F_ULOCK, 0) == -1) {
+    perror("u-lockf()");
+    return;
+  }
+  fclose(fd);
 #else
   printf("Warning: FFTW Wisdom file not defined\n");
 #endif
@@ -62,7 +76,20 @@ __attribute__((destructor)) static void srsran_dft_exit()
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];
   get_fftw_wisdom_file(full_path, sizeof(full_path));
-  fftwf_export_wisdom_to_filename(full_path);
+  FILE* fd = fopen(full_path, "w");
+  if (fd == NULL) {
+    return;
+  }
+  if (lockf(fileno(fd), F_LOCK, 0) == -1) {
+    perror("lockf()");
+    return;
+  }
+  fftwf_export_wisdom_to_file(fd);
+  if (lockf(fileno(fd), F_ULOCK, 0) == -1) {
+    perror("u-lockf()");
+    return;
+  }
+  fclose(fd);
 #endif
   fftwf_cleanup();
 }
