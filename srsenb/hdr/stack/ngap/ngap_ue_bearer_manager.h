@@ -63,7 +63,6 @@ private:
   srslog::basic_logger&            logger;
 
   int  add_gtpu_bearer(uint16_t                                    rnti,
-                       uint32_t                                    lcid,
                        uint32_t                                    pdu_session_id,
                        uint32_t                                    teid_out,
                        asn1::bounded_bitstring<1, 160, true, true> address,
