@@ -928,31 +928,44 @@ int srsran_ue_sync_run_find_gnss_mode(srsran_ue_sync_t* q,
   INFO("Calibration samples received start at %ld + %f", q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
 
   // round to nearest second
-  srsran_timestamp_t ts_next_rx;
+  srsran_timestamp_t ts_next_rx, ts_next_rx_tmp, ts_tmp;
   srsran_timestamp_copy(&ts_next_rx, &q->last_timestamp);
   ts_next_rx.full_secs++;
   ts_next_rx.frac_secs = 0.0;
 
-  INFO("Next desired recv at %ld + %f", ts_next_rx.full_secs, ts_next_rx.frac_secs);
+  srsran_timestamp_copy(&ts_next_rx_tmp, &ts_next_rx);
+  INFO("Next desired recv at %ld + %f\n", ts_next_rx_tmp.full_secs, ts_next_rx_tmp.frac_secs);
 
   // get difference in time between second rx and now
-  srsran_timestamp_sub(&ts_next_rx, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
-  srsran_timestamp_sub(&ts_next_rx, 0, 0.001); ///< account for samples that have already been rx'ed
+  srsran_timestamp_sub(&ts_next_rx_tmp, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+  srsran_timestamp_sub(&ts_next_rx_tmp, 0, 0.001); ///< account for samples that have already been rx'ed
 
-  uint64_t align_len = srsran_timestamp_uint64(&ts_next_rx, q->sf_len * 1000);
+  uint64_t align_len = srsran_timestamp_uint64(&ts_next_rx_tmp, q->sf_len * 1000);
 
-  DEBUG("Difference between first recv is %ld + %f, realigning %" PRIu64 " samples",
-        ts_next_rx.full_secs,
-        ts_next_rx.frac_secs,
+  DEBUG("Difference between first recv is %ld + %f, realigning %" PRIu64 " samples\n",
+        ts_next_rx_tmp.full_secs,
+        ts_next_rx_tmp.frac_secs,
         align_len);
 
   // receive align_len samples into dummy_buffer, make sure to not exceed buffer len
   uint32_t sample_count = 0;
-  while (sample_count < align_len) {
-    uint32_t actual_rx_len = SRSRAN_MIN(align_len, DUMMY_BUFFER_NUM_SAMPLES);
-    actual_rx_len          = SRSRAN_MIN(align_len - sample_count, actual_rx_len);
+  while (align_len > q->sf_len) {
+    uint32_t actual_rx_len = SRSRAN_MIN(align_len, q->sf_len);
     q->recv_callback(q->stream, dummy_offset_buffer, actual_rx_len, &q->last_timestamp);
-    sample_count += actual_rx_len;
+
+    srsran_timestamp_copy(&ts_tmp, &ts_next_rx);
+    srsran_timestamp_sub(&ts_tmp, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+    srsran_timestamp_sub(&ts_tmp, 0, 0.001); ///< account for samples that have already been rx'ed
+    align_len = srsran_timestamp_uint64(&ts_tmp, q->sf_len * 1000);
+
+    if (align_len > q->sf_len * 1000) {
+      ts_next_rx.full_secs++;
+      ts_next_rx.frac_secs = 0.0;
+      srsran_timestamp_copy(&ts_tmp, &ts_next_rx);
+      srsran_timestamp_sub(&ts_tmp, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+      srsran_timestamp_sub(&ts_tmp, 0, 0.001); ///< account for samples that have already been rx'ed
+      align_len = srsran_timestamp_uint64(&ts_tmp, q->sf_len * 1000);
+    }
   }
 
   DEBUG("Received %d samples during alignment", sample_count);
@@ -1017,39 +1030,22 @@ int srsran_ue_sync_set_tti_from_timestamp(srsran_ue_sync_t* q, srsran_timestamp_
   time_t t_cur = rx_timestamp->full_secs;
   DEBUG("t_cur=%ld", t_cur);
 
-  // time_t of reference UTC time on 1. Jan 1900 at 0:00
-  // If we put this date in https://www.epochconverter.com it returns a negative number
-  time_t t_ref = {0};
-#if 0
-  struct tm t = {0};
-  t.tm_year = 1900; // year-1900
-  t.tm_mday = 1;          // first of January
-  // t.tm_isdst = 0;        // Is DST on? 1 = yes, 0 = no, -1 = unknown
-  t_ref = mktime(&t);
-#endif
-
-  DEBUG("t_ref=%ld", t_ref);
+  // 3GPP Reference UTC time is 1. Jan 1900 at 0:00
+  // If we put this date in https://www.epochconverter.com it returns a negative number (-2208988800)
+  // as epoch time starts at 1. Jan 1970 at 0:00
+  uint64_t epoch_offset_3gpp = 2208988800;
 
   static const uint32_t MSECS_PER_SEC = 1000;
 
-  DEBUG("diff=%f", difftime(t_cur, t_ref));
-
-  double time_diff_secs = difftime(t_cur, t_ref);
-
-  if (time_diff_secs < 0) {
-    fprintf(stderr, "Time diff between Rx timestamp and reference UTC is negative. Is the timestamp correct?\n");
-    return SRSRAN_ERROR;
-  }
-
-  DEBUG("time diff in s %f", time_diff_secs);
+  uint64_t time_3gpp_secs = t_cur + epoch_offset_3gpp;
 
   // convert to ms and add fractional part
-  double time_diff_msecs = time_diff_secs * MSECS_PER_SEC + rx_timestamp->frac_secs;
-  DEBUG("time diff in ms %f", time_diff_msecs);
+  uint64_t time_3gpp_msecs = (time_3gpp_secs + rx_timestamp->frac_secs) * MSECS_PER_SEC;
+  DEBUG("rx time with 3gpp base in ms %lu\n", time_3gpp_msecs);
 
   // calculate SFN and SF index according to TS 36.331 Sec. 5.10.14
-  q->frame_number = ((uint32_t)floor(0.1 * (time_diff_msecs - q->sfn_offset))) % 1024;
-  q->sf_idx       = ((uint32_t)floor(time_diff_msecs - q->sfn_offset)) % 10;
+  q->frame_number = (uint32_t)(((uint64_t)floor(0.1 * (time_3gpp_msecs - q->sfn_offset))) % 1024);
+  q->sf_idx       = (uint32_t)(((uint64_t)floor(time_3gpp_msecs - q->sfn_offset)) % 10);
 
   return SRSRAN_SUCCESS;
 }
