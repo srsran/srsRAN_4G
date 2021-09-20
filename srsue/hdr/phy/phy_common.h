@@ -56,6 +56,8 @@ public:
 
   srsran::phy_cfg_mbsfn_t mbsfn_config = {};
 
+  std::atomic<bool> cell_is_selecting = {false};
+
   // Secondary serving cell states
   scell::state cell_state;
 

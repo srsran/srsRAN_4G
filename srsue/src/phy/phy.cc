@@ -306,6 +306,10 @@ bool phy::cell_select(phy_cell_t cell)
   if (sfsync.cell_select_init(cell)) {
     // Update PCI before starting the background command to make sure PRACH gets the updated value
     selected_cell.id = cell.pci;
+
+    // Indicate workers that cell selection is in progress
+    common.cell_is_selecting = true;
+
     cmd_worker_cell.add_cmd([this, cell]() {
       // Wait SYNC transitions to IDLE
       sfsync.wait_idle();
@@ -320,6 +324,10 @@ bool phy::cell_select(phy_cell_t cell)
         selected_cell = sync_cell;
       }
       stack->cell_select_complete(ret);
+
+      // Indicate workers that cell selection has finished
+      common.cell_is_selecting = false;
+
     });
     return true;
   } else {
