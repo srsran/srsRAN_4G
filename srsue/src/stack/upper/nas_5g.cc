@@ -636,6 +636,46 @@ int nas_5g::send_deregistration_request_ue_originating()
   return SRSASN_SUCCESS;
 }
 
+int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity_types_::options identity_type)
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+
+  logger.info("Generating Identity Response");
+
+  nas_5gs_msg          nas_msg;
+  identity_response_t& identity_response = nas_msg.set_identity_response();
+  if (identity_type == identity_type_5gs_t::identity_types::suci) {
+    srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci = identity_response.mobile_identity.suci();
+    suci.supi_format = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
+    usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+    usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+
+    suci.scheme_output.resize(5);
+  }
+
+  else {
+    logger.error("Unhandled identity type for identity response");
+    return SRSRAN_ERROR;
+  }
+
+  if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
+    logger.error("Failed to pack Identity Response.");
+    return SRSRAN_ERROR;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
+  }
+
+  rrc_nr->write_sdu(std::move(pdu));
+
+  return SRSRAN_SUCCESS;
+}
+
 // Message handler
 int nas_5g::handle_registration_accept(registration_accept_t& registration_accept)
 {
@@ -735,7 +775,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
                                                 ctxt_5g.k_amf);
 
   logger.info(ctxt_5g.k_amf, 32, "Generated k_amf:");
-  
+
   if (ctxt.ksi == authentication_request.ng_ksi.nas_key_set_identifier.value) {
     send_authentication_failure(cause_5gmm_t::cause_5gmm_type_::ng_ksi_already_in_use, res);
     return SRSRAN_ERROR;
@@ -762,6 +802,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 int nas_5g::handle_identity_request(identity_request_t& identity_request)
 {
   logger.info("Handling Identity Request");
+  send_identity_response(identity_request.identity_type.type_of_identity.value);
   return SRSRAN_SUCCESS;
 }
 
