@@ -89,8 +89,7 @@ static int csi_rs_location_get_k_list(const srsran_csi_rs_resource_mapping_t* re
   }
 
   // Row 2
-  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
-      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->cdm == srsran_csi_rs_cdm_nocdm) {
     if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
         resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
         resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
@@ -142,8 +141,7 @@ static int csi_rs_location_get_l_list(const srsran_csi_rs_resource_mapping_t* re
   }
 
   // Row 2
-  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
-      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->cdm == srsran_csi_rs_cdm_nocdm) {
     if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
         resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
         resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
@@ -197,24 +195,14 @@ bool srsran_csi_rs_send(const srsran_csi_rs_period_and_offset_t* periodicity, co
 
 static int csi_rs_nof_cdm_groups(const srsran_csi_rs_resource_mapping_t* resource)
 {
+  // Row 1
   if (resource->row == srsran_csi_rs_resource_mapping_row_1 && resource->nof_ports == 1 &&
       resource->density == srsran_csi_rs_resource_mapping_density_three && resource->cdm == srsran_csi_rs_cdm_nocdm) {
     return 1;
   }
 
-  // Row 1
-  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
-      resource->cdm == srsran_csi_rs_cdm_nocdm) {
-    if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
-        resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
-        resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
-      return 1;
-    }
-  }
-
   // Row 2
-  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->nof_ports == 1 &&
-      resource->cdm == srsran_csi_rs_cdm_nocdm) {
+  if (resource->row == srsran_csi_rs_resource_mapping_row_2 && resource->cdm == srsran_csi_rs_cdm_nocdm) {
     if (resource->density == srsran_csi_rs_resource_mapping_density_one ||
         resource->density == srsran_csi_rs_resource_mapping_density_dot5_even ||
         resource->density == srsran_csi_rs_resource_mapping_density_dot5_odd) {
