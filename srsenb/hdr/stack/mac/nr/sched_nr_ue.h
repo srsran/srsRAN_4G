@@ -45,16 +45,17 @@ public:
   int dl_pending_bytes = 0, ul_pending_bytes = 0;
 
   // UE parameters that are sector specific
-  const bwp_ue_cfg* cfg      = nullptr;
-  harq_entity*      harq_ent = nullptr;
-  slot_point        pdcch_slot;
-  slot_point        pdsch_slot;
-  slot_point        pusch_slot;
-  slot_point        uci_slot;
-  uint32_t          dl_cqi = 0;
-  uint32_t          ul_cqi = 0;
-  dl_harq_proc*     h_dl   = nullptr;
-  ul_harq_proc*     h_ul   = nullptr;
+  const bwp_ue_cfg*   cfg      = nullptr;
+  harq_entity*        harq_ent = nullptr;
+  slot_point          pdcch_slot;
+  slot_point          pdsch_slot;
+  slot_point          pusch_slot;
+  slot_point          uci_slot;
+  uint32_t            dl_cqi  = 0;
+  uint32_t            ul_cqi  = 0;
+  dl_harq_proc*       h_dl    = nullptr;
+  ul_harq_proc*       h_ul    = nullptr;
+  srsran_uci_cfg_nr_t uci_cfg = {};
 };
 
 class ue_carrier

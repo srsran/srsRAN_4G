@@ -94,6 +94,9 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
   alloc_dl_ues();
   alloc_ul_ues();
 
+  // Post-processing of scheduling decisions
+  postprocess_decisions();
+
   // Log CC scheduler result
   log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), cell.bwps[0].grid, slot_ues);
 
@@ -116,6 +119,82 @@ void slot_cc_worker::alloc_ul_ues()
     return;
   }
   cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
+}
+
+void slot_cc_worker::postprocess_decisions()
+{
+  auto&             bwp_slot = cell.bwps[0].grid[bwp_alloc.get_pdcch_tti()];
+  srsran_slot_cfg_t slot_cfg{};
+  slot_cfg.idx = bwp_alloc.get_pdcch_tti().slot_idx();
+
+  for (auto& ue_pair : slot_ues) {
+    auto& ue = ue_pair.second;
+    // Group pending HARQ ACKs
+    srsran_pdsch_ack_nr_t ack = {};
+
+    for (auto& h_ack : bwp_slot.pending_acks) {
+      if (h_ack.res.rnti == ue.rnti) {
+        ack.nof_cc = 1;
+
+        srsran_harq_ack_m_t ack_m = {};
+        ack_m.resource            = h_ack.res;
+        ack_m.present             = true;
+        srsran_harq_ack_insert_m(&ack, &ack_m);
+      }
+    }
+
+    srsran_uci_cfg_nr_t uci_cfg = {};
+    if (not ue.cfg->phy().get_uci_cfg(slot_cfg, ack, uci_cfg)) {
+      logger.error("Error getting UCI configuration");
+      continue;
+    }
+
+    if (ue.h_ul != nullptr and ue.h_ul->harq_slot_tx() == ue.pusch_slot) {
+      // PUSCH was allocated. Insert UCI in PUSCH
+      for (auto& pusch : bwp_slot.puschs) {
+        if (pusch.sch.grant.rnti == ue.rnti) {
+          // Put UCI configuration in PUSCH config
+          if (not ue.cfg->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
+            logger.error("Error setting UCI configuration in PUSCH");
+            continue;
+          }
+          break;
+        }
+      }
+    } else {
+      // If any UCI information is triggered, schedule PUCCH
+      if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
+        bwp_slot.pucch.emplace_back();
+        mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
+
+        uci_cfg.pucch.rnti = ue.rnti;
+        pucch.candidates.emplace_back();
+        pucch.candidates.back().uci_cfg = uci_cfg;
+        if (not ue.cfg->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+          logger.error("Error getting UCI CFG");
+          continue;
+        }
+
+        // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
+        if (uci_cfg.o_sr > 0 and uci_cfg.ack.count > 0 and
+            pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+          // Set SR negative
+          if (uci_cfg.o_sr > 0) {
+            uci_cfg.sr_positive_present = false;
+          }
+
+          // Append new resource
+          pucch.candidates.emplace_back();
+          pucch.candidates.back().uci_cfg = uci_cfg;
+          if (not ue.cfg->phy().get_pucch_uci_cfg(
+                  slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+            logger.error("Error getting UCI CFG");
+            continue;
+          }
+        }
+      }
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -255,59 +334,7 @@ bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
   dl_res.dl_sched.pdsch    = bwp_slot.pdschs;
   dl_res.rar               = bwp_slot.rar;
   ul_res.pusch             = bwp_slot.puschs;
-
-  // Group pending HARQ ACKs
-  srsran_pdsch_ack_nr_t ack           = {};
-  ack.nof_cc                          = not bwp_slot.pending_acks.empty();
-  const srsran::phy_cfg_nr_t* phy_cfg = nullptr;
-  for (const harq_ack_t& pending_ack : bwp_slot.pending_acks) {
-    srsran_harq_ack_m_t ack_m = {};
-    ack_m.resource            = pending_ack.res;
-    ack_m.present             = true;
-    srsran_harq_ack_insert_m(&ack, &ack_m);
-    phy_cfg = pending_ack.phy_cfg;
-  }
-
-  if (phy_cfg != nullptr) {
-    srsran_slot_cfg_t slot_cfg{};
-    slot_cfg.idx                = pdcch_slot.slot_idx();
-    srsran_uci_cfg_nr_t uci_cfg = {};
-    srsran_assert(phy_cfg->get_uci_cfg(slot_cfg, ack, uci_cfg), "Error getting UCI CFG");
-
-    if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
-      if (not ul_res.pusch.empty()) {
-        // Put UCI configuration in PUSCH config
-        bool ret = phy_cfg->get_pusch_uci_cfg(slot_cfg, uci_cfg, ul_res.pusch[0].sch);
-        srsran_assert(ret, "Error setting UCI configuration in PUSCH");
-      } else {
-        // Put UCI configuration in PUCCH config
-        ul_res.pucch.emplace_back();
-        pucch_t& pucch = ul_res.pucch.back();
-        pucch.candidates.emplace_back();
-        pucch.candidates.back().uci_cfg = uci_cfg;
-        srsran_assert(phy_cfg->get_pucch_uci_cfg(
-                          slot_cfg, pucch.candidates.back().uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource),
-                      "Error getting PUCCH UCI cfg");
-
-        // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
-        if (uci_cfg.sr_positive_present and uci_cfg.ack.count > 0 and
-            pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
-          // Set SR negative
-          if (uci_cfg.o_sr > 0) {
-            uci_cfg.sr_positive_present = false;
-          }
-
-          // Append new resource
-          pucch.candidates.emplace_back();
-          pucch.candidates.back().uci_cfg = uci_cfg;
-          srsran_assert(
-              phy_cfg->get_pucch_uci_cfg(
-                  slot_cfg, pucch.candidates.back().uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource),
-              "Error getting PUCCH UCI cfg");
-        }
-      }
-    }
-  }
+  ul_res.pucch             = bwp_slot.pucch;
 
   // clear up BWP slot
   bwp_slot.reset();
