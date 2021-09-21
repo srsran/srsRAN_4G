@@ -51,6 +51,9 @@ public:
   void        protocol_failure();
   void        deactivate_bearers() { mac_ctrl.set_radio_bearer_state(mac_lc_ch_cfg_t::IDLE); }
 
+  // Init PUCCH resources for PCell
+  bool init_pucch();
+
   rrc_state_t get_state();
   void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
 

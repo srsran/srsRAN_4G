@@ -171,9 +171,20 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   }
 
   // Register new user in RRC
-  add_user(rnti, ue_cfg);
+  if (add_user(rnti, ue_cfg) != SRSRAN_SUCCESS) {
+    logger.error("Failed to create user");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    return SRSRAN_INVALID_RNTI;
+  }
   auto it     = users.find(rnti);
   ue*  ue_ptr = it->second.get();
+  if (not ue_ptr->init_pucch()) {
+    rem_user(rnti);
+    logger.warning("Failed to allocate PUCCH resources for rnti=0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    return SRSRAN_INVALID_RNTI;
+  }
+
   // Reset activity timer (Response is not expected)
   ue_ptr->set_activity_timeout(ue::UE_INACTIVITY_TIMEOUT);
   ue_ptr->set_activity(false);

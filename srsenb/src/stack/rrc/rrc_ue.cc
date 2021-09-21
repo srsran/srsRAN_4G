@@ -47,10 +47,16 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 
 rrc::ue::~ue() {}
 
+bool rrc::ue::init_pucch()
+{
+  // Allocate PUCCH resources for PCell
+  return ue_cell_list.init_pucch_pcell();
+}
+
 int rrc::ue::init()
 {
-  // Allocate cell and PUCCH resources
-  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx) == nullptr) {
+  // Allocate cell (PUCCH resources are not allocated here)
+  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx, false) == nullptr) {
     return SRSRAN_ERROR;
   }
 
@@ -433,6 +439,13 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
     send_connection_reject(procedure_result_code::error_mme_not_connected);
+    return;
+  }
+
+  // Allocate PUCCH resources and reject if not available
+  if (not init_pucch()) {
+    parent->logger.warning("Could not allocate PUCCH resources for rnti=0x%x. Sending Connection Reject", rnti);
+    send_connection_reject(procedure_result_code::fail_in_radio_interface_proc);
     return;
   }
 

@@ -170,7 +170,7 @@ const ue_cell_ded* ue_cell_ded_list::find_cell(uint32_t earfcn, uint32_t pci) co
   return it == cell_list.end() ? nullptr : &(*it);
 }
 
-ue_cell_ded* ue_cell_ded_list::add_cell(uint32_t enb_cc_idx)
+ue_cell_ded* ue_cell_ded_list::add_cell(uint32_t enb_cc_idx, bool init_pucch)
 {
   const enb_cell_common* cell_common = common_list.get_cc_idx(enb_cc_idx);
   if (cell_common == nullptr) {
@@ -193,9 +193,11 @@ ue_cell_ded* ue_cell_ded_list::add_cell(uint32_t enb_cc_idx)
   cell_list.emplace_back(cell_list.size(), *cell_common);
 
   // Allocate CQI, SR, and PUCCH CS resources. If failure, do not add new cell
-  if (not alloc_cell_resources(ue_cc_idx)) {
-    rem_last_cell();
-    return nullptr;
+  if (init_pucch) {
+    if (not alloc_cell_resources(ue_cc_idx)) {
+      rem_last_cell();
+      return nullptr;
+    }
   }
 
   return &cell_list.back();
@@ -213,6 +215,17 @@ bool ue_cell_ded_list::rem_last_cell()
   }
   dealloc_cqi_resources(ue_cc_idx);
   cell_list.pop_back();
+  return true;
+}
+
+bool ue_cell_ded_list::init_pucch_pcell()
+{
+  if (not alloc_cell_resources(UE_PCELL_CC_IDX)) {
+    dealloc_sr_resources();
+    dealloc_pucch_cs_resources();
+    dealloc_cqi_resources(UE_PCELL_CC_IDX);
+    return false;
+  }
   return true;
 }
 
@@ -265,7 +278,7 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
     }
   }
   if (not alloc_cqi_resources(ue_cc_idx, cfg.cqi_cfg.period)) {
-    logger.error("Failed to allocate CQIresources for cell ue_cc_idx=%d", ue_cc_idx);
+    logger.error("Failed to allocate CQI resources for cell ue_cc_idx=%d", ue_cc_idx);
     return false;
   }
 
