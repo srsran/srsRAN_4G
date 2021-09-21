@@ -178,6 +178,7 @@ void mux_nr::generate_bsr_mac_ce(const srsran::bsr_format_nr_t& format)
       break;
     case srsran::LONG_BSR:
       add_bsr_ce = lbsr_ce;
+      break;
     default:
       logger.error("MUX can only be instructred to generate short or long BSRs.");
   }
