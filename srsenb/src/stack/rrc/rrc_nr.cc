@@ -492,10 +492,8 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 }
 
 // Helper for the RRC Reconfiguration sender to pack hard-coded config
-int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_secondary_cell_config)
+int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
-  auto& cell_group_cfg_pack = cell_group_cfg;
-
   // RLC for DRB1 (with fixed LCID)
   cell_group_cfg_pack.rlc_bearer_to_add_mod_list_present = true;
   cell_group_cfg_pack.rlc_bearer_to_add_mod_list.resize(1);
@@ -635,7 +633,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.resize(1);
 
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 1;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
 
   // UL config dedicated
@@ -657,19 +654,10 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   sr_res1.sched_request_id               = 0;
   sr_res1.periodicity_and_offset_present = true;
   sr_res1.periodicity_and_offset.set_sl40();
-  sr_res1.periodicity_and_offset.sl40() = 7;
   sr_res1.res_present                   = true;
-  sr_res1.res                           = 2; // PUCCH resource for SR
 
   // DL data
   ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(6);
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 6;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[1] = 5;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[2] = 4;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[3] = 4;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[4] = 4;
-  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[5] = 4;
 
   // PUCCH Resource for format 1
   srsran_pucch_nr_resource_t resource_small = {};
@@ -755,8 +743,8 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   beta_offset_semi_static.beta_offset_ack_idx3_present = true;
   beta_offset_semi_static.beta_offset_ack_idx3         = 9;
   beta_offset_semi_static.beta_offset_csi_part1_idx1_present = true;
-  beta_offset_semi_static.beta_offset_csi_part1_idx2_present = true;
   beta_offset_semi_static.beta_offset_csi_part1_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2_present = true;
   beta_offset_semi_static.beta_offset_csi_part1_idx2         = 6;
   beta_offset_semi_static.beta_offset_csi_part2_idx1_present = true;
   beta_offset_semi_static.beta_offset_csi_part2_idx1         = 6;
@@ -796,10 +784,8 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   nzp_csi_res.res_map.freq_band.nrof_rbs = 52;
   nzp_csi_res.pwr_ctrl_offset            = 0;
   // Skip pwr_ctrl_offset_ss_present
-  nzp_csi_res.scrambling_id                  = 0;
   nzp_csi_res.periodicity_and_offset_present = true;
   nzp_csi_res.periodicity_and_offset.set_slots80();
-  nzp_csi_res.periodicity_and_offset.slots80() = 0;
   // optional
   nzp_csi_res.qcl_info_periodic_csi_rs_present = true;
   nzp_csi_res.qcl_info_periodic_csi_rs         = 0;
@@ -810,9 +796,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list.resize(1);
   auto& nzp_csi_res_set =
       cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list[0];
-  nzp_csi_res_set.nzp_csi_res_set_id = 0;
   nzp_csi_res_set.nzp_csi_rs_res.resize(1);
-  nzp_csi_res_set.nzp_csi_rs_res[0] = 0;
   // Skip TRS info
 
   // CSI report config
@@ -826,7 +810,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   csi_report.csi_im_res_for_interference         = 1;
   csi_report.report_cfg_type.set_periodic();
   csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
-  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 8;
   csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
   csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
   csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 0; // was 17 in orig PCAP
@@ -848,11 +831,11 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = rnti;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
 
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = 0;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.n_timing_advance_offset =
+      asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dmrs_type_a_position =
       asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present                    = true;
@@ -866,13 +849,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
       .absolute_freq_ssb_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
-      634176; // TODO: calculate from actual DL ARFCN
 
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list
-      .push_back(78);
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_point_a =
-      633928; // TODO: calculate from actual DL ARFCN
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl
       .scs_specific_carrier_list.resize(1);
 
@@ -896,7 +873,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   auto& pdcch_cfg_common =
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common;
   pdcch_cfg_common.set_setup();
-  pdcch_cfg_common.setup().ext                                 = false;
   pdcch_cfg_common.setup().common_ctrl_res_set_present         = true;
   pdcch_cfg_common.setup().common_ctrl_res_set.ctrl_res_set_id = 1;
   pdcch_cfg_common.setup().common_ctrl_res_set.freq_domain_res.from_number(
@@ -973,7 +949,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
 
   rach_cfg_common_pack.set_setup();
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 0;
   rach_cfg_common_pack.setup().rach_cfg_generic.msg1_fdm                  = rach_cfg_generic_s::msg1_fdm_opts::one;
   rach_cfg_common_pack.setup().rach_cfg_generic.msg1_freq_start           = 1;
   rach_cfg_common_pack.setup().rach_cfg_generic.zero_correlation_zone_cfg = 0;
@@ -1024,12 +999,181 @@ int rrc_nr::ue::pack_secondary_cell_group_config(asn1::dyn_octstring& packed_sec
   // SSB config (optional)
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
   auto& ssb_pos_in_burst = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst;
-  ssb_pos_in_burst.set_medium_bitmap().from_number(0b10000000);
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_periodicity_serving_cell_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_periodicity_serving_cell =
       serving_cell_cfg_common_s::ssb_periodicity_serving_cell_opts::ms20;
 
-  // TDD UL-DL config
+  return SRSRAN_SUCCESS;
+}
+
+// Helper for the RRC Reconfiguration sender to pack hard-coded config
+int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed_secondary_cell_config)
+{
+
+  auto& cell_group_cfg_pack = cell_group_cfg;
+  pack_secondary_cell_group_config_common(cell_group_cfg);
+
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 0;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
+
+  // UL config dedicated
+  auto& ul_config                       = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
+  // SR resources
+  auto& sr_res1                         = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
+  sr_res1.periodicity_and_offset.sl40() = 4;
+  sr_res1.res_present                   = true;
+  sr_res1.res                           = 16; // PUCCH resource for SR
+
+  // DL data
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(1);
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 4;
+
+  // nzp-CSI-RS Resource
+  auto& nzp_csi_res =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list[0];
+  nzp_csi_res.scrambling_id                  = 500;
+  nzp_csi_res.periodicity_and_offset_present = true;
+  nzp_csi_res.periodicity_and_offset.set_slots80();
+  nzp_csi_res.periodicity_and_offset.slots80() = 1;
+
+  // nzp-CSI-RS ResourceSet
+  auto& nzp_csi_res_set =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list[0];
+  nzp_csi_res_set.nzp_csi_res_set_id = 1;
+  nzp_csi_res_set.nzp_csi_rs_res[0] = 1;
+
+  // CSI report config
+  auto& csi_report =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
+  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 5;
+
+  // Reconfig with Sync
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = -36;
+
+  // DL config
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present              = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
+      176210; // TODO: calculate from actual DL ARFCN
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list
+      .push_back(5);
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_point_a =
+      175364; // TODO: calculate from actual DL ARFCN
+
+  // RACH config
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
+      true;
+  auto& rach_cfg_common_pack =
+      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
+
+  rach_cfg_common_pack.set_setup();
+  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 16;
+
+  // SSB config (optional)
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
+  auto& ssb_pos_in_burst = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst;
+  ssb_pos_in_burst.set_short_bitmap().from_number(0b1000);
+
+  // make sufficiant space
+  packed_secondary_cell_config.resize(256);
+  asn1::bit_ref bref_pack(packed_secondary_cell_config.data(), packed_secondary_cell_config.size());
+  if (cell_group_cfg_pack.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
+    parent->logger.error("Failed to pack NR secondary cell config");
+    return SRSRAN_ERROR;
+  }
+  packed_secondary_cell_config.resize(bref_pack.distance_bytes());
+
+  return SRSRAN_SUCCESS;
+}
+
+// Helper for the RRC Reconfiguration sender to pack hard-coded config
+int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed_secondary_cell_config)
+{
+
+  auto& cell_group_cfg_pack = cell_group_cfg;
+  pack_secondary_cell_group_config_common(cell_group_cfg);
+
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 1;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
+
+  // UL config dedicated
+  auto& ul_config                       = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
+  // SR resources
+  auto& sr_res1                         = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
+  // SR resources
+  sr_res1.periodicity_and_offset.sl40() = 7;
+  sr_res1.res_present                   = true;
+  sr_res1.res                           = 2; // PUCCH resource for SR
+
+  // DL data
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(6);
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 6;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[1] = 5;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[2] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[3] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[4] = 4;
+  ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[5] = 4;
+
+  // nzp-CSI-RS Resource
+  auto& nzp_csi_res =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list[0];
+  nzp_csi_res.scrambling_id                  = 0;
+  nzp_csi_res.periodicity_and_offset_present = true;
+  nzp_csi_res.periodicity_and_offset.set_slots80();
+  nzp_csi_res.periodicity_and_offset.slots80() = 0;
+
+  // nzp-CSI-RS ResourceSet
+  auto& nzp_csi_res_set =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list[0];
+  nzp_csi_res_set.nzp_csi_res_set_id = 0;
+  nzp_csi_res_set.nzp_csi_rs_res[0] = 0;
+  // Skip TRS info
+
+  // CSI report config
+  auto& csi_report =
+      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
+  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 8;
+
+  // Reconfig with Sync
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = 0;
+
+  // DL config
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present              = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
+      634176; // TODO: calculate from actual DL ARFCN
+
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list
+      .push_back(78);
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_point_a =
+      633928; // TODO: calculate from actual DL ARFCN
+
+  auto& pdcch_cfg_common =
+      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common;
+  pdcch_cfg_common.set_setup();
+  pdcch_cfg_common.setup().ext                                 = false;
+
+
+  // RACH config
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
+      true;
+  auto& rach_cfg_common_pack =
+      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
+
+  rach_cfg_common_pack.set_setup();
+  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 0;
+
+  // SSB config (optional)
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
+  auto& ssb_pos_in_burst = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst;
+  ssb_pos_in_burst.set_medium_bitmap().from_number(0b10000000);
+
+  // // TDD UL-DL config
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present = true;
   auto& tdd_config = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common;
   tdd_config.ref_subcarrier_spacing        = subcarrier_spacing_e::khz15;
@@ -1060,8 +1204,8 @@ int rrc_nr::ue::pack_rrc_reconfiguraiton(asn1::dyn_octstring& packed_rrc_reconfi
 
   // add secondary cell group config
   recfg_ies.secondary_cell_group_present = true;
-  if (pack_secondary_cell_group_config(recfg_ies.secondary_cell_group) == SRSRAN_ERROR) {
-    parent->logger.error("Failed to pack RRC Reconfiguration");
+  if (pack_secondary_cell_group_config_tdd(recfg_ies.secondary_cell_group) == SRSRAN_ERROR) {
+    parent->logger.error("Failed to pack TDD RRC Reconfiguration");
     return SRSRAN_ERROR;
   }
 

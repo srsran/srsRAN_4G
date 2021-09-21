@@ -118,7 +118,9 @@ public:
     uint16_t rnti   = SRSRAN_INVALID_RNTI;
 
     int pack_rrc_reconfiguraiton(asn1::dyn_octstring& packed_rrc_reconfig);
-    int pack_secondary_cell_group_config(asn1::dyn_octstring& packed_secondary_cell_config);
+    int pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed_secondary_cell_config);
+    int pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed_secondary_cell_config);
     int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
     int add_drb();
