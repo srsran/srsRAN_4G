@@ -61,15 +61,15 @@ slot_ue ue_carrier::try_reserve(slot_point      pdcch_slot,
   sfu.dl_pending_bytes = dl_pending_bytes;
   sfu.ul_pending_bytes = ul_pending_bytes;
 
-  const srsran_tdd_config_nr_t& tdd_cfg = cell_params.cell_cfg.tdd;
-  if (srsran_tdd_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_slot.slot_idx())) {
+  const srsran_duplex_config_nr_t& tdd_cfg = cell_params.cell_cfg.duplex;
+  if (srsran_duplex_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_slot.slot_idx())) {
     // If DL enabled
     sfu.h_dl = harq_ent.find_pending_dl_retx();
     if (sfu.h_dl == nullptr and sfu.dl_pending_bytes > 0) {
       sfu.h_dl = harq_ent.find_empty_dl_harq();
     }
   }
-  if (srsran_tdd_nr_is_ul(&tdd_cfg, 0, sfu.pusch_slot.slot_idx())) {
+  if (srsran_duplex_nr_is_ul(&tdd_cfg, 0, sfu.pusch_slot.slot_idx())) {
     // If UL enabled
     sfu.h_ul = harq_ent.find_pending_ul_retx();
     if (sfu.h_ul == nullptr and sfu.ul_pending_bytes > 0) {

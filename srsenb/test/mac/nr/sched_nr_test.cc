@@ -82,7 +82,7 @@ void sched_nr_cfg_serialized_test()
   uint32_t         max_nof_ttis = 1000, nof_sectors = 4;
   task_job_manager tasks;
 
-  sched_nr_interface::sched_cfg_t             cfg;
+  sched_nr_interface::sched_cfg_t cfg;
   cfg.auto_refill_buffer = true;
 
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
@@ -111,7 +111,7 @@ void sched_nr_cfg_serialized_test()
       sched_nr_cc_output_res_t out{slot_tx, cc, &dl_res, &ul_res};
       sched_tester.update(out);
       tasks.finish_cc(slot_rx, dl_res, ul_res);
-      TESTASSERT(not srsran_tdd_nr_is_dl(&cells_cfg[cc].tdd, 0, (slot_tx).slot_idx()) or
+      TESTASSERT(not srsran_duplex_nr_is_dl(&cells_cfg[cc].duplex, 0, (slot_tx).slot_idx()) or
                  dl_res.dl_sched.pdcch_dl.size() == 1);
     }
   }

@@ -271,21 +271,21 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
 };
 
 bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
-                      srsran_tdd_config_nr_t*       in_srsran_tdd_config_nr)
+                      srsran_duplex_config_nr_t*    in_srsran_duplex_config_nr)
 {
-  srsran_tdd_config_nr_t srsran_tdd_config_nr = {};
+  srsran_duplex_config_nr_t srsran_duplex_config_nr = {};
   switch (tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity) {
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_tdd_config_nr.pattern1.period_ms = 1;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 1;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_tdd_config_nr.pattern1.period_ms = 2;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 2;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_tdd_config_nr.pattern1.period_ms = 5;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 5;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_tdd_config_nr.pattern1.period_ms = 10;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 10;
       break;
 
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
@@ -297,12 +297,12 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                         tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity.to_string());
       return false;
   }
-  srsran_tdd_config_nr.pattern1.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_dl_slots;
-  srsran_tdd_config_nr.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
-  srsran_tdd_config_nr.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
-  srsran_tdd_config_nr.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
+  srsran_duplex_config_nr.tdd.pattern1.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_dl_slots;
+  srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
+  srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
+  srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
   // Copy and return struct
-  *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
   if (not tdd_ul_dl_cfg_common.pattern2_present) {
     return true;
@@ -310,16 +310,16 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
 
   switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_tdd_config_nr.pattern2.period_ms = 1;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_tdd_config_nr.pattern2.period_ms = 2;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_tdd_config_nr.pattern2.period_ms = 5;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_tdd_config_nr.pattern2.period_ms = 10;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
       break;
 
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
@@ -332,12 +332,12 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
       return false;
   }
 
-  srsran_tdd_config_nr.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
-  srsran_tdd_config_nr.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
-  srsran_tdd_config_nr.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
-  srsran_tdd_config_nr.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
+  srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
+  srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
+  srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
+  srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
   // Copy and return struct
-  *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
   return true;
 }

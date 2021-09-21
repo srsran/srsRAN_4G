@@ -475,7 +475,7 @@ bool cc_worker::work_dl()
   }
 
   // Check if it is a DL slot, if not skip
-  if (!srsran_tdd_nr_is_dl(&phy.cfg.tdd, 0, dl_slot_cfg.idx)) {
+  if (!srsran_duplex_nr_is_dl(&phy.cfg.duplex, 0, dl_slot_cfg.idx)) {
     return true;
   }
 
@@ -523,7 +523,7 @@ bool cc_worker::work_ul()
   bool                  has_ul_ack = phy.get_pending_ack(ul_slot_cfg.idx, pdsch_ack);
 
   // Check if it is a UL slot, if not skip
-  if (!srsran_tdd_nr_is_ul(&phy.cfg.tdd, 0, ul_slot_cfg.idx)) {
+  if (!srsran_duplex_nr_is_ul(&phy.cfg.duplex, 0, ul_slot_cfg.idx)) {
     // No NR signal shall be transmitted
     srsran_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
 
