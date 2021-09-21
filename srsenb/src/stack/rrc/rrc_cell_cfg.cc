@@ -460,7 +460,7 @@ bool ue_cell_ded_list::alloc_sr_resources(uint32_t period)
   uint32_t max_users         = 12 * c / delta_pucch_shift;
 
   // Find freq-time resources with least number of users
-  int      i_min = 0, j_min = 0;
+  int      i_min = -1, j_min = -1;
   uint32_t min_users = std::numeric_limits<uint32_t>::max();
   for (uint32_t i = 0; i < cfg.sr_cfg.nof_prb; i++) {
     for (uint32_t j = 0; j < cfg.sr_cfg.nof_subframes; j++) {
@@ -472,7 +472,7 @@ bool ue_cell_ded_list::alloc_sr_resources(uint32_t period)
     }
   }
 
-  if (pucch_res->sr_sched.nof_users[i_min][j_min] > max_users) {
+  if (pucch_res->sr_sched.nof_users[i_min][j_min] > max_users || i_min == -1 || j_min == -1) {
     logger.error("Not enough PUCCH resources to allocate Scheduling Request");
     return false;
   }
