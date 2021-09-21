@@ -93,14 +93,37 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
                 )
 
+        # Test PRACH transmission and detection
         add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_prach nr_phy_test
                 --reference=carrier=${NR_PHY_TEST_BW}
-                --duration=1000 # 100 slots
+                --duration=1000 # 1000 slots
                 --gnb.stack.pdsch.slots=none # No PDSCH
                 --gnb.stack.pusch.slots=none # No PUSCH
                 --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                 --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
                 --ue.stack.prach.preamble=10 # Use preamble 10
+                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                )
+
+        # Test scheduling request
+        add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_sr nr_phy_test
+                --reference=carrier=${NR_PHY_TEST_BW}
+                --duration=1000 # 1000 slots
+                --gnb.stack.pdsch.slots=none # No PDSCH
+                --gnb.stack.pusch.slots=none # No PUSCH
+                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+                --ue.stack.sr.period=4 # Transmit SR every 4 opportunities
+                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                )
+
+        # Test scheduling request multiplexed with HARQ ACK feedback
+        add_nr_test(nr_phy_test_${NR_PHY_TEST_BW}_sr_harq nr_phy_test
+                --reference=carrier=${NR_PHY_TEST_BW}
+                --duration=1000 # 1000 slots
+                --gnb.stack.pdsch.slots=all # All PDSCH
+                --gnb.stack.pusch.slots=none # No PUSCH
+                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+                --ue.stack.sr.period=4 # Transmit SR every 4 opportunities
                 --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
                 )
     endforeach ()

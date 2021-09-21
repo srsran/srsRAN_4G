@@ -264,11 +264,14 @@ int main(int argc, char** argv)
   // Print SR
   if (metrics.ue_stack.sr_count > 0) {
     srsran::console("SR:\n");
-    srsran::console("   +------------+------------+\n");
-    srsran::console("   | %10s | %10s |\n", "Transmit'd", "Received");
-    srsran::console("   +------------+------------+\n");
-    srsran::console("   | %10d | %10d |\n", metrics.ue_stack.sr_count, metrics.gnb_stack.sr_count);
-    srsran::console("   +------------+------------+\n");
+    srsran::console("   +------------+------------+------------+\n");
+    srsran::console("   | %10s | %10s | %10s |\n", "Transmit'd", "Received", "Detection");
+    srsran::console("   +------------+------------+------------+\n");
+    srsran::console("   | %10d | %10d | %10.5f |\n",
+                    metrics.ue_stack.sr_count,
+                    metrics.gnb_stack.sr_count,
+                    (double)metrics.gnb_stack.sr_count / (double)metrics.ue_stack.sr_count);
+    srsran::console("   +------------+------------+------------+\n");
   }
 
   // Assert metrics
