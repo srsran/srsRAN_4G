@@ -54,108 +54,70 @@ int ue::init(const all_args_t& args_)
   }
 
   // Instantiate layers and stack together our UE
-  if (args.stack.type == "lte") {
-    std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte);
-    if (!lte_stack) {
-      srsran::console("Error creating LTE stack instance.\n");
-      return SRSRAN_ERROR;
-    }
+  std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte);
+  if (!lte_stack) {
+    srsran::console("Error creating LTE stack instance.\n");
+    return SRSRAN_ERROR;
+  }
 
-    std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
-    if (!gw_ptr) {
-      srsran::console("Error creating a GW instance.\n");
-      return SRSRAN_ERROR;
-    }
+  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
+  if (!gw_ptr) {
+    srsran::console("Error creating a GW instance.\n");
+    return SRSRAN_ERROR;
+  }
 
-    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy);
-    if (!lte_phy) {
-      srsran::console("Error creating LTE PHY instance.\n");
-      return SRSRAN_ERROR;
-    }
+  std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy);
+  if (!lte_phy) {
+    srsran::console("Error creating LTE PHY instance.\n");
+    return SRSRAN_ERROR;
+  }
 
-    std::unique_ptr<srsran::radio> lte_radio = std::unique_ptr<srsran::radio>(new srsran::radio);
-    if (!lte_radio) {
-      srsran::console("Error creating radio multi instance.\n");
-      return SRSRAN_ERROR;
-    }
+  std::unique_ptr<srsran::radio> lte_radio = std::unique_ptr<srsran::radio>(new srsran::radio);
+  if (!lte_radio) {
+    srsran::console("Error creating radio multi instance.\n");
+    return SRSRAN_ERROR;
+  }
 
-    // init layers
-    if (lte_radio->init(args.rf, lte_phy.get())) {
-      srsran::console("Error initializing radio.\n");
-      return SRSRAN_ERROR;
-    }
+  // init layers
+  if (lte_radio->init(args.rf, lte_phy.get())) {
+    srsran::console("Error initializing radio.\n");
+    return SRSRAN_ERROR;
+  }
 
-    // from here onwards do not exit immediately if something goes wrong as sub-layers may already use interfaces
-    if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
-      srsran::console("Error initializing PHY.\n");
-      ret = SRSRAN_ERROR;
-    }
-
-    srsue::phy_args_nr_t phy_args_nr = {};
-    phy_args_nr.max_nof_prb          = args.phy.nr_max_nof_prb;
-    phy_args_nr.rf_channel_offset    = args.phy.nof_lte_carriers;
-    phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
-    phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;
-    phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
-    phy_args_nr.log                  = args.phy.log;
-    phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
-    if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
-      srsran::console("Error initializing NR PHY.\n");
-      ret = SRSRAN_ERROR;
-    }
-
-    if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
-      srsran::console("Error initializing stack.\n");
-      ret = SRSRAN_ERROR;
-    }
-
-    if (gw_ptr->init(args.gw, lte_stack.get())) {
-      srsran::console("Error initializing GW.\n");
-      ret = SRSRAN_ERROR;
-    }
-
-    // move ownership
-    stack   = std::move(lte_stack);
-    gw_inst = std::move(gw_ptr);
-    phy     = std::move(lte_phy);
-    radio   = std::move(lte_radio);
-  } else if (args.stack.type == "nr") {
-    logger.info("Initializing NR stack");
-    std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr());
-    std::unique_ptr<srsran::radio_null> nr_radio(new srsran::radio_null);
-    std::unique_ptr<srsue::ue_phy_base> nr_phy;
-    std::unique_ptr<gw>                 gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
-
-    // Init layers
-    if (nr_radio->init(args.rf, nullptr)) {
-      srsran::console("Error initializing radio.\n");
-      return SRSRAN_ERROR;
-    }
-
-    if (nr_phy->init(args.phy)) {
-      srsran::console("Error initializing PHY.\n");
-      return SRSRAN_ERROR;
-    }
-
-    if (nr_stack->init(args.stack)) {
-      srsran::console("Error initializing stack.\n");
-      return SRSRAN_ERROR;
-    }
-
-    if (gw_ptr->init(args.gw, nr_stack.get())) {
-      srsran::console("Error initializing GW.\n");
-      return SRSRAN_ERROR;
-    }
-
-    // move ownership
-    stack   = std::move(nr_stack);
-    gw_inst = std::move(gw_ptr);
-    phy     = std::move(nr_phy);
-    radio   = std::move(nr_radio);
-  } else {
-    srsran::console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
+  // from here onwards do not exit immediately if something goes wrong as sub-layers may already use interfaces
+  if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
+    srsran::console("Error initializing PHY.\n");
     ret = SRSRAN_ERROR;
   }
+
+  srsue::phy_args_nr_t phy_args_nr = {};
+  phy_args_nr.max_nof_prb          = args.phy.nr_max_nof_prb;
+  phy_args_nr.rf_channel_offset    = args.phy.nof_lte_carriers;
+  phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
+  phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;
+  phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
+  phy_args_nr.log                  = args.phy.log;
+  phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
+  if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
+    srsran::console("Error initializing NR PHY.\n");
+    ret = SRSRAN_ERROR;
+  }
+
+  if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
+    srsran::console("Error initializing stack.\n");
+    ret = SRSRAN_ERROR;
+  }
+
+  if (gw_ptr->init(args.gw, lte_stack.get())) {
+    srsran::console("Error initializing GW.\n");
+    ret = SRSRAN_ERROR;
+  }
+
+  // move ownership
+  stack   = std::move(lte_stack);
+  gw_inst = std::move(gw_ptr);
+  phy     = std::move(lte_phy);
+  radio   = std::move(lte_radio);
 
   if (phy) {
     srsran::console("Waiting PHY to initialize ... ");

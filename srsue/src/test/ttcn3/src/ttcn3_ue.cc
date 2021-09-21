@@ -50,24 +50,18 @@ int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::st
 
   args.phy.dl_earfcn = "3400";
   args.rf.type       = "none";
-  args.stack.type    = "lte";
   args.phy.type      = "lte_ttcn3";
 
   // Instantiate layers and stack together our UE
-  if (args.stack.type == "lte") {
-    stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte);
-    if (!stack) {
-      srsran::console("Error creating LTE stack instance.\n");
-      return SRSRAN_ERROR;
-    }
+  stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte);
+  if (!stack) {
+    srsran::console("Error creating LTE stack instance.\n");
+    return SRSRAN_ERROR;
+  }
 
-    phy = std::unique_ptr<srsue::lte_ttcn3_phy>(new srsue::lte_ttcn3_phy);
-    if (!phy) {
-      srsran::console("Error creating LTE PHY instance.\n");
-      return SRSRAN_ERROR;
-    }
-  } else {
-    srsran::console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
+  phy = std::unique_ptr<srsue::lte_ttcn3_phy>(new srsue::lte_ttcn3_phy);
+  if (!phy) {
+    srsran::console("Error creating LTE PHY instance.\n");
     return SRSRAN_ERROR;
   }
 
