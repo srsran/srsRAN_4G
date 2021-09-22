@@ -16,6 +16,7 @@
 #include "srsran/common/band_helper.h"
 #include "srsran/common/multiqueue.h"
 #include "srsran/phy/common/phy_common.h"
+#include "srsran/rrc/rrc_common.h"
 #include <boost/algorithm/string.hpp>
 
 #define HANDLEPARSERCODE(cond)                                                                                         \
@@ -778,30 +779,92 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
   return 0;
 }
 
-static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& root)
+static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& cellroot)
 {
-  // NOTE: For now, only support one meas_report for all cells.
-  // TODO: for a1
-  // TODO: for a2
-  // meas report parsing
-  meas_cfg->meas_reports.resize(1);
-  asn1::rrc::report_cfg_eutra_s& meas_item = meas_cfg->meas_reports[0];
-  HANDLEPARSERCODE(asn1_parsers::str_to_enum(meas_item.trigger_quant, root["a3_report_type"]));
-  auto& event                                   = meas_item.trigger_type.set_event();
-  event.event_id.set_event_a3().report_on_leave = false;
-  event.event_id.event_a3().a3_offset           = (int)root["a3_offset"];
-  event.hysteresis                              = (int)root["a3_hysteresis"];
-  meas_item.max_report_cells                    = 1;                                           // TODO: parse
-  meas_item.report_amount.value                 = report_cfg_eutra_s::report_amount_e_::r1;    // TODO: parse
-  meas_item.report_interv.value                 = report_interv_e::ms120;                      // TODO: parse
-  meas_item.report_quant.value                  = report_cfg_eutra_s::report_quant_opts::both; // TODO: parse
+  // NOTE: Events A1, A2, A3 and A4 are supported. A3 and A4 will be configured for all neighbour cells
+
+  Setting& root = cellroot["meas_report_desc"];
+
+  meas_cfg->meas_reports.resize(root.getLength());
+  for (int i = 0; i < root.getLength(); i++) {
+    asn1::rrc::report_cfg_eutra_s& meas_item = meas_cfg->meas_reports[i];
+
+    // Parse trigger quantity before event
+    HANDLEPARSERCODE(asn1_parsers::str_to_enum(meas_item.trigger_quant, root[i]["trigger_quant"]));
+
+    auto& event = meas_item.trigger_type.set_event();
+
+    // Configure event
+    switch ((int)root[i]["eventA"]) {
+      case 1:
+        if (!root[i].exists("a1_thresh")) {
+          ERROR("Missing a1_thresh field for A1 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a1().a1_thres.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a1_thresh"]);
+        } else {
+          event.event_id.set_event_a1().a1_thres.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a1_thresh"]);
+        }
+        break;
+      case 2:
+        if (!root[i].exists("a2_thresh")) {
+          ERROR("Missing a2_thresh field for A2 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a2().a2_thres.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a2_thresh"]);
+        } else {
+          event.event_id.set_event_a2().a2_thres.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a2_thresh"]);
+        }
+        break;
+      case 3:
+        if (!root[i].exists("a3_offset")) {
+          ERROR("Missing a3_offset field for A3 event\n");
+          return SRSRAN_ERROR;
+        }
+        event.event_id.set_event_a3().report_on_leave = false;
+        event.event_id.event_a3().a3_offset           = (int)root[i]["a3_offset"];
+        break;
+      case 4:
+        if (!root[i].exists("a4_thresh")) {
+          ERROR("Missing a4_thresh field for A4 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a4().a4_thres.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a4_thresh"]);
+        } else {
+          event.event_id.set_event_a4().a4_thres.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a4_thresh"]);
+        }
+        break;
+      default:
+        ERROR("Invalid or unsupported event A%d in meas_report_desc (only A1-A4 are supported)\n",
+              (int)root[i]["eventA"]);
+        return SRSRAN_ERROR;
+    }
+
+    // Configure common variables
+    event.hysteresis = (int)root[i]["hysteresis"];
+    HANDLEPARSERCODE(asn1_parsers::number_to_enum(event.time_to_trigger, root[i]["time_to_trigger"]));
+    meas_item.report_quant.value = report_cfg_eutra_s::report_quant_opts::both; // TODO: parse
+    meas_item.max_report_cells   = (int)root[i]["max_report_cells"];
+    HANDLEPARSERCODE(asn1_parsers::number_to_enum(meas_item.report_interv, root[i]["report_interv"]));
+    HANDLEPARSERCODE(asn1_parsers::number_to_enum(meas_item.report_amount, root[i]["report_amount"]));
+  }
+
   // quant coeff parsing
   auto& quant = meas_cfg->quant_cfg;
-  HANDLEPARSERCODE(asn1_parsers::number_to_enum(event.time_to_trigger, root["a3_time_to_trigger"]));
-  HANDLEPARSERCODE(
-      asn1_parsers::opt_number_to_enum(quant.filt_coef_rsrp, quant.filt_coef_rsrp_present, root, "rsrp_config"));
-  HANDLEPARSERCODE(
-      asn1_parsers::opt_number_to_enum(quant.filt_coef_rsrq, quant.filt_coef_rsrq_present, root, "rsrq_config"));
+
+  HANDLEPARSERCODE(asn1_parsers::opt_number_to_enum(
+      quant.filt_coef_rsrp, quant.filt_coef_rsrp_present, cellroot["meas_quant_desc"], "rsrp_config"));
+  HANDLEPARSERCODE(asn1_parsers::opt_number_to_enum(
+      quant.filt_coef_rsrq, quant.filt_coef_rsrq_present, cellroot["meas_quant_desc"], "rsrq_config"));
 
   return SRSRAN_SUCCESS;
 }
@@ -864,7 +927,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
         ERROR("PARSER ERROR: \"ho_active\" is set to true, but field \"meas_report_desc\" doesn't exist.\n");
         return SRSRAN_ERROR;
       }
-      HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot["meas_report_desc"]));
+      HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot));
     }
 
     if (cellroot.exists("scell_list")) {

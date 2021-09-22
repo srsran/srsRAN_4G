@@ -87,14 +87,25 @@ cell_list =
       }
     );
 
-    // ReportCfg (only A3 supported)
-    meas_report_desc = {
-      a3_report_type = "RSRP";
-      a3_offset = 6;
-      a3_hysteresis = 0;
-      a3_time_to_trigger = 480;
-      rsrq_config = 4;
-    };
+    // Select measurement triggers (A3 and A4 events are all mapped to all cells in meas_cell_list)
+    meas_report_desc =
+    (
+        {
+          eventA = 3
+          a3_offset = 6;
+          hysteresis = 0;
+          time_to_trigger = 480;
+          trigger_quant = "RSRP";
+          max_report_cells = 1;
+          report_interv = 120;
+          report_amount = 1;
+        }
+    );
+    meas_quant_desc = {
+        // averaging filter coefficient
+        rsrq_config = 4;
+        rsrp_config = 4;
+     };
   }
   // Add here more cells
 );

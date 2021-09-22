@@ -258,7 +258,7 @@ int test_correct_meascfg_calculation()
                cfg.cell_list[0].meas_cfg.meas_reports[0]);
     TESTASSERT(cell_meas_cfg.meas_id_to_add_mod_list_present);
     const auto& measid = cell_meas_cfg.meas_id_to_add_mod_list[0];
-    TESTASSERT(measid.meas_id == 1 and measid.meas_obj_id == 1 and measid.report_cfg_id == 1);
+    TESTASSERT(measid.meas_id == 1 and measid.meas_obj_id == 2 and measid.report_cfg_id == 1);
 
     meas_cfg_s cell_meas_cfg2;
     ue_cell_list.set_cells({1});
