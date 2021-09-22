@@ -227,6 +227,14 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
 //! Method called whenever the eNB receives a MeasReport from the UE. In normal situations, an HO procedure is started
 void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsran::unique_byte_buffer_t pdu)
 {
+  asn1::json_writer json_writer;
+  msg.to_json(json_writer);
+  event_logger::get().log_measurement_report(
+      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+      json_writer.to_string(),
+      rrc_ue->rnti);
+
   if (not is_in_state<idle_st>()) {
     Info("Received a MeasReport while UE is performing Handover. Ignoring...");
     return;
@@ -234,7 +242,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
   // Check if meas_id is valid
   const meas_results_s& meas_res = msg.crit_exts.c1().meas_report_r8().meas_results;
   if (not meas_res.meas_result_neigh_cells_present) {
-    Info("Received a MeasReport, but the UE did not detect any cell.");
+    Debug("Received a MeasReport, but the UE did not detect any cell.");
     return;
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
@@ -279,14 +287,6 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
       break;
     }
   }
-
-  asn1::json_writer json_writer;
-  msg.to_json(json_writer);
-  event_logger::get().log_measurement_report(
-      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-      asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
-      json_writer.to_string(),
-      rrc_ue->rnti);
 }
 
 /**
