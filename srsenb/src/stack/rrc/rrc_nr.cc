@@ -500,7 +500,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 // Helper for the RRC Reconfiguration sender to pack hard-coded config
 int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
-  auto& pscell_cfg          = parent->cfg.cell_list.at(UE_PSCELL_CC_IDX);
+  auto& pscell_cfg = parent->cfg.cell_list.at(UE_PSCELL_CC_IDX);
 
   // RLC for DRB1 (with fixed LCID)
   cell_group_cfg_pack.rlc_bearer_to_add_mod_list_present = true;

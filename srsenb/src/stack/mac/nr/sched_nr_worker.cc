@@ -125,7 +125,7 @@ void slot_cc_worker::postprocess_decisions()
 {
   auto&             bwp_slot = cell.bwps[0].grid[bwp_alloc.get_pdcch_tti()];
   srsran_slot_cfg_t slot_cfg{};
-  slot_cfg.idx = bwp_alloc.get_pdcch_tti().slot_idx();
+  slot_cfg.idx = bwp_alloc.get_pdcch_tti().to_uint();
 
   for (auto& ue_pair : slot_ues) {
     auto& ue = ue_pair.second;
