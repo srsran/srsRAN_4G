@@ -661,8 +661,8 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   sr_res1.sched_request_res_id           = 1;
   sr_res1.sched_request_id               = 0;
   sr_res1.periodicity_and_offset_present = true;
-  sr_res1.periodicity_and_offset.set_sl40();
-  sr_res1.res_present                   = true;
+  sr_res1.periodicity_and_offset.set_sl40() = 8;
+  sr_res1.res_present                       = true;
 
   // DL data
   ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack_present = true;
@@ -704,8 +704,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
           resource_big, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[1], 1)) {
     parent->logger.warning("Failed to create >2 bit NR PUCCH resource");
   }
-  if (not srsran::make_phy_res_config(
-          resource_big, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[2], 2)) {
+  if (not srsran::make_phy_res_config(resource_sr, ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[2], 2)) {
     parent->logger.warning("Failed to create SR NR PUCCH resource");
   }
 
@@ -1109,9 +1108,9 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
   // UL config dedicated
   auto& ul_config                       = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
   // SR resources
-  auto& sr_res1                         = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
+  auto& sr_res1 = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
   // SR resources
-  sr_res1.periodicity_and_offset.sl40() = 7;
+  sr_res1.periodicity_and_offset.sl40() = 8;
   sr_res1.res_present                   = true;
   sr_res1.res                           = 2; // PUCCH resource for SR
 
