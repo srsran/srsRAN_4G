@@ -457,8 +457,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   return SRSRAN_SUCCESS;
 }
 
-int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::options cause,
-                                        const uint8_t*                                auth_fail_param)
+int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::options cause)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
@@ -785,10 +784,10 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 
   } else if (auth_result == AUTH_FAILED) {
     logger.error("Network authentication failure.");
-    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure, res);
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure);
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     logger.error("Network authentication synchronization failure.");
-    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure, res);
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure);
   } else {
     logger.error("Unhandled authentication failure cause");
   }
