@@ -37,9 +37,12 @@ const char* __tsan_default_options()
 
 const char* __tsan_default_suppressions()
 {
-  // External uninstrumented libraries
-  return "called_from_lib:libzmq.so\n"
-         "called_from_lib:libpgm-5.2.so\n";
+  return
+      // External uninstrumented libraries
+      "called_from_lib:libzmq.so\n"
+      "called_from_lib:libpgm-5.2.so\n"
+      // Lock order inversion issue in this function, ignore it as it uses rw locks in read mode
+      "deadlock:srsenb::mac::rlc_buffer_state\n";
 }
 
 #ifdef __cplusplus
