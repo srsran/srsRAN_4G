@@ -144,6 +144,7 @@ public:
   };
 
 private:
+  static constexpr uint32_t UE_PSCELL_CC_IDX = 0; // first NR cell is always Primary Secondary Cell for UE
   rrc_nr_cfg_t cfg = {};
 
   // interfaces
