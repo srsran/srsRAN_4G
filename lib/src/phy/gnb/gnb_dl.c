@@ -167,7 +167,7 @@ void srsran_gnb_dl_gen_signal(srsran_gnb_dl_t* q)
     return;
   }
 
-  float norm_factor = gnb_dl_get_norm_factor(q->pdcch.carrier.nof_prb);
+  float norm_factor = gnb_dl_get_norm_factor(q->pdsch.carrier.nof_prb);
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
     srsran_ofdm_tx_sf(&q->fft[i]);
