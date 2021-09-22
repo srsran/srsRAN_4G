@@ -55,8 +55,8 @@ int test_socket_handler()
   TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port));
   logger.info("Listening from fd=%d", server_socket.fd());
 
-  TESTASSERT(sctp_init_client(&client_socket, socket_type::seqpacket, "127.0.0.1", 0));
-  TESTASSERT(sctp_init_client(&client_socket2, socket_type::seqpacket, "127.0.0.2", 0));
+  TESTASSERT(sctp_init_socket(&client_socket, socket_type::seqpacket, "127.0.0.1", 0));
+  TESTASSERT(sctp_init_socket(&client_socket2, socket_type::seqpacket, "127.0.0.2", 0));
   TESTASSERT(client_socket.connect_to(server_addr, server_port));
   TESTASSERT(client_socket2.connect_to(server_addr, server_port));
 

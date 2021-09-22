@@ -86,7 +86,7 @@ protected:
 
 namespace net_utils {
 
-bool sctp_init_client(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int bind_port);
+bool sctp_init_socket(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int bind_port);
 bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port);
 
 } // namespace net_utils
