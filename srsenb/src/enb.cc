@@ -194,12 +194,15 @@ void enb::print_pool()
 
 bool enb::get_metrics(enb_metrics_t* m)
 {
+  if (!started) {
+    return false;
+  }
   radio->get_metrics(&m->rf);
   phy->get_metrics(m->phy);
   if (eutra_stack) {
     eutra_stack->get_metrics(&m->stack);
   }
-  m->running = started;
+  m->running = true;
   m->sys     = sys_proc.get_metrics();
   return true;
 }
@@ -231,6 +234,9 @@ std::string enb::get_build_string()
 
 void enb::toggle_padding()
 {
+  if (!started) {
+    return;
+  }
   if (eutra_stack) {
     eutra_stack->toggle_padding();
   }
@@ -238,6 +244,9 @@ void enb::toggle_padding()
 
 void enb::tti_clock()
 {
+  if (!started) {
+    return;
+  }
   if (eutra_stack) {
     eutra_stack->tti_clock();
   }
