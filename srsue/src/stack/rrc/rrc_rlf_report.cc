@@ -11,7 +11,7 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_rlf_report.h"
-#include "srsue/hdr/stack/rrc/rrc_common.h"
+#include "srsran/rrc/rrc_common.h"
 
 namespace srsue {
 
@@ -39,9 +39,9 @@ void rrc_rlf_report::set_failure(meas_cell_list<meas_cell_eutra>& meas_cells, fa
   // set the measResultLastServCell to include the RSRP and RSRQ, if available, of the PCell based on
   // measurements collected up to the moment the UE detected radio link failure
   rlf_report.meas_result_last_serv_cell_r9.rsrp_result_r9 =
-      rrc_value_to_range(quant_rsrp, meas_cells.serving_cell().get_rsrp());
+      rrc_value_to_range(srsran::quant_rsrp, meas_cells.serving_cell().get_rsrp());
   rlf_report.meas_result_last_serv_cell_r9.rsrq_result_r9 =
-      rrc_value_to_range(quant_rsrq, meas_cells.serving_cell().get_rsrq());
+      rrc_value_to_range(srsran::quant_rsrq, meas_cells.serving_cell().get_rsrq());
   rlf_report.meas_result_last_serv_cell_r9.rsrq_result_r9_present = true;
 
   // set the measResultNeighCells to include the best measured cells, other than the PCell, ordered such that
@@ -61,8 +61,8 @@ void rrc_rlf_report::set_failure(meas_cell_list<meas_cell_eutra>& meas_cells, fa
       meas.pci                             = f->get_pci();
       meas.meas_result.rsrp_result_present = true;
       meas.meas_result.rsrq_result_present = true;
-      meas.meas_result.rsrp_result         = rrc_value_to_range(quant_rsrp, f->get_rsrp());
-      meas.meas_result.rsrq_result         = rrc_value_to_range(quant_rsrq, f->get_rsrq());
+      meas.meas_result.rsrp_result         = rrc_value_to_range(srsran::quant_rsrp, f->get_rsrp());
+      meas.meas_result.rsrq_result         = rrc_value_to_range(srsran::quant_rsrq, f->get_rsrq());
       meas2.meas_result_list_r9.push_back(meas);
       rlf_report.meas_result_neigh_cells_r9.meas_result_list_eutra_r9.push_back(meas2);
     }

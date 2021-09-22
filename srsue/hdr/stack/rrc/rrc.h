@@ -14,7 +14,6 @@
 #define SRSUE_RRC_H
 
 #include "rrc_cell.h"
-#include "rrc_common.h"
 #include "rrc_metrics.h"
 #include "rrc_rlf_report.h"
 #include "srsran/asn1/rrc_utils.h"
@@ -26,6 +25,7 @@
 #include "srsran/common/security.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/rrc/rrc_common.h"
 #include "srsran/srslog/srslog.h"
 
 #include <map>
