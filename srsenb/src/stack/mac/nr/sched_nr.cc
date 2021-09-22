@@ -65,7 +65,9 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr(const sched_cfg_t& sched_cfg) : cfg(sched_cfg), logger(srslog::fetch_basic_logger("MAC-NR")) {}
+sched_nr::sched_nr(const sched_cfg_t& sched_cfg) :
+  cfg(sched_cfg), logger(srslog::fetch_basic_logger(sched_cfg.logger_name))
+{}
 
 sched_nr::~sched_nr() {}
 

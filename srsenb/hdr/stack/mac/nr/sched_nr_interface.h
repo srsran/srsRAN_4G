@@ -69,7 +69,7 @@ public:
     bool        pdsch_enabled      = true;
     bool        pusch_enabled      = true;
     bool        auto_refill_buffer = false;
-    std::string logger_name        = "MAC";
+    std::string logger_name        = "MAC-NR";
   };
 
   struct ue_cc_cfg_t {

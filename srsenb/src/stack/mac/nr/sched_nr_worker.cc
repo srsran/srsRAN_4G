@@ -17,7 +17,10 @@ namespace srsenb {
 namespace sched_nr_impl {
 
 slot_cc_worker::slot_cc_worker(serv_cell_manager& cc_sched) :
-  cell(cc_sched), cfg(cc_sched.cfg), bwp_alloc(cc_sched.bwps[0].grid), logger(srslog::fetch_basic_logger("MAC"))
+  cell(cc_sched),
+  cfg(cc_sched.cfg),
+  bwp_alloc(cc_sched.bwps[0].grid),
+  logger(srslog::fetch_basic_logger(cc_sched.cfg.sched_cfg.logger_name))
 {}
 
 void slot_cc_worker::enqueue_cc_event(srsran::move_callback<void()> ev)
@@ -202,7 +205,7 @@ void slot_cc_worker::postprocess_decisions()
 sched_worker_manager::sched_worker_manager(ue_map_t&                                         ue_db_,
                                            const sched_params&                               cfg_,
                                            srsran::span<std::unique_ptr<serv_cell_manager> > cells_) :
-  cfg(cfg_), ue_db(ue_db_), logger(srslog::fetch_basic_logger("MAC")), cells(cells_)
+  cfg(cfg_), ue_db(ue_db_), logger(srslog::fetch_basic_logger(cfg_.sched_cfg.logger_name)), cells(cells_)
 {
   cc_worker_list.reserve(cfg.cells.size());
   for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
