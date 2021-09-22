@@ -195,6 +195,8 @@ bool bind_addr(int fd, const sockaddr_in& addr_in)
     perror("bind()");
     return false;
   }
+  srslog::fetch_basic_logger(LOGSERVICE)
+      .debug("Successfully bound to address %s:%d", get_ip(addr_in).c_str(), get_port(addr_in));
   return true;
 }
 
@@ -206,7 +208,11 @@ bool bind_addr(int fd, const char* bind_addr_str, int port, sockaddr_in* addr_re
         .error("Failed to convert IP address (%s) to sockaddr_in struct", bind_addr_str);
     return false;
   }
-  bind_addr(fd, addr_tmp);
+
+  if (not bind_addr(fd, addr_tmp)) {
+    return false;
+  }
+
   if (addr_result != nullptr) {
     *addr_result = addr_tmp;
   }
