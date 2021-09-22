@@ -14,6 +14,7 @@
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/config.h"
+#include "srsran/support/srsran_assert.h"
 #include <list>
 #include <string>
 #include <unistd.h>
@@ -702,6 +703,13 @@ void radio::set_rx_srate(const double& srate)
       }
     }
 
+    // Assert ratio is integer
+    srsran_assert(((uint32_t)cur_rx_srate % (uint32_t)srate) == 0,
+                  "The sampling rate ratio is not integer (%.2f MHz / %.2 MHz = %.3f)",
+                  cur_rx_srate / 1e6,
+                  srate / 1e6,
+                  cur_rx_srate / srate);
+
     // Update decimators
     uint32_t ratio = (uint32_t)ceil(cur_rx_srate / srate);
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
@@ -947,6 +955,13 @@ void radio::set_tx_srate(const double& srate)
         cur_tx_srate = srsran_rf_set_tx_srate(&rf_device, fix_srate_hz);
       }
     }
+
+    // Assert ratio is integer
+    srsran_assert(((uint32_t)cur_tx_srate % (uint32_t)srate) == 0,
+                  "The sampling rate ratio is not integer (%.2f MHz / %.2 MHz = %.3f)",
+                  cur_rx_srate / 1e6,
+                  srate / 1e6,
+                  cur_rx_srate / srate);
 
     // Update interpolators
     uint32_t ratio = (uint32_t)ceil(cur_tx_srate / srate);
