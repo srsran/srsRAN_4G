@@ -66,8 +66,8 @@ public:
   bool is_endc_supported();
 
 private:
-  // Send SgNB addition request to gNB
-  bool start_sgnb_addition();
+  // Send SgNB addition request to gNB (either triggered through MeasReport or upon start)
+  void start_sgnb_addition();
 
   bool is_endc_activation_running() const { return not is_in_state<endc_deactivated_st>(); }
 

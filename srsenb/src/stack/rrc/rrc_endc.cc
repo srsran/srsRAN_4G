@@ -35,7 +35,12 @@ rrc::ue::rrc_endc::rrc_endc(rrc::ue* outer_ue, const rrc_endc_cfg_t& endc_cfg_) 
   rrc_enb(outer_ue->parent),
   logger(outer_ue->parent->logger),
   endc_cfg(endc_cfg_)
-{}
+{
+  // start SgNB activation if B1 events are disabled
+  if (endc_cfg.act_from_b1_event == false) {
+    start_sgnb_addition();
+  }
+}
 
 //! Method to add NR fields to a RRC Connection Reconfiguration Message
 bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg)
@@ -237,6 +242,11 @@ void rrc::ue::rrc_endc::handle_ue_meas_report(const meas_report_s& msg)
     return;
   }
 
+  start_sgnb_addition();
+}
+
+void rrc::ue::rrc_endc::start_sgnb_addition()
+{
   // Start EN-DC activation using EPS bearer of EUTRA DRB1
   rrc_nr_interface_rrc::sgnb_addition_req_params_t params = {};
   params.eps_bearer_id =
