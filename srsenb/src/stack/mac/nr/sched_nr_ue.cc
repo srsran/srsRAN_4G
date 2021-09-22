@@ -119,10 +119,12 @@ void ue::new_slot(slot_point pdcch_slot)
       auto& cc = carriers[ue_cc_cfg.cc];
       if (cc != nullptr) {
         // Discount UL HARQ pending bytes to BSR
-        for (uint32_t pid = 0; pid < cc->harq_ent.nof_dl_harqs(); ++pid) {
-          ul_pending_bytes -= cc->harq_ent.ul_harq(pid).tbs();
-          if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {
-            last_sr_slot.clear();
+        for (uint32_t pid = 0; pid < cc->harq_ent.nof_ul_harqs(); ++pid) {
+          if (not cc->harq_ent.ul_harq(pid).empty()) {
+            ul_pending_bytes -= cc->harq_ent.ul_harq(pid).tbs();
+            if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {
+              last_sr_slot.clear();
+            }
           }
         }
       }
