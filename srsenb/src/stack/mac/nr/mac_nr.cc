@@ -169,6 +169,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
     sched.dl_rach_info(enb_cc_idx, rar_info);
+    rrc->add_user(rnti);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,

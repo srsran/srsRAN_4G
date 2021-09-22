@@ -43,6 +43,8 @@ public:
 
   int ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override { return SRSRAN_SUCCESS; }
 
+  int remove_ue(uint16_t rnti) override { return SRSRAN_SUCCESS; }
+
   srsenb::sched_interface::cell_cfg_t cellcfgobj;
 };
 

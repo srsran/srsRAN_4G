@@ -158,6 +158,24 @@ int rrc_nr::add_user(uint16_t rnti)
   }
 }
 
+void rrc_nr::rem_user(uint16_t rnti)
+{
+  auto user_it = users.find(rnti);
+  if (user_it != users.end()) {
+    printf("Disconnecting rnti=0x%x.\n", rnti);
+    logger.info("Disconnecting rnti=0x%x.", rnti);
+    /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
+     */
+    mac->remove_ue(rnti); // MAC handles PHY
+    rlc->rem_user(rnti);
+    pdcp->rem_user(rnti);
+    users.erase(rnti);
+    logger.info("Removed user rnti=0x%x", rnti);
+  } else {
+    logger.error("Removing user rnti=0x%x (does not exist)", rnti);
+  }
+}
+
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
  * valid RNTI.
  */
@@ -166,8 +184,7 @@ int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
   // Remove new_rnti
   auto new_ue_it = users.find(new_rnti);
   if (new_ue_it != users.end()) {
-    // TODO: cleanup new user?
-    return SRSRAN_ERROR;
+    task_sched.defer_task([this, new_rnti]() { rem_user(new_rnti); });
   }
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here

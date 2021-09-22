@@ -54,6 +54,7 @@ public:
   uint16_t reserve_rnti(uint32_t enb_cc_idx) override;
   int      read_pdu_bcch_bch(uint8_t* payload);
   int      ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override;
+  int      remove_ue(uint16_t rnti) override;
 
   // MAC interface for RLC
   // TODO:
@@ -71,7 +72,6 @@ public:
 private:
   uint16_t add_ue_(uint32_t enb_cc_idx);
   uint16_t alloc_ue(uint32_t enb_cc_idx);
-  int      remove_ue(uint16_t rnti);
 
   // internal misc helpers
   bool is_rnti_valid_unsafe(uint16_t rnti);
