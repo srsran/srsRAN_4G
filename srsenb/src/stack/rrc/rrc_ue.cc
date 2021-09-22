@@ -87,7 +87,8 @@ int rrc::ue::init()
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
   if (parent->rrc_nr != nullptr) {
-    endc_handler = make_rnti_obj<rrc_endc>(rnti, this);
+    rrc::ue::rrc_endc::rrc_endc_cfg_t endc_cfg = {}; // TODO: set or derive parameter in eNB config
+    endc_handler                               = make_rnti_obj<rrc_endc>(rnti, this, endc_cfg);
   }
 
   return SRSRAN_SUCCESS;
