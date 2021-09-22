@@ -36,6 +36,7 @@ public:
   void reestablish() override;
   void reestablish(uint32_t lcid) override;
   void reset() override;
+  void set_enabled(uint32_t lcid, bool enabled) override;
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn = -1) override;
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   int  add_bearer(uint32_t lcid, pdcp_config_t cnfg) override;

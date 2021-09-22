@@ -134,6 +134,11 @@ void pdcp_entity_lte::reset()
 // GW/RRC interface
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
 {
+  if (!active) {
+    logger.warning("Dropping %s SDU due to inactive bearer", rrc->get_rb_name(lcid));
+    return;
+  }
+
   if (rlc->sdu_queue_is_full(lcid)) {
     logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid));
     return;
@@ -216,6 +221,11 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
 // RLC interface
 void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 {
+  if (!active) {
+    logger.warning("Dropping %s PDU due to inactive bearer", rrc->get_rb_name(lcid));
+    return;
+  }
+
   // Handle control PDUs
   if (is_drb() && is_control_pdu(pdu)) {
     logger.info("Handling PDCP control PDU");

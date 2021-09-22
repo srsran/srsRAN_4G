@@ -24,6 +24,7 @@ public:
   virtual void reestablish()                                                                                        = 0;
   virtual void reestablish(uint32_t lcid)                                                                           = 0;
   virtual void reset()                                                                                              = 0;
+  virtual void set_enabled(uint32_t lcid, bool enabled)                                                             = 0;
   virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1)                              = 0;
   virtual int  add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg)                                                = 0;
   virtual void del_bearer(uint32_t lcid)                                                                            = 0;
