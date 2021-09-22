@@ -236,6 +236,22 @@ bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* d
   return true;
 }
 
+bool start_listen(int fd)
+{
+  if (fd < 0) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Tried to listen for connections with an invalid socket.");
+    return false;
+  }
+
+  // Listen for connections
+  if (listen(fd, SOMAXCONN) != 0) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to listen to incoming SCTP connections");
+    perror("listen()");
+    return false;
+  }
+  return true;
+}
+
 } // namespace net_utils
 
 /********************************************
@@ -260,6 +276,18 @@ unique_socket& unique_socket::operator=(unique_socket&& other) noexcept
   return *this;
 }
 
+bool unique_socket::open_socket(net_utils::addr_family   ip_type,
+                                net_utils::socket_type   socket_type,
+                                net_utils::protocol_type protocol)
+{
+  if (is_open()) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Socket is already open.");
+    return false;
+  }
+  sockfd = net_utils::open_socket(ip_type, socket_type, protocol);
+  return is_open();
+}
+
 void unique_socket::close()
 {
   if (sockfd >= 0) {
@@ -279,16 +307,9 @@ bool unique_socket::connect_to(const char* dest_addr_str, int dest_port, sockadd
   return net_utils::connect_to(sockfd, dest_addr_str, dest_port, dest_sockaddr);
 }
 
-bool unique_socket::open_socket(net_utils::addr_family   ip_type,
-                                net_utils::socket_type   socket_type,
-                                net_utils::protocol_type protocol)
+bool unique_socket::start_listen()
 {
-  if (is_open()) {
-    srslog::fetch_basic_logger(LOGSERVICE).error("Socket is already open.");
-    return false;
-  }
-  sockfd = net_utils::open_socket(ip_type, socket_type, protocol);
-  return is_open();
+  return net_utils::start_listen(sockfd);
 }
 
 /***********************************************************************
@@ -297,31 +318,13 @@ bool unique_socket::open_socket(net_utils::addr_family   ip_type,
 
 namespace net_utils {
 
-bool sctp_init_socket(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port)
+bool sctp_init_socket(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int bind_port)
 {
   if (not socket->open_socket(net_utils::addr_family::ipv4, socktype, net_utils::protocol_type::SCTP)) {
     return false;
   }
-  if (not socket->bind_addr(bind_addr_str, port)) {
+  if (not socket->bind_addr(bind_addr_str, bind_port)) {
     socket->close();
-    return false;
-  }
-  return true;
-}
-
-bool sctp_init_client(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int bind_port)
-{
-  return sctp_init_socket(socket, socktype, bind_addr_str, bind_port);
-}
-
-bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port)
-{
-  if (not sctp_init_socket(socket, socktype, bind_addr_str, port)) {
-    return false;
-  }
-  // Listen for connections
-  if (listen(socket->fd(), SOMAXCONN) != 0) {
-    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to listen to incoming SCTP connections");
     return false;
   }
   return true;
