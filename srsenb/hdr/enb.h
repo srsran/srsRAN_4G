@@ -148,7 +148,7 @@ public:
 private:
   const static int ENB_POOL_SIZE = 1024 * 10;
 
-  int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg);
+  int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg_, rrc_nr_cfg_t& rrc_cfg_nr_);
 
   srslog::sink&         log_sink;
   srslog::basic_logger& enb_log;

@@ -14,6 +14,7 @@
 #define SRSRAN_RRC_CONFIG_NR_H
 
 #include "srsran/asn1/rrc_nr.h"
+#include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include "srsue/hdr/phy/phy_common.h"
 
 namespace srsenb {
@@ -34,7 +35,7 @@ struct rrc_nr_cfg_t {
   uint32_t                                                nof_sibs;
   rrc_nr_cfg_sr_t                                         sr_cfg;
   rrc_cfg_cqi_t                                           cqi_cfg;
-  srsran_cell_t                                           cell;
+  rrc_cell_list_nr_t                                      cell_list;
 
   std::string log_level;
   uint32_t    log_hex_limit;

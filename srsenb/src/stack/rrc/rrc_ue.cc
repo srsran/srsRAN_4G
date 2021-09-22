@@ -377,8 +377,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info()) == SRSRAN_SUCCESS) {
-        if (not parent->cfg.cell_list_nr.empty() && endc_handler->is_endc_supported() &&
-            state == RRC_STATE_WAIT_FOR_UE_CAP_INFO) {
+        if (endc_handler != nullptr && endc_handler->is_endc_supported() && state == RRC_STATE_WAIT_FOR_UE_CAP_INFO) {
           // request EUTRA-NR and NR capabilities as well
           send_ue_cap_enquiry({asn1::rrc::rat_type_opts::options::eutra_nr, asn1::rrc::rat_type_opts::options::nr});
           state = RRC_STATE_WAIT_FOR_UE_CAP_INFO_ENDC; // avoid endless loop

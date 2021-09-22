@@ -110,14 +110,6 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   cfg_default.mib.dmrs_type_a_position.value       = mib_s::dmrs_type_a_position_opts::pos2;
   cfg_default.mib.sys_frame_num.from_number(0);
 
-  cfg_default.cell.nof_prb         = 25;
-  cfg_default.cell.nof_ports       = 1;
-  cfg_default.cell.id              = 0;
-  cfg_default.cell.cp              = SRSRAN_CP_NORM;
-  cfg_default.cell.frame_type      = SRSRAN_FDD;
-  cfg_default.cell.phich_length    = SRSRAN_PHICH_NORM;
-  cfg_default.cell.phich_resources = SRSRAN_PHICH_R_1;
-
   // Fill SIB1
   cfg_default.sib1.cell_access_related_info.plmn_id_list.resize(1);
   cfg_default.sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.resize(1);
@@ -226,7 +218,7 @@ void rrc_nr::config_mac()
   logger.info("Allocating %d PRBs for PUCCH", cell_cfg.nrb_pucch);
 
   // Copy Cell configuration
-  cell_cfg.cell = cfg.cell;
+  // cell_cfg.cell = cfg.cell;
 
   // Configure MAC/scheduler
   mac->cell_cfg(sched_cells_cfg);

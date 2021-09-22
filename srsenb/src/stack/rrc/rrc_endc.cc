@@ -169,7 +169,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 void rrc::ue::rrc_endc::handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps)
 {
   // skip any further checks if eNB runs without NR cells
-  if (rrc_enb->cfg.cell_list_nr.empty()) {
+  if (rrc_enb->cfg.num_nr_cells == 0) {
     Debug("Skipping UE capabilities. No NR cell configured.");
     return;
   }

@@ -635,7 +635,7 @@ int field_qci::parse(libconfig::Setting& root)
 
 namespace rr_sections {
 
-int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
+int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 {
   /* Transmission mode config section */
   if (args_->enb.transmission_mode < 1 || args_->enb.transmission_mode > 4) {
@@ -750,7 +750,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   bool            nr_cell_cnfg_present = false;
   parser::section nr_cell_cnfg("nr_cell_list");
   nr_cell_cnfg.set_optional(&nr_cell_cnfg_present);
-  nr_cell_cnfg.add_field(new rr_sections::nr_cell_list_section(args_, rrc_cfg_));
+  nr_cell_cnfg.add_field(new rr_sections::nr_cell_list_section(args_, rrc_nr_cfg_, rrc_cfg_));
 
   // Run parser with two sections
   parser p(args_->enb_files.rr_config);
@@ -894,46 +894,54 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
   return SRSRAN_SUCCESS;
 }
 
-static int parse_nr_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
+static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cfg_t* rrc_cfg_eutra, Setting& root)
 {
   for (uint32_t n = 0; n < (uint32_t)root.getLength(); ++n) {
-    cell_cfg_t cell_cfg = {};
+    rrc_cell_cfg_nr_t cell_cfg = {};
     auto&      cellroot = root[n];
 
-    parse_opt_field(cell_cfg.rf_port, cellroot, "rf_port");
-    HANDLEPARSERCODE(parse_required_field(cell_cfg.cell_id, cellroot, "cell_id"));
+    parse_opt_field(cell_cfg.phy_cell.rf_port, cellroot, "rf_port");
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.carrier.pci, cellroot, "pci"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.cell_id, cellroot, "cell_id"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.root_seq_idx, cellroot, "root_seq_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
-    HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
-    cell_cfg.pci = cell_cfg.pci % SRSRAN_NOF_NID_NR;
-    HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_arfcn"));
+
+    cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_arfcn, cellroot, "dl_arfcn"));
     // frequencies get derived from ARFCN
 
-    // Add further cell-specific parameters
+    // TODO: Add further cell-specific parameters
 
-    rrc_cfg->cell_list_nr.push_back(cell_cfg);
+    rrc_cfg_nr->cell_list.push_back(cell_cfg);
   }
 
   // Configuration check
-  for (auto it = rrc_cfg->cell_list_nr.begin(); it != rrc_cfg->cell_list_nr.end(); ++it) {
+  for (auto it = rrc_cfg_nr->cell_list.begin(); it != rrc_cfg_nr->cell_list.end(); ++it) {
     // check against NR cells
-    for (auto it2 = it + 1; it2 != rrc_cfg->cell_list_nr.end(); it2++) {
+    for (auto it2 = it + 1; it2 != rrc_cfg_nr->cell_list.end(); it2++) {
       // Check RF port is not repeated
-      if (it->rf_port == it2->rf_port) {
+      if (it->phy_cell.rf_port == it2->phy_cell.rf_port) {
         ERROR("Repeated RF port for multiple cells");
         return SRSRAN_ERROR;
       }
 
-      // Check cell ID is not repeated
-      if (it->cell_id == it2->cell_id) {
+      // Check cell PCI not repeated
+      if (it->phy_cell.carrier.pci == it2->phy_cell.carrier.pci) {
+        ERROR("Repeated cell PCI");
+        return SRSRAN_ERROR;
+      }
+
+      // Check cell PCI and cell ID is not repeated
+      if (it->phy_cell.cell_id == it2->phy_cell.cell_id) {
         ERROR("Repeated Cell identifier");
         return SRSRAN_ERROR;
       }
     }
 
     // also check RF port against EUTRA cells
-    for (auto it_eutra = rrc_cfg->cell_list.begin(); it_eutra != rrc_cfg->cell_list.end(); ++it_eutra) {
+    for (auto it_eutra = rrc_cfg_eutra->cell_list.begin(); it_eutra != rrc_cfg_eutra->cell_list.end(); ++it_eutra) {
       // Check RF port is not repeated
-      if (it->rf_port == it_eutra->rf_port) {
+      if (it->phy_cell.rf_port == it_eutra->rf_port) {
         ERROR("Repeated RF port for multiple cells");
         return SRSRAN_ERROR;
       }
@@ -951,7 +959,7 @@ int cell_list_section::parse(libconfig::Setting& root)
 
 int nr_cell_list_section::parse(libconfig::Setting& root)
 {
-  HANDLEPARSERCODE(parse_nr_cell_list(args, rrc_cfg, root));
+  HANDLEPARSERCODE(parse_nr_cell_list(args, nr_rrc_cfg, eutra_rrc_cfg, root));
   return 0;
 }
 
@@ -990,7 +998,7 @@ int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell)
   return SRSRAN_SUCCESS;
 }
 
-int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
+int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_)
 {
   // Parse config files
   srsran_cell_t cell_common_cfg = {};
@@ -1022,7 +1030,7 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
   }
 
   try {
-    if (rr_sections::parse_rr(args_, rrc_cfg_) != SRSRAN_SUCCESS) {
+    if (rr_sections::parse_rr(args_, rrc_cfg_, rrc_nr_cfg_) != SRSRAN_SUCCESS) {
       fprintf(stderr, "Error parsing Radio Resources configuration\n");
       return SRSRAN_ERROR;
     }
@@ -1048,7 +1056,22 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
   }
 
   // Set fields derived from others, and check for correctness of the parsed configuration
-  return enb_conf_sections::set_derived_args(args_, rrc_cfg_, phy_cfg_, cell_common_cfg);
+  if (enb_conf_sections::set_derived_args(args_, rrc_cfg_, phy_cfg_, cell_common_cfg) != SRSRAN_SUCCESS) {
+    fprintf(stderr, "Error deriving EUTRA cell parameters\n");
+    return SRSRAN_ERROR;
+  }
+
+  // do the same for NR
+  if (enb_conf_sections::set_derived_args_nr(args_, rrc_nr_cfg_, phy_cfg_) != SRSRAN_SUCCESS) {
+    fprintf(stderr, "Error deriving NR cell parameters\n");
+    return SRSRAN_ERROR;
+  }
+
+  // update number of NR cells
+  rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.size();
+  args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_nr_cfg_->cell_list.size();
+
+  return SRSRAN_SUCCESS;
 }
 
 int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_)
@@ -1153,59 +1176,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     }
 
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
-  }
-
-  // Use helper class to derive NR carrier parameters
-  srsran::srsran_band_helper band_helper;
-
-  // Create NR dedicated cell configuration from RRC configuration
-  for (auto it = rrc_cfg_->cell_list_nr.begin(); it != rrc_cfg_->cell_list_nr.end(); ++it) {
-    auto&             cfg                = *it;
-    phy_cell_cfg_nr_t phy_cell_cfg       = {};
-    phy_cell_cfg.carrier.max_mimo_layers = cell_cfg_.nof_ports;
-    switch (cell_cfg_.nof_prb) {
-      case 25:
-        phy_cell_cfg.carrier.nof_prb = 25;
-        break;
-      case 50:
-        phy_cell_cfg.carrier.nof_prb = 52;
-        break;
-      case 100:
-        phy_cell_cfg.carrier.nof_prb = 106;
-        break;
-      default:
-        ERROR("The only accepted number of PRB is: 25, 50, 100");
-        return SRSRAN_ERROR;
-    }
-    phy_cell_cfg.carrier.pci  = cfg.pci;
-    phy_cell_cfg.cell_id      = cfg.cell_id;
-    phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
-    phy_cell_cfg.rf_port      = cfg.rf_port;
-    phy_cell_cfg.num_ra_preambles =
-        rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
-
-    if (cfg.dl_freq_hz > 0) {
-      phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
-    } else {
-      phy_cell_cfg.dl_freq_hz = band_helper.nr_arfcn_to_freq(cfg.dl_earfcn);
-    }
-
-    if (cfg.ul_freq_hz > 0) {
-      phy_cell_cfg.ul_freq_hz = cfg.ul_freq_hz;
-    } else {
-      // auto-detect UL frequency
-      if (cfg.ul_earfcn == 0) {
-        // derive UL ARFCN from given DL ARFCN
-        cfg.ul_earfcn = band_helper.get_ul_arfcn_from_dl_arfcn(cfg.dl_earfcn);
-        if (cfg.ul_earfcn == 0) {
-          ERROR("Can't derive UL ARFCN from DL ARFCN %d", cfg.dl_earfcn);
-          return SRSRAN_ERROR;
-        }
-      }
-      phy_cell_cfg.ul_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ul_earfcn);
-    }
-
-    phy_cfg_->phy_cell_cfg_nr.push_back(phy_cell_cfg);
   }
 
   if (args_->enb.transmission_mode == 1) {
@@ -1318,7 +1288,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   }
 
   // Patch certain args that are not exposed yet
-  args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_cfg_->cell_list_nr.size();
   args_->rf.nof_antennas = args_->enb.nof_ports;
 
   // MAC needs to know the cell bandwidth to dimension softbuffers
@@ -1339,6 +1308,69 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   } else {
     // use default size
     args_->stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+/**
+ * @brief Set the derived args for the NR RRC and PHY config
+ *
+ * Mainly configures the RRC parameter based on the arguments and config files
+ * read. Since for NSA we are still using a commong PHY between EUTRA and NR
+ * the PHY configuration is also updated accordingly.
+ *
+ * @param args_
+ * @param nr_rrc_cfg
+ * @param phy_cfg_
+ * @return int
+ */
+int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
+{
+  // Use helper class to derive NR carrier parameters
+  srsran::srsran_band_helper band_helper;
+
+  // Create NR dedicated cell configuration from RRC configuration
+  for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {
+    auto& cfg                            = *it;
+    cfg.phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
+
+    // NR cells have the same bandwidth as EUTRA cells, adjust PRB sizes
+    switch (args_->enb.n_prb) {
+      case 25:
+        cfg.phy_cell.carrier.nof_prb = 25;
+        break;
+      case 50:
+        cfg.phy_cell.carrier.nof_prb = 52;
+        break;
+      case 100:
+        cfg.phy_cell.carrier.nof_prb = 106;
+        break;
+      default:
+        ERROR("The only accepted number of PRB is: 25, 50, 100");
+        return SRSRAN_ERROR;
+    }
+    // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
+    cfg.phy_cell.num_ra_preambles = 52; // FIXME: read from config
+
+    if (cfg.phy_cell.dl_freq_hz == 0) {
+      cfg.phy_cell.dl_freq_hz = band_helper.nr_arfcn_to_freq(cfg.dl_arfcn);
+    }
+
+    if (cfg.phy_cell.ul_freq_hz == 0) {
+      // auto-detect UL frequency
+      if (cfg.ul_arfcn == 0) {
+        // derive UL ARFCN from given DL ARFCN
+        cfg.ul_arfcn = band_helper.get_ul_arfcn_from_dl_arfcn(cfg.dl_arfcn);
+        if (cfg.ul_arfcn == 0) {
+          ERROR("Can't derive UL ARFCN from DL ARFCN %d", cfg.dl_arfcn);
+          return SRSRAN_ERROR;
+        }
+      }
+      cfg.phy_cell.ul_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ul_arfcn);
+    }
+
+    phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
 
   return SRSRAN_SUCCESS;

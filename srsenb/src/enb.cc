@@ -43,7 +43,7 @@ int enb::init(const all_args_t& args_)
   enb_log.info("%s", get_build_string().c_str());
 
   // Validate arguments
-  if (parse_args(args_, rrc_cfg)) {
+  if (parse_args(args_, rrc_cfg, rrc_nr_cfg)) {
     srsran::console("Error processing arguments.\n");
     return SRSRAN_ERROR;
   }
@@ -63,7 +63,7 @@ int enb::init(const all_args_t& args_)
   }
 
   std::unique_ptr<gnb_stack_nr> tmp_nr_stack;
-  if (not rrc_cfg.cell_list_nr.empty()) {
+  if (not rrc_nr_cfg.cell_list.empty()) {
     // add NR stack
     tmp_nr_stack.reset(new gnb_stack_nr(log_sink));
     if (tmp_nr_stack == nullptr) {
@@ -175,11 +175,11 @@ void enb::stop()
   }
 }
 
-int enb::parse_args(const all_args_t& args_, rrc_cfg_t& _rrc_cfg)
+int enb::parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg_, rrc_nr_cfg_t& rrc_cfg_nr_)
 {
   // set member variable
   args = args_;
-  return enb_conf_sections::parse_cfg_files(&args, &_rrc_cfg, &phy_cfg);
+  return enb_conf_sections::parse_cfg_files(&args, &rrc_cfg_, &rrc_cfg_nr_, &phy_cfg);
 }
 
 void enb::start_plot()
