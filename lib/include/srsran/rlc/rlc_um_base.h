@@ -165,6 +165,7 @@ protected:
   bool tx_enabled = false;
   bool rx_enabled = false;
 
+  std::mutex           metrics_mutex;
   rlc_bearer_metrics_t metrics = {};
 };
 

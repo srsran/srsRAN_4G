@@ -82,15 +82,18 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu)
 {
   if (not tx_enabled || not tx) {
     logger.debug("%s is currently deactivated. Dropping SDU (%d B)", rb_name.c_str(), sdu->N_bytes);
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_lost_sdus++;
     return;
   }
 
   int sdu_bytes = sdu->N_bytes; //< Store SDU length for book-keeping
   if (tx->try_write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_tx_sdus++;
     metrics.num_tx_sdu_bytes += sdu_bytes;
   } else {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_lost_sdus++;
   }
 }
@@ -102,6 +105,7 @@ void rlc_um_base::discard_sdu(uint32_t discard_sn)
     return;
   }
   tx->discard_sdu(discard_sn);
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics.num_lost_sdus++;
 }
 
@@ -135,6 +139,7 @@ uint32_t rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (tx && tx_enabled) {
     uint32_t len = tx->build_data_pdu(payload, nof_bytes);
     if (len > 0) {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
       metrics.num_tx_pdu_bytes += len;
       metrics.num_tx_pdus++;
     }
@@ -146,19 +151,24 @@ uint32_t rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 void rlc_um_base::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   if (rx && rx_enabled) {
-    metrics.num_rx_pdus++;
-    metrics.num_rx_pdu_bytes += nof_bytes;
+    {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
+      metrics.num_rx_pdus++;
+      metrics.num_rx_pdu_bytes += nof_bytes;
+    }
     rx->handle_data_pdu(payload, nof_bytes);
   }
 }
 
 rlc_bearer_metrics_t rlc_um_base::get_metrics()
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   return metrics;
 }
 
 void rlc_um_base::reset_metrics()
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics = {};
 }
 
