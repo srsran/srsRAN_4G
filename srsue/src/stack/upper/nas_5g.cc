@@ -655,18 +655,33 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
 
   nas_5gs_msg          nas_msg;
   identity_response_t& identity_response = nas_msg.set_identity_response();
-  if (identity_type == identity_type_5gs_t::identity_types::suci) {
-    srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci = identity_response.mobile_identity.suci();
-    suci.supi_format = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
-    usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
-    usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
-
-    suci.scheme_output.resize(5);
-  }
-
-  else {
-    logger.error("Unhandled identity type for identity response");
-    return SRSRAN_ERROR;
+  
+  switch (identity_type) {
+    case (identity_type_5gs_t::identity_types_::suci): {
+      srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci = identity_response.mobile_identity.set_suci();
+      suci.supi_format = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
+      usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+      usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+      suci.scheme_output.resize(5);
+      usim->get_home_msin_bcd(suci.scheme_output.data(), 5);
+    } break;
+    case (identity_type_5gs_t::identity_types_::guti_5g): {
+      srsran::nas_5g::mobile_identity_5gs_t::guti_5g_s& guti = identity_response.mobile_identity.set_guti_5g();
+      guti                                                   = guti_5g;
+    } break;
+    case (identity_type_5gs_t::identity_types_::imei): {
+      srsran::nas_5g::mobile_identity_5gs_t::imei_s& imei = identity_response.mobile_identity.set_imei();
+      usim->get_imei_vec(imei.imei.data(), 15);
+    } break;
+    case (identity_type_5gs_t::identity_types_::imeisv): {
+      srsran::nas_5g::mobile_identity_5gs_t::imeisv_s& imeisv = identity_response.mobile_identity.set_imeisv();
+      usim->get_imei_vec(imeisv.imeisv.data(), 15);
+      imeisv.imeisv[14] = ue_svn_oct1;
+      imeisv.imeisv[15] = ue_svn_oct2;
+    } break;
+    default:
+      logger.warning("Unhandled identity type for identity response");
+      return SRSRAN_ERROR;
   }
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
