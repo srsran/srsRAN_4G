@@ -152,48 +152,49 @@ void slot_cc_worker::postprocess_decisions()
       continue;
     }
 
-    if (ue.h_ul != nullptr and ue.h_ul->harq_slot_tx() == ue.pusch_slot) {
-      // PUSCH was allocated. Insert UCI in PUSCH
-      for (auto& pusch : bwp_slot.puschs) {
-        if (pusch.sch.grant.rnti == ue.rnti) {
-          // Put UCI configuration in PUSCH config
-          if (not ue.cfg->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
-            logger.error("Error setting UCI configuration in PUSCH");
-            continue;
-          }
-          break;
-        }
-      }
-    } else {
-      // If any UCI information is triggered, schedule PUCCH
-      if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
-        bwp_slot.pucch.emplace_back();
-        mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
+    if (uci_cfg.ack.count == 0 and uci_cfg.nof_csi == 0 and uci_cfg.o_sr == 0) {
+      continue;
+    }
 
-        uci_cfg.pucch.rnti = ue.rnti;
+    bool has_pusch = false;
+    for (auto& pusch : bwp_slot.puschs) {
+      if (pusch.sch.grant.rnti == ue.rnti) {
+        // Put UCI configuration in PUSCH config
+        has_pusch = true;
+        if (not ue.cfg->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
+          logger.error("Error setting UCI configuration in PUSCH");
+          continue;
+        }
+        break;
+      }
+    }
+    if (not has_pusch) {
+      // If any UCI information is triggered, schedule PUCCH
+      bwp_slot.pucch.emplace_back();
+      mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
+
+      uci_cfg.pucch.rnti = ue.rnti;
+      pucch.candidates.emplace_back();
+      pucch.candidates.back().uci_cfg = uci_cfg;
+      if (not ue.cfg->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+        logger.error("Error getting UCI CFG");
+        continue;
+      }
+
+      // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
+      if (uci_cfg.o_sr > 0 and uci_cfg.ack.count > 0 and
+          pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+        // Set SR negative
+        if (uci_cfg.o_sr > 0) {
+          uci_cfg.sr_positive_present = false;
+        }
+
+        // Append new resource
         pucch.candidates.emplace_back();
         pucch.candidates.back().uci_cfg = uci_cfg;
         if (not ue.cfg->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
           logger.error("Error getting UCI CFG");
           continue;
-        }
-
-        // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
-        if (uci_cfg.o_sr > 0 and uci_cfg.ack.count > 0 and
-            pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
-          // Set SR negative
-          if (uci_cfg.o_sr > 0) {
-            uci_cfg.sr_positive_present = false;
-          }
-
-          // Append new resource
-          pucch.candidates.emplace_back();
-          pucch.candidates.back().uci_cfg = uci_cfg;
-          if (not ue.cfg->phy().get_pucch_uci_cfg(
-                  slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
-            logger.error("Error getting UCI CFG");
-            continue;
-          }
         }
       }
     }

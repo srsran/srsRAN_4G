@@ -61,7 +61,6 @@ public:
   int rlc_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) override;
 
   // Interface for PHY
-  void process_pdus();
   int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
   int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
   int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;

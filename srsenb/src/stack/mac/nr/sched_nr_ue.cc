@@ -86,6 +86,10 @@ ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) :
   rnti(rnti_), sched_cfg(sched_cfg_), buffers(srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
 {
   set_cfg(cfg);
+
+  mac_lc_ch_cfg_t lch{};
+  lch.direction = mac_lc_ch_cfg_t::BOTH;
+  buffers.config_lcid(0, lch);
 }
 
 void ue::set_cfg(const ue_cfg_t& cfg)

@@ -1269,7 +1269,7 @@ static uint32_t dci_nr_format_1_0_to_str(const srsran_dci_dl_nr_t* dci, char* st
 
   // HARQ process number – 4 bits
   if (rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_tc) {
-    len = srsran_print_check(str, str_len, len, "harq_id=%d ", dci->harq_feedback);
+    len = srsran_print_check(str, str_len, len, "harq_id=%d ", dci->pid);
   }
 
   // System information indicator – 1 bit

@@ -267,6 +267,12 @@ bool mac_nr::is_rnti_active_unsafe(uint16_t rnti)
   return ue_db[rnti]->is_active();
 }
 
+int mac_nr::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
+{
+  sched.dl_buffer_state(rnti, lc_id, tx_queue, retx_queue);
+  return SRSRAN_SUCCESS;
+}
+
 int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
   return 0;

@@ -257,8 +257,7 @@ public:
 
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_lte : public mac_interface_phy_lte
-{
-};
+{};
 
 } // namespace srsenb
 
