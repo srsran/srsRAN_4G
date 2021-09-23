@@ -68,7 +68,7 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
   if (logger.info.enabled()) {
     fmt::memory_buffer str_buffer;
     mac_pdu_ul.to_string(str_buffer);
-    logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
+    logger.info("Rx PDU: rnti=0x%x, %s", rnti, srsran::to_c_str(str_buffer));
   }
 
   for (uint32_t i = 0; i < mac_pdu_ul.get_num_subpdus(); ++i) {
@@ -86,7 +86,7 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         if (true /*sched->ue_exists(c_crnti)*/) {
           rrc->update_user(rnti, c_rnti);
           rnti = c_rnti;
-          sched->ul_bsr(rnti, 0, 1); // provide UL grant regardless of other BSR content for UE to complete RA
+          sched->ul_sr_info(rnti); // provide UL grant regardless of other BSR content for UE to complete RA
         } else {
           logger.warning("Updating user C-RNTI: rnti=0x%x already released.", c_rnti);
           // Disable scheduling for all bearers. The new rnti will be removed on msg3 timer expiry in the RRC
@@ -99,10 +99,6 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
         srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
         uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
-        // FIXME: a UE might send a zero BSR but still needs an UL grant to finish RA procedure
-        if (buffer_size_bytes == 0) {
-          buffer_size_bytes++;
-        }
         sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
@@ -172,8 +168,8 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
 
   // set PCell sector id
   std::array<int, SRSRAN_MAX_CARRIERS> cc_list; //= sched->get_enb_ue_cc_map(rnti);
-  auto                                 it      = std::find(cc_list.begin(), cc_list.end(), 0);
-  ue_metrics.cc_idx                            = std::distance(cc_list.begin(), it);
+  auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
+  ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
   *metrics_ = ue_metrics;
 

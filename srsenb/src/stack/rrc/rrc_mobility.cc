@@ -239,7 +239,6 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
       meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
-    Error("MeasReports regarding non-EUTRA are not supported!");
     return;
   }
   const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
@@ -861,11 +860,11 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     if (ho_req.transparent_container->erab_info_list_present) {
       const auto& lst = ho_req.transparent_container->erab_info_list;
       const auto* it  = std::find_if(
-           lst.begin(),
-           lst.end(),
-           [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+          lst.begin(),
+          lst.end(),
+          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
             return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
-           });
+          });
       if (it == lst.end()) {
         continue;
       }
@@ -1044,7 +1043,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     const auto& drbs   = rrc_ue->bearer_list.get_established_drbs();
     lte_drb     drbid  = lte_lcid_to_drb(erab_it->second.lcid);
     auto        drb_it = std::find_if(
-               drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
+        drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
     if (drb_it == drbs.end()) {
       logger.warning("The DRB id=%d does not exist", drbid);
     }

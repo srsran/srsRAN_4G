@@ -163,9 +163,9 @@ void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
   sched_workers->enqueue_cc_feedback(rnti, cc, [pid, crc](ue_carrier& ue_cc) { ue_cc.harq_ent.ul_crc_info(pid, crc); });
 }
 
-void sched_nr::ul_sr_info(slot_point slot_rx, uint16_t rnti)
+void sched_nr::ul_sr_info(uint16_t rnti)
 {
-  sched_workers->enqueue_event(rnti, [this, rnti, slot_rx]() { ue_db[rnti]->ul_sr_info(slot_rx); });
+  sched_workers->enqueue_event(rnti, [this, rnti]() { ue_db[rnti]->ul_sr_info(); });
 }
 
 void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)

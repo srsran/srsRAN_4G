@@ -100,6 +100,8 @@ void ue::set_cfg(const ue_cfg_t& cfg)
 
 void ue::new_slot(slot_point pdcch_slot)
 {
+  last_pdcch_slot = pdcch_slot;
+
   for (auto& ue_cc_cfg : ue_cfg.carriers) {
     auto& cc = carriers[ue_cc_cfg.cc];
     if (cc != nullptr) {

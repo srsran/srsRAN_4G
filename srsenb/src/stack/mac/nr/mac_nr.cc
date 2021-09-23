@@ -342,7 +342,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
 
   // Process SR
   if (value.valid and value.sr > 0) {
-    sched.ul_sr_info(pdsch_slot - TX_ENB_DELAY, cfg_.pucch.rnti);
+    sched.ul_sr_info(cfg_.pucch.rnti);
   }
   return true;
 }

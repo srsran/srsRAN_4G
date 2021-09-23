@@ -92,7 +92,7 @@ public:
 
   void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
-  void ul_sr_info(slot_point slot_rx) { last_sr_slot = slot_rx; }
+  void ul_sr_info() { last_sr_slot = last_pdcch_slot - TX_ENB_DELAY; }
 
   bool has_ca() const
   {
@@ -109,6 +109,7 @@ private:
   const uint16_t      rnti;
   const sched_params& sched_cfg;
 
+  slot_point last_pdcch_slot;
   slot_point last_sr_slot;
   int        ul_pending_bytes = 0, dl_pending_bytes = 0;
 
