@@ -609,6 +609,14 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: MME not connected.\n", rnti);
     return;
   }
+
+  // Allocate PUCCH resources and reject if not available
+  if (not init_pucch()) {
+    parent->logger.warning("Could not allocate PUCCH resources for rnti=0x%x. Sending RRCReestablishmentReject", rnti);
+    send_connection_reest_rej(procedure_result_code::fail_in_radio_interface_proc);
+    return;
+  }
+
   parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number(),
                        msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
