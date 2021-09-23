@@ -122,8 +122,8 @@ int test_sctp_bind_error()
       &sock, srsran::net_utils::socket_type::seqpacket, "1.1.1.1", 8000)); // Bogus IP address
                                                                            // should not be able to bind
   TESTASSERT(srsran::net_utils::sctp_init_socket(
-      &sock, srsran::net_utils::socket_type::seqpacket, "127.0.0.1", 8000)); // Bogus IP address
-                                                                             // should not be able to bind
+      &sock, srsran::net_utils::socket_type::seqpacket, "127.0.0.1", 8000)); // Good IP address
+                                                                             // should be able to bind
   return SRSRAN_SUCCESS;
 }
 
