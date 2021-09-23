@@ -110,6 +110,15 @@ public:
     return nr_stack->get_buffered_pdus(rnti, lcid);
   }
 
+  // gtpu_interface_pdcp
+  void write_pdu(uint16_t rnti, uint32_t bearer_id, srsran::unique_byte_buffer_t pdu)
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->write_pdu(rnti, bearer_id, std::move(pdu));
+  }
+
 private:
   enb_stack_lte* eutra_stack = nullptr;
   gnb_stack_nr*  nr_stack    = nullptr;

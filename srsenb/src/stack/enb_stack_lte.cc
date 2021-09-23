@@ -281,4 +281,10 @@ void enb_stack_lte::run_thread()
   }
 }
 
+void enb_stack_lte::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+{
+  // call GTPU adapter to map to EPS bearer
+  gtpu_adapter->write_pdu(rnti, lcid, std::move(pdu));
+}
+
 } // namespace srsenb

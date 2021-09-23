@@ -10,6 +10,7 @@
  *
  */
 
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interface_types.h"
 
@@ -93,7 +94,8 @@ public:
 class x2_interface : public rrc_nr_interface_rrc,
                      public rrc_eutra_interface_rrc_nr,
                      public stack_nr_interface_stack_eutra,
-                     public pdcp_interface_gtpu
+                     public pdcp_interface_gtpu, // allow GTPU to access PDCP in DL direction
+                     public gtpu_interface_pdcp  // allow PDCP to access GTPU in UL direction
 {};
 
 } // namespace srsenb

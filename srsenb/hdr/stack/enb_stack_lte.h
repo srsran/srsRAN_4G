@@ -119,6 +119,9 @@ public:
     rrc.sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
 
+  // gtpu_interface_pdcp
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop

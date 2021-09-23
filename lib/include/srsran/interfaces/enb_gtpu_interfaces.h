@@ -31,7 +31,8 @@ struct gtpu_args_t {
 class gtpu_interface_pdcp
 {
 public:
-  virtual void write_pdu(uint16_t rnti, uint32_t bearer_id, srsran::unique_byte_buffer_t pdu) = 0;
+  // PDCP will only know LCIDs, translation to EPS bearer id will be done by gtpu_pdcp_adapter
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
 };
 
 // GTPU interface for RRC
