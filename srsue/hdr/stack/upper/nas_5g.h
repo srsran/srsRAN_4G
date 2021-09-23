@@ -134,10 +134,11 @@ private:
   int send_deregistration_request_ue_originating(bool switch_off);
   int send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity_types_::options requested_identity_type);
 
+  // Helper functions
   void fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_caps);
   int  apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
-  int  handle_deregistration_accept_ue_originating(
-       srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating);
+  bool check_replayed_ue_security_capabilities(srsran::nas_5g::ue_security_capability_t& caps);
+
   // message handler
   int handle_registration_accept(srsran::nas_5g::registration_accept_t& registration_accept);
   int handle_registration_reject(srsran::nas_5g::registration_reject_t& registration_reject);
@@ -150,6 +151,8 @@ private:
                                    srsran::unique_byte_buffer_t             pdu);
   int handle_deregistration_accept_ue_terminated(
       srsran::nas_5g::deregistration_accept_ue_terminated_t& deregistration_accept_ue_terminated);
+  int handle_deregistration_accept_ue_originating(
+      srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating);
   int handle_deregistration_request_ue_terminated(
       srsran::nas_5g::deregistration_request_ue_terminated_t& deregistration_request_ue_terminated);
   int handle_configuration_update_command(srsran::nas_5g::configuration_update_command_t& configuration_update_command);

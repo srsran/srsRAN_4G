@@ -836,11 +836,10 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
   ctxt.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)
                         security_mode_command.selected_nas_security_algorithms.integrity_protection_algorithm.value;
 
-  // Check capabilities
-  // TODO: Check replayed sec capabilities
-  if (!ea5g_caps[ctxt.cipher_algo] || !ia5g_caps[ctxt.integ_algo]) {
+  // Check replayed ue security capabilities
+  if (!check_replayed_ue_security_capabilities(security_mode_command.replayed_ue_security_capabilities)) {
     logger.warning("Sending Security Mode Reject due to security capabilities mismatch");
-    send_security_mode_reject(cause_5gmm_t::cause_5gmm_type_::options::ue_security_capabilities_mismatch);
+    send_security_mode_reject(cause_5gmm_t::cause_5gmm_type_::ue_security_capabilities_mismatch);
     return SRSRAN_ERROR;
   }
 
@@ -1054,6 +1053,36 @@ void nas_5g::fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_ca
   if (ea5g_caps[7] == true) {
     sec_caps.ea7_5g_supported = true;
   }
+}
+
+bool nas_5g::check_replayed_ue_security_capabilities(srsran::nas_5g::ue_security_capability_t& caps)
+{
+  if (caps.ia0_5g_supported != ia5g_caps[0] || caps.ea0_5g_supported != ea5g_caps[0]) {
+    return false;
+  }
+  if (caps.ia1_128_5g_supported != ia5g_caps[1] || caps.ea1_128_5g_supported != ea5g_caps[1]) {
+    return false;
+  }
+  if (caps.ia2_128_5g_supported != ia5g_caps[2] || caps.ea2_128_5g_supported != ea5g_caps[2]) {
+    return false;
+  }
+  if (caps.ia3_128_5g_supported != ia5g_caps[3] || caps.ea3_128_5g_supported != ea5g_caps[3]) {
+    return false;
+  }
+  if (caps.ia4_5g_supported != ia5g_caps[4] || caps.ea4_5g_supported != ea5g_caps[4]) {
+    return false;
+  }
+  if (caps.ia5_5g_supported != ia5g_caps[5] || caps.ea5_5g_supported != ea5g_caps[5]) {
+    return false;
+  }
+  if (caps.ia6_5g_supported != ia5g_caps[6] || caps.ea6_5g_supported != ea5g_caps[6]) {
+    return false;
+  }
+  if (caps.ia7_5g_supported != ia5g_caps[7] || caps.ea7_5g_supported != ea5g_caps[7]) {
+    return false;
+  }
+
+  return true;
 }
 
 /*******************************************************************************
