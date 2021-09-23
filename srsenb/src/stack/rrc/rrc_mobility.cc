@@ -239,6 +239,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
       meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
+    Debug("Skipping non-EUTRA MeasReport.");
     return;
   }
   const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
