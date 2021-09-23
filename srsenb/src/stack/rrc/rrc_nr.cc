@@ -222,7 +222,7 @@ void rrc_nr::config_mac()
   std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
 
   // FIXME: entire SI configuration, etc needs to be ported to NR
-  sched_interface::cell_cfg_t                         cell_cfg;
+  sched_interface::cell_cfg_t cell_cfg;
   set_sched_cell_cfg_sib1(&cell_cfg, cfg.sib1);
 
   // set SIB length
@@ -470,7 +470,10 @@ int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstri
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_) {}
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
+{
+  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+}
 
 void rrc_nr::ue::send_connection_setup()
 {
@@ -855,15 +858,15 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = rnti;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304      = recfg_with_sync_s::t304_opts::ms1000;
 
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.n_timing_advance_offset =
       asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dmrs_type_a_position =
       asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present                    = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci = pscell_cfg.phy_cell.carrier.pci;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci         = pscell_cfg.phy_cell.carrier.pci;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing =
       subcarrier_spacing_opts::khz30;
@@ -1033,15 +1036,14 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
 // Helper for the RRC Reconfiguration sender to pack hard-coded config
 int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed_secondary_cell_config)
 {
-
   auto& cell_group_cfg_pack = cell_group_cfg;
   pack_secondary_cell_group_config_common(cell_group_cfg);
 
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 0;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id = 0;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present         = true;
 
   // UL config dedicated
-  auto& ul_config                       = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
+  auto& ul_config = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
   // SR resources
   auto& sr_res1                         = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
   sr_res1.periodicity_and_offset.sl40() = 4;
@@ -1065,7 +1067,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed
   auto& nzp_csi_res_set =
       cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list[0];
   nzp_csi_res_set.nzp_csi_res_set_id = 1;
-  nzp_csi_res_set.nzp_csi_rs_res[0] = 1;
+  nzp_csi_res_set.nzp_csi_rs_res[0]  = 1;
 
   // CSI report config
   auto& csi_report =
@@ -1077,7 +1079,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = -36;
 
   // DL config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present              = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
       176210; // TODO: calculate from actual DL ARFCN
 
@@ -1093,7 +1095,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
 
   rach_cfg_common_pack.set_setup();
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 16;
+  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 16;
 
   // SSB config (optional)
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
@@ -1115,15 +1117,14 @@ int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed
 // Helper for the RRC Reconfiguration sender to pack hard-coded config
 int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed_secondary_cell_config)
 {
-
   auto& cell_group_cfg_pack = cell_group_cfg;
   pack_secondary_cell_group_config_common(cell_group_cfg);
 
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id         = 1;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present                 = true;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id = 1;
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present         = true;
 
   // UL config dedicated
-  auto& ul_config                       = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
+  auto& ul_config = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg;
   // SR resources
   auto& sr_res1 = ul_config.init_ul_bwp.pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
   // SR resources
@@ -1153,7 +1154,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
   auto& nzp_csi_res_set =
       cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list[0];
   nzp_csi_res_set.nzp_csi_res_set_id = 0;
-  nzp_csi_res_set.nzp_csi_rs_res[0] = 0;
+  nzp_csi_res_set.nzp_csi_rs_res[0]  = 0;
   // Skip TRS info
 
   // CSI report config
@@ -1168,7 +1169,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = 0;
 
   // DL config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present              = true;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
       634176; // TODO: calculate from actual DL ARFCN
 
@@ -1180,8 +1181,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
   auto& pdcch_cfg_common =
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common;
   pdcch_cfg_common.set_setup();
-  pdcch_cfg_common.setup().ext                                 = false;
-
+  pdcch_cfg_common.setup().ext = false;
 
   // RACH config
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
@@ -1190,7 +1190,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
 
   rach_cfg_common_pack.set_setup();
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 0;
+  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 0;
 
   // SSB config (optional)
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
@@ -1391,6 +1391,10 @@ int rrc_nr::ue::add_drb()
   // Add DRB1 to PDCP
   srsran::pdcp_config_t pdcp_cnfg = srsran::make_drb_pdcp_config_t(drb_item.drb_id, false, drb_item.pdcp_cfg);
   parent->pdcp->add_bearer(rnti, rlc.lc_ch_id, pdcp_cnfg);
+
+  // Add DRB1 to MAC
+  uecfg.ue_bearers[rlc.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
+  parent->mac->ue_cfg(rnti, uecfg);
 
   return SRSRAN_SUCCESS;
 }

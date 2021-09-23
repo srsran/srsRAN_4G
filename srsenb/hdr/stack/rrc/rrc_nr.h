@@ -137,6 +137,9 @@ public:
     asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
     asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
 
+    // MAC controller
+    sched_nr_interface::ue_cfg_t uecfg{};
+
     const uint32_t drb1_lcid = 4;
 
     // NSA specific variables
@@ -146,7 +149,7 @@ public:
 
 private:
   static constexpr uint32_t UE_PSCELL_CC_IDX = 0; // first NR cell is always Primary Secondary Cell for UE
-  rrc_nr_cfg_t cfg = {};
+  rrc_nr_cfg_t              cfg              = {};
 
   // interfaces
   phy_interface_stack_nr*     phy       = nullptr;

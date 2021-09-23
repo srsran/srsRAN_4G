@@ -356,6 +356,7 @@ public:
       srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
       ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
       ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
+      ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
       mac->ue_cfg(args.rnti, ue_cfg);
     }
 

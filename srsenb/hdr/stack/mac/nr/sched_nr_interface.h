@@ -30,6 +30,7 @@ const static size_t   SCHED_NR_MAX_NOF_RBGS     = 18;
 const static size_t   SCHED_NR_MAX_TB           = 1;
 const static size_t   SCHED_NR_MAX_HARQ         = 16;
 const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
+const static size_t   SCHED_NR_MAX_LCID         = 32;
 
 class sched_nr_interface
 {
@@ -82,7 +83,8 @@ public:
     int                                                        fixed_dl_mcs = -1;
     int                                                        fixed_ul_mcs = -1;
     srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
-    srsran::phy_cfg_nr_t                                       phy_cfg = {};
+    std::array<mac_lc_ch_cfg_t, SCHED_NR_MAX_LCID>             ue_bearers = {};
+    srsran::phy_cfg_nr_t                                       phy_cfg    = {};
   };
 
   ////// RACH //////

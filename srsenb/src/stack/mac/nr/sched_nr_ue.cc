@@ -100,6 +100,10 @@ void ue::set_cfg(const ue_cfg_t& cfg)
       carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[ue_cc_cfg.cc]));
     }
   }
+
+  for (uint32_t lcid = 0; lcid < cfg.ue_bearers.size(); ++lcid) {
+    buffers.config_lcid(lcid, cfg.ue_bearers[lcid]);
+  }
 }
 
 void ue::new_slot(slot_point pdcch_slot)
