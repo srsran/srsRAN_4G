@@ -66,11 +66,17 @@ void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& 
  *        SR Config
  *****************************/
 
-void fill_sr_cfg_setup(sched_request_cfg_c& sr_cfg, const ue_cell_ded_list& ue_cell_list)
+int fill_sr_cfg_setup(sched_request_cfg_c& sr_cfg, const ue_cell_ded_list& ue_cell_list)
 {
-  auto& setup            = sr_cfg.setup();
-  setup.sr_cfg_idx       = ue_cell_list.get_sr_res()->sr_I;
-  setup.sr_pucch_res_idx = ue_cell_list.get_sr_res()->sr_N_pucch;
+  if (ue_cell_list.get_sr_res()) {
+    auto& setup            = sr_cfg.setup();
+    setup.sr_cfg_idx       = ue_cell_list.get_sr_res()->sr_I;
+    setup.sr_pucch_res_idx = ue_cell_list.get_sr_res()->sr_N_pucch;
+    return SRSRAN_SUCCESS;
+  } else {
+    srslog::fetch_basic_logger("RRC").error("SR resource is not configured.");
+    return SRSRAN_ERROR;
+  }
 }
 
 /******************************
@@ -152,11 +158,11 @@ int fill_cqi_report_setup(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg, c
   return SRSRAN_SUCCESS;
 }
 
-void fill_cqi_report_reconf(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg, const ue_cell_ded_list& ue_cell_list)
+int fill_cqi_report_reconf(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg, const ue_cell_ded_list& ue_cell_list)
 {
   // Get RRC setup CQI config
   if (fill_cqi_report_setup(cqi_rep, enb_cfg, ue_cell_list) == SRSRAN_ERROR) {
-    return;
+    return SRSRAN_ERROR;
   }
 
   if (cqi_rep.cqi_report_mode_aperiodic_present) {
@@ -180,9 +186,11 @@ void fill_cqi_report_reconf(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg,
         cqi_setup.ri_cfg_idx         = ri_idx;
       } else {
         srslog::fetch_basic_logger("RRC").warning("Warning: Configured wrong M_ri parameter.");
+        return SRSRAN_ERROR;
       }
     }
   }
+  return SRSRAN_SUCCESS;
 }
 
 /******************************
@@ -231,26 +239,33 @@ void fill_phy_cfg_ded_enb_cfg(phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& enb_cfg)
   fill_cqi_report_enb_cfg(phy_cfg.cqi_report_cfg, enb_cfg);
 }
 
-void fill_phy_cfg_ded_setup(phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& enb_cfg, const ue_cell_ded_list& ue_cell_list)
+int fill_phy_cfg_ded_setup(phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& enb_cfg, const ue_cell_ded_list& ue_cell_list)
 {
   // Set PHYConfigDedicated base
   fill_phy_cfg_ded_enb_cfg(phy_cfg, enb_cfg);
 
   // Setup SR PUCCH config
-  fill_sr_cfg_setup(phy_cfg.sched_request_cfg, ue_cell_list);
+  if (fill_sr_cfg_setup(phy_cfg.sched_request_cfg, ue_cell_list)) {
+    return SRSRAN_ERROR;
+  }
 
   // Setup CQI PUCCH config
-  fill_cqi_report_setup(phy_cfg.cqi_report_cfg, enb_cfg, ue_cell_list);
+  if (fill_cqi_report_setup(phy_cfg.cqi_report_cfg, enb_cfg, ue_cell_list)) {
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
 }
 
 /// Fills ASN1 PhysicalConfigurationDedicated struct with eNB config params at RRCReconf
-void fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
-                             const rrc_cfg_t&                     enb_cfg,
-                             const ue_cell_ded_list&              ue_cell_list,
-                             const srsran::rrc_ue_capabilities_t& ue_caps)
+int fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
+                            const rrc_cfg_t&                     enb_cfg,
+                            const ue_cell_ded_list&              ue_cell_list,
+                            const srsran::rrc_ue_capabilities_t& ue_caps)
 {
   // Use RRCSetup as starting point
-  fill_phy_cfg_ded_setup(phy_cfg, enb_cfg, ue_cell_list);
+  if (fill_phy_cfg_ded_setup(phy_cfg, enb_cfg, ue_cell_list)) {
+    return SRSRAN_ERROR;
+  }
 
   // Antenna Configuration
   ant_info_ded_s& ant_info = phy_cfg.ant_info.explicit_value();
@@ -267,6 +282,7 @@ void fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
     phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
         cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
   }
+  return SRSRAN_SUCCESS;
 }
 
 /***********************************
@@ -296,9 +312,9 @@ void fill_rr_cfg_ded_enb_cfg(asn1::rrc::rr_cfg_ded_s& rr_cfg, const rrc_cfg_t& e
   rr_cfg.sps_cfg_present = false;
 }
 
-void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
-                           const rrc_cfg_t&         enb_cfg,
-                           const ue_cell_ded_list&  ue_cell_list)
+int fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
+                          const rrc_cfg_t&         enb_cfg,
+                          const ue_cell_ded_list&  ue_cell_list)
 {
   // Establish default enb config
   fill_rr_cfg_ded_enb_cfg(rr_cfg, enb_cfg);
@@ -309,16 +325,16 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
 
   // Setup SR/CQI configs
   rr_cfg.phys_cfg_ded_present = true;
-  fill_phy_cfg_ded_setup(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list);
+  return fill_phy_cfg_ded_setup(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list);
 }
 
-void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
-                            const rr_cfg_ded_s&                  current_rr_cfg,
-                            const rrc_cfg_t&                     enb_cfg,
-                            const ue_cell_ded_list&              ue_cell_list,
-                            const bearer_cfg_handler&            bearers,
-                            const srsran::rrc_ue_capabilities_t& ue_caps,
-                            bool                                 phy_cfg_updated)
+int fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
+                           const rr_cfg_ded_s&                  current_rr_cfg,
+                           const rrc_cfg_t&                     enb_cfg,
+                           const ue_cell_ded_list&              ue_cell_list,
+                           const bearer_cfg_handler&            bearers,
+                           const srsran::rrc_ue_capabilities_t& ue_caps,
+                           bool                                 phy_cfg_updated)
 {
   // (Re)establish SRBs
   fill_srbs_reconf(rr_cfg.srb_to_add_mod_list, current_rr_cfg.srb_to_add_mod_list, enb_cfg);
@@ -335,8 +351,9 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
   // PhysCfgDed update needed
   if (phy_cfg_updated) {
     rr_cfg.phys_cfg_ded_present = true;
-    fill_phy_cfg_ded_reconf(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list, ue_caps);
+    return fill_phy_cfg_ded_reconf(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list, ue_caps);
   }
+  return SRSRAN_SUCCESS;
 }
 
 /**
@@ -560,18 +577,20 @@ void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l& current_sc
  **********************************/
 
 /// Apply Reconf updates and update current state
-void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
-                          ue_var_cfg_t&                        current_ue_cfg,
-                          const rrc_cfg_t&                     enb_cfg,
-                          const ue_cell_ded_list&              ue_cell_list,
-                          bearer_cfg_handler&                  bearers,
-                          const srsran::rrc_ue_capabilities_t& ue_caps,
-                          bool                                 phy_cfg_updated)
+int apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
+                         ue_var_cfg_t&                        current_ue_cfg,
+                         const rrc_cfg_t&                     enb_cfg,
+                         const ue_cell_ded_list&              ue_cell_list,
+                         bearer_cfg_handler&                  bearers,
+                         const srsran::rrc_ue_capabilities_t& ue_caps,
+                         bool                                 phy_cfg_updated)
 {
   // Compute pending updates and fill reconf msg
   recfg_r8.rr_cfg_ded_present = true;
-  fill_rr_cfg_ded_reconf(
-      recfg_r8.rr_cfg_ded, current_ue_cfg.rr_cfg, enb_cfg, ue_cell_list, bearers, ue_caps, phy_cfg_updated);
+  if (fill_rr_cfg_ded_reconf(
+          recfg_r8.rr_cfg_ded, current_ue_cfg.rr_cfg, enb_cfg, ue_cell_list, bearers, ue_caps, phy_cfg_updated)) {
+    return SRSRAN_ERROR;
+  }
   fill_scells_reconf(recfg_r8, current_ue_cfg.scells, enb_cfg, ue_cell_list, ue_caps);
   recfg_r8.meas_cfg_present |= recfg_r8.meas_cfg.meas_gap_cfg_present;
 
@@ -581,6 +600,7 @@ void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
   // Update current rr_cfg_ded and scells state
   apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, recfg_r8.rr_cfg_ded);
   apply_scells_to_add_diff(current_ue_cfg.scells, recfg_r8);
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

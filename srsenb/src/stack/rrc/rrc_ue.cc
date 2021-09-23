@@ -485,7 +485,10 @@ void rrc::ue::send_connection_setup()
   rr_cfg_ded_s&            rr_cfg   = setup_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
+  if (fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list)) {
+    parent->logger.error("Generating ConnectionSetup. Aborting");
+    return;
+  }
 
   // Apply ConnectionSetup Configuration to MAC scheduler
   mac_ctrl.handle_con_setup(setup_r8);
@@ -704,7 +707,10 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   rr_cfg_ded_s&            rr_cfg   = reest_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
+  if (fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list)) {
+    parent->logger.error("Generating ConnectionReestablishment. Aborting...");
+    return;
+  }
 
   // Set NCC
   reest_r8.next_hop_chaining_count = ncc;
@@ -811,8 +817,11 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
   rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
   // Fill RR Config Ded and SCells
-  apply_reconf_updates(
-      recfg_r8, current_ue_cfg, parent->cfg, ue_cell_list, bearer_list, ue_capabilities, phy_cfg_updated);
+  if (apply_reconf_updates(
+          recfg_r8, current_ue_cfg, parent->cfg, ue_cell_list, bearer_list, ue_capabilities, phy_cfg_updated)) {
+    parent->logger.error("Generating ConnectionReconfiguration. Aborting...");
+    return;
+  }
 
   // Add measConfig
   if (mobility_handler != nullptr) {
