@@ -68,6 +68,7 @@ private:
 
   std::atomic<bool> tx_enabled = {true};
 
+  std::mutex           metrics_mutex;
   rlc_bearer_metrics_t metrics = {};
 
   // Thread-safe queues for MAC messages
