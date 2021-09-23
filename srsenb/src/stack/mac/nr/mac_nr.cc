@@ -48,7 +48,6 @@ int mac_nr::init(const mac_nr_args_t&    args_,
 {
   args = args_;
 
-  sched.reset(new sched_nr{args.sched_cfg});
   phy   = phy_;
   stack = stack_;
   rlc   = rlc_;
@@ -82,7 +81,7 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
   srsran::rwlock_read_guard lock(rwlock);
   metrics.ues.reserve(ue_db.size());
   for (auto& u : ue_db) {
-    if (not sched->ue_exists(u.first)) {
+    if (not sched.ue_exists(u.first)) {
       continue;
     }
     metrics.ues.emplace_back();
@@ -98,7 +97,7 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
 int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells)
 {
   cell_config = nr_cells;
-  sched->cell_cfg(nr_cells);
+  sched.config(args.sched_cfg, nr_cells);
   detected_rachs.resize(nr_cells.size());
 
   // read SIBs from RRC (SIB1 for now only)
@@ -127,7 +126,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
 
 int mac_nr::ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg)
 {
-  sched->ue_cfg(rnti, ue_cfg);
+  sched.ue_cfg(rnti, ue_cfg);
   return SRSRAN_SUCCESS;
 }
 
@@ -148,7 +147,7 @@ uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
   srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
   ue_cfg.fixed_dl_mcs                         = args.fixed_dl_mcs;
   ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
-  sched->ue_cfg(rnti, ue_cfg);
+  sched.ue_cfg(rnti, ue_cfg);
 
   return rnti;
 }
@@ -174,7 +173,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.ta_cmd                                          = rach_info.time_adv;
     rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
-    sched->dl_rach_info(enb_cc_idx, rar_info);
+    sched.dl_rach_info(enb_cc_idx, rar_info);
     rrc->add_user(rnti);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
@@ -210,8 +209,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
     }
 
     // Allocate and initialize UE object
-    std::unique_ptr<ue_nr> ue_ptr =
-        std::unique_ptr<ue_nr>(new ue_nr(rnti, enb_cc_idx, sched.get(), rrc, rlc, phy, logger));
+    std::unique_ptr<ue_nr> ue_ptr = std::unique_ptr<ue_nr>(new ue_nr(rnti, enb_cc_idx, &sched, rrc, rlc, phy, logger));
 
     // Add UE to rnti map
     srsran::rwlock_write_guard rw_lock(rwlock);
@@ -285,7 +283,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   }
 
   sched_nr_interface::dl_sched_res_t dl_res;
-  int                                ret = sched->get_dl_sched(pdsch_slot, 0, dl_res);
+  int                                ret = sched.get_dl_sched(pdsch_slot, 0, dl_res);
   if (ret != SRSRAN_SUCCESS) {
     return ret;
   }
@@ -327,7 +325,7 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
     pusch_slot++;
   }
 
-  return sched->get_ul_sched(pusch_slot, 0, ul_sched);
+  return sched.get_ul_sched(pusch_slot, 0, ul_sched);
 }
 
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
@@ -345,7 +343,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   for (uint32_t i = 0; i < cfg_.ack.count; i++) {
     const srsran_harq_ack_bit_t* ack_bit = &cfg_.ack.bits[i];
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
-    sched->dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+    sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
   }
 
   // Process SR
@@ -365,7 +363,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
     return SRSRAN_ERROR;
   }
 
-  sched->ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
+  sched.ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
 
   // process only PDUs with CRC=OK
   if (pusch_info.pusch_data.tb[0].crc) {

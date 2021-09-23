@@ -65,14 +65,15 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr(const sched_cfg_t& sched_cfg) :
-  cfg(sched_cfg), logger(srslog::fetch_basic_logger(sched_cfg.logger_name))
-{}
+sched_nr::sched_nr() : logger(&srslog::fetch_basic_logger("MAC-NR")) {}
 
 sched_nr::~sched_nr() {}
 
-int sched_nr::cell_cfg(srsran::const_span<cell_cfg_t> cell_list)
+int sched_nr::config(const sched_cfg_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list)
 {
+  cfg    = sched_params{sched_cfg};
+  logger = &srslog::fetch_basic_logger(sched_cfg.logger_name);
+
   // Initiate Common Sched Configuration
   cfg.cells.reserve(cell_list.size());
   for (uint32_t cc = 0; cc < cell_list.size(); ++cc) {
@@ -112,9 +113,9 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
   if (not ue_db.contains(rnti)) {
     auto ret = ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
     if (ret.has_value()) {
-      logger.info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
+      logger->info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
     } else {
-      logger.error("SCHED: Failed to create new user rnti=0x%x", rnti);
+      logger->error("SCHED: Failed to create new user rnti=0x%x", rnti);
     }
   } else {
     ue_db[rnti]->set_cfg(uecfg);

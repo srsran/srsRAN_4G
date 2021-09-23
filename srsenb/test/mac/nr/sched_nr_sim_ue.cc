@@ -95,7 +95,7 @@ sched_nr_sim_base::sched_nr_sim_base(const sched_nr_interface::sched_cfg_t&     
                                      std::string                                        test_name_) :
   logger(srslog::fetch_basic_logger("TEST")),
   mac_logger(srslog::fetch_basic_logger("MAC")),
-  sched_ptr(new sched_nr(sched_args)),
+  sched_ptr(new sched_nr()),
   test_name(std::move(test_name_))
 {
   logger.info("\n=========== Start %s ===========", test_name.c_str());
@@ -103,7 +103,7 @@ sched_nr_sim_base::sched_nr_sim_base(const sched_nr_interface::sched_cfg_t&     
   for (uint32_t cc = 0; cc < cell_cfg_list.size(); ++cc) {
     cell_params.emplace_back(cc, cell_cfg_list[cc], sched_args);
   }
-  sched_ptr->cell_cfg(cell_cfg_list); // call parent cfg
+  sched_ptr->config(sched_args, cell_cfg_list); // call parent cfg
 
   TESTASSERT(cell_params.size() > 0);
 }

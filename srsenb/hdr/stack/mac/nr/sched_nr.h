@@ -36,9 +36,9 @@ class ul_sched_result_buffer;
 class sched_nr final : public sched_nr_interface
 {
 public:
-  explicit sched_nr(const sched_cfg_t& sched_cfg);
+  explicit sched_nr();
   ~sched_nr() override;
-  int  cell_cfg(srsran::const_span<cell_cfg_t> cell_list) override;
+  int  config(const sched_cfg_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list) override;
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
   void ue_rem(uint16_t rnti) override;
   bool ue_exists(uint16_t rnti) override;
@@ -59,7 +59,7 @@ private:
 
   // args
   sched_nr_impl::sched_params cfg;
-  srslog::basic_logger&       logger;
+  srslog::basic_logger*       logger = nullptr;
 
   using sched_worker_manager = sched_nr_impl::sched_worker_manager;
   std::unique_ptr<sched_worker_manager> sched_workers;

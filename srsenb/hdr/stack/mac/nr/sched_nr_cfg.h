@@ -93,9 +93,10 @@ struct sched_cell_params {
 };
 
 struct sched_params {
-  const sched_cfg_t              sched_cfg;
+  sched_cfg_t                    sched_cfg;
   std::vector<sched_cell_params> cells;
 
+  sched_params() = default;
   explicit sched_params(const sched_cfg_t& sched_cfg_);
 };
 

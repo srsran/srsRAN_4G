@@ -105,7 +105,7 @@ private:
 
   const static uint32_t                       NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
   srsran::slot_point                          pdsch_slot, pusch_slot;
-  std::unique_ptr<srsenb::sched_nr>           sched;
+  srsenb::sched_nr                            sched;
   std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
