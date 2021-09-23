@@ -484,6 +484,20 @@ public:
       return SRSRAN_ERROR;
     }
 
+    // Schedule NZP-CSI-RS, iterate all NZP-CSI-RS sets
+    for (const srsran_csi_rs_nzp_set_t& set : phy_cfg.pdsch.nzp_csi_rs_sets) {
+      // For each NZP-CSI-RS resource available in the set
+      for (uint32_t i = 0; i < set.count; i++) {
+        // Select resource
+        const srsran_csi_rs_nzp_resource_t& nzp_csi_resource = set.data[i];
+
+        // Check if the resource is scheduled for this slot
+        if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
+          dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
+        }
+      }
+    }
+
     return SRSRAN_SUCCESS;
   }
 

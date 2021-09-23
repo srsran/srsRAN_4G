@@ -309,3 +309,19 @@ int srsran_gnb_dl_pdcch_ul_info(const srsran_gnb_dl_t* q, const srsran_dci_ul_nr
 
   return len;
 }
+
+int srsran_gnb_dl_nzp_csi_rs_put(srsran_gnb_dl_t*                    q,
+                                 const srsran_slot_cfg_t*            slot_cfg,
+                                 const srsran_csi_rs_nzp_resource_t* resource)
+{
+  if (q == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (srsran_csi_rs_nzp_put_resource(&q->carrier, slot_cfg, resource, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
+    ERROR("Error putting NZP-CSI-RS resource");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
