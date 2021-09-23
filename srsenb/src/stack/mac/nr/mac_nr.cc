@@ -131,6 +131,12 @@ int mac_nr::ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg)
   return SRSRAN_SUCCESS;
 }
 
+int mac_nr::rlc_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue)
+{
+  sched.dl_buffer_state(rnti, lcid, tx_queue, retx_queue);
+  return SRSRAN_SUCCESS;
+}
+
 uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
 {
   uint16_t rnti = alloc_ue(enb_cc_idx);

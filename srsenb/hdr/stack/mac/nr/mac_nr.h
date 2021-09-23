@@ -57,8 +57,7 @@ public:
   int      remove_ue(uint16_t rnti) override;
 
   // MAC interface for RLC
-  // TODO:
-  int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override { return 0; }
+  int rlc_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) override;
 
   // Interface for PHY
   void process_pdus();
