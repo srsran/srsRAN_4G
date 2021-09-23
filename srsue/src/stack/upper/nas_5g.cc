@@ -24,7 +24,6 @@
 
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <unistd.h>
 
 #define MAC_5G_OFFSET 2
@@ -135,8 +134,6 @@ void nas_5g::run_tti()
     case mm5g_state_t::state_t::registered:
       break;
     case mm5g_state_t::state_t::deregistered_initiated:
-      logger.debug("UE detaching...");
-      send_deregistration_request_ue_originating();
       break;
     default:
       break;
@@ -592,7 +589,7 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   return SRSRAN_SUCCESS;
 }
 
-int nas_5g::send_deregistration_request_ue_originating()
+int nas_5g::send_deregistration_request_ue_originating(bool switch_off)
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
@@ -607,13 +604,22 @@ int nas_5g::send_deregistration_request_ue_originating()
 
   // Note 5.5.2.2.2 : AMF does not send a Deregistration Accept NAS message if De-registration type IE indicates "switch
   // off"
-  deregistration_request.de_registration_type.switch_off.value =
-      de_registration_type_t::switch_off_type_::options::normal_de_registration;
+  if (switch_off) {
+    deregistration_request.de_registration_type.switch_off.value =
+        de_registration_type_t::switch_off_type_::options::switch_off;
+    state.set_deregistered(mm5g_state_t::deregistered_substate_t::null);
+  } else {
+    deregistration_request.de_registration_type.switch_off.value =
+        de_registration_type_t::switch_off_type_::options::normal_de_registration;
+    // In this case we need to wait for the response by the core
+    state.set_deregistered_initiated();
+  }
 
   mobile_identity_5gs_t::suci_s& suci = deregistration_request.mobile_identity_5gs.set_suci();
   suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
   usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
   usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+  suci.scheme_output.resize(5);
 
   deregistration_request.ng_ksi.nas_key_set_identifier.value =
       key_set_identifier_t::nas_key_set_identifier_type_::options::no_key_is_available_or_reserved;
@@ -924,7 +930,12 @@ int nas_5g::handle_n1_sm_information(std::vector<uint8_t> payload_container_cont
 int nas_5g::handle_deregistration_accept_ue_originating(
     srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating)
 {
-  logger.info("Received Deregistration Request (UE Originating)");
+  logger.info("Received Deregistration Accept (UE Originating)");
+  if (state.get_state() != mm5g_state_t::state_t::deregistered_initiated) {
+    logger.warning("Received deregistration accept while not in deregistered initiated state");
+  }
+
+  state.set_deregistered(mm5g_state_t::deregistered_substate_t::null);
   return SRSASN_SUCCESS;
 }
 
@@ -954,7 +965,7 @@ int nas_5g::switch_on()
 int nas_5g::switch_off()
 {
   logger.info("Switching off");
-  state.set_deregistered_initiated();
+  send_deregistration_request_ue_originating(true);
   return SRSRAN_SUCCESS;
 }
 
