@@ -470,10 +470,7 @@ int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstri
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
-{
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-}
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_), uecfg(srsenb::get_default_ue_cfg(1)) {}
 
 void rrc_nr::ue::send_connection_setup()
 {
