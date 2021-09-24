@@ -515,7 +515,7 @@ pkt_discard:
 bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
 {
   if (!tunnel_ctx->paging_pending) {
-    m_logger.warning("Freeing queue with paging not pending.");
+    m_logger.info("Trying to free queued packets, but paging is not pending.");
   }
 
   while (!tunnel_ctx->paging_queue.empty()) {
