@@ -35,10 +35,10 @@ int32_t proc_sr_nr::init(mac_interface_sr_nr* mac_, phy_interface_mac_nr* phy_, 
 void proc_sr_nr::reset()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  reset_unsafe();
+  reset_nolock();
 }
 
-void proc_sr_nr::reset_unsafe()
+void proc_sr_nr::reset_nolock()
 {
   is_pending_sr = false;
 }
@@ -92,7 +92,7 @@ void proc_sr_nr::step(uint32_t tti)
     // 2> initiate a Random Access procedure (see clause 5.1) on the SpCell and cancel the pending SR.
     logger.info("SR:    PUCCH not configured. Starting RA procedure");
     mac->start_ra();
-    reset_unsafe();
+    reset_nolock();
     return;
   }
 
@@ -110,7 +110,7 @@ void proc_sr_nr::step(uint32_t tti)
     // ... TODO
 
     mac->start_ra();
-    reset_unsafe();
+    reset_nolock();
   }
 }
 

@@ -195,7 +195,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
     // Pre-check if rnti is valid
     {
       srsran::rwlock_read_guard read_lock(rwlock);
-      if (not is_rnti_valid_unsafe(rnti)) {
+      if (not is_rnti_valid_nolock(rnti)) {
         continue;
       }
     }
@@ -205,7 +205,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 
     // Add UE to rnti map
     srsran::rwlock_write_guard rw_lock(rwlock);
-    if (not is_rnti_valid_unsafe(rnti)) {
+    if (not is_rnti_valid_nolock(rnti)) {
       continue;
     }
     auto ret = ue_db.insert(rnti, std::move(ue_ptr));
@@ -223,7 +223,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 int mac_nr::remove_ue(uint16_t rnti)
 {
   srsran::rwlock_write_guard lock(rwlock);
-  if (is_rnti_active_unsafe(rnti)) {
+  if (is_rnti_active_nolock(rnti)) {
     ue_db.erase(rnti);
   } else {
     logger.error("User rnti=0x%x not found", rnti);
@@ -233,7 +233,7 @@ int mac_nr::remove_ue(uint16_t rnti)
   return SRSRAN_SUCCESS;
 }
 
-bool mac_nr::is_rnti_valid_unsafe(uint16_t rnti)
+bool mac_nr::is_rnti_valid_nolock(uint16_t rnti)
 {
   if (not started) {
     logger.info("RACH ignored as eNB is being shutdown");
@@ -250,7 +250,7 @@ bool mac_nr::is_rnti_valid_unsafe(uint16_t rnti)
   return true;
 }
 
-bool mac_nr::is_rnti_active_unsafe(uint16_t rnti)
+bool mac_nr::is_rnti_active_nolock(uint16_t rnti)
 {
   if (not ue_db.contains(rnti)) {
     logger.error("User rnti=0x%x not found", rnti);
@@ -292,7 +292,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   for (pdsch_t& pdsch : dl_sched.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
       uint16_t rnti = pdsch.sch.grant.rnti;
-      if (not is_rnti_active_unsafe(rnti)) {
+      if (not is_rnti_active_nolock(rnti)) {
         continue;
       }
       for (auto& tb_data : pdsch.data) {
@@ -372,7 +372,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
 
     auto process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
       srsran::rwlock_read_guard lock(rwlock);
-      if (is_rnti_active_unsafe(rnti)) {
+      if (is_rnti_active_nolock(rnti)) {
         ue_db[rnti]->process_pdu(std::move(pdu));
       } else {
         logger.debug("Discarding PDU rnti=0x%x", rnti);

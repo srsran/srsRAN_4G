@@ -121,7 +121,7 @@ public:
     void*                       node = grow_pool.allocate_node();
 
     if (grow_pool.size() < batch_threshold) {
-      allocate_batch_in_background_unlocked();
+      allocate_batch_in_background_nolock();
     }
     return node;
   }
@@ -146,7 +146,7 @@ public:
   }
 
 private:
-  void allocate_batch_in_background_unlocked()
+  void allocate_batch_in_background_nolock()
   {
     if (state->dispatched) {
       // new batch allocation already ongoing

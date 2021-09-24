@@ -112,15 +112,15 @@ void cc_worker::reset()
 {
   // constructor sets defaults
   srsran::phy_cfg_t empty_cfg;
-  set_config_unlocked(empty_cfg);
+  set_config_nolock(empty_cfg);
 }
 
-void cc_worker::reset_cell_unlocked()
+void cc_worker::reset_cell_nolock()
 {
   cell_initiated = false;
 }
 
-bool cc_worker::set_cell_unlocked(srsran_cell_t cell_)
+bool cc_worker::set_cell_nolock(srsran_cell_t cell_)
 {
   if (cell.id != cell_.id || !cell_initiated) {
     cell = cell_;
@@ -171,7 +171,7 @@ void cc_worker::set_tti(uint32_t tti)
   sf_cfg_ul.shortened = false;
 }
 
-void cc_worker::set_cfo_unlocked(float cfo)
+void cc_worker::set_cfo_nolock(float cfo)
 {
   ue_ul_cfg.cfo_value = cfo;
 }
@@ -181,7 +181,7 @@ float cc_worker::get_ref_cfo() const
   return ue_dl.chest_res.cfo;
 }
 
-void cc_worker::set_tdd_config_unlocked(srsran_tdd_config_t config)
+void cc_worker::set_tdd_config_nolock(srsran_tdd_config_t config)
 {
   sf_cfg_dl.tdd_config = config;
   sf_cfg_ul.tdd_config = config;
@@ -874,7 +874,7 @@ void cc_worker::set_uci_ack(srsran_uci_data_t* uci_data,
 
 /* Translates RRC structs into PHY structs
  */
-void cc_worker::set_config_unlocked(const srsran::phy_cfg_t& phy_cfg)
+void cc_worker::set_config_nolock(const srsran::phy_cfg_t& phy_cfg)
 {
   // Save configuration
   ue_dl_cfg.cfg    = phy_cfg.dl_cfg;
@@ -883,7 +883,7 @@ void cc_worker::set_config_unlocked(const srsran::phy_cfg_t& phy_cfg)
   phy->set_pdsch_cfg(&ue_dl_cfg.cfg.pdsch);
 }
 
-void cc_worker::upd_config_dci_unlocked(const srsran_dci_cfg_t& dci_cfg)
+void cc_worker::upd_config_dci_nolock(const srsran_dci_cfg_t& dci_cfg)
 {
   ue_dl_cfg.cfg.dci = dci_cfg;
 }

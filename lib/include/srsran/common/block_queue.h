@@ -35,7 +35,6 @@ namespace srsran {
 template <typename myobj>
 class block_queue
 {
-
 public:
   // Callback functions for mutexed operations inside pop/push methods
   class call_mutexed_itf
@@ -107,7 +106,7 @@ public:
   bool full()
   { // queue is full?
     pthread_mutex_lock(&mutex);
-    bool ret = not check_queue_space_unlocked(false);
+    bool ret = not check_queue_space_nolock(false);
     pthread_mutex_unlock(&mutex);
     return ret;
   }
@@ -163,7 +162,7 @@ private:
     return ret;
   }
 
-  bool check_queue_space_unlocked(bool block)
+  bool check_queue_space_nolock(bool block)
   {
     num_threads++;
     if (capacity > 0) {
@@ -190,7 +189,7 @@ private:
       return std::move(value);
     }
     pthread_mutex_lock(&mutex);
-    bool ret = check_queue_space_unlocked(block);
+    bool ret = check_queue_space_nolock(block);
     if (ret) {
       if (mutexed_callback) {
         mutexed_callback->pushing(value);
@@ -210,7 +209,7 @@ private:
       return false;
     }
     pthread_mutex_lock(&mutex);
-    bool ret = check_queue_space_unlocked(block);
+    bool ret = check_queue_space_nolock(block);
     if (ret) {
       if (mutexed_callback) {
         mutexed_callback->pushing(value);

@@ -32,16 +32,16 @@ public:
   uint32_t get_buffer_len();
 
   void  set_tti(uint32_t tti);
-  void  set_cfo_unlocked(float cfo);
+  void  set_cfo_nolock(float cfo);
   float get_ref_cfo() const;
 
   // Functions to set configuration.
   // Warning: all these functions are unlocked and must be called while the worker is not processing data
-  void reset_cell_unlocked();
-  bool set_cell_unlocked(srsran_cell_t cell_);
-  void set_tdd_config_unlocked(srsran_tdd_config_t config);
-  void set_config_unlocked(const srsran::phy_cfg_t& phy_cfg);
-  void upd_config_dci_unlocked(const srsran_dci_cfg_t& dci_cfg);
+  void reset_cell_nolock();
+  bool set_cell_nolock(srsran_cell_t cell_);
+  void set_tdd_config_nolock(srsran_tdd_config_t config);
+  void set_config_nolock(const srsran::phy_cfg_t& phy_cfg);
+  void upd_config_dci_nolock(const srsran_dci_cfg_t& dci_cfg);
 
   void set_uci_periodic_cqi(srsran_uci_data_t* uci_data);
 

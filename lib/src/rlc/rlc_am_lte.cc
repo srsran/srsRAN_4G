@@ -327,7 +327,7 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
   }
 
   // make sure Tx queue is empty before attempting to resize
-  empty_queue_unsafe();
+  empty_queue_nolock();
   tx_sdu_queue.resize(cfg_.tx_queue_length);
 
   tx_enabled = true;
@@ -339,7 +339,7 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  empty_queue_unsafe();
+  empty_queue_nolock();
 
   tx_enabled = false;
 
@@ -372,10 +372,10 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 void rlc_am_lte::rlc_am_lte_tx::empty_queue()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  empty_queue_unsafe();
+  empty_queue_nolock();
 }
 
-void rlc_am_lte::rlc_am_lte_tx::empty_queue_unsafe()
+void rlc_am_lte::rlc_am_lte_tx::empty_queue_nolock()
 {
   // deallocate all SDUs in transmit queue
   while (tx_sdu_queue.size() > 0) {

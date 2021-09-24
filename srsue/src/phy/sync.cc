@@ -517,7 +517,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
 
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_lte_carriers; cc++) {
-    lte_worker->set_cfo_unlocked(cc, get_tx_cfo());
+    lte_worker->set_cfo_nolock(cc, get_tx_cfo());
     worker_com->update_cfo_measurement(cc, cfo);
   }
 
@@ -853,14 +853,14 @@ bool sync::set_cell(float cfo_in)
 
   // Reset cell configuration
   for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
-    (*lte_worker_pool)[i]->reset_cell_unlocked(0);
+    (*lte_worker_pool)[i]->reset_cell_nolock(0);
   }
 
   bool success = true;
   for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
     lte::sf_worker* w = lte_worker_pool->wait_worker_id(i);
     if (w) {
-      success &= w->set_cell_unlocked(0, cell.get());
+      success &= w->set_cell_nolock(0, cell.get());
       w->release();
     }
   }
