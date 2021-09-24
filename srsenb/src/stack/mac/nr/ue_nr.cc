@@ -177,8 +177,7 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
-  *metrics_ = ue_metrics;
-
+  *metrics_      = ue_metrics;
   phr_counter    = 0;
   dl_cqi_counter = 0;
   ue_metrics     = {};
@@ -211,6 +210,18 @@ void ue_nr::metrics_tx(bool crc, uint32_t tbs)
     ue_metrics.tx_errors++;
   }
   ue_metrics.tx_pkts++;
+}
+
+void ue_nr::metrics_dl_mcs(uint32_t mcs)
+{
+  ue_metrics.dl_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.dl_mcs, ue_metrics.dl_mcs_samples);
+  ue_metrics.dl_mcs_samples++;
+}
+
+void ue_nr::metrics_ul_mcs(uint32_t mcs)
+{
+  ue_metrics.ul_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.ul_mcs, ue_metrics.ul_mcs_samples);
+  ue_metrics.ul_mcs_samples++;
 }
 
 void ue_nr::metrics_cnt()

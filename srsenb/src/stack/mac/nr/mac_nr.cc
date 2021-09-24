@@ -305,6 +305,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
             uint32_t pid = 0; // TODO: get PID from PDCCH struct?
             pcap->write_dl_crnti_nr(tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg.idx);
           }
+          ue_db[rnti]->metrics_dl_mcs(pdsch.sch.grant.tb->mcs);
         }
       }
     } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
@@ -313,18 +314,28 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
       pdsch.data[0] = assemble_rar(rar.grants);
     }
   }
+  for (auto& u : ue_db) {
+    u.second->metrics_cnt();
+  }
   return SRSRAN_SUCCESS;
 }
 
 int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
 {
+  int ret = 0;
   if (not pusch_slot.valid()) {
     pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
   } else {
     pusch_slot++;
   }
 
-  return sched.get_ul_sched(pusch_slot, 0, ul_sched);
+  ret = sched.get_ul_sched(pusch_slot, 0, ul_sched);
+  for (auto& pusch : ul_sched.pusch) {
+    if (ue_db.contains(pusch.sch.grant.rnti)) {
+      ue_db[pusch.sch.grant.rnti]->metrics_ul_mcs(pusch.sch.grant.tb->mcs);
+    }
+  }
+  return ret;
 }
 
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
@@ -343,6 +354,9 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
     const srsran_harq_ack_bit_t* ack_bit = &cfg_.ack.bits[i];
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
     sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+    if (ue_db.contains(rnti)) {
+      ue_db[rnti]->metrics_tx(is_ok, 0 /*TODO get size of packet from scheduler somehow*/);
+    }
   }
 
   // Process SR
@@ -354,8 +368,8 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
 
 int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::pusch_info_t& pusch_info)
 {
-  uint16_t rnti = pusch_info.rnti;
-
+  uint16_t rnti      = pusch_info.rnti;
+  uint32_t nof_bytes = pusch_info.pdu->N_bytes;
   // Handle UCI data
   if (not handle_uci_data(rnti, pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
     logger.error("Error handling UCI data from PUCCH reception");
@@ -381,7 +395,10 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
     };
     stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pusch_info.pdu)));
   }
-
+  if (ue_db.contains(rnti)) {
+    ue_db[rnti]->metrics_rx(pusch_info.pusch_data.tb[0].crc, nof_bytes);
+    ue_db[rnti]->metrics_dl_cqi(15); // TODO extract correct CQI measurments
+  }
   return SRSRAN_SUCCESS;
 }
 

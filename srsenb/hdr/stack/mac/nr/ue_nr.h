@@ -60,6 +60,8 @@ public:
   void       metrics_dl_ri(uint32_t dl_cqi);
   void       metrics_dl_pmi(uint32_t dl_cqi);
   void       metrics_dl_cqi(uint32_t dl_cqi);
+  void       metrics_dl_mcs(uint32_t mcs);
+  void       metrics_ul_mcs(uint32_t mcs);
   void       metrics_cnt();
 
   uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;

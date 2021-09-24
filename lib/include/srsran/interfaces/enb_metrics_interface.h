@@ -49,6 +49,7 @@ struct enb_metrics_t {
   srsran::rf_metrics_t       rf;
   std::vector<phy_metrics_t> phy;
   stack_metrics_t            stack;
+  stack_metrics_t            nr_stack;
   srsran::sys_metrics_t      sys;
   bool                       running;
 };

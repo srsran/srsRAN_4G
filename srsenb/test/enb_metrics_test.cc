@@ -37,7 +37,7 @@ public:
   {
     // first entry
     metrics[0].rf.rf_o = 10;
-    metrics[0].stack.rrc.ues.resize(1);
+    metrics[0].stack.rrc.ues.resize(2);
     metrics[0].stack.mac.ues.resize(metrics[0].stack.rrc.ues.size());
     metrics[0].stack.mac.ues[0].rnti      = 0x46;
     metrics[0].stack.mac.ues[0].tx_pkts   = 1000;
@@ -52,11 +52,31 @@ public:
     metrics[0].stack.mac.ues[0].dl_ri     = 1.5;
     metrics[0].stack.mac.ues[0].dl_pmi    = 1.0;
     metrics[0].stack.mac.ues[0].phr       = 12.0;
-    metrics[0].phy.resize(1);
+    metrics[0].phy.resize(2);
     metrics[0].phy[0].dl.mcs  = 28.0;
     metrics[0].phy[0].ul.mcs  = 20.2;
     metrics[0].phy[0].ul.pucch_sinr = 14.2;
     metrics[0].phy[0].ul.pusch_sinr = 14.2;
+
+    metrics[0].rf.rf_o = 10;
+    metrics[0].nr_stack.mac.ues.resize(1);
+    metrics[0].nr_stack.mac.ues[0].rnti       = 0x4601;
+    metrics[0].nr_stack.mac.ues[0].tx_pkts    = 2000;
+    metrics[0].nr_stack.mac.ues[0].tx_errors  = 2000;
+    metrics[0].nr_stack.mac.ues[0].tx_brate   = 0;
+    metrics[0].nr_stack.mac.ues[0].rx_pkts    = 50;
+    metrics[0].nr_stack.mac.ues[0].rx_errors  = 49;
+    metrics[0].nr_stack.mac.ues[0].rx_brate   = 2;
+    metrics[0].nr_stack.mac.ues[0].ul_buffer  = 100;
+    metrics[0].nr_stack.mac.ues[0].dl_buffer  = 200;
+    metrics[0].nr_stack.mac.ues[0].dl_cqi     = 15.9;
+    metrics[0].nr_stack.mac.ues[0].dl_ri      = 1.5;
+    metrics[0].nr_stack.mac.ues[0].dl_pmi     = 1.0;
+    metrics[0].nr_stack.mac.ues[0].phr        = 12.0;
+    metrics[0].nr_stack.mac.ues[0].dl_mcs     = 28;
+    metrics[0].nr_stack.mac.ues[0].ul_mcs     = 22;
+    metrics[0].nr_stack.mac.ues[0].pusch_sinr = 14;
+    metrics[0].nr_stack.mac.ues[0].pucch_sinr = 14.7;
 
     // second
     metrics[1].rf.rf_o = 10;
@@ -106,7 +126,7 @@ public:
 
     // fourth entry with incomple PHY and MAC stats
     metrics[3].rf.rf_o = 10;
-    metrics[3].stack.rrc.ues.resize(2);
+    metrics[3].stack.rrc.ues.resize(1);
     metrics[3].stack.mac.ues.resize(metrics[3].stack.rrc.ues.size());
     metrics[3].stack.mac.ues[0].rnti      = 0x1;
     metrics[3].stack.mac.ues[0].tx_pkts   = 9999;

@@ -116,7 +116,7 @@ public:
     bool is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
     bool is_endc() { return endc; }
     uint16_t get_eutra_rnti() { return eutra_rnti; }
-
+    void get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
     // setters
 
     int pack_rrc_reconfiguraiton();

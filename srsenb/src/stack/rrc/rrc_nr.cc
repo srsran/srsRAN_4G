@@ -371,7 +371,13 @@ int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t
 
 void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
 {
-  // return metrics
+  if (running) {
+    for (auto& ue : users) {
+      rrc_ue_metrics_t ue_metrics;
+      ue.second->get_metrics(ue_metrics);
+      m.ues.push_back(ue_metrics);
+    }
+  }
 }
 
 void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
