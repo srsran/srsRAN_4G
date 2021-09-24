@@ -651,11 +651,7 @@ void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
-    logger.info("Disconnecting rnti=0x%x.", rnti);
-
-    /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
-     */
+    // First remove MAC and GTPU to stop processing DL/UL traffic for this user
     mac->ue_rem(rnti); // MAC handles PHY
     gtpu->rem_user(rnti);
 
@@ -665,6 +661,8 @@ void rrc::rem_user(uint16_t rnti)
     pdcp->rem_user(rnti);
 
     users.erase(rnti);
+
+    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
     logger.info("Removed user rnti=0x%x", rnti);
   } else {
     logger.error("Removing user rnti=0x%x (does not exist)", rnti);

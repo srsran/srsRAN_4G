@@ -16,6 +16,7 @@
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
+#include "srsran/common/standard_streams.h"
 
 using namespace asn1::rrc_nr;
 
@@ -162,14 +163,13 @@ void rrc_nr::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    printf("Disconnecting rnti=0x%x.\n", rnti);
-    logger.info("Disconnecting rnti=0x%x.", rnti);
-    /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
-     */
+    // First remove MAC and GTPU to stop processing DL/UL traffic for this user
     mac->remove_ue(rnti); // MAC handles PHY
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
     users.erase(rnti);
+
+    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
     logger.info("Removed user rnti=0x%x", rnti);
   } else {
     logger.error("Removing user rnti=0x%x (does not exist)", rnti);
