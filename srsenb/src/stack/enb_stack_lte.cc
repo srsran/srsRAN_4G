@@ -203,7 +203,9 @@ int enb_stack_lte::init(const stack_args_t&      args_,
 
 void enb_stack_lte::tti_clock()
 {
-  sync_task_queue.push([this]() { tti_clock_impl(); });
+  if (started.load(std::memory_order_relaxed)) {
+    sync_task_queue.push([this]() { tti_clock_impl(); });
+  }
 }
 
 void enb_stack_lte::tti_clock_impl()
