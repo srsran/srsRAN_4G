@@ -148,6 +148,10 @@ void enb::stop()
 {
   if (started) {
     // tear down in reverse order
+    if (radio) {
+      radio->stop();
+    }
+
     if (phy) {
       phy->stop();
     }
@@ -158,10 +162,6 @@ void enb::stop()
 
     if (nr_stack) {
       nr_stack->stop();
-    }
-
-    if (radio) {
-      radio->stop();
     }
 
     // Now that everything is teared down, log sector stop events.
