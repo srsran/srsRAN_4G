@@ -299,6 +299,7 @@ void rlc_am_lte::rlc_am_lte_tx::set_bsr_callback(bsr_callback_t callback)
 
 bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (cfg_.tx_queue_length > MAX_SDUS_PER_RLC_PDU) {
     logger.error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
                  cfg_.tx_queue_length,
@@ -325,6 +326,8 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
     poll_retx_timer.set(static_cast<uint32_t>(cfg.t_poll_retx), [this](uint32_t timerid) { timer_expired(timerid); });
   }
 
+  // make sure Tx queue is empty before attempting to resize
+  empty_queue_unsafe();
   tx_sdu_queue.resize(cfg_.tx_queue_length);
 
   tx_enabled = true;
@@ -334,9 +337,9 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
 
 void rlc_am_lte::rlc_am_lte_tx::stop()
 {
-  empty_queue();
-
   std::lock_guard<std::mutex> lock(mutex);
+
+  empty_queue_unsafe();
 
   tx_enabled = false;
 
@@ -369,7 +372,11 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 void rlc_am_lte::rlc_am_lte_tx::empty_queue()
 {
   std::lock_guard<std::mutex> lock(mutex);
+  empty_queue_unsafe();
+}
 
+void rlc_am_lte::rlc_am_lte_tx::empty_queue_unsafe()
+{
   // deallocate all SDUs in transmit queue
   while (tx_sdu_queue.size() > 0) {
     unique_byte_buffer_t buf = tx_sdu_queue.read();
