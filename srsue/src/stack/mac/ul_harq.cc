@@ -112,7 +112,7 @@ int ul_harq_entity::get_current_tbs(uint32_t pid)
 
 float ul_harq_entity::get_average_retx()
 {
-  return average_retx;
+  return average_retx.load(std::memory_order_relaxed);
 }
 
 ul_harq_entity::ul_harq_process::ul_harq_process() : logger(srslog::fetch_basic_logger("MAC"))
@@ -357,12 +357,15 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
                                                       mac_interface_phy_lte::tb_action_ul_t* action)
 {
   // Compute average number of retransmissions per packet considering previous packet
-  harq_entity->average_retx = SRSRAN_VEC_CMA((float)current_tx_nb, harq_entity->average_retx, harq_entity->nof_pkts++);
-  cur_grant                 = grant;
-  harq_feedback             = false;
-  is_grant_configured       = true;
-  current_tx_nb             = 0;
-  current_irv               = 0;
+  harq_entity->average_retx.store(SRSRAN_VEC_CMA((float)current_tx_nb,
+                                                 harq_entity->average_retx.load(std::memory_order_relaxed),
+                                                 harq_entity->nof_pkts++),
+                                  std::memory_order_relaxed);
+  cur_grant           = grant;
+  harq_feedback       = false;
+  is_grant_configured = true;
+  current_tx_nb       = 0;
+  current_irv         = 0;
 
   action->is_rar = grant.is_rar || (grant.rnti == harq_entity->rntis->get_temp_rnti());
 

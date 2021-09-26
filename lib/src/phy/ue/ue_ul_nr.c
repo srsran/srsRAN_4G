@@ -110,7 +110,7 @@ void srsran_ue_ul_nr_set_freq_offset(srsran_ue_ul_nr_t* q, float freq_offset_hz)
     return;
   }
 
-  q->freq_offset_hz = freq_offset_hz;
+  q->freq_offset_hz = -freq_offset_hz;
 }
 
 int srsran_ue_ul_nr_encode_pusch(srsran_ue_ul_nr_t*            q,

@@ -50,6 +50,7 @@ void phr_proc::init(phy_interface_mac_lte* phy_h_, srsran::ext_task_sched_handle
 
 void phr_proc::reset()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   timer_periodic.stop();
   timer_prohibit.stop();
   phr_is_triggered = false;
@@ -57,6 +58,8 @@ void phr_proc::reset()
 
 void phr_proc::set_config(srsran::phr_cfg_t& cfg)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   phr_cfg = cfg;
 
   // First stop timers. If enabled==false or value is Inf, won't be re-started
@@ -99,6 +102,7 @@ bool phr_proc::pathloss_changed()
 
 void phr_proc::start_periodic_timer()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (phr_cfg.enabled && phr_cfg.periodic_timer > 0) {
     timer_periodic.run();
   }
@@ -107,6 +111,7 @@ void phr_proc::start_periodic_timer()
 /* Trigger PHR when timers exires */
 void phr_proc::timer_expired(uint32_t timer_id)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (!phr_cfg.enabled) {
     Warning("PHR:   %s timer triggered but PHR has been disabled",
             timer_id == timer_periodic.id() ? "Periodic" : "Prohibit");
@@ -128,6 +133,8 @@ void phr_proc::timer_expired(uint32_t timer_id)
 
 void phr_proc::step()
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (phr_cfg.enabled && initiated) {
     if (pathloss_changed() && timer_prohibit.is_expired()) {
       Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d", last_pathloss_db);
@@ -138,6 +145,7 @@ void phr_proc::step()
 
 bool phr_proc::generate_phr_on_ul_grant(float* phr)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (phr_is_triggered) {
     if (phr) {
       *phr = phy_h->get_phr();
@@ -158,6 +166,7 @@ bool phr_proc::generate_phr_on_ul_grant(float* phr)
 
 bool phr_proc::is_extended()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return phr_cfg.extended;
 }
 } // namespace srsue

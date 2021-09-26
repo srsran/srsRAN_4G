@@ -21,6 +21,7 @@
 
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/network_utils.h"
 #include "srsran/upper/gtpu.h"
 #include <algorithm>
 #include <fcntl.h>
@@ -161,9 +162,12 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
 
   // Set IP of the interface
   struct sockaddr_in* addr = (struct sockaddr_in*)&ifr.ifr_addr;
-  addr->sin_family         = AF_INET;
-  addr->sin_addr.s_addr    = inet_addr(args->sgi_mb_if_addr.c_str());
-  addr->sin_port           = 0;
+
+  if (not srsran::net_utils::set_sockaddr(addr, args->sgi_mb_if_addr.c_str(), 0)) {
+    m_logger.error("Invalid sgi_mb_if_addr: %s", args->sgi_mb_if_addr.c_str());
+    srsran::console("Invalid sgi_mb_if_addr: %s\n", args->sgi_mb_if_addr.c_str());
+    return SRSRAN_ERROR_CANT_START;
+  }
 
   if (ioctl(sgi_mb_sock, SIOCSIFADDR, &ifr) < 0) {
     m_logger.error(
@@ -174,7 +178,12 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
   }
 
   ifr.ifr_netmask.sa_family                                = AF_INET;
-  ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(args->sgi_mb_if_mask.c_str());
+  if (inet_pton(ifr.ifr_netmask.sa_family, args->sgi_mb_if_mask.c_str(), &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr ) != 1) {
+    m_logger.error("Invalid sgi_mb_if_mask: %s", args->sgi_mb_if_mask.c_str());
+    srsran::console("Invalid sgi_mb_if_mask: %s\n", args->sgi_mb_if_mask.c_str());
+    perror("inet_pton");
+    return SRSRAN_ERROR_CANT_START;
+  }
   if (ioctl(sgi_mb_sock, SIOCSIFNETMASK, &ifr) < 0) {
     m_logger.error("Failed to set TUN interface Netmask. Error: %s", strerror(errno));
     close(m_sgi_mb_if);
@@ -210,7 +219,12 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   /* Set local interface for outbound multicast packets*/
   /* The IP must be associated with a local multicast capable interface */
   struct in_addr local_if;
-  local_if.s_addr = inet_addr(args->m1u_multi_if.c_str());
+  if (inet_pton(AF_INET, args->m1u_multi_if.c_str(), &local_if.s_addr) != 1) {
+    m_logger.error("Invalid m1u_multi_if: %s", args->m1u_multi_if.c_str());
+    srsran::console("Invalid m1u_multi_if: %s\n", args->m1u_multi_if.c_str());
+    perror("inet_pton");
+    return SRSRAN_ERROR_CANT_START;
+  }
   if (setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr)) < 0) {
     m_logger.error("Error %s setting multicast interface %s.", strerror(errno), args->m1u_multi_if.c_str());
     return SRSRAN_ERROR_CANT_START;
@@ -227,7 +241,12 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   bzero(&m_m1u_multi_addr, sizeof(m_m1u_multi_addr));
   m_m1u_multi_addr.sin_family      = AF_INET;
   m_m1u_multi_addr.sin_port        = htons(GTPU_RX_PORT + 1);
-  m_m1u_multi_addr.sin_addr.s_addr = inet_addr(args->m1u_multi_addr.c_str());
+  if (inet_pton(m_m1u_multi_addr.sin_family, args->m1u_multi_addr.c_str(), &m_m1u_multi_addr.sin_addr.s_addr) != 1) {
+    m_logger.error("Invalid m1u_multi_addr: %s", args->m1u_multi_addr.c_str());
+    srsran::console("Invalid m1u_multi_addr: %s\n", args->m1u_multi_addr.c_str());
+    perror("inet_pton");
+    return SRSRAN_ERROR_CANT_START;
+  }
   m_logger.info("Initialized M1-U");
 
   return SRSRAN_SUCCESS;

@@ -80,7 +80,7 @@ static void run_channel()
   }
 
   // CFO
-  srsran_vec_apply_cfo(buffer, -cfo_hz / srate_hz, buffer, sf_len);
+  srsran_vec_apply_cfo(buffer, cfo_hz / srate_hz, buffer, sf_len);
 
   // AWGN
   srsran_channel_awgn_run_c(&awgn, buffer, buffer, sf_len);

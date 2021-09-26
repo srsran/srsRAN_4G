@@ -468,6 +468,17 @@ typedef struct SRSRAN_API {
 } srsran_tdd_config_nr_t;
 
 /**
+ * @brief Describes duplex configuration
+ */
+typedef struct SRSRAN_API {
+  srsran_duplex_mode_t mode;
+  union {
+    srsran_tdd_config_nr_t tdd; ///< TDD configuration
+    // ... add here other mode parameters
+  };
+} srsran_duplex_config_nr_t;
+
+/**
  * @brief Describes a measurement based on NZP-CSI-RS or SSB-CSI
  * @note Used for tracking RSRP, SNR, CFO, SFO, and so on
  * @note srsran_csi_channel_measurements_t is used for CSI report generation
@@ -500,6 +511,13 @@ SRSRAN_API const char* srsran_rnti_type_str(srsran_rnti_type_t rnti_type);
  * @return Constant string with the short RNTI type name
  */
 SRSRAN_API const char* srsran_rnti_type_str_short(srsran_rnti_type_t rnti_type);
+
+/**
+ * @brief Get the Search Space Type string for a given type
+ * @param ss_type The given Search Space Type
+ * @return The string describing the SS Type
+ */
+SRSRAN_API const char* srsran_ss_type_str(srsran_search_space_type_t ss_type);
 
 /**
  * @brief Get the RNTI type name for NR
@@ -595,21 +613,21 @@ SRSRAN_API float srsran_symbol_distance_s(uint32_t l0, uint32_t l1, srsran_subca
 
 /**
  * @brief Decides whether a given slot is configured as Downlink
- * @param cfg Provides TDD configuration
+ * @param cfg Provides the carrier duplex configuration
  * @param numerology Provides BWP numerology
  * @param slot_idx Slot index in the frame for the given numerology
  * @return true if the provided slot index is configured for Downlink
  */
-SRSRAN_API bool srsran_tdd_nr_is_dl(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
+SRSRAN_API bool srsran_duplex_nr_is_dl(const srsran_duplex_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
 
 /**
  * @brief Decides whether a given slot is configured as Uplink
- * @param cfg Provides TDD configuration
+ * @param cfg Provides the carrier duplex configuration
  * @param numerology Provides BWP numerology
  * @param slot_idx Slot index in the frame for the given numerology
  * @return true if the provided slot index is configured for Uplink
  */
-SRSRAN_API bool srsran_tdd_nr_is_ul(const srsran_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
+SRSRAN_API bool srsran_duplex_nr_is_ul(const srsran_duplex_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
 
 SRSRAN_API int srsran_carrier_to_cell(const srsran_carrier_nr_t* carrier, srsran_cell_t* cell);
 

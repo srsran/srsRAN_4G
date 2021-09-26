@@ -69,7 +69,7 @@ public:
 
   struct cell_cfg_t {
     srsran_carrier_nr_t                                          carrier = {};
-    srsran_tdd_config_nr_t                                       tdd     = {};
+    srsran_duplex_config_nr_t                                    duplex  = {};
     srsran::phy_cfg_nr_t::ssb_cfg_t                              ssb     = {};
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
   };

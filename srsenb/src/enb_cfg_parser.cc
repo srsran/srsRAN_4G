@@ -756,7 +756,9 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   cell_cnfg.add_field(new rr_sections::cell_list_section(args_, rrc_cfg_));
 
   // NR RRC and cell config section
+  bool            nr_cell_cnfg_present = false;
   parser::section nr_cell_cnfg("nr_cell_list");
+  nr_cell_cnfg.set_optional(&nr_cell_cnfg_present);
   nr_cell_cnfg.add_field(new rr_sections::nr_cell_list_section(args_, rrc_cfg_));
 
   // Run parser with two sections
@@ -1203,12 +1205,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       // auto-detect UL frequency
       if (cfg.ul_earfcn == 0) {
         // derive UL ARFCN from given DL ARFCN
-        uint16_t             nr_band   = band_helper.get_band_from_dl_freq_Hz(phy_cell_cfg.dl_freq_hz);
-        srsran_duplex_mode_t nr_duplex = band_helper.get_duplex_mode(nr_band);
-        if (nr_duplex == SRSRAN_DUPLEX_MODE_TDD) {
-          cfg.ul_earfcn = cfg.dl_earfcn;
-        } else {
-          ERROR("Can't derive UL ARFCN from DL ARFCN");
+        cfg.ul_earfcn = band_helper.get_ul_arfcn_from_dl_arfcn(cfg.dl_earfcn);
+        if (cfg.ul_earfcn == 0) {
+          ERROR("Can't derive UL ARFCN from DL ARFCN %d", cfg.dl_earfcn);
           return SRSRAN_ERROR;
         }
       }

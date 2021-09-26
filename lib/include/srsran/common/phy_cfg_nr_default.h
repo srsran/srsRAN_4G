@@ -53,17 +53,22 @@ public:
 
     enum {
       /**
+       * @brief FDD, all slots for DL and UL
+       */
+      R_DUPLEX_FDD = 0,
+
+      /**
        * @brief TDD custom reference 5 slot DL and 5 slot UL
        */
-      R_TDD_CUSTOM_6_4 = 0,
+      R_DUPLEX_TDD_CUSTOM_6_4,
 
       /**
        * @brief TDD pattern FR1.15-1 defined in TS38.101-4 Table A.1.2-1
        */
-      R_TDD_FR1_15_1,
-      R_TDD_COUNT,
-    } tdd                                                   = R_TDD_CUSTOM_6_4;
-    const std::array<std::string, R_TDD_COUNT> R_TDD_STRING = {{"6D+4U", "FR1.15-1"}};
+      R_DUPLEX_TDD_FR1_15_1,
+      R_DUPLEX_COUNT,
+    } duplex                                                      = R_DUPLEX_TDD_CUSTOM_6_4;
+    const std::array<std::string, R_DUPLEX_COUNT> R_DUPLEX_STRING = {{"FDD", "6D+4U", "FR1.15-1"}};
 
     enum {
       /**
@@ -153,8 +158,8 @@ private:
   /**
    * TDD make helper methods
    */
-  static void make_tdd_custom_6_4(srsran_tdd_config_nr_t& tdd);
-  static void make_tdd_fr1_15_1(srsran_tdd_config_nr_t& tdd);
+  static void make_tdd_custom_6_4(srsran_duplex_config_nr_t& duplex);
+  static void make_tdd_fr1_15_1(srsran_duplex_config_nr_t& duplex);
 
   /**
    * PDCCH make helper methods
@@ -180,9 +185,9 @@ private:
   /**
    * HARQ make helper methods
    */
-  static void make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
-                             const srsran_carrier_nr_t&    carrier,
-                             const srsran_tdd_config_nr_t& tdd_cfg);
+  static void make_harq_auto(srsran_harq_ack_cfg_hl_t&        harq,
+                             const srsran_carrier_nr_t&       carrier,
+                             const srsran_duplex_config_nr_t& duplex_cfg);
 
   /**
    * PRACH make helper methods

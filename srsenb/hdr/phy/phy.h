@@ -27,6 +27,7 @@
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsran/common/trace.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/enb_time_interface.h"
 #include "srsran/interfaces/radio_interfaces.h"
 #include "srsran/radio/radio.h"
 #include "srsran/srslog/srslog.h"
@@ -46,12 +47,14 @@ public:
   int  init(const phy_args_t&            args,
             const phy_cfg_t&             cfg,
             srsran::radio_interface_phy* radio_,
-            stack_interface_phy_lte*     stack_);
+            stack_interface_phy_lte*     stack_,
+            enb_time_interface*          enb_);
   int  init(const phy_args_t&            args,
             const phy_cfg_t&             cfg,
             srsran::radio_interface_phy* radio_,
             stack_interface_phy_lte*     stack_lte_,
-            stack_interface_phy_nr&      stack_nr_);
+            stack_interface_phy_nr&      stack_nr_,
+            enb_time_interface*          enb_);
   void stop() override;
 
   std::string get_type() override { return "lte"; };

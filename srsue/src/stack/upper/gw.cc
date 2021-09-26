@@ -62,8 +62,11 @@ int gw::init(const gw_args_t& args_, stack_interface_gw* stack_)
     return SRSRAN_ERROR;
   }
 
-  mbsfn_sock_addr.sin_family      = AF_INET;
-  mbsfn_sock_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  mbsfn_sock_addr.sin_family = AF_INET;
+  if (inet_pton(mbsfn_sock_addr.sin_family, "127.0.0.1", &mbsfn_sock_addr.sin_addr.s_addr) != 1) {
+    perror("inet_pton");
+    return false;
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -462,8 +465,13 @@ int gw::setup_if_addr4(uint32_t ip_addr, char* err_str)
       close(tun_fd);
       return SRSRAN_ERROR_CANT_START;
     }
-    ifr.ifr_netmask.sa_family                                = AF_INET;
-    ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(args.tun_dev_netmask.c_str());
+    ifr.ifr_netmask.sa_family                             = AF_INET;
+    if (inet_pton(ifr.ifr_netmask.sa_family, args.tun_dev_netmask.c_str(), &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr) != 1) {
+      logger.error("Invalid tun_dev_netmask: %s", args.tun_dev_netmask.c_str());
+      srsran::console("Invalid tun_dev_netmask: %s\n", args.tun_dev_netmask.c_str());
+      perror("inet_pton");
+      return SRSRAN_ERROR_CANT_START;
+    }
     if (0 > ioctl(sock, SIOCSIFNETMASK, &ifr)) {
       err_str = strerror(errno);
       logger.debug("Failed to set socket netmask: %s", err_str);

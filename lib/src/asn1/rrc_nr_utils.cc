@@ -280,21 +280,21 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
 };
 
 bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
-                      srsran_tdd_config_nr_t*       in_srsran_tdd_config_nr)
+                      srsran_duplex_config_nr_t*    in_srsran_duplex_config_nr)
 {
-  srsran_tdd_config_nr_t srsran_tdd_config_nr = {};
+  srsran_duplex_config_nr_t srsran_duplex_config_nr = {};
   switch (tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity) {
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_tdd_config_nr.pattern1.period_ms = 1;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 1;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_tdd_config_nr.pattern1.period_ms = 2;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 2;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_tdd_config_nr.pattern1.period_ms = 5;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 5;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_tdd_config_nr.pattern1.period_ms = 10;
+      srsran_duplex_config_nr.tdd.pattern1.period_ms = 10;
       break;
 
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
@@ -306,12 +306,12 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                         tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity.to_string());
       return false;
   }
-  srsran_tdd_config_nr.pattern1.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_dl_slots;
-  srsran_tdd_config_nr.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
-  srsran_tdd_config_nr.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
-  srsran_tdd_config_nr.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
+  srsran_duplex_config_nr.tdd.pattern1.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_dl_slots;
+  srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
+  srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
+  srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
   // Copy and return struct
-  *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
   if (not tdd_ul_dl_cfg_common.pattern2_present) {
     return true;
@@ -319,16 +319,16 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
 
   switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_tdd_config_nr.pattern2.period_ms = 1;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_tdd_config_nr.pattern2.period_ms = 2;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_tdd_config_nr.pattern2.period_ms = 5;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
       break;
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_tdd_config_nr.pattern2.period_ms = 10;
+      srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
       break;
 
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
@@ -341,12 +341,12 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
       return false;
   }
 
-  srsran_tdd_config_nr.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
-  srsran_tdd_config_nr.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
-  srsran_tdd_config_nr.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
-  srsran_tdd_config_nr.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
+  srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
+  srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
+  srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
+  srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
   // Copy and return struct
-  *in_srsran_tdd_config_nr = srsran_tdd_config_nr;
+  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
   return true;
 }
@@ -1079,6 +1079,15 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
   }
   zp_csi_rs_resource.resource_mapping.freq_band.nof_rb   = zp_csi_rs_res.res_map.freq_band.nrof_rbs;
   zp_csi_rs_resource.resource_mapping.freq_band.start_rb = zp_csi_rs_res.res_map.freq_band.start_rb;
+
+  // Validate CSI-RS resource mapping
+  if (not srsran_csi_rs_resource_mapping_is_valid(&zp_csi_rs_resource.resource_mapping)) {
+    asn1::json_writer json_writer;
+    zp_csi_rs_res.res_map.to_json(json_writer);
+    asn1::log_error("Resource mapping is invalid or not implemented: %s", json_writer.to_string());
+    return false;
+  }
+
   if (zp_csi_rs_res.periodicity_and_offset_present) {
     switch (zp_csi_rs_res.periodicity_and_offset.type()) {
       case csi_res_periodicity_and_offset_c::types_opts::options::slots4:
@@ -1236,6 +1245,14 @@ bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& asn1_nzp
   }
   csi_rs_nzp_resource.resource_mapping.freq_band.nof_rb   = asn1_nzp_csi_rs_res.res_map.freq_band.nrof_rbs;
   csi_rs_nzp_resource.resource_mapping.freq_band.start_rb = asn1_nzp_csi_rs_res.res_map.freq_band.start_rb;
+
+  // Validate CSI-RS resource mapping
+  if (not srsran_csi_rs_resource_mapping_is_valid(&csi_rs_nzp_resource.resource_mapping)) {
+    asn1::json_writer json_writer;
+    asn1_nzp_csi_rs_res.res_map.to_json(json_writer);
+    asn1::log_error("Resource mapping is invalid or not implemented: %s", json_writer.to_string());
+    return false;
+  }
 
   csi_rs_nzp_resource.power_control_offset = asn1_nzp_csi_rs_res.pwr_ctrl_offset;
   if (asn1_nzp_csi_rs_res.pwr_ctrl_offset_ss_present) {

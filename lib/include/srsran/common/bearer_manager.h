@@ -113,11 +113,23 @@ public:
   /// All registered bearer are removed (e.g. after connection release)
   void reset();
 
-  bool has_active_radio_bearer(uint32_t eps_bearer_id) { return impl.has_active_radio_bearer(eps_bearer_id); }
+  bool has_active_radio_bearer(uint32_t eps_bearer_id)
+  {
+    srsran::rwlock_read_guard rw_lock(rwlock);
+    return impl.has_active_radio_bearer(eps_bearer_id);
+  }
 
-  radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id) { return impl.get_radio_bearer(eps_bearer_id); }
+  radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id)
+  {
+    srsran::rwlock_read_guard rw_lock(rwlock);
+    return impl.get_radio_bearer(eps_bearer_id);
+  }
 
-  radio_bearer_t get_lcid_bearer(uint32_t lcid) { return impl.get_lcid_bearer(lcid); }
+  radio_bearer_t get_lcid_bearer(uint32_t lcid)
+  {
+    srsran::rwlock_read_guard rw_lock(rwlock);
+    return impl.get_lcid_bearer(lcid);
+  }
 
 private:
   pthread_rwlock_t                       rwlock = {}; /// RW lock to protect access from RRC/GW threads

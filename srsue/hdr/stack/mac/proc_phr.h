@@ -61,6 +61,8 @@ private:
 
   srsran::timer_handler::unique_timer timer_periodic;
   srsran::timer_handler::unique_timer timer_prohibit;
+
+  std::mutex mutex;
 };
 
 } // namespace srsue

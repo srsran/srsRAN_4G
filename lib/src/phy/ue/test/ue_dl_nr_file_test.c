@@ -123,11 +123,12 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
   // Print PDCCH blind search candidates
   for (uint32_t i = 0; i < ue_dl->pdcch_info_count; i++) {
     const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl->pdcch_info[i];
-    INFO("PDCCH: rnti=0x%x, crst_id=%d, ss_type=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
+    INFO("PDCCH: %s-rnti=0x%x, crst_id=%d, ss_type=%s, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
          "nof_bits=%d; crc=%s;",
+         srsran_rnti_type_str_short(info->dci_ctx.rnti_type),
          info->dci_ctx.rnti,
          info->dci_ctx.coreset_id,
-         info->dci_ctx.ss_type,
+         srsran_ss_type_str(info->dci_ctx.ss_type),
          info->dci_ctx.location.ncce,
          info->dci_ctx.location.L,
          info->measure.epre_dBfs,

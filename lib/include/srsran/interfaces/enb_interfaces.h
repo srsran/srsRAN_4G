@@ -23,6 +23,8 @@
 #include "srsran/common/interfaces_common.h"
 #include "srsran/srsran.h"
 
+#include "srsran/interfaces/enb_rrc_interfaces.h"
+
 #ifndef SRSRAN_ENB_INTERFACES_H
 #define SRSRAN_ENB_INTERFACES_H
 
@@ -35,8 +37,6 @@ public:
   virtual void remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)                                       = 0;
   virtual void remove_eps_bearers(uint16_t rnti)                                                             = 0;
 };
-
-class stack_interface_phy_lte;
 
 } // namespace srsenb
 

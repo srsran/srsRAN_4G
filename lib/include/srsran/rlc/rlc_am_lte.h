@@ -337,6 +337,7 @@ public:
              srsue::pdcp_interface_rlc* pdcp_,
              srsue::rrc_interface_rlc*  rrc_,
              srsran::timer_handler*     timers_);
+
   bool configure(const rlc_config_t& cfg_);
   void reestablish();
   void stop();
@@ -564,6 +565,7 @@ private:
   rlc_am_lte_tx tx;
   rlc_am_lte_rx rx;
 
+  std::mutex           metrics_mutex;
   rlc_bearer_metrics_t metrics = {};
 };
 

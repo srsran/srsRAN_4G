@@ -22,8 +22,8 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/enb.h"
-#include "srsenb/hdr/stack/rrc/rrc_config_nr.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
+#include "srsran/interfaces/enb_x2_interfaces.h"
 #include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/srslog/event_trace.h"
 
@@ -36,10 +36,10 @@ class gtpu_pdcp_adapter final : public gtpu_interface_pdcp, public pdcp_interfac
 public:
   gtpu_pdcp_adapter(srslog::basic_logger& logger_,
                     pdcp*                 pdcp_lte,
-                    pdcp*                 pdcp_nr,
+                    pdcp_interface_gtpu*  pdcp_x2,
                     gtpu*                 gtpu_,
                     enb_bearer_manager&   bearers_) :
-    logger(logger_), pdcp_obj(pdcp_lte), pdcp_nr_obj(pdcp_nr), gtpu_obj(gtpu_), bearers(&bearers_)
+    logger(logger_), pdcp_obj(pdcp_lte), pdcp_x2_obj(pdcp_x2), gtpu_obj(gtpu_), bearers(&bearers_)
   {}
 
   /// Converts LCID to EPS-BearerID and sends corresponding PDU to GTPU
@@ -59,7 +59,7 @@ public:
     if (bearer.rat == srsran_rat_t::lte) {
       pdcp_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
     } else if (bearer.rat == srsran_rat_t::nr) {
-      pdcp_nr_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
+      pdcp_x2_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
     } else {
       logger.warning("Can't deliver SDU for EPS bearer %d. Dropping it.", eps_bearer_id);
     }
@@ -71,7 +71,7 @@ public:
     if (bearer.rat == srsran_rat_t::lte) {
       return pdcp_obj->get_buffered_pdus(rnti, bearer.lcid);
     } else if (bearer.rat == srsran_rat_t::nr) {
-      return pdcp_nr_obj->get_buffered_pdus(rnti, bearer.lcid);
+      return pdcp_x2_obj->get_buffered_pdus(rnti, bearer.lcid);
     }
     logger.error("Bearer rnti=0x%x, eps-BearerID=%d not found", rnti, eps_bearer_id);
     return {};
@@ -81,34 +81,26 @@ private:
   srslog::basic_logger& logger;
   gtpu*                 gtpu_obj    = nullptr;
   pdcp*                 pdcp_obj    = nullptr;
-  pdcp*                 pdcp_nr_obj = nullptr;
+  pdcp_interface_gtpu*  pdcp_x2_obj = nullptr;
   enb_bearer_manager*   bearers     = nullptr;
 };
 
 enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   thread("STACK"),
   mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
-  mac_nr_logger(srslog::fetch_basic_logger("MAC-NR", log_sink)),
   rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
-  rlc_nr_logger(srslog::fetch_basic_logger("RLC-NR", log_sink, false)),
   pdcp_logger(srslog::fetch_basic_logger("PDCP", log_sink, false)),
-  pdcp_nr_logger(srslog::fetch_basic_logger("PDCP-NR", log_sink, false)),
   rrc_logger(srslog::fetch_basic_logger("RRC", log_sink, false)),
-  rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", log_sink, false)),
   s1ap_logger(srslog::fetch_basic_logger("S1AP", log_sink, false)),
   gtpu_logger(srslog::fetch_basic_logger("GTPU", log_sink, false)),
   stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
   task_sched(512, 128),
   pdcp(&task_sched, pdcp_logger),
-  pdcp_nr(&task_sched, pdcp_nr_logger),
   mac(&task_sched, mac_logger),
-  mac_nr(&task_sched),
   rlc(rlc_logger),
-  rlc_nr(rlc_nr_logger),
   gtpu(&task_sched, gtpu_logger, &rx_sockets),
   s1ap(&task_sched, s1ap_logger, &rx_sockets),
   rrc(&task_sched, bearers),
-  rrc_nr(&task_sched),
   mac_pcap(),
   pending_stack_metrics(64)
 {
@@ -131,30 +123,11 @@ std::string enb_stack_lte::get_type()
 int enb_stack_lte::init(const stack_args_t&      args_,
                         const rrc_cfg_t&         rrc_cfg_,
                         phy_interface_stack_lte* phy_,
-                        phy_interface_stack_nr*  phy_nr_)
-{
-  phy_nr = phy_nr_;
-  if (init(args_, rrc_cfg_, phy_)) {
-    return SRSRAN_ERROR;
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
-int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_)
-{
-  phy = phy_;
-  if (init(args_, rrc_cfg_)) {
-    return SRSRAN_ERROR;
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
-int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
+                        x2_interface*            x2_)
 {
   args    = args_;
   rrc_cfg = rrc_cfg_;
+  phy     = phy_;
 
   // Init RNTI and bearer memory pools
   reserve_rnti_memblocks(args.mac.nof_prealloc_ues);
@@ -163,25 +136,17 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // setup logging for each layer
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
-  mac_nr_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
   rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
-  rlc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
   pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
-  pdcp_nr_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
   rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
-  rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   gtpu_logger.set_level(srslog::str_to_basic_level(args.log.gtpu_level));
   s1ap_logger.set_level(srslog::str_to_basic_level(args.log.s1ap_level));
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
 
   mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
-  mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
-  rlc_nr_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
-  pdcp_nr_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
   rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
-  rrc_nr_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
   gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
   s1ap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
@@ -209,7 +174,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   // setup bearer managers
-  gtpu_adapter.reset(new gtpu_pdcp_adapter(stack_logger, &pdcp, &pdcp_nr, &gtpu, bearers));
+  gtpu_adapter.reset(new gtpu_pdcp_adapter(stack_logger, &pdcp, x2_, &gtpu, bearers));
 
   // Init all LTE layers
   if (!mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc)) {
@@ -218,7 +183,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   }
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
   pdcp.init(&rlc, &rrc, gtpu_adapter.get());
-  if (rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_nr) != SRSRAN_SUCCESS) {
+  if (rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, x2_) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }
@@ -226,25 +191,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     stack_logger.error("Couldn't initialize S1AP");
     return SRSRAN_ERROR;
   }
-
-  // NR layers
-  mac_nr_args_t mac_args = {};
-  mac_args.fixed_dl_mcs  = 28;
-  mac_args.fixed_ul_mcs  = 10;
-  mac_args.pcap          = args.mac_pcap;
-  mac_args.pcap.filename = "/tmp/enb_mac_nr.pcap";
-  if (mac_nr.init(mac_args, phy_nr, nullptr, &rlc_nr, &rrc_nr) != SRSRAN_SUCCESS) {
-    stack_logger.error("Couldn't initialize MAC-NR");
-    return SRSRAN_ERROR;
-  }
-
-  rrc_nr_cfg_t rrc_cfg_nr = {};
-  if (rrc_nr.init(rrc_cfg_nr, phy_nr, &mac_nr, &rlc_nr, &pdcp_nr, nullptr, nullptr, &rrc) != SRSRAN_SUCCESS) {
-    stack_logger.error("Couldn't initialize RRC-NR");
-    return SRSRAN_ERROR;
-  }
-  rlc_nr.init(&pdcp_nr, &rrc_nr, &mac_nr, task_sched.get_timer_handler());
-  pdcp_nr.init(&rlc_nr, &rrc_nr, gtpu_adapter.get());
 
   gtpu_args_t gtpu_args;
   gtpu_args.embms_enable                 = args.embms.enable;

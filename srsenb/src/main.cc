@@ -75,8 +75,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
-
-    ("enb.stack",              bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte, nr]")
     ("enb.enb_id",             bpo::value<string>(&enb_id)->default_value("0x0"),                       "eNodeB ID")
     ("enb.name",               bpo::value<string>(&args->stack.s1ap.enb_name)->default_value("srsenb01"), "eNodeB Name")
     ("enb.mcc",                bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
@@ -163,6 +161,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.max_nof_ctrl_symbols)->default_value(3), "Number of control symbols")
     ("scheduler.min_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.min_nof_ctrl_symbols)->default_value(1), "Minimum number of control symbols")
     ("scheduler.pucch_multiplex_enable", bpo::value<bool>(&args->stack.mac.sched.pucch_mux_enabled)->default_value(false), "Enable PUCCH multiplexing")
+    ("scheduler.pucch_harq_max_rb", bpo::value<int>(&args->stack.mac.sched.pucch_harq_max_rb)->default_value(0), "Maximum number of RB to be used for PUCCH on the edges of the grid")
     ("scheduler.target_bler", bpo::value<float>(&args->stack.mac.sched.target_bler)->default_value(0.05), "Target BLER (in decimal) to achieve via adaptive link")
     ("scheduler.max_delta_dl_cqi", bpo::value<float>(&args->stack.mac.sched.max_delta_dl_cqi)->default_value(5.0), "Maximum shift in CQI for adaptive DL link")
     ("scheduler.max_delta_ul_snr", bpo::value<float>(&args->stack.mac.sched.max_delta_ul_snr)->default_value(5.0), "Maximum shift in UL SNR for adaptive UL link")

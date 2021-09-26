@@ -170,7 +170,11 @@ enable = false
 # pusch_mcs:         Optional fixed PUSCH MCS (ignores reported CQIs if specified)
 # pusch_max_mcs:     Optional PUSCH MCS limit 
 # min_nof_ctrl_symbols: Minimum number of control symbols 
-# max_nof_ctrl_symbols: Maximum number of control symbols 
+# max_nof_ctrl_symbols: Maximum number of control symbols
+# pucch_multiplex_enable: Allow PUCCH HARQ to collide with PUSCH and other PUCCH
+# pucch_harq_max_rb: Maximum number of RB to be used for PUCCH on the edges of the grid.
+#                    If defined and greater than 0, the scheduler will avoid DL PDCCH allocations if
+#                    PUCCH HARQ falls outside this region
 # target_bler:       Target BLER (in decimal) to achieve via adaptive link
 # max_delta_dl_cqi:  Maximum shift in CQI for adaptive DL link
 # max_delta_ul_snr:  Maximum shift in UL SNR for adaptive UL link
@@ -196,6 +200,7 @@ enable = false
 #min_nof_ctrl_symbols = 1
 #max_nof_ctrl_symbols = 3
 #pucch_multiplex_enable = false
+#pucch_harq_max_rb = 0
 #target_bler = 0.05
 #max_delta_dl_cqi = 5
 #max_delta_ul_snr = 5

@@ -184,20 +184,22 @@ void cc_worker::decode_pdcch_dl()
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
       const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      logger.debug("PDCCH: dci=%s, rnti=%x, crst_id=%d, ss_type=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
-                   "evm=%f; nof_bits=%d; crc=%s;",
-                   srsran_dci_format_nr_string(info->dci_ctx.format),
-                   info->dci_ctx.rnti,
-                   info->dci_ctx.coreset_id,
-                   info->dci_ctx.ss_type,
-                   info->dci_ctx.location.ncce,
-                   info->dci_ctx.location.L,
-                   info->measure.epre_dBfs,
-                   info->measure.rsrp_dBfs,
-                   info->measure.norm_corr,
-                   info->result.evm,
-                   info->nof_bits,
-                   info->result.crc ? "OK" : "KO");
+      logger.debug(
+          "PDCCH: dci=%s, %s-rnti=%x, crst_id=%d, ss_type=%s, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
+          "evm=%f; nof_bits=%d; crc=%s;",
+          srsran_dci_format_nr_string(info->dci_ctx.format),
+          srsran_rnti_type_str_short(info->dci_ctx.rnti_type),
+          info->dci_ctx.rnti,
+          info->dci_ctx.coreset_id,
+          srsran_ss_type_str(info->dci_ctx.ss_type),
+          info->dci_ctx.location.ncce,
+          info->dci_ctx.location.L,
+          info->measure.epre_dBfs,
+          info->measure.rsrp_dBfs,
+          info->measure.norm_corr,
+          info->result.evm,
+          info->nof_bits,
+          info->result.crc ? "OK" : "KO");
     }
   }
 }
@@ -482,7 +484,7 @@ bool cc_worker::work_dl()
   }
 
   // Check if it is a DL slot, if not skip
-  if (!srsran_tdd_nr_is_dl(&phy.cfg.tdd, 0, dl_slot_cfg.idx)) {
+  if (!srsran_duplex_nr_is_dl(&phy.cfg.duplex, 0, dl_slot_cfg.idx)) {
     return true;
   }
 
@@ -494,10 +496,11 @@ bool cc_worker::work_dl()
 
   // Compensate CFO from TRS measurements
   if (std::isnormal(phy.args.enable_worker_cfo)) {
-    float dl_cfo_hz = phy.get_dl_cfo();
+    float dl_cfo_hz   = phy.get_dl_cfo();
+    float dl_cfo_norm = -dl_cfo_hz / (1000.0f * ue_ul.ifft.sf_sz);
     for (cf_t* b : rx_buffer) {
       if (b != nullptr and ue_ul.ifft.sf_sz != 0) {
-        srsran_vec_apply_cfo(b, dl_cfo_hz / (1000.0f * ue_ul.ifft.sf_sz), b, ue_ul.ifft.sf_sz);
+        srsran_vec_apply_cfo(b, dl_cfo_norm, b, ue_ul.ifft.sf_sz);
       }
     }
   }
@@ -529,7 +532,7 @@ bool cc_worker::work_ul()
   bool                  has_ul_ack = phy.get_pending_ack(ul_slot_cfg.idx, pdsch_ack);
 
   // Check if it is a UL slot, if not skip
-  if (!srsran_tdd_nr_is_ul(&phy.cfg.tdd, 0, ul_slot_cfg.idx)) {
+  if (!srsran_duplex_nr_is_ul(&phy.cfg.duplex, 0, ul_slot_cfg.idx)) {
     // No NR signal shall be transmitted
     srsran_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
 

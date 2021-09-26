@@ -53,13 +53,13 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
         }
       }
       srsran_assert(carrier != R_CARRIER_COUNT, "Invalid carrier reference configuration '%s'", param.back().c_str());
-    } else if (param.front() == "tdd") {
-      for (tdd = R_TDD_CUSTOM_6_4; tdd < R_TDD_COUNT; tdd = inc(tdd)) {
-        if (R_TDD_STRING[tdd] == param.back()) {
+    } else if (param.front() == "duplex") {
+      for (duplex = R_DUPLEX_FDD; duplex < R_DUPLEX_COUNT; duplex = inc(duplex)) {
+        if (R_DUPLEX_STRING[duplex] == param.back()) {
           break;
         }
       }
-      srsran_assert(tdd != R_TDD_COUNT, "Invalid TDD reference configuration '%s'", param.back().c_str());
+      srsran_assert(duplex != R_DUPLEX_COUNT, "Invalid duplex reference configuration '%s'", param.back().c_str());
     } else if (param.front() == "pdsch") {
       for (pdsch = R_PDSCH_DEFAULT; pdsch < R_PDSCH_COUNT; pdsch = inc(pdsch)) {
         if (R_PDSCH_STRING[pdsch] == param.back()) {
@@ -95,8 +95,18 @@ void phy_cfg_nr_default_t::make_carrier_custom_20MHz(srsran_carrier_nr_t& carrie
   carrier.scs                           = srsran_subcarrier_spacing_15kHz;
 }
 
-void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_tdd_config_nr_t& tdd)
+void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_duplex_config_nr_t& conf)
 {
+  // Set the duplex mode to TDD
+  conf.mode = SRSRAN_DUPLEX_MODE_TDD;
+
+  // Select TDD config
+  srsran_tdd_config_nr_t& tdd = conf.tdd;
+
+  // Initialise pattern
+  tdd = {};
+
+  // Enable pattern 1
   tdd.pattern1.period_ms      = 10;
   tdd.pattern1.nof_dl_slots   = 6;
   tdd.pattern1.nof_dl_symbols = 0;
@@ -107,8 +117,17 @@ void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_tdd_config_nr_t& tdd)
   tdd.pattern2.period_ms = 0;
 }
 
-void phy_cfg_nr_default_t::make_tdd_fr1_15_1(srsran_tdd_config_nr_t& tdd)
-{
+void phy_cfg_nr_default_t::make_tdd_fr1_15_1(srsran_duplex_config_nr_t& conf)
+{ // Set the duplex mode to TDD
+  conf.mode = SRSRAN_DUPLEX_MODE_TDD;
+
+  // Select TDD config
+  srsran_tdd_config_nr_t& tdd = conf.tdd;
+
+  // Initialise pattern
+  tdd = {};
+
+  // Enable pattern 1
   tdd.pattern1.period_ms      = 5;
   tdd.pattern1.nof_dl_slots   = 3;
   tdd.pattern1.nof_dl_symbols = 10;
@@ -328,32 +347,39 @@ void phy_cfg_nr_default_t::make_pucch_custom_one(srsran_pucch_nr_hl_cfg_t& pucch
   pucch.sr_resources[1].resource   = resource_sr;
 }
 
-void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&     harq,
-                                          const srsran_carrier_nr_t&    carrier,
-                                          const srsran_tdd_config_nr_t& tdd_cfg)
+void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&        harq,
+                                          const srsran_carrier_nr_t&       carrier,
+                                          const srsran_duplex_config_nr_t& duplex_cfg)
 {
-  // Generate as many entries as DL slots
-  harq.nof_dl_data_to_ul_ack = SRSRAN_MIN(tdd_cfg.pattern1.nof_dl_slots, SRSRAN_MAX_NOF_DL_DATA_TO_UL);
-  if (tdd_cfg.pattern1.nof_dl_symbols > 0) {
-    harq.nof_dl_data_to_ul_ack++;
-  }
+  if (duplex_cfg.mode == SRSRAN_DUPLEX_MODE_TDD) {
+    const srsran_tdd_config_nr_t& tdd_cfg = duplex_cfg.tdd;
 
-  // Set PDSCH to ACK timing delay to 4 or more
-  for (uint32_t n = 0; n < harq.nof_dl_data_to_ul_ack; n++) {
-    // Set the first slots into the first UL slot
-    if (harq.nof_dl_data_to_ul_ack >= 4 and n < (harq.nof_dl_data_to_ul_ack - 4)) {
-      harq.dl_data_to_ul_ack[n] = harq.nof_dl_data_to_ul_ack - n;
-      continue;
+    // Generate as many entries as DL slots
+    harq.nof_dl_data_to_ul_ack = SRSRAN_MIN(tdd_cfg.pattern1.nof_dl_slots, SRSRAN_MAX_NOF_DL_DATA_TO_UL);
+    if (tdd_cfg.pattern1.nof_dl_symbols > 0) {
+      harq.nof_dl_data_to_ul_ack++;
     }
 
-    // After that try if n+4 is UL slot
-    if (srsran_tdd_nr_is_ul(&tdd_cfg, carrier.scs, n + 4)) {
-      harq.dl_data_to_ul_ack[n] = 4;
-      continue;
-    }
+    // Set PDSCH to ACK timing delay to 4 or more
+    for (uint32_t n = 0; n < harq.nof_dl_data_to_ul_ack; n++) {
+      // Set the first slots into the first UL slot
+      if (harq.nof_dl_data_to_ul_ack >= 4 and n < (harq.nof_dl_data_to_ul_ack - 4)) {
+        harq.dl_data_to_ul_ack[n] = harq.nof_dl_data_to_ul_ack - n;
+        continue;
+      }
 
-    // Otherwise set delay to the first UL slot of the next TDD period
-    harq.dl_data_to_ul_ack[n] = (tdd_cfg.pattern1.period_ms + tdd_cfg.pattern1.nof_dl_slots) - n;
+      // After that try if n+4 is UL slot
+      if (srsran_duplex_nr_is_ul(&duplex_cfg, carrier.scs, n + 4)) {
+        harq.dl_data_to_ul_ack[n] = 4;
+        continue;
+      }
+
+      // Otherwise set delay to the first UL slot of the next TDD period
+      harq.dl_data_to_ul_ack[n] = (tdd_cfg.pattern1.period_ms + tdd_cfg.pattern1.nof_dl_slots) - n;
+    }
+  } else {
+    harq.dl_data_to_ul_ack[0]  = 4;
+    harq.nof_dl_data_to_ul_ack = 1;
   }
 
   // Zero the rest
@@ -386,14 +412,17 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
       srsran_assertion_failure("Invalid carrier reference");
   }
 
-  switch (reference_cfg.tdd) {
-    case reference_cfg_t::R_TDD_CUSTOM_6_4:
-      make_tdd_custom_6_4(tdd);
+  switch (reference_cfg.duplex) {
+    case reference_cfg_t::R_DUPLEX_FDD:
+      duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
       break;
-    case reference_cfg_t::R_TDD_FR1_15_1:
-      make_tdd_fr1_15_1(tdd);
+    case reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4:
+      make_tdd_custom_6_4(duplex);
       break;
-    case reference_cfg_t::R_TDD_COUNT:
+    case reference_cfg_t::R_DUPLEX_TDD_FR1_15_1:
+      make_tdd_fr1_15_1(duplex);
+      break;
+    case reference_cfg_t::R_DUPLEX_COUNT:
       srsran_assertion_failure("Invalid TDD reference");
   }
 
@@ -428,7 +457,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
 
   switch (reference_cfg.harq) {
     case reference_cfg_t::R_HARQ_AUTO:
-      make_harq_auto(harq_ack, carrier, tdd);
+      make_harq_auto(harq_ack, carrier, duplex);
       break;
   }
 

@@ -1202,11 +1202,11 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
 
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
-        srsran_tdd_config_nr_t tdd;
-        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &tdd) == true) {
-          phy_cfg.tdd = tdd;
+        srsran_duplex_config_nr_t duplex;
+        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex) == true) {
+          phy_cfg.duplex = duplex;
         } else {
-          logger.warning("Warning while building tdd structure");
+          logger.warning("Warning while building duplex structure");
           return false;
         }
       } else {

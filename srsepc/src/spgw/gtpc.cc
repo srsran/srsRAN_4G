@@ -550,7 +550,10 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
   // load our imsi to ip lookup table
   for (std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.begin(); iter != ip_to_imsi.end(); ++iter) {
     struct in_addr in_addr;
-    in_addr.s_addr = inet_addr(iter->first.c_str());
+    if (inet_pton(AF_INET, iter->first.c_str(), &in_addr.s_addr) != 1) {
+      perror("inet_pton");
+      return SRSRAN_ERROR;
+    }
     if (!m_imsi_to_ip.insert(std::make_pair(iter->second, in_addr)).second) {
       m_logger.error(
           "SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.", iter->second, iter->first.c_str());
@@ -562,7 +565,13 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
   // first address is allocated to the epc tun interface, start w/next addr
   for (uint32_t n = 1; n < 254; ++n) {
     struct in_addr ue_addr;
-    ue_addr.s_addr = inet_addr(args->sgi_if_addr.c_str()) + htonl(n);
+    if (inet_pton(AF_INET, args->sgi_if_addr.c_str(), &ue_addr.s_addr) != 1) {
+      m_logger.error("Invalid sgi_if_addr: %s", args->sgi_if_addr.c_str());
+      srsran::console("Invalid sgi_if_addr: %s\n", args->sgi_if_addr.c_str());
+      perror("inet_pton");
+      return SRSRAN_ERROR;
+    }
+    ue_addr.s_addr = ue_addr.s_addr + htonl(n);
 
     std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(inet_ntoa(ue_addr));
     if (iter != ip_to_imsi.end()) {

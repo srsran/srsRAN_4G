@@ -289,7 +289,12 @@ bool cc_worker::work_dl_regular()
     // Decode PDSCH
     decode_pdsch(ack_resource, &dl_action, dl_ack);
 
-    // Informs Stack about the decoding status
+    // Informs Stack about the decoding status, send NACK if cell is in process of re-selection
+    if (phy->cell_is_selecting) {
+      for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
+        dl_ack[i] = false;
+      }
+    }
     phy->stack->tb_decoded(cc_idx, mac_grant, dl_ack);
   }
 

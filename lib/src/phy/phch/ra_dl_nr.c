@@ -186,7 +186,7 @@ int srsran_ra_dl_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
       srsran_ra_dl_nr_time_default_A(m, cfg->typeA_pos, grant);
     }
   } else {
-    ERROR("Unhandled case %s, ss_type=%d", srsran_rnti_type_str(rnti_type), ss_type);
+    ERROR("Unhandled case %s, ss_type=%s", srsran_rnti_type_str(rnti_type), srsran_ss_type_str(ss_type));
   }
 
   // Validate S and L parameters
@@ -349,4 +349,3 @@ uint32_t srsran_ra_nr_type1_riv(uint32_t N_prb, uint32_t start_rb, uint32_t leng
 {
   return srsran_sliv_from_s_and_l(N_prb, start_rb, length_rb);
 }
-

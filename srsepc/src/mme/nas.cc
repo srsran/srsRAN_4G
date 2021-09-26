@@ -1547,7 +1547,12 @@ bool nas::pack_attach_accept(srsran::byte_buffer_t* nas_buffer)
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
 
   struct sockaddr_in dns_addr;
-  inet_pton(AF_INET, m_dns.c_str(), &(dns_addr.sin_addr));
+  if (inet_pton(AF_INET, m_dns.c_str(), &(dns_addr.sin_addr)) != 1) {
+    m_logger.error("Invalid m_dns: %s", m_dns.c_str());
+    srsran::console("Invalid m_dns: %s\n", m_dns.c_str());
+    perror("inet_pton");
+    return false;
+  }
   memcpy(act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents, &dns_addr.sin_addr.s_addr, 4);
 
   // Make sure all unused options are set to false

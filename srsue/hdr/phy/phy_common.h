@@ -65,6 +65,8 @@ public:
 
   srsran::phy_cfg_mbsfn_t mbsfn_config = {};
 
+  std::atomic<bool> cell_is_selecting = {false};
+
   // Secondary serving cell states
   scell::state cell_state;
 
@@ -305,7 +307,7 @@ private:
   std::mutex              mtch_mutex;
   std::condition_variable mtch_cvar;
 
-  bool is_pending_tx_end = false;
+  std::atomic<bool> is_pending_tx_end{false};
 
   srsran::radio_interface_phy* radio_h = nullptr;
   srslog::basic_logger&        logger;

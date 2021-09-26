@@ -169,20 +169,20 @@ public:
   srsran_softbuffer_tx_t* get_tx_softbuffer(uint32_t enb_cc_idx, uint32_t harq_process, uint32_t tb_idx);
   srsran_softbuffer_rx_t* get_rx_softbuffer(uint32_t enb_cc_idx, uint32_t tti);
 
-  uint8_t*                     request_buffer(uint32_t tti, uint32_t enb_cc_idx, uint32_t len);
-  void                         process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t ue_cc_idx, uint32_t grant_nof_prbs);
+  uint8_t* request_buffer(uint32_t tti, uint32_t enb_cc_idx, uint32_t len);
+  void     process_pdu(srsran::unique_byte_buffer_t pdu, uint32_t ue_cc_idx, uint32_t grant_nof_prbs);
   srsran::unique_byte_buffer_t release_pdu(uint32_t tti, uint32_t enb_cc_idx);
   void                         clear_old_buffers(uint32_t tti);
 
   std::mutex metrics_mutex = {};
-  void metrics_read(mac_ue_metrics_t* metrics_);
-  void metrics_rx(bool crc, uint32_t tbs);
-  void metrics_tx(bool crc, uint32_t tbs);
-  void metrics_phr(float phr);
-  void metrics_dl_ri(uint32_t dl_cqi);
-  void metrics_dl_pmi(uint32_t dl_cqi);
-  void metrics_dl_cqi(uint32_t dl_cqi);
-  void metrics_cnt();
+  void       metrics_read(mac_ue_metrics_t* metrics_);
+  void       metrics_rx(bool crc, uint32_t tbs);
+  void       metrics_tx(bool crc, uint32_t tbs);
+  void       metrics_phr(float phr);
+  void       metrics_dl_ri(uint32_t dl_cqi);
+  void       metrics_dl_pmi(uint32_t dl_cqi);
+  void       metrics_dl_cqi(uint32_t dl_cqi);
+  void       metrics_cnt();
 
   uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
@@ -197,11 +197,11 @@ private:
   srslog::basic_logger&    logger;
   sched_interface*         sched = nullptr;
 
-  srsran::mac_pcap*     pcap         = nullptr;
-  srsran::mac_pcap_net* pcap_net     = nullptr;
-  uint64_t              conres_id    = 0;
-  uint16_t              rnti         = 0;
-  uint32_t              last_tti     = 0;
+  srsran::mac_pcap*     pcap      = nullptr;
+  srsran::mac_pcap_net* pcap_net  = nullptr;
+  uint64_t              conres_id = 0;
+  uint16_t              rnti      = 0;
+  std::atomic<uint32_t> last_tti{0};
   uint32_t              nof_failures = 0;
 
   std::atomic<bool> active_state{true};

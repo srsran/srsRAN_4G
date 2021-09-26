@@ -403,13 +403,9 @@ int gtpu::init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_)
 
   struct sockaddr_in bindaddr;
   bzero(&bindaddr, sizeof(struct sockaddr_in));
-  bindaddr.sin_family      = AF_INET;
-  bindaddr.sin_addr.s_addr = inet_addr(gtp_bind_addr.c_str());
-  bindaddr.sin_port        = htons(GTPU_PORT);
-
-  if (bind(fd, (struct sockaddr*)&bindaddr, sizeof(struct sockaddr_in))) {
+  // Bind socket
+  if (not net_utils::bind_addr(fd, gtp_bind_addr.c_str(), GTPU_PORT, &bindaddr)) {
     snprintf(errbuf, sizeof(errbuf), "%s", strerror(errno));
-    logger.error("Failed to bind on address %s, port %d: %s", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
     srsran::console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
     return SRSRAN_ERROR;
   }
@@ -934,8 +930,20 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
 
   /* Send an ADD MEMBERSHIP message via setsockopt */
   struct ip_mreq mreq {};
-  mreq.imr_multiaddr.s_addr = inet_addr(m1u_multiaddr.c_str()); // Multicast address of the service
-  mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());   // Address of the IF the socket will listen to.
+  // Multicast address of the service
+  if (inet_pton(AF_INET, m1u_multiaddr.c_str(), &mreq.imr_multiaddr) != 1) {
+    logger.error("Invalid m1u_multiaddr: %s", m1u_multiaddr.c_str());
+    srsran::console("Invalid m1u_multiaddr: %s\n", m1u_multiaddr.c_str());
+    perror("inet_pton");
+    return false;
+  }
+  // Address of the IF the socket will listen to.
+  if (inet_pton(AF_INET, m1u_if_addr.c_str(), &mreq.imr_interface) != 1) {
+    logger.error("Invalid m1u_if_addr: %s", m1u_if_addr.c_str());
+    srsran::console("Invalid m1u_if_addr: %s\n", m1u_if_addr.c_str());
+    perror("inet_pton");
+    return false;
+  }
   if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
     logger.error("Register musticast group for M1-U");
     logger.error("M1-U infterface IP: %s, M1-U Multicast Address %s", m1u_if_addr.c_str(), m1u_multiaddr.c_str());

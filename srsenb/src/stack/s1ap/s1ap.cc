@@ -61,7 +61,10 @@ asn1::bounded_bitstring<1, 160, true, true> addr_to_asn1(const char* addr_str)
 {
   asn1::bounded_bitstring<1, 160, true, true> transport_layer_addr(32);
   uint8_t                                     addr[4];
-  inet_pton(AF_INET, addr_str, addr);
+  if (inet_pton(AF_INET, addr_str, addr) != 1) {
+    srsran::console("Invalid addr_str: %s\n", addr_str);
+    perror("inet_pton");
+  }
   for (uint32_t j = 0; j < 4; ++j) {
     transport_layer_addr.data()[j] = addr[3 - j];
   }
@@ -1735,9 +1738,17 @@ void s1ap::ue::get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1:
   transp_addr.resize(32);
   uint8_t addr[4];
   if (!s1ap_ptr->args.gtp_advertise_addr.empty()) {
-    inet_pton(AF_INET, s1ap_ptr->args.gtp_advertise_addr.c_str(), addr);
+    if (inet_pton(AF_INET, s1ap_ptr->args.gtp_advertise_addr.c_str(), addr) != 1) {
+      logger.error("Invalid gtp_advertise_addr: %s", s1ap_ptr->args.gtp_advertise_addr.c_str());
+      srsran::console("Invalid gtp_advertise_addr: %s\n", s1ap_ptr->args.gtp_advertise_addr.c_str());
+      perror("inet_pton");
+    }
   } else {
-    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+    if (inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr) != 1) {
+      logger.error("Invalid gtp_bind_addr: %s", s1ap_ptr->args.gtp_bind_addr.c_str());
+      srsran::console("Invalid gtp_bind_addr: %s\n", s1ap_ptr->args.gtp_bind_addr.c_str());
+      perror("inet_pton");
+    }
   }
   for (uint32_t j = 0; j < 4; ++j) {
     transp_addr.data()[j] = addr[3 - j];

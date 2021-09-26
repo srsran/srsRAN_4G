@@ -120,7 +120,12 @@ bool ue_stack_nr::switch_on()
 {
   // statically setup TUN (will be done through RRC later)
   char* err_str = nullptr;
-  if (gw->setup_if_addr(5, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.1.3")), nullptr, err_str)) {
+  struct in_addr in_addr;
+  if (inet_pton(AF_INET, "192.168.1.3", &in_addr.s_addr) != 1) {
+    perror("inet_pton");
+    return false;
+  }
+  if (gw->setup_if_addr(5, LIBLTE_MME_PDN_TYPE_IPV4, htonl(in_addr.s_addr), nullptr, err_str)) {
     printf("Error configuring TUN interface\n");
   }
   return true;

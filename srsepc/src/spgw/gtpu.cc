@@ -22,6 +22,7 @@
 #include "srsepc/hdr/spgw/gtpu.h"
 #include "srsepc/hdr/mme/mme_gtpc.h"
 #include "srsran/common/string_helpers.h"
+#include "srsran/common/network_utils.h"
 #include "srsran/upper/gtpu.h"
 #include <algorithm>
 #include <arpa/inet.h>
@@ -140,9 +141,11 @@ int spgw::gtpu::init_sgi(spgw_args_t* args)
 
   // Set IP of the interface
   struct sockaddr_in* addr = (struct sockaddr_in*)&ifr.ifr_addr;
-  addr->sin_family         = AF_INET;
-  addr->sin_addr.s_addr    = inet_addr(args->sgi_if_addr.c_str());
-  addr->sin_port           = 0;
+  if (not srsran::net_utils::set_sockaddr(addr, args->sgi_if_addr.c_str(), 0)) {
+    m_logger.error("Invalid sgi_if_addr: %s", args->sgi_if_addr.c_str());
+    srsran::console("Invalid sgi_if_addr: %s\n", args->sgi_if_addr.c_str());
+    return SRSRAN_ERROR_CANT_START;
+  }
 
   if (ioctl(sgi_sock, SIOCSIFADDR, &ifr) < 0) {
     m_logger.error(
@@ -152,8 +155,11 @@ int spgw::gtpu::init_sgi(spgw_args_t* args)
     return SRSRAN_ERROR_CANT_START;
   }
 
-  ifr.ifr_netmask.sa_family                                = AF_INET;
-  ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+  ifr.ifr_netmask.sa_family = AF_INET;
+  if (inet_pton(ifr.ifr_netmask.sa_family , "255.255.255.0", &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr) != 1) {
+    perror("inet_pton");
+    return false;
+  }
   if (ioctl(sgi_sock, SIOCSIFNETMASK, &ifr) < 0) {
     m_logger.error("Failed to set TUN interface Netmask. Error: %s", strerror(errno));
     close(m_sgi);
@@ -179,7 +185,11 @@ int spgw::gtpu::init_s1u(spgw_args_t* args)
 
   // Bind the socket
   m_s1u_addr.sin_family      = AF_INET;
-  m_s1u_addr.sin_addr.s_addr = inet_addr(args->gtpu_bind_addr.c_str());
+  if (inet_pton(m_s1u_addr.sin_family, args->gtpu_bind_addr.c_str(), &m_s1u_addr.sin_addr.s_addr) != 1) {
+    m_logger.error("Invalid gtpu_bind_addr: %s", args->gtpu_bind_addr.c_str());
+    srsran::console("Invalid gtpu_bind_addr: %s\n", args->gtpu_bind_addr.c_str());
+    return SRSRAN_ERROR_CANT_START;
+  }
   m_s1u_addr.sin_port        = htons(GTPU_RX_PORT);
 
   if (bind(m_s1u, (struct sockaddr*)&m_s1u_addr, sizeof(struct sockaddr_in))) {

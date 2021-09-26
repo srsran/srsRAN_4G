@@ -63,7 +63,7 @@ bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
   if (active) {
     // Already configured
     if (cnfg_ != cfg) {
-      logger.error("Bearer reconfiguration not supported. LCID=%d.", rrc->get_rb_name(lcid));
+      logger.error("Bearer reconfiguration not supported. LCID=%s.", rrc->get_rb_name(lcid));
       return false;
     }
     return true;

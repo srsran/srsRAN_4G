@@ -208,6 +208,7 @@ public:
    */
   void start()
   {
+    std::lock_guard<std::mutex> lock(mutex);
     // Transition to idle only if the current state is idle
     if (state == state_idle) {
       state = state_measure;

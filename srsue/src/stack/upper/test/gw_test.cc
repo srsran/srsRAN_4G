@@ -52,7 +52,12 @@ int gw_test()
   char*    err_str                    = nullptr;
   int      rtn                        = 0;
 
-  rtn = gw.setup_if_addr(eps_bearer_id, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.56.32")), nullptr, err_str);
+  struct in_addr in_addr;
+  if (inet_pton(AF_INET, "192.168.56.32", &in_addr.s_addr) != 1) {
+    perror("inet_pton");
+    return SRSRAN_ERROR;
+  }
+  rtn = gw.setup_if_addr(eps_bearer_id, LIBLTE_MME_PDN_TYPE_IPV4, htonl(in_addr.s_addr), nullptr, err_str);
 
   if (rtn != SRSRAN_SUCCESS) {
     srslog::fetch_basic_logger("TEST", false)

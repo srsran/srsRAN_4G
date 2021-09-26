@@ -155,7 +155,10 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 // Implement Section 5.9
 void mac::reset()
 {
-  bzero(&metrics, sizeof(mac_metrics_t));
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    bzero(&metrics, sizeof(mac_metrics_t));
+  }
 
   Info("Resetting MAC");
 
@@ -210,6 +213,7 @@ void mac::run_tti(const uint32_t tti)
   ra_procedure.update_rar_window(ra_window);
 
   // Count TTI for metrics
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   for (uint32_t i = 0; i < SRSRAN_MAX_CARRIERS; i++) {
     metrics[i].nof_tti++;
   }
@@ -355,10 +359,13 @@ void mac::mch_decoded(uint32_t len, bool crc)
       pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti(), 0);
     }
 
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics[0].rx_brate += len * 8;
   } else {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics[0].rx_errors++;
   }
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics[0].rx_pkts++;
 }
 

@@ -48,14 +48,14 @@ txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger), runni
   /* Do nothing */
 }
 
-bool txrx::init(stack_interface_phy_lte*     stack_,
+bool txrx::init(enb_time_interface*          enb_,
                 srsran::radio_interface_phy* radio_h_,
                 lte::worker_pool*            lte_workers_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 uint32_t                     prio_)
 {
-  stack       = stack_;
+  enb         = enb_;
   radio_h     = radio_h_;
   lte_workers = lte_workers_;
   worker_com  = worker_com_;
@@ -222,8 +222,8 @@ void txrx::run_thread()
       lte_workers->start_worker(lte_worker);
     }
 
-    // Advance stack in time
-    stack->tti_clock();
+    // Advance in time
+    enb->tti_clock();
   }
 }
 

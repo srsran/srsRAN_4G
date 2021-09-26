@@ -35,6 +35,7 @@
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/timeout.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_x2_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include <map>
 

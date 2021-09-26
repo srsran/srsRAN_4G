@@ -369,10 +369,22 @@ public:
     ul.mcs = args.pusch.mcs;
 
     if (args.pdsch.slots != "none" and not args.pdsch.slots.empty()) {
-      srsran::string_parse_list(args.pdsch.slots, ',', dl.slots);
+      if (args.pdsch.slots == "all") {
+        for (uint32_t n = 0; n < SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs); n++) {
+          dl.slots.insert(n);
+        }
+      } else {
+        srsran::string_parse_list(args.pdsch.slots, ',', dl.slots);
+      }
     }
     if (args.pusch.slots != "none" and not args.pusch.slots.empty()) {
-      srsran::string_parse_list(args.pusch.slots, ',', ul.slots);
+      if (args.pusch.slots == "all") {
+        for (uint32_t n = 0; n < SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs); n++) {
+          ul.slots.insert(n);
+        }
+      } else {
+        srsran::string_parse_list(args.pusch.slots, ',', ul.slots);
+      }
     }
 
     // Select DCI locations
@@ -414,7 +426,11 @@ public:
 
     // Setup DL Data to ACK timing
     for (uint32_t i = 0; i < SRSRAN_NOF_SF_X_FRAME; i++) {
-      dl_data_to_ul_ack[i] = args.phy_cfg.harq_ack.dl_data_to_ul_ack[i % args.phy_cfg.tdd.pattern1.period_ms];
+      if (args.phy_cfg.duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+        dl_data_to_ul_ack[i] = args.phy_cfg.harq_ack.dl_data_to_ul_ack[i % args.phy_cfg.duplex.tdd.pattern1.period_ms];
+      } else {
+        dl_data_to_ul_ack[i] = args.phy_cfg.harq_ack.dl_data_to_ul_ack[i % args.phy_cfg.harq_ack.nof_dl_data_to_ul_ack];
+      }
     }
 
     // If reached this point the configuration is valid
@@ -450,7 +466,7 @@ public:
     }
 
     // Check if it is TDD DL slot and PDSCH mask, if no PDSCH shall be scheduled, do not set any grant and skip
-    if (not srsran_tdd_nr_is_dl(&phy_cfg.tdd, phy_cfg.carrier.scs, slot_cfg.idx)) {
+    if (not srsran_duplex_nr_is_dl(&phy_cfg.duplex, phy_cfg.carrier.scs, slot_cfg.idx)) {
       return SRSRAN_SUCCESS;
     }
 
@@ -460,7 +476,7 @@ public:
     }
 
     // Check if the UL slot is valid, if not skip UL scheduling
-    if (not srsran_tdd_nr_is_ul(&phy_cfg.tdd, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
+    if (not srsran_duplex_nr_is_ul(&phy_cfg.duplex, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
       return SRSRAN_SUCCESS;
     }
 

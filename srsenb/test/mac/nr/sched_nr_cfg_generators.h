@@ -45,7 +45,7 @@ inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
   sched_nr_interface::cell_cfg_t cell_cfg{};
 
   cell_cfg.carrier = phy_cfg.carrier;
-  cell_cfg.tdd     = phy_cfg.tdd;
+  cell_cfg.duplex  = phy_cfg.duplex;
 
   cell_cfg.bwps.resize(1);
   cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;
