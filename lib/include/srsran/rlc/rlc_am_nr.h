@@ -57,6 +57,9 @@ public:
   uint32_t get_buffer_state() final;
   void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue);
 
+  bool     do_status();
+  uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
+
   void stop() final;
 
 private:
@@ -103,16 +106,53 @@ public:
   uint32_t get_sdu_rx_latency_ms();
   uint32_t get_rx_buffered_bytes();
 
+  // Status PDU
+  bool     get_do_status();
+  uint32_t get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t len);
+  uint32_t get_status_pdu_length();
+
 private:
   rlc_am*           parent = nullptr;
   rlc_am_nr_tx*     tx     = nullptr;
   byte_buffer_pool* pool   = nullptr;
+
+  // RX Window
+  rlc_ringbuffer_t<rlc_amd_rx_pdu_nr, RLC_AM_WINDOW_SIZE> rx_window;
+
+  // Mutexes
+  std::mutex mutex;
 
   /****************************************************************************
    * Configurable parameters
    * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
    ***************************************************************************/
   rlc_am_config_t cfg = {};
+
+  /****************************************************************************
+   * State Variables
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
+   ***************************************************************************/
+  /*
+   * RX_Next: This state variable holds the value of the SN following the last in-sequence completely received RLC
+   * SDU, and it serves as the lower edge of the receiving window. It is initially set to 0, and is updated whenever
+   * the AM RLC entity receives an RLC SDU with SN = RX_Next.
+   */
+  uint32_t rx_next = 0;
+  /*
+   * RX_Next_Status_Trigger: This state variable holds the value of the SN following the SN of the RLC SDU which
+   * triggered t-Reassembly.
+   */
+  uint32_t rx_next_status_trigger = 0;
+  /*
+   * RX_Next_Highest: This state variable holds the highest possible value of the SN which can be indicated by
+   *"ACK_SN" when a STATUS PDU needs to be constructed. It is initially set to 0.
+   */
+  uint32_t rx_highest_status = 0;
+  /*
+   * RX_Next_Highest: This state variable holds the value of the SN following the SN of the RLC SDU with the
+   * highest SN among received *RLC SDUs. It is initially set to 0.
+   */
+  uint32_t rx_next_highest = 0;
 };
 
 } // namespace srsran

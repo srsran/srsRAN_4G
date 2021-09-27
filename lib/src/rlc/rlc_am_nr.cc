@@ -11,12 +11,17 @@
  */
 
 #include "srsran/rlc/rlc_am_nr.h"
+#include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/rlc/rlc_am_nr_packing.h"
 #include "srsran/srslog/event_trace.h"
 #include <iostream>
+
+#define RLC_AM_NR_WINDOW_SIZE 1024
+#define RX_MOD_BASE_NR(x) (((x)-rx_next) % RLC_AM_NR_WINDOW_SIZE)
+//#define TX_MOD_BASE_NR(x) (((x)-vt_a) % RLC_AM_NR_WINDOW_SIZE)
 
 namespace srsran {
 
@@ -63,22 +68,23 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     logger->debug("RLC entity not active. Not generating PDU.");
     return 0;
   }
-
   logger->debug("MAC opportunity - %d bytes", nof_bytes);
-  // logger.debug("tx_window size - %zu PDUs", tx_window.size());
+  //  logger.debug("tx_window size - %zu PDUs", tx_window.size());
+
+  // Build a PDU from SDU
+  unique_byte_buffer_t tx_sdu;
+  unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
 
   // Tx STATUS if requested
-  // TODO
+  if (do_status() /*&& not status_prohibit_timer.is_running()*/) {
+    return build_status_pdu(tx_pdu.get(), nof_bytes);
+  }
 
   // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
   // TODO
 
   // RETX if required
   // TODO
-
-  // Build a PDU from SDU
-  unique_byte_buffer_t tx_sdu;
-  unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
 
   // Read new SDU from TX queue
   do {
@@ -92,7 +98,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = 0;
+  hdr.p                      = 1; // FIXME
   hdr.si                     = rlc_nr_si_field_t::full_sdu;
   hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
   hdr.sn                     = st.tx_next;
@@ -103,6 +109,29 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
   memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
   return tx_sdu->N_bytes;
+}
+
+uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
+{
+  rlc_am_nr_status_pdu_t tx_status;
+  int                    pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
+  if (pdu_len == SRSRAN_ERROR) {
+    logger->debug("%s Deferred Status PDU. Cause: Failed to acquire Rx lock", rb_name);
+    pdu_len = 0;
+  } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
+    // log_rlc_am_status_pdu_to_string(logger->info, "%s Tx status PDU - %s", &tx_status, rb_name);
+    // if (cfg.t_status_prohibit > 0 && status_prohibit_timer.is_valid()) {
+    // re-arm timer
+    //  status_prohibit_timer.run();
+    //}
+    // debug_state();
+    pdu_len = rlc_am_nr_write_status_pdu(tx_status, rlc_am_nr_sn_size_t::size12bits, payload);
+  } else {
+    logger->info("%s Cannot tx status PDU - %d bytes available, %d bytes required", rb_name, nof_bytes, pdu_len);
+    pdu_len = 0;
+  }
+
+  return pdu_len;
 }
 
 void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) {}
@@ -131,7 +160,10 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
   */
 
   // Bytes needed for status report
-  // TODO
+  if (do_status() /* && not TODO status_prohibit_timer*/) {
+    n_bytes += rx->get_status_pdu_length();
+    logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes);
+  }
 
   // Bytes needed for retx
   // TODO
@@ -164,6 +196,11 @@ bool rlc_am_nr_tx::sdu_queue_is_full()
 
 void rlc_am_nr_tx::empty_queue() {}
 
+bool rlc_am_nr_tx::do_status()
+{
+  return rx->get_do_status();
+}
+
 void rlc_am_nr_tx::stop() {}
 
 /****************************************************************************
@@ -182,6 +219,13 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   return true;
 }
 
+void rlc_am_nr_rx::stop() {}
+
+void rlc_am_nr_rx::reestablish()
+{
+  stop();
+}
+
 void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   // Get AMD PDU Header
@@ -191,7 +235,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Check poll bit
   if (header.p != 0) {
     logger->info("%s Status packet requested through polling bit", parent->rb_name);
-    bool do_status = true;
+    do_status = true;
 
     // 36.322 v10 Section 5.2.3
     // if (RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) || RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr)) {
@@ -201,13 +245,55 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 }
 
-void rlc_am_nr_rx::stop() {}
-
-void rlc_am_nr_rx::reestablish()
+/*
+ * Status PDU
+ */
+uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t max_len)
 {
-  stop();
+  std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
+  if (not lock.owns_lock()) {
+    return SRSRAN_ERROR;
+  }
+
+  status->N_nack = 0;
+  status->ack_sn = rx_next; // start with lower edge of the rx window
+  byte_buffer_t tmp_buf;
+  uint32_t      len;
+
+  // We don't use segment NACKs - just NACK the full PDU
+  uint32_t i = status->ack_sn;
+  while (RX_MOD_BASE_NR(i) <= RX_MOD_BASE_NR(rx_highest_status)) {
+    if (rx_window.has_sn(i) || i == rx_highest_status) {
+      // only update ACK_SN if this SN has been received, or if we reached the maximum possible SN
+      status->ack_sn = i;
+    } else {
+      status->nacks[status->N_nack].nack_sn = i;
+      status->N_nack++;
+    }
+
+    // make sure we don't exceed grant size (FIXME)
+    rlc_am_nr_write_status_pdu(*status, rlc_am_nr_sn_size_t::size12bits, &tmp_buf);
+    // TODO
+    i = (i + 1) % MOD;
+  }
+  //
+  return tmp_buf.N_bytes;
 }
 
+uint32_t rlc_am_nr_rx::get_status_pdu_length()
+{
+  rlc_am_nr_status_pdu_t tmp_status; // length for no NACKs
+  return get_status_pdu(&tmp_status, UINT32_MAX);
+}
+
+bool rlc_am_nr_rx::get_do_status()
+{
+  return do_status.load(std::memory_order_relaxed);
+}
+
+/*
+ * Metrics
+ */
 uint32_t rlc_am_nr_rx::get_sdu_rx_latency_ms()
 {
   return 0;

@@ -32,6 +32,15 @@ struct rlc_amd_pdu_nr_t {
   unique_byte_buffer_t   buf;
 };
 
+struct rlc_amd_rx_pdu_nr {
+  rlc_am_nr_pdu_header_t header;
+  unique_byte_buffer_t   buf;
+  uint32_t               rlc_sn;
+
+  rlc_amd_rx_pdu_nr() = default;
+  explicit rlc_amd_rx_pdu_nr(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
+};
+
 ///< AM NR Status PDU header (perhaps merge with LTE version)
 typedef struct {
   rlc_am_nr_control_pdu_type_t cpt;

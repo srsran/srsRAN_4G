@@ -183,6 +183,9 @@ public:
     srslog::basic_logger* logger = nullptr;
     byte_buffer_pool*     pool   = nullptr;
     rlc_am*               parent = nullptr;
+
+  protected:
+    std::atomic<bool> do_status = {false}; // light-weight access from Tx entity
   };
 
 protected:
