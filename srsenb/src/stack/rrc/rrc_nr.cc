@@ -1309,6 +1309,12 @@ void rrc_nr::ue::crnti_ce_received()
   if (endc) {
     // send SgNB addition complete for ENDC users
     parent->rrc_eutra->sgnb_addition_complete(eutra_rnti, rnti);
+
+    // Add DRB1 to MAC
+    for (auto& drb : cell_group_cfg.rlc_bearer_to_add_mod_list) {
+      uecfg.ue_bearers[drb.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
+    }
+    parent->mac->ue_cfg(rnti, uecfg);
   }
 }
 
@@ -1389,9 +1395,7 @@ int rrc_nr::ue::add_drb()
   srsran::pdcp_config_t pdcp_cnfg = srsran::make_drb_pdcp_config_t(drb_item.drb_id, false, drb_item.pdcp_cfg);
   parent->pdcp->add_bearer(rnti, rlc.lc_ch_id, pdcp_cnfg);
 
-  // Add DRB1 to MAC
-  uecfg.ue_bearers[rlc.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
-  parent->mac->ue_cfg(rnti, uecfg);
+  // Note: DRB1 is only activated in the MAC when the C-RNTI CE is received
 
   return SRSRAN_SUCCESS;
 }
