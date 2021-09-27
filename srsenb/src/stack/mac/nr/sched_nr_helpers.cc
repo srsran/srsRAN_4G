@@ -112,6 +112,27 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
   fill_dci_common(ue, bwp_cfg, dci);
 }
 
+void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)
+{
+  if (not logger.info.enabled() or slot_ues.empty()) {
+    return;
+  }
+
+  fmt::memory_buffer fmtbuf;
+  fmt::format_to(fmtbuf, "SCHED: UE candidates, pdcch_tti={}, cc={}: [", pdcch_slot, cc);
+
+  const char* use_comma = "";
+  for (const auto& ue_pair : slot_ues) {
+    auto& ue = ue_pair->second;
+
+    fmt::format_to(
+        fmtbuf, "{}{{rnti=0x{:x}, dl_bs={}, ul_bs={}}}", use_comma, ue.rnti, ue.dl_pending_bytes, ue.ul_pending_bytes);
+    use_comma = ", ";
+  }
+
+  logger.info("%s]", srsran::to_c_str(fmtbuf));
+}
+
 void log_sched_bwp_result(srslog::basic_logger& logger,
                           slot_point            pdcch_slot,
                           const bwp_res_grid&   res_grid,

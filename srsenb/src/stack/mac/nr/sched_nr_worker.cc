@@ -90,6 +90,9 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
   // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
   bwp_alloc.new_slot(slot_rx + TX_ENB_DELAY, slot_ues);
 
+  // Log UEs state for slot
+  log_sched_slot_ues(logger, bwp_alloc.get_pdcch_tti(), cfg.cc, slot_ues);
+
   // Allocate pending RARs
   cell.bwps[0].ra.run_slot(bwp_alloc);
 
