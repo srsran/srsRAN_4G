@@ -85,6 +85,14 @@ public:
     eutra_stack->sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
 
+  void set_activity_user(uint16_t eutra_rnti)
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->set_activity_user(eutra_rnti);
+  }
+
   // stack_nr_interface_stack_eutra
   void tti_clock()
   {

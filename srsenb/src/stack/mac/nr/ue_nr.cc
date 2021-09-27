@@ -143,6 +143,12 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 
     // add to MAC PDU and pack
     mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
+
+    // Indicate DRB activity in DL to RRC
+    if (lcid > 3) {
+      rrc->set_activity_user(rnti);
+      logger.debug("DL activity rnti=0x%x, n_bytes=%d", rnti, ue_rlc_buffer->N_bytes);
+    }
   }
 
   mac_pdu_dl.pack();

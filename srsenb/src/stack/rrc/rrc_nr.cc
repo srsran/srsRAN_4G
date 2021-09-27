@@ -201,6 +201,22 @@ int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
   return SRSRAN_SUCCESS;
 }
 
+void rrc_nr::set_activity_user(uint16_t rnti)
+{
+  auto it = users.find(rnti);
+  if (it == users.end()) {
+    logger.info("rnti=0x%x not found. Can't set activity", rnti);
+    return;
+  }
+  ue* ue_ptr = it->second.get();
+
+  // inform EUTRA RRC about user activity
+  if (ue_ptr->is_endc()) {
+    // inform EUTRA RRC about user activity
+    rrc_eutra->set_activity_user(ue_ptr->get_eutra_rnti());
+  }
+}
+
 void rrc_nr::config_phy()
 {
   static const srsran::phy_cfg_nr_t default_phy_cfg =

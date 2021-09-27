@@ -81,6 +81,13 @@ public:
    * @param nr_rnti    The RNTI that has been assigned to the UE on the SgNB
    */
   virtual void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) = 0;
+
+  /**
+   * @brief Signal user activity (i.e. DL/UL traffic) for given RNTI
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC uses
+   */
+  virtual void set_activity_user(uint16_t eutra_rnti) = 0;
 };
 
 class stack_nr_interface_stack_eutra

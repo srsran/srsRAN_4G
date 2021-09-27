@@ -118,6 +118,7 @@ public:
   {
     rrc.sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
+  void set_activity_user(uint16_t eutra_rnti) final { rrc.set_activity_user(eutra_rnti); }
 
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);

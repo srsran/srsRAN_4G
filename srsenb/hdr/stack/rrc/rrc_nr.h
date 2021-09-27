@@ -62,14 +62,17 @@ public:
   void get_metrics(srsenb::rrc_metrics_t& m);
 
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
-  int          add_user(uint16_t rnti);
-  void         rem_user(uint16_t rnti);
-  int          update_user(uint16_t new_rnti, uint16_t old_rnti);
   void         config_phy();
   void         config_mac();
   int32_t      generate_sibs();
   int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
   int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
+
+  /// User manegement
+  int  add_user(uint16_t rnti);
+  void rem_user(uint16_t rnti);
+  int  update_user(uint16_t new_rnti, uint16_t old_rnti);
+  void set_activity_user(uint16_t rnti);
 
   // RLC interface
   // TODO
@@ -112,6 +115,7 @@ public:
     bool is_idle() { return state == rrc_nr_state_t::RRC_IDLE; }
     bool is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
     bool is_endc() { return endc; }
+    uint16_t get_eutra_rnti() { return eutra_rnti; }
 
     // setters
 
