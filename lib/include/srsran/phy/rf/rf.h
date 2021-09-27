@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <sys/time.h>
 
 #include "srsran/config.h"
@@ -67,6 +68,18 @@ SRSRAN_API int srsran_rf_open(srsran_rf_t* h, char* args);
 SRSRAN_API int srsran_rf_open_multi(srsran_rf_t* h, char* args, uint32_t nof_channels);
 
 SRSRAN_API int srsran_rf_open_devname(srsran_rf_t* h, const char* devname, char* args, uint32_t nof_channels);
+
+/**
+ * @brief Opens a file-based RF abstraction
+ * @param[out] rf Device handle
+ * @param[in] rx_files List of pre-opened FILE* for each RX channel; NULL to disable
+ * @param[in] tx_files List of pre-opened FILE* for each TX channel; NULL to disable
+ * @param[in] nof_channels Number of channels per direction
+ * @param[in] base_srate Sample rate of RX and TX files
+ * @return SRSRAN_SUCCESS on success, otherwise error code
+ */
+SRSRAN_API int
+srsran_rf_open_file(srsran_rf_t* rf, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
 
 SRSRAN_API const char* srsran_rf_name(srsran_rf_t* h);
 

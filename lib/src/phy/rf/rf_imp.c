@@ -139,6 +139,14 @@ int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uin
   return SRSRAN_ERROR;
 }
 
+int srsran_rf_open_file(srsran_rf_t* rf, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
+{
+  rf->dev = &dev_file;
+
+  // file abstraction has custom "open" function with file-related args
+  return rf_file_open_file(&rf->handler, rx_files, tx_files, nof_channels, base_srate);
+}
+
 const char* srsran_rf_name(srsran_rf_t* rf)
 {
   return ((rf_dev_t*)rf->dev)->srsran_rf_devname(rf->handler);

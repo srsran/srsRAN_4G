@@ -57,7 +57,7 @@ typedef struct {
   pthread_mutex_t rx_gain_mutex;
 } rf_zmq_handler_t;
 
-void update_rates(rf_zmq_handler_t* handler, double srate);
+static void update_rates(rf_zmq_handler_t* handler, double srate);
 
 /*
  * Static Atributes

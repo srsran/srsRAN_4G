@@ -216,6 +216,40 @@ static rf_dev_t dev_zmq = {"zmq",
                            .srsran_rf_send_timed_multi = rf_zmq_send_timed_multi};
 #endif
 
+/* Define implementation for file-based RF */
+
+#include "rf_file_imp.h"
+
+static rf_dev_t dev_file = {"file",
+                            rf_file_devname,
+                            rf_file_start_rx_stream,
+                            rf_file_stop_rx_stream,
+                            rf_file_flush_buffer,
+                            rf_file_has_rssi,
+                            rf_file_get_rssi,
+                            rf_file_suppress_stdout,
+                            rf_file_register_error_handler,
+                            rf_file_open,
+                            .srsran_rf_open_multi = rf_file_open_multi,
+                            rf_file_close,
+                            rf_file_set_rx_srate,
+                            rf_file_set_rx_gain,
+                            rf_file_set_rx_gain_ch,
+                            rf_file_set_tx_gain,
+                            rf_file_set_tx_gain_ch,
+                            rf_file_get_rx_gain,
+                            rf_file_get_tx_gain,
+                            rf_file_get_info,
+                            rf_file_set_rx_freq,
+                            rf_file_set_tx_srate,
+                            rf_file_set_tx_freq,
+                            rf_file_get_time,
+                            NULL,
+                            rf_file_recv_with_time,
+                            rf_file_recv_with_time_multi,
+                            rf_file_send_timed,
+                            .srsran_rf_send_timed_multi = rf_file_send_timed_multi};
+
 /* Define implementation for Sidekiq */
 #ifdef ENABLE_SIDEKIQ
 
@@ -267,6 +301,9 @@ static rf_dev_t dev_dummy = {"dummy",   dummy_fnc, dummy_fnc, dummy_fnc, dummy_f
                              dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc};
 #endif
 
+/**
+ * Collection of all currently supported RF devices
+ */
 static rf_dev_t* available_devices[] = {
 
 #ifdef ENABLE_UHD

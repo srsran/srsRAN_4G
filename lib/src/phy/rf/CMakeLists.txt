@@ -59,6 +59,8 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
   endif (ZEROMQ_FOUND)
 
+  list(APPEND SOURCES_RF rf_file_imp.c rf_file_imp_rx.c)
+
   add_library(srsran_rf_object OBJECT ${SOURCES_RF})
   set_property(TARGET srsran_rf_object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
