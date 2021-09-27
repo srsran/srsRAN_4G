@@ -135,6 +135,7 @@ void ue::new_slot(slot_point pdcch_slot)
         }
       }
     }
+    ul_pending_bytes = std::max(0, ul_pending_bytes);
     if (ul_pending_bytes == 0 and last_sr_slot.valid()) {
       // If unanswered SR is pending
       ul_pending_bytes = 512;
