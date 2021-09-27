@@ -211,10 +211,12 @@ int mac_nr_ul_logical_channel_prioritization_test1()
   // PDU layout (20B in total)
   // -  2 B MAC subheader for SCH LCID=4
   // - 10 B sduPDU
+  // -  1 B subheader SBRS (padding BSR)
+  // -  1 B SBSR (BSR will report bytes to transmit because BSR state isn't updated after packing PDU yet)
   // -  1 B subheader padding
-  // -  7 B padding
+  // -  5 B padding
   const uint8_t tv[] = {0x04, 0x0a, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
-                        0x04, 0x04, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                        0x04, 0x04, 0x3d, 0xc1, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00};
 
   // dummy layers
   dummy_phy   phy;
