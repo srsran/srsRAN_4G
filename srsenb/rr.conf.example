@@ -87,7 +87,7 @@ cell_list =
       }
     );
 
-    // Select measurement triggers (A3 and A4 events are all mapped to all cells in meas_cell_list)
+    // Select measurement report configuration (all reports are combined with all measurement objects)
     meas_report_desc =
     (
         {
