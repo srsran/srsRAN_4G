@@ -209,6 +209,11 @@ srsran::mac_sch_subpdu_nr::lcg_bsr_t mac_nr::generate_sbsr()
   return proc_bsr.generate_sbsr();
 }
 
+void mac_nr::set_padding_bytes(uint32_t nof_bytes)
+{
+  proc_bsr.set_padding_bytes(nof_bytes);
+}
+
 void mac_nr::bch_decoded_ok(uint32_t tti, srsran::unique_byte_buffer_t payload)
 {
   // Send MIB to RLC

@@ -209,8 +209,8 @@ void proc_bsr_nr::new_grant_ul(uint32_t grant_size)
   sr->reset();
 }
 
-// This function is called by MUX only if Regular BSR has not been triggered before
-bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes)
+// This function is called by MUX only if no BSR has been triggered before
+void proc_bsr_nr::set_padding_bytes(uint32_t nof_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -219,16 +219,14 @@ bool proc_bsr_nr::generate_padding_bsr(uint32_t nof_padding_bytes)
   const uint32_t LBSR_CE_SUBHEADER_LEN = 1;
   // if the number of padding bits is equal to or larger than the size of the Short BSR plus its subheader but smaller
   // than the size of the Long BSR plus its subheader
-  if (nof_padding_bytes >= SBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(SHORT_BSR, true) &&
-      nof_padding_bytes <= LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
-    // generate padding BSR
-    set_trigger(PADDING);
-    // generate_bsr(bsr, nof_padding_bytes);
-    set_trigger(NONE);
-    return true;
+  if (nof_bytes >= SBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(SHORT_BSR, true) &&
+      nof_bytes < LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
+    // generate short padding BSR
+    mux->generate_bsr_mac_ce(SHORT_BSR);
+  } else if (nof_bytes >= LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
+    // report Long BSR if more than one LCG has data to send
+    mux->generate_bsr_mac_ce(LONG_BSR);
   }
-
-  return false;
 }
 
 int proc_bsr_nr::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)

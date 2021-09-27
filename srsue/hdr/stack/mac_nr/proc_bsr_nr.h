@@ -69,7 +69,7 @@ public:
 
   /// MUX interface for BSR generation
   srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
-  bool                                 generate_padding_bsr(uint32_t nof_padding_bytes);
+  void                                 set_padding_bytes(uint32_t nof_bytes);
 
 private:
   const static int QUEUE_STATUS_PERIOD_MS = 1000;

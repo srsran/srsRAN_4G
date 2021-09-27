@@ -98,6 +98,7 @@ public:
 
   /// Interface for MUX
   srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
+  void                                 set_padding_bytes(uint32_t nof_bytes);
 
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
