@@ -224,6 +224,7 @@ int mac_nr::remove_ue(uint16_t rnti)
 {
   srsran::rwlock_write_guard lock(rwlock);
   if (is_rnti_active_nolock(rnti)) {
+    sched.ue_rem(rnti);
     ue_db.erase(rnti);
   } else {
     logger.error("User rnti=0x%x not found", rnti);
