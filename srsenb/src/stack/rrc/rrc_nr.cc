@@ -181,6 +181,11 @@ void rrc_nr::rem_user(uint16_t rnti)
  */
 int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
 {
+  if (new_rnti == old_rnti) {
+    logger.error("rnti=0x%x received MAC CRNTI CE with same rnti");
+    return SRSRAN_ERROR;
+  }
+
   // Remove new_rnti
   auto new_ue_it = users.find(new_rnti);
   if (new_ue_it != users.end()) {
@@ -588,43 +593,42 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   // PDCCH config
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg_present = true;
   auto& pdcch_cfg_dedicated = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg;
-  pdcch_cfg_dedicated.set_setup();
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list_present = true;
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list.resize(1);
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list[0].ctrl_res_set_id = 2;
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list[0].freq_domain_res.from_number(
+  auto& pdcch_ded_setup     = pdcch_cfg_dedicated.set_setup();
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list_present = true;
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list.resize(1);
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].ctrl_res_set_id = 2;
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].freq_domain_res.from_number(
       0b111111110000000000000000000000000000000000000);
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list[0].dur = 1;
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list[0].cce_reg_map_type.set_non_interleaved();
-  pdcch_cfg_dedicated.setup().ctrl_res_set_to_add_mod_list[0].precoder_granularity =
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].dur = 1;
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].cce_reg_map_type.set_non_interleaved();
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].precoder_granularity =
       asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
 
   // search spaces
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list_present = true;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list.resize(1);
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].search_space_id                                = 2;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].ctrl_res_set_id_present                        = true;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].ctrl_res_set_id                                = 2;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].monitoring_slot_periodicity_and_offset_present = true;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].monitoring_slot_periodicity_and_offset.set_sl1();
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].monitoring_symbols_within_slot_present = true;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].monitoring_symbols_within_slot.from_number(
-      0b10000000000000);
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].nrof_candidates_present = true;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level1 =
+  pdcch_ded_setup.search_spaces_to_add_mod_list_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list.resize(1);
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_id                                = 2;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].ctrl_res_set_id_present                        = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].ctrl_res_set_id                                = 2;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_slot_periodicity_and_offset_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_slot_periodicity_and_offset.set_sl1();
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_symbols_within_slot_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_symbols_within_slot.from_number(0b10000000000000);
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level1 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level2 =
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level2 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n2;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level4 =
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level4 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level8 =
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level8 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level16 =
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level16 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].search_space_type_present = true;
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].search_space_type.set_ue_specific();
-  pdcch_cfg_dedicated.setup().search_spaces_to_add_mod_list[0].search_space_type.ue_specific().dci_formats = asn1::
-      rrc_nr::search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_opts::formats0_minus0_and_minus1_minus0;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_type_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_type.set_ue_specific();
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_type.ue_specific().dci_formats = asn1::rrc_nr::
+      search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_opts::formats0_minus0_and_minus1_minus0;
 
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg_present = true;
   auto& pdsch_cfg_dedicated = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg;
@@ -852,7 +856,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
   csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
   csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 0; // was 17 in orig PCAP
+  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 1; // was 17 in orig PCAP
   csi_report.report_quant.set_cri_ri_pmi_cqi();
   // Report freq config (optional)
   csi_report.report_freq_cfg_present                = true;
@@ -1173,7 +1177,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
   // CSI report config
   auto& csi_report =
       cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
-  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 8;
+  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
 
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
