@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_signalling.h"
 #include "srsran/common/string_helpers.h"
 
 namespace srsenb {
@@ -255,6 +256,12 @@ void sched_worker_manager::update_ue_db(slot_point slot_tx, bool locked_context)
 
 void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {
+  // Fill DL signalling messages that do not depend on UEs state
+  serv_cell_manager& serv_cell = *cells[cc];
+  bwp_slot_grid&     bwp_slot  = serv_cell.bwps[0].grid[slot_tx];
+  sched_dl_signalling(*serv_cell.bwps[0].cfg, slot_tx, bwp_slot.ssb, bwp_slot.nzp_csi_rs);
+
+  // Synchronization point between CC workers, to avoid concurrency in UE state access
   srsran::bounded_vector<std::condition_variable*, SRSRAN_MAX_CARRIERS> waiting_cvars;
   {
     std::unique_lock<std::mutex> lock(slot_mutex);

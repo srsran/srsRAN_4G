@@ -23,6 +23,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+// typedefs
 using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -30,7 +31,6 @@ using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
 const static size_t MAX_CORESET_PER_BWP = 3;
 using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
 
-using pdsch_t          = mac_interface_phy_nr::pdsch_t;
 using pdsch_list_t     = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 using sched_rar_list_t = sched_nr_interface::sched_rar_list_t;
 using pucch_list_t     = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
@@ -47,6 +47,8 @@ struct bwp_slot_grid {
 
   bwp_rb_bitmap     dl_prbs;
   bwp_rb_bitmap     ul_prbs;
+  ssb_list          ssb;
+  nzp_csi_rs_list   nzp_csi_rs;
   pdcch_dl_list_t   dl_pdcchs;
   pdcch_ul_list_t   ul_pdcchs;
   pdsch_list_t      pdschs;

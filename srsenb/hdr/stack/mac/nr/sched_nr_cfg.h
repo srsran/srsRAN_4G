@@ -30,12 +30,16 @@ const static size_t MAX_GRANTS = sched_nr_interface::MAX_GRANTS;
 
 using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
 using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
+using pdsch_t         = mac_interface_phy_nr::pdsch_t;
+using pusch_t         = mac_interface_phy_nr::pusch_t;
+using pucch_t         = mac_interface_phy_nr::pucch_t;
 using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
 using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
-using pucch_t         = mac_interface_phy_nr::pucch_t;
 using pucch_list_t    = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
-using pusch_t         = mac_interface_phy_nr::pusch_t;
 using pusch_list_t    = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
+using nzp_csi_rs_list = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, mac_interface_phy_nr::MAX_NZP_CSI_RS>;
+using ssb_t           = mac_interface_phy_nr::ssb_t;
+using ssb_list        = srsran::bounded_vector<ssb_t, mac_interface_phy_nr::MAX_SSB>;
 
 using sched_cfg_t = sched_nr_interface::sched_cfg_t;
 using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
