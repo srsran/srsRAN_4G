@@ -244,6 +244,37 @@ uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb)
   return 0;
 }
 
+int srsran_symbol_sz_from_srate(double srate_hz, srsran_subcarrier_spacing_t scs)
+{
+  // Make sure srate is valid
+  if (!isnormal(srate_hz) || srate_hz < 0.0) {
+    return SRSRAN_ERROR;
+  }
+
+  // Convert srate to integer and Hz
+  uint32_t srate_int_hz = (uint32_t)srate_hz;
+
+  // Get subcarrier spacing in Hz
+  uint32_t scs_int_hz = SRSRAN_SUBC_SPACING_NR(scs);
+
+  // Check the symbol size if a integer
+  if (srate_int_hz % scs_int_hz != 0) {
+    ERROR("Invalid sampling rate %.2f MHz with subcarrrier spacing %d kHz", srate_hz / 1e6, scs_int_hz / 1000);
+    return SRSRAN_ERROR;
+  }
+
+  // Calculate symbol size in samples
+  uint32_t symbol_sz = srate_int_hz / scs_int_hz;
+
+  // Verify the symbol size can have an integer cyclic prefix size
+  if ((symbol_sz * 144U) % 2048 != 0 && (symbol_sz * (16U << (uint32_t)scs)) % 2048 != 0) {
+    ERROR("The sampling rate %.2f MHz with subcarrrier spacing %d kHz", srate_hz / 1e6, scs_int_hz / 1000);
+    return SRSRAN_ERROR;
+  }
+
+  return (int)symbol_sz;
+}
+
 float srsran_symbol_offset_s(uint32_t l, srsran_subcarrier_spacing_t scs)
 {
   // Compute at what symbol there is a longer CP

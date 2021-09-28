@@ -597,6 +597,14 @@ SRSRAN_API srsran_mcs_table_t srsran_mcs_table_from_str(const char* str);
 SRSRAN_API uint32_t srsran_min_symbol_sz_rb(uint32_t nof_prb);
 
 /**
+ * @brief Computes the minimum valid symbol size for a given amount of PRB
+ * @attention The valid FFT sizes are radix 2 and radix 3 between 128 to 4096 points.
+ * @param nof_prb Number of PRB
+ * @return The minimum valid FFT size if the number of PRB is in range, 0 otherwise
+ */
+SRSRAN_API int srsran_symbol_sz_from_srate(double srate_hz, srsran_subcarrier_spacing_t scs);
+
+/**
  * @brief Computes the time in seconds between the beginning of the slot and the given symbol
  * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
  * @param l Given symbol index
