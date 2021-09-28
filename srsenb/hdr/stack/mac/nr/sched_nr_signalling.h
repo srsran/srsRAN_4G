@@ -24,6 +24,8 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
                       const srsran_slot_cfg_t&                    slot_cfg,
                       nzp_csi_rs_list&                            csi_rs_list);
 
+void sched_ssb_basic(const slot_point&  sl_point, uint32_t ssb_periodicity, ssb_list& ssb_list);
+
 /// For a given BWP and slot, schedule SSB, NZP CSI RS and SIBs
 void sched_dl_signalling(const bwp_params& bwp_params,
                          slot_point        sl_pdcch,

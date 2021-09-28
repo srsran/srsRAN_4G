@@ -182,6 +182,8 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   return alloc_result::success;
 }
 
+// ue is the UE (1 only) that will be allocated
+// func computes the grant allocation for this UE
 alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant)
 {
   if (ue.cfg->active_bwp().bwp_id != bwp_grid.cfg->bwp_id) {
@@ -195,12 +197,12 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   }
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
-  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];
+  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];  // UCI : UL control info
   alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot);
   if (result != alloc_result::success) {
     return result;
   }
-  if (bwp_pdcch_slot.dl_prbs.collides(dl_grant)) {
+  if (bwp_pdsch_slot.dl_prbs.collides(dl_grant)) {
     return alloc_result::sch_collision;
   }
 

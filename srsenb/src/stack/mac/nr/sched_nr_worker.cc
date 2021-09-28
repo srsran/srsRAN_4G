@@ -68,10 +68,10 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
   srsran_assert(not running(), "scheduler worker::start() called for active worker");
   slot_rx = pdcch_slot - TX_ENB_DELAY;
 
-  // Run pending cell feedback
+  // Run pending cell feedback (process feedback)
   run_feedback(ue_db);
 
-  // Reserve UEs for this worker slot
+  // Reserve UEs for this worker slot (select candidate UEs)
   for (auto& ue_pair : ue_db) {
     uint16_t rnti = ue_pair.first;
     ue&      u    = *ue_pair.second;
@@ -79,6 +79,7 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
       continue;
     }
 
+    // info for a given UE on a slot to be process
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, cfg.cc));
     if (slot_ues[rnti].empty()) {
       // Failed to generate slot UE because UE has no conditions for DL/UL tx
