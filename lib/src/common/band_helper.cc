@@ -41,7 +41,7 @@ uint32_t srsran_band_helper::freq_to_nr_arfcn(double freq)
   if (not is_valid_raster_param(params)) {
     return 0;
   }
-  return (((freq + params.F_REF_Offs_MHz * 1e6) / 1e3 / params.delta_F_global_kHz) + params.N_REF_Offs);
+  return (((freq - params.F_REF_Offs_MHz * 1e6) / 1e3 / params.delta_F_global_kHz) + params.N_REF_Offs);
 }
 
 // Implements 5.4.2.1 in TS 38.104
