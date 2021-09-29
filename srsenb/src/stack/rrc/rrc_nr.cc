@@ -231,6 +231,7 @@ void rrc_nr::config_phy()
   common_cfg.carrier                                    = default_phy_cfg.carrier;
   common_cfg.pdcch                                      = default_phy_cfg.pdcch;
   common_cfg.prach                                      = default_phy_cfg.prach;
+  common_cfg.duplex_mode                                = SRSRAN_DUPLEX_MODE_TDD; // TODO: make dynamic
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     logger.error("Couldn't set common PHY config");
     return;
