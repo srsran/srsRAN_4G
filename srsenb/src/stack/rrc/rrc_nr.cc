@@ -816,34 +816,37 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.set_setup();
 
-  // CSI report config
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list.resize(1);
-  auto& csi_report =
-      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
-  csi_report.report_cfg_id                       = 0;
-  csi_report.res_for_ch_meas                     = 0;
-  csi_report.csi_im_res_for_interference_present = true;
-  csi_report.csi_im_res_for_interference         = 1;
-  csi_report.report_cfg_type.set_periodic();
-  csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 1; // was 17 in orig PCAP
-  csi_report.report_quant.set_cri_ri_pmi_cqi();
-  // Report freq config (optional)
-  csi_report.report_freq_cfg_present                = true;
-  csi_report.report_freq_cfg.cqi_format_ind_present = true;
-  csi_report.report_freq_cfg.cqi_format_ind =
-      asn1::rrc_nr::csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
-  csi_report.time_restrict_for_ch_meass = asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
-  csi_report.time_restrict_for_interference_meass =
-      asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
-  csi_report.group_based_beam_report.set_disabled();
-  // Skip CQI table (optional)
-  csi_report.cqi_table_present = true;
-  csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
-  csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
+  // NOTE: Disable CQI configuration until srsENB NR PHY supports it
+  //  // CSI report config
+  //  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list_present =
+  //  true;
+  //  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list.resize(1);
+  //  auto& csi_report =
+  //      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
+  //  csi_report.report_cfg_id                       = 0;
+  //  csi_report.res_for_ch_meas                     = 0;
+  //  csi_report.csi_im_res_for_interference_present = true;
+  //  csi_report.csi_im_res_for_interference         = 1;
+  //  csi_report.report_cfg_type.set_periodic();
+  //  csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
+  //  csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
+  //  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
+  //  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 1; // was 17 in orig PCAP
+  //  csi_report.report_quant.set_cri_ri_pmi_cqi();
+  //  // Report freq config (optional)
+  //  csi_report.report_freq_cfg_present                = true;
+  //  csi_report.report_freq_cfg.cqi_format_ind_present = true;
+  //  csi_report.report_freq_cfg.cqi_format_ind =
+  //      asn1::rrc_nr::csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+  //  csi_report.time_restrict_for_ch_meass =
+  //  asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+  //  csi_report.time_restrict_for_interference_meass =
+  //      asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
+  //  csi_report.group_based_beam_report.set_disabled();
+  //  // Skip CQI table (optional)
+  //  csi_report.cqi_table_present = true;
+  //  csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
+  //  csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
 
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
@@ -1200,10 +1203,11 @@ int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed
   // CSI resource config
   // TODO: add csi resource config
 
-  // CSI report config
-  auto& csi_report =
-      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
-  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 5;
+  // NOTE: Disable CQI configuration until srsENB NR PHY supports it
+  //  // CSI report config
+  //  auto& csi_report =
+  //      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
+  //  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 5;
 
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing =
@@ -1300,10 +1304,11 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
   nzp_csi_res_set.nzp_csi_rs_res[0] = 0;
   // Skip TRS info
 
-  // CSI report config
-  auto& csi_report =
-      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
-  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
+  // NOTE: Disable CQI configuration until srsENB NR PHY supports it
+  //  // CSI report config
+  //  auto& csi_report =
+  //      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().csi_report_cfg_to_add_mod_list[0];
+  //  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
 
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();

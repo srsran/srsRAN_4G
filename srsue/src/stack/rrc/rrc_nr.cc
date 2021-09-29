@@ -725,9 +725,6 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
         return false;
       }
     }
-  } else {
-    logger.warning("Option csi_report_cfg_to_add_mod_list not present");
-    return false;
   }
 
   if (csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present) {
