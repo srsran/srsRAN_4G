@@ -343,12 +343,14 @@ bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
   // NOTE: Unlocked region
   auto& bwp_slot = cells[cc]->bwps[0].grid[pdcch_slot];
 
-  dl_res.dl_sched.pdcch_dl = bwp_slot.dl_pdcchs;
-  dl_res.dl_sched.pdcch_ul = bwp_slot.ul_pdcchs;
-  dl_res.dl_sched.pdsch    = bwp_slot.pdschs;
-  dl_res.rar               = bwp_slot.rar;
-  ul_res.pusch             = bwp_slot.puschs;
-  ul_res.pucch             = bwp_slot.pucch;
+  dl_res.dl_sched.pdcch_dl   = bwp_slot.dl_pdcchs;
+  dl_res.dl_sched.pdcch_ul   = bwp_slot.ul_pdcchs;
+  dl_res.dl_sched.pdsch      = bwp_slot.pdschs;
+  dl_res.rar                 = bwp_slot.rar;
+  dl_res.dl_sched.ssb        = bwp_slot.ssb;
+  dl_res.dl_sched.nzp_csi_rs = bwp_slot.nzp_csi_rs;
+  ul_res.pusch               = bwp_slot.puschs;
+  ul_res.pucch               = bwp_slot.pucch;
 
   // clear up BWP slot
   bwp_slot.reset();
