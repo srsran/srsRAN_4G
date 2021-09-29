@@ -146,7 +146,7 @@ void mac_nr::update_buffer_states()
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
 {
-  return {c_rnti, srsran_rnti_type_c};
+  return {rntis.get_crnti(), srsran_rnti_type_c};
 }
 
 bool mac_nr::is_si_opportunity()
@@ -191,12 +191,12 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t t
 
 bool mac_nr::has_crnti()
 {
-  return c_rnti != SRSRAN_INVALID_RNTI;
+  return rntis.get_crnti() != SRSRAN_INVALID_RNTI;
 }
 
 uint16_t mac_nr::get_crnti()
 {
-  return c_rnti;
+  return rntis.get_crnti();
 }
 
 uint16_t mac_nr::get_temp_crnti()
@@ -332,7 +332,7 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   *action = {};
 
   // if proc ra is in contention resolution and c_rnti == grant.c_rnti resolve contention resolution
-  if (proc_ra.is_contention_resolution() && grant.rnti == c_rnti) {
+  if (proc_ra.is_contention_resolution() && grant.rnti == get_crnti()) {
     proc_ra.pdcch_to_crnti();
   }
 
@@ -432,14 +432,14 @@ void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)
 
 void mac_nr::set_contention_id(uint64_t ue_identity)
 {
-  contention_id = ue_identity;
+  rntis.set_contention_id(ue_identity);
 }
 
 bool mac_nr::set_crnti(const uint16_t c_rnti_)
 {
   if (is_valid_crnti(c_rnti_)) {
     logger.info("Setting C-RNTI to 0x%X", c_rnti_);
-    c_rnti = c_rnti_;
+    rntis.set_crnti(c_rnti_);
     return true;
   } else {
     logger.warning("Failed to set C-RNTI, 0x%X is not valid.", c_rnti_);

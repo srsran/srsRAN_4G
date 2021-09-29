@@ -148,8 +148,7 @@ private:
 
   std::atomic<bool> started = {false};
 
-  uint16_t c_rnti        = SRSRAN_INVALID_RNTI;
-  uint64_t contention_id = 0;
+  ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
 
   std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
 
