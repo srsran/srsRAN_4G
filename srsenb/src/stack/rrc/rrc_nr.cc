@@ -624,7 +624,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level2 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n2;
   pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level4 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n2;
   pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level8 =
       asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
   pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level16 =
