@@ -898,7 +898,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
 {
   for (uint32_t n = 0; n < (uint32_t)root.getLength(); ++n) {
     rrc_cell_cfg_nr_t cell_cfg = {};
-    auto&      cellroot = root[n];
+    auto&             cellroot = root[n];
 
     parse_opt_field(cell_cfg.phy_cell.rf_port, cellroot, "rf_port");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.carrier.pci, cellroot, "pci"));
@@ -908,6 +908,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
 
     cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_arfcn, cellroot, "dl_arfcn"));
+    parse_opt_field(cell_cfg.ul_arfcn, cellroot, "ul_arfcn");
     // frequencies get derived from ARFCN
 
     // TODO: Add further cell-specific parameters
@@ -1369,6 +1370,12 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
       }
       cfg.phy_cell.ul_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ul_arfcn);
     }
+
+    // band
+    cfg.band = band_helper.get_band_from_dl_arfcn(cfg.dl_arfcn);
+
+    // duplex mode
+    cfg.duplex_mode = band_helper.get_duplex_mode(cfg.band);
 
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }

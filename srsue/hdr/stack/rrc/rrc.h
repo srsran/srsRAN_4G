@@ -45,6 +45,7 @@ typedef struct {
   uint32_t                                release;
   uint32_t                                feature_group;
   std::array<uint8_t, SRSRAN_RRC_N_BANDS> supported_bands;
+  std::vector<uint32_t>                   supported_bands_nr;
   uint32_t                                nof_supported_bands;
   bool                                    support_ca;
   int                                     mbms_service_id;

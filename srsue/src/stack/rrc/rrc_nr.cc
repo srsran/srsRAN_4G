@@ -703,8 +703,8 @@ bool rrc_nr::apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_
       uint32_t res_id = csi_report_cfg.report_cfg_type.periodic()
                             .pucch_csi_res_list[0]
                             .pucch_res; // TODO: support and check more items
-      if (res_list_present[res_id] == true) {
-        phy_cfg.csi.reports[report_cfg_id].periodic.resource = res_list[res_id];
+      if (pucch_res_list.contains(res_id)) {
+        phy_cfg.csi.reports[report_cfg_id].periodic.resource = pucch_res_list[res_id];
       } else {
         logger.error("Resources set not present for assigning pucch sets (res_id %d)", res_id);
         return false;
@@ -753,7 +753,7 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
         uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
         // use temporally stored values to assign
         if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
-          logger.warning("Can not find p_zp_csi_rs_res in temporally stored csi_rs_zp_res");
+          logger.warning("Can not find nzp_csi_rs_res in temporally stored csi_rs_nzp_res");
           return false;
         }
         phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
@@ -1002,9 +1002,8 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
   if (pucch_cfg.res_to_add_mod_list_present) {
     for (uint32_t i = 0; i < pucch_cfg.res_to_add_mod_list.size(); i++) {
       uint32_t res_id = pucch_cfg.res_to_add_mod_list[i].pucch_res_id;
-      if (make_phy_res_config(pucch_cfg.res_to_add_mod_list[i], format_2_max_code_rate, &res_list[res_id]) == true) {
-        res_list_present[res_id] = true;
-      } else {
+      pucch_res_list.insert(res_id, {});
+      if (!make_phy_res_config(pucch_cfg.res_to_add_mod_list[i], format_2_max_code_rate, &pucch_res_list[res_id])) {
         logger.warning("Warning while building pucch_nr_resource structure");
         return false;
       }
@@ -1022,8 +1021,8 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
       phy_cfg.pucch.sets[set_id].nof_resources = pucch_cfg.res_set_to_add_mod_list[i].res_list.size();
       for (uint32_t j = 0; j < pucch_cfg.res_set_to_add_mod_list[i].res_list.size(); j++) {
         uint32_t res_id = pucch_cfg.res_set_to_add_mod_list[i].res_list[j];
-        if (res_list_present[res_id] == true) {
-          phy_cfg.pucch.sets[set_id].resources[j] = res_list[res_id];
+        if (pucch_res_list.contains(res_id)) {
+          phy_cfg.pucch.sets[set_id].resources[j] = pucch_res_list[res_id];
         } else {
           logger.error(
               "Resources set not present for assign pucch sets (res_id %d, setid %d, j %d)", res_id, set_id, j);
@@ -1034,24 +1033,26 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
 
   if (pucch_cfg.sched_request_res_to_add_mod_list_present) {
     for (uint32_t i = 0; i < pucch_cfg.sched_request_res_to_add_mod_list.size(); i++) {
-      uint32_t                      res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].sched_request_res_id;
+      uint32_t                      sr_res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].sched_request_res_id;
       srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource;
       if (make_phy_sr_resource(pucch_cfg.sched_request_res_to_add_mod_list[i], &srsran_pucch_nr_sr_resource) ==
           true) { // TODO: fix that if indexing is solved
-        phy_cfg.pucch.sr_resources[res_id] = srsran_pucch_nr_sr_resource;
+        phy_cfg.pucch.sr_resources[sr_res_id] = srsran_pucch_nr_sr_resource;
 
         // Set PUCCH resource
         if (pucch_cfg.sched_request_res_to_add_mod_list[i].res_present) {
           uint32_t pucch_res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].res;
-          if (res_list_present[res_id]) {
-            phy_cfg.pucch.sr_resources[res_id].resource = res_list[pucch_res_id];
+          if (pucch_res_list.contains(pucch_res_id)) {
+            phy_cfg.pucch.sr_resources[sr_res_id].resource = pucch_res_list[pucch_res_id];
           } else {
-            logger.warning("Warning SR's PUCCH resource is invalid (%d)", pucch_res_id);
-            phy_cfg.pucch.sr_resources[res_id].configured = false;
+            logger.warning("Warning SR (%d) PUCCH resource is invalid (%d)", sr_res_id, pucch_res_id);
+            phy_cfg.pucch.sr_resources[sr_res_id].configured = false;
+            return false;
           }
         } else {
           logger.warning("Warning SR resource is present but no PUCCH resource is assigned to it");
-          phy_cfg.pucch.sr_resources[res_id].configured = false;
+          phy_cfg.pucch.sr_resources[sr_res_id].configured = false;
+          return false;
         }
 
       } else {
@@ -1193,6 +1194,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
 
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
+        logger.info("TDD UL DL config present, using TDD");
         srsran_duplex_config_nr_t duplex;
         if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex) == true) {
           phy_cfg.duplex = duplex;
@@ -1201,8 +1203,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
           return false;
         }
       } else {
-        logger.warning("TDD UL DL config not present");
-        return false;
+        logger.info("TDD UL DL config not present, using FDD");
       }
     }
   } else {

@@ -13,6 +13,7 @@
 #ifndef SRSUE_RRC_NR_H
 #define SRSUE_RRC_NR_H
 
+#include "srsran/adt/circular_map.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/block_queue.h"
@@ -185,10 +186,9 @@ private:
   std::map<uint32_t, uint32_t> drb_eps_bearer_id; // Map of drb id to eps_bearer_id
 
   // temporary maps for building the pucch nr resources
-  std::map<uint32_t, srsran_pucch_nr_resource_t>   res_list;
-  std::map<uint32_t, bool>                         res_list_present;
-  std::map<uint32_t, srsran_csi_rs_zp_resource_t>  csi_rs_zp_res;
-  std::map<uint32_t, srsran_csi_rs_nzp_resource_t> csi_rs_nzp_res;
+  srsran::static_circular_map<uint32_t, srsran_pucch_nr_resource_t, 128> pucch_res_list;
+  std::map<uint32_t, srsran_csi_rs_zp_resource_t>                        csi_rs_zp_res;
+  std::map<uint32_t, srsran_csi_rs_nzp_resource_t>                       csi_rs_nzp_res;
 
   bool apply_cell_group_cfg(const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg);
   bool apply_radio_bearer_cfg(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);

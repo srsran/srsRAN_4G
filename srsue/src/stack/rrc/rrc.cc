@@ -2110,10 +2110,12 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
         irat_params_nr_r15.en_dc_r15_present                     = true;
         irat_params_nr_r15.supported_band_list_en_dc_r15_present = true;
 
-        supported_band_nr_r15_s supported_band_nr_r15;
-        supported_band_nr_r15.band_nr_r15 = 78;
+        uint32_t nof_supported_nr_bands = args.supported_bands_nr.size();
+        irat_params_nr_r15.supported_band_list_en_dc_r15.resize(nof_supported_nr_bands);
+        for (uint32_t k = 0; k < nof_supported_nr_bands; k++) {
+          irat_params_nr_r15.supported_band_list_en_dc_r15[k].band_nr_r15 = args.supported_bands_nr[k];
+        }
 
-        irat_params_nr_r15.supported_band_list_en_dc_r15.push_back(supported_band_nr_r15);
         ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15_present = true;
         ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15         = irat_params_nr_r15;
         ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.non_crit_ext_present       = true;

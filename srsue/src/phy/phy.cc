@@ -664,9 +664,9 @@ bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 
   // tune radio
   for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
-    logger_phy.info("Tuning Rx channel %d to %.2f GHz", i + common.args->nof_lte_carriers, dl_freq_hz / 1e6);
+    logger_phy.info("Tuning Rx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, dl_freq_hz / 1e6);
     radio->set_rx_freq(i + common.args->nof_lte_carriers, dl_freq_hz);
-    logger_phy.info("Tuning Tx channel %d to %.2f GHz", i + common.args->nof_lte_carriers, ul_freq_hz / 1e6);
+    logger_phy.info("Tuning Tx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, ul_freq_hz / 1e6);
     radio->set_tx_freq(i + common.args->nof_lte_carriers, ul_freq_hz);
   }
 

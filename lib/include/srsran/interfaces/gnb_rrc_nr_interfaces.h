@@ -34,10 +34,12 @@ public:
 
 // Cell/Sector configuration for NR cells
 struct rrc_cell_cfg_nr_t {
-  phy_cell_cfg_nr_t phy_cell; // already contains all PHY-related parameters (i.e. RF port, PCI, etc.)
-  uint32_t          tac;      // Tracking area code
-  uint32_t          dl_arfcn; // DL freq already included in phy_cell
-  uint32_t          ul_arfcn; // UL freq also in phy_cell
+  phy_cell_cfg_nr_t    phy_cell; // already contains all PHY-related parameters (i.e. RF port, PCI, etc.)
+  uint32_t             tac;      // Tracking area code
+  uint32_t             dl_arfcn; // DL freq already included in phy_cell
+  uint32_t             ul_arfcn; // UL freq also in phy_cell
+  uint32_t             band;
+  srsran_duplex_mode_t duplex_mode;
 };
 
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;

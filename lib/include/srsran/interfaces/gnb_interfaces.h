@@ -161,6 +161,7 @@ public:
     srsran_carrier_nr_t   carrier;
     srsran_pdcch_cfg_nr_t pdcch;
     srsran_prach_cfg_t    prach;
+    srsran_duplex_mode_t  duplex_mode;
   };
 
   virtual int set_common_cfg(const common_cfg_t& common_cfg) = 0;

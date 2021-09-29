@@ -219,6 +219,7 @@ int ue::parse_args(const all_args_t& args_)
     if (not args.stack.rrc_nr.supported_bands_nr_str.empty()) {
       // Populates supported bands
       srsran::string_parse_list(args.stack.rrc_nr.supported_bands_nr_str, ',', args.stack.rrc_nr.supported_bands_nr);
+      args.stack.rrc.supported_bands_nr = args.stack.rrc_nr.supported_bands_nr;
     } else {
       logger.error("Error: rat.nr.bands list is empty");
       srsran::console("Error: rat.nr.bands list is empty\n");
