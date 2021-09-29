@@ -607,10 +607,9 @@ int main(int argc, char* argv[])
     metrics_file.set_handle(enb.get());
   }
 
-  srsenb::metrics_json json_metrics(json_channel);
+  srsenb::metrics_json json_metrics(json_channel, enb.get());
   if (args.general.report_json_enable) {
     metricshub.add_listener(&json_metrics);
-    json_metrics.set_handle(enb.get());
   }
 
   // create input thread

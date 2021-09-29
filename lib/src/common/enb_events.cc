@@ -94,7 +94,8 @@ static std::string escape_string(const std::string& s)
         fmt::format_to(buff, "\\t");
         break;
       default:
-        if ('\x00' <= c && c <= '\x1f') {
+        // Cast to signed char for machines that treat chars as an unsigned type.
+        if ((signed char)c >= '\x00' && (signed char)c <= '\x1f') {
           fmt::format_to(buff, "\\u{:04x}", c);
         } else {
           buff.push_back(c);
