@@ -569,7 +569,14 @@ static uint32_t pdsch_nr_grant_info(const srsran_pdsch_nr_t*     q,
   }
 
   // Append time-domain resource mapping
-  len = srsran_print_check(str, str_len, len, "prb=%d:%d symb=%d:%d ", first_prb, grant->nof_prb, grant->S, grant->L);
+  len = srsran_print_check(str,
+                           str_len,
+                           len,
+                           "prb=(%d,%d) symb=(%d,%d) ",
+                           first_prb,
+                           first_prb + grant->nof_prb - 1,
+                           grant->S,
+                           grant->S + grant->L - 1);
 
   // Append TB info
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
