@@ -959,9 +959,6 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 
 static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cfg_t* rrc_cfg_eutra, Setting& root)
 {
-  srsran::srsran_band_helper band_helper;
-  int                        ul_arfcn_set;
-
   for (uint32_t n = 0; n < (uint32_t)root.getLength(); ++n) {
     rrc_cell_cfg_nr_t cell_cfg = {};
     auto&             cellroot = root[n];
@@ -974,7 +971,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
 
     cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_arfcn, cellroot, "dl_arfcn"));
-    ul_arfcn_set = parse_opt_field(cell_cfg.ul_arfcn, cellroot, "ul_arfcn");
+    parse_opt_field(cell_cfg.ul_arfcn, cellroot, "ul_arfcn");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.band, cellroot, "band"));
     // frequencies get derived from ARFCN
 
@@ -983,6 +980,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     rrc_cfg_nr->cell_list.push_back(cell_cfg);
   }
 
+  srsran::srsran_band_helper band_helper;
   // Configuration check
   for (auto it = rrc_cfg_nr->cell_list.begin(); it != rrc_cfg_nr->cell_list.end(); ++it) {
     // check against NR cells
@@ -1028,7 +1026,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
       return SRSRAN_ERROR;
     }
 
-    if (ul_arfcn_set != 0) {
+    if (it->ul_arfcn != 0) {
       // Check if ul_arfcn is valid for the given band
       bool                  ul_arfcn_valid = false;
       std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->ul_arfcn);
