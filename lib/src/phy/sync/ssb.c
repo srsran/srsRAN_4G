@@ -415,7 +415,8 @@ static inline int ssb_get_t_offset(srsran_ssb_t* q, uint32_t ssb_idx)
 int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
 {
   // Verify input parameters
-  if (q == NULL || cfg == NULL) {
+  if (q == NULL || cfg == NULL || cfg->pattern == SRSRAN_SSB_PATTERN_INVALID ||
+      cfg->duplex_mode == SRSRAN_DUPLEX_MODE_INVALID) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
