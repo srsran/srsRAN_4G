@@ -127,13 +127,12 @@ void sched_nr_cfg_serialized_test()
 }
 
 /*
- * This test runs the scheduler and verify that the SSB grant is present
- * with the required periodicity
+ * @brief Test whether the SSB grant gets scheduled with the correct periodicity.
+ *
  */
 void sched_nr_ssb_test()
 {
   const uint32_t   ssb_periodicity = 5;
-  int              tmp = 0;
   uint32_t         max_nof_ttis = 1000, nof_sectors = 4;
   task_job_manager tasks;
 
@@ -167,20 +166,18 @@ void sched_nr_ssb_test()
       sched_tester.update(out);
       tasks.finish_cc(slot_rx, dl_res, ul_res);
       /*
-       * Verify that with SSB periodicity, dl_res has:
+       * Verify that, with correct SSB periodicity, dl_res has:
        * 1) SSB grant
-       * 2) 4 LSB of SFN in packed MIB message is correct
+       * 2) 4 LSBs of SFN in packed MIB message are correct
        * 3) SSB index is 0
        */
       if (slot_tx.to_uint() % ssb_periodicity == 0) {
         TESTASSERT(dl_res.dl_sched.ssb.size() == 1);
         auto& ssb_item = dl_res.dl_sched.ssb.back();
-        TESTASSERT( ssb_item.pbch_msg.sfn_4lsb == ((uint8_t) slot_tx.sfn() & 0b1111) );
-        TESTASSERT( ssb_item.pbch_msg.ssb_idx == 0 );
+        TESTASSERT(ssb_item.pbch_msg.sfn_4lsb == ((uint8_t)slot_tx.sfn() & 0b1111));
+        TESTASSERT(ssb_item.pbch_msg.ssb_idx == 0);
       }
-      /*
-       * Verify that, outside SSB periodicity, dl_res HAS NO SSB grant
-       */
+      /// Verify that, outside SSB periodicity, dl_res HAS NO SSB grant
       else
         TESTASSERT(dl_res.dl_sched.ssb.size() == 0);
     }
