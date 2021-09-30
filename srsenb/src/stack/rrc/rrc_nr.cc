@@ -1466,6 +1466,7 @@ void rrc_nr::ue::crnti_ce_received()
     // Add DRB1 to MAC
     for (auto& drb : cell_group_cfg.rlc_bearer_to_add_mod_list) {
       uecfg.ue_bearers[drb.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
+      uecfg.ue_bearers[drb.lc_ch_id].group     = drb.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
     }
     parent->mac->ue_cfg(rnti, uecfg);
   }
@@ -1516,7 +1517,7 @@ int rrc_nr::ue::add_drb()
   rlc.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur =
       asn1::rrc_nr::lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::ms100;
   rlc.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present      = true;
-  rlc.mac_lc_ch_cfg.ul_specific_params.lc_ch_group              = 6;
+  rlc.mac_lc_ch_cfg.ul_specific_params.lc_ch_group              = 3;
   rlc.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present = true;
   rlc.mac_lc_ch_cfg.ul_specific_params.sched_request_id         = 0;
   // TODO: add LC config to MAC

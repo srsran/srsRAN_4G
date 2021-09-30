@@ -45,10 +45,11 @@ void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& 
       channels[lcid].bucket_size = channels[lcid].cfg.bsd * channels[lcid].cfg.pbr;
       channels[lcid].Bj          = 0;
     }
-    logger.info("SCHED: bearer configured: lcid=%d, mode=%s, prio=%d",
+    logger.info("SCHED: bearer configured: lcid=%d, mode=%s, prio=%d, lcg=%d",
                 lcid,
                 to_string(channels[lcid].cfg.direction),
-                channels[lcid].cfg.priority);
+                channels[lcid].cfg.priority,
+                channels[lcid].cfg.group);
   }
 }
 
