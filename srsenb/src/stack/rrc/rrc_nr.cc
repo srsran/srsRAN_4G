@@ -55,8 +55,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
     return SRSRAN_ERROR;
   }
 
-  // TODO: PHY isn't initialized at this stage yet
-  // config_phy();
+  config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 
   logger.info("Started");
@@ -225,13 +224,12 @@ void rrc_nr::set_activity_user(uint16_t rnti)
 
 void rrc_nr::config_phy()
 {
-  static const srsran::phy_cfg_nr_t default_phy_cfg =
-      srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
   srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
-  common_cfg.carrier                                    = default_phy_cfg.carrier;
-  common_cfg.pdcch                                      = default_phy_cfg.pdcch;
-  common_cfg.prach                                      = default_phy_cfg.prach;
-  common_cfg.duplex_mode                                = SRSRAN_DUPLEX_MODE_TDD; // TODO: make dynamic
+  common_cfg.carrier                                    = cfg.cell_list[0].phy_cell.carrier;
+  common_cfg.pdcch                                      = cfg.cell_list[0].phy_cell.pdcch;
+  common_cfg.prach                                      = cfg.cell_list[0].phy_cell.prach;
+  common_cfg.duplex_mode                                = cfg.cell_list[0].duplex_mode;
+
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     logger.error("Couldn't set common PHY config");
     return;
@@ -981,6 +979,7 @@ int rrc_nr::ue::pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group
   rach_cfg_common_pack.set_setup();
   rach_cfg_common_pack.setup().rach_cfg_generic.msg1_fdm                  = rach_cfg_generic_s::msg1_fdm_opts::one;
   rach_cfg_common_pack.setup().rach_cfg_generic.msg1_freq_start           = 1;
+  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 0;
   rach_cfg_common_pack.setup().rach_cfg_generic.zero_correlation_zone_cfg = 0;
   rach_cfg_common_pack.setup().rach_cfg_generic.preamb_rx_target_pwr      = -110;
   rach_cfg_common_pack.setup().rach_cfg_generic.preamb_trans_max =
@@ -1218,15 +1217,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
       absolute_freq_ssb; // TODO: calculate from actual DL ARFCN
 
-  // RACH config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
-      true;
-  auto& rach_cfg_common_pack =
-      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
-
-  rach_cfg_common_pack.set_setup();
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 16;
-
   // SSB config (optional)
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
   auto& ssb_pos_in_burst = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst;
@@ -1324,15 +1314,6 @@ int rrc_nr::ue::pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common;
   pdcch_cfg_common.set_setup();
   pdcch_cfg_common.setup().ext = false;
-
-  // RACH config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
-      true;
-  auto& rach_cfg_common_pack =
-      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
-
-  rach_cfg_common_pack.set_setup();
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 0;
 
   // SSB config (optional)
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;

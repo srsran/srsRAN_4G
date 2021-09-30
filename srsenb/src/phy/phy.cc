@@ -339,17 +339,7 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
 
   tx_rx.set_nr_workers(nr_workers.get());
 
-  srsran::srsran_band_helper band_helper;
-
-  // perform initial config of PHY (during RRC init PHY isn't running yet)
-  static const srsran::phy_cfg_nr_t default_phy_cfg =
-      srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
-  srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
-  common_cfg.carrier                                    = default_phy_cfg.carrier;
-  common_cfg.pdcch                                      = default_phy_cfg.pdcch;
-  common_cfg.prach                                      = default_phy_cfg.prach;
-  common_cfg.duplex_mode                                = SRSRAN_DUPLEX_MODE_TDD; // TODO: make dynamic
-  if (set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
+  if (nr_workers->set_common_cfg(common_cfg)) {
     phy_log.error("Couldn't set common PHY config");
     return SRSRAN_ERROR;
   }
@@ -357,10 +347,12 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
   return SRSRAN_SUCCESS;
 }
 
-int phy::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common_cfg)
+int phy::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common_cfg_)
 {
   if (nr_workers.get() == nullptr) {
-    return SRSRAN_ERROR;
+    // if nr_workers are not initialized yet, store the configuration in the phy
+    common_cfg = common_cfg_;
+    return SRSRAN_SUCCESS;
   }
 
   return nr_workers->set_common_cfg(common_cfg);

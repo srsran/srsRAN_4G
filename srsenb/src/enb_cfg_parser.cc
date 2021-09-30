@@ -1467,6 +1467,48 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     // duplex mode
     cfg.duplex_mode = band_helper.get_duplex_mode(cfg.band);
 
+    // PRACH
+    cfg.phy_cell.prach.is_nr                 = true;
+    cfg.phy_cell.prach.config_idx            = 0;
+    cfg.phy_cell.prach.root_seq_idx          = 0;
+    cfg.phy_cell.prach.freq_offset           = phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset;
+    cfg.phy_cell.prach.num_ra_preambles      = cfg.phy_cell.num_ra_preambles;
+    cfg.phy_cell.prach.hs_flag               = phy_cfg_->prach_cnfg.prach_cfg_info.high_speed_flag;
+    cfg.phy_cell.prach.tdd_config.configured = (cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
+
+    // PDCCH
+    // Configure CORESET ID 1
+    cfg.phy_cell.pdcch.coreset_present[1]              = true;
+    cfg.phy_cell.pdcch.coreset[1].id                   = 1;
+    cfg.phy_cell.pdcch.coreset[1].duration             = 1;
+    cfg.phy_cell.pdcch.coreset[1].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
+    cfg.phy_cell.pdcch.coreset[1].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+
+    // Generate frequency resources for the full BW
+    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      cfg.phy_cell.pdcch.coreset[1].freq_resources[i] = i < SRSRAN_FLOOR(cfg.phy_cell.carrier.nof_prb, 6);
+    }
+
+    // Configure Search Space 1 as common
+    cfg.phy_cell.pdcch.search_space_present[1]     = true;
+    cfg.phy_cell.pdcch.search_space[1].id          = 1;
+    cfg.phy_cell.pdcch.search_space[1].coreset_id  = 1;
+    cfg.phy_cell.pdcch.search_space[1].duration    = 1;
+    cfg.phy_cell.pdcch.search_space[1].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+    cfg.phy_cell.pdcch.search_space[1].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
+    cfg.phy_cell.pdcch.search_space[1].nof_formats = 2;
+    cfg.phy_cell.pdcch.search_space[1].type        = srsran_search_space_type_common_3;
+
+    // Generate 1 candidate for each aggregation level if possible
+    for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+      cfg.phy_cell.pdcch.search_space[1].nof_candidates[L] =
+          SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&cfg.phy_cell.pdcch.coreset[1], L));
+    }
+
+    cfg.phy_cell.pdcch.ra_search_space_present = true;
+    cfg.phy_cell.pdcch.ra_search_space         = cfg.phy_cell.pdcch.search_space[1];
+    cfg.phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
+
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
 
