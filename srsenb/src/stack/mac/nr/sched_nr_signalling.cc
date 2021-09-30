@@ -17,6 +17,8 @@
 #define POS_IN_BURST_THIRD_BIT_IDX  2
 #define POS_IN_BURST_FOURTH_BIT_IDX  3
 
+#define DEFAULT_SSB_PERIODICITY 5
+
 namespace srsenb {
 namespace sched_nr_impl {
 
@@ -46,6 +48,9 @@ void sched_ssb_basic(const slot_point&  sl_point, uint32_t ssb_periodicity, ssb_
    * 2) Below 3GHz
    * 3) Position in Burst 1000
    * */
+
+  if (ssb_periodicity == 0)
+    ssb_periodicity = DEFAULT_SSB_PERIODICITY;
 
   uint32_t sl_idx = sl_point.to_uint();
   uint32_t ssb_sf_idx = sl_point.to_uint() % ssb_periodicity;
