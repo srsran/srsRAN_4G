@@ -20,12 +20,13 @@
 #include "srsran/phy/utils/random.h"
 #include "srsran/srsran.h"
 
-static int         nof_prb          = -1;
-static srsran_cp_t cp               = SRSRAN_CP_NORM;
-static int         nof_repetitions  = 1;
-static float       rx_window_offset = 0.5f;
-static float       freq_shift_f     = 0.0f;
-static uint32_t    force_symbol_sz  = 0;
+static int         nof_prb               = -1;
+static srsran_cp_t cp                    = SRSRAN_CP_NORM;
+static int         nof_repetitions       = 1;
+static float       rx_window_offset      = 0.5f;
+static float       freq_shift_f          = 0.0f;
+static double      phase_compensation_hz = 0.0;
+static uint32_t    force_symbol_sz       = 0;
 static double      elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
 {
   if (ts_end->tv_usec > ts_start->tv_usec) {
@@ -46,12 +47,13 @@ static void usage(char* prog)
   printf("\t-r nof_repetitions [Default %d]\n", nof_repetitions);
   printf("\t-o rx window offset (portion of CP length) [Default %.1f]\n", rx_window_offset);
   printf("\t-s frequency shift (normalised with sampling rate) [Default %.1f]\n", freq_shift_f);
+  printf("\t-p Phase compensation carrier frequency in Hz [Default %.1f]\n", phase_compensation_hz);
 }
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "Nneros")) != -1) {
+  while ((opt = getopt(argc, argv, "Nnerosp")) != -1) {
     switch (opt) {
       case 'n':
         nof_prb = (int)strtol(argv[optind], NULL, 10);
@@ -70,6 +72,9 @@ static void parse_args(int argc, char** argv)
         break;
       case 's':
         freq_shift_f = SRSRAN_MIN(1.0f, SRSRAN_MAX(0.0f, strtof(argv[optind], NULL)));
+        break;
+      case 'p':
+        phase_compensation_hz = strtod(argv[optind], NULL);
         break;
       default:
         usage(argv[0]);
@@ -113,14 +118,15 @@ int main(int argc, char** argv)
     }
     srsran_vec_cf_zero(outifft, sf_len);
 
-    srsran_ofdm_cfg_t ofdm_cfg = {};
-    ofdm_cfg.cp                = cp;
-    ofdm_cfg.in_buffer         = input;
-    ofdm_cfg.out_buffer        = outifft;
-    ofdm_cfg.nof_prb           = n_prb;
-    ofdm_cfg.symbol_sz         = symbol_sz;
-    ofdm_cfg.freq_shift_f      = freq_shift_f;
-    ofdm_cfg.normalize         = true;
+    srsran_ofdm_cfg_t ofdm_cfg     = {};
+    ofdm_cfg.cp                    = cp;
+    ofdm_cfg.in_buffer             = input;
+    ofdm_cfg.out_buffer            = outifft;
+    ofdm_cfg.nof_prb               = n_prb;
+    ofdm_cfg.symbol_sz             = symbol_sz;
+    ofdm_cfg.freq_shift_f          = freq_shift_f;
+    ofdm_cfg.normalize             = true;
+    ofdm_cfg.phase_compensation_hz = phase_compensation_hz;
     if (srsran_ofdm_tx_init_cfg(&ifft, &ofdm_cfg)) {
       ERROR("Error initializing iFFT");
       exit(-1);
