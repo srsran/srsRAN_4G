@@ -681,9 +681,6 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
       logger.warning("Option p_zp_csi_rs_res_set not of type setup");
       return false;
     }
-  } else {
-    logger.warning("Option p_zp_csi_rs_res_set not present");
-    return false;
   }
   return true;
 }
@@ -738,9 +735,6 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
         return false;
       }
     }
-  } else {
-    logger.warning("Option nzp_csi_rs_res_to_add_mod_list not present");
-    return false;
   }
 
   if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present) {
@@ -760,9 +754,6 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
         phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
       }
     }
-  } else {
-    logger.warning("Option p_zp_csi_rs_res_set not present");
-    return false;
   }
 
   return true;
