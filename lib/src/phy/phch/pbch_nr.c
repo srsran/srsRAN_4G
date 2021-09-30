@@ -180,18 +180,33 @@ void srsran_pbch_nr_free(srsran_pbch_nr_t* q)
 static const uint32_t G[PBCH_NR_A] = {16, 23, 18, 17, 8,  30, 10, 6,  24, 7,  0,  5,  3,  2,  1,  4,
                                       9,  11, 12, 13, 14, 15, 19, 20, 21, 22, 25, 26, 27, 28, 29, 31};
 
+#define PBCH_SFN_PAYLOAD_BEGIN 1
+#define PBCH_SFN_PAYLOAD_LENGTH 6
+#define PBCH_SFN_2ND_LSB_G (G[PBCH_SFN_PAYLOAD_LENGTH + 2])
+#define PBCH_SFN_3RD_LSB_G (G[PBCH_SFN_PAYLOAD_LENGTH + 1])
+
 static void
 pbch_nr_pbch_msg_pack(const srsran_pbch_nr_cfg_t* cfg, const srsran_pbch_msg_nr_t* msg, uint8_t a[PBCH_NR_A])
 {
   // Extract actual payload size
   uint32_t A_hat = SRSRAN_PBCH_MSG_NR_SZ;
 
+  // Put actual payload
+  uint32_t j_sfn   = 0;
+  uint32_t j_other = 14;
+  for (uint32_t i = 0; i < A_hat; i++) {
+    if (i >= PBCH_SFN_PAYLOAD_BEGIN && i < (PBCH_SFN_PAYLOAD_BEGIN + PBCH_SFN_PAYLOAD_LENGTH)) {
+      a[G[j_sfn++]] = msg->payload[i];
+    } else {
+      a[G[j_other++]] = msg->payload[i];
+    }
+  }
+
   // Put SFN in a_hat[A_hat] to a_hat[A_hat + 3]
-  uint32_t j_sfn = 0;
-  a[G[j_sfn++]]  = (uint8_t)((msg->sfn_4lsb >> 3U) & 1U); // 4th LSB of SFN
-  a[G[j_sfn++]]  = (uint8_t)((msg->sfn_4lsb >> 2U) & 1U); // 3th LSB of SFN
-  a[G[j_sfn++]]  = (uint8_t)((msg->sfn_4lsb >> 1U) & 1U); // 2th LSB of SFN
-  a[G[j_sfn++]]  = (uint8_t)((msg->sfn_4lsb >> 0U) & 1U); // 1th LSB of SFN
+  a[G[j_sfn++]] = (uint8_t)((msg->sfn_4lsb >> 3U) & 1U); // 4th LSB of SFN
+  a[G[j_sfn++]] = (uint8_t)((msg->sfn_4lsb >> 2U) & 1U); // 3th LSB of SFN
+  a[G[j_sfn++]] = (uint8_t)((msg->sfn_4lsb >> 1U) & 1U); // 2th LSB of SFN
+  a[G[j_sfn++]] = (uint8_t)((msg->sfn_4lsb >> 0U) & 1U); // 1th LSB of SFN
 
   // Put HRF in a_hat[A_hat + 4]
   a[G[10]] = (msg->hrf ? 1 : 0);
@@ -205,16 +220,6 @@ pbch_nr_pbch_msg_pack(const srsran_pbch_nr_cfg_t* cfg, const srsran_pbch_msg_nr_
     a[G[11]] = (uint8_t)msg->k_ssb_msb; // 6th bit of SSB index
     a[G[12]] = 0;                       // Reserved
     a[G[13]] = 0;                       // Reserved
-  }
-
-  // Put actual payload
-  uint32_t j_other = 14;
-  for (uint32_t i = 0; i < A_hat; i++) {
-    if (i > 0 && i < 7) {
-      a[G[j_sfn++]] = msg->payload[i];
-    } else {
-      a[G[j_other++]] = msg->payload[i];
-    }
   }
 
   if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
@@ -233,9 +238,19 @@ pbch_nr_pbch_msg_unpack(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PBCH_NR
   // Extract actual payload size
   uint32_t A_hat = SRSRAN_PBCH_MSG_NR_SZ;
 
+  // Get actual payload
+  uint32_t j_sfn   = 0;
+  uint32_t j_other = 14;
+  for (uint32_t i = 0; i < A_hat; i++) {
+    if (i >= PBCH_SFN_PAYLOAD_BEGIN && i < (PBCH_SFN_PAYLOAD_BEGIN + PBCH_SFN_PAYLOAD_LENGTH)) {
+      msg->payload[i] = a[G[j_sfn++]];
+    } else {
+      msg->payload[i] = a[G[j_other++]];
+    }
+  }
+
   // Put SFN in a_hat[A_hat] to a_hat[A_hat + 3]
-  uint32_t j_sfn = 0;
-  msg->sfn_4lsb  = 0;
+  msg->sfn_4lsb = 0;
   msg->sfn_4lsb |= (uint8_t)(a[G[j_sfn++]] << 3U); // 4th LSB of SFN
   msg->sfn_4lsb |= (uint8_t)(a[G[j_sfn++]] << 2U); // 3th LSB of SFN
   msg->sfn_4lsb |= (uint8_t)(a[G[j_sfn++]] << 1U); // 2th LSB of SFN
@@ -253,16 +268,6 @@ pbch_nr_pbch_msg_unpack(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PBCH_NR
     msg->ssb_idx |= (uint8_t)(a[G[13]] << 3U); // 4th bit of SSB index
   } else {
     msg->k_ssb_msb = a[G[11]];
-  }
-
-  // Put actual payload
-  uint32_t j_other = 14;
-  for (uint32_t i = 0; i < A_hat; i++) {
-    if (i > 0 && i < 7) {
-      msg->payload[i] = a[G[j_sfn++]];
-    } else {
-      msg->payload[i] = a[G[j_other++]];
-    }
   }
 }
 
@@ -282,7 +287,7 @@ static void pbch_nr_scramble(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PB
   }
 
   // Select value v
-  uint32_t v = 2 * a[G[1]] + a[G[2]];
+  uint32_t v = 2 * a[PBCH_SFN_3RD_LSB_G] + a[PBCH_SFN_2ND_LSB_G];
 
   // Advance sequence
   srsran_sequence_state_advance(&sequence_state, M * v);
@@ -292,12 +297,14 @@ static void pbch_nr_scramble(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PB
   srsran_sequence_state_apply_bit(&sequence_state, c, c, PBCH_NR_A);
 
   while (i < PBCH_NR_A) {
-    // a i corresponds to any one of the bits belonging to the SS/PBCH block index, the half frame index, and 2 nd and 3
-    // rd least significant bits of the system frame number
     uint8_t s_i = c[j];
 
-    // else
-    if (i == G[11] || i == G[12] || i == G[13] || i == G[10] || i == G[1] || i == G[2]) {
+    // Check if i belongs to a SS/PBCH block index which is only multiplexed when L_max is 64
+    bool is_ssb_idx = (i == G[11] || i == G[12] || i == G[13]) && cfg->Lmax == 64;
+
+    // a i corresponds to any one of the bits belonging to the SS/PBCH block index, the half frame index, and 2 nd and 3
+    // rd least significant bits of the system frame number
+    if (is_ssb_idx || i == G[10] || i == PBCH_SFN_2ND_LSB_G || i == PBCH_SFN_3RD_LSB_G) {
       s_i = 0;
     } else {
       j++;

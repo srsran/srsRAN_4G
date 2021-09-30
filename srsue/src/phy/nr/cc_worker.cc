@@ -43,6 +43,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_sta
 
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_measure    = true;
+  ssb_args.enable_decode     = true;
   if (srsran_ssb_init(&ssb, &ssb_args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating SSB");
     return;
@@ -379,6 +380,37 @@ bool cc_worker::measure_csi()
         std::array<char, 512> str = {};
         srsran_csi_meas_info(&meas, str.data(), (uint32_t)str.size());
         logger.debug("SSB-CSI: %s", str.data());
+      }
+
+      bool                 hrf      = (dl_slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs) >
+                  SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs) / 2);
+      srsran_pbch_msg_nr_t pbch_msg = {};
+      if (srsran_ssb_decode_pbch(&ssb, phy.cfg.carrier.pci, hrf, ssb_idx, rx_buffer[0], &pbch_msg) < SRSRAN_SUCCESS) {
+        logger.error("Error decoding PBCH");
+        return false;
+      }
+
+      // Check if PBCH message was decoded
+      if (pbch_msg.crc) {
+        // Unpack MIB
+        srsran_mib_nr_t mib = {};
+        if (srsran_pbch_msg_nr_mib_unpack(&pbch_msg, &mib) < SRSRAN_SUCCESS) {
+          logger.error("Error unpacking PBCH-MIB");
+          return false;
+        }
+
+        // Check if the SFN matches
+        // ...
+
+        // Log MIB information
+        if (logger.debug.enabled()) {
+          std::array<char, 512> str = {};
+          srsran_pbch_msg_nr_mib_info(&mib, str.data(), (uint32_t)str.size());
+          logger.debug("PBCH-MIB: sfn_4lsb=%d; %s", (dl_slot_cfg.idx / 10) & 0xf, str.data());
+        }
+      } else {
+        // CRC shall never fail if the UE is in sync
+        logger.warning("PBCH-MIB: CRC failed");
       }
 
       // Report SSB candidate channel measurement to the PHY state
