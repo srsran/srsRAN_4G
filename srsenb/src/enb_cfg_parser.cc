@@ -959,6 +959,9 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 
 static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cfg_t* rrc_cfg_eutra, Setting& root)
 {
+  srsran::srsran_band_helper band_helper;
+  int                        ul_arfcn_set;
+
   for (uint32_t n = 0; n < (uint32_t)root.getLength(); ++n) {
     rrc_cell_cfg_nr_t cell_cfg = {};
     auto&             cellroot = root[n];
@@ -971,7 +974,8 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
 
     cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_arfcn, cellroot, "dl_arfcn"));
-    parse_opt_field(cell_cfg.ul_arfcn, cellroot, "ul_arfcn");
+    ul_arfcn_set = parse_opt_field(cell_cfg.ul_arfcn, cellroot, "ul_arfcn");
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.band, cellroot, "band"));
     // frequencies get derived from ARFCN
 
     // TODO: Add further cell-specific parameters
@@ -1007,6 +1011,34 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
       // Check RF port is not repeated
       if (it->phy_cell.rf_port == it_eutra->rf_port) {
         ERROR("Repeated RF port for multiple cells");
+        return SRSRAN_ERROR;
+      }
+    }
+
+    // Check if dl_arfcn is valid for the given band
+    bool                  dl_arfcn_valid = false;
+    std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->dl_arfcn);
+    for (uint32_t band_idx = 0; band_idx < bands.size(); band_idx++) {
+      if (bands.at(band_idx) == it->band) {
+        dl_arfcn_valid = true;
+      }
+    }
+    if (!dl_arfcn_valid) {
+      ERROR("DL ARFCN (%d) is not valid for the specified band (%d)", it->dl_arfcn, it->band);
+      return SRSRAN_ERROR;
+    }
+
+    if (ul_arfcn_set != 0) {
+      // Check if ul_arfcn is valid for the given band
+      bool                  ul_arfcn_valid = false;
+      std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->ul_arfcn);
+      for (uint32_t band_idx = 0; band_idx < bands.size(); band_idx++) {
+        if (bands.at(band_idx) == it->band) {
+          ul_arfcn_valid = true;
+        }
+      }
+      if (!ul_arfcn_valid) {
+        ERROR("UL ARFCN (%d) is not valid for the specified band (%d)", it->ul_arfcn, it->band);
         return SRSRAN_ERROR;
       }
     }
@@ -1433,9 +1465,6 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
       }
       cfg.phy_cell.ul_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ul_arfcn);
     }
-
-    // band
-    cfg.band = band_helper.get_band_from_dl_arfcn(cfg.dl_arfcn);
 
     // duplex mode
     cfg.duplex_mode = band_helper.get_duplex_mode(cfg.band);
