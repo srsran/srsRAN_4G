@@ -12,7 +12,6 @@
 
 #include "sched_nr_cfg_generators.h"
 #include "sched_nr_sim_ue.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/test_common.h"
 #include "srsran/common/thread_pool.h"
@@ -127,6 +126,77 @@ void sched_nr_cfg_serialized_test()
   printf("Total time taken per slot: %f usec\n", final_avg_usec);
 }
 
+/*
+ * This test runs the scheduler and verify that the SSB grant is present
+ * with the required periodicity
+ */
+void sched_nr_ssb_test()
+{
+  const uint32_t   ssb_periodicity = 5;
+  int              tmp = 0;
+  uint32_t         max_nof_ttis = 1000, nof_sectors = 4;
+  task_job_manager tasks;
+
+  sched_nr_interface::sched_cfg_t cfg;
+  cfg.auto_refill_buffer = true;
+
+  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
+
+  sched_nr_sim_base sched_tester(cfg, cells_cfg, "Serialized Test");
+
+  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
+  uecfg.fixed_dl_mcs                 = 15;
+  uecfg.fixed_ul_mcs                 = 15;
+  sched_tester.add_user(0x46, uecfg, slot_point{0, 0}, 0);
+
+  std::vector<long> count_per_cc(nof_sectors, 0);
+  for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
+    slot_point slot_rx(0, nof_slots % 10240);
+    slot_point slot_tx = slot_rx + TX_ENB_DELAY;
+    tasks.start_slot(slot_rx, nof_sectors);
+    sched_tester.new_slot(slot_tx);
+    for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
+      sched_nr_interface::dl_sched_res_t dl_res;
+      sched_nr_interface::ul_sched_t     ul_res;
+      auto                               tp1 = std::chrono::steady_clock::now();
+      TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
+      TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
+      auto tp2 = std::chrono::steady_clock::now();
+      count_per_cc[cc] += std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1).count();
+      sched_nr_cc_output_res_t out{slot_tx, cc, &dl_res, &ul_res};
+      sched_tester.update(out);
+      tasks.finish_cc(slot_rx, dl_res, ul_res);
+      /*
+       * Verify that with SSB periodicity, dl_res has:
+       * 1) SSB grant
+       * 2) 4 LSB of SFN in packed MIB message is correct
+       * 3) SSB index is 0
+       */
+      if (slot_tx.to_uint() % ssb_periodicity == 0) {
+        TESTASSERT(dl_res.dl_sched.ssb.size() == 1);
+        auto& ssb_item = dl_res.dl_sched.ssb.back();
+        TESTASSERT( ssb_item.pbch_msg.sfn_4lsb == ((uint8_t) slot_tx.sfn() & 0b1111) );
+        TESTASSERT( ssb_item.pbch_msg.ssb_idx == 0 );
+      }
+      /*
+       * Verify that, outside SSB periodicity, dl_res HAS NO SSB grant
+       */
+      else
+        TESTASSERT(dl_res.dl_sched.ssb.size() == 0);
+    }
+  }
+
+  tasks.print_results();
+  TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
+
+  double final_avg_usec = 0;
+  for (uint32_t cc = 0; cc < cells_cfg.size(); ++cc) {
+    final_avg_usec += count_per_cc[cc];
+  }
+  final_avg_usec = final_avg_usec / 1000.0 / max_nof_ttis;
+  printf("Total time taken per slot: %f usec\n", final_avg_usec);
+}
+
 void sched_nr_cfg_parallel_cc_test()
 {
   uint32_t         nof_sectors  = 4;
@@ -199,4 +269,5 @@ int main()
 
   srsenb::sched_nr_cfg_serialized_test();
   srsenb::sched_nr_cfg_parallel_cc_test();
+  srsenb::sched_nr_ssb_test();
 }
