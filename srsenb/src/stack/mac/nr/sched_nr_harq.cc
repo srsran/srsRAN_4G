@@ -16,16 +16,16 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-bool harq_proc::ack_info(uint32_t tb_idx, bool ack)
+int harq_proc::ack_info(uint32_t tb_idx, bool ack)
 {
   if (empty(tb_idx)) {
-    return false;
+    return SRSRAN_ERROR;
   }
   tb[tb_idx].ack_state = ack;
   if (ack) {
     tb[tb_idx].active = false;
   }
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 void harq_proc::new_slot(slot_point slot_rx)
