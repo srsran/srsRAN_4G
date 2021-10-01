@@ -12,7 +12,7 @@
 
 #include "srsran/config.h"
 #include "srsran/rlc/rlc.h"
-#include "srsran/rlc/rlc_am_nr.h"
+#include "srsran/rlc/rlc_am_nr_packing.h"
 
 #include <array>
 #include <iostream>
