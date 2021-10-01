@@ -44,24 +44,33 @@ void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_l
 {
   // If the periodicity is 0, it means that the parameter was not passed by the upper layers.
   // In that case, we use default value of 5ms (see Clause 4.1, TS 38.213)
-  if (ssb_periodicity == 0)
+  if (ssb_periodicity == 0) {
     ssb_periodicity = DEFAULT_SSB_PERIODICITY;
+  }
 
-  uint32_t sl_idx = sl_point.to_uint();
-  // mod operation of slot index by ssb_periodicity. With current subcarrier spacing, 1 slot = 1ms
-  uint32_t sl_point_mod = sl_point.to_uint() % ssb_periodicity;
+  uint32_t sl_cnt = sl_point.to_uint();
+  // Perform mod operation of slot index by ssb_periodicity;
+  // "ssb_periodicity * nof_slots_per_subframe" gives the number of slots in 1 ssb_periodicity time interval
+  uint32_t sl_point_mod = sl_cnt % (ssb_periodicity * (uint32_t)sl_point.nof_slots_per_subframe());
 
-  // code below is simplified
+  // code below is simplified, it assumes 15kHz subcarrier spacing and sub 3GHz carrier
   if (sl_point_mod == 0) {
     ssb_t           ssb_msg = {};
     srsran_mib_nr_t mib_msg = {};
     mib_msg.sfn             = sl_point.sfn();
-    mib_msg.hrf             = (sl_idx % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) <
+    mib_msg.hrf             = (sl_point.slot_idx() % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) >=
                    SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) / 2);
     // This corresponds to "Position in Burst" = 1000
     mib_msg.ssb_idx = 0;
+    // Setting the following 4 parameters is redundant, but it makes it explicit what values are passed to PHY
+    mib_msg.dmrs_typeA_pos = srsran_dmrs_sch_typeA_pos_2;
+    mib_msg.scs_common     = srsran_subcarrier_spacing_15kHz;
+    mib_msg.coreset0_idx   = 0;
+    mib_msg.ss0_idx        = 0;
+
     // Pack mib message to be sent to PHY
-    srsran_pbch_msg_nr_mib_pack(&mib_msg, &ssb_msg.pbch_msg);
+    int packing_ret_code = srsran_pbch_msg_nr_mib_pack(&mib_msg, &ssb_msg.pbch_msg);
+    srsran_assert(packing_ret_code == SRSRAN_SUCCESS, "SSB packing returned en error");
     ssb_list.push_back(ssb_msg);
   }
 }

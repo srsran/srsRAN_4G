@@ -41,8 +41,8 @@ struct harq_ack_t {
 };
 using harq_ack_list_t = srsran::bounded_vector<harq_ack_t, MAX_GRANTS>;
 
-// save data for scheduler to keep track of previous allocations
-// This only contains information about a given slot
+/// save data for scheduler to keep track of previous allocations
+/// This only contains information about a given slot
 struct bwp_slot_grid {
   uint32_t          slot_idx = 0;
   const bwp_params* cfg      = nullptr;
