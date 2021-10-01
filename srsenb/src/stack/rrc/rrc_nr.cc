@@ -14,7 +14,6 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
-#include "srsran/common/band_helper.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/standard_streams.h"
@@ -1130,35 +1129,10 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_
 {
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
   auto& freq_info_dl = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl;
-
   freq_info_dl.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  srsran::srsran_band_helper band_helper;
-  freq_info_dl.absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(
-      parent->cfg.cell_list[0].phy_cell.carrier.nof_prb, parent->cfg.cell_list[0].dl_arfcn);
+  freq_info_dl.absolute_freq_point_a     = parent->cfg.cell_list[0].phy_cell.carrier.dl_absolute_frequency_point_a;
   freq_info_dl.absolute_freq_ssb_present = true;
-
-  uint32_t absolute_freq_ssb;
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    if (parent->cfg.cell_list[0].band == 3) { // band n3
-      absolute_freq_ssb = 367930;
-    } else if (parent->cfg.cell_list[0].band == 5) { // band n5
-      absolute_freq_ssb = 176210;
-    } else if (parent->cfg.cell_list[0].band == 7) { // band n7
-      absolute_freq_ssb = 529470;
-    } else {
-      parent->logger.error("Unsupported dl_arfcn.");
-      return SRSRAN_ERROR;
-    }
-  } else {
-    if (parent->cfg.cell_list[0].band == 78) { // band n78
-      absolute_freq_ssb = 634176;
-    } else {
-      parent->logger.error("Unsupported dl_arfcn.");
-      return SRSRAN_ERROR;
-    }
-  }
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl.absolute_freq_ssb =
-      absolute_freq_ssb; // TODO: calculate from actual DL ARFCN
+  freq_info_dl.absolute_freq_ssb         = parent->cfg.cell_list[0].phy_cell.carrier.absolute_frequency_ssb;
 
   freq_info_dl.scs_specific_carrier_list.resize(1);
   auto& dl_carrier              = freq_info_dl.scs_specific_carrier_list[0];
@@ -1284,19 +1258,13 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common(
 int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(
     asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
-  srsran::srsran_band_helper band_helper;
-
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul.freq_band_list
-      .push_back(parent->cfg.cell_list[0].band);
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul.absolute_freq_point_a =
-      band_helper.get_abs_freq_point_a_arfcn(parent->cfg.cell_list[0].phy_cell.carrier.nof_prb,
-                                             parent->cfg.cell_list[0].ul_arfcn);
-  ;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul
-      .scs_specific_carrier_list.resize(1);
-  auto& ul_carrier = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul
-                         .scs_specific_carrier_list[0];
+  auto& freq_info_ul = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul;
+  freq_info_ul.freq_band_list.push_back(parent->cfg.cell_list[0].band);
+  freq_info_ul.absolute_freq_point_a = parent->cfg.cell_list[0].phy_cell.carrier.ul_absolute_frequency_point_a;
+  freq_info_ul.scs_specific_carrier_list.resize(1);
+
+  auto& ul_carrier              = freq_info_ul.scs_specific_carrier_list[0];
   ul_carrier.offset_to_carrier  = 0;
   ul_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
   ul_carrier.carrier_bw         = 52;

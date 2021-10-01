@@ -114,6 +114,18 @@ public:
    */
   uint32_t get_abs_freq_point_a_arfcn(uint32_t nof_prb, uint32_t arfcn);
 
+  /**
+   * @brief Compute the absolute frequency of the SSB for a DL ARFCN and a band. sThis selects an SSB center frequency
+   * following the band SS/PBCH frequency raster provided by 38.104 table 5.4.3.1-1 as close as possible to PointA
+   * without letting any SS/PBCH subcarrier below PointA
+   *
+   * @param band nr frequency band.
+   * @param scs ssb subcarrier spacing.
+   * @param freq_point_a_arfcn frequency point a in arfcn notation.
+   * @return absolute frequency of the SSB in arfcn notation.
+   */
+  uint32_t get_abs_freq_ssb_arfcn(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t freq_point_a_arfcn);
+
   class sync_raster_t
   {
   protected:

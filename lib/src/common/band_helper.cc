@@ -133,6 +133,29 @@ double srsran_band_helper::get_abs_freq_point_a_from_center_freq(uint32_t nof_pr
           SRSRAN_NRE);
 }
 
+uint32_t
+srsran_band_helper::get_abs_freq_ssb_arfcn(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t freq_point_a_arfcn)
+{
+  double ssb_bw_hz = SRSRAN_SSB_BW_SUBC * SRSRAN_SUBC_SPACING_NR(scs);
+
+  sync_raster_t sync_raster = get_sync_raster(band, scs);
+  if (!sync_raster.valid()) {
+    return 0;
+  }
+
+  double abs_freq_ssb_hz = sync_raster.get_frequency();
+
+  while (abs_freq_ssb_hz < (nr_arfcn_to_freq(freq_point_a_arfcn) + ssb_bw_hz / 2)) {
+    sync_raster.next();
+    if (sync_raster.end()) {
+      return 0;
+    }
+    abs_freq_ssb_hz = sync_raster.get_frequency();
+  }
+
+  return freq_to_nr_arfcn(abs_freq_ssb_hz);
+}
+
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const
 {
   // Look for the given band and SCS
