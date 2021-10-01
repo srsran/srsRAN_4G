@@ -41,8 +41,10 @@ const char* __tsan_default_suppressions()
       // External uninstrumented libraries
       "called_from_lib:libzmq.so\n"
       "called_from_lib:libpgm-5.2.so\n"
-      // Lock order inversion issue in this function, ignore it as it uses rw locks in read mode
-      "deadlock:srsenb::mac::rlc_buffer_state\n";
+      // Lock order inversion issues in these functions, ignore it as it uses rw locks in read mode
+      "deadlock:srsenb::mac::rlc_buffer_state\n"
+      "deadlock:srsenb::mac::snr_info\n"
+      "deadlock:srsenb::mac::ack_info\n";
 }
 
 #ifdef __cplusplus
