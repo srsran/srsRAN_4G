@@ -85,21 +85,13 @@ bool cc_worker::update_cfg()
     return false;
   }
 
-  double abs_freq_point_a_freq =
-      srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.dl_absolute_frequency_point_a);
-  double abs_freq_ssb_freq = srsran::srsran_band_helper().nr_arfcn_to_freq(phy.cfg.carrier.absolute_frequency_ssb);
-
-  double carrier_center_freq =
-      abs_freq_point_a_freq + (phy.cfg.carrier.nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs) * SRSRAN_NRE);
-  uint16_t band = srsran::srsran_band_helper().get_band_from_dl_freq_Hz(carrier_center_freq);
-
   srsran_ssb_cfg_t ssb_cfg = {};
   ssb_cfg.srate_hz = srsran_min_symbol_sz_rb(phy.cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs);
-  ssb_cfg.center_freq_hz = carrier_center_freq;
-  ssb_cfg.ssb_freq_hz    = abs_freq_ssb_freq;
+  ssb_cfg.center_freq_hz = phy.cfg.carrier.dl_center_frequency_hz;
+  ssb_cfg.ssb_freq_hz    = phy.cfg.carrier.ssb_center_freq_hz;
   ssb_cfg.scs            = phy.cfg.ssb.scs;
-  ssb_cfg.pattern        = srsran::srsran_band_helper().get_ssb_pattern(band, phy.cfg.ssb.scs);
-  ssb_cfg.duplex_mode    = srsran::srsran_band_helper().get_duplex_mode(band);
+  ssb_cfg.pattern        = phy.cfg.ssb.pattern;
+  ssb_cfg.duplex_mode    = phy.cfg.duplex.mode;
   ssb_cfg.periodicity_ms = phy.cfg.ssb.periodicity_ms;
 
   if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {

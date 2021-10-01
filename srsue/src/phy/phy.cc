@@ -659,15 +659,13 @@ void phy::set_earfcn(std::vector<uint32_t> earfcns)
 bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   srsran::srsran_band_helper band_helper;
-  double                     dl_freq_hz = band_helper.get_dl_center_freq(cfg.carrier);
-  double                     ul_freq_hz = band_helper.get_ul_center_freq(cfg.carrier);
 
   // tune radio
   for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
-    logger_phy.info("Tuning Rx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, dl_freq_hz / 1e6);
-    radio->set_rx_freq(i + common.args->nof_lte_carriers, dl_freq_hz);
-    logger_phy.info("Tuning Tx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, ul_freq_hz / 1e6);
-    radio->set_tx_freq(i + common.args->nof_lte_carriers, ul_freq_hz);
+    logger_phy.info("Tuning Rx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, cfg.carrier.dl_center_frequency_hz / 1e6);
+    radio->set_rx_freq(i + common.args->nof_lte_carriers, cfg.carrier.dl_center_frequency_hz);
+    logger_phy.info("Tuning Tx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, cfg.carrier.ul_center_frequency_hz / 1e6);
+    radio->set_tx_freq(i + common.args->nof_lte_carriers, cfg.carrier.ul_center_frequency_hz);
   }
 
   return nr_workers.set_config(cfg);

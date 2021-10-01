@@ -370,9 +370,9 @@ typedef enum {
  */
 typedef struct SRSRAN_API {
   uint32_t                    pci;
-  uint32_t                    absolute_frequency_ssb;
-  uint32_t                    dl_absolute_frequency_point_a;
-  uint32_t                    ul_absolute_frequency_point_a;
+  double                      dl_center_frequency_hz; ///< Absolute baseband center frequency in Hz for DL grid
+  double                      ul_center_frequency_hz; ///< Absolute baseband center frequency in Hz for UL grid
+  double                      ssb_center_freq_hz;     ///< SS/PBCH Block center frequency in Hz. Set to 0 if not present
   uint32_t                    offset_to_carrier; ///< Offset between point A and the lowest subcarrier of the lowest RB
   srsran_subcarrier_spacing_t scs;
   uint32_t                    nof_prb; ///< @brief See TS 38.101-1 Table 5.3.2-1 for more details
@@ -382,6 +382,12 @@ typedef struct SRSRAN_API {
                             ///< MIMO layer to be used for PUSCH in all BWPs of the normal UL of this serving cell (see
                             ///< TS 38.212 [17], clause 5.4.2.1)
 } srsran_carrier_nr_t;
+
+#define SRSRAN_DEFAULT_CARRIER_NR                                                                                      \
+  {                                                                                                                    \
+    .pci = 500, .dl_center_frequency_hz = 3.5e9, .ul_center_frequency_hz = 3.5e9, .ssb_center_freq_hz = 3.5e9,         \
+    .offset_to_carrier = 0, .scs = srsran_subcarrier_spacing_15kHz, .nof_prb = 52, .start = 0, .max_mimo_layers = 1    \
+  }
 
 /**
  * @brief NR Slot parameters. It contains parameters that change in a slot basis.

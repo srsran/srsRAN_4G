@@ -159,12 +159,14 @@ int srsran_ue_dl_nr_set_carrier(srsran_ue_dl_nr_t* q, const srsran_carrier_nr_t*
 
   if (carrier->nof_prb != q->carrier.nof_prb) {
     for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
-      srsran_ofdm_cfg_t cfg = {};
-      cfg.nof_prb           = carrier->nof_prb;
-      cfg.symbol_sz         = srsran_min_symbol_sz_rb(carrier->nof_prb);
-      cfg.cp                = SRSRAN_CP_NORM;
-      cfg.keep_dc           = true;
-      cfg.rx_window_offset  = UE_DL_NR_FFT_WINDOW_OFFSET;
+      srsran_ofdm_cfg_t cfg     = {};
+      cfg.nof_prb               = carrier->nof_prb;
+      cfg.symbol_sz             = srsran_min_symbol_sz_rb(carrier->nof_prb);
+      cfg.cp                    = SRSRAN_CP_NORM;
+      cfg.keep_dc               = true;
+      cfg.rx_window_offset      = UE_DL_NR_FFT_WINDOW_OFFSET;
+      cfg.phase_compensation_hz = carrier->dl_center_frequency_hz;
+
       srsran_ofdm_rx_init_cfg(&q->fft[i], &cfg);
     }
   }
@@ -373,7 +375,7 @@ static int ue_dl_nr_find_dci_ss(srsran_ue_dl_nr_t*           q,
       // Calculate possible PDCCH DCI candidates
       uint32_t candidates[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
       int      nof_candidates                                        = srsran_pdcch_nr_locations_coreset(
-          coreset, search_space, rnti, L, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx), candidates);
+                                                      coreset, search_space, rnti, L, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx), candidates);
       if (nof_candidates < SRSRAN_SUCCESS) {
         ERROR("Error calculating DCI candidate location");
         return SRSRAN_ERROR;

@@ -12,6 +12,7 @@
 
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/asn1/rrc_nr.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/config.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
@@ -1368,13 +1369,14 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
   }
 
   // As the carrier structure requires parameters from different objects, set fields separately
-  out_carrier_nr->absolute_frequency_ssb        = absolute_frequency_ssb;
-  out_carrier_nr->dl_absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
-  out_carrier_nr->ul_absolute_frequency_point_a =
-      out_carrier_nr->dl_absolute_frequency_point_a; // needs to be updated for FDD
-  out_carrier_nr->offset_to_carrier = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
-  out_carrier_nr->nof_prb           = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
-  out_carrier_nr->scs               = scs;
+  srsran::srsran_band_helper bands;
+  out_carrier_nr->ssb_center_freq_hz     = srsran::srsran_band_helper().nr_arfcn_to_freq(absolute_frequency_ssb);
+  out_carrier_nr->dl_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
+      asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw, asn1_freq_info_dl.absolute_freq_point_a);
+  out_carrier_nr->ul_center_frequency_hz = out_carrier_nr->dl_center_frequency_hz; // needs to be updated for FDD
+  out_carrier_nr->offset_to_carrier      = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  out_carrier_nr->nof_prb                = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+  out_carrier_nr->scs                    = scs;
   return true;
 }
 
@@ -1394,6 +1396,20 @@ static inline void make_ssb_positions_in_burst(const bitstring_t&               
 bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
 {
   phy_cfg_nr_t::ssb_cfg_t ssb = {};
+  if (serv_cell_cfg.ssb_subcarrier_spacing_present) {
+    switch (serv_cell_cfg.ssb_subcarrier_spacing) {
+      case subcarrier_spacing_e::khz15:
+        ssb.scs = srsran_subcarrier_spacing_15kHz;
+        break;
+      case subcarrier_spacing_e::khz30:
+        ssb.scs = srsran_subcarrier_spacing_30kHz;
+        break;
+      default:
+        asn1::log_error("SSB SCS not supported");
+        return false;
+    }
+  }
+
   if (serv_cell_cfg.ssb_positions_in_burst_present) {
     switch (serv_cell_cfg.ssb_positions_in_burst.type()) {
       case serving_cell_cfg_common_s::ssb_positions_in_burst_c_::types_opts::short_bitmap:

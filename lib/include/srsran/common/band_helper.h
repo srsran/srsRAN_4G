@@ -90,20 +90,13 @@ public:
   srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
 
   /**
-   * @brief Compute the DL center frequency for a NR carrier
+   * @brief Compute the center frequency for a NR carrier from its bandwidth and the absolute pointA
    *
-   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
+   * @param nof_prb Carrier bandwidth in number of RB
+   * @param freq_point_a_arfcn Absolute Point A frequency ARFCN
    * @return double Frequency in Hz
    */
-  double get_dl_center_freq(const srsran_carrier_nr_t& carrier);
-
-  /**
-   * @brief Compute the UL center frequency for a NR carrier
-   *
-   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
-   * @return double Frequency in Hz
-   */
-  double get_ul_center_freq(const srsran_carrier_nr_t& carrier);
+  double get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn);
 
   /**
    * @brief Compute the absolute frequency point A for a arfcn
@@ -146,8 +139,6 @@ public:
 
 private:
   // internal helper
-  double get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn);
-
   double get_abs_freq_point_a_from_center_freq(uint32_t nof_prb, double center_freq);
 
   // Elements of TS 38.101-1 Table 5.2-1: NR operating bands in FR1

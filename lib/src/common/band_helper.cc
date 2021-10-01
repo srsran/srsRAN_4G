@@ -109,16 +109,6 @@ uint32_t srsran_band_helper::get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const
   return 0;
 }
 
-double srsran_band_helper::get_dl_center_freq(const srsran_carrier_nr_t& carrier)
-{
-  return get_center_freq_from_abs_freq_point_a(carrier.nof_prb, carrier.dl_absolute_frequency_point_a);
-}
-
-double srsran_band_helper::get_ul_center_freq(const srsran_carrier_nr_t& carrier)
-{
-  return get_center_freq_from_abs_freq_point_a(carrier.nof_prb, carrier.ul_absolute_frequency_point_a);
-}
-
 double srsran_band_helper::get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn)
 {
   // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier

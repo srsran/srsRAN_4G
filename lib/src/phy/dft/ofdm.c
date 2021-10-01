@@ -349,8 +349,8 @@ int srsran_ofdm_set_phase_compensation(srsran_ofdm_t* q, double center_freq_hz)
 
   // Extract modulation required parameters
   uint32_t symbol_sz = q->cfg.symbol_sz;
-  float    scs       = 15e3f; //< Assume 15kHz subcarrier spacing
-  float    srate_hz  = symbol_sz * scs;
+  double   scs       = 15e3; //< Assume 15kHz subcarrier spacing
+  double   srate_hz  = symbol_sz * scs;
 
   // Assert parameters
   if (!isnormal(srate_hz)) {
@@ -360,16 +360,20 @@ int srsran_ofdm_set_phase_compensation(srsran_ofdm_t* q, double center_freq_hz)
   // Otherwise calculate the phase
   uint32_t count = 0;
   for (uint32_t l = 0; l < q->nof_symbols * SRSRAN_NOF_SLOTS_PER_SF; l++) {
-    uint32_t cp_len = SRSRAN_CP_ISNORM(q->cfg.cp) ? SRSRAN_CP_LEN_NORM(l, symbol_sz) : SRSRAN_CP_LEN_EXT(symbol_sz);
+    uint32_t cp_len =
+        SRSRAN_CP_ISNORM(q->cfg.cp) ? SRSRAN_CP_LEN_NORM(l % q->nof_symbols, symbol_sz) : SRSRAN_CP_LEN_EXT(symbol_sz);
 
     // Advance CP
     count += cp_len;
 
     // Calculate symbol start time
-    double t_start = (float)count / srate_hz;
+    double t_start = (double)count / srate_hz;
+
+    // Calculate phase
+    double phase_rad = -2.0 * M_PI * center_freq_hz * t_start;
 
     // Calculate compensation phase in double precision and then convert to single
-    q->phase_compensation[l] = (cf_t)cexp(-I * 2.0 * M_PI * center_freq_hz * t_start);
+    q->phase_compensation[l] = (cf_t)cexp(I * phase_rad);
 
     // Advance symbol
     count += symbol_sz;

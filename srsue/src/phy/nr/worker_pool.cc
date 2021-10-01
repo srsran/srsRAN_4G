@@ -10,6 +10,7 @@
  *
  */
 #include "srsue/hdr/phy/nr/worker_pool.h"
+#include "srsran/common/band_helper.h"
 
 namespace srsue {
 namespace nr {
@@ -138,15 +139,15 @@ int worker_pool::set_ul_grant(uint32_t                                       rar
 }
 bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
-  phy_state.cfg = cfg;
+  uint32_t dl_arfcn = srsran::srsran_band_helper().freq_to_nr_arfcn(cfg.carrier.dl_center_frequency_hz);
+  phy_state.cfg     = cfg;
 
-  logger.info(
-      "Setting new PHY configuration ARFCN=%d, PCI=%d", cfg.carrier.dl_absolute_frequency_point_a, cfg.carrier.pci);
+  logger.info("Setting new PHY configuration ARFCN=%d, PCI=%d", dl_arfcn, cfg.carrier.pci);
 
   // Set carrier information
   info_metrics_t info = {};
   info.pci            = cfg.carrier.pci;
-  info.dl_earfcn      = cfg.carrier.absolute_frequency_ssb;
+  info.dl_earfcn      = dl_arfcn;
   phy_state.set_info_metrics(info);
 
   // Best effort to convert NR carrier into LTE cell

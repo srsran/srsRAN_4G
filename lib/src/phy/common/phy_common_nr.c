@@ -249,24 +249,14 @@ float srsran_symbol_offset_s(uint32_t l, srsran_subcarrier_spacing_t scs)
   // Compute at what symbol there is a longer CP
   uint32_t cp_boundary = SRSRAN_EXT_CP_SYMBOL(scs);
 
-  // First symbol CP
-  uint32_t N = 0;
-
-  // Symbols in between the first and l
-  N += (2048 + 144) * l;
+  // Number of samples (DFT + short CP) in between the first and l symbols
+  uint32_t N = ((2048 + 144) * l) >> (uint32_t)scs;
 
   // Add extended CP samples from first OFDM symbol
-  if (l > 0) {
-    N += 16;
-  }
-
-  // Add extra samples at the longer CP boundary
-  if (l >= cp_boundary) {
-    N += 16;
-  }
+  N += 16 * SRSRAN_CEIL(l, cp_boundary);
 
   // Compute time using reference sampling rate
-  float TS = SRSRAN_LTE_TS / (float)(1U << (uint32_t)scs);
+  float TS = SRSRAN_LTE_TS;
 
   // Return symbol offset in seconds
   return (float)N * TS;

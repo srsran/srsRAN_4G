@@ -15,17 +15,7 @@
 #include "srsran/phy/utils/random.h"
 #include <getopt.h>
 
-static srsran_carrier_nr_t carrier = {
-    1,                               // pci
-    0,                               // absolute_frequency_ssb
-    0,                               // dl_absolute_frequency_point_a
-    0,                               // ul_absolute_frequency_point_a
-    0,                               // offset_to_carrier
-    srsran_subcarrier_spacing_15kHz, // scs
-    50,                              // nof_prb
-    0,                               // start
-    1                                // max_mimo_layers
-};
+static srsran_carrier_nr_t carrier = SRSRAN_DEFAULT_CARRIER_NR;
 
 static uint16_t rnti        = 0x1234;
 static bool     fast_sweep  = true;

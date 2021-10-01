@@ -41,12 +41,8 @@ int bands_test_nr()
   TESTASSERT(bands.nr_arfcn_to_freq(167300) == 836.5e6);
 
   // check actual freqs for FDD carrier (example values are for 52 PRB)
-  srsran_carrier_nr_t carrier           = {};
-  carrier.dl_absolute_frequency_point_a = 175364;
-  carrier.ul_absolute_frequency_point_a = 166364;
-  carrier.nof_prb                       = 52;
-  TESTASSERT(bands.get_dl_center_freq(carrier) == 881.5e6);
-  TESTASSERT(bands.get_ul_center_freq(carrier) == 836.5e6);
+  TESTASSERT(bands.get_center_freq_from_abs_freq_point_a(52, 175364) == 881.5e6);
+  TESTASSERT(bands.get_center_freq_from_abs_freq_point_a(52, 166364) == 836.5e6);
 
   // b3
   TESTASSERT(bands.nr_arfcn_to_freq(342000) == 1710.0e6);

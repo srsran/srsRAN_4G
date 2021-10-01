@@ -124,10 +124,11 @@ int srsran_gnb_dl_set_carrier(srsran_gnb_dl_t* q, const srsran_carrier_nr_t* car
   }
 
   if (carrier->nof_prb != q->carrier.nof_prb) {
-    srsran_ofdm_cfg_t fft_cfg = {};
-    fft_cfg.nof_prb           = carrier->nof_prb;
-    fft_cfg.symbol_sz         = srsran_min_symbol_sz_rb(carrier->nof_prb);
-    fft_cfg.keep_dc           = true;
+    srsran_ofdm_cfg_t fft_cfg     = {};
+    fft_cfg.nof_prb               = carrier->nof_prb;
+    fft_cfg.symbol_sz             = srsran_min_symbol_sz_rb(carrier->nof_prb);
+    fft_cfg.keep_dc               = true;
+    fft_cfg.phase_compensation_hz = carrier->dl_center_frequency_hz;
 
     for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
       fft_cfg.in_buffer = q->sf_symbols[i];

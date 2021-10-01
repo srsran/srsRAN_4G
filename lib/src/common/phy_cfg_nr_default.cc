@@ -66,24 +66,24 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
 
 void phy_cfg_nr_default_t::make_carrier_custom_10MHz(srsran_carrier_nr_t& carrier)
 {
-  carrier.nof_prb                       = 52;
-  carrier.max_mimo_layers               = 1;
-  carrier.pci                           = 500;
-  carrier.dl_absolute_frequency_point_a = 633928;
-  carrier.absolute_frequency_ssb        = 634176;
-  carrier.offset_to_carrier             = 0;
-  carrier.scs                           = srsran_subcarrier_spacing_15kHz;
+  carrier.nof_prb                = 52;
+  carrier.max_mimo_layers        = 1;
+  carrier.pci                    = 500;
+  carrier.dl_center_frequency_hz = 2.6e9;
+  carrier.ssb_center_freq_hz     = carrier.dl_center_frequency_hz;
+  carrier.offset_to_carrier      = 0;
+  carrier.scs                    = srsran_subcarrier_spacing_15kHz;
 }
 
 void phy_cfg_nr_default_t::make_carrier_custom_20MHz(srsran_carrier_nr_t& carrier)
 {
-  carrier.nof_prb                       = 106;
-  carrier.max_mimo_layers               = 1;
-  carrier.pci                           = 500;
-  carrier.dl_absolute_frequency_point_a = 633928;
-  carrier.absolute_frequency_ssb        = 634176;
-  carrier.offset_to_carrier             = 0;
-  carrier.scs                           = srsran_subcarrier_spacing_15kHz;
+  carrier.nof_prb                = 106;
+  carrier.max_mimo_layers        = 1;
+  carrier.pci                    = 500;
+  carrier.dl_center_frequency_hz = 2.6e9;
+  carrier.ssb_center_freq_hz     = carrier.dl_center_frequency_hz;
+  carrier.offset_to_carrier      = 0;
+  carrier.scs                    = srsran_subcarrier_spacing_15kHz;
 }
 
 void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_duplex_config_nr_t& conf)
