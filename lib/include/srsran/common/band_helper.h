@@ -15,6 +15,7 @@
 
 #include "srsran/phy/common/phy_common_nr.h"
 #include <array>
+#include <set>
 #include <stdint.h>
 #include <vector>
 

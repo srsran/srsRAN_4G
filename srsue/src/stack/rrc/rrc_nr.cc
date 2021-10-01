@@ -1163,7 +1163,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         return false;
       }
       phy_cfg_nr_t::ssb_cfg_t ssb_cfg = {};
-      if (make_phy_ssb_cfg(recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
+      if (make_phy_ssb_cfg(phy_cfg.carrier, recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
         phy_cfg.ssb = ssb_cfg;
       } else {
         logger.warning("Warning while building SSB config structure");

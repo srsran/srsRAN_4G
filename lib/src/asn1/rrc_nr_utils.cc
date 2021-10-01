@@ -1393,9 +1393,20 @@ static inline void make_ssb_positions_in_burst(const bitstring_t&               
   }
 }
 
-bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
+bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                       out_ssb)
 {
+  srsran::srsran_band_helper bands;
+  uint16_t                   band = bands.get_band_from_dl_freq_Hz(carrier.ssb_center_freq_hz);
+  if (band == UINT16_MAX) {
+    asn1::log_error("Invalid band for SSB frequency %.3f MHz", carrier.ssb_center_freq_hz);
+    return false;
+  }
+
   phy_cfg_nr_t::ssb_cfg_t ssb = {};
+
+  // Parse subcarrier spacing
   if (serv_cell_cfg.ssb_subcarrier_spacing_present) {
     switch (serv_cell_cfg.ssb_subcarrier_spacing) {
       case subcarrier_spacing_e::khz15:
@@ -1408,6 +1419,15 @@ bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_c
         asn1::log_error("SSB SCS not supported");
         return false;
     }
+  } else {
+  }
+
+  // Get the SSB pattern
+  ssb.pattern = bands.get_ssb_pattern(band, ssb.scs);
+  if (ssb.pattern == SRSRAN_SSB_PATTERN_INVALID) {
+    asn1::log_error(
+        "Band %d and SS/PBCH block SCS %s results on invalid pattern", band, srsran_subcarrier_spacing_to_str(ssb.scs));
+    return false;
   }
 
   if (serv_cell_cfg.ssb_positions_in_burst_present) {
