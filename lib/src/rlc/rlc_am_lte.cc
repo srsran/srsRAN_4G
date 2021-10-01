@@ -17,7 +17,6 @@
 #include "srsran/srslog/event_trace.h"
 #include <iostream>
 
-#define MOD 1024
 #define RX_MOD_BASE(x) (((x)-vr_r) % 1024)
 #define TX_MOD_BASE(x) (((x)-vt_a) % 1024)
 #define LCID (parent->lcid)
@@ -2258,19 +2257,6 @@ bool rlc_am_lte::rlc_am_lte_rx::inside_rx_window(const int16_t sn)
 void rlc_am_lte::rlc_am_lte_rx::debug_state()
 {
   logger.debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d", RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);
-}
-
-buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(buffered_pdcp_pdu_list::buffer_size)
-{
-  clear();
-}
-
-void buffered_pdcp_pdu_list::clear()
-{
-  count = 0;
-  for (pdcp_pdu_info& b : buffered_pdus) {
-    b.clear();
-  }
 }
 
 /****************************************************************************
