@@ -48,15 +48,6 @@ public:
     uint16_t nr_rnti; /// RNTI assigned to UE on NR carrier
   };
 
-  // Parameter of the (NR)-carrier required for NR cell measurement handling
-  struct rrc_endc_cfg_t {
-    bool     act_from_b1_event = true; // ENDC will only be activated from B1 measurment
-    uint32_t nr_dl_arfcn       = 634176;
-    uint32_t nr_band           = 78;
-    asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_ ssb_ssc =
-        asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
-  };
-
   rrc_endc(srsenb::rrc::ue* outer_ue, const rrc_endc_cfg_t& endc_cfg_);
 
   bool fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);

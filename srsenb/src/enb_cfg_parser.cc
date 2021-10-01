@@ -1165,6 +1165,16 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.size();
   args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_nr_cfg_->cell_list.size();
 
+  // update EUTRA RRC params for ENDC
+  if (rrc_nr_cfg_->cell_list.size() == 1) {
+    rrc_cfg_->endc_cfg.nr_dl_arfcn = rrc_nr_cfg_->cell_list.at(0).dl_arfcn;
+    rrc_cfg_->endc_cfg.nr_band     = rrc_nr_cfg_->cell_list.at(0).band;
+    rrc_cfg_->endc_cfg.ssb_period_offset.set_sf5_r15();
+    rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
+    rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
+    rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -1423,6 +1433,12 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
 {
   // Use helper class to derive NR carrier parameters
   srsran::srsran_band_helper band_helper;
+
+  // we only support one NR cell
+  if (rrc_cfg_->cell_list.size() > 1) {
+    ERROR("Only a single NR cell supported.");
+    return SRSRAN_ERROR;
+  }
 
   // Create NR dedicated cell configuration from RRC configuration
   for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {

@@ -43,6 +43,18 @@ struct srb_cfg_t {
   asn1::rrc::srb_to_add_mod_s::rlc_cfg_c_ rlc_cfg;
 };
 
+// Parameter required for NR cell measurement handling
+struct rrc_endc_cfg_t {
+  bool     act_from_b1_event;
+  uint32_t nr_dl_arfcn;
+  uint32_t nr_band;
+  using ssb_nr_cfg = asn1::rrc::mtc_ssb_nr_r15_s;
+  using ssb_rs_cfg = asn1::rrc::rs_cfg_ssb_nr_r15_s;
+  ssb_nr_cfg::periodicity_and_offset_r15_c_ ssb_period_offset;
+  ssb_nr_cfg::ssb_dur_r15_e_                ssb_duration;
+  ssb_rs_cfg::subcarrier_spacing_ssb_r15_e_ ssb_ssc;
+};
+
 struct rrc_cfg_t {
   uint32_t enb_id; ///< Required to pack SIB1
   // Per eNB SIBs
@@ -70,6 +82,7 @@ struct rrc_cfg_t {
   uint32_t  rlf_release_timer_ms;
   srb_cfg_t srb1_cfg;
   srb_cfg_t srb2_cfg;
+  rrc_endc_cfg_t endc_cfg;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;
