@@ -1370,7 +1370,7 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
 
   // As the carrier structure requires parameters from different objects, set fields separately
   srsran::srsran_band_helper bands;
-  out_carrier_nr->ssb_center_freq_hz     = srsran::srsran_band_helper().nr_arfcn_to_freq(absolute_frequency_ssb);
+  out_carrier_nr->ssb_center_freq_hz     = bands.nr_arfcn_to_freq(absolute_frequency_ssb);
   out_carrier_nr->dl_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
       asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw, asn1_freq_info_dl.absolute_freq_point_a);
   out_carrier_nr->ul_center_frequency_hz = out_carrier_nr->dl_center_frequency_hz; // needs to be updated for FDD
@@ -1416,10 +1416,15 @@ bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
         ssb.scs = srsran_subcarrier_spacing_30kHz;
         break;
       default:
-        asn1::log_error("SSB SCS not supported");
+        asn1::log_error("SSB SCS %s not supported", serv_cell_cfg.ssb_subcarrier_spacing.to_string());
         return false;
     }
   } else {
+    ssb.scs = bands.get_ssb_scs(band);
+    if (ssb.scs == srsran_subcarrier_spacing_invalid) {
+      asn1::log_error("SSB SCS not available for band %d", band);
+      return false;
+    }
   }
 
   // Get the SSB pattern

@@ -152,6 +152,23 @@ srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_su
   return SRSRAN_SSB_PATTERN_INVALID;
 }
 
+srsran_subcarrier_spacing_t srsran_band_helper::get_ssb_scs(uint16_t band) const
+{
+  // Look for the given band and SCS
+  for (const nr_band_ss_raster& ss_raster : nr_band_ss_raster_table) {
+    // Check if band and SCS match!
+    if (ss_raster.band == band) {
+      return ss_raster.scs;
+    }
+
+    // As bands are in ascending order, do not waste more time if the current band is bigger
+    if (ss_raster.band > band) {
+      return srsran_subcarrier_spacing_invalid;
+    }
+  }
+  return srsran_subcarrier_spacing_invalid;
+}
+
 srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band) const
 {
   // Look for the given band

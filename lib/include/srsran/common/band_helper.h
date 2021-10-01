@@ -15,7 +15,6 @@
 
 #include "srsran/phy/common/phy_common_nr.h"
 #include <array>
-#include <set>
 #include <stdint.h>
 #include <vector>
 
@@ -82,6 +81,13 @@ public:
    * @return The SSB pattern case if band and subcarrier spacing match, SRSRAN_SSB_PATTERN_INVALID otherwise
    */
   srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const;
+
+  /**
+   * @brief Select the lower SSB subcarrier spacing valid for this band
+   * @param band NR band number
+   * @return The SSB subcarrier spacing
+   */
+  srsran_subcarrier_spacing_t get_ssb_scs(uint16_t band) const;
 
   /**
    * @brief gets the NR band duplex mode

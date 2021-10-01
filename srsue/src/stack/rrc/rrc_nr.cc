@@ -776,8 +776,6 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
 
         // Load CORESET Zero
         if (pdcch_cfg_common.ctrl_res_set_zero_present) {
-          srsran::srsran_band_helper bands;
-
           // Get pointA and SSB absolute frequencies
           double pointA_abs_freq_Hz =
               phy_cfg.carrier.dl_center_frequency_hz -
@@ -897,9 +895,11 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
 
 bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_common)
 {
+  srsran::srsran_band_helper bands;
+
   if (ul_cfg_common.freq_info_ul_present && ul_cfg_common.freq_info_ul.absolute_freq_point_a_present) {
     // Update UL frequency point if provided
-    phy_cfg.carrier.ul_center_frequency_hz = srsran::srsran_band_helper().get_center_freq_from_abs_freq_point_a(
+    phy_cfg.carrier.ul_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
         phy_cfg.carrier.nof_prb, ul_cfg_common.freq_info_ul.absolute_freq_point_a);
   }
   if (ul_cfg_common.init_ul_bwp_present) {
