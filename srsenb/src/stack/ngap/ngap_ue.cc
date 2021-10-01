@@ -29,7 +29,7 @@ ngap::ue::ue(ngap*                  ngap_ptr_,
              srslog::basic_logger&  logger_) :
   logger(logger_),
   ngap_ptr(ngap_ptr_),
-  bearer_manager(rrc_ptr_, gtpu_ptr_, logger_),
+  bearer_manager(gtpu_ptr_, logger_),
   initial_context_setup_proc(this, rrc_ptr_, &ctxt, logger_),
   ue_context_release_proc(this, rrc_ptr_, &ctxt, &bearer_manager, logger_),
   ue_pdu_session_res_setup_proc(this, rrc_ptr_, &ctxt, &bearer_manager, logger_)

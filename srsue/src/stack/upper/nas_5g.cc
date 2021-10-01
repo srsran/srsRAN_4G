@@ -454,7 +454,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   return SRSRAN_SUCCESS;
 }
 
-int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::options cause)
+int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::options cause, const uint8_t res[16])
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
@@ -464,6 +464,13 @@ int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::op
 
   nas_5gs_msg               nas_msg;
   authentication_failure_t& auth_fail = nas_msg.set_authentication_failure();
+  auth_fail.cause_5gmm.cause_5gmm     = cause;
+
+  if (cause == cause_5gmm_t::cause_5gmm_type::synch_failure) {
+    auth_fail.authentication_failure_parameter_present = true;
+    auth_fail.authentication_failure_parameter.auth_failure.resize(14);
+    memcpy(auth_fail.authentication_failure_parameter.auth_failure.data(), res, 14);
+  }
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack authentication failure.");
@@ -655,7 +662,7 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
 
   nas_5gs_msg          nas_msg;
   identity_response_t& identity_response = nas_msg.set_identity_response();
-  
+
   switch (identity_type) {
     case (identity_type_5gs_t::identity_types_::suci): {
       srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci = identity_response.mobile_identity.set_suci();
@@ -805,10 +812,10 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 
   } else if (auth_result == AUTH_FAILED) {
     logger.error("Network authentication failure.");
-    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure);
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure, res_star);
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     logger.error("Network authentication synchronization failure.");
-    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure);
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure, res_star);
   } else {
     logger.error("Unhandled authentication failure cause");
   }

@@ -125,7 +125,7 @@ private:
   int send_registration_request();
   int send_authentication_response(const uint8_t res[16]);
   int send_security_mode_reject(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause);
-  int send_authentication_failure(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause);
+  int send_authentication_failure(const srsran::nas_5g::cause_5gmm_t::cause_5gmm_type_::options cause, const uint8_t res_star[16]);
   int send_security_mode_complete(const srsran::nas_5g::security_mode_command_t& security_mode_command);
   int send_registration_complete();
   int send_pdu_session_establishment_request(uint32_t                 transaction_identity,

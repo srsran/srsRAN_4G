@@ -41,7 +41,7 @@ public:
     std::vector<gtpu_tunnel>                   tunnels;
   };
 
-  ngap_ue_bearer_manager(rrc_interface_ngap_nr* rrc_, gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_);
+  ngap_ue_bearer_manager(gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_);
   ~ngap_ue_bearer_manager();
 
   int add_pdu_session(uint16_t                                           rnti,
@@ -58,7 +58,6 @@ public:
 
 private:
   gtpu_interface_rrc*              gtpu = nullptr;
-  rrc_interface_ngap_nr*           rrc  = nullptr;
   std::map<uint8_t, pdu_session_t> pdu_session_list;
   srslog::basic_logger&            logger;
 

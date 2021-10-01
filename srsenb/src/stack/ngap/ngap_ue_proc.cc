@@ -82,7 +82,7 @@ proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap_nr::ue_con
   // TODO: How to approach erasing users ?
   bearer_manager->reset_pdu_sessions(ue_ctxt->rnti);
   rrc->release_bearers(ue_ctxt->rnti);
-  parent->send_initial_ctxt_setup_response();
+  parent->send_ue_ctxt_release_complete();
   return proc_outcome_t::success;
 }
 

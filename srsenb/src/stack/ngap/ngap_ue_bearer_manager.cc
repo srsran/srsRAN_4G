@@ -13,10 +13,8 @@
 #include "srsenb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
 
 namespace srsenb {
-ngap_ue_bearer_manager::ngap_ue_bearer_manager(rrc_interface_ngap_nr* rrc_,
-                                               gtpu_interface_rrc*    gtpu_,
-                                               srslog::basic_logger&  logger_) :
-  gtpu(gtpu_), rrc(rrc_), logger(logger_)
+ngap_ue_bearer_manager::ngap_ue_bearer_manager(gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_) :
+  gtpu(gtpu_), logger(logger_)
 {}
 ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
