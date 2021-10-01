@@ -125,13 +125,13 @@ public:
 
 protected:
   struct measure_context_t {
-    uint32_t           cc_idx             = 0;    ///< Component carrier index
-    std::set<uint32_t> active_pci         = {};   ///< Set with the active PCIs
-    uint32_t           sf_len             = 0;    ///< Subframe length in samples
-    uint32_t           meas_len_ms        = 20;   ///< Measure length in milliseconds/sub-frames
-    uint32_t           meas_period_ms     = 200;  ///< Minimum time between measurements
-    uint32_t           trigger_tti_period = 0;    ///< Measurement TTI trigger period
-    uint32_t           trigger_tti_offset = 0;    ///< Measurement TTI trigger offset
+    uint32_t           cc_idx             = 0;   ///< Component carrier index
+    std::set<uint32_t> active_pci         = {};  ///< Set with the active PCIs
+    uint32_t           sf_len             = 0;   ///< Subframe length in samples
+    uint32_t           meas_len_ms        = 20;  ///< Measure length in milliseconds/sub-frames
+    uint32_t           meas_period_ms     = 200; ///< Minimum time between measurements
+    uint32_t           trigger_tti_period = 0;   ///< Measurement TTI trigger period
+    uint32_t           trigger_tti_offset = 0;   ///< Measurement TTI trigger offset
     meas_itf&          new_cell_itf;
 
     explicit measure_context_t(meas_itf& new_cell_itf_) : new_cell_itf(new_cell_itf_) {}
@@ -160,7 +160,11 @@ protected:
    * @brief Subframe length setter, the inherited class shall set the subframe length
    * @param new_sf_len New subframe length
    */
-  void set_current_sf_len(uint32_t new_sf_len) { context.sf_len = new_sf_len; }
+  void set_current_sf_len(uint32_t new_sf_len)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    context.sf_len = new_sf_len;
+  }
 
 private:
   /**
@@ -228,6 +232,8 @@ private:
    */
   bool receive_tti_trigger(uint32_t tti)
   {
+    std::lock_guard<std::mutex> lock(mutex);
+
     // If the elapsed time does not satisfy with the minimum time, do not trigger
     uint32_t elapsed_tti = TTI_SUB(tti, last_measure_tti);
     if (elapsed_tti < context.meas_period_ms and state.get_state() != internal_state::wait_first) {
@@ -281,9 +287,16 @@ private:
   ///< Internal Thread priority, low by default
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
+  /// Returns a copy of the current used context.
+  measure_context_t get_context() const
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return context;
+  }
+
   internal_state        state;
   srslog::basic_logger& logger;
-  mutable std::mutex    active_pci_mutex = {};
+  mutable std::mutex    mutex;
   uint32_t              last_measure_tti = 0;
   measure_context_t     context;
 
