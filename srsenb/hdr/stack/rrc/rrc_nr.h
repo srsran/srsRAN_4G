@@ -111,24 +111,77 @@ public:
     void crnti_ce_received();
 
     // getters
-    bool is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
-    bool is_idle() { return state == rrc_nr_state_t::RRC_IDLE; }
-    bool is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
-    bool is_endc() { return endc; }
+    bool     is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
+    bool     is_idle() { return state == rrc_nr_state_t::RRC_IDLE; }
+    bool     is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
+    bool     is_endc() { return endc; }
     uint16_t get_eutra_rnti() { return eutra_rnti; }
     void get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
     // setters
 
-    int pack_rrc_reconfiguraiton();
+    int pack_rrc_reconfiguration();
 
   private:
     rrc_nr*  parent = nullptr;
     uint16_t rnti   = SRSRAN_INVALID_RNTI;
 
-    int pack_rrc_reconfiguraiton(asn1::dyn_octstring& packed_rrc_reconfig);
-    int pack_secondary_cell_group_config_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_secondary_cell_group_config_fdd(asn1::dyn_octstring& packed_secondary_cell_config);
-    int pack_secondary_cell_group_config_tdd(asn1::dyn_octstring& packed_secondary_cell_config);
+    int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
+    int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
+
+    int pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_secondary_cell_group_sp_cell_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_sp_cell_cfg_ded_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_init_dl_bwp_pdcch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_sp_cell_cfg_ded_ul_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pucch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pusch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_sp_cell_cfg_ded_pdcch_serving_cell_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_sp_cell_cfg_ded_csi_meas_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_csi_meas_cfg_csi_report_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_csi_meas_cfg_nzp_csi_rs_res_to_add_mod_list(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_csi_meas_cfg_nzp_csi_rs_res_set_to_add_mod_list(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_recfg_with_sync(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_dl(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_phy_cell_group_cfg(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp_pdcch_cfg_common(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp_pdsch_cfg_common(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_rach_cfg_common(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(
+        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int pack_recfg_with_sync_sp_cell_cfg_common_ssb_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
+    int
+    pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+
     int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
     int add_drb();
