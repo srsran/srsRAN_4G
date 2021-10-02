@@ -128,6 +128,13 @@ public:
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];
   }
+  uint32_t get_k1(slot_point pdsch_slot) const
+  {
+    if (phy().duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+      return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().duplex.tdd.pattern1.period_ms];
+    }
+    return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().harq_ack.nof_dl_data_to_ul_ack];
+  }
 
 private:
   uint16_t          rnti    = SRSRAN_INVALID_RNTI;

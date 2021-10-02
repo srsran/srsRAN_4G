@@ -48,14 +48,12 @@ slot_ue ue_carrier::try_reserve(slot_point      pdcch_slot,
   sfu.harq_ent      = &harq_ent;
   const uint32_t k0 = 0;
   sfu.pdsch_slot    = sfu.pdcch_slot + k0;
-  uint32_t k1 =
-      sfu.cfg->phy()
-          .harq_ack.dl_data_to_ul_ack[sfu.pdsch_slot.slot_idx() % sfu.cfg->phy().harq_ack.nof_dl_data_to_ul_ack];
-  sfu.uci_slot   = sfu.pdsch_slot + k1;
-  uint32_t k2    = bwp_cfg.active_bwp().pusch_ra_list[0].K;
-  sfu.pusch_slot = sfu.pdcch_slot + k2;
-  sfu.dl_cqi     = dl_cqi;
-  sfu.ul_cqi     = ul_cqi;
+  uint32_t k1       = sfu.cfg->get_k1(sfu.pdsch_slot);
+  sfu.uci_slot      = sfu.pdsch_slot + k1;
+  uint32_t k2       = bwp_cfg.active_bwp().pusch_ra_list[0].K;
+  sfu.pusch_slot    = sfu.pdcch_slot + k2;
+  sfu.dl_cqi        = dl_cqi;
+  sfu.ul_cqi        = ul_cqi;
 
   // set UE-common parameters
   sfu.dl_pending_bytes = dl_pending_bytes;
