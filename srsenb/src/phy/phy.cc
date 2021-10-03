@@ -330,6 +330,7 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
   nr_workers = std::unique_ptr<nr::worker_pool>(new nr::worker_pool(workers_common, stack, log_sink, MAX_WORKERS));
 
   nr::worker_pool::args_t worker_args = {};
+  worker_args.nof_phy_threads         = args.nof_phy_threads;
   worker_args.log.phy_level           = args.log.phy_level;
   worker_args.log.phy_hex_limit       = args.log.phy_hex_limit;
 

@@ -546,6 +546,10 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
 
   // If the current worker is not the last one, skip transmission
   if (not w_ctx.last) {
+    if (tx_enable) {
+      reset_last_worker();
+    }
+
     // Release semaphore and let next worker to get in
     semaphore.release();
 
