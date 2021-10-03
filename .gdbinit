@@ -20,7 +20,7 @@ class BoundedVectorPrinter(object):
         self.value_type = self.val.type.template_argument(0)
 
     def children(self):
-        start = self.val['buffer'].cast(self.value_type.pointer())
+        start = self.val['buffer']['_M_elems'].cast(self.value_type.pointer())
         length = int(self.val['size_'])
         for idx in range(length):
             yield f'[{idx}]', start[idx]
@@ -33,11 +33,10 @@ class BoundedVectorPrinter(object):
     def display_hint(self):
         return 'array'
 
-    @staticmethod
-    def make(val):
-        if str(val.type).startswith('srsran::bounded_vector<'):
-            return BoundedVectorPrinter(val)
+def make_bounded_vector(val):
+    if 'bounded_vector<' in str(val.type):
+        return BoundedVectorPrinter(val)
 
-gdb.pretty_printers.append(BoundedVectorPrinter.make)
+gdb.pretty_printers.append(make_bounded_vector)
 
 end

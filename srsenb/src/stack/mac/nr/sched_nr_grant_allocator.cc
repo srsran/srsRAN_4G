@@ -144,7 +144,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   bwp_pdcch_slot.pdschs.emplace_back();
   pdsch_t&          pdsch = bwp_pdcch_slot.pdschs.back();
   srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = pdcch_slot.slot_idx();
+  slot_cfg.idx = pdcch_slot.to_uint();
   bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(success, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();
@@ -152,7 +152,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Generate Msg3 grants in PUSCH
   uint32_t  last_msg3 = msg3_rbs.start();
   const int mcs = 0, max_harq_msg3_retx = 4;
-  slot_cfg.idx = msg3_slot.slot_idx();
+  slot_cfg.idx = msg3_slot.to_uint();
   bwp_pdcch_slot.rar.emplace_back();
   sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
@@ -252,7 +252,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   bwp_pdsch_slot.pdschs.emplace_back();
   pdsch_t&          pdsch = bwp_pdsch_slot.pdschs.back();
   srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = ue.pdsch_slot.slot_idx();
+  slot_cfg.idx = ue.pdsch_slot.to_uint();
   bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(ret, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
