@@ -71,13 +71,17 @@ public:
   void get_metrics(srsenb::rrc_metrics_t& m);
 
   rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
-  int          add_user(uint16_t rnti);
-  int          update_user(uint16_t new_rnti, uint16_t old_rnti);
   void         config_phy();
   void         config_mac();
   int32_t      generate_sibs();
   int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
   int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
+
+  /// User manegement
+  int  add_user(uint16_t rnti);
+  void rem_user(uint16_t rnti);
+  int  update_user(uint16_t new_rnti, uint16_t old_rnti);
+  void set_activity_user(uint16_t rnti);
 
   // RLC interface
   // TODO
@@ -99,7 +103,10 @@ public:
   int  ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates);
   int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps);
   int  start_security_mode_procedure(uint16_t rnti);
+  int  establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu);
+  int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates);
+  int  allocate_lcid(uint16_t rnti);
 
   class ue
   {
@@ -117,6 +124,7 @@ public:
     bool is_idle() { return state == rrc_nr_state_t::RRC_IDLE; }
     bool is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
     bool is_endc() { return endc; }
+    uint16_t get_eutra_rnti() { return eutra_rnti; }
 
     // setters
 
@@ -142,6 +150,9 @@ public:
     asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
     asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
 
+    // MAC controller
+    sched_nr_interface::ue_cfg_t uecfg{};
+
     const uint32_t drb1_lcid = 4;
 
     // NSA specific variables
@@ -150,7 +161,8 @@ public:
   };
 
 private:
-  rrc_nr_cfg_t cfg = {};
+  static constexpr uint32_t UE_PSCELL_CC_IDX = 0; // first NR cell is always Primary Secondary Cell for UE
+  rrc_nr_cfg_t              cfg              = {};
 
   // interfaces
   phy_interface_stack_nr*     phy       = nullptr;

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef ENB_CFG_PARSER_SIB1_H
-#define ENB_CFG_PARSER_SIB1_H
+#ifndef ENB_CFG_PARSER_H
+#define ENB_CFG_PARSER_H
 
 #include "srsenb/hdr/parser.h"
 #include <iostream>
@@ -31,6 +31,7 @@
 #include <string>
 
 #include "srsenb/hdr/stack/rrc/rrc.h"
+#include "srsenb/hdr/stack/rrc/rrc_config_nr.h"
 #include "srsran/asn1/asn1_utils.h"
 
 namespace srsenb {
@@ -46,8 +47,9 @@ bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e
 namespace enb_conf_sections {
 
 int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell);
-int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_);
+int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_cfg_nr_, phy_cfg_t* phy_cfg_);
 int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_);
+int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_);
 
 } // namespace enb_conf_sections
 
@@ -94,15 +96,18 @@ private:
 class nr_cell_list_section final : public parser::field_itf
 {
 public:
-  explicit nr_cell_list_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
+  explicit nr_cell_list_section(all_args_t* all_args_, rrc_nr_cfg_t* nr_rrc_cfg_, rrc_cfg_t* eutra_rrc_cfg_) :
+    args(all_args_), nr_rrc_cfg(nr_rrc_cfg_), eutra_rrc_cfg(eutra_rrc_cfg_)
+  {}
 
   int parse(Setting& root) override;
 
   const char* get_name() override { return "nr_cell_list"; }
 
 private:
-  rrc_cfg_t*  rrc_cfg;
-  all_args_t* args;
+  rrc_nr_cfg_t* nr_rrc_cfg;
+  rrc_cfg_t*    eutra_rrc_cfg;
+  all_args_t*   args;
 };
 
 } // namespace rr_sections
@@ -582,4 +587,4 @@ private:
 };
 } // namespace srsenb
 
-#endif
+#endif // ENB_CFG_PARSER_H

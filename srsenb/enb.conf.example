@@ -178,7 +178,8 @@ enable = false
 # target_bler:       Target BLER (in decimal) to achieve via adaptive link
 # max_delta_dl_cqi:  Maximum shift in CQI for adaptive DL link
 # max_delta_ul_snr:  Maximum shift in UL SNR for adaptive UL link
-# adaptive_link_step_size: Step size or learning rate used in adaptive link
+# adaptive_dl_mcs_step_size: Step size or learning rate used in adaptive DL MCS link
+# adaptive_ul_mcs_step_size: Step size or learning rate used in adaptive UL MCS link
 # min_tpc_tti_interval: Minimum TTI interval between TPCs different than 1
 # ul_snr_avg_alpha:  Exponential Average alpha coefficient used in estimation of UL SNR
 # init_ul_snr_value: Initial UL SNR value used for computing MCS in the first UL grant
@@ -204,7 +205,8 @@ enable = false
 #target_bler = 0.05
 #max_delta_dl_cqi = 5
 #max_delta_ul_snr = 5
-#adaptive_link_step_size = 0.001
+#adaptive_dl_mcs_step_size = 0.001
+#adaptive_ul_mcs_step_size = 0.001
 #min_tpc_tti_interval = 1
 #ul_snr_avg_alpha=0.05
 #init_ul_snr_value=5

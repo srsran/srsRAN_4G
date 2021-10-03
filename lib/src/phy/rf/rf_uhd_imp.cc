@@ -498,7 +498,7 @@ bool rf_uhd_rx_wait_lo_locked(void* h)
   return is_locked;
 }
 
-static inline int rf_uhd_start_rx_stream_unsafe(rf_uhd_handler_t* handler)
+static inline int rf_uhd_start_rx_stream_nolock(rf_uhd_handler_t* handler)
 {
   // Check if stream was not created or started
   if (not handler->uhd->is_rx_ready() or handler->rx_stream_enabled) {
@@ -521,10 +521,10 @@ int rf_uhd_start_rx_stream(void* h, bool now)
   rf_uhd_handler_t*            handler = (rf_uhd_handler_t*)h;
   std::unique_lock<std::mutex> lock(handler->rx_mutex);
 
-  return rf_uhd_start_rx_stream_unsafe(handler);
+  return rf_uhd_start_rx_stream_nolock(handler);
 }
 
-static inline int rf_uhd_stop_rx_stream_unsafe(rf_uhd_handler_t* handler)
+static inline int rf_uhd_stop_rx_stream_nolock(rf_uhd_handler_t* handler)
 {
   // Check if stream was created or stream was not started
   if (not handler->uhd->is_rx_ready() or not handler->rx_stream_enabled) {
@@ -547,7 +547,7 @@ int rf_uhd_stop_rx_stream(void* h)
   rf_uhd_handler_t*            handler = (rf_uhd_handler_t*)h;
   std::unique_lock<std::mutex> lock(handler->rx_mutex);
 
-  if (rf_uhd_stop_rx_stream_unsafe(handler) < SRSRAN_SUCCESS) {
+  if (rf_uhd_stop_rx_stream_nolock(handler) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
@@ -946,7 +946,7 @@ int rf_uhd_close(void* h)
   return SRSRAN_SUCCESS;
 }
 
-static inline void rf_uhd_set_master_clock_rate_unsafe(rf_uhd_handler_t* handler, double rate)
+static inline void rf_uhd_set_master_clock_rate_nolock(rf_uhd_handler_t* handler, double rate)
 {
   // Set master clock rate if it is allowed and change is required
   if (handler->dynamic_master_rate and handler->current_master_clock != rate) {
@@ -994,14 +994,14 @@ double rf_uhd_set_rx_srate(void* h, double freq)
 
   // Stop RX streamer
   if (RF_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
-    if (rf_uhd_stop_rx_stream_unsafe(handler) != SRSRAN_SUCCESS) {
+    if (rf_uhd_stop_rx_stream_nolock(handler) != SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
   }
 
   // Set master clock rate
   if (fmod(handler->current_master_clock, freq) > 0.0) {
-    rf_uhd_set_master_clock_rate_unsafe(handler, 4 * freq);
+    rf_uhd_set_master_clock_rate_nolock(handler, 4 * freq);
   }
 
   if (handler->nof_rx_channels > 1) {
@@ -1052,7 +1052,7 @@ double rf_uhd_set_tx_srate(void* h, double freq)
 
   // Set master clock rate
   if (fmod(handler->current_master_clock, freq) > 0.0) {
-    rf_uhd_set_master_clock_rate_unsafe(handler, 4 * freq);
+    rf_uhd_set_master_clock_rate_nolock(handler, 4 * freq);
   }
 
   if (handler->nof_tx_channels > 1) {
@@ -1267,7 +1267,7 @@ int rf_uhd_recv_with_time_multi(void*    h,
 
   // Start stream if not started
   if (not handler->rx_stream_enabled) {
-    if (rf_uhd_start_rx_stream_unsafe(handler) != SRSRAN_SUCCESS) {
+    if (rf_uhd_start_rx_stream_nolock(handler) != SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
   }
@@ -1312,7 +1312,7 @@ int rf_uhd_recv_with_time_multi(void*    h,
 
       if (RF_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
         // Stop Rx stream
-        rf_uhd_stop_rx_stream_unsafe(handler);
+        rf_uhd_stop_rx_stream_nolock(handler);
       }
 
       return -1;

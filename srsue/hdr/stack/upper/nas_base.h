@@ -58,9 +58,17 @@ protected:
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
   };
 
-  nas_sec_ctxt ctxt          = {};
-  uint8_t      k_nas_enc[32] = {};
-  uint8_t      k_nas_int[32] = {};
+  struct nas_5g_sec_ctxt {
+    uint8_t  ksi;
+    uint8_t  k_amf[32];
+    uint32_t tx_count;
+    uint32_t rx_count;
+  };
+
+  nas_sec_ctxt    ctxt          = {};
+  nas_5g_sec_ctxt ctxt_5g       = {};
+  uint8_t         k_nas_enc[32] = {};
+  uint8_t         k_nas_int[32] = {};
 
   int parse_security_algorithm_list(std::string algorithm_string, bool* algorithm_caps);
 
@@ -74,6 +82,8 @@ protected:
   uint32_t mac_offset = 0;
   uint32_t seq_offset = 0;
   uint32_t bearer_id  = 0;
+
+  const std::string gw_setup_failure_str = "Failed to setup/configure GW interface";
 };
 
 } // namespace srsue

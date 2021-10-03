@@ -72,14 +72,15 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   tx_pdu.init_tx(phy_tx_pdu.get(), max_pdu_len, true);
 
   if (msg3_is_pending()) {
-    // If Msg3 is pending, pack it
-    // Use the CRNTI which is provided in the RRC reconfiguration (only for DC mode maybe other)
-    tx_pdu.add_crnti_ce(mac.get_crnti());
-    tx_pdu.add_sbsr_ce(mac.generate_sbsr());
+    // only C-RNTI or CCCH SDU can be transmitted in Msg3
+    if (mac.has_crnti()) {
+      tx_pdu.add_crnti_ce(mac.get_crnti());
+    }
+    // TODO: add CCCH check
     msg3_transmitted();
   } else {
     // Pack normal UL data PDU
-    int32_t remaining_len = tx_pdu.get_remaing_len(); // local variable to reserv space for CEs
+    int32_t remaining_len = tx_pdu.get_remaing_len(); // local variable to reserve space for CEs
 
     if (add_bsr_ce == sbsr_ce) {
       // reserve space for SBSR
@@ -124,15 +125,25 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
         }
       }
     }
-
-    // Second add fixed-sized MAC CEs (e.g. SBSR)
-    if (add_bsr_ce == sbsr_ce) {
-      tx_pdu.add_sbsr_ce(mac.generate_sbsr());
-      add_bsr_ce = no_bsr;
-    }
-
-    // Lastly, add variable-sized MAC CEs
   }
+
+  // check if
+  if (add_bsr_ce == no_bsr) {
+    // tell BSR proc we still have space in PDU and let it decide to create a padding BSR
+    mac.set_padding_bytes(tx_pdu.get_remaing_len());
+  }
+
+  // Second add fixed-sized MAC CEs (e.g. SBSR)
+  if (add_bsr_ce == sbsr_ce) {
+    tx_pdu.add_sbsr_ce(mac.generate_sbsr());
+    add_bsr_ce = no_bsr;
+  } else if (add_bsr_ce == lbsr_ce) {
+    // TODO: implement LBSR support
+    tx_pdu.add_sbsr_ce(mac.generate_sbsr());
+    add_bsr_ce = no_bsr;
+  }
+
+  // Lastly, add variable-sized MAC CEs
 
   // Pack PDU
   tx_pdu.pack();

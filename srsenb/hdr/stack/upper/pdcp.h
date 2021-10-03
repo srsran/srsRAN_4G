@@ -53,6 +53,7 @@ public:
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
 
   // pdcp_interface_rrc
+  void set_enabled(uint16_t rnti, uint32_t lcid, bool enabled) override;
   void reset(uint16_t rnti) override;
   void add_user(uint16_t rnti) override;
   void rem_user(uint16_t rnti) override;

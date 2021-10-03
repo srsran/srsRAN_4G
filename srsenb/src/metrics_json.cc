@@ -24,11 +24,6 @@
 
 using namespace srsenb;
 
-void metrics_json::set_handle(enb_metrics_interface* enb_)
-{
-  enb = enb_;
-}
-
 namespace {
 
 /// Bearer container metrics.

@@ -87,7 +87,7 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
   uint32_t worker_id = w->get_id();
   for (uint32_t cc_idx = 0; cc_idx < SRSRAN_MAX_CARRIERS; cc_idx++) {
     if (phy_cfg_stash[cc_idx].is_pending(worker_id)) {
-      w->set_config_unlocked(cc_idx, phy_cfg_stash[cc_idx].get_cfg(worker_id));
+      w->set_config_nolock(cc_idx, phy_cfg_stash[cc_idx].get_cfg(worker_id));
     }
   }
 

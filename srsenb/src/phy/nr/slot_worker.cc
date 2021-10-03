@@ -339,8 +339,11 @@ bool slot_worker::work_dl()
   }
 
   // Put NZP-CSI-RS
-  for (srsran_csi_rs_nzp_resource_t& pdsch : dl_sched.nzp_csi_rs) {
-    // ...
+  for (srsran_csi_rs_nzp_resource_t& nzp_csi_rs : dl_sched.nzp_csi_rs) {
+    if (srsran_gnb_dl_nzp_csi_rs_put(&gnb_dl, &dl_slot_cfg, &nzp_csi_rs) < SRSRAN_SUCCESS) {
+      logger.error("NZP-CSI-RS: Error putting signal");
+      return false;
+    }
   }
 
   // Generate baseband signal

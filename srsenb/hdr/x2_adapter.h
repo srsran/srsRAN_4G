@@ -94,6 +94,14 @@ public:
     eutra_stack->sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
 
+  void set_activity_user(uint16_t eutra_rnti)
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->set_activity_user(eutra_rnti);
+  }
+
   // stack_nr_interface_stack_eutra
   void tti_clock()
   {
@@ -117,6 +125,15 @@ public:
       return {};
     }
     return nr_stack->get_buffered_pdus(rnti, lcid);
+  }
+
+  // gtpu_interface_pdcp
+  void write_pdu(uint16_t rnti, uint32_t bearer_id, srsran::unique_byte_buffer_t pdu)
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->write_pdu(rnti, bearer_id, std::move(pdu));
   }
 
 private:

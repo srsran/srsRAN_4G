@@ -19,6 +19,7 @@
  *
  */
 
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interface_types.h"
 
@@ -89,6 +90,13 @@ public:
    * @param nr_rnti    The RNTI that has been assigned to the UE on the SgNB
    */
   virtual void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) = 0;
+
+  /**
+   * @brief Signal user activity (i.e. DL/UL traffic) for given RNTI
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC uses
+   */
+  virtual void set_activity_user(uint16_t eutra_rnti) = 0;
 };
 
 class stack_nr_interface_stack_eutra
@@ -102,7 +110,8 @@ public:
 class x2_interface : public rrc_nr_interface_rrc,
                      public rrc_eutra_interface_rrc_nr,
                      public stack_nr_interface_stack_eutra,
-                     public pdcp_interface_gtpu
+                     public pdcp_interface_gtpu, // allow GTPU to access PDCP in DL direction
+                     public gtpu_interface_pdcp  // allow PDCP to access GTPU in UL direction
 {};
 
 } // namespace srsenb

@@ -73,6 +73,47 @@ static double get_time_stamp()
   return std::chrono::duration_cast<std::chrono::milliseconds>(tp).count() * 1e-3;
 }
 
+/// Escapes the input string.
+static std::string escape_string(const std::string& s)
+{
+  fmt::memory_buffer buff;
+  for (auto c : s) {
+    switch (c) {
+      case ' ':
+        break;
+      case '"':
+        fmt::format_to(buff, "\\\"");
+        break;
+      case '\\':
+        fmt::format_to(buff, "\\\\");
+        break;
+      case '\b':
+        fmt::format_to(buff, "\\b");
+        break;
+      case '\f':
+        fmt::format_to(buff, "\\f");
+        break;
+      case '\n':
+        fmt::format_to(buff, "\\n");
+        break;
+      case '\r':
+        fmt::format_to(buff, "\\r");
+        break;
+      case '\t':
+        fmt::format_to(buff, "\\t");
+        break;
+      default:
+        // Cast to signed char for machines that treat chars as an unsigned type.
+        if ((signed char)c >= '\x00' && (signed char)c <= '\x1f') {
+          fmt::format_to(buff, "\\u{:04x}", c);
+        } else {
+          buff.push_back(c);
+        }
+    }
+  }
+  return fmt::to_string(buff);
+}
+
 namespace {
 
 /// Common metrics to all events.
@@ -200,7 +241,8 @@ public:
   {
     rrc_event_t ctx("");
 
-    const std::string& asn1 = (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : asn1_txt_str;
+    const std::string& asn1 =
+        (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : escape_string(asn1_txt_str);
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
@@ -284,7 +326,8 @@ public:
   {
     meas_report_event_t ctx("");
 
-    const std::string& asn1 = (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : asn1_txt_str;
+    const std::string& asn1 =
+        (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : escape_string(asn1_txt_str);
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
@@ -304,7 +347,8 @@ public:
   {
     rlf_report_event_t ctx("");
 
-    const std::string& asn1 = (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : asn1_txt_str;
+    const std::string& asn1 =
+        (asn1_format == event_logger::asn1_output_format::octets) ? asn1_oct_str : escape_string(asn1_txt_str);
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());

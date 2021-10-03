@@ -72,6 +72,15 @@ void pdcp::reset()
   pdcp_array.clear();
 }
 
+void pdcp::set_enabled(uint32_t lcid, bool enabled)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->set_enabled(enabled);
+  } else {
+    logger.warning("LCID %d doesn't exist while setting enabled", lcid);
+  }
+}
+
 /*******************************************************************************
   RRC/GW interface
 *******************************************************************************/

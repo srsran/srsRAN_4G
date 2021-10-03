@@ -50,7 +50,7 @@ uint32_t srsran_band_helper::freq_to_nr_arfcn(double freq)
   if (not is_valid_raster_param(params)) {
     return 0;
   }
-  return (((freq + params.F_REF_Offs_MHz * 1e6) / 1e3 / params.delta_F_global_kHz) + params.N_REF_Offs);
+  return (((freq - params.F_REF_Offs_MHz * 1e6) / 1e3 / params.delta_F_global_kHz) + params.N_REF_Offs);
 }
 
 // Implements 5.4.2.1 in TS 38.104
@@ -134,6 +134,20 @@ double srsran_band_helper::get_center_freq_from_abs_freq_point_a(uint32_t nof_pr
   // TODO: add offset_to_carrier
   double abs_freq_point_a_freq = nr_arfcn_to_freq(freq_point_a_arfcn);
   return abs_freq_point_a_freq +
+         (nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
+          SRSRAN_NRE);
+}
+
+uint32_t srsran_band_helper::get_abs_freq_point_a_arfcn(uint32_t nof_prb, uint32_t arfcn)
+{
+  return freq_to_nr_arfcn(get_abs_freq_point_a_from_center_freq(nof_prb, nr_arfcn_to_freq(arfcn)));
+}
+
+double srsran_band_helper::get_abs_freq_point_a_from_center_freq(uint32_t nof_prb, double center_freq)
+{
+  // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier
+  // TODO: add offset_to_carrier
+  return center_freq -
          (nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
           SRSRAN_NRE);
 }

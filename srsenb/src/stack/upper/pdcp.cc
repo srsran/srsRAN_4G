@@ -95,6 +95,13 @@ void pdcp::del_bearer(uint16_t rnti, uint32_t lcid)
   }
 }
 
+void pdcp::set_enabled(uint16_t rnti, uint32_t lcid, bool enabled)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->set_enabled(lcid, enabled);
+  }
+}
+
 void pdcp::reset(uint16_t rnti)
 {
   if (users.count(rnti)) {

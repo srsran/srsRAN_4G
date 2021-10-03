@@ -360,11 +360,12 @@ bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const ue_cell_ded_list& ue_cell_l
   meascfg.quant_cfg.quant_cfg_eutra         = pcell_meascfg.quant_cfg;
 
   // Insert all measIds
-  // TODO: add this to the parser
+  // TODO: add this to the parser. Now we combine all reports with all objects
   if (meascfg.report_cfg_to_add_mod_list.size() > 0) {
     for (const auto& measobj : meascfg.meas_obj_to_add_mod_list) {
-      add_measid_cfg(
-          meascfg.meas_id_to_add_mod_list, measobj.meas_obj_id, meascfg.report_cfg_to_add_mod_list[0].report_cfg_id);
+      for (const auto& measrep : meascfg.report_cfg_to_add_mod_list) {
+        add_measid_cfg(meascfg.meas_id_to_add_mod_list, measobj.meas_obj_id, measrep.report_cfg_id);
+      }
     }
   }
 

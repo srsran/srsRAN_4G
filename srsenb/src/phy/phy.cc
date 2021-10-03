@@ -19,16 +19,16 @@
  *
  */
 
+#include "srsenb/hdr/phy/phy.h"
+#include "srsran/common/band_helper.h"
+#include "srsran/common/phy_cfg_nr_default.h"
+#include "srsran/common/threads.h"
 #include <pthread.h>
 #include <sstream>
 #include <string.h>
 #include <string>
 #include <strings.h>
 #include <unistd.h>
-
-#include "srsenb/hdr/phy/phy.h"
-#include "srsran/common/phy_cfg_nr_default.h"
-#include "srsran/common/threads.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSRAN_DEBUG_ENABLED)                                                                                            \
@@ -348,6 +348,8 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
 
   tx_rx.set_nr_workers(nr_workers.get());
 
+  srsran::srsran_band_helper band_helper;
+
   // perform initial config of PHY (during RRC init PHY isn't running yet)
   static const srsran::phy_cfg_nr_t default_phy_cfg =
       srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
@@ -355,6 +357,7 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
   common_cfg.carrier                                    = default_phy_cfg.carrier;
   common_cfg.pdcch                                      = default_phy_cfg.pdcch;
   common_cfg.prach                                      = default_phy_cfg.prach;
+  common_cfg.duplex_mode                                = SRSRAN_DUPLEX_MODE_TDD; // TODO: make dynamic
   if (set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     phy_log.error("Couldn't set common PHY config");
     return SRSRAN_ERROR;

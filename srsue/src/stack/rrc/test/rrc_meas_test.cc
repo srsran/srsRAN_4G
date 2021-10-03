@@ -253,7 +253,7 @@ private:
   bool           meas_res_received = false;
 };
 
-class rrc_test : public rrc
+class rrc_test : public srsue::rrc
 {
   stack_test_dummy* stack = nullptr;
 

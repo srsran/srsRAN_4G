@@ -140,7 +140,8 @@ int worker_pool::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common
     return SRSRAN_ERROR;
   }
   prach_cfg.freq_offset -= lte_nr_prach_offset;
-  prach_cfg.is_nr = true;
+  prach_cfg.is_nr                 = true;
+  prach_cfg.tdd_config.configured = (common_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
 
   // Set the PRACH configuration
   prach.init(0, cell, prach_cfg, &prach_stack_adaptor, logger, 0, nof_prach_workers);

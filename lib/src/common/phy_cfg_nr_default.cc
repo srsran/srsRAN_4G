@@ -466,6 +466,8 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
       make_prach_default_lte(prach);
       break;
   }
+
+  prach.tdd_config.configured = (duplex.mode == SRSRAN_DUPLEX_MODE_TDD);
 }
 
 } // namespace srsran

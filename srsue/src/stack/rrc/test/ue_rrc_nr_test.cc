@@ -71,6 +71,7 @@ class dummy_rlc : public rlc_interface_rrc
 
 class dummy_pdcp : public pdcp_interface_rrc
 {
+  void set_enabled(uint32_t lcid, bool enabled) {};
   void reestablish(){};
   void reestablish(uint32_t lcid){};
   void reset(){};

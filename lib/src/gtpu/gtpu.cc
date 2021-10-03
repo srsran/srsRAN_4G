@@ -121,17 +121,26 @@ bool gtpu_read_ext_header(srsran::byte_buffer_t* pdu,
     return true;
   }
 
-  if (header->next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
-    pdu->msg += HEADER_PDCP_PDU_NUMBER_SIZE;
-    pdu->N_bytes -= HEADER_PDCP_PDU_NUMBER_SIZE;
-    header->ext_buffer.resize(HEADER_PDCP_PDU_NUMBER_SIZE);
-    for (size_t i = 0; i < HEADER_PDCP_PDU_NUMBER_SIZE; ++i) {
-      header->ext_buffer[i] = **ptr;
-      (*ptr)++;
-    }
-  } else {
-    logger.error("gtpu_read_header - Unhandled GTP-U Extension Header Type: 0x%x", header->next_ext_hdr_type);
-    return false;
+  // TODO: Iterate over next headers until no more extension headers
+  switch (header->next_ext_hdr_type) {
+    case GTPU_EXT_HEADER_PDCP_PDU_NUMBER:
+      pdu->msg += HEADER_PDCP_PDU_NUMBER_SIZE;
+      pdu->N_bytes -= HEADER_PDCP_PDU_NUMBER_SIZE;
+      header->ext_buffer.resize(HEADER_PDCP_PDU_NUMBER_SIZE);
+      for (size_t i = 0; i < HEADER_PDCP_PDU_NUMBER_SIZE; ++i) {
+        header->ext_buffer[i] = **ptr;
+        (*ptr)++;
+      }
+      break;
+    case GTPU_EXT_HEADER_PDU_SESSION_CONTAINER:
+      pdu->msg += GTPU_EXT_HEADER_PDU_SESSION_CONTAINER_LEN;
+      pdu->N_bytes -= GTPU_EXT_HEADER_PDU_SESSION_CONTAINER_LEN;
+      logger.warning("skip parsing of GTPU_EXT_HEADER_PDU_SESSION_CONTAINER");
+      // TODO: Save Header Extension
+      break;
+    default:
+      logger.error("gtpu_read_header - Unhandled GTP-U Extension Header Type: 0x%x", header->next_ext_hdr_type);
+      return false;
   }
   return true;
 }

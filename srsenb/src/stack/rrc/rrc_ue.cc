@@ -56,10 +56,16 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 
 rrc::ue::~ue() {}
 
+bool rrc::ue::init_pucch()
+{
+  // Allocate PUCCH resources for PCell
+  return ue_cell_list.init_pucch_pcell();
+}
+
 int rrc::ue::init()
 {
-  // Allocate cell and PUCCH resources
-  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx) == nullptr) {
+  // Allocate cell (PUCCH resources are not allocated here)
+  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx, false) == nullptr) {
     return SRSRAN_ERROR;
   }
 
@@ -90,7 +96,8 @@ int rrc::ue::init()
 
   mobility_handler = make_rnti_obj<rrc_mobility>(rnti, this);
   if (parent->rrc_nr != nullptr) {
-    endc_handler = make_rnti_obj<rrc_endc>(rnti, this);
+    rrc::ue::rrc_endc::rrc_endc_cfg_t endc_cfg = {}; // TODO: set or derive parameter in eNB config
+    endc_handler                               = make_rnti_obj<rrc_endc>(rnti, this, endc_cfg);
   }
 
   return SRSRAN_SUCCESS;
@@ -386,8 +393,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info()) == SRSRAN_SUCCESS) {
-        if (not parent->cfg.cell_list_nr.empty() && endc_handler->is_endc_supported() &&
-            state == RRC_STATE_WAIT_FOR_UE_CAP_INFO) {
+        if (endc_handler != nullptr && endc_handler->is_endc_supported() && state == RRC_STATE_WAIT_FOR_UE_CAP_INFO) {
           // request EUTRA-NR and NR capabilities as well
           send_ue_cap_enquiry({asn1::rrc::rat_type_opts::options::eutra_nr, asn1::rrc::rat_type_opts::options::nr});
           state = RRC_STATE_WAIT_FOR_UE_CAP_INFO_ENDC; // avoid endless loop
@@ -446,6 +452,13 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     return;
   }
 
+  // Allocate PUCCH resources and reject if not available
+  if (not init_pucch()) {
+    parent->logger.warning("Could not allocate PUCCH resources for rnti=0x%x. Sending Connection Reject", rnti);
+    send_connection_reject(procedure_result_code::fail_in_radio_interface_proc);
+    return;
+  }
+
   rrc_conn_request_r8_ies_s* msg_r8 = &msg->crit_exts.rrc_conn_request_r8();
 
   if (msg_r8->ue_id.type() == init_ue_id_c::types::s_tmsi) {
@@ -482,7 +495,10 @@ void rrc::ue::send_connection_setup()
   rr_cfg_ded_s&            rr_cfg   = setup_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
+  if (fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list)) {
+    parent->logger.error("Generating ConnectionSetup. Aborting");
+    return;
+  }
 
   // Apply ConnectionSetup Configuration to MAC scheduler
   mac_ctrl.handle_con_setup(setup_r8);
@@ -603,6 +619,14 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: MME not connected.\n", rnti);
     return;
   }
+
+  // Allocate PUCCH resources and reject if not available
+  if (not init_pucch()) {
+    parent->logger.warning("Could not allocate PUCCH resources for rnti=0x%x. Sending RRCReestablishmentReject", rnti);
+    send_connection_reest_rej(procedure_result_code::fail_in_radio_interface_proc);
+    return;
+  }
+
   parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
                        (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number(),
                        msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
@@ -701,7 +725,10 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   rr_cfg_ded_s&            rr_cfg   = reest_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
+  if (fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list)) {
+    parent->logger.error("Generating ConnectionReestablishment. Aborting...");
+    return;
+  }
 
   // Set NCC
   reest_r8.next_hop_chaining_count = ncc;
@@ -808,8 +835,11 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
   rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
   // Fill RR Config Ded and SCells
-  apply_reconf_updates(
-      recfg_r8, current_ue_cfg, parent->cfg, ue_cell_list, bearer_list, ue_capabilities, phy_cfg_updated);
+  if (apply_reconf_updates(
+          recfg_r8, current_ue_cfg, parent->cfg, ue_cell_list, bearer_list, ue_capabilities, phy_cfg_updated)) {
+    parent->logger.error("Generating ConnectionReconfiguration. Aborting...");
+    return;
+  }
 
   // Add measConfig
   if (mobility_handler != nullptr) {

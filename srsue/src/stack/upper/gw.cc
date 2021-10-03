@@ -188,6 +188,13 @@ void gw::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 int gw::setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str)
 {
   int err;
+
+  // Make sure the worker thread is terminated before spawning a new one.
+  if (running) {
+    run_enable = false;
+    thread_cancel();
+    wait_thread_finish();
+  }
   if (pdn_type == LIBLTE_MME_PDN_TYPE_IPV4 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
     err = setup_if_addr4(ip_addr, err_str);
     if (err != SRSRAN_SUCCESS) {
@@ -204,6 +211,7 @@ int gw::setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr
   default_eps_bearer_id = static_cast<int>(eps_bearer_id);
 
   // Setup a thread to receive packets from the TUN device
+  run_enable = true;
   start(GW_THREAD_PRIO);
 
   return SRSRAN_SUCCESS;
@@ -455,6 +463,9 @@ int gw::setup_if_addr4(uint32_t ip_addr, char* err_str)
       }
     }
 
+    if (sock > 0) {
+      close(sock);
+    }
     // Setup the IP address
     sock                                                  = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family                                = AF_INET;
@@ -504,6 +515,9 @@ int gw::setup_if_addr6(uint8_t* ipv6_if_id, char* err_str)
       }
     }
 
+    if (sock > 0) {
+      close(sock);
+    }
     // Setup the IP address
     sock                   = socket(AF_INET6, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET6;

@@ -48,7 +48,9 @@ int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_ar
 
   args.general.rrc_inactivity_timer = 60000;
 
-  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, phy_cfg);
+  rrc_nr_cfg_t rrc_cfg_nr;
+
+  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &rrc_cfg_nr, phy_cfg);
 }
 
 int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
@@ -74,8 +76,9 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.general.rrc_inactivity_timer = 60000;
 
   phy_cfg_t phy_cfg;
+  rrc_nr_cfg_t rrc_cfg_nr;
 
-  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &phy_cfg);
+  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &rrc_cfg_nr, &phy_cfg);
 }
 
 int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srsran::timer_handler& timers, uint16_t rnti)

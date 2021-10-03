@@ -31,7 +31,8 @@ set(SOURCES mac_nr.cc
             sched_nr_cell.cc
             sched_nr_rb.cc
             sched_nr_time_rr.cc
-            harq_softbuffer.cc)
+            harq_softbuffer.cc
+        sched_nr_signalling.cc)
 
 add_library(srsgnb_mac STATIC ${SOURCES})
 target_link_libraries(srsgnb_mac srsenb_mac_common)

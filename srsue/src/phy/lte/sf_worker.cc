@@ -73,15 +73,15 @@ sf_worker::~sf_worker()
   }
 }
 
-void sf_worker::reset_cell_unlocked(uint32_t cc_idx)
+void sf_worker::reset_cell_nolock(uint32_t cc_idx)
 {
-  cc_workers[cc_idx]->reset_cell_unlocked();
+  cc_workers[cc_idx]->reset_cell_nolock();
 }
 
-bool sf_worker::set_cell_unlocked(uint32_t cc_idx, srsran_cell_t cell_)
+bool sf_worker::set_cell_nolock(uint32_t cc_idx, srsran_cell_t cell_)
 {
   if (cc_idx < cc_workers.size()) {
-    if (!cc_workers[cc_idx]->set_cell_unlocked(cell_)) {
+    if (!cc_workers[cc_idx]->set_cell_nolock(cell_)) {
       Error("Setting cell for cc=%d", cc_idx);
       return false;
     }
@@ -129,26 +129,26 @@ void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
   prach_power = prach_power_;
 }
 
-void sf_worker::set_cfo_unlocked(const uint32_t& cc_idx, float cfo)
+void sf_worker::set_cfo_nolock(const uint32_t& cc_idx, float cfo)
 {
-  cc_workers[cc_idx]->set_cfo_unlocked(cfo);
+  cc_workers[cc_idx]->set_cfo_nolock(cfo);
 }
 
-void sf_worker::set_tdd_config_unlocked(srsran_tdd_config_t config)
+void sf_worker::set_tdd_config_nolock(srsran_tdd_config_t config)
 {
   for (auto& cc_worker : cc_workers) {
-    cc_worker->set_tdd_config_unlocked(config);
+    cc_worker->set_tdd_config_nolock(config);
   }
   tdd_config = config;
 }
 
-void sf_worker::set_config_unlocked(uint32_t cc_idx, const srsran::phy_cfg_t& phy_cfg)
+void sf_worker::set_config_nolock(uint32_t cc_idx, const srsran::phy_cfg_t& phy_cfg)
 {
   if (cc_idx < cc_workers.size()) {
-    cc_workers[cc_idx]->set_config_unlocked(phy_cfg);
+    cc_workers[cc_idx]->set_config_nolock(phy_cfg);
     if (cc_idx > 0) {
       // Update DCI config for PCell
-      cc_workers[0]->upd_config_dci_unlocked(phy_cfg.dl_cfg.dci);
+      cc_workers[0]->upd_config_dci_nolock(phy_cfg.dl_cfg.dci);
     }
   } else {
     Error("Setting config for cc=%d; Invalid cc_idx", cc_idx);

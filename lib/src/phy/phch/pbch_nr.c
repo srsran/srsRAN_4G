@@ -52,7 +52,7 @@
 /*
  * Number of generated payload bits, called A
  */
-#define PBCH_NR_A (SRSRAN_PBCH_NR_PAYLOAD_SZ + 8)
+#define PBCH_NR_A (SRSRAN_PBCH_MSG_NR_SZ + 8)
 
 /*
  * Number of payload bits plus CRC
@@ -193,7 +193,7 @@ static void
 pbch_nr_pbch_msg_pack(const srsran_pbch_nr_cfg_t* cfg, const srsran_pbch_msg_nr_t* msg, uint8_t a[PBCH_NR_A])
 {
   // Extract actual payload size
-  uint32_t A_hat = SRSRAN_PBCH_NR_PAYLOAD_SZ;
+  uint32_t A_hat = SRSRAN_PBCH_MSG_NR_SZ;
 
   // Put SFN in a_hat[A_hat] to a_hat[A_hat + 3]
   uint32_t j_sfn = 0;
@@ -240,7 +240,7 @@ pbch_nr_pbch_msg_unpack(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PBCH_NR
   }
 
   // Extract actual payload size
-  uint32_t A_hat = SRSRAN_PBCH_NR_PAYLOAD_SZ;
+  uint32_t A_hat = SRSRAN_PBCH_MSG_NR_SZ;
 
   // Put SFN in a_hat[A_hat] to a_hat[A_hat + 3]
   uint32_t j_sfn = 0;
@@ -659,28 +659,4 @@ int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
   pbch_nr_pbch_msg_unpack(cfg, a, msg);
 
   return SRSRAN_SUCCESS;
-}
-
-uint32_t srsran_pbch_msg_info(const srsran_pbch_msg_nr_t* msg, char* str, uint32_t str_len)
-{
-  if (msg == NULL || str == NULL || str_len == 0) {
-    return 0;
-  }
-
-  uint32_t len = 0;
-
-  len = srsran_print_check(str, str_len, len, "payload=");
-
-  len += srsran_vec_sprint_hex(&str[len], str_len - len, (uint8_t*)msg->payload, SRSRAN_PBCH_NR_PAYLOAD_SZ);
-
-  len = srsran_print_check(str,
-                           str_len,
-                           len,
-                           " sfn_lsb=%d ssb_idx=%d k_ssb_msb=%d hrf=%d ",
-                           msg->sfn_4lsb,
-                           msg->ssb_idx,
-                           msg->k_ssb_msb,
-                           msg->hrf);
-
-  return len;
 }

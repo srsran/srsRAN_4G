@@ -246,12 +246,12 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
   if (rnti == SRSRAN_MRNTI) {
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
-
+      uint32_t addr_in;
       // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
       mac->ue_cfg(SRSRAN_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
       pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
-      gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1);
+      gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1, addr_in);
     }
   }
   return SRSRAN_SUCCESS;
@@ -660,11 +660,7 @@ void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
-    logger.info("Disconnecting rnti=0x%x.", rnti);
-
-    /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
-     */
+    // First remove MAC and GTPU to stop processing DL/UL traffic for this user
     mac->ue_rem(rnti); // MAC handles PHY
     gtpu->rem_user(rnti);
 
@@ -674,6 +670,8 @@ void rrc::rem_user(uint16_t rnti)
     pdcp->rem_user(rnti);
 
     users.erase(rnti);
+
+    srsran::console("Disconnecting rnti=0x%x.\n", rnti);
     logger.info("Removed user rnti=0x%x", rnti);
   } else {
     logger.error("Removing user rnti=0x%x (does not exist)", rnti);

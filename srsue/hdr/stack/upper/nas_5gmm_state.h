@@ -66,6 +66,7 @@ public:
     update_needed,
   };
 
+  mm5g_state_t(srslog::basic_logger& logger_) : logger(logger_) {}
   // FSM setters
   void set_null();
   void set_deregistered(deregistered_substate_t substate);
@@ -86,7 +87,7 @@ private:
   state_t                 state                 = state_t::null;
   deregistered_substate_t deregistered_substate = deregistered_substate_t::null;
   registered_substate_t   registered_substate   = registered_substate_t::null;
-  srslog::basic_logger&   logger                = srslog::fetch_basic_logger("NAS-5G");
+  srslog::basic_logger&   logger;
 };
 
 const char* mm5g_state_text(mm5g_state_t::state_t type);

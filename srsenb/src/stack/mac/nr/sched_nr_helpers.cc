@@ -121,6 +121,27 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
   fill_dci_common(ue, bwp_cfg, dci);
 }
 
+void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)
+{
+  if (not logger.info.enabled() or slot_ues.empty()) {
+    return;
+  }
+
+  fmt::memory_buffer fmtbuf;
+  fmt::format_to(fmtbuf, "SCHED: UE candidates, pdcch_tti={}, cc={}: [", pdcch_slot, cc);
+
+  const char* use_comma = "";
+  for (const auto& ue_pair : slot_ues) {
+    auto& ue = ue_pair->second;
+
+    fmt::format_to(
+        fmtbuf, "{}{{rnti=0x{:x}, dl_bs={}, ul_bs={}}}", use_comma, ue.rnti, ue.dl_pending_bytes, ue.ul_pending_bytes);
+    use_comma = ", ";
+  }
+
+  logger.info("%s]", srsran::to_c_str(fmtbuf));
+}
+
 void log_sched_bwp_result(srslog::basic_logger& logger,
                           slot_point            pdcch_slot,
                           const bwp_res_grid&   res_grid,
@@ -171,13 +192,14 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, tbs={}, tti_pusch={}",
+                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, pending_bytes={}, tbs={}, tti_pusch={}",
                      ue.h_ul->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_ul->nof_retx(),
+                     ue.ul_pending_bytes,
                      ue.h_ul->tbs(),
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {

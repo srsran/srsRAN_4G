@@ -29,18 +29,12 @@
 
 #include "srsenb/hdr/stack/mac/nr/mac_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
-#include "srsenb/hdr/stack/upper/pdcp_nr.h"
-#include "srsenb/hdr/stack/upper/rlc_nr.h"
 #include "upper/pdcp.h"
 #include "upper/rlc.h"
 #include "upper/sdap.h"
 
 #include "enb_stack_base.h"
 #include "srsran/interfaces/gnb_interfaces.h"
-
-// This is needed for GW
-#include "srsran/interfaces/ue_interfaces.h"
-#include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsenb {
 

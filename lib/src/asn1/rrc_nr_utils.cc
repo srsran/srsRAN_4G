@@ -283,6 +283,8 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_duplex_config_nr_t*    in_srsran_duplex_config_nr)
 {
   srsran_duplex_config_nr_t srsran_duplex_config_nr = {};
+  srsran_duplex_config_nr.mode                      = SRSRAN_DUPLEX_MODE_TDD;
+
   switch (tdd_ul_dl_cfg_common.pattern1.dl_ul_tx_periodicity) {
     case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
       srsran_duplex_config_nr.tdd.pattern1.period_ms = 1;

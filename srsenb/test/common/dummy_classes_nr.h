@@ -30,10 +30,11 @@ namespace srsenb {
 class rrc_nr_dummy : public rrc_interface_mac_nr
 {
 public:
-  int read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
-  int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
-  int add_user(uint16_t rnti) { return SRSRAN_SUCCESS; }
-  int update_user(uint16_t new_rnti, uint16_t old_rnti) { return SRSRAN_SUCCESS; }
+  int  read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
+  int  read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
+  int  add_user(uint16_t rnti) { return SRSRAN_SUCCESS; }
+  int  update_user(uint16_t new_rnti, uint16_t old_rnti) { return SRSRAN_SUCCESS; }
+  void set_activity_user(uint16_t rnti) {}
 };
 
 class rlc_nr_dummy : public rlc_interface_mac_nr
@@ -51,6 +52,8 @@ public:
   uint16_t reserve_rnti(uint32_t enb_cc_idx) override { return 0x4601; }
 
   int ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override { return SRSRAN_SUCCESS; }
+
+  int remove_ue(uint16_t rnti) override { return SRSRAN_SUCCESS; }
 
   srsenb::sched_interface::cell_cfg_t cellcfgobj;
 };

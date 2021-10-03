@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "srsran/phy/common/phy_common.h"
+#include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/phch/prach.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
@@ -127,16 +128,20 @@ bool srsran_prach_tti_opportunity(srsran_prach_t* p, uint32_t current_tti, int a
     return false;
   }
 
-  if (p->is_nr) {
-    return srsran_prach_nr_tti_opportunity_fr1_unpaired(p->config_idx, current_tti);
-  }
-
   uint32_t config_idx = p->config_idx;
-  if (!p->tdd_config.configured) {
-    return srsran_prach_tti_opportunity_config_fdd(config_idx, current_tti, allowed_subframe);
+  if (p->tdd_config.configured) {
+    if (p->is_nr) {
+      return srsran_prach_nr_tti_opportunity_fr1_unpaired(p->config_idx, current_tti);
+    } else {
+      return srsran_prach_tti_opportunity_config_tdd(
+          config_idx, p->tdd_config.sf_config, current_tti, &p->current_prach_idx);
+    }
   } else {
-    return srsran_prach_tti_opportunity_config_tdd(
-        config_idx, p->tdd_config.sf_config, current_tti, &p->current_prach_idx);
+    if (p->is_nr) {
+      return srsran_prach_nr_tti_opportunity_fr1_paired(p->config_idx, current_tti);
+    } else {
+      return srsran_prach_tti_opportunity_config_fdd(config_idx, current_tti, allowed_subframe);
+    }
   }
 }
 
@@ -290,6 +295,66 @@ void srsran_prach_sf_config(uint32_t config_idx, srsran_prach_sf_config_t* sf_co
   memcpy(sf_config, &prach_sf_config[config_idx % 16], sizeof(srsran_prach_sf_config_t));
 }
 
+const prach_nr_config_t* srsran_prach_nr_get_cfg_fr1_paired(uint32_t config_idx)
+{
+  if (config_idx < PRACH_NR_CFG_FR1_PAIRED_NOF_CFG) {
+    return &prach_nr_cfg_fr1_paired[config_idx];
+  }
+
+  ERROR("Invalid configuration index %d", config_idx);
+  return NULL;
+}
+
+bool srsran_prach_nr_tti_opportunity_fr1_paired(uint32_t config_idx, uint32_t current_tti)
+{
+  uint32_t sfn    = current_tti / SRSRAN_NOF_SF_X_FRAME;
+  uint32_t sf_idx = current_tti % SRSRAN_NOF_SF_X_FRAME;
+
+  // Get configuration
+  const prach_nr_config_t* cfg = srsran_prach_nr_get_cfg_fr1_paired(config_idx);
+  if (cfg == NULL) {
+    return false;
+  }
+
+  // Protect zero division
+  if (cfg->x == 0) {
+    ERROR("Invalid Zero value");
+    return false;
+  }
+
+  // Check for System Frame Number match
+  if (sfn % cfg->x != cfg->y) {
+    return false;
+  }
+
+  // Protect subframe number vector access
+  if (cfg->nof_subframe_number > PRACH_NR_CFG_MAX_NOF_SF) {
+    ERROR("Invalid number of subframes (%d)", cfg->nof_subframe_number);
+    return false;
+  }
+
+  // Check for subframe number match
+  for (uint32_t i = 0; i < cfg->nof_subframe_number; i++) {
+    if (cfg->subframe_number[i] == sf_idx) {
+      return true;
+    }
+  }
+
+  // If reached here, no opportunity
+  return false;
+}
+
+uint32_t srsran_prach_nr_start_symbol_fr1_paired(uint32_t config_idx)
+{
+  // Get configuration
+  const prach_nr_config_t* cfg = srsran_prach_nr_get_cfg_fr1_paired(config_idx);
+  if (cfg == NULL) {
+    return 0;
+  }
+
+  return cfg->starting_symbol;
+}
+
 const prach_nr_config_t* srsran_prach_nr_get_cfg_fr1_unpaired(uint32_t config_idx)
 {
   if (config_idx < PRACH_NR_CFG_FR1_UNPAIRED_NOF_CFG) {
@@ -339,12 +404,21 @@ bool srsran_prach_nr_tti_opportunity_fr1_unpaired(uint32_t config_idx, uint32_t 
   return false;
 }
 
-uint32_t srsran_prach_nr_start_symbol_fr1_unpaired(uint32_t config_idx)
+uint32_t srsran_prach_nr_start_symbol(uint32_t config_idx, srsran_duplex_mode_t duplex_mode)
 {
-  // Get configuration
-  const prach_nr_config_t* cfg = srsran_prach_nr_get_cfg_fr1_unpaired(config_idx);
-  if (cfg == NULL) {
-    return false;
+  const prach_nr_config_t* cfg;
+  if (duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    // Get configuration
+    cfg = srsran_prach_nr_get_cfg_fr1_unpaired(config_idx);
+    if (cfg == NULL) {
+      return 0;
+    }
+  } else {
+    // Get configuration
+    cfg = srsran_prach_nr_get_cfg_fr1_paired(config_idx);
+    if (cfg == NULL) {
+      return 0;
+    }
   }
 
   return cfg->starting_symbol;

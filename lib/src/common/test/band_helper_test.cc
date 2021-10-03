@@ -86,6 +86,9 @@ int bands_test_nr()
   TESTASSERT(band_vector.at(0) == 77);
   TESTASSERT(band_vector.at(1) == 78);
 
+  // n78
+  TESTASSERT(bands.get_abs_freq_point_a_arfcn(52, 634240) == 633928);
+
   // Invalid configs
   // For 30 kHz, 620001 is not a valid ARFCN, only every 2nd
   band_vector = bands.get_bands_nr(620001, srsran::srsran_band_helper::KHZ_30);

@@ -89,15 +89,15 @@ int test_tagged_union()
 {
   using srsran::choice_details::tagged_union_t;
   tagged_union_t<char, int, double, C> u;
-  u.construct_unsafe(5);
+  u.construct_unchecked(5);
   TESTASSERT(u.is<int>());
   TESTASSERT(u.get_unchecked<int>() == 5);
-  u.destroy_unsafe<int>();
+  u.destroy_unchecked<int>();
 
   TESTASSERT(C::counter == 0);
-  u.construct_unsafe<C>(C{});
+  u.construct_unchecked<C>(C{});
   TESTASSERT(C::counter == 1);
-  u.destroy_unsafe<C>();
+  u.destroy_unchecked<C>();
   TESTASSERT(C::counter == 0);
 
   return SRSRAN_SUCCESS;

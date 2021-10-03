@@ -87,7 +87,7 @@ private:
   void response_error();
   void complete();
 
-  bool contention_resolution_id_received_unsafe(uint64_t rx_contention_id);
+  bool contention_resolution_id_received_nolock(uint64_t rx_contention_id);
 
   //  Buffer to receive RAR PDU
   static const uint32_t MAX_RAR_PDU_LEN                 = 2048;

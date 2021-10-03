@@ -96,7 +96,12 @@ inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
     uecfg.carriers[cc].cc     = cc;
     uecfg.carriers[cc].active = true;
   }
-  uecfg.phy_cfg = phy_cfg;
+  uecfg.phy_cfg                 = phy_cfg;
+  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+
+  // Note: dynamic MCS not yet supported
+  uecfg.fixed_dl_mcs = 28;
+  uecfg.fixed_ul_mcs = 10;
 
   return uecfg;
 }

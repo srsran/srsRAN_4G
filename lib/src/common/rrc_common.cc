@@ -19,9 +19,9 @@
  *
  */
 
-#include "srsue/hdr/stack/rrc/rrc_common.h"
+#include "srsran/rrc/rrc_common.h"
 
-namespace srsue {
+namespace srsran {
 
 uint8_t rrc_value_to_range(quant_s quant, const float value)
 {
@@ -57,4 +57,4 @@ float rrc_range_to_value(quant_s quant, const uint8_t range)
   return val;
 }
 
-} // namespace srsue
+} // namespace srsran

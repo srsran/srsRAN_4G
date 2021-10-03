@@ -76,7 +76,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   common.add_options()
     ("ue.radio", bpo::value<string>(&args->rf.type)->default_value("multi"), "Type of the radio [multi]")
     ("ue.phy", bpo::value<string>(&args->phy.type)->default_value("lte"), "Type of the PHY [lte]")
-    ("ue.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte, nr]")
 
     ("rf.srate",        bpo::value<double>(&args->rf.srate_hz)->default_value(0.0),          "Force Tx and Rx sampling rate in Hz")
     ("rf.freq_offset",  bpo::value<float>(&args->rf.freq_offset)->default_value(0),          "(optional) Frequency offset")

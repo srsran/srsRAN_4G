@@ -91,6 +91,7 @@ private:
   std::unique_ptr<srsenb::mac_nr> mac;
   srsran::slot_point              pdsch_slot, pusch_slot;
   srslog::basic_logger&           sched_logger;
+  bool                            autofill_pdsch_bsr = false;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -346,12 +347,14 @@ public:
     sched_logger.set_level(srslog::str_to_basic_level(args.log_level));
     srslog::fetch_basic_logger("MAC-NR").set_level(srslog::str_to_basic_level(args.log_level));
 
+    autofill_pdsch_bsr = args.pdsch.slots != "" and args.pdsch.slots != "none";
+
     // create sched object
-    srsenb::sched_nr_interface::sched_cfg_t sched_cfg{};
-    sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
-    sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
-    mac.reset(new srsenb::mac_nr{&task_sched, sched_cfg});
-    mac->init(srsenb::mac_nr_args_t{}, nullptr, nullptr, &rlc_obj, &rrc_obj);
+    mac.reset(new srsenb::mac_nr{&task_sched});
+    srsenb::mac_nr_args_t mac_args{};
+    mac_args.sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
+    mac_args.sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
+    mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
 
@@ -362,6 +365,7 @@ public:
       srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
       ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
       ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
+      ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
       mac->ue_cfg(args.rnti, ue_cfg);
     }
 
@@ -453,6 +457,10 @@ public:
     }
 
     if (not use_dummy_sched) {
+      if (autofill_pdsch_bsr) {
+        mac->rlc_buffer_state(rnti, 0, 10000, 0);
+      }
+
       int ret = mac->get_dl_sched(slot_cfg, dl_sched);
 
       for (pdsch_t& pdsch : dl_sched.pdsch) {
@@ -483,6 +491,20 @@ public:
     if (not schedule_pusch(slot_cfg, dl_sched)) {
       logger.error("Error scheduling PUSCH");
       return SRSRAN_ERROR;
+    }
+
+    // Schedule NZP-CSI-RS, iterate all NZP-CSI-RS sets
+    for (const srsran_csi_rs_nzp_set_t& set : phy_cfg.pdsch.nzp_csi_rs_sets) {
+      // For each NZP-CSI-RS resource available in the set
+      for (uint32_t i = 0; i < set.count; i++) {
+        // Select resource
+        const srsran_csi_rs_nzp_resource_t& nzp_csi_resource = set.data[i];
+
+        // Check if the resource is scheduled for this slot
+        if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
+          dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
+        }
+      }
     }
 
     return SRSRAN_SUCCESS;

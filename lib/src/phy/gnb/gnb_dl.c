@@ -176,7 +176,7 @@ void srsran_gnb_dl_gen_signal(srsran_gnb_dl_t* q)
     return;
   }
 
-  float norm_factor = gnb_dl_get_norm_factor(q->pdcch.carrier.nof_prb);
+  float norm_factor = gnb_dl_get_norm_factor(q->pdsch.carrier.nof_prb);
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
     srsran_ofdm_tx_sf(&q->fft[i]);
@@ -317,4 +317,20 @@ int srsran_gnb_dl_pdcch_ul_info(const srsran_gnb_dl_t* q, const srsran_dci_ul_nr
   len += srsran_dci_ul_nr_to_str(&q->dci, dci, &str[len], str_len - len);
 
   return len;
+}
+
+int srsran_gnb_dl_nzp_csi_rs_put(srsran_gnb_dl_t*                    q,
+                                 const srsran_slot_cfg_t*            slot_cfg,
+                                 const srsran_csi_rs_nzp_resource_t* resource)
+{
+  if (q == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (srsran_csi_rs_nzp_put_resource(&q->carrier, slot_cfg, resource, q->sf_symbols[0]) < SRSRAN_SUCCESS) {
+    ERROR("Error putting NZP-CSI-RS resource");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
 }

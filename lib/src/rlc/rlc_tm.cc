@@ -135,11 +135,13 @@ uint32_t rlc_tm::get_buffer_state()
 
 rlc_bearer_metrics_t rlc_tm::get_metrics()
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   return metrics;
 }
 
 void rlc_tm::reset_metrics()
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics = {};
 }
 
@@ -165,6 +167,7 @@ uint32_t rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
                 ul_queue.size(),
                 ul_queue.size_bytes());
 
+    std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_tx_pdu_bytes += pdu_size;
     return pdu_size;
   } else {
@@ -184,8 +187,11 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
-    metrics.num_rx_pdu_bytes += nof_bytes;
-    metrics.num_rx_pdus++;
+    {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
+      metrics.num_rx_pdu_bytes += nof_bytes;
+      metrics.num_rx_pdus++;
+    }
     if (srsran::srb_to_lcid(srsran::lte_srb::srb0) == lcid) {
       rrc->write_pdu(lcid, std::move(buf));
     } else {

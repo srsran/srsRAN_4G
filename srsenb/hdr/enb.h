@@ -157,13 +157,13 @@ public:
 private:
   const static int ENB_POOL_SIZE = 1024 * 10;
 
-  int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg);
+  int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg_, rrc_nr_cfg_t& rrc_cfg_nr_);
 
   srslog::sink&         log_sink;
   srslog::basic_logger& enb_log;
 
-  all_args_t args    = {};
-  bool       started = false;
+  all_args_t        args    = {};
+  std::atomic<bool> started = {false};
 
   phy_cfg_t    phy_cfg    = {};
   rrc_cfg_t    rrc_cfg    = {};
@@ -173,8 +173,8 @@ private:
   x2_adapter                          x2;
   std::unique_ptr<enb_stack_base>     eutra_stack = nullptr;
   std::unique_ptr<enb_stack_base>     nr_stack    = nullptr;
-  std::unique_ptr<srsran::radio_base> radio = nullptr;
-  std::unique_ptr<enb_phy_base>       phy   = nullptr;
+  std::unique_ptr<srsran::radio_base> radio       = nullptr;
+  std::unique_ptr<enb_phy_base>       phy         = nullptr;
 
   // System metrics processor.
   srsran::sys_metrics_processor sys_proc;

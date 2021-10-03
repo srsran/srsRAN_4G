@@ -35,10 +35,9 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr(srsran::task_sched_handle task_sched_, const sched_nr_interface::sched_cfg_t& sched_cfg) :
+mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("MAC-NR")),
   task_sched(task_sched_),
-  sched(sched_cfg),
   bcch_bch_payload(srsran::make_byte_buffer()),
   rar_pdu_buffer(srsran::make_byte_buffer())
 {
@@ -107,7 +106,7 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
 int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells)
 {
   cell_config = nr_cells;
-  sched.cell_cfg(nr_cells);
+  sched.config(args.sched_cfg, nr_cells);
   detected_rachs.resize(nr_cells.size());
 
   // read SIBs from RRC (SIB1 for now only)
@@ -149,8 +148,6 @@ uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
 
   // Add new user to the scheduler so that it can RX/TX SRB0
   srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
-  ue_cfg.fixed_dl_mcs                         = args.fixed_dl_mcs;
-  ue_cfg.fixed_ul_mcs                         = args.fixed_ul_mcs;
   sched.ue_cfg(rnti, ue_cfg);
 
   return rnti;
@@ -178,6 +175,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
     sched.dl_rach_info(enb_cc_idx, rar_info);
+    rrc->add_user(rnti);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,
@@ -206,7 +204,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
     // Pre-check if rnti is valid
     {
       srsran::rwlock_read_guard read_lock(rwlock);
-      if (not is_rnti_valid_unsafe(rnti)) {
+      if (not is_rnti_valid_nolock(rnti)) {
         continue;
       }
     }
@@ -216,7 +214,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 
     // Add UE to rnti map
     srsran::rwlock_write_guard rw_lock(rwlock);
-    if (not is_rnti_valid_unsafe(rnti)) {
+    if (not is_rnti_valid_nolock(rnti)) {
       continue;
     }
     auto ret = ue_db.insert(rnti, std::move(ue_ptr));
@@ -234,7 +232,8 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 int mac_nr::remove_ue(uint16_t rnti)
 {
   srsran::rwlock_write_guard lock(rwlock);
-  if (is_rnti_active_unsafe(rnti)) {
+  if (is_rnti_active_nolock(rnti)) {
+    sched.ue_rem(rnti);
     ue_db.erase(rnti);
   } else {
     logger.error("User rnti=0x%x not found", rnti);
@@ -244,7 +243,7 @@ int mac_nr::remove_ue(uint16_t rnti)
   return SRSRAN_SUCCESS;
 }
 
-bool mac_nr::is_rnti_valid_unsafe(uint16_t rnti)
+bool mac_nr::is_rnti_valid_nolock(uint16_t rnti)
 {
   if (not started) {
     logger.info("RACH ignored as eNB is being shutdown");
@@ -261,13 +260,19 @@ bool mac_nr::is_rnti_valid_unsafe(uint16_t rnti)
   return true;
 }
 
-bool mac_nr::is_rnti_active_unsafe(uint16_t rnti)
+bool mac_nr::is_rnti_active_nolock(uint16_t rnti)
 {
   if (not ue_db.contains(rnti)) {
     logger.error("User rnti=0x%x not found", rnti);
     return false;
   }
   return ue_db[rnti]->is_active();
+}
+
+int mac_nr::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
+{
+  sched.dl_buffer_state(rnti, lc_id, tx_queue, retx_queue);
+  return SRSRAN_SUCCESS;
 }
 
 int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
@@ -297,7 +302,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   for (pdsch_t& pdsch : dl_sched.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
       uint16_t rnti = pdsch.sch.grant.rnti;
-      if (not is_rnti_active_unsafe(rnti)) {
+      if (not is_rnti_active_nolock(rnti)) {
         continue;
       }
       for (auto& tb_data : pdsch.data) {
@@ -314,7 +319,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
     } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
       sched_nr_interface::sched_rar_t& rar = dl_res.rar[rar_count++];
       // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
-      pdsch.data[0]                        = assemble_rar(rar.grants);
+      pdsch.data[0] = assemble_rar(rar.grants);
     }
   }
   return SRSRAN_SUCCESS;
@@ -348,6 +353,11 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
     sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
   }
+
+  // Process SR
+  if (value.valid and value.sr > 0) {
+    sched.ul_sr_info(cfg_.pucch.rnti);
+  }
   return true;
 }
 
@@ -372,7 +382,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
 
     auto process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
       srsran::rwlock_read_guard lock(rwlock);
-      if (is_rnti_active_unsafe(rnti)) {
+      if (is_rnti_active_nolock(rnti)) {
         ue_db[rnti]->process_pdu(std::move(pdu));
       } else {
         logger.debug("Discarding PDU rnti=0x%x", rnti);
@@ -415,7 +425,8 @@ srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interfac
 
     // copy only the required bits
     std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant = {};
-    std::copy(std::begin(dci_msg.payload), std::begin(dci_msg.payload)+SRSRAN_RAR_UL_GRANT_NBITS, packed_ul_grant.begin());
+    std::copy(
+        std::begin(dci_msg.payload), std::begin(dci_msg.payload) + SRSRAN_RAR_UL_GRANT_NBITS, packed_ul_grant.begin());
     rar_subpdu.set_ul_grant(packed_ul_grant);
   }
 

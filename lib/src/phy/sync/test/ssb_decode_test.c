@@ -50,14 +50,30 @@ static cf_t*                 buffer     = NULL; // Base-band buffer
 static void usage(char* prog)
 {
   printf("Usage: %s [v]\n", prog);
+  printf("\t-s SSB subcarrier spacing [default, %s kHz]\n", srsran_subcarrier_spacing_to_str(ssb_scs));
+  printf("\t-S cell/carrier subcarrier spacing [default, %s kHz]\n", srsran_subcarrier_spacing_to_str(carrier_scs));
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "v")) != -1) {
+  while ((opt = getopt(argc, argv, "Ssv")) != -1) {
     switch (opt) {
+      case 's':
+        ssb_scs = srsran_subcarrier_spacing_from_str(argv[optind]);
+        if (ssb_scs == srsran_subcarrier_spacing_invalid) {
+          ERROR("Invalid SSB subcarrier spacing %s\n", argv[optind]);
+          exit(-1);
+        }
+        break;
+      case 'S':
+        carrier_scs = srsran_subcarrier_spacing_from_str(argv[optind]);
+        if (carrier_scs == srsran_subcarrier_spacing_invalid) {
+          ERROR("Invalid Cell/Carrier subcarrier spacing %s\n", argv[optind]);
+          exit(-1);
+        }
+        break;
       case 'v':
         srsran_verbose++;
         break;
@@ -91,7 +107,7 @@ static void gen_pbch_msg(srsran_pbch_msg_nr_t* pbch_msg, uint32_t ssb_idx)
   SRSRAN_MEM_ZERO(pbch_msg, srsran_pbch_msg_nr_t, 1);
 
   // Generate payload
-  srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_NR_PAYLOAD_SZ);
+  srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_MSG_NR_SZ);
 
   pbch_msg->ssb_idx = ssb_idx;
   pbch_msg->crc     = true;

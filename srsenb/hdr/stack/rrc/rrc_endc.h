@@ -57,7 +57,16 @@ public:
     uint16_t nr_rnti; /// RNTI assigned to UE on NR carrier
   };
 
-  rrc_endc(srsenb::rrc::ue* outer_ue);
+  // Parameter of the (NR)-carrier required for NR cell measurement handling
+  struct rrc_endc_cfg_t {
+    bool     act_from_b1_event = true; // ENDC will only be activated from B1 measurment
+    uint32_t nr_dl_arfcn       = 634176;
+    uint32_t nr_band           = 78;
+    asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_ ssb_ssc =
+        asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
+  };
+
+  rrc_endc(srsenb::rrc::ue* outer_ue, const rrc_endc_cfg_t& endc_cfg_);
 
   bool fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps);
@@ -66,8 +75,8 @@ public:
   bool is_endc_supported();
 
 private:
-  // Send SgNB addition request to gNB
-  bool start_sgnb_addition();
+  // Send SgNB addition request to gNB (either triggered through MeasReport or upon start)
+  void start_sgnb_addition();
 
   bool is_endc_activation_running() const { return not is_in_state<endc_deactivated_st>(); }
 
@@ -77,6 +86,7 @@ private:
 
   // vars
   bool                                 endc_supported = false;
+  rrc_endc_cfg_t                       endc_cfg       = {};
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
   // fixed ENDC variables

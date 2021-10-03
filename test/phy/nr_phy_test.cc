@@ -49,7 +49,7 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("rnti",          bpo::value<uint16_t>(&rnti)->default_value(rnti),                              "UE RNTI")
         ("duration",      bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),        "Test duration in slots")
         ("lib.log.level", bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level), "PHY librray log level")
-        ("reference", bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str), "Reference PHY configuration arguments")
+        ("reference",     bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str), "Reference PHY configuration arguments")
         ;
 
   options_gnb_stack.add_options()
@@ -69,25 +69,25 @@ test_bench::args_t::args_t(int argc, char** argv)
         ;
 
   options_gnb_phy.add_options()
-      ("gnb.phy.nof_threads",     bpo::value<uint32_t>(&gnb_phy.nof_phy_threads)->default_value(1),          "Number of threads")
-      ("gnb.phy.log.level",       bpo::value<std::string>(&gnb_phy.log.phy_level)->default_value("warning"), "gNb PHY log level")
-      ("gnb.phy.log.hex_limit",   bpo::value<int>(&gnb_phy.log.phy_hex_limit)->default_value(0),             "gNb PHY log hex limit")
-      ("gnb.phy.log.id_preamble", bpo::value<std::string>(&gnb_phy.log.id_preamble)->default_value("GNB/"),  "gNb PHY log ID preamble")
-      ("gnb.phy.pusch.max_iter",  bpo::value<uint32_t>(&gnb_phy.pusch_max_nof_iter)->default_value(10),      "PUSCH LDPC max number of iterations")
-      ;
+        ("gnb.phy.nof_threads",     bpo::value<uint32_t>(&gnb_phy.nof_phy_threads)->default_value(1),          "Number of threads")
+        ("gnb.phy.log.level",       bpo::value<std::string>(&gnb_phy.log.phy_level)->default_value("warning"), "gNb PHY log level")
+        ("gnb.phy.log.hex_limit",   bpo::value<int>(&gnb_phy.log.phy_hex_limit)->default_value(0),             "gNb PHY log hex limit")
+        ("gnb.phy.log.id_preamble", bpo::value<std::string>(&gnb_phy.log.id_preamble)->default_value("GNB/"),  "gNb PHY log ID preamble")
+        ("gnb.phy.pusch.max_iter",  bpo::value<uint32_t>(&gnb_phy.pusch_max_nof_iter)->default_value(10),      "PUSCH LDPC max number of iterations")
+        ;
 
   options_ue_phy.add_options()
-      ("ue.phy.nof_threads", bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),             "Number of threads")
-      ("ue.phy.log.level", bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"),      "UE PHY log level")
-      ("ue.phy.log.hex_limit", bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),              "UE PHY log hex limit")
-      ("ue.phy.log.id_preamble", bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"), "UE PHY log ID preamble")
-      ;
+        ("ue.phy.nof_threads",     bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),          "Number of threads")
+        ("ue.phy.log.level",       bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"), "UE PHY log level")
+        ("ue.phy.log.hex_limit",   bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),             "UE PHY log hex limit")
+        ("ue.phy.log.id_preamble", bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"),  "UE PHY log ID preamble")
+        ;
 
   options_ue_stack.add_options()
-      ("ue.stack.sr.period",      bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period),           "SR period in number of opportunities. Set 0 to disable and 1 for all.")
-      ("ue.stack.prach.period",   bpo::value<uint32_t>(&ue_stack.prach_period)->default_value(ue_stack.prach_period),     "PRACH period in SFN. Set 0 to disable and 1 for all.")
-      ("ue.stack.prach.preamble", bpo::value<uint32_t>(&ue_stack.prach_preamble)->default_value(ue_stack.prach_preamble), "PRACH preamble. Set 0 to disable and 1 for all.")
-      ;
+        ("ue.stack.sr.period",      bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period),           "SR period in number of opportunities. Set 0 to disable and 1 for all.")
+        ("ue.stack.prach.period",   bpo::value<uint32_t>(&ue_stack.prach_period)->default_value(ue_stack.prach_period),     "PRACH period in SFN. Set 0 to disable and 1 for all.")
+        ("ue.stack.prach.preamble", bpo::value<uint32_t>(&ue_stack.prach_preamble)->default_value(ue_stack.prach_preamble), "PRACH preamble. Set 0 to disable and 1 for all.")
+        ;
 
   options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
         ("help",                      "Show this message")
@@ -273,11 +273,14 @@ int main(int argc, char** argv)
   // Print SR
   if (metrics.ue_stack.sr_count > 0) {
     srsran::console("SR:\n");
-    srsran::console("   +------------+------------+\n");
-    srsran::console("   | %10s | %10s |\n", "Transmit'd", "Received");
-    srsran::console("   +------------+------------+\n");
-    srsran::console("   | %10d | %10d |\n", metrics.ue_stack.sr_count, metrics.gnb_stack.sr_count);
-    srsran::console("   +------------+------------+\n");
+    srsran::console("   +------------+------------+------------+\n");
+    srsran::console("   | %10s | %10s | %10s |\n", "Transmit'd", "Received", "Detection");
+    srsran::console("   +------------+------------+------------+\n");
+    srsran::console("   | %10d | %10d | %10.5f |\n",
+                    metrics.ue_stack.sr_count,
+                    metrics.gnb_stack.sr_count,
+                    (double)metrics.gnb_stack.sr_count / (double)metrics.ue_stack.sr_count);
+    srsran::console("   +------------+------------+------------+\n");
   }
 
   // Assert metrics

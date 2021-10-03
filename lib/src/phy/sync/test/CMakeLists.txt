@@ -141,11 +141,21 @@ add_test(cfo_test_2 cfo_test -f 0.99849 -n 1000)
 
 add_executable(ssb_measure_test ssb_measure_test.c)
 target_link_libraries(ssb_measure_test srsran_phy)
-add_nr_test(ssb_measure_test ssb_measure_test)
 
 add_executable(ssb_decode_test ssb_decode_test.c)
 target_link_libraries(ssb_decode_test srsran_phy)
-add_nr_test(ssb_decode_test ssb_decode_test)
+
+# For each supported SSB subcarrier spacing
+foreach (SSB_SCS 15 30)
+  # For each supported Cell/Carrier subcarrier spacing
+  foreach (CELL_SCS 15 30)
+    # Test SSB measurements
+    add_nr_test(ssb_measure_test_${SSB_SCS}_${CELL_SCS} ssb_measure_test -s ${SSB_SCS} -S ${CELL_SCS})
+
+    # Test SSB PBCH decoding
+    add_nr_test(ssb_decode_test_${SSB_SCS}_${CELL_SCS} ssb_decode_test -s ${SSB_SCS} -S ${CELL_SCS})
+  endforeach ()
+endforeach ()
 
 add_executable(ssb_file_test ssb_file_test.c)
 target_link_libraries(ssb_file_test srsran_phy)

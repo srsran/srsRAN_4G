@@ -36,6 +36,8 @@ public:
   virtual uint16_t reserve_rnti(uint32_t enb_cc_idx) = 0;
 
   virtual int ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) = 0;
+
+  virtual int remove_ue(uint16_t rnti) = 0;
 };
 
 // NR interface is identical to EUTRA interface

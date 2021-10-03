@@ -69,6 +69,7 @@ public:
   virtual void reset()                               = 0;
   virtual void reestablish()                         = 0;
 
+  void set_enabled(bool enabled) { active = enabled; }
   bool is_active() { return active; }
   bool is_srb() { return cfg.rb_type == PDCP_RB_IS_SRB; }
   bool is_drb() { return cfg.rb_type == PDCP_RB_IS_DRB; }

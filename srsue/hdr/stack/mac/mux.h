@@ -66,7 +66,7 @@ public:
   void print_logical_channel_state(const std::string& info);
 
 private:
-  uint8_t* pdu_get_unsafe(srsran::byte_buffer_t* payload, uint32_t pdu_sz);
+  uint8_t* pdu_get_nolock(srsran::byte_buffer_t* payload, uint32_t pdu_sz);
   bool     pdu_move_to_msg3(uint32_t pdu_sz);
   uint32_t allocate_sdu(uint32_t lcid, srsran::sch_pdu* pdu, int max_sdu_sz);
   bool     sched_sdu(srsran::logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);

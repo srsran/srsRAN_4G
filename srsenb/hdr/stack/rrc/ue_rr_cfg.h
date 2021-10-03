@@ -54,18 +54,18 @@ class bearer_cfg_handler;
 struct ue_var_cfg_t;
 
 /// Fill RadioResourceConfigDedicated with data known at the RRCSetup/Reestablishment stage
-void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
-                           const rrc_cfg_t&         enb_cfg,
-                           const ue_cell_ded_list&  ue_cell_list);
+int fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s& rr_cfg,
+                          const rrc_cfg_t&         enb_cfg,
+                          const ue_cell_ded_list&  ue_cell_list);
 
 /// Apply Reconf updates and update current state
-void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
-                          ue_var_cfg_t&                        current_ue_cfg,
-                          const rrc_cfg_t&                     enb_cfg,
-                          const ue_cell_ded_list&              ue_cell_list,
-                          bearer_cfg_handler&                  bearers,
-                          const srsran::rrc_ue_capabilities_t& ue_caps,
-                          bool                                 phy_cfg_updated);
+int apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
+                         ue_var_cfg_t&                        current_ue_cfg,
+                         const rrc_cfg_t&                     enb_cfg,
+                         const ue_cell_ded_list&              ue_cell_list,
+                         bearer_cfg_handler&                  bearers,
+                         const srsran::rrc_ue_capabilities_t& ue_caps,
+                         bool                                 phy_cfg_updated);
 
 /// Apply radioResourceConfigDedicated updates to the current UE RRC configuration
 void apply_rr_cfg_ded_diff(asn1::rrc::rr_cfg_ded_s&       current_rr_cfg_ded,

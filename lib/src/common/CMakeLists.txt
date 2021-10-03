@@ -36,6 +36,7 @@ set(SOURCES arch_select.cc
             pcap.c
             phy_cfg_nr.cc
             phy_cfg_nr_default.cc
+            rrc_common.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc

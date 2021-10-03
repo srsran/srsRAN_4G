@@ -79,8 +79,6 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
 
   // Init all layers
   mac_nr_args_t mac_args = {};
-  mac_args.fixed_dl_mcs  = 28;
-  mac_args.fixed_ul_mcs  = 10;
   mac_args.pcap          = args.mac_pcap;
   mac_args.pcap.filename = "/tmp/enb_mac_nr.pcap";
   if (mac.init(mac_args, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
@@ -89,7 +87,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
   }
 
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
-  pdcp.init(&rlc, &rrc, nullptr);
+  pdcp.init(&rlc, &rrc, x2_);
 
   if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, nullptr, nullptr, x2_) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");

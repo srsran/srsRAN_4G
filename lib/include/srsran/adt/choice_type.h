@@ -64,7 +64,7 @@ struct choice_storage_t {
   }
 
   template <typename U>
-  void destroy_unsafe()
+  void destroy_unchecked()
   {
     get_unchecked<U>().~U();
   };
@@ -80,7 +80,7 @@ struct CopyCtorVisitor {
   template <typename T>
   void operator()(const T& t)
   {
-    c->construct_unsafe(t);
+    c->construct_unchecked(t);
   }
   C* c;
 };
@@ -91,18 +91,18 @@ struct MoveCtorVisitor {
   template <typename T>
   void operator()(T&& t)
   {
-    c->construct_unsafe(std::move(t));
+    c->construct_unchecked(std::move(t));
   }
   C* c;
 };
 
 template <typename C>
-struct DtorUnsafeVisitor {
-  explicit DtorUnsafeVisitor(C* c_) : c(c_) {}
+struct DtorUncheckVisitor {
+  explicit DtorUncheckVisitor(C* c_) : c(c_) {}
   template <typename T>
   void operator()(T& t)
   {
-    c->template destroy_unsafe<T>();
+    c->template destroy_unchecked<T>();
   }
   C* c;
 };
@@ -119,12 +119,12 @@ struct tagged_union_t
 
   std::size_t type_id;
 
-  using base_t::destroy_unsafe;
+  using base_t::destroy_unchecked;
   using base_t::get_buffer;
   using base_t::get_unchecked;
 
   template <typename U, typename... Args2>
-  void construct_emplace_unsafe(Args2&&... args)
+  void construct_emplace_unchecked(Args2&&... args)
   {
     using U2 = typename std::decay<U>::type;
     static_assert(type_list_contains<U2, Args...>(),
@@ -134,7 +134,7 @@ struct tagged_union_t
   }
 
   template <typename U>
-  void construct_unsafe(U&& u)
+  void construct_unchecked(U&& u)
   {
     using U2 = typename std::decay<U>::type;
     static_assert(type_list_contains<U2, Args...>(),
@@ -143,11 +143,11 @@ struct tagged_union_t
     new (get_buffer()) U2(std::forward<U>(u));
   }
 
-  void copy_unsafe(const this_type& other) { visit(CopyCtorVisitor<this_type>{this}, other); }
+  void copy_unchecked(const this_type& other) { visit(CopyCtorVisitor<this_type>{this}, other); }
 
-  void move_unsafe(this_type&& other) { visit(MoveCtorVisitor<this_type>{this}, other); }
+  void move_unchecked(this_type&& other) { visit(MoveCtorVisitor<this_type>{this}, other); }
 
-  void dtor_unsafe() { visit(choice_details::DtorUnsafeVisitor<base_t>{this}, *this); }
+  void dtor_unchecked() { visit(choice_details::DtorUncheckVisitor<base_t>{this}, *this); }
 
   size_t get_type_idx() const { return type_id; }
 
@@ -189,51 +189,51 @@ public:
             typename = typename std::enable_if<std::is_constructible<default_type, Args2...>::value>::type>
   explicit choice_t(Args2&&... args) noexcept
   {
-    base_t::template construct_emplace_unsafe<default_type>(std::forward<Args2>(args)...);
+    base_t::template construct_emplace_unchecked<default_type>(std::forward<Args2>(args)...);
   }
 
-  choice_t(const choice_t<Args...>& other) noexcept { base_t::copy_unsafe(other); }
+  choice_t(const choice_t<Args...>& other) noexcept { base_t::copy_unchecked(other); }
 
-  choice_t(choice_t<Args...>&& other) noexcept { base_t::move_unsafe(std::move(other)); }
+  choice_t(choice_t<Args...>&& other) noexcept { base_t::move_unchecked(std::move(other)); }
 
   template <typename U, typename = enable_if_can_hold<U> >
   choice_t(U&& u) noexcept
   {
-    base_t::construct_unsafe(std::forward<U>(u));
+    base_t::construct_unchecked(std::forward<U>(u));
   }
 
-  ~choice_t() { base_t::dtor_unsafe(); }
+  ~choice_t() { base_t::dtor_unchecked(); }
 
   template <typename U, typename = enable_if_can_hold<U> >
   choice_t& operator=(U&& u) noexcept
   {
     if (not base_t::template is<U>()) {
-      base_t::dtor_unsafe();
+      base_t::dtor_unchecked();
     }
-    base_t::construct_unsafe(std::forward<U>(u));
+    base_t::construct_unchecked(std::forward<U>(u));
     return *this;
   }
 
   template <typename U, typename... Args2>
   void emplace(Args2&&... args) noexcept
   {
-    base_t::dtor_unsafe();
-    base_t::template construct_emplace_unsafe<U>(std::forward<Args2>(args)...);
+    base_t::dtor_unchecked();
+    base_t::template construct_emplace_unchecked<U>(std::forward<Args2>(args)...);
   }
 
   choice_t& operator=(const choice_t& other) noexcept
   {
     if (this != &other) {
-      base_t::dtor_unsafe();
-      base_t::copy_unsafe(other);
+      base_t::dtor_unchecked();
+      base_t::copy_unchecked(other);
     }
     return *this;
   }
 
   choice_t& operator=(choice_t&& other) noexcept
   {
-    base_t::dtor_unsafe();
-    base_t::move_unsafe(std::move(other));
+    base_t::dtor_unchecked();
+    base_t::move_unchecked(std::move(other));
     return *this;
   }
 

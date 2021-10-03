@@ -85,7 +85,7 @@ private:
       bool calc_is_new_transmission(mac_interface_phy_lte::mac_grant_dl_t grant);
 
       // Internal function to reset process, caller must hold the mutex
-      void reset_unsafe();
+      void reset_nolock();
 
       std::mutex mutex;
 
@@ -118,14 +118,14 @@ private:
 
   dl_sps dl_sps_assig;
 
-  std::vector<dl_harq_process>  proc;
-  dl_harq_process               bcch_proc;
-  demux*                        demux_unit = nullptr;
-  srslog::basic_logger&         logger;
-  srsran::mac_pcap*             pcap                = nullptr;
-  ue_rnti*                      rntis               = nullptr;
-  uint16_t                      last_temporal_crnti = 0;
-  int                           si_window_start     = 0;
+  std::vector<dl_harq_process> proc;
+  dl_harq_process              bcch_proc;
+  demux*                       demux_unit = nullptr;
+  srslog::basic_logger&        logger;
+  srsran::mac_pcap*            pcap                = nullptr;
+  ue_rnti*                     rntis               = nullptr;
+  uint16_t                     last_temporal_crnti = 0;
+  int                          si_window_start     = 0;
 
   std::mutex retx_cnt_mutex = {};
 

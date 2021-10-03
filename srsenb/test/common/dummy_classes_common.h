@@ -48,6 +48,7 @@ public:
 class pdcp_dummy : public pdcp_interface_rrc, public pdcp_interface_gtpu
 {
 public:
+  void set_enabled(uint16_t rnti, uint32_t lcid, bool enabled) override {}
   void reset(uint16_t rnti) override {}
   void add_user(uint16_t rnti) override {}
   void rem_user(uint16_t rnti) override {}

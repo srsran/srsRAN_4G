@@ -26,7 +26,9 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-si_sched::si_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
+si_sched::si_sched(const bwp_params& bwp_cfg_) :
+  bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
+{}
 
 void si_sched::run_slot(bwp_slot_allocator& slot_alloc)
 {
@@ -84,7 +86,9 @@ void si_sched::run_slot(bwp_slot_allocator& slot_alloc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ra_sched::ra_sched(const bwp_params& bwp_cfg_) : bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger("MAC")) {}
+ra_sched::ra_sched(const bwp_params& bwp_cfg_) :
+  bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
+{}
 
 alloc_result
 ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
@@ -232,7 +236,7 @@ bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) :
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 serv_cell_manager::serv_cell_manager(const sched_cell_params& cell_cfg_) :
-  cfg(cell_cfg_), logger(srslog::fetch_basic_logger("MAC"))
+  cfg(cell_cfg_), logger(srslog::fetch_basic_logger(cell_cfg_.sched_cfg.logger_name))
 {
   for (uint32_t bwp_id = 0; bwp_id < cfg.cell_cfg.bwps.size(); ++bwp_id) {
     bwps.emplace_back(cell_cfg_.bwps[bwp_id]);

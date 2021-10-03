@@ -136,8 +136,9 @@ public:
                             const enb_cell_common_list& enb_common_list);
   ~ue_cell_ded_list();
 
-  ue_cell_ded* add_cell(uint32_t enb_cc_idx);
+  ue_cell_ded* add_cell(uint32_t enb_cc_idx, bool init_pucch = true);
   bool         rem_last_cell();
+  bool         init_pucch_pcell();
   bool         set_cells(const std::vector<uint32_t>& enb_cc_idxs);
 
   ue_cell_ded* get_ue_cc_idx(uint32_t ue_cc_idx) { return (ue_cc_idx < nof_cells()) ? &cell_list[ue_cc_idx] : nullptr; }

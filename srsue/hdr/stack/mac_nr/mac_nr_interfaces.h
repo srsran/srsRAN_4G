@@ -63,11 +63,17 @@ public:
 class mac_interface_mux_nr
 {
 public:
+  // MUX can ask MAC if a C-RNTI is present
+  virtual bool has_crnti() = 0;
+
   // MUX can query MAC for current C-RNTI for Msg3 transmission
   virtual uint16_t get_crnti() = 0;
 
   // MUX queries MAC to return LCG state for SBSR
   virtual srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr() = 0;
+
+  // MUX informs MAC about padding bytes so BSR proc can decide whether to create BSR or not
+  virtual void set_padding_bytes(uint32_t nof_bytes) = 0;
 };
 
 /**

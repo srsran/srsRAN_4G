@@ -54,16 +54,17 @@ public:
   int dl_pending_bytes = 0, ul_pending_bytes = 0;
 
   // UE parameters that are sector specific
-  const bwp_ue_cfg* cfg      = nullptr;
-  harq_entity*      harq_ent = nullptr;
-  slot_point        pdcch_slot;
-  slot_point        pdsch_slot;
-  slot_point        pusch_slot;
-  slot_point        uci_slot;
-  uint32_t          dl_cqi = 0;
-  uint32_t          ul_cqi = 0;
-  dl_harq_proc*     h_dl   = nullptr;
-  ul_harq_proc*     h_ul   = nullptr;
+  const bwp_ue_cfg*   cfg      = nullptr;
+  harq_entity*        harq_ent = nullptr;
+  slot_point          pdcch_slot;
+  slot_point          pdsch_slot;
+  slot_point          pusch_slot;
+  slot_point          uci_slot;
+  uint32_t            dl_cqi  = 0;
+  uint32_t            ul_cqi  = 0;
+  dl_harq_proc*       h_dl    = nullptr;
+  ul_harq_proc*       h_ul    = nullptr;
+  srsran_uci_cfg_nr_t uci_cfg = {};
 };
 
 class ue_carrier
@@ -100,7 +101,7 @@ public:
 
   void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
-  void ul_sr_info(slot_point slot_rx) { last_sr_slot = slot_rx; }
+  void ul_sr_info() { last_sr_slot = last_pdcch_slot - TX_ENB_DELAY; }
 
   bool has_ca() const
   {
@@ -117,6 +118,7 @@ private:
   const uint16_t      rnti;
   const sched_params& sched_cfg;
 
+  slot_point last_pdcch_slot;
   slot_point last_sr_slot;
   int        ul_pending_bytes = 0, dl_pending_bytes = 0;
 

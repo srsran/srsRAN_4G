@@ -30,6 +30,13 @@ using srsran::uint32_to_uint8;
 #define procWarning(fmt, ...) ngap_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procInfo(fmt, ...) ngap_ptr->logger.info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
+#define WarnUnsupportFeature(cond, featurename)                                                                        \
+  do {                                                                                                                 \
+    if (cond) {                                                                                                        \
+      logger.warning("Not handling feature - %s", featurename);                                                        \
+    }                                                                                                                  \
+  } while (0)
+
 using namespace asn1::ngap_nr;
 
 namespace srsenb {
@@ -114,10 +121,11 @@ ngap::ngap(srsran::task_sched_handle   task_sched_,
 
 ngap::~ngap() {}
 
-int ngap::init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_)
+int ngap::init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_, gtpu_interface_rrc * gtpu_)
 {
   rrc  = rrc_;
   args = args_;
+  gtpu = gtpu_;
 
   build_tai_cgi();
 
@@ -216,7 +224,7 @@ void ngap::initial_ue(uint16_t                                rnti,
                       asn1::ngap_nr::rrcestablishment_cause_e cause,
                       srsran::unique_byte_buffer_t            pdu)
 {
-  std::unique_ptr<ue> ue_ptr{new ue{this, rrc, logger}};
+  std::unique_ptr<ue> ue_ptr{new ue{this, rrc, gtpu, logger}};
   ue_ptr->ctxt.rnti       = rnti;
   ue_ptr->ctxt.gnb_cc_idx = gnb_cc_idx;
   ue* u                   = users.add_user(std::move(ue_ptr));
@@ -233,7 +241,7 @@ void ngap::initial_ue(uint16_t                                rnti,
                       srsran::unique_byte_buffer_t            pdu,
                       uint32_t                                s_tmsi)
 {
-  std::unique_ptr<ue> ue_ptr{new ue{this, rrc, logger}};
+  std::unique_ptr<ue> ue_ptr{new ue{this, rrc, gtpu, logger}};
   ue_ptr->ctxt.rnti       = rnti;
   ue_ptr->ctxt.gnb_cc_idx = gnb_cc_idx;
   ue* u                   = users.add_user(std::move(ue_ptr));
@@ -423,6 +431,8 @@ bool ngap::handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg)
       return handle_initial_ctxt_setup_request(msg.value.init_context_setup_request());
     case ngap_elem_procs_o::init_msg_c::types_opts::ue_context_release_cmd:
       return handle_ue_ctxt_release_cmd(msg.value.ue_context_release_cmd());
+    case ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request:
+      return handle_ue_pdu_session_res_setup_request(msg.value.pdu_session_res_setup_request());
     default:
       logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
@@ -541,10 +551,21 @@ bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cm
   return true;
 }
 
-bool ngap::handle_pdu_session_resource_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
 {
-  // TODO
-  logger.warning("Not implemented yet");
+  
+  ue* u =
+      handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
+  if (u == nullptr) {
+    logger.warning("Can not find UE");
+    return false;
+  }
+
+  if (msg.protocol_ies.ue_aggregate_maximum_bit_rate_present) {
+    rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg.protocol_ies.ue_aggregate_maximum_bit_rate.value);
+  }
+  u->handle_pdu_session_res_setup_request(msg);
+
   return true;
 }
 

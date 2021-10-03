@@ -125,6 +125,12 @@ public:
 class rrc_nr_interface_nas_5g
 {
 public:
+  virtual ~rrc_nr_interface_nas_5g()                           = default;
+  virtual int      write_sdu(srsran::unique_byte_buffer_t sdu) = 0;
+  virtual bool     is_connected()                              = 0;
+  virtual int      connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu) = 0;
+  virtual uint16_t get_mcc()                                                                                    = 0;
+  virtual uint16_t get_mnc()                                                                                    = 0;
 };
 } // namespace srsue
 

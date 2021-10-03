@@ -181,6 +181,7 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
     return false;
   }
   prach_cfg.freq_offset -= lte_nr_prach_offset;
+  prach_cfg.tdd_config.configured = (cfg.duplex.mode == SRSRAN_DUPLEX_MODE_TDD);
 
   // Set the PRACH configuration
   if (not prach_buffer->set_cell(cell, prach_cfg)) {

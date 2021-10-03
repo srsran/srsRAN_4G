@@ -143,8 +143,9 @@ public:
   virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) = 0;
 
   /// User management
-  virtual int add_user(uint16_t rnti) = 0;
-  virtual int update_user(uint16_t new_rnti, uint16_t old_rnti) = 0;
+  virtual int  add_user(uint16_t rnti)                           = 0;
+  virtual int  update_user(uint16_t new_rnti, uint16_t old_rnti) = 0;
+  virtual void set_activity_user(uint16_t rnti)                  = 0;
 };
 
 // NR interface is almost identical to EUTRA version
@@ -169,6 +170,7 @@ public:
     srsran_carrier_nr_t   carrier;
     srsran_pdcch_cfg_nr_t pdcch;
     srsran_prach_cfg_t    prach;
+    srsran_duplex_mode_t  duplex_mode;
   };
 
   virtual int set_common_cfg(const common_cfg_t& common_cfg) = 0;

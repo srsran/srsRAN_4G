@@ -536,10 +536,10 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
       if (w) {
         // Reset secondary serving cell configuration, this needs to be done when the sf_worker is reserved to prevent
         // resetting the cell while it is working
-        w->reset_cell_unlocked(cc_idx);
+        w->reset_cell_nolock(cc_idx);
 
         // Set the new cell
-        w->set_cell_unlocked(cc_idx, cell_info);
+        w->set_cell_nolock(cc_idx, cell_info);
 
         // Release the new worker, it should not start processing until the SCell state is set to configured
         w->release();
@@ -587,7 +587,7 @@ void phy::set_config_tdd(srsran_tdd_config_t& tdd_config_)
       // set_tdd_config is not protected so run when worker is finished
       lte::sf_worker* w = lte_workers.wait_worker_id(i);
       if (w) {
-        w->set_tdd_config_unlocked(tdd_config);
+        w->set_tdd_config_nolock(tdd_config);
         w->release();
       }
     }
@@ -673,9 +673,9 @@ bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 
   // tune radio
   for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
-    logger_phy.info("Tuning Rx channel %d to %.2f GHz", i + common.args->nof_lte_carriers, dl_freq_hz / 1e6);
+    logger_phy.info("Tuning Rx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, dl_freq_hz / 1e6);
     radio->set_rx_freq(i + common.args->nof_lte_carriers, dl_freq_hz);
-    logger_phy.info("Tuning Tx channel %d to %.2f GHz", i + common.args->nof_lte_carriers, ul_freq_hz / 1e6);
+    logger_phy.info("Tuning Tx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, ul_freq_hz / 1e6);
     radio->set_tx_freq(i + common.args->nof_lte_carriers, ul_freq_hz);
   }
 

@@ -118,8 +118,12 @@ public:
 class gtpu_dummy : public srsenb::gtpu_interface_rrc
 {
 public:
-  srsran::expected<uint32_t>
-  add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props) override
+  srsran::expected<uint32_t> add_bearer(uint16_t            rnti,
+                                        uint32_t            lcid,
+                                        uint32_t            addr,
+                                        uint32_t            teid_out,
+                                        uint32_t&           addr_in,
+                                        const bearer_props* props) override
   {
     return 1;
   }

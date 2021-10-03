@@ -140,15 +140,23 @@ public:
     plmns[0].plmn_id.from_number(mcc, mnc);
     plmns[0].tac = 0xffff;
   }
-  void init(nas_5g* nas_5g_) { nas_5g_ptr = nas_5g_; }
-  void write_sdu(unique_byte_buffer_t sdu)
+  void init(srsue::nas_5g* nas_5g_) { nas_5g_ptr = nas_5g_; }
+  int  write_sdu(unique_byte_buffer_t sdu)
   {
     last_sdu_len = sdu->N_bytes;
     // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
+    return SRSRAN_SUCCESS;
   }
+  virtual bool is_connected() { return true; }
+  virtual int  connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
+  {
+    return SRSRAN_SUCCESS;
+  }
+  uint16_t get_mcc() { return 0x0000; }
+  uint16_t get_mnc() { return 0x0000; }
 
 private:
-  nas_5g*                         nas_5g_ptr;
+  srsue::nas_5g*                  nas_5g_ptr;
   uint32_t                        last_sdu_len;
   nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
 };

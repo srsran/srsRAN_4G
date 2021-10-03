@@ -212,7 +212,9 @@ int enb_stack_lte::init(const stack_args_t&      args_,
 
 void enb_stack_lte::tti_clock()
 {
-  sync_task_queue.push([this]() { tti_clock_impl(); });
+  if (started.load(std::memory_order_relaxed)) {
+    sync_task_queue.push([this]() { tti_clock_impl(); });
+  }
 }
 
 void enb_stack_lte::tti_clock_impl()
@@ -288,6 +290,12 @@ void enb_stack_lte::run_thread()
   while (started.load(std::memory_order_relaxed)) {
     task_sched.run_next_task();
   }
+}
+
+void enb_stack_lte::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+{
+  // call GTPU adapter to map to EPS bearer
+  gtpu_adapter->write_pdu(rnti, lcid, std::move(pdu));
 }
 
 } // namespace srsenb

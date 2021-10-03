@@ -401,6 +401,7 @@ private:
     void update_notification_ack_info(uint32_t rlc_sn);
 
     void debug_state();
+    void empty_queue_nolock();
 
     int  required_buffer_size(const rlc_amd_retx_t& retx);
     void retransmit_pdu(uint32_t sn);

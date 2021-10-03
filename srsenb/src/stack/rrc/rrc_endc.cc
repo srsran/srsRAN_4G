@@ -38,9 +38,18 @@ using namespace asn1::rrc;
  *                                  rrc_endc class
  ************************************************************************************************/
 
-rrc::ue::rrc_endc::rrc_endc(rrc::ue* outer_ue) :
-  base_t(outer_ue->parent->logger), rrc_ue(outer_ue), rrc_enb(outer_ue->parent), logger(outer_ue->parent->logger)
-{}
+rrc::ue::rrc_endc::rrc_endc(rrc::ue* outer_ue, const rrc_endc_cfg_t& endc_cfg_) :
+  base_t(outer_ue->parent->logger),
+  rrc_ue(outer_ue),
+  rrc_enb(outer_ue->parent),
+  logger(outer_ue->parent->logger),
+  endc_cfg(endc_cfg_)
+{
+  // start SgNB activation if B1 events are disabled
+  if (endc_cfg.act_from_b1_event == false) {
+    start_sgnb_addition();
+  }
+}
 
 //! Method to add NR fields to a RRC Connection Reconfiguration Message
 bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg)
@@ -50,7 +59,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     return false;
   }
 
-  if (not is_endc_activation_running()) {
+  if (not is_endc_activation_running() && endc_cfg.act_from_b1_event) {
     // add hard-coded measConfig
     conn_recfg->meas_cfg_present = true;
     meas_cfg_s& meas_cfg         = conn_recfg->meas_cfg;
@@ -59,26 +68,16 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 
     meas_obj_to_add_mod_s meas_obj = {};
     meas_obj.meas_obj_id           = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
-    meas_obj.meas_obj.set_meas_obj_eutra();
-    meas_obj.meas_obj.meas_obj_eutra().carrier_freq       = 300;
-    meas_obj.meas_obj.meas_obj_eutra().allowed_meas_bw    = allowed_meas_bw_opts::mbw50;
-    meas_obj.meas_obj.meas_obj_eutra().presence_ant_port1 = false;
-    meas_obj.meas_obj.meas_obj_eutra().neigh_cell_cfg.from_number(0b01);
-    meas_cfg.meas_obj_to_add_mod_list.push_back(meas_obj);
-
-    meas_obj_to_add_mod_s meas_obj2 = {};
-    meas_obj2.meas_obj_id           = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
-    meas_obj2.meas_obj.set_meas_obj_nr_r15();
-    meas_obj2.meas_obj.meas_obj_nr_r15().carrier_freq_r15 = 634176;
-    meas_obj2.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15.set_sf20_r15();
-    meas_obj2.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15 =
+    meas_obj.meas_obj.set_meas_obj_nr_r15();
+    meas_obj.meas_obj.meas_obj_nr_r15().carrier_freq_r15 = endc_cfg.nr_dl_arfcn;
+    meas_obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15.set_sf20_r15();
+    meas_obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15 =
         asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
-    meas_obj2.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15 =
-        asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz30;
-    meas_obj2.meas_obj.meas_obj_nr_r15().ext = true;
-    meas_obj2.meas_obj.meas_obj_nr_r15().band_nr_r15.set_present(true);
-    meas_obj2.meas_obj.meas_obj_nr_r15().band_nr_r15.get()->set_setup() = 78;
-    meas_cfg.meas_obj_to_add_mod_list.push_back(meas_obj2);
+    meas_obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15 = endc_cfg.ssb_ssc;
+    meas_obj.meas_obj.meas_obj_nr_r15().ext                                       = true;
+    meas_obj.meas_obj.meas_obj_nr_r15().band_nr_r15.set_present(true);
+    meas_obj.meas_obj.meas_obj_nr_r15().band_nr_r15.get()->set_setup() = endc_cfg.nr_band;
+    meas_cfg.meas_obj_to_add_mod_list.push_back(meas_obj);
 
     // report config
     meas_cfg.report_cfg_to_add_mod_list_present = true;
@@ -114,8 +113,8 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     // measIdToAddModList
     meas_cfg.meas_id_to_add_mod_list_present = true;
     meas_id_to_add_mod_s meas_id             = {};
-    meas_id.meas_id                          = meas_obj.meas_obj_id;
-    meas_id.meas_obj_id                      = meas_obj2.meas_obj_id;
+    meas_id.meas_id                          = meas_cfg.meas_id_to_add_mod_list.size() + 1;
+    meas_id.meas_obj_id                      = meas_obj.meas_obj_id;
     meas_id.report_cfg_id                    = report_cfg.report_cfg_id;
     meas_cfg.meas_id_to_add_mod_list.push_back(meas_id);
 
@@ -178,7 +177,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 void rrc::ue::rrc_endc::handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_caps)
 {
   // skip any further checks if eNB runs without NR cells
-  if (rrc_enb->cfg.cell_list_nr.empty()) {
+  if (rrc_enb->cfg.num_nr_cells == 0) {
     Debug("Skipping UE capabilities. No NR cell configured.");
     return;
   }
@@ -252,6 +251,11 @@ void rrc::ue::rrc_endc::handle_ue_meas_report(const meas_report_s& msg)
     return;
   }
 
+  start_sgnb_addition();
+}
+
+void rrc::ue::rrc_endc::start_sgnb_addition()
+{
   // Start EN-DC activation using EPS bearer of EUTRA DRB1
   rrc_nr_interface_rrc::sgnb_addition_req_params_t params = {};
   params.eps_bearer_id =

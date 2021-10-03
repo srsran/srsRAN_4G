@@ -616,6 +616,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, srsran_cp_t cp)
       ERROR("Invalid symbol %d", symbol);
       return SRSRAN_ERROR;
   }
+  return SRSRAN_ERROR;
 }
 
 /**

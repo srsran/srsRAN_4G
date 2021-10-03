@@ -108,11 +108,11 @@ srsran::ul_sch_lcid bsr_format_convert(bsr_proc::bsr_format_t format)
 uint8_t* mux::pdu_get(srsran::byte_buffer_t* payload, uint32_t pdu_sz)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return pdu_get_unsafe(payload, pdu_sz);
+  return pdu_get_nolock(payload, pdu_sz);
 }
 
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
-uint8_t* mux::pdu_get_unsafe(srsran::byte_buffer_t* payload, uint32_t pdu_sz)
+uint8_t* mux::pdu_get_nolock(srsran::byte_buffer_t* payload, uint32_t pdu_sz)
 {
   // Logical Channel Procedure
   payload->clear();
@@ -372,7 +372,7 @@ uint8_t* mux::msg3_get(srsran::byte_buffer_t* payload, uint32_t pdu_sz)
   std::lock_guard<std::mutex> lock(mutex);
   if (pdu_sz < msg3_buff.get_tailroom()) {
     if (msg3_is_empty()) {
-      if (!pdu_get_unsafe(&msg3_buff, pdu_sz)) {
+      if (!pdu_get_nolock(&msg3_buff, pdu_sz)) {
         Error("Moving PDU from Mux unit to Msg3 buffer");
         return NULL;
       }

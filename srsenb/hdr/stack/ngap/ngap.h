@@ -37,6 +37,7 @@
 #include "srsran/common/threads.h"
 #include "srsran/interfaces/gnb_ngap_interfaces.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include <iostream>
 #include <unordered_map>
@@ -51,7 +52,7 @@ public:
        srslog::basic_logger&       logger,
        srsran::socket_manager_itf* rx_socket_handler);
   ~ngap();
-  int  init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_);
+  int  init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_, gtpu_interface_rrc* gtpu_);
   void stop();
 
   // RRC NR interface
@@ -93,6 +94,7 @@ private:
 
   // args
   rrc_interface_ngap_nr*      rrc  = nullptr;
+  gtpu_interface_rrc*         gtpu = nullptr;
   ngap_args_t                 args = {};
   srslog::basic_logger&       logger;
   srsran::task_sched_handle   task_sched;
@@ -134,7 +136,7 @@ private:
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
-  bool handle_pdu_session_resource_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+  bool handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
 
   class user_list
   {

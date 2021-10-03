@@ -37,16 +37,17 @@
 namespace srsenb {
 
 struct mac_nr_args_t {
-  srsran::phy_cfg_nr_t phy_base_cfg = {};
-  int                  fixed_dl_mcs = -1;
-  int                  fixed_ul_mcs = -1;
-  srsenb::pcap_args_t  pcap;
+  srsran::phy_cfg_nr_t            phy_base_cfg = {};
+  int                             fixed_dl_mcs = -1;
+  int                             fixed_ul_mcs = -1;
+  sched_nr_interface::sched_cfg_t sched_cfg    = {};
+  srsenb::pcap_args_t             pcap;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
 public:
-  mac_nr(srsran::task_sched_handle task_sched_, const srsenb::sched_nr_interface::sched_cfg_t& sched_cfg = {});
+  explicit mac_nr(srsran::task_sched_handle task_sched_);
   ~mac_nr();
 
   int  init(const mac_nr_args_t&    args_,
@@ -63,13 +64,12 @@ public:
   uint16_t reserve_rnti(uint32_t enb_cc_idx) override;
   int      read_pdu_bcch_bch(uint8_t* payload);
   int      ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override;
+  int      remove_ue(uint16_t rnti) override;
 
   // MAC interface for RLC
-  // TODO:
-  int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override { return 0; }
+  int rlc_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) override;
 
   // Interface for PHY
-  void process_pdus();
   int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
   int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
   int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
@@ -80,11 +80,10 @@ public:
 private:
   uint16_t add_ue_(uint32_t enb_cc_idx);
   uint16_t alloc_ue(uint32_t enb_cc_idx);
-  int      remove_ue(uint16_t rnti);
 
   // internal misc helpers
-  bool is_rnti_valid_unsafe(uint16_t rnti);
-  bool is_rnti_active_unsafe(uint16_t rnti);
+  bool is_rnti_valid_nolock(uint16_t rnti);
+  bool is_rnti_active_nolock(uint16_t rnti);
 
   // handle UCI data from either PUCCH or PUSCH
   bool handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value);
@@ -93,7 +92,7 @@ private:
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
   // Encoding
-  srsran::byte_buffer_t* assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
+  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
   srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
 
   // Interaction with other components
@@ -112,10 +111,10 @@ private:
 
   std::atomic<bool> started = {false};
 
-  const static uint32_t                              NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
-  srsran::slot_point                                 pdsch_slot, pusch_slot;
-  srsenb::sched_nr                                   sched;
-  std::vector<sched_nr_interface::cell_cfg_t>        cell_config;
+  const static uint32_t                       NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
+  srsran::slot_point                          pdsch_slot, pusch_slot;
+  srsenb::sched_nr                            sched;
+  std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
   pthread_rwlock_t                                                              rwlock     = {};

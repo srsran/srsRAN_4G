@@ -107,6 +107,7 @@ public:
 
   /// Interface for MUX
   srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
+  void                                 set_padding_bytes(uint32_t nof_bytes);
 
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
@@ -156,8 +157,7 @@ private:
 
   std::atomic<bool> started = {false};
 
-  uint16_t c_rnti        = SRSRAN_INVALID_RNTI;
-  uint64_t contention_id = 0;
+  ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
 
   std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
 

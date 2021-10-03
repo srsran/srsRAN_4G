@@ -216,10 +216,10 @@ bool dl_harq_entity::dl_harq_process::dl_tb_process::init(int pid, dl_harq_entit
 void dl_harq_entity::dl_harq_process::dl_tb_process::reset()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  reset_unsafe();
+  reset_nolock();
 }
 
-void dl_harq_entity::dl_harq_process::dl_tb_process::reset_unsafe()
+void dl_harq_entity::dl_harq_process::dl_tb_process::reset_nolock()
 {
   bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_dl_t));
   is_first_tb = true;
@@ -309,7 +309,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
          n_retx > RESET_DUPLICATE_TIMEOUT ? "yes" : "no");
     if (n_retx > RESET_DUPLICATE_TIMEOUT) {
       // reset without trying to acquire the mutex again
-      reset_unsafe();
+      reset_nolock();
     }
   }
 
@@ -369,7 +369,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
 
   if (ack && is_bcch) {
     // reset without trying to acquire the mutex again
-    reset_unsafe();
+    reset_nolock();
   }
 
   mutex.unlock();

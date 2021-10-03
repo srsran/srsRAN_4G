@@ -394,9 +394,10 @@ srsran::expected<uint32_t> bearer_cfg_handler::add_gtpu_bearer(uint32_t         
   // Initialize ERAB tunnel in GTPU right-away. DRBs are only created during RRC setup/reconf
   erab_t&             erab = it->second;
   erab_t::gtpu_tunnel bearer;
+  uint32_t            addr_in;
   bearer.teid_out                   = teid_out;
   bearer.addr                       = addr;
-  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.id, addr, teid_out, props);
+  srsran::expected<uint32_t> teidin = gtpu->add_bearer(rnti, erab.id, addr, teid_out, addr_in, props);
   if (teidin.is_error()) {
     logger->error("Adding erab_id=%d to GTPU", erab_id);
     return srsran::default_error_t();

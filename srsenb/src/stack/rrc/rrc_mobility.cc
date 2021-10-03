@@ -180,9 +180,20 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   }
 
   // Register new user in RRC
-  add_user(rnti, ue_cfg);
+  if (add_user(rnti, ue_cfg) != SRSRAN_SUCCESS) {
+    logger.error("Failed to create user");
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    return SRSRAN_INVALID_RNTI;
+  }
   auto it     = users.find(rnti);
   ue*  ue_ptr = it->second.get();
+  if (not ue_ptr->init_pucch()) {
+    rem_user(rnti);
+    logger.warning("Failed to allocate PUCCH resources for rnti=0x%x", rnti);
+    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
+    return SRSRAN_INVALID_RNTI;
+  }
+
   // Reset activity timer (Response is not expected)
   ue_ptr->set_activity_timeout(ue::UE_INACTIVITY_TIMEOUT);
   ue_ptr->set_activity(false);
@@ -225,6 +236,14 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
 //! Method called whenever the eNB receives a MeasReport from the UE. In normal situations, an HO procedure is started
 void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsran::unique_byte_buffer_t pdu)
 {
+  asn1::json_writer json_writer;
+  msg.to_json(json_writer);
+  event_logger::get().log_measurement_report(
+      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+      json_writer.to_string(),
+      rrc_ue->rnti);
+
   if (not is_in_state<idle_st>()) {
     Info("Received a MeasReport while UE is performing Handover. Ignoring...");
     return;
@@ -232,12 +251,12 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
   // Check if meas_id is valid
   const meas_results_s& meas_res = msg.crit_exts.c1().meas_report_r8().meas_results;
   if (not meas_res.meas_result_neigh_cells_present) {
-    Info("Received a MeasReport, but the UE did not detect any cell.");
+    Debug("Received a MeasReport, but the UE did not detect any cell.");
     return;
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
       meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
-    Error("MeasReports regarding non-EUTRA are not supported!");
+    Debug("Skipping non-EUTRA MeasReport.");
     return;
   }
   const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
@@ -277,14 +296,6 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
       break;
     }
   }
-
-  asn1::json_writer json_writer;
-  msg.to_json(json_writer);
-  event_logger::get().log_measurement_report(
-      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-      asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
-      json_writer.to_string(),
-      rrc_ue->rnti);
 }
 
 /**
@@ -698,7 +709,10 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
   /* Enter Handover Execution */
   // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
 
-  // Disable DRBs in the MAC, while Reconfiguration is taking place.
+  // Disable DRBs in the MAC and PDCP, while Reconfiguration is taking place.
+  for (const drb_to_add_mod_s& drb : rrc_ue->bearer_list.get_established_drbs()) {
+    rrc_ue->parent->pdcp->set_enabled(rrc_ue->rnti, drb_to_lcid((lte_drb)drb.drb_id), false);
+  }
   rrc_ue->mac_ctrl.set_drb_activation(false);
   rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
 
@@ -859,11 +873,11 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     if (ho_req.transparent_container->erab_info_list_present) {
       const auto& lst = ho_req.transparent_container->erab_info_list;
       const auto* it  = std::find_if(
-           lst.begin(),
-           lst.end(),
-           [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+          lst.begin(),
+          lst.end(),
+          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
             return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
-           });
+          });
       if (it == lst.end()) {
         continue;
       }
@@ -1042,7 +1056,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     const auto& drbs   = rrc_ue->bearer_list.get_established_drbs();
     lte_drb     drbid  = lte_lcid_to_drb(erab_it->second.lcid);
     auto        drb_it = std::find_if(
-               drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
+        drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return (lte_drb)drb.drb_id == drbid; });
     if (drb_it == drbs.end()) {
       logger.warning("The DRB id=%d does not exist", drbid);
     }

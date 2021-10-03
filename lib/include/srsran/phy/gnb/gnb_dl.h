@@ -22,6 +22,7 @@
 #ifndef SRSRAN_GNB_DL_H
 #define SRSRAN_GNB_DL_H
 
+#include "srsran/phy/ch_estimation/csi_rs.h"
 #include "srsran/phy/common/phy_common_nr.h"
 #include "srsran/phy/dft/ofdm.h"
 #include "srsran/phy/phch/pdcch_cfg_nr.h"
@@ -86,5 +87,9 @@ srsran_gnb_dl_pdcch_dl_info(const srsran_gnb_dl_t* q, const srsran_dci_dl_nr_t* 
 
 SRSRAN_API int
 srsran_gnb_dl_pdcch_ul_info(const srsran_gnb_dl_t* q, const srsran_dci_ul_nr_t* dci, char* str, uint32_t str_len);
+
+SRSRAN_API int srsran_gnb_dl_nzp_csi_rs_put(srsran_gnb_dl_t*                    q,
+                                            const srsran_slot_cfg_t*            slot_cfg,
+                                            const srsran_csi_rs_nzp_resource_t* resource);
 
 #endif // SRSRAN_GNB_DL_H

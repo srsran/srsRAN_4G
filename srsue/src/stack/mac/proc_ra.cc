@@ -161,9 +161,9 @@ void ra_proc::state_pdcch_setup()
     rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d", sel_preamble.load(), ra_rnti, info.tti_ra, info.f_id);
     srsran::console(
         "Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble.load(), info.tti_ra, ra_rnti);
-    rar_window_st   = ra_tti + 3;
+    rar_window_st = ra_tti + 3;
     rntis->set_rar_rnti(ra_rnti);
-    state           = RESPONSE_RECEPTION;
+    state = RESPONSE_RECEPTION;
   } else {
     rDebug("preamble not yet transmitted");
   }
@@ -228,7 +228,7 @@ void ra_proc::initialization()
   transmitted_contention_id   = 0;
   preambleTransmissionCounter = 1;
   mux_unit->msg3_flush();
-  backoff_param_ms = 0;
+  backoff_param_ms  = 0;
   transmitted_crnti = 0;
   resource_selection();
 }
@@ -545,14 +545,14 @@ void ra_proc::timer_expired(uint32_t timer_id)
  */
 bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
 {
-  task_queue.push([this, rx_contention_id]() { contention_resolution_id_received_unsafe(rx_contention_id); });
+  task_queue.push([this, rx_contention_id]() { contention_resolution_id_received_nolock(rx_contention_id); });
   return (transmitted_contention_id == rx_contention_id);
 }
 
 /*
  * Performs the actions defined in 5.1.5 for Temporal C-RNTI Contention Resolution
  */
-bool ra_proc::contention_resolution_id_received_unsafe(uint64_t rx_contention_id)
+bool ra_proc::contention_resolution_id_received_nolock(uint64_t rx_contention_id)
 {
   bool uecri_successful = false;
 

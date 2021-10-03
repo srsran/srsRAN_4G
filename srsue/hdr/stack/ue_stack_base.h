@@ -65,7 +65,6 @@ typedef struct {
 } stack_log_args_t;
 
 typedef struct {
-  std::string      type;
   pkt_trace_args_t pkt_trace;
   stack_log_args_t log;
   usim_args_t      usim;
