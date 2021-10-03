@@ -92,7 +92,7 @@ inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
 
   // Note: dynamic MCS not yet supported
   uecfg.fixed_dl_mcs = 28;
-  uecfg.fixed_ul_mcs = 10;
+  uecfg.fixed_ul_mcs = 28;
 
   return uecfg;
 }
