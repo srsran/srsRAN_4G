@@ -1,6 +1,6 @@
 <!--
 Before filing an issue, search for solutions here:
-- srsRAN users mailing list (http://www.softwareradiosystems.com/mailman/listinfo/srsran-users)
+- srsRAN users mailing list (https://lists.srsran.com/mailman/listinfo/srsran-users)
 -->
 
 ## Issue Description ##
