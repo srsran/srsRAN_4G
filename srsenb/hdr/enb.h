@@ -30,8 +30,8 @@
 
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/rrc/nr/rrc_config_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
-#include "srsenb/hdr/stack/rrc/rrc_config_nr.h"
 
 #include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/bcd_helpers.h"

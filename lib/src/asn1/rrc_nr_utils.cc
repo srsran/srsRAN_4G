@@ -1475,6 +1475,46 @@ bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
   return true;
 }
 
+bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
+{
+  if (serv_cell.csi_meas_cfg_present and
+      serv_cell.csi_meas_cfg.type().value ==
+          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+    auto& setup = serv_cell.csi_meas_cfg.setup();
+    if (setup.nzp_csi_rs_res_set_to_add_mod_list_present) {
+      for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
+        auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
+        uecfg_set.trs_info = nzp_set.trs_info_present;
+        uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
+        for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
+          auto& res = uecfg_set.data[nzp_rs_idx];
+          if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present and
+      serv_cell.init_dl_bwp.pdsch_cfg.type() == setup_release_c<pdsch_cfg_s>::types_opts::setup) {
+    const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
+    if (setup.p_zp_csi_rs_res_set_present) {
+      auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
+      sch_hl->p_zp_csi_rs_set.count = setup_set.zp_csi_rs_res_id_list.size();
+      for (uint8_t zp_res_id : setup_set.zp_csi_rs_res_id_list) {
+        const asn1::rrc_nr::zp_csi_rs_res_s& setup_res = setup.zp_csi_rs_res_to_add_mod_list[zp_res_id];
+        auto&                                res       = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
+        if (not srsran::make_phy_zp_csi_rs_resource(setup_res, &res)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 } // namespace srsran
 
 namespace srsenb {

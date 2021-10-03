@@ -14,9 +14,9 @@
 #define SRSENB_RRC_NR_H
 
 #include "rrc_config_common.h"
-#include "rrc_config_nr.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/rrc/nr/rrc_config_nr.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/buffer_pool.h"
@@ -148,10 +148,6 @@ public:
 
     int pack_sp_cell_cfg_ded_csi_meas_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_sp_cell_cfg_ded_csi_meas_cfg_csi_report_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_sp_cell_cfg_ded_csi_meas_cfg_nzp_csi_rs_res_to_add_mod_list(
-        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_sp_cell_cfg_ded_csi_meas_cfg_nzp_csi_rs_res_set_to_add_mod_list(
-        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_recfg_with_sync(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);

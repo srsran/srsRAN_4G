@@ -21,8 +21,8 @@
 #include <string.h>
 #include <string>
 
+#include "srsenb/hdr/stack/rrc/nr/rrc_config_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc.h"
-#include "srsenb/hdr/stack/rrc/rrc_config_nr.h"
 #include "srsran/asn1/asn1_utils.h"
 
 namespace srsenb {

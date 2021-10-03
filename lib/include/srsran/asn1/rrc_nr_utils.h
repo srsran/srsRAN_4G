@@ -56,6 +56,7 @@ struct nzp_csi_rs_res_s;
 struct pdsch_serving_cell_cfg_s;
 struct freq_info_dl_s;
 struct serving_cell_cfg_common_s;
+struct serving_cell_cfg_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -113,6 +114,7 @@ bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s& freq_info_dl, srsr
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       ssb);
+bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl);
 
 /***************************
  *      MAC Config
