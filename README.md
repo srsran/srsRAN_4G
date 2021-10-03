@@ -21,4 +21,4 @@ For license details, see LICENSE file.
 Support
 =======
 
-Mailing list: https://lists.softwareradiosystems.com/mailman/listinfo/srslte-users
+Mailing list: https://lists.srsran.com/mailman/listinfo/srsran-users
