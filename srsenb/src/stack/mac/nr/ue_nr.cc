@@ -99,7 +99,14 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
         srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
         uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
-        sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+        // Assume all LCGs are 0 if reported SBSR is 0
+        if (buffer_size_bytes == 0) {
+          for (uint32_t j = 0; j < SCHED_NR_MAX_LC_GROUP; j++) {
+            sched->ul_bsr(rnti, j, 0);
+          }
+        } else {
+          sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+        }
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
         logger.info("LONG_BSR CE not implemented.");
