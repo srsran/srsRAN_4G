@@ -1540,6 +1540,12 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
       cfg.ssb_absolute_freq_point =
           band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_30kHz, cfg.dl_absolute_freq_point_a);
     }
+
+    if (cfg.ssb_absolute_freq_point == 0) {
+      ERROR("Can't derive SSB freq point for dl_arfcn %d and band %d", cfg.dl_arfcn, cfg.band);
+      return SRSRAN_ERROR;
+    }
+
     // Convert to frequency for PHY
     cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);
 
