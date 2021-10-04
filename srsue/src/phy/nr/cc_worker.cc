@@ -590,7 +590,7 @@ bool cc_worker::work_ul()
   }
 
   // Add CSI reports to UCI data if available
-  phy.get_periodic_csi(ul_slot_cfg.idx, uci_data);
+  phy.get_periodic_csi(ul_slot_cfg, uci_data);
 
   // Setup frequency offset
   srsran_ue_ul_nr_set_freq_offset(&ue_ul, phy.get_ul_cfo());

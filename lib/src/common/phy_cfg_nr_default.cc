@@ -472,6 +472,24 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
   }
 
   prach.tdd_config.configured = (duplex.mode == SRSRAN_DUPLEX_MODE_TDD);
+
+  // Make default CSI report configuration always
+  csi.reports[0].channel_meas_id                    = 0;
+  csi.reports[0].type                               = SRSRAN_CSI_REPORT_TYPE_PERIODIC;
+  csi.reports[0].periodic.period                    = 20;
+  csi.reports[0].periodic.offset                    = 9;
+  csi.reports[0].periodic.resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;
+  csi.reports[0].periodic.resource.starting_prb     = 51;
+  csi.reports[0].periodic.resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;
+  csi.reports[0].periodic.resource.nof_prb          = 1;
+  csi.reports[0].periodic.resource.nof_symbols      = 2;
+  csi.reports[0].periodic.resource.start_symbol_idx = 10;
+  csi.reports[0].quantity                           = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI;
+  csi.reports[0].cqi_table                          = SRSRAN_CSI_CQI_TABLE_1;
+  csi.reports[0].freq_cfg                           = SRSRAN_CSI_REPORT_FREQ_WIDEBAND;
+  csi.csi_resources[0].type = srsran_csi_hl_resource_cfg_t::SRSRAN_CSI_HL_RESOURCE_CFG_TYPE_NZP_CSI_RS_SSB;
+  csi.csi_resources[0].nzp_csi_rs_ssb.nzp_csi_rs_resource_set_id_list[0]    = 0;
+  csi.csi_resources[0].nzp_csi_rs_ssb.nzp_csi_rs_resource_set_id_list_count = 1;
 }
 
 } // namespace srsran

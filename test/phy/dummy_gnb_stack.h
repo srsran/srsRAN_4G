@@ -55,10 +55,12 @@ public:
   };
 
   struct metrics_t {
-    std::map<uint32_t, prach_metrics_t> prach    = {}; ///< PRACH metrics indexed with premable index
-    srsenb::mac_ue_metrics_t            mac      = {}; ///< MAC metrics
-    uint32_t                            sr_count = 0;  ///< SR counter
-    pucch_metrics_t                     pucch    = {};
+    std::map<uint32_t, prach_metrics_t> prach           = {}; ///< PRACH metrics indexed with premable index
+    srsenb::mac_ue_metrics_t            mac             = {}; ///< MAC metrics
+    uint32_t                            sr_count        = 0;  ///< SR counter
+    uint32_t                            cqi_count       = 0;  ///< CQI opportunity counter
+    uint32_t                            cqi_valid_count = 0;  ///< Valid CQI counter
+    pucch_metrics_t                     pucch           = {};
   };
 
 private:
@@ -302,6 +304,23 @@ private:
     // Process SR
     if (value.valid and value.sr > 0) {
       metrics.sr_count++;
+    }
+
+    // Process CQI
+    for (uint32_t i = 0; i < cfg.nof_csi; i++) {
+      // Increment CQI opportunity
+      metrics.cqi_count++;
+
+      // Skip if invalid or not supported CSI report
+      if (not value.valid or cfg.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
+          cfg.csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
+        continue;
+      }
+
+      // Add statistics
+      metrics.mac.dl_cqi =
+          SRSRAN_VEC_SAFE_CMA(value.csi->wideband_cri_ri_pmi_cqi.cqi, metrics.mac.dl_cqi, metrics.cqi_count);
+      metrics.cqi_valid_count++;
     }
 
     return true;

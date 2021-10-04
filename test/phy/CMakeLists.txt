@@ -40,7 +40,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
     foreach (NR_PHY_TEST_BW "10MHz" "20MHz")
         # For each supported frame structure
         foreach (NR_PHY_TEST_DUPLEX "FDD" "6D+4U" "FR1.15-1")
-            set(NR_PHY_TEST_DURATION_MS 20)
+            set(NR_PHY_TEST_DURATION_MS 50)
 
             # DL flooding only
             foreach (NR_PHY_TEST_PDSCH "default" "ts38101/5.2-1")

@@ -307,7 +307,10 @@ bool phy_cfg_nr_t::get_uci_cfg(const srsran_slot_cfg_t&     slot_cfg,
   }
 
   // Generate configuration for CSI reports
-  // ...
+  n = srsran_csi_reports_generate(&csi, &slot_cfg, uci_cfg.csi);
+  if (n > SRSRAN_SUCCESS) {
+    uci_cfg.nof_csi = (uint32_t)n;
+  }
 
   return true;
 }

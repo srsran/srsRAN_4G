@@ -299,8 +299,7 @@ static int uci_nr_A(const srsran_uci_cfg_nr_t* cfg)
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
-  ERROR("HARQ-ACK/SR and CSI encoding are not implemented");
-  return SRSRAN_ERROR;
+  return cfg->ack.count + cfg->o_sr + o_csi;
 }
 
 static int uci_nr_pack_pucch(const srsran_uci_cfg_nr_t* cfg, const srsran_uci_value_nr_t* value, uint8_t* sequence)
@@ -332,8 +331,7 @@ static int uci_nr_unpack_pucch(const srsran_uci_cfg_nr_t* cfg, uint8_t* sequence
 
   // 6.3.1.1.2 CSI only
   if (cfg->ack.count == 0 && cfg->o_sr == 0) {
-    ERROR("CSI only are not implemented");
-    return SRSRAN_ERROR;
+    return srsran_csi_part1_unpack(cfg->csi, cfg->nof_csi, sequence, SRSRAN_UCI_NR_MAX_NOF_BITS, value->csi);
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI

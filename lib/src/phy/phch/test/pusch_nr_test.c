@@ -225,10 +225,10 @@ int main(int argc, char** argv)
       uint8_t csi_report_tx[SRSRAN_UCI_NR_MAX_CSI1_BITS] = {};
       uint8_t csi_report_rx[SRSRAN_UCI_NR_MAX_CSI1_BITS] = {};
       if (nof_csi_bits > 0) {
-        pusch_cfg.uci.csi[0].quantity = SRSRAN_CSI_REPORT_QUANTITY_NONE;
-        pusch_cfg.uci.csi[0].K_csi_rs = nof_csi_bits;
-        pusch_cfg.uci.nof_csi         = 1;
-        data_tx.uci.csi[0].none       = csi_report_tx;
+        pusch_cfg.uci.csi[0].cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_NONE;
+        pusch_cfg.uci.csi[0].K_csi_rs     = nof_csi_bits;
+        pusch_cfg.uci.nof_csi             = 1;
+        data_tx.uci.csi[0].none           = csi_report_tx;
         for (uint32_t i = 0; i < nof_csi_bits; i++) {
           csi_report_tx[i] = (uint8_t)srsran_random_uniform_int_dist(rand_gen, 0, 1);
         }

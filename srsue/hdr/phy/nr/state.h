@@ -344,14 +344,21 @@ public:
     uci_data.value.sr                 = sr_count_positive;
   }
 
-  void get_periodic_csi(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
+  void get_periodic_csi(const srsran_slot_cfg_t& slot_cfg, srsran_uci_data_nr_t& uci_data)
   {
-    int n = srsran_csi_generate_reports(&cfg.csi, tti, csi_measurements.data(), uci_data.cfg.csi, uci_data.value.csi);
+    // Generate report configurations
+    int n = srsran_csi_reports_generate(&cfg.csi, &slot_cfg, uci_data.cfg.csi);
     if (n > SRSRAN_SUCCESS) {
       uci_data.cfg.nof_csi = n;
     }
 
-    uci_data.cfg.pucch.rnti = stack->get_ul_sched_rnti_nr(tti).id;
+    // Quantify reports from measurements
+    n = srsran_csi_reports_quantify(uci_data.cfg.csi, csi_measurements.data(), uci_data.value.csi);
+    if (n > SRSRAN_SUCCESS) {
+      uci_data.cfg.nof_csi = n;
+    }
+
+    uci_data.cfg.pucch.rnti = stack->get_ul_sched_rnti_nr(slot_cfg.idx).id;
   }
 
   /**

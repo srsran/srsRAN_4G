@@ -21,6 +21,11 @@
 // shorten boost program options namespace
 namespace bpo = boost::program_options;
 
+static double assert_sr_detection_min  = 1.000;
+static double assert_cqi_detection_min = 1.000;
+static double assert_pusch_bler_max    = 0.000;
+static double assert_pdsch_bler_max    = 0.000;
+
 test_bench::args_t::args_t(int argc, char** argv)
 {
   std::string              reference_cfg_str = "";
@@ -29,6 +34,7 @@ test_bench::args_t::args_t(int argc, char** argv)
   bpo::options_description options_gnb_phy("gNb PHY related options");
   bpo::options_description options_ue_stack("UE stack options");
   bpo::options_description options_ue_phy("UE stack options");
+  bpo::options_description options_assertion("Test assertions");
 
   uint16_t rnti = 17921;
 
@@ -79,6 +85,13 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("ue.stack.prach.period",   bpo::value<uint32_t>(&ue_stack.prach_period)->default_value(ue_stack.prach_period),     "PRACH period in SFN. Set 0 to disable and 1 for all.")
         ("ue.stack.prach.preamble", bpo::value<uint32_t>(&ue_stack.prach_preamble)->default_value(ue_stack.prach_preamble), "PRACH preamble. Set 0 to disable and 1 for all.")
         ;
+
+  options_assertion.add_options()
+      ("assert.sr.detection.min",  bpo::value<double>(&assert_sr_detection_min)->default_value(assert_sr_detection_min),   "Scheduling request minimum detection threshold")
+      ("assert.cqi.detection.min", bpo::value<double>(&assert_cqi_detection_min)->default_value(assert_cqi_detection_min), "CQI report minimum detection threshold")
+      ("assert.pusch.bler.max",    bpo::value<double>(&assert_pusch_bler_max)->default_value(assert_pusch_bler_max),       "PUSCH maximum BLER threshold")
+      ("assert.pdsch.bler.max",    bpo::value<double>(&assert_pdsch_bler_max)->default_value(assert_pdsch_bler_max),       "PDSCH maximum BLER threshold")
+      ;
 
   options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
         ("help",                      "Show this message")
@@ -164,9 +177,9 @@ int main(int argc, char** argv)
   test_bench::metrics_t metrics = tb.get_gnb_metrics();
 
   // Print PDSCH metrics if scheduled
+  double pdsch_bler = 0.0;
   if (metrics.gnb_stack.mac.tx_pkts > 0) {
-    float pdsch_bler = 0.0f;
-    pdsch_bler       = (float)metrics.gnb_stack.mac.tx_errors / (float)metrics.gnb_stack.mac.tx_pkts;
+    pdsch_bler = (double)metrics.gnb_stack.mac.tx_errors / (double)metrics.gnb_stack.mac.tx_pkts;
 
     float pdsch_shed_rate = 0.0f;
     pdsch_shed_rate       = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
@@ -181,10 +194,10 @@ int main(int argc, char** argv)
   }
 
   // Print PUSCH metrics if scheduled
+  double pusch_bler = 0.0;
   if (metrics.gnb_stack.mac.rx_pkts > 0) {
-    float pusch_bler = 0.0f;
     if (metrics.gnb_stack.mac.rx_pkts != 0) {
-      pusch_bler = (float)metrics.gnb_stack.mac.rx_errors / (float)metrics.gnb_stack.mac.rx_pkts;
+      pusch_bler = (double)metrics.gnb_stack.mac.rx_errors / (double)metrics.gnb_stack.mac.rx_pkts;
     }
 
     float pusch_shed_rate = 0.0f;
@@ -261,23 +274,54 @@ int main(int argc, char** argv)
     srsran::console("   +------------+------------+------------+------------+\n");
   }
 
+  srsran::console("UCI stats:\n");
+  srsran::console("   +------------+------------+------------+------------+------------+\n");
+  srsran::console(
+      "   | %10s | %10s | %10s | %10s | %10s |\n", "Field", "Transmit'd", "Received", "Detection", "Avg. Val.");
+  srsran::console("   +------------+------------+------------+------------+------------+\n");
+
   // Print SR
+  double sr_detection = 0.0;
   if (metrics.ue_stack.sr_count > 0) {
-    srsran::console("SR:\n");
-    srsran::console("   +------------+------------+------------+\n");
-    srsran::console("   | %10s | %10s | %10s |\n", "Transmit'd", "Received", "Detection");
-    srsran::console("   +------------+------------+------------+\n");
-    srsran::console("   | %10d | %10d | %10.5f |\n",
+    sr_detection = (double)metrics.gnb_stack.sr_count / (double)metrics.ue_stack.sr_count;
+    srsran::console("   | %10s | %10d | %10d | %10.5f | %10s |\n",
+                    "SR",
                     metrics.ue_stack.sr_count,
                     metrics.gnb_stack.sr_count,
-                    (double)metrics.gnb_stack.sr_count / (double)metrics.ue_stack.sr_count);
-    srsran::console("   +------------+------------+------------+\n");
+                    sr_detection,
+                    "-");
   }
 
+  // Print SR
+  double cqi_detection = 0.0;
+  if (metrics.gnb_stack.cqi_count > 0) {
+    cqi_detection = (double)metrics.gnb_stack.cqi_valid_count / (double)metrics.gnb_stack.cqi_count;
+    srsran::console("   | %10s | %10d | %10d | %10.5f | %10.5f |\n",
+                    "CQI",
+                    metrics.gnb_stack.cqi_count,
+                    metrics.gnb_stack.cqi_valid_count,
+                    cqi_detection,
+                    metrics.gnb_stack.mac.dl_cqi);
+  }
+  srsran::console("   +------------+------------+------------+------------+------------+\n");
+
   // Assert metrics
-  TESTASSERT_EQ(0, metrics.gnb_stack.mac.tx_errors);
-  TESTASSERT_EQ(0, metrics.gnb_stack.mac.rx_errors);
-  TESTASSERT(metrics.ue_stack.sr_count == metrics.gnb_stack.sr_count);
+  srsran_assert(metrics.gnb_stack.mac.tx_pkts == 0 or pdsch_bler <= assert_pdsch_bler_max,
+                "PDSCH BLER (%f) exceeds the assertion maximum (%f)",
+                pdsch_bler,
+                assert_pusch_bler_max);
+  srsran_assert(metrics.gnb_stack.mac.rx_pkts == 0 or pusch_bler <= assert_pusch_bler_max,
+                "PUSCH BLER (%f) exceeds the assertion maximum (%f)",
+                pusch_bler,
+                assert_pusch_bler_max);
+  srsran_assert(metrics.ue_stack.sr_count == 0 or sr_detection >= assert_sr_detection_min,
+                "SR detection probability (%f) did not reach the assertion minimum (%f)",
+                sr_detection,
+                assert_sr_detection_min);
+  srsran_assert(metrics.gnb_stack.cqi_count == 0 or cqi_detection >= assert_cqi_detection_min,
+                "CQI report detection probability (%f) did not reach the assertion minimum (%f)",
+                cqi_detection,
+                assert_sr_detection_min);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;
