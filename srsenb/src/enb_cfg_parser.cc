@@ -1169,7 +1169,7 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   if (rrc_nr_cfg_->cell_list.size() == 1) {
     rrc_cfg_->endc_cfg.nr_dl_arfcn = rrc_nr_cfg_->cell_list.at(0).dl_arfcn;
     rrc_cfg_->endc_cfg.nr_band     = rrc_nr_cfg_->cell_list.at(0).band;
-    rrc_cfg_->endc_cfg.ssb_period_offset.set_sf5_r15();
+    rrc_cfg_->endc_cfg.ssb_period_offset.set_sf10_r15();
     rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
     rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
     rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
