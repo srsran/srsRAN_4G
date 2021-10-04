@@ -109,6 +109,7 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         break;
       default:
         if (subpdu.is_sdu()) {
+          rrc->set_activity_user(rnti);
           rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
         }
     }
