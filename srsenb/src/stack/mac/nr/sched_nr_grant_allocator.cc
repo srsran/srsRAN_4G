@@ -205,6 +205,12 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   if (bwp_pdsch_slot.dl_prbs.collides(dl_grant)) {
     return alloc_result::sch_collision;
   }
+  if (not bwp_pdcch_slot.ssb.empty()) {
+    // TODO: support concurrent PDSCH and SSB
+    logger.info("SCHED: skipping rnti=0x%x PDSCH allocation. Cause: concurrent PDSCH and SSB not yet supported",
+                ue.rnti);
+    return alloc_result::no_sch_space;
+  }
 
   // Find space in PUCCH
   // TODO
