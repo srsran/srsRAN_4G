@@ -275,12 +275,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
 {
   logger.set_context(slot_cfg.idx);
 
-  if (not pdsch_slot.valid()) {
-    pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-  } else {
-    pdsch_slot++;
-  }
-
+  slot_point                         pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
   sched_nr_interface::dl_sched_res_t dl_res;
   int                                ret = sched.get_dl_sched(pdsch_slot, 0, dl_res);
   if (ret != SRSRAN_SUCCESS) {
@@ -323,13 +318,9 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
 int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
 {
   int ret = 0;
-  if (not pusch_slot.valid()) {
-    pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-  } else {
-    pusch_slot++;
-  }
 
-  ret = sched.get_ul_sched(pusch_slot, 0, ul_sched);
+  slot_point pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+  ret                   = sched.get_ul_sched(pusch_slot, 0, ul_sched);
   for (auto& pusch : ul_sched.pusch) {
     if (ue_db.contains(pusch.sch.grant.rnti)) {
       ue_db[pusch.sch.grant.rnti]->metrics_ul_mcs(pusch.sch.grant.tb->mcs);
