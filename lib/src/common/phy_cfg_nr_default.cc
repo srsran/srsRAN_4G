@@ -417,6 +417,17 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
       srsran_assertion_failure("Invalid TDD reference");
   }
 
+  if (duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+    carrier.dl_center_frequency_hz = 3513.6e6;
+    ssb.scs                        = srsran_subcarrier_spacing_30kHz;
+  } else {
+    carrier.dl_center_frequency_hz = 881.5e6;
+    ssb.scs                        = srsran_subcarrier_spacing_15kHz;
+  }
+  carrier.ssb_center_freq_hz = carrier.dl_center_frequency_hz;
+  ssb.position_in_burst[0]   = true;
+  ssb.periodicity_ms         = 5;
+
   switch (reference_cfg.pdcch) {
     case reference_cfg_t::R_PDCCH_CUSTOM_COMMON_SS:
       make_pdcch_custom_common_ss(pdcch, carrier);

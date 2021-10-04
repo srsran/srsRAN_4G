@@ -11,6 +11,7 @@
  */
 
 #include "srsran/common/phy_cfg_nr.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/srsran.h"
 
 namespace srsran {
@@ -335,6 +336,32 @@ bool phy_cfg_nr_t::get_pusch_uci_cfg(const srsran_slot_cfg_t&   slot_cfg,
   }
 
   return true;
+}
+
+srsran_ssb_cfg_t phy_cfg_nr_t::get_ssb_cfg() const
+{
+  // Retrieve band
+  srsran::srsran_band_helper bh   = srsran::srsran_band_helper();
+  uint16_t                   band = bh.get_band_from_dl_freq_Hz(carrier.dl_center_frequency_hz);
+  srsran_assert(band != UINT16_MAX,
+                "DL frequency %f MHz does not belong to any valid band",
+                carrier.dl_center_frequency_hz / 1e6);
+
+  // Make SSB configuration
+  srsran_ssb_cfg_t ssb_cfg = {};
+  ssb_cfg.center_freq_hz   = carrier.dl_center_frequency_hz;
+  ssb_cfg.ssb_freq_hz      = carrier.ssb_center_freq_hz;
+  ssb_cfg.scs              = ssb.scs;
+  ssb_cfg.pattern          = bh.get_ssb_pattern(band, ssb.scs);
+  ssb_cfg.duplex_mode      = duplex.mode;
+  ssb_cfg.periodicity_ms   = ssb.periodicity_ms;
+
+  srsran_assert(ssb_cfg.pattern != SRSRAN_SSB_PATTERN_INVALID,
+                "Invalid SSB pattern for band %d and SSB subcarrier spacing %s",
+                band,
+                srsran_subcarrier_spacing_to_str(ssb.scs));
+
+  return ssb_cfg;
 }
 
 } // namespace srsran
