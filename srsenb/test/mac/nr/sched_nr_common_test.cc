@@ -43,17 +43,16 @@ void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> pd
 
 void test_ssb_scheduled_grant(
     const srsran::slot_point&                                                                 sl_point,
+    const sched_nr_interface::cell_cfg_t&                                                     cell_cfg,
     const srsran::bounded_vector<mac_interface_phy_nr::ssb_t, mac_interface_phy_nr::MAX_SSB>& ssb_list)
 {
-  const uint32_t ssb_periodicity = 5;
-
   /*
    * Verify that, with correct SSB periodicity, dl_res has:
    * 1) SSB grant
    * 2) 4 LSBs of SFN in packed MIB message are correct
    * 3) SSB index is 0
    */
-  if (sl_point.to_uint() % (ssb_periodicity * (uint32_t)sl_point.nof_slots_per_subframe()) == 0) {
+  if (sl_point.to_uint() % (cell_cfg.ssb.periodicity_ms * (uint32_t)sl_point.nof_slots_per_subframe()) == 0) {
     TESTASSERT(ssb_list.size() == 1);
     auto& ssb_item = ssb_list.back();
     TESTASSERT(ssb_item.pbch_msg.sfn_4lsb == ((uint8_t)sl_point.sfn() & 0b1111));
