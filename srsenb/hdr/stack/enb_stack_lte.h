@@ -46,8 +46,8 @@ public:
   ~enb_stack_lte() final;
 
   // eNB stack base interface
-  int init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_, x2_interface* x2_);
-  void        stop() final;
+  int  init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_, x2_interface* x2_);
+  void stop() final;
   std::string get_type() final;
   bool        get_metrics(stack_metrics_t* metrics) final;
 
@@ -111,14 +111,21 @@ public:
   // rrc_eutra_interface_rrc_nr
   void sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params) final
   {
-    rrc.sgnb_addition_ack(eutra_rnti, params);
+    x2_task_queue.push([this, eutra_rnti, params]() { rrc.sgnb_addition_ack(eutra_rnti, params); });
   }
-  void sgnb_addition_reject(uint16_t eutra_rnti) final { rrc.sgnb_addition_reject(eutra_rnti); }
+  void sgnb_addition_reject(uint16_t eutra_rnti) final
+  {
+    x2_task_queue.push([this, eutra_rnti]() { rrc.sgnb_addition_reject(eutra_rnti); });
+  }
   void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) final
   {
-    rrc.sgnb_addition_complete(eutra_rnti, nr_rnti);
+    x2_task_queue.push([this, eutra_rnti, nr_rnti]() { rrc.sgnb_addition_complete(eutra_rnti, nr_rnti); });
   }
-  void set_activity_user(uint16_t eutra_rnti) final { rrc.set_activity_user(eutra_rnti); }
+  void set_activity_user(uint16_t eutra_rnti) final
+  {
+    // Note: RRC processes activity asynchronously, so there is no need to use x2_task_queue
+    rrc.set_activity_user(eutra_rnti);
+  }
 
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
@@ -151,7 +158,7 @@ private:
 
   // task handling
   srsran::task_scheduler    task_sched;
-  srsran::task_queue_handle enb_task_queue, sync_task_queue, metrics_task_queue;
+  srsran::task_queue_handle enb_task_queue, sync_task_queue, metrics_task_queue, x2_task_queue;
 
   // bearer management
   enb_bearer_manager                 bearers; // helper to manage mapping between EPS and radio bearers
@@ -165,7 +172,7 @@ private:
   srsenb::s1ap s1ap;
 
   // RAT-specific interfaces
-  phy_interface_stack_lte* phy    = nullptr;
+  phy_interface_stack_lte* phy = nullptr;
 
   // state
   std::atomic<bool> started{false};

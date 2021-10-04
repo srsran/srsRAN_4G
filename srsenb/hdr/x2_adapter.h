@@ -93,15 +93,6 @@ public:
     eutra_stack->set_activity_user(eutra_rnti);
   }
 
-  // stack_nr_interface_stack_eutra
-  void tti_clock()
-  {
-    if (nr_stack == nullptr) {
-      return;
-    }
-    nr_stack->tti_clock();
-  }
-
   // pdcp_interface_gtpu
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1)
   {

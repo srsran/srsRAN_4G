@@ -90,17 +90,9 @@ public:
   virtual void set_activity_user(uint16_t eutra_rnti) = 0;
 };
 
-class stack_nr_interface_stack_eutra
-{
-public:
-  /// Helper method to provide time signal to NR-RRC (PHY only sends TTI ticks to EUTRA stack)
-  virtual void tti_clock() = 0;
-};
-
 // combined interface used by X2 adapter
 class x2_interface : public rrc_nr_interface_rrc,
                      public rrc_eutra_interface_rrc_nr,
-                     public stack_nr_interface_stack_eutra,
                      public pdcp_interface_gtpu, // allow GTPU to access PDCP in DL direction
                      public gtpu_interface_pdcp  // allow PDCP to access GTPU in UL direction
 {};

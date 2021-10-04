@@ -32,7 +32,7 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
 {
   ue_task_queue   = task_sched.make_task_queue();
   sync_task_queue = task_sched.make_task_queue();
-  gw_task_queue   = task_sched.make_task_queue();
+  gtpu_task_queue = task_sched.make_task_queue();
   mac_task_queue  = task_sched.make_task_queue();
 }
 
