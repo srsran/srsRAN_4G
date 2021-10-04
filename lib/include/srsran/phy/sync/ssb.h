@@ -68,6 +68,7 @@ typedef struct SRSRAN_API {
   float                       beta_sss;       ///< SSS power allocation
   float                       beta_pbch;      ///< PBCH power allocation
   float                       beta_pbch_dmrs; ///< PBCH DMRS power allocation
+  float                       scaling;        ///< IFFT scaling (used for modulation), set to 0 for default
 } srsran_ssb_cfg_t;
 
 /**
