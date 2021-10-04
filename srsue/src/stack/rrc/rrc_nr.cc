@@ -1162,19 +1162,21 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("Secondary primary cell ul cfg common not present");
         return false;
       }
-      phy_cfg_nr_t::ssb_cfg_t ssb_cfg = {};
-      if (make_phy_ssb_cfg(phy_cfg.carrier, recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
-        phy_cfg.ssb = ssb_cfg;
-      } else {
-        logger.warning("Warning while building SSB config structure");
-        return false;
-      }
+      // Read essential DL carrier settings
       if (recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present) {
         if (apply_dl_common_cfg(recfg_with_sync.sp_cell_cfg_common.dl_cfg_common) == false) {
           return false;
         }
       } else {
         logger.warning("DL cfg common not present");
+        return false;
+      }
+      // Build SSB config
+      phy_cfg_nr_t::ssb_cfg_t ssb_cfg = {};
+      if (make_phy_ssb_cfg(phy_cfg.carrier, recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
+        phy_cfg.ssb = ssb_cfg;
+      } else {
+        logger.warning("Warning while building SSB config structure");
         return false;
       }
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
