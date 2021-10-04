@@ -29,7 +29,7 @@ bool slot_worker::init(const args_t& args)
   std::lock_guard<std::mutex> lock(mutex);
 
   // Calculate subframe length
-  sf_len = SRSRAN_SF_LEN_PRB_NR(args.nof_max_prb);
+  sf_len = (uint32_t)(args.srate_hz / 1000.0);
 
   // Copy common configurations
   cell_index = args.cell_index;
@@ -62,6 +62,7 @@ bool slot_worker::init(const args_t& args)
   dl_args.pdsch.max_prb        = args.nof_max_prb;
   dl_args.nof_tx_antennas      = args.nof_tx_ports;
   dl_args.nof_max_prb          = args.nof_max_prb;
+  dl_args.srate_hz             = args.srate_hz;
 
   // Initialise DL
   if (srsran_gnb_dl_init(&gnb_dl, tx_buffer.data(), &dl_args) < SRSRAN_SUCCESS) {
@@ -342,7 +343,10 @@ bool slot_worker::work_dl()
 
   // Add SSB to the baseband signal
   for (const stack_interface_phy_nr::ssb_t& ssb : dl_sched.ssb) {
-    // ...
+    if (srsran_gnb_dl_add_ssb(&gnb_dl, &ssb.pbch_msg, dl_slot_cfg.idx) < SRSRAN_SUCCESS) {
+      logger.error("SSB: Error putting signal");
+      return false;
+    }
   }
 
   return true;
@@ -375,11 +379,19 @@ void slot_worker::work_imp()
 
   common.worker_end(context, true, tx_rf_buffer);
 }
-bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_)
+bool slot_worker::set_common_cfg(const srsran_carrier_nr_t&   carrier,
+                                 const srsran_pdcch_cfg_nr_t& pdcch_cfg_,
+                                 const srsran_ssb_cfg_t&      ssb_cfg_)
 {
   // Set gNb DL carrier
   if (srsran_gnb_dl_set_carrier(&gnb_dl, &carrier) < SRSRAN_SUCCESS) {
     logger.error("Error setting DL carrier");
+    return false;
+  }
+
+  // Configure SSB
+  if (srsran_gnb_dl_set_ssb_config(&gnb_dl, &ssb_cfg_) < SRSRAN_SUCCESS) {
+    logger.error("Error setting SSB");
     return false;
   }
 

@@ -1543,6 +1543,9 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     // Convert to frequency for PHY
     cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);
 
+    // TODO: set SSB config
+    cfg.ssb_cfg = {};
+
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
 

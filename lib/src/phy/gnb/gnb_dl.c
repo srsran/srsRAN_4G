@@ -61,11 +61,23 @@ int srsran_gnb_dl_init(srsran_gnb_dl_t* q, cf_t* output[SRSRAN_MAX_PORTS], const
     return SRSRAN_ERROR;
   }
 
+  // Check symbol size is vlid
+  int symbol_sz = srsran_symbol_sz_from_srate(args->srate_hz, args->scs);
+  if (symbol_sz <= 0) {
+    ERROR("Error calculating symbol size from sampling rate of %.2f MHz and subcarrier spacing %s",
+          q->srate_hz / 1e6,
+          srsran_subcarrier_spacing_to_str(args->scs));
+    return SRSRAN_ERROR;
+  }
+  q->symbol_sz = symbol_sz;
+
+  // Create initial OFDM configuration
   srsran_ofdm_cfg_t fft_cfg = {};
   fft_cfg.nof_prb           = args->nof_max_prb;
-  fft_cfg.symbol_sz         = srsran_min_symbol_sz_rb(args->nof_max_prb);
+  fft_cfg.symbol_sz         = (uint32_t)symbol_sz;
   fft_cfg.keep_dc           = true;
 
+  // Initialise a different OFDM modulator per channel
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
     fft_cfg.in_buffer  = q->sf_symbols[i];
     fft_cfg.out_buffer = output[i];
@@ -79,6 +91,15 @@ int srsran_gnb_dl_init(srsran_gnb_dl_t* q, cf_t* output[SRSRAN_MAX_PORTS], const
 
   if (srsran_pdcch_nr_init_tx(&q->pdcch, &args->pdcch) < SRSRAN_SUCCESS) {
     ERROR("Error PDCCH");
+    return SRSRAN_ERROR;
+  }
+
+  srsran_ssb_args_t ssb_args = {};
+  ssb_args.enable_encode     = true;
+  ssb_args.max_srate_hz      = args->srate_hz;
+  ssb_args.min_scs           = args->scs;
+  if (srsran_ssb_init(&q->ssb, &ssb_args) < SRSRAN_SUCCESS) {
+    ERROR("Error SSB");
     return SRSRAN_ERROR;
   }
 
@@ -103,6 +124,7 @@ void srsran_gnb_dl_free(srsran_gnb_dl_t* q)
   srsran_dmrs_sch_free(&q->dmrs);
 
   srsran_pdcch_nr_free(&q->pdcch);
+  srsran_ssb_free(&q->ssb);
 
   SRSRAN_MEM_ZERO(q, srsran_gnb_dl_t, 1);
 }
@@ -137,6 +159,38 @@ int srsran_gnb_dl_set_carrier(srsran_gnb_dl_t* q, const srsran_carrier_nr_t* car
   }
 
   q->carrier = *carrier;
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_gnb_dl_set_ssb_config(srsran_gnb_dl_t* q, const srsran_ssb_cfg_t* ssb)
+{
+  if (q == NULL || ssb == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (srsran_ssb_set_cfg(&q->ssb, ssb) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_gnb_dl_add_ssb(srsran_gnb_dl_t* q, const srsran_pbch_msg_nr_t* pbch_msg, uint32_t sf_idx)
+{
+  if (q == NULL || pbch_msg == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Skip SSB if it is not the time for it
+  if (!srsran_ssb_send(&q->ssb, sf_idx)) {
+    return SRSRAN_SUCCESS;
+  }
+
+  if (srsran_ssb_add(&q->ssb, q->carrier.pci, pbch_msg, q->fft[0].cfg.out_buffer, q->fft[0].cfg.out_buffer) <
+      SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }

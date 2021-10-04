@@ -228,7 +228,7 @@ void rrc_nr::config_phy()
   common_cfg.pdcch                                      = cfg.cell_list[0].phy_cell.pdcch;
   common_cfg.prach                                      = cfg.cell_list[0].phy_cell.prach;
   common_cfg.duplex_mode                                = cfg.cell_list[0].duplex_mode;
-
+  common_cfg.ssb                                        = cfg.cell_list[0].ssb_cfg;
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     logger.error("Couldn't set common PHY config");
     return;

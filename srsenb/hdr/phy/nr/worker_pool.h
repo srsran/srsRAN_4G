@@ -83,14 +83,17 @@ private:
   srslog::basic_logger&                      logger;
   prach_stack_adaptor_t                      prach_stack_adaptor;
   uint32_t                                   nof_prach_workers = 0;
+  double                                     srate_hz          = 0.0; ///< Current sampling rate in Hz
 
   // Current configuration
   std::mutex            common_cfg_mutex;
   srsran_carrier_nr_t   carrier   = {};
   srsran_pdcch_cfg_nr_t pdcch_cfg = {};
+  srsran_ssb_cfg_t      ssb_cfg   = {};
 
 public:
   struct args_t {
+    double                 srate_hz           = 0.0;
     uint32_t               nof_phy_threads    = 3;
     uint32_t               nof_prach_workers  = 0;
     uint32_t               prio               = 52;

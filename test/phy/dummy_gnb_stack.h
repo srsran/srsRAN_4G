@@ -365,7 +365,7 @@ public:
 
     if (args.pdsch.slots != "none" and not args.pdsch.slots.empty()) {
       if (args.pdsch.slots == "all") {
-        for (uint32_t n = 0; n < SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs); n++) {
+        for (uint32_t n = 1; n < SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs); n++) {
           dl.slots.insert(n);
         }
       } else {
@@ -495,6 +495,15 @@ public:
         if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
           dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
         }
+      }
+    }
+
+    // Schedule SSB
+    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
+      if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
+        mac_interface_phy_nr::ssb_t ssb = {};
+        ssb.pbch_msg.ssb_idx            = (uint32_t)ssb_idx;
+        dl_sched.ssb.push_back(ssb);
       }
     }
 

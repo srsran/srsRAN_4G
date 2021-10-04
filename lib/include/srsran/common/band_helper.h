@@ -268,22 +268,22 @@ private:
     {1, KHZ_100, 384000, 20, 396000, 422000, 20, 434000},
     {2, KHZ_100, 370000, 20, 382000, 386000, 20, 398000},
     {3, KHZ_100, 342000, 20, 357000, 361000, 20, 376000},
-    
+
     {5, KHZ_100, 164800, 20, 169800, 173800, 20, 178800},
 
     {7, KHZ_100, 500000, 20, 514000, 524000, 20, 538000},
     {8, KHZ_100, 176000, 20, 183000, 185000, 20, 192000},
-    
+
     {12, KHZ_100, 139800, 20, 143200, 145800, 20, 149200},
-    
+
     {20, KHZ_100, 166400, 20, 172400, 158200, 20, 164200},
     {25, KHZ_100, 370000, 20, 383000, 386000, 20, 399000},
     {28, KHZ_100, 140600, 20, 149600, 151600, 20, 160600},
-    
+
     {34, KHZ_100, 402000, 20, 405000, 402000, 20, 405000},
     {38, KHZ_100, 514000, 20, 524000, 514000, 20, 524000},
     {39, KHZ_100, 376000, 20, 384000, 376000, 20, 384000},
-    
+
     {40, KHZ_100, 460000, 20, 480000, 460000, 20, 480000},
 
     {41, KHZ_15, 499200, 3, 537999, 499200, 3, 537999},
@@ -291,13 +291,13 @@ private:
 
     {50, KHZ_100, 286400, 20, 303400, 286400, 20, 303400},
     {51, KHZ_100, 285400, 20, 286400, 285400, 20, 286400},
-    
+
     {66, KHZ_100, 342000, 20, 356000, 422000, 20, 440000},
-    
+
     {70, KHZ_100, 339000, 20, 342000, 399000, 20, 404000},
     {71, KHZ_100, 132600, 20, 139600, 123400, 20, 130400},
     {74, KHZ_100, 285400, 20, 294000, 295000, 20, 303600},
-    
+
     {75, KHZ_100, 0, 0, 0, 286400, 20, 303400},
     {76, KHZ_100, 0, 0, 0, 285400, 20, 286400},
 
@@ -316,23 +316,22 @@ private:
     {83, KHZ_100, 140600, 20, 149600, 0, 0, 0},
     {84, KHZ_100, 384000, 20, 396000, 0, 0, 0},
     {86, KHZ_100, 342000, 20, 356000, 0, 0, 0}
-    // clang-format on  
+      // clang-format on
   }};
 
   static const uint32_t nof_nr_bands_fr2                                   = 8;
-  static constexpr std::array<nr_band, nof_nr_bands_fr2> nr_band_table_fr2 = {{
-    {257, KHZ_60, 2054166, 1, 2104165, 2054166, 1, 2104165},
-    {257, KHZ_120, 2054167, 2, 2104165, 2054167, 20, 2104165},
-    
-    {258, KHZ_60, 2016667, 1, 2070832, 2016667, 1, 2070832},
-    {258, KHZ_120, 2016667, 2, 2070831, 2016667, 2, 2070832},
+  static constexpr std::array<nr_band, nof_nr_bands_fr2> nr_band_table_fr2 = {
+      {{257, KHZ_60, 2054166, 1, 2104165, 2054166, 1, 2104165},
+       {257, KHZ_120, 2054167, 2, 2104165, 2054167, 20, 2104165},
 
-    {260, KHZ_60, 2229166, 1, 2279165, 2229166, 1, 2279165},
-    {260, KHZ_120, 2229167, 2, 2279165, 2229167, 2, 2279165},
+       {258, KHZ_60, 2016667, 1, 2070832, 2016667, 1, 2070832},
+       {258, KHZ_120, 2016667, 2, 2070831, 2016667, 2, 2070832},
 
-    {261, KHZ_60, 2070833, 1, 2084999, 2070833, 1, 2084999},
-    {261, KHZ_120, 2070833, 2, 2084999, 2070833, 2, 2084999}
-  }};
+       {260, KHZ_60, 2229166, 1, 2279165, 2229166, 1, 2279165},
+       {260, KHZ_120, 2229167, 2, 2279165, 2229167, 2, 2279165},
+
+       {261, KHZ_60, 2070833, 1, 2084999, 2070833, 1, 2084999},
+       {261, KHZ_120, 2070833, 2, 2084999, 2070833, 2, 2084999}}};
 
   // Elements of TS 38.101-1 Table 5.4.3.3-1 : Applicable SS raster entries per operating band
   struct nr_band_ss_raster {
@@ -345,35 +344,35 @@ private:
   };
   static const uint32_t nof_nr_band_ss_raster                                                   = 29;
   static constexpr std::array<nr_band_ss_raster, nof_nr_band_ss_raster> nr_band_ss_raster_table = {{
-    {1, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5279, 1, 5419},
-    {2, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4829, 1, 4969},
-    {3, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4517, 1, 4693},
-    {5, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 2177, 1, 2230},
-    {5, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_B, 2183, 1, 2224},
-    {7, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6554, 1, 6718},
-    {8, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 2318, 1, 2395},
-    {12, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1828, 1, 1858},
-    {20, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1982, 1, 2047},
-    {25, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4829, 1, 4981},
-    {28, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1901, 1, 2002},
-    {34, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5030, 1, 5056},
-    {38, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6431, 1, 6544},
-    {39, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4706, 1, 4795},
-    {40, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5756, 1, 5995},
-    {41, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6246, 3, 6717},
-    {41, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 6252, 3, 6714},
-    {50, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3584, 1, 3787},
-    {51, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3572, 1, 3574},
-    {66, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5279, 1, 5494},
-    {66, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_B, 5285, 1, 5488},
-    {70, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4993, 1, 5044},
-    {71, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1547, 1, 1624},
-    {74, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3692, 1, 3790},
-    {75, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3584, 1, 3787},
-    {76, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3572, 1, 3574},
-    {77, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 7711, 1, 8329},
-    {78, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 7711, 1, 8051},
-    {79, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 8480, 16, 8880},
+      {1, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5279, 1, 5419},
+      {2, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4829, 1, 4969},
+      {3, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4517, 1, 4693},
+      {5, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 2177, 1, 2230},
+      {5, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_B, 2183, 1, 2224},
+      {7, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6554, 1, 6718},
+      {8, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 2318, 1, 2395},
+      {12, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1828, 1, 1858},
+      {20, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1982, 1, 2047},
+      {25, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4829, 1, 4981},
+      {28, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1901, 1, 2002},
+      {34, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5030, 1, 5056},
+      {38, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6431, 1, 6544},
+      {39, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4706, 1, 4795},
+      {40, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5756, 1, 5995},
+      {41, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 6246, 3, 6717},
+      {41, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 6252, 3, 6714},
+      {50, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3584, 1, 3787},
+      {51, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3572, 1, 3574},
+      {66, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 5279, 1, 5494},
+      {66, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_B, 5285, 1, 5488},
+      {70, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 4993, 1, 5044},
+      {71, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 1547, 1, 1624},
+      {74, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3692, 1, 3790},
+      {75, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3584, 1, 3787},
+      {76, srsran_subcarrier_spacing_15kHz, SRSRAN_SSB_PATTERN_A, 3572, 1, 3574},
+      {77, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 7711, 1, 8329},
+      {78, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 7711, 1, 8051},
+      {79, srsran_subcarrier_spacing_30kHz, SRSRAN_SSB_PATTERN_C, 8480, 16, 8880},
   }};
 };
 

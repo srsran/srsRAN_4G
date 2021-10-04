@@ -252,6 +252,7 @@ int main(int argc, char** argv)
   gnb_dl_args.pdsch.sch.disable_simd = false;
   gnb_dl_args.pdcch.disable_simd     = false;
   gnb_dl_args.nof_max_prb            = carrier.nof_prb;
+  gnb_dl_args.srate_hz               = SRSRAN_SUBC_SPACING_NR(carrier.scs) * srsran_min_symbol_sz_rb(carrier.nof_prb);
 
   srsran_pdcch_cfg_nr_t pdcch_cfg = {};
 

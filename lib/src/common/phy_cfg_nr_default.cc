@@ -426,7 +426,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
   }
   carrier.ssb_center_freq_hz = carrier.dl_center_frequency_hz;
   ssb.position_in_burst[0]   = true;
-  ssb.periodicity_ms         = 5;
+  ssb.periodicity_ms         = 10;
 
   switch (reference_cfg.pdcch) {
     case reference_cfg_t::R_PDCCH_CUSTOM_COMMON_SS:

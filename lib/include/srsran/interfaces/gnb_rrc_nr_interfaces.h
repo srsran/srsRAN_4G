@@ -43,6 +43,7 @@ struct rrc_cell_cfg_nr_t {
   uint32_t             ssb_absolute_freq_point;  // derived from DL ARFCN
   uint32_t             band;
   srsran_duplex_mode_t duplex_mode;
+  srsran_ssb_cfg_t     ssb_cfg;
 };
 
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
