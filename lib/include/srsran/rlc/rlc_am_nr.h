@@ -111,6 +111,13 @@ public:
   uint32_t get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t len);
   uint32_t get_status_pdu_length();
 
+  // Data handling methods
+  void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header);
+  bool inside_rx_window(uint32_t sn);
+
+  // Helpers
+  void debug_state();
+
 private:
   rlc_am*           parent = nullptr;
   rlc_am_nr_tx*     tx     = nullptr;

@@ -19,9 +19,10 @@
 #include "srsran/srslog/event_trace.h"
 #include <iostream>
 
-#define RLC_AM_NR_WINDOW_SIZE 1024
-#define RX_MOD_BASE_NR(x) (((x)-rx_next) % RLC_AM_NR_WINDOW_SIZE)
-//#define TX_MOD_BASE_NR(x) (((x)-vt_a) % RLC_AM_NR_WINDOW_SIZE)
+#define RLC_AM_NR_WINDOW_SIZE 2048
+#define MOD_NR 4096
+#define RX_MOD_BASE_NR(x) (((x)-rx_next) % MOD_NR)
+//#define TX_MOD_BASE_NR(x) (((x)-vt_a) % MOD_NR)
 
 namespace srsran {
 
@@ -232,17 +233,92 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   rlc_am_nr_pdu_header_t header = {};
   rlc_am_nr_read_data_pdu_header(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &header);
 
+  // TODO
+  // if (header.rf != 0) {
+  // handle_data_pdu_segment(payload, payload_len, header); TODO
+  //} else {
+  handle_data_pdu_full(payload, nof_bytes, header);
+  //}
+}
+
+void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header)
+{
+  std::map<uint32_t, rlc_amd_rx_pdu_nr>::iterator it;
+
+  logger->info(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)", parent->rb_name, header.sn, nof_bytes);
+  log_rlc_am_nr_pdu_header_to_string(logger->debug, header);
+
+  // sanity check for segments not exceeding PDU length
+  // TODO
+
+  if (!inside_rx_window(header.sn)) {
+    logger->info("%s SN=%d outside rx window [%d:%d] - discarding",
+                 parent->rb_name,
+                 header.sn,
+                 rx_next,
+                 rx_next + RLC_AM_NR_WINDOW_SIZE);
+    return;
+  }
+
+  // Section 5.2.3.2.2, discard duplicate PDUs
+  if (rx_window.has_sn(header.sn)) {
+    logger->info("%s Discarding duplicate SN=%d", parent->rb_name, header.sn);
+    return;
+  }
+
+  // Write to rx window
+  rlc_amd_rx_pdu_nr& pdu = rx_window.add_pdu(header.sn);
+  pdu.buf                = srsran::make_byte_buffer();
+  if (pdu.buf == nullptr) {
+    logger->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().");
+    rx_window.remove_pdu(header.sn);
+    return;
+  }
+  pdu.buf->set_timestamp();
+
+  // check available space for payload
+  if (nof_bytes > pdu.buf->get_tailroom()) {
+    logger->error("%s Discarding SN=%d of size %d B (available space %d B)",
+                  parent->rb_name,
+                  header.sn,
+                  nof_bytes,
+                  pdu.buf->get_tailroom());
+    return;
+  }
+  memcpy(pdu.buf->msg, payload, nof_bytes);
+  pdu.buf->N_bytes = nof_bytes;
+  pdu.header       = header;
+
+  // Update Rx_Next_Highest
+  if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
+    rx_next_highest = (header.sn + 1) % MOD;
+  }
+
   // Check poll bit
-  if (header.p != 0) {
+  if (header.p) {
     logger->info("%s Status packet requested through polling bit", parent->rb_name);
     do_status = true;
-
-    // 36.322 v10 Section 5.2.3
-    // if (RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) || RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr)) {
-    //  do_status = true;
-    //}
-    // else delay for reordering timer
   }
+
+  // Update RX_Highest_Status
+  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
+    rx_highest_status = header.sn % MOD;
+  }
+
+  // Update RX_Next
+  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
+    rx_highest_status = header.sn % MOD;
+  }
+  // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
+  // TODO
+
+  debug_state();
+}
+
+bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
+{
+  return (RX_MOD_BASE_NR(sn) >= RX_MOD_BASE_NR(rx_next)) &&
+         (RX_MOD_BASE_NR(sn) < RX_MOD_BASE_NR(rx_next + RLC_AM_NR_WINDOW_SIZE));
 }
 
 /*
@@ -302,5 +378,17 @@ uint32_t rlc_am_nr_rx::get_sdu_rx_latency_ms()
 uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
 {
   return 0;
+}
+
+/*
+ * Helpers
+ */
+void rlc_am_nr_rx::debug_state()
+{
+  logger->debug("RX entity state: Rx_Next %d, Rx_Next_Status_Trigger %d, Rx_Highest_Status %d, Rx_Next_Highest",
+                rx_next,
+                rx_next_status_trigger,
+                rx_highest_status,
+                rx_next_highest);
 }
 } // namespace srsran
