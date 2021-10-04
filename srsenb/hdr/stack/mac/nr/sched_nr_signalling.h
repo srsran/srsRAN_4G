@@ -30,9 +30,9 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
  * The functions schedules the SSB according to a given periodicity. This function is a simplified version of an
  * SSB scheduler and has several hard-coded parameters.
  *
- * @param[out] sl_point         Slot point carrying information about current slot.
+ * @param[in]  sl_point         Slot point carrying information about current slot.
  * @param[in]  ssb_periodicity  Periodicity of SSB in ms.
- * @param[in]  ssb_list         List of SSB messages to be sent to PHY.
+ * @param[out]  ssb_list         List of SSB messages to be sent to PHY.
  *
  * @remark This function a is basic scheduling function that uses the following simplified assumption:
  * 1) Subcarrier spacing: 15kHz

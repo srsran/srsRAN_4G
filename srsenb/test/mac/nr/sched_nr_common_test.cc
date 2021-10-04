@@ -11,8 +11,8 @@
  */
 
 #include "sched_nr_common_test.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_cfg.h"
 #include "srsran/support/srsran_test.h"
-#include <srsenb/hdr/stack/mac/nr/sched_nr_cfg.h>
 
 namespace srsenb {
 
@@ -42,7 +42,7 @@ void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> pd
 }
 
 void test_ssb_scheduled_grant(
-    srsran::slot_point&                                                                       sl_point,
+    const srsran::slot_point&                                                                 sl_point,
     const srsran::bounded_vector<mac_interface_phy_nr::ssb_t, mac_interface_phy_nr::MAX_SSB>& ssb_list)
 {
   const uint32_t ssb_periodicity = 5;
