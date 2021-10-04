@@ -1130,15 +1130,15 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
   auto& freq_info_dl = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl;
   freq_info_dl.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  freq_info_dl.absolute_freq_point_a     = parent->cfg.cell_list[0].phy_cell.carrier.dl_absolute_frequency_point_a;
+  freq_info_dl.absolute_freq_point_a     = parent->cfg.cell_list[0].dl_absolute_freq_point_a;
   freq_info_dl.absolute_freq_ssb_present = true;
-  freq_info_dl.absolute_freq_ssb         = parent->cfg.cell_list[0].phy_cell.carrier.absolute_frequency_ssb;
+  freq_info_dl.absolute_freq_ssb         = parent->cfg.cell_list[0].ssb_absolute_freq_point;
 
   freq_info_dl.scs_specific_carrier_list.resize(1);
   auto& dl_carrier              = freq_info_dl.scs_specific_carrier_list[0];
   dl_carrier.offset_to_carrier  = 0;
   dl_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
-  dl_carrier.carrier_bw         = 52;
+  dl_carrier.carrier_bw         = parent->cfg.cell_list[0].phy_cell.carrier.nof_prb;
 
   return SRSRAN_SUCCESS;
 }
@@ -1261,13 +1261,13 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul_present = true;
   auto& freq_info_ul = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul;
   freq_info_ul.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  freq_info_ul.absolute_freq_point_a = parent->cfg.cell_list[0].phy_cell.carrier.ul_absolute_frequency_point_a;
+  freq_info_ul.absolute_freq_point_a = parent->cfg.cell_list[0].ul_absolute_freq_point_a;
   freq_info_ul.scs_specific_carrier_list.resize(1);
 
   auto& ul_carrier              = freq_info_ul.scs_specific_carrier_list[0];
   ul_carrier.offset_to_carrier  = 0;
   ul_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
-  ul_carrier.carrier_bw         = 52;
+  ul_carrier.carrier_bw         = parent->cfg.cell_list[0].phy_cell.carrier.nof_prb;
 
   return SRSRAN_SUCCESS;
 }

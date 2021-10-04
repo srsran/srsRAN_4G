@@ -1525,20 +1525,23 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     cfg.phy_cell.pdcch.ra_search_space         = cfg.phy_cell.pdcch.search_space[1];
     cfg.phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
 
-    // point a
-    cfg.phy_cell.carrier.dl_absolute_frequency_point_a =
-        band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.dl_arfcn);
-    cfg.phy_cell.carrier.ul_absolute_frequency_point_a =
-        band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.ul_arfcn);
+    // copy center frequencies
+    cfg.phy_cell.carrier.dl_center_frequency_hz = cfg.phy_cell.dl_freq_hz;
+    cfg.phy_cell.carrier.ul_center_frequency_hz = cfg.phy_cell.ul_freq_hz;
 
-    // ssb freq
+    cfg.dl_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.dl_arfcn);
+    cfg.ul_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.ul_arfcn);
+
+    // Calculate SSB absolute frequency (in ARFCN notation)
     if (band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_15kHz) != SRSRAN_SSB_PATTERN_INVALID) {
-      cfg.phy_cell.carrier.absolute_frequency_ssb = band_helper.get_abs_freq_ssb_arfcn(
-          cfg.band, srsran_subcarrier_spacing_15kHz, cfg.phy_cell.carrier.dl_absolute_frequency_point_a);
+      cfg.ssb_absolute_freq_point =
+          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_15kHz, cfg.dl_absolute_freq_point_a);
     } else {
-      cfg.phy_cell.carrier.absolute_frequency_ssb = band_helper.get_abs_freq_ssb_arfcn(
-          cfg.band, srsran_subcarrier_spacing_30kHz, cfg.phy_cell.carrier.dl_absolute_frequency_point_a);
+      cfg.ssb_absolute_freq_point =
+          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_30kHz, cfg.dl_absolute_freq_point_a);
     }
+    // Convert to frequency for PHY
+    cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);
 
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }

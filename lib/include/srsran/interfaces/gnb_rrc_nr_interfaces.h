@@ -38,6 +38,9 @@ struct rrc_cell_cfg_nr_t {
   uint32_t             tac;      // Tracking area code
   uint32_t             dl_arfcn; // DL freq already included in phy_cell
   uint32_t             ul_arfcn; // UL freq also in phy_cell
+  uint32_t             dl_absolute_freq_point_a; // derived from DL ARFCN
+  uint32_t             ul_absolute_freq_point_a; // derived from UL ARFCN
+  uint32_t             ssb_absolute_freq_point;  // derived from DL ARFCN
   uint32_t             band;
   srsran_duplex_mode_t duplex_mode;
 };
