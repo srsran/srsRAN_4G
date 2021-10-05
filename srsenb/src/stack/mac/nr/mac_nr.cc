@@ -81,9 +81,6 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
   srsran::rwlock_read_guard lock(rwlock);
   metrics.ues.reserve(ue_db.size());
   for (auto& u : ue_db) {
-    if (not sched.ue_exists(u.first)) {
-      continue;
-    }
     metrics.ues.emplace_back();
     u.second->metrics_read(&metrics.ues.back());
   }
