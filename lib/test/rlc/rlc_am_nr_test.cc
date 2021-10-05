@@ -90,22 +90,15 @@ int basic_test()
   rlc_am_nr_status_pdu_t status_check = {};
   rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
   TESTASSERT(status_check.ack_sn == 5); // 5 is the last SN that was not received.
-  // TESTASSERT(rlc_am_is_valid_status_pdu(status_check));
-  /*
-        // Write status PDU to RLC1
-        rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+                                        // TESTASSERT(rlc_am_is_valid_status_pdu(status_check));
 
-        // Check PDCP notifications
-        TESTASSERT(tester.notified_counts.size() == 5);
-        for (uint16_t i = 0; i < tester.sdus.size(); i++) {
-          TESTASSERT(tester.sdus[i]->N_bytes == 1);
-          TESTASSERT(*(tester.sdus[i]->msg) == i);
-          TESTASSERT(tester.notified_counts[i] == 1);
-        }
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  // Check PDCP notifications
+  // TODO
 
-        // Check statistics
-        TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
-      */
+  // Check statistics
+  TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
   return SRSRAN_SUCCESS;
 }
 

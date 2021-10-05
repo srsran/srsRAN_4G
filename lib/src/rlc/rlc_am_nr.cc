@@ -73,12 +73,13 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   //  logger.debug("tx_window size - %zu PDUs", tx_window.size());
 
   // Build a PDU from SDU
-  unique_byte_buffer_t tx_sdu;
   unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
 
   // Tx STATUS if requested
   if (do_status() /*&& not status_prohibit_timer.is_running()*/) {
-    return build_status_pdu(tx_pdu.get(), nof_bytes);
+    build_status_pdu(tx_pdu.get(), nof_bytes);
+    memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
+    return tx_pdu->N_bytes;
   }
 
   // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
@@ -88,6 +89,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // TODO
 
   // Read new SDU from TX queue
+  unique_byte_buffer_t tx_sdu;
   do {
     tx_sdu = tx_sdu_queue.read();
   } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
@@ -108,19 +110,24 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (len > nof_bytes) {
     logger->error("Error writing AMD PDU header");
   }
+
+  // Update TX Next
+  st.tx_next = (st.tx_next + 1) % MOD;
+
   memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
   return tx_sdu->N_bytes;
 }
 
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
 {
+  logger->info("Generating Status PDU. Bytes available:%d", nof_bytes);
   rlc_am_nr_status_pdu_t tx_status;
   int                    pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
     logger->debug("%s Deferred Status PDU. Cause: Failed to acquire Rx lock", rb_name);
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
-    // log_rlc_am_status_pdu_to_string(logger->info, "%s Tx status PDU - %s", &tx_status, rb_name);
+    log_rlc_am_nr_status_pdu_to_string(logger->info, "%s Tx status PDU - %s", &tx_status, rb_name);
     // if (cfg.t_status_prohibit > 0 && status_prohibit_timer.is_valid()) {
     // re-arm timer
     //  status_prohibit_timer.run();
@@ -132,7 +139,7 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
     pdu_len = 0;
   }
 
-  return pdu_len;
+  return payload->N_bytes;
 }
 
 void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) {}
@@ -302,13 +309,14 @@ void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rl
 
   // Update RX_Highest_Status
   if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
-    rx_highest_status = header.sn % MOD;
+    rx_highest_status = (header.sn + 1) % MOD;
   }
 
-  // Update RX_Next
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
-    rx_highest_status = header.sn % MOD;
+  // Update RX_Next (FIXME should only be updated if all segments are received)
+  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_next)) {
+    rx_next = header.sn + 1 % MOD;
   }
+
   // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
   // TODO
 
