@@ -42,7 +42,10 @@ ue_nr::~ue_nr() {}
 
 void ue_nr::reset()
 {
-  ue_metrics   = {};
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    ue_metrics = {};
+  }
   nof_failures = 0;
 }
 
@@ -222,12 +225,14 @@ void ue_nr::metrics_tx(bool crc, uint32_t tbs)
 
 void ue_nr::metrics_dl_mcs(uint32_t mcs)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.dl_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.dl_mcs, ue_metrics.dl_mcs_samples);
   ue_metrics.dl_mcs_samples++;
 }
 
 void ue_nr::metrics_ul_mcs(uint32_t mcs)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.ul_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.ul_mcs, ue_metrics.ul_mcs_samples);
   ue_metrics.ul_mcs_samples++;
 }
