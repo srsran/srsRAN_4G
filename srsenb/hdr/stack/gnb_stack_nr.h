@@ -120,7 +120,10 @@ private:
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
   srsran::task_scheduler                task_sched;
-  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gtpu_task_queue, mac_task_queue;
+  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gtpu_task_queue, mac_task_queue,
+      metrics_task_queue;
+
+  srsran::dyn_blocking_queue<stack_metrics_t> pending_stack_metrics;
 
   // derived
   srsenb::mac_nr mac;

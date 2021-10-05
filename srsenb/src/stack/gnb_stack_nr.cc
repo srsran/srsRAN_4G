@@ -25,15 +25,17 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   pdcp_logger(srslog::fetch_basic_logger("PDCP-NR", log_sink, false)),
   rrc_logger(srslog::fetch_basic_logger("RRC-NR", log_sink, false)),
   stack_logger(srslog::fetch_basic_logger("STCK-NR", log_sink, false)),
+  pending_stack_metrics(64),
   mac(&task_sched),
   rrc(&task_sched),
   pdcp(&task_sched, pdcp_logger),
   rlc(rlc_logger)
 {
-  ue_task_queue   = task_sched.make_task_queue();
-  sync_task_queue = task_sched.make_task_queue();
-  gtpu_task_queue = task_sched.make_task_queue();
-  mac_task_queue  = task_sched.make_task_queue();
+  ue_task_queue      = task_sched.make_task_queue();
+  sync_task_queue    = task_sched.make_task_queue();
+  gtpu_task_queue    = task_sched.make_task_queue();
+  mac_task_queue     = task_sched.make_task_queue();
+  metrics_task_queue = task_sched.make_task_queue();
 }
 
 gnb_stack_nr::~gnb_stack_nr()
@@ -129,9 +131,7 @@ void gnb_stack_nr::tti_clock_impl()
   task_sched.tic();
 }
 
-void gnb_stack_nr::process_pdus()
-{
-}
+void gnb_stack_nr::process_pdus() {}
 
 /********************************************************
  *
@@ -141,9 +141,22 @@ void gnb_stack_nr::process_pdus()
 
 bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
 {
-  mac.get_metrics(metrics->mac);
-  rrc.get_metrics(metrics->rrc);
-  return true;
+  // use stack thread to query metrics
+  auto ret = metrics_task_queue.try_push([this]() {
+    srsenb::stack_metrics_t metrics{};
+    mac.get_metrics(metrics.mac);
+    rrc.get_metrics(metrics.rrc);
+    if (not pending_stack_metrics.try_push(std::move(metrics))) {
+      stack_logger.error("Unable to push metrics to queue");
+    }
+  });
+
+  if (ret.has_value()) {
+    // wait for result
+    *metrics = pending_stack_metrics.pop_blocking();
+    return true;
+  }
+  return false;
 }
 
 // Temporary GW interface
