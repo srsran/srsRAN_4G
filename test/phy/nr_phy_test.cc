@@ -194,9 +194,9 @@ int main(int argc, char** argv)
   test_bench::metrics_t metrics = tb.get_metrics();
 
   // Print PDSCH metrics if scheduled
-  double pdsch_bler = 0.0;
   if (metrics.gnb_stack.mac.tx_pkts > 0) {
-    pdsch_bler = (double)metrics.gnb_stack.mac.tx_errors / (double)metrics.gnb_stack.mac.tx_pkts;
+    float pdsch_bler = 0.0f;
+    pdsch_bler       = (float)metrics.gnb_stack.mac.tx_errors / (float)metrics.gnb_stack.mac.tx_pkts;
 
     float pdsch_shed_rate   = 0.0f;
     pdsch_shed_rate         = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
@@ -215,10 +215,10 @@ int main(int argc, char** argv)
   }
 
   // Print PUSCH metrics if scheduled
-  double pusch_bler = 0.0;
   if (metrics.gnb_stack.mac.rx_pkts > 0) {
+    float pusch_bler = 0.0f;
     if (metrics.gnb_stack.mac.rx_pkts != 0) {
-      pusch_bler = (double)metrics.gnb_stack.mac.rx_errors / (double)metrics.gnb_stack.mac.rx_pkts;
+      pusch_bler = (float)metrics.gnb_stack.mac.rx_errors / (float)metrics.gnb_stack.mac.rx_pkts;
     }
 
     float pusch_shed_rate = 0.0f;
@@ -292,6 +292,73 @@ int main(int argc, char** argv)
                     metrics.gnb_stack.pucch.ta_us_avg,
                     metrics.gnb_stack.pucch.ta_us_min,
                     metrics.gnb_stack.pucch.ta_us_max);
+    srsran::console("   +------------+------------+------------+------------+\n");
+  }
+
+  // Print PDSCH metrics if scheduled
+  double pdsch_bler = 0.0;
+  if (metrics.gnb_stack.mac.tx_pkts > 0) {
+    pdsch_bler = (double)metrics.gnb_stack.mac.tx_errors / (double)metrics.gnb_stack.mac.tx_pkts;
+
+    float pdsch_shed_rate = 0.0f;
+    pdsch_shed_rate       = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
+
+    srsran::console("PDSCH:\n");
+    srsran::console("       Count: %d\n", metrics.gnb_stack.mac.tx_pkts);
+    srsran::console("        BLER: %f\n", pdsch_bler);
+    srsran::console("  Sched Rate: %f Mbps\n", pdsch_shed_rate);
+    srsran::console("    Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
+    srsran::console("   Retx Rate: %f Mbps\n", pdsch_bler * pdsch_shed_rate);
+    srsran::console("\n");
+  }
+
+  // Print PUSCH metrics if scheduled
+  double pusch_bler = 0.0;
+  if (metrics.gnb_stack.mac.rx_pkts > 0) {
+    if (metrics.gnb_stack.mac.rx_pkts != 0) {
+      pusch_bler = (double)metrics.gnb_stack.mac.rx_errors / (double)metrics.gnb_stack.mac.rx_pkts;
+    }
+
+    float pusch_shed_rate = 0.0f;
+    if (metrics.gnb_stack.mac.rx_pkts != 0) {
+      pusch_shed_rate = (float)metrics.gnb_stack.mac.rx_brate / (float)metrics.gnb_stack.mac.rx_pkts / 1000.0f;
+    }
+
+    srsran::console("PUSCH:\n");
+    srsran::console("       Count: %d\n", metrics.gnb_stack.mac.rx_pkts);
+    srsran::console("        BLER: %f\n", pusch_bler);
+    srsran::console("  Sched Rate: %f Mbps\n", pusch_shed_rate);
+    srsran::console("    Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
+    srsran::console("   Retx Rate: %f Mbps\n", pusch_bler * pusch_shed_rate);
+    srsran::console("\n");
+  }
+
+  // Print PUSCH
+  if (metrics.gnb_stack.pusch.count > 0) {
+    srsran::console("PUSCH DMRS Receiver metrics:\n");
+    srsran::console("   +------------+------------+------------+------------+\n");
+    srsran::console("   | %10s | %10s | %10s | %10s |\n", "Measure", "Average", "Min", "Max");
+    srsran::console("   +------------+------------+------------+------------+\n");
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "EPRE (dB)",
+                    metrics.gnb_stack.pusch.epre_db_avg,
+                    metrics.gnb_stack.pusch.epre_db_min,
+                    metrics.gnb_stack.pusch.epre_db_min);
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "RSRP (dB)",
+                    metrics.gnb_stack.pusch.rsrp_db_avg,
+                    metrics.gnb_stack.pusch.rsrp_db_min,
+                    metrics.gnb_stack.pusch.rsrp_db_max);
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "SINR (dB)",
+                    metrics.gnb_stack.pusch.snr_db_avg,
+                    metrics.gnb_stack.pusch.snr_db_min,
+                    metrics.gnb_stack.pusch.snr_db_max);
+    srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
+                    "TA (us)",
+                    metrics.gnb_stack.pusch.ta_us_avg,
+                    metrics.gnb_stack.pusch.ta_us_min,
+                    metrics.gnb_stack.pusch.ta_us_max);
     srsran::console("   +------------+------------+------------+------------+\n");
   }
 

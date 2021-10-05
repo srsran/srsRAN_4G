@@ -61,6 +61,7 @@ public:
     uint32_t                            cqi_count       = 0;  ///< CQI opportunity counter
     uint32_t                            cqi_valid_count = 0;  ///< Valid CQI counter
     pucch_metrics_t                     pucch           = {};
+    pucch_metrics_t                     pusch    = {};
   };
 
 private:
@@ -661,6 +662,21 @@ public:
     }
     metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
     metrics.mac.rx_pkts++;
+
+    // Handle PHY metrics
+    metrics.pusch.epre_db_avg = SRSRAN_VEC_CMA(pusch_info.csi.epre_dB, metrics.pusch.epre_db_avg, metrics.pusch.count);
+    metrics.pusch.epre_db_min = SRSRAN_MIN(metrics.pusch.epre_db_min, pusch_info.csi.epre_dB);
+    metrics.pusch.epre_db_max = SRSRAN_MAX(metrics.pusch.epre_db_max, pusch_info.csi.epre_dB);
+    metrics.pusch.rsrp_db_avg = SRSRAN_VEC_CMA(pusch_info.csi.rsrp_dB, metrics.pusch.rsrp_db_avg, metrics.pusch.count);
+    metrics.pusch.rsrp_db_min = SRSRAN_MIN(metrics.pusch.rsrp_db_min, pusch_info.csi.rsrp_dB);
+    metrics.pusch.rsrp_db_max = SRSRAN_MAX(metrics.pusch.rsrp_db_max, pusch_info.csi.rsrp_dB);
+    metrics.pusch.snr_db_avg  = SRSRAN_VEC_CMA(pusch_info.csi.snr_dB, metrics.pusch.snr_db_avg, metrics.pusch.count);
+    metrics.pusch.snr_db_min  = SRSRAN_MIN(metrics.pusch.snr_db_min, pusch_info.csi.snr_dB);
+    metrics.pusch.snr_db_max  = SRSRAN_MAX(metrics.pusch.snr_db_max, pusch_info.csi.snr_dB);
+    metrics.pusch.ta_us_avg   = SRSRAN_VEC_CMA(pusch_info.csi.delay_us, metrics.pusch.ta_us_avg, metrics.pusch.count);
+    metrics.pusch.ta_us_min   = SRSRAN_MIN(metrics.pusch.ta_us_min, pusch_info.csi.delay_us);
+    metrics.pusch.ta_us_max   = SRSRAN_MAX(metrics.pusch.ta_us_max, pusch_info.csi.delay_us);
+    metrics.pusch.count++;
 
     return SRSRAN_SUCCESS;
   }

@@ -268,7 +268,7 @@ public:
     srsran::unique_byte_buffer_t pdu = nullptr;
 
     // PUSCH signal measurements
-    // ...
+    srsran_csi_trs_measurements_t csi; ///< DMRS based signal Channel State Information (CSI)
   };
 
   struct rach_info_t {

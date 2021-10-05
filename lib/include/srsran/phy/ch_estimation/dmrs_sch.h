@@ -50,6 +50,8 @@ typedef struct {
   cf_t*    temp;            /// Temporal data vector of size SRSRAN_NRE * carrier.nof_prb
 
   float* filter; ///< Smoothing filter
+
+  srsran_csi_trs_measurements_t csi; ///< Last estimated channel state information
 } srsran_dmrs_sch_t;
 
 /**

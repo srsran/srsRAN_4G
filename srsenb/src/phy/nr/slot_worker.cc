@@ -224,6 +224,9 @@ bool slot_worker::work_ul()
       return false;
     }
 
+    // Extract DMRS information
+    pusch_info.csi = gnb_ul.dmrs.csi;
+
     // Inform stack
     if (stack.pusch_info(ul_slot_cfg, pusch_info) < SRSRAN_SUCCESS) {
       logger.error("Error pushing PUSCH information to stack");
