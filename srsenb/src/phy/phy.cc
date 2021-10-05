@@ -100,7 +100,7 @@ int phy::init(const phy_args_t&            args,
               stack_interface_phy_nr&      stack_nr_,
               enb_time_interface*          enb_)
 {
-  if (init(args, cfg, radio_, stack_lte_, enb_) != SRSRAN_SUCCESS) {
+  if (init_lte(args, cfg, radio_, stack_lte_, enb_) != SRSRAN_SUCCESS) {
     phy_log.error("Couldn't initialize LTE PHY");
     return SRSRAN_ERROR;
   }
@@ -110,6 +110,9 @@ int phy::init(const phy_args_t&            args,
     return SRSRAN_ERROR;
   }
 
+  tx_rx.init(enb_, radio, &lte_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
+  initialized = true;
+
   return SRSRAN_SUCCESS;
 }
 
@@ -118,6 +121,23 @@ int phy::init(const phy_args_t&            args,
               srsran::radio_interface_phy* radio_,
               stack_interface_phy_lte*     stack_lte_,
               enb_time_interface*          enb_)
+{
+  if (init_lte(args, cfg, radio_, stack_lte_, enb_) != SRSRAN_SUCCESS) {
+    phy_log.error("Couldn't initialize LTE PHY");
+    return SRSRAN_ERROR;
+  }
+
+  tx_rx.init(enb_, radio, &lte_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
+  initialized = true;
+
+  return SRSRAN_SUCCESS;
+}
+
+int phy::init_lte(const phy_args_t&            args,
+                  const phy_cfg_t&             cfg,
+                  srsran::radio_interface_phy* radio_,
+                  stack_interface_phy_lte*     stack_lte_,
+                  enb_time_interface*          enb_)
 {
   if (cfg.phy_cell_cfg.size() > SRSRAN_MAX_CARRIERS) {
     phy_log.error(
@@ -165,11 +185,6 @@ int phy::init(const phy_args_t&            args,
                args.nof_prach_threads);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
-
-  // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(enb_, radio, &lte_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
-
-  initialized = true;
 
   return SRSRAN_SUCCESS;
 }

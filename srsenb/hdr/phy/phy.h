@@ -38,13 +38,13 @@ public:
   int  init(const phy_args_t&            args,
             const phy_cfg_t&             cfg,
             srsran::radio_interface_phy* radio_,
-            stack_interface_phy_lte*     stack_,
+            stack_interface_phy_lte*     stack_lte_,
+            stack_interface_phy_nr&      stack_nr_,
             enb_time_interface*          enb_);
   int  init(const phy_args_t&            args,
             const phy_cfg_t&             cfg,
             srsran::radio_interface_phy* radio_,
-            stack_interface_phy_lte*     stack_lte_,
-            stack_interface_phy_nr&      stack_nr_,
+            stack_interface_phy_lte*     stack_,
             enb_time_interface*          enb_);
   void stop() override;
 
@@ -72,7 +72,6 @@ public:
 
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
-  int init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_phy_nr& stack);
   int set_common_cfg(const common_cfg_t& common_cfg) override;
 
 private:
@@ -103,6 +102,12 @@ private:
   common_cfg_t       common_cfg = {};
 
   void parse_common_config(const phy_cfg_t& cfg);
+  int  init_lte(const phy_args_t&            args,
+                const phy_cfg_t&             cfg,
+                srsran::radio_interface_phy* radio_,
+                stack_interface_phy_lte*     stack_,
+                enb_time_interface*          enb_);
+  int  init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_phy_nr& stack);
 };
 
 } // namespace srsenb
