@@ -54,9 +54,9 @@ private:
     ul_harq_process_nr();
     ~ul_harq_process_nr();
 
-    bool init(uint32_t pid_, ul_harq_entity_nr* entity_);
-    void reset();
-    void reset_ndi();
+    bool    init(uint32_t pid_, ul_harq_entity_nr* entity_);
+    void    reset();
+    void    reset_ndi();
     uint8_t get_ndi();
     bool    has_grant();
 
@@ -75,7 +75,7 @@ private:
                       mac_interface_phy_nr::tb_action_ul_t*          action);
 
   private:
-    mac_interface_phy_nr::mac_nr_grant_ul_t current_grant = {};
+    mac_interface_phy_nr::mac_nr_grant_ul_t current_grant    = {};
     bool                                    grant_configured = false;
 
     uint32_t pid          = 0;
@@ -103,6 +103,7 @@ private:
 
   srsran::ul_harq_cfg_t harq_cfg = {};
   ul_harq_metrics_t     metrics  = {};
+  std::mutex            metrics_mutex;
 };
 
 typedef std::unique_ptr<ul_harq_entity_nr>                     ul_harq_entity_nr_ptr;

@@ -106,6 +106,7 @@ int ul_harq_entity_nr::get_current_tbs(uint32_t pid)
 
 ul_harq_entity_nr::ul_harq_metrics_t ul_harq_entity_nr::get_metrics()
 {
+  std::lock_guard<std::mutex>          lock(metrics_mutex);
   ul_harq_entity_nr::ul_harq_metrics_t tmp = metrics;
   metrics                                  = {};
   return tmp;
@@ -240,6 +241,7 @@ void ul_harq_entity_nr::ul_harq_process_nr::generate_new_tx(const mac_interface_
 
   generate_tx(action);
 
+  std::lock_guard<std::mutex> lock(harq_entity->metrics_mutex);
   harq_entity->metrics.tx_ok++;
 }
 
@@ -255,6 +257,7 @@ void ul_harq_entity_nr::ul_harq_process_nr::generate_retx(const mac_interface_ph
   generate_tx(action);
 
   // increment Tx error count
+  std::lock_guard<std::mutex> lock(harq_entity->metrics_mutex);
   harq_entity->metrics.tx_ko++;
 }
 
@@ -262,7 +265,11 @@ void ul_harq_entity_nr::ul_harq_process_nr::generate_retx(const mac_interface_ph
 void ul_harq_entity_nr::ul_harq_process_nr::generate_tx(mac_interface_phy_nr::tb_action_ul_t* action)
 {
   nof_retx++;
-  harq_entity->metrics.tx_brate += current_grant.tbs * 8;
+
+  {
+    std::lock_guard<std::mutex> lock(harq_entity->metrics_mutex);
+    harq_entity->metrics.tx_brate += current_grant.tbs * 8;
+  }
 
   action->tb.rv         = current_grant.rv;
   action->tb.enabled    = true;

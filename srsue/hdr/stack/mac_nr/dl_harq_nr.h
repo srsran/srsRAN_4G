@@ -42,7 +42,7 @@ public:
   ~dl_harq_entity_nr();
 
   int32_t set_config(const srsran::dl_harq_cfg_nr_t& cfg_);
-  void reset();
+  void    reset();
 
   /// PHY->MAC interface for DL processes
   void new_grant_dl(const mac_nr_grant_dl_t& grant, mac_interface_phy_nr::tb_action_dl_t* action);
@@ -69,7 +69,7 @@ private:
     uint8_t get_ndi();
 
     void
-         new_grant_dl(const mac_nr_grant_dl_t& grant, const bool& ndi_toggled, mac_interface_phy_nr::tb_action_dl_t* action);
+    new_grant_dl(const mac_nr_grant_dl_t& grant, const bool& ndi_toggled, mac_interface_phy_nr::tb_action_dl_t* action);
     void tb_decoded(const mac_nr_grant_dl_t& grant, mac_interface_phy_nr::tb_action_dl_result_t result);
 
   private:
@@ -96,7 +96,8 @@ private:
   srslog::basic_logger&                                                       logger;
   uint16_t                                                                    last_temporal_crnti = SRSRAN_INVALID_RNTI;
   dl_harq_metrics_t                                                           metrics             = {};
-  uint8_t                                                                     cc_idx              = 0;
+  std::mutex                                                                  metrics_mutex;
+  uint8_t                                                                     cc_idx = 0;
   pthread_rwlock_t                                                            rwlock;
 };
 

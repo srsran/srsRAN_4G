@@ -57,6 +57,7 @@ void ul_harq_entity::reset_ndi()
 
 void ul_harq_entity::set_config(srsran::ul_harq_cfg_t& harq_cfg_)
 {
+  std::lock_guard<std::mutex> lock(config_mutex);
   harq_cfg = harq_cfg_;
 }
 
@@ -174,10 +175,13 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
     // Get maximum retransmissions
     uint32_t max_retx;
-    if (grant.rnti == harq_entity->rntis->get_temp_rnti()) {
-      max_retx = harq_entity->harq_cfg.max_harq_msg3_tx;
-    } else {
-      max_retx = harq_entity->harq_cfg.max_harq_tx;
+    {
+      std::lock_guard<std::mutex> lock(harq_entity->config_mutex);
+      if (grant.rnti == harq_entity->rntis->get_temp_rnti()) {
+        max_retx = harq_entity->harq_cfg.max_harq_msg3_tx;
+      } else {
+        max_retx = harq_entity->harq_cfg.max_harq_tx;
+      }
     }
 
     // Check maximum retransmissions, do not consider last retx ACK

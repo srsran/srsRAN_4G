@@ -99,6 +99,7 @@ private:
   ue_rnti* rntis = nullptr;
 
   srsran::ul_harq_cfg_t harq_cfg = {};
+  std::mutex            config_mutex;
 
   std::atomic<float>    average_retx{0};
   std::atomic<uint64_t> nof_pkts{0};
