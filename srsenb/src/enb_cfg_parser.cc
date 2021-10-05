@@ -1532,15 +1532,27 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     cfg.dl_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.dl_arfcn);
     cfg.ul_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.ul_arfcn);
 
-    // Calculate SSB absolute frequency (in ARFCN notation)
-    if (band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_15kHz) != SRSRAN_SSB_PATTERN_INVALID) {
-      cfg.ssb_absolute_freq_point =
-          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_15kHz, cfg.dl_absolute_freq_point_a);
+    // Calculate SSB params depending on band/duplex
+    cfg.ssb_cfg.duplex_mode = band_helper.get_duplex_mode(cfg.band);
+    cfg.ssb_cfg.pattern     = band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_15kHz);
+    if (cfg.ssb_cfg.pattern == SRSRAN_SSB_PATTERN_A) {
+      // 15kHz SSB SCS
+      cfg.ssb_cfg.scs = srsran_subcarrier_spacing_15kHz;
     } else {
-      cfg.ssb_absolute_freq_point =
-          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_30kHz, cfg.dl_absolute_freq_point_a);
+      // try to optain SSB pattern for same band with 30kHz SCS
+      cfg.ssb_cfg.pattern = band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_30kHz);
+      if (cfg.ssb_cfg.pattern == SRSRAN_SSB_PATTERN_B || cfg.ssb_cfg.pattern == SRSRAN_SSB_PATTERN_C) {
+        // SSB SCS is 30 kHz
+        cfg.ssb_cfg.scs = srsran_subcarrier_spacing_30kHz;
+      } else {
+        ERROR("Can't derive SSB pattern for band %d", cfg.band);
+        return SRSRAN_ERROR;
+      }
     }
 
+    // fill remaining SSB fields
+    cfg.ssb_absolute_freq_point =
+        band_helper.get_abs_freq_ssb_arfcn(cfg.band, cfg.ssb_cfg.scs, cfg.dl_absolute_freq_point_a);
     if (cfg.ssb_absolute_freq_point == 0) {
       ERROR("Can't derive SSB freq point for dl_arfcn %d and band %d", cfg.dl_arfcn, cfg.band);
       return SRSRAN_ERROR;
@@ -1549,8 +1561,16 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     // Convert to frequency for PHY
     cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);
 
-    // TODO: set SSB config
-    cfg.ssb_cfg = {};
+    cfg.ssb_cfg.center_freq_hz = cfg.phy_cell.carrier.dl_center_frequency_hz;
+    cfg.ssb_cfg.ssb_freq_hz    = cfg.phy_cell.carrier.ssb_center_freq_hz;
+    cfg.ssb_cfg.periodicity_ms = 10; // TODO: make a param
+    cfg.ssb_cfg.beta_pss       = 0.0;
+    cfg.ssb_cfg.beta_sss       = 0.0;
+    cfg.ssb_cfg.beta_pbch      = 0.0;
+    cfg.ssb_cfg.beta_pbch_dmrs = 0.0;
+    // set by PHY layer in worker_pool::set_common_cfg
+    cfg.ssb_cfg.srate_hz = 0.0;
+    cfg.ssb_cfg.scaling  = 0.0;
 
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
