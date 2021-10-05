@@ -1170,8 +1170,9 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ssb_cfg(asn1::rrc_nr::ce
   }
 
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_periodicity_serving_cell_present = true;
+  // TODO: get periodicitiy from cell config
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_periodicity_serving_cell =
-      serving_cell_cfg_common_s::ssb_periodicity_serving_cell_opts::ms20;
+      serving_cell_cfg_common_s::ssb_periodicity_serving_cell_opts::ms10;
 
   return SRSRAN_SUCCESS;
 }
