@@ -321,6 +321,8 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
 
   slot_point pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
   ret                   = sched.get_ul_sched(pusch_slot, 0, ul_sched);
+
+  srsran::rwlock_read_guard rw_lock(rwlock);
   for (auto& pusch : ul_sched.pusch) {
     if (ue_db.contains(pusch.sch.grant.rnti)) {
       ue_db[pusch.sch.grant.rnti]->metrics_ul_mcs(pusch.sch.grant.tb->mcs);
@@ -345,6 +347,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
     const srsran_harq_ack_bit_t* ack_bit = &cfg_.ack.bits[i];
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
     sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+    srsran::rwlock_read_guard rw_lock(rwlock);
     if (ue_db.contains(rnti)) {
       ue_db[rnti]->metrics_tx(is_ok, 0 /*TODO get size of packet from scheduler somehow*/);
     }
@@ -386,6 +389,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
     };
     stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pusch_info.pdu)));
   }
+  srsran::rwlock_read_guard rw_lock(rwlock);
   if (ue_db.contains(rnti)) {
     ue_db[rnti]->metrics_rx(pusch_info.pusch_data.tb[0].crc, nof_bytes);
     ue_db[rnti]->metrics_dl_cqi(15); // TODO extract correct CQI measurments
