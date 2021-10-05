@@ -419,9 +419,11 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
 
   if (duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
     carrier.dl_center_frequency_hz = 3513.6e6;
+    carrier.ul_center_frequency_hz = 3513.6e6;
     ssb.scs                        = srsran_subcarrier_spacing_30kHz;
   } else {
     carrier.dl_center_frequency_hz = 881.5e6;
+    carrier.ul_center_frequency_hz = 836.6e6;
     ssb.scs                        = srsran_subcarrier_spacing_15kHz;
   }
   carrier.ssb_center_freq_hz = carrier.dl_center_frequency_hz;
