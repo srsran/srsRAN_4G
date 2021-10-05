@@ -46,13 +46,12 @@ std::string gnb_stack_nr::get_type()
   return "nr";
 }
 
-int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
-                       const rrc_nr_cfg_t&         rrc_cfg_,
-                       phy_interface_stack_nr*     phy_,
-                       x2_interface*               x2_)
+int gnb_stack_nr::init(const gnb_stack_args_t& args_,
+                       const rrc_nr_cfg_t&     rrc_cfg_,
+                       phy_interface_stack_nr* phy_,
+                       x2_interface*           x2_)
 {
   args = args_;
-  // rrc_cfg = rrc_cfg_;
   phy = phy_;
 
   // setup logging
@@ -69,10 +68,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
 
   // Init all layers
-  mac_nr_args_t mac_args = {};
-  mac_args.pcap          = args.mac_pcap;
-  mac_args.pcap.filename = "/tmp/enb_mac_nr.pcap";
-  if (mac.init(mac_args, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
+  if (mac.init(args.mac, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize MAC-NR");
     return SRSRAN_ERROR;
   }

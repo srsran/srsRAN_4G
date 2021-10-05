@@ -29,6 +29,11 @@
 
 namespace srsenb {
 
+struct gnb_stack_args_t {
+  stack_log_args_t log;
+  mac_nr_args_t    mac;
+};
+
 class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public stack_interface_phy_nr,
                            public stack_interface_mac,
@@ -41,10 +46,10 @@ public:
   explicit gnb_stack_nr(srslog::sink& log_sink);
   ~gnb_stack_nr() final;
 
-  int init(const srsenb::stack_args_t& args_,
-           const rrc_nr_cfg_t&         rrc_cfg_,
-           phy_interface_stack_nr*     phy_,
-           x2_interface*               x2_);
+  int init(const gnb_stack_args_t& args_,
+           const rrc_nr_cfg_t&     rrc_cfg_,
+           phy_interface_stack_nr* phy_,
+           x2_interface*           x2_);
 
   // eNB stack base interface
   void        stop() final;
@@ -103,7 +108,7 @@ private:
   void tti_clock_impl();
 
   // args
-  srsenb::stack_args_t    args = {};
+  gnb_stack_args_t        args = {};
   phy_interface_stack_nr* phy  = nullptr;
 
   srslog::basic_logger& rrc_logger;

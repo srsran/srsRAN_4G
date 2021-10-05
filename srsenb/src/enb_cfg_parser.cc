@@ -1555,6 +1555,10 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
 
+  // MAC-NR PCAP options
+  args_->nr_stack.mac.pcap.enable = args_->stack.mac_pcap.enable;
+  args_->nr_stack.log             = args_->stack.log;
+
   return SRSRAN_SUCCESS;
 }
 

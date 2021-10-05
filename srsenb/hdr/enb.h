@@ -112,6 +112,7 @@ struct all_args_t {
   general_args_t    general;
   phy_args_t        phy;
   stack_args_t      stack;
+  gnb_stack_args_t  nr_stack;
 };
 
 struct rrc_cfg_t;

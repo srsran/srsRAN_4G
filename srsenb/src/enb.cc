@@ -95,7 +95,7 @@ int enb::init(const all_args_t& args_)
   }
 
   if (tmp_nr_stack) {
-    if (tmp_nr_stack->init(args.stack, rrc_nr_cfg, tmp_phy.get(), &x2) != SRSRAN_SUCCESS) {
+    if (tmp_nr_stack->init(args.nr_stack, rrc_nr_cfg, tmp_phy.get(), &x2) != SRSRAN_SUCCESS) {
       srsran::console("Error initializing NR stack.\n");
       ret = SRSRAN_ERROR;
     }
