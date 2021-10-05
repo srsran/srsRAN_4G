@@ -247,7 +247,9 @@ void rrc_nr::config_mac()
   int                              ret = fill_serv_cell_from_enb_cfg(cfg, serv_cell);
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
   bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(serv_cell, &cell.bwps[0].pdsch);
-  srsran_assert(ret2, "Failed to configure cell");
+  srsran_assert(ret2, "Invalid NR cell configuration.");
+  ret2 = srsran::make_csi_cfg_from_serv_cell(serv_cell, &cell.bwps[0].csi);
+  srsran_assert(ret2, "Invalid NR cell configuration.");
 
   // FIXME: entire SI configuration, etc needs to be ported to NR
   sched_interface::cell_cfg_t cell_cfg;
@@ -929,9 +931,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_csi_meas_cfg(asn1::rrc_nr::cell_group_cfg_s
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.set_setup();
 
-  // NOTE: Disable CQI configuration until srsENB NR PHY supports it
-  // pack_sp_cell_cfg_ded_csi_meas_cfg_csi_report_cfg(cell_group_cfg_pack);
-
   // nzp-CSI-RS Resource and ResourceSet
   fill_serv_cell_from_enb_cfg(parent->cfg, cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded);
 
@@ -1437,6 +1436,7 @@ void rrc_nr::ue::crnti_ce_received()
     }
 
     srsran::make_pdsch_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.pdsch);
+    srsran::make_csi_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
 
     parent->mac->ue_cfg(rnti, uecfg);
   }

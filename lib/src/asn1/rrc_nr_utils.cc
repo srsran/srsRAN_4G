@@ -1481,6 +1481,8 @@ bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, 
       serv_cell.csi_meas_cfg.type().value ==
           setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
+
+    // Configure NZP-CSI
     if (setup.nzp_csi_rs_res_set_to_add_mod_list_present) {
       for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
         auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
@@ -1506,6 +1508,27 @@ bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, 
         const asn1::rrc_nr::zp_csi_rs_res_s& setup_res = setup.zp_csi_rs_res_to_add_mod_list[zp_res_id];
         auto&                                res       = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
         if (not srsran::make_phy_zp_csi_rs_resource(setup_res, &res)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+bool make_csi_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl)
+{
+  if (serv_cell.csi_meas_cfg_present and
+      serv_cell.csi_meas_cfg.type().value ==
+          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+    auto& setup = serv_cell.csi_meas_cfg.setup();
+
+    // Configure CSI-Report
+    if (setup.csi_report_cfg_to_add_mod_list_present) {
+      for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
+        const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
+        if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
           return false;
         }
       }

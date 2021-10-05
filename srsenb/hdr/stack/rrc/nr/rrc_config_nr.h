@@ -38,6 +38,7 @@ struct rrc_nr_cfg_t {
   rrc_cfg_cqi_t                                           cqi_cfg;
   rrc_cell_list_nr_t                                      cell_list;
 
+  std::string log_name = "RRC-NR";
   std::string log_level;
   uint32_t    log_hex_limit;
 };
