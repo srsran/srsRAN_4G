@@ -18,8 +18,9 @@ namespace srsenb {
 namespace nr {
 slot_worker::slot_worker(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
+                         sync_interface&               sync_,
                          srslog::basic_logger&         logger_) :
-  common(common_), stack(stack_), logger(logger_)
+  common(common_), stack(stack_), sync(sync_), logger(logger_)
 {
   // Do nothing
 }
@@ -243,9 +244,18 @@ bool slot_worker::work_ul()
 
 bool slot_worker::work_dl()
 {
+  // The Scheduler interface needs to be called synchronously, wait for the sync to be available
+  sync.wait(this);
+
   // Retrieve Scheduling for the current processing DL slot
-  stack_interface_phy_nr::dl_sched_t dl_sched = {};
-  if (stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
+  stack_interface_phy_nr::dl_sched_t dl_sched      = {};
+  bool                               dl_sched_fail = stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS;
+
+  // Releases synchronization lock and allow next worker to retrieve scheduling results
+  sync.release();
+
+  // Abort if the scheduling failed
+  if (dl_sched_fail) {
     logger.error("Error retrieving DL scheduling");
     return false;
   }
@@ -367,6 +377,9 @@ void slot_worker::work_imp()
 
   // Process uplink
   if (not work_ul()) {
+    // Wait and release synchronization
+    sync.wait(this);
+    sync.release();
     common.worker_end(context, false, tx_rf_buffer);
     return;
   }

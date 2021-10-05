@@ -31,6 +31,24 @@ namespace nr {
 class slot_worker final : public srsran::thread_pool::worker
 {
 public:
+  /**
+   * @brief Slot worker synchronization interface
+   */
+  class sync_interface
+  {
+  public:
+    /**
+     * @brief Wait for the worker to start DL scheduler
+     * @param w Worker pointer
+     */
+    virtual void wait(slot_worker* w) = 0;
+
+    /**
+     * @brief Releases the current worker
+     */
+    virtual void release() = 0;
+  };
+
   struct args_t {
     uint32_t                    cell_index         = 0;
     uint32_t                    nof_max_prb        = SRSRAN_MAX_PRB_NR;
@@ -42,7 +60,10 @@ public:
     double                      srate_hz           = 0.0;
   };
 
-  slot_worker(srsran::phy_common_interface& common_, stack_interface_phy_nr& stack_, srslog::basic_logger& logger);
+  slot_worker(srsran::phy_common_interface& common_,
+              stack_interface_phy_nr&       stack_,
+              sync_interface&               sync_,
+              srslog::basic_logger&         logger);
   ~slot_worker();
 
   bool init(const args_t& args);
@@ -78,6 +99,7 @@ private:
   srsran::phy_common_interface& common;
   stack_interface_phy_nr&       stack;
   srslog::basic_logger&         logger;
+  sync_interface&               sync;
 
   uint32_t                                       sf_len      = 0;
   uint32_t                                       cell_index  = 0;

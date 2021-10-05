@@ -17,15 +17,20 @@
 #include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsenb/hdr/phy/prach_worker.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/common/tti_sempahore.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
 namespace srsenb {
 namespace nr {
 
-class worker_pool
+class worker_pool final : private slot_worker::sync_interface
 {
 private:
+  srsran::tti_semaphore<slot_worker*> slot_sync; ///< Slot synchronization semaphore
+  void                                wait(slot_worker* w) override { slot_sync.wait(w); }
+  void                                release() override { slot_sync.release(); }
+
   class prach_stack_adaptor_t : public stack_interface_phy_lte
   {
   private:

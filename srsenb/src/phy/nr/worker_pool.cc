@@ -50,7 +50,7 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
     log.set_level(log_level);
     log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
-    auto w = new slot_worker(common, stack, log);
+    auto w = new slot_worker(common, stack, *this, log);
     pool.init_worker(i, w, args.prio);
     workers.push_back(std::unique_ptr<slot_worker>(w));
 
@@ -74,6 +74,9 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
 
 void worker_pool::start_worker(slot_worker* w)
 {
+  // Push worker into synchronization queue
+  slot_sync.push(w);
+
   // Feed PRACH detection before start processing
   prach.new_tti(0, current_tti, w->get_buffer_rx(0));
 

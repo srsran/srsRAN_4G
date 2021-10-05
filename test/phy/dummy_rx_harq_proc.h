@@ -25,7 +25,7 @@ class dummy_rx_harq_proc
 private:
   srsran::byte_buffer_t  data;
   srsran_softbuffer_rx_t softbuffer = {};
-  uint32_t               tbs        = {0};
+  std::atomic<uint32_t>  tbs        = {0};
   bool                   first      = true;
   uint32_t               ndi        = 0;
 
