@@ -842,18 +842,6 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
     return;
   }
 
-  /* Apply updates present in RRCConnectionReconfiguration to lower layers */
-  // apply PHY config
-  apply_reconf_phy_config(recfg_r8, true);
-
-  // setup SRB2/DRBs in PDCP and RLC
-  apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
-  apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
-  apply_pdcp_drb_updates(recfg_r8.rr_cfg_ded);
-
-  // UE MAC scheduler updates
-  mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
-
   // Fill in NAS PDU - Only for RRC Connection Reconfiguration during E-RAB Release Command
   if (nas_pdu.size() > 0 and !recfg_r8.ded_info_nas_list_present) {
     recfg_r8.ded_info_nas_list_present = true;
@@ -868,6 +856,18 @@ void rrc::ue::send_connection_reconf(srsran::unique_byte_buffer_t pdu,
   if (endc_handler != nullptr) {
     endc_handler->fill_conn_recfg(&recfg_r8);
   }
+
+  /* Apply updates present in RRCConnectionReconfiguration to lower layers */
+  // apply PHY config
+  apply_reconf_phy_config(recfg_r8, true);
+
+  // setup SRB2/DRBs in PDCP and RLC
+  apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
+  apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
+  apply_pdcp_drb_updates(recfg_r8.rr_cfg_ded);
+
+  // UE MAC scheduler updates
+  mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
 
   // Reuse same PDU
   if (pdu != nullptr) {
