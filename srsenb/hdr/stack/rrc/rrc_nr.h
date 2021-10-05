@@ -146,9 +146,6 @@ public:
 
     int pack_sp_cell_cfg_ded_pdcch_serving_cell_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
-    int pack_sp_cell_cfg_ded_csi_meas_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_sp_cell_cfg_ded_csi_meas_cfg_csi_report_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-
     int pack_recfg_with_sync(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);

@@ -22,6 +22,7 @@ srslog::basic_logger& get_logger(const rrc_nr_cfg_t& cfg)
   return log_obj;
 }
 
+/// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
   csi_meas_cfg.csi_report_cfg_to_add_mod_list_present = true;
@@ -61,15 +62,9 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
   return SRSRAN_SUCCESS;
 }
 
-int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
+/// Fill lists of NZP-CSI-RS-Resource and NZP-CSI-RS-ResourceSet with gNB config
+void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
-  // Fill CSI Report
-  if (fill_csi_report_from_enb_cfg(cfg, csi_meas_cfg) != SRSRAN_SUCCESS) {
-    get_logger(cfg).error("Failed to configure eNB CSI Report");
-    return SRSRAN_ERROR;
-  }
-
-  // Fill NZP-CSI Resources
   csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present = true;
   if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
     csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.resize(5);
@@ -215,13 +210,40 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
     nzp_csi_res_set[0].nzp_csi_rs_res[0] = 0;
     // Skip TRS info
   }
+}
+
+/// Fill CSI-MeasConfig with gNB config
+int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
+{
+  //  // Fill CSI Report
+  //  if (fill_csi_report_from_enb_cfg(cfg, csi_meas_cfg) != SRSRAN_SUCCESS) {
+  //    get_logger(cfg).error("Failed to configure eNB CSI Report");
+  //    return SRSRAN_ERROR;
+  //  }
+
+  // Fill NZP-CSI Resources
+  fill_nzp_csi_rs_from_enb_cfg(cfg, csi_meas_cfg);
+
+  // CSI IM config
+  // TODO: add csi im config
+
+  // CSI resource config
+  // TODO: add csi resource config
+
   return SRSRAN_SUCCESS;
 }
 
+/// Fill ServingCellConfig with gNB config
 int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, serving_cell_cfg_s& serv_cell)
 {
   serv_cell.csi_meas_cfg_present = true;
-  return fill_csi_meas_from_enb_cfg(cfg, serv_cell.csi_meas_cfg.set_setup());
+  if (fill_csi_meas_from_enb_cfg(cfg, serv_cell.csi_meas_cfg.set_setup()) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // TODO: remaining fields
+
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb
