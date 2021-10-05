@@ -248,8 +248,6 @@ void rrc_nr::config_mac()
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
   bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(serv_cell, &cell.bwps[0].pdsch);
   srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_csi_cfg_from_serv_cell(serv_cell, &cell.bwps[0].csi);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
 
   // FIXME: entire SI configuration, etc needs to be ported to NR
   sched_interface::cell_cfg_t cell_cfg;

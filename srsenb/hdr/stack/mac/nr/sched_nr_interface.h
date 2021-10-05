@@ -56,7 +56,6 @@ public:
     srsran_pdcch_cfg_nr_t  pdcch           = {};
     srsran_sch_hl_cfg_nr_t pdsch           = {};
     srsran_sch_hl_cfg_nr_t pusch           = {};
-    srsran_csi_hl_cfg_t    csi             = {};
     uint32_t               rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
     uint32_t               numerology_idx  = 0;
   };
