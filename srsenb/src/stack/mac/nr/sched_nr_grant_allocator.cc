@@ -93,9 +93,15 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   static const uint32_t msg3_nof_prbs = 3, m = 0;
 
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
-  slot_point     msg3_slot      = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
-  bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_slot];
-  alloc_result   ret            = verify_pusch_space(bwp_msg3_slot, nullptr);
+  if (not bwp_pdcch_slot.ssb.empty()) {
+    // TODO: support concurrent PDSCH and SSB
+    logger.info("SCHED: skipping ra-rnti=0x%x RAR allocation. Cause: concurrent PDSCH and SSB not yet supported",
+                ra_rnti);
+    return alloc_result::no_sch_space;
+  }
+  slot_point     msg3_slot     = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
+  bwp_slot_grid& bwp_msg3_slot = bwp_grid[msg3_slot];
+  alloc_result   ret           = verify_pusch_space(bwp_msg3_slot, nullptr);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -197,7 +203,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   }
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
-  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];  // UCI : UL control info
+  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot]; // UCI : UL control info
   alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot);
   if (result != alloc_result::success) {
     return result;
