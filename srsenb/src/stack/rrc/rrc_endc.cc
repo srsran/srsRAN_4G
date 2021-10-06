@@ -91,7 +91,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     report_cfg.report_cfg.report_cfg_inter_rat().trigger_type.event().hysteresis      = 0;
     report_cfg.report_cfg.report_cfg_inter_rat().trigger_type.event().time_to_trigger = time_to_trigger_opts::ms100;
 
-    report_cfg.report_cfg.report_cfg_inter_rat().max_report_cells = 1;
+    report_cfg.report_cfg.report_cfg_inter_rat().max_report_cells = 8;
     report_cfg.report_cfg.report_cfg_inter_rat().report_interv    = report_interv_opts::ms120;
     report_cfg.report_cfg.report_cfg_inter_rat().report_amount    = report_cfg_inter_rat_s::report_amount_opts::r1;
     report_cfg.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.set_present(true);
