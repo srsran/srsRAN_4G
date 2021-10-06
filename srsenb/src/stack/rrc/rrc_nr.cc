@@ -1044,6 +1044,7 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_
 {
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul_present = true;
   auto& freq_info_ul = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul;
+  freq_info_ul.freq_band_list_present = true;
   freq_info_ul.freq_band_list.push_back(parent->cfg.cell_list[0].band);
   freq_info_ul.absolute_freq_point_a_present = true;
   freq_info_ul.absolute_freq_point_a = parent->cfg.cell_list[0].ul_absolute_freq_point_a;
