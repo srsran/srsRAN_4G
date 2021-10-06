@@ -687,7 +687,7 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
         rx_gain_offset = get_radio()->get_rx_gain() + args->rx_gain_offset;
       }
       rssi_read_cnt++;
-      if (rssi_read_cnt == 1000) {
+      if (rssi_read_cnt >= 1000) {
         rssi_read_cnt = 0;
       }
     }
