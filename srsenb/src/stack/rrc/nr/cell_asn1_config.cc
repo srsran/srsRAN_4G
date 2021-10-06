@@ -222,7 +222,10 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   //  }
 
   // Fill NZP-CSI Resources
-  fill_nzp_csi_rs_from_enb_cfg(cfg, csi_meas_cfg);
+  if (cfg.cell_list[0].duplex_mode != SRSRAN_DUPLEX_MODE_FDD) {
+    // TODO: Support nzp-csi for FDD
+    fill_nzp_csi_rs_from_enb_cfg(cfg, csi_meas_cfg);
+  }
 
   // CSI IM config
   // TODO: add csi im config
