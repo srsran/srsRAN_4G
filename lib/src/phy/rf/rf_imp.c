@@ -181,7 +181,9 @@ int srsran_rf_close(srsran_rf_t* rf)
   }
   pthread_mutex_unlock(&rf->mutex);
   pthread_cond_signal(&rf->cond);
-  pthread_join(rf->thread_gain, NULL);
+  if (rf->thread_gain) {
+    pthread_join(rf->thread_gain, NULL);
+  }
 
   return ((rf_dev_t*)rf->dev)->srsran_rf_close(rf->handler);
 }
