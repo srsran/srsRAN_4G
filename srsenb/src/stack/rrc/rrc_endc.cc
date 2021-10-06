@@ -61,7 +61,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     meas_obj.meas_obj_id           = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
     meas_obj.meas_obj.set_meas_obj_nr_r15();
     auto& meas_obj_nr                                                         = meas_obj.meas_obj.meas_obj_nr_r15();
-    meas_obj_nr.carrier_freq_r15                                              = endc_cfg.nr_dl_arfcn;
+    meas_obj_nr.carrier_freq_r15                                              = endc_cfg.abs_frequency_ssb;
     meas_obj_nr.rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15 = endc_cfg.ssb_period_offset;
     meas_obj_nr.rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15                = endc_cfg.ssb_duration;
     meas_obj_nr.rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15                     = endc_cfg.ssb_ssc;
