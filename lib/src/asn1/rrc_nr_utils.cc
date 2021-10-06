@@ -1488,8 +1488,9 @@ bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, 
         auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
         uecfg_set.trs_info = nzp_set.trs_info_present;
         uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
+        uint32_t count     = 0;
         for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
-          auto& res = uecfg_set.data[nzp_rs_idx];
+          auto& res = uecfg_set.data[count++];
           if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
             return false;
           }
