@@ -1022,6 +1022,17 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
       }
     }
     if (!dl_arfcn_valid) {
+      if (not bands.empty()) {
+        std::stringstream ss;
+        for (uint32_t& band : bands) {
+          ss << band << " ";
+        }
+        ERROR("DL ARFCN (%d) does not belong to band (%d). Recommended bands: %s",
+              it->dl_arfcn,
+              it->band,
+              ss.str().c_str());
+        return SRSRAN_ERROR;
+      }
       ERROR("DL ARFCN (%d) is not valid for the specified band (%d)", it->dl_arfcn, it->band);
       return SRSRAN_ERROR;
     }
