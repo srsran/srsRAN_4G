@@ -1154,21 +1154,21 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("Option PCI not present");
         return false;
       }
-      if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
-        if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
-          return false;
-        }
-      } else {
-        logger.warning("Secondary primary cell ul cfg common not present");
-        return false;
-      }
       // Read essential DL carrier settings
       if (recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present) {
         if (apply_dl_common_cfg(recfg_with_sync.sp_cell_cfg_common.dl_cfg_common) == false) {
           return false;
         }
       } else {
-        logger.warning("DL cfg common not present");
+        logger.warning("Secondary primary cell dl cfg common not present");
+        return false;
+      }
+      if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
+        if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
+          return false;
+        }
+      } else {
+        logger.warning("Secondary primary cell ul cfg common not present");
         return false;
       }
       // Build SSB config
