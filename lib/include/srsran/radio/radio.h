@@ -159,6 +159,19 @@ private:
   bool open_dev(const uint32_t& device_idx, const std::string& device_name, const std::string& devive_args);
 
   /**
+   * Helper method for opening a file-based RF device abstraction
+   *
+   * @param device_idx Device index
+   * @param rx_files Array of pre-opened FILE* for rx
+   * @param tx_files Array of pre-opened FILE* for tx
+   * @param nof_channels Number of elements in each array @p rx_files and @p tx_files
+   * @param base_srate Sampling rate in Hz
+   * @return it returns true if the device was opened successful, otherwise it returns false
+   */
+  bool
+  open_dev(const uint32_t& device_idx, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
+
+  /**
    * Helper method for transmitting over a single RF device. This function maps automatically the logical transmit
    * buffers to the physical RF buffers for the given device.
    *
