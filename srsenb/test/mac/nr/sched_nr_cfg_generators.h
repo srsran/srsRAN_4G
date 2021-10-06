@@ -78,6 +78,29 @@ inline std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(
   return cells;
 }
 
+inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t cc)
+{
+  sched_nr_interface::ue_cfg_t uecfg{};
+
+  // set Pcell
+  uecfg.carriers.resize(1);
+  uecfg.carriers[0].active = true;
+  uecfg.carriers[0].cc     = cc;
+
+  // set SRB0 as active
+  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+
+  // set basic PHY config
+  uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
+  uecfg.phy_cfg.csi = {};
+
+  // Note: dynamic MCS not yet supported
+  uecfg.fixed_dl_mcs = 28;
+  uecfg.fixed_ul_mcs = 28;
+
+  return uecfg;
+}
+
 inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
     uint32_t                    nof_cc,
     const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}})

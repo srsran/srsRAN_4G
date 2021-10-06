@@ -477,7 +477,7 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
   csi.reports[0].channel_meas_id                    = 0;
   csi.reports[0].type                               = SRSRAN_CSI_REPORT_TYPE_PERIODIC;
   csi.reports[0].periodic.period                    = 20;
-  csi.reports[0].periodic.offset                    = 9;
+  csi.reports[0].periodic.offset                    = 10;
   csi.reports[0].periodic.resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;
   csi.reports[0].periodic.resource.starting_prb     = 51;
   csi.reports[0].periodic.resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;

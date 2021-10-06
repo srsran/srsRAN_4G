@@ -135,7 +135,7 @@ uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
   }
 
   // Add new user to the scheduler so that it can RX/TX SRB0
-  srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1);
+  srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_rach_ue_cfg(enb_cc_idx);
   sched.ue_cfg(rnti, ue_cfg);
 
   return rnti;
