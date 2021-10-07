@@ -278,7 +278,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
     } else {
       srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
     }
-    if (bwp_pdsch_slot.pdschs.back().sch.grant.tb[0].R < max_R or mcs == 0) {
+    if (bwp_pdsch_slot.pdschs.back().sch.grant.tb[0].R_prime < max_R or mcs == 0) {
       break;
     }
     // Decrease MCS if rate is too high
