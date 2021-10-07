@@ -135,10 +135,10 @@ void sync::stop()
   }
   running = false;
 
+  wait_thread_finish();
+
   // Reset (stop Rx stream) as soon as possible to avoid base-band Rx buffer overflow
   radio_h->reset();
-
-  wait_thread_finish();
 }
 
 void sync::reset()
