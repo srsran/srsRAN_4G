@@ -66,12 +66,15 @@ bool harq_proc::new_tx(slot_point       slot_tx_,
   return true;
 }
 
-bool harq_proc::set_tbs(uint32_t tbs)
+bool harq_proc::set_tbs(uint32_t tbs, int mcs)
 {
   if (empty() or nof_retx() > 0) {
     return false;
   }
   tb[0].tbs = tbs;
+  if (mcs >= 0) {
+    tb[0].mcs = mcs;
+  }
   return true;
 }
 

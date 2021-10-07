@@ -58,7 +58,7 @@ public:
   bool new_retx(slot_point slot_tx, slot_point slot_ack);
 
   // NOTE: Has to be used before first tx is dispatched
-  bool set_tbs(uint32_t tbs);
+  bool set_tbs(uint32_t tbs, int mcs = -1);
 
   const uint32_t pid;
 

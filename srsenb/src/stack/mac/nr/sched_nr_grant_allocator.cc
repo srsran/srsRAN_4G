@@ -243,36 +243,51 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
 
   // Allocation Successful
 
-  // Generate PDCCH
-  pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
-  pdcch.dci.pucch_resource = 0;
-  pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
-                                bwp_uci_slot.pending_acks.end(),
-                                [&ue](const harq_ack_t& p) { return p.res.rnti == ue.rnti; });
-  pdcch.dci.dai %= 4;
-  pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
+  int mcs = ue.cfg->ue_cfg()->fixed_dl_mcs;
+  do {
+    // Generate PDCCH
+    pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+    pdcch.dci.pucch_resource = 0;
+    pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
+                                  bwp_uci_slot.pending_acks.end(),
+                                  [&ue](const harq_ack_t& p) { return p.res.rnti == ue.rnti; });
+    pdcch.dci.dai %= 4;
+    pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
 
-  // Generate PUCCH
-  bwp_uci_slot.pending_acks.emplace_back();
-  bwp_uci_slot.pending_acks.back().phy_cfg = &ue.cfg->phy();
-  srsran_assert(ue.cfg->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
-                "Error getting ack resource");
+    // Generate PUCCH
+    bwp_uci_slot.pending_acks.emplace_back();
+    bwp_uci_slot.pending_acks.back().phy_cfg = &ue.cfg->phy();
+    srsran_assert(ue.cfg->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
+                  "Error getting ack resource");
 
-  // Generate PDSCH
-  bwp_pdsch_slot.dl_prbs |= dl_grant;
-  bwp_pdsch_slot.pdschs.emplace_back();
-  pdsch_t&          pdsch = bwp_pdsch_slot.pdschs.back();
-  srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = ue.pdsch_slot.to_uint();
-  bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
-  srsran_assert(ret, "Error converting DCI to grant");
-  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
-  pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
-  if (ue.h_dl->nof_retx() == 0) {
-    ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
-  } else {
-    srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
+    // Generate PDSCH
+    bwp_pdsch_slot.dl_prbs |= dl_grant;
+    bwp_pdsch_slot.pdschs.emplace_back();
+    pdsch_t&          pdsch = bwp_pdsch_slot.pdschs.back();
+    srsran_slot_cfg_t slot_cfg;
+    slot_cfg.idx = ue.pdsch_slot.to_uint();
+    bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+    srsran_assert(ret, "Error converting DCI to grant");
+
+    pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
+    pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
+    if (ue.h_dl->nof_retx() == 0) {
+      ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
+    } else {
+      srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
+    }
+    if (bwp_pdsch_slot.pdschs.back().sch.grant.tb[0].R < 0.9 or mcs == 0) {
+      break;
+    }
+    // Decrease MCS if rate is too high
+    mcs--;
+    ue.h_dl->set_tbs(100, mcs);
+    bwp_pdsch_slot.pdschs.pop_back();
+    bwp_uci_slot.pending_acks.pop_back();
+  } while (true);
+  if (mcs == 0) {
+    logger.warning("Couldn't find mcs that leads to R<0.9");
   }
 
   return alloc_result::success;
