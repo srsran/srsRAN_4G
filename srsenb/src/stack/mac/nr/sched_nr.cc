@@ -173,18 +173,35 @@ void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
 
 void sched_nr::ul_sr_info(uint16_t rnti)
 {
-  sched_workers->enqueue_event(rnti, [this, rnti]() { ue_db[rnti]->ul_sr_info(); });
+  sched_workers->enqueue_event(rnti, [this, rnti]() {
+    if (ue_db.contains(rnti)) {
+      ue_db[rnti]->ul_sr_info();
+    } else {
+      logger->warning("Received SR for inexistent rnti=0x%x", rnti);
+    }
+  });
 }
 
 void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
 {
-  sched_workers->enqueue_event(rnti, [this, rnti, lcg_id, bsr]() { ue_db[rnti]->ul_bsr(lcg_id, bsr); });
+  sched_workers->enqueue_event(rnti, [this, rnti, lcg_id, bsr]() {
+    if (ue_db.contains(rnti)) {
+      ue_db[rnti]->ul_bsr(lcg_id, bsr);
+    } else {
+      logger->warning("Received BSR=%d for inexistent rnti=0x%x", bsr, rnti);
+    }
+  });
 }
 
 void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx)
 {
-  sched_workers->enqueue_event(rnti,
-                               [this, rnti, lcid, newtx, retx]() { ue_db[rnti]->rlc_buffer_state(lcid, newtx, retx); });
+  sched_workers->enqueue_event(rnti, [this, rnti, lcid, newtx, retx]() {
+    if (ue_db.contains(rnti)) {
+      ue_db[rnti]->rlc_buffer_state(lcid, newtx, retx);
+    } else {
+      logger->warning("Received DL buffer state=%d/%d for inexistent rnti=0x%x", newtx, retx, rnti);
+    }
+  });
 }
 
 #define VERIFY_INPUT(cond, msg, ...)                                                                                   \
