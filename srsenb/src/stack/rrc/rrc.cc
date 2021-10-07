@@ -79,6 +79,14 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
   // Loads the PRACH root sequence
   cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list[0].root_seq_idx;
 
+  if (cfg.num_nr_cells > 0) {
+    cfg.sibs[1].sib2().ext = true;
+    cfg.sibs[1].sib2().plmn_info_list_r15.set_present();
+    cfg.sibs[1].sib2().plmn_info_list_r15.get()->resize(1);
+    auto& plmn                       = cfg.sibs[1].sib2().plmn_info_list_r15.get()->back();
+    plmn.upper_layer_ind_r15_present = true;
+  }
+
   if (generate_sibs() != SRSRAN_SUCCESS) {
     logger.error("Couldn't generate SIBs.");
     return false;
