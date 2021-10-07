@@ -51,7 +51,7 @@ public:
 
   radio_bearer_t get_radio_bearer(uint32_t eps_bearer_id);
 
-  radio_bearer_t get_lcid_bearer(uint32_t lcid);
+  radio_bearer_t get_eps_bearer_id_for_lcid(uint32_t lcid);
 
 private:
   using eps_rb_map_t = std::map<uint32_t, radio_bearer_t>;
@@ -119,7 +119,7 @@ public:
   radio_bearer_t get_lcid_bearer(uint32_t lcid)
   {
     srsran::rwlock_read_guard rw_lock(rwlock);
-    return impl.get_lcid_bearer(lcid);
+    return impl.get_eps_bearer_id_for_lcid(lcid);
   }
 
 private:

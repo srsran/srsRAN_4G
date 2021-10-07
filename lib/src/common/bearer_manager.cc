@@ -58,7 +58,7 @@ ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_radio_bearer(
   return it != bearers.end() ? it->second : invalid_rb;
 }
 
-ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_lcid_bearer(uint32_t lcid)
+ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_eps_bearer_id_for_lcid(uint32_t lcid)
 {
   auto lcid_it = lcid_to_eps_bearer_id.find(lcid);
   return lcid_it != lcid_to_eps_bearer_id.end() ? bearers.at(lcid_it->second) : invalid_rb;
@@ -179,7 +179,7 @@ enb_bearer_manager::radio_bearer_t enb_bearer_manager::get_lcid_bearer(uint16_t 
   if (user_it == users_map.end()) {
     return srsran::detail::ue_bearer_manager_impl::invalid_rb;
   }
-  return user_it->second.get_lcid_bearer(lcid);
+  return user_it->second.get_eps_bearer_id_for_lcid(lcid);
 }
 
 enb_bearer_manager::radio_bearer_t enb_bearer_manager::get_radio_bearer(uint16_t rnti, uint32_t eps_bearer_id)

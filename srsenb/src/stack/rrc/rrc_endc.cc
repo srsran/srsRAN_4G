@@ -280,9 +280,6 @@ void rrc::ue::rrc_endc::handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, co
 
   // TODO: path update procedure with GTPU modify bearer request (for mode 3A and 3X)
 
-  // delete EPS bearer mapping over EUTRA PDCP
-  rrc_enb->bearer_manager.remove_eps_bearer(rrc_ue->rnti, ev.params.eps_bearer_id);
-
   // re-register EPS bearer over NR PDCP
   rrc_enb->bearer_manager.add_eps_bearer(
       ev.params.nr_rnti, ev.params.eps_bearer_id, srsran::srsran_rat_t::nr, lcid_drb_nr);
