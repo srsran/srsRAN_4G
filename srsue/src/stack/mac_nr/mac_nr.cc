@@ -506,6 +506,11 @@ void mac_nr::rrc_ra_problem()
   rrc->ra_problem();
 }
 
+void mac_nr::rrc_ra_completed()
+{
+  rrc->ra_completed();
+}
+
 /**
  * Called from the main stack thread to process received PDUs
  */

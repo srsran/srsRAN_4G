@@ -1143,6 +1143,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
 
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
+  srsran_csi_hl_cfg_t prev_csi = phy_cfg.csi;
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
@@ -1305,7 +1306,14 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     logger.warning("Option sp_cell_cfg_ded not present");
     return false;
   }
-  phy->set_config(phy_cfg);
+
+  // Configure PHY
+  // Note: CSI config is deferred to when RA is complete. See TS 38.331, Section 5.3.5.3
+  srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
+  current_phycfg.csi                  = prev_csi;
+  phy->set_config(current_phycfg);
+
+  // Start RA procedure
   mac->start_ra_procedure();
   return true;
 }
@@ -1501,7 +1509,11 @@ void rrc_nr::max_retx_attempted() {}
 void rrc_nr::protocol_failure() {}
 
 // MAC interface
-void rrc_nr::ra_completed() {}
+void rrc_nr::ra_completed()
+{
+  logger.info("RA completed. Applying remaining CSI configuration.");
+  phy->set_config(phy_cfg);
+}
 void rrc_nr::ra_problem()
 {
   rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);

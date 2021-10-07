@@ -128,7 +128,7 @@ void proc_ra_nr::timer_expired(uint32_t timer_id)
 {
   if (prach_send_timer.id() == timer_id) {
     logger.warning("PRACH Send timer expired. PRACH was not transmitted within %d ttis by phy. (TODO)",
-                 prach_send_timer.duration());
+                   prach_send_timer.duration());
     ra_error();
   } else if (rar_timeout_timer.id() == timer_id) {
     logger.warning("RAR Timer expired. RA response not received within the response window");
@@ -149,10 +149,10 @@ void proc_ra_nr::ra_procedure_initialization()
 {
   mac.msg3_flush();
   preamble_transmission_counter = 1;
-  preamble_power_ramping_step = rach_cfg.powerRampingStep;
-  scaling_factor_bi           = 1;
+  preamble_power_ramping_step   = rach_cfg.powerRampingStep;
+  scaling_factor_bi             = 1;
   preamble_backoff              = 0;
-  preambleTransMax            = rach_cfg.preambleTransMax;
+  preambleTransMax              = rach_cfg.preambleTransMax;
   ra_resource_selection();
 }
 
@@ -278,6 +278,7 @@ void proc_ra_nr::ra_completion()
   srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
   temp_crnti = SRSRAN_INVALID_RNTI;
+  mac.rrc_ra_completed();
   reset();
 }
 
@@ -293,9 +294,9 @@ void proc_ra_nr::ra_error()
   if (preamble_transmission_counter >= rach_cfg.preambleTransMax + 1) {
     logger.warning("Maximum number of transmissions reached (%d)", rach_cfg.preambleTransMax);
     // if the Random Access Preamble is transmitted on the SpCell assumption (TODO)
-    mac.rrc_ra_problem();                 //  indicate a Random Access problem to upper layers;
+    mac.rrc_ra_problem();                  //  indicate a Random Access problem to upper layers;
     if (started_by == initiators_t::MAC) { // if this Random Access procedure was triggered for SI request
-      ra_procedure_completed = true;        // consider the Random Access procedure unsuccessfully completed.
+      ra_procedure_completed = true;       // consider the Random Access procedure unsuccessfully completed.
       reset();
     }
   } else {

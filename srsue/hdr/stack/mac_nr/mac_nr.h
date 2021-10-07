@@ -108,6 +108,7 @@ public:
 
   /// RRC
   void rrc_ra_problem();
+  void rrc_ra_completed();
 
   /// stack interface
   void process_pdus();

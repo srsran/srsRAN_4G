@@ -35,8 +35,8 @@ public:
   void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
   bool is_contention_resolution();
 
-  bool is_rar_opportunity(uint32_t tti);
-  bool has_rar_rnti();
+  bool     is_rar_opportunity(uint32_t tti);
+  bool     has_rar_rnti();
   uint16_t get_rar_rnti();
   bool     has_temp_crnti();
   uint16_t get_temp_crnti();
@@ -61,9 +61,9 @@ private:
   srsran::ext_task_sched_handle*        task_sched = nullptr;
   srsran::task_multiqueue::queue_handle task_queue;
 
-  int      ra_window_length = -1, ra_window_start = -1;
-  uint16_t rar_rnti  = SRSRAN_INVALID_RNTI;
-  uint16_t temp_crnti = SRSRAN_INVALID_RNTI;
+  int        ra_window_length = -1, ra_window_start = -1;
+  uint16_t   rar_rnti   = SRSRAN_INVALID_RNTI;
+  uint16_t   temp_crnti = SRSRAN_INVALID_RNTI;
   std::mutex mutex;
 
   srsran::rach_nr_cfg_t rach_cfg   = {};
@@ -90,18 +90,18 @@ private:
   srsran::timer_handler::unique_timer backoff_timer;
 
   // 38.321 5.1.1 Variables
-  uint32_t preamble_index = 0;
-  uint32_t preamble_transmission_counter = 0;
+  uint32_t preamble_index                 = 0;
+  uint32_t preamble_transmission_counter  = 0;
   uint32_t preamble_backoff               = 0; // in ms
-  uint32_t preamble_power_ramping_step = 0;
-  int preamble_received_target_power = 0;
-  uint32_t scaling_factor_bi = 0;
+  uint32_t preamble_power_ramping_step    = 0;
+  int      preamble_received_target_power = 0;
+  uint32_t scaling_factor_bi              = 0;
   // uint32_t temporary_c_rnti;
   uint32_t power_offset_2step_ra = 0;
 
   // not explicty mentioned
   uint32_t preambleTransMax = 0;
-  uint32_t prach_occasion = 0;
+  uint32_t prach_occasion   = 0;
 
   uint32_t current_ta = 0;
   void     timer_expired(uint32_t timer_id);
@@ -112,7 +112,7 @@ private:
   void ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb);
   void ra_contention_resolution();
   void ra_contention_resolution(uint64_t rx_contention_id);
-  void ra_completion(); 
+  void ra_completion();
   void ra_error();
 };
 } // namespace srsue
