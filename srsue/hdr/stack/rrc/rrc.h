@@ -14,6 +14,7 @@
 #define SRSUE_RRC_H
 
 #include "rrc_cell.h"
+#include "rrc_config.h"
 #include "rrc_metrics.h"
 #include "rrc_rlf_report.h"
 #include "srsran/asn1/rrc_utils.h"
@@ -35,29 +36,6 @@
 using srsran::byte_buffer_t;
 
 namespace srsue {
-
-#define SRSRAN_RRC_N_BANDS 43
-typedef struct {
-  std::string                             ue_category_str;
-  uint32_t                                ue_category;
-  int                                     ue_category_ul;
-  int                                     ue_category_dl;
-  uint32_t                                release;
-  uint32_t                                feature_group;
-  std::array<uint8_t, SRSRAN_RRC_N_BANDS> supported_bands;
-  std::vector<uint32_t>                   supported_bands_nr;
-  uint32_t                                nof_supported_bands;
-  bool                                    support_ca;
-  int                                     mbms_service_id;
-  uint32_t                                mbms_service_port;
-} rrc_args_t;
-
-#define SRSRAN_UE_CATEGORY_DEFAULT "4"
-#define SRSRAN_UE_CATEGORY_MIN 1
-#define SRSRAN_UE_CATEGORY_MAX 21
-#define SRSRAN_RELEASE_MIN 8
-#define SRSRAN_RELEASE_MAX 15
-#define SRSRAN_RELEASE_DEFAULT (SRSRAN_RELEASE_MIN)
 
 class phy_controller;
 class usim_interface_rrc;

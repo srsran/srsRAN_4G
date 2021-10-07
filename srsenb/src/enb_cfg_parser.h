@@ -21,7 +21,6 @@
 #include <string.h>
 #include <string>
 
-#include "srsenb/hdr/stack/rrc/nr/rrc_config_nr.h"
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srsran/asn1/asn1_utils.h"
 
@@ -31,6 +30,7 @@ using namespace libconfig;
 
 struct all_args_t;
 struct phy_cfg_t;
+struct rrc_nr_cfg_t;
 
 bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e sib_num);
 

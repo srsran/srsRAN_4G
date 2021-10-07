@@ -12,6 +12,7 @@
 
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 
@@ -498,6 +499,11 @@ void mac_nr::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
 
   memcpy(m, metrics.data(), sizeof(mac_metrics_t) * SRSRAN_MAX_CARRIERS);
   metrics = {};
+}
+
+void mac_nr::rrc_ra_problem()
+{
+  rrc->ra_problem();
 }
 
 /**

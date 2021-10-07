@@ -13,11 +13,10 @@
 #ifndef SRSUE_UE_STACK_BASE_H
 #define SRSUE_UE_STACK_BASE_H
 
+#include "rrc/nr/rrc_nr_config.h"
+#include "rrc/rrc_config.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/ue_metrics_interface.h"
-
-#include "rrc/rrc.h"
-#include "rrc/rrc_nr.h"
 #include "upper/gw.h"
 #include "upper/usim.h"
 

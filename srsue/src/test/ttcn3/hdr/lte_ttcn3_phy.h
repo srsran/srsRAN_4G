@@ -13,6 +13,7 @@
 #ifndef SRSUE_TTCN3_LTE_PHY_H
 #define SRSUE_TTCN3_LTE_PHY_H
 
+#include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/ue_interfaces.h"
 #include "srsran/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/phy/ue_lte_phy_base.h"

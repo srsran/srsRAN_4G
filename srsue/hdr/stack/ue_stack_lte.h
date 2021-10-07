@@ -17,20 +17,10 @@
 #ifndef SRSUE_UE_STACK_LTE_H
 #define SRSUE_UE_STACK_LTE_H
 
-#include <functional>
-#include <pthread.h>
-#include <stdarg.h>
-#include <string>
-
 #include "mac/mac.h"
 #include "mac_nr/mac_nr.h"
 #include "rrc/rrc.h"
-#include "srsran/radio/radio.h"
-#include "srsran/rlc/rlc.h"
-#include "srsran/upper/pdcp.h"
-#include "upper/nas.h"
-#include "upper/usim.h"
-
+#include "rrc/rrc_nr.h"
 #include "srsran/common/bearer_manager.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/multiqueue.h"
@@ -39,8 +29,17 @@
 #include "srsran/common/thread_pool.h"
 #include "srsran/common/time_prof.h"
 #include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/radio/radio.h"
+#include "srsran/rlc/rlc.h"
+#include "srsran/upper/pdcp.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
+#include "upper/nas.h"
+#include "upper/usim.h"
+#include <functional>
+#include <pthread.h>
+#include <stdarg.h>
+#include <string>
 
 namespace srsue {
 
