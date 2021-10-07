@@ -144,7 +144,7 @@ foreach (SSB_SCS 15 30)
         # For patterns A, B, C
         foreach (SSB_PATTERN A B C)
           # Calculate Actual SSB center frequency
-          math(EXPR SSB_FREQ "${CELL_FREQ} + ${SSB_OFFSET_FREQ}")
+          math(EXPR SSB_FREQ "${CELL_FREQ} + (${SSB_OFFSET_FREQ})")
 
           # Test SSB measurements
           add_nr_test(ssb_measure_test_${CELL_FREQ}_${CELL_SCS}_${SSB_FREQ}_${SSB_SCS}_${SSB_PATTERN} ssb_measure_test
