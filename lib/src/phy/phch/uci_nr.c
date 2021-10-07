@@ -633,9 +633,11 @@ static int uci_nr_decode_3_11_bit(srsran_uci_nr_t*           q,
 
   // Compute average LLR power
   float pwr = srsran_vec_avg_power_bf(llr, E);
+
+  // If the power measurement is invalid (zero, NAN, INF) then consider it cannot be decoded
   if (!isnormal(pwr)) {
-    ERROR("Received all zeros");
-    return SRSRAN_ERROR;
+    *decoded_ok = false;
+    return SRSRAN_SUCCESS;
   }
 
   // Decode
