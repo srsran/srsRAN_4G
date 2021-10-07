@@ -1130,6 +1130,10 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
   rach_cfg_common_pack.setup().prach_root_seq_idx.set_l839() = 0; // matches value in phy_cfg_nr_default_t()
   rach_cfg_common_pack.setup().restricted_set_cfg =
       asn1::rrc_nr::rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
+  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one();
+  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb.one() =
+      asn1::rrc_nr::rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n8;
 
   return SRSRAN_SUCCESS;
 }
