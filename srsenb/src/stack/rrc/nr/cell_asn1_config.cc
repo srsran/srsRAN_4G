@@ -212,6 +212,35 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
   }
 }
 
+/// Fill csi-ResoureConfigToAddModList
+void fill_csi_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
+{
+  if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list_present = true;
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list.resize(3);
+
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].csi_res_cfg_id = 0;
+    auto& nzp = csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].csi_rs_res_set_list.set_nzp_csi_rs_ssb();
+    nzp.nzp_csi_rs_res_set_list_present = true;
+    nzp.nzp_csi_rs_res_set_list.push_back(0);
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].bwp_id         = 0;
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
+
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_res_cfg_id = 1;
+    auto& imres = csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_rs_res_set_list.set_csi_im_res_set_list();
+    imres.push_back(0);
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].bwp_id         = 0;
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
+
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].csi_res_cfg_id = 2;
+    auto& nzp2 = csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].csi_rs_res_set_list.set_nzp_csi_rs_ssb();
+    nzp2.nzp_csi_rs_res_set_list_present = true;
+    nzp2.nzp_csi_rs_res_set_list.push_back(1);
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].bwp_id         = 0;
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
+  }
+}
+
 /// Fill CSI-MeasConfig with gNB config
 int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -220,6 +249,9 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   //    get_logger(cfg).error("Failed to configure eNB CSI Report");
   //    return SRSRAN_ERROR;
   //  }
+
+  // Fill CSI resource config
+  fill_csi_resource_cfg_to_add(cfg, csi_meas_cfg);
 
   // Fill NZP-CSI Resources
   if (cfg.cell_list[0].duplex_mode != SRSRAN_DUPLEX_MODE_FDD) {
