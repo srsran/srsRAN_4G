@@ -665,3 +665,52 @@ int srsran_coreset_zero(uint32_t                    n_cell_id,
 
   return SRSRAN_SUCCESS;
 }
+
+const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern)
+{
+  switch (pattern) {
+    case SRSRAN_SSB_PATTERN_A:
+      return "A";
+    case SRSRAN_SSB_PATTERN_B:
+      return "B";
+    case SRSRAN_SSB_PATTERN_C:
+      return "C";
+    case SRSRAN_SSB_PATTERN_D:
+      return "D";
+    case SRSRAN_SSB_PATTERN_E:
+      return "E";
+    case SRSRAN_SSB_PATTERN_INVALID:
+    default:
+      break;
+  }
+  return "Invalid";
+}
+
+srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str)
+{
+  if (str == NULL) {
+    return SRSRAN_SSB_PATTERN_INVALID;
+  }
+
+  if (strcasecmp(str, "A") == 0) {
+    return SRSRAN_SSB_PATTERN_A;
+  }
+
+  if (strcasecmp(str, "B") == 0) {
+    return SRSRAN_SSB_PATTERN_B;
+  }
+
+  if (strcasecmp(str, "C") == 0) {
+    return SRSRAN_SSB_PATTERN_C;
+  }
+
+  if (strcasecmp(str, "D") == 0) {
+    return SRSRAN_SSB_PATTERN_D;
+  }
+
+  if (strcasecmp(str, "E") == 0) {
+    return SRSRAN_SSB_PATTERN_E;
+  }
+
+  return SRSRAN_SSB_PATTERN_INVALID;
+}

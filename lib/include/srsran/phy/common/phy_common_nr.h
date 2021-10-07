@@ -695,6 +695,20 @@ SRSRAN_API int srsran_coreset_zero(uint32_t                    n_cell_id,
                                    uint32_t                    idx,
                                    srsran_coreset_t*           coreset);
 
+/**
+ * @brief Convert SSB pattern to string
+ * @param pattern
+ * @return a string describing the SSB pattern
+ */
+SRSRAN_API const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern);
+
+/**
+ * @brief Convert string to SSB pattern
+ * @param str String to convert
+ * @return The pattern, SRSRAN_SSB_PATTERN_INVALID if string is invalid
+ */
+SRSRAN_API srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str);
+
 #ifdef __cplusplus
 }
 #endif
