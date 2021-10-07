@@ -133,14 +133,14 @@ target_link_libraries(ssb_measure_test srsran_phy)
 add_executable(ssb_decode_test ssb_decode_test.c)
 target_link_libraries(ssb_decode_test srsran_phy)
 
-# For each supported SSB subcarrier spacing
-foreach (SSB_SCS 15 30)
+# For 1.0 GHz and 3.5 GHz Center frequencies
+foreach (CELL_FREQ 1000000000 3500000000)
   # For each supported Cell/Carrier subcarrier spacing
   foreach (CELL_SCS 15 30)
-    # For 1.0 GHz and 3.5 GHz Center frequencies
-    foreach (CELL_FREQ 1000000000 3500000000)
-      # For SSB centered at -960, 0 and 960 kHz from the center frequency
-      foreach (SSB_OFFSET_FREQ -960000 +0 +960000)
+    # For SSB centered at -960, 0 and 960 kHz from the center frequency
+    foreach (SSB_OFFSET_FREQ -960000 +0 +960000)
+      # For each supported SSB subcarrier spacing
+      foreach (SSB_SCS 15 30)
         # For patterns A, B, C
         foreach (SSB_PATTERN A B C)
           # Calculate Actual SSB center frequency

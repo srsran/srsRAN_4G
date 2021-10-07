@@ -27,7 +27,7 @@ static double                      ssb_freq_hz     = 3.5e9;
 static srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
 
 // Channel parameters
-static int32_t delay_n = 1;
+static int32_t delay_n = 2;
 static float   cfo_hz  = 100.0f;
 static float   n0_dB   = -30.0f;
 
@@ -40,8 +40,8 @@ static cf_t*                 buffer   = NULL; // Base-band buffer
 
 #define RSRP_MAX_ERROR 1.0f
 #define EPRE_MAX_ERROR 1.0f
-#define N0_MAX_ERROR 2.5f
-#define SNR_MAX_ERROR 2.5f
+#define N0_MAX_ERROR 3.0f
+#define SNR_MAX_ERROR 3.0f
 #define CFO_MAX_ERROR (cfo_hz * 0.3f)
 #define DELAY_MAX_ERROR (delay_us * 0.1f)
 
@@ -235,6 +235,7 @@ int main(int argc, char** argv)
 
   if (test_case_1(&ssb) != SRSRAN_SUCCESS) {
     ERROR("test case failed");
+    goto clean_exit;
   }
 
   ret = SRSRAN_SUCCESS;
