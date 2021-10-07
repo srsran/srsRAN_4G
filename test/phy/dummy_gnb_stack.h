@@ -515,8 +515,18 @@ public:
     // Schedule SSB
     for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
       if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
+        srsran_mib_nr_t mib = {};
+        mib.ssb_idx         = ssb_idx;
+        mib.sfn             = slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs);
+        mib.hrf             = (slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs)) >=
+                  SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs) / 2;
+
         mac_interface_phy_nr::ssb_t ssb = {};
-        ssb.pbch_msg.ssb_idx            = (uint32_t)ssb_idx;
+        if (srsran_pbch_msg_nr_mib_pack(&mib, &ssb.pbch_msg) < SRSRAN_SUCCESS) {
+          logger.error("Error Packing MIB in slot %d", slot_cfg.idx);
+          continue;
+        }
+        ssb.pbch_msg.ssb_idx = (uint32_t)ssb_idx;
         dl_sched.ssb.push_back(ssb);
       }
     }

@@ -388,7 +388,11 @@ bool cc_worker::measure_csi()
         }
 
         // Check if the SFN matches
-        // ...
+        if (mib.sfn != dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs)) {
+          logger.error("PBCH-MIB: NR SFN (%d) does not match current SFN (%d)",
+                       mib.sfn,
+                       dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs));
+        }
 
         // Log MIB information
         if (logger.debug.enabled()) {
