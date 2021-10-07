@@ -114,7 +114,7 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
 
 void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)
 {
-  if (not logger.info.enabled() or slot_ues.empty()) {
+  if (not logger.debug.enabled() or slot_ues.empty()) {
     return;
   }
 
@@ -130,7 +130,7 @@ void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uin
     use_comma = ", ";
   }
 
-  logger.info("%s]", srsran::to_c_str(fmtbuf));
+  logger.debug("%s]", srsran::to_c_str(fmtbuf));
 }
 
 void log_sched_bwp_result(srslog::basic_logger& logger,
