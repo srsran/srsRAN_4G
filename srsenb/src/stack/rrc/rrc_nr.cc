@@ -1260,6 +1260,8 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group
 int rrc_nr::ue::pack_recfg_with_sync(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   // Reconfig with Sync
+  cell_group_cfg_pack.cell_group_id = 1; // 0 identifies the MCG. Other values identify SCGs.
+
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = rnti;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304      = recfg_with_sync_s::t304_opts::ms1000;
@@ -1273,6 +1275,7 @@ int rrc_nr::ue::pack_secondary_cell_group_sp_cell_cfg(asn1::rrc_nr::cell_group_c
 {
   cell_group_cfg_pack.sp_cell_cfg_present               = true;
   cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx_present = true;
+  cell_group_cfg_pack.sp_cell_cfg.serv_cell_idx = 1; // Serving cell ID of a PSCell. The PCell of the MCG uses ID 0.
 
   pack_sp_cell_cfg_ded(cell_group_cfg_pack);
   pack_recfg_with_sync(cell_group_cfg_pack);
