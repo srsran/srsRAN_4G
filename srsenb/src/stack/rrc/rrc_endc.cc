@@ -129,6 +129,9 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     conn_recfg->rr_cfg_ded.drb_to_release_list.resize(1);
     conn_recfg->rr_cfg_ded.drb_to_release_list[0] = 1;
 
+    // don't send EUTRA dedicated config again
+    conn_recfg->rr_cfg_ded.phys_cfg_ded_present = false;
+
     // only add reconfigure EN-DC extension/release 15.10 field if ENDC activation is active
     conn_recfg->non_crit_ext_present                                                                  = true;
     conn_recfg->non_crit_ext.non_crit_ext_present                                                     = true;
