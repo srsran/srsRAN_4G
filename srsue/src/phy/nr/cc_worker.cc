@@ -394,7 +394,7 @@ bool cc_worker::measure_csi()
         if (logger.debug.enabled()) {
           std::array<char, 512> str = {};
           srsran_pbch_msg_nr_mib_info(&mib, str.data(), (uint32_t)str.size());
-          logger.debug("PBCH-MIB: sfn_4lsb=%d; %s", (dl_slot_cfg.idx / 10) & 0xf, str.data());
+          logger.debug("PBCH-MIB: %s", str.data());
         }
       } else {
         // CRC shall never fail if the UE is in sync
