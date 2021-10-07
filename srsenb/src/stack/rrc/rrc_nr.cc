@@ -601,7 +601,23 @@ int rrc_nr::ue::pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s
   mac_cell_group.bsr_cfg_present            = true;
   mac_cell_group.bsr_cfg.periodic_bsr_timer = asn1::rrc_nr::bsr_cfg_s::periodic_bsr_timer_opts::sf20;
   mac_cell_group.bsr_cfg.retx_bsr_timer     = asn1::rrc_nr::bsr_cfg_s::retx_bsr_timer_opts::sf320;
+
   // Skip TAG and PHR config
+  mac_cell_group.tag_cfg_present                     = false;
+  mac_cell_group.tag_cfg.tag_to_add_mod_list_present = true;
+  mac_cell_group.tag_cfg.tag_to_add_mod_list.resize(1);
+  mac_cell_group.tag_cfg.tag_to_add_mod_list[0].tag_id           = 0;
+  mac_cell_group.tag_cfg.tag_to_add_mod_list[0].time_align_timer = time_align_timer_opts::infinity;
+
+  mac_cell_group.phr_cfg_present = false;
+  mac_cell_group.phr_cfg.set_setup();
+  mac_cell_group.phr_cfg.setup().phr_periodic_timer       = asn1::rrc_nr::phr_cfg_s::phr_periodic_timer_opts::sf500;
+  mac_cell_group.phr_cfg.setup().phr_prohibit_timer       = asn1::rrc_nr::phr_cfg_s::phr_prohibit_timer_opts::sf200;
+  mac_cell_group.phr_cfg.setup().phr_tx_pwr_factor_change = asn1::rrc_nr::phr_cfg_s::phr_tx_pwr_factor_change_opts::db3;
+  mac_cell_group.phr_cfg.setup().multiple_phr             = true;
+  mac_cell_group.phr_cfg.setup().dummy                    = false;
+  mac_cell_group.phr_cfg.setup().phr_type2_other_cell     = false;
+  mac_cell_group.phr_cfg.setup().phr_mode_other_cg        = asn1::rrc_nr::phr_cfg_s::phr_mode_other_cg_opts::real;
 
   return SRSRAN_SUCCESS;
 }
