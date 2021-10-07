@@ -39,7 +39,10 @@ public:
 
   bool init(const args_t& args);
 
-  int set_ul_grant(std::array<uint8_t, 27> packed_ul_grant, uint16_t rnti, srsran_rnti_type_t rnti_type) override
+  int set_ul_grant(uint32_t                                       rar_slot_idx,
+                   std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                   uint16_t                                       rnti,
+                   srsran_rnti_type_t                             rnti_type) override
   {
     return 0;
   }

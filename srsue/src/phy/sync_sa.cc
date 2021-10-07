@@ -114,7 +114,18 @@ void sync_sa::run_state_idle()
   radio.rx_now(rf_buffer, ts);
 }
 
-void sync_sa::run_state_cell_search() {}
+void sync_sa::run_state_cell_search()
+{
+  // Run Searcher
+  if (not searcher.run()) {
+    logger.error("Failed to run searcher. Transitioning to IDLE...");
+
+    // Transition to IDLE if fails to run
+    state_mutex.lock();
+    next_state = STATE_IDLE;
+    state_mutex.unlock();
+  }
+}
 
 void sync_sa::run_thread()
 {
