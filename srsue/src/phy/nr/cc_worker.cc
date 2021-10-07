@@ -85,15 +85,8 @@ bool cc_worker::update_cfg()
     return false;
   }
 
-  srsran_ssb_cfg_t ssb_cfg = {};
+  srsran_ssb_cfg_t ssb_cfg = phy.cfg.get_ssb_cfg();
   ssb_cfg.srate_hz = srsran_min_symbol_sz_rb(phy.cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs);
-  ssb_cfg.center_freq_hz = phy.cfg.carrier.dl_center_frequency_hz;
-  ssb_cfg.ssb_freq_hz    = phy.cfg.carrier.ssb_center_freq_hz;
-  ssb_cfg.scs            = phy.cfg.ssb.scs;
-  ssb_cfg.pattern        = phy.cfg.ssb.pattern;
-  ssb_cfg.duplex_mode    = phy.cfg.duplex.mode;
-  ssb_cfg.periodicity_ms = phy.cfg.ssb.periodicity_ms;
-
   if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
     logger.error("Error setting SSB configuration");
     return false;
