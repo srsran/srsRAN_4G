@@ -612,6 +612,24 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s&
 
   pack_sp_cell_cfg_ded_init_dl_bwp_pdcch_cfg(cell_group_cfg_pack);
   pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(cell_group_cfg_pack);
+  pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(cell_group_cfg_pack);
+
+  return SRSRAN_SUCCESS;
+}
+
+int rrc_nr::ue::pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(
+    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
+{
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.radio_link_monitoring_cfg_present = true;
+  auto& radio_link_monitoring = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.radio_link_monitoring_cfg;
+  radio_link_monitoring.set_setup().fail_detection_res_to_add_mod_list_present = true;
+
+  // add resource to detect RLF
+  radio_link_monitoring.set_setup().fail_detection_res_to_add_mod_list.resize(1);
+  auto& fail_detec_res_elem = radio_link_monitoring.set_setup().fail_detection_res_to_add_mod_list[0];
+  fail_detec_res_elem.radio_link_monitoring_rs_id = 0;
+  fail_detec_res_elem.purpose                     = asn1::rrc_nr::radio_link_monitoring_rs_s::purpose_opts::rlf;
+  fail_detec_res_elem.detection_res.set_ssb_idx() = 0;
 
   return SRSRAN_SUCCESS;
 }
