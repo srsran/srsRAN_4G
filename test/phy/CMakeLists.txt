@@ -35,7 +35,6 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
             ${CMAKE_THREAD_LIBS_INIT}
             ${Boost_LIBRARIES}
             ${ATOMIC_LIBS})
-
     # For each supported bandwidth
     foreach (NR_PHY_TEST_BW "10MHz" "20MHz")
         # For each supported frame structure

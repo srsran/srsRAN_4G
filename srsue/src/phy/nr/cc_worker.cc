@@ -344,7 +344,10 @@ bool cc_worker::decode_pdsch_dl()
     dl_m.evm          = pdsch_res.evm[0];
     phy.set_dl_metrics(dl_m);
   }
-
+  ch_metrics_t ch_metrics = {};
+  ch_metrics.sinr         = ue_dl.chest.snr_db;
+  ch_metrics.sync_err     = ue_dl.chest.sync_error;
+  phy.set_channel_metrics(ch_metrics);
   return true;
 }
 

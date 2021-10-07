@@ -43,11 +43,17 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   // clang-format off
   options.add_options()
-        ("rnti",          bpo::value<uint16_t>(&rnti)->default_value(rnti),                              "UE RNTI")
-        ("duration",      bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),        "Test duration in slots")
-        ("lib.log.level", bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level), "PHY librray log level")
-        ("reference",     bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str), "Reference PHY configuration arguments")
-        ;
+        ("rnti",                         bpo::value<uint16_t>(&rnti)->default_value(rnti),                                                        "UE RNTI")
+        ("duration",                     bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),                                  "Test duration in slots")
+        ("lib.log.level",                bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level),                           "PHY librray log level")
+        ("reference",                    bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str),                           "Reference PHY configuration arguments")
+        ("dl_channel.awgn_enable",       bpo::value<bool>(&dl_channel.awgn_enable)->default_value(dl_channel.awgn_enable),                        "DL Channel AWGN enable / disable")
+        ("dl_channel.awgn_snr",          bpo::value<float>(&dl_channel.awgn_snr_dB)->default_value(dl_channel.awgn_snr_dB),                       "DL Channel AWGN SNR in dB")
+        ("ul_channel.awgn_enable",       bpo::value<bool>(&ul_channel.awgn_enable)->default_value(ul_channel.awgn_enable),                        "UL Channel AWGN enable / disable")
+        ("ul_channel.awgn_snr",          bpo::value<float>(&ul_channel.awgn_snr_dB)->default_value(ul_channel.awgn_snr_dB),                       "UL Channel AWGN SNR in dB")
+        ("ul_channel.signal_power_dBfs", bpo::value<float>(&ul_channel.awgn_signal_power_dBfs)->default_value(ul_channel.awgn_signal_power_dBfs), "UL Channel expected signal power")
+        ("channel.cfo",                  bpo::value<float>(&ul_channel.hst_fd_hz)->default_value(0),                                              "Channel HST Doppler frequency")
+;
 
   options_gnb_stack.add_options()
         ("gnb.stack.pdcch.aggregation_level", bpo::value<uint32_t>(&gnb_stack.pdcch_aggregation_level)->default_value(gnb_stack.pdcch_aggregation_level), "PDCCH aggregation level")
@@ -102,6 +108,11 @@ test_bench::args_t::args_t(int argc, char** argv)
   try {
     bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
     bpo::notify(vm);
+
+    // Apply the High Speed Train args to the DL channel as well
+    ul_channel.hst_enable = std::isnormal(ul_channel.hst_fd_hz);
+    dl_channel.hst_enable = ul_channel.hst_enable;
+    dl_channel.hst_fd_hz  = ul_channel.hst_fd_hz;
   } catch (bpo::error& e) {
     std::cerr << e.what() << std::endl;
     return;
@@ -116,6 +127,12 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   // Load default reference configuration
   phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
+
+  // Calulate the DL signal power from the number of PRBs
+  dl_channel.awgn_signal_power_dBfs = srsran_gnb_dl_get_maximum_signal_power_dBfs(phy_cfg.carrier.nof_prb);
+
+  // Reverses the Doppler shift for the UL
+  ul_channel.hst_init_time_s = 0.5 * dl_channel.hst_period_s;
 
   // Calculate sampling rate in Hz
   srate_hz = (double)(srsran_min_symbol_sz_rb(phy_cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs));
@@ -174,22 +191,26 @@ int main(int argc, char** argv)
   srslog::flush();
 
   // Retrieve MAC metrics
-  test_bench::metrics_t metrics = tb.get_gnb_metrics();
+  test_bench::metrics_t metrics = tb.get_metrics();
 
   // Print PDSCH metrics if scheduled
   double pdsch_bler = 0.0;
   if (metrics.gnb_stack.mac.tx_pkts > 0) {
     pdsch_bler = (double)metrics.gnb_stack.mac.tx_errors / (double)metrics.gnb_stack.mac.tx_pkts;
 
-    float pdsch_shed_rate = 0.0f;
-    pdsch_shed_rate       = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
+    float pdsch_shed_rate   = 0.0f;
+    pdsch_shed_rate         = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
+    float decode_iterations = metrics.ue_phy.dl[0].fec_iters;
+    float ue_snr            = metrics.ue_phy.ch[0].sinr;
 
     srsran::console("PDSCH:\n");
-    srsran::console("       Count: %d\n", metrics.gnb_stack.mac.tx_pkts);
-    srsran::console("        BLER: %f\n", pdsch_bler);
-    srsran::console("  Sched Rate: %f Mbps\n", pdsch_shed_rate);
-    srsran::console("    Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
-    srsran::console("   Retx Rate: %f Mbps\n", pdsch_bler * pdsch_shed_rate);
+    srsran::console("          Count: %d\n", metrics.gnb_stack.mac.tx_pkts);
+    srsran::console("           BLER: %f\n", pdsch_bler);
+    srsran::console("     Sched Rate: %f Mbps\n", pdsch_shed_rate);
+    srsran::console("       Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
+    srsran::console("      Retx Rate: %f Mbps\n", pdsch_bler * pdsch_shed_rate);
+    srsran::console("   Measured SNR: %f dB\n", ue_snr);
+    srsran::console(" Dec Iterations: %f\n", decode_iterations);
     srsran::console("\n");
   }
 
@@ -206,11 +227,11 @@ int main(int argc, char** argv)
     }
 
     srsran::console("PUSCH:\n");
-    srsran::console("       Count: %d\n", metrics.gnb_stack.mac.rx_pkts);
-    srsran::console("        BLER: %f\n", pusch_bler);
-    srsran::console("  Sched Rate: %f Mbps\n", pusch_shed_rate);
-    srsran::console("    Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
-    srsran::console("   Retx Rate: %f Mbps\n", pusch_bler * pusch_shed_rate);
+    srsran::console("          Count: %d\n", metrics.gnb_stack.mac.rx_pkts);
+    srsran::console("           BLER: %f\n", pusch_bler);
+    srsran::console("     Sched Rate: %f Mbps\n", pusch_shed_rate);
+    srsran::console("       Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
+    srsran::console("      Retx Rate: %f Mbps\n", pusch_bler * pusch_shed_rate);
     srsran::console("\n");
   }
 

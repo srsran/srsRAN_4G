@@ -22,6 +22,7 @@ class test_bench
 private:
   const std::string       UE_PHY_COM_LOG_NAME  = "UE /PHY/COM";
   const std::string       GNB_PHY_COM_LOG_NAME = "GNB/PHY/COM";
+  const std::string       CHANNEL_LOG_NAME     = "CHANNEL";
   uint32_t                slot_idx             = 0;
   uint64_t                slot_count           = 0;
   uint64_t                duration_slots       = 0;
@@ -33,6 +34,9 @@ private:
   phy_common              ue_phy_com;
   bool                    initialised = false;
   uint32_t                sf_sz       = 0;
+  // Channel simulator
+  srsran::channel dl_channel;
+  srsran::channel ul_channel;
 
 public:
   struct args_t {
@@ -50,12 +54,16 @@ public:
     std::string                     phy_lib_log_level = "none";
     uint64_t                        durations_slots   = 100;
 
+    // channel simulator args
+    srsran::channel::args_t dl_channel;
+    srsran::channel::args_t ul_channel;
     args_t(int argc, char** argv);
   };
 
   struct metrics_t {
     gnb_dummy_stack::metrics_t gnb_stack = {};
     ue_dummy_stack::metrics_t  ue_stack  = {};
+    srsue::phy_metrics_t       ue_phy    = {};
   };
 
   test_bench(const args_t& args) :
@@ -69,10 +77,13 @@ public:
     gnb_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
                 srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
     sf_sz((uint32_t)std::round(args.srate_hz * 1e-3)),
-    duration_slots(args.durations_slots)
+    duration_slots(args.durations_slots),
+    dl_channel(args.dl_channel, 1, srslog::fetch_basic_logger(CHANNEL_LOG_NAME, srslog::get_default_sink(), false)),
+    ul_channel(args.ul_channel, 1, srslog::fetch_basic_logger(CHANNEL_LOG_NAME, srslog::get_default_sink(), false))
   {
     srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
     srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
+    srslog::fetch_basic_logger(CHANNEL_LOG_NAME).set_level(srslog::basic_levels::error);
 
     if (not gnb_phy.init(args.gnb_phy, args.cell_list)) {
       return;
@@ -109,6 +120,9 @@ public:
       srsran_verbose = SRSRAN_VERBOSE_NONE;
     }
 
+    // Configure channel
+    dl_channel.set_srate((uint32_t)args.srate_hz);
+    ul_channel.set_srate((uint32_t)args.srate_hz);
     initialised = true;
   }
 
@@ -141,6 +155,9 @@ public:
     // Set gNb time
     gnb_time.add(TX_ENB_DELAY * 1e-3);
 
+    // Run the UL channel simulator
+    ul_channel.run(gnb_rx_buffers.data(), gnb_rx_buffers.data(), (uint32_t)sf_sz, gnb_time.get(0));
+
     // Set gnb context
     srsran::phy_common_interface::worker_context_t gnb_context;
     gnb_context.sf_idx     = slot_idx;
@@ -168,6 +185,9 @@ public:
     // Set UE time
     ue_time.add(TX_ENB_DELAY * 1e-3);
 
+    // Run the DL channel simulator
+    dl_channel.run(ue_rx_buffers.data(), ue_rx_buffers.data(), (uint32_t)sf_sz, ue_time.get(0));
+
     // Set gnb context
     srsran::phy_common_interface::worker_context_t ue_context;
     ue_context.sf_idx     = slot_idx;
@@ -188,11 +208,12 @@ public:
     return slot_count <= duration_slots;
   }
 
-  metrics_t get_gnb_metrics()
+  metrics_t get_metrics()
   {
     metrics_t metrics = {};
     metrics.gnb_stack = gnb_stack.get_metrics();
     metrics.ue_stack  = ue_stack.get_metrics();
+    ue_phy.get_metrics(metrics.ue_phy); // get the metrics from the ue_phy
     return metrics;
   }
 };
