@@ -60,7 +60,7 @@ static void usage(char* prog)
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "SsFfv")) != -1) {
+  while ((opt = getopt(argc, argv, "SsFfPv")) != -1) {
     switch (opt) {
       case 's':
         ssb_scs = srsran_subcarrier_spacing_from_str(argv[optind]);

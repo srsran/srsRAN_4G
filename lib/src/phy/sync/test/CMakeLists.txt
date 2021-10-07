@@ -140,19 +140,19 @@ foreach (SSB_SCS 15 30)
     # For 1.0 GHz and 3.5 GHz Center frequencies
     foreach (CELL_FREQ 1000000000 3500000000)
       # For SSB centered at -960, 0 and 960 kHz from the center frequency
-      foreach (SSB_OFFSET_FREQ -960000 0 960000)
+      foreach (SSB_OFFSET_FREQ -960000 +0 +960000)
         # For patterns A, B, C
         foreach (SSB_PATTERN A B C)
           # Calculate Actual SSB center frequency
-          math(EXPR SSB_FREQ "${CELL_FREQ} + (${SSB_OFFSET_FREQ})")
+          math(EXPR SSB_FREQ "${CELL_FREQ}${SSB_OFFSET_FREQ}")
 
           # Test SSB measurements
           add_nr_test(ssb_measure_test_${CELL_FREQ}_${CELL_SCS}_${SSB_FREQ}_${SSB_SCS}_${SSB_PATTERN} ssb_measure_test
-                  -F ${CELL_FREQ} -S ${CELL_SCS} -f ${SSB_FREQ} -s ${SSB_SCS})
+                  -F ${CELL_FREQ} -S ${CELL_SCS} -f ${SSB_FREQ} -s ${SSB_SCS} -P ${SSB_PATTERN})
 
           # Test SSB PBCH decoding
           add_nr_test(ssb_decode_test_${CELL_FREQ}_${CELL_SCS}_${SSB_FREQ}_${SSB_SCS}_${SSB_PATTERN} ssb_decode_test
-                  -F ${CELL_FREQ} -S ${CELL_SCS} -f ${SSB_FREQ} -s ${SSB_SCS})
+                  -F ${CELL_FREQ} -S ${CELL_SCS} -f ${SSB_FREQ} -s ${SSB_SCS} -P ${SSB_PATTERN})
         endforeach ()
       endforeach ()
     endforeach ()
