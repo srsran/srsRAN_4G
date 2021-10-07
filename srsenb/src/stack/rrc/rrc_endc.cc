@@ -132,6 +132,29 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     // don't send EUTRA dedicated config again
     conn_recfg->rr_cfg_ded.phys_cfg_ded_present = false;
 
+    // set MAC main config dedicated
+    conn_recfg->rr_cfg_ded.mac_main_cfg_present = true;
+    conn_recfg->rr_cfg_ded.mac_main_cfg.set_explicit_value();
+
+    auto& mac_main_cfg = conn_recfg->rr_cfg_ded.mac_main_cfg.explicit_value();
+
+    mac_main_cfg.ext                  = true;
+    mac_main_cfg.time_align_timer_ded = time_align_timer_opts::infinity;
+    mac_main_cfg.phr_cfg_present      = true;
+    mac_main_cfg.phr_cfg.set_setup();
+    mac_main_cfg.phr_cfg.setup().dl_pathloss_change =
+        asn1::rrc::mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_opts::db3;
+    mac_main_cfg.phr_cfg.setup().periodic_phr_timer =
+        asn1::rrc::mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_opts::sf500;
+    mac_main_cfg.phr_cfg.setup().prohibit_phr_timer =
+        asn1::rrc::mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_opts::sf200;
+
+    mac_main_cfg.mac_main_cfg_v1020.set_present();
+    mac_main_cfg.dual_connect_phr.set_present();
+    mac_main_cfg.dual_connect_phr.get()->set_setup();
+    mac_main_cfg.dual_connect_phr.get()->setup().phr_mode_other_cg_r12 =
+        asn1::rrc::mac_main_cfg_s::dual_connect_phr_c_::setup_s_::phr_mode_other_cg_r12_opts::real;
+
     // only add reconfigure EN-DC extension/release 15.10 field if ENDC activation is active
     conn_recfg->non_crit_ext_present                                                                  = true;
     conn_recfg->non_crit_ext.non_crit_ext_present                                                     = true;
