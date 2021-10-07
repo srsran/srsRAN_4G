@@ -12,6 +12,7 @@
 
 #include "srsran/phy/phch/ra_nr.h"
 #include "srsran/phy/ch_estimation/csi_rs.h"
+#include "srsran/phy/fec/cbsegm.h"
 #include "srsran/phy/phch/csi.h"
 #include "srsran/phy/phch/pdsch_nr.h"
 #include "srsran/phy/phch/ra_dl_nr.h"
@@ -450,6 +451,28 @@ static int ra_nr_assert_csi_rs_dmrs_collision(const srsran_sch_cfg_nr_t* pdsch_c
   return SRSRAN_SUCCESS;
 }
 
+uint32_t ra_nr_nof_crc_bits(uint32_t tbs, double R)
+{
+  srsran_cbsegm_t    cbsegm = {};
+  srsran_basegraph_t bg     = srsran_sch_nr_select_basegraph(tbs, R);
+
+  if (bg == BG1) {
+    if (srsran_cbsegm_ldpc_bg1(&cbsegm, tbs) != SRSRAN_SUCCESS) {
+      // This should never fail
+      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tbs);
+      return 0;
+    }
+  } else {
+    if (srsran_cbsegm_ldpc_bg2(&cbsegm, tbs) != SRSRAN_SUCCESS) {
+      // This should never fail
+      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tbs);
+      return 0;
+    }
+  }
+
+  return cbsegm.C * cbsegm.L_cb + cbsegm.L_tb;
+}
+
 int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
                          const srsran_sch_grant_nr_t* grant,
                          uint32_t                     mcs_idx,
@@ -524,7 +547,7 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   // Calculate actual rate
   tb->R_prime = 0.0;
   if (tb->nof_re != 0) {
-    tb->R_prime = (double)tb->tbs / (double)tb->nof_bits;
+    tb->R_prime = (double)(tb->tbs + ra_nr_nof_crc_bits(tb->tbs, tb->R)) / (double)tb->nof_bits;
   }
 
   return SRSRAN_SUCCESS;
@@ -1042,7 +1065,10 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
         pusch_cfg->grant.tb[i].nof_re * srsran_mod_bits_x_symbol(pusch_cfg->grant.tb[i].mod) - Gack - Gcsi1 - Gcsi2;
 
     if (pusch_cfg->grant.tb[i].nof_bits > 0) {
-      pusch_cfg->grant.tb[i].R_prime = (double)pusch_cfg->grant.tb[i].tbs / (double)pusch_cfg->grant.tb[i].nof_bits;
+      pusch_cfg->grant.tb[i].R_prime =
+          (double)(pusch_cfg->grant.tb[i].tbs +
+                   ra_nr_nof_crc_bits(pusch_cfg->grant.tb[i].tbs, pusch_cfg->grant.tb[i].R)) /
+          (double)pusch_cfg->grant.tb[i].nof_bits;
     } else {
       pusch_cfg->grant.tb[i].R_prime = NAN;
     }
