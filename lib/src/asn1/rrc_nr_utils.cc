@@ -1475,7 +1475,7 @@ bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
   return true;
 }
 
-bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
+bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
 {
   if (serv_cell.csi_meas_cfg_present and
       serv_cell.csi_meas_cfg.type().value ==
@@ -1518,7 +1518,7 @@ bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, 
   return true;
 }
 
-bool make_csi_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl)
+bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl)
 {
   if (serv_cell.csi_meas_cfg_present and
       serv_cell.csi_meas_cfg.type().value ==

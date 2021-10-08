@@ -117,7 +117,7 @@ public:
     bool     is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
     bool     is_endc() { return endc; }
     uint16_t get_eutra_rnti() { return eutra_rnti; }
-    void get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
+    void     get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
     // setters
 
     int pack_rrc_reconfiguration();
@@ -171,8 +171,6 @@ public:
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-
-    int pack_recfg_with_sync_sp_cell_cfg_common_ssb_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int
     pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);

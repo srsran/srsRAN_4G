@@ -243,10 +243,16 @@ void rrc_nr::config_mac()
   std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
   sched_nr_interface::cell_cfg_t&                     cell            = sched_cells_cfg[0];
 
-  asn1::rrc_nr::serving_cell_cfg_s serv_cell;
-  int                              ret = fill_serv_cell_from_enb_cfg(cfg, serv_cell);
+  // Derive ASN1 from config
+  asn1::rrc_nr::sp_cell_cfg_s sp_cell;
+  int                         ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, sp_cell);
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
-  bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(serv_cell, &cell.bwps[0].pdsch);
+
+  // Derive cell config from ASN1
+  bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(sp_cell.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
+  srsran_assert(ret2, "Invalid NR cell configuration.");
+  ret2 = srsran::make_phy_ssb_cfg(
+      cfg.cell_list[0].phy_cell.carrier, sp_cell.recfg_with_sync.sp_cell_cfg_common, &cell.ssb);
   srsran_assert(ret2, "Invalid NR cell configuration.");
 
   // FIXME: entire SI configuration, etc needs to be ported to NR
@@ -941,8 +947,10 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_
   // Serving cell config (only to setup)
   pack_sp_cell_cfg_ded_pdcch_serving_cell_cfg(cell_group_cfg_pack);
 
-  // CSI meas config
-  fill_serv_cell_from_enb_cfg(parent->cfg, cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded);
+  // spCellConfig
+  if (fill_sp_cell_cfg_from_enb_cfg(parent->cfg, UE_PSCELL_CC_IDX, cell_group_cfg_pack.sp_cell_cfg) != SRSRAN_SUCCESS) {
+    parent->logger.error("Failed to pack spCellConfig for rnti=0x%x", rnti);
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -1086,7 +1094,7 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_
   freq_info_ul.freq_band_list_present = true;
   freq_info_ul.freq_band_list.push_back(parent->cfg.cell_list[0].band);
   freq_info_ul.absolute_freq_point_a_present = true;
-  freq_info_ul.absolute_freq_point_a = parent->cfg.cell_list[0].ul_absolute_freq_point_a;
+  freq_info_ul.absolute_freq_point_a         = parent->cfg.cell_list[0].ul_absolute_freq_point_a;
   freq_info_ul.scs_specific_carrier_list.resize(1);
 
   auto& ul_carrier              = freq_info_ul.scs_specific_carrier_list[0];
@@ -1202,26 +1210,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ssb_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  // SSB config (optional)
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst_present = true;
-  auto& ssb_pos_in_burst = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_positions_in_burst;
-
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    ssb_pos_in_burst.set_short_bitmap().from_number(0b1000);
-  } else {
-    ssb_pos_in_burst.set_medium_bitmap().from_number(0b10000000);
-  }
-
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_periodicity_serving_cell_present = true;
-  // TODO: get periodicitiy from cell config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_periodicity_serving_cell =
-      serving_cell_cfg_common_s::ssb_periodicity_serving_cell_opts::ms10;
-
-  return SRSRAN_SUCCESS;
-}
-
 int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(
     asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
@@ -1242,23 +1230,8 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group
 {
   auto& pscell_cfg = parent->cfg.cell_list.at(UE_PSCELL_CC_IDX);
 
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = 0;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.n_timing_advance_offset =
-      asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dmrs_type_a_position =
-      asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present = true;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci         = pscell_cfg.phy_cell.carrier.pci;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing_present = true;
-
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing =
-        subcarrier_spacing_opts::khz15;
-  } else {
+  if (pscell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.smtc.release();
-    cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ssb_subcarrier_spacing =
-        subcarrier_spacing_opts::khz30;
   }
 
   // DL config
@@ -1266,9 +1239,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group
 
   // UL config
   pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(cell_group_cfg_pack);
-
-  // SSB config (optional)
-  pack_recfg_with_sync_sp_cell_cfg_common_ssb_cfg(cell_group_cfg_pack);
 
   if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(cell_group_cfg_pack);

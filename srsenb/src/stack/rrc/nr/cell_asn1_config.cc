@@ -14,6 +14,11 @@
 
 using namespace asn1::rrc_nr;
 
+#define HANDLE_ERROR(ret)                                                                                              \
+  if ((ret) != SRSRAN_SUCCESS) {                                                                                       \
+    return SRSRAN_ERROR;                                                                                               \
+  }
+
 namespace srsenb {
 
 srslog::basic_logger& get_logger(const rrc_nr_cfg_t& cfg)
@@ -220,11 +225,67 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
 int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, serving_cell_cfg_s& serv_cell)
 {
   serv_cell.csi_meas_cfg_present = true;
-  if (fill_csi_meas_from_enb_cfg(cfg, serv_cell.csi_meas_cfg.set_setup()) != SRSRAN_SUCCESS) {
+  HANDLE_ERROR(fill_csi_meas_from_enb_cfg(cfg, serv_cell.csi_meas_cfg.set_setup()));
+
+  // TODO: remaining fields
+
+  return SRSRAN_SUCCESS;
+}
+
+/// Fill ServingCellConfigCommon with gNB config
+int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_cell_cfg_common_s& serv_common)
+{
+  auto& cell_cfg = cfg.cell_list.at(cc);
+
+  serv_common.ss_pbch_block_pwr       = 0;
+  serv_common.n_timing_advance_offset = asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
+  serv_common.dmrs_type_a_position    = asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
+
+  serv_common.pci_present = true;
+  serv_common.pci         = cell_cfg.phy_cell.carrier.pci;
+
+  serv_common.ssb_periodicity_serving_cell_present = true;
+  if (not asn1::number_to_enum(serv_common.ssb_periodicity_serving_cell, cell_cfg.ssb_cfg.periodicity_ms)) {
+    get_logger(cfg).error("Config Error: Invalid SSB periodicity = %d\n", cell_cfg.ssb_cfg.periodicity_ms);
     return SRSRAN_ERROR;
   }
 
-  // TODO: remaining fields
+  // Fill SSB config
+  serv_common.ssb_positions_in_burst_present = true;
+  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+    serv_common.ssb_positions_in_burst.set_short_bitmap().from_number(0b1000);
+  } else {
+    serv_common.ssb_positions_in_burst.set_medium_bitmap().from_number(0b10000000);
+  }
+
+  // Set SSB SCS
+  serv_common.ssb_subcarrier_spacing_present = true;
+  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+    serv_common.ssb_subcarrier_spacing = subcarrier_spacing_opts::khz15;
+  } else {
+    serv_common.ssb_subcarrier_spacing = subcarrier_spacing_opts::khz30;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+/// Fill reconfigurationWithSync with gNB config
+int fill_recfg_with_sync_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, recfg_with_sync_s& sync)
+{
+  sync.sp_cell_cfg_common_present = true;
+  HANDLE_ERROR(fill_serv_cell_common_from_enb_cfg(cfg, cc, sync.sp_cell_cfg_common));
+
+  return SRSRAN_SUCCESS;
+}
+
+/// Fill spCellConfig with gNB config
+int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_cfg_s& sp_cell)
+{
+  sp_cell.recfg_with_sync_present = true;
+  HANDLE_ERROR(fill_recfg_with_sync_from_enb_cfg(cfg, cc, sp_cell.recfg_with_sync));
+
+  sp_cell.sp_cell_cfg_ded_present = true;
+  HANDLE_ERROR(fill_serv_cell_from_enb_cfg(cfg, sp_cell.sp_cell_cfg_ded));
 
   return SRSRAN_SUCCESS;
 }
