@@ -705,7 +705,7 @@ void radio::set_rx_srate(const double& srate)
 
     // Assert ratio is integer
     srsran_assert(((uint32_t)cur_rx_srate % (uint32_t)srate) == 0,
-                  "The sampling rate ratio is not integer (%.2f MHz / %.2 MHz = %.3f)",
+                  "The sampling rate ratio is not integer (%.2f MHz / %.2f MHz = %.3f)",
                   cur_rx_srate / 1e6,
                   srate / 1e6,
                   cur_rx_srate / srate);
@@ -958,7 +958,7 @@ void radio::set_tx_srate(const double& srate)
 
     // Assert ratio is integer
     srsran_assert(((uint32_t)cur_tx_srate % (uint32_t)srate) == 0,
-                  "The sampling rate ratio is not integer (%.2f MHz / %.2 MHz = %.3f)",
+                  "The sampling rate ratio is not integer (%.2f MHz / %.2f MHz = %.3f)",
                   cur_rx_srate / 1e6,
                   srate / 1e6,
                   cur_rx_srate / srate);
