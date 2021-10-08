@@ -112,7 +112,7 @@ private:
 
   srslog::basic_logger& logger;
 
-  // We use a rwmutex in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
+  // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
   // access for different TTIs
   pthread_rwlock_t rwlock = {};
 

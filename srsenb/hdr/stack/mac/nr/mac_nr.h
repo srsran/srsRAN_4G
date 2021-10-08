@@ -111,7 +111,7 @@ private:
   std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
-  pthread_rwlock_t                                                              rwlock     = {};
+  pthread_rwlock_t                                                              rwmutex    = {};
   static const uint16_t                                                         FIRST_RNTI = 0x4601;
   srsran::static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES> ue_db;
 

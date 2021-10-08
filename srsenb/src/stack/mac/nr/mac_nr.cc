@@ -200,7 +200,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 
     // Pre-check if rnti is valid
     {
-      srsran::rwlock_read_guard read_lock(rwlock);
+      srsran::rwlock_read_guard read_lock(rwmutex);
       if (not is_rnti_valid_nolock(rnti)) {
         continue;
       }
@@ -210,7 +210,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
     std::unique_ptr<ue_nr> ue_ptr = std::unique_ptr<ue_nr>(new ue_nr(rnti, enb_cc_idx, &sched, rrc, rlc, phy, logger));
 
     // Add UE to rnti map
-    srsran::rwlock_write_guard rw_lock(rwlock);
+    srsran::rwlock_write_guard rw_lock(rwmutex);
     if (not is_rnti_valid_nolock(rnti)) {
       continue;
     }
@@ -228,7 +228,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
 // Remove UE from the perspective of L2/L3
 int mac_nr::remove_ue(uint16_t rnti)
 {
-  srsran::rwlock_write_guard lock(rwlock);
+  srsran::rwlock_write_guard lock(rwmutex);
   if (is_rnti_active_nolock(rnti)) {
     sched.ue_rem(rnti);
     ue_db.erase(rnti);
@@ -292,7 +292,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   dl_sched = dl_res.dl_sched;
 
   uint32_t                  rar_count = 0;
-  srsran::rwlock_read_guard rw_lock(rwlock);
+  srsran::rwlock_read_guard rw_lock(rwmutex);
   for (pdsch_t& pdsch : dl_sched.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
       uint16_t rnti = pdsch.sch.grant.rnti;
@@ -330,7 +330,7 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
   slot_point pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
   ret                   = sched.get_ul_sched(pusch_slot, 0, ul_sched);
 
-  srsran::rwlock_read_guard rw_lock(rwlock);
+  srsran::rwlock_read_guard rw_lock(rwmutex);
   for (auto& pusch : ul_sched.pusch) {
     if (ue_db.contains(pusch.sch.grant.rnti)) {
       ue_db[pusch.sch.grant.rnti]->metrics_ul_mcs(pusch.sch.grant.tb->mcs);
@@ -355,7 +355,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
     const srsran_harq_ack_bit_t* ack_bit = &cfg_.ack.bits[i];
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
     sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
-    srsran::rwlock_read_guard rw_lock(rwlock);
+    srsran::rwlock_read_guard rw_lock(rwmutex);
     if (ue_db.contains(rnti)) {
       ue_db[rnti]->metrics_tx(is_ok, 0 /*TODO get size of packet from scheduler somehow*/);
     }
@@ -367,7 +367,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   }
 
   // Process CQI
-  srsran::rwlock_read_guard rw_lock(rwlock);
+  srsran::rwlock_read_guard rw_lock(rwmutex);
   ue_db[rnti]->metrics_dl_cqi(cfg_, value.csi->wideband_cri_ri_pmi_cqi.cqi, value.valid);
 
   return true;
@@ -394,7 +394,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
     }
 
     auto process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
-      srsran::rwlock_read_guard lock(rwlock);
+      srsran::rwlock_read_guard lock(rwmutex);
       if (is_rnti_active_nolock(rnti)) {
         ue_db[rnti]->process_pdu(std::move(pdu));
       } else {
@@ -403,7 +403,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
     };
     stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pusch_info.pdu)));
   }
-  srsran::rwlock_read_guard rw_lock(rwlock);
+  srsran::rwlock_read_guard rw_lock(rwmutex);
   if (ue_db.contains(rnti)) {
     ue_db[rnti]->metrics_rx(pusch_info.pusch_data.tb[0].crc, nof_bytes);
   }

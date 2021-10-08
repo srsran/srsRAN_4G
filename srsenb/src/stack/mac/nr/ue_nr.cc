@@ -196,8 +196,7 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
 
 void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, bool valid_cqi)
 {
-  // I think this is not necessary, as we locked from the calling function
-  // std::lock_guard<std::mutex> lock(metrics_mutex);
+  std::lock_guard<std::mutex> lock(metrics_mutex);
 
   // Process CQI
   for (uint32_t i = 0; i < cfg_.nof_csi; i++) {
