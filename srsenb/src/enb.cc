@@ -152,12 +152,12 @@ void enb::stop()
 {
   if (started) {
     // tear down in reverse order
-    if (radio) {
-      radio->stop();
-    }
-
     if (phy) {
       phy->stop();
+    }
+
+    if (radio) {
+      radio->stop();
     }
 
     if (eutra_stack) {
