@@ -21,10 +21,11 @@
 // shorten boost program options namespace
 namespace bpo = boost::program_options;
 
-static double assert_sr_detection_min  = 1.000;
-static double assert_cqi_detection_min = 1.000;
-static double assert_pusch_bler_max    = 0.000;
-static double assert_pdsch_bler_max    = 0.000;
+static double assert_sr_detection_min    = 1.000;
+static double assert_cqi_detection_min   = 1.000;
+static double assert_pusch_bler_max      = 0.000;
+static double assert_pdsch_bler_max      = 0.000;
+static double assert_prach_detection_min = 1.000;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
@@ -236,34 +237,57 @@ int main(int argc, char** argv)
   }
 
   // Print PRACH
+  double   prach_detection = 0.0;
+  uint32_t prach_tx_count  = 0;
+  uint32_t prach_rx_count  = 0;
   if (metrics.ue_stack.prach.size() > 0) {
     srsran::console("PRACH:\n");
-    srsran::console("  UE transmitted:\n");
-    srsran::console("   +------------+------------+\n");
-    srsran::console("   | %10s | %10s |\n", "preamble", "count");
-    srsran::console("   +------------+------------+\n");
+    srsran::console(
+        "   +------------+------------+------------+------------+------------+------------+------------+\n");
+    srsran::console("   | %10s | %10s | %10s | %10s | %10s | %10s | %10s |\n",
+                    "Preamble",
+                    "Transmit'd",
+                    "Received",
+                    "Detection",
+                    "Avg TA",
+                    "Min TA",
+                    "Max TA");
+    srsran::console(
+        "   +------------+------------+------------+------------+------------+------------+------------+\n");
 
     for (const auto& p : metrics.ue_stack.prach) {
-      srsran::console("   | %10d | %10d |\n", p.first, p.second.count);
-
       // Ensure the detected count matches with transmission
-      TESTASSERT(metrics.gnb_stack.prach.count(p.first));
-      TESTASSERT(metrics.gnb_stack.prach[p.first].count == p.second.count);
+      //      TESTASSERT(metrics.gnb_stack.prach.count(p.first));
+      //      TESTASSERT(metrics.gnb_stack.prach[p.first].count == p.second.count);
+      TESTASSERT(p.second.count != 0);
+      prach_tx_count += p.second.count;
+
+      gnb_dummy_stack::prach_metrics_t gnb_prach = {};
+      if (metrics.gnb_stack.prach.count(p.first) > 0) {
+        gnb_prach = metrics.gnb_stack.prach[p.first];
+      } else {
+        gnb_prach.avg_ta = NAN;
+        gnb_prach.min_ta = NAN;
+        gnb_prach.max_ta = NAN;
+      }
+      prach_rx_count += gnb_prach.count;
+
+      double detection = (double)gnb_prach.count / (double)p.second.count;
+
+      srsran::console("   | %10d | %10d | %10d | %10.3f | %10.1f | %10.1f | %10.1f |\n",
+                      p.first,
+                      p.second.count,
+                      gnb_prach.count,
+                      detection,
+                      gnb_prach.avg_ta,
+                      gnb_prach.min_ta,
+                      gnb_prach.max_ta);
     }
-    srsran::console("   +------------+------------+\n\n");
-
-    srsran::console("  GNB detected:\n");
-    srsran::console("   +------------+------------+------------+\n");
-    srsran::console("   | %10s | %10s | %10s |\n", "preamble", "count", "avg TA");
-    srsran::console("   +------------+------------+------------+\n");
-
-    for (const auto& p : metrics.gnb_stack.prach) {
-      srsran::console("   | %10d | %10d | %10.1f |\n", p.first, p.second.count, p.second.avg_ta);
-
-      // Ensure all detected preambles were transmitted
-      TESTASSERT(metrics.ue_stack.prach.count(p.first) > 0);
-    }
-    srsran::console("   +------------+------------+------------+\n\n");
+    srsran::console(
+        "   +------------+------------+------------+------------+------------+------------+------------+\n");
+  }
+  if (prach_tx_count > 0) {
+    prach_detection = (double)prach_rx_count / (double)prach_tx_count;
   }
 
   // Print PUCCH
@@ -410,6 +434,10 @@ int main(int argc, char** argv)
                 "CQI report detection probability (%f) did not reach the assertion minimum (%f)",
                 cqi_detection,
                 assert_sr_detection_min);
+  srsran_assert(prach_tx_count == 0 or prach_detection >= assert_prach_detection_min,
+                "PRACH detection probability (%f) did not reach the assertion minimum (%f)",
+                prach_detection,
+                assert_prach_detection_min);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;

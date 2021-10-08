@@ -29,6 +29,7 @@ public:
 
 private:
   std::mutex                     rnti_mutex;
+  srsran_random_t                random_gen     = srsran_random_init(0x1323);
   srsran_rnti_type_t             dl_rnti_type   = srsran_rnti_type_c;
   uint16_t                       rnti           = 0;
   bool                           valid          = false;
@@ -58,7 +59,7 @@ public:
   {
     valid = true;
   }
-  ~ue_dummy_stack() = default;
+  ~ue_dummy_stack() { srsran_random_free(random_gen); }
   void in_sync() override {}
   void out_of_sync() override {}
   void run_tti(const uint32_t tti) override
@@ -68,8 +69,12 @@ public:
       uint32_t slot_idx = tti % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz);
       uint32_t sfn      = tti / SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz);
       if (slot_idx == 0 and sfn % prach_period == 0) {
-        phy.send_prach(0, prach_preamble, 0.0f, 0.0f);
-        metrics.prach[prach_preamble].count++;
+        uint32_t prach_preamble_ = prach_preamble;
+        if (prach_preamble_ >= 64) {
+          prach_preamble_ = srsran_random_uniform_int_dist(random_gen, 0, 63);
+        }
+        phy.send_prach(0, prach_preamble_, 0.0f, 0.0f);
+        metrics.prach[prach_preamble_].count++;
       }
     }
   }

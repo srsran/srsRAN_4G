@@ -36,7 +36,9 @@ class gnb_dummy_stack : public srsenb::stack_interface_phy_nr
 public:
   struct prach_metrics_t {
     uint32_t count;
-    float    avg_ta;
+    float    avg_ta = 0.0f;
+    float    min_ta = +INFINITY;
+    float    max_ta = -INFINITY;
   };
   struct pucch_metrics_t {
     float    epre_db_avg = 0.0f;
@@ -706,6 +708,8 @@ public:
     std::unique_lock<std::mutex> lock(metrics_mutex);
     prach_metrics_t&             prach_metrics = metrics.prach[rach_info.preamble];
     prach_metrics.avg_ta = SRSRAN_VEC_SAFE_CMA((float)rach_info.time_adv, prach_metrics.avg_ta, prach_metrics.count);
+    prach_metrics.min_ta = SRSRAN_MIN((float)rach_info.time_adv, prach_metrics.min_ta);
+    prach_metrics.max_ta = SRSRAN_MAX((float)rach_info.time_adv, prach_metrics.max_ta);
     prach_metrics.count++;
   }
 
