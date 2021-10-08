@@ -75,6 +75,11 @@ void ul_harq_entity::start_pcap(srsran::mac_pcap* pcap_)
   pcap = pcap_;
 }
 
+void ul_harq_entity::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+}
+
 /***************** PHY->MAC interface for UL processes **************************/
 void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
                                   mac_interface_phy_lte::tb_action_ul_t* action)
@@ -274,6 +279,15 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         rnti = harq_entity->rntis->get_crnti();
       }
       harq_entity->pcap->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), grant.tti_tx, harq_entity->cc_idx);
+    }
+    if (harq_entity->pcap_net) {
+      uint16_t rnti;
+      if (grant.rnti == harq_entity->rntis->get_temp_rnti() && harq_entity->rntis->get_temp_rnti()) {
+        rnti = harq_entity->rntis->get_temp_rnti();
+      } else {
+        rnti = harq_entity->rntis->get_crnti();
+      }
+      harq_entity->pcap_net->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), grant.tti_tx, harq_entity->cc_idx);
     }
   } else if (has_grant()) {
     // Non-Adaptive Re-Tx

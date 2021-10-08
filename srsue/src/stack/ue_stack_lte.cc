@@ -211,6 +211,14 @@ int ue_stack_lte::init(const stack_args_t& args_)
     }
   }
 
+  if (args.pkt_trace.mac_pcap_net.enable) {
+    mac_pcap_net.open(args.pkt_trace.mac_pcap_net.client_ip,
+                      args.pkt_trace.mac_pcap_net.bind_ip,
+                      args.pkt_trace.mac_pcap_net.client_port,
+                      args.pkt_trace.mac_pcap_net.bind_port);
+    mac.start_pcap_net(&mac_pcap_net);
+  }
+
   // Init USIM first to allow early exit in case reader couldn't be found
   usim = usim_base::get_instance(&args.usim, usim_logger);
   if (usim->init(&args.usim)) {

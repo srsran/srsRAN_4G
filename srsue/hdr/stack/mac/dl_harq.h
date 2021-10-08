@@ -25,6 +25,7 @@
 #include "demux.h"
 #include "dl_sps.h"
 #include "srsran/common/mac_pcap.h"
+#include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/timers.h"
 #include "srsue/hdr/stack/mac_common/mac_common.h"
 
@@ -40,6 +41,7 @@ public:
   bool init(ue_rnti* rntis, demux* demux_unit);
   void reset();
   void start_pcap(srsran::mac_pcap* pcap_);
+  void start_pcap_net(srsran::mac_pcap_net* pcap_net_);
 
   /***************** PHY->MAC interface for DL processes **************************/
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
@@ -123,6 +125,7 @@ private:
   demux*                       demux_unit = nullptr;
   srslog::basic_logger&        logger;
   srsran::mac_pcap*            pcap                = nullptr;
+  srsran::mac_pcap_net*        pcap_net            = nullptr;
   ue_rnti*                     rntis               = nullptr;
   uint16_t                     last_temporal_crnti = 0;
   int                          si_window_start     = 0;
