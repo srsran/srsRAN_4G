@@ -35,6 +35,7 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   gtpu_task_queue    = task_sched.make_task_queue();
   mac_task_queue     = task_sched.make_task_queue();
   metrics_task_queue = task_sched.make_task_queue();
+  gnb_task_queue     = task_sched.make_task_queue();
 }
 
 gnb_stack_nr::~gnb_stack_nr()
@@ -97,13 +98,21 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
 void gnb_stack_nr::stop()
 {
   if (running) {
-    rrc.stop();
-    pdcp.stop();
-    mac.stop();
-
-    srsran::get_background_workers().stop();
-    running = false;
+    gnb_task_queue.push([this]() { stop_impl(); });
+    wait_thread_finish();
   }
+}
+
+void gnb_stack_nr::stop_impl()
+{
+  rrc.stop();
+  pdcp.stop();
+  mac.stop();
+
+  task_sched.stop();
+  srsran::get_background_workers().stop();
+
+  running = false;
 }
 
 bool gnb_stack_nr::switch_on()

@@ -106,6 +106,7 @@ public:
 private:
   void run_thread() final;
   void tti_clock_impl();
+  void stop_impl();
 
   // args
   gnb_stack_args_t        args = {};
@@ -121,7 +122,7 @@ private:
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
   srsran::task_scheduler                task_sched;
   srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gtpu_task_queue, mac_task_queue,
-      metrics_task_queue;
+      metrics_task_queue, gnb_task_queue;
 
   // metrics waiting condition
   std::mutex              metrics_mutex;
