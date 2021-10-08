@@ -25,6 +25,9 @@
 #include <mutex>
 
 namespace srsenb {
+
+struct mac_metrics_t;
+
 namespace sched_nr_impl {
 
 using dl_sched_t     = sched_nr_interface::dl_sched_t;
@@ -92,7 +95,7 @@ public:
   sched_worker_manager(sched_worker_manager&&)      = delete;
   ~sched_worker_manager();
 
-  void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
+  void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res, mac_metrics_t* metrics);
 
   void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
   void enqueue_cc_event(uint32_t cc, srsran::move_callback<void()> ev);
@@ -103,7 +106,7 @@ public:
 
 private:
   void update_ue_db(slot_point slot_tx, bool locked_context);
-
+  void get_metrics(mac_metrics_t& metrics);
   bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
 
   const sched_params&                               cfg;

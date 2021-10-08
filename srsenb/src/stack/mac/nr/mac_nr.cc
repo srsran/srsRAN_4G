@@ -76,7 +76,18 @@ void mac_nr::stop()
   }
 }
 
+/// Called from metrics thread
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
+{
+  // Requests asynchronously MAC metrics
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+  metrics_pending = &metrics;
+
+  // Blocks waiting for results
+  metrics_condvar.wait(lock, [this]() { return metrics_pending == nullptr; });
+}
+
+void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
 {
   srsran::rwlock_read_guard lock(rwlock);
   metrics.ues.reserve(ue_db.size());
@@ -274,9 +285,25 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
 
   slot_point                         pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
   sched_nr_interface::dl_sched_res_t dl_res;
-  int                                ret = sched.get_dl_sched(pdsch_slot, 0, dl_res);
-  if (ret != SRSRAN_SUCCESS) {
-    return ret;
+
+  // Get metrics if requested
+  {
+    std::unique_lock<std::mutex> metrics_lock(metrics_mutex);
+    if (metrics_pending != nullptr) {
+      get_metrics_nolock(*metrics_pending);
+    }
+
+    // Run Scheduler
+    int ret = sched.run_slot(pdsch_slot, 0, dl_res, metrics_pending);
+
+    // Notify metrics are filled, if requested
+    if (metrics_pending != nullptr) {
+      metrics_pending = nullptr;
+      metrics_condvar.notify_one();
+    }
+    if (ret != SRSRAN_SUCCESS) {
+      return ret;
+    }
   }
   dl_sched = dl_res.dl_sched;
 

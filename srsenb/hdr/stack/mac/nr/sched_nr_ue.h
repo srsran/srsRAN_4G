@@ -16,6 +16,7 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
@@ -72,6 +73,9 @@ public:
   uint32_t ul_cqi = 0;
 
   harq_entity harq_ent;
+
+  // metrics
+  mac_ue_metrics_t metrics = {};
 
 private:
   bwp_ue_cfg               bwp_cfg;

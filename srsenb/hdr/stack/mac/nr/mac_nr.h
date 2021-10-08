@@ -82,6 +82,9 @@ private:
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
+  // Metrics processing
+  void get_metrics_nolock(srsenb::mac_metrics_t& metrics);
+
   // Encoding
   srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
   srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
@@ -124,6 +127,11 @@ private:
 
   // Number of rach preambles detected for a CC
   std::vector<uint32_t> detected_rachs;
+
+  // Metrics
+  std::mutex              metrics_mutex;
+  std::condition_variable metrics_condvar;
+  srsenb::mac_metrics_t*  metrics_pending = nullptr;
 };
 
 } // namespace srsenb

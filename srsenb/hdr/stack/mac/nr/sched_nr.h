@@ -51,7 +51,7 @@ public:
   void ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) override;
   void dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx);
 
-  int get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_sched_res_t& result) override;
+  int run_slot(slot_point pdsch_tti, uint32_t cc, dl_sched_res_t& result, mac_metrics_t* metrics = nullptr) override;
   int get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_sched_t& result) override;
 
 private:

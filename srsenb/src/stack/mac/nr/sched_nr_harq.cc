@@ -25,7 +25,7 @@ int harq_proc::ack_info(uint32_t tb_idx, bool ack)
   if (ack) {
     tb[tb_idx].active = false;
   }
-  return SRSRAN_SUCCESS;
+  return tb[tb_idx].tbs;
 }
 
 void harq_proc::new_slot(slot_point slot_rx)

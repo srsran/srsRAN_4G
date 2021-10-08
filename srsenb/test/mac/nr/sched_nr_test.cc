@@ -103,7 +103,7 @@ void sched_nr_cfg_serialized_test()
       sched_nr_interface::dl_sched_res_t dl_res;
       sched_nr_interface::ul_sched_t     ul_res;
       auto                               tp1 = std::chrono::steady_clock::now();
-      TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
+      TESTASSERT(sched_tester.get_sched()->run_slot(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
       TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
       auto tp2 = std::chrono::steady_clock::now();
       count_per_cc[cc] += std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1).count();
@@ -155,7 +155,7 @@ void sched_nr_cfg_parallel_cc_test()
         sched_nr_interface::dl_sched_res_t dl_res;
         sched_nr_interface::ul_sched_t     ul_res;
         auto                               tp1 = std::chrono::steady_clock::now();
-        TESTASSERT(sched_tester.get_sched()->get_dl_sched(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
+        TESTASSERT(sched_tester.get_sched()->run_slot(slot_tx, cc, dl_res) == SRSRAN_SUCCESS);
         TESTASSERT(sched_tester.get_sched()->get_ul_sched(slot_tx, cc, ul_res) == SRSRAN_SUCCESS);
         auto tp2 = std::chrono::steady_clock::now();
         nano_count[cc].fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1).count(),

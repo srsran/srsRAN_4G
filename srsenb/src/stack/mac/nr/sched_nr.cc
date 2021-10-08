@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
+#include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsenb/hdr/stack/mac/nr/harq_softbuffer.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
@@ -123,13 +124,13 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 }
 
 /// Generate {pdcch_slot,cc} scheduling decision
-int sched_nr::get_dl_sched(slot_point slot_dl, uint32_t cc, dl_sched_res_t& result)
+int sched_nr::run_slot(slot_point slot_dl, uint32_t cc, dl_sched_res_t& result, mac_metrics_t* metrics)
 {
   // Copy UL results to intermediate buffer
   ul_sched_t& ul_res = pending_results->add_ul_result(slot_dl, cc);
 
   // Generate {slot_idx,cc} result
-  sched_workers->run_slot(slot_dl, cc, result, ul_res);
+  sched_workers->run_slot(slot_dl, cc, result, ul_res, metrics);
 
   return SRSRAN_SUCCESS;
 }
@@ -156,7 +157,15 @@ int sched_nr::dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info)
 void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
 {
   sched_workers->enqueue_cc_feedback(rnti, cc, [this, pid, tb_idx, ack](ue_carrier& ue_cc) {
-    if (ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack) != SRSRAN_SUCCESS) {
+    int tbs = ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack);
+    if (tbs >= 0) {
+      if (ack) {
+        ue_cc.metrics.tx_brate += tbs * 8;
+      } else {
+        ue_cc.metrics.tx_errors++;
+      }
+      ue_cc.metrics.tx_pkts++;
+    } else {
       logger->warning("SCHED: rnti=0x%x, received DL HARQ-ACK for empty pid=%d", ue_cc.rnti, pid);
     }
   });

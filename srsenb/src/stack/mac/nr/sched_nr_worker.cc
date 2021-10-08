@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
+#include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_signalling.h"
 #include "srsran/common/string_helpers.h"
 
@@ -255,7 +256,11 @@ void sched_worker_manager::update_ue_db(slot_point slot_tx, bool locked_context)
   }
 }
 
-void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
+void sched_worker_manager::run_slot(slot_point      slot_tx,
+                                    uint32_t        cc,
+                                    dl_sched_res_t& dl_res,
+                                    ul_sched_t&     ul_res,
+                                    mac_metrics_t*  metrics)
 {
   // Fill DL signalling messages that do not depend on UEs state
   serv_cell_manager& serv_cell = *cells[cc];
@@ -283,6 +288,11 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_re
         next_slot_events.swap(slot_events);
       }
       update_ue_db(slot_tx, true);
+
+      // Obtain MAC metrics if requested
+      if (metrics != nullptr) {
+        get_metrics(*metrics);
+      }
 
       // mark the start of slot. awake remaining workers if locking on the mutex
       current_slot = slot_tx;
@@ -357,6 +367,19 @@ bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
   bwp_slot.reset();
 
   return true;
+}
+
+void sched_worker_manager::get_metrics(mac_metrics_t& metrics)
+{
+  for (mac_ue_metrics_t& ue_metric : metrics.ues) {
+    if (ue_db.contains(ue_metric.rnti) and ue_db[ue_metric.rnti]->carriers[0] != nullptr) {
+      auto& ue_cc         = *ue_db[ue_metric.rnti]->carriers[0];
+      ue_metric.tx_brate  = ue_cc.metrics.tx_brate;
+      ue_metric.tx_errors = ue_cc.metrics.tx_errors;
+      ue_metric.tx_pkts   = ue_cc.metrics.tx_pkts;
+      ue_cc.metrics       = {};
+    }
+  }
 }
 
 } // namespace sched_nr_impl

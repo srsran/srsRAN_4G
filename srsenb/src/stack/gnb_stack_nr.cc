@@ -25,7 +25,6 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   pdcp_logger(srslog::fetch_basic_logger("PDCP-NR", log_sink, false)),
   rrc_logger(srslog::fetch_basic_logger("RRC-NR", log_sink, false)),
   stack_logger(srslog::fetch_basic_logger("STCK-NR", log_sink, false)),
-  pending_stack_metrics(64),
   mac(&task_sched),
   rrc(&task_sched),
   pdcp(&task_sched, pdcp_logger),
@@ -54,7 +53,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
                        x2_interface*           x2_)
 {
   args = args_;
-  phy = phy_;
+  phy  = phy_;
 
   // setup logging
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
@@ -141,22 +140,28 @@ void gnb_stack_nr::process_pdus() {}
 
 bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
 {
-  // use stack thread to query metrics
-  auto ret = metrics_task_queue.try_push([this]() {
-    srsenb::stack_metrics_t metrics{};
-    mac.get_metrics(metrics.mac);
-    rrc.get_metrics(metrics.rrc);
-    if (not pending_stack_metrics.try_push(std::move(metrics))) {
-      stack_logger.error("Unable to push metrics to queue");
-    }
-  });
+  bool metrics_ready = false;
 
-  if (ret.has_value()) {
-    // wait for result
-    *metrics = pending_stack_metrics.pop_blocking();
-    return true;
+  // use stack thread to query RRC metrics
+  auto ret = metrics_task_queue.try_push([this, metrics, &metrics_ready]() {
+    rrc.get_metrics(metrics->rrc);
+    {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
+      metrics_ready = true;
+    }
+    metrics_cvar.notify_one();
+  });
+  if (not ret.has_value()) {
+    return false;
   }
-  return false;
+
+  // obtain MAC metrics (do not use stack thread)
+  mac.get_metrics(metrics->mac);
+
+  // wait for RRC result
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+  metrics_cvar.wait(lock, [&metrics_ready]() { return metrics_ready; });
+  return true;
 }
 
 // Temporary GW interface
