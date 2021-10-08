@@ -155,12 +155,12 @@ private:
   const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
 
   const static int pcch_payload_buffer_len = 1024;
-  typedef struct {
+  struct common_buffers_t {
     uint8_t                pcch_payload_buffer[pcch_payload_buffer_len] = {};
     srsran_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG]       = {};
     srsran_softbuffer_tx_t pcch_softbuffer_tx                           = {};
     srsran_softbuffer_tx_t rar_softbuffer_tx                            = {};
-  } common_buffers_t;
+  };
 
   std::vector<common_buffers_t> common_buffers;
 

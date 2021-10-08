@@ -18,10 +18,10 @@
 
 namespace srsue {
 
-typedef struct {
+struct nas_sim_args_t {
   int airplane_t_on_ms  = -1;
   int airplane_t_off_ms = -1;
-} nas_sim_args_t;
+};
 
 class nas_args_t
 {

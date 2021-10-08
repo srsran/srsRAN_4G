@@ -34,15 +34,15 @@
 
 namespace srsepc {
 
-typedef struct {
+struct hss_args_t {
   std::string db_file;
   uint16_t    mcc;
   uint16_t    mnc;
-} hss_args_t;
+};
 
 enum hss_auth_algo { HSS_ALGO_XOR, HSS_ALGO_MILENAGE };
 
-typedef struct {
+struct hss_ue_ctx_t {
   // Members
   std::string        name;
   uint64_t           imsi;
@@ -61,7 +61,7 @@ typedef struct {
   void set_sqn(const uint8_t* sqn_);
   void set_last_rand(const uint8_t* rand_);
   void get_last_rand(uint8_t* rand_);
-} hss_ue_ctx_t;
+};
 
 class hss : public hss_interface_nas
 {
