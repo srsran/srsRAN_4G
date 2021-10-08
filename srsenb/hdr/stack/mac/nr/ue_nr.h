@@ -59,7 +59,7 @@ public:
   void       metrics_phr(float phr);
   void       metrics_dl_ri(uint32_t dl_cqi);
   void       metrics_dl_pmi(uint32_t dl_cqi);
-  void       metrics_dl_cqi(uint32_t dl_cqi);
+  void       metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, bool valid_cqi);
   void       metrics_dl_mcs(uint32_t mcs);
   void       metrics_ul_mcs(uint32_t mcs);
   void       metrics_cnt();
@@ -83,11 +83,12 @@ private:
 
   std::atomic<bool> active_state{true};
 
-  uint32_t         phr_counter    = 0;
-  uint32_t         dl_cqi_counter = 0;
-  uint32_t         dl_ri_counter  = 0;
-  uint32_t         dl_pmi_counter = 0;
-  mac_ue_metrics_t ue_metrics     = {};
+  uint32_t         phr_counter          = 0;
+  uint32_t         dl_cqi_counter       = 0;
+  uint32_t         dl_cqi_valid_counter = 0;
+  uint32_t         dl_ri_counter        = 0;
+  uint32_t         dl_pmi_counter       = 0;
+  mac_ue_metrics_t ue_metrics           = {};
 
   // UE-specific buffer for MAC PDU packing, unpacking and handling
   srsran::mac_sch_pdu_nr                    mac_pdu_dl, mac_pdu_ul;

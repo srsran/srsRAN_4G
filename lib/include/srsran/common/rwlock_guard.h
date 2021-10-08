@@ -31,19 +31,19 @@ private:
   pthread_rwlock_t* rwlock;
 };
 
-// Shared lock guard that automatically unlocks rwlock on exit
+// Shared lock guard that automatically unlocks rwmutex on exit
 class rwlock_read_guard
 {
 public:
-  rwlock_read_guard(pthread_rwlock_t& rwlock_) : rwlock(&rwlock_) { pthread_rwlock_rdlock(rwlock); }
+  rwlock_read_guard(pthread_rwlock_t& rwlock_) : rwmutex(&rwlock_) { pthread_rwlock_rdlock(rwmutex); }
   rwlock_read_guard(const rwlock_read_guard&) = delete;
   rwlock_read_guard(rwlock_read_guard&&)      = delete;
   rwlock_read_guard& operator=(const rwlock_read_guard&) = delete;
   rwlock_read_guard& operator=(rwlock_read_guard&&) = delete;
-  ~rwlock_read_guard() { pthread_rwlock_unlock(rwlock); }
+  ~rwlock_read_guard() { pthread_rwlock_unlock(rwmutex); }
 
 private:
-  pthread_rwlock_t* rwlock;
+  pthread_rwlock_t* rwmutex;
 };
 
 } // namespace srsran

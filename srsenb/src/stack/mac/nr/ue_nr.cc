@@ -194,11 +194,26 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   ue_metrics     = {};
 }
 
-void ue_nr::metrics_dl_cqi(uint32_t dl_cqi)
+void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, bool valid_cqi)
 {
-  std::lock_guard<std::mutex> lock(metrics_mutex);
-  ue_metrics.dl_cqi = SRSRAN_VEC_CMA((float)dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
-  dl_cqi_counter++;
+  // I think this is not necessary, as we locked from the calling function
+  // std::lock_guard<std::mutex> lock(metrics_mutex);
+
+  // Process CQI
+  for (uint32_t i = 0; i < cfg_.nof_csi; i++) {
+    // Increment CQI opportunity
+    dl_cqi_counter++;
+
+    // Skip if invalid or not supported CSI report
+    if (not valid_cqi or cfg_.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
+        cfg_.csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
+      continue;
+    }
+
+    // Add statistics
+    ue_metrics.dl_cqi = SRSRAN_VEC_SAFE_CMA(dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
+    dl_cqi_valid_counter++;
+  }
 }
 
 void ue_nr::metrics_rx(bool crc, uint32_t tbs)

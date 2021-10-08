@@ -365,6 +365,11 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   if (value.valid and value.sr > 0) {
     sched.ul_sr_info(cfg_.pucch.rnti);
   }
+
+  // Process CQI
+  srsran::rwlock_read_guard rw_lock(rwlock);
+  ue_db[rnti]->metrics_dl_cqi(cfg_, value.csi->wideband_cri_ri_pmi_cqi.cqi, value.valid);
+
   return true;
 }
 
@@ -401,7 +406,6 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
   srsran::rwlock_read_guard rw_lock(rwlock);
   if (ue_db.contains(rnti)) {
     ue_db[rnti]->metrics_rx(pusch_info.pusch_data.tb[0].crc, nof_bytes);
-    ue_db[rnti]->metrics_dl_cqi(15); // TODO extract correct CQI measurments
   }
   return SRSRAN_SUCCESS;
 }

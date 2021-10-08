@@ -996,7 +996,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 
-// Internal helper function, caller must hold UE DB rwlock
+// Internal helper function, caller must hold UE DB rwmutex
 bool mac::check_ue_active(uint16_t rnti)
 {
   if (not ue_db.contains(rnti)) {
