@@ -1395,8 +1395,12 @@ void rrc_nr::ue::crnti_ce_received()
       uecfg.ue_bearers[drb.lc_ch_id].group     = drb.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
     }
 
+    // Update UE phy params
     srsran::make_pdsch_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.pdsch);
     srsran::make_csi_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
+    srsran::make_phy_ssb_cfg(parent->cfg.cell_list[0].phy_cell.carrier,
+                             cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
+                             &uecfg.phy_cfg.ssb);
 
     parent->mac->ue_cfg(rnti, uecfg);
   }
