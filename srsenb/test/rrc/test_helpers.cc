@@ -46,30 +46,45 @@ int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_ar
 
 int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
 {
-  args                      = {};
-  *rrc_cfg                  = {};
-  args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
-  args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
-  args.enb_files.rb_config  = argparse::repository_dir + "/rb.conf.example";
-  srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args.enb_files.sib_config.c_str());
-
-  args.enb.enb_id    = 0x19B;
-  args.enb.dl_earfcn = 3400;
-  args.enb.n_prb     = 50;
-  TESTASSERT(srsran::string_to_mcc("001", &args.stack.s1ap.mcc));
-  TESTASSERT(srsran::string_to_mnc("01", &args.stack.s1ap.mnc));
-  args.enb.transmission_mode      = 1;
-  args.enb.nof_ports              = 1;
-  args.general.eia_pref_list      = "EIA2, EIA1, EIA0";
-  args.general.eea_pref_list      = "EEA0, EEA2, EEA1";
-  args.stack.mac.nof_prealloc_ues = 2;
-
-  args.general.rrc_inactivity_timer = 60000;
-
-  phy_cfg_t phy_cfg;
+  phy_cfg_t    phy_cfg;
   rrc_nr_cfg_t rrc_cfg_nr;
+  return parse_default_cfg(&args, rrc_cfg, &phy_cfg, &rrc_cfg_nr);
+}
 
-  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &rrc_cfg_nr, &phy_cfg);
+int parse_default_cfg(rrc_nr_cfg_t* rrc_nr_cfg)
+{
+  srsenb::all_args_t args;
+  phy_cfg_t          phy_cfg;
+  rrc_cfg_t          rrc_cfg;
+  return parse_default_cfg(&args, &rrc_cfg, &phy_cfg, rrc_nr_cfg);
+}
+
+int parse_default_cfg(srsenb::all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, rrc_nr_cfg_t* rrc_nr_cfg)
+{
+  *args       = {};
+  *rrc_cfg    = {};
+  *phy_cfg    = {};
+  *rrc_nr_cfg = {};
+
+  args->enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
+  args->enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
+  args->enb_files.rb_config  = argparse::repository_dir + "/rb.conf.example";
+  srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args->enb_files.sib_config.c_str());
+
+  args->enb.enb_id    = 0x19B;
+  args->enb.dl_earfcn = 3400;
+  args->enb.n_prb     = 50;
+  TESTASSERT(srsran::string_to_mcc("001", &args->stack.s1ap.mcc));
+  TESTASSERT(srsran::string_to_mnc("01", &args->stack.s1ap.mnc));
+  args->enb.transmission_mode      = 1;
+  args->enb.nof_ports              = 1;
+  args->general.eia_pref_list      = "EIA2, EIA1, EIA0";
+  args->general.eea_pref_list      = "EEA0, EEA2, EEA1";
+  args->stack.mac.nof_prealloc_ues = 2;
+
+  args->general.rrc_inactivity_timer = 60000;
+
+  return enb_conf_sections::parse_cfg_files(args, rrc_cfg, rrc_nr_cfg, phy_cfg);
 }
 
 int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srsran::timer_handler& timers, uint16_t rnti)

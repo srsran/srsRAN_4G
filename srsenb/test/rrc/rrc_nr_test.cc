@@ -13,6 +13,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/test/common/dummy_classes_common.h"
 #include "srsenb/test/common/dummy_classes_nr.h"
+#include "srsenb/test/rrc/test_helpers.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include <iostream>
@@ -75,11 +76,10 @@ int test_rrc_setup()
   rrc_nr       rrc_obj(&task_sched);
 
   // set cfg
-  rrc_nr_cfg_t      default_cfg = {};
-  rrc_cell_cfg_nr_t cell_cfg    = {};
-  rrc_nr_cfg_t      rrc_cfg_nr  = rrc_obj.update_default_cfg(default_cfg);
+  rrc_cell_cfg_nr_t cell_cfg   = {};
+  rrc_nr_cfg_t      rrc_cfg_nr = rrc_obj.update_default_cfg(rrc_nr_cfg_t{});
+  test_helpers::parse_default_cfg(&rrc_cfg_nr);
   rrc_cfg_nr.cell_list.push_back(cell_cfg);
-
   TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
 
