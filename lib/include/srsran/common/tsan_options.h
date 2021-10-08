@@ -41,6 +41,12 @@ const char* __tsan_default_suppressions()
       // External uninstrumented libraries
       "called_from_lib:libzmq.so\n"
       "called_from_lib:libpgm-5.2.so\n"
+      "called_from_lib:libusb*\n"
+      "called_from_lib:libuhd*\n"
+      // Races detected inside uninstrumented libraries. This may hide legit races if any of the libraries appear in the
+      // backtrace
+      "race:libusb*\n"
+      "race:libuhd*\n"
       // Lock order inversion issues in these functions, ignore it as it uses rw locks in read mode
       "deadlock:srsenb::mac::rlc_buffer_state\n"
       "deadlock:srsenb::mac::snr_info\n"
