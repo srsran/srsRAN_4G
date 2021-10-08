@@ -1142,6 +1142,13 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
   s.last_temp_crnti      = ev.temp_crnti;
 
   if (is_first_crnti_ce) {
+    // Stop all running RLF timers
+    // Note: The RLF timer can be triggered during Handover because the UE did not RLC-ACK the Handover Command
+    //       Once the Handover is complete, to avoid releasing the UE, the RLF timer should stop.
+    rrc_ue->rlc_rlf_timer.stop();
+    rrc_ue->phy_dl_rlf_timer.stop();
+    rrc_ue->phy_ul_rlf_timer.stop();
+
     // Need to reset SNs of bearers.
     rrc_enb->rlc->reestablish(rrc_ue->rnti);
     rrc_enb->pdcp->reestablish(rrc_ue->rnti);
