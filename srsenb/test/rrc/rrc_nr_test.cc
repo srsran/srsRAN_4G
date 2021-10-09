@@ -10,6 +10,7 @@
  *
  */
 
+#include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/test/common/dummy_classes_common.h"
 #include "srsenb/test/common/dummy_classes_nr.h"
@@ -76,10 +77,15 @@ int test_rrc_setup()
   rrc_nr       rrc_obj(&task_sched);
 
   // set cfg
-  rrc_cell_cfg_nr_t cell_cfg   = {};
-  rrc_nr_cfg_t      rrc_cfg_nr = rrc_obj.update_default_cfg(rrc_nr_cfg_t{});
-  test_helpers::parse_default_cfg(&rrc_cfg_nr);
-  rrc_cfg_nr.cell_list.push_back(cell_cfg);
+  all_args_t   args{};
+  phy_cfg_t    phy_cfg{};
+  rrc_nr_cfg_t rrc_cfg_nr = rrc_obj.update_default_cfg(rrc_nr_cfg_t{});
+  rrc_cfg_nr.cell_list.emplace_back();
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
+  rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
+  rrc_cfg_nr.cell_list[0].band                 = 78;
+  args.enb.n_prb                               = 50;
+  enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
   TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
 
@@ -96,8 +102,19 @@ int test_rrc_setup()
 
 } // namespace srsenb
 
-int main()
+int main(int argc, char** argv)
 {
+  auto& logger = srslog::fetch_basic_logger("ASN1");
+  logger.set_level(srslog::basic_levels::info);
+
+  srslog::init();
+
+  if (argc < 3) {
+    argparse::usage(argv[0]);
+    return -1;
+  }
+  argparse::parse_args(argc, argv);
+
   // FIXME: disabled temporarily until SIB generation is fixed
   // TESTASSERT(srsenb::test_sib_generation() == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);

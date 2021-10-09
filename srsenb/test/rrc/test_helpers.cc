@@ -61,10 +61,9 @@ int parse_default_cfg(rrc_nr_cfg_t* rrc_nr_cfg)
 
 int parse_default_cfg(srsenb::all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, rrc_nr_cfg_t* rrc_nr_cfg)
 {
-  *args       = {};
-  *rrc_cfg    = {};
-  *phy_cfg    = {};
-  *rrc_nr_cfg = {};
+  *args    = {};
+  *rrc_cfg = {};
+  *phy_cfg = {};
 
   args->enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
   args->enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
