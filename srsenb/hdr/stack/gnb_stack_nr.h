@@ -96,10 +96,14 @@ public:
   // X2 data interface
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) final
   {
-    pdcp.write_sdu(rnti, lcid, std::move(sdu), pdcp_sn);
+    auto task = [this, rnti, lcid, pdcp_sn](srsran::unique_byte_buffer_t& sdu) {
+      pdcp.write_sdu(rnti, lcid, std::move(sdu), pdcp_sn);
+    };
+    gtpu_task_queue.push(std::bind(task, std::move(sdu)));
   }
   std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) final
   {
+    // TODO: make it thread-safe. For now, this function is unused
     return pdcp.get_buffered_pdus(rnti, lcid);
   }
 
@@ -120,7 +124,7 @@ private:
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
   srsran::task_scheduler                task_sched;
-  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
+  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gtpu_task_queue, mac_task_queue;
 
   // derived
   srsenb::mac_nr mac;

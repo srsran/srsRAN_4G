@@ -37,6 +37,7 @@ public:
   };
 
 private:
+  std::mutex                     rnti_mutex;
   srsran_rnti_type_t             dl_rnti_type   = srsran_rnti_type_c;
   uint16_t                       rnti           = 0;
   bool                           valid          = false;
@@ -82,9 +83,17 @@ public:
     }
   }
   int          sf_indication(const uint32_t tti) override { return 0; }
-  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override { return {rnti, dl_rnti_type}; }
-  sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) override { return {rnti, srsran_rnti_type_c}; }
-  void         new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) override
+  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override
+  {
+    std::unique_lock<std::mutex> lock(rnti_mutex);
+    return {rnti, dl_rnti_type};
+  }
+  sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) override
+  {
+    std::unique_lock<std::mutex> lock(rnti_mutex);
+    return {rnti, srsran_rnti_type_c};
+  }
+  void new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) override
   {
     action->tb.enabled    = true;
     action->tb.softbuffer = &rx_harq_proc[grant.pid].get_softbuffer(grant.ndi, grant.tbs);
@@ -101,6 +110,7 @@ public:
   }
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) override
   {
+    std::unique_lock<std::mutex> lock(rnti_mutex);
     dl_rnti_type = srsran_rnti_type_ra;
     rnti         = 1 + s_id + 14 * t_id + 14 * 80 * f_id + 14 * 80 * 8 * ul_carrier_id;
   }

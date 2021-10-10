@@ -47,6 +47,11 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
     cfg->symbol_sz = (uint32_t)symbol_sz_err;
   }
 
+  // Check if there is nothing to configure
+  if (memcmp(&q->cfg, cfg, sizeof(srsran_ofdm_cfg_t)) == 0) {
+    return SRSRAN_SUCCESS;
+  }
+
   if (q->max_prb > 0) {
     // The object was already initialised, update only resizing params
     q->cfg.cp        = cfg->cp;
@@ -55,6 +60,9 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
   } else {
     // Otherwise copy all parameters
     q->cfg = *cfg;
+
+    // Phase compensation is set when it is calculated
+    q->cfg.phase_compensation_hz = 0.0;
   }
 
   uint32_t    symbol_sz = q->cfg.symbol_sz;
@@ -146,7 +154,7 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
     srsran_vec_cf_zero(in_buffer, q->sf_sz);
   }
 
-  for (int slot = 0; slot < 2; slot++) {
+  for (int slot = 0; slot < SRSRAN_NOF_SLOTS_PER_SF; slot++) {
     // If Guru DFT was allocated, free
     if (q->fft_plan_sf[slot].size) {
       srsran_dft_plan_free(&q->fft_plan_sf[slot]);
@@ -207,6 +215,12 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
   srsran_ofdm_set_freq_shift(q, q->cfg.freq_shift_f);
   srsran_dft_plan_set_norm(&q->fft_plan, q->cfg.normalize);
   srsran_dft_plan_set_dc(&q->fft_plan, (!cfg->keep_dc) && (!isnormal(q->cfg.freq_shift_f)));
+
+  // set phase compensation
+  if (srsran_ofdm_set_phase_compensation(q, cfg->phase_compensation_hz) < SRSRAN_SUCCESS) {
+    ERROR("Error setting phase compensation");
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -322,6 +336,61 @@ int srsran_ofdm_tx_set_prb(srsran_ofdm_t* q, srsran_cp_t cp, uint32_t nof_prb)
   return ofdm_init_mbsfn_(q, &cfg, SRSRAN_DFT_BACKWARD);
 }
 
+int srsran_ofdm_set_phase_compensation(srsran_ofdm_t* q, double center_freq_hz)
+{
+  // Validate pointer
+  if (q == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Check if the center frequency has changed
+  if (q->cfg.phase_compensation_hz == center_freq_hz) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Save the current phase compensation
+  q->cfg.phase_compensation_hz = center_freq_hz;
+
+  // If the center frequency is 0, NAN, INF, then skip
+  if (!isnormal(center_freq_hz)) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Extract modulation required parameters
+  uint32_t symbol_sz = q->cfg.symbol_sz;
+  double   scs       = 15e3; //< Assume 15kHz subcarrier spacing
+  double   srate_hz  = symbol_sz * scs;
+
+  // Assert parameters
+  if (!isnormal(srate_hz)) {
+    return SRSRAN_ERROR;
+  }
+
+  // Otherwise calculate the phase
+  uint32_t count = 0;
+  for (uint32_t l = 0; l < q->nof_symbols * SRSRAN_NOF_SLOTS_PER_SF; l++) {
+    uint32_t cp_len =
+        SRSRAN_CP_ISNORM(q->cfg.cp) ? SRSRAN_CP_LEN_NORM(l % q->nof_symbols, symbol_sz) : SRSRAN_CP_LEN_EXT(symbol_sz);
+
+    // Advance CP
+    count += cp_len;
+
+    // Calculate symbol start time
+    double t_start = (double)count / srate_hz;
+
+    // Calculate phase
+    double phase_rad = -2.0 * M_PI * center_freq_hz * t_start;
+
+    // Calculate compensation phase in double precision and then convert to single
+    q->phase_compensation[l] = (cf_t)cexp(I * phase_rad);
+
+    // Advance symbol
+    count += symbol_sz;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 void srsran_ofdm_rx_free(srsran_ofdm_t* q)
 {
   srsran_ofdm_free_(q);
@@ -411,7 +480,18 @@ static void ofdm_rx_slot(srsran_ofdm_t* q, int slot_in_sf)
     memcpy(output + nof_re / 2, &tmp[dc], sizeof(cf_t) * nof_re / 2);
 
     // Normalize output
-    if (q->fft_plan.norm) {
+    if (isnormal(q->cfg.phase_compensation_hz)) {
+      // Get phase compensation
+      cf_t phase_compensation = conjf(q->phase_compensation[slot_in_sf * q->nof_symbols + i]);
+
+      // Apply normalization
+      if (q->fft_plan.norm) {
+        phase_compensation *= norm;
+      }
+
+      // Apply correction
+      srsran_vec_sc_prod_ccc(output, phase_compensation, output, nof_re);
+    } else if (q->fft_plan.norm) {
       srsran_vec_sc_prod_cfc(output, norm, output, nof_re);
     }
 
@@ -512,8 +592,8 @@ static void ofdm_tx_slot(srsran_ofdm_t* q, int slot_in_sf)
   uint32_t dc = (q->fft_plan.dc) ? 1 : 0;
 
   for (int i = 0; i < nof_symbols; i++) {
-    memcpy(&tmp[dc], &input[nof_re / 2], nof_re / 2 * sizeof(cf_t));
-    memcpy(&tmp[symbol_sz - nof_re / 2], &input[0], nof_re / 2 * sizeof(cf_t));
+    srsran_vec_cf_copy(&tmp[dc], &input[nof_re / 2], nof_re / 2);
+    srsran_vec_cf_copy(&tmp[symbol_sz - nof_re / 2], &input[0], nof_re / 2);
 
     input += nof_re;
     tmp += symbol_sz;
@@ -524,12 +604,23 @@ static void ofdm_tx_slot(srsran_ofdm_t* q, int slot_in_sf)
   for (int i = 0; i < nof_symbols; i++) {
     int cp_len = SRSRAN_CP_ISNORM(cp) ? SRSRAN_CP_LEN_NORM(i, symbol_sz) : SRSRAN_CP_LEN_EXT(symbol_sz);
 
-    if (q->fft_plan.norm) {
+    if (isnormal(q->cfg.phase_compensation_hz)) {
+      // Get phase compensation
+      cf_t phase_compensation = q->phase_compensation[slot_in_sf * q->nof_symbols + i];
+
+      // Apply normalization
+      if (q->fft_plan.norm) {
+        phase_compensation *= norm;
+      }
+
+      // Apply correction
+      srsran_vec_sc_prod_ccc(&output[cp_len], phase_compensation, &output[cp_len], symbol_sz);
+    } else if (q->fft_plan.norm) {
       srsran_vec_sc_prod_cfc(&output[cp_len], norm, &output[cp_len], symbol_sz);
     }
 
     /* add CP */
-    memcpy(output, &output[symbol_sz], cp_len * sizeof(cf_t));
+    srsran_vec_cf_copy(output, &output[symbol_sz], cp_len);
     output += symbol_sz + cp_len;
   }
 #endif

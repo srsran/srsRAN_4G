@@ -273,6 +273,7 @@ public:
       total_rsrp += srsran_convert_dB_to_power(m.rsrp);
     }
     if (std::isnormal(total_rsrp)) {
+      std::unique_lock<std::mutex> lock(meas_mutex);
       if (std::isnormal(avg_rsrp_neigh[cc_idx])) {
         avg_rsrp_neigh[cc_idx] = SRSRAN_VEC_EMA(total_rsrp, avg_rsrp_neigh[cc_idx], 0.9);
       } else {

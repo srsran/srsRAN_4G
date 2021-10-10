@@ -211,6 +211,9 @@ bool enb::get_metrics(enb_metrics_t* m)
   if (eutra_stack) {
     eutra_stack->get_metrics(&m->stack);
   }
+  if (nr_stack) {
+    nr_stack->get_metrics(&m->nr_stack);
+  }
   m->running = true;
   m->sys     = sys_proc.get_metrics();
   return true;

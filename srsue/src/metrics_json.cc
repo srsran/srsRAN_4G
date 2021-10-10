@@ -162,6 +162,10 @@ void metrics_json::set_metrics(const ue_metrics_t& metrics, const uint32_t perio
   auto& carrier_list = ctx.get<mlist_carriers>();
   carrier_list.resize(metrics.phy.nof_active_cc);
   for (uint32_t i = 0, e = carrier_list.size(); i != e; ++i) {
+    if (metrics.stack.mac[i].nof_tti == 0) {
+      continue;
+    }
+
     auto& carrier = carrier_list[i];
 
     // PHY.

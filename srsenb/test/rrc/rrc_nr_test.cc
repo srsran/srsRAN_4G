@@ -23,6 +23,7 @@
 #include "srsenb/test/common/dummy_classes_common.h"
 #include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsran/common/test_common.h"
+#include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include <iostream>
 
 using namespace asn1::rrc_nr;
@@ -76,15 +77,19 @@ int test_rrc_setup()
 {
   srsran::task_scheduler task_sched;
 
+  phy_nr_dummy phy_obj;
   mac_nr_dummy mac_obj;
   rlc_dummy    rlc_obj;
   pdcp_dummy   pdcp_obj;
   rrc_nr       rrc_obj(&task_sched);
 
   // set cfg
-  rrc_nr_cfg_t default_cfg = {};
-  rrc_nr_cfg_t rrc_cfg     = rrc_obj.update_default_cfg(default_cfg);
-  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+  rrc_nr_cfg_t      default_cfg = {};
+  rrc_cell_cfg_nr_t cell_cfg    = {};
+  rrc_nr_cfg_t      rrc_cfg_nr  = rrc_obj.update_default_cfg(default_cfg);
+  rrc_cfg_nr.cell_list.push_back(cell_cfg);
+
+  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
 
   for (uint32_t n = 0; n < 2; ++n) {

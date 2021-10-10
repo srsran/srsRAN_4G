@@ -53,12 +53,13 @@ typedef struct SRSRAN_API {
   srsran_cp_t cp;         ///< Cyclic prefix type
 
   // Optional parameters
-  srsran_sf_t sf_type;          ///< Subframe type, normal or MBSFN
-  bool        normalize;        ///< Normalization flag, it divides the output by square root of the symbol size
-  float       freq_shift_f;     ///< Frequency shift, normalised by sampling rate (used in UL)
-  float       rx_window_offset; ///< DFT Window offset in CP portion (0-1), RX only
-  uint32_t    symbol_sz;        ///< Symbol size, forces a given symbol size for the number of PRB
-  bool        keep_dc;          ///< If true, it does not remove the DC
+  srsran_sf_t sf_type;               ///< Subframe type, normal or MBSFN
+  bool        normalize;             ///< Normalization flag, it divides the output by square root of the symbol size
+  float       freq_shift_f;          ///< Frequency shift, normalised by sampling rate (used in UL)
+  float       rx_window_offset;      ///< DFT Window offset in CP portion (0-1), RX only
+  uint32_t    symbol_sz;             ///< Symbol size, forces a given symbol size for the number of PRB
+  bool        keep_dc;               ///< If true, it does not remove the DC
+  double      phase_compensation_hz; ///< Carrier frequency in Hz for phase compensation, set to 0 to disable
 } srsran_ofdm_cfg_t;
 
 /**
@@ -83,6 +84,7 @@ typedef struct SRSRAN_API {
   uint32_t          window_offset_n;
   cf_t*             shift_buffer;
   cf_t*             window_offset_buffer;
+  cf_t              phase_compensation[SRSRAN_MAX_NSYMB * SRSRAN_NOF_SLOTS_PER_SF];
 } srsran_ofdm_t;
 
 /**
@@ -138,6 +140,8 @@ SRSRAN_API void srsran_ofdm_tx_sf(srsran_ofdm_t* q);
 SRSRAN_API int srsran_ofdm_set_freq_shift(srsran_ofdm_t* q, float freq_shift);
 
 SRSRAN_API void srsran_ofdm_set_normalize(srsran_ofdm_t* q, bool normalize_enable);
+
+SRSRAN_API int srsran_ofdm_set_phase_compensation(srsran_ofdm_t* q, double center_freq_hz);
 
 SRSRAN_API void srsran_ofdm_set_non_mbsfn_region(srsran_ofdm_t* q, uint8_t non_mbsfn_region);
 

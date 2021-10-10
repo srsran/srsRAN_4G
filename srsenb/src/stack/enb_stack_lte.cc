@@ -173,6 +173,11 @@ int enb_stack_lte::init(const stack_args_t&      args_,
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
+  // add x2 queue
+  if (x2_ != nullptr) {
+    x2_task_queue = task_sched.make_task_queue();
+  }
+
   // setup bearer managers
   gtpu_adapter.reset(new gtpu_pdcp_adapter(stack_logger, &pdcp, x2_, &gtpu, bearers));
 
@@ -295,7 +300,10 @@ void enb_stack_lte::run_thread()
 void enb_stack_lte::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   // call GTPU adapter to map to EPS bearer
-  gtpu_adapter->write_pdu(rnti, lcid, std::move(pdu));
+  auto task = [this, rnti, lcid](srsran::unique_byte_buffer_t& pdu) {
+    gtpu_adapter->write_pdu(rnti, lcid, std::move(pdu));
+  };
+  x2_task_queue.push(std::bind(task, std::move(pdu)));
 }
 
 } // namespace srsenb

@@ -53,7 +53,7 @@ public:
   slot_point       harq_slot_tx() const { return slot_tx; }
   slot_point       harq_slot_ack() const { return slot_ack; }
 
-  bool ack_info(uint32_t tb_idx, bool ack);
+  int ack_info(uint32_t tb_idx, bool ack);
 
   void new_slot(slot_point slot_rx);
   void reset();
@@ -133,8 +133,8 @@ public:
   explicit harq_entity(uint32_t nprb, uint32_t nof_harq_procs = SCHED_NR_MAX_HARQ);
   void new_slot(slot_point slot_rx_);
 
-  void dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { dl_harqs[pid].ack_info(tb_idx, ack); }
-  void ul_crc_info(uint32_t pid, bool ack) { ul_harqs[pid].ack_info(0, ack); }
+  int dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { return dl_harqs[pid].ack_info(tb_idx, ack); }
+  int ul_crc_info(uint32_t pid, bool ack) { return ul_harqs[pid].ack_info(0, ack); }
 
   uint32_t            nof_dl_harqs() const { return dl_harqs.size(); }
   uint32_t            nof_ul_harqs() const { return ul_harqs.size(); }

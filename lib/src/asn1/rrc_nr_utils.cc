@@ -21,6 +21,7 @@
 
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/asn1/rrc_nr.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/config.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
@@ -1377,13 +1378,14 @@ bool make_phy_carrier_cfg(const freq_info_dl_s& asn1_freq_info_dl, srsran_carrie
   }
 
   // As the carrier structure requires parameters from different objects, set fields separately
-  out_carrier_nr->absolute_frequency_ssb        = absolute_frequency_ssb;
-  out_carrier_nr->dl_absolute_frequency_point_a = asn1_freq_info_dl.absolute_freq_point_a;
-  out_carrier_nr->ul_absolute_frequency_point_a =
-      out_carrier_nr->dl_absolute_frequency_point_a; // needs to be updated for FDD
-  out_carrier_nr->offset_to_carrier = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
-  out_carrier_nr->nof_prb           = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
-  out_carrier_nr->scs               = scs;
+  srsran::srsran_band_helper bands;
+  out_carrier_nr->ssb_center_freq_hz     = bands.nr_arfcn_to_freq(absolute_frequency_ssb);
+  out_carrier_nr->dl_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
+      asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw, asn1_freq_info_dl.absolute_freq_point_a);
+  out_carrier_nr->ul_center_frequency_hz = out_carrier_nr->dl_center_frequency_hz; // needs to be updated for FDD
+  out_carrier_nr->offset_to_carrier      = asn1_freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  out_carrier_nr->nof_prb                = asn1_freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+  out_carrier_nr->scs                    = scs;
   return true;
 }
 
@@ -1400,9 +1402,48 @@ static inline void make_ssb_positions_in_burst(const bitstring_t&               
   }
 }
 
-bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
+bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                       out_ssb)
 {
+  srsran::srsran_band_helper bands;
+  uint16_t                   band = bands.get_band_from_dl_freq_Hz(carrier.ssb_center_freq_hz);
+  if (band == UINT16_MAX) {
+    asn1::log_error("Invalid band for SSB frequency %.3f MHz", carrier.ssb_center_freq_hz);
+    return false;
+  }
+
   phy_cfg_nr_t::ssb_cfg_t ssb = {};
+
+  // Parse subcarrier spacing
+  if (serv_cell_cfg.ssb_subcarrier_spacing_present) {
+    switch (serv_cell_cfg.ssb_subcarrier_spacing) {
+      case subcarrier_spacing_e::khz15:
+        ssb.scs = srsran_subcarrier_spacing_15kHz;
+        break;
+      case subcarrier_spacing_e::khz30:
+        ssb.scs = srsran_subcarrier_spacing_30kHz;
+        break;
+      default:
+        asn1::log_error("SSB SCS %s not supported", serv_cell_cfg.ssb_subcarrier_spacing.to_string());
+        return false;
+    }
+  } else {
+    ssb.scs = bands.get_ssb_scs(band);
+    if (ssb.scs == srsran_subcarrier_spacing_invalid) {
+      asn1::log_error("SSB SCS not available for band %d", band);
+      return false;
+    }
+  }
+
+  // Get the SSB pattern
+  ssb.pattern = bands.get_ssb_pattern(band, ssb.scs);
+  if (ssb.pattern == SRSRAN_SSB_PATTERN_INVALID) {
+    asn1::log_error(
+        "Band %d and SS/PBCH block SCS %s results on invalid pattern", band, srsran_subcarrier_spacing_to_str(ssb.scs));
+    return false;
+  }
+
   if (serv_cell_cfg.ssb_positions_in_burst_present) {
     switch (serv_cell_cfg.ssb_positions_in_burst.type()) {
       case serving_cell_cfg_common_s::ssb_positions_in_burst_c_::types_opts::short_bitmap:
@@ -1440,6 +1481,46 @@ bool make_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_c
   if (out_ssb != nullptr) {
     *out_ssb = ssb;
   }
+  return true;
+}
+
+bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
+{
+  if (serv_cell.csi_meas_cfg_present and
+      serv_cell.csi_meas_cfg.type().value ==
+          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+    auto& setup = serv_cell.csi_meas_cfg.setup();
+    if (setup.nzp_csi_rs_res_set_to_add_mod_list_present) {
+      for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
+        auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
+        uecfg_set.trs_info = nzp_set.trs_info_present;
+        uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
+        for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
+          auto& res = uecfg_set.data[nzp_rs_idx];
+          if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present and
+      serv_cell.init_dl_bwp.pdsch_cfg.type() == setup_release_c<pdsch_cfg_s>::types_opts::setup) {
+    const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
+    if (setup.p_zp_csi_rs_res_set_present) {
+      auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
+      sch_hl->p_zp_csi_rs_set.count = setup_set.zp_csi_rs_res_id_list.size();
+      for (uint8_t zp_res_id : setup_set.zp_csi_rs_res_id_list) {
+        const asn1::rrc_nr::zp_csi_rs_res_s& setup_res = setup.zp_csi_rs_res_to_add_mod_list[zp_res_id];
+        auto&                                res       = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
+        if (not srsran::make_phy_zp_csi_rs_resource(setup_res, &res)) {
+          return false;
+        }
+      }
+    }
+  }
+
   return true;
 }
 

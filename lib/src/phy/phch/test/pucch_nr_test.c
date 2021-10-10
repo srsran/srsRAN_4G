@@ -31,17 +31,7 @@
 #include <strings.h>
 #include <unistd.h>
 
-static srsran_carrier_nr_t carrier = {
-    1,                               // pci
-    0,                               // absolute_frequency_ssb
-    0,                               // dl_absolute_frequency_point_a
-    0,                               // ul_absolute_frequency_point_a
-    0,                               // offset_to_carrier
-    srsran_subcarrier_spacing_15kHz, // scs
-    6,                               // nof_prb
-    0,                               // start
-    1                                // max_mimo_layers
-};
+static srsran_carrier_nr_t carrier = SRSRAN_DEFAULT_CARRIER_NR;
 
 static uint32_t              starting_prb_stride    = 4;
 static uint32_t              starting_symbol_stride = 4;
@@ -270,6 +260,9 @@ static void usage(char* prog)
 
 static void parse_args(int argc, char** argv)
 {
+  // Limit default number of RB
+  carrier.nof_prb = 6;
+
   int opt;
   while ((opt = getopt(argc, argv, "cnfsv")) != -1) {
     switch (opt) {

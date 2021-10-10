@@ -19,6 +19,7 @@
  *
  */
 #include "srsenb/hdr/phy/nr/worker_pool.h"
+#include "srsran/common/band_helper.h"
 
 namespace srsenb {
 namespace nr {
@@ -41,6 +42,13 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
 {
   nof_prach_workers = args.nof_prach_workers;
 
+  // Calculate sampling rate in Hz
+  if (not std::isnormal(args.srate_hz)) {
+    srate_hz = SRSRAN_SUBC_SPACING_NR(cell_list[0].carrier.scs) * srsran_min_symbol_sz_rb(cell_list[0].carrier.nof_prb);
+  } else {
+    srate_hz = args.srate_hz;
+  }
+
   // Configure logger
   srslog::basic_levels log_level = srslog::str_to_basic_level(args.log.phy_level);
   logger.set_level(log_level);
@@ -51,7 +59,7 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
     log.set_level(log_level);
     log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
-    auto w = new slot_worker(common, stack, log);
+    auto w = new slot_worker(common, stack, *this, log);
     pool.init_worker(i, w, args.prio);
     workers.push_back(std::unique_ptr<slot_worker>(w));
 
@@ -62,6 +70,7 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
     w_args.nof_tx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
     w_args.nof_rx_ports            = cell_list[cell_index].carrier.max_mimo_layers;
     w_args.rf_port                 = cell_list[cell_index].rf_port;
+    w_args.srate_hz                = srate_hz;
     w_args.pusch_max_nof_iter      = args.pusch_max_nof_iter;
 
     if (not w->init(w_args)) {
@@ -74,6 +83,9 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
 
 void worker_pool::start_worker(slot_worker* w)
 {
+  // Push worker into synchronization queue
+  slot_sync.push(w);
+
   // Feed PRACH detection before start processing
   prach.new_tti(0, current_tti, w->get_buffer_rx(0));
 
@@ -89,16 +101,18 @@ slot_worker* worker_pool::wait_worker(uint32_t tti)
   if (w != nullptr) {
     srsran_carrier_nr_t   carrier_;
     srsran_pdcch_cfg_nr_t pdcch_cfg_;
+    srsran_ssb_cfg_t      ssb_cfg_;
 
     // Copy configuration
     {
       std::unique_lock<std::mutex> lock(common_cfg_mutex);
       carrier_   = carrier;
       pdcch_cfg_ = pdcch_cfg;
+      ssb_cfg_   = ssb_cfg;
     }
 
     // Set worker configuration
-    if (not w->set_common_cfg(carrier_, pdcch_cfg_)) {
+    if (not w->set_common_cfg(carrier_, pdcch_cfg_, ssb_cfg_)) {
       logger.error("Error setting common config");
       return nullptr;
     }
@@ -150,8 +164,12 @@ int worker_pool::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common
   // Save current configuration
   {
     std::unique_lock<std::mutex> lock(common_cfg_mutex);
-    carrier   = common_cfg.carrier;
-    pdcch_cfg = common_cfg.pdcch;
+    carrier          = common_cfg.carrier;
+    pdcch_cfg        = common_cfg.pdcch;
+    ssb_cfg          = common_cfg.ssb;
+    ssb_cfg.srate_hz = srate_hz;
+    ssb_cfg.scaling =
+        srsran_convert_dB_to_amplitude(srsran_gnb_dl_get_maximum_signal_power_dBfs(common_cfg.carrier.nof_prb));
   }
 
   return SRSRAN_SUCCESS;

@@ -981,6 +981,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_arfcn, cellroot, "dl_arfcn"));
     parse_opt_field(cell_cfg.ul_arfcn, cellroot, "ul_arfcn");
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.band, cellroot, "band"));
     // frequencies get derived from ARFCN
 
     // TODO: Add further cell-specific parameters
@@ -988,6 +989,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     rrc_cfg_nr->cell_list.push_back(cell_cfg);
   }
 
+  srsran::srsran_band_helper band_helper;
   // Configuration check
   for (auto it = rrc_cfg_nr->cell_list.begin(); it != rrc_cfg_nr->cell_list.end(); ++it) {
     // check against NR cells
@@ -1016,6 +1018,34 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
       // Check RF port is not repeated
       if (it->phy_cell.rf_port == it_eutra->rf_port) {
         ERROR("Repeated RF port for multiple cells");
+        return SRSRAN_ERROR;
+      }
+    }
+
+    // Check if dl_arfcn is valid for the given band
+    bool                  dl_arfcn_valid = false;
+    std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->dl_arfcn);
+    for (uint32_t band_idx = 0; band_idx < bands.size(); band_idx++) {
+      if (bands.at(band_idx) == it->band) {
+        dl_arfcn_valid = true;
+      }
+    }
+    if (!dl_arfcn_valid) {
+      ERROR("DL ARFCN (%d) is not valid for the specified band (%d)", it->dl_arfcn, it->band);
+      return SRSRAN_ERROR;
+    }
+
+    if (it->ul_arfcn != 0) {
+      // Check if ul_arfcn is valid for the given band
+      bool                  ul_arfcn_valid = false;
+      std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->ul_arfcn);
+      for (uint32_t band_idx = 0; band_idx < bands.size(); band_idx++) {
+        if (bands.at(band_idx) == it->band) {
+          ul_arfcn_valid = true;
+        }
+      }
+      if (!ul_arfcn_valid) {
+        ERROR("UL ARFCN (%d) is not valid for the specified band (%d)", it->ul_arfcn, it->band);
         return SRSRAN_ERROR;
       }
     }
@@ -1143,6 +1173,16 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   // update number of NR cells
   rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.size();
   args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_nr_cfg_->cell_list.size();
+
+  // update EUTRA RRC params for ENDC
+  if (rrc_nr_cfg_->cell_list.size() == 1) {
+    rrc_cfg_->endc_cfg.nr_dl_arfcn = rrc_nr_cfg_->cell_list.at(0).dl_arfcn;
+    rrc_cfg_->endc_cfg.nr_band     = rrc_nr_cfg_->cell_list.at(0).band;
+    rrc_cfg_->endc_cfg.ssb_period_offset.set_sf10_r15();
+    rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
+    rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
+    rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -1403,6 +1443,12 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
   // Use helper class to derive NR carrier parameters
   srsran::srsran_band_helper band_helper;
 
+  // we only support one NR cell
+  if (rrc_cfg_->cell_list.size() > 1) {
+    ERROR("Only a single NR cell supported.");
+    return SRSRAN_ERROR;
+  }
+
   // Create NR dedicated cell configuration from RRC configuration
   for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {
     auto& cfg                            = *it;
@@ -1443,11 +1489,77 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
       cfg.phy_cell.ul_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ul_arfcn);
     }
 
-    // band
-    cfg.band = band_helper.get_band_from_dl_arfcn(cfg.dl_arfcn);
-
     // duplex mode
     cfg.duplex_mode = band_helper.get_duplex_mode(cfg.band);
+
+    // PRACH
+    cfg.phy_cell.prach.is_nr                 = true;
+    cfg.phy_cell.prach.config_idx            = 0;
+    cfg.phy_cell.prach.root_seq_idx          = 0;
+    cfg.phy_cell.prach.freq_offset           = phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset;
+    cfg.phy_cell.prach.num_ra_preambles      = cfg.phy_cell.num_ra_preambles;
+    cfg.phy_cell.prach.hs_flag               = phy_cfg_->prach_cnfg.prach_cfg_info.high_speed_flag;
+    cfg.phy_cell.prach.tdd_config.configured = (cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
+
+    // PDCCH
+    // Configure CORESET ID 1
+    cfg.phy_cell.pdcch.coreset_present[1]              = true;
+    cfg.phy_cell.pdcch.coreset[1].id                   = 1;
+    cfg.phy_cell.pdcch.coreset[1].duration             = 1;
+    cfg.phy_cell.pdcch.coreset[1].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
+    cfg.phy_cell.pdcch.coreset[1].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+
+    // Generate frequency resources for the full BW
+    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      cfg.phy_cell.pdcch.coreset[1].freq_resources[i] = i < SRSRAN_FLOOR(cfg.phy_cell.carrier.nof_prb, 6);
+    }
+
+    // Configure Search Space 1 as common
+    cfg.phy_cell.pdcch.search_space_present[1]     = true;
+    cfg.phy_cell.pdcch.search_space[1].id          = 1;
+    cfg.phy_cell.pdcch.search_space[1].coreset_id  = 1;
+    cfg.phy_cell.pdcch.search_space[1].duration    = 1;
+    cfg.phy_cell.pdcch.search_space[1].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+    cfg.phy_cell.pdcch.search_space[1].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
+    cfg.phy_cell.pdcch.search_space[1].nof_formats = 2;
+    cfg.phy_cell.pdcch.search_space[1].type        = srsran_search_space_type_common_3;
+
+    // Generate 1 candidate for each aggregation level if possible
+    for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+      cfg.phy_cell.pdcch.search_space[1].nof_candidates[L] =
+          SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&cfg.phy_cell.pdcch.coreset[1], L));
+    }
+
+    cfg.phy_cell.pdcch.ra_search_space_present = true;
+    cfg.phy_cell.pdcch.ra_search_space         = cfg.phy_cell.pdcch.search_space[1];
+    cfg.phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
+
+    // copy center frequencies
+    cfg.phy_cell.carrier.dl_center_frequency_hz = cfg.phy_cell.dl_freq_hz;
+    cfg.phy_cell.carrier.ul_center_frequency_hz = cfg.phy_cell.ul_freq_hz;
+
+    cfg.dl_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.dl_arfcn);
+    cfg.ul_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.ul_arfcn);
+
+    // Calculate SSB absolute frequency (in ARFCN notation)
+    if (band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_15kHz) != SRSRAN_SSB_PATTERN_INVALID) {
+      cfg.ssb_absolute_freq_point =
+          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_15kHz, cfg.dl_absolute_freq_point_a);
+    } else {
+      cfg.ssb_absolute_freq_point =
+          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_30kHz, cfg.dl_absolute_freq_point_a);
+    }
+
+    if (cfg.ssb_absolute_freq_point == 0) {
+      ERROR("Can't derive SSB freq point for dl_arfcn %d and band %d", cfg.dl_arfcn, cfg.band);
+      return SRSRAN_ERROR;
+    }
+
+    // Convert to frequency for PHY
+    cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);
+
+    // TODO: set SSB config
+    cfg.ssb_cfg = {};
 
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }

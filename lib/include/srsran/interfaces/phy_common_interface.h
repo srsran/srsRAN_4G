@@ -38,6 +38,11 @@ private:
   bool                    tx_hold = false; ///< Hold threads until the signal is transmitted
 
 protected:
+  void reset_last_worker()
+  {
+    std::unique_lock<std::mutex> lock(tx_mutex);
+    tx_hold = true;
+  }
   /**
    * @brief Waits for the last worker to call `last_worker()` to prevent that the current SF worker is released and
    * overwrites the transmit signal prior transmission
@@ -45,7 +50,6 @@ protected:
   void wait_last_worker()
   {
     std::unique_lock<std::mutex> lock(tx_mutex);
-    tx_hold = true;
     while (tx_hold) {
       tx_cvar.wait(lock);
     }

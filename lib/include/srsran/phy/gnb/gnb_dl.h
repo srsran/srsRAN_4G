@@ -28,15 +28,20 @@
 #include "srsran/phy/phch/pdcch_cfg_nr.h"
 #include "srsran/phy/phch/pdcch_nr.h"
 #include "srsran/phy/phch/pdsch_nr.h"
+#include "srsran/phy/sync/ssb.h"
 
 typedef struct SRSRAN_API {
-  srsran_pdsch_nr_args_t pdsch;
-  srsran_pdcch_nr_args_t pdcch;
-  uint32_t               nof_tx_antennas;
-  uint32_t               nof_max_prb;
+  srsran_pdsch_nr_args_t      pdsch;
+  srsran_pdcch_nr_args_t      pdcch;
+  uint32_t                    nof_tx_antennas;
+  uint32_t                    nof_max_prb; ///< Maximum number of allocated RB
+  double                      srate_hz;    ///< Fix sampling rate, set to 0 for minimum to fit nof_max_prb
+  srsran_subcarrier_spacing_t scs;
 } srsran_gnb_dl_args_t;
 
 typedef struct SRSRAN_API {
+  float                 srate_hz;
+  uint32_t              symbol_sz;
   uint32_t              max_prb;
   uint32_t              nof_tx_antennas;
   srsran_carrier_nr_t   carrier;
@@ -50,11 +55,14 @@ typedef struct SRSRAN_API {
 
   srsran_dci_nr_t   dci; ///< Stores DCI configuration
   srsran_pdcch_nr_t pdcch;
+  srsran_ssb_t      ssb;
 } srsran_gnb_dl_t;
 
 SRSRAN_API int srsran_gnb_dl_init(srsran_gnb_dl_t* q, cf_t* output[SRSRAN_MAX_PORTS], const srsran_gnb_dl_args_t* args);
 
 SRSRAN_API int srsran_gnb_dl_set_carrier(srsran_gnb_dl_t* q, const srsran_carrier_nr_t* carrier);
+
+SRSRAN_API int srsran_gnb_dl_set_ssb_config(srsran_gnb_dl_t* q, const srsran_ssb_cfg_t* ssb);
 
 SRSRAN_API int srsran_gnb_dl_set_pdcch_config(srsran_gnb_dl_t*             q,
                                               const srsran_pdcch_cfg_nr_t* cfg,
@@ -65,6 +73,8 @@ SRSRAN_API void srsran_gnb_dl_free(srsran_gnb_dl_t* q);
 SRSRAN_API int srsran_gnb_dl_base_zero(srsran_gnb_dl_t* q);
 
 SRSRAN_API void srsran_gnb_dl_gen_signal(srsran_gnb_dl_t* q);
+
+SRSRAN_API int srsran_gnb_dl_add_ssb(srsran_gnb_dl_t* q, const srsran_pbch_msg_nr_t* pbch_msg, uint32_t sf_idx);
 
 SRSRAN_API int
 srsran_gnb_dl_pdcch_put_dl(srsran_gnb_dl_t* q, const srsran_slot_cfg_t* slot_cfg, const srsran_dci_dl_nr_t* dci_dl);

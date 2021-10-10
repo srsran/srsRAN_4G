@@ -26,15 +26,20 @@
 #include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsenb/hdr/phy/prach_worker.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/common/tti_sempahore.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
 namespace srsenb {
 namespace nr {
 
-class worker_pool
+class worker_pool final : private slot_worker::sync_interface
 {
 private:
+  srsran::tti_semaphore<slot_worker*> slot_sync; ///< Slot synchronization semaphore
+  void                                wait(slot_worker* w) override { slot_sync.wait(w); }
+  void                                release() override { slot_sync.release(); }
+
   class prach_stack_adaptor_t : public stack_interface_phy_lte
   {
   private:
@@ -92,14 +97,17 @@ private:
   srslog::basic_logger&                      logger;
   prach_stack_adaptor_t                      prach_stack_adaptor;
   uint32_t                                   nof_prach_workers = 0;
+  double                                     srate_hz          = 0.0; ///< Current sampling rate in Hz
 
   // Current configuration
   std::mutex            common_cfg_mutex;
   srsran_carrier_nr_t   carrier   = {};
   srsran_pdcch_cfg_nr_t pdcch_cfg = {};
+  srsran_ssb_cfg_t      ssb_cfg   = {};
 
 public:
   struct args_t {
+    double                 srate_hz           = 0.0;
     uint32_t               nof_phy_threads    = 3;
     uint32_t               nof_prach_workers  = 0;
     uint32_t               prio               = 52;

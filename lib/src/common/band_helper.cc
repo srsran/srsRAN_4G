@@ -118,16 +118,6 @@ uint32_t srsran_band_helper::get_ul_arfcn_from_dl_arfcn(uint32_t dl_arfcn) const
   return 0;
 }
 
-double srsran_band_helper::get_dl_center_freq(const srsran_carrier_nr_t& carrier)
-{
-  return get_center_freq_from_abs_freq_point_a(carrier.nof_prb, carrier.dl_absolute_frequency_point_a);
-}
-
-double srsran_band_helper::get_ul_center_freq(const srsran_carrier_nr_t& carrier)
-{
-  return get_center_freq_from_abs_freq_point_a(carrier.nof_prb, carrier.ul_absolute_frequency_point_a);
-}
-
 double srsran_band_helper::get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn)
 {
   // for FR1 unit of resources blocks for freq calc is always 180kHz regardless for actual SCS of carrier
@@ -152,6 +142,31 @@ double srsran_band_helper::get_abs_freq_point_a_from_center_freq(uint32_t nof_pr
           SRSRAN_NRE);
 }
 
+uint32_t
+srsran_band_helper::get_abs_freq_ssb_arfcn(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t freq_point_a_arfcn)
+{
+  sync_raster_t sync_raster = get_sync_raster(band, scs);
+  if (!sync_raster.valid()) {
+    return 0;
+  }
+
+  // double abs_freq_ssb_hz = sync_raster.get_frequency();
+  double freq_point_a_hz = nr_arfcn_to_freq(freq_point_a_arfcn);
+  double ssb_bw_hz       = SRSRAN_SSB_BW_SUBC * SRSRAN_SUBC_SPACING_NR(scs);
+
+  while (!sync_raster.end()) {
+    double abs_freq_ssb_hz = sync_raster.get_frequency();
+
+    if ((abs_freq_ssb_hz > (freq_point_a_hz + ssb_bw_hz / 2)) and
+        ((uint32_t)std::round(abs_freq_ssb_hz - freq_point_a_hz) % SRSRAN_SUBC_SPACING_NR(scs) == 0)) {
+      return freq_to_nr_arfcn(abs_freq_ssb_hz);
+    }
+
+    sync_raster.next();
+  }
+  return 0;
+}
+
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const
 {
   // Look for the given band and SCS
@@ -169,6 +184,23 @@ srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_su
 
   // Band is out of range, so consider invalid
   return SRSRAN_SSB_PATTERN_INVALID;
+}
+
+srsran_subcarrier_spacing_t srsran_band_helper::get_ssb_scs(uint16_t band) const
+{
+  // Look for the given band and SCS
+  for (const nr_band_ss_raster& ss_raster : nr_band_ss_raster_table) {
+    // Check if band and SCS match!
+    if (ss_raster.band == band) {
+      return ss_raster.scs;
+    }
+
+    // As bands are in ascending order, do not waste more time if the current band is bigger
+    if (ss_raster.band > band) {
+      return srsran_subcarrier_spacing_invalid;
+    }
+  }
+  return srsran_subcarrier_spacing_invalid;
 }
 
 srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band) const
@@ -192,7 +224,7 @@ srsran_duplex_mode_t srsran_band_helper::get_duplex_mode(uint16_t band) const
 
 struct sync_raster_impl : public srsran_band_helper::sync_raster_t {
 public:
-  sync_raster_impl(uint32_t f, uint32_t s, uint32_t l) : sync_raster_t(f, s, l)
+  sync_raster_impl(uint32_t gscn_f, uint32_t gscn_s, uint32_t gscn_l) : sync_raster_t(gscn_f, gscn_s, gscn_l)
   {
     // Do nothing
   }
@@ -200,27 +232,38 @@ public:
 
 double srsran_band_helper::sync_raster_t::get_frequency() const
 {
+  // see TS38.104 table 5.4.3.1-1
+
   // Row 1
-  if (gscn >= 2 and gscn <= 7498) {
-    double N = std::ceil((gscn - 1) / 3.0);
-    double M = (gscn - 3 * N) / 2.0 + 3.0;
-    return N * 1200e3 + M * 50e3;
+  if (gscn_last <= 7498) {
+    return N * 1200e3 + M[M_idx] * 50e3;
   }
 
   // Row 2
-  if (gscn >= 7499 and gscn <= 22255) {
-    double N = gscn - 7499;
+  if (7499 <= gscn_last and gscn_last <= 22255) {
     return 3000e6 + N * 1.44e6;
   }
 
   // Row 3
-  if (gscn >= 22256 and gscn <= 26639) {
-    double N = gscn - 22256;
+  if (22256 <= gscn_last and gscn_last <= 26639) {
     return 2425.08e6 + N * 17.28e6;
   }
 
   // Unhandled case
   return NAN;
+}
+
+uint32_t srsran_band_helper::sync_raster_t::get_gscn() const
+{
+  if (gscn_last <= 7498) {
+    return 3 * N + (M[M_idx] - 3) / 2;
+  } else if (7499 <= gscn_last and gscn_last <= 22255) {
+    return 7499 + N;
+  } else if (22256 <= gscn_last and gscn_last <= 26639) {
+    return 22256 + N;
+  }
+
+  return 0;
 }
 
 srsran_band_helper::sync_raster_t srsran_band_helper::get_sync_raster(uint16_t                    band,

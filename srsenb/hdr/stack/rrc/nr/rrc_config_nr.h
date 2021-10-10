@@ -22,6 +22,7 @@
 #ifndef SRSRAN_RRC_CONFIG_NR_H
 #define SRSRAN_RRC_CONFIG_NR_H
 
+#include "../rrc_config_common.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include "srsue/hdr/phy/phy_common.h"

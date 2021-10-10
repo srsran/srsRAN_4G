@@ -89,7 +89,6 @@ private:
   srsenb::rrc_nr_dummy            rrc_obj;
   srsenb::rlc_dummy               rlc_obj;
   std::unique_ptr<srsenb::mac_nr> mac;
-  srsran::slot_point              pdsch_slot, pusch_slot;
   srslog::basic_logger&           sched_logger;
   bool                            autofill_pdsch_bsr = false;
 
@@ -374,7 +373,7 @@ public:
 
     if (args.pdsch.slots != "none" and not args.pdsch.slots.empty()) {
       if (args.pdsch.slots == "all") {
-        for (uint32_t n = 0; n < SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs); n++) {
+        for (uint32_t n = 1; n < SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs); n++) {
           dl.slots.insert(n);
         }
       } else {
@@ -450,11 +449,6 @@ public:
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
-    if (not pdsch_slot.valid()) {
-      pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-    } else {
-      pdsch_slot++;
-    }
 
     if (not use_dummy_sched) {
       if (autofill_pdsch_bsr) {
@@ -507,6 +501,15 @@ public:
       }
     }
 
+    // Schedule SSB
+    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
+      if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
+        mac_interface_phy_nr::ssb_t ssb = {};
+        ssb.pbch_msg.ssb_idx            = (uint32_t)ssb_idx;
+        dl_sched.ssb.push_back(ssb);
+      }
+    }
+
     return SRSRAN_SUCCESS;
   }
 
@@ -514,11 +517,6 @@ public:
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
-    if (not pusch_slot.valid()) {
-      pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-    } else {
-      pusch_slot++;
-    }
 
     if (not use_dummy_sched) {
       int ret = mac->get_ul_sched(slot_cfg, ul_sched);
@@ -601,6 +599,7 @@ public:
   {
     if (not use_dummy_sched) {
       mac->pucch_info(slot_cfg, pucch_info);
+      return SRSRAN_SUCCESS;
     }
 
     // Handle UCI data
@@ -615,6 +614,7 @@ public:
     }
 
     // Handle PHY metrics
+    std::unique_lock<std::mutex> lock(metrics_mutex);
     metrics.pucch.epre_db_avg = SRSRAN_VEC_CMA(pucch_info.csi.epre_dB, metrics.pucch.epre_db_avg, metrics.pucch.count);
     metrics.pucch.epre_db_min = SRSRAN_MIN(metrics.pucch.epre_db_min, pucch_info.csi.epre_dB);
     metrics.pucch.epre_db_max = SRSRAN_MAX(metrics.pucch.epre_db_max, pucch_info.csi.epre_dB);

@@ -39,7 +39,7 @@ test_bench::args_t::args_t(int argc, char** argv)
   bpo::options_description options_ue_stack("UE stack options");
   bpo::options_description options_ue_phy("UE stack options");
 
-  uint16_t rnti = 0x1234;
+  uint16_t rnti = 17921;
 
   gnb_stack.pdsch.slots = "0,1,2,3,4,5";
   gnb_stack.pusch.slots = "6,7,8,9";

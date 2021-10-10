@@ -40,21 +40,46 @@ namespace nr {
 class slot_worker final : public srsran::thread_pool::worker
 {
 public:
-  struct args_t {
-    uint32_t cell_index         = 0;
-    uint32_t nof_max_prb        = SRSRAN_MAX_PRB_NR;
-    uint32_t nof_tx_ports       = 1;
-    uint32_t nof_rx_ports       = 1;
-    uint32_t rf_port            = 0;
-    uint32_t pusch_max_nof_iter = 10;
+  /**
+   * @brief Slot worker synchronization interface
+   */
+  class sync_interface
+  {
+  public:
+    /**
+     * @brief Wait for the worker to start DL scheduler
+     * @param w Worker pointer
+     */
+    virtual void wait(slot_worker* w) = 0;
+
+    /**
+     * @brief Releases the current worker
+     */
+    virtual void release() = 0;
   };
 
-  slot_worker(srsran::phy_common_interface& common_, stack_interface_phy_nr& stack_, srslog::basic_logger& logger);
+  struct args_t {
+    uint32_t                    cell_index         = 0;
+    uint32_t                    nof_max_prb        = SRSRAN_MAX_PRB_NR;
+    uint32_t                    nof_tx_ports       = 1;
+    uint32_t                    nof_rx_ports       = 1;
+    uint32_t                    rf_port            = 0;
+    srsran_subcarrier_spacing_t scs                = srsran_subcarrier_spacing_15kHz;
+    uint32_t                    pusch_max_nof_iter = 10;
+    double                      srate_hz           = 0.0;
+  };
+
+  slot_worker(srsran::phy_common_interface& common_,
+              stack_interface_phy_nr&       stack_,
+              sync_interface&               sync_,
+              srslog::basic_logger&         logger);
   ~slot_worker();
 
   bool init(const args_t& args);
 
-  bool set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_);
+  bool set_common_cfg(const srsran_carrier_nr_t&   carrier,
+                      const srsran_pdcch_cfg_nr_t& pdcch_cfg_,
+                      const srsran_ssb_cfg_t&      ssb_cfg_);
 
   /* Functions used by main PHY thread */
   cf_t*    get_buffer_rx(uint32_t antenna_idx);
@@ -83,6 +108,7 @@ private:
   srsran::phy_common_interface& common;
   stack_interface_phy_nr&       stack;
   srslog::basic_logger&         logger;
+  sync_interface&               sync;
 
   uint32_t                                       sf_len      = 0;
   uint32_t                                       cell_index  = 0;

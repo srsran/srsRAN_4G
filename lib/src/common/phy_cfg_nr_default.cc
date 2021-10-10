@@ -75,24 +75,24 @@ phy_cfg_nr_default_t::reference_cfg_t::reference_cfg_t(const std::string& args)
 
 void phy_cfg_nr_default_t::make_carrier_custom_10MHz(srsran_carrier_nr_t& carrier)
 {
-  carrier.nof_prb                       = 52;
-  carrier.max_mimo_layers               = 1;
-  carrier.pci                           = 500;
-  carrier.dl_absolute_frequency_point_a = 633928;
-  carrier.absolute_frequency_ssb        = 634176;
-  carrier.offset_to_carrier             = 0;
-  carrier.scs                           = srsran_subcarrier_spacing_15kHz;
+  carrier.nof_prb                = 52;
+  carrier.max_mimo_layers        = 1;
+  carrier.pci                    = 500;
+  carrier.dl_center_frequency_hz = 2.6e9;
+  carrier.ssb_center_freq_hz     = carrier.dl_center_frequency_hz;
+  carrier.offset_to_carrier      = 0;
+  carrier.scs                    = srsran_subcarrier_spacing_15kHz;
 }
 
 void phy_cfg_nr_default_t::make_carrier_custom_20MHz(srsran_carrier_nr_t& carrier)
 {
-  carrier.nof_prb                       = 106;
-  carrier.max_mimo_layers               = 1;
-  carrier.pci                           = 500;
-  carrier.dl_absolute_frequency_point_a = 633928;
-  carrier.absolute_frequency_ssb        = 634176;
-  carrier.offset_to_carrier             = 0;
-  carrier.scs                           = srsran_subcarrier_spacing_15kHz;
+  carrier.nof_prb                = 106;
+  carrier.max_mimo_layers        = 1;
+  carrier.pci                    = 500;
+  carrier.dl_center_frequency_hz = 2.6e9;
+  carrier.ssb_center_freq_hz     = carrier.dl_center_frequency_hz;
+  carrier.offset_to_carrier      = 0;
+  carrier.scs                    = srsran_subcarrier_spacing_15kHz;
 }
 
 void phy_cfg_nr_default_t::make_tdd_custom_6_4(srsran_duplex_config_nr_t& conf)
@@ -425,6 +425,17 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
     case reference_cfg_t::R_DUPLEX_COUNT:
       srsran_assertion_failure("Invalid TDD reference");
   }
+
+  if (duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+    carrier.dl_center_frequency_hz = 3513.6e6;
+    ssb.scs                        = srsran_subcarrier_spacing_30kHz;
+  } else {
+    carrier.dl_center_frequency_hz = 881.5e6;
+    ssb.scs                        = srsran_subcarrier_spacing_15kHz;
+  }
+  carrier.ssb_center_freq_hz = carrier.dl_center_frequency_hz;
+  ssb.position_in_burst[0]   = true;
+  ssb.periodicity_ms         = 10;
 
   switch (reference_cfg.pdcch) {
     case reference_cfg_t::R_PDCCH_CUSTOM_COMMON_SS:

@@ -82,11 +82,12 @@ static bool iszero(float x)
 
 void metrics_stdout::set_metrics_helper(uint32_t                          num_ue,
                                         const mac_metrics_t&              mac,
-                                        const std::vector<phy_metrics_t>& phy)
+                                        const std::vector<phy_metrics_t>& phy,
+                                        bool                              is_nr)
 {
   for (size_t i = 0; i < num_ue; i++) {
     // make sure we have stats for MAC and PHY layer too
-    if (i >= mac.ues.size() || i >= phy.size()) {
+    if (i >= mac.ues.size() || ((i >= phy.size()) && !is_nr)) {
       break;
     }
     if (mac.ues[i].tx_errors > mac.ues[i].tx_pkts) {
@@ -96,15 +97,17 @@ void metrics_stdout::set_metrics_helper(uint32_t                          num_ue
       fmt::print("rx caution errors {} > {}\n", mac.ues[i].rx_errors, mac.ues[i].rx_pkts);
     }
 
-    fmt::print("{:>4x}", mac.ues[i].rnti);
+    fmt::print("{:>3.5}", (is_nr) ? "nr" : "lte");
+    fmt::print("{:>5x}", mac.ues[i].rnti);
     if (not iszero(mac.ues[i].dl_cqi)) {
       fmt::print("  {:>3}", int(mac.ues[i].dl_cqi));
     } else {
       fmt::print("  {:>3.3}", "n/a");
     }
     fmt::print("   {:>1}", int(mac.ues[i].dl_ri));
-    if (not isnan(phy[i].dl.mcs)) {
-      fmt::print("   {:>2}", int(phy[i].dl.mcs));
+    float dl_mcs = (is_nr) ? mac.ues[i].dl_mcs : phy[i].dl.mcs;
+    if (not isnan(dl_mcs)) {
+      fmt::print("   {:>2}", int(dl_mcs));
     } else {
       fmt::print("   {:>2}", 0);
     }
@@ -132,22 +135,22 @@ void metrics_stdout::set_metrics_helper(uint32_t                          num_ue
       }
       return sinr;
     };
-
-    if (not isnan(phy[i].ul.pusch_sinr) and not iszero(phy[i].ul.pusch_sinr)) {
-      fmt::print(" {:>5.1f}", clamp_sinr(phy[i].ul.pusch_sinr));
+    float pusch_sinr = (is_nr) ? mac.ues[i].pusch_sinr : phy[i].ul.pusch_sinr;
+    if (not isnan(pusch_sinr) and not iszero(pusch_sinr)) {
+      fmt::print(" {:>5.1f}", clamp_sinr(pusch_sinr));
     } else {
       fmt::print(" {:>5.5}", "n/a");
     }
-
-    if (not isnan(phy[i].ul.pucch_sinr) and not iszero(phy[i].ul.pucch_sinr)) {
-      fmt::print("  {:>5.1f}", clamp_sinr(phy[i].ul.pucch_sinr));
+    float pucch_sinr = (is_nr) ? mac.ues[i].pucch_sinr : phy[i].ul.pucch_sinr;
+    if (not isnan(pucch_sinr) and not iszero(pucch_sinr)) {
+      fmt::print("  {:>5.1f}", clamp_sinr(pucch_sinr));
     } else {
       fmt::print("  {:>5.5}", "n/a");
     }
-
-    fmt::print("  {:>3}", int(mac.ues[i].phr));
-    if (not isnan(phy[i].ul.mcs)) {
-      fmt::print("   {:>2}", int(phy[i].ul.mcs));
+    int phr = (is_nr) ? mac.ues[i].phr : mac.ues[i].phr;
+    fmt::print("  {:>3}", int(phr));
+    if (not isnan(phr)) {
+      fmt::print("   {:>2}", int(phr));
     } else {
       fmt::print("   {:>2}", 0);
     }
@@ -186,11 +189,12 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   if (++n_reports > 10) {
     n_reports = 0;
     fmt::print("\n");
-    fmt::print("      -----------------DL----------------|-------------------------UL-------------------------\n");
-    fmt::print("rnti  cqi  ri  mcs  brate   ok  nok  (%) | pusch  pucch  phr  mcs  brate   ok  nok  (%)    bsr\n");
+    fmt::print("          -----------------DL----------------|-------------------------UL-------------------------\n");
+    fmt::print("rat rnti  cqi  ri  mcs  brate   ok  nok  (%) | pusch  pucch  phr  mcs  brate   ok  nok  (%)    bsr\n");
   }
 
-  set_metrics_helper(metrics.stack.rrc.ues.size(), metrics.stack.mac, metrics.phy);
+  set_metrics_helper(metrics.stack.rrc.ues.size(), metrics.stack.mac, metrics.phy, false);
+  set_metrics_helper(metrics.nr_stack.mac.ues.size(), metrics.nr_stack.mac, metrics.phy, true);
 }
 
 std::string metrics_stdout::float_to_string(float f, int digits, int field_width)

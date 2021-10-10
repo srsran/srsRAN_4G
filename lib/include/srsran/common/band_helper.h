@@ -92,6 +92,13 @@ public:
   srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const;
 
   /**
+   * @brief Select the lower SSB subcarrier spacing valid for this band
+   * @param band NR band number
+   * @return The SSB subcarrier spacing
+   */
+  srsran_subcarrier_spacing_t get_ssb_scs(uint16_t band) const;
+
+  /**
    * @brief gets the NR band duplex mode
    * @param band Given band
    * @return A valid SRSRAN_DUPLEX_MODE if the band is valid, SRSRAN_DUPLEX_MODE_INVALID otherwise
@@ -99,65 +106,125 @@ public:
   srsran_duplex_mode_t get_duplex_mode(uint16_t band) const;
 
   /**
-   * @brief Compute the DL center frequency for a NR carrier
+   * @brief Compute the center frequency for a NR carrier from its bandwidth and the absolute pointA
    *
-   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
+   * @param nof_prb Carrier bandwidth in number of RB
+   * @param freq_point_a_arfcn Absolute Point A frequency ARFCN
    * @return double Frequency in Hz
    */
-  double get_dl_center_freq(const srsran_carrier_nr_t& carrier);
+  double get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn);
 
   /**
-   * @brief Compute the UL center frequency for a NR carrier
+   * @brief Compute the absolute pointA for a NR carrier from its bandwidth and the center frequency
    *
-   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
-   * @return double Frequency in Hz
+   * @param nof_prb Carrier bandwidth in number of RB
+   * @param center_freq double Frequency in Hz
+   * @return Absolute Point A frequency in Hz
    */
-  double get_ul_center_freq(const srsran_carrier_nr_t& carrier);
+  double get_abs_freq_point_a_from_center_freq(uint32_t nof_prb, double center_freq);
 
   /**
    * @brief Compute the absolute frequency point A for a arfcn
    *
+   * @param band nr frequency band.
    * @param nof_prb Number of PRBs.
    * @param arfcn Given ARFCN.
    * @return frequency point A in arfcn notation.
    */
   uint32_t get_abs_freq_point_a_arfcn(uint32_t nof_prb, uint32_t arfcn);
 
+  /**
+   * @brief Compute the absolute frequency of the SSB for a DL ARFCN and a band. This selects an SSB center frequency
+   * following the band SS/PBCH frequency raster provided by TS38.104 table 5.4.3.1-1 as close as possible to PointA
+   * without letting any SS/PBCH subcarrier below PointA
+   *
+   * @param scs ssb subcarrier spacing.
+   * @param freq_point_a_arfcn frequency point a in arfcn notation.
+   * @return absolute frequency of the SSB in arfcn notation.
+   */
+  uint32_t get_abs_freq_ssb_arfcn(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t freq_point_a_arfcn);
+
+  /**
+   * @brief Compute SSB center frequency for NR carrier
+   * @param carrier Const Reference to a carrier struct including PRB, abs. frequency point A and carrier offset.
+   * @return double Frequency in Hz
+   */
+  double get_ssb_center_freq(const srsran_carrier_nr_t& carrier);
+
   class sync_raster_t
   {
   protected:
-    sync_raster_t(uint32_t f, uint32_t s, uint32_t l) : first(f), step(s), last(l), gscn(f) {}
+    sync_raster_t(uint32_t gscn_f, uint32_t gscn_s, uint32_t gscn_l) :
+      gscn_first(gscn_f), gscn_step(gscn_s), gscn_last(gscn_l), gscn(gscn_f)
+    {
+      // see TS38.104 Table 5.4.3.1-1
+      if (gscn_last <= 7498) {
+        N_first = 1;
+        N_last  = 2499;
+      } else if (7499 <= gscn_last and gscn_last <= 22255) {
+        N_last = 14756;
+      } else if (22256 <= gscn_last and gscn_last <= 26639) {
+        N_last = 4383;
+      }
+
+      N = N_first;
+    }
     uint32_t gscn;
+    uint32_t N;
+    uint32_t M[3]  = {1, 3, 5};
+    uint32_t M_idx = 0;
 
   private:
-    uint32_t first;
-    uint32_t step;
-    uint32_t last;
+    uint32_t gscn_first;
+    uint32_t gscn_step;
+    uint32_t gscn_last;
+    uint32_t N_first = 0;
+    uint32_t N_last  = 0;
 
   public:
-    bool valid() const { return step != 0; }
+    bool valid() const { return gscn_step != 0; }
 
     void next()
     {
-      if (gscn <= last) {
-        gscn += step;
+      if (gscn_last <= 7498 and M_idx < 3) {
+        M_idx += 1;
+        if (M_idx == 3 and N <= N_last) {
+          M_idx = 0;
+          N += 1;
+        }
+      } else if (N <= N_last) {
+        N += 1;
       }
     }
 
-    bool end() const { return (gscn > last or step == 0); }
+    bool end() const { return (N > N_last or gscn_step == 0); }
 
-    void reset() { gscn = first; }
+    void reset()
+    {
+      N     = N_first;
+      M_idx = 0;
+    }
+
+    void gscn_next()
+    {
+      if (gscn <= gscn_last) {
+        gscn += gscn_step;
+      }
+    }
+
+    bool gscn_end() const { return (gscn > gscn_last or gscn_step == 0); }
+
+    void gscn_reset() { gscn = gscn_first; }
 
     double get_frequency() const;
+
+    uint32_t get_gscn() const;
   };
 
   sync_raster_t get_sync_raster(uint16_t band, srsran_subcarrier_spacing_t scs) const;
 
 private:
   // internal helper
-  double get_center_freq_from_abs_freq_point_a(uint32_t nof_prb, uint32_t freq_point_a_arfcn);
-
-  double get_abs_freq_point_a_from_center_freq(uint32_t nof_prb, double center_freq);
 
   // Elements of TS 38.101-1 Table 5.2-1: NR operating bands in FR1
   struct nr_operating_band {

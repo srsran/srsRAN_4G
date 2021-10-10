@@ -58,6 +58,12 @@ public:
   srsenb::sched_interface::cell_cfg_t cellcfgobj;
 };
 
+class phy_nr_dummy : public phy_interface_stack_nr
+{
+public:
+  int set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common_cfg_) override { return SRSRAN_SUCCESS; }
+};
+
 } // namespace srsenb
 
 #endif // SRSRAN_DUMMY_NR_CLASSES_H

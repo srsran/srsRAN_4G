@@ -171,6 +171,7 @@ void sched_nr_sim_base::update(sched_nr_cc_output_res_t& cc_out)
   // Run common tests
   test_dl_pdcch_consistency(cc_out.dl_cc_result->dl_sched.pdcch_dl);
   test_pdsch_consistency(cc_out.dl_cc_result->dl_sched.pdsch);
+  test_ssb_scheduled_grant(cc_out.slot, ctxt.cell_params[cc_out.cc].cell_cfg, cc_out.dl_cc_result->dl_sched.ssb);
 
   // Run UE-dedicated tests
   test_dl_sched_result(ctxt, cc_out);

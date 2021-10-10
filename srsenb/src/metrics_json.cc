@@ -99,7 +99,7 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
   if (!std::isnan(m.phy[i].dl.mcs)) {
     ue.write<metric_dl_mcs>(std::max(0.1f, m.phy[i].dl.mcs));
   }
-  if (m.stack.mac.ues[i].tx_brate > 0) {
+  if (m.stack.mac.ues[i].tx_brate > 0 && m.stack.mac.ues[i].nof_tti > 0) {
     ue.write<metric_dl_bitrate>(
         std::max(0.1f, (float)m.stack.mac.ues[i].tx_brate / (m.stack.mac.ues[i].nof_tti * 0.001f)));
   }
@@ -112,7 +112,7 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
   if (!std::isnan(m.phy[i].ul.mcs)) {
     ue.write<metric_ul_mcs>(std::max(0.1f, m.phy[i].ul.mcs));
   }
-  if (m.stack.mac.ues[i].rx_brate > 0) {
+  if (m.stack.mac.ues[i].rx_brate > 0 && m.stack.mac.ues[i].nof_tti > 0) {
     ue.write<metric_ul_bitrate>(
         std::max(0.1f, (float)m.stack.mac.ues[i].rx_brate / (m.stack.mac.ues[i].nof_tti * 0.001f)));
   }

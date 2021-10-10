@@ -27,8 +27,9 @@ namespace srsenb {
 namespace nr {
 slot_worker::slot_worker(srsran::phy_common_interface& common_,
                          stack_interface_phy_nr&       stack_,
+                         sync_interface&               sync_,
                          srslog::basic_logger&         logger_) :
-  common(common_), stack(stack_), logger(logger_)
+  common(common_), stack(stack_), sync(sync_), logger(logger_)
 {
   // Do nothing
 }
@@ -38,7 +39,7 @@ bool slot_worker::init(const args_t& args)
   std::lock_guard<std::mutex> lock(mutex);
 
   // Calculate subframe length
-  sf_len = SRSRAN_SF_LEN_PRB_NR(args.nof_max_prb);
+  sf_len = (uint32_t)(args.srate_hz / 1000.0);
 
   // Copy common configurations
   cell_index = args.cell_index;
@@ -71,6 +72,7 @@ bool slot_worker::init(const args_t& args)
   dl_args.pdsch.max_prb        = args.nof_max_prb;
   dl_args.nof_tx_antennas      = args.nof_tx_ports;
   dl_args.nof_max_prb          = args.nof_max_prb;
+  dl_args.srate_hz             = args.srate_hz;
 
   // Initialise DL
   if (srsran_gnb_dl_init(&gnb_dl, tx_buffer.data(), &dl_args) < SRSRAN_SUCCESS) {
@@ -251,9 +253,18 @@ bool slot_worker::work_ul()
 
 bool slot_worker::work_dl()
 {
+  // The Scheduler interface needs to be called synchronously, wait for the sync to be available
+  sync.wait(this);
+
   // Retrieve Scheduling for the current processing DL slot
-  stack_interface_phy_nr::dl_sched_t dl_sched = {};
-  if (stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS) {
+  stack_interface_phy_nr::dl_sched_t dl_sched      = {};
+  bool                               dl_sched_fail = stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS;
+
+  // Releases synchronization lock and allow next worker to retrieve scheduling results
+  sync.release();
+
+  // Abort if the scheduling failed
+  if (dl_sched_fail) {
     logger.error("Error retrieving DL scheduling");
     return false;
   }
@@ -351,7 +362,10 @@ bool slot_worker::work_dl()
 
   // Add SSB to the baseband signal
   for (const stack_interface_phy_nr::ssb_t& ssb : dl_sched.ssb) {
-    // ...
+    if (srsran_gnb_dl_add_ssb(&gnb_dl, &ssb.pbch_msg, dl_slot_cfg.idx) < SRSRAN_SUCCESS) {
+      logger.error("SSB: Error putting signal");
+      return false;
+    }
   }
 
   return true;
@@ -372,6 +386,9 @@ void slot_worker::work_imp()
 
   // Process uplink
   if (not work_ul()) {
+    // Wait and release synchronization
+    sync.wait(this);
+    sync.release();
     common.worker_end(context, false, tx_rf_buffer);
     return;
   }
@@ -384,11 +401,19 @@ void slot_worker::work_imp()
 
   common.worker_end(context, true, tx_rf_buffer);
 }
-bool slot_worker::set_common_cfg(const srsran_carrier_nr_t& carrier, const srsran_pdcch_cfg_nr_t& pdcch_cfg_)
+bool slot_worker::set_common_cfg(const srsran_carrier_nr_t&   carrier,
+                                 const srsran_pdcch_cfg_nr_t& pdcch_cfg_,
+                                 const srsran_ssb_cfg_t&      ssb_cfg_)
 {
   // Set gNb DL carrier
   if (srsran_gnb_dl_set_carrier(&gnb_dl, &carrier) < SRSRAN_SUCCESS) {
     logger.error("Error setting DL carrier");
+    return false;
+  }
+
+  // Configure SSB
+  if (srsran_gnb_dl_set_ssb_config(&gnb_dl, &ssb_cfg_) < SRSRAN_SUCCESS) {
+    logger.error("Error setting SSB");
     return false;
   }
 

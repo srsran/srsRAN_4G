@@ -162,4 +162,4 @@ target_link_libraries(ssb_file_test srsran_phy)
 
 # File test 1
 # Captured with command: lib/examples/usrp_capture -a type=x300,clock=external,sampling_rate=46.08e6,rx_subdev_spec=B:0 -g 20 -r 46.08e6 -n 460800  -f 3502.8e6 -o /tmp/n78.fo35028.fs2304M.data
-add_nr_test(ssb_file_test ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/n78.fo35028.fs4608M.data -v -r 46.08e6 -f 3502.8e6 -F 3512.64e6 -n 460800 -A 500 357802 5 0 0 0)
+add_nr_test(ssb_file_test ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/n78.fo35028.fs4608M.data -v -r 46.08e6 -f 3502.8e6 -F 3512.64e6 -n 460800 -A 500 357802 2 0 1 0)

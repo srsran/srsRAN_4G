@@ -153,7 +153,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   bwp_pdcch_slot.pdschs.emplace_back();
   pdsch_t&          pdsch = bwp_pdcch_slot.pdschs.back();
   srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = pdcch_slot.slot_idx();
+  slot_cfg.idx = pdcch_slot.to_uint();
   bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(success, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();
@@ -161,7 +161,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Generate Msg3 grants in PUSCH
   uint32_t  last_msg3 = msg3_rbs.start();
   const int mcs = 0, max_harq_msg3_retx = 4;
-  slot_cfg.idx = msg3_slot.slot_idx();
+  slot_cfg.idx = msg3_slot.to_uint();
   bwp_pdcch_slot.rar.emplace_back();
   sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
@@ -191,6 +191,8 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   return alloc_result::success;
 }
 
+// ue is the UE (1 only) that will be allocated
+// func computes the grant allocation for this UE
 alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant)
 {
   if (ue.cfg->active_bwp().bwp_id != bwp_grid.cfg->bwp_id) {
@@ -204,13 +206,19 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   }
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
-  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];
+  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];  // UCI : UL control info
   alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot);
   if (result != alloc_result::success) {
     return result;
   }
-  if (bwp_pdcch_slot.dl_prbs.collides(dl_grant)) {
+  if (bwp_pdsch_slot.dl_prbs.collides(dl_grant)) {
     return alloc_result::sch_collision;
+  }
+  if (not bwp_pdcch_slot.ssb.empty()) {
+    // TODO: support concurrent PDSCH and SSB
+    logger.info("SCHED: skipping rnti=0x%x PDSCH allocation. Cause: concurrent PDSCH and SSB not yet supported",
+                ue.rnti);
+    return alloc_result::no_sch_space;
   }
 
   // Find space in PUCCH
@@ -259,7 +267,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   bwp_pdsch_slot.pdschs.emplace_back();
   pdsch_t&          pdsch = bwp_pdsch_slot.pdschs.back();
   srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = ue.pdsch_slot.slot_idx();
+  slot_cfg.idx = ue.pdsch_slot.to_uint();
   bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
   srsran_assert(ret, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
@@ -319,6 +327,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   pusch_t&          pusch = bwp_pusch_slot.puschs.back();
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = ue.pusch_slot.to_uint();
+  pusch.pid    = ue.h_ul->pid;
   bool success = ue.cfg->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
   srsran_assert(success, "Error converting DCI to PUSCH grant");
   pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();

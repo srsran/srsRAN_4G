@@ -164,13 +164,20 @@ int sched_nr::dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info)
 
 void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
 {
-  sched_workers->enqueue_cc_feedback(
-      rnti, cc, [pid, tb_idx, ack](ue_carrier& ue_cc) { ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack); });
+  sched_workers->enqueue_cc_feedback(rnti, cc, [this, pid, tb_idx, ack](ue_carrier& ue_cc) {
+    if (ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack) != SRSRAN_SUCCESS) {
+      logger->warning("SCHED: rnti=0x%x, received DL HARQ-ACK for empty pid=%d", ue_cc.rnti, pid);
+    }
+  });
 }
 
 void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
 {
-  sched_workers->enqueue_cc_feedback(rnti, cc, [pid, crc](ue_carrier& ue_cc) { ue_cc.harq_ent.ul_crc_info(pid, crc); });
+  sched_workers->enqueue_cc_feedback(rnti, cc, [this, pid, crc](ue_carrier& ue_cc) {
+    if (ue_cc.harq_ent.ul_crc_info(pid, crc) != SRSRAN_SUCCESS) {
+      logger->warning("SCHED: rnti=0x%x, received CRC for empty pid=%d", ue_cc.rnti, pid);
+    }
+  });
 }
 
 void sched_nr::ul_sr_info(uint16_t rnti)

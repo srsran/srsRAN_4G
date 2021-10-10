@@ -37,11 +37,11 @@ namespace srsenb {
 class paging_manager
 {
 public:
-  paging_manager(uint32_t default_paging_cycle_, uint32_t nb_) :
+  paging_manager(uint32_t default_paging_cycle_, float nb_) :
     T(default_paging_cycle_),
-    Nb(T * nb_),
+    Nb(static_cast<uint32_t>((float)T * nb_)),
     N(std::min(T, Nb)),
-    Ns(std::max(nb_, 1u)),
+    Ns(std::max(1U, Nb)),
     logger(srslog::fetch_basic_logger("RRC"))
   {
     for (subframe_info& sf_obj : sf_pending_pcch) {

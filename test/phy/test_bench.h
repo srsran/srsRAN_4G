@@ -92,6 +92,7 @@ public:
     common_cfg.pdcch                                      = args.phy_cfg.pdcch;
     common_cfg.prach                                      = args.phy_cfg.prach;
     common_cfg.duplex_mode                                = args.phy_cfg.duplex.mode;
+    common_cfg.ssb                                        = args.phy_cfg.get_ssb_cfg();
 
     if (gnb_phy.set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
       return;

@@ -495,7 +495,8 @@ int main(int argc, char** argv)
         return SRSRAN_ERROR;
       }
 
-      srsran_vec_apply_cfo(baseband_buffer.data(), args.file_freq_offset_hz/args.srate_hz, baseband_buffer.data(), (int)sf_len);
+      srsran_vec_apply_cfo(
+          baseband_buffer.data(), args.file_freq_offset_hz / args.srate_hz, baseband_buffer.data(), (int)sf_len);
     } else if (radio) {
       // Receive radio
       srsran::rf_buffer_t radio_buffer(baseband_buffer.data(), sf_len);

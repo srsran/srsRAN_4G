@@ -40,6 +40,7 @@ const static size_t   SCHED_NR_MAX_TB           = 1;
 const static size_t   SCHED_NR_MAX_HARQ         = 16;
 const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
 const static size_t   SCHED_NR_MAX_LCID         = 32;
+const static size_t   SCHED_NR_MAX_LC_GROUP     = 7;
 
 class sched_nr_interface
 {

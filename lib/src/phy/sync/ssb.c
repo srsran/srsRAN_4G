@@ -424,7 +424,8 @@ static inline int ssb_get_t_offset(srsran_ssb_t* q, uint32_t ssb_idx)
 int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
 {
   // Verify input parameters
-  if (q == NULL || cfg == NULL) {
+  if (q == NULL || cfg == NULL || cfg->pattern == SRSRAN_SSB_PATTERN_INVALID ||
+      cfg->duplex_mode == SRSRAN_DUPLEX_MODE_INVALID) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -600,6 +601,11 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
     // Map SSB in resource grid and perform IFFT
     ssb_modulate_symbol(q, ssb_grid, l);
 
+    // Phase compensation
+    cf_t phase_compensation = (cf_t)cexp(-I * 2.0 * M_PI * q->cfg.center_freq_hz * (double)t_offset / q->cfg.srate_hz);
+    srsran_vec_sc_prod_ccc(q->tmp_time, phase_compensation, q->tmp_time, q->symbol_sz);
+    t_offset += (int)(q->symbol_sz + q->cp_sz);
+
     // Add cyclic prefix to input;
     srsran_vec_sum_ccc(in_ptr, &q->tmp_time[q->symbol_sz - q->cp_sz], out_ptr, q->cp_sz);
     in_ptr += q->cp_sz;
@@ -624,6 +630,10 @@ static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, uint32_t t_offset, cf
     // Copy FFT window in temporal time domain buffer
     srsran_vec_cf_copy(q->tmp_time, in_ptr, q->symbol_sz);
     in_ptr += q->symbol_sz + SRSRAN_CEIL(q->cp_sz, 2);
+
+    // Phase compensation
+    cf_t phase_compensation = (cf_t)cexp(-I * 2.0 * M_PI * q->cfg.center_freq_hz * (double)t_offset / q->cfg.srate_hz);
+    t_offset += q->symbol_sz + q->cp_sz;
 
     // Convert to frequency domain
     srsran_dft_run_guru_c(&q->fft);
@@ -650,7 +660,7 @@ static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, uint32_t t_offset, cf
     // Normalize
     float norm = sqrtf((float)q->symbol_sz);
     if (isnormal(norm)) {
-      srsran_vec_sc_prod_cfc(ptr, 1.0f / norm, ptr, SRSRAN_SSB_BW_SUBC);
+      srsran_vec_sc_prod_ccc(ptr, conjf(phase_compensation) / norm, ptr, SRSRAN_SSB_BW_SUBC);
     }
   }
 

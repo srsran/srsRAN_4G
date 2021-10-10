@@ -42,6 +42,7 @@ struct phy_cfg_nr_t {
     uint32_t                                    periodicity_ms    = 0;
     std::array<bool, SRSRAN_SSB_NOF_CANDIDATES> position_in_burst = {};
     srsran_subcarrier_spacing_t                 scs               = srsran_subcarrier_spacing_30kHz;
+    srsran_ssb_patern_t                         pattern           = SRSRAN_SSB_PATTERN_A;
   };
 
   srsran_duplex_config_nr_t duplex   = {};
@@ -156,6 +157,13 @@ struct phy_cfg_nr_t {
   bool get_pusch_uci_cfg(const srsran_slot_cfg_t&   slot_cfg,
                          const srsran_uci_cfg_nr_t& uci_cfg,
                          srsran_sch_cfg_nr_t&       pusch_cfg) const;
+
+  /**
+   * @brief Generate SSB configuration from the overall configuration
+   * @attention Sampling rate is the only parameter missing
+   * @return valid SSB configuration
+   */
+  srsran_ssb_cfg_t get_ssb_cfg() const;
 };
 
 } // namespace srsran

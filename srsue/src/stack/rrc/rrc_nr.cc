@@ -40,9 +40,7 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC-NR")),
-  task_sched(task_sched_),
-  conn_recfg_proc(this)
+  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this)
 {}
 
 rrc_nr::~rrc_nr() = default;
@@ -690,9 +688,6 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
       logger.warning("Option p_zp_csi_rs_res_set not of type setup");
       return false;
     }
-  } else {
-    logger.warning("Option p_zp_csi_rs_res_set not present");
-    return false;
   }
   return true;
 }
@@ -747,9 +742,6 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
         return false;
       }
     }
-  } else {
-    logger.warning("Option nzp_csi_rs_res_to_add_mod_list not present");
-    return false;
   }
 
   if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present) {
@@ -769,9 +761,6 @@ bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg
         phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
       }
     }
-  } else {
-    logger.warning("Option p_zp_csi_rs_res_set not present");
-    return false;
   }
 
   return true;
@@ -796,20 +785,16 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
 
         // Load CORESET Zero
         if (pdcch_cfg_common.ctrl_res_set_zero_present) {
-          // Get band number
-          srsran::srsran_band_helper band_helper;
-          uint16_t band = band_helper.get_band_from_dl_arfcn(phy_cfg.carrier.dl_absolute_frequency_point_a);
-
           // Get pointA and SSB absolute frequencies
-          double pointA_abs_freq_Hz = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.dl_absolute_frequency_point_a);
-          double ssb_abs_freq_Hz    = band_helper.nr_arfcn_to_freq(phy_cfg.carrier.absolute_frequency_ssb);
+          double pointA_abs_freq_Hz =
+              phy_cfg.carrier.dl_center_frequency_hz -
+              phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
+          double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
 
           // Calculate integer SSB to pointA frequency offset in Hz
           uint32_t ssb_pointA_freq_offset_Hz =
               (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-
-          // TODO: Select subcarrier spacing from SSB (depending on band)
-          srsran_subcarrier_spacing_t ssb_scs = srsran_subcarrier_spacing_30kHz;
+          srsran_subcarrier_spacing_t ssb_scs = phy_cfg.ssb.scs;
 
           // Select PDCCH subcarrrier spacing from PDCCH BWP
           srsran_subcarrier_spacing_t pdcch_scs = phy_cfg.carrier.scs;
@@ -919,9 +904,12 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
 
 bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_common)
 {
+  srsran::srsran_band_helper bands;
+
   if (ul_cfg_common.freq_info_ul_present && ul_cfg_common.freq_info_ul.absolute_freq_point_a_present) {
     // Update UL frequency point if provided
-    phy_cfg.carrier.ul_absolute_frequency_point_a = ul_cfg_common.freq_info_ul.absolute_freq_point_a;
+    phy_cfg.carrier.ul_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
+        phy_cfg.carrier.nof_prb, ul_cfg_common.freq_info_ul.absolute_freq_point_a);
   }
   if (ul_cfg_common.init_ul_bwp_present) {
     if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
@@ -1183,6 +1171,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("Secondary primary cell ul cfg common not present");
         return false;
       }
+      // Read essential DL carrier settings
       if (recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present) {
         if (apply_dl_common_cfg(recfg_with_sync.sp_cell_cfg_common.dl_cfg_common) == false) {
           return false;
@@ -1191,14 +1180,14 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("DL cfg common not present");
         return false;
       }
+      // Build SSB config
       phy_cfg_nr_t::ssb_cfg_t ssb_cfg = {};
-      if (make_phy_ssb_cfg(recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
+      if (make_phy_ssb_cfg(phy_cfg.carrier, recfg_with_sync.sp_cell_cfg_common, &ssb_cfg) == true) {
         phy_cfg.ssb = ssb_cfg;
       } else {
         logger.warning("Warning while building SSB config structure");
         return false;
       }
-
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
         logger.info("TDD UL DL config present, using TDD");
         srsran_duplex_config_nr_t duplex;

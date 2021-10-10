@@ -29,6 +29,11 @@ namespace srsenb {
 
 void test_dl_pdcch_consistency(srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcch);
 void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> dl_pdcch);
+/// @brief Test whether the SSB grant gets scheduled with the correct periodicity.
+void test_ssb_scheduled_grant(
+    const srsran::slot_point&                                                                 sl_point,
+    const sched_nr_interface::cell_cfg_t&                                                     cell_cfg,
+    const srsran::bounded_vector<mac_interface_phy_nr::ssb_t, mac_interface_phy_nr::MAX_SSB>& ssb_list);
 
 } // namespace srsenb
 

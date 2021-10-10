@@ -103,7 +103,7 @@ void fill_dl_dci_ue_fields(const slot_ue&        ue,
 
   fill_dci_common(ue, bwp_cfg, dci);
   if (dci.ctx.format == srsran_dci_format_nr_1_0) {
-    dci.harq_feedback = ue.cfg->phy().harq_ack.dl_data_to_ul_ack[ue.pdsch_slot.slot_idx()] - 1;
+    dci.harq_feedback = (ue.uci_slot - ue.pdsch_slot) - 1;
   } else {
     dci.harq_feedback = ue.pdsch_slot.slot_idx();
   }

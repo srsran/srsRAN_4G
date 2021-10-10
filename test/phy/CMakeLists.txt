@@ -19,8 +19,19 @@
 #
 
 if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
+    # gNb options
     set(NR_PHY_TEST_GNB_NOF_THREADS 1)
+    set(NR_PHY_TEST_GNB_PHY_LOG_LEVEL "error")
+
+    # UE options
     set(NR_PHY_TEST_UE_NOF_THREADS 1)
+    set(NR_PHY_TEST_UE_PHY_LOG_LEVEL "error")
+
+    # Build common arguments
+    set(NR_PHY_TEST_COMMON_ARGS
+            --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
+            --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+            --ue.phy.log.level=${NR_PHY_TEST_UE_PHY_LOG_LEVEL})
 
     add_executable(nr_phy_test nr_phy_test.cc)
     target_link_libraries(nr_phy_test
@@ -53,8 +64,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                         --gnb.stack.pdsch.length=52 # Full 10 MHz BW
                         --gnb.stack.pdsch.mcs=27 # Maximum MCS
                         --gnb.stack.pusch.slots=none
-                        --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-                        --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                        ${NR_PHY_TEST_COMMON_ARGS}
                         )
             endforeach ()
 
@@ -67,8 +77,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                     --gnb.stack.pusch.start=0 # Start at RB 0
                     --gnb.stack.pusch.length=52 # Full 10 MHz BW
                     --gnb.stack.pusch.mcs=28 # Maximum MCS
-                    --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-                    --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                    ${NR_PHY_TEST_COMMON_ARGS}
                     )
 
             # DL and UL flooding
@@ -83,8 +92,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                     --gnb.stack.pusch.start=0 # Start at RB 0
                     --gnb.stack.pusch.length=52 # Full 10 MHz BW
                     --gnb.stack.pusch.mcs=28 # Maximum MCS
-                    --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-                    --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                    ${NR_PHY_TEST_COMMON_ARGS}
                     )
         endforeach ()
 
@@ -101,8 +109,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --gnb.stack.pusch.length=52 # Full 10 MHz BW
                 --gnb.stack.pusch.mcs=28 # Maximum MCS
                 --gnb.stack.use_dummy_sched=false # Use real NR scheduler
-                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
-                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                ${NR_PHY_TEST_COMMON_ARGS}
                 )
 
         # Test PRACH transmission and detection
@@ -122,10 +129,9 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --duration=1000 # 1000 slots
                 --gnb.stack.pdsch.slots=none # No PDSCH
                 --gnb.stack.pusch.slots=none # No PUSCH
-                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                 --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
                 --ue.stack.prach.preamble=10 # Use preamble 10
-                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                ${NR_PHY_TEST_COMMON_ARGS}
                 )
 
         # Test scheduling request
@@ -134,9 +140,8 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --duration=1000 # 1000 slots
                 --gnb.stack.pdsch.slots=none # No PDSCH
                 --gnb.stack.pusch.slots=none # No PUSCH
-                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                 --ue.stack.sr.period=4 # Transmit SR every 4 opportunities
-                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                ${NR_PHY_TEST_COMMON_ARGS}
                 )
 
         # Test scheduling request multiplexed with HARQ ACK feedback
@@ -145,9 +150,8 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --duration=1000 # 1000 slots
                 --gnb.stack.pdsch.slots=all # All PDSCH
                 --gnb.stack.pusch.slots=none # No PUSCH
-                --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                 --ue.stack.sr.period=4 # Transmit SR every 4 opportunities
-                --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
+                ${NR_PHY_TEST_COMMON_ARGS}
                 )
     endforeach ()
 endif ()

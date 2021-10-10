@@ -108,17 +108,20 @@ void intra_measure_base::meas_stop()
 
 void intra_measure_base::set_cells_to_meas(const std::set<uint32_t>& pci)
 {
-  active_pci_mutex.lock();
+  mutex.lock();
   context.active_pci = pci;
-  active_pci_mutex.unlock();
+  mutex.unlock();
   state.set_state(internal_state::wait_first);
   Log(info, "Received list of %zd neighbour cells to measure", pci.size());
 }
 
 void intra_measure_base::write(cf_t* data, uint32_t nsamples)
 {
-  int nbytes          = (int)(nsamples * sizeof(cf_t));
+  int nbytes = (int)(nsamples * sizeof(cf_t));
+
+  mutex.lock();
   int required_nbytes = (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t));
+  mutex.unlock();
 
   // As nbytes might not match the sub-frame size, make sure that buffer does not overflow
   nbytes = SRSRAN_MIN(srsran_ringbuffer_space(&ring_buffer), nbytes);
@@ -171,9 +174,12 @@ void intra_measure_base::run_tti(uint32_t tti, cf_t* data, uint32_t nsamples)
 
 void intra_measure_base::measure_proc()
 {
+  // Grab a copy of the context and pass it to the measure_rat method.
+  measure_context_t context_copy = get_context();
+
   // Read data from buffer and find cells in it
   int ret = srsran_ringbuffer_read_timed(
-      &ring_buffer, search_buffer.data(), (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t)), 1000);
+      &ring_buffer, search_buffer.data(), (int)(context_copy.meas_len_ms * context_copy.sf_len * sizeof(cf_t)), 1000);
 
   // As this function is called once the ring-buffer has enough data to process, it is not expected to fail
   if (ret < SRSRAN_SUCCESS) {
@@ -188,7 +194,7 @@ void intra_measure_base::measure_proc()
   }
 
   // Perform measurements for the actual RAT
-  if (not measure_rat(context, search_buffer, rx_gain_offset_db)) {
+  if (not measure_rat(std::move(context_copy), search_buffer, rx_gain_offset_db)) {
     Log(error, "Error measuring RAT");
   }
 }

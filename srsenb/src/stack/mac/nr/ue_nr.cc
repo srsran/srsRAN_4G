@@ -108,7 +108,14 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
         srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
         uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
-        sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+        // Assume all LCGs are 0 if reported SBSR is 0
+        if (buffer_size_bytes == 0) {
+          for (uint32_t j = 0; j < SCHED_NR_MAX_LC_GROUP; j++) {
+            sched->ul_bsr(rnti, j, 0);
+          }
+        } else {
+          sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+        }
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
         logger.info("LONG_BSR CE not implemented.");
@@ -118,6 +125,7 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         break;
       default:
         if (subpdu.is_sdu()) {
+          rrc->set_activity_user(rnti);
           rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
         }
     }
@@ -186,8 +194,7 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
-  *metrics_ = ue_metrics;
-
+  *metrics_      = ue_metrics;
   phr_counter    = 0;
   dl_cqi_counter = 0;
   ue_metrics     = {};
@@ -220,6 +227,18 @@ void ue_nr::metrics_tx(bool crc, uint32_t tbs)
     ue_metrics.tx_errors++;
   }
   ue_metrics.tx_pkts++;
+}
+
+void ue_nr::metrics_dl_mcs(uint32_t mcs)
+{
+  ue_metrics.dl_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.dl_mcs, ue_metrics.dl_mcs_samples);
+  ue_metrics.dl_mcs_samples++;
+}
+
+void ue_nr::metrics_ul_mcs(uint32_t mcs)
+{
+  ue_metrics.ul_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.ul_mcs, ue_metrics.ul_mcs_samples);
+  ue_metrics.ul_mcs_samples++;
 }
 
 void ue_nr::metrics_cnt()

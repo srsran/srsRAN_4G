@@ -108,7 +108,8 @@ private:
 
   bool initialized = false;
 
-  srsran_prach_cfg_t prach_cfg = {};
+  srsran_prach_cfg_t prach_cfg  = {};
+  common_cfg_t       common_cfg = {};
 
   void parse_common_config(const phy_cfg_t& cfg);
 };

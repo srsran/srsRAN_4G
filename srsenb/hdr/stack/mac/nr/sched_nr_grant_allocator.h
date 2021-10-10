@@ -50,6 +50,8 @@ struct harq_ack_t {
 };
 using harq_ack_list_t = srsran::bounded_vector<harq_ack_t, MAX_GRANTS>;
 
+/// save data for scheduler to keep track of previous allocations
+/// This only contains information about a given slot
 struct bwp_slot_grid {
   uint32_t          slot_idx = 0;
   const bwp_params* cfg      = nullptr;
@@ -88,6 +90,7 @@ struct bwp_res_grid {
   const bwp_params* cfg = nullptr;
 
 private:
+  // TTIMOD_SZ is the longest allocation in the future
   srsran::bounded_vector<bwp_slot_grid, TTIMOD_SZ> slots;
 };
 

@@ -20,6 +20,7 @@
  */
 
 #include "sched_nr_common_test.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_cfg.h"
 #include "srsran/support/srsran_test.h"
 
 namespace srsenb {
@@ -46,6 +47,32 @@ void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> pd
       TESTASSERT(pdsch.sch.grant.tb[0].softbuffer.tx->buffer_b != nullptr);
       TESTASSERT(pdsch.sch.grant.tb[0].softbuffer.tx->max_cb > 0);
     }
+  }
+}
+
+void test_ssb_scheduled_grant(
+    const srsran::slot_point&                                                                 sl_point,
+    const sched_nr_interface::cell_cfg_t&                                                     cell_cfg,
+    const srsran::bounded_vector<mac_interface_phy_nr::ssb_t, mac_interface_phy_nr::MAX_SSB>& ssb_list)
+{
+  /*
+   * Verify that, with correct SSB periodicity, dl_res has:
+   * 1) SSB grant
+   * 2) 4 LSBs of SFN in packed MIB message are correct
+   * 3) SSB index is 0
+   */
+  if (sl_point.to_uint() % (cell_cfg.ssb.periodicity_ms * (uint32_t)sl_point.nof_slots_per_subframe()) == 0) {
+    TESTASSERT(ssb_list.size() == 1);
+    auto& ssb_item = ssb_list.back();
+    TESTASSERT(ssb_item.pbch_msg.sfn_4lsb == ((uint8_t)sl_point.sfn() & 0b1111));
+    bool expected_hrf = sl_point.slot_idx() % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) >=
+                        SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) / 2;
+    TESTASSERT(ssb_item.pbch_msg.hrf == expected_hrf);
+    TESTASSERT(ssb_item.pbch_msg.ssb_idx == 0);
+  }
+  // Verify that, outside SSB periodicity, there is NO SSB grant
+  else {
+    TESTASSERT(ssb_list.size() == 0);
   }
 }
 

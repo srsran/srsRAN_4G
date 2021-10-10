@@ -170,6 +170,7 @@ public:
     srsran_carrier_nr_t   carrier;
     srsran_pdcch_cfg_nr_t pdcch;
     srsran_prach_cfg_t    prach;
+    srsran_ssb_cfg_t      ssb;
     srsran_duplex_mode_t  duplex_mode;
   };
 
