@@ -100,7 +100,6 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --gnb.stack.pusch.slots=none # No PUSCH
                 --gnb.phy.nof_threads=${NR_PHY_TEST_GNB_NOF_THREADS}
                 --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
-                --ue.stack.prach.preamble=10 # Use preamble 10
                 --ue.phy.nof_threads=${NR_PHY_TEST_UE_NOF_THREADS}
                 )
 
@@ -110,7 +109,6 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                 --gnb.stack.pdsch.slots=none # No PDSCH
                 --gnb.stack.pusch.slots=none # No PUSCH
                 --ue.stack.prach.period=30 # Transmit PRACH every 30 radio frames
-                --ue.stack.prach.preamble=10 # Use preamble 10
                 ${NR_PHY_TEST_COMMON_ARGS}
                 )
 

@@ -26,6 +26,8 @@ static double assert_cqi_detection_min   = 1.000;
 static double assert_pusch_bler_max      = 0.000;
 static double assert_pdsch_bler_max      = 0.000;
 static double assert_prach_detection_min = 1.000;
+static double assert_prach_ta_min        = 0.000;
+static double assert_prach_ta_max        = 0.000;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
@@ -90,7 +92,6 @@ test_bench::args_t::args_t(int argc, char** argv)
   options_ue_stack.add_options()
         ("ue.stack.sr.period",      bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period),           "SR period in number of opportunities. Set 0 to disable and 1 for all.")
         ("ue.stack.prach.period",   bpo::value<uint32_t>(&ue_stack.prach_period)->default_value(ue_stack.prach_period),     "PRACH period in SFN. Set 0 to disable and 1 for all.")
-        ("ue.stack.prach.preamble", bpo::value<uint32_t>(&ue_stack.prach_preamble)->default_value(ue_stack.prach_preamble), "PRACH preamble. Set 0 to disable and 1 for all.")
         ;
 
   options_assertion.add_options()
@@ -98,6 +99,8 @@ test_bench::args_t::args_t(int argc, char** argv)
       ("assert.cqi.detection.min", bpo::value<double>(&assert_cqi_detection_min)->default_value(assert_cqi_detection_min), "CQI report minimum detection threshold")
       ("assert.pusch.bler.max",    bpo::value<double>(&assert_pusch_bler_max)->default_value(assert_pusch_bler_max),       "PUSCH maximum BLER threshold")
       ("assert.pdsch.bler.max",    bpo::value<double>(&assert_pdsch_bler_max)->default_value(assert_pdsch_bler_max),       "PDSCH maximum BLER threshold")
+      ("assert.prach.ta.min",      bpo::value<double>(&assert_prach_ta_min)->default_value(assert_prach_ta_min),           "PRACH estimated TA minimum value threshold")
+      ("assert.prach.ta.max",      bpo::value<double>(&assert_prach_ta_max)->default_value(assert_prach_ta_max),           "PRACH estimated TA maximum value threshold")
       ;
 
   options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
@@ -148,7 +151,7 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   gnb_stack.rnti          = rnti;
   gnb_stack.phy_cfg       = phy_cfg;
-  gnb_stack.wait_preamble = ue_stack.prach_preamble > 0;
+  gnb_stack.wait_preamble = ue_stack.prach_period > 0;
 
   if (gnb_stack.pdsch.rb_length == 0) {
     gnb_stack.pdsch.rb_length = phy_cfg.carrier.nof_prb;
@@ -238,6 +241,7 @@ int main(int argc, char** argv)
 
   // Print PRACH
   double   prach_detection = 0.0;
+  double   prach_ta        = 0.0;
   uint32_t prach_tx_count  = 0;
   uint32_t prach_rx_count  = 0;
   if (metrics.ue_stack.prach.size() > 0) {
@@ -265,6 +269,7 @@ int main(int argc, char** argv)
       gnb_dummy_stack::prach_metrics_t gnb_prach = {};
       if (metrics.gnb_stack.prach.count(p.first) > 0) {
         gnb_prach = metrics.gnb_stack.prach[p.first];
+        prach_ta  = SRSRAN_VEC_SAFE_CMA(gnb_prach.avg_ta, prach_ta, prach_rx_count);
       } else {
         gnb_prach.avg_ta = NAN;
         gnb_prach.min_ta = NAN;
@@ -438,6 +443,11 @@ int main(int argc, char** argv)
                 "PRACH detection probability (%f) did not reach the assertion minimum (%f)",
                 prach_detection,
                 assert_prach_detection_min);
+  srsran_assert(prach_tx_count == 0 or (prach_ta >= assert_prach_ta_min and prach_ta <= assert_prach_ta_max),
+                "PRACH TA average measurement %f is higher than minimum (%d) or above maximum (%f)",
+                prach_ta,
+                assert_prach_ta_min,
+                assert_prach_ta_max);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;
