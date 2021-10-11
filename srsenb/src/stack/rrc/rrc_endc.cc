@@ -168,7 +168,7 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
         .non_crit_ext_present                = true;
     rrc_conn_recfg_v1510_ies_s& reconf_v1510 = conn_recfg->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
                                                    .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
-    reconf_v1510.nr_cfg_r15_present     = true;
+    reconf_v1510.nr_cfg_r15_present = true;
     reconf_v1510.nr_cfg_r15.set_setup();
 
     reconf_v1510.nr_cfg_r15.setup().endc_release_and_add_r15                = false;
@@ -317,6 +317,16 @@ void rrc::ue::rrc_endc::handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, co
 bool rrc::ue::rrc_endc::is_endc_supported()
 {
   return endc_supported;
+}
+
+void rrc::ue::rrc_endc::handle_rrc_reest(wait_add_complete_st& s, const rrc_reest_rx_ev& ev)
+{
+  auto& sgnb_config = get_state<prepare_recfg_st>()->sgnb_config;
+
+  // Transition GTPU tunnel rnti back from NR RNTI to LTE RNTI, given that the reconfiguration failed
+  rrc_enb->gtpu->mod_bearer_rnti(sgnb_config.nr_rnti, rrc_ue->rnti);
+
+  rrc_enb->bearer_manager.rem_user(sgnb_config.nr_rnti);
 }
 
 } // namespace srsenb

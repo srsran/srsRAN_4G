@@ -652,6 +652,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   srsran::console(
       "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
 
+  if (endc_handler != nullptr) {
+    old_ue->endc_handler->trigger(rrc_endc::rrc_reest_rx_ev{});
+  }
+
   // Cancel Handover in Target eNB if on-going
   asn1::s1ap::cause_c cause;
   cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;

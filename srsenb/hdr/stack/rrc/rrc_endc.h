@@ -36,8 +36,9 @@ public:
   struct sgnb_add_req_ack_ev {
     sgnb_addition_ack_params_t params;
   };
-
   struct sgnb_add_req_reject_ev {};
+  /// Called when Reconf fails
+  struct rrc_reest_rx_ev {};
 
   /**
    * @brief Non-standard event sent from NR-RRC to EUTRA when UE has attached to NR cell
@@ -98,6 +99,7 @@ private:
 
   // FSM transition handlers
   void handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, const sgnb_add_req_ack_ev& ev);
+  void handle_rrc_reest(wait_add_complete_st& s, const rrc_reest_rx_ev& ev);
 
 protected:
   // states
@@ -120,7 +122,8 @@ protected:
   row< wait_sgnb_add_req_resp_st, prepare_recfg_st,          sgnb_add_req_ack_ev,     &fsm::handle_sgnb_add_req_ack                         >,
   row< wait_sgnb_add_req_resp_st, endc_deactivated_st,       sgnb_add_req_reject_ev                                                         >,
   row< prepare_recfg_st,          wait_add_complete_st,      rrc_recfg_sent_ev                                                              >,
-  row< wait_add_complete_st,      endc_activated_st,         sgnb_add_complete_ev                                                           >
+  row< wait_add_complete_st,      endc_activated_st,         sgnb_add_complete_ev                                                           >,
+  row< wait_add_complete_st,      endc_deactivated_st,       rrc_reest_rx_ev,         &fsm::handle_rrc_reest                                >
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
   >;
   // clang-format on
