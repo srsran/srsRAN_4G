@@ -80,6 +80,16 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
   if (prach_buffer->is_ready_to_send(tti, phy_state.cfg.carrier.pci)) {
     prach_ptr = prach_buffer->generate(phy_state.get_ul_cfo() / 15000, &prach_nof_sf, &prach_target_power);
 
+    // Scale signal to maximum
+    {
+      float* ptr   = (float*)prach_ptr;
+      int    max_i = srsran_vec_max_abs_fi(ptr, 2 * sf_sz);
+      float  max   = ptr[max_i];
+      if (std::isnormal(max)) {
+        srsran_vec_sc_prod_cfc(prach_ptr, 0.99f / max, prach_ptr, sf_sz * prach_nof_sf);
+      }
+    }
+
     // Notify MAC about PRACH transmission
     phy_state.stack->prach_sent(TTI_TX(tti),
                                 srsran_prach_nr_start_symbol(phy_state.cfg.prach.config_idx, phy_state.cfg.duplex.mode),
