@@ -384,10 +384,13 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&        harq,
 
 void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
 {
-  prach.config_idx   = 0;
-  prach.freq_offset  = 4;
-  prach.root_seq_idx = 0;
-  prach.is_nr        = true;
+  prach.is_nr            = true;
+  prach.config_idx       = 0;
+  prach.root_seq_idx     = 0;
+  prach.zero_corr_zone   = 0;
+  prach.freq_offset      = 4;
+  prach.num_ra_preambles = 64;
+  prach.hs_flag          = false;
 }
 
 phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
