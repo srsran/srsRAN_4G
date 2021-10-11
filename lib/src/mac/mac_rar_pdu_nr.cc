@@ -214,7 +214,8 @@ int mac_rar_pdu_nr::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_)
     logger.error("Invalid buffer");
     return SRSRAN_ERROR;
   }
-  buffer = buffer_;
+  buffer          = buffer_;
+  buffer->N_bytes = 0;
   subpdus.clear();
   pdu_len       = pdu_len_;
   remaining_len = pdu_len_;
