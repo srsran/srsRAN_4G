@@ -238,7 +238,13 @@ bool slot_worker::work_ul()
       std::array<char, 512> str;
       srsran_gnb_ul_pusch_info(&gnb_ul, &pusch.sch, &pusch_info.pusch_data, str.data(), (uint32_t)str.size());
 
-      logger.info("PUSCH: %s", str.data());
+      if (logger.debug.enabled()) {
+        std::array<char, 2048> str_extra;
+        srsran_sch_cfg_nr_info(&pusch.sch, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info("PUSCH: %s\n%s", str.data(), str_extra.data());
+      } else {
+        logger.info("PUSCH: %s", str.data());
+      }
     }
   }
 
