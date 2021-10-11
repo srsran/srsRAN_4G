@@ -49,6 +49,7 @@ void bwp_slot_grid::reset()
   pucch.clear();
   ssb.clear();
   nzp_csi_rs.clear();
+  rar.clear();
 }
 
 bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
