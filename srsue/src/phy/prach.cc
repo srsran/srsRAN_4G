@@ -248,7 +248,7 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
   srsran_cfo_correct(&cfo_h, buffer[f_idx][preamble_idx], signal_buffer, cfo / srsran_symbol_sz(cell.nof_prb));
 
   // pad guard symbols with zeros
-  uint32_t nsf = (len - 1) / SRSRAN_SF_LEN_PRB(cell.nof_prb) + 1;
+  uint32_t nsf = SRSRAN_CEIL(len, SRSRAN_SF_LEN_PRB(cell.nof_prb));
   srsran_vec_cf_zero(&signal_buffer[len], (nsf * SRSRAN_SF_LEN_PRB(cell.nof_prb) - len));
 
   *nof_sf = nsf;
