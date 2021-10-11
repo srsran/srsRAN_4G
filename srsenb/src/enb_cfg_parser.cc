@@ -898,8 +898,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
     cell_cfg.pci = cell_cfg.pci % SRSRAN_NUM_PCI;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn"));
-    parse_required_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq");
-    parse_required_field(cell_cfg.ul_freq_hz, cellroot, "ul_freq");
+    parse_default_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq", 0.0); // will be derived from DL EARFCN If not set
+    parse_default_field(cell_cfg.ul_freq_hz, cellroot, "ul_freq", 0.0); // will be derived from DL EARFCN If not set
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", 0u); // will be derived from DL EARFCN If not set
     parse_default_field(
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
@@ -1179,7 +1179,7 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   // update EUTRA RRC params for ENDC
   if (rrc_nr_cfg_->cell_list.size() == 1) {
     rrc_cfg_->endc_cfg.abs_frequency_ssb = rrc_nr_cfg_->cell_list.at(0).ssb_absolute_freq_point;
-    rrc_cfg_->endc_cfg.nr_band     = rrc_nr_cfg_->cell_list.at(0).band;
+    rrc_cfg_->endc_cfg.nr_band           = rrc_nr_cfg_->cell_list.at(0).band;
     rrc_cfg_->endc_cfg.ssb_period_offset.set_sf10_r15();
     rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
     rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
