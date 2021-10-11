@@ -59,7 +59,7 @@ public:
   void       metrics_phr(float phr);
   void       metrics_dl_ri(uint32_t dl_cqi);
   void       metrics_dl_pmi(uint32_t dl_cqi);
-  void       metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, bool valid_cqi);
+  void       metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi);
   void       metrics_dl_mcs(uint32_t mcs);
   void       metrics_ul_mcs(uint32_t mcs);
   void       metrics_cnt();

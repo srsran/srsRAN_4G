@@ -367,7 +367,9 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   }
 
   // Process CQI
-  ue_db[rnti]->metrics_dl_cqi(cfg_, value.csi->wideband_cri_ri_pmi_cqi.cqi, value.valid);
+  if (value.valid) {
+    ue_db[rnti]->metrics_dl_cqi(cfg_, value.csi->wideband_cri_ri_pmi_cqi.cqi);
+  }
 
   return true;
 }

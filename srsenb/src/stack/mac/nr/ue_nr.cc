@@ -194,14 +194,14 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   ue_metrics           = {};
 }
 
-void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, bool valid_cqi)
+void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi)
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
 
   // Process CQI
   for (uint32_t i = 0; i < cfg_.nof_csi; i++) {
     // Skip if invalid or not supported CSI report
-    if (not valid_cqi or cfg_.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
+    if (cfg_.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
         cfg_.csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
       continue;
     }
