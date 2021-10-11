@@ -98,6 +98,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   if (ue_cc_idx != prev_ue_cc_idx) {
     clear_feedback();
     harq_ent.reset();
+    logger.info("SCHED: Resetting rnti=0x%x, cc=%d HARQs and feedback state", rnti, cell_cfg->enb_cc_idx);
   }
 
   // Update carrier state
