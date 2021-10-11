@@ -84,7 +84,6 @@ private:
   std::atomic<bool> active_state{true};
 
   uint32_t         phr_counter          = 0;
-  uint32_t         dl_cqi_counter       = 0;
   uint32_t         dl_cqi_valid_counter = 0;
   uint32_t         dl_ri_counter        = 0;
   uint32_t         dl_pmi_counter       = 0;

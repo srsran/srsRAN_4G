@@ -188,10 +188,10 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
-  *metrics_      = ue_metrics;
-  phr_counter    = 0;
-  dl_cqi_counter = 0;
-  ue_metrics     = {};
+  *metrics_            = ue_metrics;
+  phr_counter          = 0;
+  dl_cqi_valid_counter = 0;
+  ue_metrics           = {};
 }
 
 void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, bool valid_cqi)
@@ -200,9 +200,6 @@ void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, boo
 
   // Process CQI
   for (uint32_t i = 0; i < cfg_.nof_csi; i++) {
-    // Increment CQI opportunity
-    dl_cqi_counter++;
-
     // Skip if invalid or not supported CSI report
     if (not valid_cqi or cfg_.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
         cfg_.csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
@@ -210,7 +207,7 @@ void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi, boo
     }
 
     // Add statistics
-    ue_metrics.dl_cqi = SRSRAN_VEC_SAFE_CMA(dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
+    ue_metrics.dl_cqi = SRSRAN_VEC_SAFE_CMA(dl_cqi, ue_metrics.dl_cqi, dl_cqi_valid_counter);
     dl_cqi_valid_counter++;
   }
 }

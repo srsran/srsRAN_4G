@@ -367,7 +367,6 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   }
 
   // Process CQI
-  srsran::rwlock_read_guard rw_lock(rwmutex);
   ue_db[rnti]->metrics_dl_cqi(cfg_, value.csi->wideband_cri_ri_pmi_cqi.cqi, value.valid);
 
   return true;
