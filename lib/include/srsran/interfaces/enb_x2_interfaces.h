@@ -95,7 +95,10 @@ class x2_interface : public rrc_nr_interface_rrc,
                      public rrc_eutra_interface_rrc_nr,
                      public pdcp_interface_gtpu, // allow GTPU to access PDCP in DL direction
                      public gtpu_interface_pdcp  // allow PDCP to access GTPU in UL direction
-{};
+{
+public:
+  virtual ~x2_interface() = default;
+};
 
 } // namespace srsenb
 

@@ -24,7 +24,6 @@
 #include <string>
 
 #include "phy/phy.h"
-#include "x2_adapter.h"
 
 #include "srsran/radio/radio.h"
 
@@ -32,6 +31,7 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 
+#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/buffer_pool.h"
@@ -41,6 +41,7 @@
 #include "srsran/interfaces/enb_command_interface.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/enb_time_interface.h"
+#include "srsran/interfaces/enb_x2_interfaces.h"
 #include "srsran/interfaces/ue_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/system/sys_metrics_processor.h"
@@ -161,7 +162,7 @@ private:
   rrc_nr_cfg_t rrc_nr_cfg = {};
 
   // eNB components
-  x2_adapter                          x2;
+  std::unique_ptr<x2_interface>       x2;
   std::unique_ptr<enb_stack_base>     eutra_stack = nullptr;
   std::unique_ptr<enb_stack_base>     nr_stack    = nullptr;
   std::unique_ptr<srsran::radio_base> radio       = nullptr;
