@@ -87,7 +87,7 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
 
 void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
 {
-  srsran::rwlock_read_guard lock(rwlock);
+  srsran::rwlock_read_guard lock(rwmutex);
   metrics.ues.reserve(ue_db.size());
   for (auto& u : ue_db) {
     metrics.ues.emplace_back();
