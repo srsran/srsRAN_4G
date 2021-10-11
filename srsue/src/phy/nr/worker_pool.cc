@@ -78,10 +78,29 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
 
   // Generate PRACH if ready
   if (prach_buffer->is_ready_to_send(tti, phy_state.cfg.carrier.pci)) {
-    uint32_t nof_prach_sf       = 0;
-    float    prach_target_power = 0.0f;
-    cf_t*    prach_ptr = prach_buffer->generate(phy_state.get_ul_cfo() / 15000, &nof_prach_sf, &prach_target_power);
-    worker->set_prach(prach_ptr, prach_target_power);
+    prach_ptr = prach_buffer->generate(phy_state.get_ul_cfo() / 15000, &prach_nof_sf, &prach_target_power);
+
+    // Notify MAC about PRACH transmission
+    phy_state.stack->prach_sent(TTI_TX(tti),
+                                srsran_prach_nr_start_symbol(phy_state.cfg.prach.config_idx, phy_state.cfg.duplex.mode),
+                                SRSRAN_SLOT_NR_MOD(phy_state.cfg.carrier.scs, TTI_TX(tti)),
+                                0,
+                                0);
+  }
+
+  // Set PRACH transmission buffer in workers if it is pending
+  if (prach_nof_sf > 0) {
+    // Set worker PRACH buffer
+    worker->set_prach(&prach_ptr[sf_sz * prach_sf_count], prach_target_power);
+
+    // Increment SF counter
+    prach_sf_count++;
+
+    // Reset PRACH pending subframe count
+    if (prach_sf_count >= prach_nof_sf) {
+      prach_nof_sf   = 0;
+      prach_sf_count = 0;
+    }
   }
 
   return worker;
@@ -141,6 +160,7 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
   uint32_t dl_arfcn = srsran::srsran_band_helper().freq_to_nr_arfcn(cfg.carrier.dl_center_frequency_hz);
   phy_state.cfg     = cfg;
+  sf_sz             = SRSRAN_SF_LEN_PRB_NR(cfg.carrier.nof_prb);
 
   logger.info("Setting new PHY configuration ARFCN=%d, PCI=%d", dl_arfcn, cfg.carrier.pci);
 

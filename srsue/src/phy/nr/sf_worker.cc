@@ -88,13 +88,6 @@ void sf_worker::work_imp()
     tx_buffer.set(phy_state.args.rf_channel_offset, prach_ptr);
     tx_buffer.set_nof_samples(SRSRAN_SF_LEN_PRB_NR(phy_state.cfg.carrier.nof_prb));
 
-    // Notify MAC about PRACH transmission
-    phy_state.stack->prach_sent(TTI_TX(tti_rx),
-                                srsran_prach_nr_start_symbol(phy_state.cfg.prach.config_idx, phy_state.cfg.duplex.mode),
-                                SRSRAN_SLOT_NR_MOD(phy_state.cfg.carrier.scs, TTI_TX(tti_rx)),
-                                0,
-                                0);
-
     // Transmit NR PRACH
     common.worker_end(context, true, tx_buffer);
 
