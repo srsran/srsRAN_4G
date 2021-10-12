@@ -165,7 +165,7 @@ void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb
     int tbs = ue_cc.harq_ent.dl_ack_info(pid, tb_idx, ack);
     if (tbs >= 0) {
       if (ack) {
-        ue_cc.metrics.tx_brate += tbs * 8;
+        ue_cc.metrics.tx_brate += tbs;
       } else {
         ue_cc.metrics.tx_errors++;
       }
