@@ -161,7 +161,7 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       }
 
       if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
-        fprintf(stderr, "Error: setting receive timeout on rx socket\n");
+        fprintf(stderr, "Error: setting send timeout on rx socket\n");
         goto clean_exit;
       }
 
