@@ -138,7 +138,7 @@ void metrics_stdout::set_metrics_helper(uint32_t                          num_ue
     } else {
       fmt::print("  {:>5.5}", "n/a");
     }
-    int phr = (is_nr) ? mac.ues[i].phr : mac.ues[i].phr;
+    int phr = mac.ues[i].phr;
     fmt::print("  {:>3}", int(phr));
     if (not isnan(phr)) {
       fmt::print("   {:>2}", int(phr));
