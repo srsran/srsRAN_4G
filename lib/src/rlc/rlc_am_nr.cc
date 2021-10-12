@@ -68,13 +68,14 @@ bool rlc_am_nr_tx::has_data()
 
 uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
+  logger->debug("MAC opportunity - %d bytes", nof_bytes);
+
   std::lock_guard<std::mutex> lock(mutex);
 
   if (not tx_enabled) {
     logger->debug("RLC entity not active. Not generating PDU.");
     return 0;
   }
-  logger->debug("MAC opportunity - %d bytes", nof_bytes);
   //  logger.debug("tx_window size - %zu PDUs", tx_window.size());
 
   // Tx STATUS if requested
@@ -93,7 +94,13 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // TODO
 
   // Read new SDU from TX queue
+  if (tx_sdu_queue.is_empty()) {
+    logger->info("No data available to be sent");
+    return 0;
+  }
+
   unique_byte_buffer_t tx_sdu;
+  logger->debug("Reading from RLC SDU queue. Queue size %d", tx_sdu_queue.size());
   do {
     tx_sdu = tx_sdu_queue.read();
   } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
@@ -166,6 +173,7 @@ uint32_t rlc_am_nr_tx::get_buffer_state()
 
 void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
 {
+  logger->debug("Buffer state requested, %s", rb_name);
   std::lock_guard<std::mutex> lock(mutex);
   uint32_t                    n_bytes = 0;
   uint32_t                    n_sdus  = 0;
@@ -178,12 +186,13 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
                status_prohibit_timer.time_elapsed(),
                status_prohibit_timer.duration());
   */
-
-  // Bytes needed for status report
   if (do_status() /* && not TODO status_prohibit_timer*/) {
     n_bytes += rx->get_status_pdu_length();
     logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes);
   }
+
+  // Bytes needed for status report
+  // TODO
 
   // Bytes needed for retx
   // TODO
@@ -194,12 +203,9 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
 
   // Room needed for fixed header of data PDUs
   n_bytes += 2 * n_sdus; // TODO make header size configurable
-  if (n_bytes > 0 && n_sdus > 0) {
-    logger->debug("%s Total buffer state - %d SDUs (%d B)", rb_name, n_sdus, n_bytes);
-  }
+  logger->debug("%s Total buffer state - %d SDUs (%d B)", rb_name, n_sdus, n_bytes);
 
   tx_queue = n_bytes;
-  return;
 }
 
 void rlc_am_nr_tx::reestablish()
