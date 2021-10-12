@@ -192,7 +192,10 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
   }
 
   // Bytes needed for status report
-  // TODO
+  if (do_status() /* && not TODO status_prohibit_timer*/) {
+    n_bytes += parent->rx->get_status_pdu_length();
+    logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes);
+  }
 
   // Bytes needed for retx
   // TODO
