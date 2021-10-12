@@ -179,7 +179,7 @@ void sched_nr::dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb
 void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
 {
   sched_workers->enqueue_cc_feedback(rnti, cc, [this, pid, crc](ue_carrier& ue_cc) {
-    if (ue_cc.harq_ent.ul_crc_info(pid, crc) != SRSRAN_SUCCESS) {
+    if (ue_cc.harq_ent.ul_crc_info(pid, crc) < 0) {
       logger->warning("SCHED: rnti=0x%x, received CRC for empty pid=%d", ue_cc.rnti, pid);
     }
   });
