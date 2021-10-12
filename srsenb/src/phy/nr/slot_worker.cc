@@ -401,10 +401,12 @@ void slot_worker::work_imp()
 
   common.worker_end(context, true, tx_rf_buffer);
 }
+
 bool slot_worker::set_common_cfg(const srsran_carrier_nr_t&   carrier,
                                  const srsran_pdcch_cfg_nr_t& pdcch_cfg_,
                                  const srsran_ssb_cfg_t&      ssb_cfg_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   // Set gNb DL carrier
   if (srsran_gnb_dl_set_carrier(&gnb_dl, &carrier) < SRSRAN_SUCCESS) {
     logger.error("Error setting DL carrier");
