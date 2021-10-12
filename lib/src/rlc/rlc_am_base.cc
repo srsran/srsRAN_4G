@@ -207,7 +207,7 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   }
 
   if (sdu.get() == nullptr) {
-    srslog::fetch_basic_logger("RLC").warning("NULL SDU pointer in write_sdu()");
+    logger->warning("NULL SDU pointer in write_sdu()");
     return SRSRAN_ERROR;
   }
 
@@ -219,16 +219,15 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   uint32_t                                 nof_bytes = sdu->N_bytes;
   srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
   if (ret) {
-    srslog::fetch_basic_logger("RLC").info(
-        msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name, nof_bytes, tx_sdu_queue.size());
+    logger->info(msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name, nof_bytes, tx_sdu_queue.size());
   } else {
     // in case of fail, the try_write returns back the sdu
-    srslog::fetch_basic_logger("RLC").warning(ret.error()->msg,
-                                              ret.error()->N_bytes,
-                                              "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                                              rb_name,
-                                              ret.error()->N_bytes,
-                                              tx_sdu_queue.size());
+    logger->warning(ret.error()->msg,
+                    ret.error()->N_bytes,
+                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                    rb_name,
+                    ret.error()->N_bytes,
+                    tx_sdu_queue.size());
     return SRSRAN_ERROR;
   }
 
@@ -247,6 +246,7 @@ void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
  *******************************************************/
 void rlc_am::rlc_am_base_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
+  logger->info("Rx PDU -- N bytes %d", nof_bytes);
   if (nof_bytes < 1) {
     return;
   }

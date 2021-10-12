@@ -41,6 +41,13 @@ rlc_am_nr_tx::rlc_am_nr_tx(rlc_am* parent_) : parent(parent_), rlc_am_base_tx(&p
 
 bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 {
+  cfg = cfg_.am_nr;
+
+  if (cfg.tx_sn_field_length != rlc_am_nr_sn_size_t::size12bits) {
+    logger->warning("RLC AM NR only supporst 12 bit SN length.");
+    return false;
+  }
+
   /*
     if (cfg_.tx_queue_length > MAX_SDUS_PER_RLC_PDU) {
       logger.error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
@@ -49,8 +56,6 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
       return false;
     }
   */
-  cfg = cfg_.am;
-
   tx_enabled = true;
 
   return true;
@@ -72,13 +77,12 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   logger->debug("MAC opportunity - %d bytes", nof_bytes);
   //  logger.debug("tx_window size - %zu PDUs", tx_window.size());
 
-  // Build a PDU from SDU
-  unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
-
   // Tx STATUS if requested
   if (do_status() /*&& not status_prohibit_timer.is_running()*/) {
+    unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
     build_status_pdu(tx_pdu.get(), nof_bytes);
     memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
+    logger->debug("Status PDU built - %d bytes", tx_pdu->N_bytes);
     return tx_pdu->N_bytes;
   }
 
@@ -94,17 +98,23 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     tx_sdu = tx_sdu_queue.read();
   } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
 
+  if (tx_sdu != nullptr) {
+    logger->debug("Read RLC SDU - %d bytes", tx_sdu->N_bytes);
+  }
+
   uint16_t hdr_size = 2;
   if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
     logger->warning("Segmentation not supported yet");
     return 0;
   }
+
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
   hdr.p                      = 1; // FIXME
   hdr.si                     = rlc_nr_si_field_t::full_sdu;
   hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
   hdr.sn                     = st.tx_next;
+  log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
 
   uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu.get());
   if (len > nof_bytes) {
@@ -115,6 +125,8 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   st.tx_next = (st.tx_next + 1) % MOD;
 
   memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
+  logger->debug("Wrote RLC PDU - %d bytes", tx_sdu->N_bytes);
+
   return tx_sdu->N_bytes;
 }
 

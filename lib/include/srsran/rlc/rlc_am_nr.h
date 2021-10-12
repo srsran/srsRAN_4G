@@ -70,7 +70,7 @@ private:
    * Configurable parameters
    * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
    ***************************************************************************/
-  rlc_am_config_t cfg = {};
+  rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * Tx state variables
