@@ -282,10 +282,13 @@ public:
   bool                  push_blocking(const T& t) { return push_(t, true); }
   srsran::error_type<T> push_blocking(T&& t) { return push_(std::move(t), true); }
   bool                  try_pop(T& obj) { return pop_(obj, false); }
-  T                     pop_blocking()
+  T                     pop_blocking(bool* success = nullptr)
   {
-    T obj{};
-    pop_(obj, true);
+    T    obj{};
+    bool ret = pop_(obj, true);
+    if (success != nullptr) {
+      *success = ret;
+    }
     return obj;
   }
   bool pop_wait_until(T& obj, const std::chrono::system_clock::time_point& until) { return pop_(obj, true, &until); }
@@ -590,12 +593,6 @@ public:
     base_t(push_callback, pop_callback, size)
   {}
   void set_size(size_t size) { base_t::circ_buffer.set_size(size); }
-
-  template <typename F>
-  bool apply_first(const F& func)
-  {
-    return base_t::apply_first(func);
-  }
 };
 
 } // namespace srsran

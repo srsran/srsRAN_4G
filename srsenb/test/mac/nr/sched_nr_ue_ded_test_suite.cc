@@ -18,7 +18,7 @@ namespace srsenb {
 
 using namespace srsenb::sched_nr_impl;
 
-void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_output_res_t& cc_out)
+void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_result_view& cc_out)
 {
   slot_point             pdcch_slot = cc_out.slot;
   const pdcch_dl_list_t& pdcchs     = cc_out.dl_cc_result->dl_sched.pdcch_dl;
