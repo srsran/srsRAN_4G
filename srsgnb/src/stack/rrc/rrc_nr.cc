@@ -603,9 +603,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers[0].cc          = 0;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  ref_args.duplex   = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
   uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
@@ -665,6 +665,7 @@ srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu(const T& msg)
   pdu->N_bytes = bref.distance_bytes();
   return pdu;
 }
+
 template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_ccch_msg_s>(const dl_ccch_msg_s& msg);
 template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_dcch_msg_s>(const dl_dcch_msg_s& msg);
 
