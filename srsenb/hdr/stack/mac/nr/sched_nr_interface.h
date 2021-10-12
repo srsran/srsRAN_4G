@@ -67,7 +67,7 @@ public:
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
   };
 
-  struct sched_cfg_t {
+  struct sched_args_t {
     bool        pdsch_enabled      = true;
     bool        pusch_enabled      = true;
     bool        auto_refill_buffer = false;
@@ -88,9 +88,9 @@ public:
     srsran::phy_cfg_nr_t                                       phy_cfg    = {};
   };
 
-  ////// RACH //////
+  ////// RA procedure //////
 
-  struct dl_sched_rar_info_t {
+  struct rar_info_t {
     uint32_t   preamble_idx; // is this the RAPID?
     uint32_t   ofdm_symbol_idx;
     uint32_t   freq_idx;
@@ -99,32 +99,32 @@ public:
     uint32_t   msg3_size = 7;
     slot_point prach_slot;
   };
+  struct msg3_grant_t {
+    rar_info_t         data;
+    srsran_dci_ul_nr_t msg3_dci = {};
+  };
+  struct rar_t {
+    srsran::bounded_vector<msg3_grant_t, MAX_GRANTS> grants;
+  };
 
   ///// Sched Result /////
 
   using dl_sched_t = mac_interface_phy_nr::dl_sched_t;
   using ul_sched_t = mac_interface_phy_nr::ul_sched_t;
 
-  struct sched_rar_grant_t {
-    dl_sched_rar_info_t data;
-    srsran_dci_ul_nr_t  msg3_dci = {};
-  };
-  struct sched_rar_t {
-    srsran::bounded_vector<sched_rar_grant_t, MAX_GRANTS> grants;
-  };
-  using sched_rar_list_t = srsran::bounded_vector<sched_rar_t, MAX_GRANTS>;
+  using sched_rar_list_t = srsran::bounded_vector<rar_t, MAX_GRANTS>;
   struct dl_sched_res_t {
     sched_rar_list_t rar;
     dl_sched_t       dl_sched;
   };
 
   virtual ~sched_nr_interface() = default;
-  virtual int  config(const sched_cfg_t& sched_cfg, srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
-  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                                                   = 0;
-  virtual void ue_rem(uint16_t rnti)                                                                           = 0;
-  virtual bool ue_exists(uint16_t rnti)                                                                        = 0;
-  virtual int  run_slot(slot_point slot_rx, uint32_t cc, dl_sched_res_t& result)                               = 0;
-  virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_sched_t& result)                               = 0;
+  virtual int  config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
+  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                                                    = 0;
+  virtual void ue_rem(uint16_t rnti)                                                                            = 0;
+  virtual bool ue_exists(uint16_t rnti)                                                                         = 0;
+  virtual int  run_slot(slot_point slot_rx, uint32_t cc, dl_sched_res_t& result)                                = 0;
+  virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_sched_t& result)                                = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
   virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;

@@ -34,11 +34,11 @@ using bwp_cfg_t = sched_nr_interface::bwp_cfg_t;
 class coreset_region
 {
 public:
-  coreset_region(const bwp_params& bwp_cfg_,
-                 uint32_t          coreset_id_,
-                 uint32_t          slot_idx,
-                 pdcch_dl_list_t&  pdcch_dl_list,
-                 pdcch_ul_list_t&  pdcch_ul_list);
+  coreset_region(const bwp_params_t& bwp_cfg_,
+                 uint32_t            coreset_id_,
+                 uint32_t            slot_idx,
+                 pdcch_dl_list_t&    pdcch_dl_list,
+                 pdcch_ul_list_t&    pdcch_ul_list);
   void reset();
 
   /**

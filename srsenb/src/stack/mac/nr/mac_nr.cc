@@ -165,11 +165,11 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     ++detected_rachs[enb_cc_idx];
 
     // Trigger scheduler RACH
-    srsenb::sched_nr_interface::dl_sched_rar_info_t rar_info = {};
-    rar_info.preamble_idx                                    = rach_info.preamble;
-    rar_info.temp_crnti                                      = rnti;
-    rar_info.ta_cmd                                          = rach_info.time_adv;
-    rar_info.prach_slot                                      = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
+    srsenb::sched_nr_interface::rar_info_t rar_info = {};
+    rar_info.preamble_idx                           = rach_info.preamble;
+    rar_info.temp_crnti                             = rnti;
+    rar_info.ta_cmd                                 = rach_info.time_adv;
+    rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
     sched.dl_rach_info(enb_cc_idx, rar_info);
     rrc->add_user(rnti);
@@ -312,7 +312,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
         }
       }
     } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
-      sched_nr_interface::sched_rar_t& rar = dl_res.rar[rar_count++];
+      sched_nr_interface::rar_t& rar = dl_res.rar[rar_count++];
       // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
       pdsch.data[0] = assemble_rar(rar.grants);
     }
@@ -372,6 +372,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
 {
   uint16_t rnti      = pusch_info.rnti;
   uint32_t nof_bytes = pusch_info.pdu->N_bytes;
+
   // Handle UCI data
   if (not handle_uci_data(rnti, pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
     logger.error("Error handling UCI data from PUCCH reception");
@@ -405,7 +406,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
   return SRSRAN_SUCCESS;
 }
 
-srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants)
+srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interface::msg3_grant_t> grants)
 {
   srsran::mac_rar_pdu_nr rar_pdu;
 

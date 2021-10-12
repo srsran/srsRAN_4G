@@ -17,7 +17,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
+bwp_slot_grid::bwp_slot_grid(const bwp_params_t& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
@@ -52,7 +52,7 @@ void bwp_slot_grid::reset()
   rar.clear();
 }
 
-bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
+bwp_res_grid::bwp_res_grid(const bwp_params_t& bwp_cfg_) : cfg(&bwp_cfg_)
 {
   for (uint32_t sl = 0; sl < slots.capacity(); ++sl) {
     slots.emplace_back(*cfg, sl % static_cast<uint32_t>(SRSRAN_NSLOTS_PER_FRAME_NR(0u)));
@@ -161,7 +161,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   const int mcs = 0, max_harq_msg3_retx = 4;
   slot_cfg.idx = msg3_slot.to_uint();
   bwp_pdcch_slot.rar.emplace_back();
-  sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
+  sched_nr_interface::rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 

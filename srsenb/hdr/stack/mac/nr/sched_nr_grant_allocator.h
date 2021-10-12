@@ -24,7 +24,7 @@ namespace srsenb {
 namespace sched_nr_impl {
 
 // typedefs
-using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
+using dl_sched_rar_info_t = sched_nr_interface::rar_info_t;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -44,8 +44,8 @@ using harq_ack_list_t = srsran::bounded_vector<harq_ack_t, MAX_GRANTS>;
 /// save data for scheduler to keep track of previous allocations
 /// This only contains information about a given slot
 struct bwp_slot_grid {
-  uint32_t          slot_idx = 0;
-  const bwp_params* cfg      = nullptr;
+  uint32_t            slot_idx = 0;
+  const bwp_params_t* cfg      = nullptr;
 
   bwp_rb_bitmap     dl_prbs;
   bwp_rb_bitmap     ul_prbs;
@@ -63,7 +63,7 @@ struct bwp_slot_grid {
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
   bwp_slot_grid() = default;
-  explicit bwp_slot_grid(const bwp_params& bwp_params, uint32_t slot_idx_);
+  explicit bwp_slot_grid(const bwp_params_t& bwp_params, uint32_t slot_idx_);
   void reset();
 
   bool is_dl() const { return cfg->slots[slot_idx].is_dl; }
@@ -71,14 +71,14 @@ struct bwp_slot_grid {
 };
 
 struct bwp_res_grid {
-  explicit bwp_res_grid(const bwp_params& bwp_cfg_);
+  explicit bwp_res_grid(const bwp_params_t& bwp_cfg_);
 
   bwp_slot_grid&       operator[](slot_point tti) { return slots[tti.to_uint() % slots.capacity()]; };
   const bwp_slot_grid& operator[](slot_point tti) const { return slots[tti.to_uint() % slots.capacity()]; };
   uint32_t             id() const { return cfg->bwp_id; }
   uint32_t             nof_prbs() const { return cfg->cfg.rb_width; }
 
-  const bwp_params* cfg = nullptr;
+  const bwp_params_t* cfg = nullptr;
 
 private:
   // TTIMOD_SZ is the longest allocation in the future
@@ -114,7 +114,7 @@ public:
   slot_point          get_tti_rx() const { return pdcch_slot - TX_ENB_DELAY; }
   const bwp_res_grid& res_grid() const { return bwp_grid; }
 
-  const bwp_params& cfg;
+  const bwp_params_t& cfg;
 
 private:
   alloc_result verify_pdsch_space(bwp_slot_grid& pdsch_grid, bwp_slot_grid& pdcch_grid) const;

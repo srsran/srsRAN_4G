@@ -28,11 +28,11 @@
 namespace srsenb {
 
 struct mac_nr_args_t {
-  srsran::phy_cfg_nr_t            phy_base_cfg = {};
-  int                             fixed_dl_mcs = -1;
-  int                             fixed_ul_mcs = -1;
-  sched_nr_interface::sched_cfg_t sched_cfg    = {};
-  srsenb::pcap_args_t             pcap;
+  srsran::phy_cfg_nr_t             phy_base_cfg = {};
+  int                              fixed_dl_mcs = -1;
+  int                              fixed_ul_mcs = -1;
+  sched_nr_interface::sched_args_t sched_cfg    = {};
+  srsenb::pcap_args_t              pcap;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
@@ -87,7 +87,7 @@ private:
   void get_metrics_nolock(srsenb::mac_metrics_t& metrics);
 
   // Encoding
-  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
+  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::msg3_grant_t> grants);
   srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
 
   // Interaction with other components

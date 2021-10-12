@@ -81,7 +81,7 @@ void sched_nr_cfg_serialized_test()
   uint32_t         max_nof_ttis = 1000, nof_sectors = 4;
   task_job_manager tasks;
 
-  sched_nr_interface::sched_cfg_t cfg;
+  sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer = true;
 
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
@@ -132,7 +132,7 @@ void sched_nr_cfg_parallel_cc_test()
   uint32_t         max_nof_ttis = 1000;
   task_job_manager tasks;
 
-  sched_nr_interface::sched_cfg_t cfg;
+  sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer = true;
 
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);

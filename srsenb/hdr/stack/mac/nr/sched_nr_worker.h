@@ -30,10 +30,6 @@ struct mac_metrics_t;
 
 namespace sched_nr_impl {
 
-using dl_sched_t     = sched_nr_interface::dl_sched_t;
-using ul_sched_t     = sched_nr_interface::ul_sched_t;
-using dl_sched_res_t = sched_nr_interface::dl_sched_res_t;
-
 class slot_cc_worker
 {
 public:
@@ -57,9 +53,9 @@ private:
   void alloc_ul_ues();
   void postprocess_decisions();
 
-  const sched_cell_params& cfg;
-  serv_cell_manager&       cell;
-  srslog::basic_logger&    logger;
+  const cell_params_t&  cfg;
+  serv_cell_manager&    cell;
+  srslog::basic_logger& logger;
 
   slot_point         slot_rx;
   bwp_slot_allocator bwp_alloc;

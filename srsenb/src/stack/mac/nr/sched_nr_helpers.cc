@@ -22,7 +22,7 @@ namespace sched_nr_impl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dci)
+void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, DciDlOrUl& dci)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
@@ -47,7 +47,7 @@ void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dc
   dci.time_domain_assigment = 0;
 }
 
-bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci)
+bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
 {
   dci.mcs                   = 5;
   dci.ctx.format            = srsran_dci_format_nr_1_0;
@@ -65,7 +65,7 @@ bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_c
   return true;
 }
 
-bool fill_dci_msg3(const slot_ue& ue, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
+bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
 {
   fill_dci_common(ue, bwp_cfg, msg3_dci);
   msg3_dci.ctx.coreset_id = ue.cfg->phy().pdcch.ra_search_space.coreset_id;
@@ -82,7 +82,7 @@ bool fill_dci_msg3(const slot_ue& ue, const bwp_params& bwp_cfg, srsran_dci_ul_n
 }
 
 void fill_dl_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params&     bwp_cfg,
+                           const bwp_params_t&   bwp_cfg,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_dl_nr_t&   dci)
@@ -101,7 +101,7 @@ void fill_dl_dci_ue_fields(const slot_ue&        ue,
 }
 
 void fill_ul_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params&     bwp_cfg,
+                           const bwp_params_t&   bwp_cfg,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci)

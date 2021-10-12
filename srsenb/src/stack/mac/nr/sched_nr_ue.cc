@@ -21,7 +21,7 @@ slot_ue::slot_ue(uint16_t rnti_, slot_point slot_rx_, uint32_t cc_) : rnti(rnti_
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const sched_cell_params& cell_params_) :
+ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params_t& cell_params_) :
   rnti(rnti_),
   cc(cell_params_.cc),
   bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
@@ -59,7 +59,7 @@ slot_ue ue_carrier::try_reserve(slot_point      pdcch_slot,
   sfu.dl_pending_bytes = dl_pending_bytes;
   sfu.ul_pending_bytes = ul_pending_bytes;
 
-  const srsran_duplex_config_nr_t& tdd_cfg = cell_params.cell_cfg.duplex;
+  const srsran_duplex_config_nr_t& tdd_cfg = cell_params.cfg.duplex;
   if (srsran_duplex_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_slot.slot_idx())) {
     // If DL enabled
     sfu.h_dl = harq_ent.find_pending_dl_retx();

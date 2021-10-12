@@ -20,7 +20,25 @@ extern "C" {
 namespace srsenb {
 namespace sched_nr_impl {
 
-bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
+void get_dci_locs(const srsran_coreset_t&      coreset,
+                  const srsran_search_space_t& search_space,
+                  uint16_t                     rnti,
+                  bwp_cce_pos_list&            cce_locs)
+{
+  for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
+    for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
+      pdcch_cce_pos_list pdcch_locs;
+      cce_locs[sl][agg_idx].resize(pdcch_locs.capacity());
+      uint32_t n =
+          srsran_pdcch_nr_locations_coreset(&coreset, &search_space, rnti, agg_idx, sl, cce_locs[sl][agg_idx].data());
+      cce_locs[sl][agg_idx].resize(n);
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
   cell_cfg(cell),
   sched_cfg(sched_cfg_),
   cc(cc_),
@@ -73,39 +91,21 @@ bwp_params::bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, ui
   }
 }
 
-sched_cell_params::sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_) :
-  cc(cc_), cell_cfg(cell), sched_cfg(sched_cfg_)
+cell_params_t::cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_) :
+  cc(cc_), cfg(cell), sched_args(sched_cfg_)
 {
   bwps.reserve(cell.bwps.size());
-  for (uint32_t i = 0; i < cell_cfg.bwps.size(); ++i) {
-    bwps.emplace_back(cell_cfg, sched_cfg_, cc, i);
+  for (uint32_t i = 0; i < cfg.bwps.size(); ++i) {
+    bwps.emplace_back(cfg, sched_cfg_, cc, i);
   }
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }
 
-sched_params::sched_params(const sched_cfg_t& sched_cfg_) : sched_cfg(sched_cfg_) {}
+sched_params::sched_params(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg_) {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void get_dci_locs(const srsran_coreset_t&      coreset,
-                  const srsran_search_space_t& search_space,
-                  uint16_t                     rnti,
-                  bwp_cce_pos_list&            cce_locs)
-{
-  for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
-    for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
-      pdcch_cce_pos_list pdcch_locs;
-      cce_locs[sl][agg_idx].resize(pdcch_locs.capacity());
-      uint32_t n =
-          srsran_pdcch_nr_locations_coreset(&coreset, &search_space, rnti, agg_idx, sl, cce_locs[sl][agg_idx].data());
-      cce_locs[sl][agg_idx].resize(n);
-    }
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bwp_ue_cfg::bwp_ue_cfg(uint16_t rnti_, const bwp_params& bwp_cfg_, const ue_cfg_t& uecfg_) :
+bwp_ue_cfg::bwp_ue_cfg(uint16_t rnti_, const bwp_params_t& bwp_cfg_, const ue_cfg_t& uecfg_) :
   rnti(rnti_), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
 {
   std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);

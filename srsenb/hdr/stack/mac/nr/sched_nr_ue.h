@@ -62,7 +62,7 @@ public:
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const sched_cell_params& cell_params_);
+  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const cell_params_t& cell_params_);
   slot_ue try_reserve(slot_point pdcch_slot, const ue_cfg_t& uecfg_, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
 
   const uint16_t rnti;
@@ -78,8 +78,8 @@ public:
   mac_ue_metrics_t metrics = {};
 
 private:
-  bwp_ue_cfg               bwp_cfg;
-  const sched_cell_params& cell_params;
+  bwp_ue_cfg           bwp_cfg;
+  const cell_params_t& cell_params;
 };
 
 class ue

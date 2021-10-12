@@ -22,7 +22,7 @@ slot_cc_worker::slot_cc_worker(serv_cell_manager& cc_sched) :
   cell(cc_sched),
   cfg(cc_sched.cfg),
   bwp_alloc(cc_sched.bwps[0].grid),
-  logger(srslog::fetch_basic_logger(cc_sched.cfg.sched_cfg.logger_name))
+  logger(srslog::fetch_basic_logger(cc_sched.cfg.sched_args.logger_name))
 {}
 
 void slot_cc_worker::enqueue_cc_event(srsran::move_callback<void()> ev)
@@ -116,7 +116,7 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
 
 void slot_cc_worker::alloc_dl_ues()
 {
-  if (not cfg.sched_cfg.pdsch_enabled) {
+  if (not cfg.sched_args.pdsch_enabled) {
     return;
   }
   cell.bwps[0].data_sched->sched_dl_users(slot_ues, bwp_alloc);
@@ -124,7 +124,7 @@ void slot_cc_worker::alloc_dl_ues()
 
 void slot_cc_worker::alloc_ul_ues()
 {
-  if (not cfg.sched_cfg.pusch_enabled) {
+  if (not cfg.sched_args.pusch_enabled) {
     return;
   }
   cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);

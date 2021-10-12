@@ -30,15 +30,15 @@ void test_single_prach()
   std::default_random_engine   rgen(rand_gen());
 
   // Set scheduler configuration
-  sched_nr_interface::sched_cfg_t sched_cfg{};
+  sched_nr_interface::sched_args_t sched_cfg{};
   sched_cfg.auto_refill_buffer = std::uniform_int_distribution<uint32_t>{0, 1}(rgen) > 0;
 
   // Set cells configuration
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(1);
   sched_params                                schedparams{sched_cfg};
   schedparams.cells.emplace_back(0, cells_cfg[0], sched_cfg);
-  const bwp_params& bwpparams = schedparams.cells[0].bwps[0];
-  slot_ue_map_t     slot_ues;
+  const bwp_params_t& bwpparams = schedparams.cells[0].bwps[0];
+  slot_ue_map_t       slot_ues;
 
   ra_sched rasched(bwpparams);
   TESTASSERT(rasched.empty());
@@ -81,7 +81,7 @@ void test_single_prach()
   }
 
   // A PRACH arrives...
-  sched_nr_interface::dl_sched_rar_info_t rainfo{};
+  sched_nr_interface::rar_info_t rainfo{};
   rainfo.preamble_idx = 10;
   rainfo.temp_crnti   = rnti;
   rainfo.prach_slot   = prach_slot;

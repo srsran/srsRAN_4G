@@ -90,7 +90,7 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_output_res_t& cc_out)
   }
 }
 
-sched_nr_sim_base::sched_nr_sim_base(const sched_nr_interface::sched_cfg_t&             sched_args,
+sched_nr_sim_base::sched_nr_sim_base(const sched_nr_interface::sched_args_t&            sched_args,
                                      const std::vector<sched_nr_interface::cell_cfg_t>& cell_cfg_list,
                                      std::string                                        test_name_) :
   logger(srslog::fetch_basic_logger("TEST")),
@@ -123,7 +123,7 @@ int sched_nr_sim_base::add_user(uint16_t                            rnti,
   sched_ptr->ue_cfg(rnti, ue_cfg_);
   ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_slot_tx, preamble_idx)));
 
-  sched_nr_interface::dl_sched_rar_info_t rach_info{};
+  sched_nr_interface::rar_info_t rach_info{};
   rach_info.temp_crnti   = rnti;
   rach_info.prach_slot   = tti_rx;
   rach_info.preamble_idx = preamble_idx;
@@ -162,7 +162,7 @@ void sched_nr_sim_base::update(sched_nr_cc_output_res_t& cc_out)
   // Run common tests
   test_dl_pdcch_consistency(cc_out.dl_cc_result->dl_sched.pdcch_dl);
   test_pdsch_consistency(cc_out.dl_cc_result->dl_sched.pdsch);
-  test_ssb_scheduled_grant(cc_out.slot, ctxt.cell_params[cc_out.cc].cell_cfg, cc_out.dl_cc_result->dl_sched.ssb);
+  test_ssb_scheduled_grant(cc_out.slot, ctxt.cell_params[cc_out.cc].cfg, cc_out.dl_cc_result->dl_sched.ssb);
 
   // Run UE-dedicated tests
   test_dl_sched_result(ctxt, cc_out);

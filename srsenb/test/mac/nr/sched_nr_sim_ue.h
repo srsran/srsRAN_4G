@@ -74,8 +74,8 @@ struct sim_nr_ue_ctxt_t {
   }
 };
 struct sim_nr_enb_ctxt_t {
-  srsran::span<const sched_nr_impl::sched_cell_params> cell_params;
-  std::map<uint16_t, const sim_nr_ue_ctxt_t*>          ue_db;
+  srsran::span<const sched_nr_impl::cell_params_t> cell_params;
+  std::map<uint16_t, const sim_nr_ue_ctxt_t*>      ue_db;
 };
 
 class sched_nr_ue_sim
@@ -101,7 +101,7 @@ private:
 class sched_nr_sim_base
 {
 public:
-  sched_nr_sim_base(const sched_nr_interface::sched_cfg_t&             sched_args,
+  sched_nr_sim_base(const sched_nr_interface::sched_args_t&            sched_args,
                     const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
                     std::string                                        test_name);
   virtual ~sched_nr_sim_base();
@@ -129,9 +129,9 @@ public:
     const sched_nr_ue_sim* ret = find_rnti(rnti);
     return ret == nullptr ? nullptr : &ret->get_ctxt().ue_cfg;
   }
-  sched_nr*                                            get_sched() { return sched_ptr.get(); }
-  srsran::const_span<sched_nr_impl::sched_cell_params> get_cell_params() { return cell_params; }
-  slot_point                                           get_slot_rx() const
+  sched_nr*                                        get_sched() { return sched_ptr.get(); }
+  srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() { return cell_params; }
+  slot_point                                       get_slot_rx() const
   {
     std::lock_guard<std::mutex> lock(mutex);
     return current_slot_tx;
@@ -149,11 +149,11 @@ private:
   int set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events);
   int apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events);
 
-  std::string                                   test_name;
-  srslog::basic_logger&                         logger;
-  srslog::basic_logger&                         mac_logger;
-  std::unique_ptr<sched_nr>                     sched_ptr;
-  std::vector<sched_nr_impl::sched_cell_params> cell_params;
+  std::string                               test_name;
+  srslog::basic_logger&                     logger;
+  srslog::basic_logger&                     mac_logger;
+  std::unique_ptr<sched_nr>                 sched_ptr;
+  std::vector<sched_nr_impl::cell_params_t> cell_params;
 
   slot_point current_slot_tx;
   int        cc_finished = 0;

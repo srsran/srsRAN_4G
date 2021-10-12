@@ -25,12 +25,12 @@ namespace sched_nr_impl {
 class si_sched
 {
 public:
-  explicit si_sched(const bwp_params& bwp_cfg_);
+  explicit si_sched(const bwp_params_t& bwp_cfg_);
 
   void run_slot(bwp_slot_allocator& slot_alloc);
 
 private:
-  const bwp_params*     bwp_cfg = nullptr;
+  const bwp_params_t*   bwp_cfg = nullptr;
   srslog::basic_logger& logger;
 
   struct sched_si_t {
@@ -45,13 +45,13 @@ private:
   srsran::bounded_vector<sched_si_t, 10> pending_sis;
 };
 
-using dl_sched_rar_info_t = sched_nr_interface::dl_sched_rar_info_t;
+using dl_sched_rar_info_t = sched_nr_interface::rar_info_t;
 
 /// RAR/Msg3 scheduler
 class ra_sched
 {
 public:
-  explicit ra_sched(const bwp_params& bwp_cfg_);
+  explicit ra_sched(const bwp_params_t& bwp_cfg_);
 
   /// Addition of detected PRACH into the queue
   int dl_rach_info(const dl_sched_rar_info_t& rar_info);
@@ -73,7 +73,7 @@ private:
   alloc_result
   allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc);
 
-  const bwp_params*     bwp_cfg = nullptr;
+  const bwp_params_t*   bwp_cfg = nullptr;
   srslog::basic_logger& logger;
 
   srsran::deque<pending_rar_t> pending_rars;
@@ -82,9 +82,9 @@ private:
 class bwp_ctxt
 {
 public:
-  explicit bwp_ctxt(const bwp_params& bwp_cfg);
+  explicit bwp_ctxt(const bwp_params_t& bwp_cfg);
 
-  const bwp_params* cfg;
+  const bwp_params_t* cfg;
 
   // channel-specific schedulers
   ra_sched                       ra;
@@ -99,10 +99,10 @@ class serv_cell_manager
 public:
   using feedback_callback_t = srsran::move_callback<void(ue_carrier&)>;
 
-  explicit serv_cell_manager(const sched_cell_params& cell_cfg_);
+  explicit serv_cell_manager(const cell_params_t& cell_cfg_);
 
   srsran::bounded_vector<bwp_ctxt, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-  const sched_cell_params&                                    cfg;
+  const cell_params_t&                                        cfg;
 
 private:
   srslog::basic_logger& logger;

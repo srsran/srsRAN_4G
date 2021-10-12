@@ -70,7 +70,7 @@ sched_nr::sched_nr() : logger(&srslog::fetch_basic_logger("MAC-NR")) {}
 
 sched_nr::~sched_nr() {}
 
-int sched_nr::config(const sched_cfg_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list)
+int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list)
 {
   cfg    = sched_params{sched_cfg};
   logger = &srslog::fetch_basic_logger(sched_cfg.logger_name);
@@ -153,7 +153,7 @@ void sched_nr::get_metrics(mac_metrics_t& metrics)
   sched_workers->get_metrics(metrics);
 }
 
-int sched_nr::dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info)
+int sched_nr::dl_rach_info(uint32_t cc, const rar_info_t& rar_info)
 {
   sched_workers->enqueue_cc_event(cc, [this, cc, rar_info]() { cells[cc]->bwps[0].ra.dl_rach_info(rar_info); });
   return SRSRAN_SUCCESS;
