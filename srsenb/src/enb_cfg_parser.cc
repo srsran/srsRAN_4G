@@ -1498,7 +1498,7 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     cfg.phy_cell.prach.is_nr                 = true;
     cfg.phy_cell.prach.config_idx            = 0;
     cfg.phy_cell.prach.root_seq_idx          = 0;
-    cfg.phy_cell.prach.freq_offset           = phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset;
+    cfg.phy_cell.prach.freq_offset           = 1;
     cfg.phy_cell.prach.num_ra_preambles      = cfg.phy_cell.num_ra_preambles;
     cfg.phy_cell.prach.hs_flag               = phy_cfg_->prach_cnfg.prach_cfg_info.high_speed_flag;
     cfg.phy_cell.prach.tdd_config.configured = (cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);

@@ -240,6 +240,7 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
   serv_common.ss_pbch_block_pwr               = 0;
   serv_common.n_timing_advance_offset_present = true;
   serv_common.n_timing_advance_offset = asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
+  serv_common.n_timing_advance_offset_present = true;
   serv_common.dmrs_type_a_position    = asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
 
   serv_common.pci_present = true;
