@@ -451,7 +451,8 @@ public:
     valid = true;
   }
 
-  ~gnb_dummy_stack() {}
+  ~gnb_dummy_stack() = default;
+
   bool is_valid() const { return valid; }
 
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
@@ -712,7 +713,11 @@ public:
   metrics_t get_metrics()
   {
     std::unique_lock<std::mutex> lock(metrics_mutex);
-
+    if (not use_dummy_mac) {
+      srsenb::mac_metrics_t mac_metrics;
+      mac->get_metrics(mac_metrics);
+      metrics.mac = mac_metrics.ues[0];
+    }
     return metrics;
   }
 };

@@ -48,6 +48,7 @@ public:
             rrc_interface_mac_nr*   rrc_);
   void stop();
 
+  /// Called from metrics thread.
   void get_metrics(srsenb::mac_metrics_t& metrics);
 
   // MAC interface for RRC
@@ -127,11 +128,6 @@ private:
 
   // Number of rach preambles detected for a CC
   std::vector<uint32_t> detected_rachs;
-
-  // Metrics
-  std::mutex              metrics_mutex;
-  std::condition_variable metrics_condvar;
-  srsenb::mac_metrics_t*  metrics_pending = nullptr;
 };
 
 } // namespace srsenb

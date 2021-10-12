@@ -76,15 +76,13 @@ void mac_nr::stop()
   }
 }
 
-/// Called from metrics thread
+/// Called from metrics thread.
+/// Note: This can contend for the same mutexes as the ones used by L1/L2 workers.
+///       However, get_metrics is called infrequently enough to cause major halts in the L1/L2
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
 {
-  // Requests asynchronously MAC metrics
-  std::unique_lock<std::mutex> lock(metrics_mutex);
-  metrics_pending = &metrics;
-
-  // Blocks waiting for results
-  metrics_condvar.wait(lock, [this]() { return metrics_pending == nullptr; });
+  get_metrics_nolock(metrics);
+  sched.get_metrics(metrics);
 }
 
 void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
@@ -286,24 +284,10 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   slot_point                         pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
   sched_nr_interface::dl_sched_res_t dl_res;
 
-  // Get metrics if requested
-  {
-    std::unique_lock<std::mutex> metrics_lock(metrics_mutex);
-    if (metrics_pending != nullptr) {
-      get_metrics_nolock(*metrics_pending);
-    }
-
-    // Run Scheduler
-    int ret = sched.run_slot(pdsch_slot, 0, dl_res, metrics_pending);
-
-    // Notify metrics are filled, if requested
-    if (metrics_pending != nullptr) {
-      metrics_pending = nullptr;
-      metrics_condvar.notify_one();
-    }
-    if (ret != SRSRAN_SUCCESS) {
-      return ret;
-    }
+  // Run Scheduler
+  int ret = sched.run_slot(pdsch_slot, 0, dl_res);
+  if (ret != SRSRAN_SUCCESS) {
+    return ret;
   }
   dl_sched = dl_res.dl_sched;
 

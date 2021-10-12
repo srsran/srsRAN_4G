@@ -124,13 +124,13 @@ void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 }
 
 /// Generate {pdcch_slot,cc} scheduling decision
-int sched_nr::run_slot(slot_point slot_dl, uint32_t cc, dl_sched_res_t& result, mac_metrics_t* metrics)
+int sched_nr::run_slot(slot_point slot_dl, uint32_t cc, dl_sched_res_t& result)
 {
   // Copy UL results to intermediate buffer
   ul_sched_t& ul_res = pending_results->add_ul_result(slot_dl, cc);
 
   // Generate {slot_idx,cc} result
-  sched_workers->run_slot(slot_dl, cc, result, ul_res, metrics);
+  sched_workers->run_slot(slot_dl, cc, result, ul_res);
 
   return SRSRAN_SUCCESS;
 }
@@ -146,6 +146,11 @@ int sched_nr::get_ul_sched(slot_point slot_ul, uint32_t cc, ul_sched_t& result)
 
   result = pending_results->pop_ul_result(slot_ul, cc);
   return SRSRAN_SUCCESS;
+}
+
+void sched_nr::get_metrics(mac_metrics_t& metrics)
+{
+  sched_workers->get_metrics(metrics);
 }
 
 int sched_nr::dl_rach_info(uint32_t cc, const dl_sched_rar_info_t& rar_info)

@@ -256,11 +256,7 @@ void sched_worker_manager::update_ue_db(slot_point slot_tx, bool locked_context)
   }
 }
 
-void sched_worker_manager::run_slot(slot_point      slot_tx,
-                                    uint32_t        cc,
-                                    dl_sched_res_t& dl_res,
-                                    ul_sched_t&     ul_res,
-                                    mac_metrics_t*  metrics)
+void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {
   // Fill DL signalling messages that do not depend on UEs state
   serv_cell_manager& serv_cell = *cells[cc];
@@ -288,11 +284,6 @@ void sched_worker_manager::run_slot(slot_point      slot_tx,
         next_slot_events.swap(slot_events);
       }
       update_ue_db(slot_tx, true);
-
-      // Obtain MAC metrics if requested
-      if (metrics != nullptr) {
-        get_metrics(*metrics);
-      }
 
       // mark the start of slot. awake remaining workers if locking on the mutex
       current_slot = slot_tx;
@@ -346,6 +337,12 @@ void sched_worker_manager::run_slot(slot_point      slot_tx,
   save_sched_result(slot_tx, cc, dl_res, ul_res);
 }
 
+void sched_worker_manager::get_metrics(mac_metrics_t& metrics)
+{
+  std::unique_lock<std::mutex> lock(slot_mutex);
+  get_metrics_nolocking(metrics);
+}
+
 bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
                                              uint32_t        cc,
                                              dl_sched_res_t& dl_res,
@@ -369,7 +366,7 @@ bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
   return true;
 }
 
-void sched_worker_manager::get_metrics(mac_metrics_t& metrics)
+void sched_worker_manager::get_metrics_nolocking(mac_metrics_t& metrics)
 {
   for (mac_ue_metrics_t& ue_metric : metrics.ues) {
     if (ue_db.contains(ue_metric.rnti) and ue_db[ue_metric.rnti]->carriers[0] != nullptr) {
