@@ -1539,6 +1539,18 @@ bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_ce
   return true;
 }
 
+bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell,
+                                    srsran_duplex_config_nr_t*                     duplex_cfg)
+{
+  duplex_cfg->mode = serv_cell.tdd_ul_dl_cfg_common_present ? SRSRAN_DUPLEX_MODE_TDD : SRSRAN_DUPLEX_MODE_FDD;
+  if (serv_cell.tdd_ul_dl_cfg_common_present) {
+    if (not make_phy_tdd_cfg(serv_cell.tdd_ul_dl_cfg_common, duplex_cfg)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace srsran
 
 namespace srsenb {

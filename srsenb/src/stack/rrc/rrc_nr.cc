@@ -254,6 +254,8 @@ void rrc_nr::config_mac()
   ret2 = srsran::make_phy_ssb_cfg(
       cfg.cell_list[0].phy_cell.carrier, sp_cell.recfg_with_sync.sp_cell_cfg_common, &cell.ssb);
   srsran_assert(ret2, "Invalid NR cell configuration.");
+  ret2 = srsran::make_duplex_cfg_from_serv_cell(sp_cell.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
+  srsran_assert(ret2, "Invalid NR cell configuration.");
 
   // FIXME: entire SI configuration, etc needs to be ported to NR
   sched_interface::cell_cfg_t cell_cfg;
@@ -1401,6 +1403,8 @@ void rrc_nr::ue::crnti_ce_received()
     srsran::make_phy_ssb_cfg(parent->cfg.cell_list[0].phy_cell.carrier,
                              cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
                              &uecfg.phy_cfg.ssb);
+    srsran::make_duplex_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
+                                           &uecfg.phy_cfg.duplex);
 
     parent->mac->ue_cfg(rnti, uecfg);
   }
