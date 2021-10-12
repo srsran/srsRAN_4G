@@ -140,6 +140,7 @@ private:
                                              const pdu_session_cfg_t& pdu_session);
   int send_deregistration_request_ue_originating(bool switch_off);
   int send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity_types_::options requested_identity_type);
+  int send_configuration_update_complete();
 
   // Helper functions
   void fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_caps);
