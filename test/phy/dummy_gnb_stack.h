@@ -61,13 +61,13 @@ public:
     uint32_t                            cqi_count       = 0;  ///< CQI opportunity counter
     uint32_t                            cqi_valid_count = 0;  ///< Valid CQI counter
     pucch_metrics_t                     pucch           = {};
-    pucch_metrics_t                     pusch    = {};
+    pucch_metrics_t                     pusch           = {};
   };
 
 private:
-  srslog::basic_logger& logger          = srslog::fetch_basic_logger("GNB STK");
-  bool                  use_dummy_sched = true;
-  const uint16_t        rnti            = 0x1234;
+  srslog::basic_logger& logger        = srslog::fetch_basic_logger("GNB STK");
+  bool                  use_dummy_mac = true;
+  const uint16_t        rnti          = 0x1234;
   struct {
     srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_location = {};
     uint32_t                                                             mcs          = 0;
@@ -329,8 +329,8 @@ private:
 
 public:
   struct args_t {
-    srsran::phy_cfg_nr_t phy_cfg;                ///< Physical layer configuration
-    bool                 use_dummy_sched = true; ///< Use dummy or real NR scheduler
+    srsran::phy_cfg_nr_t phy_cfg;                    ///< Physical layer configuration
+    std::string          use_dummy_mac = "dummymac"; ///< Use dummy or real NR scheduler
     bool     wait_preamble           = false;  ///< Whether a UE is created automatically or the stack waits for a PRACH
     uint16_t rnti                    = 0x1234; ///< C-RNTI
     uint32_t ss_id                   = 1;      ///< Search Space identifier
@@ -350,7 +350,7 @@ public:
     rnti(args.rnti),
     phy_cfg(args.phy_cfg),
     ss_id(args.ss_id),
-    use_dummy_sched(args.use_dummy_sched),
+    use_dummy_mac(args.use_dummy_mac == "dummymac"),
     sched_logger(srslog::fetch_basic_logger("MAC"))
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
@@ -369,7 +369,7 @@ public:
     mac->cell_cfg(cells_cfg);
 
     // add UE to scheduler
-    if (not use_dummy_sched and not args.wait_preamble) {
+    if (not use_dummy_mac and not args.wait_preamble) {
       mac->reserve_rnti(0);
 
       srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
@@ -461,7 +461,7 @@ public:
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
 
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       if (autofill_pdsch_bsr) {
         mac->rlc_buffer_state(rnti, 0, 10000, 0);
       }
@@ -539,7 +539,7 @@ public:
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
 
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       int ret = mac->get_ul_sched(slot_cfg, ul_sched);
 
       return ret;
@@ -618,7 +618,7 @@ public:
 
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
   {
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       mac->pucch_info(slot_cfg, pucch_info);
       return SRSRAN_SUCCESS;
     }
@@ -655,7 +655,7 @@ public:
 
   int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
   {
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       mac->pusch_info(slot_cfg, pusch_info);
     }
 
@@ -693,7 +693,7 @@ public:
 
   void rach_detected(const rach_info_t& rach_info) override
   {
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       mac->rach_detected(rach_info);
       task_sched.run_pending_tasks();
 

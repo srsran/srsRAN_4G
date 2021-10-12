@@ -42,11 +42,6 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
     foreach (NR_PHY_TEST_BW "10MHz" "20MHz")
         # For dummy and real scheduler
         foreach (NR_PHY_TEST_MAC_DUMMY "dummymac" "realmac")
-            if(${NR_PHY_TEST_MAC_DUMMY} EQUAL "dummymac")
-                set(NR_PHY_TEST_MAC_DUMMY_FLAG true)
-            else()
-                set(NR_PHY_TEST_MAC_DUMMY_FLAG false)
-            endif()
             # For each supported frame structure
             foreach (NR_PHY_TEST_DUPLEX "FDD" "6D+4U" "FR1.15-1")
                 set(NR_PHY_TEST_DURATION_MS 50)
@@ -61,7 +56,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                             --gnb.stack.pdsch.length=52 # Full 10 MHz BW
                             --gnb.stack.pdsch.mcs=27 # Maximum MCS
                             --gnb.stack.pusch.slots=none
-                            --gnb.stack.use_dummy_sched=${NR_PHY_TEST_MAC_DUMMY_FLAG} # Use real/dummy NR MAC
+                            --gnb.stack.use_dummy_mac=${NR_PHY_TEST_MAC_DUMMY} # Use real/dummy NR MAC
                             ${NR_PHY_TEST_COMMON_ARGS}
                             )
                 endforeach ()
@@ -75,7 +70,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                         --gnb.stack.pusch.start=0 # Start at RB 0
                         --gnb.stack.pusch.length=52 # Full 10 MHz BW
                         --gnb.stack.pusch.mcs=28 # Maximum MCS
-                        --gnb.stack.use_dummy_sched=${NR_PHY_TEST_MAC_DUMMY_FLAG} # Use real/dummy NR MAC
+                        --gnb.stack.use_dummy_mac=${NR_PHY_TEST_MAC_DUMMY} # Use real/dummy NR MAC
                         ${NR_PHY_TEST_COMMON_ARGS}
                         )
 
@@ -91,7 +86,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
                         --gnb.stack.pusch.start=0 # Start at RB 0
                         --gnb.stack.pusch.length=52 # Full 10 MHz BW
                         --gnb.stack.pusch.mcs=28 # Maximum MCS
-                        --gnb.stack.use_dummy_sched=${NR_PHY_TEST_MAC_DUMMY_FLAG} # Use real/dummy NR MAC
+                        --gnb.stack.use_dummy_mac=${NR_PHY_TEST_MAC_DUMMY} # Use real/dummy NR MAC
                         ${NR_PHY_TEST_COMMON_ARGS}
                         )
             endforeach ()
