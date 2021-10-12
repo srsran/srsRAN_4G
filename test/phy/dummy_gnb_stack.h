@@ -621,13 +621,12 @@ public:
   {
     if (not use_dummy_mac) {
       mac->pucch_info(slot_cfg, pucch_info);
-      return SRSRAN_SUCCESS;
-    }
-
-    // Handle UCI data
-    if (not handle_uci_data(pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
-      logger.error("Error handling UCI data from PUCCH reception");
-      return SRSRAN_ERROR;
+    } else {
+      // Handle UCI data
+      if (not handle_uci_data(pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
+        logger.error("Error handling UCI data from PUCCH reception");
+        return SRSRAN_ERROR;
+      }
     }
 
     // Skip next steps if uci data is invalid
@@ -658,21 +657,21 @@ public:
   {
     if (not use_dummy_mac) {
       mac->pusch_info(slot_cfg, pusch_info);
-    }
+    } else {
+      // Handle UCI data
+      if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
+        logger.error("Error handling UCI data from PUCCH reception");
+        return SRSRAN_ERROR;
+      }
 
-    // Handle UCI data
-    if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
-      logger.error("Error handling UCI data from PUCCH reception");
-      return SRSRAN_ERROR;
+      // Handle UL-SCH metrics
+      std::unique_lock<std::mutex> lock(metrics_mutex);
+      if (not pusch_info.pusch_data.tb[0].crc) {
+        metrics.mac.rx_errors++;
+      }
+      metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
+      metrics.mac.rx_pkts++;
     }
-
-    // Handle UL-SCH metrics
-    std::unique_lock<std::mutex> lock(metrics_mutex);
-    if (not pusch_info.pusch_data.tb[0].crc) {
-      metrics.mac.rx_errors++;
-    }
-    metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
-    metrics.mac.rx_pkts++;
 
     // Handle PHY metrics
     metrics.pusch.epre_db_avg = SRSRAN_VEC_CMA(pusch_info.csi.epre_dB, metrics.pusch.epre_db_avg, metrics.pusch.count);
