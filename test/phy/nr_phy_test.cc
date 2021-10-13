@@ -28,6 +28,7 @@ static double assert_pdsch_bler_max      = 0.000;
 static double assert_prach_detection_min = 1.000;
 static double assert_prach_ta_min        = 0.000;
 static double assert_prach_ta_max        = 0.000;
+static double assert_pucch_snr_min       = 0.000;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
@@ -101,6 +102,7 @@ test_bench::args_t::args_t(int argc, char** argv)
       ("assert.pdsch.bler.max",    bpo::value<double>(&assert_pdsch_bler_max)->default_value(assert_pdsch_bler_max),       "PDSCH maximum BLER threshold")
       ("assert.prach.ta.min",      bpo::value<double>(&assert_prach_ta_min)->default_value(assert_prach_ta_min),           "PRACH estimated TA minimum value threshold")
       ("assert.prach.ta.max",      bpo::value<double>(&assert_prach_ta_max)->default_value(assert_prach_ta_max),           "PRACH estimated TA maximum value threshold")
+      ("assert.pucch.snr.min",     bpo::value<double>(&assert_pucch_snr_min)->default_value(assert_pucch_snr_min),         "PUCCH DMRS minimum SNR allowed threshold")
       ;
 
   options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
@@ -196,48 +198,6 @@ int main(int argc, char** argv)
 
   // Retrieve MAC metrics
   test_bench::metrics_t metrics = tb.get_metrics();
-
-  // Print PDSCH metrics if scheduled
-  if (metrics.gnb_stack.mac.tx_pkts > 0) {
-    float pdsch_bler = 0.0f;
-    pdsch_bler       = (float)metrics.gnb_stack.mac.tx_errors / (float)metrics.gnb_stack.mac.tx_pkts;
-
-    float pdsch_shed_rate   = 0.0f;
-    pdsch_shed_rate         = (float)metrics.gnb_stack.mac.tx_brate / (float)metrics.gnb_stack.mac.tx_pkts / 1000.0f;
-    float decode_iterations = metrics.ue_phy.dl[0].fec_iters;
-    float ue_snr            = metrics.ue_phy.ch[0].sinr;
-
-    srsran::console("PDSCH:\n");
-    srsran::console("          Count: %d\n", metrics.gnb_stack.mac.tx_pkts);
-    srsran::console("           BLER: %f\n", pdsch_bler);
-    srsran::console("     Sched Rate: %f Mbps\n", pdsch_shed_rate);
-    srsran::console("       Net Rate: %f Mbps\n", (1.0f - pdsch_bler) * pdsch_shed_rate);
-    srsran::console("      Retx Rate: %f Mbps\n", pdsch_bler * pdsch_shed_rate);
-    srsran::console("   Measured SNR: %f dB\n", ue_snr);
-    srsran::console(" Dec Iterations: %f\n", decode_iterations);
-    srsran::console("\n");
-  }
-
-  // Print PUSCH metrics if scheduled
-  if (metrics.gnb_stack.mac.rx_pkts > 0) {
-    float pusch_bler = 0.0f;
-    if (metrics.gnb_stack.mac.rx_pkts != 0) {
-      pusch_bler = (float)metrics.gnb_stack.mac.rx_errors / (float)metrics.gnb_stack.mac.rx_pkts;
-    }
-
-    float pusch_shed_rate = 0.0f;
-    if (metrics.gnb_stack.mac.rx_pkts != 0) {
-      pusch_shed_rate = (float)metrics.gnb_stack.mac.rx_brate / (float)metrics.gnb_stack.mac.rx_pkts / 1000.0f;
-    }
-
-    srsran::console("PUSCH:\n");
-    srsran::console("          Count: %d\n", metrics.gnb_stack.mac.rx_pkts);
-    srsran::console("           BLER: %f\n", pusch_bler);
-    srsran::console("     Sched Rate: %f Mbps\n", pusch_shed_rate);
-    srsran::console("       Net Rate: %f Mbps\n", (1.0f - pusch_bler) * pusch_shed_rate);
-    srsran::console("      Retx Rate: %f Mbps\n", pusch_bler * pusch_shed_rate);
-    srsran::console("\n");
-  }
 
   // Print PRACH
   double   prach_detection = 0.0;
@@ -448,6 +408,10 @@ int main(int argc, char** argv)
                 prach_ta,
                 assert_prach_ta_min,
                 assert_prach_ta_max);
+  srsran_assert(metrics.gnb_stack.pucch.count == 0 or (metrics.gnb_stack.pucch.snr_db_min >= assert_pucch_snr_min),
+                "Minimum PUCCH DMRS SNR %f is below the minimum (%d)",
+                metrics.gnb_stack.pucch.snr_db_min,
+                assert_pucch_snr_min);
 
   // If reached here, the test is successful
   return SRSRAN_SUCCESS;
