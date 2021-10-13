@@ -145,17 +145,19 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, prbs={}, nrtx={}, dai={}, tbs={}, "
-                     "pdsch_slot={}, tti_ack={}",
+                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, cs={}, f={}, prbs={}, nrtx={}, dai={}, "
+                     "tbs={}, bs={}, pdsch_slot={}, tti_ack={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
+                     pdcch.dci.ctx.coreset_id,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_dl->prbs(),
                      ue.h_dl->nof_retx(),
                      pdcch.dci.dai,
                      ue.h_dl->tbs(),
+                     ue.dl_pending_bytes,
                      ue.pdsch_slot,
                      ue.uci_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
@@ -164,7 +166,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
       uint32_t                 start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
       uint32_t end_idx = std::distance(prbs.begin(), std::find(prbs.begin() + start_idx, prbs.end(), false));
       fmt::format_to(fmtbuf,
-                     "SCHED: DL RAR, cc={}, ra-rnti=0x{:x}, prbs={}, pdsch_slot={}, msg3_slot={}, nof_grants={}",
+                     "SCHED: RAR, cc={}, ra-rnti=0x{:x}, prbs={}, pdsch_slot={}, msg3_slot={}, nof_grants={}",
                      res_grid.cfg->cc,
                      pdcch.dci.ctx.rnti,
                      srsran::interval<uint32_t>{start_idx, end_idx},
@@ -183,15 +185,16 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, pending_bytes={}, tbs={}, tti_pusch={}",
+                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, cs={}, f={}, nrtx={}, tbs={}, bs={}, tti_pusch={}",
                      ue.h_ul->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
+                     pdcch.dci.ctx.coreset_id,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_ul->nof_retx(),
-                     ue.ul_pending_bytes,
                      ue.h_ul->tbs(),
+                     ue.ul_pending_bytes,
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
