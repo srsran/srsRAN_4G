@@ -259,7 +259,7 @@ private:
 
   search::ret_code cell_search_ret = search::CELL_NOT_FOUND;
 
-  // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
+  // Sampling rate mode (find is 1.92 MHz, camp is the full cell BW)
   class srate_safe
   {
   public:
