@@ -89,7 +89,7 @@ void ue::set_cfg(const ue_cfg_t& cfg)
   for (auto& ue_cc_cfg : cfg.carriers) {
     if (ue_cc_cfg.active) {
       if (carriers[ue_cc_cfg.cc] == nullptr) {
-        carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[ue_cc_cfg.cc]));
+        carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, ue_cfg, sched_cfg.cells[ue_cc_cfg.cc]));
       } else {
         carriers[ue_cc_cfg.cc]->set_cfg(ue_cfg);
       }
