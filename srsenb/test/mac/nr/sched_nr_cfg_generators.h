@@ -94,10 +94,6 @@ inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t cc)
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
   uecfg.phy_cfg.csi = {};
 
-  // Note: dynamic MCS not yet supported
-  uecfg.fixed_dl_mcs = 28;
-  uecfg.fixed_ul_mcs = 28;
-
   return uecfg;
 }
 
@@ -113,10 +109,6 @@ inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
   }
   uecfg.phy_cfg                 = phy_cfg;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-
-  // Note: dynamic MCS not yet supported
-  uecfg.fixed_dl_mcs = 28;
-  uecfg.fixed_ul_mcs = 28;
 
   return uecfg;
 }

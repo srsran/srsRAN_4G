@@ -71,6 +71,8 @@ public:
     bool        pdsch_enabled      = true;
     bool        pusch_enabled      = true;
     bool        auto_refill_buffer = false;
+    int         fixed_dl_mcs       = -1;
+    int         fixed_ul_mcs       = -1;
     std::string logger_name        = "MAC-NR";
   };
 
@@ -80,9 +82,7 @@ public:
   };
 
   struct ue_cfg_t {
-    uint32_t                                                   maxharq_tx   = 4;
-    int                                                        fixed_dl_mcs = -1;
-    int                                                        fixed_ul_mcs = -1;
+    uint32_t                                                   maxharq_tx = 4;
     srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
     std::array<mac_lc_ch_cfg_t, SCHED_NR_MAX_LCID>             ue_bearers = {};
     srsran::phy_cfg_nr_t                                       phy_cfg    = {};

@@ -366,6 +366,8 @@ public:
     srsenb::mac_nr_args_t mac_args{};
     mac_args.sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
     mac_args.sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
+    mac_args.sched_cfg.fixed_dl_mcs  = args.pdsch.mcs;
+    mac_args.sched_cfg.fixed_ul_mcs  = args.pusch.mcs;
     mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
@@ -375,8 +377,6 @@ public:
       mac->reserve_rnti(0);
 
       srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-      ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
-      ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
       ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
       mac->ue_cfg(args.rnti, ue_cfg);
     }
@@ -698,11 +698,6 @@ public:
     if (not use_dummy_mac) {
       mac->rach_detected(rach_info);
       task_sched.run_pending_tasks();
-
-      srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-      ue_cfg.fixed_dl_mcs                         = ue_cfg.fixed_dl_mcs;
-      ue_cfg.fixed_ul_mcs                         = ue_cfg.fixed_ul_mcs;
-      mac->ue_cfg(rnti, ue_cfg);
     }
 
     std::unique_lock<std::mutex> lock(metrics_mutex);

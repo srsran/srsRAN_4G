@@ -89,8 +89,6 @@ void sched_nr_cfg_serialized_test()
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Serialized Test");
 
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
-  uecfg.fixed_dl_mcs                 = 15;
-  uecfg.fixed_ul_mcs                 = 15;
   sched_tester.add_user(0x46, uecfg, slot_point{0, 0}, 0);
 
   std::vector<long> count_per_cc(nof_sectors, 0);
@@ -140,8 +138,6 @@ void sched_nr_cfg_parallel_cc_test()
   sched_nr_sim_base sched_tester(cfg, cells_cfg, "Parallel CC Test");
 
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(cells_cfg.size());
-  uecfg.fixed_dl_mcs                 = 15;
-  uecfg.fixed_ul_mcs                 = 15;
   sched_tester.add_user(0x46, uecfg, slot_point{0, 0}, 0);
 
   std::array<std::atomic<long>, SRSRAN_MAX_CARRIERS> nano_count{};

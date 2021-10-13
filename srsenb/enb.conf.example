@@ -186,6 +186,8 @@ enable = false
 # init_dl_cqi:       DL CQI value used before any CQI report is available to the eNB
 # max_sib_coderate:  Upper bound on SIB and RAR grants coderate
 # pdcch_cqi_offset:  CQI offset in derivation of PDCCH aggregation level
+# pdsch_mcs:         Optional fixed NR PDSCH MCS (ignores reported CQIs if specified)
+# pusch_mcs:         Optional fixed NR PUSCH MCS (ignores reported CQIs if specified)
 #
 #####################################################################
 [scheduler]
@@ -213,6 +215,8 @@ enable = false
 #init_dl_cqi=5
 #max_sib_coderate=0.3
 #pdcch_cqi_offset=0
+#nr_pdsch_mcs=28
+#nr_pusch_mcs=28
 
 #####################################################################
 # eMBMS configuration options

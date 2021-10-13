@@ -138,6 +138,8 @@ public:
     }
     return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().harq_ack.nof_dl_data_to_ul_ack];
   }
+  int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
+  int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
 
 private:
   uint16_t            rnti    = SRSRAN_INVALID_RNTI;

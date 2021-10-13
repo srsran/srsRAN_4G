@@ -11,9 +11,9 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/mac_nr.h"
-#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/log_helper.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
@@ -144,8 +144,14 @@ uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
   }
 
   // Add new user to the scheduler so that it can RX/TX SRB0
-  srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_rach_ue_cfg(enb_cc_idx);
-  sched.ue_cfg(rnti, ue_cfg);
+  srsenb::sched_nr_interface::ue_cfg_t uecfg = {};
+  uecfg.carriers.resize(1);
+  uecfg.carriers[0].active      = true;
+  uecfg.carriers[0].cc          = 0;
+  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+  uecfg.phy_cfg                 = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
+  uecfg.phy_cfg.csi             = {}; // disable CSI until RA is complete
+  sched.ue_cfg(rnti, uecfg);
 
   return rnti;
 }

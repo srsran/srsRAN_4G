@@ -253,6 +253,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     // NR section
     ("scheduler.tb_len", bpo::value<int>(&args->stack.mac.nr_tb_size)->default_value(1520), "Default TB size")
+    ("scheduler.nr_pdsch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_dl_mcs)->default_value(28), "Fixed NR DL MCS (-1 for dynamic)")
+    ("scheduler.nr_pusch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_ul_mcs)->default_value(28), "Fixed NR UL MCS (-1 for dynamic)")
 
     // VNF params
     ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue]")

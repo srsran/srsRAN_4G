@@ -232,8 +232,8 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
 
   // Allocate HARQ
   if (ue.h_dl->empty()) {
-    srsran_assert(ue.cfg->ue_cfg()->fixed_dl_mcs >= 0, "Dynamic MCS not yet supported");
-    int  mcs = ue.cfg->ue_cfg()->fixed_dl_mcs;
+    int mcs = ue.cfg->fixed_pdsch_mcs();
+    srsran_assert(mcs >= 0, "Dynamic MCS not yet supported");
     int  tbs = 100;
     bool ret = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, tbs, 4);
     srsran_assert(ret, "Failed to allocate DL HARQ");
@@ -244,7 +244,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
 
   // Allocation Successful
 
-  int                mcs   = ue.cfg->ue_cfg()->fixed_dl_mcs;
+  int                mcs   = ue.h_dl->mcs();
   const static float max_R = 0.93;
   do {
     // Generate PDCCH
@@ -320,8 +320,8 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   }
 
   if (ue.h_ul->empty()) {
-    srsran_assert(ue.cfg->ue_cfg()->fixed_ul_mcs >= 0, "Dynamic MCS not yet supported");
-    int  mcs     = ue.cfg->ue_cfg()->fixed_ul_mcs;
+    int mcs = ue.cfg->fixed_pusch_mcs();
+    srsran_assert(mcs >= 0, "Dynamic MCS not yet supported");
     int  tbs     = 100;
     bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
     srsran_assert(success, "Failed to allocate UL HARQ");
