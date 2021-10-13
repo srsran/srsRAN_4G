@@ -282,7 +282,7 @@ private:
     bool set_camp(float new_srate)
     {
       std::lock_guard<std::mutex> lock(mutex);
-      if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
+      if (srate_mode != SRATE_CAMP) {
         current_srate = new_srate;
         srate_mode    = SRATE_CAMP;
         return true;
