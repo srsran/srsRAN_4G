@@ -472,8 +472,9 @@ int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
     return SRSRAN_ERROR;
   }
 
-  // Received symbol d
-  cf_t d = 0;
+  // Accumulates received symbol d and average power
+  cf_t  d       = 0;
+  float pwr_acc = 0.0f;
 
   // Get group sequence
   uint32_t u = 0;
@@ -517,7 +518,10 @@ int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
     srsran_vec_sc_prod_ccc(r_uv, w_i_m, z, SRSRAN_NRE);
 
     // Compute d = sum(x * conj(w(i) * r_uv(n))) = sum(w(i) * d' * r_uv(n) * conj(w(i) * r_uv(n))) = d'
-    d += srsran_vec_dot_prod_conj_ccc(x, z, SRSRAN_NRE);
+    d += srsran_vec_dot_prod_conj_ccc(x, z, SRSRAN_NRE) / SRSRAN_NRE;
+
+    // Compute and accumulate average symbol power
+    pwr_acc += srsran_vec_avg_power_cf(x, SRSRAN_NRE);
   }
 
   // Demodulate d
@@ -525,14 +529,18 @@ int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
   srsran_demod_soft_demodulate((nof_bits == 1) ? SRSRAN_MOD_BPSK : SRSRAN_MOD_QPSK, &d, llr, 1);
 
   // Hard decision
-  float corr = 0.0f;
   for (uint32_t i = 0; i < nof_bits; i++) {
     b[i] = llr[i] > 0.0f ? 1 : 0;
-    corr += fabsf(llr[i]);
   }
 
-  if (norm_corr != NULL && nof_bits > 0) {
-    *norm_corr = corr / nof_bits;
+  // Calculate normalised correlation, it uses the absolute value of d and accumulated average power
+  if (norm_corr != NULL) {
+    float nsymb = (float)SRSRAN_CEIL(resource->nof_symbols, 2);
+    if (isnormal(pwr_acc) && isnormal(nsymb)) {
+      *norm_corr = cabsf(d) / sqrtf(pwr_acc * nsymb);
+    } else {
+      *norm_corr = 0.0f;
+    }
   }
 
   return SRSRAN_SUCCESS;
