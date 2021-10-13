@@ -74,6 +74,7 @@ bool slot_worker::init(const args_t& args)
   // Prepare UL arguments
   srsran_gnb_ul_args_t ul_args = {};
   ul_args.pusch.measure_time   = true;
+  ul_args.pusch.measure_evm    = true;
   ul_args.pusch.max_layers     = args.nof_rx_ports;
   ul_args.pusch.max_prb        = args.nof_max_prb;
   ul_args.nof_max_prb          = args.nof_max_prb;
