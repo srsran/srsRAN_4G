@@ -28,6 +28,7 @@ set(SOURCES arch_select.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc
+            emergency_handlers.cc
             standard_streams.cc
             thread_pool.cc
             threads.c

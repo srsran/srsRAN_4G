@@ -21,7 +21,10 @@ namespace srsran {
 class s1ap_pcap
 {
 public:
-  s1ap_pcap() = default;
+  s1ap_pcap();
+  s1ap_pcap(const s1ap_pcap& other) = delete;
+  s1ap_pcap& operator=(const s1ap_pcap& other) = delete;
+
   void enable();
   void open(const char* filename_);
   void close();

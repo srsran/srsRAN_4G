@@ -18,6 +18,7 @@
 #ifndef SRSRAN_SIGNAL_HANDLER_H
 #define SRSRAN_SIGNAL_HANDLER_H
 
+#include "srsran/common/emergency_handlers.h"
 #include "srsran/srslog/sink.h"
 #include "srsran/srslog/srslog.h"
 #include <signal.h>
@@ -30,7 +31,7 @@ extern "C" {
 #define SRSRAN_TERM_TIMEOUT_S (5)
 
 // static vars required by signal handling
-static srslog::sink* log_sink = nullptr;
+static srslog::sink*     log_sink = nullptr;
 static std::atomic<bool> running  = {true};
 
 void srsran_dft_exit();
@@ -41,11 +42,12 @@ static void srsran_signal_handler(int signal)
     case SIGALRM:
       fprintf(stderr, "Couldn't stop after %ds. Forcing exit.\n", SRSRAN_TERM_TIMEOUT_S);
       srslog::flush();
-      //:TODO: refactor the sighandler, should not depend on log utilities
+      //: TODO: refactor the sighandler, should not depend on log utilities
       if (log_sink) {
         log_sink->flush();
       }
       srsran_dft_exit();
+      execute_emergency_cleanup_handlers();
       raise(SIGKILL);
     default:
       // all other registered signals try to stop the app gracefully

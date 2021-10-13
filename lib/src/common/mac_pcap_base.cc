@@ -11,13 +11,23 @@
  */
 
 #include "srsran/common/mac_pcap_base.h"
+#include "srsran/common/emergency_handlers.h"
 #include "srsran/config.h"
 #include "srsran/phy/common/phy_common.h"
 #include <stdint.h>
 
 namespace srsran {
 
-mac_pcap_base::mac_pcap_base() : logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_MAC") {}
+/// Try to flush the contents of the pcap class before the application is killed.
+static void emergency_cleanup_handler(void* data)
+{
+  reinterpret_cast<mac_pcap_base*>(data)->close();
+}
+
+mac_pcap_base::mac_pcap_base() : logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_MAC")
+{
+  add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+}
 
 mac_pcap_base::~mac_pcap_base() {}
 
@@ -45,7 +55,7 @@ void mac_pcap_base::run_thread()
   }
 
   // write remainder of queue
-  pcap_pdu_t                  pdu = {};
+  pcap_pdu_t pdu = {};
   while (queue.try_pop(pdu)) {
     std::lock_guard<std::mutex> lock(mutex);
     write_pdu(pdu);
