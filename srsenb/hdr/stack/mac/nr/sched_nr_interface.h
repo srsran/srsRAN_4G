@@ -71,8 +71,8 @@ public:
     bool        pdsch_enabled      = true;
     bool        pusch_enabled      = true;
     bool        auto_refill_buffer = false;
-    int         fixed_dl_mcs       = -1;
-    int         fixed_ul_mcs       = -1;
+    int         fixed_dl_mcs       = 28;
+    int         fixed_ul_mcs       = 28;
     std::string logger_name        = "MAC-NR";
   };
 
