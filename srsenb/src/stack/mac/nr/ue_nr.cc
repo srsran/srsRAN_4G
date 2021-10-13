@@ -74,7 +74,10 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
     logger.info("Rx PDU: rnti=0x%x, %s", rnti, srsran::to_c_str(str_buffer));
   }
 
-  for (uint32_t i = 0; i < mac_pdu_ul.get_num_subpdus(); ++i) {
+  // Reverse the order in which MAC subPDUs get processed.
+  // First, process MAC CEs, then MAC MAC subPDUs with MAC SDUs
+  for (uint32_t n = mac_pdu_ul.get_num_subpdus(), i = mac_pdu_ul.get_num_subpdus() - 1; n > 0;
+       --n, i = n - 1) {
     srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
     logger.debug("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
                  i,
