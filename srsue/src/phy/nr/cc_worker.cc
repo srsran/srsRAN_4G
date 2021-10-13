@@ -161,22 +161,15 @@ void cc_worker::decode_pdcch_dl()
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
       const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      logger.debug(
-          "PDCCH: dci=%s, %s-rnti=%x, crst_id=%d, ss_type=%s, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
-          "evm=%f; nof_bits=%d; crc=%s;",
-          srsran_dci_format_nr_string(info->dci_ctx.format),
-          srsran_rnti_type_str_short(info->dci_ctx.rnti_type),
-          info->dci_ctx.rnti,
-          info->dci_ctx.coreset_id,
-          srsran_ss_type_str(info->dci_ctx.ss_type),
-          info->dci_ctx.location.ncce,
-          info->dci_ctx.location.L,
-          info->measure.epre_dBfs,
-          info->measure.rsrp_dBfs,
-          info->measure.norm_corr,
-          info->result.evm,
-          info->nof_bits,
-          info->result.crc ? "OK" : "KO");
+      std::array<char, 512>               dci_ctx;
+      srsran_dci_ctx_to_str(&info->dci_ctx, dci_ctx.data(), (uint32_t)dci_ctx.size());
+      logger.debug("PDCCH: %sEPRE=%+.2f, RSRP=%+.2f, corr=%.3f nof_bits=%d crc=%s",
+                   dci_ctx.data(),
+                   info->measure.epre_dBfs,
+                   info->measure.rsrp_dBfs,
+                   info->measure.norm_corr,
+                   info->nof_bits,
+                   info->result.crc ? "OK" : "KO");
     }
   }
 }

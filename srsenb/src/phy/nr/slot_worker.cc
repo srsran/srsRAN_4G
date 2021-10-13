@@ -195,6 +195,7 @@ bool slot_worker::work_ul()
       srsran_gnb_ul_pucch_info(&gnb_ul,
                                &pucch.candidates[0].resource,
                                &pucch_info[best_candidate].uci_data,
+                               &pucch_info[best_candidate].csi,
                                str.data(),
                                (uint32_t)str.size());
 
