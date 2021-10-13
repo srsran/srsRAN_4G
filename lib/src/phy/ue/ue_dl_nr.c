@@ -375,7 +375,7 @@ static int ue_dl_nr_find_dci_ss(srsran_ue_dl_nr_t*           q,
       // Calculate possible PDCCH DCI candidates
       uint32_t candidates[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
       int      nof_candidates                                        = srsran_pdcch_nr_locations_coreset(
-                                                      coreset, search_space, rnti, L, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx), candidates);
+          coreset, search_space, rnti, L, SRSRAN_SLOT_NR_MOD(q->carrier.scs, slot_cfg->idx), candidates);
       if (nof_candidates < SRSRAN_SUCCESS) {
         ERROR("Error calculating DCI candidate location");
         return SRSRAN_ERROR;
@@ -576,19 +576,19 @@ int srsran_ue_dl_nr_decode_pdsch(srsran_ue_dl_nr_t*         q,
   return SRSRAN_SUCCESS;
 }
 
-int srsran_ue_dl_nr_pdsch_info(const srsran_ue_dl_nr_t*    q,
-                               const srsran_sch_cfg_nr_t*  cfg,
-                               const srsran_pdsch_res_nr_t res[SRSRAN_MAX_CODEWORDS],
-                               char*                       str,
-                               uint32_t                    str_len)
+uint32_t srsran_ue_dl_nr_pdsch_info(const srsran_ue_dl_nr_t*    q,
+                                    const srsran_sch_cfg_nr_t*  cfg,
+                                    const srsran_pdsch_res_nr_t res[SRSRAN_MAX_CODEWORDS],
+                                    char*                       str,
+                                    uint32_t                    str_len)
 {
-  int len = 0;
+  uint32_t len = 0;
 
   // Append PDSCH info
   len += srsran_pdsch_nr_rx_info(&q->pdsch, cfg, &cfg->grant, res, &str[len], str_len - len);
 
   // Append channel estimator info
-  len = srsran_print_check(str, str_len, len, "SNR=%+.1f", q->chest.snr_db);
+  len += srsran_csi_meas_info_short(&q->dmrs_pdsch.csi, &str[len], str_len - len);
 
   return len;
 }

@@ -333,7 +333,8 @@ uint32_t srsran_gnb_ul_pusch_info(srsran_gnb_ul_t*             q,
 
   len += srsran_pusch_nr_rx_info(&q->pusch, cfg, &cfg->grant, res, str, str_len - len);
 
-  len = srsran_print_check(str, str_len, len, "snr=%+.1f", q->chest_pusch.snr_db);
+  // Append channel estimator info
+  len += srsran_csi_meas_info_short(&q->dmrs.csi, &str[len], str_len - len);
 
   return len;
 }
