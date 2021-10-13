@@ -146,6 +146,7 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
     logger->debug("%s Deferred Status PDU. Cause: Failed to acquire Rx lock", rb_name);
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
+    logger->debug("Generated Status PDU. Bytes:%d", pdu_len);
     log_rlc_am_nr_status_pdu_to_string(logger->info, "%s Tx status PDU - %s", &tx_status, rb_name);
     // if (cfg.t_status_prohibit > 0 && status_prohibit_timer.is_valid()) {
     // re-arm timer
@@ -295,37 +296,37 @@ void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rl
   }
 
   // Write to rx window
-  rlc_amd_rx_pdu_nr& pdu = rx_window.add_pdu(header.sn);
-  pdu.buf                = srsran::make_byte_buffer();
-  if (pdu.buf == nullptr) {
+  rlc_amd_rx_pdu_nr& rx_pdu = rx_window.add_pdu(header.sn);
+  rx_pdu.buf                = srsran::make_byte_buffer();
+  if (rx_pdu.buf == nullptr) {
     logger->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().");
     rx_window.remove_pdu(header.sn);
     return;
   }
-  pdu.buf->set_timestamp();
+  rx_pdu.buf->set_timestamp();
 
   // check available space for payload
-  if (nof_bytes > pdu.buf->get_tailroom()) {
+  if (nof_bytes > rx_pdu.buf->get_tailroom()) {
     logger->error("%s Discarding SN=%d of size %d B (available space %d B)",
                   parent->rb_name,
                   header.sn,
                   nof_bytes,
-                  pdu.buf->get_tailroom());
+                  rx_pdu.buf->get_tailroom());
     return;
   }
-  memcpy(pdu.buf->msg, payload, nof_bytes);
-  pdu.buf->N_bytes = nof_bytes;
-  pdu.header       = header;
-
-  // Update Rx_Next_Highest
-  if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
-    rx_next_highest = (header.sn + 1) % MOD;
-  }
+  memcpy(rx_pdu.buf->msg, payload, nof_bytes);
+  rx_pdu.buf->N_bytes = nof_bytes;
+  rx_pdu.header       = header;
 
   // Check poll bit
   if (header.p) {
     logger->info("%s Status packet requested through polling bit", parent->rb_name);
     do_status = true;
+  }
+
+  // Update Rx_Next_Highest
+  if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
+    rx_next_highest = (header.sn + 1) % MOD;
   }
 
   // Update RX_Highest_Status
@@ -342,6 +343,18 @@ void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rl
   // TODO
 
   debug_state();
+
+  // Iterate over Rx Window and write any finished PDUs
+  for (uint32_t i = rx_next; i < rx_next + RLC_AM_WINDOW_SIZE; i++) {
+    if (rx_window.has_sn(i)) {
+      if (rx_window[i].header.si == rlc_nr_si_field_t::full_sdu) {
+        parent->pdcp->write_pdu(parent->lcid, std::move(rx_window[i].buf));
+      }
+    } else {
+      // Missing PDU. Cannot deliver SDUs in order. Break
+      break;
+    }
+  }
 }
 
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
