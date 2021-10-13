@@ -124,10 +124,18 @@ public:
   bwp_ue_cfg() = default;
   explicit bwp_ue_cfg(uint16_t rnti, const bwp_params_t& bwp_cfg, const ue_cfg_t& uecfg_);
 
-  const ue_cfg_t*             ue_cfg() const { return cfg_; }
-  const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
-  const bwp_params_t&         active_bwp() const { return *bwp_cfg; }
-  const bwp_cce_pos_list&     cce_pos_list(uint32_t search_id) const
+  const ue_cfg_t*              ue_cfg() const { return cfg_; }
+  const srsran::phy_cfg_nr_t&  phy() const { return cfg_->phy_cfg; }
+  const bwp_params_t&          active_bwp() const { return *bwp_cfg; }
+  srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
+  {
+    if (cce_positions_list.size() > ss_id_to_cce_idx[search_id]) {
+      auto& lst = cce_pos_list(search_id);
+      return lst[slot_idx][aggr_idx];
+    }
+    return srsran::const_span<uint32_t>{};
+  }
+  const bwp_cce_pos_list& cce_pos_list(uint32_t search_id) const
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];
   }

@@ -63,7 +63,8 @@ class ue_carrier
 {
 public:
   ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const cell_params_t& cell_params_);
-  slot_ue try_reserve(slot_point pdcch_slot, const ue_cfg_t& uecfg_, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
+  void    set_cfg(const ue_cfg_t& ue_cfg);
+  slot_ue try_reserve(slot_point pdcch_slot, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
 
   const uint16_t rnti;
   const uint32_t cc;

@@ -29,17 +29,14 @@ ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params
   harq_ent(cell_params_.nof_prb())
 {}
 
-slot_ue ue_carrier::try_reserve(slot_point      pdcch_slot,
-                                const ue_cfg_t& uecfg_,
-                                uint32_t        dl_pending_bytes,
-                                uint32_t        ul_pending_bytes)
+void ue_carrier::set_cfg(const ue_cfg_t& ue_cfg)
+{
+  bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], ue_cfg);
+}
+
+slot_ue ue_carrier::try_reserve(slot_point pdcch_slot, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes)
 {
   slot_point slot_rx = pdcch_slot - TX_ENB_DELAY;
-
-  // update CC/BWP config if there were changes
-  if (bwp_cfg.ue_cfg() != &uecfg_) {
-    bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], uecfg_);
-  }
 
   // copy cc-specific parameters and find available HARQs
   slot_ue sfu(rnti, slot_rx, cc);
@@ -90,8 +87,12 @@ void ue::set_cfg(const ue_cfg_t& cfg)
 {
   ue_cfg = cfg;
   for (auto& ue_cc_cfg : cfg.carriers) {
-    if (ue_cc_cfg.active and carriers[ue_cc_cfg.cc] == nullptr) {
-      carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[ue_cc_cfg.cc]));
+    if (ue_cc_cfg.active) {
+      if (carriers[ue_cc_cfg.cc] == nullptr) {
+        carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, cfg, sched_cfg.cells[ue_cc_cfg.cc]));
+      } else {
+        carriers[ue_cc_cfg.cc]->set_cfg(ue_cfg);
+      }
     }
   }
 
@@ -147,7 +148,7 @@ slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
     return slot_ue();
   }
 
-  return carriers[cc]->try_reserve(pdcch_slot, cfg(), dl_pending_bytes, ul_pending_bytes);
+  return carriers[cc]->try_reserve(pdcch_slot, dl_pending_bytes, ul_pending_bytes);
 }
 
 } // namespace sched_nr_impl

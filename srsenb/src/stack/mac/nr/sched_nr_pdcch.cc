@@ -179,9 +179,9 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 {
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
-      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::ul_data:
-      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::rar:
       return rar_cce_list[slot_idx][record.aggr_idx];
     default:
