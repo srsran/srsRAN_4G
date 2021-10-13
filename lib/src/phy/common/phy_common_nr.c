@@ -434,6 +434,22 @@ uint32_t srsran_csi_meas_info(const srsran_csi_trs_measurements_t* meas, char* s
                             meas->delay_us);
 }
 
+uint32_t srsran_csi_meas_info_short(const srsran_csi_trs_measurements_t* meas, char* str, uint32_t str_len)
+{
+  if (meas == NULL || str == NULL || str_len == 0) {
+    return 0;
+  }
+
+  return srsran_print_check(str,
+                            str_len,
+                            0,
+                            "epre=%+.1f snr=%+.1f cfo=%+.1f delay=%+.1f ",
+                            meas->epre_dB,
+                            meas->snr_dB,
+                            meas->cfo_hz,
+                            meas->delay_us);
+}
+
 srsran_subcarrier_spacing_t srsran_subcarrier_spacing_from_str(const char* str)
 {
   if (str == NULL) {
