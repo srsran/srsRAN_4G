@@ -254,12 +254,14 @@ uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
         return 8;
       case CRNTI:
         return 2;
-      case SHORT_TRUNC_BSR:
-        return 1;
       case SHORT_BSR:
+      case SHORT_TRUNC_BSR:
         return 1;
       case SE_PHR:
         return 2;
+      case LONG_BSR:
+      case LONG_TRUNC_BSR:
+        return 1; // minimum size, could be more than that
       case PADDING:
         return 0;
     }
