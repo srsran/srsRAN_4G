@@ -241,7 +241,7 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
   serv_common.n_timing_advance_offset_present = true;
   serv_common.n_timing_advance_offset = asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   serv_common.n_timing_advance_offset_present = true;
-  serv_common.dmrs_type_a_position    = asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
+  serv_common.dmrs_type_a_position = asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
 
   serv_common.pci_present = true;
   serv_common.pci         = cell_cfg.phy_cell.carrier.pci;
@@ -266,6 +266,18 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
     serv_common.ssb_subcarrier_spacing = subcarrier_spacing_opts::khz15;
   } else {
     serv_common.ssb_subcarrier_spacing = subcarrier_spacing_opts::khz30;
+  }
+
+  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    // TDD UL-DL config
+    serv_common.tdd_ul_dl_cfg_common_present = true;
+    auto& tdd_config                         = serv_common.tdd_ul_dl_cfg_common;
+    tdd_config.ref_subcarrier_spacing        = subcarrier_spacing_e::khz15;
+    tdd_config.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+    tdd_config.pattern1.nrof_dl_slots        = 6;
+    tdd_config.pattern1.nrof_dl_symbols      = 0;
+    tdd_config.pattern1.nrof_ul_slots        = 4;
+    tdd_config.pattern1.nrof_ul_symbols      = 0;
   }
 
   return SRSRAN_SUCCESS;

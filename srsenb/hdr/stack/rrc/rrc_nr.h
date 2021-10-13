@@ -172,9 +172,6 @@ public:
     int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
-    int
-    pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-
     int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
     int add_drb();

@@ -1212,22 +1212,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  // TDD UL-DL config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present = true;
-  auto& tdd_config = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common;
-  tdd_config.ref_subcarrier_spacing        = subcarrier_spacing_e::khz15;
-  tdd_config.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
-  tdd_config.pattern1.nrof_dl_slots        = 6;
-  tdd_config.pattern1.nrof_dl_symbols      = 0;
-  tdd_config.pattern1.nrof_ul_slots        = 4;
-  tdd_config.pattern1.nrof_ul_symbols      = 0;
-
-  return SRSRAN_SUCCESS;
-}
-
 int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   auto& pscell_cfg = parent->cfg.cell_list.at(UE_PSCELL_CC_IDX);
@@ -1241,10 +1225,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group
 
   // UL config
   pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(cell_group_cfg_pack);
-
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-    pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(cell_group_cfg_pack);
-  }
 
   return SRSRAN_SUCCESS;
 }
