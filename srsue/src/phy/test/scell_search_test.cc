@@ -11,6 +11,7 @@
  */
 
 #include "srsran/interfaces/phy_interface_types.h"
+#include "srsran/srslog/bundled/fmt/chrono.h"
 #include "srsran/srslog/srslog.h"
 #include "srsue/hdr/phy/scell/intra_measure_lte.h"
 #include <boost/program_options.hpp>
@@ -36,6 +37,8 @@ static std::string       active_cell_list;
 static std::string       simulation_cell_list;
 static int               phy_lib_log_level;
 static srsue::phy_args_t phy_args;
+static bool              enable_json_report;
+static std::string       json_report_filename;
 
 // On the Fly parameters
 static int         earfcn_dl;
@@ -212,8 +215,31 @@ public:
   }
 };
 
+/// Cell container metrics.
+DECLARE_METRIC("earfcn_dl", metric_earfcn, int, "");
+DECLARE_METRIC("PCI", metric_pci, uint32_t, "");
+DECLARE_METRIC("RSRP", metric_rsrp, float, "");
+DECLARE_METRIC("RSRQ", metric_rsrq, float, "");
+DECLARE_METRIC("false_alarm", metric_false_alarm, std::string, "");
+DECLARE_METRIC_SET("cell_container",
+                   mset_cell_container,
+                   metric_earfcn,
+                   metric_pci,
+                   metric_rsrp,
+                   metric_rsrq,
+                   metric_false_alarm);
+
+/// Report root object.
+DECLARE_METRIC("timestamp", metric_timestamp_tag, std::string, "");
+DECLARE_METRIC_LIST("cell_list", mlist_cell, std::vector<mset_cell_container>);
+
+/// Report context.
+using report_context_t = srslog::build_context_type<metric_timestamp_tag, mlist_cell>;
+
 class meas_itf_listener : public srsue::scell::intra_measure_base::meas_itf
 {
+  srslog::log_channel& json_channel;
+
 public:
   typedef struct {
     float    rsrp_avg;
@@ -224,6 +250,8 @@ public:
     float    rsrq_max;
     uint32_t count;
   } cell_meas_t;
+
+  explicit meas_itf_listener(srslog::log_channel& json_channel) : json_channel(json_channel) {}
 
   std::map<uint32_t, cell_meas_t> cells;
 
@@ -262,6 +290,14 @@ public:
     uint32_t ideal_true_counts  = (pcis_to_simulate.size() - 1) * tti_count;
     uint32_t ideal_false_counts = tti_count * cells.size() - ideal_true_counts;
 
+    report_context_t ctx("JSON Report");
+    auto current_time = fmt::localtime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    fmt::memory_buffer ts_buffer;
+    fmt::format_to(ts_buffer, "{:%F}T{:%T}", current_time, current_time);
+    ctx.write<metric_timestamp_tag>(srsran::to_c_str(ts_buffer));
+
+    auto& cell_list = ctx.get<mlist_cell>();
+
     for (auto& e : cells) {
       bool false_alarm = pcis_to_simulate.find(e.first) == pcis_to_simulate.end();
 
@@ -281,7 +317,18 @@ public:
              e.second.rsrq_min,
              e.second.rsrq_avg,
              e.second.rsrq_max);
+
+      cell_list.emplace_back();
+      auto& cell_container = cell_list.back();
+
+      cell_container.write<metric_pci>(e.first);
+      cell_container.write<metric_earfcn>(earfcn_dl);
+      cell_container.write<metric_rsrp>(e.second.rsrp_avg);
+      cell_container.write<metric_rsrq>(e.second.rsrq_avg);
+      cell_container.write<metric_false_alarm>(false_alarm ? "yes" : "no");
     }
+
+    json_channel(ctx);
 
     float prob_detection   = (ideal_true_counts) ? (float)true_counts / (float)ideal_true_counts : 0.0f;
     float prob_false_alarm = (ideal_false_counts) ? (float)false_counts / (float)ideal_false_counts : 0.0f;
@@ -315,6 +362,8 @@ int parse_args(int argc, char** argv)
       ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args.intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
       ("phy_lib_log_level",         bpo::value<int>(&phy_lib_log_level)->default_value(SRSRAN_VERBOSE_NONE),       "Phy lib log level (0: none, 1: info, 2: debug)")
       ("active_cell_list",          bpo::value<std::string>(&active_cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
+      ("enable_json_report",        bpo::value<bool>(&enable_json_report)->default_value(false),                   "Enable JSON file reporting")
+      ("json_report_filename",      bpo::value<std::string>(&json_report_filename)->default_value("/tmp/scell_search.json"), "JSON report filename")
       ;
 
   over_the_air.add_options()
@@ -394,11 +443,14 @@ int main(int argc, char** argv)
 
   // Common for simulation and over-the-air
   srslog::basic_logger& logger = srslog::fetch_basic_logger("intra_measure");
+  srslog::sink& json_sink = srslog::fetch_file_sink(json_report_filename, 0, false, srslog::create_json_formatter());
+  srslog::log_channel& json_channel = srslog::fetch_log_channel("JSON_channel", json_sink, {});
+  json_channel.set_enabled(enable_json_report);
   srslog::init();
 
   cf_t*                           baseband_buffer = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX);
   srsran::rf_timestamp_t          ts              = {};
-  meas_itf_listener               rrc;
+  meas_itf_listener               rrc(json_channel);
   srsue::scell::intra_measure_lte intra_measure(logger, rrc);
 
   // Simulation only
