@@ -138,7 +138,6 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 
     auto& mac_main_cfg = conn_recfg->rr_cfg_ded.mac_main_cfg.explicit_value();
 
-    mac_main_cfg.ext                  = true;
     mac_main_cfg.time_align_timer_ded = time_align_timer_opts::infinity;
     mac_main_cfg.phr_cfg_present      = true;
     mac_main_cfg.phr_cfg.set_setup();
@@ -149,6 +148,8 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     mac_main_cfg.phr_cfg.setup().prohibit_phr_timer =
         asn1::rrc::mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_opts::sf200;
 
+    // Disable DC-PHR reporting
+    mac_main_cfg.ext = false;
     mac_main_cfg.mac_main_cfg_v1020.set_present();
     mac_main_cfg.dual_connect_phr.set_present();
     mac_main_cfg.dual_connect_phr.get()->set_setup();
