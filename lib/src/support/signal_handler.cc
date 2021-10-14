@@ -10,28 +10,17 @@
  *
  */
 
-/**
- * @file signal_handler.h
- * @brief Common signal handling methods for all srsRAN applications.
- */
-
-#ifndef SRSRAN_SIGNAL_HANDLER_H
-#define SRSRAN_SIGNAL_HANDLER_H
-
-#include "srsran/common/emergency_handlers.h"
-#include "srsran/srslog/sink.h"
-#include "srsran/srslog/srslog.h"
-#include <signal.h>
-#include <stdio.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
+#include "srsran/support/signal_handler.h"
+#include "srsran/support/emergency_handlers.h"
+#include <atomic>
+#include <csignal>
+#include <cstdio>
+#include <unistd.h>
 
 #define SRSRAN_TERM_TIMEOUT_S (5)
 
-// static vars required by signal handling
-static std::atomic<bool> running = {true};
+/// Handler called after the user interrupts the program.
+static std::atomic<srsran_signal_hanlder> user_handler;
 
 static void srsran_signal_handler(int signal)
 {
@@ -42,26 +31,24 @@ static void srsran_signal_handler(int signal)
       raise(SIGKILL);
     default:
       // all other registered signals try to stop the app gracefully
-      if (running) {
-        running = false;
-        fprintf(stdout, "Stopping ..\n");
-        alarm(SRSRAN_TERM_TIMEOUT_S);
+      // Call the user handler if present and remove it so that further signals are treated by the default handler.
+      if (auto handler = user_handler.exchange(nullptr)) {
+        handler();
       } else {
-        // already waiting for alarm to go off ..
+        return;
       }
+      fprintf(stdout, "Stopping ..\n");
+      alarm(SRSRAN_TERM_TIMEOUT_S);
       break;
   }
 }
 
-void srsran_register_signal_handler()
+void srsran_register_signal_handler(srsran_signal_hanlder handler)
 {
+  user_handler.store(handler);
+
   signal(SIGINT, srsran_signal_handler);
   signal(SIGTERM, srsran_signal_handler);
   signal(SIGHUP, srsran_signal_handler);
   signal(SIGALRM, srsran_signal_handler);
 }
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-#endif // SRSRAN_SIGNAL_HANDLER_H

@@ -31,6 +31,8 @@ public:
 
   mac_pcap_base(const mac_pcap_base& other) = delete;
   mac_pcap_base& operator=(const mac_pcap_base& other) = delete;
+  mac_pcap_base(mac_pcap_base&& other)                 = delete;
+  mac_pcap_base& operator=(mac_pcap_base&& other) = delete;
 
   ~mac_pcap_base();
   void             enable(bool enable);

@@ -11,9 +11,9 @@
  */
 
 #include "srsran/common/s1ap_pcap.h"
-#include "srsran/common/emergency_handlers.h"
 #include "srsran/common/pcap.h"
 #include "srsran/srsran.h"
+#include "srsran/support/emergency_handlers.h"
 #include <stdint.h>
 
 namespace srsran {

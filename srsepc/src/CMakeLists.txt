@@ -31,6 +31,7 @@ target_link_libraries( srsepc  srsepc_mme
                                srsran_asn1
                                srsran_common
                                srslog
+                               support
                                ${CMAKE_THREAD_LIBS_INIT}
                                ${Boost_LIBRARIES}
                                ${SEC_LIBRARIES}

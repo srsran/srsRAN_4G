@@ -11,9 +11,9 @@
  */
 
 #include "srsran/common/mac_pcap_base.h"
-#include "srsran/common/emergency_handlers.h"
 #include "srsran/config.h"
 #include "srsran/phy/common/phy_common.h"
+#include "srsran/support/emergency_handlers.h"
 #include <stdint.h>
 
 namespace srsran {

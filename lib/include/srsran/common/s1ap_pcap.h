@@ -24,6 +24,8 @@ public:
   s1ap_pcap();
   s1ap_pcap(const s1ap_pcap& other) = delete;
   s1ap_pcap& operator=(const s1ap_pcap& other) = delete;
+  s1ap_pcap(s1ap_pcap&& other)                 = delete;
+  s1ap_pcap& operator=(s1ap_pcap&& other) = delete;
 
   void enable();
   void open(const char* filename_);

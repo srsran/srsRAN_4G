@@ -15,11 +15,12 @@
 #include "srsran/common/crash_handler.h"
 #include "srsran/common/metrics_hub.h"
 #include "srsran/common/multiqueue.h"
-#include "srsran/common/signal_handler.h"
 #include "srsran/common/tsan_options.h"
 #include "srsran/srslog/event_trace.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/srsran.h"
+#include "srsran/support/emergency_handlers.h"
+#include "srsran/support/signal_handler.h"
 #include "srsran/version.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srsue/hdr/metrics_json.h"
@@ -27,6 +28,7 @@
 #include "srsue/hdr/ue.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <csignal>
 #include <iostream>
 #include <pthread.h>
 #include <stdio.h>
@@ -45,9 +47,10 @@ namespace bpo = boost::program_options;
  *  Local static variables
  ***********************************************************************/
 
-static bool            do_metrics     = false;
-static metrics_stdout* metrics_screen = nullptr;
-static srslog::sink*   log_sink       = nullptr;
+static bool              do_metrics     = false;
+static metrics_stdout*   metrics_screen = nullptr;
+static srslog::sink*     log_sink       = nullptr;
+static std::atomic<bool> running        = {true};
 
 /**********************************************************************
  *  Program arguments processing
@@ -667,9 +670,14 @@ static void     emergency_cleanup_handler(void* data)
   srsran_dft_exit();
 }
 
+static void signal_handler()
+{
+  running = false;
+}
+
 int main(int argc, char* argv[])
 {
-  srsran_register_signal_handler();
+  srsran_register_signal_handler(signal_handler);
   add_emergency_cleanup_handler(emergency_cleanup_handler, nullptr);
   srsran_debug_handle_crash(argc, argv);
 

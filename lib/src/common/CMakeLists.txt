@@ -28,7 +28,6 @@ set(SOURCES arch_select.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc
-            emergency_handlers.cc
             standard_streams.cc
             thread_pool.cc
             threads.c
@@ -48,7 +47,7 @@ add_dependencies(srsran_common gen_build_info)
 add_executable(arch_select arch_select.cc)
 
 target_include_directories(srsran_common PUBLIC ${SEC_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${BACKWARD_INCLUDE_DIRS})
-target_link_libraries(srsran_common srsran_phy srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES} ${SCTP_LIBRARIES})
+target_link_libraries(srsran_common srsran_phy support srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES} ${SCTP_LIBRARIES})
 target_compile_definitions(srsran_common PRIVATE ${BACKWARD_DEFINITIONS})
 
 INSTALL(TARGETS srsran_common DESTINATION ${LIBRARY_DIR})

@@ -18,9 +18,10 @@
 #include "srsran/common/common_helper.h"
 #include "srsran/common/config_file.h"
 #include "srsran/common/crash_handler.h"
-#include "srsran/common/signal_handler.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/srsran.h"
+#include "srsran/support/emergency_handlers.h"
+#include "srsran/support/signal_handler.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 
@@ -55,7 +56,8 @@ typedef struct {
   log_args_t  log_args;
 } all_args_t;
 
-static srslog::sink* log_sink = nullptr;
+static srslog::sink*     log_sink = nullptr;
+static std::atomic<bool> running  = {true};
 
 /**********************************************************************
  *  Program arguments processing
@@ -363,9 +365,14 @@ static void emergency_cleanup_handler(void* data)
   }
 }
 
+static void signal_handler()
+{
+  running = false;
+}
+
 int main(int argc, char* argv[])
 {
-  srsran_register_signal_handler();
+  srsran_register_signal_handler(signal_handler);
   add_emergency_cleanup_handler(emergency_cleanup_handler, nullptr);
 
   // print build info

@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsran/common/emergency_handlers.h"
+#include "srsran/support/emergency_handlers.h"
 #include "srsran/support/srsran_assert.h"
 
 namespace {
