@@ -2254,7 +2254,7 @@ struct setup_release_c {
 
   // choice methods
   setup_release_c() = default;
-  types       type() const { return type_; }
+  types type() const { return type_; }
 
   // getters
   elem_type_paramT_& setup()
@@ -2267,7 +2267,7 @@ struct setup_release_c {
     assert_choice_type(types::setup, type_, "SetupRelease");
     return c;
   }
-  void               set_release() { set(types::release); }
+  void set_release() { set(types::release); }
 
   void set(typename types::options e) { type_ = e; }
 
@@ -2276,8 +2276,11 @@ struct setup_release_c {
     j.start_obj();
     switch (type_) {
       case types::release:
+        j.write_null("release");
         break;
       case types::setup:
+        j.write_fieldname("setup");
+        asn1::to_json(j, setup());
         break;
       default:
         log_invalid_choice_id(type_, "setup_release_c");

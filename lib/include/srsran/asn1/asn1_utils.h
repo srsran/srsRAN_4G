@@ -599,7 +599,7 @@ public:
   IntType              value;
   integer() = default;
   integer(IntType value_) : value(value_) {}
-              operator IntType() { return value; }
+              operator IntType() const { return value; }
   SRSASN_CODE pack(bit_ref& bref) const { return pack_integer(bref, value, lb, ub, has_ext, is_aligned); }
   SRSASN_CODE unpack(cbit_ref& bref) { return unpack_integer(value, bref, lb, ub, has_ext, is_aligned); }
 };
@@ -1358,6 +1358,33 @@ private:
   enum separator_t { COMMA = 0, NEWLINE, NONE };
   separator_t sep;
 };
+
+template <typename T>
+inline auto to_json(json_writer& j, const T& obj) -> decltype(obj.to_json(j))
+{
+  obj.to_json(j);
+}
+
+template <typename T>
+inline void to_json(json_writer& j, const asn1::enumerated<T>& obj)
+{
+  j.write_str(obj.to_string());
+}
+
+template <typename T>
+inline void to_json(json_writer& j, const asn1::dyn_array<T>& lst)
+{
+  j.start_array();
+  for (const auto& o : lst) {
+    to_json(j, o);
+  }
+  j.end_array();
+}
+
+inline void to_json(json_writer& j, int64_t number)
+{
+  j.write_int(number);
+}
 
 /*******************
   Test pack/unpack
