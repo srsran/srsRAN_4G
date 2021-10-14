@@ -146,8 +146,9 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
 
   // read RLC PDU
   ue_rlc_buffer->clear();
-  int lcid    = 4;
-  int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, grant_size - 2);
+  int lcid = 4;
+  int pdu_len =
+      rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, grant_size - mac_pdu_dl.size_header_sdu(lcid, grant_size));
 
   // Only create PDU if RLC has something to tx
   if (pdu_len > 0) {

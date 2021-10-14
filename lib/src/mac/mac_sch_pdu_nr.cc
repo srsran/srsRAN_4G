@@ -423,13 +423,8 @@ uint32_t mac_sch_pdu_nr::size_header_sdu(const uint32_t lcid, const uint32_t nby
 {
   if (ulsch && (lcid == mac_sch_subpdu_nr::CCCH_SIZE_48 || lcid == mac_sch_subpdu_nr::CCCH_SIZE_64)) {
     return 1;
-  } else {
-    if (nbytes < 256) {
-      return 2;
-    } else {
-      return 3;
-    }
   }
+  return nbytes < 256 ? 2 : 3;
 }
 
 uint32_t mac_sch_pdu_nr::get_remaing_len()

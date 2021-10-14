@@ -198,8 +198,9 @@ public:
 
   void to_string(fmt::memory_buffer& buffer);
 
-private:
   uint32_t size_header_sdu(const uint32_t lcid_, const uint32_t nbytes);
+
+private:
   /// Private helper that adds a subPDU to the MAC PDU
   uint32_t add_sudpdu(mac_sch_subpdu_nr& subpdu);
 
