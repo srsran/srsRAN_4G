@@ -55,6 +55,8 @@ typedef struct {
   log_args_t  log_args;
 } all_args_t;
 
+static srslog::sink* log_sink = nullptr;
+
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
@@ -261,18 +263,18 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Using default mme.integrity_algo: EIA1" << endl;
   }
 
-  args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
-  args->mme_args.s1ap_args.mme_name      = mme_name;
-  args->mme_args.s1ap_args.dns_addr      = dns_addr;
+  args->mme_args.s1ap_args.mme_bind_addr  = mme_bind_addr;
+  args->mme_args.s1ap_args.mme_name       = mme_name;
+  args->mme_args.s1ap_args.dns_addr       = dns_addr;
   args->mme_args.s1ap_args.full_net_name  = full_net_name;
   args->mme_args.s1ap_args.short_net_name = short_net_name;
-  args->mme_args.s1ap_args.mme_apn       = mme_apn;
-  args->mme_args.s1ap_args.paging_timer  = paging_timer;
-  args->spgw_args.gtpu_bind_addr         = spgw_bind_addr;
-  args->spgw_args.sgi_if_addr            = sgi_if_addr;
-  args->spgw_args.sgi_if_name            = sgi_if_name;
-  args->spgw_args.max_paging_queue       = max_paging_queue;
-  args->hss_args.db_file                 = hss_db_file;
+  args->mme_args.s1ap_args.mme_apn        = mme_apn;
+  args->mme_args.s1ap_args.paging_timer   = paging_timer;
+  args->spgw_args.gtpu_bind_addr          = spgw_bind_addr;
+  args->spgw_args.sgi_if_addr             = sgi_if_addr;
+  args->spgw_args.sgi_if_name             = sgi_if_name;
+  args->spgw_args.max_paging_queue        = max_paging_queue;
+  args->hss_args.db_file                  = hss_db_file;
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
@@ -353,9 +355,18 @@ std::string get_build_string()
   return ss.str();
 }
 
+static void emergency_cleanup_handler(void* data)
+{
+  srslog::flush();
+  if (log_sink) {
+    log_sink->flush();
+  }
+}
+
 int main(int argc, char* argv[])
 {
   srsran_register_signal_handler();
+  add_emergency_cleanup_handler(emergency_cleanup_handler, nullptr);
 
   // print build info
   cout << endl << get_build_string() << endl;

@@ -31,22 +31,13 @@ extern "C" {
 #define SRSRAN_TERM_TIMEOUT_S (5)
 
 // static vars required by signal handling
-static srslog::sink*     log_sink = nullptr;
-static std::atomic<bool> running  = {true};
-
-void srsran_dft_exit();
+static std::atomic<bool> running = {true};
 
 static void srsran_signal_handler(int signal)
 {
   switch (signal) {
     case SIGALRM:
       fprintf(stderr, "Couldn't stop after %ds. Forcing exit.\n", SRSRAN_TERM_TIMEOUT_S);
-      srslog::flush();
-      //: TODO: refactor the sighandler, should not depend on log utilities
-      if (log_sink) {
-        log_sink->flush();
-      }
-      srsran_dft_exit();
       execute_emergency_cleanup_handlers();
       raise(SIGKILL);
     default:

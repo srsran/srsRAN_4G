@@ -47,6 +47,7 @@ namespace bpo = boost::program_options;
 
 static bool            do_metrics     = false;
 static metrics_stdout* metrics_screen = nullptr;
+static srslog::sink*   log_sink       = nullptr;
 
 /**********************************************************************
  *  Program arguments processing
@@ -656,9 +657,20 @@ static size_t fixup_log_file_maxsize(int x)
   return (x < 0) ? 0 : size_t(x) * 1024u;
 }
 
+extern "C" void srsran_dft_exit();
+static void     emergency_cleanup_handler(void* data)
+{
+  srslog::flush();
+  if (log_sink) {
+    log_sink->flush();
+  }
+  srsran_dft_exit();
+}
+
 int main(int argc, char* argv[])
 {
   srsran_register_signal_handler();
+  add_emergency_cleanup_handler(emergency_cleanup_handler, nullptr);
   srsran_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
