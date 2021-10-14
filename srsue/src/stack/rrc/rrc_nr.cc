@@ -658,12 +658,14 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
         return false;
       }
     }
-  } else {
-    logger.warning("Option zp_csi_rs_res_to_add_mod_list not present");
-    return false;
   }
 
   if (pdsch_cfg.p_zp_csi_rs_res_set_present) {
+    // check if resources have been processed
+    if (not pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+      logger.warning("Can't build ZP-CSI config, option zp_csi_rs_res_to_add_mod_list not present");
+      return false;
+    }
     if (pdsch_cfg.p_zp_csi_rs_res_set.type() == setup_release_c<zp_csi_rs_res_set_s>::types_opts::setup) {
       for (uint32_t i = 0; i < pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.size(); i++) {
         uint8_t res = pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list[i];
@@ -1219,7 +1221,10 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg_present) {
         if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.type() ==
             setup_release_c<pdsch_cfg_s>::types_opts::setup) {
-          apply_sp_cell_init_dl_pdsch(sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.setup());
+          if (apply_sp_cell_init_dl_pdsch(sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.setup()) == false) {
+            logger.error("Couldn't apply PDSCH config for initial DL BWP in SpCell Cfg dedicated");
+            return false;
+          };
         } else {
           logger.warning("Option pdsch_cfg_cfg not of type setup");
           return false;
