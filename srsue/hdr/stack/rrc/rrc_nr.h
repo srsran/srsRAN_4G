@@ -113,6 +113,7 @@ public:
                            uint32_t            sk_counter_r15,
                            bool                nr_radio_bearer_cfg1_r15_present,
                            asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
+  void rrc_release();
   bool configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
   // STACK interface

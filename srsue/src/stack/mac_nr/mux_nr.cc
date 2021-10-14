@@ -35,6 +35,12 @@ int32_t mux_nr::init(rlc_interface_mac* rlc_)
   return SRSRAN_SUCCESS;
 }
 
+void mux_nr::reset()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  this->logical_channels.clear();
+}
+
 int mux_nr::setup_lcid(const srsran::logical_channel_config_t& config)
 {
   std::lock_guard<std::mutex> lock(mutex);

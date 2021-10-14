@@ -97,6 +97,11 @@ void mac_nr::stop()
 void mac_nr::reset()
 {
   logger.info("Resetting MAC-NR");
+
+  proc_bsr.reset();
+  proc_sr.reset();
+  proc_ra.reset();
+  mux.reset();
 }
 
 void mac_nr::run_tti(const uint32_t tti)

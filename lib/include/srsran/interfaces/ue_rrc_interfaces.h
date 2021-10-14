@@ -110,6 +110,7 @@ public:
                                    uint32_t            sk_counter_r15,
                                    bool                nr_radio_bearer_cfg1_r15_present,
                                    asn1::dyn_octstring nr_radio_bearer_cfg1_r15) = 0;
+  virtual void rrc_release()                                                     = 0;
   virtual bool is_config_pending()                                               = 0;
 };
 

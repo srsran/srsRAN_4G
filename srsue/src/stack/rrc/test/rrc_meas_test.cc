@@ -180,7 +180,8 @@ public:
                            asn1::dyn_octstring nr_radio_bearer_cfg1_r15) override
   {
     return false;
-  };
+  }
+  void rrc_release() override {}
   bool is_config_pending() override { return false; };
 };
 

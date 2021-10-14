@@ -63,6 +63,8 @@ void proc_bsr_nr::reset()
   timer_periodic.stop();
   timer_retx.stop();
 
+  lcg_priorities.clear();
+
   triggered_bsr_type = NONE;
 }
 

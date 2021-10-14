@@ -362,6 +362,13 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
   return true;
 }
 
+void rrc_nr::rrc_release()
+{
+  rlc->reset();
+  pdcp->reset();
+  mac->reset();
+}
+
 int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 {
   struct ue_nr_cap_s nr_cap;
