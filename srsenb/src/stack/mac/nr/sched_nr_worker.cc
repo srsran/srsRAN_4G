@@ -167,6 +167,10 @@ void slot_cc_worker::postprocess_decisions()
       if (pusch.sch.grant.rnti == ue.rnti) {
         // Put UCI configuration in PUSCH config
         has_pusch = true;
+
+        // If has PUSCH, no SR shall be received
+        uci_cfg.o_sr = 0;
+
         if (not ue.cfg->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
           logger.error("Error setting UCI configuration in PUSCH");
           continue;

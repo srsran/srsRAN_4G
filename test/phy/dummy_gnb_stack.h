@@ -570,6 +570,9 @@ public:
 
     // Schedule PUSCH
     if (has_pusch) {
+      // If has PUSCH, no SR shall be received
+      uci_cfg.o_sr = 0;
+
       // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
         logger.error("Error setting UCI configuration in PUSCH");
