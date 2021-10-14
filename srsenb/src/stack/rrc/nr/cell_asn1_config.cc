@@ -221,15 +221,106 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   return SRSRAN_SUCCESS;
 }
 
+void fill_init_dl_bwp(const rrc_nr_cfg_t& cfg, bwp_dl_ded_s& bwp)
+{
+  bwp.pdcch_cfg_present                                = true;
+  auto& pdcch_ded_setup                                = bwp.pdcch_cfg.set_setup();
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list_present = true;
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list.resize(1);
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].ctrl_res_set_id = 2;
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].freq_domain_res.from_number(
+      0b111111110000000000000000000000000000000000000);
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].dur = 1;
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].cce_reg_map_type.set_non_interleaved();
+  pdcch_ded_setup.ctrl_res_set_to_add_mod_list[0].precoder_granularity =
+      asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+
+  // search spaces
+  pdcch_ded_setup.search_spaces_to_add_mod_list_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list.resize(1);
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_id                                = 2;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].ctrl_res_set_id_present                        = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].ctrl_res_set_id                                = 2;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_slot_periodicity_and_offset_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_slot_periodicity_and_offset.set_sl1();
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_symbols_within_slot_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].monitoring_symbols_within_slot.from_number(0b10000000000000);
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level1 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level2 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n2;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level4 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n2;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level8 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].nrof_candidates.aggregation_level16 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_type_present = true;
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_type.set_ue_specific();
+  pdcch_ded_setup.search_spaces_to_add_mod_list[0].search_space_type.ue_specific().dci_formats = asn1::rrc_nr::
+      search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_opts::formats0_minus0_and_minus1_minus0;
+}
+
 /// Fill ServingCellConfig with gNB config
 int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, serving_cell_cfg_s& serv_cell)
 {
   serv_cell.csi_meas_cfg_present = true;
   HANDLE_ERROR(fill_csi_meas_from_enb_cfg(cfg, serv_cell.csi_meas_cfg.set_setup()));
 
+  serv_cell.init_dl_bwp_present = true;
+  fill_init_dl_bwp(cfg, serv_cell.init_dl_bwp);
+
   // TODO: remaining fields
 
   return SRSRAN_SUCCESS;
+}
+
+void fill_dl_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, dl_cfg_common_s& dl_cfg_common)
+{
+  dl_cfg_common.init_dl_bwp_present                  = true;
+  dl_cfg_common.init_dl_bwp.pdcch_cfg_common_present = true;
+
+  auto& pdcch_cfg_setup                               = dl_cfg_common.init_dl_bwp.pdcch_cfg_common.set_setup();
+  pdcch_cfg_setup.common_ctrl_res_set_present         = true;
+  pdcch_cfg_setup.common_ctrl_res_set.ctrl_res_set_id = 1;
+  pdcch_cfg_setup.common_ctrl_res_set.freq_domain_res.from_number(0b111111110000000000000000000000000000000000000);
+  pdcch_cfg_setup.common_ctrl_res_set.dur = 1;
+  pdcch_cfg_setup.common_ctrl_res_set.cce_reg_map_type.set_non_interleaved();
+  pdcch_cfg_setup.common_ctrl_res_set.precoder_granularity =
+      asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+
+  // common search space list
+  pdcch_cfg_setup.common_search_space_list_present = true;
+  pdcch_cfg_setup.common_search_space_list.resize(1);
+  pdcch_cfg_setup.common_search_space_list[0].search_space_id           = 1;
+  pdcch_cfg_setup.common_search_space_list[0].ctrl_res_set_id_present   = true;
+  pdcch_cfg_setup.common_search_space_list[0].ctrl_res_set_id           = 1;
+  pdcch_cfg_setup.common_search_space_list[0].search_space_type_present = true;
+  pdcch_cfg_setup.common_search_space_list[0].search_space_type.set_common();
+  pdcch_cfg_setup.common_search_space_list[0].search_space_type.common().dci_format0_minus0_and_format1_minus0_present =
+      true;
+  pdcch_cfg_setup.common_search_space_list[0].nrof_candidates_present = true;
+  pdcch_cfg_setup.common_search_space_list[0].nrof_candidates.aggregation_level1 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n1;
+  pdcch_cfg_setup.common_search_space_list[0].nrof_candidates.aggregation_level2 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n1;
+  pdcch_cfg_setup.common_search_space_list[0].nrof_candidates.aggregation_level4 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
+  pdcch_cfg_setup.common_search_space_list[0].nrof_candidates.aggregation_level8 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
+  pdcch_cfg_setup.common_search_space_list[0].nrof_candidates.aggregation_level16 =
+      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
+  pdcch_cfg_setup.common_search_space_list[0].monitoring_slot_periodicity_and_offset_present = true;
+  pdcch_cfg_setup.common_search_space_list[0].monitoring_slot_periodicity_and_offset.set_sl1();
+  pdcch_cfg_setup.common_search_space_list[0].monitoring_symbols_within_slot_present = true;
+  pdcch_cfg_setup.common_search_space_list[0].monitoring_symbols_within_slot.from_number(0b10000000000000);
+  pdcch_cfg_setup.ra_search_space_present = true;
+  pdcch_cfg_setup.ra_search_space         = 1;
+
+  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    pdcch_cfg_setup.ext = false;
+  }
 }
 
 /// Fill ServingCellConfigCommon with gNB config
@@ -279,6 +370,9 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
     tdd_config.pattern1.nrof_ul_slots        = 4;
     tdd_config.pattern1.nrof_ul_symbols      = 0;
   }
+
+  serv_common.dl_cfg_common_present = true;
+  fill_dl_cfg_common_from_enb_cfg(cfg, cc, serv_common.dl_cfg_common);
 
   return SRSRAN_SUCCESS;
 }

@@ -1551,6 +1551,39 @@ bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_
   return true;
 }
 
+bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
+{
+  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
+    for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
+      pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
+      make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
+    }
+  }
+
+  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
+    for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
+      pdcch->search_space_present[ss.search_space_id] = true;
+      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+    }
+  }
+  return true;
+}
+
+bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
+{
+  if (pdcch_cfg.common_ctrl_res_set_present) {
+    pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
+    make_phy_coreset_cfg(pdcch_cfg.common_ctrl_res_set, &pdcch->coreset[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id]);
+  }
+  if (pdcch_cfg.common_search_space_list_present) {
+    for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
+      pdcch->search_space_present[ss.search_space_id] = true;
+      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+    }
+  }
+  return true;
+}
+
 } // namespace srsran
 
 namespace srsenb {
