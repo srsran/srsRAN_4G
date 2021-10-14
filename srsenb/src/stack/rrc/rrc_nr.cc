@@ -1194,6 +1194,7 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
   pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list[1].map_type =
       asn1::rrc_nr::pusch_time_domain_res_alloc_s::map_type_opts::type_a;
   pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list[1].start_symbol_and_len = 27;
+  pusch_cfg_common_pack.setup().p0_nominal_with_grant_present                        = true;
   pusch_cfg_common_pack.setup().p0_nominal_with_grant                                = -90;
 
   // PUCCH config common
