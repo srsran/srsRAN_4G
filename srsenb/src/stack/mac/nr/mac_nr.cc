@@ -136,21 +136,13 @@ int mac_nr::ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg)
   return SRSRAN_SUCCESS;
 }
 
-uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx)
+uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx, const sched_nr_ue_cfg_t& uecfg)
 {
   uint16_t rnti = alloc_ue(enb_cc_idx);
   if (rnti == SRSRAN_INVALID_RNTI) {
     return rnti;
   }
 
-  // Add new user to the scheduler so that it can RX/TX SRB0
-  srsenb::sched_nr_interface::ue_cfg_t uecfg = {};
-  uecfg.carriers.resize(1);
-  uecfg.carriers[0].active      = true;
-  uecfg.carriers[0].cc          = 0;
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-  uecfg.phy_cfg                 = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
-  uecfg.phy_cfg.csi             = {}; // disable CSI until RA is complete
   sched.ue_cfg(rnti, uecfg);
 
   return rnti;
@@ -165,7 +157,21 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
   uint32_t enb_cc_idx = 0;
   stack_task_queue.push([this, rach_info, enb_cc_idx, rach_tprof_meas]() mutable {
     rach_tprof_meas.defer_stop();
-    uint16_t rnti = reserve_rnti(enb_cc_idx);
+
+    // Add new user to the scheduler so that it can RX/TX SRB0
+    sched_nr_ue_cfg_t uecfg = {};
+    uecfg.carriers.resize(1);
+    uecfg.carriers[0].active      = true;
+    uecfg.carriers[0].cc          = 0;
+    uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+    srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
+    ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
+                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+    uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
+    uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+
+    uint16_t rnti = reserve_rnti(enb_cc_idx, uecfg);
 
     // Log this event.
     ++detected_rachs[enb_cc_idx];
@@ -178,7 +184,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
     sched.dl_rach_info(enb_cc_idx, rar_info);
-    rrc->add_user(rnti);
+    rrc->add_user(rnti, uecfg);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,

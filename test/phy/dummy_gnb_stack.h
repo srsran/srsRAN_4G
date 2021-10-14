@@ -374,11 +374,10 @@ public:
 
     // add UE to scheduler
     if (not use_dummy_mac and not args.wait_preamble) {
-      mac->reserve_rnti(0);
-
       srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
       ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
-      mac->ue_cfg(args.rnti, ue_cfg);
+
+      mac->reserve_rnti(0, ue_cfg);
     }
 
     dl.mcs = args.pdsch.mcs;

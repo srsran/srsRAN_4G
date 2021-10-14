@@ -53,7 +53,7 @@ public:
 
   // MAC interface for RRC
   int      cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells) override;
-  uint16_t reserve_rnti(uint32_t enb_cc_idx) override;
+  uint16_t reserve_rnti(uint32_t enb_cc_idx, const sched_nr_interface::ue_cfg_t& uecfg) override;
   int      read_pdu_bcch_bch(uint8_t* payload);
   int      ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override;
   int      remove_ue(uint16_t rnti) override;

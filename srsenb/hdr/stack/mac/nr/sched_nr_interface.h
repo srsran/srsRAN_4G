@@ -33,6 +33,18 @@ const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
 const static size_t   SCHED_NR_MAX_LCID         = 32;
 const static size_t   SCHED_NR_MAX_LC_GROUP     = 7;
 
+struct sched_nr_ue_cc_cfg_t {
+  bool     active = false;
+  uint32_t cc     = 0;
+};
+
+struct sched_nr_ue_cfg_t {
+  uint32_t                                                            maxharq_tx = 4;
+  srsran::bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
+  std::array<mac_lc_ch_cfg_t, SCHED_NR_MAX_LCID>                      ue_bearers = {};
+  srsran::phy_cfg_nr_t                                                phy_cfg    = {};
+};
+
 class sched_nr_interface
 {
 public:
@@ -76,17 +88,8 @@ public:
     std::string logger_name        = "MAC-NR";
   };
 
-  struct ue_cc_cfg_t {
-    bool     active = false;
-    uint32_t cc     = 0;
-  };
-
-  struct ue_cfg_t {
-    uint32_t                                                   maxharq_tx = 4;
-    srsran::bounded_vector<ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
-    std::array<mac_lc_ch_cfg_t, SCHED_NR_MAX_LCID>             ue_bearers = {};
-    srsran::phy_cfg_nr_t                                       phy_cfg    = {};
-  };
+  using ue_cc_cfg_t = sched_nr_ue_cc_cfg_t;
+  using ue_cfg_t    = sched_nr_ue_cfg_t;
 
   ////// RA procedure //////
 

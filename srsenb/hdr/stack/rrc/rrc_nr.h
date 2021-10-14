@@ -69,7 +69,7 @@ public:
   int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
 
   /// User manegement
-  int  add_user(uint16_t rnti);
+  int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg);
   void rem_user(uint16_t rnti);
   int  update_user(uint16_t new_rnti, uint16_t old_rnti);
   void set_activity_user(uint16_t rnti);
@@ -104,7 +104,7 @@ public:
   class ue
   {
   public:
-    ue(rrc_nr* parent_, uint16_t rnti_);
+    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg);
 
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);

@@ -145,10 +145,10 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
 }
 
 // This function is called from PRACH worker (can wait)
-int rrc_nr::add_user(uint16_t rnti)
+int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
 {
   if (users.count(rnti) == 0) {
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti))));
+    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -478,14 +478,26 @@ int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_p
 {
   task_sched.defer_task([this, eutra_rnti, params]() {
     // try to allocate new user
-    uint16_t nr_rnti = mac->reserve_rnti(0);
+    sched_nr_ue_cfg_t uecfg{};
+    uecfg.carriers.resize(1);
+    uecfg.carriers[0].active      = true;
+    uecfg.carriers[0].cc          = 0;
+    uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+    srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
+    ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+    uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
+    uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+
+    uint16_t nr_rnti = mac->reserve_rnti(0, uecfg);
     if (nr_rnti == SRSRAN_INVALID_RNTI) {
       logger.error("Failed to allocate RNTI at MAC");
       rrc_eutra->sgnb_addition_reject(eutra_rnti);
       return;
     }
 
-    if (add_user(nr_rnti) != SRSRAN_SUCCESS) {
+    if (add_user(nr_rnti, uecfg) != SRSRAN_SUCCESS) {
       logger.error("Failed to allocate RNTI at RRC");
       rrc_eutra->sgnb_addition_reject(eutra_rnti);
       return;
@@ -527,7 +539,9 @@ int rrc_nr::sgnb_release_request(uint16_t nr_rnti)
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_), uecfg(srsenb::get_rach_ue_cfg(0)) {}
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_) :
+  parent(parent_), rnti(rnti_), uecfg(uecfg_)
+{}
 
 void rrc_nr::ue::send_connection_setup()
 {
