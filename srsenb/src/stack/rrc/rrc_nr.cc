@@ -182,7 +182,7 @@ void rrc_nr::rem_user(uint16_t rnti)
 int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
 {
   if (new_rnti == old_rnti) {
-    logger.error("rnti=0x%x received MAC CRNTI CE with same rnti", new_rnti);
+    logger.warning("rnti=0x%x received MAC CRNTI CE with same rnti", new_rnti);
     return SRSRAN_ERROR;
   }
 
