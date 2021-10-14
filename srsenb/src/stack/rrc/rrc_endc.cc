@@ -42,6 +42,11 @@ rrc::ue::rrc_endc::rrc_endc(rrc::ue* outer_ue, const rrc_endc_cfg_t& endc_cfg_) 
   }
 }
 
+rrc::ue::rrc_endc::~rrc_endc()
+{
+  start_sgnb_release();
+}
+
 //! Method to add NR fields to a RRC Connection Reconfiguration Message
 bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg)
 {
@@ -285,6 +290,12 @@ void rrc::ue::rrc_endc::start_sgnb_addition()
   trigger(sgnb_add_req);
 }
 
+void rrc::ue::rrc_endc::start_sgnb_release()
+{
+  sgnb_rel_req_ev sgnb_rel_req{nr_rnti};
+  trigger(sgnb_rel_req);
+}
+
 rrc::ue::rrc_endc::prepare_recfg_st::prepare_recfg_st(rrc_endc* parent_) : logger(parent_->logger) {}
 
 void rrc::ue::rrc_endc::prepare_recfg_st::enter(rrc_endc* f, const sgnb_add_req_ack_ev& ev)
@@ -313,6 +324,15 @@ void rrc::ue::rrc_endc::handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, co
 
   // change GTPU tunnel RNTI to match NR RNTI
   rrc_enb->gtpu->mod_bearer_rnti(rrc_ue->rnti, ev.params.nr_rnti);
+
+  // store RNTI for later
+  nr_rnti = ev.params.nr_rnti;
+}
+
+void rrc::ue::rrc_endc::handle_sgnb_rel_req(endc_activated_st& s, const sgnb_rel_req_ev& ev)
+{
+  logger.info("Triggering SgNB release");
+  rrc_enb->rrc_nr->sgnb_release_request(nr_rnti);
 }
 
 bool rrc::ue::rrc_endc::is_endc_supported()

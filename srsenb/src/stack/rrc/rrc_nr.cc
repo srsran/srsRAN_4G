@@ -511,6 +511,16 @@ int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstri
   return SRSRAN_SUCCESS;
 }
 
+int rrc_nr::sgnb_release_request(uint16_t nr_rnti)
+{
+  task_sched.defer_task([this, nr_rnti]() {
+    // remove user
+    rem_user(nr_rnti);
+    rrc_eutra->sgnb_release_ack(nr_rnti);
+  });
+  return SRSRAN_SUCCESS;
+}
+
 /*******************************************************************************
   UE class
 

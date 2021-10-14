@@ -40,6 +40,9 @@ public:
 
   /// Provide information whether the requested configuration was applied successfully by the UE
   virtual int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response) = 0;
+
+  /// Trigger release for specific UE
+  virtual int sgnb_release_request(uint16_t nr_rnti) = 0;
 };
 
 /// X2AP inspired interface for response from NR RRC to EUTRA RRC
@@ -81,6 +84,13 @@ public:
    * @param nr_rnti    The RNTI that has been assigned to the UE on the SgNB
    */
   virtual void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) = 0;
+
+  /**
+   * @brief Signal release of all UE resources on the NR cell
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC used to request the SgNB addition
+   */
+  virtual void sgnb_release_ack(uint16_t eutra_rnti) = 0;
 
   /**
    * @brief Signal user activity (i.e. DL/UL traffic) for given RNTI

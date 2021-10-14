@@ -80,12 +80,28 @@ public:
     eutra_stack->sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
 
+  void sgnb_release_ack(uint16_t eutra_rnti) override
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->sgnb_release_ack(eutra_rnti);
+  }
+
   void set_activity_user(uint16_t eutra_rnti) override
   {
     if (eutra_stack == nullptr) {
       return;
     }
     eutra_stack->set_activity_user(eutra_rnti);
+  }
+
+  int sgnb_release_request(uint16_t nr_rnti) override
+  {
+    if (nr_stack == nullptr) {
+      return SRSRAN_ERROR;
+    }
+    return nr_stack->sgnb_release_request(nr_rnti);
   }
 
   // pdcp_interface_gtpu

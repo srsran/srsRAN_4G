@@ -89,6 +89,7 @@ public:
   {
     return rrc.sgnb_reconfiguration_complete(eutra_rnti, reconfig_response);
   };
+  int sgnb_release_request(uint16_t nr_rnti) final { return rrc.sgnb_release_request(nr_rnti); };
   // X2 data interface
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) final
   {

@@ -131,6 +131,7 @@ public:
   void sgnb_addition_ack(uint16_t eutra_rnti, const sgnb_addition_ack_params_t params) override;
   void sgnb_addition_reject(uint16_t eutra_rnti) override;
   void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) override;
+  void sgnb_release_ack(uint16_t eutra_rnti) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override;
