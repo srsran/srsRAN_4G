@@ -278,7 +278,9 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
         }
       }
     } else {
-      fprintf(stderr, "[zmq] Error: RF device args are required for ZMQ no-RF module\n");
+      fprintf(stderr,
+              "[zmq] Error: No device 'args' option has been set. Please make sure to set this option to be able to "
+              "use the ZMQ no-RF module\n");
       goto clean_exit;
     }
 
