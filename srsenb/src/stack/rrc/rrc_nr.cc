@@ -189,7 +189,6 @@ int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
   // Remove new_rnti
   auto new_ue_it = users.find(new_rnti);
   if (new_ue_it != users.end()) {
-    // There is no need to check the return code, as this function should always return SUCCESS
     new_ue_it->second->deactivate_bearers();
     task_sched.defer_task([this, new_rnti]() { rem_user(new_rnti); });
   }
@@ -1501,23 +1500,17 @@ int rrc_nr::ue::add_drb()
 /**
  * @brief Deactivate all Bearers (MAC logical channel) for this specific RNTI
  *
- * The function iterates over the bearers or MAC logical channels and deactivates them by setting each of them to IDLE
- *
- * @return int SRSRAN_SUCCESS on success (only fails if the called sub-functions assert)
+ * The function iterates over the bearers or MAC logical channels and deactivates them by setting each one to IDLE
  */
-int rrc_nr::ue::deactivate_bearers()
+void rrc_nr::ue::deactivate_bearers()
 {
   // Iterate over the bearers (MAC LC CH) and set each of them to IDLE
   for (auto& ue_bearer : uecfg.ue_bearers) {
     ue_bearer.direction = mac_lc_ch_cfg_t::IDLE;
   }
 
-  // No need to check the returned value, as the function will return SRSRAN_SUCCESS
+  // No need to check the returned value, as the function ue_cfg will return SRSRAN_SUCCESS (it asserts if it fails)
   parent->mac->ue_cfg(rnti, uecfg);
-
-  // Technically, the only way this function fails is if parent->mac->ue_cfg(rnti, uecfg) asserts
-  // Should we still return SRSRAN_SUCCESS or can we make it void?
-  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

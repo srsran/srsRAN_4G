@@ -122,7 +122,7 @@ public:
     // setters
 
     int pack_rrc_reconfiguration();
-    int deactivate_bearers();
+    void deactivate_bearers();
 
   private:
     rrc_nr*  parent = nullptr;
