@@ -17,6 +17,11 @@
 #include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsran/adt/circular_array.h"
 #include <condition_variable>
+#include <semaphore.h>
+
+namespace srsran {
+class task_worker;
+}
 
 namespace srsenb {
 
@@ -98,10 +103,8 @@ private:
   sim_nr_ue_ctxt_t      ctxt;
 };
 
-namespace detail {
-
 /// Implementation of features common to sched_nr_sim_parallel and sched_nr_sim
-class sched_nr_sim_base
+class sched_nr_base_tester
 {
 public:
   struct cc_result_t {
@@ -109,13 +112,17 @@ public:
     uint32_t                           cc;
     sched_nr_interface::dl_sched_res_t dl_res;
     sched_nr_interface::ul_sched_t     ul_res;
-    std::chrono::nanoseconds           sched_latency_ns;
+    std::chrono::nanoseconds           cc_latency_ns;
   };
 
-  sched_nr_sim_base(const sched_nr_interface::sched_args_t&            sched_args,
-                    const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
-                    std::string                                        test_name);
-  virtual ~sched_nr_sim_base();
+  sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,
+                       const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
+                       std::string                                        test_name,
+                       uint32_t                                           nof_workers = 1);
+  virtual ~sched_nr_base_tester();
+
+  void run_slot(slot_point slot_tx);
+  void stop();
 
   int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, slot_point tti_rx, uint32_t preamble_idx);
 
@@ -125,11 +132,10 @@ public:
   virtual void set_external_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events) {}
 
   // configurable by simulator concrete implementation
-  virtual void process_cc_result(const cc_result_t& cc_out) {}
+  virtual void process_slot_result(const sim_nr_enb_ctxt_t& enb_ctxt, srsran::const_span<cc_result_t> cc_out) {}
 
 protected:
-  void              new_slot_(slot_point slot_tx);
-  void              generate_cc_result_(uint32_t cc);
+  void              generate_cc_result(uint32_t cc);
   sim_nr_enb_ctxt_t get_enb_ctxt() const;
 
   int set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events);
@@ -144,77 +150,19 @@ protected:
   std::unique_ptr<sched_nr>                 sched_ptr;
   std::vector<sched_nr_impl::cell_params_t> cell_params;
 
-  uint32_t                 nof_cc_remaining = 0;
-  slot_point               current_slot_tx;
-  std::vector<cc_result_t> cc_results;
+  std::vector<std::unique_ptr<srsran::task_worker> > cc_workers;
 
   std::map<uint16_t, sched_nr_ue_sim> ue_db;
-};
-} // namespace detail
 
-class sched_nr_sim_parallel : public detail::sched_nr_sim_base
-{
-  using base_t = detail::sched_nr_sim_base;
+  // slot-specific
+  slot_point                            current_slot_tx;
+  std::chrono::steady_clock::time_point slot_start_tp;
+  sim_nr_enb_ctxt_t                     slot_ctxt;
+  std::vector<cc_result_t>              cc_results;
 
-public:
-  using base_t::base_t;
-  ~sched_nr_sim_parallel();
-
-  void stop();
-
-  int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, slot_point tti_rx, uint32_t preamble_idx)
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    return base_t::add_user(rnti, ue_cfg_, tti_rx, preamble_idx);
-  }
-  slot_point get_slot_tx() const
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    return current_slot_tx;
-  }
-
-  void new_slot(slot_point slot_tx);
-  void generate_cc_result(uint32_t cc);
-
-private:
-  mutable std::mutex      mutex;
-  std::condition_variable cvar;
-};
-
-class sched_nr_sim : public detail::sched_nr_sim_base
-{
-  using base_t = detail::sched_nr_sim_base;
-
-public:
-  using sched_nr_sim_base::sched_nr_sim_base;
-
-  void new_slot(slot_point slot_tx);
-  void generate_cc_result(uint32_t cc);
-
-  sched_nr_ue_sim&       at(uint16_t rnti) { return ue_db.at(rnti); }
-  const sched_nr_ue_sim& at(uint16_t rnti) const { return ue_db.at(rnti); }
-  sched_nr_ue_sim*       find_rnti(uint16_t rnti)
-  {
-    auto it = ue_db.find(rnti);
-    return it != ue_db.end() ? &it->second : nullptr;
-  }
-  const sched_nr_ue_sim* find_rnti(uint16_t rnti) const
-  {
-    auto it = ue_db.find(rnti);
-    return it != ue_db.end() ? &it->second : nullptr;
-  }
-  const sched_nr_interface::ue_cfg_t* get_user_cfg(uint16_t rnti) const
-  {
-    const sched_nr_ue_sim* ret = find_rnti(rnti);
-    return ret == nullptr ? nullptr : &ret->get_ctxt().ue_cfg;
-  }
-  bool      user_exists(uint16_t rnti) const { return ue_db.count(rnti) > 0; }
-  sched_nr* get_sched() { return sched_ptr.get(); }
-
-  std::map<uint16_t, sched_nr_ue_sim>::iterator begin() { return ue_db.begin(); }
-  std::map<uint16_t, sched_nr_ue_sim>::iterator end() { return ue_db.end(); }
-
-  slot_point get_slot_tx() const { return current_slot_tx; }
+  std::atomic<bool>     stopped{false};
+  mutable sem_t         slot_sem;
+  std::atomic<uint32_t> nof_cc_remaining{0};
 };
 
 } // namespace srsenb

@@ -14,6 +14,7 @@
 #include "sched_nr_common_test.h"
 #include "sched_nr_ue_ded_test_suite.h"
 #include "srsran/common/test_common.h"
+#include "srsran/common/thread_pool.h"
 
 namespace srsenb {
 
@@ -90,41 +91,63 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
   }
 }
 
-namespace detail {
-
-sched_nr_sim_base::sched_nr_sim_base(const sched_nr_interface::sched_args_t&            sched_args,
-                                     const std::vector<sched_nr_interface::cell_cfg_t>& cell_cfg_list,
-                                     std::string                                        test_name_) :
+sched_nr_base_tester::sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,
+                                           const std::vector<sched_nr_interface::cell_cfg_t>& cell_cfg_list,
+                                           std::string                                        test_name_,
+                                           uint32_t                                           nof_workers) :
   logger(srslog::fetch_basic_logger("TEST")),
   mac_logger(srslog::fetch_basic_logger("MAC")),
   sched_ptr(new sched_nr()),
   test_name(std::move(test_name_))
 {
-  logger.info("\n=========== Start %s ===========", test_name.c_str());
+  sem_init(&slot_sem, 0, 1);
+
+  printf("\n=========== Start %s ===========\n", test_name.c_str());
   cell_params.reserve(cell_cfg_list.size());
   for (uint32_t cc = 0; cc < cell_cfg_list.size(); ++cc) {
     cell_params.emplace_back(cc, cell_cfg_list[cc], sched_args);
   }
   sched_ptr->config(sched_args, cell_cfg_list); // call parent cfg
 
+  cc_workers.resize(nof_workers - 1);
+  for (uint32_t i = 0; i < cc_workers.size(); ++i) {
+    fmt::memory_buffer fmtbuf;
+    fmt::format_to(fmtbuf, "worker{}", i + 1);
+    cc_workers[i].reset(new srsran::task_worker{to_string(fmtbuf), 10});
+  }
+
   cc_results.resize(cell_params.size());
 
   TESTASSERT(cell_params.size() > 0);
 }
 
-sched_nr_sim_base::~sched_nr_sim_base()
+sched_nr_base_tester::~sched_nr_base_tester()
 {
-  logger.info("=========== End %s ==========\n", test_name.c_str());
+  stop();
 }
 
-int sched_nr_sim_base::add_user(uint16_t                            rnti,
-                                const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                                slot_point                          tti_rx,
-                                uint32_t                            preamble_idx)
+void sched_nr_base_tester::stop()
 {
+  bool stopping = not stopped.exchange(true);
+  if (stopping) {
+    sem_wait(&slot_sem);
+    sem_post(&slot_sem);
+    for (auto& worker : cc_workers) {
+      worker->stop();
+    }
+    sem_destroy(&slot_sem);
+    printf("============ End %s ===========\n", test_name.c_str());
+  }
+}
+
+int sched_nr_base_tester::add_user(uint16_t                            rnti,
+                                   const sched_nr_interface::ue_cfg_t& ue_cfg_,
+                                   slot_point                          tti_rx,
+                                   uint32_t                            preamble_idx)
+{
+  sem_wait(&slot_sem);
   sched_ptr->ue_cfg(rnti, ue_cfg_);
 
-  std::lock_guard<std::mutex> lock(std::mutex);
   TESTASSERT(ue_db.count(rnti) == 0);
 
   ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_slot_tx, preamble_idx)));
@@ -136,11 +159,19 @@ int sched_nr_sim_base::add_user(uint16_t                            rnti,
   rach_info.msg3_size    = 7;
   sched_ptr->dl_rach_info(ue_cfg_.carriers[0].cc, rach_info);
 
+  sem_post(&slot_sem);
+
   return SRSRAN_SUCCESS;
 }
 
-void sched_nr_sim_base::new_slot_(slot_point slot_tx)
+void sched_nr_base_tester::run_slot(slot_point slot_tx)
 {
+  srsran_assert(not stopped.load(std::memory_order_relaxed), "Running scheduler when it has already been stopped");
+  // Block concurrent or out-of-order calls to the scheduler
+  sem_wait(&slot_sem);
+  current_slot_tx  = slot_tx;
+  nof_cc_remaining = cell_params.size();
+
   logger.set_context(slot_tx.to_uint());
   mac_logger.set_context(slot_tx.to_uint());
 
@@ -157,20 +188,47 @@ void sched_nr_sim_base::new_slot_(slot_point slot_tx)
     set_external_slot_events(ue.second.get_ctxt(), events);
     apply_slot_events(ue.second.get_ctxt(), events);
   }
+
+  slot_ctxt     = get_enb_ctxt();
+  slot_start_tp = std::chrono::steady_clock::now();
+
+  // Generate CC result (parallel or serialized)
+  uint32_t worker_idx = 0;
+  for (uint32_t cc = 0; cc < cell_params.size(); ++cc) {
+    if (worker_idx == cc_workers.size()) {
+      generate_cc_result(cc);
+    } else {
+      cc_workers[worker_idx]->push_task([this, cc]() { generate_cc_result(cc); });
+    }
+    worker_idx = (worker_idx + 1) % (cc_workers.size() + 1);
+  }
 }
 
-void sched_nr_sim_base::generate_cc_result_(uint32_t cc)
+void sched_nr_base_tester::generate_cc_result(uint32_t cc)
 {
   // Run scheduler
-  auto tp1 = std::chrono::steady_clock::now();
   sched_ptr->run_slot(current_slot_tx, cc, cc_results[cc].dl_res);
   sched_ptr->get_ul_sched(current_slot_tx, cc, cc_results[cc].ul_res);
-  auto tp2                        = std::chrono::steady_clock::now();
-  cc_results[cc].sched_latency_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - tp1);
+  auto tp2                     = std::chrono::steady_clock::now();
+  cc_results[cc].cc_latency_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - slot_start_tp);
+
+  if (--nof_cc_remaining > 0) {
+    // there are still missing CC results
+    return;
+  }
+
+  // Run tests and update UE state
+  process_results();
+
+  // Notify awaiting new slot worker
+  sem_post(&slot_sem);
 }
 
-void sched_nr_sim_base::process_results()
+void sched_nr_base_tester::process_results()
 {
+  // Derived class-defined tests
+  process_slot_result(slot_ctxt, cc_results);
+
   sched_nr_cc_result_view cc_out;
   cc_out.slot = current_slot_tx;
   for (uint32_t cc = 0; cc < cell_params.size(); ++cc) {
@@ -184,12 +242,7 @@ void sched_nr_sim_base::process_results()
     test_ssb_scheduled_grant(cc_out.slot, cell_params[cc_out.cc].cfg, cc_out.dl_cc_result->dl_sched.ssb);
 
     // Run UE-dedicated tests
-    sim_nr_enb_ctxt_t ctxt;
-    ctxt = get_enb_ctxt();
-    test_dl_sched_result(ctxt, cc_out);
-
-    // Derived class-defined tests
-    process_cc_result(cc_results[cc]);
+    test_dl_sched_result(slot_ctxt, cc_out);
 
     // Update UE state
     for (auto& u : ue_db) {
@@ -198,7 +251,7 @@ void sched_nr_sim_base::process_results()
   }
 }
 
-int sched_nr_sim_base::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events)
+int sched_nr_base_tester::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events)
 {
   pending_events.cc_list.clear();
   pending_events.cc_list.resize(cell_params.size());
@@ -229,7 +282,7 @@ int sched_nr_sim_base::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, 
   return SRSRAN_SUCCESS;
 }
 
-int sched_nr_sim_base::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events)
+int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events)
 {
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < events.cc_list.size(); ++enb_cc_idx) {
     const auto& cc_feedback = events.cc_list[enb_cc_idx];
@@ -273,7 +326,7 @@ int sched_nr_sim_base::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_
   return SRSRAN_SUCCESS;
 }
 
-sim_nr_enb_ctxt_t sched_nr_sim_base::get_enb_ctxt() const
+sim_nr_enb_ctxt_t sched_nr_base_tester::get_enb_ctxt() const
 {
   sim_nr_enb_ctxt_t ctxt;
   ctxt.cell_params = cell_params;
@@ -283,78 +336,6 @@ sim_nr_enb_ctxt_t sched_nr_sim_base::get_enb_ctxt() const
   }
 
   return ctxt;
-}
-
-} // namespace detail
-
-void sched_nr_sim::new_slot(slot_point slot_tx)
-{
-  current_slot_tx  = slot_tx;
-  nof_cc_remaining = cell_params.size();
-  this->new_slot_(slot_tx);
-}
-
-void sched_nr_sim::generate_cc_result(uint32_t cc)
-{
-  // Run scheduler
-  this->generate_cc_result_(cc);
-
-  if (--nof_cc_remaining > 0) {
-    // there are still missing CC results
-    return;
-  }
-
-  // Run tests and update UE state
-  this->process_results();
-}
-
-void sched_nr_sim_parallel::new_slot(slot_point slot_tx)
-{
-  // Block concurrent or out-of-order calls to the scheduler
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (nof_cc_remaining > 0 or (current_slot_tx.valid() and current_slot_tx + 1 != slot_tx)) {
-      cvar.wait(lock);
-    }
-    current_slot_tx  = slot_tx;
-    nof_cc_remaining = cell_params.size();
-  }
-
-  // Run common new_slot updates
-  this->new_slot_(slot_tx);
-}
-
-void sched_nr_sim_parallel::generate_cc_result(uint32_t cc)
-{
-  // Run scheduler
-  this->generate_cc_result_(cc);
-
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (--nof_cc_remaining > 0) {
-      // there are still missing CC results
-      return;
-    }
-
-    // Run tests and update UE state
-    this->process_results();
-  }
-
-  // Notify waiting workers
-  cvar.notify_one();
-}
-
-sched_nr_sim_parallel::~sched_nr_sim_parallel()
-{
-  stop();
-}
-
-void sched_nr_sim_parallel::stop()
-{
-  std::unique_lock<std::mutex> lock(mutex);
-  while (nof_cc_remaining > 0) {
-    cvar.wait(lock);
-  }
 }
 
 } // namespace srsenb
