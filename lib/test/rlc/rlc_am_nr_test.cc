@@ -63,11 +63,11 @@ int basic_test()
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());
 
-  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config())) {
     return -1;
   }
 

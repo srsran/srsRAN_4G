@@ -115,6 +115,9 @@ public:
   void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header);
   bool inside_rx_window(uint32_t sn);
 
+  // Timers
+  void timer_expired(uint32_t timeout_id);
+
   // Helpers
   void debug_state();
 
@@ -130,10 +133,16 @@ private:
   std::mutex mutex;
 
   /****************************************************************************
+   * Rx timers
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.3
+   ***************************************************************************/
+  srsran::timer_handler::unique_timer status_prohibit_timer;
+
+  /****************************************************************************
    * Configurable parameters
    * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
    ***************************************************************************/
-  rlc_am_config_t cfg = {};
+  rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * State Variables

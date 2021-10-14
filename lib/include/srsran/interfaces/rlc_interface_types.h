@@ -219,6 +219,14 @@ public:
     rlc_cnfg.am.t_poll_retx       = 5;
     return rlc_cnfg;
   }
+  static rlc_config_t default_rlc_am_nr_config()
+  {
+    rlc_config_t rlc_cnfg            = {};
+    rlc_cnfg.rat                     = srsran_rat_t::nr;
+    rlc_cnfg.rlc_mode                = rlc_mode_t::am;
+    rlc_cnfg.am_nr.t_status_prohibit = 8;
+    return rlc_cnfg;
+  }
   static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)
   {
     rlc_config_t cnfg = {};

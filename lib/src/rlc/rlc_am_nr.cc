@@ -33,11 +33,7 @@ namespace srsran {
 /***************************************************************************
  *  Tx subclass implementation
  ***************************************************************************/
-rlc_am_nr_tx::rlc_am_nr_tx(rlc_am* parent_) : parent(parent_), rlc_am_base_tx(&parent_->logger)
-{
-  parent->logger.debug("Initializing RLC AM NR TX: Tx_Next: %d",
-                       st.tx_next); // Temporarly silence unused variable warning
-}
+rlc_am_nr_tx::rlc_am_nr_tx(rlc_am* parent_) : parent(parent_), rlc_am_base_tx(&parent_->logger) {}
 
 bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 {
@@ -63,7 +59,8 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 
 bool rlc_am_nr_tx::has_data()
 {
-  return true;
+  return do_status() ||                  // if we have a status PDU to transmit
+         tx_sdu_queue.get_n_sdus() != 1; // or if there is a SDU queued up for transmission
 }
 
 uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
@@ -194,7 +191,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
 
   // Bytes needed for status report
   if (do_status() /* && not TODO status_prohibit_timer*/) {
-    n_bytes += parent->rx->get_status_pdu_length();
+    n_bytes += rx->get_status_pdu_length();
     logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes);
   }
 
@@ -237,14 +234,21 @@ void rlc_am_nr_tx::stop() {}
  * Rx subclass implementation
  ***************************************************************************/
 rlc_am_nr_rx::rlc_am_nr_rx(rlc_am* parent_) :
-  parent(parent_), pool(byte_buffer_pool::get_instance()), rlc_am_base_rx(parent_, &parent_->logger)
-{
-  parent->logger.debug("Initializing RLC AM NR RX"); // Temporarly silence unused variable warning
-}
+  parent(parent_),
+  pool(byte_buffer_pool::get_instance()),
+  status_prohibit_timer(parent->timers->get_unique_timer()),
+  rlc_am_base_rx(parent_, &parent_->logger)
+{}
 
 bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
 {
-  cfg = cfg_.am;
+  cfg = cfg_.am_nr;
+
+  // configure timers
+  if (cfg.t_status_prohibit > 0) {
+    status_prohibit_timer.set(static_cast<uint32_t>(cfg.t_status_prohibit),
+                              [this](uint32_t timerid) { timer_expired(timerid); });
+  }
 
   return true;
 }
@@ -260,26 +264,12 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   // Get AMD PDU Header
   rlc_am_nr_pdu_header_t header = {};
-  rlc_am_nr_read_data_pdu_header(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &header);
-
-  // TODO
-  // if (header.rf != 0) {
-  // handle_data_pdu_segment(payload, payload_len, header); TODO
-  //} else {
-  handle_data_pdu_full(payload, nof_bytes, header);
-  //}
-}
-
-void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header)
-{
-  std::map<uint32_t, rlc_amd_rx_pdu_nr>::iterator it;
+  uint32_t hdr_len = rlc_am_nr_read_data_pdu_header(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &header);
 
   logger->info(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)", parent->rb_name, header.sn, nof_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger->debug, header);
 
-  // sanity check for segments not exceeding PDU length
-  // TODO
-
+  // Check wether SDU is within Rx Window
   if (!inside_rx_window(header.sn)) {
     logger->info("%s SN=%d outside rx window [%d:%d] - discarding",
                  parent->rb_name,
@@ -314,29 +304,14 @@ void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rl
                   rx_pdu.buf->get_tailroom());
     return;
   }
-  memcpy(rx_pdu.buf->msg, payload, nof_bytes);
-  rx_pdu.buf->N_bytes = nof_bytes;
+  memcpy(rx_pdu.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
+  rx_pdu.buf->N_bytes = nof_bytes - hdr_len;
   rx_pdu.header       = header;
 
   // Check poll bit
   if (header.p) {
     logger->info("%s Status packet requested through polling bit", parent->rb_name);
     do_status = true;
-  }
-
-  // Update Rx_Next_Highest
-  if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
-    rx_next_highest = (header.sn + 1) % MOD;
-  }
-
-  // Update RX_Highest_Status
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
-    rx_highest_status = (header.sn + 1) % MOD;
-  }
-
-  // Update RX_Next (FIXME should only be updated if all segments are received)
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_next)) {
-    rx_next = header.sn + 1 % MOD;
   }
 
   // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
@@ -354,6 +329,21 @@ void rlc_am_nr_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rl
       // Missing PDU. Cannot deliver SDUs in order. Break
       break;
     }
+  }
+
+  // Update Rx_Next_Highest
+  if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
+    rx_next_highest = (header.sn + 1) % MOD;
+  }
+
+  // Update RX_Highest_Status
+  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
+    rx_highest_status = (header.sn + 1) % MOD;
+  }
+
+  // Update RX_Next (FIXME should only be updated if all segments are received)
+  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_next)) {
+    rx_next = header.sn + 1 % MOD;
   }
 }
 
@@ -394,7 +384,9 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     // TODO
     i = (i + 1) % MOD;
   }
-  //
+  if (max_len != UINT32_MAX) {
+    status_prohibit_timer.run(); // UINT32_MAX is used just to querry the status PDU length
+  }
   return tmp_buf.N_bytes;
 }
 
@@ -406,7 +398,17 @@ uint32_t rlc_am_nr_rx::get_status_pdu_length()
 
 bool rlc_am_nr_rx::get_do_status()
 {
-  return do_status.load(std::memory_order_relaxed);
+  return do_status.load(std::memory_order_relaxed) && not status_prohibit_timer.is_running();
+}
+
+void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
+{
+  std::unique_lock<std::mutex> lock(mutex);
+  if (status_prohibit_timer.is_valid() && status_prohibit_timer.id() == timeout_id) {
+    logger->debug("%s Status prohibit timer expired after %dms", parent->rb_name, status_prohibit_timer.duration());
+  }
+
+  lock.unlock();
 }
 
 /*
