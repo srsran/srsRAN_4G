@@ -62,8 +62,11 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 
     meas_cfg.meas_obj_to_add_mod_list_present = true;
 
+    // store id of nr meas object to remove it in second reconfiguration message
+    nr_meas_obj_id = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
+
     meas_obj_to_add_mod_s meas_obj = {};
-    meas_obj.meas_obj_id           = meas_cfg.meas_obj_to_add_mod_list.size() + 1;
+    meas_obj.meas_obj_id           = nr_meas_obj_id;
     meas_obj.meas_obj.set_meas_obj_nr_r15();
     auto& meas_obj_nr                                                         = meas_obj.meas_obj.meas_obj_nr_r15();
     meas_obj_nr.carrier_freq_r15                                              = endc_cfg.abs_frequency_ssb;
@@ -77,9 +80,12 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 
     // report config
     meas_cfg.report_cfg_to_add_mod_list_present = true;
-    report_cfg_to_add_mod_s report_cfg          = {};
 
-    report_cfg.report_cfg_id = meas_cfg.report_cfg_to_add_mod_list.size() + 1;
+    // store id of nr report config to remove it in second reconfiguration message
+    nr_report_cfg_id = meas_cfg.report_cfg_to_add_mod_list.size() + 1;
+
+    report_cfg_to_add_mod_s report_cfg = {};
+    report_cfg.report_cfg_id           = nr_report_cfg_id;
     report_cfg.report_cfg.set_report_cfg_inter_rat();
     report_cfg.report_cfg.report_cfg_inter_rat().trigger_type.set_event();
     report_cfg.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.set_event_b1_nr_r15();
@@ -108,10 +114,14 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 
     // measIdToAddModList
     meas_cfg.meas_id_to_add_mod_list_present = true;
-    meas_id_to_add_mod_s meas_id             = {};
-    meas_id.meas_id                          = meas_cfg.meas_id_to_add_mod_list.size() + 1;
-    meas_id.meas_obj_id                      = meas_obj.meas_obj_id;
-    meas_id.report_cfg_id                    = report_cfg.report_cfg_id;
+
+    // store id of nr meas to remove it in second reconfiguration message
+    nr_meas_id = meas_cfg.meas_id_to_add_mod_list.size() + 1;
+
+    meas_id_to_add_mod_s meas_id = {};
+    meas_id.meas_id              = nr_meas_id;
+    meas_id.meas_obj_id          = meas_obj.meas_obj_id;
+    meas_id.report_cfg_id        = report_cfg.report_cfg_id;
     meas_cfg.meas_id_to_add_mod_list.push_back(meas_id);
 
     // quantityConfig
@@ -125,10 +135,26 @@ bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     meas_quant[0].meas_quant_cell_nr_r15.filt_coeff_rsrp_r15         = filt_coef_opts::fc3;
 
     // measGapConfig
-    meas_cfg.meas_gap_cfg_present = true;
+    meas_cfg.meas_gap_cfg_present = false; // No LTE measGaps allowed while in NSA mode
     meas_cfg.meas_gap_cfg.set_setup();
     meas_cfg.meas_gap_cfg.setup().gap_offset.set_gp0() = 16;
   } else if (is_in_state<prepare_recfg_st>()) {
+    // Deactivate measurement reports, as we do not support measurements after NR activation
+    conn_recfg->meas_cfg_present = true;
+    meas_cfg_s& meas_cfg         = conn_recfg->meas_cfg;
+    // Remove meas config
+    meas_cfg.meas_obj_to_rem_list_present = true;
+    meas_cfg.meas_obj_to_rem_list.resize(1);
+    meas_cfg.meas_obj_to_rem_list[0] = nr_meas_obj_id;
+    // remove report config
+    meas_cfg.report_cfg_to_rem_list_present = true;
+    meas_cfg.report_cfg_to_rem_list.resize(1);
+    meas_cfg.report_cfg_to_rem_list[0] = nr_report_cfg_id;
+    // remove meas id
+    meas_cfg.meas_id_to_rem_list_present = true;
+    meas_cfg.meas_id_to_rem_list.resize(1);
+    meas_cfg.meas_id_to_rem_list[0] = nr_meas_id;
+
     // FIXME: use bearer manager to remove EUTRA DRB
     conn_recfg->rr_cfg_ded.drb_to_release_list_present = true;
     conn_recfg->rr_cfg_ded.drb_to_release_list.resize(1);

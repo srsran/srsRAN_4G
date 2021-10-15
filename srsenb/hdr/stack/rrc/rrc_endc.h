@@ -85,6 +85,11 @@ private:
   rrc*                  rrc_enb = nullptr;
   srslog::basic_logger& logger;
 
+  // nr ids to deactivate in second reconfig
+  uint32_t nr_meas_obj_id   = 0;
+  uint32_t nr_report_cfg_id = 0;
+  uint32_t nr_meas_id       = 0;
+
   // vars
   bool                                 endc_supported = false;
   rrc_endc_cfg_t                       endc_cfg       = {};
@@ -111,8 +116,8 @@ private:
   private:
     srslog::basic_logger& logger;
   };
-  struct wait_add_complete_st {}; // user needs to complete RA procedure and send C-RNTI CE
-  struct endc_activated_st {};    // user has enabled EN-DC successfully and is currently served
+  struct wait_add_complete_st {};      // user needs to complete RA procedure and send C-RNTI CE
+  struct endc_activated_st {};         // user has enabled EN-DC successfully and is currently served
   struct wait_sgnb_rel_req_resp_st {}; // release EN-DC
 
   // FSM guards
@@ -141,7 +146,7 @@ protected:
   // transitions
   using fsm = rrc_endc;
   // clang-format off
-  using transitions = transition_table<  
+  using transitions = transition_table<
   //  Start                       Target                     Event                    Action                         Guard
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
   row< endc_deactivated_st,       wait_sgnb_add_req_resp_st, sgnb_add_req_sent_ev,   nullptr                                                >,
@@ -154,7 +159,7 @@ protected:
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
   row< endc_activated_st,         wait_sgnb_rel_req_resp_st, sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req                             >,
   row< wait_sgnb_rel_req_resp_st, endc_deactivated_st,       sgnb_rel_req_ack_ev                                                            >
-  
+
   >;
   // clang-format on
 };
