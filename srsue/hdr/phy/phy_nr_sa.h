@@ -27,17 +27,11 @@ public:
   struct args_t {
     std::string log_level = "info";  ///< General PHY logging level
     double      srate_hz  = 61.44e6; ///< Sampling rate in Hz
-
-    // Frequency allocation parameters
-    uint32_t pointA_arfcn = 0; ///< Resource grid PointA ARFCN
-    float    pointA_Hz    = 0; ///< Resource grid PointA frequency in Hz. Overrides pointA_arfcn if valid
-    uint32_t ssb_arfcn    = 0; ///< SS/PBCH block center point ARFCN
-    float    ssb_Hz       = 0; ///< SS/PBCH block center point ARFCN. Overrides ssb_arfcn if valid
   };
 
   phy_nr_sa(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_);
 
-  bool init(const args_t& args);
+  bool init(const args_t& args_);
 
   int set_ul_grant(uint32_t                                       rar_slot_idx,
                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
@@ -56,15 +50,18 @@ public:
   void clear_pending_grants() override {}
   bool set_config(const srsran::phy_cfg_nr_t& cfg) override { return false; }
 
-  phy_nr_sa_state_t get_state() const override { return PHY_NR_SA_STATE_CELL_SELECT; }
-  void              reset() override {}
-  bool              start_cell_search(const cell_search_args_t& req) override { return false; }
+  phy_nr_sa_state_t get_state() const override;
+  void              reset() override;
+  bool              start_cell_search(const cell_search_args_t& req) override;
   bool              start_cell_select(const cell_search_args_t& req) override { return false; }
+
+  void stop() { sync.stop(); }
 
 private:
   nr::worker_pool       workers;
   nr::sync_sa           sync;
   srslog::basic_logger& logger;
+  args_t                args;
 };
 
 } // namespace srsue

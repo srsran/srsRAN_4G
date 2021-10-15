@@ -49,8 +49,8 @@ private:
   srslog::basic_logger&        logger;
   stack_interface_phy_sa_nr&   stack;
   srsran::radio_interface_phy& radio;
-  srsran_ue_sync_nr_t          ue_sync_nr = {};
   srsran::rf_timestamp_t       last_rx_time;
+  srsran_ue_sync_nr_t          ue_sync_nr          = {};
   srsran_timestamp_t           stack_tti_ts_new    = {};
   srsran_timestamp_t           stack_tti_ts        = {};
   bool                         forced_rx_time_init = true; // Rx time sync after first receive from radio

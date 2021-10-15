@@ -59,7 +59,7 @@ bool sync_sa::start_cell_search(const cell_search::cfg_t& cfg)
     return false;
   }
 
-  // Configure searcher without locking state
+  // Configure searcher without locking state for avoiding stalling the Rx stream
   lock.unlock();
   if (not searcher.start(cfg)) {
     logger.error("Sync: failed to start cell search");
@@ -69,11 +69,6 @@ bool sync_sa::start_cell_search(const cell_search::cfg_t& cfg)
 
   // Transition to search
   next_state = STATE_CELL_SEARCH;
-
-  // Wait for state transition
-  while (state != STATE_CELL_SEARCH) {
-    state_cvar.wait(lock);
-  }
 
   return true;
 }
@@ -102,6 +97,13 @@ bool sync_sa::go_idle()
 void sync_sa::stop()
 {
   running = false;
+  wait_thread_finish();
+}
+
+sync_sa::state_t sync_sa::get_state() const
+{
+  std::unique_lock<std::mutex> lock(state_mutex);
+  return state;
 }
 
 void sync_sa::run_state_idle()
@@ -111,7 +113,10 @@ void sync_sa::run_state_idle()
 
   srsran::rf_timestamp_t ts = {};
 
+  // Receives from radio 1 slot
   radio.rx_now(rf_buffer, ts);
+
+  stack.run_tti(slot_cfg.idx);
 }
 
 void sync_sa::run_state_cell_search()

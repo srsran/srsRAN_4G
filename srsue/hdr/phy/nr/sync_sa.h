@@ -81,6 +81,8 @@ public:
 
   void stop();
 
+  state_t get_state() const;
+
   void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
 private:
@@ -91,11 +93,12 @@ private:
 
   state_t                      state      = STATE_IDLE;
   state_t                      next_state = STATE_IDLE;
-  std::mutex                   state_mutex;
+  mutable std::mutex           state_mutex;
   std::condition_variable      state_cvar;
   std::atomic<bool>            running = {false};
   uint32_t                     sf_sz   = 0; ///< Subframe size (1-ms)
   srsran::tti_semaphore<void*> tti_semaphore;
+  srsran_slot_cfg_t            slot_cfg = {};
 
   cell_search searcher;
   slot_sync   slot_synchronizer;
