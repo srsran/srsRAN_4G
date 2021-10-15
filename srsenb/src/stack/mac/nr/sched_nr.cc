@@ -140,7 +140,8 @@ int sched_nr::get_ul_sched(slot_point slot_ul, uint32_t cc, ul_sched_t& result)
 {
   if (not pending_results->has_ul_result(slot_ul, cc)) {
     // sched result hasn't been generated
-    result = {};
+    result.pucch.clear();
+    result.pusch.clear();
     return SRSRAN_SUCCESS;
   }
 
