@@ -397,13 +397,16 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::meas_report:
-      if (mobility_handler != nullptr) {
-        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
+      if (state == RRC_STATE_REGISTERED) {
+        if (mobility_handler != nullptr) {
+          mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
+        }
+        if (endc_handler != nullptr) {
+          endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+        }
       } else {
-        parent->logger.warning("Received MeasReport but no mobility configuration is available");
-      }
-      if (endc_handler != nullptr) {
-        endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+        parent->logger.warning(
+            "measurementReport for rnti=0x%x ignored. Cause: RRC Reconfiguration is not yet complete", rnti);
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
