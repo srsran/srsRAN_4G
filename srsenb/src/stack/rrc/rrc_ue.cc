@@ -694,6 +694,13 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     eutra_capabilities.to_json(js);
     parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
   }
+  if (endc_handler) {
+    if (req_r8.reest_cause.value == reest_cause_opts::recfg_fail) {
+      endc_handler->trigger(rrc_endc::disable_endc_ev{});
+    } else {
+      endc_handler->handle_eutra_capabilities(eutra_capabilities);
+    }
+  }
 
   // Recover GTP-U tunnels and S1AP context
   parent->gtpu->mod_bearer_rnti(old_rnti, rnti);

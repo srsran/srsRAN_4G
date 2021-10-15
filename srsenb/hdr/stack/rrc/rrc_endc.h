@@ -64,6 +64,11 @@ public:
    */
   struct sgnb_rel_req_ack_ev {};
 
+  /**
+   * @brief in case of non supported NR carrier in UE capabilities or the NR reconfiguration failed
+   */
+  struct disable_endc_ev {};
+
   rrc_endc(srsenb::rrc::ue* outer_ue, const rrc_endc_cfg_t& endc_cfg_);
   ~rrc_endc();
 
@@ -91,9 +96,8 @@ private:
   uint32_t nr_meas_id       = 0;
 
   // vars
-  bool                                 endc_supported = false;
-  rrc_endc_cfg_t                       endc_cfg       = {};
-  uint16_t                             nr_rnti        = SRSRAN_INVALID_RNTI; // C-RNTI assigned to UE on NR side
+  rrc_endc_cfg_t                       endc_cfg = {};
+  uint16_t                             nr_rnti  = SRSRAN_INVALID_RNTI; // C-RNTI assigned to UE on NR side
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
   // fixed ENDC variables
@@ -119,13 +123,15 @@ private:
   struct wait_add_complete_st {};      // user needs to complete RA procedure and send C-RNTI CE
   struct endc_activated_st {};         // user has enabled EN-DC successfully and is currently served
   struct wait_sgnb_rel_req_resp_st {}; // release EN-DC
+  struct endc_disabled_st {};          // EN-DC disabled
 
   // FSM guards
 
   // FSM transition handlers
   void handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, const sgnb_add_req_ack_ev& ev);
   void handle_sgnb_rel_req(endc_activated_st& s, const sgnb_rel_req_ev& ev);
-  void handle_rrc_reest(wait_add_complete_st& s, const rrc_reest_rx_ev& ev);
+  void handle_rrc_reest(const rrc_reest_rx_ev& ev);
+  void handle_endc_disabled(const disable_endc_ev& ev);
 
 protected:
   // states
@@ -134,14 +140,16 @@ protected:
              prepare_recfg_st,
              wait_add_complete_st,
              endc_activated_st,
-             wait_sgnb_rel_req_resp_st>
+             wait_sgnb_rel_req_resp_st,
+             endc_disabled_st>
       states{this,
              endc_deactivated_st{},
              wait_sgnb_add_req_resp_st{},
              prepare_recfg_st{this},
              wait_add_complete_st{},
              endc_activated_st{},
-             wait_sgnb_rel_req_resp_st{}};
+             wait_sgnb_rel_req_resp_st{},
+             endc_disabled_st{}};
 
   // transitions
   using fsm = rrc_endc;
@@ -155,11 +163,11 @@ protected:
   row< wait_sgnb_add_req_resp_st, endc_deactivated_st,       sgnb_add_req_reject_ev                                                         >,
   row< prepare_recfg_st,          wait_add_complete_st,      rrc_recfg_sent_ev                                                              >,
   row< wait_add_complete_st,      endc_activated_st,         sgnb_add_complete_ev                                                           >,
-  row< wait_add_complete_st,      endc_deactivated_st,       rrc_reest_rx_ev,         &fsm::handle_rrc_reest                                >,
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
   row< endc_activated_st,         wait_sgnb_rel_req_resp_st, sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req                             >,
-  row< wait_sgnb_rel_req_resp_st, endc_deactivated_st,       sgnb_rel_req_ack_ev                                                            >
-
+  to_state<                       endc_deactivated_st,       rrc_reest_rx_ev,         &fsm::handle_rrc_reest                                >,
+  row< wait_sgnb_rel_req_resp_st, endc_deactivated_st,       sgnb_rel_req_ack_ev                                                            >,
+  to_state<                       endc_disabled_st,          disable_endc_ev,         &fsm::handle_endc_disabled                            >
   >;
   // clang-format on
 };

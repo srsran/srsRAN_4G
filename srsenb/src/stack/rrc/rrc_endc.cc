@@ -50,7 +50,7 @@ rrc::ue::rrc_endc::~rrc_endc()
 //! Method to add NR fields to a RRC Connection Reconfiguration Message
 bool rrc::ue::rrc_endc::fill_conn_recfg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg)
 {
-  if (not endc_supported) {
+  if (not is_endc_supported()) {
     // skipping ENDC-related field
     return false;
   }
@@ -228,6 +228,7 @@ void rrc::ue::rrc_endc::handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_
   // skip any further checks if eNB runs without NR cells
   if (rrc_enb->cfg.num_nr_cells == 0) {
     Debug("Skipping UE capabilities. No NR cell configured.");
+    trigger(disable_endc_ev{});
     return;
   }
 
@@ -257,7 +258,7 @@ void rrc::ue::rrc_endc::handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_
                             if (ue_cap_v1510.irat_params_nr_r15_present) {
                               if (ue_cap_v1510.irat_params_nr_r15.en_dc_r15_present) {
                                 logger.info("Enabling ENDC support for rnti=%d", rrc_ue->rnti);
-                                endc_supported = true;
+                                return;
                               }
                             }
                           }
@@ -273,13 +274,15 @@ void rrc::ue::rrc_endc::handle_eutra_capabilities(const asn1::rrc::ue_eutra_cap_
       }
     }
   }
+
+  trigger(disable_endc_ev{});
 }
 
 //! Method called whenever the eNB receives a MeasReport from the UE
 void rrc::ue::rrc_endc::handle_ue_meas_report(const meas_report_s& msg)
 {
   // Ignore event if ENDC isn't supported
-  if (not endc_supported) {
+  if (not is_endc_supported()) {
     return;
   }
 
@@ -363,10 +366,10 @@ void rrc::ue::rrc_endc::handle_sgnb_rel_req(endc_activated_st& s, const sgnb_rel
 
 bool rrc::ue::rrc_endc::is_endc_supported()
 {
-  return endc_supported;
+  return not is_in_state<endc_disabled_st>();
 }
 
-void rrc::ue::rrc_endc::handle_rrc_reest(wait_add_complete_st& s, const rrc_reest_rx_ev& ev)
+void rrc::ue::rrc_endc::handle_rrc_reest(const rrc_reest_rx_ev& ev)
 {
   auto& sgnb_config = get_state<prepare_recfg_st>()->sgnb_config;
 
@@ -374,6 +377,11 @@ void rrc::ue::rrc_endc::handle_rrc_reest(wait_add_complete_st& s, const rrc_rees
   rrc_enb->gtpu->mod_bearer_rnti(sgnb_config.nr_rnti, rrc_ue->rnti);
 
   rrc_enb->bearer_manager.rem_user(sgnb_config.nr_rnti);
+}
+
+void rrc::ue::rrc_endc::handle_endc_disabled(const disable_endc_ev& ev)
+{
+  logger.info("Disabling NR EN-DC support for rnti=0x%x", nr_rnti);
 }
 
 } // namespace srsenb
