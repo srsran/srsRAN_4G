@@ -223,7 +223,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   // TODO
 
   // Find space and allocate PDCCH
-  const uint32_t aggr_idx = 2, ss_id = 1;
+  const uint32_t aggr_idx = 2, ss_id = 2;
   uint32_t       coreset_id = ue.cfg->phy().pdcch.search_space[ss_id].coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss_id, &ue)) {
     // Could not find space in PDCCH
@@ -312,7 +312,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   if (bwp_pusch_slot.ul_prbs.collides(ul_prbs)) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 2, ss_id = 1;
+  const uint32_t aggr_idx = 2, ss_id = 2;
   uint32_t       coreset_id = ue.cfg->phy().pdcch.search_space[ss_id].coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(pdcch_grant_type_t::ul_data, aggr_idx, ss_id, &ue)) {
     // Could not find space in PDCCH
