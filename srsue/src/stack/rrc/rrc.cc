@@ -2837,10 +2837,7 @@ uint32_t rrc::get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id)
 
 bool rrc::has_nr_dc()
 {
-  bool has_nr_dc = false;
-  if (args.release >= 15)
-    has_nr_dc = true;
-  return has_nr_dc;
+  return (args.release >= 15);
 }
 
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
