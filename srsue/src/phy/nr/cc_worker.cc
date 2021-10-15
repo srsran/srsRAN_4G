@@ -160,8 +160,8 @@ void cc_worker::decode_pdcch_dl()
 
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
-      const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      std::array<char, 512>               dci_ctx;
+      const srsran_ue_dl_nr_pdcch_info_t* info    = &ue_dl.pdcch_info[i];
+      std::array<char, 512>               dci_ctx = {};
       srsran_dci_ctx_to_str(&info->dci_ctx, dci_ctx.data(), (uint32_t)dci_ctx.size());
       logger.debug("PDCCH: %sEPRE=%+.2f, RSRP=%+.2f, corr=%.3f nof_bits=%d crc=%s",
                    dci_ctx.data(),
