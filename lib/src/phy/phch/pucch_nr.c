@@ -528,14 +528,18 @@ int srsran_pucch_nr_format1_decode(srsran_pucch_nr_t*                  q,
   float llr[SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS];
   srsran_demod_soft_demodulate((nof_bits == 1) ? SRSRAN_MOD_BPSK : SRSRAN_MOD_QPSK, &d, llr, 1);
 
-  // Hard decision
+  // Hard decision based on the LLRs sign
   for (uint32_t i = 0; i < nof_bits; i++) {
     b[i] = llr[i] > 0.0f ? 1 : 0;
   }
 
   // Calculate normalised correlation, it uses the absolute value of d and accumulated average power
   if (norm_corr != NULL) {
-    float nsymb = (float)SRSRAN_CEIL(resource->nof_symbols, 2);
+    // Get the number of payload symbols. As the one of every 2 symbols carry DMRS, the payload symbols is half of the
+    // total symbols rounding down
+    float nsymb = (float)SRSRAN_FLOOR(resource->nof_symbols, 2);
+
+    // Avoid zero, INF or NAN division, set correlation to 0 in this case
     if (isnormal(pwr_acc) && isnormal(nsymb)) {
       *norm_corr = cabsf(d) / sqrtf(pwr_acc * nsymb);
     } else {
