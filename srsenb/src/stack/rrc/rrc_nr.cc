@@ -55,6 +55,19 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
     return SRSRAN_ERROR;
   }
 
+  // Fill base ASN1 cell config.
+  int ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, base_sp_cell_cfg);
+  srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
+
+  // Fill rrc_nr_cfg with UE-specific search spaces and coresets
+  bool ret2 = srsran::fill_phy_pdcch_cfg_common(
+      base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup(),
+      &cfg.cell_list[0].phy_cell.pdcch);
+  srsran_assert(ret2, "Invalid NR cell configuration.");
+  ret2 = srsran::fill_phy_pdcch_cfg(base_sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
+                                    &cfg.cell_list[0].phy_cell.pdcch);
+  srsran_assert(ret2, "Invalid NR cell configuration.");
+
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 
@@ -244,24 +257,15 @@ void rrc_nr::config_mac()
   std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
   sched_nr_interface::cell_cfg_t&                     cell            = sched_cells_cfg[0];
 
-  // Derive ASN1 from config
-  asn1::rrc_nr::sp_cell_cfg_s sp_cell;
-  int                         ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, sp_cell);
-  srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
-
+  // Derive cell config from rrc_nr_cfg_t
+  cell.bwps[0].pdcch = cfg.cell_list[0].phy_cell.pdcch;
   // Derive cell config from ASN1
-  bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(sp_cell.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::fill_phy_pdcch_cfg_common(
-      sp_cell.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup(),
-      &cell.bwps[0].pdcch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::fill_phy_pdcch_cfg(sp_cell.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &cell.bwps[0].pdcch);
+  bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
   srsran_assert(ret2, "Invalid NR cell configuration.");
   ret2 = srsran::make_phy_ssb_cfg(
-      cfg.cell_list[0].phy_cell.carrier, sp_cell.recfg_with_sync.sp_cell_cfg_common, &cell.ssb);
+      cfg.cell_list[0].phy_cell.carrier, base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.ssb);
   srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_duplex_cfg_from_serv_cell(sp_cell.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
+  ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
   srsran_assert(ret2, "Invalid NR cell configuration.");
 
   // FIXME: entire SI configuration, etc needs to be ported to NR
@@ -548,7 +552,10 @@ int rrc_nr::sgnb_release_request(uint16_t nr_rnti)
 *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_) :
   parent(parent_), rnti(rnti_), uecfg(uecfg_)
-{}
+{
+  // Derive UE cfg from rrc_cfg_nr_t
+  uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+}
 
 void rrc_nr::ue::send_connection_setup()
 {
@@ -1315,11 +1322,6 @@ void rrc_nr::ue::crnti_ce_received()
                              &uecfg.phy_cfg.ssb);
     srsran::make_duplex_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
                                            &uecfg.phy_cfg.duplex);
-    srsran::fill_phy_pdcch_cfg_common(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common
-                                          .init_dl_bwp.pdcch_cfg_common.setup(),
-                                      &uecfg.phy_cfg.pdcch);
-    srsran::fill_phy_pdcch_cfg(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
-                               &uecfg.phy_cfg.pdcch);
 
     parent->mac->ue_cfg(rnti, uecfg);
   }

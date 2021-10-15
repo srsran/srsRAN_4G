@@ -378,15 +378,20 @@ bool make_phy_search_space_cfg(const search_space_s& search_space, srsran_search
   }
   srsran_search_space.coreset_id = search_space.ctrl_res_set_id;
 
+  srsran_search_space.duration = 1;
+  if (search_space.dur_present) {
+    srsran_search_space.duration = search_space.dur;
+  }
+
   if (not search_space.nrof_candidates_present) {
     asn1::log_warning("nrof_candidates_present option not present");
     return false;
   }
-  srsran_search_space.nof_candidates[0] = search_space.nrof_candidates.aggregation_level1.value;
-  srsran_search_space.nof_candidates[1] = search_space.nrof_candidates.aggregation_level2.value;
-  srsran_search_space.nof_candidates[2] = search_space.nrof_candidates.aggregation_level4.value;
-  srsran_search_space.nof_candidates[3] = search_space.nrof_candidates.aggregation_level8.value;
-  srsran_search_space.nof_candidates[4] = search_space.nrof_candidates.aggregation_level16.value;
+  srsran_search_space.nof_candidates[0] = search_space.nrof_candidates.aggregation_level1.to_number();
+  srsran_search_space.nof_candidates[1] = search_space.nrof_candidates.aggregation_level2.to_number();
+  srsran_search_space.nof_candidates[2] = search_space.nrof_candidates.aggregation_level4.to_number();
+  srsran_search_space.nof_candidates[3] = search_space.nrof_candidates.aggregation_level8.to_number();
+  srsran_search_space.nof_candidates[4] = search_space.nrof_candidates.aggregation_level16.to_number();
 
   if (not search_space.search_space_type_present) {
     asn1::log_warning("nrof_candidates option not present");
@@ -1579,8 +1584,13 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
     for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
       pdcch->search_space_present[ss.search_space_id] = true;
       make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+      if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
+        pdcch->ra_search_space_present = true;
+        pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
+      }
     }
   }
+
   return true;
 }
 

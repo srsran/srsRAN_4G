@@ -46,7 +46,8 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   cfg(cell.bwps[bwp_id_]),
   logger(srslog::fetch_basic_logger(sched_cfg_.logger_name))
 {
-  srsran_assert(bwp_id != 0 or cfg.pdcch.coreset_present[0], "CORESET#0 has to be active for initial BWP");
+  srsran_assert(cfg.pdcch.ra_search_space_present, "BWPs without RA search space not supported");
+  const uint32_t ra_coreset_id = cfg.pdcch.ra_search_space.coreset_id;
 
   P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
   N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
@@ -61,14 +62,13 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   }
 
   pusch_ra_list.resize(cfg.pusch.nof_common_time_ra);
-  const uint32_t        coreset_id = 0;
   srsran_sch_grant_nr_t grant;
   for (uint32_t m = 0; m < cfg.pusch.nof_common_time_ra; ++m) {
     int ret =
-        srsran_ra_ul_nr_time(&cfg.pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, coreset_id, m, &grant);
+        srsran_ra_ul_nr_time(&cfg.pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
     srsran_assert(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
     pusch_ra_list[m].msg3_delay = grant.k;
-    ret = srsran_ra_ul_nr_time(&cfg.pusch, srsran_rnti_type_c, srsran_search_space_type_ue, coreset_id, m, &grant);
+    ret = srsran_ra_ul_nr_time(&cfg.pusch, srsran_rnti_type_c, srsran_search_space_type_ue, ra_coreset_id, m, &grant);
     pusch_ra_list[m].K = grant.k;
     pusch_ra_list[m].S = grant.S;
     pusch_ra_list[m].L = grant.L;
@@ -79,7 +79,7 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
     for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
       rar_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
-      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].pdcch.coreset[0],
+      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].pdcch.coreset[ra_coreset_id],
                                                 &cell_cfg.bwps[0].pdcch.ra_search_space,
                                                 0,
                                                 agg_idx,

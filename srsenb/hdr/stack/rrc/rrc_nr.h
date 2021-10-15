@@ -121,7 +121,7 @@ public:
     void     get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
     // setters
 
-    int pack_rrc_reconfiguration();
+    int  pack_rrc_reconfiguration();
     void deactivate_bearers();
 
   private:
@@ -210,8 +210,9 @@ private:
   srsran::task_sched_handle task_sched;
 
   // derived
-  uint32_t              slot_dur_ms = 0;
-  srslog::basic_logger& logger;
+  uint32_t                    slot_dur_ms = 0;
+  srslog::basic_logger&       logger;
+  asn1::rrc_nr::sp_cell_cfg_s base_sp_cell_cfg;
 
   // vars
   std::map<uint16_t, std::unique_ptr<ue> >  users;
