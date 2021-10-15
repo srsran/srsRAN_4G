@@ -115,11 +115,12 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         }
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
-        logger.info("LONG_BSR CE not implemented.");
-        break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR:
-        logger.info("LONG_TRUNC_BSR CE not implemented.");
-        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR: {
+        srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
+        for (auto& lb : lbsr.list) {
+          sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, srsran::LONG_BSR));
+        }
+      } break;
       default:
         if (subpdu.is_sdu()) {
           rrc->set_activity_user(rnti);
