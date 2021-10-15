@@ -98,6 +98,7 @@ void mac_nr::reset()
 {
   logger.info("Resetting MAC-NR");
 
+  // TODO: Implement all the steps in 5.9
   proc_bsr.reset();
   proc_sr.reset();
   proc_ra.reset();
