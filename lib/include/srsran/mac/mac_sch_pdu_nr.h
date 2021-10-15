@@ -59,7 +59,7 @@ public:
   nr_lcid_sch_t get_type();
   bool          is_sdu();
   bool          is_valid_lcid();
-  bool          is_var_len_ce();
+  bool          is_var_len_ce(uint32_t lcid);
   bool          is_ul_ccch();
 
   int32_t  read_subheader(const uint8_t* ptr);
@@ -78,9 +78,13 @@ public:
     uint8_t lcg_id;
     uint8_t buffer_size;
   };
-  lcg_bsr_t                               get_sbsr();
-  static const uint8_t                    max_num_lcg_lbsr = 8;
-  std::array<lcg_bsr_t, max_num_lcg_lbsr> get_lbsr();
+  lcg_bsr_t            get_sbsr();
+  static const uint8_t max_num_lcg_lbsr = 8;
+  struct lbsr_t {
+    uint8_t                bitmap; // the first octet of LBSR and Long Trunc BSR
+    std::vector<lcg_bsr_t> list;   // one entry for each reported LCG
+  };
+  lbsr_t get_lbsr();
 
   // TA
   struct ta_t {
@@ -106,6 +110,9 @@ public:
 
 private:
   srslog::basic_logger* logger;
+
+  // internal helpers
+  bool has_length_field();
 
   uint32_t lcid          = 0;
   int      header_length = 0;
