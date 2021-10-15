@@ -1106,7 +1106,7 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
       asn1::rrc_nr::pusch_time_domain_res_alloc_s::map_type_opts::type_a;
   pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list[1].start_symbol_and_len = 27;
   pusch_cfg_common_pack.setup().p0_nominal_with_grant_present                        = true;
-  pusch_cfg_common_pack.setup().p0_nominal_with_grant                                = -90;
+  pusch_cfg_common_pack.setup().p0_nominal_with_grant                                = -60;
 
   // PUCCH config common
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp
@@ -1116,7 +1116,7 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
   pucch_cfg_common_pack.set_setup();
   pucch_cfg_common_pack.setup().pucch_group_hop    = asn1::rrc_nr::pucch_cfg_common_s::pucch_group_hop_opts::neither;
   pucch_cfg_common_pack.setup().p0_nominal_present = true;
-  pucch_cfg_common_pack.setup().p0_nominal         = -90;
+  pucch_cfg_common_pack.setup().p0_nominal         = -60;
 
   return SRSRAN_SUCCESS;
 }
