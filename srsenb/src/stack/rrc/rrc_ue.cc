@@ -699,8 +699,12 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   }
   if (endc_handler) {
     if (req_r8.reest_cause.value == reest_cause_opts::recfg_fail) {
+      // In case of Reestablishment due to ReconfFailure, avoid re-enabling NR EN-DC, otherwise
+      // the eNB and UE may enter in a reconfiguration + reestablishment loop.
       endc_handler->trigger(rrc_endc::disable_endc_ev{});
     } else {
+      // In case of Reestablishment with cause other than ReconfFailure, recompute whether
+      // the new RNTI supports NR EN-DC.
       endc_handler->handle_eutra_capabilities(eutra_capabilities);
     }
   }
