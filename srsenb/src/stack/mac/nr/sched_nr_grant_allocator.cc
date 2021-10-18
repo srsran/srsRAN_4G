@@ -172,7 +172,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
     last_msg3 += msg3_nof_prbs;
     ue.h_ul = ue.harq_ent->find_empty_ul_harq();
-    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
+    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     fill_dci_msg3(ue, *bwp_grid.cfg, rar_grant.msg3_dci);
 
@@ -240,22 +240,20 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   }
 
   // Allocate HARQ
+  int mcs = ue.cfg->fixed_pdsch_mcs();
   if (ue.h_dl->empty()) {
-    int mcs = ue.cfg->fixed_pdsch_mcs();
-    srsran_assert(mcs >= 0, "Dynamic MCS not yet supported");
-    int  tbs = 100;
-    bool ret = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, tbs, 4);
+    bool ret = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4);
     srsran_assert(ret, "Failed to allocate DL HARQ");
   } else {
     bool ret = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant);
+    mcs      = ue.h_dl->mcs();
     srsran_assert(ret, "Failed to allocate DL HARQ retx");
   }
 
   // Allocation Successful
 
-  int                mcs   = ue.h_dl->mcs();
   const static float max_R = 0.93;
-  do {
+  while (true) {
     // Generate PDCCH
     pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
     fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
@@ -288,15 +286,15 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
     } else {
       srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
     }
-    if (bwp_pdsch_slot.pdschs.back().sch.grant.tb[0].R_prime < max_R or mcs == 0) {
+    if (ue.h_dl->nof_retx() > 0 or bwp_pdsch_slot.pdschs.back().sch.grant.tb[0].R_prime < max_R or mcs <= 0) {
       break;
     }
-    // Decrease MCS if rate is too high
+    // Decrease MCS if first tx and rate is too high
     mcs--;
-    ue.h_dl->set_tbs(100, mcs);
+    ue.h_dl->set_mcs(mcs);
     bwp_pdsch_slot.pdschs.pop_back();
     bwp_uci_slot.pending_acks.pop_back();
-  } while (true);
+  }
   if (mcs == 0) {
     logger.warning("Couldn't find mcs that leads to R<0.9");
   }
@@ -338,10 +336,9 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   }
 
   if (ue.h_ul->empty()) {
-    int mcs = ue.cfg->fixed_pusch_mcs();
-    srsran_assert(mcs >= 0, "Dynamic MCS not yet supported");
+    int  mcs     = ue.cfg->fixed_pusch_mcs();
     int  tbs     = 100;
-    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
+    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, ue.cfg->ue_cfg()->maxharq_tx);
     srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
     bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_prbs);

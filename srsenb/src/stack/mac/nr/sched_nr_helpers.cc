@@ -156,7 +156,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      ue.h_dl->prbs(),
                      ue.h_dl->nof_retx(),
                      pdcch.dci.dai,
-                     ue.h_dl->tbs(),
+                     ue.h_dl->tbs() / 8u,
                      ue.dl_pending_bytes,
                      ue.pdsch_slot,
                      ue.uci_slot);
@@ -193,7 +193,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      pdcch.dci.ctx.coreset_id,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_ul->nof_retx(),
-                     ue.h_ul->tbs(),
+                     ue.h_ul->tbs() / 8u,
                      ue.ul_pending_bytes,
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {

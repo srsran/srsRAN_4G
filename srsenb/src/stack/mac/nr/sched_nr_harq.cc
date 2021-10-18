@@ -48,7 +48,6 @@ bool harq_proc::new_tx(slot_point       slot_tx_,
                        slot_point       slot_ack_,
                        const prb_grant& grant,
                        uint32_t         mcs,
-                       uint32_t         tbs,
                        uint32_t         max_retx_)
 {
   if (not empty()) {
@@ -61,20 +60,26 @@ bool harq_proc::new_tx(slot_point       slot_tx_,
   prbs_        = grant;
   tb[0].ndi    = !tb[0].ndi;
   tb[0].mcs    = mcs;
-  tb[0].tbs    = tbs;
+  tb[0].tbs    = 0;
   tb[0].active = true;
   return true;
 }
 
-bool harq_proc::set_tbs(uint32_t tbs, int mcs)
+bool harq_proc::set_tbs(uint32_t tbs)
 {
   if (empty() or nof_retx() > 0) {
     return false;
   }
   tb[0].tbs = tbs;
-  if (mcs >= 0) {
-    tb[0].mcs = mcs;
+  return true;
+}
+
+bool harq_proc::set_mcs(uint32_t mcs)
+{
+  if (empty() or nof_retx() > 0) {
+    return false;
   }
+  tb[0].mcs = mcs;
   return true;
 }
 
@@ -112,10 +117,9 @@ bool dl_harq_proc::new_tx(slot_point       slot_tx,
                           slot_point       slot_ack,
                           const prb_grant& grant,
                           uint32_t         mcs,
-                          uint32_t         tbs,
                           uint32_t         max_retx)
 {
-  if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs, tbs, max_retx)) {
+  if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs, max_retx)) {
     softbuffer->reset();
     pdu->clear();
     return true;

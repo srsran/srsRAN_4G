@@ -101,7 +101,11 @@ cell_params_t::cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_a
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }
 
-sched_params::sched_params(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg_) {}
+sched_params::sched_params(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg_)
+{
+  srsran_assert(sched_cfg.fixed_dl_mcs >= 0, "Dynamic DL MCS not supported");
+  srsran_assert(sched_cfg.fixed_ul_mcs >= 0, "Dynamic DL MCS not supported");
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
