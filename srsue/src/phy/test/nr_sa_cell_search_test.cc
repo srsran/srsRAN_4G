@@ -10,6 +10,7 @@
  *
  */
 
+#include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/band_helper.h"
 #include "srsue/hdr/phy/phy_nr_sa.h"
 
@@ -179,15 +180,20 @@ public:
   }
   void cell_search_found_cell(const cell_search_result_t& result) override
   {
+    // Unpack MIB with ASN1
+    asn1::rrc_nr::mib_s mib;
+    asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
+    mib.unpack(cbit);
+
+    // Convert MIB to JSON
+    asn1::json_writer json;
+    mib.to_json(json);
+
+    // Convert CSI to string
     std::array<char, 512> csi_info = {};
+    srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
 
-    srsran_csi_meas_info(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
-
-    logger.info("Cell found pci=%d barred=%c intra_freq=%c %s",
-                result.pci,
-                result.barred ? 'y' : 'n',
-                result.intra_freq_meas ? 'y' : 'n',
-                csi_info.data());
+    logger.info("Cell found pci=%d %s MIB: %s", result.pci, csi_info.data(), json.to_string().c_str());
   }
   int sf_indication(const uint32_t tti) override
   {

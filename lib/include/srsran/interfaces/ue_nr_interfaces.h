@@ -38,10 +38,9 @@ public:
    * @brief Describes a cell search result
    */
   struct cell_search_result_t {
-    uint32_t                      pci             = 0;     ///< Physical Cell Identifier
-    bool                          barred          = false; ///< Set to true if the cell is barred
-    bool                          intra_freq_meas = false; ///< Set to true if intra frequency measurement is enabled
-    srsran_csi_trs_measurements_t measurements    = {};    ///< Measurements from SSB block
+    uint32_t                      pci = 0;           ///< Physical Cell Identifier
+    srsran_pbch_msg_nr_t          pbch_msg;          ///< Packed PBCH message for the upper layers
+    srsran_csi_trs_measurements_t measurements = {}; ///< Measurements from SSB block
   };
 
   /**

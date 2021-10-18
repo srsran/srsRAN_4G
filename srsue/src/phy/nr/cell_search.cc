@@ -19,9 +19,7 @@
 namespace srsue {
 namespace nr {
 cell_search::cell_search(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_) :
-  logger(srslog::fetch_basic_logger("PHY")),
-  stack(stack_),
-  radio(radio_)
+  logger(srslog::fetch_basic_logger("PHY")), stack(stack_), radio(radio_)
 {}
 
 cell_search::~cell_search()
@@ -110,8 +108,7 @@ bool cell_search::run()
   if (res.pbch_msg.crc) {
     rrc_interface_phy_sa_nr::cell_search_result_t cs_res = {};
     cs_res.pci                                           = res.N_id;
-    cs_res.barred                                        = false;
-    cs_res.intra_freq_meas                               = false;
+    cs_res.pbch_msg                                      = res.pbch_msg;
     cs_res.measurements                                  = res.measurements;
     stack.cell_search_found_cell(cs_res);
   }

@@ -78,5 +78,6 @@ target_link_libraries(nr_sa_cell_search_test
         srsran_common
         srsran_phy
         srsran_radio
+        rrc_nr_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
