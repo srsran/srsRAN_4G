@@ -145,6 +145,12 @@ void metrics_stdout::set_metrics_helper(uint32_t                          num_ue
     } else {
       fmt::print("   {:>2}", 0);
     }
+    float ul_mcs = (is_nr) ? mac.ues[i].ul_mcs : phy[i].ul.mcs;
+    if (not isnan(ul_mcs)) {
+      fmt::print("   {:>2}", int(ul_mcs));
+    } else {
+      fmt::print("   {:>2}", 0);
+    }
     if (mac.ues[i].rx_brate > 0) {
       fmt::print(" {:>6.6}", float_to_eng_string((float)mac.ues[i].rx_brate / (mac.ues[i].nof_tti * 1e-3), 1));
     } else {

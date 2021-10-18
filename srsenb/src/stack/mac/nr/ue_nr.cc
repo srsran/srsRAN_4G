@@ -220,9 +220,12 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
+  // printf("RNTI %u: reading and resetting metrics: \n", rnti);
   *metrics_            = ue_metrics;
   phr_counter          = 0;
   dl_cqi_valid_counter = 0;
+  pucch_sinr_counter   = 0;
+  pusch_sinr_counter   = 0;
   ue_metrics           = {};
 }
 
@@ -284,6 +287,26 @@ void ue_nr::metrics_cnt()
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.nof_tti++;
+}
+
+void ue_nr::metrics_pucch_sinr(float sinr)
+{
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+  // discard nan or inf values for average SINR
+  if (!std::isinf(sinr) && !std::isnan(sinr)) {
+    ue_metrics.pucch_sinr = SRSRAN_VEC_SAFE_CMA((float)sinr, ue_metrics.pucch_sinr, pucch_sinr_counter);
+    pucch_sinr_counter++;
+  }
+}
+
+void ue_nr::metrics_pusch_sinr(float sinr)
+{
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+  // discard nan or inf values for average SINR
+  if (!std::isinf(sinr) && !std::isnan(sinr)) {
+    ue_metrics.pusch_sinr = SRSRAN_VEC_SAFE_CMA((float)sinr, ue_metrics.pusch_sinr, pusch_sinr_counter);
+    pusch_sinr_counter++;
+  }
 }
 
 /** Converts the buffer size field of a BSR (5 or 8-bit Buffer Size field) into Bytes

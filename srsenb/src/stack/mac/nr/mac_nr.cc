@@ -81,6 +81,8 @@ void mac_nr::stop()
 ///       However, get_metrics is called infrequently enough to cause major halts in the L1/L2
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
 {
+  // TO DO: We should comment on the logic we follow to get the metrics. Some of them are retrieved from MAC, some
+  // others from the scheduler.
   get_metrics_nolock(metrics);
   sched.get_metrics(metrics);
 }
@@ -165,9 +167,9 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uecfg.carriers[0].cc          = 0;
     uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
     srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-    ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+    ref_args.duplex   = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
+                            ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                            : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
     uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
     uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
@@ -357,6 +359,14 @@ int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
     logger.error("Error handling UCI data from PUCCH reception");
     return SRSRAN_ERROR;
   }
+
+  // process PUCCH SNR
+  uint16_t                  rnti = pucch_info.uci_data.cfg.pucch.rnti;
+  srsran::rwlock_read_guard rw_lock(rwmutex);
+  if (ue_db.contains(rnti)) {
+    ue_db[rnti]->metrics_pucch_sinr(pucch_info.csi.snr_dB);
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -419,6 +429,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
   srsran::rwlock_read_guard rw_lock(rwmutex);
   if (ue_db.contains(rnti)) {
     ue_db[rnti]->metrics_rx(pusch_info.pusch_data.tb[0].crc, nof_bytes);
+    ue_db[rnti]->metrics_pusch_sinr(pusch_info.csi.snr_dB);
   }
   return SRSRAN_SUCCESS;
 }

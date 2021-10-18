@@ -62,6 +62,8 @@ public:
   void       metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi);
   void       metrics_dl_mcs(uint32_t mcs);
   void       metrics_ul_mcs(uint32_t mcs);
+  void       metrics_pucch_sinr(float sinr);
+  void       metrics_pusch_sinr(float sinr);
   void       metrics_cnt();
 
   uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
@@ -83,10 +85,14 @@ private:
 
   std::atomic<bool> active_state{true};
 
+  // TO DO: some counters are kept as members of class ue_nr, while some others (i.e., mcs) are kept in the ue_metrics
+  // We should make these counters more uniform
   uint32_t         phr_counter          = 0;
   uint32_t         dl_cqi_valid_counter = 0;
   uint32_t         dl_ri_counter        = 0;
   uint32_t         dl_pmi_counter       = 0;
+  uint32_t         pucch_sinr_counter   = 0;
+  uint32_t         pusch_sinr_counter   = 0;
   mac_ue_metrics_t ue_metrics           = {};
 
   // UE-specific buffer for MAC PDU packing, unpacking and handling
