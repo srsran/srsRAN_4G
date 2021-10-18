@@ -312,7 +312,7 @@ void rrc::ue::rrc_endc::start_sgnb_addition()
   rrc_nr_interface_rrc::sgnb_addition_req_params_t params = {};
   params.eps_bearer_id =
       rrc_enb->bearer_manager.get_lcid_bearer(rrc_ue->rnti, drb_to_lcid((lte_drb)eutra_drb_id)).eps_bearer_id;
-  logger.info("Triggering SgNB addition");
+  logger.info("Triggering SgNB addition for E-UTRA rnti=0x%x", rrc_ue->rnti);
   rrc_enb->rrc_nr->sgnb_addition_request(rrc_ue->rnti, params);
 
   sgnb_add_req_sent_ev sgnb_add_req{};
@@ -358,9 +358,10 @@ void rrc::ue::rrc_endc::handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, co
   nr_rnti = ev.params.nr_rnti;
 }
 
-void rrc::ue::rrc_endc::handle_sgnb_rel_req(endc_activated_st& s, const sgnb_rel_req_ev& ev)
+void rrc::ue::rrc_endc::handle_sgnb_rel_req(const sgnb_rel_req_ev& ev)
 {
-  logger.info("Triggering SgNB release");
+  logger.info("Triggering SgNB release for E-UTRA rnti=0x%x", rrc_ue->rnti);
+  rrc_enb->bearer_manager.rem_user(nr_rnti);
   rrc_enb->rrc_nr->sgnb_release_request(nr_rnti);
 }
 
@@ -369,19 +370,25 @@ bool rrc::ue::rrc_endc::is_endc_supported()
   return not is_in_state<endc_disabled_st>();
 }
 
-void rrc::ue::rrc_endc::handle_rrc_reest(const rrc_reest_rx_ev& ev)
+void rrc::ue::rrc_endc::handle_rrc_reest(endc_activated_st& s, const rrc_reest_rx_ev& ev)
 {
-  auto& sgnb_config = get_state<prepare_recfg_st>()->sgnb_config;
-
   // Transition GTPU tunnel rnti back from NR RNTI to LTE RNTI, given that the reconfiguration failed
-  rrc_enb->gtpu->mod_bearer_rnti(sgnb_config.nr_rnti, rrc_ue->rnti);
-
-  rrc_enb->bearer_manager.rem_user(sgnb_config.nr_rnti);
+  rrc_enb->gtpu->mod_bearer_rnti(nr_rnti, rrc_ue->rnti);
 }
 
 void rrc::ue::rrc_endc::handle_endc_disabled(const disable_endc_ev& ev)
 {
   logger.info("Disabling NR EN-DC support for rnti=0x%x", nr_rnti);
+}
+
+bool rrc::ue::rrc_endc::requires_rel_req(const sgnb_rel_req_ev& ev)
+{
+  return not is_in_state<endc_disabled_st>() and not is_in_state<endc_deactivated_st>();
+}
+
+bool rrc::ue::rrc_endc::skip_rel_req(const sgnb_rel_req_ev& ev)
+{
+  return not requires_rel_req(ev) and not is_in_state<disable_endc_ev>();
 }
 
 } // namespace srsenb

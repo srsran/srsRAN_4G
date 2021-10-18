@@ -538,8 +538,12 @@ int rrc_nr::sgnb_release_request(uint16_t nr_rnti)
 {
   task_sched.defer_task([this, nr_rnti]() {
     // remove user
+    auto     it         = users.find(nr_rnti);
+    uint16_t eutra_rnti = it != users.end() ? it->second->get_eutra_rnti() : SRSRAN_INVALID_RNTI;
     rem_user(nr_rnti);
-    rrc_eutra->sgnb_release_ack(nr_rnti);
+    if (eutra_rnti != SRSRAN_INVALID_RNTI) {
+      rrc_eutra->sgnb_release_ack(eutra_rnti);
+    }
   });
   return SRSRAN_SUCCESS;
 }

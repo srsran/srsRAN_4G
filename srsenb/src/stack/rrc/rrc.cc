@@ -569,7 +569,7 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
 
 void rrc::sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params)
 {
-  logger.info("Received SgNB addition acknowledgement for rnti=%d", eutra_rnti);
+  logger.info("Received SgNB addition acknowledgement for rnti=0x%x", eutra_rnti);
   auto ue_it = users.find(eutra_rnti);
   if (ue_it == users.end()) {
     logger.warning("rnti=0x%x does not exist", eutra_rnti);

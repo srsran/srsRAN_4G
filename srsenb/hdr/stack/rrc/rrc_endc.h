@@ -126,11 +126,13 @@ private:
   struct endc_disabled_st {};          // EN-DC disabled
 
   // FSM guards
+  bool requires_rel_req(const sgnb_rel_req_ev& ev);
+  bool skip_rel_req(const sgnb_rel_req_ev& ev);
 
   // FSM transition handlers
   void handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, const sgnb_add_req_ack_ev& ev);
-  void handle_sgnb_rel_req(endc_activated_st& s, const sgnb_rel_req_ev& ev);
-  void handle_rrc_reest(const rrc_reest_rx_ev& ev);
+  void handle_sgnb_rel_req(const sgnb_rel_req_ev& ev);
+  void handle_rrc_reest(endc_activated_st& s, const rrc_reest_rx_ev& ev);
   void handle_endc_disabled(const disable_endc_ev& ev);
 
 protected:
@@ -157,17 +159,18 @@ protected:
   using transitions = transition_table<
   //  Start                       Target                     Event                    Action                         Guard
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
-  row< endc_deactivated_st,       wait_sgnb_add_req_resp_st, sgnb_add_req_sent_ev,   nullptr                                                >,
+  row< endc_deactivated_st,       wait_sgnb_add_req_resp_st, sgnb_add_req_sent_ev,   nullptr                                                 >,
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
-  row< wait_sgnb_add_req_resp_st, prepare_recfg_st,          sgnb_add_req_ack_ev,     &fsm::handle_sgnb_add_req_ack                         >,
-  row< wait_sgnb_add_req_resp_st, endc_deactivated_st,       sgnb_add_req_reject_ev                                                         >,
-  row< prepare_recfg_st,          wait_add_complete_st,      rrc_recfg_sent_ev                                                              >,
-  row< wait_add_complete_st,      endc_activated_st,         sgnb_add_complete_ev                                                           >,
+  row< wait_sgnb_add_req_resp_st, prepare_recfg_st,          sgnb_add_req_ack_ev,     &fsm::handle_sgnb_add_req_ack                          >,
+  row< wait_sgnb_add_req_resp_st, endc_deactivated_st,       sgnb_add_req_reject_ev                                                          >,
+  row< prepare_recfg_st,          wait_add_complete_st,      rrc_recfg_sent_ev                                                               >,
+  row< wait_add_complete_st,      endc_activated_st,         sgnb_add_complete_ev                                                            >,
+  upd< endc_activated_st,                                    rrc_reest_rx_ev,         &fsm::handle_rrc_reest                                 >,
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
-  row< endc_activated_st,         wait_sgnb_rel_req_resp_st, sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req                             >,
-  to_state<                       endc_deactivated_st,       rrc_reest_rx_ev,         &fsm::handle_rrc_reest                                >,
-  row< wait_sgnb_rel_req_resp_st, endc_deactivated_st,       sgnb_rel_req_ack_ev                                                            >,
-  to_state<                       endc_disabled_st,          disable_endc_ev,         &fsm::handle_endc_disabled                            >
+  to_state<                       wait_sgnb_rel_req_resp_st, sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req,      &fsm::requires_rel_req >,
+  to_state<                       endc_deactivated_st,       sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req,      &fsm::skip_rel_req     >,
+  row< wait_sgnb_rel_req_resp_st, endc_deactivated_st,       sgnb_rel_req_ack_ev                                                             >,
+  to_state<                       endc_disabled_st,          disable_endc_ev,         &fsm::handle_endc_disabled                             >
   >;
   // clang-format on
 };
