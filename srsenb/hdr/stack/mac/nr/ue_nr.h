@@ -96,6 +96,9 @@ private:
                                ue_rx_pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
   srsran::unique_byte_buffer_t ue_rlc_buffer;
 
+  static constexpr int32_t MIN_RLC_PDU_LEN =
+      5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
+
   // Mutexes
   std::mutex mutex;
 };
