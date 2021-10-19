@@ -31,7 +31,7 @@ extern "C" {
 
 const char* __tsan_default_options()
 {
-  return "halt_on_error=1:abort_on_error=1:report_signal_unsafe=0"
+  return "halt_on_error=0:abort_on_error=0:report_signal_unsafe=0"
          ":allocator_may_return_null=1";
 }
 
