@@ -375,6 +375,7 @@ private:
 
     bool     has_data();
     uint32_t get_buffer_state();
+    void     get_buffer_state(uint32_t& new_tx, uint32_t& prio_tx);
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);

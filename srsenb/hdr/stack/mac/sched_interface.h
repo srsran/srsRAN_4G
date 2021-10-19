@@ -46,30 +46,30 @@ public:
   } cell_cfg_sib_t;
 
   struct sched_args_t {
-    std::string sched_policy            = "time_pf";
-    std::string sched_policy_args       = "2";
-    int         pdsch_mcs               = -1;
-    int         pdsch_max_mcs           = 28;
-    int         pusch_mcs               = -1;
-    int         pusch_max_mcs           = 28;
-    uint32_t    min_nof_ctrl_symbols    = 1;
-    uint32_t    max_nof_ctrl_symbols    = 3;
-    int         min_aggr_level          = 0;
-    int         max_aggr_level          = 3;
-    bool        adaptive_aggr_level     = false;
-    bool        pucch_mux_enabled       = false;
-    int         pucch_harq_max_rb       = 0;
-    float       target_bler             = 0.05;
-    float       max_delta_dl_cqi        = 5;
-    float       max_delta_ul_snr        = 5;
+    std::string sched_policy              = "time_pf";
+    std::string sched_policy_args         = "2";
+    int         pdsch_mcs                 = -1;
+    int         pdsch_max_mcs             = 28;
+    int         pusch_mcs                 = -1;
+    int         pusch_max_mcs             = 28;
+    uint32_t    min_nof_ctrl_symbols      = 1;
+    uint32_t    max_nof_ctrl_symbols      = 3;
+    int         min_aggr_level            = 0;
+    int         max_aggr_level            = 3;
+    bool        adaptive_aggr_level       = false;
+    bool        pucch_mux_enabled         = false;
+    int         pucch_harq_max_rb         = 0;
+    float       target_bler               = 0.05;
+    float       max_delta_dl_cqi          = 5;
+    float       max_delta_ul_snr          = 5;
     float       adaptive_dl_mcs_step_size = 0.001;
     float       adaptive_ul_mcs_step_size = 0.001;
-    uint32_t    min_tpc_tti_interval    = 1;
-    float       ul_snr_avg_alpha        = 0.05;
-    int         init_ul_snr_value       = 5;
-    int         init_dl_cqi             = 5;
-    float       max_sib_coderate        = 0.8;
-    int         pdcch_cqi_offset        = 0;
+    uint32_t    min_tpc_tti_interval      = 1;
+    float       ul_snr_avg_alpha          = 0.05;
+    int         init_ul_snr_value         = 5;
+    int         init_dl_cqi               = 5;
+    float       max_sib_coderate          = 0.8;
+    int         pdcch_cqi_offset          = 0;
   };
 
   struct cell_cfg_t {
@@ -267,10 +267,10 @@ public:
    * @param rnti user rnti
    * @param lc_id logical channel id for which the buffer update is concerned
    * @param tx_queue number of pending bytes for new DL RLC transmissions
-   * @param retx_queue number of pending bytes concerning RLC retransmissions
+   * @param prio_tx_queue number of pending bytes concerning RLC retransmissions and status PDUs
    * @return error code
    */
-  virtual int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) = 0;
+  virtual int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t prio_tx_queue) = 0;
 
   /**
    * Enqueue MAC CEs for DL transmission

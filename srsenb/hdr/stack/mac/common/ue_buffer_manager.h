@@ -43,7 +43,7 @@ public:
 
   // Buffer Status update
   void ul_bsr(uint32_t lcg_id, uint32_t val);
-  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
+  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
 
   // Configuration getters
   bool                   is_bearer_active(uint32_t lcid) const { return get_cfg(lcid).is_active(); }
@@ -58,13 +58,13 @@ public:
   /// DL newtx buffer status for given LCID (no RLC overhead included)
   int get_dl_tx(uint32_t lcid) const { return is_bearer_dl(lcid) ? channels[lcid].buf_tx : 0; }
 
-  /// DL retx buffer status for given LCID (no RLC overhead included)
-  int get_dl_retx(uint32_t lcid) const { return is_bearer_dl(lcid) ? channels[lcid].buf_retx : 0; }
+  /// DL high prio tx buffer status for given LCID (no RLC overhead included)
+  int get_dl_prio_tx(uint32_t lcid) const { return is_bearer_dl(lcid) ? channels[lcid].buf_prio_tx : 0; }
 
-  /// Sum of DL RLC newtx and retx buffer status for given LCID (no RLC overhead included)
-  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
+  /// Sum of DL RLC newtx and high prio tx buffer status for given LCID (no RLC overhead included)
+  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_prio_tx(lcid); }
 
-  /// Sum of DL RLC newtx and retx buffer status for all LCIDS
+  /// Sum of DL RLC newtx and high prio buffer status for all LCIDS
   int get_dl_tx_total() const;
 
   // UL BSR methods
@@ -82,7 +82,7 @@ protected:
   struct logical_channel {
     mac_lc_ch_cfg_t cfg;
     int             buf_tx      = 0;
-    int             buf_retx    = 0;
+    int             buf_prio_tx = 0;
     int             Bj          = 0;
     int             bucket_size = 0;
   };

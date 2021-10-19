@@ -112,20 +112,20 @@ void ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
 }
 
 template <bool isNR>
-void ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
+void ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
 {
   if (not is_lcid_valid(lcid)) {
     logger.warning("The provided lcid=%d is not valid", lcid);
     return;
   }
   if (lcid <= MAX_SRB_LC_ID and
-      (channels[lcid].buf_tx != (int)tx_queue or channels[lcid].buf_retx != (int)retx_queue)) {
-    logger.info("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+      (channels[lcid].buf_tx != (int)tx_queue or channels[lcid].buf_prio_tx != (int)prio_tx_queue)) {
+    logger.info("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, prio_tx_queue);
   } else {
-    logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+    logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, prio_tx_queue);
   }
-  channels[lcid].buf_retx = retx_queue;
-  channels[lcid].buf_tx   = tx_queue;
+  channels[lcid].buf_prio_tx = prio_tx_queue;
+  channels[lcid].buf_tx      = tx_queue;
 }
 
 // Explicit instantiation

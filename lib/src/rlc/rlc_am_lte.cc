@@ -436,9 +436,18 @@ void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 
 uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 {
+  uint32_t newtx = 0, priotx = 0;
+  get_buffer_state(newtx, priotx);
+  return newtx + priotx;
+}
+
+void rlc_am_lte::rlc_am_lte_tx::get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio)
+{
+  n_bytes_newtx   = 0;
+  n_bytes_prio    = 0;
+  uint32_t n_sdus = 0;
+
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t                    n_bytes = 0;
-  uint32_t                    n_sdus  = 0;
 
   logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
                RB_NAME,
@@ -449,8 +458,8 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
   // Bytes needed for status report
   if (do_status() && not status_prohibit_timer.is_running()) {
-    n_bytes += parent->rx.get_status_pdu_length();
-    logger.debug("%s Buffer state - total status report: %d bytes", RB_NAME, n_bytes);
+    n_bytes_prio += parent->rx.get_status_pdu_length();
+    logger.debug("%s Buffer state - total status report: %d bytes", RB_NAME, n_bytes_prio);
   }
 
   // Bytes needed for retx
@@ -468,8 +477,8 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
         logger.error("In get_buffer_state(): Removing retx.sn=%d from queue", retx.sn);
         retx_queue.pop();
       } else {
-        n_bytes += req_bytes;
-        logger.debug("Buffer state - retx: %d bytes", n_bytes);
+        n_bytes_prio += req_bytes;
+        logger.debug("Buffer state - retx: %d bytes", n_bytes_prio);
       }
     }
   }
@@ -477,25 +486,23 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
   // Bytes needed for tx SDUs
   if (tx_window.size() < 1024) {
     n_sdus = tx_sdu_queue.get_n_sdus();
-    n_bytes += tx_sdu_queue.size_bytes();
+    n_bytes_newtx += tx_sdu_queue.size_bytes();
     if (tx_sdu != NULL) {
       n_sdus++;
-      n_bytes += tx_sdu->N_bytes;
+      n_bytes_newtx += tx_sdu->N_bytes;
     }
   }
 
   // Room needed for header extensions? (integer rounding)
   if (n_sdus > 1) {
-    n_bytes += ((n_sdus - 1) * 1.5) + 0.5;
+    n_bytes_newtx += ((n_sdus - 1) * 1.5) + 0.5;
   }
 
   // Room needed for fixed header of data PDUs
-  if (n_bytes > 0 && n_sdus > 0) {
-    n_bytes += 2; // Two bytes for fixed header with SN length = 10
-    logger.debug("%s Total buffer state - %d SDUs (%d B)", RB_NAME, n_sdus, n_bytes);
+  if (n_bytes_newtx > 0 && n_sdus > 0) {
+    n_bytes_newtx += 2; // Two bytes for fixed header with SN length = 10
+    logger.debug("%s Total buffer state - %d SDUs (%d B)", RB_NAME, n_sdus, n_bytes_newtx);
   }
-
-  return n_bytes;
 }
 
 int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
@@ -613,7 +620,9 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
   lock.unlock();
 
   if (bsr_callback) {
-    bsr_callback(parent->lcid, get_buffer_state(), 0);
+    uint32_t newtx = 0, priotx = 0;
+    get_buffer_state(newtx, priotx);
+    bsr_callback(parent->lcid, newtx, priotx);
   }
 }
 
