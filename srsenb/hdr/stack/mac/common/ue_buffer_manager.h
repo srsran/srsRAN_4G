@@ -14,6 +14,7 @@
 #define SRSRAN_UE_BUFFER_MANAGER_H
 
 #include "sched_config.h"
+#include "srsran/adt/span.h"
 #include "srsran/common/common_lte.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/srslog/srslog.h"
@@ -39,6 +40,7 @@ public:
   explicit ue_buffer_manager(uint16_t rnti, srslog::basic_logger& logger_);
 
   // Bearer configuration
+  void config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list);
   void config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
 
   // Buffer Status update
@@ -78,6 +80,8 @@ public:
   static bool is_lcg_valid(uint32_t lcg) { return lcg <= MAX_LCG_ID; }
 
 protected:
+  bool config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
+
   srslog::basic_logger& logger;
   uint16_t              rnti;
 

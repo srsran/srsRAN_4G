@@ -57,9 +57,7 @@ uint32_t get_ul_mac_sdu_size_with_overhead(uint32_t rlc_pdu_bytes)
 
 void lch_ue_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
 {
-  for (uint32_t lcid = 0; is_lcid_valid(lcid); lcid++) {
-    config_lcid(lcid, cfg.ue_bearers[lcid]);
-  }
+  config_lcids(cfg.ue_bearers);
 }
 
 void lch_ue_manager::new_tti()

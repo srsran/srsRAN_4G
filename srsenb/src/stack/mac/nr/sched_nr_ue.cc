@@ -96,9 +96,7 @@ void ue::set_cfg(const ue_cfg_t& cfg)
     }
   }
 
-  for (uint32_t lcid = 0; lcid < cfg.ue_bearers.size(); ++lcid) {
-    buffers.config_lcid(lcid, cfg.ue_bearers[lcid]);
-  }
+  buffers.config_lcids(cfg.ue_bearers);
 }
 
 void ue::new_slot(slot_point pdcch_slot)
