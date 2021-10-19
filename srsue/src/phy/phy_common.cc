@@ -888,8 +888,11 @@ void phy_common::reset()
   reset_radio();
 
   sr.reset();
-  cur_pathloss    = 0;
-  cur_pusch_power = 0;
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    cur_pathloss    = 0;
+    cur_pusch_power = 0;
+  }
   last_ri         = 0;
 
   // Reset all measurements
