@@ -36,7 +36,7 @@ protected:
   constexpr static uint32_t pbr_infinity  = -1;
 
 public:
-  explicit ue_buffer_manager(srslog::basic_logger& logger_);
+  explicit ue_buffer_manager(uint16_t rnti, srslog::basic_logger& logger_);
 
   // Bearer configuration
   void config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
@@ -46,6 +46,7 @@ public:
   void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
 
   // Configuration getters
+  uint16_t               get_rnti() const { return rnti; }
   bool                   is_bearer_active(uint32_t lcid) const { return get_cfg(lcid).is_active(); }
   bool                   is_bearer_ul(uint32_t lcid) const { return get_cfg(lcid).is_ul(); }
   bool                   is_bearer_dl(uint32_t lcid) const { return get_cfg(lcid).is_dl(); }
@@ -78,6 +79,7 @@ public:
 
 protected:
   srslog::basic_logger& logger;
+  uint16_t              rnti;
 
   struct logical_channel {
     mac_lc_ch_cfg_t cfg;

@@ -26,7 +26,7 @@ class lch_ue_manager : private ue_buffer_manager<false>
   using base_type = ue_buffer_manager<false>;
 
 public:
-  lch_ue_manager() : ue_buffer_manager(srslog::fetch_basic_logger("MAC")) {}
+  explicit lch_ue_manager(uint16_t rnti) : ue_buffer_manager(rnti, srslog::fetch_basic_logger("MAC")) {}
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
   void new_tti();
 

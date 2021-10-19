@@ -33,7 +33,7 @@ namespace srsenb {
  *******************************************************/
 
 sched_ue::sched_ue(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg_) :
-  logger(srslog::fetch_basic_logger("MAC")), rnti(rnti_)
+  logger(srslog::fetch_basic_logger("MAC")), rnti(rnti_), lch_handler(rnti_)
 {
   cells.reserve(cell_list_params_.size());
   for (auto& c : cell_list_params_) {

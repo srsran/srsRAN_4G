@@ -76,7 +76,7 @@ int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32
 
 int test_lc_ch_pbr_infinity()
 {
-  srsenb::lch_ue_manager lch_handler;
+  srsenb::lch_ue_manager lch_handler{0x46};
 
   srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
   ue_cfg                                                    = generate_setup_ue_cfg(ue_cfg);
@@ -125,7 +125,7 @@ int test_lc_ch_pbr_infinity()
 
 int test_lc_ch_pbr_finite()
 {
-  srsenb::lch_ue_manager          lch_handler;
+  srsenb::lch_ue_manager          lch_handler{0x46};
   sched_interface::dl_sched_pdu_t pdu;
 
   srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();

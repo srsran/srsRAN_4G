@@ -78,7 +78,7 @@ slot_ue ue_carrier::try_reserve(slot_point pdcch_slot, uint32_t dl_pending_bytes
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) :
-  rnti(rnti_), sched_cfg(sched_cfg_), buffers(srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
+  rnti(rnti_), sched_cfg(sched_cfg_), buffers(rnti_, srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
 {
   set_cfg(cfg);
 }

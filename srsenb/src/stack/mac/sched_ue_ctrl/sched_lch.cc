@@ -78,15 +78,18 @@ void lch_ue_manager::new_tti()
 void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
 {
   if (lcid >= sched_interface::MAX_LC) {
-    logger.warning("The provided lcid=%d is not valid", lcid);
+    logger.warning("SCHED: The provided lcid=%d for rnti=0x%x is not valid", lcid, rnti);
     return;
   }
   lcg_bsr[channels[lcid].cfg.group] += bytes;
   if (logger.debug.enabled()) {
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer, "{}", get_bsr_state());
-    logger.debug(
-        "SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, channels[lcid].cfg.group, srsran::to_c_str(str_buffer));
+    logger.debug("SCHED: rnti=0x%x UL buffer update=%d, lcg_id=%d, bsr=%s",
+                 rnti,
+                 bytes,
+                 channels[lcid].cfg.group,
+                 srsran::to_c_str(str_buffer));
   }
 }
 
