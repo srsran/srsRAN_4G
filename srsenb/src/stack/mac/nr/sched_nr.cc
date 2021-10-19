@@ -101,7 +101,14 @@ void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 
 void sched_nr::ue_rem(uint16_t rnti)
 {
-  sched_workers->enqueue_event(rnti, [this, rnti]() { ue_db.erase(rnti); });
+  sched_workers->enqueue_event(rnti, [this, rnti]() {
+    auto ue_it = ue_db.find(rnti);
+    if (ue_it == ue_db.end()) {
+      logger->warning("SCHED: ue_rem(rnti) called for inexistent rnti=0x%x", rnti);
+      return;
+    }
+    ue_db.erase(rnti);
+  });
 }
 
 bool sched_nr::ue_exists(uint16_t rnti)

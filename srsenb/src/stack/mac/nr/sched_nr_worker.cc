@@ -57,7 +57,7 @@ void slot_cc_worker::run_feedback(ue_map_t& ue_db)
     if (ue_db.contains(f.rnti) and ue_db[f.rnti]->carriers[cfg.cc] != nullptr) {
       f.fdbk(*ue_db[f.rnti]->carriers[cfg.cc]);
     } else {
-      logger.warning("SCHED: feedback received for invalid rnti=0x%x, cc=%d", f.rnti, cfg.cc);
+      logger.info("SCHED: feedback received for rnti=0x%x, cc=%d that has been removed.", f.rnti, cfg.cc);
     }
   }
   tmp_feedback_to_run.clear();
