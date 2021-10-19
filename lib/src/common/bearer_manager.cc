@@ -118,12 +118,13 @@ void enb_bearer_manager::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, sr
   auto user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
     // add empty bearer map
-    auto p = users_map.insert(rnti, srsran::detail::ue_bearer_manager_impl{});
-    if (!p) {
+    // users_map.emplace( )   returns pair<iterator,bool>
+    auto p = users_map.emplace( rnti, srsran::detail::ue_bearer_manager_impl{});
+    if (!p.second) {
       logger.error("Bearers: Unable to add a new bearer map for rnti=0x%x", rnti);
       return;
     }
-    user_it = p.value();
+    user_it = p.first;
   }
 
   if (user_it->second.add_eps_bearer(eps_bearer_id, rat, lcid)) {

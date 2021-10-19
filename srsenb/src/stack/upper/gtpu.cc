@@ -50,10 +50,8 @@ const gtpu_tunnel_manager::tunnel* gtpu_tunnel_manager::find_tunnel(uint32_t tei
 
 gtpu_tunnel_manager::ue_bearer_tunnel_list* gtpu_tunnel_manager::find_rnti_tunnels(uint16_t rnti)
 {
-  if (not ue_teidin_db.contains(rnti)) {
-    return nullptr;
-  }
-  return &ue_teidin_db[rnti];
+  auto it = ue_teidin_db.find(rnti);
+  return it != ue_teidin_db.end() ? &ue_teidin_db[rnti] : nullptr;
 }
 
 srsran::span<gtpu_tunnel_manager::bearer_teid_pair>
@@ -92,12 +90,18 @@ gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t 
   tun->teid_out      = teidout;
   tun->spgw_addr     = spgw_addr;
 
-  if (not ue_teidin_db.contains(rnti)) {
-    auto ret = ue_teidin_db.insert(rnti, ue_bearer_tunnel_list());
+  if (ue_teidin_db.find(rnti) != ue_teidin_db.end()) {
+    auto ret = ue_teidin_db.emplace(rnti, ue_bearer_tunnel_list());
+    if (!ret.second) {
+      logger.error("Failed to allocate rnti=0x%x", rnti);
+      return nullptr;
+    }
+#if 0
     if (ret.is_error()) {
       logger.error("Failed to allocate rnti=0x%x", rnti);
       return nullptr;
     }
+#endif
   }
   auto& ue_tunnels = ue_teidin_db[rnti];
 
@@ -133,7 +137,7 @@ bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
   // create new RNTI and update TEIDs of old rnti to reflect new rnti
-  if (new_rnti_ptr == nullptr and not ue_teidin_db.insert(new_rnti, ue_bearer_tunnel_list())) {
+  if (new_rnti_ptr == nullptr and not ue_teidin_db.insert({new_rnti, ue_bearer_tunnel_list()}).second) {
     logger.error("Failure to create new rnti=0x%x", new_rnti);
     return false;
   }
@@ -186,7 +190,8 @@ bool gtpu_tunnel_manager::remove_tunnel(uint32_t teidin)
 
 bool gtpu_tunnel_manager::remove_rnti(uint16_t rnti)
 {
-  if (not ue_teidin_db.contains(rnti)) {
+  auto it = ue_teidin_db.find(rnti);
+  if (it == ue_teidin_db.end()) {
     logger.warning("Removing rnti. rnti=0x%x not found.", rnti);
     return false;
   }
