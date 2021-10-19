@@ -58,6 +58,7 @@ public:
   // MAC interface
   bool     has_data();
   uint32_t get_buffer_state();
+  void     get_buffer_state(uint32_t& newtx_queue, uint32_t& prio_tx_queue);
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
   int      get_increment_sequence_num();

@@ -173,10 +173,10 @@ void rlc::reestablish(uint16_t rnti)
 
 // In the eNodeB, there is no polling for buffer state from the scheduler.
 // This function is called by UE RLC instance every time the tx/retx buffers are updated
-void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue)
+void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
 {
-  logger.debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d", rnti, lcid, tx_queue);
-  mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
+  logger.debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d, prio_tx_queue=%d", rnti, lcid, tx_queue, prio_tx_queue);
+  mac->rlc_buffer_state(rnti, lcid, tx_queue, prio_tx_queue);
 }
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)

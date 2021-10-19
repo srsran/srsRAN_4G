@@ -258,6 +258,11 @@ uint32_t rlc_am_lte::get_buffer_state()
   return tx.get_buffer_state();
 }
 
+void rlc_am_lte::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
+{
+  tx.get_buffer_state(tx_queue, prio_tx_queue);
+}
+
 uint32_t rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t read_bytes = tx.read_pdu(payload, nof_bytes);
