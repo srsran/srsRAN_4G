@@ -70,7 +70,7 @@ foreach(rb 25 52 79 106 133 160 216 270)
   add_nr_test(phy_dl_nr_test_${rb}prb_interleaved phy_dl_nr_test -P ${rb} -p 25 -m 10 -I)
 
   # Maximum throughput with 256QAM
-  add_nr_test(phy_dl_nr_test_${rb}prb_256qam phy_dl_nr_test -P ${rb} -p ${rb} -m 27 -T 256qam -v -d 1 1 -n 10)
+  add_nr_test(phy_dl_nr_test_${rb}prb_256qam phy_dl_nr_test -P ${rb} -p ${rb} -m 27 -T 256qam -v -d 1 1 1 -n 10)
 
   # Maximum throughput with 64QAM and CFO+Delay impairments
   add_nr_test(phy_dl_nr_test_${rb}prb_cfo_delay phy_dl_nr_test -P ${rb} -p ${rb} -m 27 -C 100.0 -D 4 -n 10)
