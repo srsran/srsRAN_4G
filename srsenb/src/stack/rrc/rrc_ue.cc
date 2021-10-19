@@ -1246,18 +1246,22 @@ void rrc::ue::update_scells()
   const ue_cell_ded*     pcell     = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const enb_cell_common* pcell_cfg = pcell->cell_common;
 
-  if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
-    // SCells already added
+  // Check whether UE supports CA
+  if (eutra_capabilities.access_stratum_release.to_number() < 10) {
+    parent->logger.info("UE doesn't support CA. Skipping SCell activation");
     return;
   }
-
-  // Check whether UE supports CA
   if (not eutra_capabilities.non_crit_ext_present or not eutra_capabilities.non_crit_ext.non_crit_ext_present or
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext_present or
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020_present or
       eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020.supported_band_combination_r10.size() ==
           0) {
     parent->logger.info("UE doesn't support CA. Skipping SCell activation");
+    return;
+  }
+
+  if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
+    // SCells already added
     return;
   }
 
