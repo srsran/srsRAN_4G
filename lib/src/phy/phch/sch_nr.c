@@ -87,7 +87,7 @@ static int sch_nr_Nref(uint32_t N_rb, srsran_mcs_table_t mcs_table, uint32_t max
   uint32_t           N_re_lbrm = SRSRAN_MAX_NRE_NR * sch_nr_n_prb_lbrm(N_rb);
   double             TCR_lbrm  = 948.0 / 1024.0;
   uint32_t           Qm_lbrm   = (mcs_table == srsran_mcs_table_256qam) ? 8 : 6;
-  uint32_t           TBS_LRBM  = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, max_mimo_layers);
+  uint32_t           TBS_LRBM  = srsran_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, SRSRAN_MIN(4, max_mimo_layers));
   double             R         = 2.0 / 3.0;
   srsran_basegraph_t bg        = srsran_sch_nr_select_basegraph(TBS_LRBM, R);
 
@@ -141,11 +141,15 @@ int srsran_sch_nr_fill_tb_info(const srsran_carrier_nr_t* carrier,
   cfg->Nl   = tb->N_L;
 
   // Calculate Nref
-  int Nref = sch_nr_Nref(carrier->nof_prb, sch_cfg->mcs_table, carrier->max_mimo_layers);
-  if (Nref < SRSRAN_SUCCESS) {
-    ERROR("Error computing N_ref");
+  if (sch_cfg->limited_buffer_rm) {
+    int Nref = sch_nr_Nref(carrier->nof_prb, sch_cfg->mcs_table, 4);
+    if (Nref < SRSRAN_SUCCESS) {
+      ERROR("Error computing N_ref");
+    }
+    cfg->Nref = (uint32_t)Nref;
+  } else {
+    cfg->Nref = SRSRAN_LDPC_MAX_LEN_ENCODED_CB;
   }
-  cfg->Nref = (uint32_t)Nref;
 
   // Calculate number of code blocks after applying CBGTI... not implemented, activate all CB
   for (uint32_t r = 0; r < cbsegm.C; r++) {

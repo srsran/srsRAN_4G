@@ -19,17 +19,18 @@
 #include "srsran/phy/utils/vector.h"
 #include <getopt.h>
 
-static srsran_carrier_nr_t       carrier           = SRSRAN_DEFAULT_CARRIER_NR;
-static uint32_t                  n_prb             = 0;  // Set to 0 for steering
-static uint32_t                  mcs               = 30; // Set to 30 for steering
-static srsran_sch_cfg_nr_t       pdsch_cfg         = {};
-static uint32_t                  nof_slots         = 10;
-static uint32_t                  rv_idx            = 0;
-static uint32_t                  delay_n           = 0;    // Integer delay
-static float                     cfo_hz            = 0.0f; // CFO Hz
-static srsran_dmrs_sch_type_t    dmrs_type         = srsran_dmrs_sch_type_1;
-static srsran_dmrs_sch_add_pos_t dmrs_add_pos      = srsran_dmrs_sch_add_pos_2;
-static bool                      interleaved_pdcch = false;
+static srsran_carrier_nr_t       carrier                          = SRSRAN_DEFAULT_CARRIER_NR;
+static uint32_t                  n_prb                            = 0;  // Set to 0 for steering
+static uint32_t                  mcs                              = 30; // Set to 30 for steering
+static srsran_sch_cfg_nr_t       pdsch_cfg                        = {};
+static uint32_t                  nof_slots                        = 10;
+static uint32_t                  rv_idx                           = 0;
+static uint32_t                  delay_n                          = 0;    // Integer delay
+static float                     cfo_hz                           = 0.0f; // CFO Hz
+static srsran_dmrs_sch_type_t    dmrs_type                        = srsran_dmrs_sch_type_1;
+static srsran_dmrs_sch_add_pos_t dmrs_add_pos                     = srsran_dmrs_sch_add_pos_2;
+static bool                      interleaved_pdcch                = false;
+static uint32_t                  nof_dmrs_cdm_groups_without_data = 1;
 
 static void usage(char* prog)
 {
@@ -79,7 +80,7 @@ static int parse_args(int argc, char** argv)
             dmrs_type = srsran_dmrs_sch_type_2;
             break;
         }
-        switch (strtol(argv[optind], NULL, 10)) {
+        switch (strtol(argv[optind++], NULL, 10)) {
           case 0:
             dmrs_add_pos = srsran_dmrs_sch_add_pos_0;
             break;
@@ -93,6 +94,7 @@ static int parse_args(int argc, char** argv)
             dmrs_add_pos = srsran_dmrs_sch_add_pos_3;
             break;
         }
+        nof_dmrs_cdm_groups_without_data = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         pdsch_cfg.sch_cfg.mcs_table = srsran_mcs_table_from_str(argv[optind]);
@@ -357,7 +359,7 @@ int main(int argc, char** argv)
   pdsch_cfg.grant.L                                = 13;
   pdsch_cfg.grant.nof_layers                       = carrier.max_mimo_layers;
   pdsch_cfg.grant.dci_format                       = srsran_dci_format_nr_1_0;
-  pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1;
+  pdsch_cfg.grant.nof_dmrs_cdm_groups_without_data = nof_dmrs_cdm_groups_without_data;
   pdsch_cfg.grant.beta_dmrs                        = srsran_convert_dB_to_amplitude(3);
   pdsch_cfg.grant.rnti_type                        = srsran_rnti_type_c;
   pdsch_cfg.grant.rnti                             = 0x4601;

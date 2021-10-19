@@ -19,8 +19,11 @@ typedef struct SRSRAN_API {
   srsran_mcs_table_t mcs_table; ///< @brief Indicates the MCS table the UE shall use for PDSCH and/or PUSCH without
                                 ///< transform precoding
 
-  srsran_xoverhead_t xoverhead; ///< Accounts for overhead from CSI-RS, CORESET, etc. If the field is absent, the UE
-                                ///< applies value xOh0 (see TS 38.214 [19], clause 5.1.3.2).
+  srsran_xoverhead_t xoverhead; ///< @brief Accounts for overhead from CSI-RS, CORESET, etc. If the field is absent, the
+                                ///< UE applies value xOh0 (see TS 38.214 [19], clause 5.1.3.2).
+
+  bool limited_buffer_rm; ///< @brief Enables LBRM (Limited buffer rate-matching). Given by rateMatching parameter in
+                          ///< PUSCH-ServingCellConfig or PDSCH-ServingCellConfig ASN1 sequences
 } srsran_sch_cfg_t;
 
 typedef struct SRSRAN_API {
