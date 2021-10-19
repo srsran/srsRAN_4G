@@ -80,7 +80,7 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("gnb.phy.log.level",       bpo::value<std::string>(&gnb_phy.log.phy_level)->default_value("warning"), "gNb PHY log level")
         ("gnb.phy.log.hex_limit",   bpo::value<int>(&gnb_phy.log.phy_hex_limit)->default_value(0),             "gNb PHY log hex limit")
         ("gnb.phy.log.id_preamble", bpo::value<std::string>(&gnb_phy.log.id_preamble)->default_value("GNB/"),  "gNb PHY log ID preamble")
-        ("gnb.phy.pusch.max_iter",  bpo::value<uint32_t>(&gnb_phy.pusch_max_nof_iter)->default_value(10),      "PUSCH LDPC max number of iterations")
+        ("gnb.phy.pusch.max_iter",  bpo::value<uint32_t>(&gnb_phy.pusch_max_its)->default_value(10),      "PUSCH LDPC max number of iterations")
         ;
 
   options_ue_phy.add_options()

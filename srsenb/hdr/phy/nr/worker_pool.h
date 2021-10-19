@@ -98,13 +98,13 @@ private:
 
 public:
   struct args_t {
-    double                 srate_hz           = 0.0;
-    uint32_t               nof_phy_threads    = 3;
-    uint32_t               nof_prach_workers  = 0;
-    uint32_t               prio               = 52;
-    uint32_t               pusch_max_nof_iter = 10;
-    float                  pusch_min_snr_dB   = -10;
-    srsran::phy_log_args_t log                = {};
+    double                 srate_hz          = 0.0;
+    uint32_t               nof_phy_threads   = 3;
+    uint32_t               nof_prach_workers = 0;
+    uint32_t               prio              = 52;
+    uint32_t               pusch_max_its     = 10;
+    float                  pusch_min_snr_dB  = -10;
+    srsran::phy_log_args_t log               = {};
   };
   slot_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 

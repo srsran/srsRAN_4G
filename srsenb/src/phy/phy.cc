@@ -348,6 +348,7 @@ int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_p
   worker_args.nof_phy_threads         = args.nof_phy_threads;
   worker_args.log.phy_level           = args.log.phy_level;
   worker_args.log.phy_hex_limit       = args.log.phy_hex_limit;
+  worker_args.pusch_max_its           = args.nr_pusch_max_its;
 
   if (not nr_workers->init(worker_args, cfg.phy_cell_cfg_nr)) {
     return SRSRAN_ERROR;
