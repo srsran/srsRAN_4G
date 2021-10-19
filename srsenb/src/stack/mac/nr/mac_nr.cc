@@ -81,7 +81,7 @@ void mac_nr::stop()
 ///       However, get_metrics is called infrequently enough to cause major halts in the L1/L2
 void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
 {
-  // TO DO: We should comment on the logic we follow to get the metrics. Some of them are retrieved from MAC, some
+  // TODO: We should comment on the logic we follow to get the metrics. Some of them are retrieved from MAC, some
   // others from the scheduler.
   get_metrics_nolock(metrics);
   sched.get_metrics(metrics);

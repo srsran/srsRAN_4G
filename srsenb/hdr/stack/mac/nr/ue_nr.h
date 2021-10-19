@@ -85,7 +85,7 @@ private:
 
   std::atomic<bool> active_state{true};
 
-  // TO DO: some counters are kept as members of class ue_nr, while some others (i.e., mcs) are kept in the ue_metrics
+  // TODO: some counters are kept as members of class ue_nr, while some others (i.e., mcs) are kept in the ue_metrics
   // We should make these counters more uniform
   uint32_t         phr_counter          = 0;
   uint32_t         dl_cqi_valid_counter = 0;

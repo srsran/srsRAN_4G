@@ -220,7 +220,6 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
-  // printf("RNTI %u: reading and resetting metrics: \n", rnti);
   *metrics_            = ue_metrics;
   phr_counter          = 0;
   dl_cqi_valid_counter = 0;
