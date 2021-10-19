@@ -85,7 +85,7 @@ void phy_common::clear_grants(uint16_t rnti)
   }
 }
 
-const stack_interface_phy_lte::ul_sched_list_t& phy_common::get_ul_grants(uint32_t tti)
+const stack_interface_phy_lte::ul_sched_list_t phy_common::get_ul_grants(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(grant_mutex);
   return ul_grants[tti];

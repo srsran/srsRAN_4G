@@ -227,7 +227,7 @@ public:
   void set_mch_period_stop(uint32_t stop);
 
   // Getters and setters for ul grants which need to be shared between workers
-  const stack_interface_phy_lte::ul_sched_list_t& get_ul_grants(uint32_t tti);
+  const stack_interface_phy_lte::ul_sched_list_t get_ul_grants(uint32_t tti);
   void set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_grants);
   void clear_grants(uint16_t rnti);
 
