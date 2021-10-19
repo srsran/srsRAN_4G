@@ -36,13 +36,13 @@ public:
   };
 
   /// Request addition of NR carrier for UE
-  virtual int sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) = 0;
+  virtual void sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) = 0;
 
   /// Provide information whether the requested configuration was applied successfully by the UE
-  virtual int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response) = 0;
+  virtual void sgnb_reconfiguration_complete(uint16_t eutra_rnti, const asn1::dyn_octstring& reconfig_response) = 0;
 
   /// Trigger release for specific UE
-  virtual int sgnb_release_request(uint16_t nr_rnti) = 0;
+  virtual void sgnb_release_request(uint16_t nr_rnti) = 0;
 };
 
 /// X2AP inspired interface for response from NR RRC to EUTRA RRC

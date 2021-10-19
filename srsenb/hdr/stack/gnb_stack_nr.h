@@ -81,15 +81,19 @@ public:
   // X2 interface
 
   // control plane, i.e. rrc_nr_interface_rrc
-  int sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) final
+  void sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) final
   {
-    return rrc.sgnb_addition_request(eutra_rnti, params);
+    x2_task_queue.push([this, eutra_rnti, params]() { rrc.sgnb_addition_request(eutra_rnti, params); });
   };
-  int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response) final
+  void sgnb_reconfiguration_complete(uint16_t eutra_rnti, const asn1::dyn_octstring& reconfig_response) final
   {
-    return rrc.sgnb_reconfiguration_complete(eutra_rnti, reconfig_response);
+    x2_task_queue.push(
+        [this, eutra_rnti, reconfig_response]() { rrc.sgnb_reconfiguration_complete(eutra_rnti, reconfig_response); });
   };
-  int sgnb_release_request(uint16_t nr_rnti) final { return rrc.sgnb_release_request(nr_rnti); };
+  void sgnb_release_request(uint16_t nr_rnti) final
+  {
+    x2_task_queue.push([this, nr_rnti]() { return rrc.sgnb_release_request(nr_rnti); });
+  }
   // X2 data interface
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) final
   {
@@ -122,8 +126,8 @@ private:
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
   srsran::task_scheduler                task_sched;
-  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gtpu_task_queue, mac_task_queue,
-      metrics_task_queue, gnb_task_queue;
+  srsran::task_multiqueue::queue_handle sync_task_queue, gtpu_task_queue, metrics_task_queue, gnb_task_queue,
+      x2_task_queue;
 
   // metrics waiting condition
   std::mutex              metrics_mutex;

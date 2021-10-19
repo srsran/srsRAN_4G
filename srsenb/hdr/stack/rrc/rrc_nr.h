@@ -86,9 +86,9 @@ public:
   void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) final;
 
   // Interface for EUTRA RRC
-  int sgnb_addition_request(uint16_t rnti, const sgnb_addition_req_params_t& params);
-  int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response);
-  int sgnb_release_request(uint16_t nr_rnti);
+  void sgnb_addition_request(uint16_t rnti, const sgnb_addition_req_params_t& params);
+  void sgnb_reconfiguration_complete(uint16_t rnti, const asn1::dyn_octstring& reconfig_response) final;
+  void sgnb_release_request(uint16_t nr_rnti) final;
 
   // Interfaces for NGAP
   int  ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key);

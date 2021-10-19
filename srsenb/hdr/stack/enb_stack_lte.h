@@ -126,7 +126,10 @@ public:
     // Note: RRC processes activity asynchronously, so there is no need to use x2_task_queue
     rrc.set_activity_user(eutra_rnti);
   }
-  void sgnb_release_ack(uint16_t eutra_rnti) final { rrc.sgnb_release_ack(eutra_rnti); }
+  void sgnb_release_ack(uint16_t eutra_rnti) final
+  {
+    x2_task_queue.push([this, eutra_rnti]() { rrc.sgnb_release_ack(eutra_rnti); });
+  }
 
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);

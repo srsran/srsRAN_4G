@@ -485,67 +485,58 @@ void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
   Interface for EUTRA RRC
 *******************************************************************************/
 
-int rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params)
+void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params)
 {
-  task_sched.defer_task([this, eutra_rnti, params]() {
-    // try to allocate new user
-    sched_nr_ue_cfg_t uecfg{};
-    uecfg.carriers.resize(1);
-    uecfg.carriers[0].active      = true;
-    uecfg.carriers[0].cc          = 0;
-    uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-    srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-    ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-    uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
-    uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+  // try to allocate new user
+  sched_nr_ue_cfg_t uecfg{};
+  uecfg.carriers.resize(1);
+  uecfg.carriers[0].active      = true;
+  uecfg.carriers[0].cc          = 0;
+  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
+  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
+  uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
-    uint16_t nr_rnti = mac->reserve_rnti(0, uecfg);
-    if (nr_rnti == SRSRAN_INVALID_RNTI) {
-      logger.error("Failed to allocate RNTI at MAC");
-      rrc_eutra->sgnb_addition_reject(eutra_rnti);
-      return;
-    }
+  uint16_t nr_rnti = mac->reserve_rnti(0, uecfg);
+  if (nr_rnti == SRSRAN_INVALID_RNTI) {
+    logger.error("Failed to allocate RNTI at MAC");
+    rrc_eutra->sgnb_addition_reject(eutra_rnti);
+    return;
+  }
 
-    if (add_user(nr_rnti, uecfg) != SRSRAN_SUCCESS) {
-      logger.error("Failed to allocate RNTI at RRC");
-      rrc_eutra->sgnb_addition_reject(eutra_rnti);
-      return;
-    }
+  if (add_user(nr_rnti, uecfg) != SRSRAN_SUCCESS) {
+    logger.error("Failed to allocate RNTI at RRC");
+    rrc_eutra->sgnb_addition_reject(eutra_rnti);
+    return;
+  }
 
-    // new RNTI is now registered at MAC and RRC
-    auto user_it = users.find(nr_rnti);
-    if (user_it == users.end()) {
-      logger.warning("Unrecognised rnti: 0x%x", nr_rnti);
-      return;
-    }
-    user_it->second->handle_sgnb_addition_request(eutra_rnti, params);
-  });
-
-  // return straight away
-  return SRSRAN_SUCCESS;
+  // new RNTI is now registered at MAC and RRC
+  auto user_it = users.find(nr_rnti);
+  if (user_it == users.end()) {
+    logger.warning("Unrecognised rnti: 0x%x", nr_rnti);
+    return;
+  }
+  user_it->second->handle_sgnb_addition_request(eutra_rnti, params);
 }
 
-int rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response)
+void rrc_nr::sgnb_reconfiguration_complete(uint16_t eutra_rnti, const asn1::dyn_octstring& reconfig_response)
 {
   // user has completeted the reconfiguration and has acked on 4G side, wait until RA on NR
   logger.info("Received Reconfiguration complete for RNTI=0x%x", eutra_rnti);
-  return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::sgnb_release_request(uint16_t nr_rnti)
+void rrc_nr::sgnb_release_request(uint16_t nr_rnti)
 {
-  task_sched.defer_task([this, nr_rnti]() {
-    // remove user
-    auto     it         = users.find(nr_rnti);
-    uint16_t eutra_rnti = it != users.end() ? it->second->get_eutra_rnti() : SRSRAN_INVALID_RNTI;
-    rem_user(nr_rnti);
-    if (eutra_rnti != SRSRAN_INVALID_RNTI) {
-      rrc_eutra->sgnb_release_ack(eutra_rnti);
-    }
-  });
-  return SRSRAN_SUCCESS;
+  // remove user
+  auto     it         = users.find(nr_rnti);
+  uint16_t eutra_rnti = it != users.end() ? it->second->get_eutra_rnti() : SRSRAN_INVALID_RNTI;
+  rem_user(nr_rnti);
+  if (eutra_rnti != SRSRAN_INVALID_RNTI) {
+    rrc_eutra->sgnb_release_ack(eutra_rnti);
+  }
 }
 
 /*******************************************************************************
