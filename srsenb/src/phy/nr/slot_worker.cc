@@ -78,6 +78,7 @@ bool slot_worker::init(const args_t& args)
   ul_args.pusch.max_layers     = args.nof_rx_ports;
   ul_args.pusch.max_prb        = args.nof_max_prb;
   ul_args.nof_max_prb          = args.nof_max_prb;
+  ul_args.pusch_min_snr_dB     = args.pusch_min_snr_dB;
 
   // Initialise UL
   if (srsran_gnb_ul_init(&gnb_ul, rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {

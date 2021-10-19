@@ -57,6 +57,7 @@ public:
     uint32_t                    rf_port            = 0;
     srsran_subcarrier_spacing_t scs                = srsran_subcarrier_spacing_15kHz;
     uint32_t                    pusch_max_nof_iter = 10;
+    float                       pusch_min_snr_dB   = -10.0f;
     double                      srate_hz           = 0.0;
   };
 

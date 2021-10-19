@@ -63,6 +63,7 @@ bool worker_pool::init(const args_t& args, const phy_cell_cfg_list_nr_t& cell_li
     w_args.rf_port                 = cell_list[cell_index].rf_port;
     w_args.srate_hz                = srate_hz;
     w_args.pusch_max_nof_iter      = args.pusch_max_nof_iter;
+    w_args.pusch_min_snr_dB        = args.pusch_min_snr_dB;
 
     if (not w->init(w_args)) {
       return false;
