@@ -253,7 +253,7 @@ void cc_worker::work_dl(const srsran_dl_sf_cfg_t&            dl_sf_cfg,
   }
 }
 
-void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
+bool cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
                                   srsran_ul_cfg_t&                           ul_cfg,
                                   srsran_pusch_res_t&                        pusch_res)
 {
@@ -261,19 +261,19 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
 
   // Invalid RNTI
   if (rnti == SRSRAN_INVALID_RNTI) {
-    return;
+    return false;
   }
 
   // RNTI does not exist
   if (ue_db.count(rnti) == 0) {
-    return;
+    return false;
   }
 
   // Get UE configuration
   if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSRAN_SUCCESS) {
     // It could happen that the UL configuration is missing due to intra-enb HO which is not an error
     Info("Failed retrieving UL configuration for cc=%d rnti=0x%x", cc_idx, rnti);
-    return;
+    return false;
   }
 
   // Fill UCI configuration
@@ -284,7 +284,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   srsran_pusch_grant_t& grant = ul_cfg.pusch.grant;
   if (srsran_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
     Error("Computing PUSCH dci for RNTI %x", rnti);
-    return;
+    return false;
   }
 
   // Handle Format0 adaptive retx
@@ -293,7 +293,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
     int rv_idx = grant.tb.rv;
     if (phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSRAN_SUCCESS) {
       Error("Error retrieving last UL TB for RNTI %x, CC %d, PID %d", rnti, cc_idx, ul_grant.pid);
-      return;
+      return false;
     }
     grant.tb.rv = rv_idx;
     Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d",
@@ -314,7 +314,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   if (pusch_res.data) {
     if (srsran_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
       Error("Decoding PUSCH for RNTI %x", rnti);
-      return;
+      return false;
     }
   }
   // Save PHICH scheduling for this user. Each user can have just 1 PUSCH dci per TTI
@@ -344,6 +344,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
     // Save metrics stats
     ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx, 0, enb_ul.chest_res.snr_db, pusch_res.avg_iterations_block);
   }
+  return true;
 }
 
 void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch)
@@ -358,7 +359,9 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
     srsran_ul_cfg_t    ul_cfg    = {};
 
     // Decodes PUSCH for the given grant
-    decode_pusch_rnti(ul_grant, ul_cfg, pusch_res);
+    if (!decode_pusch_rnti(ul_grant, ul_cfg, pusch_res)) {
+      return;
+    }
 
     // Notify MAC new received data and HARQ Indication value
     if (ul_grant.data != nullptr) {
