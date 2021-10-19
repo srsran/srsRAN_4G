@@ -343,7 +343,11 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
 void rlc_am_lte::rlc_am_lte_tx::stop()
 {
   std::lock_guard<std::mutex> lock(mutex);
+  stop_nolock();
+}
 
+void rlc_am_lte::rlc_am_lte_tx::stop_nolock()
+{
   empty_queue_nolock();
 
   tx_enabled = false;
@@ -396,7 +400,8 @@ void rlc_am_lte::rlc_am_lte_tx::empty_queue_nolock()
 
 void rlc_am_lte::rlc_am_lte_tx::reestablish()
 {
-  stop();
+  std::lock_guard<std::mutex> lock(mutex);
+  stop_nolock();
   tx_enabled = true;
 }
 

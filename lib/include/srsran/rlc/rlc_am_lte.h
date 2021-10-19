@@ -387,6 +387,8 @@ private:
     void set_bsr_callback(bsr_callback_t callback);
 
   private:
+    void stop_nolock();
+
     int  build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
     int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
     int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
