@@ -383,12 +383,8 @@ void rrc::ue::rrc_endc::handle_endc_disabled(const disable_endc_ev& ev)
 
 bool rrc::ue::rrc_endc::requires_rel_req(const sgnb_rel_req_ev& ev)
 {
-  return not is_in_state<endc_disabled_st>() and not is_in_state<endc_deactivated_st>();
-}
-
-bool rrc::ue::rrc_endc::skip_rel_req(const sgnb_rel_req_ev& ev)
-{
-  return not requires_rel_req(ev) and not is_in_state<disable_endc_ev>();
+  return not is_in_state<endc_disabled_st>() and not is_in_state<endc_deactivated_st>() and
+         not is_in_state<wait_sgnb_rel_req_resp_st>();
 }
 
 } // namespace srsenb

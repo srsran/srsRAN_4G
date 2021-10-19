@@ -127,7 +127,6 @@ private:
 
   // FSM guards
   bool requires_rel_req(const sgnb_rel_req_ev& ev);
-  bool skip_rel_req(const sgnb_rel_req_ev& ev);
 
   // FSM transition handlers
   void handle_sgnb_add_req_ack(wait_sgnb_add_req_resp_st& s, const sgnb_add_req_ack_ev& ev);
@@ -168,7 +167,6 @@ protected:
   upd< endc_activated_st,                                    rrc_reest_rx_ev,         &fsm::handle_rrc_reest                                 >,
   // +---------------------------+--------------------------+------------------------+------------------------------+-------------------------+
   to_state<                       wait_sgnb_rel_req_resp_st, sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req,      &fsm::requires_rel_req >,
-  to_state<                       endc_deactivated_st,       sgnb_rel_req_ev,         &fsm::handle_sgnb_rel_req,      &fsm::skip_rel_req     >,
   row< wait_sgnb_rel_req_resp_st, endc_deactivated_st,       sgnb_rel_req_ack_ev                                                             >,
   to_state<                       endc_disabled_st,          disable_endc_ev,         &fsm::handle_endc_disabled                             >
   >;

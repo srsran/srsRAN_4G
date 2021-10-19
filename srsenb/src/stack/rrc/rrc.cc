@@ -605,13 +605,14 @@ void rrc::sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti)
 
 void rrc::sgnb_release_ack(uint16_t eutra_rnti)
 {
-  logger.info("Received SgNB release acknowledgement for rnti=0x%x", eutra_rnti);
   auto ue_it = users.find(eutra_rnti);
-  if (ue_it == users.end()) {
-    logger.warning("rnti=0x%x does not exist", eutra_rnti);
-    return;
+  if (ue_it != users.end()) {
+    logger.info("Received SgNB release acknowledgement for rnti=0x%x", eutra_rnti);
+    ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_rel_req_ack_ev{});
+  } else {
+    // The EUTRA does not need to wait for Release Ack in case it wants to destroy the EUTRA UE
+    logger.info("Received SgNB release acknowledgement for already released rnti=0x%x", eutra_rnti);
   }
-  ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_rel_req_ack_ev{});
 }
 
 /*******************************************************************************
