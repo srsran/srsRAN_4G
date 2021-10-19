@@ -324,7 +324,7 @@ void ul_harq_proc::reset_pending_data()
 
 uint32_t ul_harq_proc::get_pending_data() const
 {
-  return (uint32_t)pending_data;
+  return is_empty() ? 0 : (uint32_t)pending_data;
 }
 
 /********************
