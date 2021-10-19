@@ -150,6 +150,17 @@ bool rlc::suspend_bearer(uint16_t rnti, uint32_t lcid)
   return result;
 }
 
+bool rlc::is_suspended(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool result = false;
+  if (users.count(rnti)) {
+    result = users[rnti].rlc->is_suspended(lcid);
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return result;
+}
+
 bool rlc::resume_bearer(uint16_t rnti, uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);

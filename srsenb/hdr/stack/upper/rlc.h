@@ -53,6 +53,7 @@ public:
   bool has_bearer(uint16_t rnti, uint32_t lcid);
   bool suspend_bearer(uint16_t rnti, uint32_t lcid);
   bool resume_bearer(uint16_t rnti, uint32_t lcid);
+  bool is_suspended(uint16_t rnti, uint32_t lcid);
   void reestablish(uint16_t rnti) final;
 
   // rlc_interface_pdcp

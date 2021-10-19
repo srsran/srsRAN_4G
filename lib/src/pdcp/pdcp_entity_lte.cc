@@ -139,6 +139,11 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
     return;
   }
 
+  if (rlc->is_suspended(lcid)) {
+    logger.warning("Trying to send SDU while re-establishment is in progress. Dropping SDU. LCID=%d", lcid);
+    return;
+  }
+
   if (rlc->sdu_queue_is_full(lcid)) {
     logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid));
     return;
@@ -166,7 +171,6 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
       return;
     }
   }
-
   // check for pending security config in transmit direction
   if (enable_security_tx_sn != -1 && enable_security_tx_sn == static_cast<int32_t>(tx_count)) {
     enable_integrity(DIRECTION_TX);
