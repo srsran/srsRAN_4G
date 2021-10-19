@@ -279,15 +279,11 @@ private:
       std::lock_guard<std::mutex> lock(mutex);
       return std::isnormal(current_srate) and current_srate > 0.0f;
     }
-    bool set_camp(float new_srate)
+    void set_camp(float new_srate)
     {
       std::lock_guard<std::mutex> lock(mutex);
-      if (srate_mode != SRATE_CAMP) {
-        current_srate = new_srate;
-        srate_mode    = SRATE_CAMP;
-        return true;
-      }
-      return false;
+      current_srate = new_srate;
+      srate_mode    = SRATE_CAMP;
     }
     bool set_find()
     {
