@@ -30,7 +30,7 @@ class mux_nr final : mux_base, public mux_interface_bsr_nr
 public:
   explicit mux_nr(mac_interface_mux_nr& mac_, srslog::basic_logger& logger);
   ~mux_nr(){};
-  void reset();
+  void    reset();
   int32_t init(rlc_interface_mac* rlc_);
 
   void msg3_flush();
@@ -53,9 +53,9 @@ private:
   // internal helper methods
 
   // ctor configured members
-  mac_interface_mux_nr&        mac;
-  rlc_interface_mac* rlc = nullptr;
-  srslog::basic_logger&        logger;
+  mac_interface_mux_nr& mac;
+  rlc_interface_mac*    rlc = nullptr;
+  srslog::basic_logger& logger;
 
   // Msg3 related
   srsran::unique_byte_buffer_t msg3_buff = nullptr;
@@ -69,7 +69,8 @@ private:
 
   srsran::mac_sch_pdu_nr tx_pdu; /// single MAC PDU for packing
 
-  enum { no_bsr, sbsr_ce, lbsr_ce } add_bsr_ce = no_bsr; /// BSR procedure requests MUX to add a BSR CE
+  enum bsr_req_t { no_bsr, sbsr_ce, lbsr_ce };
+  std::atomic<bsr_req_t> add_bsr_ce = {bsr_req_t::no_bsr}; /// BSR procedure requests MUX to add a BSR CE
 
   // Mutex for exclusive access
   std::mutex mutex;
