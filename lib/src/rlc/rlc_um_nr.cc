@@ -199,7 +199,12 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8
   srsran_expect(
       ret <= nof_bytes, "Error while packing MAC PDU (more bytes written (%d) than expected (%d)!", ret, nof_bytes);
 
-  logger.info(payload, ret, "%s Tx PDU SN=%d (%d B)", rb_name.c_str(), header.sn, pdu->N_bytes);
+  if (header.si == rlc_nr_si_field_t::full_sdu) {
+    // log without SN
+    logger.info(payload, ret, "%s Tx PDU (%d B)", rb_name.c_str(), pdu->N_bytes);
+  } else {
+    logger.info(payload, ret, "%s Tx PDU SN=%d (%d B)", rb_name.c_str(), header.sn, pdu->N_bytes);
+  }
 
   debug_state();
 
