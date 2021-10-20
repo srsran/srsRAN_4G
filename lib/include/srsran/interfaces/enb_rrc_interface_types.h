@@ -28,12 +28,12 @@ struct scell_cfg_t {
 
 // Cell to measure for Handover
 struct meas_cell_cfg_t {
-  uint32_t earfcn;
-  uint16_t pci;
-  uint32_t eci;
-  float    q_offset;
-  uint32_t allowed_meas_bw;
-  bool     direct_forward_path_available;
+  uint32_t                    earfcn;
+  uint16_t                    pci;
+  uint32_t                    eci;
+  asn1::rrc::q_offset_range_e cell_individual_offset;
+  uint32_t                    allowed_meas_bw;
+  bool                        direct_forward_path_available;
 };
 
 // neigh measurement Cell info

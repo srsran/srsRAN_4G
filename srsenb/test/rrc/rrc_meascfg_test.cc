@@ -31,14 +31,14 @@ namespace srsenb {
  */
 int test_correct_meascfg_insertion()
 {
-  meas_cell_cfg_t cell1 = generate_cell1(), cell2{}, cell3{}, cell4{};
-  cell2                 = cell1;
-  cell2.pci             = 2;
-  cell2.eci             = 0x19C02;
-  cell3                 = cell1;
-  cell3.earfcn          = 2850;
-  cell4                 = cell1;
-  cell4.q_offset        = 1;
+  meas_cell_cfg_t cell1        = generate_cell1(), cell2{}, cell3{}, cell4{};
+  cell2                        = cell1;
+  cell2.pci                    = 2;
+  cell2.eci                    = 0x19C02;
+  cell3                        = cell1;
+  cell3.earfcn                 = 2850;
+  cell4                        = cell1;
+  cell1.cell_individual_offset = asn1::rrc::q_offset_range_opts::db1;
 
   report_cfg_eutra_s rep1 = generate_rep1();
 
@@ -108,13 +108,13 @@ int test_correct_meascfg_calculation()
   meas_cfg_s src_var{}, target_var{};
 
   meas_cell_cfg_t cell1{}, cell2{};
-  cell1.earfcn   = 3400;
-  cell1.pci      = 1;
-  cell1.q_offset = 0;
-  cell1.eci      = 0x19C01;
-  cell2          = cell1;
-  cell2.pci      = 2;
-  cell2.eci      = 0x19C02;
+  cell1.earfcn                 = 3400;
+  cell1.pci                    = 1;
+  cell1.cell_individual_offset = asn1::rrc::q_offset_range_opts::db0;
+  cell1.eci                    = 0x19C01;
+  cell2                        = cell1;
+  cell2.pci                    = 2;
+  cell2.eci                    = 0x19C02;
 
   report_cfg_eutra_s rep1  = generate_rep1(), rep2{}, rep3{};
   rep2                     = rep1;
@@ -169,8 +169,8 @@ int test_correct_meascfg_calculation()
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 0);
 
     // TEST 3: Cell is added to cellsToAddModList if just a field was updated
-    cell1.q_offset = 5;
-    src_var        = target_var;
+    cell1.cell_individual_offset = asn1::rrc::q_offset_range_opts::db5;
+    src_var                      = target_var;
     add_cell_enb_cfg(target_var.meas_obj_to_add_mod_list, cell1);
     TESTASSERT(compute_diff_meascfg(src_var, target_var, result_meascfg));
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
