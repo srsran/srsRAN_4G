@@ -57,6 +57,10 @@ int basic_test()
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
+  auto& test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_logger.info("====================");
+  test_logger.info("==== Basic Test ====");
+  test_logger.info("====================");
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
@@ -82,6 +86,68 @@ int basic_test()
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
   int           len  = rlc2.read_pdu(status_buf.msg, 3);
+  status_buf.N_bytes = len;
+
+  // TESTASSERT(0 == rlc2.get_buffer_state());
+
+  // Assert status is correct
+  rlc_am_nr_status_pdu_t status_check = {};
+  rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
+  TESTASSERT(status_check.ack_sn == 5); // 5 is the last SN that was not received.
+                                        // TESTASSERT(rlc_am_is_valid_status_pdu(status_check));
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  // Check PDCP notifications
+  // TODO
+
+  // Check statistics
+  TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
+  return SRSRAN_SUCCESS;
+}
+
+/*
+ * Test the loss of a single PDU.
+ * NACK should be visible in the status report.
+ * Retx after NACK should be present too.
+ */
+int lost_pdu_test()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  byte_buffer_t pdu_bufs[NBUFS];
+
+  auto& test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_logger.info("=======================");
+  test_logger.info("==== Lost PDU Test ====");
+  test_logger.info("=======================");
+  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  // before configuring entity
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config())) {
+    return -1;
+  }
+
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config())) {
+    return -1;
+  }
+
+  basic_test_tx(&rlc1, pdu_bufs);
+
+  // Write 5 PDUs into RLC2
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 3) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes); // Don't write RLC_SN=3.
+    }
+  }
+
+  TESTASSERT(5 == rlc2.get_buffer_state());
+  // Read status PDU from RLC2
+  byte_buffer_t status_buf;
+  int           len  = rlc2.read_pdu(status_buf.msg, 5);
   status_buf.N_bytes = len;
 
   // TESTASSERT(0 == rlc2.get_buffer_state());
@@ -128,6 +194,7 @@ int main(int argc, char** argv)
   srslog::init();
 
   TESTASSERT(basic_test() == SRSRAN_SUCCESS);
+  TESTASSERT(lost_pdu_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

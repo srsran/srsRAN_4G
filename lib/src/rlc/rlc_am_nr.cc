@@ -184,7 +184,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   */
 
   // Bytes needed for status report
-  if (do_status() /* && not TODO status_prohibit_timer*/) {
+  if (do_status()) {
     n_bytes_prio += rx->get_status_pdu_length();
     logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes_prio);
   }
@@ -311,37 +311,81 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     do_status = true;
   }
 
-  // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
-  // TODO
-
   debug_state();
 
-  // Iterate over Rx Window and write any finished PDUs
-  for (uint32_t i = rx_next; i < rx_next + RLC_AM_WINDOW_SIZE; i++) {
-    if (rx_window.has_sn(i)) {
-      if (rx_window[i].header.si == rlc_nr_si_field_t::full_sdu) {
-        parent->pdcp->write_pdu(parent->lcid, std::move(rx_window[i].buf));
-      }
-    } else {
-      // Missing PDU. Cannot deliver SDUs in order. Break
-      break;
-    }
-  }
-
+  // 5.2.3.2.3 Actions when an AMD PDU is placed in the reception buffer
   // Update Rx_Next_Highest
   if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
     rx_next_highest = (header.sn + 1) % MOD;
   }
 
-  // Update RX_Highest_Status
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
-    rx_highest_status = (header.sn + 1) % MOD;
+  // Check if all bytes of the RLC SDU with SN = x are received:
+  bool sdu_fully_received = false;
+  if (header.si == rlc_nr_si_field_t::full_sdu) { // Check whether it's a full SDU
+    parent->pdcp->write_pdu(parent->lcid, std::move(rx_window[header.sn].buf));
+    sdu_fully_received = true;
+  } else {
+    for (uint32_t i = rx_next; i < rx_next + RLC_AM_WINDOW_SIZE; i++) {
+      if (rx_window.has_sn(i)) {
+        if (rx_window[i].header.si == rlc_nr_si_field_t::full_sdu) {
+          parent->pdcp->write_pdu(parent->lcid, std::move(rx_window[i].buf));
+        }
+      } else {
+        // Missing PDU. Cannot deliver SDUs in order. Break
+        break;
+      }
+    }
   }
 
-  // Update RX_Next (FIXME should only be updated if all segments are received)
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_next)) {
-    rx_next = header.sn + 1 % MOD;
+  if (sdu_fully_received) {
+    // Remove SDU from RX Window
+    rx_window.remove_pdu(header.sn);
+
+    // Update RX_Highest_Status
+    /*
+     * - if x = RX_Highest_Status,
+     *   - update RX_Highest_Status to the SN of the first RLC SDU with SN > current RX_Highest_Status for which not all
+     *     bytes have been received.
+     */
+    if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
+      bool has_sn_with_missing_bytes = false;
+      for (uint32_t sn_tmp = rx_highest_status; sn_tmp < rx_highest_status + RLC_AM_WINDOW_SIZE; sn_tmp++) {
+        if (rx_window.has_sn(sn_tmp)) {
+          rx_highest_status         = sn_tmp;
+          has_sn_with_missing_bytes = true;
+          break;
+        }
+      }
+      if (not has_sn_with_missing_bytes) {
+        // There was no SN with missing bytes on the RX window.
+        // Updating RX_Highest_Status to RX_Highest_Status + 1
+        rx_highest_status = header.sn + 1 % MOD;
+      }
+    }
+
+    /*
+     * - if x = RX_Next:
+     *   - update RX_Next to the SN of the first RLC SDU with SN > current RX_Next for which not all bytes
+     *     have been received.
+     */
+    if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_next)) {
+      bool has_sn_with_missing_bytes = false;
+      for (uint32_t sn_tmp = rx_next; sn_tmp < rx_next + RLC_AM_WINDOW_SIZE; sn_tmp++) {
+        if (rx_window.has_sn(sn_tmp)) {
+          rx_next                   = sn_tmp;
+          has_sn_with_missing_bytes = true;
+          break;
+        }
+      }
+      if (not has_sn_with_missing_bytes) {
+        // There was no SN with missing bytes on the RX window.
+        // Updating RX_Next to RX_Next + 1
+        rx_next = header.sn + 1 % MOD;
+      }
+    }
   }
+  // if t-Reassembly is running: (TODO)
+  // if t-Reassembly is not running (includes the case t-Reassembly is stopped due to actions above): (TODO)
 }
 
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
@@ -404,8 +448,6 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
   if (status_prohibit_timer.is_valid() && status_prohibit_timer.id() == timeout_id) {
     logger->debug("%s Status prohibit timer expired after %dms", parent->rb_name, status_prohibit_timer.duration());
   }
-
-  lock.unlock();
 }
 
 /*
