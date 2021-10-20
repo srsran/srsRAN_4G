@@ -247,8 +247,8 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       uint32_t lcid = mbms_item.lc_ch_id_r9;
       uint32_t addr_in;
       // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
-      mac->ue_cfg(SRSRAN_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
+      bearer_manager.add_eps_bearer(SRSRAN_MRNTI, 1, srsran::srsran_rat_t::lte, lcid);
       pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
       gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1, addr_in);
     }
