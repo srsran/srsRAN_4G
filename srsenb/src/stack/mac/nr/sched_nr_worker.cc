@@ -375,6 +375,7 @@ void sched_worker_manager::get_metrics_nolocking(mac_metrics_t& metrics)
   for (mac_ue_metrics_t& ue_metric : metrics.ues) {
     if (ue_db.contains(ue_metric.rnti) and ue_db[ue_metric.rnti]->carriers[0] != nullptr) {
       auto& ue_cc         = *ue_db[ue_metric.rnti]->carriers[0];
+      std::lock_guard<std::mutex> lock(ue_cc.metrics_mutex);
       ue_metric.tx_brate  = ue_cc.metrics.tx_brate;
       ue_metric.tx_errors = ue_cc.metrics.tx_errors;
       ue_metric.tx_pkts   = ue_cc.metrics.tx_pkts;
