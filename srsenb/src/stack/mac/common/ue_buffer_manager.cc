@@ -32,11 +32,12 @@ void ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> b
 
   for (uint32_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
     if (config_lcid_internal(lcid, bearer_cfg_list[lcid]) and log_enabled) {
+      // add to the changed_list the lcids that have been updated with new parameters
       changed_list.push_back(lcid);
     }
   }
 
-  // Log changed LCID configurations
+  // Log configurations of the LCIDs for which there were param updates
   if (not changed_list.empty()) {
     fmt::memory_buffer fmtbuf;
     for (uint32_t i = 0; i < changed_list.size(); ++i) {
@@ -67,6 +68,11 @@ void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& 
   }
 }
 
+/**
+ * @brief configure MAC logical channel. The function checks if the configuration is valid
+ *        and whether there was any change compared to previous value
+ * @return true if the lcid was updated with new parameters. False in case of case of error or no update.
+ */
 template <bool isNR>
 bool ue_buffer_manager<isNR>::config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
 {
