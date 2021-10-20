@@ -38,7 +38,7 @@ int test_correct_meascfg_insertion()
   cell3                        = cell1;
   cell3.earfcn                 = 2850;
   cell4                        = cell1;
-  cell1.cell_individual_offset = asn1::rrc::q_offset_range_opts::db1;
+  cell4.cell_individual_offset = asn1::rrc::q_offset_range_opts::db1;
 
   report_cfg_eutra_s rep1 = generate_rep1();
 
