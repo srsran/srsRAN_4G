@@ -41,6 +41,12 @@ void bsr_proc::init(sr_proc* sr_, rlc_interface_mac* rlc_, srsran::ext_task_sche
 
 void bsr_proc::print_state()
 {
+  if (!logger.info.enabled()) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(mutex);
+
   char str[128];
   str[0] = '\0';
   int n  = 0;
