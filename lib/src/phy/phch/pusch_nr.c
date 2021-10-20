@@ -1054,11 +1054,12 @@ uint32_t srsran_pusch_nr_rx_info(const srsran_pusch_nr_t*     q,
   len += pusch_nr_grant_info(q, cfg, grant, res, &str[len], str_len - len);
 
   if (res != NULL && srsran_uci_nr_total_bits(&cfg->uci) > 0) {
-    len                           = srsran_print_check(str, str_len, len, "UCI: ");
     srsran_uci_data_nr_t uci_data = {};
     uci_data.cfg                  = cfg->uci;
     uci_data.value                = res->uci;
     len += srsran_uci_nr_info(&uci_data, &str[len], str_len - len);
+
+    len = srsran_print_check(str, str_len, len, "valid=%c ", res->uci.valid ? 'y' : 'n');
   }
 
   if (q->meas_time_en) {
