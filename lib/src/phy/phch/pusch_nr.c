@@ -378,13 +378,11 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
     // the number of reserved resource elements for potential HARQ-ACK transmission is calculated according to Clause
     // 6.3.2.4.2.1, by setting O_ACK = 2 ;
     G_ack_rvd = srsran_uci_nr_pusch_ack_nof_bits(&cfg->pusch, 2);
-
-    // Disable non reserved HARQ-ACK bits
-    G_ack = 0;
   }
 
   // Counters
   uint32_t m_ack_count   = 0;
+  uint32_t m_rvd_count   = 0;
   uint32_t m_csi1_count  = 0;
   uint32_t m_csi2_count  = 0;
   uint32_t m_ulsch_count = 0;
@@ -411,15 +409,26 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
     // Compute HARQ-ACK bits multiplexing
     uint32_t ack_d          = 0;
     uint32_t ack_m_re_count = 0;
+    uint32_t rvd_d          = 0;
+    uint32_t rvd_m_re_count = 0;
     if (l >= l1) {
-      if (cfg->ack.count <= 2 && m_ack_count < G_ack_rvd) {
-        ack_d          = 1;
-        ack_m_re_count = M_ulsch_sc;
-        if (G_ack_rvd - m_ack_count < M_uci_sc * Nl * Qm) {
-          ack_d          = (M_uci_sc * Nl * Qm) / (G_ack_rvd - m_ack_count);
-          ack_m_re_count = SRSRAN_CEIL(G_ack_rvd - m_ack_count, Nl * Qm);
+      if (cfg->ack.count <= 2 && m_rvd_count < G_ack_rvd) {
+        rvd_d          = 1;
+        rvd_m_re_count = M_ulsch_sc;
+        if (G_ack_rvd - m_rvd_count < M_uci_sc * Nl * Qm) {
+          rvd_d          = (M_uci_sc * Nl * Qm) / (G_ack_rvd - m_rvd_count);
+          rvd_m_re_count = SRSRAN_CEIL(G_ack_rvd - m_rvd_count, Nl * Qm);
         }
-        M_uci_rvd = ack_m_re_count;
+        M_uci_rvd = rvd_m_re_count;
+
+        if (m_ack_count < G_ack) {
+          ack_d          = 1;
+          ack_m_re_count = M_uci_rvd;
+          if (G_ack - m_ack_count < M_uci_rvd * Nl * Qm) {
+            ack_d          = (M_uci_rvd * Nl * Qm) / (G_ack - m_ack_count);
+            ack_m_re_count = SRSRAN_CEIL(G_ack - m_ack_count, Nl * Qm);
+          }
+        }
       } else if (m_ack_count < G_ack) {
         ack_d          = 1;
         ack_m_re_count = M_ulsch_sc;
@@ -460,14 +469,14 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
     // Leave the rest for UL-SCH
     uint32_t ulsch_m_re_count = M_uci_sc;
 
-    for (uint32_t i = 0, csi1_i = 0, csi2_i = 0; i < cfg->pusch.M_pusch_sc[l]; i++) {
-      // Check if RE is reserved for ACK
+    for (uint32_t i = 0, csi1_i = 0, csi2_i = 0, rvd_i = 0; i < cfg->pusch.M_pusch_sc[l]; i++) {
+      // Check if RE is reserved
       bool reserved = false;
-      if (ack_m_re_count != 0 && i % ack_d == 0 && m_ack_count < G_ack_rvd) {
+      if (rvd_m_re_count != 0 && i % rvd_d == 0 && m_rvd_count < G_ack_rvd) {
         reserved = true;
       }
 
-      if (ack_m_re_count != 0 && i % ack_d == 0 && m_ack_count < G_ack) {
+      if (G_ack_rvd == 0 && ack_m_re_count != 0 && i % ack_d == 0 && m_ack_count < G_ack) {
         for (uint32_t j = 0; j < Nl * Qm; j++) {
           pos_ack[m_ack_count++] = m_all_count + j;
         }
@@ -498,14 +507,15 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
 
       // Set reserved bits only if there are ACK bits
       if (reserved) {
-        if (cfg->ack.count > 0) {
+        if (ack_m_re_count != 0 && rvd_i % ack_d == 0 && m_ack_count < G_ack) {
           for (uint32_t j = 0; j < Nl * Qm; j++) {
             pos_ack[m_ack_count++] = m_all_count + j;
           }
-        } else {
-          m_ack_count += Nl * Qm;
+          ack_m_re_count--;
         }
-        ack_m_re_count--;
+        m_rvd_count += Nl * Qm;
+        rvd_m_re_count--;
+        rvd_i++;
       }
 
       // Increment all bit counter
@@ -531,8 +541,8 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
   q->G_ulsch = m_ulsch_count;
 
   // Assert Number of bits
-  if (G_ack_rvd != 0 && G_ack_rvd != m_ack_count && cfg->ack.count > 0) {
-    ERROR("Not matched %d!=%d", G_ack_rvd, m_ack_count);
+  if (G_ack_rvd != 0 && G_ack_rvd != m_rvd_count && cfg->ack.count <= 2) {
+    ERROR("Not matched %d!=%d", G_ack_rvd, m_rvd_count);
   }
   if (G_ack != 0 && G_ack != m_ack_count) {
     ERROR("Not matched %d!=%d", G_ack, m_ack_count);

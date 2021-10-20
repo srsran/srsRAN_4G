@@ -272,10 +272,14 @@ void phy_cfg_nr_default_t::make_pusch_default(srsran_sch_hl_cfg_nr_t& pusch)
   // Setup PUSCH DMRS type A position
   pusch.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
 
-  pusch.scaling               = 1.0f;
-  pusch.beta_offsets.fix_ack  = 12.625f;
-  pusch.beta_offsets.fix_csi1 = 2.25f;
-  pusch.beta_offsets.fix_csi2 = 2.25f;
+  pusch.scaling                  = 1.0f;
+  pusch.beta_offsets.ack_index1  = 9;
+  pusch.beta_offsets.ack_index2  = 9;
+  pusch.beta_offsets.ack_index3  = 9;
+  pusch.beta_offsets.csi1_index1 = 6;
+  pusch.beta_offsets.csi1_index2 = 6;
+  pusch.beta_offsets.csi2_index1 = 6;
+  pusch.beta_offsets.csi2_index2 = 6;
 }
 
 void phy_cfg_nr_default_t::make_pucch_custom_one(srsran_pucch_nr_hl_cfg_t& pucch)
