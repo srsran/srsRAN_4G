@@ -254,7 +254,7 @@ void rlc::get_buffer_state(uint32_t lcid, uint32_t& tx_queue, uint32_t& prio_tx_
 
 uint32_t rlc::get_buffer_state(uint32_t lcid)
 {
-  uint32_t tx_queue, prio_tx_queue;
+  uint32_t tx_queue = 0, prio_tx_queue = 0;
   get_buffer_state(lcid, tx_queue, prio_tx_queue);
   return tx_queue + prio_tx_queue;
 }

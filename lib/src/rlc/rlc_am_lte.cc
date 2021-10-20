@@ -441,9 +441,9 @@ void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 
 uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 {
-  uint32_t newtx = 0, priotx = 0;
-  get_buffer_state(newtx, priotx);
-  return newtx + priotx;
+  uint32_t new_tx_queue = 0, prio_tx_queue = 0;
+  get_buffer_state(new_tx_queue, prio_tx_queue);
+  return new_tx_queue + prio_tx_queue;
 }
 
 void rlc_am_lte::rlc_am_lte_tx::get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio)
@@ -625,9 +625,9 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
   lock.unlock();
 
   if (bsr_callback) {
-    uint32_t newtx = 0, priotx = 0;
-    get_buffer_state(newtx, priotx);
-    bsr_callback(parent->lcid, newtx, priotx);
+    uint32_t new_tx_queue = 0, prio_tx_queue = 0;
+    get_buffer_state(new_tx_queue, prio_tx_queue);
+    bsr_callback(parent->lcid, new_tx_queue, prio_tx_queue);
   }
 }
 
