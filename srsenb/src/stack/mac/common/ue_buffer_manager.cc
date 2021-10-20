@@ -31,7 +31,7 @@ void ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> b
   srsran::bounded_vector<uint32_t, MAX_LC_ID> changed_list;
 
   for (uint32_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
-    if (log_enabled and config_lcid_internal(lcid, bearer_cfg_list[lcid])) {
+    if (config_lcid_internal(lcid, bearer_cfg_list[lcid]) and log_enabled) {
       changed_list.push_back(lcid);
     }
   }
