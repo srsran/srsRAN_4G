@@ -17,6 +17,7 @@
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/optional.h"
 #include "srsran/adt/span.h"
+#include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr.h"
 #include "srsran/common/slot_point.h"
 #include "srsran/interfaces/gnb_interfaces.h"
@@ -30,7 +31,7 @@ const static size_t   SCHED_NR_MAX_NOF_RBGS     = 18;
 const static size_t   SCHED_NR_MAX_TB           = 1;
 const static size_t   SCHED_NR_MAX_HARQ         = SRSRAN_DEFAULT_HARQ_PROC_DL_NR;
 const static size_t   SCHED_NR_MAX_BWP_PER_CELL = 2;
-const static size_t   SCHED_NR_MAX_LCID         = 32;
+const static size_t   SCHED_NR_MAX_LCID         = srsran::MAX_NR_NOF_BEARERS;
 const static size_t   SCHED_NR_MAX_LC_GROUP     = 7;
 
 struct sched_nr_ue_cc_cfg_t {

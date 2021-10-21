@@ -27,8 +27,8 @@ ue_buffer_manager<isNR>::ue_buffer_manager(uint16_t rnti_, srslog::basic_logger&
 template <bool isNR>
 void ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list)
 {
-  bool                                        log_enabled = logger.info.enabled();
-  srsran::bounded_vector<uint32_t, MAX_LC_ID> changed_list;
+  bool                                            log_enabled = logger.info.enabled();
+  srsran::bounded_vector<uint32_t, MAX_NOF_LCIDS> changed_list;
 
   for (uint32_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
     if (config_lcid_internal(lcid, bearer_cfg_list[lcid]) and log_enabled) {

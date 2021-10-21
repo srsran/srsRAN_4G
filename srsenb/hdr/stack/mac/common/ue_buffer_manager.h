@@ -29,7 +29,7 @@ template <bool isNR>
 class ue_buffer_manager
 {
 protected:
-  const static uint32_t     MAX_LC_ID     = isNR ? srsran::MAX_NR_NOF_BEARERS : srsran::MAX_LTE_LCID;
+  const static uint32_t     MAX_LC_ID     = isNR ? (srsran::MAX_NR_NOF_BEARERS - 1) : srsran::MAX_LTE_LCID;
   const static uint32_t     MAX_LCG_ID    = isNR ? 7 : 3; // Should import from sched_interface and sched_nr_interface
   const static uint32_t     MAX_SRB_LC_ID = isNR ? srsran::MAX_NR_SRB_ID : srsran::MAX_LTE_SRB_ID;
   const static uint32_t     MAX_NOF_LCIDS = MAX_LC_ID + 1;
