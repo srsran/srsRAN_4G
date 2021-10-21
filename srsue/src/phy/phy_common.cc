@@ -306,12 +306,14 @@ bool phy_common::is_any_ul_pending_ack()
 #define tti_pusch_hi(sf)                                                                                               \
   (sf->tti +                                                                                                           \
    (cell.frame_type == SRSRAN_FDD ? FDD_HARQ_DELAY_UL_MS                                                               \
-                                  : I_phich ? 7 : k_pusch[sf->tdd_config.sf_config][sf->tti % 10]) +                   \
+    : I_phich                     ? 7                                                                                  \
+                                  : k_pusch[sf->tdd_config.sf_config][sf->tti % 10]) +                                                     \
    (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS))
 #define tti_pusch_gr(sf)                                                                                               \
   (sf->tti +                                                                                                           \
    (cell.frame_type == SRSRAN_FDD ? FDD_HARQ_DELAY_UL_MS                                                               \
-                                  : dci->ul_idx == 1 ? 7 : k_pusch[sf->tdd_config.sf_config][sf->tti % 10]) +          \
+    : dci->ul_idx == 1            ? 7                                                                                  \
+                                  : k_pusch[sf->tdd_config.sf_config][sf->tti % 10]) +                                            \
    (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS))
 
 // SF->TTI is at which Format0 dci is received
@@ -893,7 +895,7 @@ void phy_common::reset()
     cur_pathloss    = 0;
     cur_pusch_power = 0;
   }
-  last_ri         = 0;
+  last_ri = 0;
 
   // Reset all measurements
   reset_measurements(SRSRAN_MAX_CARRIERS);

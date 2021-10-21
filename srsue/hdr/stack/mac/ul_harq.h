@@ -117,12 +117,12 @@ private:
     };
     lockable_grant cur_grant;
 
-    uint32_t pid;
-    uint32_t current_tx_nb;
-    uint32_t current_irv;
-    bool     harq_feedback;
-    bool     is_grant_configured;
-    bool     is_initiated;
+    uint32_t              pid;
+    std::atomic<uint32_t> current_tx_nb = {0};
+    uint32_t              current_irv;
+    bool                  harq_feedback;
+    bool                  is_grant_configured;
+    bool                  is_initiated;
 
     srslog::basic_logger&  logger;
     ul_harq_entity*        harq_entity;
