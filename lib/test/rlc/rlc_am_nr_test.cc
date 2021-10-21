@@ -88,7 +88,7 @@ int basic_test()
   int           len  = rlc2.read_pdu(status_buf.msg, 3);
   status_buf.N_bytes = len;
 
-  // TESTASSERT(0 == rlc2.get_buffer_state());
+  TESTASSERT(0 == rlc2.get_buffer_state());
 
   // Assert status is correct
   rlc_am_nr_status_pdu_t status_check = {};

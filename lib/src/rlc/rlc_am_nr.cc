@@ -241,10 +241,15 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
 {
   cfg = cfg_.am_nr;
 
-  // configure timers
+  // Configure status prohibit timer
   if (cfg.t_status_prohibit > 0) {
     status_prohibit_timer.set(static_cast<uint32_t>(cfg.t_status_prohibit),
                               [this](uint32_t timerid) { timer_expired(timerid); });
+  }
+
+  // Configure t_reassembly timer
+  if (cfg.t_reassembly > 0) {
+    reassembly_timer.set(static_cast<uint32_t>(cfg.t_reassembly), [this](uint32_t timerid) { timer_expired(timerid); });
   }
 
   return true;
@@ -405,11 +410,10 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   }
 
   status->N_nack = 0;
-  status->ack_sn = rx_next; // start with lower edge of the rx window
+  status->ack_sn = rx_highest_status; // ACK RX_Highest_Status
   byte_buffer_t tmp_buf;
   uint32_t      len;
 
-  // We don't use segment NACKs - just NACK the full PDU
   uint32_t i = status->ack_sn;
   while (RX_MOD_BASE_NR(i) <= RX_MOD_BASE_NR(rx_highest_status)) {
     if (rx_window.has_sn(i) || i == rx_highest_status) {
@@ -445,8 +449,42 @@ bool rlc_am_nr_rx::get_do_status()
 void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
 {
   std::unique_lock<std::mutex> lock(mutex);
+
+  // Status Prohibit
   if (status_prohibit_timer.is_valid() && status_prohibit_timer.id() == timeout_id) {
     logger->debug("%s Status prohibit timer expired after %dms", parent->rb_name, status_prohibit_timer.duration());
+    return;
+  }
+
+  // Reassembly
+  if (reassembly_timer.is_valid() && reassembly_timer.id() == timeout_id) {
+    logger->debug("%s Reassembly timer expired after %dms", parent->rb_name, reassembly_timer.duration());
+    /*
+     * 5.2.3.2.4 Actions when t-Reassembly expires:
+     * - update RX_Highest_Status to the SN of the first RLC SDU with SN >= RX_Next_Status_Trigger for which not
+     *   all bytes have been received;
+     * - if RX_Next_Highest> RX_Highest_Status +1: or
+     * - if RX_Next_Highest = RX_Highest_Status + 1 and there is at least one missing byte segment of the SDU
+     *   associated with SN = RX_Highest_Status before the last byte of all received segments of this SDU:
+     *   - start t-Reassembly;
+     *   - set RX_Next_Status_Trigger to RX_Next_Highest.
+     */
+    for (uint32_t tmp_sn = rx_next_status_trigger; tmp_sn < rx_next_status_trigger + RLC_AM_WINDOW_SIZE; tmp_sn++) {
+      if (not rx_window.has_sn(tmp_sn) /*|| rx_window[tmp_sn].fully_received*/) {
+        rx_highest_status = tmp_sn;
+        break;
+      }
+    }
+    bool restart_reassembly_timer = false;
+    if (rx_next_highest > rx_highest_status + 1) {
+      restart_reassembly_timer = true;
+    }
+    if (rx_next_highest == rx_highest_status + 1) {
+      restart_reassembly_timer = true;
+    }
+    if (restart_reassembly_timer) {
+    }
+    return;
   }
 }
 

@@ -55,7 +55,7 @@ public:
   void     empty_queue() final;
   bool     has_data() final;
   uint32_t get_buffer_state() final;
-  void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue);
+  void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) final;
 
   bool     do_status();
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
@@ -103,9 +103,6 @@ public:
   void stop();
   void reestablish();
 
-  uint32_t get_sdu_rx_latency_ms();
-  uint32_t get_rx_buffered_bytes();
-
   // Status PDU
   bool     get_do_status();
   uint32_t get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t len);
@@ -114,6 +111,10 @@ public:
   // Data handling methods
   void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header);
   bool inside_rx_window(uint32_t sn);
+
+  // Metrics
+  uint32_t get_sdu_rx_latency_ms() final;
+  uint32_t get_rx_buffered_bytes() final;
 
   // Timers
   void timer_expired(uint32_t timeout_id);
@@ -131,18 +132,6 @@ private:
 
   // Mutexes
   std::mutex mutex;
-
-  /****************************************************************************
-   * Rx timers
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.3
-   ***************************************************************************/
-  srsran::timer_handler::unique_timer status_prohibit_timer;
-
-  /****************************************************************************
-   * Configurable parameters
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
-   ***************************************************************************/
-  rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * State Variables
@@ -166,9 +155,22 @@ private:
   uint32_t rx_highest_status = 0;
   /*
    * RX_Next_Highest: This state variable holds the value of the SN following the SN of the RLC SDU with the
-   * highest SN among received *RLC SDUs. It is initially set to 0.
+   * highest SN among received RLC SDUs. It is initially set to 0.
    */
   uint32_t rx_next_highest = 0;
+
+  /****************************************************************************
+   * Rx timers
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.3
+   ***************************************************************************/
+  srsran::timer_handler::unique_timer status_prohibit_timer;
+  srsran::timer_handler::unique_timer reassembly_timer;
+
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+   ***************************************************************************/
+  rlc_am_nr_config_t cfg = {};
 };
 
 } // namespace srsran
