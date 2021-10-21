@@ -104,7 +104,27 @@ public:
   class ue
   {
   public:
-    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg);
+    enum activity_timeout_type_t {
+      MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+      UE_INACTIVITY_TIMEOUT, ///< (currently unused) UE inactivity timeout (usually bigger than reestablishment timeout)
+      MSG5_RX_TIMEOUT,       ///< (currently unused) for receiving RRCConnectionSetupComplete/RRCReestablishmentComplete
+      nulltype
+    };
+
+    /// List of results a RRC procedure may produce.
+    enum class procedure_result_code {
+      none,
+      activity_timeout,
+      error_mme_not_connected,
+      error_unknown_rnti,
+      radio_conn_with_ue_lost,
+      msg3_timeout,
+      fail_in_radio_interface_proc,
+      unspecified
+    };
+
+    /// @param [in] triggered_by_rach: indicates whether the UE is created as part of a RACH process
+    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach = false);
 
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
@@ -119,14 +139,23 @@ public:
     bool     is_endc() { return endc; }
     uint16_t get_eutra_rnti() { return eutra_rnti; }
     void     get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
+
     // setters
 
     int  pack_rrc_reconfiguration();
     void deactivate_bearers();
 
+    /// methods to handle activity timer
+    std::string to_string(const activity_timeout_type_t& type);
+    void        set_activity_timeout(activity_timeout_type_t type);
+    void        set_activity(bool enabled = true);
+    void        activity_timer_expired(const activity_timeout_type_t type);
+
   private:
     rrc_nr*  parent = nullptr;
     uint16_t rnti   = SRSRAN_INVALID_RNTI;
+    /// for basic DL/UL activity timeout
+    srsran::unique_timer activity_timer;
 
     int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
     int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
@@ -178,6 +207,9 @@ public:
     // state
     rrc_nr_state_t state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t        transaction_id = 0;
+
+    /// Connection release result.
+    procedure_result_code con_release_result = procedure_result_code::none;
 
     // RRC configs for UEs
     asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
