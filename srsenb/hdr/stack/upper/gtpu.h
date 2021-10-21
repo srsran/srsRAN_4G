@@ -124,7 +124,6 @@ private:
   srslog::basic_logger&     logger;
 
   std::unordered_map<uint16_t, ue_bearer_tunnel_list> ue_teidin_db;
-  rnti_map_t<ue_bearer_tunnel_list> ue_teidin_db_1;
   tunnel_list_t                     tunnels;
 };
 
