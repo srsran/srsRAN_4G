@@ -40,18 +40,26 @@ srsran_csi_new_nzp_csi_rs_measurement(const srsran_csi_hl_resource_cfg_t csi_res
                                       uint32_t                                 nzp_csi_rs_id);
 
 /**
- * @brief Generates CSI report configuration and values from the higher layer configuration and a list of measurements
+ * @brief Generates CSI report configuration from the higher layer configuration for a given slot
  * @param cfg Higher layer report configuration
- * @param slot_idx Slot index within the radio frame
- * @param measurements Filtered CSI measurements
- * @param[out] report_cfg Report configuration re
+ * @param slot_cfg Current slot configuration
+ * @param[out] report_cfg Report configuration for the given slot
+ * @return The number CSI reports for transmission if the provided data is valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
+                                           const srsran_slot_cfg_t*   slot_cfg,
+                                           srsran_csi_report_cfg_t    report_cfg[SRSRAN_CSI_MAX_NOF_REPORT]);
+
+/**
+ * @brief Quantifies a given set of CSI reports from the given set of measurements
+ * @param reports Set of report configuration
+ * @param measurements Set of measurements to quantify
+ * @param report_value Set of report values
  * @return The number CSI reports for transmission if the provided data is valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
-srsran_csi_generate_reports(const srsran_csi_hl_cfg_t*              cfg,
-                            uint32_t                                slot_idx,
+srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[SRSRAN_CSI_MAX_NOF_REPORT],
                             const srsran_csi_channel_measurements_t measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
-                            srsran_csi_report_cfg_t                 report_cfg[SRSRAN_CSI_MAX_NOF_REPORT],
                             srsran_csi_report_value_t               report_value[SRSRAN_CSI_MAX_NOF_REPORT]);
 
 /**

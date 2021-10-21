@@ -585,6 +585,8 @@ add_lte_test(prach_zc0 prach_test -z 0)
 add_lte_test(prach_zc2 prach_test -z 2)
 add_lte_test(prach_zc3 prach_test -z 3)
 
+add_nr_test(prach_nr prach_test -n 50 -f 0 -r 0 -z 0 -N 1)
+
 add_executable(prach_test_multi prach_test_multi.c)
 target_link_libraries(prach_test_multi srsran_phy)
 

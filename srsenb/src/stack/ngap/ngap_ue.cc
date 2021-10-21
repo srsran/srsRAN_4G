@@ -38,9 +38,9 @@ ngap::ue::ue(ngap*                  ngap_ptr_,
              srslog::basic_logger&  logger_) :
   logger(logger_),
   ngap_ptr(ngap_ptr_),
-  bearer_manager(rrc_ptr_, gtpu_ptr_, logger_),
+  bearer_manager(gtpu_ptr_, logger_),
   initial_context_setup_proc(this, rrc_ptr_, &ctxt, logger_),
-  ue_context_release_proc(this, rrc_ptr_, &ctxt, logger_),
+  ue_context_release_proc(this, rrc_ptr_, &ctxt, &bearer_manager, logger_),
   ue_pdu_session_res_setup_proc(this, rrc_ptr_, &ctxt, &bearer_manager, logger_)
 {
   ctxt.ran_ue_ngap_id = ngap_ptr->next_gnb_ue_ngap_id++;
@@ -230,6 +230,30 @@ bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                
 
   container.protocol_ies.pdu_session_res_setup_list_su_res.value.push_back(su_res);
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "PDUSessionResourceSetupResponse");
+}
+
+bool ngap::ue::send_ue_ctxt_release_complete()
+{
+  if (not ngap_ptr->amf_connected) {
+    logger.warning("AMF not connected");
+    return false;
+  }
+
+  ngap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_UE_CONTEXT_RELEASE);
+  ue_context_release_complete_s& container = tx_pdu.successful_outcome().value.ue_context_release_complete();
+
+  // userLocationInformationNR
+  container.protocol_ies.user_location_info.value.set_user_location_info_nr();
+  container.protocol_ies.user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
+  container.protocol_ies.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
+  container.protocol_ies.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
+  container.protocol_ies.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
+
+  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+
+  return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
 
 /*******************************************************************************

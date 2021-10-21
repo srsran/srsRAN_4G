@@ -117,7 +117,7 @@ uint8_t* cc_used_buffers_map::request_pdu(tti_point tti, uint32_t len)
 void cc_used_buffers_map::clear_old_pdus(tti_point current_tti)
 {
   std::unique_lock<std::mutex> lock(mutex);
-  static const uint32_t old_tti_threshold = SRSRAN_FDD_NOF_HARQ + 4;
+  static const uint32_t        old_tti_threshold = SRSRAN_FDD_NOF_HARQ + 4;
 
   tti_point max_tti{current_tti - old_tti_threshold};
   for (auto& pdu_pair : pdu_map) {
@@ -214,7 +214,10 @@ ue::~ue() {}
 
 void ue::reset()
 {
-  ue_metrics   = {};
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    ue_metrics = {};
+  }
   nof_failures = 0;
 
   for (auto& cc : cc_buffers) {

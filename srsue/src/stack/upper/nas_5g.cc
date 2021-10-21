@@ -33,7 +33,6 @@
 
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <unistd.h>
 
 #define MAC_5G_OFFSET 2
@@ -79,7 +78,7 @@ void nas_5g::stop()
 int nas_5g::init(usim_interface_nas*      usim_,
                  rrc_nr_interface_nas_5g* rrc_nr_,
                  gw_interface_nas*        gw_,
-                 const nas_args_t&        cfg_)
+                 const nas_5g_args_t&     cfg_)
 {
   usim   = usim_;
   rrc_nr = rrc_nr_;
@@ -144,7 +143,6 @@ void nas_5g::run_tti()
     case mm5g_state_t::state_t::registered:
       break;
     case mm5g_state_t::state_t::deregistered_initiated:
-      logger.debug("UE detaching...");
       break;
     default:
       break;
@@ -207,6 +205,9 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
     case msg_opts::options::registration_reject:
       handle_registration_reject(nas_msg.registration_reject());
       break;
+    case msg_opts::options::authentication_reject:
+      handle_authentication_reject(nas_msg.authentication_reject());
+      break;
     case msg_opts::options::authentication_request:
       handle_authentication_request(nas_msg.authentication_request());
       break;
@@ -230,6 +231,12 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
       break;
     case msg_opts::options::dl_nas_transport:
       handle_dl_nas_transport(nas_msg.dl_nas_transport());
+      break;
+    case msg_opts::options::deregistration_accept_ue_originating:
+      handle_deregistration_accept_ue_originating(nas_msg.deregistration_accept_ue_originating());
+      break;
+    case msg_opts::options::configuration_update_command:
+      handle_configuration_update_command(nas_msg.configuration_update_command());
       break;
     default:
       logger.error(
@@ -309,23 +316,30 @@ int nas_5g::send_registration_complete()
     return SRSRAN_ERROR;
   }
 
-  logger.info("Generating Registration Complete");
-
   nas_5gs_msg              nas_msg;
   registration_complete_t& reg_comp = nas_msg.set_registration_complete();
+  nas_msg.hdr.security_header_type  = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
+  nas_msg.hdr.sequence_number       = ctxt_base.tx_count;
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack registration complete.");
     return SRSRAN_ERROR;
   }
 
+  cipher_encrypt(pdu.get());
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[SEQ_5G_OFFSET],
+                     pdu->N_bytes - SEQ_5G_OFFSET,
+                     &pdu->msg[MAC_5G_OFFSET]);
+
   if (pcap != nullptr) {
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
-
   logger.info("Sending Registration Complete");
   rrc_nr->write_sdu(std::move(pdu));
-
+  ctxt_base.tx_count++;
   return SRSRAN_SUCCESS;
 }
 
@@ -356,6 +370,7 @@ int nas_5g::send_authentication_response(const uint8_t res[16])
 
   logger.info("Sending Authentication Response");
   rrc_nr->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
 
   return SRSRAN_SUCCESS;
 }
@@ -408,7 +423,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
     imeisv.imeisv[14] = ue_svn_oct1;
     imeisv.imeisv[15] = ue_svn_oct2;
   }
-
+  // TODO: Save TMSI
   registration_request_t& modified_registration_request = initial_registration_request_stored.registration_request();
   modified_registration_request.capability_5gmm_present = true;
   modified_registration_request.requested_nssai_present = true;
@@ -433,7 +448,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
 
   nas_msg.hdr.security_header_type =
       nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered_with_new_5G_nas_context;
-  nas_msg.hdr.sequence_number = ctxt.tx_count;
+  nas_msg.hdr.sequence_number = ctxt_base.tx_count;
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack security mode complete");
@@ -441,8 +456,8 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   }
 
   cipher_encrypt(pdu.get());
-  integrity_generate(&k_nas_int[16],
-                     ctxt.tx_count,
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
                      SECURITY_DIRECTION_UPLINK,
                      &pdu->msg[SEQ_5G_OFFSET],
                      pdu->N_bytes - SEQ_5G_OFFSET,
@@ -454,13 +469,12 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
 
   logger.info("Sending Security Mode Complete");
   rrc_nr->write_sdu(std::move(pdu));
-  ctxt.tx_count++;
+  ctxt_base.tx_count++;
 
   return SRSRAN_SUCCESS;
 }
 
-int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::options cause,
-                                        const uint8_t*                                auth_fail_param)
+int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::options cause, const uint8_t res[16])
 {
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
@@ -470,6 +484,13 @@ int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::op
 
   nas_5gs_msg               nas_msg;
   authentication_failure_t& auth_fail = nas_msg.set_authentication_failure();
+  auth_fail.cause_5gmm.cause_5gmm     = cause;
+
+  if (cause == cause_5gmm_t::cause_5gmm_type::synch_failure) {
+    auth_fail.authentication_failure_parameter_present = true;
+    auth_fail.authentication_failure_parameter.auth_failure.resize(14);
+    memcpy(auth_fail.authentication_failure_parameter.auth_failure.data(), res, 14);
+  }
 
   if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack authentication failure.");
@@ -480,7 +501,6 @@ int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::op
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
 
-  logger.info("Sending Authentication Failure");
   rrc_nr->write_sdu(std::move(pdu));
 
   return SRSRAN_SUCCESS;
@@ -493,6 +513,7 @@ uint32_t nas_5g::allocate_next_proc_trans_id()
     i++;
     if (pdu_trans_id == false) {
       pdu_trans_id = true;
+      break;
     }
   }
   // TODO if Trans ID exhausted
@@ -522,11 +543,12 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   nas_5gs_msg nas_msg;
   nas_msg.hdr.pdu_session_identity           = pdu_session_id;
   nas_msg.hdr.procedure_transaction_identity = transaction_identity;
+  nas_msg.hdr.sequence_number                = ctxt_base.tx_count;
 
   pdu_session_establishment_request_t& pdu_ses_est_req = nas_msg.set_pdu_session_establishment_request();
-  pdu_ses_est_req.integrity_protection_maximum_data_rate.max_data_rate_upip_downlink =
+  pdu_ses_est_req.integrity_protection_maximum_data_rate.max_data_rate_upip_downlink.value =
       integrity_protection_maximum_data_rate_t::max_data_rate_UPIP_downlink_type_::options::full_data_rate;
-  pdu_ses_est_req.integrity_protection_maximum_data_rate.max_data_rate_upip_uplink =
+  pdu_ses_est_req.integrity_protection_maximum_data_rate.max_data_rate_upip_uplink.value =
       integrity_protection_maximum_data_rate_t::max_data_rate_UPIP_uplink_type_::options::full_data_rate;
 
   pdu_ses_est_req.pdu_session_type_present = true;
@@ -545,7 +567,7 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   env_nas_msg.hdr.security_header_type = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
 
   // TODO move that seq number setting to the security part
-  env_nas_msg.hdr.sequence_number = ctxt.tx_count;
+  env_nas_msg.hdr.sequence_number = ctxt_base.tx_count;
 
   ul_nas_transport_t& ul_nas_msg = env_nas_msg.set_ul_nas_transport();
   ul_nas_msg.payload_container_type.payload_container_type.value =
@@ -583,8 +605,8 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   }
 
   cipher_encrypt(pdu.get());
-  integrity_generate(&k_nas_int[16],
-                     ctxt.tx_count,
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
                      SECURITY_DIRECTION_UPLINK,
                      &pdu->msg[SEQ_5G_OFFSET],
                      pdu->N_bytes - SEQ_5G_OFFSET,
@@ -592,7 +614,154 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
 
   logger.info("Sending PDU Session Establishment Request in UL NAS transport.");
   rrc_nr->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
 
+  return SRSRAN_SUCCESS;
+}
+
+int nas_5g::send_deregistration_request_ue_originating(bool switch_off)
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+
+  logger.info("Generating Deregistration Request (UE Originating)");
+
+  nas_5gs_msg                              nas_msg;
+  deregistration_request_ue_originating_t& deregistration_request = nas_msg.set_deregistration_request_ue_originating();
+
+  // Note 5.5.2.2.2 : AMF does not send a Deregistration Accept NAS message if De-registration type IE indicates "switch
+  // off"
+  if (switch_off) {
+    deregistration_request.de_registration_type.switch_off.value =
+        de_registration_type_t::switch_off_type_::options::switch_off;
+    state.set_deregistered(mm5g_state_t::deregistered_substate_t::null);
+  } else {
+    deregistration_request.de_registration_type.switch_off.value =
+        de_registration_type_t::switch_off_type_::options::normal_de_registration;
+    // In this case we need to wait for the response by the core
+    state.set_deregistered_initiated();
+  }
+
+  mobile_identity_5gs_t::suci_s& suci = deregistration_request.mobile_identity_5gs.set_suci();
+  suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
+  usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+  usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+  suci.scheme_output.resize(5);
+
+  deregistration_request.ng_ksi.nas_key_set_identifier.value =
+      key_set_identifier_t::nas_key_set_identifier_type_::options::no_key_is_available_or_reserved;
+
+  if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
+    logger.error("Failed to pack Deregistration Request (UE Originating).");
+    return SRSRAN_ERROR;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
+  }
+
+  logger.info("Sending Deregistration Request (UE Originating)");
+  rrc_nr->write_sdu(std::move(pdu));
+
+  reset_pdu_sessions();
+
+  // TODO: Delete / Reset context (ctxt & ctxt_5g)
+
+  return SRSASN_SUCCESS;
+}
+
+int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity_types_::options identity_type)
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+
+  logger.info("Generating Identity Response");
+
+  nas_5gs_msg          nas_msg;
+  identity_response_t& identity_response = nas_msg.set_identity_response();
+
+  switch (identity_type) {
+    case (identity_type_5gs_t::identity_types_::suci): {
+      srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci = identity_response.mobile_identity.set_suci();
+      suci.supi_format = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
+      usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+      usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+      suci.scheme_output.resize(5);
+      usim->get_home_msin_bcd(suci.scheme_output.data(), 5);
+    } break;
+    case (identity_type_5gs_t::identity_types_::guti_5g): {
+      srsran::nas_5g::mobile_identity_5gs_t::guti_5g_s& guti = identity_response.mobile_identity.set_guti_5g();
+      guti                                                   = guti_5g;
+    } break;
+    case (identity_type_5gs_t::identity_types_::imei): {
+      srsran::nas_5g::mobile_identity_5gs_t::imei_s& imei = identity_response.mobile_identity.set_imei();
+      usim->get_imei_vec(imei.imei.data(), 15);
+    } break;
+    case (identity_type_5gs_t::identity_types_::imeisv): {
+      srsran::nas_5g::mobile_identity_5gs_t::imeisv_s& imeisv = identity_response.mobile_identity.set_imeisv();
+      usim->get_imei_vec(imeisv.imeisv.data(), 15);
+      imeisv.imeisv[14] = ue_svn_oct1;
+      imeisv.imeisv[15] = ue_svn_oct2;
+    } break;
+    default:
+      logger.warning("Unhandled identity type for identity response");
+      return SRSRAN_ERROR;
+  }
+
+  if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
+    logger.error("Failed to pack Identity Response.");
+    return SRSRAN_ERROR;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
+  }
+
+  rrc_nr->write_sdu(std::move(pdu));
+
+  return SRSRAN_SUCCESS;
+}
+
+int nas_5g::send_configuration_update_complete()
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+
+  logger.info("Generating Configuration Update Complete");
+
+  nas_5gs_msg                      nas_msg;
+  configuration_update_complete_t& config_update_complete = nas_msg.set_configuration_update_complete();
+  nas_msg.hdr.security_header_type = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
+  nas_msg.hdr.sequence_number      = ctxt_base.tx_count;
+
+  if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
+    logger.error("Failed to pack Identity Response.");
+    return SRSRAN_ERROR;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
+  }
+
+  cipher_encrypt(pdu.get());
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[SEQ_5G_OFFSET],
+                     pdu->N_bytes - SEQ_5G_OFFSET,
+                     &pdu->msg[MAC_5G_OFFSET]);
+
+  rrc_nr->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
   return SRSRAN_SUCCESS;
 }
 
@@ -627,6 +796,29 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
 int nas_5g::handle_registration_reject(registration_reject_t& registration_reject)
 {
   logger.info("Handling Registration Reject");
+
+  state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
+
+  switch (registration_reject.cause_5gmm.cause_5gmm.value) {
+    case (cause_5gmm_t::cause_5gmm_type_::options::illegal_ue):
+      logger.error("Registration Reject: Illegal UE");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::plmn_not_allowed):
+      logger.error("Registration Reject: PLMN not allowed");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::ue_security_capabilities_mismatch):
+      logger.error("Registration Reject: UE security capabilities mismatch");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::mac_failure):
+      logger.error("Registration Reject: MAC Failure");
+      break;
+    case (cause_5gmm_t::cause_5gmm_type_::options::maximum_number_of_pdu_sessions_reached_):
+      logger.error("Registration Reject: Maximum number of pdu sessions reached");
+      break;
+    default:
+      logger.error("Unhandled Registration Reject cause");
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -670,27 +862,38 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
                                                 authentication_request.abba.abba_contents.size(),
                                                 res_star,
                                                 ctxt_5g.k_amf);
+
   logger.info(ctxt_5g.k_amf, 32, "Generated k_amf:");
+
   if (auth_result == AUTH_OK) {
     logger.info("Network authentication successful");
     send_authentication_response(res_star);
     logger.info(res_star, 16, "Generated res_star (%d):", 16);
 
+  } else if (auth_result == AUTH_FAILED) {
+    logger.error("Network authentication failure.");
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure, res_star);
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     logger.error("Network authentication synchronization failure.");
-    // send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
+    send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure, res_star);
   } else {
-    logger.warning("Network authentication failure");
-    srsran::console("Warning: Network authentication failure\n");
-    // send_authentication_failure(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE, nullptr);
+    logger.error("Unhandled authentication failure cause");
   }
 
+  return SRSRAN_SUCCESS;
+}
+
+int nas_5g::handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject)
+{
+  logger.info("Handling Authentication Reject");
+  state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
   return SRSRAN_SUCCESS;
 }
 
 int nas_5g::handle_identity_request(identity_request_t& identity_request)
 {
   logger.info("Handling Identity Request");
+  send_identity_response(identity_request.identity_type.type_of_identity.value);
   return SRSRAN_SUCCESS;
 }
 
@@ -710,36 +913,37 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
                                          srsran::unique_byte_buffer_t pdu)
 {
   logger.info("Handling Security Mode Command");
-  ctxt.cipher_algo =
+  ctxt_base.cipher_algo =
       (CIPHERING_ALGORITHM_ID_ENUM)security_mode_command.selected_nas_security_algorithms.ciphering_algorithm.value;
-  ctxt.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)
-                        security_mode_command.selected_nas_security_algorithms.integrity_protection_algorithm.value;
+  ctxt_base.integ_algo =
+      (INTEGRITY_ALGORITHM_ID_ENUM)
+          security_mode_command.selected_nas_security_algorithms.integrity_protection_algorithm.value;
 
-  // Check capabilities
-  // TODO: Check replayed sec capabilities
-  if (!ea5g_caps[ctxt.cipher_algo] || !ia5g_caps[ctxt.integ_algo]) {
+  // Check replayed ue security capabilities
+  if (!check_replayed_ue_security_capabilities(security_mode_command.replayed_ue_security_capabilities)) {
     logger.warning("Sending Security Mode Reject due to security capabilities mismatch");
-    send_security_mode_reject(cause_5gmm_t::cause_5gmm_type_::options::ue_security_capabilities_mismatch);
+    send_security_mode_reject(cause_5gmm_t::cause_5gmm_type_::ue_security_capabilities_mismatch);
     return SRSRAN_ERROR;
   }
 
   initial_sec_command = false; // TODO
 
   if (initial_sec_command) {
-    ctxt.rx_count       = 0;
-    ctxt.tx_count       = 0;
+    ctxt_base.rx_count  = 0;
+    ctxt_base.tx_count  = 0;
     initial_sec_command = false;
   }
 
   // Generate NAS keys
   logger.debug(ctxt_5g.k_amf, 32, "K AMF");
-  logger.debug("cipher_algo %d, integ_algo %d", ctxt.cipher_algo, ctxt.integ_algo);
+  logger.debug("cipher_algo %d, integ_algo %d", ctxt_base.cipher_algo, ctxt_base.integ_algo);
 
-  usim->generate_nas_keys_5g(ctxt_5g.k_amf, k_nas_enc, k_nas_int, ctxt.cipher_algo, ctxt.integ_algo);
-  logger.info(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-  logger.info(k_nas_int, 32, "NAS integrity key - k_nas_int");
+  usim->generate_nas_keys_5g(
+      ctxt_5g.k_amf, ctxt_base.k_nas_enc, ctxt_base.k_nas_int, ctxt_base.cipher_algo, ctxt_base.integ_algo);
+  logger.info(ctxt_base.k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+  logger.info(ctxt_base.k_nas_int, 32, "NAS integrity key - k_nas_int");
 
-  logger.debug("Generating integrity check. integ_algo:%d, count_dl:%d", ctxt.integ_algo, ctxt.rx_count);
+  logger.debug("Generating integrity check. integ_algo:%d, count_dl:%d", ctxt_base.integ_algo, ctxt_base.rx_count);
 
   if (not integrity_check(pdu.get())) {
     logger.warning("Sending Security Mode Reject due to integrity check failure");
@@ -748,7 +952,7 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
   }
 
   send_security_mode_complete(security_mode_command);
-  ctxt.rx_count++;
+  ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
 
@@ -806,6 +1010,26 @@ int nas_5g::handle_n1_sm_information(std::vector<uint8_t> payload_container_cont
   return SRSRAN_SUCCESS;
 }
 
+int nas_5g::handle_deregistration_accept_ue_originating(
+    srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating)
+{
+  logger.info("Received Deregistration Accept (UE Originating)");
+  if (state.get_state() != mm5g_state_t::state_t::deregistered_initiated) {
+    logger.warning("Received deregistration accept while not in deregistered initiated state");
+  }
+
+  state.set_deregistered(mm5g_state_t::deregistered_substate_t::null);
+  return SRSASN_SUCCESS;
+}
+
+int nas_5g::handle_configuration_update_command(
+    srsran::nas_5g::configuration_update_command_t& configuration_update_command)
+{
+  logger.info("Handling Configuration Update Command");
+  send_configuration_update_complete();
+  return SRSRAN_SUCCESS;
+}
+
 /*******************************************************************************
  * NAS Timers
  ******************************************************************************/
@@ -832,7 +1056,7 @@ int nas_5g::switch_on()
 int nas_5g::switch_off()
 {
   logger.info("Switching off");
-  // TODO
+  send_deregistration_request_ue_originating(true);
   return SRSRAN_SUCCESS;
 }
 
@@ -854,6 +1078,21 @@ int nas_5g::start_service_request()
   logger.info("Service Request");
   // TODO
   return SRSRAN_SUCCESS;
+}
+
+int nas_5g::reset_pdu_sessions()
+{
+  for (auto pdu_session : pdu_sessions) {
+    pdu_session.established    = false;
+    pdu_session.pdu_session_id = 0;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+void nas_5g::get_metrics(nas_5g_metrics_t& metrics)
+{
+  metrics.nof_active_pdu_sessions = num_of_est_pdu_sessions();
+  metrics.state                   = state.get_state();
 }
 
 /*******************************************************************************
@@ -913,8 +1152,38 @@ void nas_5g::fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_ca
   }
 }
 
+bool nas_5g::check_replayed_ue_security_capabilities(srsran::nas_5g::ue_security_capability_t& caps)
+{
+  if (caps.ia0_5g_supported != ia5g_caps[0] || caps.ea0_5g_supported != ea5g_caps[0]) {
+    return false;
+  }
+  if (caps.ia1_128_5g_supported != ia5g_caps[1] || caps.ea1_128_5g_supported != ea5g_caps[1]) {
+    return false;
+  }
+  if (caps.ia2_128_5g_supported != ia5g_caps[2] || caps.ea2_128_5g_supported != ea5g_caps[2]) {
+    return false;
+  }
+  if (caps.ia3_128_5g_supported != ia5g_caps[3] || caps.ea3_128_5g_supported != ea5g_caps[3]) {
+    return false;
+  }
+  if (caps.ia4_5g_supported != ia5g_caps[4] || caps.ea4_5g_supported != ea5g_caps[4]) {
+    return false;
+  }
+  if (caps.ia5_5g_supported != ia5g_caps[5] || caps.ea5_5g_supported != ea5g_caps[5]) {
+    return false;
+  }
+  if (caps.ia6_5g_supported != ia5g_caps[6] || caps.ea6_5g_supported != ea5g_caps[6]) {
+    return false;
+  }
+  if (caps.ia7_5g_supported != ia5g_caps[7] || caps.ea7_5g_supported != ea5g_caps[7]) {
+    return false;
+  }
+
+  return true;
+}
+
 /*******************************************************************************
- * Helpers for Session Management 
+ * Helpers for Session Management
  ******************************************************************************/
 
 int nas_5g::trigger_pdu_session_est()
@@ -937,6 +1206,17 @@ int nas_5g::init_pdu_sessions(std::vector<pdu_session_cfg_t> pdu_session_cfgs)
     pdu_sessions[i].pdu_session_cfg = pdu_session_cfg;
   }
   return SRSRAN_SUCCESS;
+}
+
+uint32_t nas_5g::num_of_est_pdu_sessions()
+{
+  uint32_t i = 0;
+  for (auto pdu_session : pdu_sessions) {
+    if (pdu_session.established == true) {
+      i++;
+    }
+  }
+  return i;
 }
 
 int nas_5g::configure_pdu_session(uint16_t pdu_session_id)

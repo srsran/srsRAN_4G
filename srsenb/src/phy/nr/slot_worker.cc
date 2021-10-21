@@ -83,9 +83,11 @@ bool slot_worker::init(const args_t& args)
   // Prepare UL arguments
   srsran_gnb_ul_args_t ul_args = {};
   ul_args.pusch.measure_time   = true;
+  ul_args.pusch.measure_evm    = true;
   ul_args.pusch.max_layers     = args.nof_rx_ports;
   ul_args.pusch.max_prb        = args.nof_max_prb;
   ul_args.nof_max_prb          = args.nof_max_prb;
+  ul_args.pusch_min_snr_dB     = args.pusch_min_snr_dB;
 
   // Initialise UL
   if (srsran_gnb_ul_init(&gnb_ul, rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
@@ -204,6 +206,7 @@ bool slot_worker::work_ul()
       srsran_gnb_ul_pucch_info(&gnb_ul,
                                &pucch.candidates[0].resource,
                                &pucch_info[best_candidate].uci_data,
+                               &pucch_info[best_candidate].csi,
                                str.data(),
                                (uint32_t)str.size());
 
@@ -233,6 +236,9 @@ bool slot_worker::work_ul()
       return false;
     }
 
+    // Extract DMRS information
+    pusch_info.csi = gnb_ul.dmrs.csi;
+
     // Inform stack
     if (stack.pusch_info(ul_slot_cfg, pusch_info) < SRSRAN_SUCCESS) {
       logger.error("Error pushing PUSCH information to stack");
@@ -244,7 +250,13 @@ bool slot_worker::work_ul()
       std::array<char, 512> str;
       srsran_gnb_ul_pusch_info(&gnb_ul, &pusch.sch, &pusch_info.pusch_data, str.data(), (uint32_t)str.size());
 
-      logger.info("PUSCH: %s", str.data());
+      if (logger.debug.enabled()) {
+        std::array<char, 1024> str_extra = {};
+        srsran_sch_cfg_nr_info(&pusch.sch, str_extra.data(), (uint32_t)str_extra.size());
+        logger.info("PUSCH: %s\n%s", str.data(), str_extra.data());
+      } else {
+        logger.info("PUSCH: %s", str.data());
+      }
     }
   }
 
@@ -401,10 +413,12 @@ void slot_worker::work_imp()
 
   common.worker_end(context, true, tx_rf_buffer);
 }
+
 bool slot_worker::set_common_cfg(const srsran_carrier_nr_t&   carrier,
                                  const srsran_pdcch_cfg_nr_t& pdcch_cfg_,
                                  const srsran_ssb_cfg_t&      ssb_cfg_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   // Set gNb DL carrier
   if (srsran_gnb_dl_set_carrier(&gnb_dl, &carrier) < SRSRAN_SUCCESS) {
     logger.error("Error setting DL carrier");

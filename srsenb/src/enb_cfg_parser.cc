@@ -907,8 +907,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
     cell_cfg.pci = cell_cfg.pci % SRSRAN_NUM_PCI;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn"));
-    parse_required_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq");
-    parse_required_field(cell_cfg.ul_freq_hz, cellroot, "ul_freq");
+    parse_default_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq", 0.0); // will be derived from DL EARFCN If not set
+    parse_default_field(cell_cfg.ul_freq_hz, cellroot, "ul_freq", 0.0); // will be derived from DL EARFCN If not set
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", 0u); // will be derived from DL EARFCN If not set
     parse_default_field(
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
@@ -1031,6 +1031,17 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
       }
     }
     if (!dl_arfcn_valid) {
+      if (not bands.empty()) {
+        std::stringstream ss;
+        for (uint32_t& band : bands) {
+          ss << band << " ";
+        }
+        ERROR("DL ARFCN (%d) does not belong to band (%d). Recommended bands: %s",
+              it->dl_arfcn,
+              it->band,
+              ss.str().c_str());
+        return SRSRAN_ERROR;
+      }
       ERROR("DL ARFCN (%d) is not valid for the specified band (%d)", it->dl_arfcn, it->band);
       return SRSRAN_ERROR;
     }
@@ -1176,8 +1187,8 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
 
   // update EUTRA RRC params for ENDC
   if (rrc_nr_cfg_->cell_list.size() == 1) {
-    rrc_cfg_->endc_cfg.nr_dl_arfcn = rrc_nr_cfg_->cell_list.at(0).dl_arfcn;
-    rrc_cfg_->endc_cfg.nr_band     = rrc_nr_cfg_->cell_list.at(0).band;
+    rrc_cfg_->endc_cfg.abs_frequency_ssb = rrc_nr_cfg_->cell_list.at(0).ssb_absolute_freq_point;
+    rrc_cfg_->endc_cfg.nr_band           = rrc_nr_cfg_->cell_list.at(0).band;
     rrc_cfg_->endc_cfg.ssb_period_offset.set_sf10_r15();
     rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
     rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
@@ -1496,7 +1507,7 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     cfg.phy_cell.prach.is_nr                 = true;
     cfg.phy_cell.prach.config_idx            = 0;
     cfg.phy_cell.prach.root_seq_idx          = 0;
-    cfg.phy_cell.prach.freq_offset           = phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset;
+    cfg.phy_cell.prach.freq_offset           = 1;
     cfg.phy_cell.prach.num_ra_preambles      = cfg.phy_cell.num_ra_preambles;
     cfg.phy_cell.prach.hs_flag               = phy_cfg_->prach_cnfg.prach_cfg_info.high_speed_flag;
     cfg.phy_cell.prach.tdd_config.configured = (cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
@@ -1541,15 +1552,27 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     cfg.dl_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.dl_arfcn);
     cfg.ul_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(cfg.phy_cell.carrier.nof_prb, cfg.ul_arfcn);
 
-    // Calculate SSB absolute frequency (in ARFCN notation)
-    if (band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_15kHz) != SRSRAN_SSB_PATTERN_INVALID) {
-      cfg.ssb_absolute_freq_point =
-          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_15kHz, cfg.dl_absolute_freq_point_a);
+    // Calculate SSB params depending on band/duplex
+    cfg.ssb_cfg.duplex_mode = band_helper.get_duplex_mode(cfg.band);
+    cfg.ssb_cfg.pattern     = band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_15kHz);
+    if (cfg.ssb_cfg.pattern == SRSRAN_SSB_PATTERN_A) {
+      // 15kHz SSB SCS
+      cfg.ssb_cfg.scs = srsran_subcarrier_spacing_15kHz;
     } else {
-      cfg.ssb_absolute_freq_point =
-          band_helper.get_abs_freq_ssb_arfcn(cfg.band, srsran_subcarrier_spacing_30kHz, cfg.dl_absolute_freq_point_a);
+      // try to optain SSB pattern for same band with 30kHz SCS
+      cfg.ssb_cfg.pattern = band_helper.get_ssb_pattern(cfg.band, srsran_subcarrier_spacing_30kHz);
+      if (cfg.ssb_cfg.pattern == SRSRAN_SSB_PATTERN_B || cfg.ssb_cfg.pattern == SRSRAN_SSB_PATTERN_C) {
+        // SSB SCS is 30 kHz
+        cfg.ssb_cfg.scs = srsran_subcarrier_spacing_30kHz;
+      } else {
+        ERROR("Can't derive SSB pattern for band %d", cfg.band);
+        return SRSRAN_ERROR;
+      }
     }
 
+    // fill remaining SSB fields
+    cfg.ssb_absolute_freq_point =
+        band_helper.get_abs_freq_ssb_arfcn(cfg.band, cfg.ssb_cfg.scs, cfg.dl_absolute_freq_point_a);
     if (cfg.ssb_absolute_freq_point == 0) {
       ERROR("Can't derive SSB freq point for dl_arfcn %d and band %d", cfg.dl_arfcn, cfg.band);
       return SRSRAN_ERROR;
@@ -1558,11 +1581,23 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     // Convert to frequency for PHY
     cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);
 
-    // TODO: set SSB config
-    cfg.ssb_cfg = {};
+    cfg.ssb_cfg.center_freq_hz = cfg.phy_cell.carrier.dl_center_frequency_hz;
+    cfg.ssb_cfg.ssb_freq_hz    = cfg.phy_cell.carrier.ssb_center_freq_hz;
+    cfg.ssb_cfg.periodicity_ms = 10; // TODO: make a param
+    cfg.ssb_cfg.beta_pss       = 0.0;
+    cfg.ssb_cfg.beta_sss       = 0.0;
+    cfg.ssb_cfg.beta_pbch      = 0.0;
+    cfg.ssb_cfg.beta_pbch_dmrs = 0.0;
+    // set by PHY layer in worker_pool::set_common_cfg
+    cfg.ssb_cfg.srate_hz = 0.0;
+    cfg.ssb_cfg.scaling  = 0.0;
 
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
+
+  // MAC-NR PCAP options
+  args_->nr_stack.mac.pcap.enable = args_->stack.mac_pcap.enable;
+  args_->nr_stack.log             = args_->stack.log;
 
   return SRSRAN_SUCCESS;
 }

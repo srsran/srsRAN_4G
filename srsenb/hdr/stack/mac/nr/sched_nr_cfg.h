@@ -35,27 +35,32 @@ static const size_t MAX_NOF_AGGR_LEVELS    = 5;
 
 namespace sched_nr_impl {
 
-const static size_t MAX_GRANTS = sched_nr_interface::MAX_GRANTS;
+constexpr static size_t MAX_GRANTS = sched_nr_interface::MAX_GRANTS;
 
-using pdcch_dl_t      = mac_interface_phy_nr::pdcch_dl_t;
-using pdcch_ul_t      = mac_interface_phy_nr::pdcch_ul_t;
-using pdsch_t         = mac_interface_phy_nr::pdsch_t;
-using pusch_t         = mac_interface_phy_nr::pusch_t;
-using pucch_t         = mac_interface_phy_nr::pucch_t;
-using pdcch_dl_list_t = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
-using pdcch_ul_list_t = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
-using pucch_list_t    = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
-using pusch_list_t    = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
-using nzp_csi_rs_list = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, mac_interface_phy_nr::MAX_NZP_CSI_RS>;
-using ssb_t           = mac_interface_phy_nr::ssb_t;
-using ssb_list        = srsran::bounded_vector<ssb_t, mac_interface_phy_nr::MAX_SSB>;
-
-using sched_cfg_t = sched_nr_interface::sched_cfg_t;
-using cell_cfg_t  = sched_nr_interface::cell_cfg_t;
-using bwp_cfg_t   = sched_nr_interface::bwp_cfg_t;
-
+using pdcch_dl_t         = mac_interface_phy_nr::pdcch_dl_t;
+using pdcch_ul_t         = mac_interface_phy_nr::pdcch_ul_t;
+using pdsch_t            = mac_interface_phy_nr::pdsch_t;
+using pusch_t            = mac_interface_phy_nr::pusch_t;
+using pucch_t            = mac_interface_phy_nr::pucch_t;
+using pdcch_dl_list_t    = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
+using pdcch_ul_list_t    = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+using pucch_list_t       = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
+using pusch_list_t       = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
+using nzp_csi_rs_list    = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, mac_interface_phy_nr::MAX_NZP_CSI_RS>;
+using ssb_t              = mac_interface_phy_nr::ssb_t;
+using ssb_list           = srsran::bounded_vector<ssb_t, mac_interface_phy_nr::MAX_SSB>;
+using sched_args_t       = sched_nr_interface::sched_args_t;
+using cell_cfg_t         = sched_nr_interface::cell_cfg_t;
+using bwp_cfg_t          = sched_nr_interface::bwp_cfg_t;
+using ue_cfg_t           = sched_nr_interface::ue_cfg_t;
+using ue_cc_cfg_t        = sched_nr_interface::ue_cc_cfg_t;
 using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
 using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
+using dl_sched_t         = sched_nr_interface::dl_sched_t;
+using ul_sched_t         = sched_nr_interface::ul_sched_t;
+using dl_sched_res_t     = sched_nr_interface::dl_sched_res_t;
+
+/// Generate list of CCE locations for UE based on coreset and search space configurations
 void get_dci_locs(const srsran_coreset_t&      coreset,
                   const srsran_search_space_t& search_space,
                   uint16_t                     rnti,
@@ -63,18 +68,22 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct bwp_params {
-  const uint32_t     bwp_id;
-  const uint32_t     cc;
-  const bwp_cfg_t&   cfg;
-  const cell_cfg_t&  cell_cfg;
-  const sched_cfg_t& sched_cfg;
+/// Structure that extends the sched_nr_interface::bwp_cfg_t passed by upper layers with other
+/// derived BWP-specific params
+struct bwp_params_t {
+  const uint32_t      bwp_id;
+  const uint32_t      cc;
+  const bwp_cfg_t&    cfg;
+  const cell_cfg_t&   cell_cfg;
+  const sched_args_t& sched_cfg;
 
   // derived params
   srslog::basic_logger& logger;
   uint32_t              P;
   uint32_t              N_rbg;
+  uint32_t              nof_prb() const { return cell_cfg.carrier.nof_prb; }
 
+  /// Table specifying if a slot has DL or UL enabled
   struct slot_cfg {
     bool is_dl;
     bool is_ul;
@@ -91,49 +100,51 @@ struct bwp_params {
 
   bwp_cce_pos_list rar_cce_list;
 
-  bwp_params(const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
+  bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 };
 
-struct sched_cell_params {
-  const uint32_t          cc;
-  const cell_cfg_t        cell_cfg;
-  const sched_cfg_t&      sched_cfg;
-  std::vector<bwp_params> bwps;
+/// Structure packing a single cell config params, and sched args
+struct cell_params_t {
+  const uint32_t            cc;
+  const cell_cfg_t          cfg;
+  const sched_args_t&       sched_args;
+  std::vector<bwp_params_t> bwps;
 
-  sched_cell_params(uint32_t cc_, const cell_cfg_t& cell, const sched_cfg_t& sched_cfg_);
+  cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_);
 
-  uint32_t nof_prb() const { return cell_cfg.carrier.nof_prb; }
+  uint32_t nof_prb() const { return cfg.carrier.nof_prb; }
 };
 
+/// Structure packing both the sched args and all gNB NR cell configurations
 struct sched_params {
-  sched_cfg_t                    sched_cfg;
-  std::vector<sched_cell_params> cells;
+  sched_args_t               sched_cfg;
+  std::vector<cell_params_t> cells;
 
   sched_params() = default;
-  explicit sched_params(const sched_cfg_t& sched_cfg_);
+  explicit sched_params(const sched_args_t& sched_cfg_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using prb_bitmap = srsran::bounded_bitset<SRSRAN_MAX_PRB_NR, true>;
-
-using pdcchmask_t = srsran::bounded_bitset<SCHED_NR_MAX_NOF_RBGS, true>;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-using ue_cfg_t    = sched_nr_interface::ue_cfg_t;
-using ue_cc_cfg_t = sched_nr_interface::ue_cc_cfg_t;
-
+/// Configuration of a UE for a given BWP
 class bwp_ue_cfg
 {
 public:
   bwp_ue_cfg() = default;
-  explicit bwp_ue_cfg(uint16_t rnti, const bwp_params& bwp_cfg, const ue_cfg_t& uecfg_);
+  explicit bwp_ue_cfg(uint16_t rnti, const bwp_params_t& bwp_cfg, const ue_cfg_t& uecfg_);
 
-  const ue_cfg_t*             ue_cfg() const { return cfg_; }
-  const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
-  const bwp_params&           active_bwp() const { return *bwp_cfg; }
-  const bwp_cce_pos_list&     cce_pos_list(uint32_t search_id) const
+  const ue_cfg_t*              ue_cfg() const { return cfg_; }
+  const srsran::phy_cfg_nr_t&  phy() const { return cfg_->phy_cfg; }
+  const bwp_params_t&          active_bwp() const { return *bwp_cfg; }
+  srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
+  {
+    if (cce_positions_list.size() > ss_id_to_cce_idx[search_id]) {
+      auto& lst = cce_pos_list(search_id);
+      return lst[slot_idx][aggr_idx];
+    }
+    return srsran::const_span<uint32_t>{};
+  }
+  const bwp_cce_pos_list& cce_pos_list(uint32_t search_id) const
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];
   }
@@ -144,11 +155,13 @@ public:
     }
     return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().harq_ack.nof_dl_data_to_ul_ack];
   }
+  int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
+  int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
 
 private:
-  uint16_t          rnti    = SRSRAN_INVALID_RNTI;
-  const ue_cfg_t*   cfg_    = nullptr;
-  const bwp_params* bwp_cfg = nullptr;
+  uint16_t            rnti    = SRSRAN_INVALID_RNTI;
+  const ue_cfg_t*     cfg_    = nullptr;
+  const bwp_params_t* bwp_cfg = nullptr;
 
   std::vector<bwp_cce_pos_list>                              cce_positions_list;
   std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;

@@ -95,6 +95,7 @@ public:
   {
     return SRSRAN_SUCCESS;
   }
+  int  release_bearers(uint16_t rnti) { return SRSRAN_SUCCESS; }
   int  allocate_lcid(uint16_t rnti) { return SRSRAN_SUCCESS; }
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
 };

@@ -45,7 +45,9 @@ class gnb_dummy_stack : public srsenb::stack_interface_phy_nr
 public:
   struct prach_metrics_t {
     uint32_t count;
-    float    avg_ta;
+    float    avg_ta = 0.0f;
+    float    min_ta = +INFINITY;
+    float    max_ta = -INFINITY;
   };
   struct pucch_metrics_t {
     float    epre_db_avg = 0.0f;
@@ -64,16 +66,19 @@ public:
   };
 
   struct metrics_t {
-    std::map<uint32_t, prach_metrics_t> prach    = {}; ///< PRACH metrics indexed with premable index
-    srsenb::mac_ue_metrics_t            mac      = {}; ///< MAC metrics
-    uint32_t                            sr_count = 0;  ///< SR counter
-    pucch_metrics_t                     pucch    = {};
+    std::map<uint32_t, prach_metrics_t> prach           = {}; ///< PRACH metrics indexed with premable index
+    srsenb::mac_ue_metrics_t            mac             = {}; ///< MAC metrics
+    uint32_t                            sr_count        = 0;  ///< SR counter
+    uint32_t                            cqi_count       = 0;  ///< CQI opportunity counter
+    uint32_t                            cqi_valid_count = 0;  ///< Valid CQI counter
+    pucch_metrics_t                     pucch           = {};
+    pucch_metrics_t                     pusch           = {};
   };
 
 private:
-  srslog::basic_logger& logger          = srslog::fetch_basic_logger("GNB STK");
-  bool                  use_dummy_sched = true;
-  const uint16_t        rnti            = 0x1234;
+  srslog::basic_logger& logger        = srslog::fetch_basic_logger("GNB STK");
+  bool                  use_dummy_mac = true;
+  const uint16_t        rnti          = 0x1234;
   struct {
     srsran::circular_array<srsran_dci_location_t, SRSRAN_NOF_SF_X_FRAME> dci_location = {};
     uint32_t                                                             mcs          = 0;
@@ -313,13 +318,30 @@ private:
       metrics.sr_count++;
     }
 
+    // Process CQI
+    for (uint32_t i = 0; i < cfg.nof_csi; i++) {
+      // Increment CQI opportunity
+      metrics.cqi_count++;
+
+      // Skip if invalid or not supported CSI report
+      if (not value.valid or cfg.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
+          cfg.csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
+        continue;
+      }
+
+      // Add statistics
+      metrics.mac.dl_cqi =
+          SRSRAN_VEC_SAFE_CMA(value.csi->wideband_cri_ri_pmi_cqi.cqi, metrics.mac.dl_cqi, metrics.cqi_count);
+      metrics.cqi_valid_count++;
+    }
+
     return true;
   }
 
 public:
   struct args_t {
-    srsran::phy_cfg_nr_t phy_cfg;                ///< Physical layer configuration
-    bool                 use_dummy_sched = true; ///< Use dummy or real NR scheduler
+    srsran::phy_cfg_nr_t phy_cfg;                    ///< Physical layer configuration
+    std::string          use_dummy_mac = "dummymac"; ///< Use dummy or real NR scheduler
     bool     wait_preamble           = false;  ///< Whether a UE is created automatically or the stack waits for a PRACH
     uint16_t rnti                    = 0x1234; ///< C-RNTI
     uint32_t ss_id                   = 1;      ///< Search Space identifier
@@ -339,7 +361,7 @@ public:
     rnti(args.rnti),
     phy_cfg(args.phy_cfg),
     ss_id(args.ss_id),
-    use_dummy_sched(args.use_dummy_sched),
+    use_dummy_mac(args.use_dummy_mac == "dummymac"),
     sched_logger(srslog::fetch_basic_logger("MAC"))
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
@@ -353,19 +375,18 @@ public:
     srsenb::mac_nr_args_t mac_args{};
     mac_args.sched_cfg.pdsch_enabled = args.pdsch.slots != "" and args.pdsch.slots != "none";
     mac_args.sched_cfg.pusch_enabled = args.pusch.slots != "" and args.pusch.slots != "none";
+    mac_args.sched_cfg.fixed_dl_mcs  = args.pdsch.mcs;
+    mac_args.sched_cfg.fixed_ul_mcs  = args.pusch.mcs;
     mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
     std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
 
     // add UE to scheduler
-    if (not use_dummy_sched and not args.wait_preamble) {
-      mac->reserve_rnti(0);
-
+    if (not use_dummy_mac and not args.wait_preamble) {
       srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-      ue_cfg.fixed_dl_mcs                         = args.pdsch.mcs;
-      ue_cfg.fixed_ul_mcs                         = args.pusch.mcs;
       ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
-      mac->ue_cfg(args.rnti, ue_cfg);
+
+      mac->reserve_rnti(0, ue_cfg);
     }
 
     dl.mcs = args.pdsch.mcs;
@@ -440,7 +461,8 @@ public:
     valid = true;
   }
 
-  ~gnb_dummy_stack() {}
+  ~gnb_dummy_stack() = default;
+
   bool is_valid() const { return valid; }
 
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
@@ -450,7 +472,7 @@ public:
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
 
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       if (autofill_pdsch_bsr) {
         mac->rlc_buffer_state(rnti, 0, 10000, 0);
       }
@@ -504,8 +526,18 @@ public:
     // Schedule SSB
     for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
       if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
+        srsran_mib_nr_t mib = {};
+        mib.ssb_idx         = ssb_idx;
+        mib.sfn             = slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs);
+        mib.hrf             = (slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs)) >=
+                  SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs) / 2;
+
         mac_interface_phy_nr::ssb_t ssb = {};
-        ssb.pbch_msg.ssb_idx            = (uint32_t)ssb_idx;
+        if (srsran_pbch_msg_nr_mib_pack(&mib, &ssb.pbch_msg) < SRSRAN_SUCCESS) {
+          logger.error("Error Packing MIB in slot %d", slot_cfg.idx);
+          continue;
+        }
+        ssb.pbch_msg.ssb_idx = (uint32_t)ssb_idx;
         dl_sched.ssb.push_back(ssb);
       }
     }
@@ -518,7 +550,7 @@ public:
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
 
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       int ret = mac->get_ul_sched(slot_cfg, ul_sched);
 
       return ret;
@@ -547,6 +579,9 @@ public:
 
     // Schedule PUSCH
     if (has_pusch) {
+      // If has PUSCH, no SR shall be received
+      uci_cfg.o_sr = 0;
+
       // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
         logger.error("Error setting UCI configuration in PUSCH");
@@ -597,15 +632,14 @@ public:
 
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
   {
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       mac->pucch_info(slot_cfg, pucch_info);
-      return SRSRAN_SUCCESS;
-    }
-
-    // Handle UCI data
-    if (not handle_uci_data(pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
-      logger.error("Error handling UCI data from PUCCH reception");
-      return SRSRAN_ERROR;
+    } else {
+      // Handle UCI data
+      if (not handle_uci_data(pucch_info.uci_data.cfg, pucch_info.uci_data.value)) {
+        logger.error("Error handling UCI data from PUCCH reception");
+        return SRSRAN_ERROR;
+      }
     }
 
     // Skip next steps if uci data is invalid
@@ -634,49 +668,65 @@ public:
 
   int pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override
   {
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       mac->pusch_info(slot_cfg, pusch_info);
+    } else {
+      // Handle UCI data
+      if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
+        logger.error("Error handling UCI data from PUCCH reception");
+        return SRSRAN_ERROR;
+      }
+
+      // Handle UL-SCH metrics
+      std::unique_lock<std::mutex> lock(metrics_mutex);
+      if (not pusch_info.pusch_data.tb[0].crc) {
+        metrics.mac.rx_errors++;
+      }
+      metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
+      metrics.mac.rx_pkts++;
     }
 
-    // Handle UCI data
-    if (not handle_uci_data(pusch_info.uci_cfg, pusch_info.pusch_data.uci)) {
-      logger.error("Error handling UCI data from PUCCH reception");
-      return SRSRAN_ERROR;
-    }
-
-    // Handle UL-SCH metrics
-    std::unique_lock<std::mutex> lock(metrics_mutex);
-    if (not pusch_info.pusch_data.tb[0].crc) {
-      metrics.mac.rx_errors++;
-    }
-    metrics.mac.rx_brate += rx_harq_proc[pusch_info.pid].get_tbs();
-    metrics.mac.rx_pkts++;
+    // Handle PHY metrics
+    metrics.pusch.epre_db_avg = SRSRAN_VEC_CMA(pusch_info.csi.epre_dB, metrics.pusch.epre_db_avg, metrics.pusch.count);
+    metrics.pusch.epre_db_min = SRSRAN_MIN(metrics.pusch.epre_db_min, pusch_info.csi.epre_dB);
+    metrics.pusch.epre_db_max = SRSRAN_MAX(metrics.pusch.epre_db_max, pusch_info.csi.epre_dB);
+    metrics.pusch.rsrp_db_avg = SRSRAN_VEC_CMA(pusch_info.csi.rsrp_dB, metrics.pusch.rsrp_db_avg, metrics.pusch.count);
+    metrics.pusch.rsrp_db_min = SRSRAN_MIN(metrics.pusch.rsrp_db_min, pusch_info.csi.rsrp_dB);
+    metrics.pusch.rsrp_db_max = SRSRAN_MAX(metrics.pusch.rsrp_db_max, pusch_info.csi.rsrp_dB);
+    metrics.pusch.snr_db_avg  = SRSRAN_VEC_CMA(pusch_info.csi.snr_dB, metrics.pusch.snr_db_avg, metrics.pusch.count);
+    metrics.pusch.snr_db_min  = SRSRAN_MIN(metrics.pusch.snr_db_min, pusch_info.csi.snr_dB);
+    metrics.pusch.snr_db_max  = SRSRAN_MAX(metrics.pusch.snr_db_max, pusch_info.csi.snr_dB);
+    metrics.pusch.ta_us_avg   = SRSRAN_VEC_CMA(pusch_info.csi.delay_us, metrics.pusch.ta_us_avg, metrics.pusch.count);
+    metrics.pusch.ta_us_min   = SRSRAN_MIN(metrics.pusch.ta_us_min, pusch_info.csi.delay_us);
+    metrics.pusch.ta_us_max   = SRSRAN_MAX(metrics.pusch.ta_us_max, pusch_info.csi.delay_us);
+    metrics.pusch.count++;
 
     return SRSRAN_SUCCESS;
   }
 
   void rach_detected(const rach_info_t& rach_info) override
   {
-    if (not use_dummy_sched) {
+    if (not use_dummy_mac) {
       mac->rach_detected(rach_info);
       task_sched.run_pending_tasks();
-
-      srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-      ue_cfg.fixed_dl_mcs                         = ue_cfg.fixed_dl_mcs;
-      ue_cfg.fixed_ul_mcs                         = ue_cfg.fixed_ul_mcs;
-      mac->ue_cfg(rnti, ue_cfg);
     }
 
     std::unique_lock<std::mutex> lock(metrics_mutex);
     prach_metrics_t&             prach_metrics = metrics.prach[rach_info.preamble];
     prach_metrics.avg_ta = SRSRAN_VEC_SAFE_CMA((float)rach_info.time_adv, prach_metrics.avg_ta, prach_metrics.count);
+    prach_metrics.min_ta = SRSRAN_MIN((float)rach_info.time_adv, prach_metrics.min_ta);
+    prach_metrics.max_ta = SRSRAN_MAX((float)rach_info.time_adv, prach_metrics.max_ta);
     prach_metrics.count++;
   }
 
   metrics_t get_metrics()
   {
     std::unique_lock<std::mutex> lock(metrics_mutex);
-
+    if (not use_dummy_mac) {
+      srsenb::mac_metrics_t mac_metrics;
+      mac->get_metrics(mac_metrics);
+      metrics.mac = mac_metrics.ues[0];
+    }
     return metrics;
   }
 };

@@ -30,10 +30,13 @@
 // NR parameters
 static uint32_t                    carrier_nof_prb = 52;
 static srsran_subcarrier_spacing_t carrier_scs     = srsran_subcarrier_spacing_15kHz;
+static double                      carrier_freq_hz = 3.5e9 + 960e3;
 static srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_30kHz;
+static double                      ssb_freq_hz     = 3.5e9;
+static srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
 
 // Channel parameters
-static int32_t delay_n = 1;
+static int32_t delay_n = 2;
 static float   cfo_hz  = 100.0f;
 static float   n0_dB   = -30.0f;
 
@@ -46,8 +49,8 @@ static cf_t*                 buffer   = NULL; // Base-band buffer
 
 #define RSRP_MAX_ERROR 1.0f
 #define EPRE_MAX_ERROR 1.0f
-#define N0_MAX_ERROR 2.5f
-#define SNR_MAX_ERROR 2.5f
+#define N0_MAX_ERROR 3.0f
+#define SNR_MAX_ERROR 3.0f
 #define CFO_MAX_ERROR (cfo_hz * 0.3f)
 #define DELAY_MAX_ERROR (delay_us * 0.1f)
 
@@ -55,14 +58,18 @@ static void usage(char* prog)
 {
   printf("Usage: %s [v]\n", prog);
   printf("\t-s SSB subcarrier spacing [default, %s kHz]\n", srsran_subcarrier_spacing_to_str(ssb_scs));
+  printf("\t-f SSB center frequency [default, %.3f MHz]\n", ssb_freq_hz / 1e6);
   printf("\t-S cell/carrier subcarrier spacing [default, %s kHz]\n", srsran_subcarrier_spacing_to_str(carrier_scs));
+  printf("\t-F cell/carrier center frequency in Hz [default, %.3f MHz]\n", carrier_freq_hz / 1e6);
+  printf("\t-P SSB pattern [default, %s]\n", srsran_ssb_pattern_to_str(ssb_pattern));
   printf("\t-v [set srsran_verbose to debug, default none]\n");
 }
+
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "Ssv")) != -1) {
+  while ((opt = getopt(argc, argv, "SsFfPv")) != -1) {
     switch (opt) {
       case 's':
         ssb_scs = srsran_subcarrier_spacing_from_str(argv[optind]);
@@ -71,12 +78,21 @@ static void parse_args(int argc, char** argv)
           exit(-1);
         }
         break;
+      case 'f':
+        ssb_freq_hz = strtod(argv[optind], NULL);
+        break;
       case 'S':
         carrier_scs = srsran_subcarrier_spacing_from_str(argv[optind]);
         if (carrier_scs == srsran_subcarrier_spacing_invalid) {
           ERROR("Invalid Cell/Carrier subcarrier spacing %s\n", argv[optind]);
           exit(-1);
         }
+        break;
+      case 'F':
+        carrier_freq_hz = strtod(argv[optind], NULL);
+        break;
+      case 'P':
+        ssb_pattern = srsran_ssb_pattern_fom_str(argv[optind]);
         break;
       case 'v':
         srsran_verbose++;
@@ -123,10 +139,10 @@ static int test_case_1(srsran_ssb_t* ssb)
   // SSB configuration
   srsran_ssb_cfg_t ssb_cfg = {};
   ssb_cfg.srate_hz         = srate_hz;
-  ssb_cfg.center_freq_hz   = 3.5e9;
-  ssb_cfg.ssb_freq_hz      = 3.5e9 - 960e3;
+  ssb_cfg.center_freq_hz   = carrier_freq_hz;
+  ssb_cfg.ssb_freq_hz      = ssb_freq_hz;
   ssb_cfg.scs              = ssb_scs;
-  ssb_cfg.pattern          = SRSRAN_SSB_PATTERN_C;
+  ssb_cfg.pattern          = ssb_pattern;
 
   TESTASSERT(srsran_ssb_set_cfg(ssb, &ssb_cfg) == SRSRAN_SUCCESS);
 
@@ -228,6 +244,7 @@ int main(int argc, char** argv)
 
   if (test_case_1(&ssb) != SRSRAN_SUCCESS) {
     ERROR("test case failed");
+    goto clean_exit;
   }
 
   ret = SRSRAN_SUCCESS;

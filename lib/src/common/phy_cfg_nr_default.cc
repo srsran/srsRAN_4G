@@ -393,10 +393,13 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&        harq,
 
 void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
 {
-  prach.config_idx   = 0;
-  prach.freq_offset  = 4;
-  prach.root_seq_idx = 0;
-  prach.is_nr        = true;
+  prach.is_nr            = true;
+  prach.config_idx       = 0;
+  prach.root_seq_idx     = 0;
+  prach.zero_corr_zone   = 0;
+  prach.freq_offset      = 4;
+  prach.num_ra_preambles = 64;
+  prach.hs_flag          = false;
 }
 
 phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
@@ -428,9 +431,11 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
 
   if (duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
     carrier.dl_center_frequency_hz = 3513.6e6;
+    carrier.ul_center_frequency_hz = 3513.6e6;
     ssb.scs                        = srsran_subcarrier_spacing_30kHz;
   } else {
     carrier.dl_center_frequency_hz = 881.5e6;
+    carrier.ul_center_frequency_hz = 836.6e6;
     ssb.scs                        = srsran_subcarrier_spacing_15kHz;
   }
   carrier.ssb_center_freq_hz = carrier.dl_center_frequency_hz;
@@ -479,6 +484,24 @@ phy_cfg_nr_default_t::phy_cfg_nr_default_t(const reference_cfg_t& reference_cfg)
   }
 
   prach.tdd_config.configured = (duplex.mode == SRSRAN_DUPLEX_MODE_TDD);
+
+  // Make default CSI report configuration always
+  csi.reports[0].channel_meas_id                    = 0;
+  csi.reports[0].type                               = SRSRAN_CSI_REPORT_TYPE_PERIODIC;
+  csi.reports[0].periodic.period                    = 20;
+  csi.reports[0].periodic.offset                    = 9;
+  csi.reports[0].periodic.resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;
+  csi.reports[0].periodic.resource.starting_prb     = 51;
+  csi.reports[0].periodic.resource.format           = SRSRAN_PUCCH_NR_FORMAT_2;
+  csi.reports[0].periodic.resource.nof_prb          = 1;
+  csi.reports[0].periodic.resource.nof_symbols      = 2;
+  csi.reports[0].periodic.resource.start_symbol_idx = 10;
+  csi.reports[0].quantity                           = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI;
+  csi.reports[0].cqi_table                          = SRSRAN_CSI_CQI_TABLE_1;
+  csi.reports[0].freq_cfg                           = SRSRAN_CSI_REPORT_FREQ_WIDEBAND;
+  csi.csi_resources[0].type = srsran_csi_hl_resource_cfg_t::SRSRAN_CSI_HL_RESOURCE_CFG_TYPE_NZP_CSI_RS_SSB;
+  csi.csi_resources[0].nzp_csi_rs_ssb.nzp_csi_rs_resource_set_id_list[0]    = 0;
+  csi.csi_resources[0].nzp_csi_rs_ssb.nzp_csi_rs_resource_set_id_list_count = 1;
 }
 
 } // namespace srsran

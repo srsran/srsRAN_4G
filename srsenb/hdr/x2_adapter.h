@@ -48,45 +48,44 @@ namespace srsenb {
 class x2_adapter final : public x2_interface
 {
 public:
-  x2_adapter() = default;
-
-  // init functions to set handle to stacks
-  void set_eutra_stack(enb_stack_lte* eutra_stack_) { eutra_stack = eutra_stack_; }
-
-  void set_nr_stack(gnb_stack_nr* nr_stack_) { nr_stack = nr_stack_; }
+  x2_adapter(enb_stack_lte* eutra_stack_, gnb_stack_nr* nr_stack_) :
+    nr_stack(nr_stack_), eutra_stack(eutra_stack_), logger(srslog::fetch_basic_logger("X2"))
+  {}
 
   /// rrc_nr_interface_rrc
-  int sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params)
+  void sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) override
   {
     if (nr_stack == nullptr) {
-      return SRSRAN_ERROR;
+      logger.error("SgNB Addition Requested for inexistent NR stack");
+      return;
     }
-    return nr_stack->sgnb_addition_request(eutra_rnti, params);
+    nr_stack->sgnb_addition_request(eutra_rnti, params);
   }
-  int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response)
+  void sgnb_reconfiguration_complete(uint16_t eutra_rnti, const asn1::dyn_octstring& reconfig_response) override
   {
     if (nr_stack == nullptr) {
-      return SRSRAN_ERROR;
+      logger.error("SgNB Addition Requested for inexistent NR stack");
+      return;
     }
-    return nr_stack->sgnb_reconfiguration_complete(eutra_rnti, reconfig_response);
+    nr_stack->sgnb_reconfiguration_complete(eutra_rnti, reconfig_response);
   }
 
   /// rrc_eutra_interface_rrc_nr
-  void sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params)
+  void sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params) override
   {
     if (eutra_stack == nullptr) {
       return;
     }
     eutra_stack->sgnb_addition_ack(eutra_rnti, params);
   }
-  void sgnb_addition_reject(uint16_t eutra_rnti)
+  void sgnb_addition_reject(uint16_t eutra_rnti) override
   {
     if (eutra_stack == nullptr) {
       return;
     }
     eutra_stack->sgnb_addition_reject(eutra_rnti);
   }
-  void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti)
+  void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) override
   {
     if (eutra_stack == nullptr) {
       return;
@@ -94,7 +93,15 @@ public:
     eutra_stack->sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
 
-  void set_activity_user(uint16_t eutra_rnti)
+  void sgnb_release_ack(uint16_t eutra_rnti) override
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->sgnb_release_ack(eutra_rnti);
+  }
+
+  void set_activity_user(uint16_t eutra_rnti) override
   {
     if (eutra_stack == nullptr) {
       return;
@@ -102,15 +109,24 @@ public:
     eutra_stack->set_activity_user(eutra_rnti);
   }
 
+  void sgnb_release_request(uint16_t nr_rnti) override
+  {
+    if (nr_stack == nullptr) {
+      logger.error("SgNB Addition Requested for inexistent NR stack");
+      return;
+    }
+    nr_stack->sgnb_release_request(nr_rnti);
+  }
+
   // pdcp_interface_gtpu
-  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1)
+  void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override
   {
     if (nr_stack == nullptr) {
       return;
     }
     nr_stack->write_sdu(rnti, lcid, std::move(sdu), pdcp_sn);
   }
-  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid)
+  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override
   {
     if (nr_stack == nullptr) {
       return {};
@@ -119,7 +135,7 @@ public:
   }
 
   // gtpu_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t bearer_id, srsran::unique_byte_buffer_t pdu)
+  void write_pdu(uint16_t rnti, uint32_t bearer_id, srsran::unique_byte_buffer_t pdu) override
   {
     if (eutra_stack == nullptr) {
       return;
@@ -128,8 +144,9 @@ public:
   }
 
 private:
-  enb_stack_lte* eutra_stack = nullptr;
-  gnb_stack_nr*  nr_stack    = nullptr;
+  enb_stack_lte*        eutra_stack = nullptr;
+  gnb_stack_nr*         nr_stack    = nullptr;
+  srslog::basic_logger& logger;
 };
 
 } // namespace srsenb

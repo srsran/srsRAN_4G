@@ -121,7 +121,7 @@ ngap::ngap(srsran::task_sched_handle   task_sched_,
 
 ngap::~ngap() {}
 
-int ngap::init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_, gtpu_interface_rrc * gtpu_)
+int ngap::init(const ngap_args_t& args_, rrc_interface_ngap_nr* rrc_, gtpu_interface_rrc* gtpu_)
 {
   rrc  = rrc_;
   args = args_;
@@ -546,14 +546,21 @@ bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_s
 
 bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
 {
-  // TODO: UE Context Release Command contains a list of ue_ngap_ids
+  const asn1::ngap_nr::ue_ngap_id_pair_s& ue_ngap_id_pair = msg.protocol_ies.ue_ngap_ids.value.ue_ngap_id_pair();
+
+  ue* u = handle_ngapmsg_ue_id(ue_ngap_id_pair.ran_ue_ngap_id, ue_ngap_id_pair.amf_ue_ngap_id);
+  if (u == nullptr) {
+    logger.warning("Can not find UE");
+    return false;
+  }
+
+  u->handle_ue_ctxt_release_cmd(msg);
 
   return true;
 }
 
 bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
 {
-  
   ue* u =
       handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
   if (u == nullptr) {

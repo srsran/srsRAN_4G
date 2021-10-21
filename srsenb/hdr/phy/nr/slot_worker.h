@@ -59,14 +59,15 @@ public:
   };
 
   struct args_t {
-    uint32_t                    cell_index         = 0;
-    uint32_t                    nof_max_prb        = SRSRAN_MAX_PRB_NR;
-    uint32_t                    nof_tx_ports       = 1;
-    uint32_t                    nof_rx_ports       = 1;
-    uint32_t                    rf_port            = 0;
-    srsran_subcarrier_spacing_t scs                = srsran_subcarrier_spacing_15kHz;
-    uint32_t                    pusch_max_nof_iter = 10;
-    double                      srate_hz           = 0.0;
+    uint32_t                    cell_index       = 0;
+    uint32_t                    nof_max_prb      = SRSRAN_MAX_PRB_NR;
+    uint32_t                    nof_tx_ports     = 1;
+    uint32_t                    nof_rx_ports     = 1;
+    uint32_t                    rf_port          = 0;
+    srsran_subcarrier_spacing_t scs              = srsran_subcarrier_spacing_15kHz;
+    uint32_t                    pusch_max_its    = 10;
+    float                       pusch_min_snr_dB = -10.0f;
+    double                      srate_hz         = 0.0;
   };
 
   slot_worker(srsran::phy_common_interface& common_,

@@ -155,6 +155,7 @@ public:
 class mac_interface_rrc_nr
 {
 public:
+  virtual void reset() = 0;
   // Config calls that return SRSRAN_SUCCESS or SRSRAN_ERROR
   virtual int  setup_lcid(const srsran::logical_channel_config_t& config) = 0;
   virtual int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)            = 0;

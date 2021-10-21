@@ -31,12 +31,12 @@ n_prb = 50
 #nof_ports = 2
 
 #####################################################################
-# eNB configuration files 
+# eNB configuration files
 #
-# sib_config:  SIB1, SIB2 and SIB3 configuration file 
+# sib_config:  SIB1, SIB2 and SIB3 configuration file
 # note: when enabling mbms, use the sib.conf.mbsfn configuration file which includes SIB13
-# rr_config:   Radio Resources configuration file 
-# rb_config:   SRB/DRB configuration file 
+# rr_config:   Radio Resources configuration file
+# rb_config:   SRB/DRB configuration file
 #####################################################################
 [enb_files]
 sib_config = sib.conf
@@ -47,7 +47,7 @@ rb_config = rb.conf
 # RF configuration
 #
 # dl_earfcn: EARFCN code for DL (only valid if a single cell is configured in rr.conf)
-# tx_gain: Transmit gain (dB). 
+# tx_gain: Transmit gain (dB).
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
 # Optional parameters:
@@ -86,24 +86,24 @@ rx_gain = 40
 #####################################################################
 # Packet capture configuration
 #
-# MAC-layer packets are captured to file a the compact format decoded 
-# by the Wireshark. For decoding, use the UDP dissector and the UDP 
-# heuristic dissection. Edit the preferences (Edit > Preferences > 
-# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with 
+# MAC-layer packets are captured to file a the compact format decoded
+# by the Wireshark. For decoding, use the UDP dissector and the UDP
+# heuristic dissection. Edit the preferences (Edit > Preferences >
+# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with
 # Protocol=udp. Further, enable the heuristic dissection in UDP under:
 # Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
-# Configuring this Wireshark preferences is needed for decoding the MAC PCAP 
-# files as well as for the live network capture option.  
+# Configuring this Wireshark preferences is needed for decoding the MAC PCAP
+# files as well as for the live network capture option.
 #
 # Please note that this setting will by default only capture MAC
 # frames on dedicated channels, and not SIB.  You have to build with
 # WRITE_SIB_PCAP enabled in srsenb/src/stack/mac/mac.cc if you want
 # SIB to be part of the MAC pcap file.
 #
-# S1AP Packets are captured to file in the compact format decoded by 
-# the Wireshark s1ap dissector and with DLT 150. 
-# To use the dissector, edit the preferences for DLT_USER to 
+# S1AP Packets are captured to file in the compact format decoded by
+# the Wireshark s1ap dissector and with DLT 150.
+# To use the dissector, edit the preferences for DLT_USER to
 # add an entry with DLT=150, Payload Protocol=s1ap.
 #
 # mac_enable:   Enable MAC layer packet captures (true/false)
@@ -166,10 +166,10 @@ enable = false
 # max_aggr_level:    Optional maximum aggregation level index (l=log2(L) can be 0, 1, 2 or 3)
 # adaptive_aggr_level: Boolean flag to enable/disable adaptive aggregation level based on target BLER
 # pdsch_mcs:         Optional fixed PDSCH MCS (ignores reported CQIs if specified)
-# pdsch_max_mcs:     Optional PDSCH MCS limit 
+# pdsch_max_mcs:     Optional PDSCH MCS limit
 # pusch_mcs:         Optional fixed PUSCH MCS (ignores reported CQIs if specified)
-# pusch_max_mcs:     Optional PUSCH MCS limit 
-# min_nof_ctrl_symbols: Minimum number of control symbols 
+# pusch_max_mcs:     Optional PUSCH MCS limit
+# min_nof_ctrl_symbols: Minimum number of control symbols
 # max_nof_ctrl_symbols: Maximum number of control symbols
 # pucch_multiplex_enable: Allow PUCCH HARQ to collide with PUSCH and other PUCCH
 # pucch_harq_max_rb: Maximum number of RB to be used for PUCCH on the edges of the grid.
@@ -186,6 +186,8 @@ enable = false
 # init_dl_cqi:       DL CQI value used before any CQI report is available to the eNB
 # max_sib_coderate:  Upper bound on SIB and RAR grants coderate
 # pdcch_cqi_offset:  CQI offset in derivation of PDCCH aggregation level
+# nr_pdsch_mcs:      Optional fixed NR PDSCH MCS (ignores reported CQIs if specified)
+# nr_pusch_mcs:      Optional fixed NR PUSCH MCS (ignores reported CQIs if specified)
 #
 #####################################################################
 [scheduler]
@@ -213,6 +215,8 @@ enable = false
 #init_dl_cqi=5
 #max_sib_coderate=0.3
 #pdcch_cqi_offset=0
+#nr_pdsch_mcs=28
+#nr_pusch_mcs=28
 
 #####################################################################
 # eMBMS configuration options
@@ -324,10 +328,11 @@ enable = false
 #####################################################################
 # Expert configuration options
 #
-# pusch_max_its:        Maximum number of turbo decoder iterations (Default 4)
+# pusch_max_its:        Maximum number of turbo decoder iterations for LTE (Default 4)
+# nr_pusch_max_its:     Maximum number of LDPC iterations for NR (Default 10)
 # pusch_8bit_decoder:   Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 3)
-# metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
+# metrics_period_secs:  Sets the period at which metrics are requested from the eNB.
 # metrics_csv_enable:   Write eNB metrics to CSV file.
 # metrics_csv_filename: File path to use for CSV metrics.
 # report_json_enable:   Write eNB report to JSON file (default disabled)
@@ -358,6 +363,7 @@ enable = false
 #####################################################################
 [expert]
 #pusch_max_its        = 8 # These are half iterations
+#nr_pusch_max_its     = 10
 #pusch_8bit_decoder   = false
 #nof_phy_threads      = 3
 #metrics_period_secs  = 1

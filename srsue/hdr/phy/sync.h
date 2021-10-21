@@ -268,7 +268,7 @@ private:
 
   search::ret_code cell_search_ret = search::CELL_NOT_FOUND;
 
-  // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
+  // Sampling rate mode (find is 1.92 MHz, camp is the full cell BW)
   class srate_safe
   {
   public:
@@ -288,15 +288,11 @@ private:
       std::lock_guard<std::mutex> lock(mutex);
       return std::isnormal(current_srate) and current_srate > 0.0f;
     }
-    bool set_camp(float new_srate)
+    void set_camp(float new_srate)
     {
       std::lock_guard<std::mutex> lock(mutex);
-      if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
-        current_srate = new_srate;
-        srate_mode    = SRATE_CAMP;
-        return true;
-      }
-      return false;
+      current_srate = new_srate;
+      srate_mode    = SRATE_CAMP;
     }
     bool set_find()
     {

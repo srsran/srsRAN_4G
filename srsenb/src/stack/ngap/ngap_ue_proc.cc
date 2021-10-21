@@ -75,19 +75,23 @@ proc_outcome_t ngap_ue_initial_context_setup_proc::step()
 ngap_ue_ue_context_release_proc::ngap_ue_ue_context_release_proc(ngap_interface_ngap_proc* parent_,
                                                                  rrc_interface_ngap_nr*    rrc_,
                                                                  ngap_ue_ctxt_t*           ue_ctxt_,
+                                                                 ngap_ue_bearer_manager*   bearer_manager_,
                                                                  srslog::basic_logger&     logger_) :
   logger(logger_)
 {
-  parent  = parent_;
-  rrc     = rrc_;
-  ue_ctxt = ue_ctxt_;
+  parent         = parent_;
+  rrc            = rrc_;
+  ue_ctxt        = ue_ctxt_;
+  bearer_manager = bearer_manager_;
 };
 
 proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
 {
-  // ue_ngap_ids_c ue_ngap_ids = msg.protocol_ies.ue_ngap_ids.value;
-  // cause_c       cause       = msg.protocol_ies.cause.value;
   logger.info("Started %s", name());
+  // TODO: How to approach erasing users ?
+  bearer_manager->reset_pdu_sessions(ue_ctxt->rnti);
+  rrc->release_bearers(ue_ctxt->rnti);
+  parent->send_ue_ctxt_release_complete();
   return proc_outcome_t::success;
 }
 

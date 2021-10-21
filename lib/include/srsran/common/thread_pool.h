@@ -153,6 +153,40 @@ private:
   bool                                    running = false;
 };
 
+/// Class used to create a single worker with an input task queue with a single reader
+class task_worker : public thread
+{
+  using task_t = srsran::move_callback<void(), default_move_callback_buffer_size, true>;
+
+public:
+  task_worker(std::string thread_name_,
+              uint32_t    queue_size,
+              bool        start_deferred = false,
+              int32_t     prio_          = -1,
+              uint32_t    mask_          = 255);
+  task_worker(const task_worker&) = delete;
+  task_worker(task_worker&&)      = delete;
+  task_worker& operator=(const task_worker&) = delete;
+  task_worker& operator=(task_worker&&) = delete;
+  ~task_worker();
+
+  void stop();
+  void start(int32_t prio_ = -1, uint32_t mask_ = 255);
+
+  void     push_task(task_t&& task);
+  uint32_t nof_pending_tasks() const;
+
+private:
+  void run_thread() override;
+
+  // args
+  int32_t               prio = -1;
+  uint32_t              mask = 255;
+  srslog::basic_logger& logger;
+
+  srsran::dyn_blocking_queue<task_t> pending_tasks;
+};
+
 srsran::task_thread_pool& get_background_workers();
 
 } // namespace srsran

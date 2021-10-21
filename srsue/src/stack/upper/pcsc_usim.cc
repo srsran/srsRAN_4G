@@ -190,7 +190,7 @@ auth_result_t pcsc_usim::generate_authentication_response_5g(uint8_t*    rand,
     case -2:
       logger.info("SCARD: USIM synchronization failure, AUTS generated");
       logger.debug(auts, AKA_AUTS_LEN, "AUTS");
-      memcpy(res, auts, AKA_AUTS_LEN);
+      memcpy(res_star, auts, AKA_AUTS_LEN);
       res_len = AKA_AUTS_LEN;
       return AUTH_SYNCH_FAILURE;
     default:
@@ -222,7 +222,7 @@ auth_result_t pcsc_usim::generate_authentication_response_5g(uint8_t*    rand,
   // Generate K_seaf
   security_generate_k_seaf(k_ausf, serving_network_name, k_seaf);
   logger.debug(k_seaf, 32, "K SEAF");
-  // Generate K_seaf
+  // Generate K_amf
   security_generate_k_amf(k_ausf, imsi_str.c_str(), abba, abba_len, k_amf);
   logger.debug(k_amf, 32, "K AMF");
 

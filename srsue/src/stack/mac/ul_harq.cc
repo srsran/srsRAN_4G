@@ -66,6 +66,7 @@ void ul_harq_entity::reset_ndi()
 
 void ul_harq_entity::set_config(srsran::ul_harq_cfg_t& harq_cfg_)
 {
+  std::lock_guard<std::mutex> lock(config_mutex);
   harq_cfg = harq_cfg_;
 }
 
@@ -120,8 +121,6 @@ ul_harq_entity::ul_harq_process::ul_harq_process() : logger(srslog::fetch_basic_
   pdu_ptr        = NULL;
   payload_buffer = NULL;
 
-  bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_ul_t));
-
   harq_feedback       = false;
   is_initiated        = false;
   is_grant_configured = false;
@@ -163,12 +162,12 @@ void ul_harq_entity::ul_harq_process::reset()
   current_tx_nb       = 0;
   current_irv         = 0;
   is_grant_configured = false;
-  bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_ul_t));
+  cur_grant.reset();
 }
 
 void ul_harq_entity::ul_harq_process::reset_ndi()
 {
-  cur_grant.tb.ndi = false;
+  cur_grant.set_ndi(false);
 }
 
 void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
@@ -183,10 +182,13 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
     // Get maximum retransmissions
     uint32_t max_retx;
-    if (grant.rnti == harq_entity->rntis->get_temp_rnti()) {
-      max_retx = harq_entity->harq_cfg.max_harq_msg3_tx;
-    } else {
-      max_retx = harq_entity->harq_cfg.max_harq_tx;
+    {
+      std::lock_guard<std::mutex> lock(harq_entity->config_mutex);
+      if (grant.rnti == harq_entity->rntis->get_temp_rnti()) {
+        max_retx = harq_entity->harq_cfg.max_harq_msg3_tx;
+      } else {
+        max_retx = harq_entity->harq_cfg.max_harq_tx;
+      }
     }
 
     // Check maximum retransmissions, do not consider last retx ACK
@@ -203,8 +205,9 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
   // Reset HARQ process if TB has changed
   if (harq_feedback && has_grant() && grant.tb.ndi_present) {
-    if (grant.tb.tbs != cur_grant.tb.tbs && cur_grant.tb.tbs > 0 && grant.tb.tbs > 0) {
-      Debug("UL %d: Reset due to change of dci size last_grant=%d, new_grant=%d", pid, cur_grant.tb.tbs, grant.tb.tbs);
+    uint32_t cur_grant_tbs = cur_grant.get_tbs();
+    if (grant.tb.tbs != cur_grant_tbs && cur_grant_tbs > 0 && grant.tb.tbs > 0) {
+      Debug("UL %d: Reset due to change of dci size last_grant=%d, new_grant=%d", pid, cur_grant_tbs, grant.tb.tbs);
       reset();
     }
   }
@@ -291,7 +294,7 @@ bool ul_harq_entity::ul_harq_process::has_grant()
 
 bool ul_harq_entity::ul_harq_process::get_ndi()
 {
-  return cur_grant.tb.ndi;
+  return cur_grant.get_ndi();
 }
 
 bool ul_harq_entity::ul_harq_process::is_sps()
@@ -306,7 +309,7 @@ uint32_t ul_harq_entity::ul_harq_process::get_nof_retx()
 
 int ul_harq_entity::ul_harq_process::get_current_tbs()
 {
-  return cur_grant.tb.tbs;
+  return cur_grant.get_tbs();
 }
 
 // Retransmission with or w/o dci (Section 5.4.2.2)
@@ -328,15 +331,15 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
          grant.tb.tbs,
          harq_feedback ? "ACK" : "NACK",
          grant.tb.ndi,
-         cur_grant.tb.ndi);
+         cur_grant.get_ndi());
 
-    cur_grant     = grant;
+    cur_grant.set(grant);
     harq_feedback = false;
 
     generate_tx(action);
 
     // Reset the RV received in this grant
-    cur_grant.tb.rv = -1;
+    cur_grant.set_rv(-1);
 
     // HARQ entity requests a non-adaptive transmission
   } else if (!harq_feedback) {
@@ -345,7 +348,7 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
          pid,
          current_tx_nb,
          get_rv(),
-         cur_grant.tb.tbs,
+         cur_grant.get_tbs(),
          harq_feedback ? "ACK" : "NACK");
 
     generate_tx(action);
@@ -361,7 +364,7 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
                                                  harq_entity->average_retx.load(std::memory_order_relaxed),
                                                  harq_entity->nof_pkts++),
                                   std::memory_order_relaxed);
-  cur_grant           = grant;
+  cur_grant.set(grant);
   harq_feedback       = false;
   is_grant_configured = true;
   current_tx_nb       = 0;
@@ -373,7 +376,7 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
        pid,
        grant.rnti == harq_entity->rntis->get_temp_rnti() ? " for Msg3" : "",
        get_rv(),
-       cur_grant.tb.tbs);
+       cur_grant.get_tbs());
   generate_tx(action);
 }
 
@@ -385,7 +388,8 @@ void ul_harq_entity::ul_harq_process::generate_tx(mac_interface_phy_lte::tb_acti
   action->current_tx_nb = current_tx_nb;
   action->expect_ack    = true;
 
-  action->tb.rv            = cur_grant.tb.rv > 0 ? cur_grant.tb.rv : get_rv();
+  int rv                   = cur_grant.get_rv();
+  action->tb.rv            = rv > 0 ? rv : get_rv();
   action->tb.enabled       = true;
   action->tb.payload       = pdu_ptr;
   action->tb.softbuffer.tx = &softbuffer;

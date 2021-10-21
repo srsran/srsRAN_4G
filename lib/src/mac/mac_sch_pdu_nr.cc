@@ -34,8 +34,18 @@ mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
 
 bool mac_sch_subpdu_nr::is_sdu()
 {
-  // for UL-SCH LCID 52 is also valid for carrying SDUs
-  return (lcid <= 32 || (parent->is_ulsch() && lcid == 52));
+  return (lcid <= 32);
+}
+
+bool mac_sch_subpdu_nr::has_length_field()
+{
+  // CCCH (both versions) don't have a length field in the UL
+  if (parent->is_ulsch()) {
+    if (lcid == CCCH_SIZE_48 || lcid == CCCH_SIZE_64) {
+      return false;
+    }
+  }
+  return (is_sdu() || is_var_len_ce(lcid));
 }
 
 // returns false for all reserved values in Table 6.2.1-1 and 6.2.1-2
@@ -44,9 +54,15 @@ bool mac_sch_subpdu_nr::is_valid_lcid()
   return (lcid <= 63 && ((parent->is_ulsch() && (lcid <= 32 || lcid >= 52)) || (lcid <= 32 || lcid >= 47)));
 }
 
-bool mac_sch_subpdu_nr::is_var_len_ce()
+bool mac_sch_subpdu_nr::is_var_len_ce(uint32_t lcid)
 {
-  return false;
+  switch (lcid) {
+    case LONG_TRUNC_BSR:
+    case LONG_BSR:
+      return true;
+    default:
+      return false;
+  }
 }
 
 // return length of PDU (or SRSRAN_ERROR otherwise)
@@ -59,7 +75,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
   header_length = 1;
 
   if (is_valid_lcid()) {
-    if ((is_sdu() || is_var_len_ce()) && not is_ul_ccch()) {
+    if (has_length_field()) {
       // Read first length byte
       sdu_length = (uint32_t)*ptr;
       ptr++;
@@ -245,12 +261,50 @@ mac_sch_subpdu_nr::ta_t mac_sch_subpdu_nr::get_ta()
 mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
 {
   lcg_bsr_t sbsr = {};
-  if (parent->is_ulsch() && lcid == SHORT_BSR) {
+  if (parent->is_ulsch() && (lcid == SHORT_BSR || lcid == SHORT_TRUNC_BSR)) {
     uint8_t* ptr     = sdu.ptr();
     sbsr.lcg_id      = (ptr[0] & 0xe0) >> 5;
     sbsr.buffer_size = ptr[0] & 0x1f;
   }
   return sbsr;
+}
+
+mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr()
+{
+  lbsr_t lbsr = {};
+  lbsr.list.reserve(mac_sch_subpdu_nr::max_num_lcg_lbsr);
+
+  if (parent->is_ulsch() && (lcid == LONG_BSR || lcid == LONG_TRUNC_BSR)) {
+    uint8_t* ptr = sdu.ptr();
+    lbsr.bitmap  = *ptr; // read LCG bitmap
+    ptr++;               // skip LCG bitmap
+
+    // early stop if LBSR is empty
+    if (lbsr.bitmap == 0) {
+      return lbsr;
+    }
+
+    int bsr_cnt = 0;
+    for (int i = 0; i < mac_sch_subpdu_nr::max_num_lcg_lbsr; i++) {
+      // If LCGi bit is enabled, it means the next 8-bit BSR value corresponds to it
+      if (lbsr.bitmap & (0x1 << i)) {
+        lcg_bsr_t bsr = {};
+        bsr.lcg_id    = i;
+        // For the Long truncated, some BSR words can be not present, assume BSR > 0 in that case
+        if (1 + bsr_cnt < sdu_length) {
+          bsr.buffer_size = ptr[bsr_cnt];
+          bsr_cnt++;
+        } else if (lcid == LONG_TRUNC_BSR) {
+          bsr.buffer_size = 63; // just assume it has 526 bytes to transmit
+        } else {
+          fprintf(stderr, "Error parsing LongBSR CE: sdu_length=%d but there are %d active bsr\n", sdu_length, bsr_cnt);
+        }
+        lbsr.list.push_back(bsr);
+      }
+    }
+  }
+
+  return lbsr;
 }
 
 uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
@@ -263,12 +317,14 @@ uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
         return 8;
       case CRNTI:
         return 2;
-      case SHORT_TRUNC_BSR:
-        return 1;
       case SHORT_BSR:
+      case SHORT_TRUNC_BSR:
         return 1;
       case SE_PHR:
         return 2;
+      case LONG_BSR:
+      case LONG_TRUNC_BSR:
+        return 1; // minimum size, could be more than that
       case PADDING:
         return 0;
     }
@@ -314,9 +370,13 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
           lcg_bsr_t sbsr = get_sbsr();
           fmt::format_to(buffer, " SBSR: lcg={} bs={}", sbsr.lcg_id, sbsr.buffer_size);
         } break;
-        case mac_sch_subpdu_nr::LONG_BSR:
-          fmt::format_to(buffer, " LBSR: len={}", get_total_length());
-          break;
+        case mac_sch_subpdu_nr::LONG_BSR: {
+          mac_sch_subpdu_nr::lbsr_t lbsr = get_lbsr();
+          fmt::format_to(buffer, " LBSR: bitmap={:#02x}", lbsr.bitmap);
+          for (const auto& lcg : lbsr.list) {
+            fmt::format_to(buffer, " lcg={} bs={}", lcg.lcg_id, lcg.buffer_size);
+          }
+        } break;
         case mac_sch_subpdu_nr::SE_PHR:
           fmt::format_to(buffer, " SE_PHR: ph={} pc={}", get_phr(), get_pcmax());
           break;
@@ -430,13 +490,8 @@ uint32_t mac_sch_pdu_nr::size_header_sdu(const uint32_t lcid, const uint32_t nby
 {
   if (ulsch && (lcid == mac_sch_subpdu_nr::CCCH_SIZE_48 || lcid == mac_sch_subpdu_nr::CCCH_SIZE_64)) {
     return 1;
-  } else {
-    if (nbytes < 256) {
-      return 2;
-    } else {
-      return 3;
-    }
   }
+  return nbytes < 256 ? 2 : 3;
 }
 
 uint32_t mac_sch_pdu_nr::get_remaing_len()

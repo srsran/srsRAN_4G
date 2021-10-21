@@ -72,6 +72,8 @@ void proc_bsr_nr::reset()
   timer_periodic.stop();
   timer_retx.stop();
 
+  lcg_priorities.clear();
+
   triggered_bsr_type = NONE;
 }
 
@@ -228,11 +230,14 @@ void proc_bsr_nr::set_padding_bytes(uint32_t nof_bytes)
   const uint32_t LBSR_CE_SUBHEADER_LEN = 1;
   // if the number of padding bits is equal to or larger than the size of the Short BSR plus its subheader but smaller
   // than the size of the Long BSR plus its subheader
-  if (nof_bytes >= SBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(SHORT_BSR, true) &&
-      nof_bytes < LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
+  if (nof_bytes >= (SBSR_CE_SUBHEADER_LEN +
+                    srsran::mac_sch_subpdu_nr::sizeof_ce(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR, true)) &&
+      nof_bytes < (LBSR_CE_SUBHEADER_LEN +
+                   srsran::mac_sch_subpdu_nr::sizeof_ce(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR, true))) {
     // generate short padding BSR
     mux->generate_bsr_mac_ce(SHORT_BSR);
-  } else if (nof_bytes >= LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(LONG_BSR, true)) {
+  } else if (nof_bytes >= (LBSR_CE_SUBHEADER_LEN + srsran::mac_sch_subpdu_nr::sizeof_ce(
+                                                       srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR, true))) {
     // report Long BSR if more than one LCG has data to send
     mux->generate_bsr_mac_ce(LONG_BSR);
   }

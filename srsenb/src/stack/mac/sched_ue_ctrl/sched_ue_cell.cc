@@ -107,6 +107,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   if (ue_cc_idx != prev_ue_cc_idx) {
     clear_feedback();
     harq_ent.reset();
+    logger.info("SCHED: Resetting rnti=0x%x, cc=%d HARQs and feedback state", rnti, cell_cfg->enb_cc_idx);
   }
 
   // Update carrier state
@@ -120,8 +121,12 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
       case cc_st::active:
         if (ue_cc_idx < 0 or not ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::deactivating;
-          logger.info(
-              "SCHED: Deactivating SCell, rnti=0x%x, cc=%d, SCellIndex=%d...", rnti, cell_cfg->enb_cc_idx, ue_cc_idx);
+          if (ue_cc_idx > 0) {
+            logger.info(
+                "SCHED: Deactivating SCell, rnti=0x%x, cc=%d, SCellIndex=%d...", rnti, cell_cfg->enb_cc_idx, ue_cc_idx);
+          } else {
+            logger.info("SCHED: Deactivating previous PCell, rnti=0x%x, cc=%d...", rnti, cell_cfg->enb_cc_idx);
+          }
         }
         break;
       case cc_st::deactivating:

@@ -55,7 +55,7 @@ struct srb_cfg_t {
 // Parameter required for NR cell measurement handling
 struct rrc_endc_cfg_t {
   bool     act_from_b1_event;
-  uint32_t nr_dl_arfcn;
+  uint32_t abs_frequency_ssb;
   uint32_t nr_band;
   using ssb_nr_cfg = asn1::rrc::mtc_ssb_nr_r15_s;
   using ssb_rs_cfg = asn1::rrc::rs_cfg_ssb_nr_r15_s;

@@ -22,9 +22,9 @@
 #ifndef SRSUE_RRC_COMMON_H
 #define SRSUE_RRC_COMMON_H
 
-namespace srsran {
-
 #include <stdint.h>
+
+namespace srsran {
 
 enum quant_s { quant_rsrp, quant_rsrq };
 

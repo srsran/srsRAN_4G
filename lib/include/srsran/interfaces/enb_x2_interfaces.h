@@ -45,10 +45,13 @@ public:
   };
 
   /// Request addition of NR carrier for UE
-  virtual int sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) = 0;
+  virtual void sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) = 0;
 
   /// Provide information whether the requested configuration was applied successfully by the UE
-  virtual int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response) = 0;
+  virtual void sgnb_reconfiguration_complete(uint16_t eutra_rnti, const asn1::dyn_octstring& reconfig_response) = 0;
+
+  /// Trigger release for specific UE
+  virtual void sgnb_release_request(uint16_t nr_rnti) = 0;
 };
 
 /// X2AP inspired interface for response from NR RRC to EUTRA RRC
@@ -92,6 +95,13 @@ public:
   virtual void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) = 0;
 
   /**
+   * @brief Signal release of all UE resources on the NR cell
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC used to request the SgNB addition
+   */
+  virtual void sgnb_release_ack(uint16_t eutra_rnti) = 0;
+
+  /**
    * @brief Signal user activity (i.e. DL/UL traffic) for given RNTI
    *
    * @param eutra_rnti The RNTI that the EUTRA RRC uses
@@ -104,7 +114,10 @@ class x2_interface : public rrc_nr_interface_rrc,
                      public rrc_eutra_interface_rrc_nr,
                      public pdcp_interface_gtpu, // allow GTPU to access PDCP in DL direction
                      public gtpu_interface_pdcp  // allow PDCP to access GTPU in UL direction
-{};
+{
+public:
+  virtual ~x2_interface() = default;
+};
 
 } // namespace srsenb
 

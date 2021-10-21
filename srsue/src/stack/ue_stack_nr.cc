@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include "srsran/srsran.h"
+#include "srsue/hdr/stack/rrc/rrc_nr.h"
 
 using namespace srsran;
 
@@ -119,7 +120,7 @@ void ue_stack_nr::stop_impl()
 bool ue_stack_nr::switch_on()
 {
   // statically setup TUN (will be done through RRC later)
-  char* err_str = nullptr;
+  char*          err_str = nullptr;
   struct in_addr in_addr;
   if (inet_pton(AF_INET, "192.168.1.3", &in_addr.s_addr) != 1) {
     perror("inet_pton");

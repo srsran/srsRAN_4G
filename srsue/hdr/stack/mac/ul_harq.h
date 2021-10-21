@@ -75,7 +75,56 @@ private:
     void new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t grant, mac_interface_phy_lte::tb_action_ul_t* action);
 
   private:
-    mac_interface_phy_lte::mac_grant_ul_t cur_grant;
+    /// Thread safe wrapper for a mac_grant_ul_t object.
+    class lockable_grant
+    {
+      mac_interface_phy_lte::mac_grant_ul_t grant = {};
+      mutable std::mutex                    mutex;
+
+    public:
+      void set(const mac_interface_phy_lte::mac_grant_ul_t& other)
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        grant = other;
+      }
+
+      void reset()
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        grant = {};
+      }
+
+      void set_ndi(bool ndi)
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        grant.tb.ndi = ndi;
+      }
+
+      bool get_ndi() const
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        return grant.tb.ndi;
+      }
+
+      uint32_t get_tbs() const
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        return grant.tb.tbs;
+      }
+
+      int get_rv() const
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        return grant.tb.rv;
+      }
+
+      void set_rv(int rv)
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        grant.tb.rv = rv;
+      }
+    };
+    lockable_grant cur_grant;
 
     uint32_t pid;
     uint32_t current_tx_nb;
@@ -108,6 +157,7 @@ private:
   ue_rnti* rntis = nullptr;
 
   srsran::ul_harq_cfg_t harq_cfg = {};
+  std::mutex            config_mutex;
 
   std::atomic<float>    average_retx{0};
   std::atomic<uint64_t> nof_pkts{0};

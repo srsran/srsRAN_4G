@@ -25,11 +25,11 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-coreset_region::coreset_region(const bwp_params& bwp_cfg_,
-                               uint32_t          coreset_id_,
-                               uint32_t          slot_idx_,
-                               pdcch_dl_list_t&  dl_list_,
-                               pdcch_ul_list_t&  ul_list_) :
+coreset_region::coreset_region(const bwp_params_t& bwp_cfg_,
+                               uint32_t            coreset_id_,
+                               uint32_t            slot_idx_,
+                               pdcch_dl_list_t&    dl_list_,
+                               pdcch_ul_list_t&    ul_list_) :
   coreset_cfg(&bwp_cfg_.cfg.pdcch.coreset[coreset_id_]),
   coreset_id(coreset_id_),
   slot_idx(slot_idx_),
@@ -188,9 +188,9 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 {
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
-      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::ul_data:
-      return record.ue->cfg->cce_pos_list(record.ss_id)[slot_idx][record.aggr_idx];
+      return record.ue->cfg->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::rar:
       return rar_cce_list[slot_idx][record.aggr_idx];
     default:

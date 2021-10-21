@@ -26,7 +26,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-si_sched::si_sched(const bwp_params& bwp_cfg_) :
+si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
   bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
 {}
 
@@ -86,7 +86,7 @@ void si_sched::run_slot(bwp_slot_allocator& slot_alloc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ra_sched::ra_sched(const bwp_params& bwp_cfg_) :
+ra_sched::ra_sched(const bwp_params_t& bwp_cfg_) :
   bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
 {}
 
@@ -229,16 +229,16 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
   return SRSRAN_SUCCESS;
 }
 
-bwp_ctxt::bwp_ctxt(const bwp_params& bwp_cfg) :
+bwp_ctxt::bwp_ctxt(const bwp_params_t& bwp_cfg) :
   cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg), data_sched(new sched_nr_time_rr())
 {}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-serv_cell_manager::serv_cell_manager(const sched_cell_params& cell_cfg_) :
-  cfg(cell_cfg_), logger(srslog::fetch_basic_logger(cell_cfg_.sched_cfg.logger_name))
+serv_cell_manager::serv_cell_manager(const cell_params_t& cell_cfg_) :
+  cfg(cell_cfg_), logger(srslog::fetch_basic_logger(cell_cfg_.sched_args.logger_name))
 {
-  for (uint32_t bwp_id = 0; bwp_id < cfg.cell_cfg.bwps.size(); ++bwp_id) {
+  for (uint32_t bwp_id = 0; bwp_id < cfg.cfg.bwps.size(); ++bwp_id) {
     bwps.emplace_back(cell_cfg_.bwps[bwp_id]);
   }
 

@@ -22,6 +22,7 @@
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
+#include "srsenb/hdr/x2_adapter.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srsran/build_info.h"
 #include "srsran/common/enb_events.h"
@@ -68,7 +69,6 @@ int enb::init(const all_args_t& args_)
       srsran::console("Error creating EUTRA stack.\n");
       return SRSRAN_ERROR;
     }
-    x2.set_eutra_stack(tmp_eutra_stack.get());
   }
 
   std::unique_ptr<gnb_stack_nr> tmp_nr_stack;
@@ -79,7 +79,11 @@ int enb::init(const all_args_t& args_)
       srsran::console("Error creating NR stack.\n");
       return SRSRAN_ERROR;
     }
-    x2.set_nr_stack(tmp_nr_stack.get());
+  }
+
+  // If NR and EUTRA stacks were initiated, create an X2 adapter between the two.
+  if (tmp_nr_stack != nullptr and tmp_eutra_stack != nullptr) {
+    x2.reset(new x2_adapter(tmp_eutra_stack.get(), tmp_nr_stack.get()));
   }
 
   // Radio and PHY are RAT agnostic
@@ -97,14 +101,14 @@ int enb::init(const all_args_t& args_)
 
   // initialize layers, if they exist
   if (tmp_eutra_stack) {
-    if (tmp_eutra_stack->init(args.stack, rrc_cfg, tmp_phy.get(), &x2) != SRSRAN_SUCCESS) {
+    if (tmp_eutra_stack->init(args.stack, rrc_cfg, tmp_phy.get(), x2.get()) != SRSRAN_SUCCESS) {
       srsran::console("Error initializing EUTRA stack.\n");
       ret = SRSRAN_ERROR;
     }
   }
 
   if (tmp_nr_stack) {
-    if (tmp_nr_stack->init(args.stack, rrc_nr_cfg, tmp_phy.get(), &x2) != SRSRAN_SUCCESS) {
+    if (tmp_nr_stack->init(args.nr_stack, rrc_nr_cfg, tmp_phy.get(), x2.get()) != SRSRAN_SUCCESS) {
       srsran::console("Error initializing NR stack.\n");
       ret = SRSRAN_ERROR;
     }
@@ -157,12 +161,12 @@ void enb::stop()
 {
   if (started) {
     // tear down in reverse order
-    if (radio) {
-      radio->stop();
-    }
-
     if (phy) {
       phy->stop();
+    }
+
+    if (radio) {
+      radio->stop();
     }
 
     if (eutra_stack) {

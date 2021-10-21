@@ -401,6 +401,75 @@ void task_thread_pool::worker_t::run_thread()
   running = false;
 }
 
+task_worker::task_worker(std::string thread_name_,
+                         uint32_t    queue_size,
+                         bool        start_deferred,
+                         int32_t     prio_,
+                         uint32_t    mask_) :
+  thread(std::move(thread_name_)),
+  prio(prio_),
+  mask(mask_),
+  pending_tasks(queue_size),
+  logger(srslog::fetch_basic_logger("POOL"))
+{
+  if (not start_deferred) {
+    start(prio_, mask_);
+  }
+}
+
+task_worker::~task_worker()
+{
+  stop();
+}
+
+void task_worker::stop()
+{
+  if (not pending_tasks.is_stopped()) {
+    pending_tasks.stop();
+    wait_thread_finish();
+  }
+}
+
+void task_worker::start(int32_t prio_, uint32_t mask_)
+{
+  prio = prio_;
+  mask = mask_;
+
+  if (mask == 255) {
+    thread::start(prio);
+  } else {
+    thread::start_cpu_mask(prio, mask);
+  }
+}
+
+void task_worker::push_task(task_t&& task)
+{
+  auto ret = pending_tasks.try_push(std::move(task));
+  if (ret.is_error()) {
+    logger.error("Cannot push anymore tasks into the worker queue. maximum size is %u",
+                 uint32_t(pending_tasks.max_size()));
+    return;
+  }
+}
+
+uint32_t task_worker::nof_pending_tasks() const
+{
+  return pending_tasks.size();
+}
+
+void task_worker::run_thread()
+{
+  while (true) {
+    bool   success;
+    task_t task = pending_tasks.pop_blocking(&success);
+    if (not success) {
+      break;
+    }
+    task();
+  }
+  logger.info("Task worker %s finished.", thread::get_name().c_str());
+}
+
 // Global thread pool for long, low-priority tasks
 task_thread_pool& get_background_workers()
 {

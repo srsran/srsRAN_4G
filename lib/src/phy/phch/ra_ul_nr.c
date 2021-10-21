@@ -623,8 +623,8 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - Irrelevant SR opportunities
   // - No HARQ-ACK
   // - Single periodic CSI report
-  if (uci_cfg->ack.count == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
-    *resource = uci_cfg->csi[0].pucch_resource;
+  if (uci_cfg->ack.count == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
+    *resource = uci_cfg->csi[0].cfg.periodic.resource;
     return SRSRAN_SUCCESS;
   }
 

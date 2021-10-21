@@ -37,11 +37,11 @@
 namespace srsenb {
 
 struct mac_nr_args_t {
-  srsran::phy_cfg_nr_t            phy_base_cfg = {};
-  int                             fixed_dl_mcs = -1;
-  int                             fixed_ul_mcs = -1;
-  sched_nr_interface::sched_cfg_t sched_cfg    = {};
-  srsenb::pcap_args_t             pcap;
+  srsran::phy_cfg_nr_t             phy_base_cfg = {};
+  int                              fixed_dl_mcs = -1;
+  int                              fixed_ul_mcs = -1;
+  sched_nr_interface::sched_args_t sched_cfg    = {};
+  srsenb::pcap_args_t              pcap;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
@@ -57,11 +57,12 @@ public:
             rrc_interface_mac_nr*   rrc_);
   void stop();
 
+  /// Called from metrics thread.
   void get_metrics(srsenb::mac_metrics_t& metrics);
 
   // MAC interface for RRC
   int      cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells) override;
-  uint16_t reserve_rnti(uint32_t enb_cc_idx) override;
+  uint16_t reserve_rnti(uint32_t enb_cc_idx, const sched_nr_interface::ue_cfg_t& uecfg) override;
   int      read_pdu_bcch_bch(uint8_t* payload);
   int      ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override;
   int      remove_ue(uint16_t rnti) override;
@@ -91,8 +92,11 @@ private:
   // PDU processing
   int handle_pdu(srsran::unique_byte_buffer_t pdu);
 
+  // Metrics processing
+  void get_metrics_nolock(srsenb::mac_metrics_t& metrics);
+
   // Encoding
-  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::sched_rar_grant_t> grants);
+  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::msg3_grant_t> grants);
   srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
 
   // Interaction with other components
@@ -116,7 +120,7 @@ private:
   std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
-  pthread_rwlock_t                                                              rwlock     = {};
+  pthread_rwlock_t                                                              rwmutex    = {};
   static const uint16_t                                                         FIRST_RNTI = 0x4601;
   srsran::static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES> ue_db;
 

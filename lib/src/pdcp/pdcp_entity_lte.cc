@@ -481,10 +481,14 @@ void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
       rx_counts_info.pop_back();
       fmc++;
     }
-    logger.debug("Queue too large. Updating. New FMC=%d, new back=%d, new queue_size=%zu",
-                 fmc,
-                 rx_counts_info.back(),
-                 rx_counts_info.size());
+    if (not rx_counts_info.empty()) {
+      logger.debug("Queue too large. Updating. New FMC=%d, new back=%d, new queue_size=%zu",
+                   fmc,
+                   rx_counts_info.back(),
+                   rx_counts_info.size());
+    } else {
+      logger.debug("Queue too large. Updating. New FMC=%d, new queue_size=%zu", fmc, rx_counts_info.size());
+    }
   }
 
   if (rx_counts_info.empty()) {

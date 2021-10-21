@@ -976,7 +976,7 @@ bool nas::handle_attach_request(srsran::byte_buffer_t* nas_rx)
 bool nas::handle_authentication_response(srsran::byte_buffer_t* nas_rx)
 {
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp = {};
-  bool                                          ue_valid = true;
+  bool                                          ue_valid  = true;
 
   // Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &auth_resp);
@@ -1710,12 +1710,14 @@ bool nas::short_integrity_check(srsran::byte_buffer_t* pdu)
     return false;
   }
 
+  uint32_t estimated_count = (m_sec_ctx.ul_nas_count & 0xffffffe0) | (pdu->msg[1] & 0x1f);
+
   switch (m_sec_ctx.integ_algo) {
     case srsran::INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case srsran::INTEGRITY_ALGORITHM_ID_128_EIA1:
       srsran::security_128_eia1(&m_sec_ctx.k_nas_int[16],
-                                m_sec_ctx.ul_nas_count,
+                                estimated_count,
                                 0,
                                 srsran::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[0],
@@ -1724,7 +1726,7 @@ bool nas::short_integrity_check(srsran::byte_buffer_t* pdu)
       break;
     case srsran::INTEGRITY_ALGORITHM_ID_128_EIA2:
       srsran::security_128_eia2(&m_sec_ctx.k_nas_int[16],
-                                m_sec_ctx.ul_nas_count,
+                                estimated_count,
                                 0,
                                 srsran::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[0],
@@ -1733,7 +1735,7 @@ bool nas::short_integrity_check(srsran::byte_buffer_t* pdu)
       break;
     case srsran::INTEGRITY_ALGORITHM_ID_128_EIA3:
       srsran::security_128_eia3(&m_sec_ctx.k_nas_int[16],
-                                m_sec_ctx.ul_nas_count,
+                                estimated_count,
                                 0,
                                 srsran::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[0],
@@ -1743,12 +1745,13 @@ bool nas::short_integrity_check(srsran::byte_buffer_t* pdu)
     default:
       break;
   }
+
   // Check if expected mac equals the sent mac
   for (i = 0; i < 2; i++) {
     if (exp_mac[i + 2] != mac[i]) {
       m_logger.warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
                        "Received: count=%d, [%02x %02x]",
-                       m_sec_ctx.ul_nas_count,
+                       estimated_count,
                        exp_mac[0],
                        exp_mac[1],
                        exp_mac[2],
@@ -1759,7 +1762,9 @@ bool nas::short_integrity_check(srsran::byte_buffer_t* pdu)
       return false;
     }
   }
+
   m_logger.info("Integrity check ok. Local: count=%d, Received: count=%d", m_sec_ctx.ul_nas_count, pdu->msg[1] & 0x1F);
+  m_sec_ctx.ul_nas_count = estimated_count;
   return true;
 }
 

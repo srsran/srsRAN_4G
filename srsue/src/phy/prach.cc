@@ -42,15 +42,6 @@ using namespace srsue;
 void prach::init(uint32_t max_prb)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  for (auto& i : buffer) {
-    for (auto& j : i) {
-      j = srsran_vec_cf_malloc(SRSRAN_PRACH_MAX_LEN);
-      if (!j) {
-        perror("malloc");
-        return;
-      }
-    }
-  }
 
   if (srsran_cfo_init(&cfo_h, SRSRAN_PRACH_MAX_LEN)) {
     ERROR("PRACH: Error initiating CFO");
@@ -59,7 +50,7 @@ void prach::init(uint32_t max_prb)
 
   srsran_cfo_set_tol(&cfo_h, 0);
 
-  signal_buffer = srsran_vec_cf_malloc(MAX_LEN_SF * 30720U);
+  signal_buffer = srsran_vec_cf_malloc(SRSRAN_MAX(MAX_LEN_SF * 30720U, SRSRAN_PRACH_MAX_LEN));
   if (!signal_buffer) {
     perror("malloc");
     return;
@@ -78,12 +69,6 @@ void prach::stop()
   std::lock_guard<std::mutex> lock(mutex);
   if (!mem_initiated) {
     return;
-  }
-
-  for (auto& i : buffer) {
-    for (auto& j : i) {
-      free(j);
-    }
   }
 
   free(signal_buffer);
@@ -127,7 +112,6 @@ bool prach::set_cell(srsran_cell_t cell_, srsran_prach_cfg_t prach_cfg)
     return false;
   }
 
-  buffer_bitmask.reset();
   len             = prach_obj.N_seq + prach_obj.N_cp;
   transmitted_tti = -1;
   cell_initiated  = true;
@@ -139,21 +123,15 @@ bool prach::set_cell(srsran_cell_t cell_, srsran_prach_cfg_t prach_cfg)
 
 bool prach::generate_buffer(uint32_t f_idx)
 {
-  if (is_buffer_generated(f_idx, preamble_idx)) {
-    return true;
-  }
-
   uint32_t freq_offset = cfg.freq_offset;
   if (cell.frame_type == SRSRAN_TDD) {
     freq_offset = srsran_prach_f_ra_tdd(
         cfg.config_idx, cfg.tdd_config.sf_config, (f_idx / 6) * 10, f_idx % 6, cfg.freq_offset, cell.nof_prb);
   }
-  if (srsran_prach_gen(&prach_obj, preamble_idx, freq_offset, buffer[f_idx][preamble_idx])) {
+  if (srsran_prach_gen(&prach_obj, preamble_idx, freq_offset, signal_buffer)) {
     Error("Generating PRACH preamble %d", preamble_idx);
     return false;
   }
-
-  set_buffer_as_generated(f_idx, preamble_idx);
 
   return true;
 }
@@ -248,16 +226,11 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
     return nullptr;
   }
 
-  if (!is_buffer_generated(f_idx, preamble_idx)) {
-    Error("PRACH Buffer not generated: f_idx=%d preamble_idx=%d", f_idx, preamble_idx);
-    return nullptr;
-  }
-
   // Correct CFO before transmission
-  srsran_cfo_correct(&cfo_h, buffer[f_idx][preamble_idx], signal_buffer, cfo / srsran_symbol_sz(cell.nof_prb));
+  srsran_cfo_correct(&cfo_h, signal_buffer, signal_buffer, cfo / srsran_symbol_sz(cell.nof_prb));
 
   // pad guard symbols with zeros
-  uint32_t nsf = (len - 1) / SRSRAN_SF_LEN_PRB(cell.nof_prb) + 1;
+  uint32_t nsf = SRSRAN_CEIL(len, SRSRAN_SF_LEN_PRB(cell.nof_prb));
   srsran_vec_cf_zero(&signal_buffer[len], (nsf * SRSRAN_SF_LEN_PRB(cell.nof_prb) - len));
 
   *nof_sf = nsf;

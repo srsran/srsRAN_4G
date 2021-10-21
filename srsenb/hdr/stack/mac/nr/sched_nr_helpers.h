@@ -34,20 +34,20 @@ struct bwp_res_grid;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci);
+bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci);
 
-bool fill_dci_msg3(const slot_ue& ue, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& dci);
+bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci);
 
 /// Generate PDCCH DL DCI fields
 void fill_dl_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params&     bwp_cfg,
+                           const bwp_params_t&   bwp_cfg,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_dl_nr_t&   dci);
 
 /// Generate PDCCH UL DCI fields
 void fill_ul_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params&     bwp_cfg,
+                           const bwp_params_t&   bwp_cfg,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci);

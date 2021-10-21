@@ -44,6 +44,12 @@ int32_t mux_nr::init(rlc_interface_mac* rlc_)
   return SRSRAN_SUCCESS;
 }
 
+void mux_nr::reset()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  this->logical_channels.clear();
+}
+
 int mux_nr::setup_lcid(const srsran::logical_channel_config_t& config)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -97,10 +103,10 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
         uint8_t* rd = rlc_buff->msg;
 
         // Determine space for RLC
-        remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+        int32_t subpdu_header_len = (remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2);
 
-        // Read PDU from RLC
-        int pdu_len = rlc->read_pdu(lc.lcid, rd, remaining_len);
+        // Read PDU from RLC (account for subPDU header)
+        int pdu_len = rlc->read_pdu(lc.lcid, rd, remaining_len - subpdu_header_len);
 
         if (pdu_len > remaining_len) {
           logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
@@ -117,10 +123,11 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
               break;
             }
           } else {
+            // couldn't read PDU from RLC
             break;
           }
 
-          remaining_len -= pdu_len;
+          remaining_len -= (pdu_len + subpdu_header_len);
           logger.debug("%d B remaining PDU", remaining_len);
         }
       }

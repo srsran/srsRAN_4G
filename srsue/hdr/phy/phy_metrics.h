@@ -88,7 +88,10 @@ struct ch_metrics_t {
   {
     count++;
     PHY_METRICS_SET(n);
-    PHY_METRICS_SET(sinr);
+    // We exclude inf and nan from the average SINR
+    if (!std::isnan(other.sinr) || !std::isinf(other.sinr)) {
+      PHY_METRICS_SET(sinr);
+    }
     PHY_METRICS_SET(rsrp);
     PHY_METRICS_SET(rsrq);
     PHY_METRICS_SET(rssi);

@@ -147,10 +147,15 @@ void metrics_stdout::set_metrics_helper(uint32_t                          num_ue
     } else {
       fmt::print("  {:>5.5}", "n/a");
     }
-    int phr = (is_nr) ? mac.ues[i].phr : mac.ues[i].phr;
-    fmt::print("  {:>3}", int(phr));
+    int phr = mac.ues[i].phr;
     if (not isnan(phr)) {
-      fmt::print("   {:>2}", int(phr));
+      fmt::print("   {:>2}", phr);
+    } else {
+      fmt::print("   {:>2}", 0);
+    }
+    float ul_mcs = (is_nr) ? mac.ues[i].ul_mcs : phy[i].ul.mcs;
+    if (not isnan(ul_mcs)) {
+      fmt::print("   {:>2}", int(ul_mcs));
     } else {
       fmt::print("   {:>2}", 0);
     }

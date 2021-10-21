@@ -38,6 +38,11 @@
 
 namespace srsenb {
 
+struct gnb_stack_args_t {
+  stack_log_args_t log;
+  mac_nr_args_t    mac;
+};
+
 class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public stack_interface_phy_nr,
                            public stack_interface_mac,
@@ -50,10 +55,10 @@ public:
   explicit gnb_stack_nr(srslog::sink& log_sink);
   ~gnb_stack_nr() final;
 
-  int init(const srsenb::stack_args_t& args_,
-           const rrc_nr_cfg_t&         rrc_cfg_,
-           phy_interface_stack_nr*     phy_,
-           x2_interface*               x2_);
+  int init(const gnb_stack_args_t& args_,
+           const rrc_nr_cfg_t&     rrc_cfg_,
+           phy_interface_stack_nr* phy_,
+           x2_interface*           x2_);
 
   // eNB stack base interface
   void        stop() final;
@@ -85,14 +90,19 @@ public:
   // X2 interface
 
   // control plane, i.e. rrc_nr_interface_rrc
-  int sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) final
+  void sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params) final
   {
-    return rrc.sgnb_addition_request(eutra_rnti, params);
+    x2_task_queue.push([this, eutra_rnti, params]() { rrc.sgnb_addition_request(eutra_rnti, params); });
   };
-  int sgnb_reconfiguration_complete(uint16_t eutra_rnti, asn1::dyn_octstring reconfig_response) final
+  void sgnb_reconfiguration_complete(uint16_t eutra_rnti, const asn1::dyn_octstring& reconfig_response) final
   {
-    return rrc.sgnb_reconfiguration_complete(eutra_rnti, reconfig_response);
+    x2_task_queue.push(
+        [this, eutra_rnti, reconfig_response]() { rrc.sgnb_reconfiguration_complete(eutra_rnti, reconfig_response); });
   };
+  void sgnb_release_request(uint16_t nr_rnti) final
+  {
+    x2_task_queue.push([this, nr_rnti]() { return rrc.sgnb_release_request(nr_rnti); });
+  }
   // X2 data interface
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) final
   {
@@ -110,9 +120,10 @@ public:
 private:
   void run_thread() final;
   void tti_clock_impl();
+  void stop_impl();
 
   // args
-  srsenb::stack_args_t    args = {};
+  gnb_stack_args_t        args = {};
   phy_interface_stack_nr* phy  = nullptr;
 
   srslog::basic_logger& rrc_logger;
@@ -124,7 +135,12 @@ private:
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;
   srsran::task_scheduler                task_sched;
-  srsran::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gtpu_task_queue, mac_task_queue;
+  srsran::task_multiqueue::queue_handle sync_task_queue, gtpu_task_queue, metrics_task_queue, gnb_task_queue,
+      x2_task_queue;
+
+  // metrics waiting condition
+  std::mutex              metrics_mutex;
+  std::condition_variable metrics_cvar;
 
   // derived
   srsenb::mac_nr mac;

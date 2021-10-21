@@ -71,9 +71,9 @@ public:
   // Common objects
   phy_args_t params = {};
 
-  uint32_t get_nof_carriers_lte() { return static_cast<uint32_t>(cell_list_lte.size()); };
-  uint32_t get_nof_carriers_nr() { return static_cast<uint32_t>(cell_list_nr.size()); };
-  uint32_t get_nof_carriers() { return static_cast<uint32_t>(cell_list_lte.size() + cell_list_nr.size()); };
+  uint32_t get_nof_carriers_lte() { return static_cast<uint32_t>(cell_list_lte.size()); }
+  uint32_t get_nof_carriers_nr() { return static_cast<uint32_t>(cell_list_nr.size()); }
+  uint32_t get_nof_carriers() { return static_cast<uint32_t>(cell_list_lte.size() + cell_list_nr.size()); }
   uint32_t get_nof_prb(uint32_t cc_idx)
   {
     uint32_t ret = 0;
@@ -93,7 +93,7 @@ public:
       }
     }
     return ret;
-  };
+  }
   uint32_t get_nof_ports(uint32_t cc_idx)
   {
     uint32_t ret = 0;
@@ -106,7 +106,7 @@ public:
     }
 
     return ret;
-  };
+  }
   uint32_t get_nof_rf_channels()
   {
     uint32_t count = 0;
@@ -135,7 +135,7 @@ public:
     }
 
     return ret;
-  };
+  }
   double get_dl_freq_hz(uint32_t cc_idx)
   {
     double ret = 0.0;
@@ -150,7 +150,7 @@ public:
     }
 
     return ret;
-  };
+  }
   uint32_t get_rf_port(uint32_t cc_idx)
   {
     uint32_t ret = 0;
@@ -165,7 +165,7 @@ public:
     }
 
     return ret;
-  };
+  }
   srsran_cell_t get_cell(uint32_t cc_idx)
   {
     srsran_cell_t c = {};
@@ -173,7 +173,7 @@ public:
       c = cell_list_lte[cc_idx].cell;
     }
     return c;
-  };
+  }
 
   void set_cell_gain(uint32_t cell_id, float gain_db)
   {
@@ -183,6 +183,7 @@ public:
 
     // Check if the lte cell was found;
     if (it_lte != cell_list_lte.end()) {
+      std::lock_guard<std::mutex> lock(cell_gain_mutex);
       it_lte->gain_db = gain_db;
       return;
     }
@@ -193,6 +194,7 @@ public:
 
     // Check if the nr cell was found;
     if (it_nr != cell_list_nr.end()) {
+      std::lock_guard<std::mutex> lock(cell_gain_mutex);
       it_nr->gain_db = gain_db;
       return;
     }
@@ -202,6 +204,7 @@ public:
 
   float get_cell_gain(uint32_t cc_idx)
   {
+    std::lock_guard<std::mutex> lock(cell_gain_mutex);
     if (cc_idx < cell_list_lte.size()) {
       return cell_list_lte.at(cc_idx).gain_db;
     }
@@ -244,6 +247,7 @@ private:
 
   phy_cell_cfg_list_t    cell_list_lte;
   phy_cell_cfg_list_nr_t cell_list_nr;
+  std::mutex             cell_gain_mutex;
 
   bool                    have_mtch_stop   = false;
   pthread_mutex_t         mtch_mutex       = {};

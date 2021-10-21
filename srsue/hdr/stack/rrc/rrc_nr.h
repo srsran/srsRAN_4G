@@ -22,6 +22,7 @@
 #ifndef SRSUE_RRC_NR_H
 #define SRSUE_RRC_NR_H
 
+#include "nr/rrc_nr_config.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
@@ -40,24 +41,6 @@ namespace srsue {
 class usim_interface_rrc_nr;
 class pdcp_interface_rrc;
 class rlc_interface_rrc;
-
-// Expert arguments to create GW without proper RRC
-struct core_less_args_t {
-  std::string      ip_addr;
-  srsue::gw_args_t gw_args;
-  uint8_t          drb_lcid;
-};
-
-struct rrc_nr_args_t {
-  core_less_args_t      coreless;
-  uint32_t              sim_nr_meas_pci;
-  bool                  pdcp_short_sn_support;
-  std::string           supported_bands_nr_str;
-  std::vector<uint32_t> supported_bands_nr;
-  std::vector<uint32_t> supported_bands_eutra;
-  std::string           log_level;
-  uint32_t              log_hex_limit;
-};
 
 struct rrc_nr_metrics_t {};
 
@@ -139,6 +122,7 @@ public:
                            uint32_t            sk_counter_r15,
                            bool                nr_radio_bearer_cfg1_r15_present,
                            asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
+  void rrc_release();
   bool configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
   // STACK interface

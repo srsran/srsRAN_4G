@@ -57,7 +57,6 @@ public:
   int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_interface_mac* rlc_, rrc_interface_mac* rrc_);
   void stop();
 
-  void reset();
   void run_tti(const uint32_t tti);
 
   void start_pcap(srsran::mac_pcap* pcap_);
@@ -84,6 +83,7 @@ public:
   void get_metrics(mac_metrics_t* metrics);
 
   /// Interface for RRC (RRC -> MAC)
+  void reset();
   int  setup_lcid(const srsran::logical_channel_config_t& config);
   int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg);
   int  set_config(const srsran::sr_cfg_nr_t& sr_cfg);
@@ -116,7 +116,8 @@ public:
   bool msg3_is_empty() { return mux.msg3_is_empty(); }
 
   /// RRC
-  void rrc_ra_problem() { rrc->ra_problem(); }
+  void rrc_ra_problem();
+  void rrc_ra_completed();
 
   /// stack interface
   void process_pdus();

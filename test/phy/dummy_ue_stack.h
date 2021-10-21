@@ -38,6 +38,7 @@ public:
 
 private:
   std::mutex                     rnti_mutex;
+  srsran_random_t                random_gen     = srsran_random_init(0x1323);
   srsran_rnti_type_t             dl_rnti_type   = srsran_rnti_type_c;
   uint16_t                       rnti           = 0;
   bool                           valid          = false;
@@ -45,6 +46,7 @@ private:
   uint32_t                       sr_count       = 0;
   uint32_t                       prach_period   = 0;
   uint32_t                       prach_preamble = 0;
+  bool                           prach_pending  = false;
   metrics_t                      metrics        = {};
   srsue::phy_interface_stack_nr& phy;
 
@@ -53,21 +55,16 @@ private:
 
 public:
   struct args_t {
-    uint16_t rnti           = 0x1234; ///< C-RNTI for PUSCH and PDSCH transmissions
-    uint32_t sr_period      = 0;      ///< Indicates positive SR period in number of opportunities. Set to 0 to disable.
-    uint32_t prach_period   = 0;      ///< Requests PHY to transmit PRACH periodically in frames. Set to 0 to disable.
-    uint32_t prach_preamble = 0;      ///< Requests PHY to transmit PRACH periodically in frames. Set to 0 to disable.
+    uint16_t rnti         = 0x1234; ///< C-RNTI for PUSCH and PDSCH transmissions
+    uint32_t sr_period    = 0;      ///< Indicates positive SR period in number of opportunities. Set to 0 to disable.
+    uint32_t prach_period = 0;      ///< Requests PHY to transmit PRACH periodically in frames. Set to 0 to disable.
   };
   ue_dummy_stack(const args_t& args, srsue::phy_interface_stack_nr& phy_) :
-    rnti(args.rnti),
-    sr_period(args.sr_period),
-    prach_period(args.prach_period),
-    prach_preamble(args.prach_preamble),
-    phy(phy_)
+    rnti(args.rnti), sr_period(args.sr_period), prach_period(args.prach_period), phy(phy_)
   {
     valid = true;
   }
-  ~ue_dummy_stack() = default;
+  ~ue_dummy_stack() { srsran_random_free(random_gen); }
   void in_sync() override {}
   void out_of_sync() override {}
   void run_tti(const uint32_t tti) override
@@ -76,9 +73,10 @@ public:
     if (prach_period != 0) {
       uint32_t slot_idx = tti % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz);
       uint32_t sfn      = tti / SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz);
-      if (slot_idx == 0 and sfn % prach_period == 0) {
+      if (not prach_pending and slot_idx == 0 and sfn % prach_period == 0) {
+        prach_preamble = srsran_random_uniform_int_dist(random_gen, 0, 63);
         phy.send_prach(0, prach_preamble, 0.0f, 0.0f);
-        metrics.prach[prach_preamble].count++;
+        prach_pending = true;
       }
     }
   }
@@ -113,6 +111,8 @@ public:
     std::unique_lock<std::mutex> lock(rnti_mutex);
     dl_rnti_type = srsran_rnti_type_ra;
     rnti         = 1 + s_id + 14 * t_id + 14 * 80 * f_id + 14 * 80 * 8 * ul_carrier_id;
+    metrics.prach[prach_preamble].count++;
+    prach_pending = false;
   }
   bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx) override
   {

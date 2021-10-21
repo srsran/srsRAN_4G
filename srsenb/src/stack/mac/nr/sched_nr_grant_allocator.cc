@@ -26,7 +26,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-bwp_slot_grid::bwp_slot_grid(const bwp_params& bwp_cfg_, uint32_t slot_idx_) :
+bwp_slot_grid::bwp_slot_grid(const bwp_params_t& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
@@ -58,9 +58,10 @@ void bwp_slot_grid::reset()
   pucch.clear();
   ssb.clear();
   nzp_csi_rs.clear();
+  rar.clear();
 }
 
-bwp_res_grid::bwp_res_grid(const bwp_params& bwp_cfg_) : cfg(&bwp_cfg_)
+bwp_res_grid::bwp_res_grid(const bwp_params_t& bwp_cfg_) : cfg(&bwp_cfg_)
 {
   for (uint32_t sl = 0; sl < slots.capacity(); ++sl) {
     slots.emplace_back(*cfg, sl % static_cast<uint32_t>(SRSRAN_NSLOTS_PER_FRAME_NR(0u)));
@@ -102,9 +103,15 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   static const uint32_t msg3_nof_prbs = 3, m = 0;
 
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
-  slot_point     msg3_slot      = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
-  bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_slot];
-  alloc_result   ret            = verify_pusch_space(bwp_msg3_slot, nullptr);
+  if (not bwp_pdcch_slot.ssb.empty()) {
+    // TODO: support concurrent PDSCH and SSB
+    logger.info("SCHED: skipping ra-rnti=0x%x RAR allocation. Cause: concurrent PDSCH and SSB not yet supported",
+                ra_rnti);
+    return alloc_result::no_sch_space;
+  }
+  slot_point     msg3_slot     = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
+  bwp_slot_grid& bwp_msg3_slot = bwp_grid[msg3_slot];
+  alloc_result   ret           = verify_pusch_space(bwp_msg3_slot, nullptr);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -163,7 +170,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   const int mcs = 0, max_harq_msg3_retx = 4;
   slot_cfg.idx = msg3_slot.to_uint();
   bwp_pdcch_slot.rar.emplace_back();
-  sched_nr_interface::sched_rar_t& rar_out = bwp_pdcch_slot.rar.back();
+  sched_nr_interface::rar_t& rar_out = bwp_pdcch_slot.rar.back();
   for (const dl_sched_rar_info_t& grant : pending_rars) {
     slot_ue& ue = (*slot_ues)[grant.temp_crnti];
 
@@ -174,7 +181,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
     last_msg3 += msg3_nof_prbs;
     ue.h_ul = ue.harq_ent->find_empty_ul_harq();
-    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, 100, max_harq_msg3_retx);
+    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     fill_dci_msg3(ue, *bwp_grid.cfg, rar_grant.msg3_dci);
 
@@ -206,7 +213,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   }
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
-  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot];  // UCI : UL control info
+  bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot]; // UCI : UL control info
   alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot);
   if (result != alloc_result::success) {
     return result;
@@ -225,57 +232,80 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   // TODO
 
   // Find space and allocate PDCCH
-  const uint32_t aggr_idx = 2, ss_id = 1;
-  uint32_t       coreset_id = ue.cfg->phy().pdcch.search_space[ss_id].coreset_id;
+  const uint32_t aggr_idx = 2;
+  // Choose the ss_id the highest number of candidates
+  uint32_t ss_id = 0, max_nof_candidates = 0;
+  for (uint32_t i = 0; i < 3; ++i) {
+    uint32_t nof_candidates = ue.cfg->cce_pos_list(i, pdcch_slot.slot_idx(), aggr_idx).size();
+    if (nof_candidates > max_nof_candidates) {
+      ss_id              = i;
+      max_nof_candidates = nof_candidates;
+    }
+  }
+  uint32_t coreset_id = ue.cfg->phy().pdcch.search_space[ss_id].coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss_id, &ue)) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
 
   // Allocate HARQ
+  int mcs = ue.cfg->fixed_pdsch_mcs();
   if (ue.h_dl->empty()) {
-    srsran_assert(ue.cfg->ue_cfg()->fixed_dl_mcs >= 0, "Dynamic MCS not yet supported");
-    int  mcs = ue.cfg->ue_cfg()->fixed_dl_mcs;
-    int  tbs = 100;
-    bool ret = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, tbs, 4);
+    bool ret = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4);
     srsran_assert(ret, "Failed to allocate DL HARQ");
   } else {
     bool ret = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant);
+    mcs      = ue.h_dl->mcs();
     srsran_assert(ret, "Failed to allocate DL HARQ retx");
   }
 
   // Allocation Successful
 
-  // Generate PDCCH
-  pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
-  fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
-  pdcch.dci.pucch_resource = 0;
-  pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
-                                bwp_uci_slot.pending_acks.end(),
-                                [&ue](const harq_ack_t& p) { return p.res.rnti == ue.rnti; });
-  pdcch.dci.dai %= 4;
-  pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
+  const static float max_R = 0.93;
+  while (true) {
+    // Generate PDCCH
+    pdcch_dl_t& pdcch = bwp_pdcch_slot.dl_pdcchs.back();
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+    pdcch.dci.pucch_resource = 0;
+    pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
+                                  bwp_uci_slot.pending_acks.end(),
+                                  [&ue](const harq_ack_t& p) { return p.res.rnti == ue.rnti; });
+    pdcch.dci.dai %= 4;
+    pdcch.dci_cfg = ue.cfg->phy().get_dci_cfg();
 
-  // Generate PUCCH
-  bwp_uci_slot.pending_acks.emplace_back();
-  bwp_uci_slot.pending_acks.back().phy_cfg = &ue.cfg->phy();
-  srsran_assert(ue.cfg->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
-                "Error getting ack resource");
+    // Generate PUCCH
+    bwp_uci_slot.pending_acks.emplace_back();
+    bwp_uci_slot.pending_acks.back().phy_cfg = &ue.cfg->phy();
+    srsran_assert(ue.cfg->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
+                  "Error getting ack resource");
 
-  // Generate PDSCH
-  bwp_pdsch_slot.dl_prbs |= dl_grant;
-  bwp_pdsch_slot.pdschs.emplace_back();
-  pdsch_t&          pdsch = bwp_pdsch_slot.pdschs.back();
-  srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = ue.pdsch_slot.to_uint();
-  bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
-  srsran_assert(ret, "Error converting DCI to grant");
-  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
-  pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
-  if (ue.h_dl->nof_retx() == 0) {
-    ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
-  } else {
-    srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
+    // Generate PDSCH
+    bwp_pdsch_slot.dl_prbs |= dl_grant;
+    bwp_pdsch_slot.pdschs.emplace_back();
+    pdsch_t&          pdsch = bwp_pdsch_slot.pdschs.back();
+    srsran_slot_cfg_t slot_cfg;
+    slot_cfg.idx = ue.pdsch_slot.to_uint();
+    bool ret     = ue.cfg->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+    srsran_assert(ret, "Error converting DCI to grant");
+
+    pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
+    pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
+    if (ue.h_dl->nof_retx() == 0) {
+      ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
+    } else {
+      srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
+    }
+    if (ue.h_dl->nof_retx() > 0 or bwp_pdsch_slot.pdschs.back().sch.grant.tb[0].R_prime < max_R or mcs <= 0) {
+      break;
+    }
+    // Decrease MCS if first tx and rate is too high
+    mcs--;
+    ue.h_dl->set_mcs(mcs);
+    bwp_pdsch_slot.pdschs.pop_back();
+    bwp_uci_slot.pending_acks.pop_back();
+  }
+  if (mcs == 0) {
+    logger.warning("Couldn't find mcs that leads to R<0.9");
   }
 
   return alloc_result::success;
@@ -298,18 +328,26 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   if (bwp_pusch_slot.ul_prbs.collides(ul_prbs)) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 2, ss_id = 1;
-  uint32_t       coreset_id = ue.cfg->phy().pdcch.search_space[ss_id].coreset_id;
+  const uint32_t aggr_idx = 2;
+  // Choose the ss_id the highest number of candidates
+  uint32_t ss_id = 0, max_nof_candidates = 0;
+  for (uint32_t i = 0; i < 3; ++i) {
+    uint32_t nof_candidates = ue.cfg->cce_pos_list(i, pdcch_slot.slot_idx(), aggr_idx).size();
+    if (nof_candidates > max_nof_candidates) {
+      ss_id              = i;
+      max_nof_candidates = nof_candidates;
+    }
+  }
+  uint32_t coreset_id = ue.cfg->phy().pdcch.search_space[ss_id].coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(pdcch_grant_type_t::ul_data, aggr_idx, ss_id, &ue)) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
 
   if (ue.h_ul->empty()) {
-    srsran_assert(ue.cfg->ue_cfg()->fixed_ul_mcs >= 0, "Dynamic MCS not yet supported");
-    int  mcs     = ue.cfg->ue_cfg()->fixed_ul_mcs;
+    int  mcs     = ue.cfg->fixed_pusch_mcs();
     int  tbs     = 100;
-    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, tbs, ue.cfg->ue_cfg()->maxharq_tx);
+    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, ue.cfg->ue_cfg()->maxharq_tx);
     srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
     bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_prbs);

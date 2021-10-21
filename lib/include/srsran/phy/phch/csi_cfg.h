@@ -171,12 +171,10 @@ typedef struct SRSRAN_API {
 
 /**
  * @brief CSI report configuration
+ * @note An unset report is marked with `cfg.type = SRSRAN_CSI_REPORT_TYPE_NONE`
  */
 typedef struct SRSRAN_API {
-  srsran_csi_report_type_t     type;           ///< CSI report type (none, periodic, semiPersistentOnPUCCH, ...)
-  srsran_csi_report_quantity_t quantity;       ///< Report quantity
-  srsran_pucch_nr_resource_t   pucch_resource; ///< PUCCH resource to use for periodic reporting
-  srsran_csi_report_freq_t     freq_cfg;       ///< Determine whether it is wideband or subband
+  srsran_csi_hl_report_cfg_t cfg; ///< Higher layer CSI report configuration
 
   // Resource set context
   uint32_t nof_ports; ///< Number of antenna ports
@@ -202,7 +200,6 @@ typedef struct SRSRAN_API {
     void*                                       none;
     srsran_csi_report_wideband_cri_ri_pmi_cqi_t wideband_cri_ri_pmi_cqi;
   };
-  bool valid; ///< Used by receiver only
 } srsran_csi_report_value_t;
 
 /**

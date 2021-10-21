@@ -32,6 +32,7 @@
 
 #define MAX_LEN 70176
 
+static bool     is_nr            = false;
 static uint32_t nof_prb          = 50;
 static uint32_t config_idx       = 3;
 static uint32_t root_seq_idx     = 0;
@@ -45,12 +46,13 @@ static void usage(char* prog)
   printf("\t-f Preamble format [Default 0]\n");
   printf("\t-r Root sequence index [Default 0]\n");
   printf("\t-z Zero correlation zone config [Default 1]\n");
+  printf("\t-N Toggle LTE/NR operation, zero for LTE, non-zero for NR [Default %s]\n", is_nr ? "NR" : "LTE");
 }
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "nfrz")) != -1) {
+  while ((opt = getopt(argc, argv, "nfrzN")) != -1) {
     switch (opt) {
       case 'n':
         nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -63,6 +65,9 @@ static void parse_args(int argc, char** argv)
         break;
       case 'z':
         zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'N':
+        is_nr = (uint32_t)strtol(argv[optind], NULL, 10) > 0;
         break;
       default:
         usage(argv[0]);
@@ -83,6 +88,7 @@ int main(int argc, char** argv)
 
   srsran_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
+  prach_cfg.is_nr            = is_nr;
   prach_cfg.config_idx       = config_idx;
   prach_cfg.hs_flag          = high_speed_flag;
   prach_cfg.freq_offset      = 0;

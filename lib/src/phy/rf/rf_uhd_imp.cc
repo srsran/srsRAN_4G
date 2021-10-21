@@ -19,6 +19,7 @@
  *
  */
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -164,7 +165,7 @@ struct rf_uhd_handler_t {
 
 #if HAVE_ASYNC_THREAD
   // Asynchronous transmission message thread
-  bool                    async_thread_running = false;
+  std::atomic<bool>       async_thread_running{false};
   std::thread             async_thread;
   std::mutex              async_mutex;
   std::condition_variable async_cvar;
@@ -235,9 +236,12 @@ static void log_late(rf_uhd_handler_t* h, bool is_rx)
 #if HAVE_ASYNC_THREAD
 static void log_underflow(rf_uhd_handler_t* h)
 {
-  // Flag underflow
-  if (h->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
-    h->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
+  {
+    std::lock_guard<std::mutex> tx_lock(h->tx_mutex);
+    // Flag underflow
+    if (h->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
+      h->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
+    }
   }
   if (h->uhd_error_handler != nullptr) {
     srsran_rf_error_t error;
@@ -298,6 +302,7 @@ static void* async_thread(void* h)
           }
         } else if (event_code == uhd::async_metadata_t::EVENT_CODE_BURST_ACK) {
           // Makes sure next block will be start of burst
+          std::lock_guard<std::mutex> tx_lock(handler->tx_mutex);
           if (handler->tx_state == RF_UHD_IMP_TX_STATE_WAIT_EOB_ACK) {
             handler->tx_state = RF_UHD_IMP_TX_STATE_START_BURST;
           }
@@ -1032,11 +1037,12 @@ double rf_uhd_set_rx_srate(void* h, double freq)
 
 double rf_uhd_set_tx_srate(void* h, double freq)
 {
-  rf_uhd_handler_t*            handler = (rf_uhd_handler_t*)h;
-  std::unique_lock<std::mutex> lock(handler->tx_mutex);
+  rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+  // Locking order should be kept the same with the async worker.
 #if HAVE_ASYNC_THREAD
   std::unique_lock<std::mutex> lock_async(handler->async_mutex);
 #endif /* HAVE_ASYNC_THREAD */
+  std::unique_lock<std::mutex> lock(handler->tx_mutex);
 
   // Early return if the current rate matches and Tx stream has been created
   if (freq == handler->tx_rate and handler->uhd->is_tx_ready()) {
@@ -1418,6 +1424,8 @@ int rf_uhd_send_timed_multi(void*  h,
 
       // Flush receiver only if allowed
       if (RF_UHD_IMP_PROHIBITED_EOB_FLUSH.count(handler->devname) == 0) {
+        // Avoid holding the tx lock while in the rf_uhd_flush_buffer function to avoid potential deadlocks.
+        lock.unlock();
         rf_uhd_flush_buffer(h);
       }
 

@@ -371,6 +371,13 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
   return true;
 }
 
+void rrc_nr::rrc_release()
+{
+  rlc->reset();
+  pdcp->reset();
+  mac->reset();
+}
+
 int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 {
   struct ue_nr_cap_s nr_cap;
@@ -667,12 +674,14 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
         return false;
       }
     }
-  } else {
-    logger.warning("Option zp_csi_rs_res_to_add_mod_list not present");
-    return false;
   }
 
   if (pdsch_cfg.p_zp_csi_rs_res_set_present) {
+    // check if resources have been processed
+    if (not pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+      logger.warning("Can't build ZP-CSI config, option zp_csi_rs_res_to_add_mod_list not present");
+      return false;
+    }
     if (pdsch_cfg.p_zp_csi_rs_res_set.type() == setup_release_c<zp_csi_rs_res_set_s>::types_opts::setup) {
       for (uint32_t i = 0; i < pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.size(); i++) {
         uint8_t res = pdsch_cfg.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list[i];
@@ -1152,6 +1161,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
 
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
+  srsran_csi_hl_cfg_t prev_csi = phy_cfg.csi;
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
@@ -1163,21 +1173,21 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         logger.warning("Option PCI not present");
         return false;
       }
-      if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
-        if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
-          return false;
-        }
-      } else {
-        logger.warning("Secondary primary cell ul cfg common not present");
-        return false;
-      }
       // Read essential DL carrier settings
       if (recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present) {
         if (apply_dl_common_cfg(recfg_with_sync.sp_cell_cfg_common.dl_cfg_common) == false) {
           return false;
         }
       } else {
-        logger.warning("DL cfg common not present");
+        logger.warning("Secondary primary cell dl cfg common not present");
+        return false;
+      }
+      if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
+        if (apply_ul_common_cfg(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common) == false) {
+          return false;
+        }
+      } else {
+        logger.warning("Secondary primary cell ul cfg common not present");
         return false;
       }
       // Build SSB config
@@ -1227,7 +1237,10 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg_present) {
         if (sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.type() ==
             setup_release_c<pdsch_cfg_s>::types_opts::setup) {
-          apply_sp_cell_init_dl_pdsch(sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.setup());
+          if (apply_sp_cell_init_dl_pdsch(sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.setup()) == false) {
+            logger.error("Couldn't apply PDSCH config for initial DL BWP in SpCell Cfg dedicated");
+            return false;
+          };
         } else {
           logger.warning("Option pdsch_cfg_cfg not of type setup");
           return false;
@@ -1314,7 +1327,14 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     logger.warning("Option sp_cell_cfg_ded not present");
     return false;
   }
-  phy->set_config(phy_cfg);
+
+  // Configure PHY
+  // Note: CSI config is deferred to when RA is complete. See TS 38.331, Section 5.3.5.3
+  srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
+  current_phycfg.csi                  = prev_csi;
+  phy->set_config(current_phycfg);
+
+  // Start RA procedure
   mac->start_ra_procedure();
   return true;
 }
@@ -1510,7 +1530,11 @@ void rrc_nr::max_retx_attempted() {}
 void rrc_nr::protocol_failure() {}
 
 // MAC interface
-void rrc_nr::ra_completed() {}
+void rrc_nr::ra_completed()
+{
+  logger.info("RA completed. Applying remaining CSI configuration.");
+  phy->set_config(phy_cfg);
+}
 void rrc_nr::ra_problem()
 {
   rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);

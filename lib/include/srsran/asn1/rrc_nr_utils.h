@@ -66,6 +66,8 @@ struct pdsch_serving_cell_cfg_s;
 struct freq_info_dl_s;
 struct serving_cell_cfg_common_s;
 struct serving_cell_cfg_s;
+struct pdcch_cfg_common_s;
+struct pdcch_cfg_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -123,7 +125,12 @@ bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s& freq_info_dl, srsr
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       ssb);
-bool make_pdsch_cfg_from_serv_cell(asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl);
+bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl);
+bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl);
+bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell,
+                                    srsran_duplex_config_nr_t*                     duplex_cfg);
+bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
+bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
 
 /***************************
  *      MAC Config

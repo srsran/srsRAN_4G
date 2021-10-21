@@ -419,9 +419,11 @@ static void pbch_nr_scramble_tx(const srsran_pbch_nr_cfg_t* cfg,
   uint32_t M_bit = PBCH_NR_E;
 
   // Select value v
-  uint32_t v = (ssb_idx & 0x7U);
+  // for L max = 8 or L max = 64 , & is the three least significant bits of the SS/PBCH block index
+  uint32_t v = (ssb_idx & 0b111U);
   if (cfg->Lmax == 4) {
-    v = ssb_idx & 0x3U;
+    // for L max = 4 , & is the two least significant bits of the SS/PBCH block index
+    v = ssb_idx & 0b11U;
   }
 
   // Advance sequence
@@ -444,8 +446,10 @@ static void pbch_nr_scramble_rx(const srsran_pbch_nr_cfg_t* cfg,
   uint32_t M_bit = PBCH_NR_E;
 
   // Select value v
+  // for L max = 8 or L max = 64 , & is the three least significant bits of the SS/PBCH block index
   uint32_t v = (ssb_idx & 0b111U);
   if (cfg->Lmax == 4) {
+    // for L max = 4 , & is the two least significant bits of the SS/PBCH block index
     v = ssb_idx & 0b11U;
   }
 

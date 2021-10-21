@@ -144,10 +144,10 @@ void sync::stop()
   }
   running = false;
 
+  wait_thread_finish();
+
   // Reset (stop Rx stream) as soon as possible to avoid base-band Rx buffer overflow
   radio_h->reset();
-
-  wait_thread_finish();
 }
 
 void sync::reset()
@@ -936,13 +936,10 @@ void sync::set_sampling_rate()
     return;
   }
 
-  if (srate.set_camp(new_srate)) {
-    Info("SYNC:  Setting sampling rate %.2f MHz", new_srate / 1000000);
-    radio_h->set_rx_srate(new_srate);
-    radio_h->set_tx_srate(new_srate);
-  } else {
-    Error("Error setting sampling rate for cell with %d PRBs", cell.get().nof_prb);
-  }
+  srate.set_camp(new_srate);
+  Info("SYNC:  Setting sampling rate %.2f MHz", new_srate / 1000000);
+  radio_h->set_rx_srate(new_srate);
+  radio_h->set_tx_srate(new_srate);
 }
 
 uint32_t sync::get_current_tti()

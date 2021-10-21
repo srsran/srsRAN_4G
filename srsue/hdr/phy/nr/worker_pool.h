@@ -36,7 +36,12 @@ private:
   srsran::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
   state                                    phy_state;
-  std::unique_ptr<prach>                   prach_buffer = nullptr;
+  std::unique_ptr<prach>                   prach_buffer       = nullptr;
+  uint32_t                                 prach_nof_sf       = 0;
+  uint32_t                                 prach_sf_count     = 0;
+  cf_t*                                    prach_ptr          = nullptr;
+  float                                    prach_target_power = 0.0f;
+  uint32_t                                 sf_sz              = 0;
 
 public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }

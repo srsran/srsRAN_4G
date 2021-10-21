@@ -23,6 +23,7 @@
 #include "srsran/phy/common/sequence.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
+#include <complex.h>
 
 // Implements TS 38.211 table 6.4.1.3.1.1-1: Number of DM-RS symbols and the corresponding N_PUCCH...
 static uint32_t dmrs_pucch_format1_n_pucch(const srsran_pucch_nr_resource_t* resource, uint32_t m_prime)
@@ -226,12 +227,13 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   }
 
   // Perform measurements
-  float rsrp   = 0.0f;
-  float epre   = 0.0f;
-  float ta_err = 0.0f;
+  float rsrp                                = 0.0f;
+  float epre                                = 0.0f;
+  float ta_err                              = 0.0f;
+  cf_t  corr[SRSRAN_PUCCH_NR_FORMAT1_N_MAX] = {};
   for (uint32_t m = 0; m < n_pucch; m++) {
-    cf_t corr = srsran_vec_acc_cc(ce[m], SRSRAN_NRE) / SRSRAN_NRE;
-    rsrp += __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+    corr[m] = srsran_vec_acc_cc(ce[m], SRSRAN_NRE) / SRSRAN_NRE;
+    rsrp += SRSRAN_CSQABS(corr[m]);
     epre += srsran_vec_avg_power_cf(ce[m], SRSRAN_NRE);
     ta_err += srsran_vec_estimate_frequency(ce[m], SRSRAN_NRE);
   }
@@ -263,7 +265,22 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   }
 
   // Measure CFO
-  res->cfo_hz = NAN; // Not implemented
+  if (n_pucch > 1) {
+    float cfo_avg_hz = 0.0f;
+    for (uint32_t m = 0; m < n_pucch - 1; m++) {
+      uint32_t l0         = resource->start_symbol_idx + m * 2;
+      uint32_t l1         = resource->start_symbol_idx + (m + 1) * 2;
+      float    time_diff  = srsran_symbol_distance_s(l0, l1, q->carrier.scs);
+      float    phase_diff = cargf(corr[m + 1] * conjf(corr[m]));
+
+      if (isnormal(time_diff)) {
+        cfo_avg_hz += phase_diff / (2.0f * M_PI * time_diff * (n_pucch - 1));
+      }
+    }
+    res->cfo_hz = cfo_avg_hz;
+  } else {
+    res->cfo_hz = NAN; // Not implemented
+  }
 
   // Do averaging here
   // ... Not implemented
@@ -388,12 +405,13 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
   }
 
   // Perform measurements
-  float epre   = 0.0f;
-  float rsrp   = 0.0f;
-  float ta_err = 0.0f;
+  float epre                                    = 0.0f;
+  float rsrp                                    = 0.0f;
+  float ta_err                                  = 0.0f;
+  cf_t  corr[SRSRAN_PUCCH_NR_FORMAT2_MAX_NSYMB] = {};
   for (uint32_t i = 0; i < resource->nof_symbols; i++) {
-    cf_t corr = srsran_vec_acc_cc(ce[i], nof_ref) / nof_ref;
-    rsrp += __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+    corr[i] = srsran_vec_acc_cc(ce[i], nof_ref) / nof_ref;
+    rsrp += SRSRAN_CSQABS(corr[i]);
     epre += srsran_vec_avg_power_cf(ce[i], nof_ref);
     ta_err += srsran_vec_estimate_frequency(ce[i], nof_ref);
   }
@@ -420,6 +438,24 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
     res->ta_us = ta_err;
   } else {
     res->ta_us = 0.0f;
+  }
+
+  // Measure CFO
+  if (resource->nof_symbols > 1) {
+    float cfo_avg_hz = 0.0f;
+    for (uint32_t l = 0; l < resource->nof_symbols - 1; l++) {
+      uint32_t l0         = resource->start_symbol_idx + l;
+      uint32_t l1         = resource->start_symbol_idx + l + 1;
+      float    time_diff  = srsran_symbol_distance_s(l0, l1, q->carrier.scs);
+      float    phase_diff = cargf(corr[l + 1] * conjf(corr[l]));
+
+      if (isnormal(time_diff)) {
+        cfo_avg_hz += phase_diff / (2.0f * M_PI * time_diff * (resource->nof_symbols - 1));
+      }
+    }
+    res->cfo_hz = cfo_avg_hz;
+  } else {
+    res->cfo_hz = NAN; // Not implemented
   }
 
   // Perform averaging

@@ -333,7 +333,7 @@ void ul_harq_proc::reset_pending_data()
 
 uint32_t ul_harq_proc::get_pending_data() const
 {
-  return (uint32_t)pending_data;
+  return is_empty() ? 0 : (uint32_t)pending_data;
 }
 
 /********************
@@ -360,6 +360,9 @@ void harq_entity::reset()
   for (auto& h : ul_harqs) {
     for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
       h.reset(tb);
+      // The reset_pending_data() is called after reset(), when generating PHICH. However, in the case of full HARQ
+      // reset (e.g. during handover) no PHICH is going to be generated.
+      h.reset_pending_data();
     }
   }
 }

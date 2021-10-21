@@ -26,7 +26,7 @@
 
 namespace srsenb {
 
-void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_output_res_t& cc_out);
+void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_result_view& cc_out);
 
 }
 

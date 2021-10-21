@@ -31,7 +31,7 @@ namespace sched_nr_impl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dci)
+void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, DciDlOrUl& dci)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
@@ -56,7 +56,7 @@ void fill_dci_common(const slot_ue& ue, const bwp_params& bwp_cfg, DciDlOrUl& dc
   dci.time_domain_assigment = 0;
 }
 
-bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_cfg, srsran_dci_dl_nr_t& dci)
+bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
 {
   dci.mcs                   = 5;
   dci.ctx.format            = srsran_dci_format_nr_1_0;
@@ -74,7 +74,7 @@ bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params& bwp_c
   return true;
 }
 
-bool fill_dci_msg3(const slot_ue& ue, const bwp_params& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
+bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
 {
   fill_dci_common(ue, bwp_cfg, msg3_dci);
   msg3_dci.ctx.coreset_id = ue.cfg->phy().pdcch.ra_search_space.coreset_id;
@@ -91,7 +91,7 @@ bool fill_dci_msg3(const slot_ue& ue, const bwp_params& bwp_cfg, srsran_dci_ul_n
 }
 
 void fill_dl_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params&     bwp_cfg,
+                           const bwp_params_t&   bwp_cfg,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_dl_nr_t&   dci)
@@ -110,7 +110,7 @@ void fill_dl_dci_ue_fields(const slot_ue&        ue,
 }
 
 void fill_ul_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params&     bwp_cfg,
+                           const bwp_params_t&   bwp_cfg,
                            uint32_t              ss_id,
                            srsran_dci_location_t dci_pos,
                            srsran_dci_ul_nr_t&   dci)
@@ -123,7 +123,7 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
 
 void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)
 {
-  if (not logger.info.enabled() or slot_ues.empty()) {
+  if (not logger.debug.enabled() or slot_ues.empty()) {
     return;
   }
 
@@ -139,7 +139,7 @@ void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uin
     use_comma = ", ";
   }
 
-  logger.info("%s]", srsran::to_c_str(fmtbuf));
+  logger.debug("%s]", srsran::to_c_str(fmtbuf));
 }
 
 void log_sched_bwp_result(srslog::basic_logger& logger,
@@ -154,17 +154,19 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, f={}, prbs={}, nrtx={}, dai={}, tbs={}, "
-                     "pdsch_slot={}, tti_ack={}",
+                     "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, cs={}, f={}, prbs={}, nrtx={}, dai={}, "
+                     "tbs={}, bs={}, pdsch_slot={}, tti_ack={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
+                     pdcch.dci.ctx.coreset_id,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_dl->prbs(),
                      ue.h_dl->nof_retx(),
                      pdcch.dci.dai,
-                     ue.h_dl->tbs(),
+                     ue.h_dl->tbs() / 8u,
+                     ue.dl_pending_bytes,
                      ue.pdsch_slot,
                      ue.uci_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
@@ -173,7 +175,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
       uint32_t                 start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
       uint32_t end_idx = std::distance(prbs.begin(), std::find(prbs.begin() + start_idx, prbs.end(), false));
       fmt::format_to(fmtbuf,
-                     "SCHED: DL RAR, cc={}, ra-rnti=0x{:x}, prbs={}, pdsch_slot={}, msg3_slot={}, nof_grants={}",
+                     "SCHED: RAR, cc={}, ra-rnti=0x{:x}, prbs={}, pdsch_slot={}, msg3_slot={}, nof_grants={}",
                      res_grid.cfg->cc,
                      pdcch.dci.ctx.rnti,
                      srsran::interval<uint32_t>{start_idx, end_idx},
@@ -192,15 +194,16 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
-                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, f={}, nrtx={}, pending_bytes={}, tbs={}, tti_pusch={}",
+                     "SCHED: UL {}, cc={}, rnti=0x{:x}, pid={}, cs={}, f={}, nrtx={}, tbs={}, bs={}, tti_pusch={}",
                      ue.h_ul->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue.rnti,
                      pdcch.dci.pid,
+                     pdcch.dci.ctx.coreset_id,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_ul->nof_retx(),
+                     ue.h_ul->tbs() / 8u,
                      ue.ul_pending_bytes,
-                     ue.h_ul->tbs(),
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];

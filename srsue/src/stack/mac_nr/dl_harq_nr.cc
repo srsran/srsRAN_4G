@@ -135,8 +135,9 @@ void dl_harq_entity_nr::reset()
 
 dl_harq_entity_nr::dl_harq_metrics_t dl_harq_entity_nr::get_metrics()
 {
-  dl_harq_metrics_t tmp = metrics;
-  metrics               = {};
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+  dl_harq_metrics_t           tmp = metrics;
+  metrics                         = {};
   return tmp;
 }
 
@@ -239,9 +240,11 @@ void dl_harq_entity_nr::dl_harq_process_nr::tb_decoded(const mac_nr_grant_dl_t& 
       }
     }
 
+    std::lock_guard<std::mutex> lock(harq_entity->metrics_mutex);
     harq_entity->metrics.rx_ok++;
     harq_entity->metrics.rx_brate += grant.tbs * 8;
   } else {
+    std::lock_guard<std::mutex> lock(harq_entity->metrics_mutex);
     harq_entity->metrics.rx_ko++;
   }
 

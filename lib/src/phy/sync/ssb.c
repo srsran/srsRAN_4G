@@ -567,10 +567,11 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   // Put PBCH DMRS
   srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
   pbch_dmrs_cfg.N_id                   = N_id;
-  pbch_dmrs_cfg.n_hf                   = msg->hrf ? 0 : 1;
+  pbch_dmrs_cfg.n_hf                   = msg->hrf ? 1 : 0;
   pbch_dmrs_cfg.ssb_idx                = msg->ssb_idx;
   pbch_dmrs_cfg.L_max                  = q->Lmax;
   pbch_dmrs_cfg.beta                   = 0.0f;
+  pbch_dmrs_cfg.scs                    = q->cfg.scs;
   if (srsran_dmrs_pbch_put(&pbch_dmrs_cfg, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error putting PBCH DMRS");
     return SRSRAN_ERROR;
@@ -579,7 +580,10 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   // Put PBCH payload
   srsran_pbch_nr_cfg_t pbch_cfg = {};
   pbch_cfg.N_id                 = N_id;
+  pbch_cfg.n_hf                 = msg->hrf;
+  pbch_cfg.ssb_idx              = msg->ssb_idx;
   pbch_cfg.Lmax                 = q->Lmax;
+  pbch_cfg.beta                 = 0.0f;
   if (srsran_pbch_nr_encode(&q->pbch, &pbch_cfg, msg, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error encoding PBCH");
     return SRSRAN_ERROR;

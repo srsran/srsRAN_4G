@@ -29,6 +29,11 @@
  */
 #define GNB_UL_NR_FFT_WINDOW_OFFSET 0.5f
 
+/**
+ * @brief Minimum PUSCH DMRS measured SINR default value
+ */
+#define GNB_UL_PUSCH_MIN_SNR_DEFAULT -10.0f
+
 static int gnb_ul_alloc_prb(srsran_gnb_ul_t* q, uint32_t new_nof_prb)
 {
   if (q->max_prb < new_nof_prb) {
@@ -92,6 +97,12 @@ int srsran_gnb_ul_init(srsran_gnb_ul_t* q, cf_t* input, const srsran_gnb_ul_args
     return SRSRAN_ERROR;
   }
 
+  // Set PUSCH minimum SNR, use default value if the given is NAN, INF or zero
+  q->pusch_min_snr_dB = GNB_UL_PUSCH_MIN_SNR_DEFAULT;
+  if (isnormal(args->pusch_min_snr_dB)) {
+    q->pusch_min_snr_dB = args->pusch_min_snr_dB;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -144,7 +155,7 @@ int srsran_gnb_ul_set_carrier(srsran_gnb_ul_t* q, const srsran_carrier_nr_t* car
   ofdm_cfg.rx_window_offset      = GNB_UL_NR_FFT_WINDOW_OFFSET;
   ofdm_cfg.symbol_sz             = srsran_min_symbol_sz_rb(carrier->nof_prb);
   ofdm_cfg.keep_dc               = true;
-  ofdm_cfg.phase_compensation_hz = carrier->dl_center_frequency_hz;
+  ofdm_cfg.phase_compensation_hz = carrier->ul_center_frequency_hz;
 
   if (srsran_ofdm_rx_init_cfg(&q->fft, &ofdm_cfg) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -176,6 +187,15 @@ int srsran_gnb_ul_get_pusch(srsran_gnb_ul_t*             q,
 
   if (srsran_dmrs_sch_estimate(&q->dmrs, slot_cfg, cfg, grant, q->sf_symbols[0], &q->chest_pusch) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
+  }
+
+  // Check PUSCH DMRS minimum SNR and abort PUSCH decoding if it is below the threshold
+  if (q->dmrs.csi.snr_dB < q->pusch_min_snr_dB) {
+    // Set PUSCH data as not decoded
+    data->tb[0].crc      = false;
+    data->tb[0].avg_iter = NAN;
+    data->uci.valid      = false;
+    return SRSRAN_SUCCESS;
   }
 
   if (srsran_pusch_nr_decode(&q->pusch, cfg, grant, &q->chest_pusch, q->sf_symbols, data) < SRSRAN_SUCCESS) {
@@ -308,11 +328,12 @@ int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
   return SRSRAN_SUCCESS;
 }
 
-uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,
-                                  const srsran_pucch_nr_resource_t* resource,
-                                  const srsran_uci_data_nr_t*       uci_data,
-                                  char*                             str,
-                                  uint32_t                          str_len)
+uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                     q,
+                                  const srsran_pucch_nr_resource_t*    resource,
+                                  const srsran_uci_data_nr_t*          uci_data,
+                                  const srsran_csi_trs_measurements_t* csi,
+                                  char*                                str,
+                                  uint32_t                             str_len)
 {
   if (q == NULL || uci_data == NULL) {
     return 0;
@@ -320,10 +341,11 @@ uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,
 
   uint32_t len = 0;
 
-  len += srsran_pucch_nr_info(resource, uci_data, str, str_len - len);
+  len += srsran_pucch_nr_info(resource, uci_data, &str[len], str_len - len);
 
-  len = srsran_print_check(
-      str, str_len, len, "snr=%+.1f valid=%c", q->chest_pucch.snr_db, uci_data->value.valid ? 'y' : 'n');
+  len += srsran_csi_meas_info_short(csi, &str[len], str_len - len);
+
+  len = srsran_print_check(str, str_len, len, "valid=%c ", uci_data->value.valid ? 'y' : 'n');
 
   return len;
 }
@@ -342,7 +364,8 @@ uint32_t srsran_gnb_ul_pusch_info(srsran_gnb_ul_t*             q,
 
   len += srsran_pusch_nr_rx_info(&q->pusch, cfg, &cfg->grant, res, str, str_len - len);
 
-  len = srsran_print_check(str, str_len, len, "snr=%+.1f", q->chest_pusch.snr_db);
+  // Append channel estimator info
+  len += srsran_csi_meas_info_short(&q->dmrs.csi, &str[len], str_len - len);
 
   return len;
 }

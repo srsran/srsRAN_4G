@@ -817,7 +817,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
     sync_err += srsran_vec_estimate_frequency(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol);
   }
   sync_err /= (float)nof_symbols;
-  chest_res->sync_error = sync_err / (dmrs_stride * SRSRAN_SUBC_SPACING_NR(q->carrier.scs));
+  float delay_us = sync_err / (dmrs_stride * SRSRAN_SUBC_SPACING_NR(q->carrier.scs));
 
 #if DMRS_SCH_SYNC_PRECOMPENSATE
   // Pre-compensate synchronization error
@@ -845,36 +845,52 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   epre /= nof_symbols;
   rsrp = SRSRAN_MIN(rsrp, epre - epre * 1e-7);
 
-  chest_res->rsrp     = rsrp;
-  chest_res->rsrp_dbm = srsran_convert_power_to_dB(chest_res->rsrp);
-
-  chest_res->noise_estimate     = epre - rsrp;
-  chest_res->noise_estimate_dbm = srsran_convert_power_to_dB(chest_res->noise_estimate);
-
-  chest_res->snr_db = chest_res->rsrp_dbm - chest_res->noise_estimate_dbm;
-
   // Measure CFO if more than one symbol is used
-  float cfo_avg = 0.0;
+  float cfo_avg_hz = 0.0;
+  float cfo_hz_max = INFINITY;
   for (uint32_t i = 0; i < nof_symbols - 1; i++) {
     float time_diff  = srsran_symbol_distance_s(symbols[i], symbols[i + 1], q->carrier.scs);
     float phase_diff = cargf(corr[i + 1] * conjf(corr[i]));
 
     if (isnormal(time_diff)) {
-      cfo_avg += phase_diff / (2.0f * M_PI * time_diff * (nof_symbols - 1));
+      cfo_avg_hz += phase_diff / (2.0f * M_PI * time_diff * (nof_symbols - 1));
+
+      // The maximum measured CFO depends on the symbol time difference
+      cfo_hz_max = SRSRAN_MIN(cfo_hz_max, 1 / time_diff);
     }
   }
-  chest_res->cfo = cfo_avg;
+
+  // Store internal CSI
+  q->csi.rsrp       = rsrp;
+  q->csi.rsrp_dB    = srsran_convert_power_to_dB(rsrp);
+  q->csi.epre       = epre;
+  q->csi.epre_dB    = srsran_convert_power_to_dB(epre);
+  q->csi.n0         = epre - rsrp;
+  q->csi.n0_dB      = srsran_convert_power_to_dB(q->csi.n0);
+  q->csi.snr_dB     = q->csi.rsrp_dB - q->csi.n0_dB;
+  q->csi.cfo_hz     = cfo_avg_hz;
+  q->csi.cfo_hz_max = cfo_hz_max;
+  q->csi.delay_us   = delay_us;
+
+  // Write CSI in estimated channel result
+  chest_res->rsrp               = q->csi.rsrp;
+  chest_res->rsrp_dbm           = q->csi.rsrp_dB;
+  chest_res->noise_estimate     = q->csi.n0;
+  chest_res->noise_estimate_dbm = q->csi.n0_dB;
+  chest_res->snr_db             = q->csi.snr_dB;
+  chest_res->cfo                = q->csi.cfo_hz;
+  chest_res->sync_error         = q->csi.delay_us;
 
 #if DMRS_SCH_CFO_PRECOMPENSATE
   // Pre-compensate CFO
   cf_t cfo_correction[SRSRAN_NSYMB_PER_SLOT_NR] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-  if (isnormal(cfo_avg)) {
+  if (isnormal(cfo_avg_hz)) {
     // Calculate phase of the first OFDM symbol (l = 0)
-    float arg0 = cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.scs) * cfo_avg;
+    float arg0 = cargf(corr[0]) - 2.0f * M_PI * srsran_symbol_distance_s(0, symbols[0], q->carrier.scs) * cfo_avg_hz;
 
     // Calculate CFO corrections
     for (uint32_t l = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
-      float arg         = arg0 + 2.0f * M_PI * cfo_avg * srsran_symbol_distance_s(0, l, q->carrier.scs);
+      float arg         = arg0 + 2.0f * M_PI * cfo_avg_hz * srsran_symbol_distance_s(0, l, q->carrier.scs);
       cfo_correction[l] = cexpf(I * arg);
     }
 
@@ -892,7 +908,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
   INFO("PDSCH-DMRS: RSRP=%+.2fdB EPRE=%+.2fdB CFO=%+.0fHz Sync=%.3fus",
        chest_res->rsrp_dbm,
        srsran_convert_power_to_dB(epre),
-       cfo_avg,
+       cfo_avg_hz,
        chest_res->sync_error * 1e6);
 
   // Average over time, only if more than one DMRS symbol

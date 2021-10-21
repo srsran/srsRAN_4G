@@ -84,10 +84,10 @@ void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_l
   }
 }
 
-void sched_dl_signalling(const bwp_params& bwp_params,
-                         slot_point        sl_pdcch,
-                         ssb_list&         ssb_list,
-                         nzp_csi_rs_list&  nzp_csi_rs)
+void sched_dl_signalling(const bwp_params_t& bwp_params,
+                         slot_point          sl_pdcch,
+                         ssb_list&           ssb_list,
+                         nzp_csi_rs_list&    nzp_csi_rs)
 {
   srsran_slot_cfg_t cfg;
   cfg.idx = sl_pdcch.to_uint();

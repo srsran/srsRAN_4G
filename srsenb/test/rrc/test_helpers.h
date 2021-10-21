@@ -214,7 +214,9 @@ public:
 
 namespace test_helpers {
 
+int parse_default_cfg(srsenb::all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, rrc_nr_cfg_t* rrc_nr_cfg);
 int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args);
+int parse_default_cfg(rrc_nr_cfg_t* rrc_nr_cfg);
 int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_args_t& args);
 
 template <typename ASN1Type>

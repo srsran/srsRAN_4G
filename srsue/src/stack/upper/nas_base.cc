@@ -58,7 +58,7 @@ void nas_base::integrity_generate(uint8_t* key_128,
                                   uint32_t msg_len,
                                   uint8_t* mac)
 {
-  switch (ctxt.integ_algo) {
+  switch (ctxt_base.integ_algo) {
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
@@ -89,8 +89,8 @@ bool nas_base::integrity_check(byte_buffer_t* pdu)
     uint8_t* mac        = &pdu->msg[mac_offset];
 
     // generate expected MAC
-    uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[seq_offset];
-    integrity_generate(&k_nas_int[16],
+    uint32_t count_est = (ctxt_base.rx_count & 0x00FFFF00u) | pdu->msg[seq_offset];
+    integrity_generate(&ctxt_base.k_nas_int[16],
                        count_est,
                        SECURITY_DIRECTION_DOWNLINK,
                        &pdu->msg[seq_offset],
@@ -124,9 +124,9 @@ bool nas_base::integrity_check(byte_buffer_t* pdu)
                 mac[3]);
 
     // Updated local count (according to TS 24.301 Sec. 4.4.3.3)
-    if (count_est != ctxt.rx_count) {
+    if (count_est != ctxt_base.rx_count) {
       logger.info("Update local count to estimated count %d", count_est);
-      ctxt.rx_count = count_est;
+      ctxt_base.rx_count = count_est;
     }
     return true;
   } else {
@@ -139,16 +139,16 @@ void nas_base::cipher_encrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t pdu_tmp;
 
-  if (ctxt.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
-    logger.debug("Encrypting PDU. count=%d", ctxt.tx_count);
+  if (ctxt_base.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
+    logger.debug("Encrypting PDU. count=%d", ctxt_base.tx_count);
   }
 
-  switch (ctxt.cipher_algo) {
+  switch (ctxt_base.cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&k_nas_enc[16],
-                        ctxt.tx_count,
+      security_128_eea1(&ctxt_base.k_nas_enc[16],
+                        ctxt_base.tx_count,
                         bearer_id,
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[seq_offset + 1],
@@ -157,8 +157,8 @@ void nas_base::cipher_encrypt(byte_buffer_t* pdu)
       memcpy(&pdu->msg[seq_offset + 1], &pdu_tmp.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        ctxt.tx_count,
+      security_128_eea2(&ctxt_base.k_nas_enc[16],
+                        ctxt_base.tx_count,
                         bearer_id,
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[seq_offset + 1],
@@ -167,8 +167,8 @@ void nas_base::cipher_encrypt(byte_buffer_t* pdu)
       memcpy(&pdu->msg[seq_offset + 1], &pdu_tmp.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
-      security_128_eea3(&k_nas_enc[16],
-                        ctxt.tx_count,
+      security_128_eea3(&ctxt_base.k_nas_enc[16],
+                        ctxt_base.tx_count,
                         bearer_id,
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[seq_offset + 1],
@@ -186,16 +186,16 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t tmp_pdu;
 
-  uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[5];
-  if (ctxt.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
-    logger.debug("Decrypting PDU. Local: count=%d, Received: count=%d", ctxt.rx_count, count_est);
+  uint32_t count_est = (ctxt_base.rx_count & 0x00FFFF00u) | pdu->msg[5];
+  if (ctxt_base.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
+    logger.debug("Decrypting PDU. Local: count=%d, Received: count=%d", ctxt_base.rx_count, count_est);
   }
 
-  switch (ctxt.cipher_algo) {
+  switch (ctxt_base.cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&k_nas_enc[16],
+      security_128_eea1(&ctxt_base.k_nas_enc[16],
                         count_est,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
@@ -205,7 +205,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       memcpy(&pdu->msg[seq_offset + 1], &tmp_pdu.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
+      security_128_eea2(&ctxt_base.k_nas_enc[16],
                         count_est,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
@@ -216,7 +216,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       memcpy(&pdu->msg[seq_offset + 1], &tmp_pdu.msg[seq_offset + 1], pdu->N_bytes - seq_offset + 1);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
-      security_128_eea3(&k_nas_enc[16],
+      security_128_eea3(&ctxt_base.k_nas_enc[16],
                         count_est,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,

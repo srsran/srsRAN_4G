@@ -28,7 +28,6 @@
 #include <string>
 
 #include "mac_nr/mac_nr.h"
-#include "rrc/rrc_nr.h"
 #include "srsran/radio/radio.h"
 #include "srsran/rlc/rlc.h"
 #include "srsran/upper/pdcp.h"
@@ -39,12 +38,15 @@
 #include "srsran/common/mac_pcap.h"
 #include "srsran/common/multiqueue.h"
 #include "srsran/common/thread_pool.h"
+#include "srsran/interfaces/ue_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
 
 namespace srsue {
+
+class rrc_nr;
 
 /** \brief L2/L3 stack class for 5G/NR UEs.
  *

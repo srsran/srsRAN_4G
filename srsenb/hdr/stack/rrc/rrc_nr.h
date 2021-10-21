@@ -78,7 +78,7 @@ public:
   int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
 
   /// User manegement
-  int  add_user(uint16_t rnti);
+  int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg);
   void rem_user(uint16_t rnti);
   int  update_user(uint16_t new_rnti, uint16_t old_rnti);
   void set_activity_user(uint16_t rnti);
@@ -95,8 +95,9 @@ public:
   void notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) final;
 
   // Interface for EUTRA RRC
-  int sgnb_addition_request(uint16_t rnti, const sgnb_addition_req_params_t& params);
-  int sgnb_reconfiguration_complete(uint16_t rnti, asn1::dyn_octstring reconfig_response);
+  void sgnb_addition_request(uint16_t rnti, const sgnb_addition_req_params_t& params);
+  void sgnb_reconfiguration_complete(uint16_t rnti, const asn1::dyn_octstring& reconfig_response) final;
+  void sgnb_release_request(uint16_t nr_rnti) final;
 
   // Interfaces for NGAP
   int  ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key);
@@ -104,6 +105,7 @@ public:
   int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps);
   int  start_security_mode_procedure(uint16_t rnti);
   int  establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
+  int  release_bearers(uint16_t rnti);
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu);
   int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates);
   int  allocate_lcid(uint16_t rnti);
@@ -111,7 +113,7 @@ public:
   class ue
   {
   public:
-    ue(rrc_nr* parent_, uint16_t rnti_);
+    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg);
 
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
@@ -125,10 +127,11 @@ public:
     bool     is_inactive() { return state == rrc_nr_state_t::RRC_INACTIVE; }
     bool     is_endc() { return endc; }
     uint16_t get_eutra_rnti() { return eutra_rnti; }
-    void get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
+    void     get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
     // setters
 
-    int pack_rrc_reconfiguration();
+    int  pack_rrc_reconfiguration();
+    void deactivate_bearers();
 
   private:
     rrc_nr*  parent = nullptr;
@@ -145,8 +148,8 @@ public:
     int pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_sp_cell_cfg_ded_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_sp_cell_cfg_ded_init_dl_bwp_pdcch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
+    int pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_sp_cell_cfg_ded_ul_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
@@ -154,9 +157,6 @@ public:
     int pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pusch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_sp_cell_cfg_ded_pdcch_serving_cell_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-
-    int pack_sp_cell_cfg_ded_csi_meas_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_sp_cell_cfg_ded_csi_meas_cfg_csi_report_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_recfg_with_sync(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
@@ -167,8 +167,6 @@ public:
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp_pdcch_cfg_common(
-        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp_pdsch_cfg_common(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
@@ -181,11 +179,6 @@ public:
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-
-    int pack_recfg_with_sync_sp_cell_cfg_common_ssb_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-
-    int
-    pack_recfg_with_sync_sp_cell_cfg_common_tdd_ul_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
@@ -226,8 +219,9 @@ private:
   srsran::task_sched_handle task_sched;
 
   // derived
-  uint32_t              slot_dur_ms = 0;
-  srslog::basic_logger& logger;
+  uint32_t                    slot_dur_ms = 0;
+  srslog::basic_logger&       logger;
+  asn1::rrc_nr::sp_cell_cfg_s base_sp_cell_cfg;
 
   // vars
   std::map<uint16_t, std::unique_ptr<ue> >  users;

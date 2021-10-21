@@ -27,7 +27,7 @@
 
 namespace srsenb {
 
-int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, asn1::rrc_nr::serving_cell_cfg_s& serv_cell);
+int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sp_cell_cfg_s& sp_cell);
 
 }
 

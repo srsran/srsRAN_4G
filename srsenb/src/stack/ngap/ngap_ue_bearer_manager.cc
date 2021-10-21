@@ -22,10 +22,8 @@
 #include "srsenb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
 
 namespace srsenb {
-ngap_ue_bearer_manager::ngap_ue_bearer_manager(rrc_interface_ngap_nr* rrc_,
-                                               gtpu_interface_rrc*    gtpu_,
-                                               srslog::basic_logger&  logger_) :
-  gtpu(gtpu_), rrc(rrc_), logger(logger_)
+ngap_ue_bearer_manager::ngap_ue_bearer_manager(gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_) :
+  gtpu(gtpu_), logger(logger_)
 {}
 ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
@@ -39,9 +37,6 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
                                             uint32_t&                                          teid_in,
                                             asn1::ngap_nr::cause_c&                            cause)
 {
-  // RRC call for QoS parameter and lcid <-> ID mapping
-  lcid = rrc->allocate_lcid(rnti);
-
   // Only add session if gtpu was successful
   pdu_session_t::gtpu_tunnel tunnel;
 
@@ -52,7 +47,7 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
   }
 
   // TODO: remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
-  int rtn = add_gtpu_bearer(rnti, lcid, pdu_session_id, teid_out, addr_out, tunnel);
+  int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel);
   if (rtn != SRSRAN_SUCCESS) {
     logger.error("Adding PDU Session ID=%d to GTPU", pdu_session_id);
     return SRSRAN_ERROR;
@@ -70,8 +65,16 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
   return SRSRAN_SUCCESS;
 }
 
+int ngap_ue_bearer_manager::reset_pdu_sessions(uint16_t rnti)
+{
+  for (auto iter = pdu_session_list.begin(); iter != pdu_session_list.end(); iter++) {
+    auto pdu_session_id = iter->first;
+    rem_gtpu_bearer(pdu_session_id, rnti);
+  }
+  return true;
+}
+
 int ngap_ue_bearer_manager::add_gtpu_bearer(uint16_t                                    rnti,
-                                            uint32_t                                    lcid,
                                             uint32_t                                    pdu_session_id,
                                             uint32_t                                    teid_out,
                                             asn1::bounded_bitstring<1, 160, true, true> address_out,
@@ -80,7 +83,8 @@ int ngap_ue_bearer_manager::add_gtpu_bearer(uint16_t                            
 {
   // Initialize ERAB tunnel in GTPU right-away. DRBs are only created during RRC setup/reconf
   uint32_t                   addr_in;
-  srsran::expected<uint32_t> rtn = gtpu->add_bearer(rnti, lcid, address_out.to_number(), teid_out, addr_in, props);
+  srsran::expected<uint32_t> rtn =
+      gtpu->add_bearer(rnti, pdu_session_id, address_out.to_number(), teid_out, addr_in, props);
   if (rtn.is_error()) {
     logger.error("Failed adding pdu_session_id=%d to GTPU", pdu_session_id);
     return SRSRAN_ERROR;
@@ -94,10 +98,9 @@ int ngap_ue_bearer_manager::add_gtpu_bearer(uint16_t                            
   tunnel.address_in.from_number(addr_in);
   tunnel.teid_in = rtn.value();
 
-  logger.info("Added GTPU tunnel rnti 0x%04x, lcid %d, pdu_session_id=%d, teid_out %d, teid_in %d, address out 0x%x, "
+  logger.info("Added GTPU tunnel rnti 0x%04x, pdu_session_id=%d, teid_out %d, teid_in %d, address out 0x%x, "
               "address in 0x%x",
               rnti,
-              lcid,
               pdu_session_id,
               tunnel.teid_out,
               tunnel.teid_in,

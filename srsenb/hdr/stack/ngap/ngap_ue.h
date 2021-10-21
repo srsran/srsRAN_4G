@@ -53,6 +53,8 @@ public:
   bool send_pdu_session_resource_setup_response(uint16_t                                    pdu_session_id,
                                                 uint32_t                                    teid_in,
                                                 asn1::bounded_bitstring<1, 160, true, true> addr_in);
+  // TS 38.413 - Section 9.2.1.2 - UE Context Release Complete
+  bool send_ue_ctxt_release_complete();
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command

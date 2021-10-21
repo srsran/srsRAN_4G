@@ -30,6 +30,7 @@
 typedef struct SRSRAN_API {
   srsran_pusch_nr_args_t pusch;
   srsran_pucch_nr_args_t pucch;
+  float                  pusch_min_snr_dB; ///< Minimum SNR threshold to decode PUSCH, set to 0 for default value
   uint32_t               nof_max_prb;
 } srsran_gnb_ul_args_t;
 
@@ -45,6 +46,7 @@ typedef struct SRSRAN_API {
   srsran_dmrs_sch_t     dmrs;
   srsran_chest_dl_res_t chest_pusch;
   srsran_chest_ul_res_t chest_pucch;
+  float                 pusch_min_snr_dB; ///< Minimum measured DMRS SNR, below this threshold PUSCH is not decoded
 } srsran_gnb_ul_t;
 
 SRSRAN_API int srsran_gnb_ul_init(srsran_gnb_ul_t* q, cf_t* input, const srsran_gnb_ul_args_t* args);
@@ -69,11 +71,12 @@ SRSRAN_API int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
                                        srsran_uci_value_nr_t*              uci_value,
                                        srsran_csi_trs_measurements_t*      meas);
 
-SRSRAN_API uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                  q,
-                                             const srsran_pucch_nr_resource_t* resource,
-                                             const srsran_uci_data_nr_t*       uci_data,
-                                             char*                             str,
-                                             uint32_t                          str_len);
+SRSRAN_API uint32_t srsran_gnb_ul_pucch_info(srsran_gnb_ul_t*                     q,
+                                             const srsran_pucch_nr_resource_t*    resource,
+                                             const srsran_uci_data_nr_t*          uci_data,
+                                             const srsran_csi_trs_measurements_t* csi,
+                                             char*                                str,
+                                             uint32_t                             str_len);
 
 SRSRAN_API uint32_t srsran_gnb_ul_pusch_info(srsran_gnb_ul_t*             q,
                                              const srsran_sch_cfg_nr_t*   cfg,

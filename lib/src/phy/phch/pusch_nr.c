@@ -1019,6 +1019,10 @@ static uint32_t pusch_nr_grant_info(const srsran_pusch_nr_t*     q,
     }
   }
 
+  // Append RNTI type and id
+  len =
+      srsran_print_check(str, str_len, len, "%s-rnti=0x%x ", srsran_rnti_type_str_short(grant->rnti_type), grant->rnti);
+
   // Append time-domain resource mapping
   len = srsran_print_check(str,
                            str_len,

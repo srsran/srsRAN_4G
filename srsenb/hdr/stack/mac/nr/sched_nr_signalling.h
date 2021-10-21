@@ -51,10 +51,10 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
 void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_list& ssb_list);
 
 /// For a given BWP and slot, schedule SSB, NZP CSI RS and SIBs
-void sched_dl_signalling(const bwp_params& bwp_params,
-                         slot_point        sl_pdcch,
-                         ssb_list&         ssb_list,
-                         nzp_csi_rs_list&  nzp_csi_rs);
+void sched_dl_signalling(const bwp_params_t& bwp_params,
+                         slot_point          sl_pdcch,
+                         ssb_list&           ssb_list,
+                         nzp_csi_rs_list&    nzp_csi_rs);
 
 } // namespace sched_nr_impl
 } // namespace srsenb

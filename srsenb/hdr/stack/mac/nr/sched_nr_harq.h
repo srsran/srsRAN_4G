@@ -57,17 +57,13 @@ public:
 
   void new_slot(slot_point slot_rx);
   void reset();
-  bool new_tx(slot_point       slot_tx,
-              slot_point       slot_ack,
-              const prb_grant& grant,
-              uint32_t         mcs,
-              uint32_t         tbs,
-              uint32_t         max_retx);
+  bool new_tx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, uint32_t mcs, uint32_t max_retx);
   bool new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant);
   bool new_retx(slot_point slot_tx, slot_point slot_ack);
 
   // NOTE: Has to be used before first tx is dispatched
   bool set_tbs(uint32_t tbs);
+  bool set_mcs(uint32_t mcs);
 
   const uint32_t pid;
 
@@ -96,12 +92,7 @@ public:
   tx_harq_softbuffer&           get_softbuffer() { return *softbuffer; }
   srsran::unique_byte_buffer_t* get_tx_pdu() { return &pdu; }
 
-  bool new_tx(slot_point       slot_tx,
-              slot_point       slot_ack,
-              const prb_grant& grant,
-              uint32_t         mcs,
-              uint32_t         tbs,
-              uint32_t         max_retx);
+  bool new_tx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, uint32_t mcs, uint32_t max_retx);
 
 private:
   srsran::unique_pool_ptr<tx_harq_softbuffer> softbuffer;
@@ -119,7 +110,7 @@ public:
 
   bool set_tbs(uint32_t tbs)
   {
-    softbuffer->reset(tbs * 8u);
+    softbuffer->reset(tbs);
     return harq_proc::set_tbs(tbs);
   }
 

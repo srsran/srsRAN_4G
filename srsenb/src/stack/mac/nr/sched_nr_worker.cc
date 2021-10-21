@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
+#include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_signalling.h"
 #include "srsran/common/string_helpers.h"
 
@@ -30,7 +31,7 @@ slot_cc_worker::slot_cc_worker(serv_cell_manager& cc_sched) :
   cell(cc_sched),
   cfg(cc_sched.cfg),
   bwp_alloc(cc_sched.bwps[0].grid),
-  logger(srslog::fetch_basic_logger(cc_sched.cfg.sched_cfg.logger_name))
+  logger(srslog::fetch_basic_logger(cc_sched.cfg.sched_args.logger_name))
 {}
 
 void slot_cc_worker::enqueue_cc_event(srsran::move_callback<void()> ev)
@@ -65,7 +66,7 @@ void slot_cc_worker::run_feedback(ue_map_t& ue_db)
     if (ue_db.contains(f.rnti) and ue_db[f.rnti]->carriers[cfg.cc] != nullptr) {
       f.fdbk(*ue_db[f.rnti]->carriers[cfg.cc]);
     } else {
-      logger.warning("SCHED: feedback received for invalid rnti=0x%x, cc=%d", f.rnti, cfg.cc);
+      logger.info("SCHED: feedback received for rnti=0x%x, cc=%d that has been removed.", f.rnti, cfg.cc);
     }
   }
   tmp_feedback_to_run.clear();
@@ -124,7 +125,7 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
 
 void slot_cc_worker::alloc_dl_ues()
 {
-  if (not cfg.sched_cfg.pdsch_enabled) {
+  if (not cfg.sched_args.pdsch_enabled) {
     return;
   }
   cell.bwps[0].data_sched->sched_dl_users(slot_ues, bwp_alloc);
@@ -132,7 +133,7 @@ void slot_cc_worker::alloc_dl_ues()
 
 void slot_cc_worker::alloc_ul_ues()
 {
-  if (not cfg.sched_cfg.pusch_enabled) {
+  if (not cfg.sched_args.pusch_enabled) {
     return;
   }
   cell.bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
@@ -175,6 +176,10 @@ void slot_cc_worker::postprocess_decisions()
       if (pusch.sch.grant.rnti == ue.rnti) {
         // Put UCI configuration in PUSCH config
         has_pusch = true;
+
+        // If has PUSCH, no SR shall be received
+        uci_cfg.o_sr = 0;
+
         if (not ue.cfg->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
           logger.error("Error setting UCI configuration in PUSCH");
           continue;
@@ -345,6 +350,12 @@ void sched_worker_manager::run_slot(slot_point slot_tx, uint32_t cc, dl_sched_re
   save_sched_result(slot_tx, cc, dl_res, ul_res);
 }
 
+void sched_worker_manager::get_metrics(mac_metrics_t& metrics)
+{
+  std::unique_lock<std::mutex> lock(slot_mutex);
+  get_metrics_nolocking(metrics);
+}
+
 bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
                                              uint32_t        cc,
                                              dl_sched_res_t& dl_res,
@@ -366,6 +377,20 @@ bool sched_worker_manager::save_sched_result(slot_point      pdcch_slot,
   bwp_slot.reset();
 
   return true;
+}
+
+void sched_worker_manager::get_metrics_nolocking(mac_metrics_t& metrics)
+{
+  for (mac_ue_metrics_t& ue_metric : metrics.ues) {
+    if (ue_db.contains(ue_metric.rnti) and ue_db[ue_metric.rnti]->carriers[0] != nullptr) {
+      auto& ue_cc         = *ue_db[ue_metric.rnti]->carriers[0];
+      std::lock_guard<std::mutex> lock(ue_cc.metrics_mutex);
+      ue_metric.tx_brate  = ue_cc.metrics.tx_brate;
+      ue_metric.tx_errors = ue_cc.metrics.tx_errors;
+      ue_metric.tx_pkts   = ue_cc.metrics.tx_pkts;
+      ue_cc.metrics       = {};
+    }
+  }
 }
 
 } // namespace sched_nr_impl

@@ -133,14 +133,16 @@ gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t 
 bool gtpu_tunnel_manager::update_rnti(uint16_t old_rnti, uint16_t new_rnti)
 {
   auto* old_rnti_ptr = find_rnti_tunnels(old_rnti);
-  if (old_rnti_ptr == nullptr or find_rnti_tunnels(new_rnti) != nullptr) {
+  auto* new_rnti_ptr = find_rnti_tunnels(new_rnti);
+  if (old_rnti_ptr == nullptr or (new_rnti_ptr != nullptr and not new_rnti_ptr->empty())) {
+    // The old rnti must exist and the new rnti TEID list must be empty
     logger.error("Modifying bearer rnti. Old rnti=0x%x, new rnti=0x%x", old_rnti, new_rnti);
     return false;
   }
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
   // create new RNTI and update TEIDs of old rnti to reflect new rnti
-  if (not ue_teidin_db.insert(new_rnti, ue_bearer_tunnel_list())) {
+  if (new_rnti_ptr == nullptr and not ue_teidin_db.insert(new_rnti, ue_bearer_tunnel_list())) {
     logger.error("Failure to create new rnti=0x%x", new_rnti);
     return false;
   }

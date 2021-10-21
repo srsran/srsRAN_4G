@@ -94,15 +94,8 @@ bool cc_worker::update_cfg()
     return false;
   }
 
-  srsran_ssb_cfg_t ssb_cfg = {};
+  srsran_ssb_cfg_t ssb_cfg = phy.cfg.get_ssb_cfg();
   ssb_cfg.srate_hz = srsran_min_symbol_sz_rb(phy.cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs);
-  ssb_cfg.center_freq_hz = phy.cfg.carrier.dl_center_frequency_hz;
-  ssb_cfg.ssb_freq_hz    = phy.cfg.carrier.ssb_center_freq_hz;
-  ssb_cfg.scs            = phy.cfg.ssb.scs;
-  ssb_cfg.pattern        = phy.cfg.ssb.pattern;
-  ssb_cfg.duplex_mode    = phy.cfg.duplex.mode;
-  ssb_cfg.periodicity_ms = phy.cfg.ssb.periodicity_ms;
-
   if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
     logger.error("Error setting SSB configuration");
     return false;
@@ -176,23 +169,16 @@ void cc_worker::decode_pdcch_dl()
 
   if (logger.debug.enabled()) {
     for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
-      const srsran_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
-      logger.debug(
-          "PDCCH: dci=%s, %s-rnti=%x, crst_id=%d, ss_type=%s, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; "
-          "evm=%f; nof_bits=%d; crc=%s;",
-          srsran_dci_format_nr_string(info->dci_ctx.format),
-          srsran_rnti_type_str_short(info->dci_ctx.rnti_type),
-          info->dci_ctx.rnti,
-          info->dci_ctx.coreset_id,
-          srsran_ss_type_str(info->dci_ctx.ss_type),
-          info->dci_ctx.location.ncce,
-          info->dci_ctx.location.L,
-          info->measure.epre_dBfs,
-          info->measure.rsrp_dBfs,
-          info->measure.norm_corr,
-          info->result.evm,
-          info->nof_bits,
-          info->result.crc ? "OK" : "KO");
+      const srsran_ue_dl_nr_pdcch_info_t* info    = &ue_dl.pdcch_info[i];
+      std::array<char, 512>               dci_ctx = {};
+      srsran_dci_ctx_to_str(&info->dci_ctx, dci_ctx.data(), (uint32_t)dci_ctx.size());
+      logger.debug("PDCCH: %sEPRE=%+.2f, RSRP=%+.2f, corr=%.3f nof_bits=%d crc=%s",
+                   dci_ctx.data(),
+                   info->measure.epre_dBfs,
+                   info->measure.rsrp_dBfs,
+                   info->measure.norm_corr,
+                   info->nof_bits,
+                   info->result.crc ? "OK" : "KO");
     }
   }
 }
@@ -353,7 +339,10 @@ bool cc_worker::decode_pdsch_dl()
     dl_m.evm          = pdsch_res.evm[0];
     phy.set_dl_metrics(dl_m);
   }
-
+  ch_metrics_t ch_metrics = {};
+  ch_metrics.sinr         = ue_dl.chest.snr_db;
+  ch_metrics.sync_err     = ue_dl.chest.sync_error;
+  phy.set_channel_metrics(ch_metrics);
   return true;
 }
 
@@ -401,13 +390,17 @@ bool cc_worker::measure_csi()
         }
 
         // Check if the SFN matches
-        // ...
+        if (mib.sfn != dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs)) {
+          logger.error("PBCH-MIB: NR SFN (%d) does not match current SFN (%d)",
+                       mib.sfn,
+                       dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs));
+        }
 
         // Log MIB information
         if (logger.debug.enabled()) {
           std::array<char, 512> str = {};
           srsran_pbch_msg_nr_mib_info(&mib, str.data(), (uint32_t)str.size());
-          logger.debug("PBCH-MIB: sfn_4lsb=%d; %s", (dl_slot_cfg.idx / 10) & 0xf, str.data());
+          logger.debug("PBCH-MIB: %s", str.data());
         }
       } else {
         // CRC shall never fail if the UE is in sync
@@ -599,7 +592,7 @@ bool cc_worker::work_ul()
   }
 
   // Add CSI reports to UCI data if available
-  phy.get_periodic_csi(ul_slot_cfg.idx, uci_data);
+  phy.get_periodic_csi(ul_slot_cfg, uci_data);
 
   // Setup frequency offset
   srsran_ue_ul_nr_set_freq_offset(&ue_ul, phy.get_ul_cfo());

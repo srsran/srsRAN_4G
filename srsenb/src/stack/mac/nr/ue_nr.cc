@@ -51,7 +51,10 @@ ue_nr::~ue_nr() {}
 
 void ue_nr::reset()
 {
-  ue_metrics   = {};
+  {
+    std::lock_guard<std::mutex> lock(metrics_mutex);
+    ue_metrics = {};
+  }
   nof_failures = 0;
 }
 
@@ -80,7 +83,9 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
     logger.info("Rx PDU: rnti=0x%x, %s", rnti, srsran::to_c_str(str_buffer));
   }
 
-  for (uint32_t i = 0; i < mac_pdu_ul.get_num_subpdus(); ++i) {
+  // Reverse the order in which MAC subPDUs get processed.
+  // First, process MAC CEs, then MAC MAC subPDUs with MAC SDUs
+  for (uint32_t n = mac_pdu_ul.get_num_subpdus(), i = mac_pdu_ul.get_num_subpdus() - 1; n > 0; --n, i = n - 1) {
     srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
     logger.debug("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
                  i,
@@ -110,7 +115,7 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
         // Assume all LCGs are 0 if reported SBSR is 0
         if (buffer_size_bytes == 0) {
-          for (uint32_t j = 0; j < SCHED_NR_MAX_LC_GROUP; j++) {
+          for (uint32_t j = 0; j <= SCHED_NR_MAX_LC_GROUP; j++) {
             sched->ul_bsr(rnti, j, 0);
           }
         } else {
@@ -118,11 +123,12 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
         }
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
-        logger.info("LONG_BSR CE not implemented.");
-        break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR:
-        logger.info("LONG_TRUNC_BSR CE not implemented.");
-        break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR: {
+        srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
+        for (auto& lb : lbsr.list) {
+          sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, srsran::LONG_BSR));
+        }
+      } break;
       default:
         if (subpdu.is_sdu()) {
           rrc->set_activity_user(rnti);
@@ -147,28 +153,57 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
     return SRSRAN_ERROR;
   }
 
-  // read RLC PDU
-  ue_rlc_buffer->clear();
-  int lcid    = 4;
-  int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, grant_size - 2);
+  bool drb_activity = false; // inform RRC about user activity if true
+  int  lcid         = 4;     // only supporting single DRB right now
 
-  // Only create PDU if RLC has something to tx
-  if (pdu_len > 0) {
-    logger.debug("Adding MAC PDU for RNTI=%d", rnti);
-    ue_rlc_buffer->N_bytes = pdu_len;
-    logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+  int32_t remaining_len = mac_pdu_dl.get_remaing_len();
 
-    // add to MAC PDU and pack
-    mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
+  logger.debug("Adding MAC PDU for RNTI=%d (max %d B)", rnti, remaining_len);
+  while (remaining_len >= MIN_RLC_PDU_LEN) {
+    // clear read buffer
+    ue_rlc_buffer->clear();
 
-    // Indicate DRB activity in DL to RRC
-    if (lcid > 3) {
-      rrc->set_activity_user(rnti);
-      logger.debug("DL activity rnti=0x%x, n_bytes=%d", rnti, ue_rlc_buffer->N_bytes);
+    // Determine space for RLC
+    remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+
+    // read RLC PDU
+    int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, remaining_len);
+
+    if (pdu_len > remaining_len) {
+      logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
+      break;
+    } else {
+      // Add SDU if RLC has something to tx
+      if (pdu_len > 0) {
+        ue_rlc_buffer->N_bytes = pdu_len;
+        logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+
+        // add to MAC PDU and pack
+        if (mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
+          logger.error("Error packing MAC PDU");
+          break;
+        }
+
+        // set DRB activity flag but only notify RRC once
+        if (lcid > 3) {
+          drb_activity = true;
+        }
+      } else {
+        break;
+      }
+
+      remaining_len -= pdu_len;
+      logger.debug("%d B remaining PDU", remaining_len);
     }
   }
 
   mac_pdu_dl.pack();
+
+  if (drb_activity) {
+    // Indicate DRB activity in DL to RRC
+    rrc->set_activity_user(rnti);
+    logger.debug("DL activity rnti=0x%x", rnti);
+  }
 
   if (logger.info.enabled()) {
     fmt::memory_buffer str_buffer;
@@ -194,17 +229,30 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
   ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
 
-  *metrics_      = ue_metrics;
-  phr_counter    = 0;
-  dl_cqi_counter = 0;
-  ue_metrics     = {};
+  *metrics_            = ue_metrics;
+  phr_counter          = 0;
+  dl_cqi_valid_counter = 0;
+  pucch_sinr_counter   = 0;
+  pusch_sinr_counter   = 0;
+  ue_metrics           = {};
 }
 
-void ue_nr::metrics_dl_cqi(uint32_t dl_cqi)
+void ue_nr::metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi)
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
-  ue_metrics.dl_cqi = SRSRAN_VEC_CMA((float)dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
-  dl_cqi_counter++;
+
+  // Process CQI
+  for (uint32_t i = 0; i < cfg_.nof_csi; i++) {
+    // Skip if invalid or not supported CSI report
+    if (cfg_.csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI or
+        cfg_.csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
+      continue;
+    }
+
+    // Add statistics
+    ue_metrics.dl_cqi = SRSRAN_VEC_SAFE_CMA(dl_cqi, ue_metrics.dl_cqi, dl_cqi_valid_counter);
+    dl_cqi_valid_counter++;
+  }
 }
 
 void ue_nr::metrics_rx(bool crc, uint32_t tbs)
@@ -231,12 +279,14 @@ void ue_nr::metrics_tx(bool crc, uint32_t tbs)
 
 void ue_nr::metrics_dl_mcs(uint32_t mcs)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.dl_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.dl_mcs, ue_metrics.dl_mcs_samples);
   ue_metrics.dl_mcs_samples++;
 }
 
 void ue_nr::metrics_ul_mcs(uint32_t mcs)
 {
+  std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.ul_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.ul_mcs, ue_metrics.ul_mcs_samples);
   ue_metrics.ul_mcs_samples++;
 }
@@ -245,6 +295,26 @@ void ue_nr::metrics_cnt()
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
   ue_metrics.nof_tti++;
+}
+
+void ue_nr::metrics_pucch_sinr(float sinr)
+{
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+  // discard nan or inf values for average SINR
+  if (!std::isinf(sinr) && !std::isnan(sinr)) {
+    ue_metrics.pucch_sinr = SRSRAN_VEC_SAFE_CMA((float)sinr, ue_metrics.pucch_sinr, pucch_sinr_counter);
+    pucch_sinr_counter++;
+  }
+}
+
+void ue_nr::metrics_pusch_sinr(float sinr)
+{
+  std::lock_guard<std::mutex> lock(metrics_mutex);
+  // discard nan or inf values for average SINR
+  if (!std::isinf(sinr) && !std::isnan(sinr)) {
+    ue_metrics.pusch_sinr = SRSRAN_VEC_SAFE_CMA((float)sinr, ue_metrics.pusch_sinr, pusch_sinr_counter);
+    pusch_sinr_counter++;
+  }
 }
 
 /** Converts the buffer size field of a BSR (5 or 8-bit Buffer Size field) into Bytes

@@ -50,37 +50,25 @@ public:
 private:
   bool generate_buffer(uint32_t f_idx);
 
-  bool is_buffer_generated(uint32_t f_idx, uint32_t preamble_index) const
-  {
-    return buffer_bitmask.test(f_idx * 64 + preamble_index);
-  }
-
-  void set_buffer_as_generated(uint32_t f_idx, uint32_t preamble_index)
-  {
-    buffer_bitmask.set(f_idx * 64 + preamble_index);
-  }
-
 private:
   static constexpr unsigned MAX_LEN_SF    = 3;
   static constexpr unsigned max_fs        = 12;
   static constexpr unsigned max_preambles = 64;
 
-  srslog::basic_logger&                                logger;
-  srsran_prach_t                                       prach_obj        = {};
-  srsran_cell_t                                        cell             = {};
-  srsran_cfo_t                                         cfo_h            = {};
-  srsran_prach_cfg_t                                   cfg              = {};
-  std::array<std::array<cf_t*, max_preambles>, max_fs> buffer           = {};
-  cf_t*                                                signal_buffer    = nullptr;
-  int                                                  preamble_idx     = -1;
-  uint32_t                                             len              = 0;
-  int                                                  allowed_subframe = 0;
-  int                                                  transmitted_tti  = 0;
-  float                                                target_power_dbm = 0;
-  bool                                                 mem_initiated    = false;
-  bool                                                 cell_initiated   = false;
-  std::bitset<max_fs * max_preambles>                  buffer_bitmask;
-  mutable std::mutex                                   mutex;
+  srslog::basic_logger& logger;
+  srsran_prach_t        prach_obj        = {};
+  srsran_cell_t         cell             = {};
+  srsran_cfo_t          cfo_h            = {};
+  srsran_prach_cfg_t    cfg              = {};
+  cf_t*                 signal_buffer    = nullptr;
+  int                   preamble_idx     = -1;
+  uint32_t              len              = 0;
+  int                   allowed_subframe = 0;
+  int                   transmitted_tti  = 0;
+  float                 target_power_dbm = 0;
+  bool                  mem_initiated    = false;
+  bool                  cell_initiated   = false;
+  mutable std::mutex    mutex;
 };
 
 } // namespace srsue

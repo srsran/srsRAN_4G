@@ -25,12 +25,12 @@
 #include "ngap_interfaces.h"
 #include "ngap_ue_utils.h"
 
+#include "srsenb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/ngap.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
-#include "srsenb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
 
 #include <map>
 #include <string>
@@ -66,6 +66,7 @@ public:
   explicit ngap_ue_ue_context_release_proc(ngap_interface_ngap_proc* parent_,
                                            rrc_interface_ngap_nr*    rrc_,
                                            ngap_ue_ctxt_t*           ue_ctxt,
+                                           ngap_ue_bearer_manager*   bearer_manager,
                                            srslog::basic_logger&     logger_);
   srsran::proc_outcome_t init(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
   srsran::proc_outcome_t step();
@@ -73,8 +74,9 @@ public:
 
 private:
   ngap_ue_ctxt_t*           ue_ctxt;
-  ngap_interface_ngap_proc* parent = nullptr;
-  rrc_interface_ngap_nr*    rrc    = nullptr;
+  ngap_interface_ngap_proc* parent         = nullptr;
+  rrc_interface_ngap_nr*    rrc            = nullptr;
+  ngap_ue_bearer_manager*   bearer_manager = nullptr;
   srslog::basic_logger&     logger;
 };
 

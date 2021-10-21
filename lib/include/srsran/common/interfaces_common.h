@@ -29,20 +29,20 @@
 
 namespace srsran {
 
-typedef struct {
+struct phy_log_args_t {
   std::string phy_level     = "none";
   std::string phy_lib_level = "none";
   std::string id_preamble   = "";
   int         phy_hex_limit = -1;
-} phy_log_args_t;
+};
 
-typedef struct {
+struct rf_args_band_t {
   float min;
   float max;
-} rf_args_band_t;
+};
 
 // RF/radio args
-typedef struct {
+struct rf_args_t {
   std::string type;
   std::string log_level;
   double      srate_hz;
@@ -65,8 +65,7 @@ typedef struct {
 
   std::array<rf_args_band_t, SRSRAN_MAX_CARRIERS> ch_rx_bands;
   std::array<rf_args_band_t, SRSRAN_MAX_CARRIERS> ch_tx_bands;
-
-} rf_args_t;
+};
 
 struct vnf_args_t {
   std::string type;

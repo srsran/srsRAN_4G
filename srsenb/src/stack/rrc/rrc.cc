@@ -88,6 +88,14 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
   // Loads the PRACH root sequence
   cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list[0].root_seq_idx;
 
+  if (cfg.num_nr_cells > 0) {
+    cfg.sibs[1].sib2().ext = true;
+    cfg.sibs[1].sib2().plmn_info_list_r15.set_present();
+    cfg.sibs[1].sib2().plmn_info_list_r15.get()->resize(1);
+    auto& plmn                       = cfg.sibs[1].sib2().plmn_info_list_r15.get()->back();
+    plmn.upper_layer_ind_r15_present = true;
+  }
+
   if (generate_sibs() != SRSRAN_SUCCESS) {
     logger.error("Couldn't generate SIBs.");
     return false;
@@ -570,23 +578,50 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
 
 void rrc::sgnb_addition_ack(uint16_t eutra_rnti, sgnb_addition_ack_params_t params)
 {
-  logger.info("Received SgNB addition acknowledgement for rnti=%d", eutra_rnti);
-  users.at(eutra_rnti)->endc_handler->trigger(ue::rrc_endc::sgnb_add_req_ack_ev{params});
+  logger.info("Received SgNB addition acknowledgement for rnti=0x%x", eutra_rnti);
+  auto ue_it = users.find(eutra_rnti);
+  if (ue_it == users.end()) {
+    logger.warning("rnti=0x%x does not exist", eutra_rnti);
+    return;
+  }
+  ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_add_req_ack_ev{params});
 
   // trigger RRC Reconfiguration to send NR config to UE
-  users.at(eutra_rnti)->send_connection_reconf();
+  ue_it->second->send_connection_reconf();
 }
 
 void rrc::sgnb_addition_reject(uint16_t eutra_rnti)
 {
   logger.error("Received SgNB addition reject for rnti=%d", eutra_rnti);
-  users.at(eutra_rnti)->endc_handler->trigger(ue::rrc_endc::sgnb_add_req_reject_ev{});
+  auto ue_it = users.find(eutra_rnti);
+  if (ue_it == users.end()) {
+    logger.warning("rnti=0x%x does not exist", eutra_rnti);
+    return;
+  }
+  ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_add_req_reject_ev{});
 }
 
 void rrc::sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti)
 {
   logger.info("User rnti=0x%x successfully enabled EN-DC", eutra_rnti);
-  users.at(eutra_rnti)->endc_handler->trigger(ue::rrc_endc::sgnb_add_complete_ev{nr_rnti});
+  auto ue_it = users.find(eutra_rnti);
+  if (ue_it == users.end()) {
+    logger.warning("rnti=0x%x does not exist", eutra_rnti);
+    return;
+  }
+  ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_add_complete_ev{nr_rnti});
+}
+
+void rrc::sgnb_release_ack(uint16_t eutra_rnti)
+{
+  auto ue_it = users.find(eutra_rnti);
+  if (ue_it != users.end()) {
+    logger.info("Received SgNB release acknowledgement for rnti=0x%x", eutra_rnti);
+    ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_rel_req_ack_ev{});
+  } else {
+    // The EUTRA does not need to wait for Release Ack in case it wants to destroy the EUTRA UE
+    logger.info("Received SgNB release acknowledgement for already released rnti=0x%x", eutra_rnti);
+  }
 }
 
 /*******************************************************************************

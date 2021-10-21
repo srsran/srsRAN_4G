@@ -25,6 +25,7 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
@@ -70,8 +71,9 @@ public:
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const sched_cell_params& cell_params_);
-  slot_ue try_reserve(slot_point pdcch_slot, const ue_cfg_t& uecfg_, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
+  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const cell_params_t& cell_params_);
+  void    set_cfg(const ue_cfg_t& ue_cfg);
+  slot_ue try_reserve(slot_point pdcch_slot, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
 
   const uint16_t rnti;
   const uint32_t cc;
@@ -82,9 +84,13 @@ public:
 
   harq_entity harq_ent;
 
+  // metrics
+  mac_ue_metrics_t metrics = {};
+  std::mutex       metrics_mutex;
+
 private:
-  bwp_ue_cfg               bwp_cfg;
-  const sched_cell_params& cell_params;
+  bwp_ue_cfg           bwp_cfg;
+  const cell_params_t& cell_params;
 };
 
 class ue

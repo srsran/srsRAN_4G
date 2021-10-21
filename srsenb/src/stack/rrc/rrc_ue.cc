@@ -406,13 +406,16 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::meas_report:
-      if (mobility_handler != nullptr) {
-        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
+      if (state == RRC_STATE_REGISTERED) {
+        if (mobility_handler != nullptr) {
+          mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
+        }
+        if (endc_handler != nullptr) {
+          endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+        }
       } else {
-        parent->logger.warning("Received MeasReport but no mobility configuration is available");
-      }
-      if (endc_handler != nullptr) {
-        endc_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+        parent->logger.warning(
+            "measurementReport for rnti=0x%x ignored. Cause: RRC Reconfiguration is not yet complete", rnti);
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
@@ -661,6 +664,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   srsran::console(
       "User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n", rnti, old_rnti, req_r8.reest_cause.to_string());
 
+  if (endc_handler != nullptr) {
+    old_ue->endc_handler->trigger(rrc_endc::rrc_reest_rx_ev{});
+  }
+
   // Cancel Handover in Target eNB if on-going
   asn1::s1ap::cause_c cause;
   cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
@@ -698,6 +705,17 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     asn1::json_writer js{};
     eutra_capabilities.to_json(js);
     parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
+  }
+  if (endc_handler) {
+    if (req_r8.reest_cause.value == reest_cause_opts::recfg_fail) {
+      // In case of Reestablishment due to ReconfFailure, avoid re-enabling NR EN-DC, otherwise
+      // the eNB and UE may enter in a reconfiguration + reestablishment loop.
+      endc_handler->trigger(rrc_endc::disable_endc_ev{});
+    } else {
+      // In case of Reestablishment with cause other than ReconfFailure, recompute whether
+      // the new RNTI supports NR EN-DC.
+      endc_handler->handle_eutra_capabilities(eutra_capabilities);
+    }
   }
 
   // Recover GTP-U tunnels and S1AP context
@@ -1237,18 +1255,22 @@ void rrc::ue::update_scells()
   const ue_cell_ded*     pcell     = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const enb_cell_common* pcell_cfg = pcell->cell_common;
 
-  if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
-    // SCells already added
+  // Check whether UE supports CA
+  if (eutra_capabilities.access_stratum_release.to_number() < 10) {
+    parent->logger.info("UE doesn't support CA. Skipping SCell activation");
     return;
   }
-
-  // Check whether UE supports CA
   if (not eutra_capabilities.non_crit_ext_present or not eutra_capabilities.non_crit_ext.non_crit_ext_present or
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext_present or
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020_present or
       eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020.supported_band_combination_r10.size() ==
           0) {
     parent->logger.info("UE doesn't support CA. Skipping SCell activation");
+    return;
+  }
+
+  if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
+    // SCells already added
     return;
   }
 

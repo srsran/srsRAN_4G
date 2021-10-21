@@ -39,10 +39,11 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   rlc(rlc_logger)
 {
-  ue_task_queue   = task_sched.make_task_queue();
-  sync_task_queue = task_sched.make_task_queue();
-  gtpu_task_queue = task_sched.make_task_queue();
-  mac_task_queue  = task_sched.make_task_queue();
+  sync_task_queue    = task_sched.make_task_queue();
+  gtpu_task_queue    = task_sched.make_task_queue();
+  metrics_task_queue = task_sched.make_task_queue();
+  gnb_task_queue     = task_sched.make_task_queue();
+  x2_task_queue      = task_sched.make_task_queue();
 }
 
 gnb_stack_nr::~gnb_stack_nr()
@@ -55,14 +56,13 @@ std::string gnb_stack_nr::get_type()
   return "nr";
 }
 
-int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
-                       const rrc_nr_cfg_t&         rrc_cfg_,
-                       phy_interface_stack_nr*     phy_,
-                       x2_interface*               x2_)
+int gnb_stack_nr::init(const gnb_stack_args_t& args_,
+                       const rrc_nr_cfg_t&     rrc_cfg_,
+                       phy_interface_stack_nr* phy_,
+                       x2_interface*           x2_)
 {
   args = args_;
-  // rrc_cfg = rrc_cfg_;
-  phy = phy_;
+  phy  = phy_;
 
   // setup logging
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
@@ -78,10 +78,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
 
   // Init all layers
-  mac_nr_args_t mac_args = {};
-  mac_args.pcap          = args.mac_pcap;
-  mac_args.pcap.filename = "/tmp/enb_mac_nr.pcap";
-  if (mac.init(mac_args, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
+  if (mac.init(args.mac, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize MAC-NR");
     return SRSRAN_ERROR;
   }
@@ -109,13 +106,21 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_,
 void gnb_stack_nr::stop()
 {
   if (running) {
-    rrc.stop();
-    pdcp.stop();
-    mac.stop();
-
-    srsran::get_background_workers().stop();
-    running = false;
+    gnb_task_queue.push([this]() { stop_impl(); });
+    wait_thread_finish();
   }
+}
+
+void gnb_stack_nr::stop_impl()
+{
+  rrc.stop();
+  pdcp.stop();
+  mac.stop();
+
+  task_sched.stop();
+  srsran::get_background_workers().stop();
+
+  running = false;
 }
 
 bool gnb_stack_nr::switch_on()
@@ -142,9 +147,7 @@ void gnb_stack_nr::tti_clock_impl()
   task_sched.tic();
 }
 
-void gnb_stack_nr::process_pdus()
-{
-}
+void gnb_stack_nr::process_pdus() {}
 
 /********************************************************
  *
@@ -154,8 +157,27 @@ void gnb_stack_nr::process_pdus()
 
 bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
 {
+  bool metrics_ready = false;
+
+  // use stack thread to query RRC metrics
+  auto ret = metrics_task_queue.try_push([this, metrics, &metrics_ready]() {
+    rrc.get_metrics(metrics->rrc);
+    {
+      std::lock_guard<std::mutex> lock(metrics_mutex);
+      metrics_ready = true;
+    }
+    metrics_cvar.notify_one();
+  });
+  if (not ret.has_value()) {
+    return false;
+  }
+
+  // obtain MAC metrics (do not use stack thread)
   mac.get_metrics(metrics->mac);
-  rrc.get_metrics(metrics->rrc);
+
+  // wait for RRC result
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+  metrics_cvar.wait(lock, [&metrics_ready]() { return metrics_ready; });
   return true;
 }
 

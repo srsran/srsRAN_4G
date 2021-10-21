@@ -68,9 +68,11 @@ public:
   void       metrics_phr(float phr);
   void       metrics_dl_ri(uint32_t dl_cqi);
   void       metrics_dl_pmi(uint32_t dl_cqi);
-  void       metrics_dl_cqi(uint32_t dl_cqi);
+  void       metrics_dl_cqi(const srsran_uci_cfg_nr_t& cfg_, uint32_t dl_cqi);
   void       metrics_dl_mcs(uint32_t mcs);
   void       metrics_ul_mcs(uint32_t mcs);
+  void       metrics_pucch_sinr(float sinr);
+  void       metrics_pusch_sinr(float sinr);
   void       metrics_cnt();
 
   uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
@@ -92,11 +94,15 @@ private:
 
   std::atomic<bool> active_state{true};
 
-  uint32_t         phr_counter    = 0;
-  uint32_t         dl_cqi_counter = 0;
-  uint32_t         dl_ri_counter  = 0;
-  uint32_t         dl_pmi_counter = 0;
-  mac_ue_metrics_t ue_metrics     = {};
+  // TODO: some counters are kept as members of class ue_nr, while some others (i.e., mcs) are kept in the ue_metrics
+  // We should make these counters more uniform
+  uint32_t         phr_counter          = 0;
+  uint32_t         dl_cqi_valid_counter = 0;
+  uint32_t         dl_ri_counter        = 0;
+  uint32_t         dl_pmi_counter       = 0;
+  uint32_t         pucch_sinr_counter   = 0;
+  uint32_t         pusch_sinr_counter   = 0;
+  mac_ue_metrics_t ue_metrics           = {};
 
   // UE-specific buffer for MAC PDU packing, unpacking and handling
   srsran::mac_sch_pdu_nr                    mac_pdu_dl, mac_pdu_ul;
@@ -104,6 +110,9 @@ private:
   srsran::block_queue<srsran::unique_byte_buffer_t>
                                ue_rx_pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
   srsran::unique_byte_buffer_t ue_rlc_buffer;
+
+  static constexpr int32_t MIN_RLC_PDU_LEN =
+      5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
 
   // Mutexes
   std::mutex mutex;

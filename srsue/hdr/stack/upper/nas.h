@@ -231,8 +231,8 @@ private:
   void enter_emm_deregistered_initiated();
 
   // security context persistence file
-  bool read_ctxt_file(nas_sec_ctxt* ctxt);
-  bool write_ctxt_file(nas_sec_ctxt ctxt_);
+  bool read_ctxt_file(nas_sec_ctxt* ctxt_, nas_sec_base_ctxt* ctxt_base_);
+  bool write_ctxt_file(nas_sec_ctxt ctxt_, nas_sec_base_ctxt ctxt_base_);
 
   // ctxt file helpers
   std::string hex_to_string(uint8_t* hex, int size);
