@@ -453,11 +453,15 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
 void rlc_am_lte::rlc_am_lte_tx::get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+  get_buffer_state_nolock(n_bytes_newtx, n_bytes_prio);
+}
+
+void rlc_am_lte::rlc_am_lte_tx::get_buffer_state_nolock(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio)
+{
   n_bytes_newtx   = 0;
   n_bytes_prio    = 0;
   uint32_t n_sdus = 0;
-
-  std::lock_guard<std::mutex> lock(mutex);
 
   logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
                RB_NAME,
@@ -512,6 +516,10 @@ void rlc_am_lte::rlc_am_lte_tx::get_buffer_state(uint32_t& n_bytes_newtx, uint32
   if (n_bytes_newtx > 0 && n_sdus > 0) {
     n_bytes_newtx += 2; // Two bytes for fixed header with SN length = 10
     logger.debug("%s Total buffer state - %d SDUs (%d B)", RB_NAME, n_sdus, n_bytes_newtx);
+  }
+
+  if (bsr_callback) {
+    bsr_callback(parent->lcid, n_bytes_newtx, n_bytes_prio);
   }
 }
 
@@ -627,12 +635,9 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
     logger.debug("%s Status prohibit timer expired after %dms", RB_NAME, status_prohibit_timer.duration());
   }
 
-  lock.unlock();
-
   if (bsr_callback) {
     uint32_t new_tx_queue = 0, prio_tx_queue = 0;
-    get_buffer_state(new_tx_queue, prio_tx_queue);
-    bsr_callback(parent->lcid, new_tx_queue, prio_tx_queue);
+    get_buffer_state_nolock(new_tx_queue, prio_tx_queue);
   }
 }
 

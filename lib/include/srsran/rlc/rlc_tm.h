@@ -58,7 +58,7 @@ public:
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) override;
   void     write_pdu(uint8_t* payload, uint32_t nof_bytes) override;
 
-  void set_bsr_callback(bsr_callback_t callback) override {}
+  void set_bsr_callback(bsr_callback_t callback) override;
 
 private:
   byte_buffer_pool*          pool = nullptr;
@@ -66,6 +66,9 @@ private:
   uint32_t                   lcid = 0;
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;
+
+  std::mutex     bsr_callback_mutex;
+  bsr_callback_t bsr_callback;
 
   std::atomic<bool> tx_enabled = {true};
 

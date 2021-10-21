@@ -128,16 +128,19 @@ bool rlc_um_base::has_data()
 
 uint32_t rlc_um_base::get_buffer_state()
 {
-  if (tx) {
-    return tx->get_buffer_state();
-  }
-  return 0;
+  uint32_t newtx_queue   = 0;
+  uint32_t prio_tx_queue = 0;
+  get_buffer_state(newtx_queue, prio_tx_queue);
+  return newtx_queue + prio_tx_queue;
 }
 
 void rlc_um_base::get_buffer_state(uint32_t& newtx_queue, uint32_t& prio_tx_queue)
 {
-  newtx_queue   = get_buffer_state();
+  newtx_queue   = 0;
   prio_tx_queue = 0;
+  if (tx) {
+    newtx_queue = tx->get_buffer_state();
+  }
 }
 
 uint32_t rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
@@ -176,6 +179,11 @@ void rlc_um_base::reset_metrics()
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics = {};
+}
+
+void rlc_um_base::set_bsr_callback(bsr_callback_t callback)
+{
+  tx->set_bsr_callback(std::move(callback));
 }
 
 /****************************************************************************
@@ -248,6 +256,11 @@ void rlc_um_base::rlc_um_base_tx::empty_queue()
 bool rlc_um_base::rlc_um_base_tx::has_data()
 {
   return (tx_sdu != nullptr || !tx_sdu_queue.is_empty());
+}
+
+void rlc_um_base::rlc_um_base_tx::set_bsr_callback(bsr_callback_t callback)
+{
+  bsr_callback = callback;
 }
 
 void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)

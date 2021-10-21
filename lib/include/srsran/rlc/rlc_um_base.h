@@ -66,7 +66,9 @@ public:
   rlc_bearer_metrics_t get_metrics();
   void                 reset_metrics();
 
-  void set_bsr_callback(bsr_callback_t callback) {}
+  void set_bsr_callback(bsr_callback_t callback);
+
+  uint32_t get_lcid() const { return lcid; }
 
 protected:
   // Transmitter sub-class base
@@ -88,11 +90,14 @@ protected:
     bool             has_data();
     virtual uint32_t get_buffer_state() = 0;
 
+    void set_bsr_callback(bsr_callback_t callback);
+
   protected:
     byte_buffer_pool*     pool = nullptr;
     srslog::basic_logger& logger;
     std::string           rb_name;
     rlc_um_base*          parent = nullptr;
+    bsr_callback_t        bsr_callback;
 
     rlc_config_t cfg = {};
 

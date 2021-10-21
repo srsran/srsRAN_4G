@@ -401,6 +401,8 @@ private:
     int  required_buffer_size(const rlc_amd_retx_t& retx);
     void retransmit_pdu(uint32_t sn);
 
+    void get_buffer_state_nolock(uint32_t& new_tx, uint32_t& prio_tx);
+
     // Helpers
     bool poll_required();
     bool do_status();
