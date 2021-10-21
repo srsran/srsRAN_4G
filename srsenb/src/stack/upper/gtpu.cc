@@ -90,18 +90,12 @@ gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t 
   tun->teid_out      = teidout;
   tun->spgw_addr     = spgw_addr;
 
-  if (ue_teidin_db.find(rnti) != ue_teidin_db.end()) {
+  if (ue_teidin_db.find(rnti) == ue_teidin_db.end()) {
     auto ret = ue_teidin_db.emplace(rnti, ue_bearer_tunnel_list());
     if (!ret.second) {
       logger.error("Failed to allocate rnti=0x%x", rnti);
       return nullptr;
     }
-#if 0
-    if (ret.is_error()) {
-      logger.error("Failed to allocate rnti=0x%x", rnti);
-      return nullptr;
-    }
-#endif
   }
   auto& ue_tunnels = ue_teidin_db[rnti];
 
