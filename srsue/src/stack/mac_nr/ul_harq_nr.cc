@@ -144,11 +144,12 @@ void ul_harq_entity_nr::ul_harq_process_nr::reset()
   nof_retx      = 0;
   harq_buffer   = nullptr;
   current_grant = {};
+  reset_ndi();
 }
 
 void ul_harq_entity_nr::ul_harq_process_nr::reset_ndi()
 {
-  current_grant.ndi = false;
+  current_grant.ndi = NDI_NOT_SET;
 }
 
 uint8_t ul_harq_entity_nr::ul_harq_process_nr::get_ndi()
@@ -226,11 +227,21 @@ int ul_harq_entity_nr::ul_harq_process_nr::get_current_tbs()
   return current_grant.tbs;
 }
 
+void ul_harq_entity_nr::ul_harq_process_nr::save_grant(const mac_interface_phy_nr::mac_nr_grant_ul_t& grant)
+{
+  current_grant = grant;
+  // When determining if NDI has been toggled compared to the value in the previous transmission the MAC entity shall
+  // ignore NDI received in all uplink grants on PDCCH for its Temporary C-RNTI.
+  if (grant.is_rar_grant || grant.rnti == harq_entity->mac->get_temp_crnti()) {
+    reset_ndi();
+  }
+}
+
 // New transmission (Section 5.4.2.2)
 void ul_harq_entity_nr::ul_harq_process_nr::generate_new_tx(const mac_interface_phy_nr::mac_nr_grant_ul_t& grant,
                                                             mac_interface_phy_nr::tb_action_ul_t*          action)
 {
-  current_grant = grant;
+  save_grant(grant);
   nof_retx      = 0;
 
   logger.info("UL %d:  New TX%s, rv=%d, tbs=%d",
@@ -252,7 +263,7 @@ void ul_harq_entity_nr::ul_harq_process_nr::generate_retx(const mac_interface_ph
   logger.info("UL %d:  Retx=%d, rv=%d, tbs=%d", pid, nof_retx, grant.rv, grant.tbs);
 
   // overwrite original grant
-  current_grant = grant;
+  save_grant(grant);
 
   generate_tx(action);
 
