@@ -244,8 +244,7 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
   // measurements to avoid a concurrency issue
   cmd_worker.add_cmd([this, earfcn, pci]() {
     // Check if the EARFCN matches with serving cell
-    uint32_t pcell_earfcn = 0;
-    sfsync.get_current_cell(nullptr, &pcell_earfcn);
+    uint32_t pcell_earfcn = selected_earfcn;
     bool available = (pcell_earfcn == earfcn);
 
     // Find if there is secondary serving cell configured with the specified EARFCN
@@ -302,6 +301,10 @@ bool phy::cell_select(phy_cell_t cell)
 
     // Indicate workers that cell selection is in progress
     common.cell_is_selecting = true;
+
+    // Update EARCN before starting the background task to make sure is taken into account when finding carriers to
+    // measure inter-frequency neighbours (see set_cells_to_meas)
+    selected_earfcn = cell.earfcn;
 
     cmd_worker_cell.add_cmd([this, cell]() {
       // Wait SYNC transitions to IDLE

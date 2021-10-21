@@ -190,6 +190,9 @@ private:
   // Tracks the current selected cell (last call to cell_select)
   srsran_cell_t selected_cell = {};
 
+  // Tracks the current selected EARFCN (last call to cell_select)
+  uint32_t selected_earfcn = 0;
+
   static void set_default_args(phy_args_t& args);
   bool        check_args(const phy_args_t& args);
 };
