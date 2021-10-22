@@ -86,7 +86,7 @@ private:
   srsenb::rlc_dummy               rlc_obj;
   std::unique_ptr<srsenb::mac_nr> mac;
   srslog::basic_logger&           sched_logger;
-  bool                            autofill_pdsch_bsr = false;
+  bool                            autofill_sch_bsr = false;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -359,7 +359,7 @@ public:
     sched_logger.set_level(srslog::str_to_basic_level(args.log_level));
     srslog::fetch_basic_logger("MAC-NR").set_level(srslog::str_to_basic_level(args.log_level));
 
-    autofill_pdsch_bsr = args.pdsch.slots != "" and args.pdsch.slots != "none";
+    autofill_sch_bsr = args.pdsch.slots != "" and args.pdsch.slots != "none";
 
     // create sched object
     mac.reset(new srsenb::mac_nr{&task_sched});
@@ -464,8 +464,9 @@ public:
     sched_logger.set_context(slot_cfg.idx);
 
     if (not use_dummy_mac) {
-      if (autofill_pdsch_bsr) {
-        mac->rlc_buffer_state(rnti, 0, 10000, 0);
+      if (autofill_sch_bsr) {
+        mac->rlc_buffer_state(rnti, 0, 100000, 0);
+        mac->ul_bsr(rnti, 0, 100000);
       }
 
       int ret = mac->get_dl_sched(slot_cfg, dl_sched);

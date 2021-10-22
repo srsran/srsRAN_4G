@@ -286,6 +286,11 @@ int mac_nr::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, u
   return SRSRAN_SUCCESS;
 }
 
+void mac_nr::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr)
+{
+  sched.ul_bsr(rnti, lcid, bsr);
+}
+
 int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
   return 0;

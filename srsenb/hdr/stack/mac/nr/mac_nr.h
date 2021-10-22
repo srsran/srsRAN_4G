@@ -69,6 +69,9 @@ public:
   int  pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override;
   void rach_detected(const rach_info_t& rach_info) override;
 
+  // Test interface
+  void ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr);
+
 private:
   uint16_t add_ue_(uint32_t enb_cc_idx);
   uint16_t alloc_ue(uint32_t enb_cc_idx);
