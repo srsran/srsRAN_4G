@@ -296,14 +296,13 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   logger.set_context(slot_cfg.idx - TX_ENB_DELAY);
 
   slot_point                         pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-  sched_nr_interface::dl_sched_res_t dl_res;
+  sched_nr_interface::dl_sched_res_t dl_res(dl_sched);
 
   // Run Scheduler
   int ret = sched.run_slot(pdsch_slot, 0, dl_res);
   if (ret != SRSRAN_SUCCESS) {
     return ret;
   }
-  dl_sched = dl_res.dl_sched;
 
   uint32_t                  rar_count = 0;
   srsran::rwlock_read_guard rw_lock(rwmutex);

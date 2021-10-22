@@ -119,7 +119,8 @@ public:
   using sched_rar_list_t = srsran::bounded_vector<rar_t, MAX_GRANTS>;
   struct dl_sched_res_t {
     sched_rar_list_t rar;
-    dl_sched_t       dl_sched;
+    dl_sched_t&      dl_sched;
+    dl_sched_res_t(dl_sched_t& dl_sched_) : dl_sched(dl_sched_) {}
   };
 
   virtual ~sched_nr_interface() = default;
