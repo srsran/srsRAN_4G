@@ -111,8 +111,8 @@ public:
       nulltype
     };
 
-    /// @param [in] triggered_by_rach: indicates whether the UE is created as part of a RACH process
-    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach = true);
+    /// @param [in] start_msg3_timer: indicates whether the UE is created as part of a RACH process
+    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer = true);
 
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
@@ -242,7 +242,7 @@ private:
   /// Private Methods
   void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
-  int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach = false);
+  int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
 
   // logging
   typedef enum { Rx = 0, Tx } direction_t;

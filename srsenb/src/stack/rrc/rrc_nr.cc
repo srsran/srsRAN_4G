@@ -161,11 +161,11 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
  *
  * This function WILL NOT TRIGGER the RX MSG3 activity timer
  */
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach)
+int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer)
 {
   if (users.count(rnti) == 0) {
-    // If in the ue ctor, "triggered_by_rach" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, triggered_by_rach))));
+    // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
+    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, start_msg3_timer))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -559,7 +559,7 @@ void rrc_nr::sgnb_release_request(uint16_t nr_rnti)
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool triggered_by_rach) :
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
   parent(parent_), rnti(rnti_), uecfg(uecfg_)
 {
   // Derive UE cfg from rrc_cfg_nr_t
@@ -567,7 +567,7 @@ rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_,
 
   // Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
   activity_timer = parent->task_sched.get_unique_timer();
-  triggered_by_rach ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+  start_msg3_timer ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
 void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
