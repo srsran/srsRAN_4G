@@ -317,7 +317,7 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
 
     Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d, HI=%s, ndi=%d, prev_ndi=%d",
          pid,
-         current_tx_nb.load(),
+         current_tx_nb.load(std::memory_order_relaxed),
          get_rv(),
          grant.tb.tbs,
          harq_feedback ? "ACK" : "NACK",
@@ -337,7 +337,7 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
     // Non-adaptive retx are only sent if HI=NACK. If HI=ACK but no dci was received do not reset PID
     Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d, HI=%s",
          pid,
-         current_tx_nb.load(),
+         current_tx_nb.load(std::memory_order_relaxed),
          get_rv(),
          cur_grant.get_tbs(),
          harq_feedback ? "ACK" : "NACK");
