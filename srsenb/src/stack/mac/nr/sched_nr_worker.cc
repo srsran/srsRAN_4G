@@ -183,6 +183,10 @@ void slot_cc_worker::postprocess_decisions()
     }
     if (not has_pusch) {
       // If any UCI information is triggered, schedule PUCCH
+      if (bwp_slot.pucch.full()) {
+        logger.warning("SCHED: Cannot fit pending UCI into PUCCH");
+        continue;
+      }
       bwp_slot.pucch.emplace_back();
       mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
 

@@ -110,6 +110,13 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   if (ret != alloc_result::success) {
     return ret;
   }
+  if (bwp_pdcch_slot.rar.full()) {
+    return alloc_result::no_grant_space;
+  }
+  if (pending_rars.size() > MAX_GRANTS) {
+    logger.error("SCHED: Trying to allocate too many Msg3 grants in a single slot (%zd)", pending_rars.size());
+    return alloc_result::invalid_grant_params;
+  }
 
   // Check DL RB collision
   if (bwp_pdcch_slot.dl_prbs.collides(interv)) {
@@ -208,6 +215,10 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot);
   if (result != alloc_result::success) {
     return result;
+  }
+  if (bwp_uci_slot.pending_acks.full()) {
+    logger.warning("SCHED: PDSCH allocation for rnti=0x%x failed due to lack of space for respective ACK", ue.rnti);
+    return alloc_result::no_grant_space;
   }
   if (bwp_pdsch_slot.dl_prbs.collides(dl_grant)) {
     return alloc_result::sch_collision;
