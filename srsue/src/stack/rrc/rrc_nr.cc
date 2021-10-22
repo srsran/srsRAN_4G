@@ -1447,17 +1447,11 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
       case ciphering_algorithm_e::nea0:
         sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
         break;
-      case ciphering_algorithm_e::nea1:
-        sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA1;
-        break;
-      case ciphering_algorithm_e::nea2:
-        sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA2;
-        break;
-      case ciphering_algorithm_e::nea3:
-        sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA3;
-        break;
       default:
-        logger.warning("Unsupported algorithm %s", security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+        logger.error("Ciphering not supported by PDCP-NR at the moment %s. Requested algorithm=%s",
+                     security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+        srsran::console("Ciphering not supported by PDCP-NR at the moment. Requested algorithm=%s\n",
+                        security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
         return false;
     }
 
@@ -1466,18 +1460,11 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
         case integrity_prot_algorithm_e::nia0:
           sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
           break;
-        case integrity_prot_algorithm_e::nia1:
-          sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA1;
-          break;
-        case integrity_prot_algorithm_e::nia2:
-          sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA2;
-          break;
-        case integrity_prot_algorithm_e::nia3:
-          sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA3;
-          break;
         default:
-          logger.warning("Unsupported algorithm %s",
-                         security_cfg.security_algorithm_cfg.integrity_prot_algorithm.to_string());
+          logger.error("Integrity protection not supported by PDCP-NR at the moment. Requested algorithm=%s.",
+                       security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+          srsran::console("Integrity protection not supported by PDCP-NR at the moment. Requested algorithm %s.\n",
+                          security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
           return false;
       }
     }
