@@ -63,10 +63,10 @@ option(ENABLE_SOAPYSDR       "Enable SoapySDR"                          ON)
 option(ENABLE_SKIQ           "Enable Sidekiq SDK"                       ON)
 option(ENABLE_ZEROMQ         "Enable ZeroMQ"                            ON)
 option(ENABLE_HARDSIM        "Enable support for SIM cards"             ON)
-                            
+
 option(ENABLE_TTCN3          "Enable TTCN3 test binaries"               OFF)
 option(ENABLE_ZMQ_TEST       "Enable ZMQ based E2E tests"               OFF)
-                            
+
 option(BUILD_STATIC          "Attempt to statically link external deps" OFF)
 option(RPATH                 "Enable RPATH"                             OFF)
 option(ENABLE_ASAN           "Enable gcc/clang address sanitizer"       OFF)
@@ -74,12 +74,12 @@ option(ENABLE_GCOV           "Enable gcc/clang address sanitizer"       OFF)
 option(ENABLE_MSAN           "Enable clang memory sanitizer"            OFF)
 option(ENABLE_TSAN           "Enable clang thread sanitizer"            OFF)
 option(ENABLE_TIDY           "Enable clang tidy"                        OFF)
-                            
+
 option(USE_LTE_RATES         "Use standard LTE sampling rates"          OFF)
 option(USE_MKL               "Use MKL instead of fftw"                  OFF)
-                            
+
 option(ENABLE_TIMEPROF       "Enable time profiling"                    ON)
-                            
+
 option(FORCE_32BIT           "Add flags to force 32 bit compilation"    OFF)
 
 option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"        OFF)
@@ -93,7 +93,7 @@ option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
 # it automatically so it is necessary to use the gcc wrappers of the compiler
 # (gcc-ar, gcc-nm, ...).
 option(BUILD_WITH_LTO        "Enable LTO (experimental)"                OFF)
-  
+
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
   message(STATUS "Detected aarch64 processor")
@@ -378,7 +378,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
   ADD_C_COMPILER_FLAG_IF_AVAILABLE("-march=${GCC_ARCH}" HAVE_MARCH_${GCC_ARCH})
   ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-march=${GCC_ARCH}" HAVE_MARCH_${GCC_ARCH})
-  
+
   if (HAVE_AVX2)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
   else (HAVE_AVX2)
@@ -536,6 +536,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU")
   # Increase inlining limit to allow gcc compilation on e.g. RPi2
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --param large-function-growth=1600")
 endif(CMAKE_C_COMPILER_ID MATCHES "GNU")
+
+if (EXTRA_TERM_TIMEOUT_S)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSRSRAN_TERM_TIMEOUT_S=${EXTRA_TERM_TIMEOUT_S}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSRAN_TERM_TIMEOUT_S=${EXTRA_TERM_TIMEOUT_S}")
+endif (EXTRA_TERM_TIMEOUT_S)
 
 message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")

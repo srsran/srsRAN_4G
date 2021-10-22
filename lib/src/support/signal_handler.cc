@@ -17,7 +17,9 @@
 #include <cstdio>
 #include <unistd.h>
 
+#ifndef SRSRAN_TERM_TIMEOUT_S
 #define SRSRAN_TERM_TIMEOUT_S (5)
+#endif
 
 /// Handler called after the user interrupts the program.
 static std::atomic<srsran_signal_hanlder> user_handler;
