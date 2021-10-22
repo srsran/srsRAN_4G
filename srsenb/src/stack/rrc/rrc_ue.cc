@@ -648,7 +648,16 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
     return;
   }
-  ue* old_ue = old_ue_it->second.get();
+  ue*  old_ue                = old_ue_it->second.get();
+  bool old_ue_supported_endc = old_ue->endc_handler and old_ue->endc_handler->is_endc_supported();
+  if (not old_ue_supported_endc and req_r8.reest_cause.value == reest_cause_opts::recfg_fail) {
+    // Reestablishment Reject for ReconfigFailures of LTE-only mode
+    parent->logger.info(
+        "RRCReestablishmentReject for rnti=0x%x. Cause: Unhandled Reestablishment due to ReconfigFailure", rnti);
+    srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: Unhandled Reestablishment due to ReconfigFailure\n",
+                    rnti);
+    return;
+  }
 
   // Reestablishment procedure going forward
   parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment", old_rnti);
