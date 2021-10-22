@@ -157,12 +157,15 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   return cfg_default;
 }
 
-// This function is called from PRACH worker (can wait)
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
+/* @brief PRIVATE function, gets called by sgnb_addition_request
+ *
+ * This function WILL NOT TRIGGER the RX MSG3 activity timer
+ */
+int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach)
 {
   if (users.count(rnti) == 0) {
-    // in the ue ctor, "triggered_by_rach" is set to true so as to start the MSG3 RX TIMEOUT when we create the ue
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, true))));
+    // If in the ue ctor, "triggered_by_rach" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
+    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, triggered_by_rach))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -171,6 +174,16 @@ int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
     logger.error("Adding user rnti=0x%x (already exists)", rnti);
     return SRSRAN_ERROR;
   }
+}
+
+/* @brief PUBLIC function, gets called by mac_nr::rach_detected
+ *
+ * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
+ */
+int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
+{
+  // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
+  return add_user(rnti, uecfg, true);
 }
 
 void rrc_nr::rem_user(uint16_t rnti)
@@ -508,7 +521,7 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
     return;
   }
 
-  if (add_user(nr_rnti, uecfg) != SRSRAN_SUCCESS) {
+  if (add_user(nr_rnti, uecfg, false) != SRSRAN_SUCCESS) {
     logger.error("Failed to allocate RNTI at RRC");
     rrc_eutra->sgnb_addition_reject(eutra_rnti);
     return;
@@ -583,9 +596,6 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
 
 void rrc_nr::ue::set_activity(bool enabled)
 {
-  if (rnti == SRSRAN_MRNTI) {
-    return;
-  }
   if (not enabled) {
     if (activity_timer.is_running()) {
       parent->logger.debug("Inactivity timer interrupted for rnti=0x%x", rnti);
@@ -603,31 +613,21 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
   parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
-  // TODO: Insert a check to ensure the RNTI exists
-#if 0
-  if (parent->s1ap->user_exists(rnti)) {
-#endif
   switch (type) {
     case UE_INACTIVITY_TIMEOUT:
       // TODO: Add action to be executed
       break;
     case MSG3_RX_TIMEOUT:
-      // MSG3 timeout, no need to notify S1AP, just remove UE
+      // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
       parent->rem_user(rnti);
-      con_release_result = procedure_result_code::msg3_timeout;
       break;
     default:
       // Unhandled activity timeout, just remove UE and log an error
       parent->rem_user(rnti);
-      con_release_result = procedure_result_code::activity_timeout;
       parent->logger.error(
           "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
   }
-#if 0
-  } else {
-    parent->rem_user_thread(rnti);
-  }
-#endif
+
   state = rrc_nr_state_t::RRC_IDLE;
 }
 
@@ -1374,10 +1374,6 @@ int rrc_nr::ue::handle_sgnb_addition_request(uint16_t eutra_rnti_, const sgnb_ad
   ack_params.eps_bearer_id = req_params.eps_bearer_id;
   parent->rrc_eutra->sgnb_addition_ack(eutra_rnti_, ack_params);
 
-  // stop activity timer for msg3
-  activity_timer.stop();
-  parent->logger.debug("SgNB addition req. - Stopping MSG3 activity timer for rnti=0x%x", rnti);
-
   // recognize RNTI as ENDC user
   endc       = true;
   eutra_rnti = eutra_rnti_;
@@ -1391,6 +1387,8 @@ void rrc_nr::ue::crnti_ce_received()
   if (endc) {
     // send SgNB addition complete for ENDC users
     parent->rrc_eutra->sgnb_addition_complete(eutra_rnti, rnti);
+
+    // stop RX MSG3 activity timer on MAC CE RNTI reception
     activity_timer.stop();
     parent->logger.debug("Received MAC CE-RNTI for 0x%x - stopping MSG3 timer", rnti);
 

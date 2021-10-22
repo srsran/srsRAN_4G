@@ -111,20 +111,8 @@ public:
       nulltype
     };
 
-    /// List of results a RRC procedure may produce.
-    enum class procedure_result_code {
-      none,
-      activity_timeout,
-      error_mme_not_connected,
-      error_unknown_rnti,
-      radio_conn_with_ue_lost,
-      msg3_timeout,
-      fail_in_radio_interface_proc,
-      unspecified
-    };
-
     /// @param [in] triggered_by_rach: indicates whether the UE is created as part of a RACH process
-    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach = false);
+    ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach = true);
 
     void send_connection_setup();
     void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
@@ -208,9 +196,6 @@ public:
     rrc_nr_state_t state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t        transaction_id = 0;
 
-    /// Connection release result.
-    procedure_result_code con_release_result = procedure_result_code::none;
-
     // RRC configs for UEs
     asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
     asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
@@ -254,8 +239,10 @@ private:
 
   uint32_t nof_si_messages = 0;
 
-  // Private Methods
+  /// Private Methods
   void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
+  int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool triggered_by_rach = false);
 
   // logging
   typedef enum { Rx = 0, Tx } direction_t;
