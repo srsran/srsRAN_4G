@@ -89,27 +89,6 @@ slot_worker* worker_pool::wait_worker(uint32_t tti)
 {
   slot_worker* w = (slot_worker*)pool.wait_worker(tti);
 
-  // Only if a worker was available
-  if (w != nullptr) {
-    srsran_carrier_nr_t   carrier_;
-    srsran_pdcch_cfg_nr_t pdcch_cfg_;
-    srsran_ssb_cfg_t      ssb_cfg_;
-
-    // Copy configuration
-    {
-      std::unique_lock<std::mutex> lock(common_cfg_mutex);
-      carrier_   = carrier;
-      pdcch_cfg_ = pdcch_cfg;
-      ssb_cfg_   = ssb_cfg;
-    }
-
-    // Set worker configuration
-    if (not w->set_common_cfg(carrier_, pdcch_cfg_, ssb_cfg_)) {
-      logger.error("Error setting common config");
-      return nullptr;
-    }
-  }
-
   // Save current TTI
   current_tti = tti;
 
@@ -153,15 +132,28 @@ int worker_pool::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common
   prach.init(0, cell, prach_cfg, &prach_stack_adaptor, logger, 0, nof_prach_workers);
   prach.set_max_prach_offset_us(1000);
 
-  // Save current configuration
-  {
-    std::unique_lock<std::mutex> lock(common_cfg_mutex);
-    carrier          = common_cfg.carrier;
-    pdcch_cfg        = common_cfg.pdcch;
-    ssb_cfg          = common_cfg.ssb;
-    ssb_cfg.srate_hz = srate_hz;
-    ssb_cfg.scaling =
-        srsran_convert_dB_to_amplitude(srsran_gnb_dl_get_maximum_signal_power_dBfs(common_cfg.carrier.nof_prb));
+  // Setup SSB sampling rate and scaling
+  srsran_ssb_cfg_t ssb_cfg = common_cfg.ssb;
+  ssb_cfg.srate_hz         = srate_hz;
+  ssb_cfg.scaling =
+      srsran_convert_dB_to_amplitude(srsran_gnb_dl_get_maximum_signal_power_dBfs(common_cfg.carrier.nof_prb));
+
+  // For each worker set configuration
+  for (uint32_t i = 0; i < pool.get_nof_workers(); i++) {
+    // Reserve worker from pool
+    slot_worker* w = (slot_worker*)pool.wait_worker_id(i);
+    if (w == nullptr) {
+      // Skip worker if invalid pointer
+      continue;
+    }
+
+    // Setup worker common configuration
+    if (not w->set_common_cfg(common_cfg.carrier, common_cfg.pdcch, ssb_cfg)) {
+      return SRSRAN_ERROR;
+    }
+
+    // Release worker
+    w->release();
   }
 
   return SRSRAN_SUCCESS;
