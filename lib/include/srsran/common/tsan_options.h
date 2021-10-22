@@ -50,7 +50,8 @@ const char* __tsan_default_suppressions()
       // Lock order inversion issues in these functions, ignore it as it uses rw locks in read mode
       "deadlock:srsenb::mac::rlc_buffer_state\n"
       "deadlock:srsenb::mac::snr_info\n"
-      "deadlock:srsenb::mac::ack_info\n";
+      "deadlock:srsenb::mac::ack_info\n"
+      "deadlock:srsenb::rlc::rb_is_um\n";
 }
 
 #ifdef __cplusplus
