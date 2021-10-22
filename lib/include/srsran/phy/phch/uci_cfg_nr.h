@@ -68,11 +68,11 @@ typedef struct {
  */
 typedef struct SRSRAN_API {
   /// Common Parameters
-  srsran_harq_ack_cfg_t   ack;                            ///< HARQ-ACK configuration
-  uint32_t                o_sr;                           ///< Number of SR bits
-  bool                    sr_positive_present;            ///< Set to true if there is at least one positive SR
-  srsran_csi_report_cfg_t csi[SRSRAN_CSI_MAX_NOF_REPORT]; ///< CSI report configuration
-  uint32_t                nof_csi;                        ///< Number of CSI reports
+  srsran_harq_ack_cfg_t   ack;                                 ///< HARQ-ACK configuration
+  uint32_t                o_sr;                                ///< Number of SR bits
+  bool                    sr_positive_present;                 ///< Set to true if there is at least one positive SR
+  srsran_csi_report_cfg_t csi[SRSRAN_CSI_SLOT_MAX_NOF_REPORT]; ///< CSI report configuration
+  uint32_t                nof_csi;                             ///< Number of CSI reports
   union {
     srsran_uci_nr_pucch_cfg_t pucch; ///< Configuration for transmission in PUCCH
     srsran_uci_nr_pusch_cfg_t pusch; ///< Configuration for transmission in PUSCH
@@ -83,9 +83,9 @@ typedef struct SRSRAN_API {
  * @brief Uplink Control Information (UCI) message packed information
  */
 typedef struct SRSRAN_API {
-  uint8_t                   ack[SRSRAN_HARQ_ACK_MAX_NOF_BITS]; ///< HARQ ACK feedback bits
-  uint32_t                  sr;                                ///< Number of positive SR
-  srsran_csi_report_value_t csi[SRSRAN_CSI_MAX_NOF_REPORT];    ///< Packed CSI report values
+  uint8_t                   ack[SRSRAN_HARQ_ACK_MAX_NOF_BITS];   ///< HARQ ACK feedback bits
+  uint32_t                  sr;                                  ///< Number of positive SR
+  srsran_csi_report_value_t csi[SRSRAN_CSI_SLOT_MAX_NOF_REPORT]; ///< Packed CSI report values
   bool valid; ///< Indicates whether the message has been decoded successfully, ignored in the transmitter
 } srsran_uci_value_nr_t;
 

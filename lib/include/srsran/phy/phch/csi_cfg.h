@@ -23,6 +23,11 @@
 #define SRSRAN_CSI_MAX_NOF_REPORT 48
 
 /**
+ * @brief Maximum number of supported simultaneous CSI reports in a single slot transmission
+ */
+#define SRSRAN_CSI_SLOT_MAX_NOF_REPORT 2
+
+/**
  * @brief Maximum number of CSI-RS resources defined in TS 38.331 maxNrofCSI-ResourceConfigurations
  */
 #define SRSRAN_CSI_MAX_NOF_RESOURCES 112
@@ -192,14 +197,5 @@ typedef struct SRSRAN_API {
     srsran_csi_report_wideband_cri_ri_pmi_cqi_t wideband_cri_ri_pmi_cqi;
   };
 } srsran_csi_report_value_t;
-
-/**
- * @brief Complete report configuration and value
- */
-typedef struct SRSRAN_API {
-  srsran_csi_report_cfg_t   cfg[SRSRAN_CSI_MAX_NOF_REPORT];   ///< Configuration ready for encoding
-  srsran_csi_report_value_t value[SRSRAN_CSI_MAX_NOF_REPORT]; ///< Quantified values
-  uint32_t                  nof_reports;                      ///< Total number of reports to transmit
-} srsran_csi_reports_t;
 
 #endif // SRSRAN_CSI_CFG_H
