@@ -122,7 +122,6 @@ bool dl_harq_proc::new_tx(slot_point       slot_tx,
                           uint32_t         max_retx)
 {
   if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs, max_retx)) {
-    softbuffer->reset();
     pdu->clear();
     return true;
   }
