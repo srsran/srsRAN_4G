@@ -48,8 +48,8 @@ using ue_cc_cfg_t        = sched_nr_interface::ue_cc_cfg_t;
 using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
 using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
 using dl_sched_t         = sched_nr_interface::dl_sched_t;
-using ul_sched_t         = sched_nr_interface::ul_sched_t;
-using dl_sched_res_t     = sched_nr_interface::dl_sched_res_t;
+using ul_sched_t         = sched_nr_interface::ul_res_t;
+using dl_sched_res_t     = sched_nr_interface::dl_res_t;
 
 /// Generate list of CCE locations for UE based on coreset and search space configurations
 void get_dci_locs(const srsran_coreset_t&      coreset,

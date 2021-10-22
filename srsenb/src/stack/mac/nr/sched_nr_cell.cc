@@ -133,7 +133,7 @@ void ra_sched::run_slot(bwp_slot_allocator& slot_alloc)
       if (pdcch_slot >= rar.rar_win.stop()) {
         fmt::memory_buffer str_buffer;
         fmt::format_to(str_buffer,
-                       "SCHED: Could not transmit RAR within the window Window={}, PRACH={}, RAR={}",
+                       "SCHED: Could not transmit RAR within the window={}, PRACH={}, RAR={}",
                        rar.rar_win,
                        rar.prach_slot,
                        pdcch_slot);
