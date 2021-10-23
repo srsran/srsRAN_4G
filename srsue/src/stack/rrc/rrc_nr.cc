@@ -367,6 +367,7 @@ void rrc_nr::rrc_release()
   rlc->reset();
   pdcp->reset();
   mac->reset();
+  lcid_drb.clear();
 }
 
 int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
