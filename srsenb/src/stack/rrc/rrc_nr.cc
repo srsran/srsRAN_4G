@@ -613,6 +613,8 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
   parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
+  state = rrc_nr_state_t::RRC_IDLE;
+
   switch (type) {
     case UE_INACTIVITY_TIMEOUT:
       // TODO: Add action to be executed
@@ -627,8 +629,6 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
       parent->logger.error(
           "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
   }
-
-  state = rrc_nr_state_t::RRC_IDLE;
 }
 
 std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
