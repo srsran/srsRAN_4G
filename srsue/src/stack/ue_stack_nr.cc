@@ -197,4 +197,9 @@ void ue_stack_nr::run_tti_impl(uint32_t tti)
   task_sched.tic();
 }
 
+void ue_stack_nr::set_phy_config_complete(bool status)
+{
+  sync_task_queue.push([this, status]() { rrc->set_phy_config_complete(status); });
+}
+
 } // namespace srsue

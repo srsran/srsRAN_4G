@@ -22,10 +22,10 @@ namespace nr {
 class cc_worker
 {
 public:
-  cc_worker(uint32_t cc_idx, srslog::basic_logger& log, state& phy_state_);
+  cc_worker(uint32_t cc_idx, srslog::basic_logger& log, state& phy_state_, const srsran::phy_cfg_nr_t& cfg);
   ~cc_worker();
 
-  bool update_cfg();
+  void update_cfg(const srsran::phy_cfg_nr_t& new_config);
   void set_tti(uint32_t tti);
 
   cf_t*    get_rx_buffer(uint32_t antenna_idx);
@@ -50,6 +50,7 @@ private:
   std::array<cf_t*, SRSRAN_MAX_PORTS> tx_buffer   = {};
   uint32_t                            buffer_sz   = 0;
   state&                              phy;
+  srsran::phy_cfg_nr_t                cfg;
   srsran_ssb_t                        ssb   = {};
   srsran_ue_dl_nr_t                   ue_dl = {};
   srsran_ue_ul_nr_t                   ue_ul = {};

@@ -84,9 +84,6 @@ public:
   /// Physical layer user configuration
   phy_args_nr_t args = {};
 
-  /// Physical layer higher layer configuration, provided by higher layers through configuration messages
-  srsran::phy_cfg_nr_t cfg = {};
-
   /// Semaphore for aligning UL work
   srsran::tti_semaphore<void*> dl_ul_semaphore;
 
@@ -101,10 +98,13 @@ public:
 
   /**
    * @brief Stores a received UL DCI into the pending UL grant list
+   * @param cfg Physical layer configuration object
    * @param slot_rx The TTI in which the grant was received
    * @param dci_ul The UL DCI message to store
    */
-  void set_ul_pending_grant(const srsran_slot_cfg_t& slot_rx, const srsran_dci_ul_nr_t& dci_ul)
+  void set_ul_pending_grant(const srsran::phy_cfg_nr_t& cfg,
+                            const srsran_slot_cfg_t&    slot_rx,
+                            const srsran_dci_ul_nr_t&   dci_ul)
   {
     // Convert UL DCI to grant
     srsran_sch_cfg_nr_t pusch_cfg = {};
@@ -160,10 +160,12 @@ public:
 
   /**
    * @brief Stores a received DL DCI into the pending DL grant list
+   * @param cfg Physical layer configuration object
    * @param tti_rx The TTI in which the grant was received
    * @param dci_dl The DL DCI message to store
    */
-  void set_dl_pending_grant(const srsran_slot_cfg_t& slot, const srsran_dci_dl_nr_t& dci_dl)
+  void
+  set_dl_pending_grant(const srsran::phy_cfg_nr_t& cfg, const srsran_slot_cfg_t& slot, const srsran_dci_dl_nr_t& dci_dl)
   {
     // Convert DL DCI to grant
     srsran_sch_cfg_nr_t pdsch_cfg = {};
@@ -289,7 +291,7 @@ public:
     reset_measurements();
   }
 
-  bool has_valid_sr_resource(uint32_t sr_id)
+  bool has_valid_sr_resource(const srsran::phy_cfg_nr_t& cfg, uint32_t sr_id)
   {
     for (const srsran_pucch_nr_sr_resource_t& r : cfg.pucch.sr_resources) {
       if (r.configured && r.sr_id == sr_id) {
@@ -310,7 +312,7 @@ public:
     pending_ack      = {};
   }
 
-  void get_pending_sr(const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
+  void get_pending_sr(const srsran::phy_cfg_nr_t& cfg, const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
   {
     // Calculate all SR opportunities in the given TTI
     uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {};
@@ -344,7 +346,8 @@ public:
     uci_data.value.sr                 = sr_count_positive;
   }
 
-  void get_periodic_csi(const srsran_slot_cfg_t& slot_cfg, srsran_uci_data_nr_t& uci_data)
+  void
+  get_periodic_csi(const srsran::phy_cfg_nr_t& cfg, const srsran_slot_cfg_t& slot_cfg, srsran_uci_data_nr_t& uci_data)
   {
     // Generate report configurations
     int n = srsran_csi_reports_generate(&cfg.csi, &slot_cfg, uci_data.cfg.csi);
@@ -451,10 +454,12 @@ public:
 
   /**
    * @brief Processes a new NZP-CSI-RS channel measurement
+   * @param cfg Physical layer configuration object
    * @param new_measure New measurement
    * @param resource_set_id NZP-CSI-RS resource set identifier used for the channel measurement
    */
-  void new_nzp_csi_rs_channel_measurement(const srsran_csi_channel_measurements_t& new_measure,
+  void new_nzp_csi_rs_channel_measurement(const srsran::phy_cfg_nr_t&              cfg,
+                                          const srsran_csi_channel_measurements_t& new_measure,
                                           uint32_t                                 resource_set_id)
   {
     std::lock_guard<std::mutex> lock(csi_measurements_mutex);
@@ -469,12 +474,14 @@ public:
   /**
    * @brief Processes a new Tracking Reference Signal (TRS) measurement
    * @param new_measure New measurement
+   * @param cfg Physical layer configuration object
    * @param resource_set_id NZP-CSI-RS resource set identifier used for the channel measurement if it is configured from
    * a NZP-CSI-RS
    * @param K_csi_rs Number of NZP-CSI-RS resources used for the measurement, set to 0 if another type of signal is
    * measured (i.e. SSB)
    */
   void new_csi_trs_measurement(const srsran_csi_trs_measurements_t& new_meas,
+                               const srsran::phy_cfg_nr_t&          cfg,
                                uint32_t                             resource_set_id = 0,
                                uint32_t                             K_csi_rs        = 0)
   {
@@ -500,7 +507,7 @@ public:
     measurements.wideband_snr_db                   = new_meas.snr_dB;
     measurements.nof_ports                         = 1; // Other values are not supported
     measurements.K_csi_rs                          = K_csi_rs;
-    new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
+    new_nzp_csi_rs_channel_measurement(cfg, measurements, resource_set_id);
 
     // Update tracking information
     trs_measurements_mutex.lock();
@@ -529,6 +536,7 @@ public:
 
   void set_ul_ext_cfo(float ext_cfo_hz) { ul_ext_cfo_hz = ext_cfo_hz; }
 };
+
 } // namespace nr
 } // namespace srsue
 

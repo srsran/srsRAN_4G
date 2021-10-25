@@ -487,5 +487,9 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
     stack_logger.warning("Detected slow task processing (sync_queue_len=%zd).", sync_task_queue.size());
   }
 }
+void ue_stack_lte::set_phy_config_complete(bool status)
+{
+  cfg_task_queue.push([this, status]() { rrc_nr.set_phy_config_complete(status); });
+}
 
 } // namespace srsue

@@ -623,6 +623,7 @@ void phy::set_mch_period_stop(uint32_t stop)
 
 int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
+  stack_nr = stack_;
   if (!nr_workers.init(args_, common, stack_, WORKERS_THREAD_PRIO)) {
     return SRSRAN_ERROR;
   }
@@ -658,17 +659,36 @@ void phy::set_earfcn(std::vector<uint32_t> earfcns)
 
 bool phy::set_config(const srsran::phy_cfg_nr_t& cfg)
 {
-  srsran::srsran_band_helper band_helper;
+  // Stash NR configuration
+  config_nr = cfg;
 
-  // tune radio
-  for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
-    logger_phy.info("Tuning Rx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, cfg.carrier.dl_center_frequency_hz / 1e6);
-    radio->set_rx_freq(i + common.args->nof_lte_carriers, cfg.carrier.dl_center_frequency_hz);
-    logger_phy.info("Tuning Tx channel %d to %.2f MHz", i + common.args->nof_lte_carriers, cfg.carrier.ul_center_frequency_hz / 1e6);
-    radio->set_tx_freq(i + common.args->nof_lte_carriers, cfg.carrier.ul_center_frequency_hz);
-  }
+  // Setup carrier configuration asynchronously
+  cmd_worker.add_cmd([this]() {
+    srsran::srsran_band_helper band_helper;
 
-  return nr_workers.set_config(cfg);
+    // tune radio
+    for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
+      logger_phy.info("Tuning Rx channel %d to %.2f MHz",
+                      i + common.args->nof_lte_carriers,
+                      config_nr.carrier.dl_center_frequency_hz / 1e6);
+      radio->set_rx_freq(i + common.args->nof_lte_carriers, config_nr.carrier.dl_center_frequency_hz);
+      logger_phy.info("Tuning Tx channel %d to %.2f MHz",
+                      i + common.args->nof_lte_carriers,
+                      config_nr.carrier.ul_center_frequency_hz / 1e6);
+      radio->set_tx_freq(i + common.args->nof_lte_carriers, config_nr.carrier.ul_center_frequency_hz);
+    }
+
+    // Set UE configuration
+    bool ret = nr_workers.set_config(config_nr);
+
+    // Notify PHY config completion
+    if (stack_nr != nullptr) {
+      stack_nr->set_phy_config_complete(ret);
+    }
+
+    return ret;
+  });
+  return true;
 }
 
 bool phy::has_valid_sr_resource(uint32_t sr_id)

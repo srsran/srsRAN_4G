@@ -730,3 +730,22 @@ srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str)
 
   return SRSRAN_SSB_PATTERN_INVALID;
 }
+
+bool srsran_carrier_nr_equal(const srsran_carrier_nr_t* a, const srsran_carrier_nr_t* b)
+{
+  if (a == NULL || b == NULL) {
+    return false;
+  }
+
+  bool ret = (a->pci == b->pci);
+  ret      = ret && (a->dl_center_frequency_hz == b->dl_center_frequency_hz);
+  ret      = ret && (a->ul_center_frequency_hz == b->ul_center_frequency_hz);
+  ret      = ret && (a->ssb_center_freq_hz == b->ssb_center_freq_hz);
+  ret      = ret && (a->offset_to_carrier == b->offset_to_carrier);
+  ret      = ret && (a->scs == b->scs);
+  ret      = ret && (a->nof_prb == b->nof_prb);
+  ret      = ret && (a->start == b->start);
+  ret      = ret && (a->max_mimo_layers == b->max_mimo_layers);
+
+  return ret;
+}

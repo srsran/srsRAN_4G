@@ -1326,8 +1326,8 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   current_phycfg.csi                  = prev_csi;
   phy->set_config(current_phycfg);
 
-  // Start RA procedure
-  mac->start_ra_procedure();
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
+
   return true;
 }
 
@@ -1526,6 +1526,7 @@ void rrc_nr::ra_completed()
 {
   logger.info("RA completed. Applying remaining CSI configuration.");
   phy->set_config(phy_cfg);
+  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
 }
 void rrc_nr::ra_problem()
 {
@@ -1537,6 +1538,24 @@ void rrc_nr::release_pucch_srs() {}
 // STACK interface
 void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell)
 {}
+
+void rrc_nr::set_phy_config_complete(bool status)
+{
+  switch (phy_cfg_state) {
+    case PHY_CFG_STATE_NONE:
+      logger.warning("PHY configuration completed without a clear state.");
+      break;
+    case PHY_CFG_STATE_APPLY_SP_CELL:
+      // Start RA procedure
+      logger.info("PHY configuration completed. Starting RA procedure.");
+      mac->start_ra_procedure();
+      break;
+    case PHY_CFG_STATE_RA_COMPLETED:
+      logger.info("Remaining CSI configuration completed.");
+      break;
+  }
+  phy_cfg_state = PHY_CFG_STATE_NONE;
+}
 
 /* Procedures */
 rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_), initiator(nr) {}

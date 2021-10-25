@@ -33,6 +33,9 @@ private:
   cf_t*                                    prach_ptr          = nullptr;
   float                                    prach_target_power = 0.0f;
   uint32_t                                 sf_sz              = 0;
+  srsran::phy_cfg_nr_t                     cfg{};
+  std::vector<bool>                        pending_cfgs;
+  std::mutex                               cfg_mutex;
 
 public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }

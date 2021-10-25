@@ -25,9 +25,10 @@ namespace srsue {
 class rrc_interface_phy_nr
 {
 public:
-  virtual void in_sync()                   = 0;
-  virtual void out_of_sync()               = 0;
-  virtual void run_tti(const uint32_t tti) = 0;
+  virtual void in_sync()                            = 0;
+  virtual void out_of_sync()                        = 0;
+  virtual void run_tti(const uint32_t tti)          = 0;
+  virtual void set_phy_config_complete(bool status) = 0;
 };
 
 class mac_interface_phy_nr

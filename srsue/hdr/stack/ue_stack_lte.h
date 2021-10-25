@@ -83,6 +83,7 @@ public:
   void cell_select_complete(bool status) final;
   void set_config_complete(bool status) final;
   void set_scell_complete(bool status) final;
+  void set_phy_config_complete(bool status) final;
 
   // MAC Interface for EUTRA PHY
   uint16_t get_dl_sched_rnti(uint32_t tti) final { return mac.get_dl_sched_rnti(tti); }

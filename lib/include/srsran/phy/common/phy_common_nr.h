@@ -718,6 +718,14 @@ SRSRAN_API const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern);
  */
 SRSRAN_API srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str);
 
+/**
+ * @brief Compares if two NR carrier structures are equal
+ * @param a First carrier to compare
+ * @param b Second carrier to compare
+ * @return True if all the carrier structure fields are equal, otherwise false
+ */
+SRSRAN_API bool srsran_carrier_nr_equal(const srsran_carrier_nr_t* a, const srsran_carrier_nr_t* b);
+
 #ifdef __cplusplus
 }
 #endif
