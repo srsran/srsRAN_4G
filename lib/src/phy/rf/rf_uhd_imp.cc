@@ -142,10 +142,13 @@ struct rf_uhd_handler_t {
   std::array<double, SRSRAN_MAX_CHANNELS> tx_freq             = {};
   std::array<double, SRSRAN_MAX_CHANNELS> rx_freq             = {};
 
-  srsran_rf_error_handler_t    uhd_error_handler     = nullptr;
-  void*                        uhd_error_handler_arg = nullptr;
-  rf_uhd_imp_underflow_state_t tx_state              = RF_UHD_IMP_TX_STATE_START_BURST;
-  uhd::time_spec_t             eob_ack_timeout       = {}; //< Set when a Underflow/Late happens
+  std::mutex                                                 tx_gain_mutex;
+  std::array<std::pair<double, double>, SRSRAN_MAX_CHANNELS> tx_gain_db = {};
+
+  srsran_rf_error_handler_t                 uhd_error_handler     = nullptr;
+  void*                                     uhd_error_handler_arg = nullptr;
+  std::atomic<rf_uhd_imp_underflow_state_t> tx_state              = {RF_UHD_IMP_TX_STATE_START_BURST};
+  uhd::time_spec_t                          eob_ack_timeout       = {}; //< Set when a Underflow/Late happens
 
   double current_master_clock = 0.0;
 
@@ -1106,7 +1109,7 @@ int rf_uhd_set_tx_gain(void* h, double gain)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   for (size_t i = 0; i < handler->nof_tx_channels; i++) {
-    if (rf_uhd_set_tx_gain_ch(h, i, gain)) {
+    if (rf_uhd_set_tx_gain_ch(h, i, gain) < SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
   }
@@ -1116,9 +1119,27 @@ int rf_uhd_set_tx_gain(void* h, double gain)
 int rf_uhd_set_tx_gain_ch(void* h, uint32_t ch, double gain)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
-  if (handler->uhd->set_tx_gain(ch, gain) != UHD_ERROR_NONE) {
+  if (ch >= SRSRAN_MAX_CHANNELS) {
     return SRSRAN_ERROR;
   }
+
+  // If the transmitter is not in a burst, update the gain instantly
+  std::unique_lock<std::mutex> lock(handler->tx_gain_mutex);
+  if (handler->tx_state != RF_UHD_IMP_TX_STATE_BURST) {
+    // Set gain
+    if (handler->uhd->set_tx_gain(ch, gain) != UHD_ERROR_NONE) {
+      return SRSRAN_ERROR;
+    }
+
+    // Update current gains
+    handler->tx_gain_db[ch].second = gain;
+    handler->tx_gain_db[ch].first  = gain;
+    return SRSRAN_SUCCESS;
+  }
+
+  // Otherwise
+  handler->tx_gain_db[ch].first = gain;
+
   return SRSRAN_SUCCESS;
 }
 
@@ -1399,6 +1420,30 @@ int rf_uhd_send_timed_multi(void*  h,
       data_c[i] = (data[i] != nullptr) ? (cf_t*)(data[i]) : zero_mem.data();
     } else {
       data_c[i] = zero_mem.data();
+    }
+  }
+
+  // Set RF Tx gains if a change is detected
+  {
+    std::unique_lock<std::mutex> tx_gain_lock(handler->tx_gain_mutex);
+    for (uint32_t i = 0; i < handler->nof_tx_channels; i++) {
+      // Skip if the gain remains unchanged
+      if (handler->tx_gain_db[i].first == handler->tx_gain_db[i].second) {
+        continue;
+      }
+
+      // Set the command to applied at the beginning of this transmission
+      if (handler->uhd->set_command_time(md.time_spec) != UHD_ERROR_NONE) {
+        return SRSRAN_ERROR;
+      }
+
+      // Send Tx gain request
+      if (handler->uhd->set_tx_gain(i, handler->tx_gain_db[i].first) != UHD_ERROR_NONE) {
+        return SRSRAN_ERROR;
+      }
+
+      // Update gain
+      handler->tx_gain_db[i].second = handler->tx_gain_db[i].first;
     }
   }
 

@@ -343,7 +343,7 @@ SRSRAN_API void srsran_vec_interleave(const cf_t* x, const cf_t* y, cf_t* z, con
 
 SRSRAN_API void srsran_vec_interleave_add(const cf_t* x, const cf_t* y, cf_t* z, const int len);
 
-SRSRAN_API void srsran_vec_gen_sine(cf_t amplitude, float freq, cf_t* z, int len);
+SRSRAN_API cf_t srsran_vec_gen_sine(cf_t amplitude, float freq, cf_t* z, int len);
 
 SRSRAN_API void srsran_vec_apply_cfo(const cf_t* x, float cfo, cf_t* z, int len);
 

@@ -21,29 +21,16 @@
 
 namespace srsran {
 
-radio::radio() : zeros(nullptr)
+radio::radio()
 {
-  zeros = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX);
-  srsran_vec_cf_zero(zeros, SRSRAN_SF_LEN_MAX);
+  zeros.resize(SRSRAN_SF_LEN_MAX, 0);
   for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
-    dummy_buffers[i] = srsran_vec_cf_malloc(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME);
-    srsran_vec_cf_zero(dummy_buffers[i], SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME);
+    dummy_buffers[i].resize(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME, 0);
   }
 }
 
 radio::~radio()
 {
-  if (zeros) {
-    free(zeros);
-    zeros = nullptr;
-  }
-
-  for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
-    if (dummy_buffers[i]) {
-      free(dummy_buffers[i]);
-    }
-  }
-
   for (srsran_resampler_fft_t& q : interpolators) {
     srsran_resampler_fft_free(&q);
   }
@@ -223,10 +210,6 @@ void radio::stop()
       srsran_rf_stop_rx_stream(&rf_device);
     }
   }
-  if (zeros) {
-    free(zeros);
-    zeros = NULL;
-  }
   if (is_initialized) {
     for (srsran_rf_t& rf_device : rf_devices) {
       srsran_rf_close(&rf_device);
@@ -362,7 +345,7 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
 
   // Discard channels not allocated, need to point to valid buffer
   for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
-    radio_buffers[i] = dummy_buffers[i];
+    radio_buffers[i] = dummy_buffers[i].data();
   }
 
   if (not map_channels(rx_channel_mapping, device_idx, 0, buffer, radio_buffers)) {
@@ -550,7 +533,7 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
 
         // Zeros transmission
         int ret = srsran_rf_send_timed2(rf_device,
-                                        zeros,
+                                        zeros.data(),
                                         nzeros,
                                         end_of_burst_time[device_idx].full_secs,
                                         end_of_burst_time[device_idx].frac_secs,
@@ -577,7 +560,7 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
 
   // Discard channels not allocated, need to point to valid buffer
   for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
-    radio_buffers[i] = zeros;
+    radio_buffers[i] = zeros.data();
   }
 
   if (not map_channels(tx_channel_mapping, device_idx, sample_offset, buffer, radio_buffers)) {
@@ -605,7 +588,7 @@ void radio::tx_end_nolock()
   if (!is_start_of_burst) {
     for (uint32_t i = 0; i < (uint32_t)rf_devices.size(); i++) {
       srsran_rf_send_timed2(
-          &rf_devices[i], zeros, 0, end_of_burst_time[i].full_secs, end_of_burst_time[i].frac_secs, false, true);
+          &rf_devices[i], zeros.data(), 0, end_of_burst_time[i].full_secs, end_of_burst_time[i].frac_secs, false, true);
     }
     is_start_of_burst = true;
   }

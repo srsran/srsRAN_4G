@@ -93,8 +93,8 @@ private:
   std::mutex                                              metrics_mutex;
   srslog::basic_logger&                                   logger = srslog::fetch_basic_logger("RF", false);
   phy_interface_radio*                                    phy    = nullptr;
-  cf_t*                                                   zeros  = nullptr;
-  std::array<cf_t*, SRSRAN_MAX_CHANNELS>                  dummy_buffers;
+  std::vector<cf_t>                                       zeros;
+  std::array<std::vector<cf_t>, SRSRAN_MAX_CHANNELS>      dummy_buffers;
   std::mutex                                              tx_mutex;
   std::mutex                                              rx_mutex;
   std::array<std::vector<cf_t>, SRSRAN_MAX_CHANNELS>      tx_buffer;

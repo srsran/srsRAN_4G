@@ -33,6 +33,7 @@ typedef struct {
   uint32_t base_srate;
   uint32_t decim_factor; // decimation factor between base_srate used on transport on radio's rate
   double   rx_gain;
+  double   tx_gain;
   uint32_t tx_freq_mhz[SRSRAN_MAX_CHANNELS];
   uint32_t rx_freq_mhz[SRSRAN_MAX_CHANNELS];
   bool     tx_off;
@@ -486,6 +487,12 @@ int rf_zmq_set_rx_gain_ch(void* h, uint32_t ch, double gain)
 
 int rf_zmq_set_tx_gain(void* h, double gain)
 {
+  if (h) {
+    rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
+    pthread_mutex_lock(&handler->tx_config_mutex);
+    handler->tx_gain = gain;
+    pthread_mutex_unlock(&handler->tx_config_mutex);
+  }
   return SRSRAN_SUCCESS;
 }
 
@@ -508,7 +515,14 @@ double rf_zmq_get_rx_gain(void* h)
 
 double rf_zmq_get_tx_gain(void* h)
 {
-  return 0.0;
+  float ret = NAN;
+  if (h) {
+    rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
+    pthread_mutex_lock(&handler->tx_config_mutex);
+    ret = handler->tx_gain;
+    pthread_mutex_unlock(&handler->tx_config_mutex);
+  }
+  return ret;
 }
 
 srsran_rf_info_t* rf_zmq_get_info(void* h)
@@ -854,7 +868,16 @@ int rf_zmq_send_timed_multi(void*  h,
         }
       }
     }
+
+    // Load transmission gain
+    float tx_gain = srsran_convert_dB_to_amplitude(handler->tx_gain);
+
     pthread_mutex_unlock(&handler->tx_config_mutex);
+
+    // If the Tx gain is NAN, INF or 0.0, use 1.0
+    if (!isnormal(tx_gain)) {
+      tx_gain = 1.0f;
+    }
 
     // Protect the access to decim_factor since is a shared variable
     pthread_mutex_lock(&handler->decim_mutex);
@@ -933,6 +956,10 @@ int rf_zmq_send_timed_multi(void*  h,
           }
         }
 
+        // Scale according to current gain
+        srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
+
+        // Finally, transmit baseband
         int n = rf_zmq_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);
         if (n == SRSRAN_ERROR) {
           goto clean_exit;

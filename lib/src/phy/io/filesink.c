@@ -17,7 +17,7 @@
 
 #include "srsran/phy/io/filesink.h"
 
-int srsran_filesink_init(srsran_filesink_t* q, char* filename, srsran_datatype_t type)
+int srsran_filesink_init(srsran_filesink_t* q, const char* filename, srsran_datatype_t type)
 {
   bzero(q, sizeof(srsran_filesink_t));
   q->f = fopen(filename, "w");
