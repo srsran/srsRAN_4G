@@ -250,3 +250,17 @@ void rf_zmq_tx_close(rf_zmq_tx_t* q)
     q->sock = NULL;
   }
 }
+
+bool rf_zmq_tx_is_running(rf_zmq_tx_t* q)
+{
+  if (!q) {
+    return false;
+  }
+
+  bool ret = false;
+  pthread_mutex_lock(&q->mutex);
+  ret = q->running;
+  pthread_mutex_unlock(&q->mutex);
+
+  return ret;
+}

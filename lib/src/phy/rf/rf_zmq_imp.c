@@ -678,7 +678,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
     }
 
     // return if receiver is turned off
-    if (!handler->receiver[0].running) {
+    if (!rf_zmq_rx_is_running(&handler->receiver[0])) {
       update_ts(handler, &handler->next_rx_ts, nsamples_baserate, "rx");
       return nsamples;
     }
@@ -705,7 +705,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
 
     // check for tx gap if we're also transmitting on this radio
     for (int i = 0; i < handler->nof_channels; i++) {
-      if (handler->transmitter[i].running) {
+      if (rf_zmq_tx_is_running(&handler->transmitter[i])) {
         rf_zmq_tx_align(&handler->transmitter[i], handler->next_rx_ts + nsamples_baserate);
       }
     }
@@ -721,7 +721,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
         cf_t* ptr = (decim_factor != 1 || buffers[i] == NULL) ? handler->buffer_decimation[i] : buffers[i];
 
         // Completed condition
-        if (count[i] < nsamples_baserate && handler->receiver[i].running) {
+        if (count[i] < nsamples_baserate && rf_zmq_rx_is_running(&handler->receiver[i])) {
           // Keep receiving
           int32_t n = rf_zmq_rx_baseband(&handler->receiver[i], &ptr[count[i]], nsamples_baserate);
 #if ZMQ_MONITOR
@@ -909,7 +909,7 @@ int rf_zmq_send_timed_multi(void*  h,
       int      num_tx_gap_samples = 0;
 
       for (int i = 0; i < handler->nof_channels; i++) {
-        if (handler->transmitter[i].running) {
+        if (rf_zmq_tx_is_running(&handler->transmitter[i])) {
           num_tx_gap_samples = rf_zmq_tx_align(&handler->transmitter[i], tx_ts);
         }
       }
@@ -919,7 +919,7 @@ int rf_zmq_send_timed_multi(void*  h,
                 "[zmq] Error: tx time is %.3f ms in the past (%" PRIu64 " < %" PRIu64 ")\n",
                 -1000.0 * num_tx_gap_samples / handler->base_srate,
                 tx_ts,
-                handler->transmitter[0].nsamples);
+                (uint64_t)rf_zmq_tx_get_nsamples(&handler->transmitter[0]));
         goto clean_exit;
       }
     }
