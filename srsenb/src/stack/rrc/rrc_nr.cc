@@ -619,10 +619,12 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
     case UE_INACTIVITY_TIMEOUT:
       // TODO: Add action to be executed
       break;
-    case MSG3_RX_TIMEOUT:
+    case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
-      parent->rem_user(rnti);
+      uint32_t rnti_to_rem = rnti;
+      parent->task_sched.defer_task([this, rnti_to_rem]() { parent->rem_user(rnti_to_rem); });
       break;
+    }
     default:
       // Unhandled activity timeout, just remove UE and log an error
       parent->rem_user(rnti);
