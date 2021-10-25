@@ -37,6 +37,8 @@ struct rrc_nr_cfg_t {
   rrc_nr_cfg_sr_t                                         sr_cfg;
   rrc_cfg_cqi_t                                           cqi_cfg;
   rrc_cell_list_nr_t                                      cell_list;
+  asn1::rrc_nr::rach_cfg_common_s                         rach_cfg_common;
+  uint16_t                                                prach_root_seq_idx_type;
 
   std::string log_name = "RRC-NR";
   std::string log_level;

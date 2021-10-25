@@ -43,6 +43,7 @@ struct phy_cell_cfg_nr_t {
   uint32_t              num_ra_preambles;
   float                 gain_db;
   srsran_pdcch_cfg_nr_t pdcch = {}; ///< Common CORESET and Search Space configuration
+  srsran_pdsch_cfg_t    pdsch = {};
   srsran_prach_cfg_t    prach = {};
 };
 

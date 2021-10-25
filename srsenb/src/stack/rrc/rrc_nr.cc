@@ -1029,25 +1029,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_dl(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
-  auto& freq_info_dl = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl;
-  freq_info_dl.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  freq_info_dl.absolute_freq_point_a     = parent->cfg.cell_list[0].dl_absolute_freq_point_a;
-  freq_info_dl.absolute_freq_ssb_present = true;
-  freq_info_dl.absolute_freq_ssb         = parent->cfg.cell_list[0].ssb_absolute_freq_point;
-
-  freq_info_dl.scs_specific_carrier_list.resize(1);
-  auto& dl_carrier              = freq_info_dl.scs_specific_carrier_list[0];
-  dl_carrier.offset_to_carrier  = 0;
-  dl_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
-  dl_carrier.carrier_bw         = parent->cfg.cell_list[0].phy_cell.carrier.nof_prb;
-
-  return SRSRAN_SUCCESS;
-}
-
 int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_phy_cell_group_cfg(
     asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
@@ -1097,69 +1078,8 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common(
   // DL config
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present = true;
 
-  pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_dl(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_phy_cell_group_cfg(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp(cell_group_cfg_pack);
-
-  return SRSRAN_SUCCESS;
-}
-
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul_present = true;
-  auto& freq_info_ul = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul;
-  freq_info_ul.freq_band_list_present = true;
-  freq_info_ul.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  freq_info_ul.absolute_freq_point_a_present = true;
-  freq_info_ul.absolute_freq_point_a         = parent->cfg.cell_list[0].ul_absolute_freq_point_a;
-  freq_info_ul.scs_specific_carrier_list.resize(1);
-
-  auto& ul_carrier              = freq_info_ul.scs_specific_carrier_list[0];
-  ul_carrier.offset_to_carrier  = 0;
-  ul_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
-  ul_carrier.carrier_bw         = parent->cfg.cell_list[0].phy_cell.carrier.nof_prb;
-
-  return SRSRAN_SUCCESS;
-}
-
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_rach_cfg_common(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  // RACH config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
-      true;
-  auto& rach_cfg_common_pack =
-      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
-  rach_cfg_common_pack.set_setup();
-
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 16;
-  } else {
-    rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 0;
-  }
-
-  rach_cfg_common_pack.setup().rach_cfg_generic.msg1_fdm                  = rach_cfg_generic_s::msg1_fdm_opts::one;
-  rach_cfg_common_pack.setup().rach_cfg_generic.msg1_freq_start           = 1;
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 0;
-  rach_cfg_common_pack.setup().rach_cfg_generic.zero_correlation_zone_cfg = 0;
-  rach_cfg_common_pack.setup().rach_cfg_generic.preamb_rx_target_pwr      = -110;
-  rach_cfg_common_pack.setup().rach_cfg_generic.preamb_trans_max =
-      asn1::rrc_nr::rach_cfg_generic_s::preamb_trans_max_opts::n7;
-  rach_cfg_common_pack.setup().rach_cfg_generic.pwr_ramp_step =
-      asn1::rrc_nr::rach_cfg_generic_s::pwr_ramp_step_opts::db4;
-  rach_cfg_common_pack.setup().rach_cfg_generic.ra_resp_win = asn1::rrc_nr::rach_cfg_generic_s::ra_resp_win_opts::sl10;
-  rach_cfg_common_pack.setup().ra_contention_resolution_timer =
-      asn1::rrc_nr::rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
-  rach_cfg_common_pack.setup().prach_root_seq_idx.set(
-      asn1::rrc_nr::rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839);
-  rach_cfg_common_pack.setup().prach_root_seq_idx.set_l839() = 0; // matches value in phy_cfg_nr_default_t()
-  rach_cfg_common_pack.setup().restricted_set_cfg =
-      asn1::rrc_nr::rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
-  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
-  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one();
-  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb.one() =
-      asn1::rrc_nr::rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n64;
 
   return SRSRAN_SUCCESS;
 }
@@ -1210,7 +1130,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.generic_params
       .subcarrier_spacing = subcarrier_spacing_opts::khz15;
 
-  pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_rach_cfg_common(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(cell_group_cfg_pack);
 
   return SRSRAN_ERROR;
@@ -1223,7 +1142,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.dummy = time_align_timer_opts::ms500;
 
-  pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp(cell_group_cfg_pack);
 
   return SRSRAN_SUCCESS;
