@@ -1,6 +1,14 @@
 Change Log for Releases
 =======================
 
+## 21.10
+  * Add initial 5G NSA support to srsENB (tested with OnePlus 5G Nord)
+  * Improved interoperability of srsUE in NSA mode
+  * Added enhanced instrumentation to file using JSON format
+  * Fixed stability issues with Ettus N310
+  * Added BLER-adaptive MCS scheduling to srsENB
+  * Other bug-fixes and improved stability and performance in all parts
+
 ## 21.04
   * Rename project from srsLTE to srsRAN
   * Add initial 5G NSA support to srsUE (including x86-optimized FEC and PHY layer)
