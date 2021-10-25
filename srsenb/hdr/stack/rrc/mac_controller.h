@@ -63,8 +63,7 @@ public:
   void set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>& scell_mask);
   void set_drb_activation(bool active);
 
-  enum proc_stage_t : int8_t { config_tx, config_complete, other };
-  void update_mac(proc_stage_t stage);
+  void update_mac();
 
 private:
   int  apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg);

@@ -212,7 +212,8 @@ void mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s&
   set_drb_activation(false);
 
   // Apply changes to MAC scheduler
-  update_mac(proc_stage_t::config_tx);
+  update_mac();
+  mac->phy_config_enabled(rnti, false);
 }
 
 void mac_controller::handle_con_reconf_complete()
@@ -223,7 +224,8 @@ void mac_controller::handle_con_reconf_complete()
   apply_current_bearers_cfg();
 
   // Apply SCell+Bearer changes to MAC
-  update_mac(proc_stage_t::config_complete);
+  update_mac();
+  mac->phy_config_enabled(rnti, true);
 }
 
 void mac_controller::apply_current_bearers_cfg()
@@ -286,7 +288,8 @@ void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_i
     current_sched_ue_cfg.ue_bearers[i].direction = mac_lc_ch_cfg_t::DL;
   }
 
-  update_mac(mac_controller::config_tx);
+  update_mac();
+  mac->phy_config_enabled(rnti, false);
 }
 
 void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep)
@@ -305,7 +308,8 @@ void mac_controller::set_radio_bearer_state(mac_lc_ch_cfg_t::direction_t dir)
   for (auto& drb : bearer_list.get_established_drbs()) {
     current_sched_ue_cfg.ue_bearers[drb.lc_ch_id].direction = dir;
   }
-  update_mac(config_tx);
+
+  update_mac();
 }
 
 void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>& scell_mask)
@@ -323,14 +327,10 @@ void mac_controller::set_drb_activation(bool active)
   }
 }
 
-void mac_controller::update_mac(proc_stage_t stage)
+void mac_controller::update_mac()
 {
   // Apply changes to MAC scheduler
   mac->ue_cfg(rnti, &current_sched_ue_cfg);
-  if (stage != proc_stage_t::other) {
-    // Acknowledge Dedicated Configuration
-    mac->phy_config_enabled(rnti, stage == proc_stage_t::config_complete);
-  }
 }
 
 void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& rrc_cfg)
