@@ -70,10 +70,9 @@ const std::string mm5g_state_t::get_full_state_text()
   } else if (state == state_t::registered) {
     return mm5g_state_text(state) + std::string(", with substate ") +
            mm5g_registered_substate_text(registered_substate);
-  } else {
-    return mm5g_state_text(state);
   }
-  return std::string("Invalid State");
+
+  return mm5g_state_text(state);
 }
 
 /*
