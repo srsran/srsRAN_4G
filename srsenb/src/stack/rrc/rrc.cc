@@ -605,13 +605,13 @@ void rrc::sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti)
 
 void rrc::sgnb_inactivity_timeout(uint16_t eutra_rnti)
 {
-  logger.error("Received NR inactivity timeout for rnti=%d - releasing UE", eutra_rnti);
+  logger.error("Received NR inactivity timeout for rnti=0x%x - releasing UE", eutra_rnti);
   auto ue_it = users.find(eutra_rnti);
   if (ue_it == users.end()) {
     logger.warning("rnti=0x%x does not exist", eutra_rnti);
     return;
   }
-  release_ue(eutra_rnti);
+  s1ap->user_release(eutra_rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
 }
 
 void rrc::sgnb_release_ack(uint16_t eutra_rnti)
