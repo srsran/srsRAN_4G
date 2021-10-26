@@ -145,7 +145,7 @@ int srsran_resampler_fft_init(srsran_resampler_fft_t* q, srsran_resampler_mode_t
     q->in_buffer[i] = (float)h;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     printf("h_%s=", q->mode == SRSRAN_RESAMPLER_MODE_INTERPOLATE ? "interp" : "decimate");
     srsran_vec_fprint_c(stdout, q->in_buffer, high_size);
   }

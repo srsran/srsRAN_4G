@@ -13,8 +13,18 @@
 #include "srsran/phy/utils/debug.h"
 #include <stdlib.h>
 
-int srsran_verbose     = 0;
-int handler_registered = 0;
+int         srsran_verbose     = 0;
+static bool handler_registered = false;
+
+bool is_handler_registered(void)
+{
+  return handler_registered;
+}
+
+void set_handler_enabled(bool enable)
+{
+  handler_registered = enable;
+}
 
 void get_time_interval(struct timeval* tdata)
 {
