@@ -265,7 +265,7 @@ int main(int argc, char** argv)
                     "EPRE (dB)",
                     metrics.gnb_stack.pucch.epre_db_avg,
                     metrics.gnb_stack.pucch.epre_db_min,
-                    metrics.gnb_stack.pucch.epre_db_min);
+                    metrics.gnb_stack.pucch.epre_db_max);
     srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
                     "RSRP (dB)",
                     metrics.gnb_stack.pucch.rsrp_db_avg,
@@ -332,7 +332,7 @@ int main(int argc, char** argv)
                     "EPRE (dB)",
                     metrics.gnb_stack.pusch.epre_db_avg,
                     metrics.gnb_stack.pusch.epre_db_min,
-                    metrics.gnb_stack.pusch.epre_db_min);
+                    metrics.gnb_stack.pusch.epre_db_max);
     srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
                     "RSRP (dB)",
                     metrics.gnb_stack.pusch.rsrp_db_avg,
