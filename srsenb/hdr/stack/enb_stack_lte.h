@@ -121,6 +121,10 @@ public:
   {
     x2_task_queue.push([this, eutra_rnti, nr_rnti]() { rrc.sgnb_addition_complete(eutra_rnti, nr_rnti); });
   }
+  void sgnb_inactivity_timeout(uint16_t eutra_rnti) final
+  {
+    x2_task_queue.push([this, eutra_rnti]() { rrc.sgnb_inactivity_timeout(eutra_rnti); });
+  }
   void set_activity_user(uint16_t eutra_rnti) final
   {
     // Note: RRC processes activity asynchronously, so there is no need to use x2_task_queue

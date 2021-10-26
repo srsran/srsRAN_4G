@@ -245,6 +245,8 @@ void rrc_nr::set_activity_user(uint16_t rnti)
 
   // inform EUTRA RRC about user activity
   if (ue_ptr->is_endc()) {
+    // Restart inactivity timer for RRC-NR
+    ue_ptr->set_activity();
     // inform EUTRA RRC about user activity
     rrc_eutra->set_activity_user(ue_ptr->get_eutra_rnti());
   }
@@ -567,7 +569,7 @@ rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_,
 
   // Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
   activity_timer = parent->task_sched.get_unique_timer();
-  start_msg3_timer ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+  start_msg3_timer ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(MSG5_RX_TIMEOUT);
 }
 
 void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
@@ -579,15 +581,19 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 100ms
       deadline_ms = 100;
       break;
+    case MSG5_RX_TIMEOUT:
+      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 1s
+      deadline_ms = 1000;
+      break;
     case UE_INACTIVITY_TIMEOUT:
-      // TODO: Add a value for the inactivity timeout - currently no activity set this case
-      return;
+      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 5s
+      deadline_ms = 5000;
+      break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
       return;
   }
 
-  // Currently we only set the timer for the MSG3_RX_TIMEOUT case
   activity_timer.set(deadline_ms, [this, type](uint32_t tid) { activity_timer_expired(type); });
   parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline_ms);
 
@@ -613,14 +619,15 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
   parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
-  state = rrc_nr_state_t::RRC_IDLE;
-
   switch (type) {
+    case MSG5_RX_TIMEOUT:
     case UE_INACTIVITY_TIMEOUT:
-      // TODO: Add action to be executed
+      state = rrc_nr_state_t::RRC_INACTIVE;
+      parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
       break;
     case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
+      state = rrc_nr_state_t::RRC_IDLE;
       uint32_t rnti_to_rem = rnti;
       parent->task_sched.defer_task([this, rnti_to_rem]() { parent->rem_user(rnti_to_rem); });
       break;
@@ -635,7 +642,7 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 
 std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "Msg5 reception"};
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
@@ -1310,9 +1317,9 @@ void rrc_nr::ue::crnti_ce_received()
     // send SgNB addition complete for ENDC users
     parent->rrc_eutra->sgnb_addition_complete(eutra_rnti, rnti);
 
-    // stop RX MSG3 activity timer on MAC CE RNTI reception
-    activity_timer.stop();
-    parent->logger.debug("Received MAC CE-RNTI for 0x%x - stopping MSG3 timer", rnti);
+    // stop RX MSG3/MSG5 activity timer on MAC CE RNTI reception
+    set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+    parent->logger.debug("Received MAC CE-RNTI for 0x%x - stopping MSG3/MSG5 timer, starting inactivity timer", rnti);
 
     // Add DRB1 to MAC
     for (auto& drb : cell_group_cfg.rlc_bearer_to_add_mod_list) {
