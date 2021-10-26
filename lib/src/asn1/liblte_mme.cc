@@ -2092,10 +2092,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_network_name_ie(uint8** ie_ptr, LIBLTE_MME_N
 
       if (tmp_char == 0x0A || tmp_char == 0x0D || (tmp_char >= 0x20 && tmp_char <= 0x3F) ||
           (tmp_char >= 0x41 && tmp_char <= 0x5A) || (tmp_char >= 0x61 && tmp_char <= 0x7A)) {
-        if (str_cnt < LIBLTE_STRING_LEN) {
-          net_name->name[str_cnt] = tmp_char;
-          str_cnt++;
-        }
+        net_name->name[str_cnt] = tmp_char;
+        str_cnt++;
       }
     }
 

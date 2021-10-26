@@ -115,7 +115,7 @@ int get_code_params(srsran_polar_code_t* c, const uint16_t K, const uint16_t E, 
   // number of parity check bits (nPC) and parity check bits of minimum bandwidth nWmPC
   uint8_t nPC   = 0;
   uint8_t nWmPC = 0;
-  if (K >= 18 && K <= 25) {
+  if (K <= 25) {
     nPC = 3;
     if (E > K + 189) {
       nWmPC = 1;

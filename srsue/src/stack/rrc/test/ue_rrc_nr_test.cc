@@ -68,7 +68,7 @@ class dummy_pdcp : public pdcp_interface_rrc
   void reestablish(uint32_t lcid){};
   void reset(){};
   void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1){};
-  int  add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg) { return SRSRAN_SUCCESS; };
+  int  add_bearer(uint32_t lcid, const srsran::pdcp_config_t& cnfg) { return SRSRAN_SUCCESS; };
   void del_bearer(uint32_t lcid){};
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid){};
   void config_security(uint32_t lcid, const srsran::as_security_config_t& sec_cfg){};

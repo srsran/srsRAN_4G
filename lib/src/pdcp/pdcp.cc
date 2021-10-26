@@ -99,7 +99,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   }
 }
 
-int pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
+int pdcp::add_bearer(uint32_t lcid, const pdcp_config_t& cfg)
 {
   if (valid_lcid(lcid)) {
     return pdcp_array[lcid]->configure(cfg) ? SRSRAN_SUCCESS : SRSRAN_ERROR;
@@ -134,7 +134,7 @@ int pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
   return SRSRAN_SUCCESS;
 }
 
-void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
+void pdcp::add_bearer_mrb(uint32_t lcid, const pdcp_config_t& cfg)
 {
   if (not valid_mch_lcid(lcid)) {
     std::unique_ptr<pdcp_entity_lte> entity;

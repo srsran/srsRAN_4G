@@ -143,7 +143,7 @@ int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
     // Row 1
     if (cfg->nof_common_time_ra == 0) {
       srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSRAN_MAX_NOF_TIME_RA && m < cfg->nof_common_time_ra) {
+    } else if (m < cfg->nof_common_time_ra) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
       ERROR("Time domain resource selection (m=%d) exceeds the maximum value (%d)",
@@ -156,7 +156,7 @@ int srsran_ra_ul_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
     // Row 2
     if (cfg->nof_common_time_ra == 0) {
       srsran_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSRAN_MAX_NOF_TIME_RA) {
+    } else {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     }
   } else if ((rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_mcs_c ||

@@ -26,6 +26,16 @@ class security_cfg_handler
 {
 public:
   explicit security_cfg_handler(const rrc_cfg_t& cfg_) : cfg(&cfg_), logger(srslog::fetch_basic_logger("RRC")) {}
+  explicit security_cfg_handler(const security_cfg_handler& other) : logger(srslog::fetch_basic_logger("RRC"))
+  {
+    cfg                   = other.cfg;
+    k_enb_present         = other.k_enb_present;
+    security_capabilities = other.security_capabilities;
+    std::copy(other.k_enb, other.k_enb + 32, k_enb);
+    sec_cfg = other.sec_cfg;
+    ncc     = other.ncc;
+  }
+
   security_cfg_handler& operator=(const security_cfg_handler& other)
   {
     cfg                   = other.cfg;

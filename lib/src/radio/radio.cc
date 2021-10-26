@@ -399,7 +399,7 @@ bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_tim
   uint32_t nof_samples = buffer.get_nof_samples();
 
   // Check that number of the interpolated samples does not exceed the buffer size
-  if (ratio > 1 && nof_samples * ratio > tx_buffer[0].size()) {
+  if (ratio > 1 && (size_t)nof_samples * (size_t)ratio > tx_buffer[0].size()) {
     // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
     // impact, log it as info.
     fmt::memory_buffer buff;

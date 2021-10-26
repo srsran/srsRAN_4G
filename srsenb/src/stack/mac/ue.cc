@@ -568,10 +568,10 @@ uint8_t* ue::generate_pdu(uint32_t                              enb_cc_idx,
   return ret;
 }
 
-uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
-                              sched_interface::dl_pdu_mch_t sched_,
-                              uint32_t                      nof_pdu_elems,
-                              uint32_t                      grant_size)
+uint8_t* ue::generate_mch_pdu(uint32_t                             harq_pid,
+                              const sched_interface::dl_pdu_mch_t& sched_,
+                              uint32_t                             nof_pdu_elems,
+                              uint32_t                             grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint8_t*                    ret    = nullptr;

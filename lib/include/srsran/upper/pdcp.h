@@ -39,8 +39,8 @@ public:
   void set_enabled(uint32_t lcid, bool enabled) override;
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn = -1) override;
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
-  int  add_bearer(uint32_t lcid, pdcp_config_t cnfg) override;
-  void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
+  int  add_bearer(uint32_t lcid, const pdcp_config_t& cnfg) override;
+  void add_bearer_mrb(uint32_t lcid, const pdcp_config_t& cnfg);
   void del_bearer(uint32_t lcid) override;
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid) override;
   void config_security(uint32_t lcid, const as_security_config_t& sec_cfg) override;

@@ -261,7 +261,12 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    ue_task_queue.try_push([this]() { nas.switch_on(); });
+    stack_logger.info("Triggering NAS switch on\n");
+    if (!ue_task_queue.try_push([this]() { nas.switch_on(); })) {
+      stack_logger.error("Triggering NAS switch on: ue_task_queue is full\n");
+    }
+  } else {
+    stack_logger.error("Triggering NAS switch on: stack is not running\n");
   }
   return true;
 }

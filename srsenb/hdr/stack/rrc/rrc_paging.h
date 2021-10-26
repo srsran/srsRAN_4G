@@ -156,7 +156,7 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   subframe_info&              locked_sf = sf_pending_pcch[static_cast<size_t>(sf_key)];
   std::lock_guard<std::mutex> lock(locked_sf.mutex);
 
-  size_t     sfn_cycle_idx = (T / N) * (ueid % N);
+  size_t     sfn_cycle_idx = ((size_t)T / (size_t)N) * (size_t)(ueid % N);
   pcch_info& pending_pcch  = locked_sf.pending_paging[sfn_cycle_idx];
   auto&      record_list   = pending_pcch.pcch_msg.msg.c1().paging().paging_record_list;
 

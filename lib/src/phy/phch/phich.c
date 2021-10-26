@@ -186,11 +186,6 @@ int srsran_phich_decode(srsran_phich_t*         q,
 
   uint32_t sf_idx = sf->tti % 10;
 
-  if (sf_idx >= SRSRAN_NOF_SF_X_FRAME) {
-    ERROR("Invalid nslot %d", sf_idx);
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
   if (SRSRAN_CP_ISEXT(q->cell.cp)) {
     if (n_phich.nseq >= SRSRAN_PHICH_EXT_NSEQUENCES) {
       ERROR("Invalid nseq %d", n_phich.nseq);
@@ -318,11 +313,6 @@ int srsran_phich_encode(srsran_phich_t*         q,
   }
 
   uint32_t sf_idx = sf->tti % 10;
-
-  if (sf_idx >= SRSRAN_NOF_SF_X_FRAME) {
-    ERROR("Invalid nslot %d", sf_idx);
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
 
   if (SRSRAN_CP_ISEXT(q->cell.cp)) {
     if (n_phich.nseq >= SRSRAN_PHICH_EXT_NSEQUENCES) {

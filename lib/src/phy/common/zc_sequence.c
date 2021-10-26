@@ -270,7 +270,7 @@ static int zc_sequence_nr_r_uv_arg(uint32_t M_zc, uint32_t u, uint32_t v, cf_t* 
 static void zc_sequence_generate(uint32_t M_zc, float alpha, const cf_t* tmp_arg, cf_t* sequence)
 {
   for (uint32_t i = 0; i < M_zc; i++) {
-    sequence[i] = cexpf(I * (tmp_arg[i] + alpha * (float)i));
+    sequence[i] = cexpf(I * (tmp_arg[i] + alpha * (cf_t)i));
   }
 }
 
