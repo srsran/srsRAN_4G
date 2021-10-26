@@ -119,7 +119,7 @@ private:
 
     uint32_t              pid;
     std::atomic<uint32_t> current_tx_nb = {0};
-    uint32_t              current_irv;
+    std::atomic<uint32_t> current_irv   = {0};
     bool                  harq_feedback;
     bool                  is_grant_configured;
     bool                  is_initiated;
