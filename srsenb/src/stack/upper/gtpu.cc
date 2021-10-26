@@ -510,11 +510,12 @@ srsran::expected<uint32_t> gtpu::add_bearer(uint16_t            rnti,
   }
 
   // Return bind address for S1AP and NGAP setup
-  struct in_addr inaddr;
-  if ((inet_pton(AF_INET, gtp_bind_addr.c_str(), &inaddr)) < 1) {
+  uint8_t addr_in_tmp[4];
+  if ((inet_pton(AF_INET, gtp_bind_addr.c_str(), &addr_in_tmp)) < 1) {
     logger.error("Invalid address or failure during conversion: %s\n", gtp_bind_addr.c_str());
   }
-  addr_in = ntohl(inaddr.s_addr);
+  addr_in = 0;
+  addr_in = addr_in_tmp[3] | (addr_in_tmp[2] << 8) | (addr_in_tmp[1] << 16) | (addr_in_tmp[0] << 24);
 
   return teid_in;
 }
