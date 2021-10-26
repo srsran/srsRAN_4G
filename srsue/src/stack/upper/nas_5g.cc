@@ -577,8 +577,9 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.request_type.request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
 
   ul_nas_msg.s_nssai_present = true;
-  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
+  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst_and_sd;
   ul_nas_msg.s_nssai.sst     = 1;
+  ul_nas_msg.s_nssai.sd      = 0;
 
   ul_nas_msg.dnn_present = true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
