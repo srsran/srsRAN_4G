@@ -83,10 +83,11 @@ void test_single_prach()
 
   // A PRACH arrives...
   sched_nr_interface::rar_info_t rainfo{};
-  rainfo.preamble_idx = 10;
-  rainfo.temp_crnti   = rnti;
-  rainfo.prach_slot   = prach_slot;
-  rainfo.msg3_size    = 7;
+  rainfo.ofdm_symbol_idx = 0;
+  rainfo.preamble_idx    = 10;
+  rainfo.temp_crnti      = rnti;
+  rainfo.prach_slot      = prach_slot;
+  rainfo.msg3_size       = 7;
   TESTASSERT_SUCCESS(rasched.dl_rach_info(rainfo));
   uint16_t ra_rnti = 1 + rainfo.ofdm_symbol_idx + 14 * rainfo.prach_slot.slot_idx() + 14 * 80 * rainfo.freq_idx;
 
