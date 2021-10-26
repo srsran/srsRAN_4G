@@ -128,7 +128,7 @@ void parse_args(int argc, char** argv)
         optind++;
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'q':
         enable_256qam = (enable_256qam) ? false : true;
@@ -220,7 +220,7 @@ int work_ue(srsran_ue_dl_t*     ue_dl,
   ue_dl_cfg->cfg.pdsch.csi_enable  = false;
   ue_dl_cfg->cfg.pdsch.meas_evm_en = false;
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
     char str[512];
     srsran_dci_dl_info(&dci_dl[0], str, 512);
     INFO("UE PDCCH: rnti=0x%x, %s", rnti, str);
@@ -244,7 +244,7 @@ int work_ue(srsran_ue_dl_t*     ue_dl,
     return SRSRAN_ERROR;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
     char str[512];
     srsran_pdsch_rx_info(&ue_dl_cfg->cfg.pdsch, pdsch_res, str, 512);
     INFO("eNb PDSCH: rnti=0x%x, %s", rnti, str);

@@ -130,7 +130,7 @@ static int parse_args(int argc, char** argv)
         cfo_hz = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -478,7 +478,7 @@ int main(int argc, char** argv)
           }
         }
 
-        if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+        if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
           char                  str[512];
           srsran_pdsch_res_nr_t pdsch_res_vec[SRSRAN_MAX_CODEWORDS] = {};
           pdsch_res_vec[0]                                          = pdsch_res;

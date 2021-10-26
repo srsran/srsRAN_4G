@@ -131,7 +131,7 @@ static int test_pucch_ca(srsran_ack_nack_feedback_mode_t ack_nack_feedback_mode,
 int main(int argc, char** argv)
 {
   // Set PHY lib verbose to INFO
-  srsran_verbose = SRSRAN_VERBOSE_INFO;
+  set_srsran_verbose_level(SRSRAN_VERBOSE_INFO);
 
   uint32_t nof_tb_1[SRSRAN_MAX_CARRIERS] = {1, 1, 1, 1, 1};
   uint32_t nof_tb_2[SRSRAN_MAX_CARRIERS] = {2, 1, 1, 1, 1};

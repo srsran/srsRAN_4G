@@ -161,7 +161,7 @@ void parse_args(int argc, char** argv)
         optind++;
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -349,7 +349,7 @@ int main(int argc, char** argv)
         ret = SRSRAN_ERROR;
       } else {
         INFO("Rx ACK (%d bits) is Ok: ", uci_data_tx.cfg.ack[0].nof_acks);
-        if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+        if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
           srsran_vec_fprint_byte(stdout, uci_data_tx.value.ack.ack_value, uci_data_tx.cfg.ack[0].nof_acks);
         }
       }

@@ -219,7 +219,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->disable_plots_except_constellation = true;
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(args, argv[0]);

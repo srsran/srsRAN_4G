@@ -440,7 +440,7 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
       nof_pilots += NOF_PILOTS_X_RB;
     }
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
       DMRS_PDCCH_DEBUG_RX("Measuring PDCCH l=%d; lse=", l);
       srsran_vec_fprint_c(stdout, tmp, nof_pilots);
     }

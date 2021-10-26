@@ -32,7 +32,7 @@ void usage(char* prog)
   printf("Usage: %s [Rv]\n", prog);
   printf("\t-R Number of repetitions [Default %d]\n", nof_repetitions);
   printf("\t-E Number of encoded bits [Default %d]\n", E);
-  printf("\t-v increase verbose [Default %d]\n", srsran_verbose);
+  printf("\t-v increase verbose [Default %d]\n", get_srsran_verbose_level());
 }
 
 void parse_args(int argc, char** argv)
@@ -47,7 +47,7 @@ void parse_args(int argc, char** argv)
         E = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

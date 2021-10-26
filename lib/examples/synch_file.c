@@ -74,7 +74,7 @@ void parse_args(int argc, char** argv)
         force_cfo = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

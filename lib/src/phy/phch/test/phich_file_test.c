@@ -100,7 +100,7 @@ void parse_args(int argc, char** argv)
         cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'l':
         cell.cp = SRSRAN_CP_EXT;

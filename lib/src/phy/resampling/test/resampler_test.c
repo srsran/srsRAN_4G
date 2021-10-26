@@ -53,7 +53,7 @@ static void parse_args(int argc, char** argv)
         repetitions = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'w':
         if (strcmp(argv[optind], "sine") == 0) {
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
       break;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     printf("signal=");
     srsran_vec_fprint_c(stdout, src, buffer_size);
   }
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
   get_time_interval(t);
   uint64_t duration_us = (uint64_t)(t[0].tv_sec * 1000000UL + t[0].tv_usec);
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     printf("interp=");
     srsran_vec_fprint_c(stdout, interpolated, buffer_size * factor);
     printf("decim=");
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
   srsran_vec_sub_ccc(src, &decimated[delay], interpolated, nsamples);
   float mse = sqrtf(srsran_vec_avg_power_cf(interpolated, nsamples));
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     printf("recovered=");
     srsran_vec_fprint_c(stdout, &decimated[delay], nsamples);
   }

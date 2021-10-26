@@ -81,7 +81,7 @@ static void parse_args(int argc, char** argv)
         snr_dB = (float)strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -298,13 +298,13 @@ static int test_case1()
             }
           }
 
-          if (srsran_verbose >= SRSRAN_VERBOSE_INFO || !payload_match) {
+          if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO || !payload_match) {
             // If payload is not match and there is no logging, set logging to info and run the decoder again
-            if (srsran_verbose < SRSRAN_VERBOSE_INFO) {
+            if (get_srsran_verbose_level() < SRSRAN_VERBOSE_INFO) {
               printf("-- Detected payload was not matched, repeating decode with INFO logs (n0: %+.1f dB, corr: %f)\n",
                      n0_dB,
                      corr);
-              srsran_verbose = SRSRAN_VERBOSE_INFO;
+              set_srsran_verbose_level(SRSRAN_VERBOSE_INFO);
               srsran_pdcch_decode_msg(&pdcch_rx, &dl_sf_cfg, &dci_cfg, &dci_rx);
             }
             print_dci_msg("Tx: ", &dci_tx);

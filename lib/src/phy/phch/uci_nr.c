@@ -198,7 +198,7 @@ static int uci_nr_pack_ack_sr(const srsran_uci_cfg_nr_t* cfg, const srsran_uci_v
   srsran_bit_unpack(value->sr, &bits, cfg->o_sr);
   A += cfg->o_sr;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_TX("Packed UCI bits: ");
     srsran_vec_fprint_byte(stdout, sequence, A);
   }
@@ -219,7 +219,7 @@ static int uci_nr_unpack_ack_sr(const srsran_uci_cfg_nr_t* cfg, uint8_t* sequenc
   value->sr     = srsran_bit_pack(&bits, cfg->o_sr);
   A += cfg->o_sr;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_RX("Unpacked UCI bits: ");
     srsran_vec_fprint_byte(stdout, sequence, A);
   }
@@ -248,7 +248,7 @@ static int uci_nr_pack_ack_sr_csi(const srsran_uci_cfg_nr_t* cfg, const srsran_u
   }
   A += n;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_TX("Packed UCI bits: ");
     srsran_vec_fprint_byte(stdout, sequence, A);
   }
@@ -269,7 +269,7 @@ static int uci_nr_unpack_ack_sr_csi(const srsran_uci_cfg_nr_t* cfg, uint8_t* seq
   value->sr     = srsran_bit_pack(&bits, cfg->o_sr);
   A += cfg->o_sr;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_RX("Unpacked UCI bits: ");
     srsran_vec_fprint_byte(stdout, sequence, A);
   }
@@ -393,7 +393,7 @@ static int uci_nr_encode_1bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg
       return SRSRAN_ERROR;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_TX("One bit encoded NR-UCI; o=");
     srsran_vec_fprint_b(stdout, o, E);
   }
@@ -434,7 +434,7 @@ static int uci_nr_decode_1_bit(srsran_uci_nr_t*           q,
   // Save decoded bit
   q->bit_sequence[0] = (corr < 0) ? 0 : 1;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_RX("One bit decoding NR-UCI llr=");
     srsran_vec_fprint_bs(stdout, llr, E);
     UCI_NR_INFO_RX("One bit decoding NR-UCI A=%d; E=%d; pwr=%f; corr=%f; norm=%f; thr=%f; %s",
@@ -539,7 +539,7 @@ static int uci_nr_encode_2bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg
       return SRSRAN_ERROR;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_TX("Two bit encoded NR-UCI; E=%d; o=", E);
     srsran_vec_fprint_b(stdout, o, E);
   }
@@ -585,7 +585,7 @@ static int uci_nr_decode_2_bit(srsran_uci_nr_t*           q,
   q->bit_sequence[0] = c0 ? 1 : 0;
   q->bit_sequence[1] = c1 ? 1 : 0;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_RX("Two bit decoding NR-UCI llr=");
     srsran_vec_fprint_bs(stdout, llr, E);
     UCI_NR_INFO_RX("Two bit decoding NR-UCI A=%d; E=%d; Qm=%d; c0=%d; c1=%d; c2=%d %s",
@@ -606,7 +606,7 @@ uci_nr_encode_3_11_bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg, uint3
 {
   srsran_block_encode(q->bit_sequence, A, o, E);
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_TX("Block encoded UCI bits; o=");
     srsran_vec_fprint_b(stdout, o, E);
   }
@@ -649,7 +649,7 @@ static int uci_nr_decode_3_11_bit(srsran_uci_nr_t*           q,
   // Take decoded decision with threshold
   *decoded_ok = (corr > q->block_code_threshold);
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     UCI_NR_INFO_RX("Block decoding NR-UCI llr=");
     srsran_vec_fprint_bs(stdout, llr, E);
     UCI_NR_INFO_RX("Block decoding NR-UCI A=%d; E=%d; pwr=%f; corr=%f; norm=%f; thr=%f; %s",
@@ -713,7 +713,7 @@ uci_nr_encode_11_1706_bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg, ui
     srsran_crc_attach(crc, q->c, A_prime / C);
     UCI_NR_INFO_TX("Attaching %d/%d CRC%d=%" PRIx64, r, C, L, srsran_crc_checksum_get(crc));
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_TX("Polar cb %d/%d c=", r, C);
       srsran_vec_fprint_byte(stdout, q->c, K_r);
     }
@@ -721,7 +721,7 @@ uci_nr_encode_11_1706_bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg, ui
     // Allocate channel
     srsran_polar_chanalloc_tx(q->c, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_TX("Polar alloc %d/%d ", r, C);
       srsran_vec_fprint_byte(stdout, q->allocated, q->code.N);
     }
@@ -731,7 +731,7 @@ uci_nr_encode_11_1706_bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg, ui
       return SRSRAN_ERROR;
     }
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_TX("Polar encoded %d/%d ", r, C);
       srsran_vec_fprint_byte(stdout, q->d, q->code.N);
     }
@@ -739,7 +739,7 @@ uci_nr_encode_11_1706_bit(srsran_uci_nr_t* q, const srsran_uci_cfg_nr_t* cfg, ui
     // Rate matching
     srsran_polar_rm_tx(&q->rm_tx, q->d, &o[E_r * r], q->code.n, E_r, K_r, UCI_NR_POLAR_RM_IBIL);
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_TX("Polar RM cw %d/%d ", r, C);
       srsran_vec_fprint_byte(stdout, &o[E_r * r], E_r);
     }
@@ -790,7 +790,7 @@ static int uci_nr_decode_11_1706_bit(srsran_uci_nr_t*           q,
   for (uint32_t r = 0, s = 0; r < C; r++) {
     uint32_t k = 0;
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_RX("Polar LLR %d/%d ", r, C);
       srsran_vec_fprint_bs(stdout, &llr[E_r * r], q->code.N);
     }
@@ -805,7 +805,7 @@ static int uci_nr_decode_11_1706_bit(srsran_uci_nr_t*           q,
       return SRSRAN_ERROR;
     }
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_RX("Polar alloc %d/%d ", r, C);
       srsran_vec_fprint_byte(stdout, q->allocated, q->code.N);
     }
@@ -813,7 +813,7 @@ static int uci_nr_decode_11_1706_bit(srsran_uci_nr_t*           q,
     // Undo channel allocation
     srsran_polar_chanalloc_rx(q->allocated, q->c, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
       UCI_NR_INFO_RX("Polar cb %d/%d c=", r, C);
       srsran_vec_fprint_byte(stdout, q->c, K_r);
     }

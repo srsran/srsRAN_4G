@@ -64,7 +64,7 @@ int parse_args(int argc, char** argv)
         nof_csi_bits = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -358,7 +358,7 @@ int main(int argc, char** argv)
         }
       }
 
-      if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+      if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
         char str[512];
         srsran_pusch_nr_rx_info(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &data_rx, str, (uint32_t)sizeof(str));
 

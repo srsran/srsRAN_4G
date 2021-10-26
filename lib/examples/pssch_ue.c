@@ -179,7 +179,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->nof_rx_antennas = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'w':
         args->disable_plots = true;

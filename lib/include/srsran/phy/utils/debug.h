@@ -38,22 +38,24 @@ SRSRAN_API void get_time_interval(struct timeval* tdata);
 
 #define SRSRAN_DEBUG_ENABLED 1
 
-SRSRAN_API extern int srsran_verbose;
+SRSRAN_API int  get_srsran_verbose_level(void);
+SRSRAN_API void set_srsran_verbose_level(int level);
+SRSRAN_API void increase_srsran_verbose_level(void);
 
 SRSRAN_API bool is_handler_registered(void);
 SRSRAN_API void set_handler_enabled(bool enable);
 
-#define SRSRAN_VERBOSE_ISINFO() (srsran_verbose >= SRSRAN_VERBOSE_INFO)
-#define SRSRAN_VERBOSE_ISDEBUG() (srsran_verbose >= SRSRAN_VERBOSE_DEBUG)
-#define SRSRAN_VERBOSE_ISNONE() (srsran_verbose == SRSRAN_VERBOSE_NONE)
+#define SRSRAN_VERBOSE_ISINFO() (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO)
+#define SRSRAN_VERBOSE_ISDEBUG() (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG)
+#define SRSRAN_VERBOSE_ISNONE() (get_srsran_verbose_level() == SRSRAN_VERBOSE_NONE)
 
-#define PRINT_DEBUG srsran_verbose = SRSRAN_VERBOSE_DEBUG
-#define PRINT_INFO srsran_verbose = SRSRAN_VERBOSE_INFO
-#define PRINT_NONE srsran_verbose = SRSRAN_VERBOSE_NONE
+#define PRINT_DEBUG set_srsran_verbose_level(SRSRAN_VERBOSE_DEBUG)
+#define PRINT_INFO set_srsran_verbose_level(SRSRAN_VERBOSE_INFO)
+#define PRINT_NONE set_srsran_verbose_level(SRSRAN_VERBOSE_NONE)
 
 #define DEBUG(_fmt, ...)                                                                                               \
   do {                                                                                                                 \
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {                  \
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {      \
       fprintf(stdout, "[DEBUG]: " _fmt "\n", ##__VA_ARGS__);                                                           \
     } else {                                                                                                           \
       srsran_phy_log_print(LOG_LEVEL_DEBUG_S, _fmt, ##__VA_ARGS__);                                                    \
@@ -62,7 +64,7 @@ SRSRAN_API void set_handler_enabled(bool enable);
 
 #define INFO(_fmt, ...)                                                                                                \
   do {                                                                                                                 \
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {                   \
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {       \
       fprintf(stdout, "[INFO]: " _fmt "\n", ##__VA_ARGS__);                                                            \
     } else {                                                                                                           \
       srsran_phy_log_print(LOG_LEVEL_INFO_S, _fmt, ##__VA_ARGS__);                                                     \

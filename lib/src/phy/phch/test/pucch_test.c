@@ -66,7 +66,7 @@ void parse_args(int argc, char** argv)
         snr_db = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -107,7 +107,7 @@ int test_uci_cqi_pucch(void)
 
       if (recv != cqi) {
         printf("Error! cqi = %d (len: %d), %X!=%X \n", cqi, nof_bits, cqi, recv);
-        if (srsran_verbose) {
+        if (get_srsran_verbose_level()) {
           printf("original: ");
           srsran_vec_fprint_b(stdout, o_bits, nof_bits);
           printf(" decoded: ");

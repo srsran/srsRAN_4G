@@ -77,7 +77,7 @@ void parse_args(int argc, char** argv)
         matlab_file_name = argv[optind];
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'e':
         cell.cp = SRSRAN_CP_EXT;

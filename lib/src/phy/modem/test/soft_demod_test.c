@@ -45,7 +45,7 @@ void parse_args(int argc, char** argv)
         nof_frames = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'm':
         switch (strtol(argv[optind], NULL, 10)) {

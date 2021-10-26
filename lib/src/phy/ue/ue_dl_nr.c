@@ -567,7 +567,7 @@ int srsran_ue_dl_nr_decode_pdsch(srsran_ue_dl_nr_t*         q,
     return SRSRAN_ERROR;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     char str[512];
     srsran_ue_dl_nr_pdsch_info(q, cfg, res, str, sizeof(str));
     INFO("PDSCH: %s", str);

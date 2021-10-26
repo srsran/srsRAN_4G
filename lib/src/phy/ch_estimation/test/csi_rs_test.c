@@ -46,7 +46,7 @@ static int nzp_test_case(const srsran_slot_cfg_t*            slot_cfg,
       srsran_convert_power_to_dB(srsran_convert_dB_to_power(rsrp_dB_gold) + awgn->std_dev * awgn->std_dev);
   const float n0_dB_gold = srsran_convert_amplitude_to_dB(awgn->std_dev);
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
     char str[128] = {};
     srsran_csi_rs_measure_info(&measure, str, sizeof(str));
     INFO("Measure: %s", str);
@@ -361,7 +361,7 @@ static void parse_args(int argc, char** argv)
         first_symbol = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
