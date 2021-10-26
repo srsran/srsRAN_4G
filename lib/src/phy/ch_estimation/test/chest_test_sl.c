@@ -104,9 +104,8 @@ int main(int argc, char** argv)
   srsran_chest_sl_t q = {};
 
   if (run_psbch_test) {
-
     // Tx
-    srsran_chest_sl_init(&q, SRSRAN_SIDELINK_PSBCH, cell, sl_comm_resource_pool);
+    srsran_chest_sl_init(&q, SRSRAN_SIDELINK_PSBCH, cell, &sl_comm_resource_pool);
     srsran_chest_sl_put_dmrs(&q, sf_buffer);
 
     // Rx

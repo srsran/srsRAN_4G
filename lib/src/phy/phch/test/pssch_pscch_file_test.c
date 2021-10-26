@@ -166,7 +166,7 @@ int base_init()
     return SRSRAN_ERROR;
   }
 
-  if (srsran_chest_sl_init(&pscch_chest, SRSRAN_SIDELINK_PSCCH, cell, sl_comm_resource_pool) != SRSRAN_SUCCESS) {
+  if (srsran_chest_sl_init(&pscch_chest, SRSRAN_SIDELINK_PSCCH, cell, &sl_comm_resource_pool) != SRSRAN_SUCCESS) {
     ERROR("Error in PSCCH DMRS init");
     return SRSRAN_ERROR;
   }
@@ -176,7 +176,7 @@ int base_init()
     return SRSRAN_ERROR;
   }
 
-  if (srsran_chest_sl_init(&pssch_chest, SRSRAN_SIDELINK_PSSCH, cell, sl_comm_resource_pool) != SRSRAN_SUCCESS) {
+  if (srsran_chest_sl_init(&pssch_chest, SRSRAN_SIDELINK_PSSCH, cell, &sl_comm_resource_pool) != SRSRAN_SUCCESS) {
     ERROR("Error in chest PSSCH init");
     return SRSRAN_ERROR;
   }

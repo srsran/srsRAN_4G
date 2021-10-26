@@ -27,54 +27,56 @@
 #include "srsran/phy/utils/vector.h"
 
 // n_dmrs_2 table 5.5.2.1.1-1 from 36.211
-uint32_t n_dmrs_2[8] = {0, 6, 3, 4, 2, 8, 10, 9};
+static const uint32_t n_dmrs_2[8] = {0, 6, 3, 4, 2, 8, 10, 9};
 
 // n_dmrs_1 table 5.5.2.1.1-2 from 36.211
-uint32_t n_dmrs_1[8] = {0, 2, 3, 4, 6, 8, 9, 10};
+static const uint32_t n_dmrs_1[8] = {0, 2, 3, 4, 6, 8, 9, 10};
 
 /* Orthogonal sequences for PUCCH formats 1a, 1b and 1c. Table 5.5.2.2.1-2
  */
-float w_arg_pucch_format1_cpnorm[3][3] = {{0, 0, 0}, {0, 2 * M_PI / 3, 4 * M_PI / 3}, {0, 4 * M_PI / 3, 2 * M_PI / 3}};
+static const float w_arg_pucch_format1_cpnorm[3][3] = {{0, 0, 0},
+                                                       {0, 2 * M_PI / 3, 4 * M_PI / 3},
+                                                       {0, 4 * M_PI / 3, 2 * M_PI / 3}};
 
-float w_arg_pucch_format1_cpext[3][2] = {{0, 0}, {0, M_PI}, {0, 0}};
+static const float w_arg_pucch_format1_cpext[3][2] = {{0, 0}, {0, M_PI}, {0, 0}};
 
-float w_arg_pucch_format2_cpnorm[2] = {0, 0};
-float w_arg_pucch_format2_cpext[1]  = {0};
+static const float w_arg_pucch_format2_cpnorm[2] = {0, 0};
+static const float w_arg_pucch_format2_cpext[1]  = {0};
 
-uint32_t pucch_dmrs_symbol_format1_cpnorm[3] = {2, 3, 4};
-uint32_t pucch_dmrs_symbol_format1_cpext[2]  = {2, 3};
-uint32_t pucch_dmrs_symbol_format2_cpnorm[2] = {1, 5};
-uint32_t pucch_dmrs_symbol_format2_cpext[1]  = {3};
+static const uint32_t pucch_dmrs_symbol_format1_cpnorm[3] = {2, 3, 4};
+static const uint32_t pucch_dmrs_symbol_format1_cpext[2]  = {2, 3};
+static const uint32_t pucch_dmrs_symbol_format2_cpnorm[2] = {1, 5};
+static const uint32_t pucch_dmrs_symbol_format2_cpext[1]  = {3};
 
 /* Table 5.5.3.3-1: Frame structure type 1 sounding reference signal subframe configuration. */
-uint32_t T_sfc[15]     = {1, 2, 2, 5, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 10};
-uint32_t Delta_sfc1[7] = {0, 0, 1, 0, 1, 2, 3};
-uint32_t Delta_sfc2[4] = {0, 1, 2, 3};
+static const uint32_t T_sfc[15]     = {1, 2, 2, 5, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 10};
+static const uint32_t Delta_sfc1[7] = {0, 0, 1, 0, 1, 2, 3};
+static const uint32_t Delta_sfc2[4] = {0, 1, 2, 3};
 
-uint32_t m_srs_b[4][4][8] = {{/* m_srs for 6<n_rb<40. Table 5.5.3.2-1 */
-                              {36, 32, 24, 20, 16, 12, 8, 4},
-                              {12, 16, 4, 4, 4, 4, 4, 4},
-                              {4, 8, 4, 4, 4, 4, 4, 4},
-                              {4, 4, 4, 4, 4, 4, 4, 4}},
-                             {/* m_srs for 40<n_rb<60. Table 5.5.3.2-2 */
-                              {48, 48, 40, 36, 32, 24, 20, 16},
-                              {24, 16, 20, 12, 16, 4, 4, 4},
-                              {12, 8, 4, 4, 8, 4, 4, 4},
-                              {4, 4, 4, 4, 4, 4, 4, 4}},
-                             {/* m_srs for 60<n_rb<80. Table 5.5.3.2-3 */
-                              {72, 64, 60, 48, 48, 40, 36, 32},
-                              {24, 32, 20, 24, 16, 20, 12, 16},
-                              {12, 16, 4, 12, 8, 4, 4, 8},
-                              {4, 4, 4, 4, 4, 4, 4, 4}},
+static const uint32_t m_srs_b[4][4][8] = {{/* m_srs for 6<n_rb<40. Table 5.5.3.2-1 */
+                                           {36, 32, 24, 20, 16, 12, 8, 4},
+                                           {12, 16, 4, 4, 4, 4, 4, 4},
+                                           {4, 8, 4, 4, 4, 4, 4, 4},
+                                           {4, 4, 4, 4, 4, 4, 4, 4}},
+                                          {/* m_srs for 40<n_rb<60. Table 5.5.3.2-2 */
+                                           {48, 48, 40, 36, 32, 24, 20, 16},
+                                           {24, 16, 20, 12, 16, 4, 4, 4},
+                                           {12, 8, 4, 4, 8, 4, 4, 4},
+                                           {4, 4, 4, 4, 4, 4, 4, 4}},
+                                          {/* m_srs for 60<n_rb<80. Table 5.5.3.2-3 */
+                                           {72, 64, 60, 48, 48, 40, 36, 32},
+                                           {24, 32, 20, 24, 16, 20, 12, 16},
+                                           {12, 16, 4, 12, 8, 4, 4, 8},
+                                           {4, 4, 4, 4, 4, 4, 4, 4}},
 
-                             {/* m_srs for 80<n_rb<110. Table 5.5.3.2-4 */
-                              {96, 96, 80, 72, 64, 60, 48, 48},
-                              {48, 32, 40, 24, 32, 20, 24, 16},
-                              {24, 16, 20, 12, 16, 4, 12, 8},
-                              {4, 4, 4, 4, 4, 4, 4, 4}}};
+                                          {/* m_srs for 80<n_rb<110. Table 5.5.3.2-4 */
+                                           {96, 96, 80, 72, 64, 60, 48, 48},
+                                           {48, 32, 40, 24, 32, 20, 24, 16},
+                                           {24, 16, 20, 12, 16, 4, 12, 8},
+                                           {4, 4, 4, 4, 4, 4, 4, 4}}};
 
 /* Same tables for Nb */
-uint32_t Nb[4][4][8] = {
+static const uint32_t Nb[4][4][8] = {
     {{1, 1, 1, 1, 1, 1, 1, 1}, {3, 2, 6, 5, 4, 3, 2, 1}, {3, 2, 1, 1, 1, 1, 1, 1}, {1, 2, 1, 1, 1, 1, 1, 1}},
     {{1, 1, 1, 1, 1, 1, 1, 1}, {2, 3, 2, 3, 2, 6, 5, 4}, {2, 2, 5, 3, 2, 1, 1, 1}, {3, 2, 1, 1, 2, 1, 1, 1}},
     {{1, 1, 1, 1, 1, 1, 1, 1}, {3, 2, 3, 2, 3, 2, 3, 2}, {2, 2, 5, 2, 2, 5, 3, 2}, {3, 4, 1, 3, 2, 1, 1, 2}},
@@ -457,7 +459,7 @@ int srsran_refsignal_dmrs_pucch_gen(srsran_refsignal_ul_t* q,
         }
 
         // Choose number of symbols and orthogonal sequence from Tables 5.5.2.2.1-1 to -3
-        float* w = NULL;
+        const float* w = NULL;
         switch (cfg->format) {
           case SRSRAN_PUCCH_FORMAT_1:
           case SRSRAN_PUCCH_FORMAT_1A:

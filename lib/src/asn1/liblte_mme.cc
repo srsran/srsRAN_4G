@@ -5025,7 +5025,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
     if (attach_req->ms_cm3_present) {
       *msg_ptr = LIBLTE_MME_MS_CLASSMARK_3_IEI;
       msg_ptr++;
-      liblte_mme_pack_mobile_station_classmark_3_ie(&attach_req->ms_cm3, &msg_ptr);
     }
 
     // Supported Codecs
@@ -5217,7 +5216,6 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_request_msg(LIBLTE_BYTE_MSG_STRUCT*  
     // Mobile Station Classmark 3
     if (LIBLTE_MME_MS_CLASSMARK_3_IEI == *msg_ptr) {
       msg_ptr++;
-      liblte_mme_unpack_mobile_station_classmark_3_ie(&msg_ptr, &attach_req->ms_cm3);
       attach_req->ms_cm3_present = true;
     } else {
       attach_req->ms_cm3_present = false;

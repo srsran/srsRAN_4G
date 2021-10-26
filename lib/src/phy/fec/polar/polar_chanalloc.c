@@ -82,7 +82,7 @@ void srsran_polar_chanalloc_rx(const uint8_t*  output_decoder,
   uint16_t i_o = 0;
   uint16_t iPC = 0;
   uint16_t iK  = 0;
-  for (uint16_t iKPC = 0; iKPC < K + (uint16_t)nPC; iKPC++) {
+  for (uint16_t iKPC = 0; iKPC < (uint16_t)(K + nPC); iKPC++) {
     i_o = K_set[iKPC];        // includes parity bits
     if (i_o == PC_set[iPC]) { // skip
       iPC = iPC + 1;

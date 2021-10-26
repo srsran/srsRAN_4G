@@ -76,10 +76,10 @@ typedef struct SRSRAN_API {
 
 } srsran_chest_sl_t;
 
-SRSRAN_API int srsran_chest_sl_init(srsran_chest_sl_t*             q,
-                                    srsran_sl_channels_t           channel,
-                                    srsran_cell_sl_t               cell,
-                                    srsran_sl_comm_resource_pool_t sl_comm_resource_pool);
+SRSRAN_API int srsran_chest_sl_init(srsran_chest_sl_t*                    q,
+                                    srsran_sl_channels_t                  channel,
+                                    srsran_cell_sl_t                      cell,
+                                    const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool);
 
 SRSRAN_API int srsran_chest_sl_set_cell(srsran_chest_sl_t* q, srsran_cell_sl_t cell);
 
