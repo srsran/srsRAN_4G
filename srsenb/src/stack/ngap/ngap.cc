@@ -76,6 +76,7 @@ srsran::proc_outcome_t ngap::ng_setup_proc_t::react(const srsenb::ngap::ng_setup
   }
   if (event.success) {
     procInfo("NGSetup procedure completed successfully");
+    srsran::console("NG connection successful\n");
     return srsran::proc_outcome_t::success;
   }
   procError("NGSetup failed.");
