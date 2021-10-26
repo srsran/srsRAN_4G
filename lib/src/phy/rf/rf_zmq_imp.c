@@ -957,7 +957,8 @@ int rf_zmq_send_timed_multi(void*  h,
         }
 
         // Scale according to current gain
-        srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
+        // TODO: document baseband scaling for ZMQ with gain settings, etc. before enabling
+        // srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
 
         // Finally, transmit baseband
         int n = rf_zmq_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);
