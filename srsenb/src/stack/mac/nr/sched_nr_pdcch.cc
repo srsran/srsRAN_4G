@@ -65,6 +65,7 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type,
   srsran_assert((user == nullptr) xor
                     (alloc_type == pdcch_grant_type_t::dl_data or alloc_type == pdcch_grant_type_t::ul_data),
                 "UE should be only provided for DL or UL data allocations");
+  srsran_assert(not dci_list.full(), "SCHED: Unable to allocate DCI");
   saved_dfs_tree.clear();
 
   alloc_record record;
@@ -89,13 +90,13 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type,
       dci_list.push_back(record);
       return true;
     }
-    if (dfs_tree.empty()) {
+    if (saved_dfs_tree.empty()) {
       saved_dfs_tree = dfs_tree;
     }
   } while (get_next_dfs());
 
   // Revert steps to initial state, before dci record allocation was attempted
-  dfs_tree = saved_dfs_tree;
+  dfs_tree.swap(saved_dfs_tree);
   if (record.alloc_type == pdcch_grant_type_t::ul_data) {
     pdcch_ul_list.pop_back();
   } else {

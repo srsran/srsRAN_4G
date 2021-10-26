@@ -61,11 +61,12 @@ int test_socket_handler()
   const char*            server_addr = "127.0.100.1";
   using namespace srsran::net_utils;
 
-  TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port));
+  TESTASSERT(sctp_init_socket(&server_socket, socket_type::seqpacket, server_addr, server_port));
+  TESTASSERT(server_socket.start_listen());
   logger.info("Listening from fd=%d", server_socket.fd());
 
-  TESTASSERT(sctp_init_client(&client_socket, socket_type::seqpacket, "127.0.0.1", 0));
-  TESTASSERT(sctp_init_client(&client_socket2, socket_type::seqpacket, "127.0.0.2", 0));
+  TESTASSERT(sctp_init_socket(&client_socket, socket_type::seqpacket, "127.0.0.1", 0));
+  TESTASSERT(sctp_init_socket(&client_socket2, socket_type::seqpacket, "127.0.0.2", 0));
   TESTASSERT(client_socket.connect_to(server_addr, server_port));
   TESTASSERT(client_socket2.connect_to(server_addr, server_port));
 
@@ -123,6 +124,18 @@ int test_socket_handler()
   return 0;
 }
 
+int test_sctp_bind_error()
+{
+  srsran::unique_socket sock;
+  TESTASSERT(not srsran::net_utils::sctp_init_socket(
+      &sock, srsran::net_utils::socket_type::seqpacket, "1.1.1.1", 8000)); // Bogus IP address
+                                                                           // should not be able to bind
+  TESTASSERT(srsran::net_utils::sctp_init_socket(
+      &sock, srsran::net_utils::socket_type::seqpacket, "127.0.0.1", 8000)); // Good IP address
+                                                                             // should be able to bind
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   auto& logger = srslog::fetch_basic_logger("S1AP", false);
@@ -132,6 +145,7 @@ int main()
   srslog::init();
 
   TESTASSERT(test_socket_handler() == 0);
+  TESTASSERT(test_sctp_bind_error() == 0);
 
   return 0;
 }

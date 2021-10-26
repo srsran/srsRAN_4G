@@ -81,9 +81,9 @@ private:
     pdcch_grant_type_t alloc_type;
     slot_ue*           ue;
   };
-  srsran::bounded_vector<alloc_record, MAX_GRANTS> dci_list;
-  pdcch_dl_list_t&                                 pdcch_dl_list;
-  pdcch_ul_list_t&                                 pdcch_ul_list;
+  srsran::bounded_vector<alloc_record, 2 * MAX_GRANTS> dci_list;
+  pdcch_dl_list_t&                                     pdcch_dl_list;
+  pdcch_ul_list_t&                                     pdcch_ul_list;
 
   // DFS decision tree of PDCCH grants
   struct tree_node {
@@ -94,7 +94,7 @@ private:
     /// Accumulation of all PDCCH masks for the current solution (DFS path)
     coreset_bitmap total_mask, current_mask;
   };
-  using alloc_tree_dfs_t = srsran::bounded_vector<tree_node, MAX_GRANTS>;
+  using alloc_tree_dfs_t = std::vector<tree_node>;
   alloc_tree_dfs_t dfs_tree, saved_dfs_tree;
 
   srsran::span<const uint32_t> get_cce_loc_table(const alloc_record& record) const;

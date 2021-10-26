@@ -85,6 +85,7 @@ public:
 
   bool bind_addr(const char* bind_addr_str, int port);
   bool connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
+  bool start_listen();
   bool open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
   int  get_socket() const { return sockfd; };
 
@@ -95,8 +96,7 @@ protected:
 
 namespace net_utils {
 
-bool sctp_init_client(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int bind_port);
-bool sctp_init_server(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port);
+bool sctp_init_socket(unique_socket* socket, net_utils::socket_type socktype, const char* bind_addr_str, int bind_port);
 
 } // namespace net_utils
 

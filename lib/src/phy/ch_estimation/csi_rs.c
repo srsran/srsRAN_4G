@@ -37,6 +37,13 @@
  */
 #define CSI_RS_MAX_SYMBOLS_SLOT 4
 
+#define RESOURCE_ERROR(R)                                                                                              \
+  do {                                                                                                                 \
+    char res_info_str[256];                                                                                            \
+    srsran_csi_rs_resource_mapping_info(R, res_info_str, (uint32_t)sizeof(res_info_str));                              \
+    ERROR("Unhandled configuration %s", res_info_str);                                                                 \
+  } while (false)
+
 static int csi_rs_location_f(const srsran_csi_rs_resource_mapping_t* resource, uint32_t i)
 {
   uint32_t count           = 0;
@@ -69,7 +76,8 @@ static int csi_rs_location_f(const srsran_csi_rs_resource_mapping_t* resource, u
     }
   }
 
-  ERROR("Unhandled configuration");
+  // Inform about an unhandled configuration
+  RESOURCE_ERROR(resource);
   return SRSRAN_ERROR;
 }
 
@@ -122,7 +130,8 @@ static int csi_rs_location_get_k_list(const srsran_csi_rs_resource_mapping_t* re
     }
   }
 
-  ERROR("Unhandled configuration");
+  // Inform about an unhandled configuration
+  RESOURCE_ERROR(resource);
   return SRSRAN_ERROR;
 }
 
@@ -172,7 +181,8 @@ static int csi_rs_location_get_l_list(const srsran_csi_rs_resource_mapping_t* re
     }
   }
 
-  ERROR("Unhandled configuration");
+  // Inform about an unhandled configuration
+  RESOURCE_ERROR(resource);
   return SRSRAN_ERROR;
 }
 
@@ -225,7 +235,8 @@ static int csi_rs_nof_cdm_groups(const srsran_csi_rs_resource_mapping_t* resourc
     return 2;
   }
 
-  ERROR("Unhandled configuration");
+  // Inform about an unhandled configuration
+  RESOURCE_ERROR(resource);
   return SRSRAN_ERROR;
 }
 
@@ -250,6 +261,89 @@ bool srsran_csi_rs_resource_mapping_is_valid(const srsran_csi_rs_resource_mappin
   }
 
   return true;
+}
+
+uint32_t srsran_csi_rs_resource_mapping_info(const srsran_csi_rs_resource_mapping_t* res, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  const char* row_str         = "invalid";
+  uint32_t    nof_freq_domain = 0;
+  switch (res->row) {
+    case srsran_csi_rs_resource_mapping_row_1:
+      row_str         = "1";
+      nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW1;
+      break;
+    case srsran_csi_rs_resource_mapping_row_2:
+      row_str         = "2";
+      nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW2;
+      break;
+    case srsran_csi_rs_resource_mapping_row_4:
+      row_str         = "4";
+      nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW4;
+      break;
+    case srsran_csi_rs_resource_mapping_row_other:
+      row_str         = "other";
+      nof_freq_domain = SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_OTHER;
+      break;
+  }
+
+  const char* cdm_str = "invalid";
+  switch (res->cdm) {
+    case srsran_csi_rs_cdm_nocdm:
+      cdm_str = "nocdm";
+      break;
+    case srsran_csi_rs_cdm_fd_cdm2:
+      cdm_str = "FD-CDM2";
+      break;
+    case srsran_csi_rs_cdm_cdm4_fd2_td2:
+      cdm_str = "CDM4-FD2-TD2";
+      break;
+    case srsran_csi_rs_cdm_cdm8_fd2_td4:
+      cdm_str = "CDM8-FD2-TD4";
+      break;
+  }
+
+  const char* density_str = "invalid";
+  switch (res->density) {
+    case srsran_csi_rs_resource_mapping_density_three:
+      density_str = "3";
+      break;
+    case srsran_csi_rs_resource_mapping_density_dot5_even:
+      density_str = ".5 (even)";
+      break;
+    case srsran_csi_rs_resource_mapping_density_dot5_odd:
+      density_str = ".5 (odd)";
+      break;
+    case srsran_csi_rs_resource_mapping_density_one:
+      density_str = "1";
+      break;
+    case srsran_csi_rs_resource_mapping_density_spare:
+      density_str = "spare";
+      break;
+  }
+
+  char frequency_domain_alloc[SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_MAX + 1];
+  srsran_vec_sprint_bin(frequency_domain_alloc,
+                        SRSRAN_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_MAX + 1,
+                        (uint8_t*)res->frequency_domain_alloc,
+                        nof_freq_domain);
+
+  len = srsran_print_check(str,
+                           str_len,
+                           len,
+                           "row=%s freq=%s nof_ports=%d fist_symb=%d fist_symb2=%d cdm=%s density=%s rb=(%d:%d)",
+                           row_str,
+                           frequency_domain_alloc,
+                           res->nof_ports,
+                           res->first_symbol_idx,
+                           res->first_symbol_idx2,
+                           cdm_str,
+                           density_str,
+                           res->freq_band.start_rb,
+                           res->freq_band.start_rb + res->freq_band.nof_rb - 1);
+
+  return len;
 }
 
 uint32_t csi_rs_count(srsran_csi_rs_density_t density, uint32_t nprb)
@@ -677,6 +771,7 @@ int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
   int                           ret = csi_rs_nzp_measure_set(carrier, slot_cfg, set, grid, measurements);
   if (ret < SRSRAN_SUCCESS) {
     ERROR("Error performing measurements");
+    return SRSRAN_ERROR;
   }
   uint32_t count = (uint32_t)ret;
 
@@ -772,6 +867,7 @@ int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*         carrier
   int                           ret = csi_rs_nzp_measure_set(carrier, slot_cfg, set, grid, measurements);
   if (ret < SRSRAN_SUCCESS) {
     ERROR("Error performing measurements");
+    return SRSRAN_ERROR;
   }
   uint32_t count = (uint32_t)ret;
 

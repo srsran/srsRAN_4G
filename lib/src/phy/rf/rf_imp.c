@@ -103,6 +103,14 @@ int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uin
 {
   rf->thread_gain_run = false;
 
+  bool no_rf_devs_detected = true;
+  printf("Available RF device list:");
+  for (unsigned int i = 0; available_devices[i]; i++) {
+    no_rf_devs_detected = false;
+    printf(" %s ", available_devices[i]->name);
+  }
+  printf("%s\n", no_rf_devs_detected ? " <none>" : "");
+
   // Try to open the device if name is provided
   if (devname && devname[0] != '\0') {
     int i = 0;
@@ -113,21 +121,30 @@ int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uin
       }
       i++;
     }
+
+    ERROR("RF device '%s' not found. Please check the available srsRAN CMAKE options to verify if this device is being "
+          "detected in your system",
+          devname);
     // provided device not found, abort
     return SRSRAN_ERROR;
-  } else {
-    // auto-mode, try to open in order of apperance in available_devices[] array
-    int i = 0;
-    while (available_devices[i] != NULL) {
-      if (!available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels)) {
-        rf->dev = available_devices[i];
-        return SRSRAN_SUCCESS;
-      }
-      i++;
-    }
   }
 
-  ERROR("No compatible RF frontend found");
+  // auto-mode, try to open in order of apperance in available_devices[] array
+  int i = 0;
+  while (available_devices[i] != NULL) {
+    printf("Trying to open RF device '%s'\n", available_devices[i]->name);
+    if (!available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels)) {
+      rf->dev = available_devices[i];
+      printf("RF device '%s' successfully opened\n", available_devices[i]->name);
+      return SRSRAN_SUCCESS;
+    }
+    printf("Unable to open RF device '%s'\n", available_devices[i]->name);
+    i++;
+  }
+
+  ERROR(
+      "Failed to open a RF frontend device. Please check the available srsRAN CMAKE options to verify what RF frontend "
+      "devices have been detected in your system");
   return SRSRAN_ERROR;
 }
 

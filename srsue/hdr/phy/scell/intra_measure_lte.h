@@ -82,8 +82,9 @@ private:
   bool measure_rat(measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset) override;
 
   srslog::basic_logger& logger;
-  srsran_cell_t         serving_cell   = {}; ///< Current serving cell in the EARFCN, to avoid reporting it
-  uint32_t              current_earfcn = 0;  ///< Current EARFCN
+  srsran_cell_t         serving_cell   = {};  ///< Current serving cell in the EARFCN, to avoid reporting it
+  std::atomic<uint32_t> current_earfcn = {0}; ///< Current EARFCN
+  std::mutex            mutex;
 
   /// LTE-based measuring objects
   scell_recv                 scell_rx;               ///< Secondary cell searcher

@@ -50,6 +50,7 @@ public:
   virtual void discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t sn)                    = 0;
   virtual bool rb_is_um(uint16_t rnti, uint32_t lcid)                                    = 0;
   virtual bool sdu_queue_is_full(uint16_t rnti, uint32_t lcid)                           = 0;
+  virtual bool is_suspended(uint16_t rnti, uint32_t lcid)                                = 0;
 };
 
 // RLC interface for RRC
@@ -65,6 +66,7 @@ public:
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) = 0;
   virtual bool has_bearer(uint16_t rnti, uint32_t lcid)                                  = 0;
   virtual bool suspend_bearer(uint16_t rnti, uint32_t lcid)                              = 0;
+  virtual bool is_suspended(uint16_t rnti, uint32_t lcid)                                = 0;
   virtual bool resume_bearer(uint16_t rnti, uint32_t lcid)                               = 0;
   virtual void reestablish(uint16_t rnti)                                                = 0;
 };

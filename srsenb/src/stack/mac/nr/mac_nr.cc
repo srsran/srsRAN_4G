@@ -176,9 +176,9 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uecfg.carriers[0].cc          = 0;
     uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
     srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-    ref_args.duplex   = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
-                            ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                            : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+    ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
+                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
     uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
     uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
@@ -304,16 +304,18 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
 {
   logger.set_context(slot_cfg.idx - TX_ENB_DELAY);
 
-  slot_point                         pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-  sched_nr_interface::dl_sched_res_t dl_res;
+  slot_point pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
 
   // Run Scheduler
+  sched_nr_interface::sched_rar_list_t rar_list;
+  sched_nr_interface::dl_res_t         dl_res(rar_list, dl_sched);
+
   int ret = sched.run_slot(pdsch_slot, 0, dl_res);
   if (ret != SRSRAN_SUCCESS) {
     return ret;
   }
-  dl_sched = dl_res.dl_sched;
 
+  // Generate MAC DL PDUs
   uint32_t                  rar_count = 0;
   srsran::rwlock_read_guard rw_lock(rwmutex);
   for (pdsch_t& pdsch : dl_sched.pdsch) {

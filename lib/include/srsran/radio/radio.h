@@ -182,6 +182,9 @@ private:
    */
   bool tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, const srsran_timestamp_t& tx_time_);
 
+  // private unprotected tx_end implementation
+  void tx_end_nolock();
+
   /**
    * Helper method for receiving over a single RF device. This function maps automatically the logical receive buffers
    * to the physical RF buffers for the given device.

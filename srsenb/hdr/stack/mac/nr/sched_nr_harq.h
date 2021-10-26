@@ -55,7 +55,7 @@ public:
 
   int ack_info(uint32_t tb_idx, bool ack);
 
-  void new_slot(slot_point slot_rx);
+  bool clear_if_maxretx(slot_point slot_rx);
   void reset();
   bool new_tx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, uint32_t mcs, uint32_t max_retx);
   bool new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant);
@@ -121,7 +121,7 @@ private:
 class harq_entity
 {
 public:
-  explicit harq_entity(uint32_t nprb, uint32_t nof_harq_procs = SCHED_NR_MAX_HARQ);
+  explicit harq_entity(uint16_t rnti, uint32_t nprb, uint32_t nof_harq_procs, srslog::basic_logger& logger);
   void new_slot(slot_point slot_rx_);
 
   int dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack) { return dl_harqs[pid].ack_info(tb_idx, ack); }
@@ -162,6 +162,9 @@ private:
     auto it = std::find_if(ul_harqs.begin(), ul_harqs.end(), p);
     return (it == ul_harqs.end()) ? nullptr : &(*it);
   }
+
+  uint16_t              rnti;
+  srslog::basic_logger& logger;
 
   slot_point                slot_rx;
   std::vector<dl_harq_proc> dl_harqs;

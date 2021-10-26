@@ -37,11 +37,13 @@ int harq_proc::ack_info(uint32_t tb_idx, bool ack)
   return ack ? tb[tb_idx].tbs : 0;
 }
 
-void harq_proc::new_slot(slot_point slot_rx)
+bool harq_proc::clear_if_maxretx(slot_point slot_rx)
 {
-  if (has_pending_retx(slot_rx) and nof_retx() + 1 >= max_nof_retx()) {
+  if (has_pending_retx(slot_rx) and nof_retx() + 1 > max_nof_retx()) {
     tb[0].active = false;
+    return true;
   }
+  return false;
 }
 
 void harq_proc::reset()
@@ -129,14 +131,14 @@ bool dl_harq_proc::new_tx(slot_point       slot_tx,
                           uint32_t         max_retx)
 {
   if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs, max_retx)) {
-    softbuffer->reset();
     pdu->clear();
     return true;
   }
   return false;
 }
 
-harq_entity::harq_entity(uint32_t nprb, uint32_t nof_harq_procs)
+harq_entity::harq_entity(uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs, srslog::basic_logger& logger_) :
+  rnti(rnti_), logger(logger_)
 {
   // Create HARQs
   dl_harqs.reserve(nof_harq_procs);
@@ -151,10 +153,20 @@ void harq_entity::new_slot(slot_point slot_rx_)
 {
   slot_rx = slot_rx_;
   for (harq_proc& dl_h : dl_harqs) {
-    dl_h.new_slot(slot_rx);
+    if (dl_h.clear_if_maxretx(slot_rx)) {
+      logger.info("SCHED: discarding rnti=0x%x, DL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+                  rnti,
+                  dl_h.pid,
+                  dl_h.max_nof_retx());
+    }
   }
   for (harq_proc& ul_h : ul_harqs) {
-    ul_h.new_slot(slot_rx);
+    if (ul_h.clear_if_maxretx(slot_rx)) {
+      logger.info("SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+                  rnti,
+                  ul_h.pid,
+                  ul_h.max_nof_retx());
+    }
   }
 }
 

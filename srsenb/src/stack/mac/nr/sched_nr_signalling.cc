@@ -43,6 +43,10 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
 
       // Check if the resource is scheduled for this slot
       if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
+        if (csi_rs_list.full()) {
+          srslog::fetch_basic_logger("MAC-NR").error("SCHED: Failed to allocate NZP-CSI RS");
+          return;
+        }
         csi_rs_list.push_back(nzp_csi_resource);
       }
     }
@@ -51,6 +55,10 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
 
 void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_list& ssb_list)
 {
+  if (ssb_list.full()) {
+    srslog::fetch_basic_logger("MAC-NR").error("SCHED: Failed to allocate SSB");
+    return;
+  }
   // If the periodicity is 0, it means that the parameter was not passed by the upper layers.
   // In that case, we use default value of 5ms (see Clause 4.1, TS 38.213)
   if (ssb_periodicity == 0) {

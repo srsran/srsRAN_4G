@@ -203,7 +203,7 @@ class mac_interface_phy_nr
 {
 public:
   const static int MAX_SSB              = 4;
-  const static int MAX_GRANTS           = 64;
+  const static int MAX_GRANTS           = 32;
   const static int MAX_PUCCH_MSG        = 64;
   const static int MAX_PUCCH_CANDIDATES = 2;
   const static int MAX_NZP_CSI_RS       = 4;

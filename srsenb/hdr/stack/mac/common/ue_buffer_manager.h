@@ -23,6 +23,7 @@
 #define SRSRAN_UE_BUFFER_MANAGER_H
 
 #include "sched_config.h"
+#include "srsran/adt/span.h"
 #include "srsran/common/common_lte.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/srslog/srslog.h"
@@ -37,7 +38,7 @@ template <bool isNR>
 class ue_buffer_manager
 {
 protected:
-  const static uint32_t     MAX_LC_ID     = isNR ? srsran::MAX_NR_NOF_BEARERS : srsran::MAX_LTE_LCID;
+  const static uint32_t     MAX_LC_ID     = isNR ? (srsran::MAX_NR_NOF_BEARERS - 1) : srsran::MAX_LTE_LCID;
   const static uint32_t     MAX_LCG_ID    = isNR ? 7 : 3; // Should import from sched_interface and sched_nr_interface
   const static uint32_t     MAX_SRB_LC_ID = isNR ? srsran::MAX_NR_SRB_ID : srsran::MAX_LTE_SRB_ID;
   const static uint32_t     MAX_NOF_LCIDS = MAX_LC_ID + 1;
@@ -45,16 +46,18 @@ protected:
   constexpr static uint32_t pbr_infinity  = -1;
 
 public:
-  explicit ue_buffer_manager(srslog::basic_logger& logger_);
+  explicit ue_buffer_manager(uint16_t rnti, srslog::basic_logger& logger_);
 
   // Bearer configuration
+  void config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list);
   void config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
 
   // Buffer Status update
   void ul_bsr(uint32_t lcg_id, uint32_t val);
-  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
+  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
 
   // Configuration getters
+  uint16_t               get_rnti() const { return rnti; }
   bool                   is_bearer_active(uint32_t lcid) const { return get_cfg(lcid).is_active(); }
   bool                   is_bearer_ul(uint32_t lcid) const { return get_cfg(lcid).is_ul(); }
   bool                   is_bearer_dl(uint32_t lcid) const { return get_cfg(lcid).is_dl(); }
@@ -67,13 +70,13 @@ public:
   /// DL newtx buffer status for given LCID (no RLC overhead included)
   int get_dl_tx(uint32_t lcid) const { return is_bearer_dl(lcid) ? channels[lcid].buf_tx : 0; }
 
-  /// DL retx buffer status for given LCID (no RLC overhead included)
-  int get_dl_retx(uint32_t lcid) const { return is_bearer_dl(lcid) ? channels[lcid].buf_retx : 0; }
+  /// DL high prio tx buffer status for given LCID (no RLC overhead included)
+  int get_dl_prio_tx(uint32_t lcid) const { return is_bearer_dl(lcid) ? channels[lcid].buf_prio_tx : 0; }
 
-  /// Sum of DL RLC newtx and retx buffer status for given LCID (no RLC overhead included)
-  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
+  /// Sum of DL RLC newtx and high prio tx buffer status for given LCID (no RLC overhead included)
+  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_prio_tx(lcid); }
 
-  /// Sum of DL RLC newtx and retx buffer status for all LCIDS
+  /// Sum of DL RLC newtx and high prio buffer status for all LCIDS
   int get_dl_tx_total() const;
 
   // UL BSR methods
@@ -86,12 +89,15 @@ public:
   static bool is_lcg_valid(uint32_t lcg) { return lcg <= MAX_LCG_ID; }
 
 protected:
+  bool config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
+
   srslog::basic_logger& logger;
+  uint16_t              rnti;
 
   struct logical_channel {
     mac_lc_ch_cfg_t cfg;
     int             buf_tx      = 0;
-    int             buf_retx    = 0;
+    int             buf_prio_tx = 0;
     int             Bj          = 0;
     int             bucket_size = 0;
   };

@@ -654,6 +654,9 @@ static void* input_loop(void*)
       } else if (key == "rlf") {
         simulate_rlf.store(true, std::memory_order_relaxed);
         cout << "Sending Radio Link Failure" << endl;
+      } else if (key == "flush") {
+        srslog::flush();
+        cout << "Flushed log file buffers" << endl;
       } else if (key == "q") {
         // let the signal handler do the job
         raise(SIGTERM);

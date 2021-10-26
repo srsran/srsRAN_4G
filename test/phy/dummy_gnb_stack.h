@@ -285,7 +285,7 @@ private:
 
     // Set softbuffer
     pusch_cfg.grant.tb[0].softbuffer.rx =
-        &rx_harq_proc[slot_cfg.idx].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
+        &rx_harq_proc[dci.pid].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
 
     // Push scheduling results
     dl_sched.pdcch_ul.push_back(pdcch);

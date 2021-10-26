@@ -157,6 +157,11 @@ bool slot_worker::work_ul()
     return false;
   }
 
+  if (ul_sched.pucch.empty() && ul_sched.pusch.empty()) {
+    // early exit if nothing has been scheduled
+    return true;
+  }
+
   // Demodulate
   if (srsran_gnb_ul_fft(&gnb_ul) < SRSRAN_SUCCESS) {
     logger.error("Error in demodulation");

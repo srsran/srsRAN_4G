@@ -182,10 +182,10 @@ namespace srsenb {
 meas_cell_cfg_t generate_cell1()
 {
   meas_cell_cfg_t cell1{};
-  cell1.earfcn   = 3400;
-  cell1.pci      = 1;
-  cell1.q_offset = 0;
-  cell1.eci      = 0x19C01;
+  cell1.earfcn                 = 3400;
+  cell1.pci                    = 1;
+  cell1.cell_individual_offset = asn1::rrc::q_offset_range_opts::db0;
+  cell1.eci                    = 0x19C01;
   return cell1;
 }
 
@@ -207,7 +207,7 @@ report_cfg_eutra_s generate_rep1()
 
 bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell)
 {
-  return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset);
+  return cfg.pci == cell.pci and cell.cell_individual_offset == cell.cell_individual_offset;
 }
 
 } // namespace srsenb

@@ -226,6 +226,11 @@ bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid)
   return rlc->rb_is_um(rnti, lcid);
 }
 
+bool pdcp::user_interface_rlc::is_suspended(uint32_t lcid)
+{
+  return rlc->is_suspended(rnti, lcid);
+}
+
 bool pdcp::user_interface_rlc::sdu_queue_is_full(uint32_t lcid)
 {
   return rlc->sdu_queue_is_full(rnti, lcid);

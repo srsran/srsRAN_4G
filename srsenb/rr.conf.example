@@ -84,6 +84,7 @@ cell_list =
         pci = 2;
         //direct_forward_path_available = false;
         //allowed_meas_bw = 6;
+        //cell_individual_offset = 0;
       }
     );
 

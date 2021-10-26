@@ -1200,6 +1200,11 @@ bool ttcn3_syssim::sdu_queue_is_full(uint32_t lcid)
   return false;
 }
 
+bool ttcn3_syssim::is_suspended(uint32_t lcid)
+{
+  return false;
+}
+
 void ttcn3_syssim::set_as_security(const ttcn3_helpers::timing_info_t        timing,
                                    const std::string                         cell_name,
                                    std::array<uint8_t, 32>                   k_rrc_enc_,

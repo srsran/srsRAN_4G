@@ -93,8 +93,8 @@ std::tuple<bool, meas_obj_t*, cells_to_add_mod_s*> add_cell_enb_cfg(meas_obj_lis
   bool inserted_flag = true;
 
   cells_to_add_mod_s new_cell;
-  asn1::number_to_enum(new_cell.cell_individual_offset, (uint8_t)cellcfg.q_offset);
-  new_cell.pci = cellcfg.pci;
+  new_cell.cell_individual_offset = cellcfg.cell_individual_offset;
+  new_cell.pci                    = cellcfg.pci;
 
   std::pair<meas_obj_t*, meas_cell_t*> ret = find_cell(meas_obj_list, cellcfg.earfcn, cellcfg.pci);
 

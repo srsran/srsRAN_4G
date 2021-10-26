@@ -51,8 +51,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_result_view& cc_out)
 {
   update_dl_harqs(cc_out);
 
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->dl_sched.pdcch_dl.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->dl_sched.pdcch_dl[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result.dl_sched.pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result.dl_sched.pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }
@@ -73,8 +73,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_result_view& cc_out)
 void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
 {
   uint32_t cc = cc_out.cc;
-  for (uint32_t i = 0; i < cc_out.dl_cc_result->dl_sched.pdcch_dl.size(); ++i) {
-    const auto& data = cc_out.dl_cc_result->dl_sched.pdcch_dl[i];
+  for (uint32_t i = 0; i < cc_out.dl_cc_result.dl_sched.pdcch_dl.size(); ++i) {
+    const auto& data = cc_out.dl_cc_result.dl_sched.pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
       continue;
     }
@@ -216,7 +216,9 @@ void sched_nr_base_tester::run_slot(slot_point slot_tx)
 void sched_nr_base_tester::generate_cc_result(uint32_t cc)
 {
   // Run scheduler
-  sched_ptr->run_slot(current_slot_tx, cc, cc_results[cc].dl_res);
+  sched_nr_interface::dl_res_t dl_sched(cc_results[cc].rar, cc_results[cc].dl_res);
+  sched_ptr->run_slot(current_slot_tx, cc, dl_sched);
+  cc_results[cc].rar = dl_sched.rar;
   sched_ptr->get_ul_sched(current_slot_tx, cc, cc_results[cc].ul_res);
   auto tp2                     = std::chrono::steady_clock::now();
   cc_results[cc].cc_latency_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(tp2 - slot_start_tp);
@@ -238,17 +240,14 @@ void sched_nr_base_tester::process_results()
   // Derived class-defined tests
   process_slot_result(slot_ctxt, cc_results);
 
-  sched_nr_cc_result_view cc_out;
-  cc_out.slot = current_slot_tx;
   for (uint32_t cc = 0; cc < cell_params.size(); ++cc) {
-    cc_out.cc           = cc;
-    cc_out.dl_cc_result = &cc_results[cc].dl_res;
-    cc_out.ul_cc_result = &cc_results[cc].ul_res;
+    sched_nr_cc_result_view cc_out{
+        current_slot_tx, cc, cc_results[cc].rar, cc_results[cc].dl_res, cc_results[cc].ul_res};
 
     // Run common tests
-    test_dl_pdcch_consistency(cc_out.dl_cc_result->dl_sched.pdcch_dl);
-    test_pdsch_consistency(cc_out.dl_cc_result->dl_sched.pdsch);
-    test_ssb_scheduled_grant(cc_out.slot, cell_params[cc_out.cc].cfg, cc_out.dl_cc_result->dl_sched.ssb);
+    test_dl_pdcch_consistency(cc_out.dl_cc_result.dl_sched.pdcch_dl);
+    test_pdsch_consistency(cc_out.dl_cc_result.dl_sched.pdsch);
+    test_ssb_scheduled_grant(cc_out.slot, cell_params[cc_out.cc].cfg, cc_out.dl_cc_result.dl_sched.ssb);
 
     // Run UE-dedicated tests
     test_dl_sched_result(slot_ctxt, cc_out);

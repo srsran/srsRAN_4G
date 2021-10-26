@@ -53,7 +53,7 @@ int test_pdu_alloc_successful(srsenb::lch_ue_manager&          lch_handler,
 
 int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t rlc_payload_size)
 {
-  int start_rlc_bytes = lch_handler.get_dl_retx(lcid);
+  int start_rlc_bytes = lch_handler.get_dl_prio_tx(lcid);
   int nof_pdus        = ceil(static_cast<float>(start_rlc_bytes) / static_cast<float>(rlc_payload_size));
   int rem_rlc_bytes   = start_rlc_bytes;
 
@@ -62,7 +62,7 @@ int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_
     uint32_t expected_payload_size = std::min(rlc_payload_size, (uint32_t)rem_rlc_bytes);
     TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSRAN_SUCCESS);
     rem_rlc_bytes -= expected_payload_size;
-    TESTASSERT(lch_handler.get_dl_retx(lcid) == rem_rlc_bytes);
+    TESTASSERT(lch_handler.get_dl_prio_tx(lcid) == rem_rlc_bytes);
   }
   return start_rlc_bytes;
 }
@@ -85,7 +85,7 @@ int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32
 
 int test_lc_ch_pbr_infinity()
 {
-  srsenb::lch_ue_manager lch_handler;
+  srsenb::lch_ue_manager lch_handler{0x46};
 
   srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
   ue_cfg                                                    = generate_setup_ue_cfg(ue_cfg);
@@ -106,15 +106,15 @@ int test_lc_ch_pbr_infinity()
   lch_handler.dl_buffer_state(drb_to_lcid(lte_drb::drb2), 5000, 10000);
 
   // TEST1 - retx of SRB1 is prioritized. Do not transmit other bearers until there are no SRB1 retxs
-  int nof_pending_bytes = lch_handler.get_dl_retx(srb_to_lcid(lte_srb::srb1));
+  int nof_pending_bytes = lch_handler.get_dl_prio_tx(srb_to_lcid(lte_srb::srb1));
   TESTASSERT(test_retx_until_empty(lch_handler, srb_to_lcid(lte_srb::srb1), 500) == nof_pending_bytes);
 
   // TEST2 - the DRB2 has lower prio level than SRB1, but has retxs
-  nof_pending_bytes = lch_handler.get_dl_retx(drb_to_lcid(lte_drb::drb2));
+  nof_pending_bytes = lch_handler.get_dl_prio_tx(drb_to_lcid(lte_drb::drb2));
   TESTASSERT(test_retx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb2), 500) == nof_pending_bytes);
 
   // TEST3 - the DRB1 has lower prio level, but has retxs
-  nof_pending_bytes = lch_handler.get_dl_retx(drb_to_lcid(lte_drb::drb1));
+  nof_pending_bytes = lch_handler.get_dl_prio_tx(drb_to_lcid(lte_drb::drb1));
   TESTASSERT(test_retx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb1), 500) == nof_pending_bytes);
 
   // TEST4 - The SRB1 newtx buffer is emptied before other bearers newtxs
@@ -134,7 +134,7 @@ int test_lc_ch_pbr_infinity()
 
 int test_lc_ch_pbr_finite()
 {
-  srsenb::lch_ue_manager          lch_handler;
+  srsenb::lch_ue_manager          lch_handler{0x46};
   sched_interface::dl_sched_pdu_t pdu;
 
   srsenb::sched_interface::ue_cfg_t ue_cfg                  = generate_default_ue_cfg();
@@ -163,11 +163,11 @@ int test_lc_ch_pbr_finite()
   lch_handler.dl_buffer_state(drb_to_lcid(lte_drb::drb2), 50000, 0);
 
   // TEST1 - SRB1 retxs are emptied first
-  int nof_pending_bytes = lch_handler.get_dl_retx(srb_to_lcid(lte_srb::srb1));
+  int nof_pending_bytes = lch_handler.get_dl_prio_tx(srb_to_lcid(lte_srb::srb1));
   TESTASSERT(test_retx_until_empty(lch_handler, srb_to_lcid(lte_srb::srb1), 500) == nof_pending_bytes);
 
   // TEST2 - DRB1 retxs are emptied
-  nof_pending_bytes = lch_handler.get_dl_retx(drb_to_lcid(lte_drb::drb1));
+  nof_pending_bytes = lch_handler.get_dl_prio_tx(drb_to_lcid(lte_drb::drb1));
   TESTASSERT(test_retx_until_empty(lch_handler, drb_to_lcid(lte_drb::drb1), 500) == nof_pending_bytes);
 
   // TEST3 - SRB1 newtxs are emptied (PBR==infinity)

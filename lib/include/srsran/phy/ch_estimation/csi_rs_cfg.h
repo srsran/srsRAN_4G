@@ -137,6 +137,10 @@ typedef struct SRSRAN_API {
   uint32_t                    count;                                        ///< Number of resources in the set
 } srsran_csi_rs_zp_set_t;
 
-SRSRAN_API bool srsran_csi_rs_resource_mapping_is_valid(const srsran_csi_rs_resource_mapping_t *res);
+SRSRAN_API bool srsran_csi_rs_resource_mapping_is_valid(const srsran_csi_rs_resource_mapping_t* res);
+
+SRSRAN_API uint32_t srsran_csi_rs_resource_mapping_info(const srsran_csi_rs_resource_mapping_t* res,
+                                                        char*                                   str,
+                                                        uint32_t                                str_len);
 
 #endif // SRSRAN_CSI_RS_CFG_H

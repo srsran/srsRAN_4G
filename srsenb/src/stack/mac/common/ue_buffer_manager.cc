@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
+#include "srsran/adt/bounded_vector.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/srslog/bundled/fmt/format.h"
 #include "srsran/srslog/bundled/fmt/ranges.h"
@@ -27,21 +28,71 @@
 namespace srsenb {
 
 template <bool isNR>
-ue_buffer_manager<isNR>::ue_buffer_manager(srslog::basic_logger& logger_) : logger(logger_)
+ue_buffer_manager<isNR>::ue_buffer_manager(uint16_t rnti_, srslog::basic_logger& logger_) : logger(logger_), rnti(rnti_)
 {
   std::fill(lcg_bsr.begin(), lcg_bsr.end(), 0);
 }
 
 template <bool isNR>
+void ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list)
+{
+  bool                                            log_enabled = logger.info.enabled();
+  srsran::bounded_vector<uint32_t, MAX_NOF_LCIDS> changed_list;
+
+  for (uint32_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
+    if (config_lcid_internal(lcid, bearer_cfg_list[lcid]) and log_enabled) {
+      // add to the changed_list the lcids that have been updated with new parameters
+      changed_list.push_back(lcid);
+    }
+  }
+
+  // Log configurations of the LCIDs for which there were param updates
+  if (not changed_list.empty()) {
+    fmt::memory_buffer fmtbuf;
+    for (uint32_t i = 0; i < changed_list.size(); ++i) {
+      uint32_t lcid = changed_list[i];
+      fmt::format_to(fmtbuf,
+                     "{}{{lcid={}, mode={}, prio={}, lcg={}}}",
+                     i > 0 ? ", " : "",
+                     lcid,
+                     to_string(channels[lcid].cfg.direction),
+                     channels[lcid].cfg.priority,
+                     channels[lcid].cfg.group);
+    }
+    logger.info("SCHED: rnti=0x%x, new lcid configuration: [%s]", rnti, srsran::to_c_str(fmtbuf));
+  }
+}
+
+template <bool isNR>
 void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
 {
+  bool cfg_changed = config_lcid_internal(lcid, bearer_cfg);
+  if (cfg_changed) {
+    logger.info("SCHED: rnti=0x%x, lcid=%d configured: mode=%s, prio=%d, lcg=%d",
+                rnti,
+                lcid,
+                to_string(channels[lcid].cfg.direction),
+                channels[lcid].cfg.priority,
+                channels[lcid].cfg.group);
+  }
+}
+
+/**
+ * @brief configure MAC logical channel. The function checks if the configuration is valid
+ *        and whether there was any change compared to previous value
+ * @return true if the lcid was updated with new parameters. False in case of case of error or no update.
+ */
+template <bool isNR>
+bool ue_buffer_manager<isNR>::config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
+{
   if (not is_lcid_valid(lcid)) {
-    logger.warning("Configuring bearer with invalid logical channel id=%d", lcid);
-    return;
+    logger.warning("SCHED: Configuring rnti=0x%x bearer with invalid lcid=%d", rnti, lcid);
+    return false;
   }
   if (not is_lcg_valid(bearer_cfg.group)) {
-    logger.warning("Configuring bearer with invalid logical channel group id=%d", bearer_cfg.group);
-    return;
+    logger.warning(
+        "SCHED: Configuring rnti=0x%x bearer with invalid logical channel group id=%d", rnti, bearer_cfg.group);
+    return false;
   }
 
   // update bearer config
@@ -54,12 +105,9 @@ void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& 
       channels[lcid].bucket_size = channels[lcid].cfg.bsd * channels[lcid].cfg.pbr;
       channels[lcid].Bj          = 0;
     }
-    logger.info("SCHED: bearer configured: lcid=%d, mode=%s, prio=%d, lcg=%d",
-                lcid,
-                to_string(channels[lcid].cfg.direction),
-                channels[lcid].cfg.priority,
-                channels[lcid].cfg.group);
+    return true;
   }
+  return false;
 }
 
 template <bool isNR>
@@ -108,7 +156,7 @@ template <bool isNR>
 void ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
 {
   if (not is_lcg_valid(lcg_id)) {
-    logger.warning("The provided logical channel group id=%d is not valid", lcg_id);
+    logger.warning("SCHED: The provided lcg_id=%d for rnti=0x%x is not valid", lcg_id, rnti);
     return;
   }
   lcg_bsr[lcg_id] = val;
@@ -116,25 +164,26 @@ void ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
   if (logger.debug.enabled()) {
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer, "{}", lcg_bsr);
-    logger.debug("SCHED: lcg_id=%d, bsr=%d. Current state=%s", lcg_id, val, srsran::to_c_str(str_buffer));
+    logger.debug(
+        "SCHED: rnti=0x%x, lcg_id=%d, bsr=%d. Current state=%s", rnti, lcg_id, val, srsran::to_c_str(str_buffer));
   }
 }
 
 template <bool isNR>
-void ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
+void ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
 {
   if (not is_lcid_valid(lcid)) {
     logger.warning("The provided lcid=%d is not valid", lcid);
     return;
   }
   if (lcid <= MAX_SRB_LC_ID and
-      (channels[lcid].buf_tx != (int)tx_queue or channels[lcid].buf_retx != (int)retx_queue)) {
-    logger.info("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+      (channels[lcid].buf_tx != (int)tx_queue or channels[lcid].buf_prio_tx != (int)prio_tx_queue)) {
+    logger.info("SCHED: rnti=0x%x DL lcid=%d buffer_state=%d,%d", rnti, lcid, tx_queue, prio_tx_queue);
   } else {
-    logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
+    logger.debug("SCHED: rnti=0x%x DL lcid=%d buffer_state=%d,%d", rnti, lcid, tx_queue, prio_tx_queue);
   }
-  channels[lcid].buf_retx = retx_queue;
-  channels[lcid].buf_tx   = tx_queue;
+  channels[lcid].buf_prio_tx = prio_tx_queue;
+  channels[lcid].buf_tx      = tx_queue;
 }
 
 // Explicit instantiation

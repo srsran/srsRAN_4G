@@ -86,6 +86,7 @@ private:
     void discard_sdu(uint32_t lcid, uint32_t discard_sn);
     bool rb_is_um(uint32_t lcid);
     bool sdu_queue_is_full(uint32_t lcid);
+    bool is_suspended(uint32_t lcid);
   };
 
   class user_interface_gtpu : public srsue::gw_interface_pdcp

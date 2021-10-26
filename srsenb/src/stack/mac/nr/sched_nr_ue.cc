@@ -35,12 +35,17 @@ ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params
   cc(cell_params_.cc),
   bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
   cell_params(cell_params_),
-  harq_ent(cell_params_.nof_prb())
+  harq_ent(rnti_, cell_params_.nof_prb(), SCHED_NR_MAX_HARQ, cell_params_.bwps[0].logger)
 {}
 
 void ue_carrier::set_cfg(const ue_cfg_t& ue_cfg)
 {
   bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], ue_cfg);
+}
+
+void ue_carrier::new_slot(slot_point slot_tx)
+{
+  harq_ent.new_slot(slot_tx - TX_ENB_DELAY);
 }
 
 slot_ue ue_carrier::try_reserve(slot_point pdcch_slot, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes)
@@ -87,7 +92,7 @@ slot_ue ue_carrier::try_reserve(slot_point pdcch_slot, uint32_t dl_pending_bytes
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) :
-  rnti(rnti_), sched_cfg(sched_cfg_), buffers(srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
+  rnti(rnti_), sched_cfg(sched_cfg_), buffers(rnti_, srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
 {
   set_cfg(cfg);
 }
@@ -105,22 +110,12 @@ void ue::set_cfg(const ue_cfg_t& cfg)
     }
   }
 
-  for (uint32_t lcid = 0; lcid < cfg.ue_bearers.size(); ++lcid) {
-    buffers.config_lcid(lcid, cfg.ue_bearers[lcid]);
-  }
+  buffers.config_lcids(cfg.ue_bearers);
 }
 
 void ue::new_slot(slot_point pdcch_slot)
 {
   last_pdcch_slot = pdcch_slot;
-
-  for (auto& ue_cc_cfg : ue_cfg.carriers) {
-    auto& cc = carriers[ue_cc_cfg.cc];
-    if (cc != nullptr) {
-      // Update CC HARQ state
-      cc->harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY);
-    }
-  }
 
   // Compute pending DL/UL bytes for {rnti, pdcch_slot}
   if (sched_cfg.sched_cfg.auto_refill_buffer) {
@@ -153,10 +148,7 @@ void ue::new_slot(slot_point pdcch_slot)
 
 slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
 {
-  if (carriers[cc] == nullptr) {
-    return slot_ue();
-  }
-
+  srsran_assert(carriers[cc] != nullptr, "try_reserve() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
   return carriers[cc]->try_reserve(pdcch_slot, dl_pending_bytes, ul_pending_bytes);
 }
 

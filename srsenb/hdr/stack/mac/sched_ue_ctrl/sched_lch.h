@@ -35,7 +35,7 @@ class lch_ue_manager : private ue_buffer_manager<false>
   using base_type = ue_buffer_manager<false>;
 
 public:
-  lch_ue_manager() : ue_buffer_manager(srslog::fetch_basic_logger("MAC")) {}
+  explicit lch_ue_manager(uint16_t rnti) : ue_buffer_manager(rnti, srslog::fetch_basic_logger("MAC")) {}
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
   void new_tti();
 
@@ -44,7 +44,7 @@ public:
   using base_type::dl_buffer_state;
   using base_type::get_bsr;
   using base_type::get_bsr_state;
-  using base_type::get_dl_retx;
+  using base_type::get_dl_prio_tx;
   using base_type::get_dl_tx;
   using base_type::get_dl_tx_total;
   using base_type::is_bearer_active;
@@ -60,7 +60,7 @@ public:
   bool has_pending_dl_txs() const;
   int  get_dl_tx_total_with_overhead(uint32_t lcid) const;
   int  get_dl_tx_with_overhead(uint32_t lcid) const;
-  int  get_dl_retx_with_overhead(uint32_t lcid) const;
+  int  get_dl_prio_tx_with_overhead(uint32_t lcid) const;
 
   int get_bsr_with_overhead(uint32_t lcid) const;
   int get_max_prio_lcid() const;
@@ -70,7 +70,7 @@ public:
   srsran::deque<ce_cmd> pending_ces;
 
 private:
-  int alloc_retx_bytes(uint8_t lcid, int rem_bytes);
+  int alloc_prio_tx_bytes(uint8_t lcid, int rem_bytes);
   int alloc_tx_bytes(uint8_t lcid, int rem_bytes);
 
   size_t prio_idx = 0;

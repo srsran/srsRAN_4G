@@ -39,6 +39,7 @@ public:
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) override { last_sdu = std::move(sdu); }
   bool has_bearer(uint16_t rnti, uint32_t lcid) override { return false; }
   bool suspend_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
+  bool is_suspended(uint16_t rnti, uint32_t lcid) override { return false; }
   bool resume_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
   void reestablish(uint16_t rnti) override {}
 

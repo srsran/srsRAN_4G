@@ -776,13 +776,14 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
 {
   meas_cfg->meas_cells.resize(root.getLength());
   for (uint32_t i = 0; i < meas_cfg->meas_cells.size(); ++i) {
-    auto& cell    = meas_cfg->meas_cells[i];
-    cell.earfcn   = root[i]["dl_earfcn"];
-    cell.pci      = (unsigned int)root[i]["pci"] % SRSRAN_NUM_PCI;
-    cell.eci      = (unsigned int)root[i]["eci"];
-    cell.q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
+    auto& cell  = meas_cfg->meas_cells[i];
+    cell.earfcn = root[i]["dl_earfcn"];
+    cell.pci    = (unsigned int)root[i]["pci"] % SRSRAN_NUM_PCI;
+    cell.eci    = (unsigned int)root[i]["eci"];
     parse_default_field(cell.direct_forward_path_available, root[i], "direct_forward_path_available", false);
     parse_default_field(cell.allowed_meas_bw, root[i], "allowed_meas_bw", 6u);
+    asn1_parsers::default_number_to_enum(
+        cell.cell_individual_offset, root[i], "cell_individual_offset", asn1::rrc::q_offset_range_opts::db0);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell.allowed_meas_bw), "Invalid measurement Bandwidth");
   }
   return 0;

@@ -45,12 +45,17 @@ public:
         })->cc_latency_ns.count();
 
     for (auto& cc_out : cc_list) {
-      pdsch_count += cc_out.dl_res.dl_sched.pdcch_dl.size();
+      pdsch_count += cc_out.dl_res.pdcch_dl.size();
       cc_res_count++;
 
-      TESTASSERT(cc_out.dl_res.dl_sched.pdcch_dl.size() <= 1);
-      if (srsran_duplex_nr_is_dl(&cell_params[cc_out.cc].cfg.duplex, 0, current_slot_tx.slot_idx())) {
-        TESTASSERT(cc_out.dl_res.dl_sched.pdcch_dl.size() == 1 or not cc_out.dl_res.dl_sched.ssb.empty());
+      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
+
+      if (is_dl_slot) {
+        if (cc_out.dl_res.ssb.empty()) {
+          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.dl_res.pdcch_dl.size() == 1);
+        } else {
+          TESTASSERT(cc_out.dl_res.pdcch_dl.size() == 0);
+        }
       }
     }
   }
@@ -85,12 +90,13 @@ void run_sched_nr_test(uint32_t nof_workers)
   }
   sched_nr_tester tester(cfg, cells_cfg, test_name, nof_workers);
 
-  sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
-  tester.add_user(rnti, uecfg, slot_point{0, 0}, 0);
-
   for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
     slot_point slot_rx(0, nof_slots % 10240);
     slot_point slot_tx = slot_rx + TX_ENB_DELAY;
+    if (slot_rx.to_uint() == 9) {
+      sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
+      tester.add_user(rnti, uecfg, slot_rx, 0);
+    }
     tester.run_slot(slot_tx);
   }
 

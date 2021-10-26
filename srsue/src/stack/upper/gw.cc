@@ -219,6 +219,8 @@ int gw::setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr
 
 int gw::deactivate_eps_bearer(const uint32_t eps_bearer_id)
 {
+  std::lock_guard<std::mutex> lock(gw_mutex);
+
   // only deactivation of default bearer
   if (eps_bearer_id == static_cast<uint32_t>(default_eps_bearer_id)) {
     logger.debug("Deactivating EPS bearer %d", eps_bearer_id);
@@ -476,8 +478,10 @@ int gw::setup_if_addr4(uint32_t ip_addr, char* err_str)
       close(tun_fd);
       return SRSRAN_ERROR_CANT_START;
     }
-    ifr.ifr_netmask.sa_family                             = AF_INET;
-    if (inet_pton(ifr.ifr_netmask.sa_family, args.tun_dev_netmask.c_str(), &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr) != 1) {
+    ifr.ifr_netmask.sa_family = AF_INET;
+    if (inet_pton(ifr.ifr_netmask.sa_family,
+                  args.tun_dev_netmask.c_str(),
+                  &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr) != 1) {
       logger.error("Invalid tun_dev_netmask: %s", args.tun_dev_netmask.c_str());
       srsran::console("Invalid tun_dev_netmask: %s\n", args.tun_dev_netmask.c_str());
       perror("inet_pton");

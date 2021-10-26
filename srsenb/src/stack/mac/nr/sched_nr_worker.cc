@@ -89,6 +89,9 @@ void slot_cc_worker::run(slot_point pdcch_slot, ue_map_t& ue_db)
       continue;
     }
 
+    // Update UE CC state
+    u.carriers[cfg.cc]->new_slot(pdcch_slot);
+
     // info for a given UE on a slot to be process
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, cfg.cc));
     if (slot_ues[rnti].empty()) {
@@ -189,6 +192,10 @@ void slot_cc_worker::postprocess_decisions()
     }
     if (not has_pusch) {
       // If any UCI information is triggered, schedule PUCCH
+      if (bwp_slot.pucch.full()) {
+        logger.warning("SCHED: Cannot fit pending UCI into PUCCH");
+        continue;
+      }
       bwp_slot.pucch.emplace_back();
       mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
 
@@ -383,7 +390,7 @@ void sched_worker_manager::get_metrics_nolocking(mac_metrics_t& metrics)
 {
   for (mac_ue_metrics_t& ue_metric : metrics.ues) {
     if (ue_db.contains(ue_metric.rnti) and ue_db[ue_metric.rnti]->carriers[0] != nullptr) {
-      auto& ue_cc         = *ue_db[ue_metric.rnti]->carriers[0];
+      auto&                       ue_cc = *ue_db[ue_metric.rnti]->carriers[0];
       std::lock_guard<std::mutex> lock(ue_cc.metrics_mutex);
       ue_metric.tx_brate  = ue_cc.metrics.tx_brate;
       ue_metric.tx_errors = ue_cc.metrics.tx_errors;

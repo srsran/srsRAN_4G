@@ -281,9 +281,10 @@ public:
   // MAC interface
   virtual bool     has_data() = 0;
   bool             is_suspended() { return suspended; };
-  virtual uint32_t get_buffer_state()                              = 0;
-  virtual uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes)  = 0;
-  virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
+  virtual uint32_t get_buffer_state()                                            = 0;
+  virtual void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) = 0;
+  virtual uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes)                = 0;
+  virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes)               = 0;
 
   virtual void set_bsr_callback(bsr_callback_t callback) = 0;
 

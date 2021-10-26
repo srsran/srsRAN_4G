@@ -64,6 +64,8 @@ public:
     logger.info("Discard_count=%" PRIu64 "", discard_count);
   }
 
+  bool is_suspended(uint32_t lcid) { return false; }
+
   uint64_t rx_count      = 0;
   uint64_t discard_count = 0;
 

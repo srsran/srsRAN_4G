@@ -51,8 +51,11 @@ void intra_measure_lte::init(uint32_t cc_idx, const args_t& args)
 
 void intra_measure_lte::set_primary_cell(uint32_t earfcn, srsran_cell_t cell)
 {
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    serving_cell   = cell;
+  }
   current_earfcn = earfcn;
-  serving_cell   = cell;
   set_current_sf_len((uint32_t)SRSRAN_SF_LEN_PRB(cell.nof_prb));
 }
 
@@ -60,8 +63,14 @@ bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>
 {
   std::set<uint32_t> cells_to_measure = context.active_pci;
 
+  srsran_cell_t serving_cell_copy{};
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    serving_cell_copy = serving_cell;
+  }
+
   // Detect new cells using PSS/SSS
-  scell_rx.find_cells(buffer.data(), serving_cell, context.meas_len_ms, cells_to_measure);
+  scell_rx.find_cells(buffer.data(), serving_cell_copy, context.meas_len_ms, cells_to_measure);
 
   // Initialise empty neighbour cell list
   std::vector<phy_meas_t> neighbour_cells = {};
@@ -71,10 +80,10 @@ bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>
   // Use Cell Reference signal to measure cells in the time domain for all known active PCI
   for (const uint32_t& id : cells_to_measure) {
     // Do not measure serving cell here since it's measured by workers
-    if (id == serving_cell.id) {
+    if (id == serving_cell_copy.id) {
       continue;
     }
-    srsran_cell_t cell = serving_cell;
+    srsran_cell_t cell = serving_cell_copy;
     cell.id            = id;
 
     if (srsran_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell) < SRSRAN_SUCCESS) {

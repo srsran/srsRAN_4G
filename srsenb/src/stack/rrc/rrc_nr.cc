@@ -166,11 +166,15 @@ rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
   return cfg_default;
 }
 
-// This function is called from PRACH worker (can wait)
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
+/* @brief PRIVATE function, gets called by sgnb_addition_request
+ *
+ * This function WILL NOT TRIGGER the RX MSG3 activity timer
+ */
+int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer)
 {
   if (users.count(rnti) == 0) {
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg))));
+    // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
+    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, start_msg3_timer))));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -179,6 +183,16 @@ int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
     logger.error("Adding user rnti=0x%x (already exists)", rnti);
     return SRSRAN_ERROR;
   }
+}
+
+/* @brief PUBLIC function, gets called by mac_nr::rach_detected
+ *
+ * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
+ */
+int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
+{
+  // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
+  return add_user(rnti, uecfg, true);
 }
 
 void rrc_nr::rem_user(uint16_t rnti)
@@ -503,9 +517,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers[0].cc          = 0;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  ref_args.duplex   = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
   uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
@@ -516,7 +530,7 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
     return;
   }
 
-  if (add_user(nr_rnti, uecfg) != SRSRAN_SUCCESS) {
+  if (add_user(nr_rnti, uecfg, false) != SRSRAN_SUCCESS) {
     logger.error("Failed to allocate RNTI at RRC");
     rrc_eutra->sgnb_addition_reject(eutra_rnti);
     return;
@@ -554,11 +568,82 @@ void rrc_nr::sgnb_release_request(uint16_t nr_rnti)
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_) :
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
   parent(parent_), rnti(rnti_), uecfg(uecfg_)
 {
   // Derive UE cfg from rrc_cfg_nr_t
   uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+
+  // Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
+  activity_timer = parent->task_sched.get_unique_timer();
+  start_msg3_timer ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+}
+
+void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
+{
+  uint32_t deadline_ms = 0;
+
+  switch (type) {
+    case MSG3_RX_TIMEOUT:
+      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 100ms
+      deadline_ms = 100;
+      break;
+    case UE_INACTIVITY_TIMEOUT:
+      // TODO: Add a value for the inactivity timeout - currently no activity set this case
+      return;
+    default:
+      parent->logger.error("Unknown timeout type %d", type);
+      return;
+  }
+
+  // Currently we only set the timer for the MSG3_RX_TIMEOUT case
+  activity_timer.set(deadline_ms, [this, type](uint32_t tid) { activity_timer_expired(type); });
+  parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline_ms);
+
+  set_activity();
+}
+
+void rrc_nr::ue::set_activity(bool enabled)
+{
+  if (not enabled) {
+    if (activity_timer.is_running()) {
+      parent->logger.debug("Inactivity timer interrupted for rnti=0x%x", rnti);
+    }
+    activity_timer.stop();
+    return;
+  }
+
+  // re-start activity timer with current timeout value
+  activity_timer.run();
+  parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
+}
+
+void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
+{
+  parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
+
+  state = rrc_nr_state_t::RRC_IDLE;
+
+  switch (type) {
+    case UE_INACTIVITY_TIMEOUT:
+      // TODO: Add action to be executed
+      break;
+    case MSG3_RX_TIMEOUT:
+      // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
+      parent->rem_user(rnti);
+      break;
+    default:
+      // Unhandled activity timeout, just remove UE and log an error
+      parent->rem_user(rnti);
+      parent->logger.error(
+          "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
+  }
+}
+
+std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
+{
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
+  return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
 void rrc_nr::ue::send_connection_setup()
@@ -1311,6 +1396,10 @@ void rrc_nr::ue::crnti_ce_received()
   if (endc) {
     // send SgNB addition complete for ENDC users
     parent->rrc_eutra->sgnb_addition_complete(eutra_rnti, rnti);
+
+    // stop RX MSG3 activity timer on MAC CE RNTI reception
+    activity_timer.stop();
+    parent->logger.debug("Received MAC CE-RNTI for 0x%x - stopping MSG3 timer", rnti);
 
     // Add DRB1 to MAC
     for (auto& drb : cell_group_cfg.rlc_bearer_to_add_mod_list) {

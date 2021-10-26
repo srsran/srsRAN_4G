@@ -620,7 +620,7 @@ bool ngap::connect_amf()
   logger.info("Connecting to AMF %s:%d", args.amf_addr.c_str(), int(AMF_PORT));
 
   // Init SCTP socket and bind it
-  if (not sctp_init_client(&amf_socket, socket_type::seqpacket, args.ngc_bind_addr.c_str(), 0)) {
+  if (not sctp_init_socket(&amf_socket, socket_type::seqpacket, args.ngc_bind_addr.c_str(), 0)) {
     return false;
   }
   logger.info("SCTP socket opened. fd=%d", amf_socket.fd());

@@ -548,7 +548,7 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
     // if the gap is bigger than TX_MAX_GAP_ZEROS, stop burst
     if (fabs(srsran_timestamp_real(&ts_overlap)) > tx_max_gap_zeros) {
       logger.info("Detected RF gap of %.1f us. Sending end-of-burst.", srsran_timestamp_real(&ts_overlap) * 1.0e6);
-      tx_end();
+      tx_end_nolock();
     } else {
       logger.debug("Detected RF gap of %.1f us. Tx'ing zeroes.", srsran_timestamp_real(&ts_overlap) * 1.0e6);
       // Otherwise, transmit zeros
@@ -601,6 +601,12 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
 }
 
 void radio::tx_end()
+{
+  std::unique_lock<std::mutex> lock(tx_mutex);
+  tx_end_nolock();
+}
+
+void radio::tx_end_nolock()
 {
   if (!is_initialized) {
     return;

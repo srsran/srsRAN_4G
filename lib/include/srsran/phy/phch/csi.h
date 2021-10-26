@@ -48,7 +48,7 @@ srsran_csi_new_nzp_csi_rs_measurement(const srsran_csi_hl_resource_cfg_t csi_res
  */
 SRSRAN_API int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
                                            const srsran_slot_cfg_t*   slot_cfg,
-                                           srsran_csi_report_cfg_t    report_cfg[SRSRAN_CSI_MAX_NOF_REPORT]);
+                                           srsran_csi_report_cfg_t    report_cfg[SRSRAN_CSI_SLOT_MAX_NOF_REPORT]);
 
 /**
  * @brief Quantifies a given set of CSI reports from the given set of measurements
@@ -58,9 +58,9 @@ SRSRAN_API int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
  * @return The number CSI reports for transmission if the provided data is valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int
-srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[SRSRAN_CSI_MAX_NOF_REPORT],
+srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[SRSRAN_CSI_SLOT_MAX_NOF_REPORT],
                             const srsran_csi_channel_measurements_t measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
-                            srsran_csi_report_value_t               report_value[SRSRAN_CSI_MAX_NOF_REPORT]);
+                            srsran_csi_report_value_t               report_value[SRSRAN_CSI_SLOT_MAX_NOF_REPORT]);
 
 /**
  * @brief Compute number of CSI bits necessary to transmit all the CSI reports for a PUCCH transmission

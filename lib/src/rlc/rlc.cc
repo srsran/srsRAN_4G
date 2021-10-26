@@ -248,20 +248,24 @@ bool rlc::has_data_locked(const uint32_t lcid)
   return has_data(lcid);
 }
 
-uint32_t rlc::get_buffer_state(uint32_t lcid)
+void rlc::get_buffer_state(uint32_t lcid, uint32_t& tx_queue, uint32_t& prio_tx_queue)
 {
-  uint32_t ret = 0;
-
   rwlock_read_guard lock(rwlock);
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->is_suspended()) {
-      ret = 0;
+      tx_queue      = 0;
+      prio_tx_queue = 0;
     } else {
-      ret = rlc_array.at(lcid)->get_buffer_state();
+      rlc_array.at(lcid)->get_buffer_state(tx_queue, prio_tx_queue);
     }
   }
+}
 
-  return ret;
+uint32_t rlc::get_buffer_state(uint32_t lcid)
+{
+  uint32_t tx_queue = 0, prio_tx_queue = 0;
+  get_buffer_state(lcid, tx_queue, prio_tx_queue);
+  return tx_queue + prio_tx_queue;
 }
 
 uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
@@ -601,9 +605,9 @@ bool rlc::valid_lcid_mrb(uint32_t lcid)
 void rlc::update_bsr(uint32_t lcid)
 {
   if (bsr_callback) {
-    uint32_t tx_queue   = get_buffer_state(lcid);
-    uint32_t retx_queue = 0; // todo: separate tx_queue and retx_queue
-    bsr_callback(lcid, tx_queue, retx_queue);
+    uint32_t tx_queue = 0, prio_tx_queue = 0;
+    get_buffer_state(lcid, tx_queue, prio_tx_queue);
+    bsr_callback(lcid, tx_queue, prio_tx_queue);
   }
 }
 

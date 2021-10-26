@@ -87,8 +87,12 @@ int s1ap::init(const s1ap_args_t& s1ap_args)
 
   // Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
+
   // Initialize S1-MME
   m_s1mme = enb_listen();
+  if (m_s1mme == SRSRAN_ERROR) {
+    return SRSRAN_ERROR;
+  }
 
   // Init PCAP
   m_pcap_enable = s1ap_args.pcap_enable;

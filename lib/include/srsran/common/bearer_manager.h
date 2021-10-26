@@ -27,6 +27,7 @@
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/srslog/srslog.h"
 #include <map>
+#include <unordered_map>
 #include <stdint.h>
 
 namespace srsran {
@@ -159,7 +160,7 @@ public:
 private:
   srslog::basic_logger& logger;
 
-  srsenb::rnti_map_t<srsran::detail::ue_bearer_manager_impl> users_map;
+  std::unordered_map<uint16_t, srsran::detail::ue_bearer_manager_impl> users_map;
 };
 
 } // namespace srsenb

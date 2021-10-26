@@ -40,7 +40,7 @@ public:
 class pdcp_interface_rrc
 {
 public:
-  virtual void set_enabled(uint16_t rnti, uint32_t lcid, bool enable)                                                     = 0;
+  virtual void set_enabled(uint16_t rnti, uint32_t lcid, bool enable)                                      = 0;
   virtual void reset(uint16_t rnti)                                                                        = 0;
   virtual void add_user(uint16_t rnti)                                                                     = 0;
   virtual void rem_user(uint16_t rnti)                                                                     = 0;

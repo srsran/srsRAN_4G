@@ -504,6 +504,13 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
 
     // Set cell gain
     control->cmd_cell_gain(cell_id, gain_db);
+  } else if (cmd[0] == "flush") {
+    if (cmd.size() != 1) {
+      cout << "Usage: " << cmd[0] << endl;
+      return;
+    }
+    srslog::flush();
+    cout << "Flushed log file buffers" << endl;
   } else {
     cout << "Available commands: " << endl;
     cout << "          t: starts console trace" << endl;
@@ -511,6 +518,7 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
     cout << "  cell_gain: set relative cell gain" << endl;
     cout << "      sleep: pauses the commmand line operation for a given time in seconds" << endl;
     cout << "          p: starts MAC padding" << endl;
+    cout << "      flush: flushes the buffers for the log file" << endl;
     cout << endl;
   }
 }

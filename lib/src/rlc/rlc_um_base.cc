@@ -143,6 +143,12 @@ uint32_t rlc_um_base::get_buffer_state()
   return 0;
 }
 
+void rlc_um_base::get_buffer_state(uint32_t& newtx_queue, uint32_t& prio_tx_queue)
+{
+  newtx_queue   = get_buffer_state();
+  prio_tx_queue = 0;
+}
+
 uint32_t rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   if (tx && tx_enabled) {

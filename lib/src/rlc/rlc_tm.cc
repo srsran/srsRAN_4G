@@ -133,6 +133,12 @@ uint32_t rlc_tm::get_buffer_state()
   return ul_queue.size_bytes();
 }
 
+void rlc_tm::get_buffer_state(uint32_t& newtx_queue, uint32_t& prio_tx_queue)
+{
+  newtx_queue   = get_buffer_state();
+  prio_tx_queue = 0;
+}
+
 rlc_bearer_metrics_t rlc_tm::get_metrics()
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);

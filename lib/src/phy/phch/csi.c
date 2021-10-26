@@ -188,7 +188,7 @@ int srsran_csi_new_nzp_csi_rs_measurement(
 
 int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
                                 const srsran_slot_cfg_t*   slot_cfg,
-                                srsran_csi_report_cfg_t    report_cfg[SRSRAN_CSI_MAX_NOF_REPORT])
+                                srsran_csi_report_cfg_t    report_cfg[SRSRAN_CSI_SLOT_MAX_NOF_REPORT])
 {
   uint32_t count = 0;
 
@@ -198,13 +198,20 @@ int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
   }
 
   // Make sure report configuration is initialised to zero
-  SRSRAN_MEM_ZERO(report_cfg, srsran_csi_report_cfg_t, SRSRAN_CSI_MAX_NOF_REPORT);
+  SRSRAN_MEM_ZERO(report_cfg, srsran_csi_report_cfg_t, SRSRAN_CSI_SLOT_MAX_NOF_REPORT);
 
   // Iterate every possible configured CSI report
   for (uint32_t i = 0; i < SRSRAN_CSI_MAX_NOF_REPORT; i++) {
     // Skip if report is not configured or triggered
     if (!csi_report_trigger(&cfg->reports[i], slot_cfg->idx)) {
       continue;
+    }
+
+    if (count >= SRSRAN_CSI_SLOT_MAX_NOF_REPORT) {
+      ERROR("The number of CSI reports in the slot (%d) exceeds the maximum (%d)",
+            count++,
+            SRSRAN_CSI_SLOT_MAX_NOF_REPORT);
+      return SRSRAN_ERROR;
     }
 
     // Configure report
@@ -218,9 +225,9 @@ int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
   return (int)count;
 }
 
-int srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[SRSRAN_CSI_MAX_NOF_REPORT],
+int srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[SRSRAN_CSI_SLOT_MAX_NOF_REPORT],
                                 const srsran_csi_channel_measurements_t measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
-                                srsran_csi_report_value_t               report_value[SRSRAN_CSI_MAX_NOF_REPORT])
+                                srsran_csi_report_value_t               report_value[SRSRAN_CSI_SLOT_MAX_NOF_REPORT])
 {
   uint32_t count = 0;
 
@@ -230,7 +237,7 @@ int srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[
   }
 
   // Iterate every possible configured CSI report
-  for (uint32_t i = 0; i < SRSRAN_CSI_MAX_NOF_REPORT; i++) {
+  for (uint32_t i = 0; i < SRSRAN_CSI_SLOT_MAX_NOF_REPORT; i++) {
     // If the report is the last one, break
     if (reports->cfg.type == SRSRAN_CSI_REPORT_TYPE_NONE) {
       break;

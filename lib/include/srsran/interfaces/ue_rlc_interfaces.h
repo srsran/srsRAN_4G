@@ -60,6 +60,8 @@ public:
 
   ///< Allow PDCP to query SDU queue status
   virtual bool sdu_queue_is_full(uint32_t lcid) = 0;
+
+  virtual bool is_suspended(const uint32_t lcid) = 0;
 };
 
 class rlc_interface_mac : public srsran::read_pdu_interface

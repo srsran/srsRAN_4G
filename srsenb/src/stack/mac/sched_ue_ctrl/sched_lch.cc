@@ -66,9 +66,7 @@ uint32_t get_ul_mac_sdu_size_with_overhead(uint32_t rlc_pdu_bytes)
 
 void lch_ue_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
 {
-  for (uint32_t lcid = 0; is_lcid_valid(lcid); lcid++) {
-    config_lcid(lcid, cfg.ue_bearers[lcid]);
-  }
+  config_lcids(cfg.ue_bearers);
 }
 
 void lch_ue_manager::new_tti()
@@ -87,15 +85,18 @@ void lch_ue_manager::new_tti()
 void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
 {
   if (lcid >= sched_interface::MAX_LC) {
-    logger.warning("The provided lcid=%d is not valid", lcid);
+    logger.warning("SCHED: The provided lcid=%d for rnti=0x%x is not valid", lcid, rnti);
     return;
   }
   lcg_bsr[channels[lcid].cfg.group] += bytes;
   if (logger.debug.enabled()) {
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer, "{}", get_bsr_state());
-    logger.debug(
-        "SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, channels[lcid].cfg.group, srsran::to_c_str(str_buffer));
+    logger.debug("SCHED: rnti=0x%x UL buffer update=%d, lcg_id=%d, bsr=%s",
+                 rnti,
+                 bytes,
+                 channels[lcid].cfg.group,
+                 srsran::to_c_str(str_buffer));
   }
 }
 
@@ -103,9 +104,9 @@ int lch_ue_manager::get_max_prio_lcid() const
 {
   int min_prio_val = std::numeric_limits<int>::max(), prio_lcid = -1;
 
-  // Prioritize retxs
+  // Prioritized Txs first (e.g. Retxs, status PDUs)
   for (uint32_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
-    if (get_dl_retx(lcid) > 0 and channels[lcid].cfg.priority < min_prio_val) {
+    if (get_dl_prio_tx(lcid) > 0 and channels[lcid].cfg.priority < min_prio_val) {
       min_prio_val = channels[lcid].cfg.priority;
       prio_lcid    = lcid;
     }
@@ -156,10 +157,10 @@ int lch_ue_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int 
     return alloc_bytes;
   }
 
-  // try first to allocate retxs
-  alloc_bytes = alloc_retx_bytes(lcid, rem_bytes);
+  // try first to allocate high priority txs (e.g. retxs, status pdus)
+  alloc_bytes = alloc_prio_tx_bytes(lcid, rem_bytes);
 
-  // if no retx alloc, try newtx
+  // if no prio tx alloc, try newtx
   if (alloc_bytes == 0) {
     alloc_bytes = alloc_tx_bytes(lcid, rem_bytes);
   }
@@ -177,15 +178,15 @@ int lch_ue_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int 
   return alloc_bytes;
 }
 
-int lch_ue_manager::alloc_retx_bytes(uint8_t lcid, int rem_bytes)
+int lch_ue_manager::alloc_prio_tx_bytes(uint8_t lcid, int rem_bytes)
 {
   const int rlc_overhead = (lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
   if (rem_bytes <= rlc_overhead) {
     return 0;
   }
   int rem_bytes_no_header = rem_bytes - rlc_overhead;
-  int alloc               = std::min(rem_bytes_no_header, get_dl_retx(lcid));
-  channels[lcid].buf_retx -= alloc;
+  int alloc               = std::min(rem_bytes_no_header, get_dl_prio_tx(lcid));
+  channels[lcid].buf_prio_tx -= alloc;
   return alloc + (alloc > 0 ? rlc_overhead : 0);
 }
 
@@ -220,7 +221,7 @@ bool lch_ue_manager::has_pending_dl_txs() const
 
 int lch_ue_manager::get_dl_tx_total_with_overhead(uint32_t lcid) const
 {
-  return get_dl_retx_with_overhead(lcid) + get_dl_tx_with_overhead(lcid);
+  return get_dl_prio_tx_with_overhead(lcid) + get_dl_tx_with_overhead(lcid);
 }
 
 int lch_ue_manager::get_dl_tx_with_overhead(uint32_t lcid) const
@@ -228,9 +229,9 @@ int lch_ue_manager::get_dl_tx_with_overhead(uint32_t lcid) const
   return get_dl_mac_sdu_size_with_overhead(lcid, get_dl_tx(lcid));
 }
 
-int lch_ue_manager::get_dl_retx_with_overhead(uint32_t lcid) const
+int lch_ue_manager::get_dl_prio_tx_with_overhead(uint32_t lcid) const
 {
-  return get_dl_mac_sdu_size_with_overhead(lcid, get_dl_retx(lcid));
+  return get_dl_mac_sdu_size_with_overhead(lcid, get_dl_prio_tx(lcid));
 }
 
 int lch_ue_manager::get_bsr_with_overhead(uint32_t lcg) const

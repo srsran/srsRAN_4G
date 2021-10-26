@@ -225,10 +225,7 @@ int mac::ue_rem(uint16_t rnti)
 int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, const sched_interface::ue_cfg_t& cfg)
 {
   srsran::rwlock_read_guard lock(rwlock);
-  if (temp_crnti != crnti) {
-    // if C-RNTI is changed, it corresponds to older user. Handover scenario.
-    ue_db[crnti]->reset();
-  } else {
+  if (temp_crnti == crnti) {
     // Schedule ConRes Msg4
     scheduler.dl_mac_buffer_state(crnti, (uint32_t)srsran::dl_sch_lcid::CON_RES_ID);
   }

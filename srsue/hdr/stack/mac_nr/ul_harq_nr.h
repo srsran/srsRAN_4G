@@ -97,6 +97,8 @@ private:
 
     std::unique_ptr<byte_buffer_t> harq_buffer = nullptr;
 
+    void save_grant(const mac_interface_phy_nr::mac_nr_grant_ul_t& grant);
+
     void generate_tx(mac_interface_phy_nr::tb_action_ul_t* action);
     void generate_new_tx(const mac_interface_phy_nr::mac_nr_grant_ul_t& grant,
                          mac_interface_phy_nr::tb_action_ul_t*          action);
@@ -113,6 +115,8 @@ private:
   srsran::ul_harq_cfg_t harq_cfg = {};
   ul_harq_metrics_t     metrics  = {};
   std::mutex            metrics_mutex;
+
+  const static uint8_t NDI_NOT_SET = 100;
 };
 
 typedef std::unique_ptr<ul_harq_entity_nr>                     ul_harq_entity_nr_ptr;

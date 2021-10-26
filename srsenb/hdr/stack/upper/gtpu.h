@@ -20,6 +20,7 @@
  */
 
 #include <map>
+#include <unordered_map>
 #include <string.h>
 
 #include "srsenb/hdr/common/common_enb.h"
@@ -131,7 +132,7 @@ private:
   pdcp_interface_gtpu*      pdcp      = nullptr;
   srslog::basic_logger&     logger;
 
-  rnti_map_t<ue_bearer_tunnel_list> ue_teidin_db;
+  std::unordered_map<uint16_t, ue_bearer_tunnel_list> ue_teidin_db;
   tunnel_list_t                     tunnels;
 };
 
