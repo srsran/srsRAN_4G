@@ -944,6 +944,7 @@ void sync::get_current_cell(srsran_cell_t* cell_, uint32_t* earfcn_)
     *cell_ = cell.get();
   }
   if (earfcn_) {
+    std::unique_lock<std::mutex> ul(rrc_mutex);
     *earfcn_ = current_earfcn;
   }
 }
