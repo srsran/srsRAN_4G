@@ -318,7 +318,7 @@ inline null<> gmtime_s(...) { return null<>(); }
 inline std::tm localtime(std::time_t time) {
   struct dispatcher {
     std::time_t time_;
-    std::tm tm_;
+    std::tm tm_{};
 
     dispatcher(std::time_t t) : time_(t) {}
 

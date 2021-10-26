@@ -20,6 +20,7 @@
 #include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/common/rlc_test_dummy.h"
 #include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
+#include "srsran/srslog/srslog.h"
 #include <mutex>
 #include <set>
 #include <srsenb/hdr/stack/mac/common/mac_metrics.h>
@@ -275,8 +276,7 @@ private:
     }
 
     // Set softbuffer
-    pusch_cfg.grant.tb[0].softbuffer.rx =
-        &rx_harq_proc[dci.pid].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
+    pusch_cfg.grant.tb[0].softbuffer.rx = &rx_harq_proc[dci.pid].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
 
     // Push scheduling results
     dl_sched.pdcch_ul.push_back(pdcch);
