@@ -341,8 +341,8 @@ static int test_case1()
 int main(int argc, char** argv)
 {
   srsran_regs_t regs = {};
-  int           i;
-  int           ret = SRSRAN_ERROR;
+  int           i    = 0;
+  int           ret  = SRSRAN_ERROR;
 
   parse_args(argc, argv);
   random_gen = srsran_random_init(0x1234);
