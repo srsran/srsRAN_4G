@@ -171,9 +171,12 @@ static float get_snr_dB(uint32_t L)
 
   if (isnormal(snr_dB) && L < 4) {
     return snr_dB;
+  } else if (L < 4) {
+    return snr_table_dB[L];
+  } else {
+    ERROR("L >= 4\n");
+    return 0.0f;
   }
-
-  return snr_table_dB[L];
 }
 
 static int test_case1()
