@@ -420,7 +420,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   modified_registration_request.requested_nssai_present = true;
   modified_registration_request.update_type_5gs_present = true;
 
-  s_nssai_t s_nssai;
+  s_nssai_t s_nssai{};
   s_nssai.type                                               = s_nssai_t::SST_type_::options::sst;
   s_nssai.sst                                                = 1;
   modified_registration_request.requested_nssai.s_nssai_list = {s_nssai};
