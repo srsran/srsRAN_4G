@@ -236,7 +236,10 @@ bool worker_pool::set_config(const srsran::phy_cfg_nr_t& new_cfg)
       w->release();
 
       // As the worker has been configured, there is no need to load new configuration from the real-time thread
-      pending_cfgs[i] = false;
+      {
+        std::lock_guard<std::mutex> lock(cfg_mutex);
+        pending_cfgs[i] = false;
+      }
     }
   }
 
