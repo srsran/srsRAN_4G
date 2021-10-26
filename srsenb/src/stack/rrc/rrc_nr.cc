@@ -583,11 +583,11 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       break;
     case MSG5_RX_TIMEOUT:
       // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 1s
-      deadline_ms = 1000;
+      deadline_ms = 5000;
       break;
     case UE_INACTIVITY_TIMEOUT:
       // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 5s
-      deadline_ms = 5000;
+      deadline_ms = 10000;
       break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
