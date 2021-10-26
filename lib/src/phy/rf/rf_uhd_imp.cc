@@ -1235,7 +1235,9 @@ void rf_uhd_get_time(void* h, time_t* secs, double* frac_secs)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   uhd::time_spec_t  timespec;
-  handler->uhd->get_time_now(timespec);
+  if (handler->uhd->get_time_now(timespec) != UHD_ERROR_NONE) {
+    return;
+  }
   if (secs != nullptr) {
     *secs = timespec.get_full_secs();
   }

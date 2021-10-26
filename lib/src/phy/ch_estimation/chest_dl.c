@@ -320,9 +320,9 @@ static float estimate_noise_pilots(srsran_chest_dl_t* q, srsran_dl_sf_cfg_t* sf,
   float       sum_power = 0.0f;
   uint32_t    count     = 0;
   uint32_t    npilots   = (ch_mode == SRSRAN_SF_MBSFN) ? SRSRAN_REFSIGNAL_NUM_SF_MBSFN(q->cell.nof_prb, port_id)
-                                                  : srsran_refsignal_cs_nof_re(&q->csr_refs, sf, port_id);
-  uint32_t nsymbols = (ch_mode == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_nof_symbols()
-                                                   : srsran_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
+                                                       : srsran_refsignal_cs_nof_re(&q->csr_refs, sf, port_id);
+  uint32_t    nsymbols  = (ch_mode == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_nof_symbols()
+                                                       : srsran_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
   if (nsymbols == 0) {
     ERROR("Invalid number of CRS symbols\n");
     return SRSRAN_ERROR;
@@ -433,8 +433,8 @@ static void interpolate_pilots(srsran_chest_dl_t*     q,
                                uint32_t               port_id)
 {
   /* interpolate the symbols with references in the freq domain */
-  uint32_t nsymbols = (sf->sf_type == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_nof_symbols() + 1
-                                                       : srsran_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
+  uint32_t nsymbols    = (sf->sf_type == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_nof_symbols() + 1
+                                                          : srsran_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
   uint32_t fidx_offset = 0;
 
   /* Interpolate in the frequency domain */
@@ -556,7 +556,7 @@ static void average_pilots(srsran_chest_dl_t*     q,
 {
   uint32_t nsymbols = (sf->sf_type == SRSRAN_SF_MBSFN) ? srsran_refsignal_mbsfn_nof_symbols()
                                                        : srsran_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
-  uint32_t nref = (sf->sf_type == SRSRAN_SF_MBSFN) ? 6 * q->cell.nof_prb : 2 * q->cell.nof_prb;
+  uint32_t nref     = (sf->sf_type == SRSRAN_SF_MBSFN) ? 6 * q->cell.nof_prb : 2 * q->cell.nof_prb;
 
   // Average in the time domain if enabled
   if (cfg->estimator_alg == SRSRAN_ESTIMATOR_ALG_AVERAGE && nsymbols > 1) {
@@ -967,12 +967,8 @@ static void fill_res(srsran_chest_dl_t* q, srsran_chest_dl_res_t* res)
   for (uint32_t port_id = 0; port_id < q->cell.nof_ports; port_id++) {
     res->rsrp_port_dbm[port_id] = srsran_convert_power_to_dBm(get_rsrp_port(q, port_id));
     for (uint32_t a = 0; a < q->nof_rx_antennas; a++) {
-      if (q->noise_estimate[a]) {
-        res->snr_ant_port_db[a][port_id] =
-            srsran_convert_power_to_dB(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
-      } else {
-        res->snr_ant_port_db[a][port_id] = 0.0f;
-      }
+      res->snr_ant_port_db[a][port_id] =
+          srsran_convert_power_to_dB(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
       res->rsrp_ant_port_dbm[a][port_id] = srsran_convert_power_to_dBm(q->rsrp[a][port_id]);
       res->rsrq_ant_port_db[a][port_id] =
           srsran_convert_power_to_dB(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);

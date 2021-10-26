@@ -80,7 +80,7 @@ int srsran_chest_dl_nbiot_init(srsran_chest_dl_nbiot_t* q, uint32_t max_prb)
   }
 
 clean_exit:
-  if (ret != SRSRAN_SUCCESS) {
+  if (ret != SRSRAN_SUCCESS  && q != NULL) {
     srsran_chest_dl_nbiot_free(q);
   }
   return ret;

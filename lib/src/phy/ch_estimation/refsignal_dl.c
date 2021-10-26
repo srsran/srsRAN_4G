@@ -27,7 +27,6 @@
  */
 int srsran_refsignal_cs_init(srsran_refsignal_t* q, uint32_t max_prb)
 {
-
   int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
@@ -56,7 +55,6 @@ free_and_exit:
  */
 int srsran_refsignal_cs_set_cell(srsran_refsignal_t* q, srsran_cell_t cell)
 {
-
   uint32_t          c_init;
   uint32_t          N_cp, mp;
   srsran_sequence_t seq;
@@ -347,7 +345,6 @@ uint32_t srsran_refsignal_mbsfn_nof_symbols()
 
 inline uint32_t srsran_refsignal_mbsfn_fidx(uint32_t l)
 {
-
   uint32_t ret = 0;
   if (l == 0) {
     ret = 0;
@@ -447,21 +444,21 @@ free_and_exit:
 
 int srsran_refsignal_mbsfn_set_cell(srsran_refsignal_t* q, srsran_cell_t cell, uint16_t mbsfn_area_id)
 {
+  int ret = SRSRAN_SUCCESS;
 
-  int ret = SRSRAN_ERROR_INVALID_INPUTS;
-  q->cell = cell;
+  if (q == NULL) {
+    ret = SRSRAN_ERROR_INVALID_INPUTS;
+    goto exit;
+  }
 
+  q->cell          = cell;
   q->mbsfn_area_id = mbsfn_area_id;
-  if (srsran_refsignal_mbsfn_gen_seq(q, q->cell, q->mbsfn_area_id)) {
-    goto free_and_exit;
+  if (srsran_refsignal_mbsfn_gen_seq(q, q->cell, q->mbsfn_area_id) < SRSRAN_SUCCESS) {
+    ret = SRSRAN_ERROR;
+    goto exit;
   }
 
-  ret = SRSRAN_SUCCESS;
-
-free_and_exit:
-  if (ret == SRSRAN_ERROR) {
-    srsran_refsignal_free(q);
-  }
+exit:
   return ret;
 }
 

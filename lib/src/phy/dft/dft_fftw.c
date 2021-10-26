@@ -57,11 +57,13 @@ __attribute__((constructor)) static void srsran_dft_load()
   }
   if (lockf(fileno(fd), F_LOCK, 0) == -1) {
     perror("lockf()");
+    fclose(fd);
     return;
   }
   fftwf_import_wisdom_from_file(fd);
   if (lockf(fileno(fd), F_ULOCK, 0) == -1) {
     perror("u-lockf()");
+    fclose(fd);
     return;
   }
   fclose(fd);
@@ -82,11 +84,13 @@ __attribute__((destructor)) void srsran_dft_exit()
   }
   if (lockf(fileno(fd), F_LOCK, 0) == -1) {
     perror("lockf()");
+    fclose(fd);
     return;
   }
   fftwf_export_wisdom_to_file(fd);
   if (lockf(fileno(fd), F_ULOCK, 0) == -1) {
     perror("u-lockf()");
+    fclose(fd);
     return;
   }
   fclose(fd);

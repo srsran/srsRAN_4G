@@ -760,6 +760,8 @@ int srsran_csi_rs_nzp_measure_trs(const srsran_carrier_nr_t*     carrier,
   // Perform Measurements
   csi_rs_nzp_resource_measure_t measurements[SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_PER_SET];
   int                           ret = csi_rs_nzp_measure_set(carrier, slot_cfg, set, grid, measurements);
+
+  // Return to prevent assigning negative values to count
   if (ret < SRSRAN_SUCCESS) {
     ERROR("Error performing measurements");
     return SRSRAN_ERROR;
@@ -856,6 +858,8 @@ int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*         carrier
   // Perform Measurements
   csi_rs_nzp_resource_measure_t measurements[SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_PER_SET];
   int                           ret = csi_rs_nzp_measure_set(carrier, slot_cfg, set, grid, measurements);
+
+  // Return to prevent assigning negative values to count
   if (ret < SRSRAN_SUCCESS) {
     ERROR("Error performing measurements");
     return SRSRAN_ERROR;
@@ -1032,8 +1036,11 @@ int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*         carrier,
   // Perform Measurements
   csi_rs_zp_resource_measure_t measurements[SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_PER_SET];
   int                          ret = csi_rs_zp_measure_set(carrier, slot_cfg, set, grid, measurements);
+
+  // Return to prevent assigning negative values to count
   if (ret < SRSRAN_SUCCESS) {
     ERROR("Error performing measurements");
+    return SRSRAN_ERROR;
   }
   uint32_t count = (uint32_t)ret;
 

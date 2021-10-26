@@ -199,6 +199,11 @@ static int test_case_1(srsran_ssb_t* ssb)
     }
   }
 
+  if (!count) {
+    ERROR("Error in test case 1: undefined division");
+    return SRSRAN_ERROR;
+  }
+
   INFO("test_case_1 - %.1f usec/encode; %.1f usec/decode; %.1f usec/decode;",
        (double)t_encode_usec / (double)(count),
        (double)t_decode_usec / (double)(count),

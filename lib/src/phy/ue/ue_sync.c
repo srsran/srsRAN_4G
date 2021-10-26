@@ -958,7 +958,7 @@ int srsran_ue_sync_run_find_gnss_mode(srsran_ue_sync_t* q,
     srsran_timestamp_sub(&ts_tmp, 0, 0.001); ///< account for samples that have already been rx'ed
     align_len = srsran_timestamp_uint64(&ts_tmp, q->sf_len * 1000);
 
-    if (align_len > q->sf_len * 1000) {
+    if (align_len > (uint64_t)q->sf_len * 1000) {
       ts_next_rx.full_secs++;
       ts_next_rx.frac_secs = 0.0;
       srsran_timestamp_copy(&ts_tmp, &ts_next_rx);

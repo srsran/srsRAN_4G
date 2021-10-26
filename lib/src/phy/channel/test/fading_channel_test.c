@@ -49,7 +49,7 @@ static void usage(char* prog)
 #endif /* ENABLE_GUI */
 }
 
-static void parse_args(int argc, char** argv)
+static int parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "mtsrg")) != -1) {
@@ -73,9 +73,10 @@ static void parse_args(int argc, char** argv)
         break;
       default:
         usage(argv[0]);
-        exit(-1);
+        return SRSRAN_ERROR;
     }
   }
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -86,7 +87,16 @@ int main(int argc, char** argv)
   struct timeval t[3]          = {};
   uint64_t       time_usec     = 0;
 
-  parse_args(argc, argv);
+#ifdef ENABLE_GUI
+  cf_t*  fft_buffer = NULL;
+  float* fft_mag    = NULL;
+  float* imp        = NULL;
+#endif
+
+  // Parse arguments
+  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
 
   srsran_dft_plan_t ifft;
   srsran_dft_plan_c(&ifft, srate / 1000, SRSRAN_DFT_BACKWARD);
@@ -96,10 +106,7 @@ int main(int argc, char** argv)
   plot_real_t plot_h   = NULL;
   plot_real_t plot_imp = NULL;
 
-  srsran_dft_plan_t fft        = {};
-  cf_t*             fft_buffer = NULL;
-  float*            fft_mag    = NULL;
-  float*            imp        = NULL;
+  srsran_dft_plan_t fft = {};
 
   if (enable_gui) {
     sdrgui_init();
@@ -207,15 +214,17 @@ int main(int argc, char** argv)
 #endif /* ENABLE_GUI */
   }
 
-  ret = SRSRAN_SUCCESS;
-
-clean_exit:
-  if (ret) {
-    printf("Error\n");
+  // Print results and exit
+  double msps = 0;
+  if (time_usec) {
+    msps = duration_ms * (srate / 1000.0) / (double)time_usec;
+    printf("Ok ... %.1f MSps\n", msps);
+    ret = SRSRAN_SUCCESS;
   } else {
-    printf("Ok ... %.1f MSps\n", duration_ms * (srate / 1000.0) / (double)time_usec);
+    printf("Error in Msps calculation: undefined division\n");
   }
 
+clean_exit:
   srsran_dft_plan_free(&ifft);
 
 #ifdef ENABLE_GUI

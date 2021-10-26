@@ -724,14 +724,14 @@ int srsran_refsignal_srs_send_cs(uint32_t subframe_config, uint32_t sf_idx)
       } else {
         return 1;
       }
-    } else if (subframe_config == 14) {
+    }
+    // subframe_config == 14
+    else {
       if (((sf_idx % tsfc) == 7) || ((sf_idx % tsfc) == 9)) {
         return 0;
       } else {
         return 1;
       }
-    } else {
-      return 0;
     }
   } else {
     return SRSRAN_ERROR_INVALID_INPUTS;

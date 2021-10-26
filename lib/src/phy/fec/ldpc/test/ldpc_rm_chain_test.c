@@ -60,7 +60,7 @@ static uint8_t            rv         = 0;       /*!< \brief Redundancy version {
 static srsran_mod_t mod_type = SRSRAN_MOD_BPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256 = 4 */
 static uint32_t     Nref     = 0;               /*!< \brief Limited buffer size. */
 static float        snr      = 0;               /*!< \brief Signal-to-Noise Ratio [dB]. */
-static uint8_t            rm_aware = 1; /*!< \brief Flag rate matching aware encoding/decoding (1 to enable). */
+static uint8_t      rm_aware = 1;               /*!< \brief Flag rate matching aware encoding/decoding (1 to enable). */
 
 static int finalK = 0; /*!< \brief Number of uncoded bits (message length, including punctured and filler bits). */
 static int finalN = 0; /*!< \brief Number of coded bits (codeword length). */
@@ -93,7 +93,7 @@ void usage(char* prog)
 /*!
  * \brief Parses the input line.
  */
-void parse_args(int argc, char** argv)
+int parse_args(int argc, char** argv)
 {
   int opt = 0;
   while ((opt = getopt(argc, argv, "b:l:e:f:r:m:w:M:s:B:N:E:")) != -1) {
@@ -136,21 +136,24 @@ void parse_args(int argc, char** argv)
         break;
       default:
         usage(argv[0]);
-        exit(-1);
+        return SRSRAN_ERROR;
     }
   }
+  return SRSRAN_SUCCESS;
 }
 
 /*!
  * \brief Prints decoder statistics.
  */
-void print_decoder(char* title, int n_batches, int n_errors, double elapsed_time);
+int print_decoder(char* title, int n_batches, int n_errors, double elapsed_time);
 
 /*!
  * \brief Main test function.
  */
 int main(int argc, char** argv)
 {
+  int ret = SRSRAN_ERROR;
+
   uint8_t* messages_true             = NULL;
   uint8_t* messages_sim_f            = NULL;
   uint8_t* messages_sim_s            = NULL;
@@ -169,29 +172,68 @@ int main(int argc, char** argv)
   int16_t* symbols_s                 = NULL; // unrm_symbols
   int8_t*  symbols_c                 = NULL; // unrm_symbols
 
+  // LDPC encoder
+  srsran_ldpc_encoder_t encoder = {};
+
+  // LDPC decoder (8 bit)
+  srsran_ldpc_decoder_t decoder_c = {};
+  // LDPC decoder (8 bit, flooded)
+  srsran_ldpc_decoder_t decoder_c_flood = {};
+  // LDPC decoder (16 bit)
+  srsran_ldpc_decoder_t decoder_s = {};
+  // LDPC decoder (float)
+  srsran_ldpc_decoder_t decoder_f = {};
+
+#ifdef LV_HAVE_AVX2
+  // LDPC decoder (8 bit, AVX2 version)
+  srsran_ldpc_decoder_t decoder_avx = {};
+  // LDPC decoder (8 bit, flooded scheduling, AVX2 version)
+  srsran_ldpc_decoder_t decoder_avx_flood = {};
+
+#endif
+
+#ifdef LV_HAVE_AVX512
+  // LDPC decoder (8 bit, AVX512 version)
+  srsran_ldpc_decoder_t decoder_avx512 = {};
+  // LDPC decoder (8 bit, flooded scheduling, AVX512 version)
+  srsran_ldpc_decoder_t decoder_avx512_flood = {};
+#endif
+
+  // LDPC rate Matcher
+  srsran_ldpc_rm_t rm_tx = {};
+  // LDPC rate DeMatcher
+  srsran_ldpc_rm_t rm_rx = {};
+  // LDPC rate DeMatcher (int16_t)
+  srsran_ldpc_rm_t rm_rx_s = {};
+  // LDPC rate DeMatcher (int8_t)
+  srsran_ldpc_rm_t rm_rx_c = {};
+
+  // Create a random generator
+  srsran_random_t random_gen = NULL;
+  random_gen                 = srsran_random_init(0);
+
   int i = 0;
   int j = 0;
 
-  parse_args(argc, argv);
-
-  // create an LDPC encoder
-  srsran_ldpc_encoder_t encoder;
+  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
 
 #ifdef LV_HAVE_AVX512
   if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
     perror("encoder init");
-    exit(-1);
+    goto clean_exit;
   }
 #else // no AVX512
 #ifdef LV_HAVE_AVX2
   if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_AVX2, base_graph, lift_size) != 0) {
     perror("encoder init");
-    exit(-1);
+    goto clean_exit;
   }
-#else // no AVX2
+#else  // no AVX2
   if (srsran_ldpc_encoder_init(&encoder, SRSRAN_LDPC_ENCODER_C, base_graph, lift_size) != 0) {
     perror("encoder init");
-    exit(-1);
+    goto clean_exit;
   }
 #endif // LV_HAVE_AVX2
 #endif // LV_HAVE_AVX512
@@ -206,32 +248,28 @@ int main(int argc, char** argv)
     Nref = finalN;
   }
 
-  // create a LDPC rate Matcher
-  srsran_ldpc_rm_t rm_tx;
+  // Init the LDPC rate Matcher
   if (srsran_ldpc_rm_tx_init(&rm_tx) != 0) {
     perror("rate matcher init");
-    exit(-1);
+    goto clean_exit;
   }
 
-  // create a LDPC rate DeMatcher
-  srsran_ldpc_rm_t rm_rx;
+  // Init LDPC rate DeMatcher
   if (srsran_ldpc_rm_rx_init_f(&rm_rx) != 0) {
     perror("rate dematcher init");
-    exit(-1);
+    goto clean_exit;
   }
 
-  // create a LDPC rate DeMatcher (int16_t)
-  srsran_ldpc_rm_t rm_rx_s;
+  // Init LDPC rate DeMatcher (int16_t)
   if (srsran_ldpc_rm_rx_init_s(&rm_rx_s) != 0) {
     perror("rate dematcher init (int16_t)");
-    exit(-1);
+    goto clean_exit;
   }
 
-  // create a LDPC rate DeMatcher (int8_t)
-  srsran_ldpc_rm_t rm_rx_c;
+  // Init LDPC rate DeMatcher (int8_t)
   if (srsran_ldpc_rm_rx_init_c(&rm_rx_c) != 0) {
     perror("rate dematcher init (int8_t)");
-    exit(-1);
+    goto clean_exit;
   }
 
   // Create LDPC configuration arguments
@@ -240,72 +278,61 @@ int main(int argc, char** argv)
   decoder_args.ls                         = lift_size;
   decoder_args.scaling_fctr               = MS_SF;
 
-  // create an LDPC decoder (float)
-  srsran_ldpc_decoder_t decoder_f;
+  // Init the LDPC decoder (float)
   decoder_args.type = SRSRAN_LDPC_DECODER_F;
   if (srsran_ldpc_decoder_init(&decoder_f, &decoder_args) != 0) {
     perror("decoder init");
-    exit(-1);
+    goto clean_exit;
   }
-  // create an LDPC decoder (16 bit)
-  srsran_ldpc_decoder_t decoder_s;
+  // Init the LDPC decoder (16 bit)
   decoder_args.type = SRSRAN_LDPC_DECODER_S;
   if (srsran_ldpc_decoder_init(&decoder_s, &decoder_args) != 0) {
     perror("decoder init (int16_t)");
-    exit(-1);
+    goto clean_exit;
   }
-  // create an LDPC decoder (8 bit)
-  srsran_ldpc_decoder_t decoder_c;
+  // Init the LDPC decoder (8 bit)
   decoder_args.type = SRSRAN_LDPC_DECODER_C;
   if (srsran_ldpc_decoder_init(&decoder_c, &decoder_args) != 0) {
     perror("decoder init (int8_t)");
-    exit(-1);
+    goto clean_exit;
   }
-  // create an LDPC decoder (8 bit, flooded)
-  srsran_ldpc_decoder_t decoder_c_flood;
+  // Init the LDPC decoder (8 bit, flooded)
   decoder_args.type = SRSRAN_LDPC_DECODER_C_FLOOD;
   if (srsran_ldpc_decoder_init(&decoder_c_flood, &decoder_args) != 0) {
     perror("decoder init");
-    exit(-1);
+    goto clean_exit;
   }
 #ifdef LV_HAVE_AVX2
-  // create an LDPC decoder (8 bit, AVX2 version)
-  srsran_ldpc_decoder_t decoder_avx;
+  // Init the LDPC decoder (8 bit, AVX2 version)
   decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX2;
   if (srsran_ldpc_decoder_init(&decoder_avx, &decoder_args) != 0) {
     perror("decoder init");
-    exit(-1);
+    goto clean_exit;
   }
 
-  // create an LDPC decoder (8 bit, flooded scheduling, AVX2 version)
-  srsran_ldpc_decoder_t decoder_avx_flood;
+  // Init the LDPC decoder (8 bit, flooded scheduling, AVX2 version)
   decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX2_FLOOD;
   if (srsran_ldpc_decoder_init(&decoder_avx_flood, &decoder_args) != 0) {
     perror("decoder init");
-    exit(-1);
+    goto clean_exit;
   }
 #endif // LV_HAVE_AVX2
 
 #ifdef LV_HAVE_AVX512
-  // create an LDPC decoder (8 bit, AVX2 version)
-  srsran_ldpc_decoder_t decoder_avx512;
+  // Init the LDPC decoder (8 bit, AVX512 version)
   decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX512;
   if (srsran_ldpc_decoder_init(&decoder_avx512, &decoder_args) != 0) {
     perror("decoder init");
-    exit(-1);
+    goto clean_exit;
   }
 
-  // create an LDPC decoder (8 bit, flooded scheduling, AVX512 version)
-  srsran_ldpc_decoder_t decoder_avx512_flood;
+  // Init LDPC decoder (8 bit, flooded scheduling, AVX512 version)
   decoder_args.type = SRSRAN_LDPC_DECODER_C_AVX512_FLOOD;
   if (srsran_ldpc_decoder_init(&decoder_avx512_flood, &decoder_args) != 0) {
     perror("decoder init");
-    exit(-1);
+    goto clean_exit;
   }
 #endif // LV_HAVE_AVX512
-
-  // create a random generator
-  srsran_random_t random_gen = srsran_random_init(0);
 
   printf("Test LDPC chain:\n");
   printf("  Base Graph      -> BG%d\n", encoder.bg + 1);
@@ -352,7 +379,7 @@ int main(int argc, char** argv)
       !messages_sim_avx512_flood || !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c ||
       !symbols || !symbols_s || !symbols_c) {
     perror("malloc");
-    exit(-1);
+    goto clean_exit;
   }
 
   int            i_bit   = 0;
@@ -479,7 +506,7 @@ int main(int argc, char** argv)
                               rv,
                               mod_type,
                               Nref)) {
-        exit(-1);
+        goto clean_exit;
       }
     }
 
@@ -519,7 +546,7 @@ int main(int argc, char** argv)
                               rv,
                               mod_type,
                               Nref)) {
-        exit(-1);
+        goto clean_exit;
       }
     }
 
@@ -559,7 +586,7 @@ int main(int argc, char** argv)
                               rv,
                               mod_type,
                               Nref) < 0) {
-        exit(-1);
+        goto clean_exit;
       }
     }
 
@@ -702,63 +729,120 @@ int main(int argc, char** argv)
          i_batch * batch_size * finalK / elapsed_time_enc,
          i_batch * batch_size * finalN / elapsed_time_enc);
 
-  print_decoder("FLOATING POINT", i_batch, n_error_words_f, elapsed_time_dec_f);
-  print_decoder("FIXED POINT (16 bits)", i_batch, n_error_words_s, elapsed_time_dec_s);
-  print_decoder("FIXED POINT (8 bits)", i_batch, n_error_words_c, elapsed_time_dec_c);
-  print_decoder("FIXED POINT (8 bits, flooded scheduling)", i_batch, n_error_words_c_flood, elapsed_time_dec_c_flood);
+  if (print_decoder("FLOATING POINT", i_batch, n_error_words_f, elapsed_time_dec_f) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+  if (print_decoder("FIXED POINT (16 bits)", i_batch, n_error_words_s, elapsed_time_dec_s) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+  if (print_decoder("FIXED POINT (8 bits)", i_batch, n_error_words_c, elapsed_time_dec_c) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+  if (print_decoder(
+          "FIXED POINT (8 bits, flooded scheduling)", i_batch, n_error_words_c_flood, elapsed_time_dec_c_flood) <
+      SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
 
 #ifdef LV_HAVE_AVX2
-  print_decoder("FIXED POINT (8 bits - AVX2)", i_batch, n_error_words_avx, elapsed_time_dec_avx);
-  print_decoder(
-      "FIXED POINT (8 bits, flooded scheduling - AVX2)", i_batch, n_error_words_avx_flood, elapsed_time_dec_avx_flood);
+  if (print_decoder("FIXED POINT (8 bits - AVX2)", i_batch, n_error_words_avx, elapsed_time_dec_avx) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+  if (print_decoder("FIXED POINT (8 bits, flooded scheduling - AVX2)",
+                    i_batch,
+                    n_error_words_avx_flood,
+                    elapsed_time_dec_avx_flood) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
 #endif // LV_HAVE_AVX2
 
 #ifdef LV_HAVE_AVX512
-  print_decoder("FIXED POINT (8 bits - AVX512)", i_batch, n_error_words_avx512, elapsed_time_dec_avx512);
-  print_decoder("FIXED POINT (8 bits, flooded scheduling - AVX512)",
-                i_batch,
-                n_error_words_avx512_flood,
-                elapsed_time_dec_avx512_flood);
+  if (print_decoder("FIXED POINT (8 bits - AVX512)", i_batch, n_error_words_avx512, elapsed_time_dec_avx512) <
+      SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+  if (print_decoder("FIXED POINT (8 bits, flooded scheduling - AVX512)",
+                    i_batch,
+                    n_error_words_avx512_flood,
+                    elapsed_time_dec_avx512_flood) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
 #endif // LV_HAVE_AVX512
 
   if (n_error_words_s > 10 * n_error_words_f) {
     perror("16-bit performance too low!");
-    exit(-1);
+    goto clean_exit;
   }
   if (n_error_words_c > 10 * n_error_words_f) {
     perror("8-bit performance too low!");
-    exit(-1);
+    goto clean_exit;
   }
 #ifdef LV_HAVE_AVX512
   if (n_error_words_avx512 != n_error_words_avx) {
     perror("The number of errors AVX512 and AVX2 differs !");
-    exit(-1);
+    goto clean_exit;
   }
 
   if (n_error_words_avx512_flood != n_error_words_avx_flood) {
     perror("The number of errors of flooded AVX512 and AVX2 differs !");
-    exit(-1);
+    goto clean_exit;
   }
 #endif // LV_HAVE_AVX512
   printf("\nTest completed successfully!\n\n");
+  ret = SRSRAN_SUCCESS;
 
-  free(symbols);
-  free(symbols_s);
-  free(symbols_c);
-  free(rm_symbols);
-  free(rm_symbols_s);
-  free(rm_symbols_c);
-  free(rm_codewords);
-  free(codewords);
-  free(messages_sim_avx);
-  free(messages_sim_avx_flood);
-  free(messages_sim_avx512);
-  free(messages_sim_avx512_flood);
-  free(messages_sim_c_flood);
-  free(messages_sim_c);
-  free(messages_sim_s);
-  free(messages_sim_f);
-  free(messages_true);
+clean_exit:
+  if (symbols != NULL) {
+    free(symbols);
+  }
+  if (symbols_s != NULL) {
+    free(symbols_s);
+  }
+  if (symbols_c != NULL) {
+    free(symbols_c);
+  }
+  if (rm_symbols != NULL) {
+    free(rm_symbols);
+  }
+  if (rm_symbols_s != NULL) {
+    free(rm_symbols_s);
+  }
+  if (rm_symbols_c != NULL) {
+    free(rm_symbols_c);
+  }
+  if (rm_codewords != NULL) {
+    free(rm_codewords);
+  }
+  if (codewords != NULL) {
+    free(codewords);
+  }
+  if (messages_sim_avx != NULL) {
+    free(messages_sim_avx);
+  }
+  if (messages_sim_avx_flood != NULL) {
+    free(messages_sim_avx_flood);
+  }
+  if (messages_sim_avx512 != NULL) {
+    free(messages_sim_avx512);
+  }
+  if (messages_sim_avx512_flood != NULL) {
+    free(messages_sim_avx512_flood);
+  }
+  if (messages_sim_c_flood != NULL) {
+    free(messages_sim_c_flood);
+  }
+  if (messages_sim_c != NULL) {
+    free(messages_sim_c);
+  }
+  if (messages_sim_s != NULL) {
+    free(messages_sim_s);
+  }
+  if (messages_sim_f != NULL) {
+    free(messages_sim_f);
+  }
+  if (messages_true != NULL) {
+    free(messages_true);
+  }
   srsran_random_free(random_gen);
 #ifdef LV_HAVE_AVX2
   srsran_ldpc_decoder_free(&decoder_avx);
@@ -777,15 +861,23 @@ int main(int argc, char** argv)
   srsran_ldpc_rm_rx_free_f(&rm_rx);
   srsran_ldpc_rm_rx_free_s(&rm_rx_s);
   srsran_ldpc_rm_rx_free_c(&rm_rx_c);
+
+  return ret;
 }
 
-void print_decoder(char* title, int n_batches, int n_errors, double elapsed_time)
+int print_decoder(char* title, int n_batches, int n_errors, double elapsed_time)
 {
   printf("\n**** %s ****", title);
-  printf("\nEstimated word error rate:\n  %e (%d errors)\n", (double)n_errors / n_batches / batch_size, n_errors);
+  if (!isnormal(elapsed_time)) {
+    printf("\nError: elapsed time is not a valid number\n");
+    return SRSRAN_ERROR;
+  } else {
+    printf("\nEstimated word error rate:\n  %e (%d errors)\n", (double)n_errors / n_batches / batch_size, n_errors);
 
-  printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-         n_batches * batch_size / elapsed_time,
-         n_batches * batch_size * finalK / elapsed_time,
-         n_batches * batch_size * finalN / elapsed_time);
+    printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
+           n_batches * batch_size / elapsed_time,
+           n_batches * batch_size * finalK / elapsed_time,
+           n_batches * batch_size * finalN / elapsed_time);
+    return SRSRAN_SUCCESS;
+  }
 }

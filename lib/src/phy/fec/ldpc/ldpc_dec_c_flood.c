@@ -317,7 +317,7 @@ int update_ldpc_soft_bits_c_flood(void* p, const int8_t (*these_var_indices)[MAX
   for (i_layer = 0; i_layer < vp->bgM; i_layer++) {
     current_var_index = these_var_indices[i_layer][0];
     this_check_to_var = vp->check_to_var + i_layer * (vp->hrrN + vp->ls);
-    for (i = 0; (current_var_index != -1) && (i < MAX_CNCT); i++) {
+    for (i = 1; (current_var_index != -1) && (i < MAX_CNCT); i++) {
       // recall that current_var_index depends on i!
       current_var_index_ext = current_var_index * vp->ls;
       for (j = 0; j < vp->ls; j++) {
@@ -332,7 +332,7 @@ int update_ldpc_soft_bits_c_flood(void* p, const int8_t (*these_var_indices)[MAX
         }
         vp->soft_bits[i_bit] = (int8_t)tmp;
       }
-      current_var_index = these_var_indices[i_layer][i + 1];
+      current_var_index = these_var_indices[i_layer][i];
     }
   }
 

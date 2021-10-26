@@ -317,6 +317,11 @@ static int test_case1()
       }
     }
 
+    if (!t_encode_count || !t_decode_count) {
+      ERROR("Error in test case 1: undefined division");
+      return SRSRAN_ERROR;
+    }
+
     printf("test_case_1 - format %s - passed - %.1f usec/encode; %.1f usec/llr; %.1f usec/decode; min_corr=%f; "
            "false_alarm_prob=%f;\n",
            srsran_dci_format_string(format),
@@ -332,7 +337,7 @@ static int test_case1()
 
 int main(int argc, char** argv)
 {
-  srsran_regs_t regs;
+  srsran_regs_t regs = {};
   int           i;
   int           ret = SRSRAN_ERROR;
 

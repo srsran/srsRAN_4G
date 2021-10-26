@@ -40,7 +40,7 @@ static void usage(char* prog)
   printf("\t-t tolerance: [Default %.3f]\n", tolerance);
 }
 
-static void parse_args(int argc, char** argv)
+static int parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "nmMst")) != -1) {
@@ -62,9 +62,10 @@ static void parse_args(int argc, char** argv)
         break;
       default:
         usage(argv[0]);
-        exit(-1);
+        return SRSRAN_ERROR;
     }
   }
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -75,8 +76,15 @@ int main(int argc, char** argv)
   uint64_t count_samples = 0;
   uint64_t count_us      = 0;
 
+#ifdef ENABLE_GUI
+  cf_t* fft_out = NULL;
+#endif
+
   // Parse arguments
-  parse_args(argc, argv);
+  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
+    ret = SRSRAN_ERROR;
+    goto clean_exit;
+  }
 
   // Initialise buffers
   input_buffer  = srsran_vec_cf_malloc(nof_samples);
@@ -85,6 +93,7 @@ int main(int argc, char** argv)
   if (!input_buffer || !output_buffer) {
     ERROR("Error: Allocating memory");
     ret = SRSRAN_ERROR;
+    goto clean_exit;
   }
 
   // Initialise input
@@ -104,24 +113,31 @@ int main(int argc, char** argv)
   plot_scatter_setTitle(&plot_fft, "IQ");
   plot_scatter_addToWindowGrid(&plot_fft, (char*)"IQ", 1, 0);
 
-  cf_t*             fft_out = srsran_vec_cf_malloc(nof_samples);
-  srsran_dft_plan_t fft     = {};
+  fft_out               = srsran_vec_cf_malloc(nof_samples);
+  srsran_dft_plan_t fft = {};
   if (srsran_dft_plan_c(&fft, nof_samples, SRSRAN_DFT_FORWARD)) {
     ERROR("Error: init DFT");
     ret = SRSRAN_ERROR;
+    goto clean_exit;
   }
 #endif /* ENABLE_GUI */
 
   // Initialise AWGN channel
-  if (ret == SRSRAN_SUCCESS) {
-    ret = srsran_channel_awgn_init(&awgn, 0);
+  if (srsran_channel_awgn_init(&awgn, 0) < SRSRAN_SUCCESS) {
+    ERROR("Error initialising AWGN channel");
+    ret = SRSRAN_ERROR;
+    goto clean_exit;
   }
 
   float n0 = n0_min;
   while (!isnan(n0) && !isinf(n0) && n0 < n0_max) {
     struct timeval t[3] = {};
 
-    srsran_channel_awgn_set_n0(&awgn, n0);
+    if (srsran_channel_awgn_set_n0(&awgn, n0) < SRSRAN_SUCCESS) {
+      ERROR("Error setting AWGN n0");
+      ret = SRSRAN_ERROR;
+      goto clean_exit;
+    }
 
     // Run actual test
     gettimeofday(&t[1], NULL);
@@ -166,13 +182,28 @@ int main(int argc, char** argv)
     n0 += n0_step;
   }
 
-  // Free
+  // Print result and exit
+  double msps = 0;
+  if (count_us) {
+    msps = (double)nof_samples / (double)count_us;
+  } else {
+    ERROR("Error in Msps calculation: undefined division");
+    ret = SRSRAN_ERROR;
+  }
+  printf("Test n0_min=%.3f; n0_max=%.3f; n0_step=%.3f; nof_samples=%d; %s ... %.1f MSps\n",
+         n0_min,
+         n0_max,
+         n0_step,
+         nof_samples,
+         (ret == SRSRAN_SUCCESS) ? "Passed" : "Failed",
+         msps);
+
+clean_exit:
   srsran_channel_awgn_free(&awgn);
 
   if (input_buffer) {
     free(input_buffer);
   }
-
   if (output_buffer) {
     free(output_buffer);
   }
@@ -184,13 +215,5 @@ int main(int argc, char** argv)
   srsran_dft_plan_free(&fft);
 #endif /* ENABLE_GUI */
 
-  // Print result and exit
-  printf("Test n0_min=%.3f; n0_max=%.3f; n0_step=%.3f; nof_samples=%d; %s ... %.1f MSps\n",
-         n0_min,
-         n0_max,
-         n0_step,
-         nof_samples,
-         (ret == SRSRAN_SUCCESS) ? "Passed" : "Failed",
-         (double)nof_samples / (double)count_us);
   return ret;
 }

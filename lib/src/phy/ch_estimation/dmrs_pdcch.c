@@ -454,6 +454,11 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
     srsran_vec_apply_cfo(tmp, tmp_sync_err, tmp, nof_pilots);
 #endif // DMRS_PDCCH_SYNC_PRECOMPENSATE_MEAS
 
+    // Prevent undefined division
+    if (!nof_pilots) {
+      ERROR("Error in DMRS correlation. nof_pilots cannot be zero");
+      return SRSRAN_ERROR;
+    }
     // Correlate DMRS
     corr[l] = srsran_vec_acc_cc(tmp, nof_pilots) / (float)nof_pilots;
 

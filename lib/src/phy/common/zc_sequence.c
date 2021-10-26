@@ -15,10 +15,13 @@
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/primes.h"
 #include "srsran/phy/utils/vector.h"
+#include <assert.h>
 #include <complex.h>
 
+#define NOF_ZC_SEQ 30
+
 // Phi values for M_sc=12 Table 5.5.1.2-1 in TS 36.211
-static const float zc_sequence_lte_phi_M_sc_12[30][12] = {
+static const float zc_sequence_lte_phi_M_sc_12[NOF_ZC_SEQ][12] = {
     {-1, 1, 3, -3, 3, 3, 1, 1, 3, 1, -3, 3},      {1, 1, 3, 3, 3, -1, 1, -3, -3, 1, -3, 3},
     {1, 1, -3, -3, -3, -1, -3, -3, 1, -3, 1, -1}, {-1, 1, 1, 1, 1, -1, -3, -3, 1, -3, 3, -1},
     {-1, 3, 1, -1, 1, -1, -3, -1, 1, -1, 1, 3},   {1, -3, 3, -1, -1, 1, 1, -1, -1, 3, -3, 1},
@@ -36,7 +39,7 @@ static const float zc_sequence_lte_phi_M_sc_12[30][12] = {
     {-1, 3, -3, 3, -1, 3, 3, -3, 3, 3, -1, -1},   {3, -3, -3, -1, -1, -3, -1, 3, -3, 3, 1, -1}};
 
 // Phi values for M_sc=24 Table 5.5.1.2-2 in TS 36.211
-static const float zc_sequence_lte_phi_M_sc_24[30][24] = {
+static const float zc_sequence_lte_phi_M_sc_24[NOF_ZC_SEQ][24] = {
     {-1, 3, 1, -3, 3, -1, 1, 3, -3, 3, 1, 3, -3, 3, 1, 1, -1, 1, 3, -3, 3, -3, -1, -3},
     {-3, 3, -3, -3, -3, 1, -3, -3, 3, -1, 1, 1, 1, 3, 1, -1, 3, -3, -3, 1, 3, 1, 1, -3},
     {3, -1, 3, 3, 1, 1, -3, 3, 3, 3, 3, 1, -1, 3, -1, 1, 1, -1, -3, -1, -1, 1, 3, 3},
@@ -69,7 +72,7 @@ static const float zc_sequence_lte_phi_M_sc_24[30][24] = {
     {1, 1, -1, -1, -3, -1, 3, -1, 3, -1, 1, 3, 1, -1, 3, 1, 3, -3, -3, 1, -1, -1, 1, 3}};
 
 // Phi values for M_sc=12 Table 5.2.2.2-1 in TS 38.211
-static const float zc_sequence_nr_phi_M_sc_6[30][6] = {
+static const float zc_sequence_nr_phi_M_sc_6[NOF_ZC_SEQ][6] = {
     {-3, -1, 3, 3, -1, -3},  {-3, 3, -1, -1, 3, -3},  {-3, -3, -3, 3, 1, -3},  {1, 1, 1, 3, -1, -3},
     {1, 1, 1, -3, -1, 3},    {-3, 1, -1, -3, -3, -3}, {-3, 1, 3, -3, -3, -3},  {-3, -1, 1, -3, 1, -1},
     {-3, -1, -3, 1, -3, -3}, {-3, -3, 1, -3, 3, -3},  {-3, 1, 3, 1, -3, -3},   {-3, -1, -3, 1, 1, -3},
@@ -80,7 +83,7 @@ static const float zc_sequence_nr_phi_M_sc_6[30][6] = {
     {1, 1, -1, 3, -3, -1},   {1, 1, -3, 1, -1, -1}};
 
 // Phi values for M_sc=12 Table 5.2.2.2-2 in TS 38.211
-static const float zc_sequence_nr_phi_M_sc_12[30][12] = {
+static const float zc_sequence_nr_phi_M_sc_12[NOF_ZC_SEQ][12] = {
     {-3, 1, -3, -3, -3, 3, -3, -1, 1, 1, 1, -3},  {-3, 3, 1, -3, 1, 3, -1, -1, 1, 3, 3, 3},
     {-3, 3, 3, 1, -3, 3, -1, 1, 3, -3, 3, -3},    {-3, -3, -1, 3, 3, 3, -3, 3, -3, 1, -1, -3},
     {-3, -1, -1, 1, 3, 1, 1, -1, 1, -1, -3, 1},   {-3, -3, 3, 1, -3, -3, -3, -1, 3, -1, 1, 3},
@@ -98,7 +101,7 @@ static const float zc_sequence_nr_phi_M_sc_12[30][12] = {
     {1, -1, 3, 1, 1, -1, -1, -1, 1, 3, -3, 1},    {-3, 3, -3, 3, -3, -3, 3, -1, -1, 1, 3, -3}};
 
 // Phi values for M_sc=18 Table 5.2.2.2-3 in TS 38.211
-static const float zc_sequence_nr_phi_M_sc_18[30][18] = {
+static const float zc_sequence_nr_phi_M_sc_18[NOF_ZC_SEQ][18] = {
     {-1, 3, -1, -3, 3, 1, -3, -1, 3, -3, -1, -1, 1, 1, 1, -1, -1, -1},
     {3, -3, 3, -1, 1, 3, -3, -1, -3, -3, -1, -3, 3, 1, -1, 3, -3, 3},
     {-3, 3, 1, -1, -1, 3, -3, -1, 1, 1, 1, 1, 1, -1, 3, -1, -3, -1},
@@ -131,7 +134,7 @@ static const float zc_sequence_nr_phi_M_sc_18[30][18] = {
     {-3, 3, 1, -1, -1, -1, -1, 1, -1, 3, 3, -3, -1, 1, 3, -1, 3, -1}};
 
 // Phi values for M_sc=18 Table 5.2.2.2-3 in TS 38.211
-static const float zc_sequence_nr_phi_M_sc_24[30][24] = {
+static const float zc_sequence_nr_phi_M_sc_24[NOF_ZC_SEQ][24] = {
     {-1, -3, 3, -1, 3, 1, 3, -1, 1, -3, -1, -3, -1, 1, 3, -3, -1, -3, 3, 3, 3, -3, -3, -3},
     {-1, -3, 3, 1, 1, -3, 1, -3, -3, 1, -3, -1, -1, 3, -3, 3, 3, 3, -3, 1, 3, 3, -3, -3},
     {-1, -3, -3, 1, -1, -1, -3, 1, 3, -1, -3, -1, -1, -3, 1, 1, 3, 1, -3, -1, -1, 3, -3, -3},
@@ -165,31 +168,37 @@ static const float zc_sequence_nr_phi_M_sc_24[30][24] = {
 
 static void zc_sequence_lte_r_uv_arg_1prb(uint32_t u, cf_t* tmp_arg)
 {
+  assert(u < NOF_ZC_SEQ);
   srsran_vec_sc_prod_fcc(zc_sequence_lte_phi_M_sc_12[u], M_PI_4, tmp_arg, SRSRAN_NRE);
 }
 
 static void zc_sequence_lte_r_uv_arg_2prb(uint32_t u, cf_t* tmp_arg)
 {
+  assert(u < NOF_ZC_SEQ);
   srsran_vec_sc_prod_fcc(zc_sequence_lte_phi_M_sc_24[u], M_PI_4, tmp_arg, 2 * SRSRAN_NRE);
 }
 
 static void zc_sequence_nr_r_uv_arg_0dot5prb(uint32_t u, cf_t* tmp_arg)
 {
+  assert(u < NOF_ZC_SEQ);
   srsran_vec_sc_prod_fcc(zc_sequence_nr_phi_M_sc_6[u], M_PI_4, tmp_arg, SRSRAN_NRE / 2);
 }
 
 static void zc_sequence_nr_r_uv_arg_1prb(uint32_t u, cf_t* tmp_arg)
 {
+  assert(u < NOF_ZC_SEQ);
   srsran_vec_sc_prod_fcc(zc_sequence_nr_phi_M_sc_12[u], M_PI_4, tmp_arg, SRSRAN_NRE);
 }
 
 static void zc_sequence_nr_r_uv_arg_1dot5prb(uint32_t u, cf_t* tmp_arg)
 {
+  assert(u < NOF_ZC_SEQ);
   srsran_vec_sc_prod_fcc(zc_sequence_nr_phi_M_sc_18[u], M_PI_4, tmp_arg, (3 * SRSRAN_NRE) / 2);
 }
 
 static void zc_sequence_nr_r_uv_arg_2prb(uint32_t u, cf_t* tmp_arg)
 {
+  assert(u < NOF_ZC_SEQ);
   srsran_vec_sc_prod_fcc(zc_sequence_nr_phi_M_sc_24[u], M_PI_4, tmp_arg, 2 * SRSRAN_NRE);
 }
 
