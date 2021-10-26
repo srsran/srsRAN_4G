@@ -33,17 +33,10 @@ n_prb = 50
 #####################################################################
 # eNB configuration files
 #
-<<<<<<< HEAD
-# sib_config:  SIB1, SIB2 and SIB3 configuration file
-# note: when enabling mbms, use the sib.conf.mbsfn configuration file which includes SIB13
-# rr_config:   Radio Resources configuration file
-# rb_config:   SRB/DRB configuration file
-=======
 # sib_config:  SIB1, SIB2 and SIB3 configuration file 
 # note: When enabling MBMS, use the sib.conf.mbsfn configuration file which includes SIB13
 # rr_config:   Radio Resources configuration file 
 # rb_config:   SRB/DRB configuration file 
->>>>>>> 613202716 (enb.conf: Fix typos and make layout consistent)
 #####################################################################
 [enb_files]
 sib_config = sib.conf
