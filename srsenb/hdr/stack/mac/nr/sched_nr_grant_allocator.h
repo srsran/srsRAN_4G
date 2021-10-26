@@ -124,7 +124,7 @@ private:
   bwp_res_grid&         bwp_grid;
 
   slot_point     pdcch_slot;
-  slot_ue_map_t* slot_ues;
+  slot_ue_map_t* slot_ues = nullptr;
 };
 
 } // namespace sched_nr_impl
