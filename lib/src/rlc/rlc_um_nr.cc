@@ -84,8 +84,13 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::get_buffer_state()
   }
 
   // Room needed for fixed header?
-  if (n_bytes > 0)
+  if (n_bytes > 0) {
     n_bytes += (cfg.um.is_mrb) ? 2 : 3;
+  }
+
+  if (bsr_callback) {
+    bsr_callback(parent->get_lcid(), n_bytes, 0);
+  }
 
   return n_bytes;
 }
