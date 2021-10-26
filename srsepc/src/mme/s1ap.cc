@@ -165,10 +165,12 @@ int s1ap::enb_listen()
   // S1-MME bind
   bzero(&s1mme_addr, sizeof(s1mme_addr));
   if (not srsran::net_utils::set_sockaddr(&s1mme_addr, m_s1ap_args.mme_bind_addr.c_str(), S1MME_PORT)) {
+    close(sock_fd);
     m_logger.error("Invalid mme_bind_addr: %s", m_s1ap_args.mme_bind_addr.c_str());
     srsran::console("Invalid mme_bind_addr: %s\n", m_s1ap_args.mme_bind_addr.c_str());
     return SRSRAN_ERROR;
   }
+
   if (not srsran::net_utils::bind_addr(sock_fd, s1mme_addr)) {
     close(sock_fd);
     m_logger.error("Error binding SCTP socket");
