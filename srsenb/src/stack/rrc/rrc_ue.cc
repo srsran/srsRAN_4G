@@ -1219,7 +1219,7 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::multiple_erab_id_instances;
     return SRSRAN_ERROR;
   }
-  if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+  if (bearer_list.addmod_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
     parent->logger.error("Couldn't add E-RAB id=%d for rnti=0x%x", erab_id, rnti);
     return SRSRAN_ERROR;
   }
