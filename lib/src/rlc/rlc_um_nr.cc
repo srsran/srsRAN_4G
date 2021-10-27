@@ -319,8 +319,8 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 
     // check start of t_reassembly
     if (RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1) ||
-        (RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
-         has_missing_byte_segment(RX_Next_Reassembly))) {
+        ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
+          has_missing_byte_segment(RX_Next_Reassembly)))) {
       reassembly_timer.run();
       RX_Timer_Trigger = RX_Next_Highest;
     }
@@ -366,7 +366,7 @@ bool rlc_um_nr::rlc_um_nr_rx::has_missing_byte_segment(const uint32_t sn)
 {
   // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
   // all received segments of this RLC SDU
-  return true;
+  return (rx_window.find(sn) != rx_window.end());
 }
 
 // Sect 5.2.2.2.3
