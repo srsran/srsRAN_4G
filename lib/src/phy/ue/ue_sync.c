@@ -1041,7 +1041,7 @@ int srsran_ue_sync_set_tti_from_timestamp(srsran_ue_sync_t* q, srsran_timestamp_
 
   // convert to ms and add fractional part
   uint64_t time_3gpp_msecs = (time_3gpp_secs + rx_timestamp->frac_secs) * MSECS_PER_SEC;
-  DEBUG("rx time with 3gpp base in ms %lu\n", time_3gpp_msecs);
+  DEBUG("rx time with 3gpp base in ms %" PRIu64 "\n", time_3gpp_msecs);
 
   // calculate SFN and SF index according to TS 36.331 Sec. 5.10.14
   q->frame_number = (uint32_t)(((uint64_t)floor(0.1 * (time_3gpp_msecs - q->sfn_offset))) % 1024);
