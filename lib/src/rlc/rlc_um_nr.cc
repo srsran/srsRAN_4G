@@ -421,9 +421,12 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
 
             // find next SN in rx buffer
             if (sn == RX_Next_Reassembly) {
-              RX_Next_Reassembly = ((RX_Next_Reassembly + 1) % mod);
-              while (RX_MOD_NR_BASE(RX_Next_Reassembly) < RX_MOD_NR_BASE(RX_Next_Highest)) {
-                RX_Next_Reassembly = (RX_Next_Reassembly + 1) % mod;
+              for (auto it = rx_window.begin(); it != rx_window.end(); ++it) {
+                logger.debug("SN=%d has %zd segments", it->first, it->second.segments.size());
+                if (RX_MOD_NR_BASE(it->first) > RX_MOD_NR_BASE(RX_Next_Reassembly)) {
+                  RX_Next_Reassembly = it->first;
+                  break;
+                }
               }
               logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
             }
