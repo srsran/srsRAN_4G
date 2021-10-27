@@ -137,7 +137,7 @@ int main(int argc, char** argv)
       for (uint32_t n_port = 0; n_port < cell.nof_ports; n_port++) {
         srsran_vec_cf_zero(input, num_re);
         for (i = 0; i < num_re; i++) {
-          input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - rand() / RAND_MAX);
+          input[i] = 0.5 - rand() / (float)RAND_MAX + I * (0.5 - rand() / (float)RAND_MAX);
         }
 
         srsran_vec_cf_zero(ce, num_re);

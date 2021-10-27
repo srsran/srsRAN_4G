@@ -209,6 +209,7 @@ int srsran_dft_plan_guru_c(srsran_dft_plan_t* plan,
 
   plan->p = fftwf_plan_guru_dft(1, &iodim, 1, &howmany_dims, in_buffer, out_buffer, sign, FFTW_TYPE);
   if (!plan->p) {
+    pthread_mutex_unlock(&fft_mutex);
     return -1;
   }
   pthread_mutex_unlock(&fft_mutex);
