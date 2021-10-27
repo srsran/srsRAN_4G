@@ -153,7 +153,7 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   }
   size_t sf_key = static_cast<size_t>(get_sf_idx_key(sf_idx));
 
-  subframe_info&              locked_sf = sf_pending_pcch[static_cast<size_t>(sf_key)];
+  subframe_info&              locked_sf = sf_pending_pcch[sf_key];
   std::lock_guard<std::mutex> lock(locked_sf.mutex);
 
   size_t     sfn_cycle_idx = ((size_t)T / (size_t)N) * (size_t)(ueid % N);
