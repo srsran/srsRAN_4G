@@ -74,59 +74,70 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
     logger.info("Rx PDU: rnti=0x%x, %s", rnti, srsran::to_c_str(str_buffer));
   }
 
-  // Reverse the order in which MAC subPDUs get processed.
-  // First, process MAC CEs, then MAC MAC subPDUs with MAC SDUs
+  // First, process MAC CEs in reverse order (CE like C-RNTI get handled first)
   for (uint32_t n = mac_pdu_ul.get_num_subpdus(), i = mac_pdu_ul.get_num_subpdus() - 1; n > 0; --n, i = n - 1) {
     srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
-    logger.debug("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
-                 i,
-                 mac_pdu_ul.get_num_subpdus(),
-                 subpdu.get_lcid(),
-                 subpdu.get_sdu_length());
-
-    // Handle MAC CEs
-    switch (subpdu.get_lcid()) {
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
-        uint16_t c_rnti = subpdu.get_c_rnti();
-        if (true /*sched->ue_exists(c_crnti)*/) {
-          rrc->update_user(rnti, c_rnti);
-          rnti = c_rnti;
-          sched->ul_sr_info(rnti); // provide UL grant regardless of other BSR content for UE to complete RA
-        } else {
-          logger.warning("Updating user C-RNTI: rnti=0x%x already released.", c_rnti);
-          // Disable scheduling for all bearers. The new rnti will be removed on msg3 timer expiry in the RRC
-          for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; ++lcid) {
-            // sched->bearer_ue_rem(rnti, lcid);
-          }
-        }
-      } break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR:
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
-        srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
-        uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
-        // Assume all LCGs are 0 if reported SBSR is 0
-        if (buffer_size_bytes == 0) {
-          for (uint32_t j = 0; j <= SCHED_NR_MAX_LC_GROUP; j++) {
-            sched->ul_bsr(rnti, j, 0);
-          }
-        } else {
-          sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
-        }
-      } break;
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
-      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR: {
-        srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
-        for (auto& lb : lbsr.list) {
-          sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, srsran::LONG_BSR));
-        }
-      } break;
-      default:
-        if (subpdu.is_sdu()) {
-          rrc->set_activity_user(rnti);
-          rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-        }
+    if (not subpdu.is_sdu()) {
+      if (process_ce_subpdu(subpdu) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
     }
   }
+
+  // Second, handle all SDUs in order to avoid unnecessary reordering at higher layers
+  for (uint32_t i = 0; i < mac_pdu_ul.get_num_subpdus(); ++i) {
+    srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
+    if (subpdu.is_sdu()) {
+      rrc->set_activity_user(rnti);
+      rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int ue_nr::process_ce_subpdu(srsran::mac_sch_subpdu_nr& subpdu)
+{
+  // Handle MAC CEs
+  switch (subpdu.get_lcid()) {
+    case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
+      uint16_t c_rnti = subpdu.get_c_rnti();
+      if (true /*sched->ue_exists(c_crnti)*/) {
+        rrc->update_user(rnti, c_rnti);
+        rnti = c_rnti;
+        sched->ul_sr_info(rnti); // provide UL grant regardless of other BSR content for UE to complete RA
+      } else {
+        logger.warning("Updating user C-RNTI: rnti=0x%x already released.", c_rnti);
+        // Disable scheduling for all bearers. The new rnti will be removed on msg3 timer expiry in the RRC
+        for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; ++lcid) {
+          // sched->bearer_ue_rem(rnti, lcid);
+        }
+      }
+    } break;
+    case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR:
+    case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
+      srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
+      uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
+      // Assume all LCGs are 0 if reported SBSR is 0
+      if (buffer_size_bytes == 0) {
+        for (uint32_t j = 0; j <= SCHED_NR_MAX_LC_GROUP; j++) {
+          sched->ul_bsr(rnti, j, 0);
+        }
+      } else {
+        sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+      }
+    } break;
+    case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
+    case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR: {
+      srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
+      for (auto& lb : lbsr.list) {
+        sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, srsran::LONG_BSR));
+      }
+    } break;
+    default:
+      logger.warning("Unhandled subPDU with LCID=%d", subpdu.get_lcid());
+  }
+
   return SRSRAN_SUCCESS;
 }
 

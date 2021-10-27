@@ -71,6 +71,7 @@ public:
 private:
   // helper methods
   uint32_t buff_size_field_to_bytes(uint32_t buff_size_index, const srsran::bsr_format_nr_t& format);
+  int      process_ce_subpdu(srsran::mac_sch_subpdu_nr& subpdu);
 
   rlc_interface_mac*      rlc = nullptr;
   rrc_interface_mac_nr*   rrc = nullptr;
