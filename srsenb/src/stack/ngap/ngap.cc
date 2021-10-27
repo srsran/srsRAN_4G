@@ -244,15 +244,6 @@ void ngap::initial_ue(uint16_t                                rnti,
   u->send_initial_ue_message(cause, std::move(pdu), true, s_tmsi);
 }
 
-void ngap::ue_ctxt_setup_complete(uint16_t rnti)
-{
-  ue* u = users.find_ue_rnti(rnti);
-  if (u == nullptr) {
-    return;
-  }
-  u->ue_ctxt_setup_complete();
-}
-
 void ngap::ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)
 {
   ue* u = users.find_ue_rnti(rnti);
@@ -396,8 +387,6 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
     send_error_indication(cause);
     return false;
   }
-  // TODO:
-  // log_ngap_msg(rx_pdu, srsran::make_span(*pdu), true);
 
   switch (rx_pdu.type().value) {
     case ngap_pdu_c::types_opts::init_msg:
@@ -459,6 +448,7 @@ bool ngap::handle_ng_setup_response(const asn1::ngap_nr::ng_setup_resp_s& msg)
   amf_connected   = true;
   ng_setup_proc_t::ngsetupresult res;
   res.success = true;
+  logger.info("AMF name: %s", ngsetupresponse.protocol_ies.amf_name.value.to_string());
   ngsetup_proc.trigger(res);
 
   return true;
@@ -663,13 +653,11 @@ bool ngap::setup_ng()
   bref.pack(args.gnb_id, 8);
   memcpy(gnb_str.data(), &buffer[0], bref.distance_bytes());
 
-  //  .from_number(args.gnb_id);
-
   container.ran_node_name_present = true;
   if (args.gnb_name.length() >= 150) {
     args.gnb_name.resize(150);
   }
-  //  container.ran_node_name.value.from_string(args.enb_name);
+
   container.ran_node_name.value.resize(args.gnb_name.size());
   memcpy(&container.ran_node_name.value[0], &args.gnb_name[0], args.gnb_name.size());
 
@@ -707,12 +695,6 @@ bool ngap::sctp_send_ngap_pdu(const asn1::ngap_nr::ngap_pdu_c& tx_pdu, uint32_t 
     return false;
   }
   buf->N_bytes = bref.distance_bytes();
-
-  // TODO: when we got pcap support
-  // Save message to PCAP
-  // if (pcap != nullptr) {
-  //   pcap->write_s1ap(buf->msg, buf->N_bytes);
-  // }
 
   if (rnti != SRSRAN_INVALID_RNTI) {
     logger.info(buf->msg, buf->N_bytes, "Tx NGAP SDU, %s, rnti=0x%x", procedure_name, rnti);
@@ -781,12 +763,12 @@ ngap::ue* ngap::handle_ngapmsg_ue_id(uint32_t gnb_id, uint32_t amf_id)
 
   send_error_indication(cause, gnb_id, amf_id);
 
-  if (user_ptr != nullptr) {
-    // rrc->release_ue(user_ptr->ctxt.rnti);
+  /* if (user_ptr != nullptr) {
+    rrc->release_ue(user_ptr->ctxt.rnti);
   }
   if (user_amf_ptr != nullptr and user_amf_ptr != user_ptr) {
-    // rrc->release_ue(user_mme_ptr->ctxt.rnti);
-  }
+    rrc->release_ue(user_mme_ptr->ctxt.rnti);
+  } */
   return nullptr;
 }
 

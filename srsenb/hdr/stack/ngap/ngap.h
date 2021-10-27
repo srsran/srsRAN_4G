@@ -65,7 +65,6 @@ public:
   bool send_error_indication(const asn1::ngap_nr::cause_c& cause,
                              srsran::optional<uint32_t>    ran_ue_ngap_id = {},
                              srsran::optional<uint32_t>    amf_ue_ngap_id = {});
-  void ue_ctxt_setup_complete(uint16_t rnti);
   void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome);
   bool send_pdu_session_resource_setup_response();
 

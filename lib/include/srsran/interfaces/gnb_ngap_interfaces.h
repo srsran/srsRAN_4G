@@ -49,7 +49,6 @@ public:
   virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                = 0;
   virtual bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) = 0;
   virtual bool is_amf_connected()                                                            = 0;
-  virtual void ue_ctxt_setup_complete(uint16_t rnti)                                         = 0;
   virtual void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)                    = 0;
 };
 
