@@ -669,7 +669,7 @@ int nas_5g::send_deregistration_request_ue_originating(bool switch_off)
   rrc_nr->write_sdu(std::move(pdu));
   ctxt_base.tx_count++;
   reset_pdu_sessions();
-  // TODO: Delete / Reset context (ctxt & ctxt_5g)
+  // TODO: Consider reworking ctxt / 5G ctxt release
 
   return SRSASN_SUCCESS;
 }
@@ -686,6 +686,8 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
 
   nas_5gs_msg          nas_msg;
   identity_response_t& identity_response = nas_msg.set_identity_response();
+  nas_msg.hdr.security_header_type       = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
+  nas_msg.hdr.sequence_number            = ctxt_base.tx_count;
 
   switch (identity_type) {
     case (identity_type_5gs_t::identity_types_::suci): {
@@ -724,7 +726,16 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
 
+  cipher_encrypt(pdu.get());
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[SEQ_5G_OFFSET],
+                     pdu->N_bytes - SEQ_5G_OFFSET,
+                     &pdu->msg[MAC_5G_OFFSET]);
+
   rrc_nr->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
 
   return SRSRAN_SUCCESS;
 }
