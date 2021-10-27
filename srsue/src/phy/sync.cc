@@ -979,7 +979,7 @@ int sync::radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time)
   }
 
   // Execute channel DL emulator
-  if (channel_emulator and rx_time) {
+  if (channel_emulator) {
     channel_emulator->set_srate((uint32_t)srate.get_srate());
     channel_emulator->run(data.to_cf_t(), data.to_cf_t(), data.get_nof_samples(), *rx_time);
   }
