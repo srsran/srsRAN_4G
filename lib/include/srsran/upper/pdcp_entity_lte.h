@@ -156,6 +156,9 @@ private:
   uint32_t reordering_window = 0;
   uint32_t maximum_pdcp_sn   = 0;
 
+  std::string get_rb_name() const;
+  void        get_rb_name(fmt::memory_buffer& fmtbuf) const;
+
   // PDU handlers
   void handle_control_pdu(srsran::unique_byte_buffer_t pdu);
   void handle_srb_pdu(srsran::unique_byte_buffer_t pdu);
