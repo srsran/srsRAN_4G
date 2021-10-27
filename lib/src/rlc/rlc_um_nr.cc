@@ -49,10 +49,11 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
     return false;
   }
 
-  logger.info("%s configured in %s: sn_field_length=%u bits",
+  logger.info("%s configured in %s: sn_field_length=%u bits, t_reassembly=%d ms",
               rb_name.c_str(),
               srsran::to_string(cnfg_.rlc_mode),
-              srsran::to_number(cfg.um_nr.sn_field_length));
+              srsran::to_number(cfg.um_nr.sn_field_length),
+              cfg.um_nr.t_reassembly_ms);
 
   rx_enabled = true;
   tx_enabled = true;
@@ -531,10 +532,13 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
     // check if this SN is already present in rx buffer
     if (rx_window.find(header.sn) == rx_window.end()) {
       // first received segment of this SN, add to rx buffer
-      logger.info("%s placing %s segment of SN=%d in Rx buffer",
+      logger.info(rx_pdu.buf->msg,
+                  rx_pdu.buf->N_bytes,
+                  "%s placing %s segment of SN=%d (%d B) in Rx buffer",
                   rb_name.c_str(),
                   to_string_short(header.si).c_str(),
-                  header.sn);
+                  header.sn,
+                  rx_pdu.buf->N_bytes);
       rlc_umd_pdu_segments_nr_t pdu_segments = {};
       update_total_sdu_length(pdu_segments, rx_pdu);
       pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
