@@ -208,11 +208,11 @@ int srsran_dft_plan_guru_c(srsran_dft_plan_t* plan,
   pthread_mutex_lock(&fft_mutex);
 
   plan->p = fftwf_plan_guru_dft(1, &iodim, 1, &howmany_dims, in_buffer, out_buffer, sign, FFTW_TYPE);
+  pthread_mutex_unlock(&fft_mutex);
+
   if (!plan->p) {
-    pthread_mutex_unlock(&fft_mutex);
     return -1;
   }
-  pthread_mutex_unlock(&fft_mutex);
 
   plan->size      = dft_points;
   plan->init_size = plan->size;

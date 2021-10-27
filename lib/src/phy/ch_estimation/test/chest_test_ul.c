@@ -158,7 +158,7 @@ int main(int argc, char** argv)
 
               // Loop through subframe idx and cyclic shifts
 
-              for (int sf_idx = 0; sf_idx < 10; sf_idx += 3) {
+              for (sf_idx = 0; sf_idx < 10; sf_idx += 3) {
                 for (int cshift_dmrs = 0; cshift_dmrs < SRSRAN_NOF_CSHIFT; cshift_dmrs += 5) {
                   if (SRSRAN_VERBOSE_ISINFO()) {
                     printf("nof_prb: %d, ", nof_prb);

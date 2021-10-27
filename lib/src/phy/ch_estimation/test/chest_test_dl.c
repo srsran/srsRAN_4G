@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 
       struct timeval t[3];
       gettimeofday(&t[1], NULL);
-      for (int j = 0; j < 100; j++) {
+      for (int k = 0; k < 100; k++) {
         srsran_chest_dl_estimate(&est, &sf_cfg, input_m, &res);
       }
       gettimeofday(&t[2], NULL);
@@ -171,7 +171,7 @@ int main(int argc, char** argv)
       printf("CHEST: %f us\n", (float)t[0].tv_usec / 100);
 
       gettimeofday(&t[1], NULL);
-      for (int j = 0; j < 100; j++) {
+      for (int k = 0; k < 100; k++) {
         srsran_predecoding_single(input, ce, output, NULL, num_re, 1.0f, 0);
       }
       gettimeofday(&t[2], NULL);
@@ -186,7 +186,7 @@ int main(int argc, char** argv)
       printf("MSE: %f\n", mse);
 
       gettimeofday(&t[1], NULL);
-      for (int j = 0; j < 100; j++) {
+      for (int k = 0; k < 100; k++) {
         srsran_predecoding_single(input, ce, output, NULL, num_re, 1.0f, res.noise_estimate);
       }
       gettimeofday(&t[2], NULL);
