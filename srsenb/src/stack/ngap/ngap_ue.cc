@@ -109,6 +109,7 @@ bool ngap::ue::send_ul_nas_transport(srsran::unique_byte_buffer_t pdu)
     container.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
   } else {
     logger.error("Attempting to send UL NAS Transport without AMF context");
+    return false;
   }
 
   // RAN UE NGAP ID

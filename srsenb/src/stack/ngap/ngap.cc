@@ -754,6 +754,7 @@ ngap::ue* ngap::handle_ngapmsg_ue_id(uint32_t gnb_id, uint32_t amf_id)
     }
 
   } else {
+    logger.warning("User associated with gNB ID %d not found", gnb_id);
     user_amf_ptr = users.find_ue_amfid(amf_id);
     logger.warning("RAN UE NGAP ID=%d not found - discarding message", gnb_id);
     if (user_amf_ptr != nullptr) {
@@ -763,12 +764,6 @@ ngap::ue* ngap::handle_ngapmsg_ue_id(uint32_t gnb_id, uint32_t amf_id)
 
   send_error_indication(cause, gnb_id, amf_id);
 
-  /* if (user_ptr != nullptr) {
-    rrc->release_ue(user_ptr->ctxt.rnti);
-  }
-  if (user_amf_ptr != nullptr and user_amf_ptr != user_ptr) {
-    rrc->release_ue(user_mme_ptr->ctxt.rnti);
-  } */
   return nullptr;
 }
 
