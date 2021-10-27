@@ -352,7 +352,6 @@ int bearer_cfg_handler::modify_erab(uint8_t                                    e
   }
   auto     address  = erab_it->second.address;
   uint32_t teid_out = erab_it->second.teid_out;
-  release_erab(erab_id);
   return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause);
 }
 
