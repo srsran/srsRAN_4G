@@ -50,7 +50,7 @@ target_link_libraries(rlc_um_nr_pdu_test srsran_rlc srsran_mac srsran_phy)
 add_nr_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
 
 add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
-target_link_libraries(rlc_um_nr_test srsran_rlc srsran_phy)
+target_link_libraries(rlc_um_nr_test srsran_rlc srsran_phy srsran_mac srsran_common)
 add_nr_test(rlc_um_nr_test rlc_um_nr_test)
 
 ########################################################################
