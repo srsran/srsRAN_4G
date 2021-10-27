@@ -32,13 +32,16 @@ static double assert_pucch_snr_min       = 0.000;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
+  std::string              config_file = "";
   std::string              reference_cfg_str = "";
-  bpo::options_description options("Test bench options");
+  bpo::options_description options;
+  bpo::options_description options_tb("Test bench options");
   bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
   bpo::options_description options_gnb_phy("gNb PHY related options");
   bpo::options_description options_ue_stack("UE stack options");
   bpo::options_description options_ue_phy("UE stack options");
   bpo::options_description options_assertion("Test assertions");
+  bpo::options_description options_conf_file("Configuration file");
 
   uint16_t rnti = 17921;
 
@@ -46,10 +49,10 @@ test_bench::args_t::args_t(int argc, char** argv)
   gnb_stack.pusch.slots = "6,7,8,9";
 
   // clang-format off
-  options.add_options()
+  options_tb.add_options()
         ("rnti",                         bpo::value<uint16_t>(&rnti)->default_value(rnti),                                                        "UE RNTI")
         ("duration",                     bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),                                  "Test duration in slots")
-        ("lib.log.level",                bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level),                           "PHY librray log level")
+        ("lib.log.level",                bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level),                           "PHY library log level")
         ("reference",                    bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str),                           "Reference PHY configuration arguments")
         ("dl_channel.awgn_enable",       bpo::value<bool>(&dl_channel.awgn_enable)->default_value(dl_channel.awgn_enable),                        "DL Channel AWGN enable / disable")
         ("dl_channel.awgn_snr",          bpo::value<float>(&dl_channel.awgn_snr_dB)->default_value(dl_channel.awgn_snr_dB),                       "DL Channel AWGN SNR in dB")
@@ -105,14 +108,20 @@ test_bench::args_t::args_t(int argc, char** argv)
       ("assert.pucch.snr.min",     bpo::value<double>(&assert_pucch_snr_min)->default_value(assert_pucch_snr_min),         "PUCCH DMRS minimum SNR allowed threshold")
       ;
 
-  options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
+  options_conf_file.add_options()
+      ("config_file", bpo::value<std::string>(&config_file), "Configuration file")
+      ;
+  bpo::positional_options_description p;
+  p.add("config_file", -1);
+
+  options.add(options_tb).add(options_assertion).add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add(options_conf_file).add_options()
         ("help",                      "Show this message")
         ;
   // clang-format on
 
   bpo::variables_map vm;
   try {
-    bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
+    bpo::store(bpo::command_line_parser(argc, argv).options(options).positional(p).run(), vm);
     bpo::notify(vm);
 
     // Apply the High Speed Train args to the DL channel as well
@@ -127,14 +136,35 @@ test_bench::args_t::args_t(int argc, char** argv)
   // help option was given or error - print usage and exit
   if (vm.count("help")) {
     std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
-    std::cout << options << std::endl << std::endl;
-    return;
+    std::cout << options_tb << std::endl << options_assertion << std::endl;
+    std::cout << options_gnb_phy << std::endl << options_gnb_stack << std::endl;
+    std::cout << options_ue_phy << std::endl << options_ue_stack << std::endl;
+    exit(0);
+  }
+
+  // if config file given
+  if (vm.count("config_file")) {
+    std::cout << "Reading configuration file " << config_file << "..." << std::endl;
+    std::ifstream conf(config_file.c_str(), std::ios::in);
+    if (conf.fail()) {
+      std::cout << "Failed to read configuration file " << config_file << " - exiting" << std::endl;
+      exit(1);
+    }
+
+    // parse config file and handle errors gracefully
+    try {
+      bpo::store(bpo::parse_config_file(conf, options), vm);
+      bpo::notify(vm);
+    } catch (const boost::program_options::error& e) {
+      std::cerr << e.what() << std::endl;
+      exit(1);
+    }
   }
 
   // Load default reference configuration
   phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
 
-  // Calulate the DL signal power from the number of PRBs
+  // Calculate the DL signal power from the number of PRBs
   dl_channel.awgn_signal_power_dBfs = srsran_gnb_dl_get_maximum_signal_power_dBfs(phy_cfg.carrier.nof_prb);
 
   // Reverses the Doppler shift for the UL
