@@ -56,6 +56,16 @@ struct rlc_amd_rx_sdu_t {
   std::list<rlc_amd_rx_pdu_nr> segments;
 };
 
+struct rlc_amd_rx_sdu_nr_t {
+  uint32_t                     rlc_sn         = 0;
+  bool                         fully_received = false;
+  unique_byte_buffer_t         buf;
+  std::list<rlc_amd_rx_pdu_nr> segments;
+
+  rlc_amd_rx_sdu_nr_t() = default;
+  explicit rlc_amd_rx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
+};
+
 ///< AM NR Status PDU header (perhaps merge with LTE version)
 typedef struct {
   rlc_am_nr_control_pdu_type_t cpt;

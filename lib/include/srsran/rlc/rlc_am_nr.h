@@ -128,7 +128,7 @@ private:
   byte_buffer_pool* pool   = nullptr;
 
   // RX Window
-  rlc_ringbuffer_t<rlc_amd_rx_pdu_nr, RLC_AM_WINDOW_SIZE> rx_window;
+  rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_WINDOW_SIZE> rx_window;
 
   // Mutexes
   std::mutex mutex;
