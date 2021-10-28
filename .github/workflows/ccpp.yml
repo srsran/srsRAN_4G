@@ -13,7 +13,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
-          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest -T memcheck
+          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest
   x86_ubuntu16_build:
     name: Build and test on x86 Ubuntu 16.04
     strategy:
@@ -26,7 +26,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
-          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest -T memcheck
+          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest
           
   aarch64_ubuntu18_build:
     runs-on: ubuntu-18.04
