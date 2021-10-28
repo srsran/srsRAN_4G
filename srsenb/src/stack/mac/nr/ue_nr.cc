@@ -134,6 +134,8 @@ int ue_nr::process_ce_subpdu(srsran::mac_sch_subpdu_nr& subpdu)
         sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, srsran::LONG_BSR));
       }
     } break;
+    case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::PADDING:
+      break;
     default:
       logger.warning("Unhandled subPDU with LCID=%d", subpdu.get_lcid());
   }
