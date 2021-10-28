@@ -141,6 +141,7 @@ struct rf_uhd_handler_t {
   uint32_t                                nof_tx_channels     = 0;
   std::array<double, SRSRAN_MAX_CHANNELS> tx_freq             = {};
   std::array<double, SRSRAN_MAX_CHANNELS> rx_freq             = {};
+  double                                  cur_rx_gain_ch0     = 0;
 
   std::mutex                                                 tx_gain_mutex;
   std::array<std::pair<double, double>, SRSRAN_MAX_CHANNELS> tx_gain_db = {};
@@ -1102,6 +1103,9 @@ int rf_uhd_set_rx_gain_ch(void* h, uint32_t ch, double gain)
   if (handler->uhd->set_rx_gain(ch, gain) != UHD_ERROR_NONE) {
     return SRSRAN_ERROR;
   }
+  if (ch == 0) {
+    handler->cur_rx_gain_ch0 = gain;
+  }
   return SRSRAN_SUCCESS;
 }
 
@@ -1146,13 +1150,7 @@ int rf_uhd_set_tx_gain_ch(void* h, uint32_t ch, double gain)
 double rf_uhd_get_rx_gain(void* h)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
-  double            gain    = 0.0;
-
-  if (handler->uhd->get_rx_gain(gain) != UHD_ERROR_NONE) {
-    return SRSRAN_ERROR;
-  }
-
-  return gain;
+  return handler->cur_rx_gain_ch0;
 }
 
 double rf_uhd_get_tx_gain(void* h)
