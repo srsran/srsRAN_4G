@@ -51,6 +51,12 @@ int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
   return SRSRAN_SUCCESS;
 }
 
+/*
+ * Test the transmission and acknowledgement of 5 SDUs.
+ * These are transmitted as single PDUs.
+ * There is no lost PDUs, and the byte size is small, so the Poll_PDU configuration
+ * will trigger the status report.
+ */
 int basic_test()
 {
   rlc_am_tester tester;
