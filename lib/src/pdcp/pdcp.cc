@@ -166,10 +166,10 @@ void pdcp::del_bearer(uint32_t lcid)
     valid_lcids_cached.erase(lcid);
   }
   if (valid_lcid(lcid)) {
+    logger.info("Deleted PDCP bearer %s", pdcp_array[lcid]->get_rb_name());
     pdcp_array.erase(lcid);
-    logger.info("Deleted PDCP bearer %s", rrc->get_rb_name(lcid));
   } else {
-    logger.warning("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
+    logger.warning("Can't delete bearer with LCID=%s. Cause: bearer doesn't exist.", lcid);
   }
 }
 
