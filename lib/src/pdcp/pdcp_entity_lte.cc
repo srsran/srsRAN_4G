@@ -61,8 +61,7 @@ bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
   }
 
   cfg     = cnfg_;
-  rb_name = cfg.rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB";
-  rb_name += std::to_string(cfg.bearer_id);
+  rb_name = cfg.get_rb_name();
 
   maximum_pdcp_sn              = (1u << cfg.sn_len) - 1u;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
