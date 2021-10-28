@@ -24,10 +24,15 @@
 #define SRSRAN_PBCH_MSG_NR_SZ 24
 
 /**
+ * @brief Define the payload buffer for SRSRAN_PBCH_MSG_NR_SZ to be 32 for alignment purposes
+ */
+#define SRSRAN_PBCH_MSG_NR_MAX_SZ 32
+
+/**
  * @brief Describes the NR PBCH message
  */
 typedef struct SRSRAN_API {
-  uint8_t payload[SRSRAN_PBCH_MSG_NR_SZ]; ///< Actual PBCH payload provided by higher layers
+  uint8_t payload[SRSRAN_PBCH_MSG_NR_MAX_SZ]; ///< Actual PBCH payload provided by higher layers
   uint8_t sfn_4lsb;                       ///< SFN 4 LSB
   uint8_t ssb_idx;                        ///< SS/PBCH blocks index described in TS 38.213 4.1
   uint8_t k_ssb_msb;                      ///< Subcarrier offset MSB described in TS 38.211 7.4.3.1
