@@ -11,18 +11,14 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/mac_nr.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsran/common/buffer_pool.h"
-#include "srsran/common/log_helper.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/common/time_prof.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
-#include <pthread.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
 
 namespace srsenb {
 
@@ -30,7 +26,8 @@ mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("MAC-NR")),
   task_sched(task_sched_),
   bcch_bch_payload(srsran::make_byte_buffer()),
-  rar_pdu_buffer(srsran::make_byte_buffer())
+  rar_pdu_buffer(srsran::make_byte_buffer()),
+  sched(new sched_nr{})
 {
   stack_task_queue = task_sched.make_task_queue();
 }
@@ -67,12 +64,12 @@ int mac_nr::init(const mac_nr_args_t&    args_,
 
 void mac_nr::stop()
 {
-  if (started) {
+  bool started_prev = started.exchange(false);
+  if (started_prev) {
+    sched->stop();
     if (pcap != nullptr) {
       pcap->close();
     }
-
-    started = false;
   }
 }
 
@@ -84,7 +81,7 @@ void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics)
   // TODO: We should comment on the logic we follow to get the metrics. Some of them are retrieved from MAC, some
   // others from the scheduler.
   get_metrics_nolock(metrics);
-  sched.get_metrics(metrics);
+  sched->get_metrics(metrics);
 }
 
 void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
@@ -105,7 +102,7 @@ void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
 int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells)
 {
   cell_config = nr_cells;
-  sched.config(args.sched_cfg, nr_cells);
+  sched->config(args.sched_cfg, nr_cells);
   detected_rachs.resize(nr_cells.size());
 
   // read SIBs from RRC (SIB1 for now only)
@@ -134,7 +131,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
 
 int mac_nr::ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg)
 {
-  sched.ue_cfg(rnti, ue_cfg);
+  sched->ue_cfg(rnti, ue_cfg);
   return SRSRAN_SUCCESS;
 }
 
@@ -145,7 +142,7 @@ uint16_t mac_nr::reserve_rnti(uint32_t enb_cc_idx, const sched_nr_ue_cfg_t& uecf
     return rnti;
   }
 
-  sched.ue_cfg(rnti, uecfg);
+  sched->ue_cfg(rnti, uecfg);
 
   return rnti;
 }
@@ -185,7 +182,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.ta_cmd                                 = rach_info.time_adv;
     rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
-    sched.dl_rach_info(enb_cc_idx, rar_info);
+    sched->dl_rach_info(enb_cc_idx, rar_info);
     rrc->add_user(rnti, uecfg);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
@@ -221,7 +218,7 @@ uint16_t mac_nr::alloc_ue(uint32_t enb_cc_idx)
     }
 
     // Allocate and initialize UE object
-    std::unique_ptr<ue_nr> ue_ptr = std::unique_ptr<ue_nr>(new ue_nr(rnti, enb_cc_idx, &sched, rrc, rlc, phy, logger));
+    std::unique_ptr<ue_nr> ue_ptr(new ue_nr(rnti, enb_cc_idx, sched.get(), rrc, rlc, phy, logger));
 
     // Add UE to rnti map
     srsran::rwlock_write_guard rw_lock(rwmutex);
@@ -244,7 +241,7 @@ int mac_nr::remove_ue(uint16_t rnti)
 {
   srsran::rwlock_write_guard lock(rwmutex);
   if (is_rnti_active_nolock(rnti)) {
-    sched.ue_rem(rnti);
+    sched->ue_rem(rnti);
     ue_db.erase(rnti);
   } else {
     logger.error("User rnti=0x%x not found", rnti);
@@ -282,13 +279,13 @@ bool mac_nr::is_rnti_active_nolock(uint16_t rnti)
 
 int mac_nr::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  sched.dl_buffer_state(rnti, lc_id, tx_queue, retx_queue);
+  sched->dl_buffer_state(rnti, lc_id, tx_queue, retx_queue);
   return SRSRAN_SUCCESS;
 }
 
 void mac_nr::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr)
 {
-  sched.ul_bsr(rnti, lcid, bsr);
+  sched->ul_bsr(rnti, lcid, bsr);
 }
 
 int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
@@ -302,11 +299,13 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
 
   logger.set_context((pdsch_slot - TX_ENB_DELAY).to_uint());
 
-  // Run Scheduler
+  // Initiate new slot and sync UE internal states
+  sched->slot_indication(pdsch_slot);
+
+  // Run DL Scheduler for CC
   sched_nr_interface::sched_rar_list_t rar_list;
   sched_nr_interface::dl_res_t         dl_res(rar_list, dl_sched);
-
-  int ret = sched.run_slot(pdsch_slot, 0, dl_res);
+  int                                  ret = sched->get_dl_sched(pdsch_slot, 0, dl_res);
   if (ret != SRSRAN_SUCCESS) {
     return ret;
   }
@@ -349,7 +348,7 @@ int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched
   int ret = 0;
 
   slot_point pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-  ret                   = sched.get_ul_sched(pusch_slot, 0, ul_sched);
+  ret                   = sched->get_ul_sched(pusch_slot, 0, ul_sched);
 
   srsran::rwlock_read_guard rw_lock(rwmutex);
   for (auto& pusch : ul_sched.pusch) {
@@ -383,7 +382,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
   for (uint32_t i = 0; i < cfg_.ack.count; i++) {
     const srsran_harq_ack_bit_t* ack_bit = &cfg_.ack.bits[i];
     bool                         is_ok   = (value.ack[i] == 1) and value.valid;
-    sched.dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
+    sched->dl_ack_info(rnti, 0, ack_bit->pid, 0, is_ok);
     srsran::rwlock_read_guard rw_lock(rwmutex);
     if (ue_db.contains(rnti)) {
       ue_db[rnti]->metrics_tx(is_ok, 0 /*TODO get size of packet from scheduler somehow*/);
@@ -392,7 +391,7 @@ bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg
 
   // Process SR
   if (value.valid and value.sr > 0) {
-    sched.ul_sr_info(cfg_.pucch.rnti);
+    sched->ul_sr_info(cfg_.pucch.rnti);
   }
 
   // Process CQI
@@ -417,7 +416,7 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
     return SRSRAN_ERROR;
   }
 
-  sched.ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
+  sched->ul_crc_info(rnti, 0, pusch_info.pid, pusch_info.pusch_data.tb[0].crc);
 
   // process only PDUs with CRC=OK
   if (pusch_info.pusch_data.tb[0].crc) {

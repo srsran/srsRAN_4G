@@ -454,6 +454,13 @@ public:
 
   ~gnb_dummy_stack() = default;
 
+  void stop()
+  {
+    if (not use_dummy_mac) {
+      mac->stop();
+    }
+  }
+
   bool is_valid() const { return valid; }
 
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }

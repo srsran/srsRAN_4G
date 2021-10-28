@@ -192,6 +192,8 @@ void sched_nr_base_tester::run_slot(slot_point slot_tx)
   slot_ctxt     = get_enb_ctxt();
   slot_start_tp = std::chrono::steady_clock::now();
 
+  sched_ptr->slot_indication(current_slot_tx);
+
   // Generate CC result (parallel or serialized)
   uint32_t worker_idx = 0;
   for (uint32_t cc = 0; cc < cell_params.size(); ++cc) {
@@ -208,7 +210,7 @@ void sched_nr_base_tester::generate_cc_result(uint32_t cc)
 {
   // Run scheduler
   sched_nr_interface::dl_res_t dl_sched(cc_results[cc].rar, cc_results[cc].dl_res);
-  sched_ptr->run_slot(current_slot_tx, cc, dl_sched);
+  sched_ptr->get_dl_sched(current_slot_tx, cc, dl_sched);
   cc_results[cc].rar = dl_sched.rar;
   sched_ptr->get_ul_sched(current_slot_tx, cc, cc_results[cc].ul_res);
   auto tp2                     = std::chrono::steady_clock::now();

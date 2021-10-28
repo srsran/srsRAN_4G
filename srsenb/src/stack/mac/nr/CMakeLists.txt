@@ -16,7 +16,7 @@ set(SOURCES mac_nr.cc
             sched_nr_pdcch.cc
             sched_nr_cfg.cc
             sched_nr_helpers.cc
-            sched_nr_cell.cc
+        sched_nr_bwp.cc
             sched_nr_rb.cc
             sched_nr_time_rr.cc
             harq_softbuffer.cc

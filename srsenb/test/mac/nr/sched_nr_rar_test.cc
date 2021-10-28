@@ -12,7 +12,7 @@
 
 #include "sched_nr_cfg_generators.h"
 #include "sched_nr_common_test.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsran/common/test_common.h"
 #include "srsran/support/srsran_test.h"
 #include <random>
@@ -44,7 +44,6 @@ void test_single_prach()
   TESTASSERT(rasched.empty());
 
   std::unique_ptr<bwp_res_grid> res_grid(new bwp_res_grid{bwpparams});
-  bwp_slot_allocator            alloc(*res_grid);
 
   // Create UE
   sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(1);
@@ -54,7 +53,7 @@ void test_single_prach()
   slot_point prach_slot{0, std::uniform_int_distribution<uint32_t>{TX_ENB_DELAY, 20}(rgen)};
 
   const bwp_slot_grid* result   = nullptr;
-  auto                 run_slot = [&alloc, &rasched, &pdcch_slot, &slot_ues, &u]() -> const bwp_slot_grid* {
+  auto                 run_slot = [&res_grid, &rasched, &pdcch_slot, &slot_ues, &u]() -> const bwp_slot_grid* {
     mac_logger.set_context(pdcch_slot.to_uint());
     u.new_slot(pdcch_slot);
     u.carriers[0]->new_slot(pdcch_slot);
@@ -63,7 +62,7 @@ void test_single_prach()
     if (not sfu.empty()) {
       slot_ues.insert(rnti, std::move(sfu));
     }
-    alloc.new_slot(pdcch_slot, slot_ues);
+    bwp_slot_allocator alloc(*res_grid, pdcch_slot, slot_ues);
 
     rasched.run_slot(alloc);
 

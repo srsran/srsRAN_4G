@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_SCHED_NR_CELL_H
-#define SRSRAN_SCHED_NR_CELL_H
+#ifndef SRSRAN_SCHED_NR_BWP_H
+#define SRSRAN_SCHED_NR_BWP_H
 
 #include "sched_nr_cfg.h"
 #include "sched_nr_grant_allocator.h"
@@ -79,10 +79,10 @@ private:
   srsran::deque<pending_rar_t> pending_rars;
 };
 
-class bwp_ctxt
+class bwp_manager
 {
 public:
-  explicit bwp_ctxt(const bwp_params_t& bwp_cfg);
+  explicit bwp_manager(const bwp_params_t& bwp_cfg);
 
   const bwp_params_t* cfg;
 
@@ -94,21 +94,7 @@ public:
   bwp_res_grid grid;
 };
 
-class serv_cell_manager
-{
-public:
-  using feedback_callback_t = srsran::move_callback<void(ue_carrier&)>;
-
-  explicit serv_cell_manager(const cell_params_t& cell_cfg_);
-
-  srsran::bounded_vector<bwp_ctxt, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-  const cell_params_t&                                        cfg;
-
-private:
-  srslog::basic_logger& logger;
-};
-
 } // namespace sched_nr_impl
 } // namespace srsenb
 
-#endif // SRSRAN_SCHED_NR_CELL_H
+#endif // SRSRAN_SCHED_NR_BWP_H

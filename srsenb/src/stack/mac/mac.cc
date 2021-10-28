@@ -587,7 +587,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     return 0;
   }
 
-  trace_threshold_complete_event("mac::run_slot", "total_time", std::chrono::microseconds(100));
+  trace_threshold_complete_event("mac::get_dl_sched", "total_time", std::chrono::microseconds(100));
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
   if (do_padding) {
     add_padding();
@@ -985,7 +985,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib2  = *sib2_;
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
-  current_mcch_length     = mcch_payload_length;
+  current_mcch_length = mcch_payload_length;
 
   unique_rnti_ptr<ue> ue_ptr = make_rnti_obj<ue>(
       SRSRAN_MRNTI, SRSRAN_MRNTI, 0, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get());

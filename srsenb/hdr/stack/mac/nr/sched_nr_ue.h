@@ -81,7 +81,6 @@ public:
 
   // metrics
   mac_ue_metrics_t metrics = {};
-  std::mutex       metrics_mutex;
 
 private:
   bwp_ue_cfg           bwp_cfg;

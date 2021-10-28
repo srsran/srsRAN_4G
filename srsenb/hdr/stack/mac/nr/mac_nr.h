@@ -18,7 +18,6 @@
 
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/hdr/stack/mac/nr/ue_nr.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
@@ -34,6 +33,8 @@ struct mac_nr_args_t {
   sched_nr_interface::sched_args_t sched_cfg    = {};
   srsenb::pcap_args_t              pcap;
 };
+
+class sched_nr;
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
@@ -110,7 +111,7 @@ private:
   std::atomic<bool> started = {false};
 
   const static uint32_t                       NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
-  srsenb::sched_nr                            sched;
+  std::unique_ptr<srsenb::sched_nr>           sched;
   std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs

@@ -94,13 +94,7 @@ private:
 class bwp_slot_allocator
 {
 public:
-  explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_);
-
-  void new_slot(slot_point pdcch_slot_, slot_ue_map_t& ues_)
-  {
-    pdcch_slot = pdcch_slot_;
-    slot_ues   = &ues_;
-  }
+  explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_, slot_point pdcch_slot_, slot_ue_map_t& ues_);
 
   alloc_result alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs);
   alloc_result alloc_rar_and_msg3(uint16_t                                ra_rnti,

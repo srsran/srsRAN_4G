@@ -26,8 +26,9 @@ extern "C" {
 namespace srsenb {
 
 namespace sched_nr_impl {
-class sched_worker_manager;
-class serv_cell_manager;
+
+class cc_worker;
+
 } // namespace sched_nr_impl
 
 class ul_sched_result_buffer;
@@ -37,6 +38,8 @@ class sched_nr final : public sched_nr_interface
 public:
   explicit sched_nr();
   ~sched_nr() override;
+
+  void stop();
   int  config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list) override;
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
   void ue_rem(uint16_t rnti) override;
@@ -50,30 +53,56 @@ public:
   void ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) override;
   void dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx);
 
-  int run_slot(slot_point pdsch_tti, uint32_t cc, dl_res_t& result) override;
-  int get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_res_t& result) override;
+  /// Called once per slot in a non-concurrent fashion
+  void slot_indication(slot_point slot_tx) override;
+  int  get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result) override;
+  int  get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_res_t& result) override;
 
   void get_metrics(mac_metrics_t& metrics);
 
 private:
+  class feedback_manager
+  {
+  public:
+    struct ue_event_t {
+      uint16_t                      rnti;
+      srsran::move_callback<void()> callback;
+    };
+
+    void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
+    void get_pending_events(srsran::deque<ue_event_t>& current_events);
+
+  private:
+    std::mutex                event_mutex;
+    srsran::deque<ue_event_t> next_slot_events;
+  };
+
   void ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
 
   // args
   sched_nr_impl::sched_params cfg;
   srslog::basic_logger*       logger = nullptr;
 
-  using sched_worker_manager = sched_nr_impl::sched_worker_manager;
-  std::unique_ptr<sched_worker_manager> sched_workers;
+  // slot-specific
+  slot_point       current_slot_tx;
+  std::atomic<int> worker_count{0};
+
+  using slot_cc_worker = sched_nr_impl::cc_worker;
+  std::vector<std::unique_ptr<sched_nr_impl::cc_worker> > cc_workers;
 
   using ue_map_t = sched_nr_impl::ue_map_t;
-  std::mutex ue_db_mutex;
-  ue_map_t   ue_db;
+  ue_map_t ue_db;
 
   // management of Sched Result buffering
   std::unique_ptr<ul_sched_result_buffer> pending_results;
 
-  // management of cell resources
-  std::vector<std::unique_ptr<sched_nr_impl::serv_cell_manager> > cells;
+  // Feedback management
+  feedback_manager                            pending_feedback;
+  srsran::deque<feedback_manager::ue_event_t> current_slot_events;
+
+  // metrics extraction
+  class ue_metrics_manager;
+  std::unique_ptr<ue_metrics_manager> metrics_handler;
 };
 
 } // namespace srsenb

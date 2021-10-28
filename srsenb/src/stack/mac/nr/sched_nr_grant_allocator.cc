@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_grant_allocator.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_helpers.h"
 
 namespace srsenb {
@@ -61,8 +61,8 @@ bwp_res_grid::bwp_res_grid(const bwp_params_t& bwp_cfg_) : cfg(&bwp_cfg_)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_) :
-  logger(bwp_grid_.cfg->logger), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_)
+bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_, slot_point pdcch_slot_, slot_ue_map_t& ues_) :
+  logger(bwp_grid_.cfg->logger), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_), pdcch_slot(pdcch_slot_), slot_ues(&ues_)
 {}
 
 alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs)
