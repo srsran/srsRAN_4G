@@ -286,8 +286,8 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->disable_plots_except_constellation = true;
         break;
       case 'v':
-        srsran_verbose++;
-        args->verbose = srsran_verbose;
+        increase_srsran_verbose_level();
+        args->verbose = get_srsran_verbose_level();
         break;
       case 'Z':
         args->decimate = (int)strtol(argv[optind], NULL, 10);
@@ -699,16 +699,16 @@ int main(int argc, char** argv)
     to.tv_usec = 0;
 
     /* Set default verbose level */
-    srsran_verbose = prog_args.verbose;
-    int n          = select(1, &set, NULL, NULL, &to);
+    set_srsran_verbose_level(prog_args.verbose);
+    int n = select(1, &set, NULL, NULL, &to);
     if (n == 1) {
       /* If a new line is detected set verbose level to Debug */
       if (fgets(input, sizeof(input), stdin)) {
-        srsran_verbose = SRSRAN_VERBOSE_DEBUG;
-        pkt_errors     = 0;
-        pkt_total      = 0;
-        nof_detected   = 0;
-        nof_trials     = 0;
+        set_srsran_verbose_level(SRSRAN_VERBOSE_DEBUG);
+        pkt_errors   = 0;
+        pkt_total    = 0;
+        nof_detected = 0;
+        nof_trials   = 0;
       }
     }
 

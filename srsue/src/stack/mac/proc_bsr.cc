@@ -81,6 +81,8 @@ void bsr_proc::set_trigger(bsr_trigger_type_t new_trigger)
 
 void bsr_proc::reset()
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   timer_periodic.stop();
   timer_retx.stop();
 

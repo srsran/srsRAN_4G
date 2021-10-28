@@ -92,7 +92,7 @@ static int parse_args(int argc, char** argv)
         interleaved ^= true;
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

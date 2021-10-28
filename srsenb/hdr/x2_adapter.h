@@ -92,6 +92,13 @@ public:
     }
     eutra_stack->sgnb_addition_complete(eutra_rnti, nr_rnti);
   }
+  void sgnb_inactivity_timeout(uint16_t eutra_rnti) override
+  {
+    if (eutra_stack == nullptr) {
+      return;
+    }
+    eutra_stack->sgnb_inactivity_timeout(eutra_rnti);
+  }
 
   void sgnb_release_ack(uint16_t eutra_rnti) override
   {

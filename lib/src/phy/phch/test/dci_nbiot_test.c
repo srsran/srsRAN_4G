@@ -39,7 +39,7 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "cpndv")) != -1) {
     switch (opt) {
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

@@ -1643,7 +1643,7 @@ void srsran_vec_interleave_add_simd(const cf_t* x, const cf_t* y, cf_t* z, const
   }
 }
 
-void srsran_vec_gen_sine_simd(cf_t amplitude, float freq, cf_t* z, int len)
+cf_t srsran_vec_gen_sine_simd(cf_t amplitude, float freq, cf_t* z, int len)
 {
   const float TWOPI = 2.0f * (float)M_PI;
   cf_t        osc   = cexpf(_Complex_I * TWOPI * freq);
@@ -1687,6 +1687,7 @@ void srsran_vec_gen_sine_simd(cf_t amplitude, float freq, cf_t* z, int len)
 
     phase *= osc;
   }
+  return phase;
 }
 
 void srsran_vec_apply_cfo_simd(const cf_t* x, float cfo, cf_t* z, int len)

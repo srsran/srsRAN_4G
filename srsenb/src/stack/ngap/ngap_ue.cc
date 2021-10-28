@@ -114,7 +114,12 @@ bool ngap::ue::send_ul_nas_transport(srsran::unique_byte_buffer_t pdu)
   asn1::ngap_nr::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
 
   // AMF UE NGAP ID
-  container.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  if (ctxt.amf_ue_ngap_id.has_value()) {
+    container.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  } else {
+    logger.error("Attempting to send UL NAS Transport without AMF context");
+    return false;
+  }
 
   // RAN UE NGAP ID
   container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
@@ -132,14 +137,6 @@ bool ngap::ue::send_ul_nas_transport(srsran::unique_byte_buffer_t pdu)
   container.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UplinkNASTransport");
-}
-
-void ngap::ue::ue_ctxt_setup_complete()
-{
-  ngap_pdu_c tx_pdu;
-  // Handle PDU Session List once RRC interface is ready
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
-  auto& container = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
 }
 
 void ngap::ue::notify_rrc_reconf_complete(const bool outcome)

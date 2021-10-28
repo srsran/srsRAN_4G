@@ -104,7 +104,7 @@ bool intra_measure_nr::measure_rat(const measure_context_t context, std::vector<
 
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   perf_count_us += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-  perf_count_samples += context.sf_len * context.meas_len_ms;
+  perf_count_samples += (uint64_t)context.sf_len * (uint64_t)context.meas_len_ms;
 
   // Early return if the found PCI matches with the serving cell ID
   if (serving_cell_pci == (int)N_id) {

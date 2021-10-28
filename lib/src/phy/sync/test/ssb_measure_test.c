@@ -95,7 +95,7 @@ static void parse_args(int argc, char** argv)
         ssb_pattern = srsran_ssb_pattern_fom_str(argv[optind]);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

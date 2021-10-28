@@ -932,6 +932,17 @@ public:
     return *this;
   }
 
+  this_type& from_number(uint64_t val, uint32_t nof_bits)
+  {
+    if (nof_bits > UB) {
+      log_error("The provided bitstring value %ld does not fit the bounds [%d, %d]", val, uint32_t(lb), uint32_t(ub));
+      return *this;
+    }
+    resize(nof_bits);
+    bitstring_utils::from_number(data(), val, length());
+    return *this;
+  }
+
   // packers / unpackers
   SRSASN_CODE pack(bit_ref& bref) const
   {

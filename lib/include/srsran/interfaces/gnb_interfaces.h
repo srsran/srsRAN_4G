@@ -88,14 +88,14 @@ public:
 class pdcp_interface_rrc_nr
 {
 public:
-  virtual void reset(uint16_t rnti)                                                                = 0;
-  virtual void add_user(uint16_t rnti)                                                             = 0;
-  virtual void rem_user(uint16_t rnti)                                                             = 0;
-  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu)           = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cnfg)                = 0;
-  virtual void config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg) = 0;
-  virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                      = 0;
-  virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                     = 0;
+  virtual void reset(uint16_t rnti)                                                                       = 0;
+  virtual void add_user(uint16_t rnti)                                                                    = 0;
+  virtual void rem_user(uint16_t rnti)                                                                    = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu)                  = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cnfg)                       = 0;
+  virtual void config_security(uint16_t rnti, uint32_t lcid, const srsran::as_security_config_t& sec_cfg) = 0;
+  virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                             = 0;
+  virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                            = 0;
 };
 
 class pdcp_interface_sdap_nr
@@ -203,7 +203,7 @@ class mac_interface_phy_nr
 {
 public:
   const static int MAX_SSB              = 4;
-  const static int MAX_GRANTS           = 32;
+  const static int MAX_GRANTS           = 4;
   const static int MAX_PUCCH_MSG        = 64;
   const static int MAX_PUCCH_CANDIDATES = 2;
   const static int MAX_NZP_CSI_RS       = 4;

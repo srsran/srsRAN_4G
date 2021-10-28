@@ -33,7 +33,7 @@
 #include "srsran/phy/sync/ssss.h"
 #include "srsran/srsran.h"
 
-char* input_file_name;
+char*          input_file_name;
 float          frequency_offset       = 0.0;
 float          snr                    = 100.0;
 srsran_cp_t    cp                     = SRSRAN_CP_NORM;
@@ -96,7 +96,7 @@ void parse_args(int argc, char** argv)
         }
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -107,27 +107,41 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+  int ret = SRSRAN_ERROR;
   parse_args(argc, argv);
   srsran_use_standard_symbol_size(use_standard_lte_rates);
 
-  if (!input_file_name || srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
-    printf("Error opening file %s\n", input_file_name);
-    return SRSRAN_ERROR;
+  // Init buffers
+  cf_t* input_buffer      = NULL;
+  cf_t* input_buffer_temp = NULL;
+  cf_t* sf_buffer         = NULL;
+
+  // Init PSSS
+  srsran_psss_t psss = {};
+  if (srsran_psss_init(&psss, nof_prb, cp) < SRSRAN_SUCCESS) {
+    ERROR("Error initialising the PSSS");
+    goto clean_exit;
   }
 
-  // alloc memory
+  if (!input_file_name || srsran_filesource_init(&fsrc, input_file_name, SRSRAN_COMPLEX_FLOAT_BIN)) {
+    printf("Error opening file %s\n", input_file_name);
+    goto clean_exit;
+  }
+
+  // Allocate memory
   uint32_t sf_n_samples = SRSRAN_SF_LEN_PRB(nof_prb);
   printf("I/Q samples per subframe=%d\n", sf_n_samples);
 
-  uint32_t sf_n_re   = SRSRAN_CP_NSYMB(SRSRAN_CP_NORM) * SRSRAN_NRE * 2 * nof_prb;
-  cf_t*    sf_buffer = srsran_vec_cf_malloc(sf_n_re);
+  uint32_t sf_n_re = SRSRAN_CP_NSYMB(SRSRAN_CP_NORM) * SRSRAN_NRE * 2 * nof_prb;
+  sf_buffer        = srsran_vec_cf_malloc(sf_n_re);
 
-  cf_t* input_buffer      = srsran_vec_cf_malloc(sf_n_samples);
-  cf_t* input_buffer_temp = srsran_vec_cf_malloc(sf_n_samples);
+  input_buffer      = srsran_vec_cf_malloc(sf_n_samples);
+  input_buffer_temp = srsran_vec_cf_malloc(sf_n_samples);
 
-  // init PSSS
-  srsran_psss_t psss = {};
-  srsran_psss_init(&psss, nof_prb, cp);
+  if (input_buffer == NULL || input_buffer_temp == NULL || sf_buffer == NULL) {
+    ERROR("Error allocating buffers");
+    goto clean_exit;
+  }
 
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
@@ -144,7 +158,7 @@ int main(int argc, char** argv)
       break;
     } else if (samples_read != sf_n_samples) {
       printf("Could only read %d of %d requested samples\n", samples_read, sf_n_samples);
-      return SRSRAN_ERROR;
+      goto clean_exit;
     }
 
     // Find PSSS signal
@@ -158,11 +172,21 @@ int main(int argc, char** argv)
     num_subframes++;
   } while (samples_read == sf_n_samples && num_subframes < max_subframes);
 
+  ret = (sync == SRSRAN_SUCCESS);
+
+clean_exit:
   srsran_filesource_free(&fsrc);
   srsran_psss_free(&psss);
-  free(input_buffer);
-  free(input_buffer_temp);
-  free(sf_buffer);
 
-  return (sync == SRSRAN_SUCCESS);
+  if (input_buffer != NULL) {
+    free(input_buffer);
+  }
+  if (input_buffer_temp != NULL) {
+    free(input_buffer_temp);
+  }
+  if (sf_buffer != NULL) {
+    free(sf_buffer);
+  }
+
+  return ret;
 }

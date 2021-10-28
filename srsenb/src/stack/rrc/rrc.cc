@@ -256,8 +256,8 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       uint32_t lcid = mbms_item.lc_ch_id_r9;
       uint32_t addr_in;
       // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
-      mac->ue_cfg(SRSRAN_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSRAN_MRNTI, lcid);
+      bearer_manager.add_eps_bearer(SRSRAN_MRNTI, 1, srsran::srsran_rat_t::lte, lcid);
       pdcp->add_bearer(SRSRAN_MRNTI, lcid, srsran::make_drb_pdcp_config_t(1, false));
       gtpu->add_bearer(SRSRAN_MRNTI, lcid, 1, 1, addr_in);
     }
@@ -610,6 +610,17 @@ void rrc::sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti)
     return;
   }
   ue_it->second->endc_handler->trigger(ue::rrc_endc::sgnb_add_complete_ev{nr_rnti});
+}
+
+void rrc::sgnb_inactivity_timeout(uint16_t eutra_rnti)
+{
+  logger.info("Received NR inactivity timeout for rnti=0x%x - releasing UE", eutra_rnti);
+  auto ue_it = users.find(eutra_rnti);
+  if (ue_it == users.end()) {
+    logger.warning("rnti=0x%x does not exist", eutra_rnti);
+    return;
+  }
+  s1ap->user_release(eutra_rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
 }
 
 void rrc::sgnb_release_ack(uint16_t eutra_rnti)

@@ -670,7 +670,8 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_mea
 
 /**
  * TS 36.413, Section 8.4.2 - Handover Resource Allocation
- * @brief: Send "eNBStatusTransfer" message from source eNB to MME, and setup Forwarding GTPU tunnel
+ * @brief: Called in SeNB when "Handover Command" is received
+ *         Send "eNBStatusTransfer" message from source eNB to MME, and setup Forwarding GTPU tunnel
  *         - PDCP provides the bearers' DL/UL HFN and COUNT to be put inside a transparent container
  *         - The eNB sends eNBStatusTransfer to MME
  *         - A GTPU forwarding tunnel is opened to forward buffered PDCP PDUs and incoming GTPU PDUs
@@ -707,14 +708,13 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const
   }
 
   /* Enter Handover Execution */
-  // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
 
   // Disable DRBs in the MAC and PDCP, while Reconfiguration is taking place.
   for (const drb_to_add_mod_s& drb : rrc_ue->bearer_list.get_established_drbs()) {
     rrc_ue->parent->pdcp->set_enabled(rrc_ue->rnti, drb_to_lcid((lte_drb)drb.drb_id), false);
   }
   rrc_ue->mac_ctrl.set_drb_activation(false);
-  rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
+  rrc_ue->mac_ctrl.update_mac();
 
   // Send HO Command to UE
   std::string octet_str;

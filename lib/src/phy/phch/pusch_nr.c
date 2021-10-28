@@ -565,7 +565,7 @@ static int pusch_nr_gen_mux_uci(srsran_pusch_nr_t* q, const srsran_uci_cfg_nr_t*
   }
 
   // Print debug information if configured for ity
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     if (m_ulsch_count != 0) {
       DEBUG("UL-SCH bit positions:");
       srsran_vec_fprint_i(stdout, (int*)pos_ulsch, m_ulsch_count);
@@ -671,7 +671,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
     }
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("b=");
     srsran_vec_fprint_b(stdout, b, nof_bits);
   }
@@ -697,7 +697,7 @@ static inline int pusch_nr_encode_codeword(srsran_pusch_nr_t*           q,
   // 7.3.1.2 Modulation
   srsran_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], nof_bits);
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("d=");
     srsran_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
@@ -803,7 +803,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
     return SRSRAN_ERROR_OUT_OF_BOUNDS;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("d=");
     srsran_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
@@ -851,7 +851,7 @@ static inline int pusch_nr_decode_codeword(srsran_pusch_nr_t*         q,
   // Descrambling
   srsran_sequence_apply_c(llr, llr, nof_bits, pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("b=");
     srsran_vec_fprint_bs(stdout, llr, nof_bits);
   }
@@ -977,7 +977,7 @@ int srsran_pusch_nr_decode(srsran_pusch_nr_t*           q,
     return SRSRAN_ERROR;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("ce=");
     srsran_vec_fprint_c(stdout, channel->ce[0][0], nof_re);
     DEBUG("x=");

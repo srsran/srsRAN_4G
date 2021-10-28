@@ -45,7 +45,8 @@ nas::nas(const nas_init_t& args, const nas_if_t& itf) :
   m_dns(args.dns),
   m_full_net_name(args.full_net_name),
   m_short_net_name(args.short_net_name),
-  m_t3413(args.paging_timer)
+  m_t3413(args.paging_timer),
+  m_request_imeisv(args.request_imeisv)
 {
   m_sec_ctx.integ_algo  = args.integ_algo;
   m_sec_ctx.cipher_algo = args.cipher_algo;
@@ -1389,7 +1390,11 @@ bool nas::pack_security_mode_command(srsran::byte_buffer_t* nas_buffer)
   sm_cmd.ue_security_cap.gea_present = m_sec_ctx.ms_network_cap_present;
   memcpy(sm_cmd.ue_security_cap.gea, m_sec_ctx.ms_network_cap.gea, 8 * sizeof(bool));
 
-  sm_cmd.imeisv_req_present = false;
+  sm_cmd.imeisv_req_present = m_request_imeisv;
+  if (m_request_imeisv) {
+    sm_cmd.imeisv_req = LIBLTE_MME_IMEISV_REQUESTED;
+  }
+
   sm_cmd.nonce_ue_present   = false;
   sm_cmd.nonce_mme_present  = false;
 

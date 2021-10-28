@@ -443,7 +443,7 @@ int update_ldpc_soft_bits_c_avx2long_flood(void* p, const int8_t (*these_var_ind
     current_var_index = these_var_indices[i_layer][0];
 
     this_check_to_var = vp->check_to_var + i_layer * (vp->hrr + 1) * vp->n_subnodes;
-    for (i = 0; (current_var_index != -1) && (i < MAX_CNCT); i++) {
+    for (i = 1; (current_var_index != -1) && (i < MAX_CNCT); i++) {
       current_var_index_subnode = current_var_index * vp->n_subnodes;
       for (j = 0; j < vp->n_subnodes; j++) {
         i_bit_tmp_base = (current_var_index <= vp->hrr) ? current_var_index : vp->hrr;
@@ -459,7 +459,7 @@ int update_ldpc_soft_bits_c_avx2long_flood(void* p, const int8_t (*these_var_ind
         vp->soft_bits[current_var_index_subnode + j].v = _mm256_blendv_epi8(tmp_epi8, neg_infty8_epi8, mask_epi8);
       }
 
-      current_var_index = these_var_indices[i_layer][i + 1];
+      current_var_index = these_var_indices[i_layer][i];
     }
   }
 

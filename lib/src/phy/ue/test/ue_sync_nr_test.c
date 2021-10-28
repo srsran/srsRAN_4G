@@ -61,7 +61,7 @@ static void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "v")) != -1) {
     switch (opt) {
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -224,6 +224,12 @@ static int test_case_1(srsran_ue_sync_nr_t* ue_sync)
 {
   for (uint32_t sf_idx = 0; sf_idx < nof_sf; sf_idx++) {
     srsran_ue_sync_nr_outcome_t outcome = {};
+
+    // Prevent buffer overflow in srsran_ue_sync_nr_zerocopy
+    if (ue_sync->nof_rx_channels > 1) {
+      ERROR("Error configuring number of RX channels");
+      return SRSRAN_ERROR;
+    }
     TESTASSERT(srsran_ue_sync_nr_zerocopy(ue_sync, &buffer, &outcome) == SRSRAN_SUCCESS);
 
     // Print outcome

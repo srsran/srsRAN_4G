@@ -2092,10 +2092,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_network_name_ie(uint8** ie_ptr, LIBLTE_MME_N
 
       if (tmp_char == 0x0A || tmp_char == 0x0D || (tmp_char >= 0x20 && tmp_char <= 0x3F) ||
           (tmp_char >= 0x41 && tmp_char <= 0x5A) || (tmp_char >= 0x61 && tmp_char <= 0x7A)) {
-        if (str_cnt < LIBLTE_STRING_LEN) {
-          net_name->name[str_cnt] = tmp_char;
-          str_cnt++;
-        }
+        net_name->name[str_cnt] = tmp_char;
+        str_cnt++;
       }
     }
 
@@ -5027,7 +5025,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
     if (attach_req->ms_cm3_present) {
       *msg_ptr = LIBLTE_MME_MS_CLASSMARK_3_IEI;
       msg_ptr++;
-      liblte_mme_pack_mobile_station_classmark_3_ie(&attach_req->ms_cm3, &msg_ptr);
     }
 
     // Supported Codecs
@@ -5219,7 +5216,6 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_request_msg(LIBLTE_BYTE_MSG_STRUCT*  
     // Mobile Station Classmark 3
     if (LIBLTE_MME_MS_CLASSMARK_3_IEI == *msg_ptr) {
       msg_ptr++;
-      liblte_mme_unpack_mobile_station_classmark_3_ie(&msg_ptr, &attach_req->ms_cm3);
       attach_req->ms_cm3_present = true;
     } else {
       attach_req->ms_cm3_present = false;
@@ -5909,72 +5905,71 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_emm_information_msg(LIBLTE_MME_EMM_INFORMATION
 LIBLTE_ERROR_ENUM liblte_mme_unpack_emm_information_msg(LIBLTE_BYTE_MSG_STRUCT*                msg,
                                                         LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT* emm_info)
 {
-  LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
-  uint8*            msg_ptr = msg->msg;
-  uint8*            msg_end = msg->msg + msg->N_bytes;
-  uint8             sec_hdr_type;
-
-  if (msg != NULL && emm_info != NULL) {
-    // Security Header Type
-    sec_hdr_type = (msg->msg[0] & 0xF0) >> 4;
-    if (LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS == sec_hdr_type) {
-      msg_ptr++;
-    } else {
-      msg_ptr += 7;
-    }
-
-    // Skip Message Type
-    msg_ptr++;
-
-    // Full Name For Network
-    if (LIBLTE_MME_FULL_NAME_FOR_NETWORK_IEI == *msg_ptr) {
-      msg_ptr++;
-      liblte_mme_unpack_network_name_ie(&msg_ptr, &emm_info->full_net_name);
-      emm_info->full_net_name_present = true;
-    } else {
-      emm_info->full_net_name_present = false;
-    }
-
-    // Short Name For Network
-    if (msg_ptr < msg_end && LIBLTE_MME_SHORT_NAME_FOR_NETWORK_IEI == *msg_ptr) {
-      msg_ptr++;
-      liblte_mme_unpack_network_name_ie(&msg_ptr, &emm_info->short_net_name);
-      emm_info->short_net_name_present = true;
-    } else {
-      emm_info->short_net_name_present = false;
-    }
-
-    // Local Time Zone
-    if (msg_ptr < msg_end && LIBLTE_MME_LOCAL_TIME_ZONE_IEI == *msg_ptr) {
-      msg_ptr++;
-      liblte_mme_unpack_time_zone_ie(&msg_ptr, &emm_info->local_time_zone);
-      emm_info->local_time_zone_present = true;
-    } else {
-      emm_info->local_time_zone_present = false;
-    }
-
-    // Universal Time And Local Time Zone
-    if (msg_ptr < msg_end && LIBLTE_MME_UNIVERSAL_TIME_AND_LOCAL_TIME_ZONE_IEI == *msg_ptr) {
-      msg_ptr++;
-      liblte_mme_unpack_time_zone_and_time_ie(&msg_ptr, &emm_info->utc_and_local_time_zone);
-      emm_info->utc_and_local_time_zone_present = true;
-    } else {
-      emm_info->utc_and_local_time_zone_present = false;
-    }
-
-    // Network Daylight Saving Time
-    if (msg_ptr < msg_end && LIBLTE_MME_NETWORK_DAYLIGHT_SAVING_TIME_IEI == *msg_ptr) {
-      msg_ptr++;
-      liblte_mme_unpack_daylight_saving_time_ie(&msg_ptr, &emm_info->net_dst);
-      emm_info->net_dst_present = true;
-    } else {
-      emm_info->net_dst_present = false;
-    }
-
-    err = LIBLTE_SUCCESS;
+  if (!msg || !emm_info) {
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
 
-  return (err);
+  uint8* msg_ptr = msg->msg;
+  uint8* msg_end = msg->msg + msg->N_bytes;
+  uint8  sec_hdr_type;
+
+  // Security Header Type
+  sec_hdr_type = (msg->msg[0] & 0xF0) >> 4;
+  if (LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS == sec_hdr_type) {
+    msg_ptr++;
+  } else {
+    msg_ptr += 7;
+  }
+
+  // Skip Message Type
+  msg_ptr++;
+
+  // Full Name For Network
+  if (LIBLTE_MME_FULL_NAME_FOR_NETWORK_IEI == *msg_ptr) {
+    msg_ptr++;
+    liblte_mme_unpack_network_name_ie(&msg_ptr, &emm_info->full_net_name);
+    emm_info->full_net_name_present = true;
+  } else {
+    emm_info->full_net_name_present = false;
+  }
+
+  // Short Name For Network
+  if (msg_ptr < msg_end && LIBLTE_MME_SHORT_NAME_FOR_NETWORK_IEI == *msg_ptr) {
+    msg_ptr++;
+    liblte_mme_unpack_network_name_ie(&msg_ptr, &emm_info->short_net_name);
+    emm_info->short_net_name_present = true;
+  } else {
+    emm_info->short_net_name_present = false;
+  }
+
+  // Local Time Zone
+  if (msg_ptr < msg_end && LIBLTE_MME_LOCAL_TIME_ZONE_IEI == *msg_ptr) {
+    msg_ptr++;
+    liblte_mme_unpack_time_zone_ie(&msg_ptr, &emm_info->local_time_zone);
+    emm_info->local_time_zone_present = true;
+  } else {
+    emm_info->local_time_zone_present = false;
+  }
+
+  // Universal Time And Local Time Zone
+  if (msg_ptr < msg_end && LIBLTE_MME_UNIVERSAL_TIME_AND_LOCAL_TIME_ZONE_IEI == *msg_ptr) {
+    msg_ptr++;
+    liblte_mme_unpack_time_zone_and_time_ie(&msg_ptr, &emm_info->utc_and_local_time_zone);
+    emm_info->utc_and_local_time_zone_present = true;
+  } else {
+    emm_info->utc_and_local_time_zone_present = false;
+  }
+
+  // Network Daylight Saving Time
+  if (msg_ptr < msg_end && LIBLTE_MME_NETWORK_DAYLIGHT_SAVING_TIME_IEI == *msg_ptr) {
+    msg_ptr++;
+    liblte_mme_unpack_daylight_saving_time_ie(&msg_ptr, &emm_info->net_dst);
+    emm_info->net_dst_present = true;
+  } else {
+    emm_info->net_dst_present = false;
+  }
+
+  return LIBLTE_SUCCESS;
 }
 
 /*********************************************************************

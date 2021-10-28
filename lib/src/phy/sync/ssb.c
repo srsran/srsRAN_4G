@@ -514,7 +514,7 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
   }
 
   if (!isnormal(q->cfg.beta_pbch_dmrs)) {
-    q->cfg.beta_pbch = SRSRAN_SSB_DEFAULT_BETA;
+    q->cfg.beta_pbch_dmrs = SRSRAN_SSB_DEFAULT_BETA;
   }
 
   return SRSRAN_SUCCESS;
@@ -738,7 +738,7 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   if (epre_pss > rsrp_pss) {
     n0_pss = epre - rsrp_pss;
   }
-  if (epre_pss > rsrp_pss) {
+  if (epre_sss > rsrp_sss) {
     n0_sss = epre - rsrp_sss;
   }
   float n0 = (n0_pss + n0_sss) / 2.0f;

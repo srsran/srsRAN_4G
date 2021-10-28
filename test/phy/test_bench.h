@@ -120,13 +120,13 @@ public:
     }
 
     // Make sure PHY log is not set by UE or gNb PHY
-    handler_registered = 0;
+    set_handler_enabled(false);
     if (args.phy_lib_log_level == "info") {
-      srsran_verbose = SRSRAN_VERBOSE_INFO;
+      set_srsran_verbose_level(SRSRAN_VERBOSE_INFO);
     } else if (args.phy_lib_log_level == "debug") {
-      srsran_verbose = SRSRAN_VERBOSE_DEBUG;
+      set_srsran_verbose_level(SRSRAN_VERBOSE_DEBUG);
     } else {
-      srsran_verbose = SRSRAN_VERBOSE_NONE;
+      set_srsran_verbose_level(SRSRAN_VERBOSE_NONE);
     }
 
     // Configure channel

@@ -1448,7 +1448,7 @@ int srsran_ue_dl_find_and_decode(srsran_ue_dl_t*     q,
 
   if (ret == 1) {
     // Logging
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO) {
       char str[512];
       srsran_dci_dl_info(&dci_dl[0], str, 512);
       INFO("PDCCH: %s, snr=%.1f dB", str, q->chest_res.snr_db);

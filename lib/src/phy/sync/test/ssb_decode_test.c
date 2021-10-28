@@ -29,6 +29,14 @@
 #include <srsran/phy/utils/random.h>
 #include <stdlib.h>
 
+/**
+ * @brief NR PBCH payload buffer size for the SSB decode test.
+ *
+ * @note This needs to be a multiple of 32, since the PBCH message payload is
+ * generated with srs_random_bit_vector.
+ */
+#define SRSRAN_PBCH_TEST_MSG_NR_SZ 32
+
 // NR parameters
 static uint32_t                    carrier_nof_prb = 52;
 static srsran_subcarrier_spacing_t carrier_scs     = srsran_subcarrier_spacing_15kHz;
@@ -90,7 +98,7 @@ static void parse_args(int argc, char** argv)
         ssb_pattern = srsran_ssb_pattern_fom_str(argv[optind]);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -122,7 +130,7 @@ static void gen_pbch_msg(srsran_pbch_msg_nr_t* pbch_msg, uint32_t ssb_idx)
   SRSRAN_MEM_ZERO(pbch_msg, srsran_pbch_msg_nr_t, 1);
 
   // Generate payload
-  srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_MSG_NR_SZ);
+  srsran_random_bit_vector(random_gen, pbch_msg->payload, SRSRAN_PBCH_TEST_MSG_NR_SZ);
 
   pbch_msg->ssb_idx = ssb_idx;
   pbch_msg->crc     = true;
@@ -206,6 +214,11 @@ static int test_case_1(srsran_ssb_t* ssb)
       TESTASSERT(res.pbch_msg.crc);
       TESTASSERT(memcmp(&res.pbch_msg, &pbch_msg_tx, sizeof(srsran_pbch_msg_nr_t)) == 0);
     }
+  }
+
+  if (!count) {
+    ERROR("Error in test case 1: undefined division");
+    return SRSRAN_ERROR;
   }
 
   INFO("test_case_1 - %.1f usec/encode; %.1f usec/decode; %.1f usec/decode;",

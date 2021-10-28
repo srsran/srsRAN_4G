@@ -127,10 +127,10 @@ private:
     lockable_grant cur_grant;
 
     uint32_t              pid;
-    std::atomic<uint32_t> current_tx_nb = {0};
-    uint32_t              current_irv;
-    bool                  harq_feedback;
-    bool                  is_grant_configured;
+    std::atomic<uint32_t> current_tx_nb       = {0};
+    std::atomic<uint32_t> current_irv         = {0};
+    std::atomic<bool>     harq_feedback       = {false};
+    std::atomic<bool>     is_grant_configured = {false};
     bool                  is_initiated;
 
     srslog::basic_logger&  logger;

@@ -203,7 +203,8 @@ private:
 
   srslog::basic_logger&           logger_phy;
   srslog::basic_logger&           logger_phy_lib;
-  srsue::stack_interface_phy_lte* stack = nullptr;
+  srsue::stack_interface_phy_lte* stack    = nullptr;
+  srsue::stack_interface_phy_nr*  stack_nr = nullptr;
 
   lte::worker_pool lte_workers;
   nr::worker_pool  nr_workers;
@@ -214,8 +215,9 @@ private:
   srsran_prach_cfg_t  prach_cfg  = {};
   srsran_tdd_config_t tdd_config = {};
 
-  srsran::phy_cfg_t config = {};
-  phy_args_t        args   = {};
+  srsran::phy_cfg_t    config    = {};
+  srsran::phy_cfg_nr_t config_nr = {};
+  phy_args_t           args      = {};
 
   // Since cell_search/cell_select operations take a lot of time, we use another queue to process the other commands
   // in parallel and avoid accumulating in the queue

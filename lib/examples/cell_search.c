@@ -106,7 +106,7 @@ void parse_args(int argc, char** argv)
         rf_gain = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

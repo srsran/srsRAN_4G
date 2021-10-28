@@ -20,6 +20,7 @@
  */
 
 #include "rlc_test_common.h"
+#include "srsran/common/test_common.h"
 #include "srsran/config.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/rlc/rlc.h"
@@ -29,14 +30,6 @@
 #include <iostream>
 #include <vector>
 
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
-
 #define PCAP 0
 #define PCAP_CRNTI (0x1001)
 #define PCAP_TTI (666)
@@ -44,9 +37,9 @@
 using namespace srsran;
 
 #if PCAP
-#include "srsran/common/mac_nr_pcap.h"
-#include "srsran/mac/mac_nr_pdu.h"
-static std::unique_ptr<srsran::mac_nr_pcap> pcap_handle = nullptr;
+#include "srsran/common/mac_pcap.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
+static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 #endif
 
 int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_t len)
@@ -54,11 +47,11 @@ int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_
 #if PCAP
   if (pcap_handle) {
     byte_buffer_t          tx_buffer;
-    srsran::mac_nr_sch_pdu tx_pdu;
+    srsran::mac_sch_pdu_nr tx_pdu;
     tx_pdu.init_tx(&tx_buffer, len + 10);
     tx_pdu.add_sdu(lcid, payload, len);
     tx_pdu.pack();
-    pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
     return SRSRAN_SUCCESS;
   }
 #endif
@@ -93,7 +86,7 @@ public:
     logger2.set_hex_dump_max_size(-1);
 
     // configure RLC entities
-    rlc_config_t cnfg = rlc_config_t::default_rlc_um_nr_config(6);
+    rlc_config_t cnfg = rlc_config_t::default_rlc_um_nr_config(12);
     if (rlc1.configure(cnfg) != true) {
       fprintf(stderr, "Couldn't configure RLC1 object\n");
     }
@@ -488,6 +481,11 @@ int rlc_um_nr_test7()
     TESTASSERT(ctxt.tester.sdus.at(i)->N_bytes == sdu_size);
   }
 
+  // let t-reassembly expire
+  while (ctxt.timers.nof_running_timers() != 0) {
+    ctxt.timers.step_all();
+  }
+
   rlc_bearer_metrics_t rlc2_metrics = ctxt.rlc2.get_metrics();
   TESTASSERT(rlc2_metrics.num_lost_pdus == 1);
 
@@ -563,10 +561,73 @@ int rlc_um_nr_test8()
   return SRSRAN_SUCCESS;
 }
 
+// Similar to rlc_um_nr_test9() but out-of-order PDUs have SNs (from multiple SDUs)
+int rlc_um_nr_test9()
+{
+  rlc_um_nr_test_context1 ctxt;
+
+  const uint32_t num_sdus = 2;
+  const uint32_t sdu_size = 20;
+
+  ctxt.tester.set_expected_sdu_len(sdu_size);
+
+  // Push SDUs into RLC1
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
+  unique_byte_buffer_t sdu_bufs[num_sdus];
+  for (uint32_t i = 0; i < num_sdus; i++) {
+    sdu_bufs[i] = srsran::make_byte_buffer();
+    // Write the index into the buffer
+    for (uint32_t k = 0; k < sdu_size; ++k) {
+      sdu_bufs[i]->msg[k] = i;
+    }
+    sdu_bufs[i]->N_bytes = sdu_size;
+    ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read PDUs from RLC1 with grant smaller than SDU size
+  const uint32_t       max_num_pdus = 10;
+  uint32_t             num_pdus     = 0;
+  unique_byte_buffer_t pdu_bufs[max_num_pdus];
+
+  while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
+    pdu_bufs[num_pdus]          = srsran::make_byte_buffer();
+    int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 10); // 3 bytes for header + payload
+    pdu_bufs[num_pdus]->N_bytes = len;
+
+    // write PCAP
+    write_pdu_to_pcap(4, pdu_bufs[num_pdus]->msg, pdu_bufs[num_pdus]->N_bytes);
+
+    num_pdus++;
+  }
+
+  TESTASSERT(num_pdus == 6);
+
+  // Write all PDUs such that the middle section of SN=0 is received after the start section of SN=1
+  ctxt.rlc2.write_pdu(pdu_bufs[0]->msg, pdu_bufs[0]->N_bytes);
+  // skip 2nd PDU which is the middle section of SN=0
+  ctxt.rlc2.write_pdu(pdu_bufs[2]->msg, pdu_bufs[2]->N_bytes);
+  ctxt.rlc2.write_pdu(pdu_bufs[3]->msg, pdu_bufs[3]->N_bytes);
+
+  // now feed the middle part of SN=0
+  ctxt.rlc2.write_pdu(pdu_bufs[1]->msg, pdu_bufs[1]->N_bytes);
+
+  // and the rest of SN=1
+  ctxt.rlc2.write_pdu(pdu_bufs[4]->msg, pdu_bufs[4]->N_bytes);
+  ctxt.rlc2.write_pdu(pdu_bufs[5]->msg, pdu_bufs[5]->N_bytes);
+
+  TESTASSERT(num_sdus == ctxt.tester.get_num_sdus());
+  for (uint32_t i = 0; i < ctxt.tester.sdus.size(); i++) {
+    TESTASSERT(ctxt.tester.sdus.at(i)->N_bytes == sdu_size);
+    TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if PCAP
-  pcap_handle = std::unique_ptr<srsran::mac_nr_pcap>(new srsran::mac_nr_pcap());
+  pcap_handle = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
   pcap_handle->open("rlc_um_nr_test.pcap");
 #endif
 
@@ -614,6 +675,15 @@ int main(int argc, char** argv)
     fprintf(stderr, "rlc_um_nr_test8() failed.\n");
     return SRSRAN_ERROR;
   }
+
+  if (rlc_um_nr_test9()) {
+    fprintf(stderr, "rlc_um_nr_test9() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+#if PCAP
+  pcap_handle->close();
+#endif
 
   return SRSRAN_SUCCESS;
 }

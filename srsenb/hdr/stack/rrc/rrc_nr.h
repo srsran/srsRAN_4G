@@ -178,8 +178,6 @@ public:
     int pack_recfg_with_sync(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_dl(
-        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_phy_cell_group_cfg(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
@@ -188,11 +186,7 @@ public:
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
     int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(
-        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp(
-        asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-    int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_rach_cfg_common(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
     int pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(
         asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);

@@ -79,6 +79,7 @@ int srsran_channel_awgn_init(srsran_channel_awgn_t* q, uint32_t seed)
   q->table_log = srsran_vec_f_malloc(AWGN_TABLE_ALLOC_SIZE);
   if (!q->table_cos || !q->table_log) {
     ERROR("Malloc");
+    return SRSRAN_ERROR;
   }
 
   // Fill tables

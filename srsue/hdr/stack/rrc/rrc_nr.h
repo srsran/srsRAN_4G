@@ -128,6 +128,8 @@ public:
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
 
+  void set_phy_config_complete(bool status) final;
+
 private:
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
@@ -166,6 +168,13 @@ private:
   const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
 
   //  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
+
+  // Stores the state of the PHy configuration setting
+  enum {
+    PHY_CFG_STATE_NONE = 0,
+    PHY_CFG_STATE_APPLY_SP_CELL,
+    PHY_CFG_STATE_RA_COMPLETED,
+  } phy_cfg_state;
 
   rrc_nr_args_t args = {};
 

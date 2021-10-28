@@ -312,7 +312,7 @@ int srsran_cqi_value_tostring(srsran_cqi_cfg_t* cfg, srsran_cqi_value_t* value, 
       ret = cqi_hl_subband_tostring(cfg, &value->subband_hl, buff, buff_len);
       break;
     default:
-      /* Do nothing */;
+        /* Do nothing */;
   }
 
   return ret;
@@ -532,7 +532,8 @@ static bool ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti, bool is_fdd
 static int cqi_hl_get_subband_size(int nof_prb)
 {
   if (nof_prb < 7) {
-    return 0;
+    ERROR("Error: nof_prb is invalid (< 7)");
+    return SRSRAN_ERROR;
   } else if (nof_prb <= 26) {
     return 4;
   } else if (nof_prb <= 63) {
@@ -540,7 +541,8 @@ static int cqi_hl_get_subband_size(int nof_prb)
   } else if (nof_prb <= 110) {
     return 8;
   } else {
-    return -1;
+    ERROR("Error: nof_prb is invalid (> 110)");
+    return SRSRAN_ERROR;
   }
 }
 
@@ -550,7 +552,8 @@ static int cqi_hl_get_subband_size(int nof_prb)
 static int cqi_hl_get_bwp_J(int nof_prb)
 {
   if (nof_prb < 7) {
-    return 0;
+    ERROR("Error: nof_prb is not valid (< 7)");
+    return SRSRAN_ERROR;
   } else if (nof_prb <= 10) {
     return 1;
   } else if (nof_prb <= 26) {
@@ -560,7 +563,8 @@ static int cqi_hl_get_bwp_J(int nof_prb)
   } else if (nof_prb <= 110) {
     return 4;
   } else {
-    return -1;
+    ERROR("Error: nof_prb is not valid (> 110)");
+    return SRSRAN_ERROR;
   }
 }
 
@@ -568,12 +572,20 @@ static int cqi_hl_get_bwp_J(int nof_prb)
  */
 static int cqi_sb_get_Nj(uint32_t j, uint32_t nof_prb)
 {
-  uint32_t J = cqi_hl_get_bwp_J(nof_prb);
+  // from Table 7.2.2-2 in TS 36.213
+  int J = cqi_hl_get_bwp_J(nof_prb);
+  int K = cqi_hl_get_subband_size(nof_prb);
+
+  // Catch the J and k errors, and prevent undefined modulo operations
+  if (J <= 0 || K <= 0) {
+    return 0;
+  }
+
   if (J == 1) {
-    return (uint32_t)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb));
+    return (uint32_t)ceil((float)nof_prb / K);
   } else {
     // all bw parts have the same number of subbands except the last one
-    uint32_t Nj = (uint32_t)ceil((float)nof_prb / cqi_hl_get_subband_size(nof_prb) / J);
+    uint32_t Nj = (uint32_t)ceil((float)nof_prb / K / J);
     if (j < J - 1) {
       return Nj;
     } else {
@@ -617,6 +629,13 @@ uint32_t cqi_sb_get_H(const srsran_cqi_report_cfg_t* cfg, uint32_t nof_prb)
 {
   uint32_t K = cfg->subband_wideband_ratio;
   uint32_t J = cqi_hl_get_bwp_J(nof_prb);
+
+  // Catch the J errors
+  if (J <= 0)
+  {
+    return 0;
+  }
+
   uint32_t H = J * K + 1;
   return H;
 }
@@ -650,9 +669,15 @@ uint32_t srsran_cqi_periodic_sb_bw_part_idx(const srsran_cqi_report_cfg_t* cfg,
     }
   }
 
+  assert(N_p != 0);
   uint32_t x = ((tti - N_offset) / N_p) % H;
   if (x > 0) {
-    return (x - 1) % cqi_hl_get_bwp_J(nof_prb);
+    int J = cqi_hl_get_bwp_J(nof_prb);
+    // Catch the J errors and prevent undefined modulo operation
+    if (J <= 0) {
+      return 0;
+    }
+    return (x - 1) % J;
   } else {
     return 0;
   }

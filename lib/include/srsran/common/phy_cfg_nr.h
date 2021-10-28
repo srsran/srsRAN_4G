@@ -58,6 +58,11 @@ struct phy_cfg_nr_t {
 
   phy_cfg_nr_t() {}
 
+  bool carrier_is_equal(const srsran::phy_cfg_nr_t& other) const
+  {
+    return srsran_carrier_nr_equal(&carrier, &other.carrier);
+  }
+
   /**
    * @brief Computes the DCI configuration for the current UE configuration
    */

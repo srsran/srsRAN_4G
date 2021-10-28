@@ -130,13 +130,20 @@ bool rlc_tm::has_data()
 
 uint32_t rlc_tm::get_buffer_state()
 {
-  return ul_queue.size_bytes();
+  uint32_t newtx_queue   = 0;
+  uint32_t prio_tx_queue = 0;
+  get_buffer_state(newtx_queue, prio_tx_queue);
+  return newtx_queue + prio_tx_queue;
 }
 
 void rlc_tm::get_buffer_state(uint32_t& newtx_queue, uint32_t& prio_tx_queue)
 {
-  newtx_queue   = get_buffer_state();
+  std::lock_guard<std::mutex> lock(bsr_callback_mutex);
+  newtx_queue   = ul_queue.size_bytes();
   prio_tx_queue = 0;
+  if (bsr_callback) {
+    bsr_callback(lcid, newtx_queue, prio_tx_queue);
+  }
 }
 
 rlc_bearer_metrics_t rlc_tm::get_metrics()
@@ -206,6 +213,11 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
   } else {
     logger.error("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu().");
   }
+}
+
+void rlc_tm::set_bsr_callback(bsr_callback_t callback)
+{
+  bsr_callback = std::move(callback);
 }
 
 } // namespace srsran

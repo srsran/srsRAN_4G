@@ -254,6 +254,8 @@ void rrc_nr::set_activity_user(uint16_t rnti)
 
   // inform EUTRA RRC about user activity
   if (ue_ptr->is_endc()) {
+    // Restart inactivity timer for RRC-NR
+    ue_ptr->set_activity();
     // inform EUTRA RRC about user activity
     rrc_eutra->set_activity_user(ue_ptr->get_eutra_rnti());
   }
@@ -576,7 +578,7 @@ rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_,
 
   // Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
   activity_timer = parent->task_sched.get_unique_timer();
-  start_msg3_timer ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+  start_msg3_timer ? set_activity_timeout(MSG3_RX_TIMEOUT) : set_activity_timeout(MSG5_RX_TIMEOUT);
 }
 
 void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
@@ -588,15 +590,19 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 100ms
       deadline_ms = 100;
       break;
+    case MSG5_RX_TIMEOUT:
+      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 1s
+      deadline_ms = 5000;
+      break;
     case UE_INACTIVITY_TIMEOUT:
-      // TODO: Add a value for the inactivity timeout - currently no activity set this case
-      return;
+      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 5s
+      deadline_ms = 10000;
+      break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
       return;
   }
 
-  // Currently we only set the timer for the MSG3_RX_TIMEOUT case
   activity_timer.set(deadline_ms, [this, type](uint32_t tid) { activity_timer_expired(type); });
   parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline_ms);
 
@@ -622,16 +628,19 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
   parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
-  state = rrc_nr_state_t::RRC_IDLE;
-
   switch (type) {
+    case MSG5_RX_TIMEOUT:
     case UE_INACTIVITY_TIMEOUT:
-      // TODO: Add action to be executed
+      state = rrc_nr_state_t::RRC_INACTIVE;
+      parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
       break;
-    case MSG3_RX_TIMEOUT:
+    case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
-      parent->rem_user(rnti);
+      state = rrc_nr_state_t::RRC_IDLE;
+      uint32_t rnti_to_rem = rnti;
+      parent->task_sched.defer_task([this, rnti_to_rem]() { parent->rem_user(rnti_to_rem); });
       break;
+    }
     default:
       // Unhandled activity timeout, just remove UE and log an error
       parent->rem_user(rnti);
@@ -642,7 +651,7 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 
 std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "Msg5 reception"};
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
@@ -1038,25 +1047,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_dl(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl_present = true;
-  auto& freq_info_dl = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.freq_info_dl;
-  freq_info_dl.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  freq_info_dl.absolute_freq_point_a     = parent->cfg.cell_list[0].dl_absolute_freq_point_a;
-  freq_info_dl.absolute_freq_ssb_present = true;
-  freq_info_dl.absolute_freq_ssb         = parent->cfg.cell_list[0].ssb_absolute_freq_point;
-
-  freq_info_dl.scs_specific_carrier_list.resize(1);
-  auto& dl_carrier              = freq_info_dl.scs_specific_carrier_list[0];
-  dl_carrier.offset_to_carrier  = 0;
-  dl_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
-  dl_carrier.carrier_bw         = parent->cfg.cell_list[0].phy_cell.carrier.nof_prb;
-
-  return SRSRAN_SUCCESS;
-}
-
 int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_phy_cell_group_cfg(
     asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
@@ -1106,69 +1096,8 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common(
   // DL config
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present = true;
 
-  pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_freq_info_dl(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_common_phy_cell_group_cfg(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp(cell_group_cfg_pack);
-
-  return SRSRAN_SUCCESS;
-}
-
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul_present = true;
-  auto& freq_info_ul = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.freq_info_ul;
-  freq_info_ul.freq_band_list_present = true;
-  freq_info_ul.freq_band_list.push_back(parent->cfg.cell_list[0].band);
-  freq_info_ul.absolute_freq_point_a_present = true;
-  freq_info_ul.absolute_freq_point_a         = parent->cfg.cell_list[0].ul_absolute_freq_point_a;
-  freq_info_ul.scs_specific_carrier_list.resize(1);
-
-  auto& ul_carrier              = freq_info_ul.scs_specific_carrier_list[0];
-  ul_carrier.offset_to_carrier  = 0;
-  ul_carrier.subcarrier_spacing = subcarrier_spacing_opts::khz15;
-  ul_carrier.carrier_bw         = parent->cfg.cell_list[0].phy_cell.carrier.nof_prb;
-
-  return SRSRAN_SUCCESS;
-}
-
-int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_rach_cfg_common(
-    asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  // RACH config
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present =
-      true;
-  auto& rach_cfg_common_pack =
-      cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common;
-  rach_cfg_common_pack.set_setup();
-
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 16;
-  } else {
-    rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx = 0;
-  }
-
-  rach_cfg_common_pack.setup().rach_cfg_generic.msg1_fdm                  = rach_cfg_generic_s::msg1_fdm_opts::one;
-  rach_cfg_common_pack.setup().rach_cfg_generic.msg1_freq_start           = 1;
-  rach_cfg_common_pack.setup().rach_cfg_generic.prach_cfg_idx             = 0;
-  rach_cfg_common_pack.setup().rach_cfg_generic.zero_correlation_zone_cfg = 0;
-  rach_cfg_common_pack.setup().rach_cfg_generic.preamb_rx_target_pwr      = -110;
-  rach_cfg_common_pack.setup().rach_cfg_generic.preamb_trans_max =
-      asn1::rrc_nr::rach_cfg_generic_s::preamb_trans_max_opts::n7;
-  rach_cfg_common_pack.setup().rach_cfg_generic.pwr_ramp_step =
-      asn1::rrc_nr::rach_cfg_generic_s::pwr_ramp_step_opts::db4;
-  rach_cfg_common_pack.setup().rach_cfg_generic.ra_resp_win = asn1::rrc_nr::rach_cfg_generic_s::ra_resp_win_opts::sl10;
-  rach_cfg_common_pack.setup().ra_contention_resolution_timer =
-      asn1::rrc_nr::rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
-  rach_cfg_common_pack.setup().prach_root_seq_idx.set(
-      asn1::rrc_nr::rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839);
-  rach_cfg_common_pack.setup().prach_root_seq_idx.set_l839() = 0; // matches value in phy_cfg_nr_default_t()
-  rach_cfg_common_pack.setup().restricted_set_cfg =
-      asn1::rrc_nr::rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
-  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
-  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one();
-  rach_cfg_common_pack.setup().ssb_per_rach_occasion_and_cb_preambs_per_ssb.one() =
-      asn1::rrc_nr::rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n64;
 
   return SRSRAN_SUCCESS;
 }
@@ -1219,7 +1148,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.generic_params
       .subcarrier_spacing = subcarrier_spacing_opts::khz15;
 
-  pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_rach_cfg_common(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp_pusch_cfg_common(cell_group_cfg_pack);
 
   return SRSRAN_ERROR;
@@ -1232,7 +1160,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common(
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.dummy = time_align_timer_opts::ms500;
 
-  pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_freq_info_ul(cell_group_cfg_pack);
   pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bwp(cell_group_cfg_pack);
 
   return SRSRAN_SUCCESS;
@@ -1340,6 +1267,8 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
   sec_cfg.key_to_use                                 = asn1::rrc_nr::security_cfg_s::key_to_use_opts::secondary;
   sec_cfg.security_algorithm_cfg_present             = true;
   sec_cfg.security_algorithm_cfg.ciphering_algorithm = ciphering_algorithm_opts::nea0;
+  sec_cfg.security_algorithm_cfg.integrity_prot_algorithm_present = true;
+  sec_cfg.security_algorithm_cfg.integrity_prot_algorithm         = integrity_prot_algorithm_opts::nia0;
 
   // pack it
   packed_nr_bearer_config.resize(128);
@@ -1397,9 +1326,9 @@ void rrc_nr::ue::crnti_ce_received()
     // send SgNB addition complete for ENDC users
     parent->rrc_eutra->sgnb_addition_complete(eutra_rnti, rnti);
 
-    // stop RX MSG3 activity timer on MAC CE RNTI reception
-    activity_timer.stop();
-    parent->logger.debug("Received MAC CE-RNTI for 0x%x - stopping MSG3 timer", rnti);
+    // stop RX MSG3/MSG5 activity timer on MAC CE RNTI reception
+    set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+    parent->logger.debug("Received MAC CE-RNTI for 0x%x - stopping MSG3/MSG5 timer, starting inactivity timer", rnti);
 
     // Add DRB1 to MAC
     for (auto& drb : cell_group_cfg.rlc_bearer_to_add_mod_list) {

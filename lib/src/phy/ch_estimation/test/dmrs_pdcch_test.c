@@ -58,7 +58,7 @@ static void parse_args(int argc, char** argv)
         interleaved ^= true;
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -86,6 +86,9 @@ static int run_test(srsran_dmrs_pdcch_estimator_t* estimator,
         srsran_pdcch_nr_locations_coreset(coreset, search_space, rnti, aggregation_level, slot_cfg.idx, locations);
 
     TESTASSERT(nof_locations == search_space->nof_candidates[aggregation_level]);
+
+    // Prevent possible out of bounds read in locations
+    TESTASSERT(nof_locations <= SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
 
     for (uint32_t candidate = 0; candidate < nof_locations; candidate++) {
       dci_location.ncce = locations[candidate];

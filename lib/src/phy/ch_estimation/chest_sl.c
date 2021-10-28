@@ -944,10 +944,10 @@ float srsran_chest_sl_estimate_noise(srsran_chest_sl_t* q)
   return q->noise_estimated;
 }
 
-int srsran_chest_sl_init(srsran_chest_sl_t*             q,
-                         srsran_sl_channels_t           channel,
-                         srsran_cell_sl_t               cell,
-                         srsran_sl_comm_resource_pool_t sl_comm_resource_pool)
+int srsran_chest_sl_init(srsran_chest_sl_t*                    q,
+                         srsran_sl_channels_t                  channel,
+                         srsran_cell_sl_t                      cell,
+                         const srsran_sl_comm_resource_pool_t* sl_comm_resource_pool)
 {
   int ret = SRSRAN_ERROR_INVALID_INPUTS;
   if (q != NULL) {
@@ -955,7 +955,7 @@ int srsran_chest_sl_init(srsran_chest_sl_t*             q,
 
     q->channel               = channel;
     q->cell                  = cell;
-    q->sl_comm_resource_pool = sl_comm_resource_pool;
+    q->sl_comm_resource_pool = *sl_comm_resource_pool;
 
     switch (channel) {
       case SRSRAN_SIDELINK_PSBCH:

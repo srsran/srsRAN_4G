@@ -66,8 +66,8 @@ void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                uint32_t                   lcid_,
                bsr_callback_t             bsr_callback_)
 {
-  init(pdcp_, rrc_, timers_, lcid_);
   bsr_callback = bsr_callback_;
+  init(pdcp_, rrc_, timers_, lcid_);
 }
 
 void rlc::reset_metrics()
@@ -607,16 +607,13 @@ void rlc::update_bsr(uint32_t lcid)
   if (bsr_callback) {
     uint32_t tx_queue = 0, prio_tx_queue = 0;
     get_buffer_state(lcid, tx_queue, prio_tx_queue);
-    bsr_callback(lcid, tx_queue, prio_tx_queue);
   }
 }
 
 void rlc::update_bsr_mch(uint32_t lcid)
 {
   if (bsr_callback) {
-    uint32_t tx_queue   = get_total_mch_buffer_state(lcid);
-    uint32_t retx_queue = 0; // todo: separate tx_queue and retx_queue
-    bsr_callback(lcid, tx_queue, retx_queue);
+    uint32_t tx_queue = get_total_mch_buffer_state(lcid);
   }
 }
 

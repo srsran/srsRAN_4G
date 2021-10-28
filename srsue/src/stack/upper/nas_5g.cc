@@ -258,8 +258,6 @@ int nas_5g::send_registration_request()
     return SRSRAN_ERROR;
   }
 
-  logger.info("Generating registration request");
-
   initial_registration_request_stored.hdr.extended_protocol_discriminator =
       nas_5gs_hdr::extended_protocol_discriminator_opts::extended_protocol_discriminator_5gmm;
   registration_request_t& reg_req = initial_registration_request_stored.set_registration_request();
@@ -293,6 +291,7 @@ int nas_5g::send_registration_request()
   logger.debug("Starting T3410. Timeout in %d ms.", t3510.duration());
   t3510.run();
 
+  logger.info("Sending Registration Request");
   if (rrc_nr->is_connected() == true) {
     rrc_nr->write_sdu(std::move(pdu));
   } else {
@@ -350,8 +349,6 @@ int nas_5g::send_authentication_response(const uint8_t res[16])
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return SRSRAN_ERROR;
   }
-
-  logger.info("Generating Authentication Response");
 
   nas_5gs_msg                nas_msg;
   authentication_response_t& auth_resp                = nas_msg.set_authentication_response();
@@ -411,8 +408,6 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
     return SRSRAN_ERROR;
   }
 
-  logger.info("Generating Security Mode Complete");
-
   nas_5gs_msg               nas_msg;
   security_mode_complete_t& security_mode_complete = nas_msg.set_security_mode_complete();
 
@@ -429,7 +424,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   modified_registration_request.requested_nssai_present = true;
   modified_registration_request.update_type_5gs_present = true;
 
-  s_nssai_t s_nssai;
+  s_nssai_t s_nssai{};
   s_nssai.type                                               = s_nssai_t::SST_type_::options::sst;
   s_nssai.sst                                                = 1;
   modified_registration_request.requested_nssai.s_nssai_list = {s_nssai};
@@ -500,7 +495,7 @@ int nas_5g::send_authentication_failure(const cause_5gmm_t::cause_5gmm_type_::op
   if (pcap != nullptr) {
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
-
+  logger.info("Sending Authentication Failure");
   rrc_nr->write_sdu(std::move(pdu));
 
   return SRSRAN_SUCCESS;
@@ -537,8 +532,6 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return SRSRAN_ERROR;
   }
-
-  logger.info("Generating PDU Session Establishment Request");
 
   nas_5gs_msg nas_msg;
   nas_msg.hdr.pdu_session_identity           = pdu_session_id;
@@ -586,8 +579,9 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.request_type.request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
 
   ul_nas_msg.s_nssai_present = true;
-  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
+  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst_and_sd;
   ul_nas_msg.s_nssai.sst     = 1;
+  ul_nas_msg.s_nssai.sd      = 0;
 
   ul_nas_msg.dnn_present = true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
@@ -627,10 +621,10 @@ int nas_5g::send_deregistration_request_ue_originating(bool switch_off)
     return SRSRAN_ERROR;
   }
 
-  logger.info("Generating Deregistration Request (UE Originating)");
-
   nas_5gs_msg                              nas_msg;
   deregistration_request_ue_originating_t& deregistration_request = nas_msg.set_deregistration_request_ue_originating();
+  nas_msg.hdr.security_header_type = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
+  nas_msg.hdr.sequence_number      = ctxt_base.tx_count;
 
   // Note 5.5.2.2.2 : AMF does not send a Deregistration Accept NAS message if De-registration type IE indicates "switch
   // off"
@@ -664,11 +658,18 @@ int nas_5g::send_deregistration_request_ue_originating(bool switch_off)
   }
 
   logger.info("Sending Deregistration Request (UE Originating)");
+  cipher_encrypt(pdu.get());
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[SEQ_5G_OFFSET],
+                     pdu->N_bytes - SEQ_5G_OFFSET,
+                     &pdu->msg[MAC_5G_OFFSET]);
+
   rrc_nr->write_sdu(std::move(pdu));
-
+  ctxt_base.tx_count++;
   reset_pdu_sessions();
-
-  // TODO: Delete / Reset context (ctxt & ctxt_5g)
+  // TODO: Consider reworking ctxt / 5G ctxt release
 
   return SRSASN_SUCCESS;
 }
@@ -681,10 +682,10 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
     return SRSRAN_ERROR;
   }
 
-  logger.info("Generating Identity Response");
-
   nas_5gs_msg          nas_msg;
   identity_response_t& identity_response = nas_msg.set_identity_response();
+  nas_msg.hdr.security_header_type       = nas_5gs_hdr::security_header_type_opts::integrity_protected_and_ciphered;
+  nas_msg.hdr.sequence_number            = ctxt_base.tx_count;
 
   switch (identity_type) {
     case (identity_type_5gs_t::identity_types_::suci): {
@@ -723,7 +724,17 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
 
+  cipher_encrypt(pdu.get());
+  integrity_generate(&ctxt_base.k_nas_int[16],
+                     ctxt_base.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[SEQ_5G_OFFSET],
+                     pdu->N_bytes - SEQ_5G_OFFSET,
+                     &pdu->msg[MAC_5G_OFFSET]);
+
+  logger.info("Sending Identity Response");
   rrc_nr->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
 
   return SRSRAN_SUCCESS;
 }
@@ -735,8 +746,6 @@ int nas_5g::send_configuration_update_complete()
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return SRSRAN_ERROR;
   }
-
-  logger.info("Generating Configuration Update Complete");
 
   nas_5gs_msg                      nas_msg;
   configuration_update_complete_t& config_update_complete = nas_msg.set_configuration_update_complete();
@@ -760,6 +769,7 @@ int nas_5g::send_configuration_update_complete()
                      pdu->N_bytes - SEQ_5G_OFFSET,
                      &pdu->msg[MAC_5G_OFFSET]);
 
+  logger.error("Sending Configuration Update Complete");
   rrc_nr->write_sdu(std::move(pdu));
   ctxt_base.tx_count++;
   return SRSRAN_SUCCESS;
@@ -768,6 +778,7 @@ int nas_5g::send_configuration_update_complete()
 // Message handler
 int nas_5g::handle_registration_accept(registration_accept_t& registration_accept)
 {
+  ctxt_base.rx_count++;
   if (state.get_state() != mm5g_state_t::state_t::registered_initiated) {
     logger.warning("Not compatibale with current state %s", state.get_full_state_text());
     return SRSRAN_ERROR;
@@ -796,7 +807,7 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
 int nas_5g::handle_registration_reject(registration_reject_t& registration_reject)
 {
   logger.info("Handling Registration Reject");
-
+  ctxt_base.rx_count++;
   state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
 
   switch (registration_reject.cause_5gmm.cause_5gmm.value) {
@@ -825,7 +836,7 @@ int nas_5g::handle_registration_reject(registration_reject_t& registration_rejec
 int nas_5g::handle_authentication_request(authentication_request_t& authentication_request)
 {
   logger.info("Handling Registration Request");
-
+  ctxt_base.rx_count++;
   // Generate authentication response using RAND, AUTN & KSI-ASME
   uint16 mcc, mnc;
   mcc = rrc_nr->get_mcc();
@@ -886,6 +897,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 int nas_5g::handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject)
 {
   logger.info("Handling Authentication Reject");
+  ctxt_base.rx_count++;
   state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
   return SRSRAN_SUCCESS;
 }
@@ -893,6 +905,7 @@ int nas_5g::handle_authentication_reject(srsran::nas_5g::authentication_reject_t
 int nas_5g::handle_identity_request(identity_request_t& identity_request)
 {
   logger.info("Handling Identity Request");
+  ctxt_base.rx_count++;
   send_identity_response(identity_request.identity_type.type_of_identity.value);
   return SRSRAN_SUCCESS;
 }
@@ -900,12 +913,14 @@ int nas_5g::handle_identity_request(identity_request_t& identity_request)
 int nas_5g::handle_service_accept(srsran::nas_5g::service_accept_t& service_accept)
 {
   logger.info("Handling Service Accept");
+  ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
 
 int nas_5g::handle_service_reject(srsran::nas_5g::service_reject_t& service_reject)
 {
-  logger.info("Handling Service Accept");
+  logger.info("Handling Service Reject");
+  ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
 
@@ -960,6 +975,7 @@ int nas_5g::handle_deregistration_accept_ue_terminated(
     deregistration_accept_ue_terminated_t& deregistration_accept_ue_terminated)
 {
   logger.info("Handling Deregistration Accept UE Terminated");
+  ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
 
@@ -967,12 +983,14 @@ int nas_5g::handle_deregistration_request_ue_terminated(
     deregistration_request_ue_terminated_t& deregistration_request_ue_terminated)
 {
   logger.info("Handling Deregistration Request UE Terminated");
+  ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
 
 int nas_5g::handle_dl_nas_transport(srsran::nas_5g::dl_nas_transport_t& dl_nas_transport)
 {
   logger.info("Handling DL NAS transport");
+  ctxt_base.rx_count++;
   switch (dl_nas_transport.payload_container_type.payload_container_type) {
     case payload_container_type_t::Payload_container_type_type_::options::n1_sm_information:
       return handle_n1_sm_information(dl_nas_transport.payload_container.payload_container_contents);
@@ -1014,6 +1032,7 @@ int nas_5g::handle_deregistration_accept_ue_originating(
     srsran::nas_5g::deregistration_accept_ue_originating_t& deregistration_accept_ue_originating)
 {
   logger.info("Received Deregistration Accept (UE Originating)");
+  ctxt_base.rx_count++;
   if (state.get_state() != mm5g_state_t::state_t::deregistered_initiated) {
     logger.warning("Received deregistration accept while not in deregistered initiated state");
   }
@@ -1026,6 +1045,7 @@ int nas_5g::handle_configuration_update_command(
     srsran::nas_5g::configuration_update_command_t& configuration_update_command)
 {
   logger.info("Handling Configuration Update Command");
+  ctxt_base.rx_count++;
   send_configuration_update_complete();
   return SRSRAN_SUCCESS;
 }

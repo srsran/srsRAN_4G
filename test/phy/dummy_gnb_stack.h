@@ -29,6 +29,7 @@
 #include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/common/rlc_test_dummy.h"
 #include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
+#include "srsran/srslog/srslog.h"
 #include <mutex>
 #include <set>
 #include <srsenb/hdr/stack/mac/common/mac_metrics.h>
@@ -95,7 +96,7 @@ private:
   srsenb::rlc_dummy               rlc_obj;
   std::unique_ptr<srsenb::mac_nr> mac;
   srslog::basic_logger&           sched_logger;
-  bool                            autofill_pdsch_bsr = false;
+  bool                            autofill_sch_bsr = false;
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -284,8 +285,7 @@ private:
     }
 
     // Set softbuffer
-    pusch_cfg.grant.tb[0].softbuffer.rx =
-        &rx_harq_proc[dci.pid].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
+    pusch_cfg.grant.tb[0].softbuffer.rx = &rx_harq_proc[dci.pid].get_softbuffer(dci.ndi, pusch_cfg.grant.tb[0].tbs);
 
     // Push scheduling results
     dl_sched.pdcch_ul.push_back(pdcch);
@@ -368,7 +368,7 @@ public:
     sched_logger.set_level(srslog::str_to_basic_level(args.log_level));
     srslog::fetch_basic_logger("MAC-NR").set_level(srslog::str_to_basic_level(args.log_level));
 
-    autofill_pdsch_bsr = args.pdsch.slots != "" and args.pdsch.slots != "none";
+    autofill_sch_bsr = args.pdsch.slots != "" and args.pdsch.slots != "none";
 
     // create sched object
     mac.reset(new srsenb::mac_nr{&task_sched});
@@ -473,8 +473,9 @@ public:
     sched_logger.set_context(slot_cfg.idx);
 
     if (not use_dummy_mac) {
-      if (autofill_pdsch_bsr) {
-        mac->rlc_buffer_state(rnti, 0, 10000, 0);
+      if (autofill_sch_bsr) {
+        mac->rlc_buffer_state(rnti, 0, 100000, 0);
+        mac->ul_bsr(rnti, 0, 100000);
       }
 
       int ret = mac->get_dl_sched(slot_cfg, dl_sched);

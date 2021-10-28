@@ -166,6 +166,8 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
   if (not srsran::net_utils::set_sockaddr(addr, args->sgi_mb_if_addr.c_str(), 0)) {
     m_logger.error("Invalid sgi_mb_if_addr: %s", args->sgi_mb_if_addr.c_str());
     srsran::console("Invalid sgi_mb_if_addr: %s\n", args->sgi_mb_if_addr.c_str());
+    close(m_sgi_mb_if);
+    close(sgi_mb_sock);
     return SRSRAN_ERROR_CANT_START;
   }
 

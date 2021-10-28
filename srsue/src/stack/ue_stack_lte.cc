@@ -270,7 +270,12 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    ue_task_queue.try_push([this]() { nas.switch_on(); });
+    stack_logger.info("Triggering NAS switch on\n");
+    if (!ue_task_queue.try_push([this]() { nas.switch_on(); })) {
+      stack_logger.error("Triggering NAS switch on: ue_task_queue is full\n");
+    }
+  } else {
+    stack_logger.error("Triggering NAS switch on: stack is not running\n");
   }
   return true;
 }
@@ -495,6 +500,10 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (sync_task_queue.size() > SYNC_QUEUE_WARN_THRESHOLD) {
     stack_logger.warning("Detected slow task processing (sync_queue_len=%zd).", sync_task_queue.size());
   }
+}
+void ue_stack_lte::set_phy_config_complete(bool status)
+{
+  cfg_task_queue.push([this, status]() { rrc_nr.set_phy_config_complete(status); });
 }
 
 } // namespace srsue

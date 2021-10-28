@@ -31,7 +31,7 @@ void rlc_pcap::enable(bool en)
   enable_write = true;
 }
 
-void rlc_pcap::open(const char* filename, rlc_config_t config)
+void rlc_pcap::open(const char* filename, const rlc_config_t& config)
 {
   fprintf(stdout, "Opening RLC PCAP with DLT=%d\n", UDP_DLT);
   pcap_file    = DLT_PCAP_Open(UDP_DLT, filename);

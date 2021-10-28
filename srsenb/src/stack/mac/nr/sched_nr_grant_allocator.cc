@@ -126,6 +126,13 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     logger.error("SCHED: Trying to allocate too many Msg3 grants in a single slot (%zd)", pending_rars.size());
     return alloc_result::invalid_grant_params;
   }
+  for (auto& rar : pending_rars) {
+    if (not slot_ues->contains(rar.temp_crnti)) {
+      logger.info("SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created",
+                  rar.temp_crnti);
+      return alloc_result::no_rnti_opportunity;
+    }
+  }
 
   // Check DL RB collision
   if (bwp_pdcch_slot.dl_prbs.collides(interv)) {

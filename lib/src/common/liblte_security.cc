@@ -428,7 +428,6 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_up(uint8*                       
 
 LIBLTE_ERROR_ENUM liblte_security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_counter)
 {
-
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   uint8             s[5];
 
@@ -627,97 +626,96 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(const uint8*           key,
                                            LIBLTE_BIT_MSG_STRUCT* msg,
                                            uint8*                 mac)
 {
-  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-  uint8             M[msg->N_bits * 8 + 8 + 16];
-  aes_context       ctx;
-  uint32            i;
-  uint32            j;
-  uint32            n;
-  uint32            pad_bits;
-  uint8             const_zero[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  uint8             L[16];
-  uint8             K1[16];
-  uint8             K2[16];
-  uint8             T[16];
-  uint8             tmp[16];
-
-  if (key != NULL && msg != NULL && mac != NULL) {
-    // Subkey L generation
-    aes_setkey_enc(&ctx, key, 128);
-    aes_crypt_ecb(&ctx, AES_ENCRYPT, const_zero, L);
-
-    // Subkey K1 generation
-    for (i = 0; i < 15; i++) {
-      K1[i] = (L[i] << 1) | ((L[i + 1] >> 7) & 0x01);
-    }
-    K1[15] = L[15] << 1;
-    if (L[0] & 0x80) {
-      K1[15] ^= 0x87;
-    }
-
-    // Subkey K2 generation
-    for (i = 0; i < 15; i++) {
-      K2[i] = (K1[i] << 1) | ((K1[i + 1] >> 7) & 0x01);
-    }
-    K2[15] = K1[15] << 1;
-    if (K1[0] & 0x80) {
-      K2[15] ^= 0x87;
-    }
-
-    // Construct M
-    memset(M, 0, msg->N_bits * 8 + 8 + 16);
-    M[0] = (count >> 24) & 0xFF;
-    M[1] = (count >> 16) & 0xFF;
-    M[2] = (count >> 8) & 0xFF;
-    M[3] = count & 0xFF;
-    M[4] = (bearer << 3) | (direction << 2);
-    for (i = 0; i < msg->N_bits / 8; i++) {
-      M[8 + i] = 0;
-      for (j = 0; j < 8; j++) {
-        M[8 + i] |= msg->msg[i * 8 + j] << (7 - j);
-      }
-    }
-    if ((msg->N_bits % 8) != 0) {
-      M[8 + i] = 0;
-      for (j = 0; j < msg->N_bits % 8; j++) {
-        M[8 + i] |= msg->msg[i * 8 + j] << (7 - j);
-      }
-    }
-
-    // MAC generation
-    n = (uint32)(ceilf((float)(msg->N_bits + 64) / (float)(128)));
-    for (i = 0; i < 16; i++) {
-      T[i] = 0;
-    }
-    for (i = 0; i < n - 1; i++) {
-      for (j = 0; j < 16; j++) {
-        tmp[j] = T[j] ^ M[i * 16 + j];
-      }
-      aes_crypt_ecb(&ctx, AES_ENCRYPT, tmp, T);
-    }
-    pad_bits = (msg->N_bits + 64) % 128;
-    if (pad_bits == 0) {
-      for (j = 0; j < 16; j++) {
-        tmp[j] = T[j] ^ K1[j] ^ M[i * 16 + j];
-      }
-      aes_crypt_ecb(&ctx, AES_ENCRYPT, tmp, T);
-    } else {
-      pad_bits = (128 - pad_bits) - 1;
-      M[i * 16 + (15 - (pad_bits / 8))] |= 0x1 << (pad_bits % 8);
-      for (j = 0; j < 16; j++) {
-        tmp[j] = T[j] ^ K2[j] ^ M[i * 16 + j];
-      }
-      aes_crypt_ecb(&ctx, AES_ENCRYPT, tmp, T);
-    }
-
-    for (i = 0; i < 4; i++) {
-      mac[i] = T[i];
-    }
-
-    err = LIBLTE_SUCCESS;
+  if (!key || !msg || !mac) {
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
 
-  return (err);
+  uint8       M[msg->N_bits * 8 + 8 + 16];
+  aes_context ctx;
+  uint32      i;
+  uint32      j;
+  uint32      n;
+  uint32      pad_bits;
+  uint8       const_zero[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  uint8       L[16];
+  uint8       K1[16];
+  uint8       K2[16];
+  uint8       T[16];
+  uint8       tmp[16];
+
+  // Subkey L generation
+  aes_setkey_enc(&ctx, key, 128);
+  aes_crypt_ecb(&ctx, AES_ENCRYPT, const_zero, L);
+
+  // Subkey K1 generation
+  for (i = 0; i < 15; i++) {
+    K1[i] = (L[i] << 1) | ((L[i + 1] >> 7) & 0x01);
+  }
+  K1[15] = L[15] << 1;
+  if (L[0] & 0x80) {
+    K1[15] ^= 0x87;
+  }
+
+  // Subkey K2 generation
+  for (i = 0; i < 15; i++) {
+    K2[i] = (K1[i] << 1) | ((K1[i + 1] >> 7) & 0x01);
+  }
+  K2[15] = K1[15] << 1;
+  if (K1[0] & 0x80) {
+    K2[15] ^= 0x87;
+  }
+
+  // Construct M
+  memset(M, 0, msg->N_bits * 8 + 8 + 16);
+  M[0] = (count >> 24) & 0xFF;
+  M[1] = (count >> 16) & 0xFF;
+  M[2] = (count >> 8) & 0xFF;
+  M[3] = count & 0xFF;
+  M[4] = (bearer << 3) | (direction << 2);
+  for (i = 0; i < msg->N_bits / 8; i++) {
+    M[8 + i] = 0;
+    for (j = 0; j < 8; j++) {
+      M[8 + i] |= msg->msg[i * 8 + j] << (7 - j);
+    }
+  }
+  if ((msg->N_bits % 8) != 0) {
+    M[8 + i] = 0;
+    for (j = 0; j < msg->N_bits % 8; j++) {
+      M[8 + i] |= msg->msg[i * 8 + j] << (7 - j);
+    }
+  }
+
+  // MAC generation
+  n = (uint32)(ceilf((float)(msg->N_bits + 64) / (float)(128)));
+  for (i = 0; i < 16; i++) {
+    T[i] = 0;
+  }
+  for (i = 0; i < n - 1; i++) {
+    for (j = 0; j < 16; j++) {
+      tmp[j] = T[j] ^ M[i * 16 + j];
+    }
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, tmp, T);
+  }
+  pad_bits = (msg->N_bits + 64) % 128;
+  if (pad_bits == 0) {
+    for (j = 0; j < 16; j++) {
+      tmp[j] = T[j] ^ K1[j] ^ M[i * 16 + j];
+    }
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, tmp, T);
+  } else {
+    pad_bits = (128 - pad_bits) - 1;
+    M[i * 16 + (15 - (pad_bits / 8))] |= 0x1 << (pad_bits % 8);
+    for (j = 0; j < 16; j++) {
+      tmp[j] = T[j] ^ K2[j] ^ M[i * 16 + j];
+    }
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, tmp, T);
+  }
+
+  for (i = 0; i < 4; i++) {
+    mac[i] = T[i];
+  }
+
+  return LIBLTE_SUCCESS;
 }
 
 uint32_t GET_WORD(uint32_t* DATA, uint32_t i)

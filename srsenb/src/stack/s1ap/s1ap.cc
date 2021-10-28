@@ -573,6 +573,9 @@ bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
       logger.info("SCTP peer addres unreachable. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
       restart_s1 = true;
+    } else if (notification->sn_header.sn_type == SCTP_ASSOC_CHANGE) {
+      logger.info("SCTP association changed. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP association changed. Association: %d\n", sri.sinfo_assoc_id);
     }
     if (restart_s1) {
       logger.info("Restarting S1 connection");
@@ -603,7 +606,10 @@ bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
     return false;
   }
 
-  handle_s1ap_rx_pdu(pdu.get());
+  if ((flags & MSG_NOTIFICATION) == 0 && pdu->N_bytes != 0) {
+    handle_s1ap_rx_pdu(pdu.get());
+  }
+
   return true;
 }
 

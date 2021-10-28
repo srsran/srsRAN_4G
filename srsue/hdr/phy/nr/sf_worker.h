@@ -40,10 +40,11 @@ namespace nr {
 class sf_worker final : public srsran::thread_pool::worker
 {
 public:
-  sf_worker(srsran::phy_common_interface& common_, state& phy_state_, srslog::basic_logger& logger);
+  sf_worker(srsran::phy_common_interface& common_,
+            state&                        phy_state_,
+            const srsran::phy_cfg_nr_t&   cfg,
+            srslog::basic_logger&         logger);
   ~sf_worker() = default;
-
-  bool update_cfg(uint32_t cc_idx);
 
   /* Functions used by main PHY thread */
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
@@ -51,6 +52,13 @@ public:
   void     set_context(const srsran::phy_common_interface::worker_context_t& w_ctx);
   int      read_pdsch_d(cf_t* pdsch_d);
   void     start_plot();
+  void     set_cfg(const srsran::phy_cfg_nr_t& new_cfg)
+  {
+    for (unsigned i = 0, e = cc_workers.size(); i != e; ++i) {
+      update_cfg(i, new_cfg);
+    }
+    sf_len = SRSRAN_SF_LEN_PRB_NR(new_cfg.carrier.nof_prb);
+  }
 
   void set_prach(cf_t* prach_ptr, float prach_power);
 
@@ -58,6 +66,9 @@ private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp() override;
 
+  void update_cfg(uint32_t cc_idx, const srsran::phy_cfg_nr_t& new_cfg);
+
+private:
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
   srsran::phy_common_interface&                  common;
@@ -68,6 +79,7 @@ private:
   cf_t*                                          prach_ptr   = nullptr;
   float                                          prach_power = 0;
   srsran::phy_common_interface::worker_context_t context     = {};
+  uint32_t                                       sf_len      = 0;
 };
 
 } // namespace nr

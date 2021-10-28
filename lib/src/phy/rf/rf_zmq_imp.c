@@ -42,6 +42,7 @@ typedef struct {
   uint32_t base_srate;
   uint32_t decim_factor; // decimation factor between base_srate used on transport on radio's rate
   double   rx_gain;
+  double   tx_gain;
   uint32_t tx_freq_mhz[SRSRAN_MAX_CHANNELS];
   uint32_t rx_freq_mhz[SRSRAN_MAX_CHANNELS];
   bool     tx_off;
@@ -495,6 +496,12 @@ int rf_zmq_set_rx_gain_ch(void* h, uint32_t ch, double gain)
 
 int rf_zmq_set_tx_gain(void* h, double gain)
 {
+  if (h) {
+    rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
+    pthread_mutex_lock(&handler->tx_config_mutex);
+    handler->tx_gain = gain;
+    pthread_mutex_unlock(&handler->tx_config_mutex);
+  }
   return SRSRAN_SUCCESS;
 }
 
@@ -517,7 +524,14 @@ double rf_zmq_get_rx_gain(void* h)
 
 double rf_zmq_get_tx_gain(void* h)
 {
-  return 0.0;
+  float ret = NAN;
+  if (h) {
+    rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
+    pthread_mutex_lock(&handler->tx_config_mutex);
+    ret = handler->tx_gain;
+    pthread_mutex_unlock(&handler->tx_config_mutex);
+  }
+  return ret;
 }
 
 srsran_rf_info_t* rf_zmq_get_info(void* h)
@@ -673,7 +687,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
     }
 
     // return if receiver is turned off
-    if (!handler->receiver[0].running) {
+    if (!rf_zmq_rx_is_running(&handler->receiver[0])) {
       update_ts(handler, &handler->next_rx_ts, nsamples_baserate, "rx");
       return nsamples;
     }
@@ -700,7 +714,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
 
     // check for tx gap if we're also transmitting on this radio
     for (int i = 0; i < handler->nof_channels; i++) {
-      if (handler->transmitter[i].running) {
+      if (rf_zmq_tx_is_running(&handler->transmitter[i])) {
         rf_zmq_tx_align(&handler->transmitter[i], handler->next_rx_ts + nsamples_baserate);
       }
     }
@@ -716,7 +730,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
         cf_t* ptr = (decim_factor != 1 || buffers[i] == NULL) ? handler->buffer_decimation[i] : buffers[i];
 
         // Completed condition
-        if (count[i] < nsamples_baserate && handler->receiver[i].running) {
+        if (count[i] < nsamples_baserate && rf_zmq_rx_is_running(&handler->receiver[i])) {
           // Keep receiving
           int32_t n = rf_zmq_rx_baseband(&handler->receiver[i], &ptr[count[i]], nsamples_baserate);
 #if ZMQ_MONITOR
@@ -863,7 +877,16 @@ int rf_zmq_send_timed_multi(void*  h,
         }
       }
     }
+
+    // Load transmission gain
+    float tx_gain = srsran_convert_dB_to_amplitude(handler->tx_gain);
+
     pthread_mutex_unlock(&handler->tx_config_mutex);
+
+    // If the Tx gain is NAN, INF or 0.0, use 1.0
+    if (!isnormal(tx_gain)) {
+      tx_gain = 1.0f;
+    }
 
     // Protect the access to decim_factor since is a shared variable
     pthread_mutex_lock(&handler->decim_mutex);
@@ -895,7 +918,7 @@ int rf_zmq_send_timed_multi(void*  h,
       int      num_tx_gap_samples = 0;
 
       for (int i = 0; i < handler->nof_channels; i++) {
-        if (handler->transmitter[i].running) {
+        if (rf_zmq_tx_is_running(&handler->transmitter[i])) {
           num_tx_gap_samples = rf_zmq_tx_align(&handler->transmitter[i], tx_ts);
         }
       }
@@ -905,7 +928,7 @@ int rf_zmq_send_timed_multi(void*  h,
                 "[zmq] Error: tx time is %.3f ms in the past (%" PRIu64 " < %" PRIu64 ")\n",
                 -1000.0 * num_tx_gap_samples / handler->base_srate,
                 tx_ts,
-                handler->transmitter[0].nsamples);
+                (uint64_t)rf_zmq_tx_get_nsamples(&handler->transmitter[0]));
         goto clean_exit;
       }
     }
@@ -942,6 +965,11 @@ int rf_zmq_send_timed_multi(void*  h,
           }
         }
 
+        // Scale according to current gain
+        // TODO: document baseband scaling for ZMQ with gain settings, etc. before enabling
+        // srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
+
+        // Finally, transmit baseband
         int n = rf_zmq_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);
         if (n == SRSRAN_ERROR) {
           goto clean_exit;

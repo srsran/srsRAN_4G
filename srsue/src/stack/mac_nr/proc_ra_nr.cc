@@ -95,6 +95,7 @@ void proc_ra_nr::start_by_mac()
 
 bool proc_ra_nr::is_rar_opportunity(uint32_t tti)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   // TODO replace second "&&"" by rar_timeout_timer.running if timer thread safe and delayed starting (tti+3)
   if (state == WAITING_FOR_RESPONSE_RECEPTION && ra_window_start > 0 && ra_window_length > 0 &&
       mac_nr::is_in_window(tti, &ra_window_start, &ra_window_length)) {
@@ -106,6 +107,7 @@ bool proc_ra_nr::is_rar_opportunity(uint32_t tti)
 
 uint16_t proc_ra_nr::get_rar_rnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (rar_rnti == SRSRAN_INVALID_RNTI || state != WAITING_FOR_RESPONSE_RECEPTION) {
     logger.error("Requested ra rnti is invalid. Anyway we return an invalid ra rnti");
     return SRSRAN_INVALID_RNTI;
@@ -115,6 +117,7 @@ uint16_t proc_ra_nr::get_rar_rnti()
 
 bool proc_ra_nr::has_rar_rnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (rar_rnti != SRSRAN_INVALID_RNTI) {
     return true;
   }

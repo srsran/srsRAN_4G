@@ -27,8 +27,9 @@
 
 namespace srsue {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_state_) :
-  cc_idx(cc_idx_), phy(phy_state_), logger(log)
+
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_state_, const srsran::phy_cfg_nr_t& cfg) :
+  cc_idx(cc_idx_), phy(phy_state_), cfg(cfg), logger(log)
 {
   cf_t* rx_buffer_c[SRSRAN_MAX_PORTS] = {};
 
@@ -76,34 +77,35 @@ cc_worker::~cc_worker()
   }
 }
 
-bool cc_worker::update_cfg()
+void cc_worker::update_cfg(const srsran::phy_cfg_nr_t& new_config)
 {
-  if (srsran_ue_dl_nr_set_carrier(&ue_dl, &phy.cfg.carrier) < SRSRAN_SUCCESS) {
+  cfg        = new_config;
+  configured = false;
+
+  if (srsran_ue_dl_nr_set_carrier(&ue_dl, &cfg.carrier) < SRSRAN_SUCCESS) {
     ERROR("Error setting carrier");
-    return false;
+    return;
   }
 
-  if (srsran_ue_ul_nr_set_carrier(&ue_ul, &phy.cfg.carrier) < SRSRAN_SUCCESS) {
+  if (srsran_ue_ul_nr_set_carrier(&ue_ul, &cfg.carrier) < SRSRAN_SUCCESS) {
     ERROR("Error setting carrier");
-    return false;
+    return;
   }
 
-  srsran_dci_cfg_nr_t dci_cfg = phy.cfg.get_dci_cfg();
-  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &phy.cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
+  srsran_dci_cfg_nr_t dci_cfg = cfg.get_dci_cfg();
+  if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &cfg.pdcch, &dci_cfg) < SRSRAN_SUCCESS) {
     logger.error("Error setting NR PDCCH configuration");
-    return false;
+    return;
   }
 
-  srsran_ssb_cfg_t ssb_cfg = phy.cfg.get_ssb_cfg();
-  ssb_cfg.srate_hz = srsran_min_symbol_sz_rb(phy.cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy.cfg.carrier.scs);
+  srsran_ssb_cfg_t ssb_cfg = cfg.get_ssb_cfg();
+  ssb_cfg.srate_hz         = srsran_min_symbol_sz_rb(cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(cfg.carrier.scs);
   if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
     logger.error("Error setting SSB configuration");
-    return false;
+    return;
   }
 
   configured = true;
-
-  return true;
 }
 
 void cc_worker::set_tti(uint32_t tti)
@@ -164,7 +166,7 @@ void cc_worker::decode_pdcch_dl()
     }
 
     // Enqueue UL grants
-    phy.set_dl_pending_grant(dl_slot_cfg, dci_rx[i]);
+    phy.set_dl_pending_grant(cfg, dl_slot_cfg, dci_rx[i]);
   }
 
   if (logger.debug.enabled()) {
@@ -211,7 +213,7 @@ void cc_worker::decode_pdcch_ul()
     }
 
     // Enqueue UL grants
-    phy.set_ul_pending_grant(dl_slot_cfg, dci_rx[i]);
+    phy.set_ul_pending_grant(cfg, dl_slot_cfg, dci_rx[i]);
   }
 }
 
@@ -353,7 +355,7 @@ bool cc_worker::measure_csi()
     srsran_csi_trs_measurements_t meas = {};
 
     // Iterate all possible candidates
-    const std::array<bool, SRSRAN_SSB_NOF_CANDIDATES> position_in_burst = phy.cfg.ssb.position_in_burst;
+    const std::array<bool, SRSRAN_SSB_NOF_CANDIDATES>& position_in_burst = cfg.ssb.position_in_burst;
     for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
       // Skip SSB candidate if not enabled
       if (not position_in_burst[ssb_idx]) {
@@ -361,7 +363,7 @@ bool cc_worker::measure_csi()
       }
 
       // Measure SSB candidate
-      if (srsran_ssb_csi_measure(&ssb, phy.cfg.carrier.pci, ssb_idx, rx_buffer[0], &meas) < SRSRAN_SUCCESS) {
+      if (srsran_ssb_csi_measure(&ssb, cfg.carrier.pci, ssb_idx, rx_buffer[0], &meas) < SRSRAN_SUCCESS) {
         logger.error("Error measuring SSB");
         return false;
       }
@@ -372,10 +374,10 @@ bool cc_worker::measure_csi()
         logger.debug("SSB-CSI: %s", str.data());
       }
 
-      bool                 hrf      = (dl_slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs) >
-                  SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs) / 2);
+      bool                 hrf      = (dl_slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(cfg.carrier.scs) >
+                  SRSRAN_NSLOTS_PER_FRAME_NR(cfg.carrier.scs) / 2);
       srsran_pbch_msg_nr_t pbch_msg = {};
-      if (srsran_ssb_decode_pbch(&ssb, phy.cfg.carrier.pci, hrf, ssb_idx, rx_buffer[0], &pbch_msg) < SRSRAN_SUCCESS) {
+      if (srsran_ssb_decode_pbch(&ssb, cfg.carrier.pci, hrf, ssb_idx, rx_buffer[0], &pbch_msg) < SRSRAN_SUCCESS) {
         logger.error("Error decoding PBCH");
         return false;
       }
@@ -390,10 +392,10 @@ bool cc_worker::measure_csi()
         }
 
         // Check if the SFN matches
-        if (mib.sfn != dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs)) {
+        if (mib.sfn != dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(cfg.carrier.scs)) {
           logger.error("PBCH-MIB: NR SFN (%d) does not match current SFN (%d)",
                        mib.sfn,
-                       dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy.cfg.carrier.scs));
+                       dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(cfg.carrier.scs));
         }
 
         // Log MIB information
@@ -408,7 +410,7 @@ bool cc_worker::measure_csi()
       }
 
       // Report SSB candidate channel measurement to the PHY state
-      phy.new_csi_trs_measurement(meas);
+      phy.new_csi_trs_measurement(meas, cfg);
     }
   }
 
@@ -416,7 +418,7 @@ bool cc_worker::measure_csi()
   bool estimate_fft = false;
   for (uint32_t resource_set_id = 0; resource_set_id < SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS; resource_set_id++) {
     // Select NZP-CSI-RS set
-    const srsran_csi_rs_nzp_set_t& nzp_set = phy.cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
+    const srsran_csi_rs_nzp_set_t& nzp_set = cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
 
     // Skip set if not set as TRS (it will be processed later)
     if (not nzp_set.trs_info) {
@@ -448,13 +450,13 @@ bool cc_worker::measure_csi()
       logger.debug("NZP-CSI-RS (TRS): id=%d %s", resource_set_id, str.data());
     }
 
-    phy.new_csi_trs_measurement(trs_measurements, resource_set_id, (uint32_t)n);
+    phy.new_csi_trs_measurement(trs_measurements, cfg, resource_set_id, (uint32_t)n);
   }
 
   // Iterate all NZP-CSI-RS not marked as TRS and perform channel measurements
   for (uint32_t resource_set_id = 0; resource_set_id < SRSRAN_PHCH_CFG_MAX_NOF_CSI_RS_SETS; resource_set_id++) {
     // Select NZP-CSI-RS set
-    const srsran_csi_rs_nzp_set_t& nzp_set = phy.cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
+    const srsran_csi_rs_nzp_set_t& nzp_set = cfg.pdsch.nzp_csi_rs_sets[resource_set_id];
 
     // Skip set if set as TRS (it was processed previously)
     if (nzp_set.trs_info) {
@@ -487,7 +489,7 @@ bool cc_worker::measure_csi()
                  measurements.wideband_snr_db);
 
     // Report new measurement to the PHY state
-    phy.new_nzp_csi_rs_channel_measurement(measurements, resource_set_id);
+    phy.new_nzp_csi_rs_channel_measurement(cfg, measurements, resource_set_id);
   }
 
   return true;
@@ -501,7 +503,7 @@ bool cc_worker::work_dl()
   }
 
   // Check if it is a DL slot, if not skip
-  if (!srsran_duplex_nr_is_dl(&phy.cfg.duplex, 0, dl_slot_cfg.idx)) {
+  if (!srsran_duplex_nr_is_dl(&cfg.duplex, 0, dl_slot_cfg.idx)) {
     return true;
   }
 
@@ -549,7 +551,7 @@ bool cc_worker::work_ul()
   bool                  has_ul_ack = phy.get_pending_ack(ul_slot_cfg.idx, pdsch_ack);
 
   // Check if it is a UL slot, if not skip
-  if (!srsran_duplex_nr_is_ul(&phy.cfg.duplex, 0, ul_slot_cfg.idx)) {
+  if (!srsran_duplex_nr_is_ul(&cfg.duplex, 0, ul_slot_cfg.idx)) {
     // No NR signal shall be transmitted
     srsran_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
 
@@ -580,7 +582,7 @@ bool cc_worker::work_ul()
       }
     }
 
-    if (srsran_harq_ack_pack(&phy.cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
+    if (srsran_harq_ack_pack(&cfg.harq_ack, &pdsch_ack, &uci_data) < SRSRAN_SUCCESS) {
       ERROR("Filling UCI ACK bits");
       return false;
     }
@@ -588,11 +590,11 @@ bool cc_worker::work_ul()
 
   // Add SR to UCI data only if there is no UL grant!
   if (not has_pusch_grant) {
-    phy.get_pending_sr(ul_slot_cfg.idx, uci_data);
+    phy.get_pending_sr(cfg, ul_slot_cfg.idx, uci_data);
   }
 
   // Add CSI reports to UCI data if available
-  phy.get_periodic_csi(ul_slot_cfg, uci_data);
+  phy.get_periodic_csi(cfg, ul_slot_cfg, uci_data);
 
   // Setup frequency offset
   srsran_ue_ul_nr_set_freq_offset(&ue_ul, phy.get_ul_cfo());
@@ -617,7 +619,7 @@ bool cc_worker::work_ul()
     }
 
     // Set UCI configuration following procedures
-    srsran_ra_ul_set_grant_uci_nr(&phy.cfg.carrier, &phy.cfg.pusch, &uci_data.cfg, &pusch_cfg);
+    srsran_ra_ul_set_grant_uci_nr(&cfg.carrier, &cfg.pusch, &uci_data.cfg, &pusch_cfg);
 
     // Assigning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
@@ -669,14 +671,13 @@ bool cc_worker::work_ul()
   } else if (srsran_uci_nr_total_bits(&uci_data.cfg) > 0) {
     // Get PUCCH resource
     srsran_pucch_nr_resource_t resource = {};
-    if (srsran_ra_ul_nr_pucch_resource(&phy.cfg.pucch, &uci_data.cfg, &resource) < SRSRAN_SUCCESS) {
+    if (srsran_ra_ul_nr_pucch_resource(&cfg.pucch, &uci_data.cfg, &resource) < SRSRAN_SUCCESS) {
       ERROR("Selecting PUCCH resource");
       return false;
     }
 
     // Encode PUCCH message
-    if (srsran_ue_ul_nr_encode_pucch(&ue_ul, &ul_slot_cfg, &phy.cfg.pucch.common, &resource, &uci_data) <
-        SRSRAN_SUCCESS) {
+    if (srsran_ue_ul_nr_encode_pucch(&ue_ul, &ul_slot_cfg, &cfg.pucch.common, &resource, &uci_data) < SRSRAN_SUCCESS) {
       ERROR("Encoding PUCCH");
       return false;
     }

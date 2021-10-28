@@ -66,7 +66,7 @@ static int      net_port = -1; // -1 generates random dataThat means there is so
 static uint32_t cfi      = 2;
 static uint32_t mcs_idx = 1, last_mcs_idx = 1;
 static int      nof_frames              = -1;
-static srsran_tm_t transmission_mode       = SRSRAN_TM1;
+static srsran_tm_t transmission_mode    = SRSRAN_TM1;
 static uint32_t    nof_tb               = 1;
 static uint32_t    multiplex_pmi        = 0;
 static uint32_t    multiplex_nof_layers = 1;
@@ -198,7 +198,7 @@ static void parse_args(int argc, char** argv)
         mbsfn_area_id = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 's':
         output_file_snr = strtof(argv[optind], NULL);

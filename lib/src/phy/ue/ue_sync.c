@@ -967,7 +967,7 @@ int srsran_ue_sync_run_find_gnss_mode(srsran_ue_sync_t* q,
     srsran_timestamp_sub(&ts_tmp, 0, 0.001); ///< account for samples that have already been rx'ed
     align_len = srsran_timestamp_uint64(&ts_tmp, q->sf_len * 1000);
 
-    if (align_len > q->sf_len * 1000) {
+    if (align_len > (uint64_t)q->sf_len * 1000) {
       ts_next_rx.full_secs++;
       ts_next_rx.frac_secs = 0.0;
       srsran_timestamp_copy(&ts_tmp, &ts_next_rx);
@@ -1050,7 +1050,7 @@ int srsran_ue_sync_set_tti_from_timestamp(srsran_ue_sync_t* q, srsran_timestamp_
 
   // convert to ms and add fractional part
   uint64_t time_3gpp_msecs = (time_3gpp_secs + rx_timestamp->frac_secs) * MSECS_PER_SEC;
-  DEBUG("rx time with 3gpp base in ms %lu\n", time_3gpp_msecs);
+  DEBUG("rx time with 3gpp base in ms %" PRIu64 "\n", time_3gpp_msecs);
 
   // calculate SFN and SF index according to TS 36.331 Sec. 5.10.14
   q->frame_number = (uint32_t)(((uint64_t)floor(0.1 * (time_3gpp_msecs - q->sfn_offset))) % 1024);

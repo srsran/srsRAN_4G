@@ -18,6 +18,7 @@
 # integrity_algo:   Preferred integrity protection algorithm for NAS 
 #                   (supported: EIA0 (rejected by most UEs), EIA1 (default), EIA2, EIA3
 # paging_timer:     Value of paging timer in seconds (T3413)
+# request_imeisv:   Request UE's IMEI-SV in security mode command
 #
 #####################################################################
 [mme]
@@ -32,6 +33,7 @@ dns_addr = 8.8.8.8
 encryption_algo = EEA0
 integrity_algo = EIA1
 paging_timer = 2
+request_imeisv = false
 
 #####################################################################
 # HSS configuration

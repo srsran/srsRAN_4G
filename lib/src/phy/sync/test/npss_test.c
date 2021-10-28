@@ -54,7 +54,7 @@ void parse_args(int argc, char** argv)
         input_len = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose = SRSRAN_VERBOSE_DEBUG;
+        set_srsran_verbose_level(SRSRAN_VERBOSE_DEBUG);
         break;
       default:
         usage(argv[0]);

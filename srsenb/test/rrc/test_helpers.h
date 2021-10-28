@@ -149,7 +149,7 @@ public:
   }
   void enable_integrity(uint16_t rnti, uint32_t lcid) override { bearers[rnti][lcid].enable_integrity = true; }
   void enable_encryption(uint16_t rnti, uint32_t lcid) override { bearers[rnti][lcid].enable_encryption = true; }
-  void config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg_) override
+  void config_security(uint16_t rnti, uint32_t lcid, const srsran::as_security_config_t& sec_cfg_) override
   {
     bearers[rnti][lcid].sec_cfg = sec_cfg_;
   }

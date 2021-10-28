@@ -123,7 +123,7 @@ int main(int argc, char** argv)
       ERROR("Error receiving samples");
       exit(-1);
     }
-    if (srsran_verbose == SRSRAN_VERBOSE_INFO) {
+    if (get_srsran_verbose_level() == SRSRAN_VERBOSE_INFO) {
       printf("Received %d samples from radio\n", n);
     }
 
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
         print_cnt = 0;
       }
     } else {
-      if (srsran_verbose == SRSRAN_VERBOSE_INFO) {
+      if (get_srsran_verbose_level() == SRSRAN_VERBOSE_INFO) {
         printf("Transmitted %d bytes to ZMQ\n", n);
       }
     }
@@ -239,7 +239,7 @@ static void parse_args(int argc, char** argv)
         rf_freq = strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'z':
         zmq_args = argv[optind];

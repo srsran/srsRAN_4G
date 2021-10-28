@@ -231,7 +231,7 @@ pbch_nr_pbch_msg_pack(const srsran_pbch_nr_cfg_t* cfg, const srsran_pbch_msg_nr_
     a[G[13]] = 0;                       // Reserved
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PBCH_NR_DEBUG_TX("Packed PBCH bits: ");
     srsran_vec_fprint_byte(stdout, a, PBCH_NR_A);
   }
@@ -239,7 +239,7 @@ pbch_nr_pbch_msg_pack(const srsran_pbch_nr_cfg_t* cfg, const srsran_pbch_msg_nr_
 static void
 pbch_nr_pbch_msg_unpack(const srsran_pbch_nr_cfg_t* cfg, const uint8_t a[PBCH_NR_A], srsran_pbch_msg_nr_t* msg)
 {
-  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PBCH_NR_DEBUG_RX("Packed PBCH bits: ");
     srsran_vec_fprint_byte(stdout, a, PBCH_NR_A);
   }
@@ -339,7 +339,7 @@ static int pbch_nr_polar_encode(srsran_pbch_nr_t* q, const uint8_t c[PBCH_NR_K],
     return SRSRAN_ERROR;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PBCH_NR_DEBUG_TX("Allocated: ");
     srsran_vec_fprint_byte(stdout, allocated, PBCH_NR_N);
   }
@@ -356,7 +356,7 @@ static int pbch_nr_polar_decode(srsran_pbch_nr_t* q, const int8_t d[PBCH_NR_N], 
     return SRSRAN_ERROR;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PBCH_NR_DEBUG_RX("Allocated: ");
     srsran_vec_fprint_byte(stdout, allocated, PBCH_NR_N);
   }
@@ -378,7 +378,7 @@ static int pbch_nr_polar_rm_tx(srsran_pbch_nr_t* q, const uint8_t d[PBCH_NR_N], 
     return SRSRAN_ERROR;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PBCH_NR_DEBUG_TX("d: ");
     srsran_vec_fprint_byte(stdout, d, PBCH_NR_N);
   }
@@ -398,7 +398,7 @@ static int pbch_nr_polar_rm_rx(srsran_pbch_nr_t* q, const int8_t llr[PBCH_NR_E],
     d[i] *= -1;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PBCH_NR_DEBUG_RX("d: ");
     srsran_vec_fprint_bs(stdout, d, PBCH_NR_N);
   }
@@ -506,7 +506,7 @@ pbch_nr_mapping(const srsran_pbch_nr_cfg_t* cfg, const cf_t symbols[PBCH_NR_M], 
     ssb_grid[3 * SRSRAN_SSB_BW_SUBC + k] = symbols[count++];
   }
 
-  //  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  //  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
   //    PBCH_NR_DEBUG_TX("Symbols: ");
   //    srsran_vec_fprint_c(stdout, symbols, PBCH_NR_M);
   //  }
@@ -558,7 +558,7 @@ pbch_nr_demapping(const srsran_pbch_nr_cfg_t* cfg, const cf_t ssb_grid[SRSRAN_SS
     symbols[count++] = ssb_grid[3 * SRSRAN_SSB_BW_SUBC + k];
   }
 
-  //  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  //  if (srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
   //    PBCH_NR_DEBUG_RX("Symbols: ");
   //    srsran_vec_fprint_c(stdout, symbols, PBCH_NR_M);
   //  }

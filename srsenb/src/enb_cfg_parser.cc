@@ -1446,23 +1446,77 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
  * the PHY configuration is also updated accordingly.
  *
  * @param args_
- * @param nr_rrc_cfg
+ * @param nr_rrc_cfg_
  * @param phy_cfg_
  * @return int
  */
-int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
+int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_)
 {
+  // set rach cfg common
+  auto& rach_cfg_common  = rrc_nr_cfg_->rach_cfg_common;
+  auto& rach_cfg_generic = rach_cfg_common.rach_cfg_generic;
+
+  uint8_t msg1_fdm = 1; // TODO read from config
+  if (!asn1::number_to_enum(rach_cfg_generic.msg1_fdm, msg1_fdm)) {
+    ERROR("Config Error: Invalid msg1_fdm (%d)\n", msg1_fdm);
+    return SRSRAN_ERROR;
+  }
+
+  rach_cfg_generic.preamb_rx_target_pwr = -110; // TODO read from config
+
+  uint8_t preamb_trans_max = 7; // TODO read from config
+  if (!asn1::number_to_enum(rach_cfg_generic.preamb_trans_max, preamb_trans_max)) {
+    ERROR("Config Error: Invalid preamble_trans_max (%d)\n", preamb_trans_max);
+    return SRSRAN_ERROR;
+  }
+
+  uint8_t pwr_ramp_step = 4; // TODO read from config
+  if (!asn1::number_to_enum(rach_cfg_generic.pwr_ramp_step, pwr_ramp_step)) {
+    ERROR("Config Error: Invalid pwr_ramp_step (%d)\n", pwr_ramp_step);
+    return SRSRAN_ERROR;
+  }
+
+  uint8_t ra_resp_win_size = 10; // TODO read from config
+  if (!asn1::number_to_enum(rach_cfg_generic.ra_resp_win, ra_resp_win_size)) {
+    ERROR("Config Error: Invalid ra_resp_win_size (%d)\n", ra_resp_win_size);
+    return SRSRAN_ERROR;
+  }
+
+  uint8_t ra_contention_resolution_timer = 64; // TODO read from config
+  if (!asn1::number_to_enum(rach_cfg_common.ra_contention_resolution_timer, ra_contention_resolution_timer)) {
+    ERROR("Config Error: Invalid mac_con_res_timer (%d)\n", ra_contention_resolution_timer);
+    return SRSRAN_ERROR;
+  }
+
+  rrc_nr_cfg_->prach_root_seq_idx_type = 839; // TODO read from config
+
+  std::string restricted_set_cfg = "unrestrictedSet"; // TODO read from config
+  asn1::rrc_nr::rach_cfg_common_s::prach_root_seq_idx_c_::types_opts root_seq_idx_type;
+  if (!asn1::string_to_enum(rach_cfg_common.restricted_set_cfg, restricted_set_cfg)) {
+    ERROR("Config Error: Invalid restricted_set_cfg (%s)\n", restricted_set_cfg.c_str());
+    return SRSRAN_ERROR;
+  }
+
+  rach_cfg_common.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  rach_cfg_common.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(); // TODO read from config
+
+  uint8_t one_opts = 64; // TODO read from config
+  if (!asn1::number_to_enum(rach_cfg_common.ssb_per_rach_occasion_and_cb_preambs_per_ssb.one(), one_opts)) {
+    ERROR("Config Error: Invalid one_opts (%d)\n", one_opts);
+    return SRSRAN_ERROR;
+  }
+
   // Use helper class to derive NR carrier parameters
   srsran::srsran_band_helper band_helper;
 
   // we only support one NR cell
-  if (rrc_cfg_->cell_list.size() > 1) {
+  if (rrc_nr_cfg_->cell_list.size() > 1) {
     ERROR("Only a single NR cell supported.");
     return SRSRAN_ERROR;
   }
 
   // Create NR dedicated cell configuration from RRC configuration
-  for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {
+  for (auto it = rrc_nr_cfg_->cell_list.begin(); it != rrc_nr_cfg_->cell_list.end(); ++it) {
     auto& cfg                            = *it;
     cfg.phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
 
@@ -1506,7 +1560,7 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
 
     // PRACH
     cfg.phy_cell.prach.is_nr                 = true;
-    cfg.phy_cell.prach.config_idx            = 0;
+    cfg.phy_cell.prach.config_idx            = 8;
     cfg.phy_cell.prach.root_seq_idx          = 0;
     cfg.phy_cell.prach.freq_offset           = 1;
     cfg.phy_cell.prach.num_ra_preambles      = cfg.phy_cell.num_ra_preambles;
@@ -1545,6 +1599,10 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_cfg_, phy_cfg_t* ph
     cfg.phy_cell.pdcch.ra_search_space_present = true;
     cfg.phy_cell.pdcch.ra_search_space         = cfg.phy_cell.pdcch.search_space[1];
     cfg.phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
+
+    // PDSCH
+    cfg.phy_cell.pdsch.rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
+    cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;
 
     // copy center frequencies
     cfg.phy_cell.carrier.dl_center_frequency_hz = cfg.phy_cell.dl_freq_hz;

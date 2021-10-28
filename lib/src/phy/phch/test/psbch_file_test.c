@@ -98,7 +98,7 @@ void parse_args(int argc, char** argv)
         }
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -165,7 +165,7 @@ int main(int argc, char** argv)
   }
 
   srsran_chest_sl_t psbch_chest;
-  if (srsran_chest_sl_init(&psbch_chest, SRSRAN_SIDELINK_PSBCH, cell, sl_comm_resource_pool) != SRSRAN_SUCCESS) {
+  if (srsran_chest_sl_init(&psbch_chest, SRSRAN_SIDELINK_PSBCH, cell, &sl_comm_resource_pool) != SRSRAN_SUCCESS) {
     ERROR("Error in chest PSBCH init");
     return SRSRAN_ERROR;
   }

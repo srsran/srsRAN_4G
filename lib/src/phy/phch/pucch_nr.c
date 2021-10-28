@@ -652,7 +652,7 @@ static int pucch_nr_format2_decode(srsran_pucch_nr_t*                  q,
     }
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     INFO("d=");
     srsran_vec_fprint_c(stdout, q->d, resource->nof_symbols * resource->nof_prb * (SRSRAN_NRE - 4));
     INFO("ce=");

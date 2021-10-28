@@ -95,7 +95,7 @@ void parse_args(int argc, char** argv)
         mbsfn_area_id = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'e':
         cell.cp = SRSRAN_CP_EXT;

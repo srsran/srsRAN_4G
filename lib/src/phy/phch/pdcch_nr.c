@@ -330,9 +330,9 @@ static int pdcch_nr_cce_to_reg_mapping_non_interleaved(const srsran_coreset_t*  
                                                        const srsran_dci_location_t* dci_location,
                                                        bool                         rb_mask[SRSRAN_MAX_PRB_NR])
 {
-  uint32_t nof_cce             = 1U << dci_location->L;
-  uint32_t L                   = 6;
-  uint32_t nof_reg_bundle      = 6 / L;
+  uint32_t nof_cce        = 1U << dci_location->L;
+  uint32_t L              = 6;
+  uint32_t nof_reg_bundle = 6 / L;
 
   // For each CCE j in the PDCCH transmission
   for (uint32_t j = dci_location->ncce; j < dci_location->ncce + nof_cce; j++) {
@@ -373,8 +373,8 @@ static int pdcch_nr_cce_to_reg_mapping_interleaved(const srsran_coreset_t*      
     return 0;
   }
 
-  uint32_t nof_cce             = 1U << dci_location->L;
-  uint32_t nof_reg_bundle      = 6 / L;
+  uint32_t nof_cce        = 1U << dci_location->L;
+  uint32_t nof_reg_bundle = 6 / L;
 
   // For each CCE j in the PDCCH transmission
   for (uint32_t j = dci_location->ncce; j < dci_location->ncce + nof_cce; j++) {
@@ -530,7 +530,7 @@ int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_
   srsran_polar_interleaver_run_u8(c, c_prime, q->K, true);
 
   // Print c and c_prime (after interleaving)
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     PDCCH_INFO_TX("c=");
     srsran_vec_fprint_hex(stdout, c, q->K);
     PDCCH_INFO_TX("c_prime=");
@@ -546,7 +546,7 @@ int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_
   }
 
   // Print d
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     PDCCH_INFO_TX("d=");
     srsran_vec_fprint_byte(stdout, q->d, q->code.N);
   }
@@ -573,7 +573,7 @@ int srsran_pdcch_nr_encode(srsran_pdcch_nr_t* q, const srsran_dci_msg_nr_t* dci_
     q->meas_time_us = (uint32_t)t[0].tv_usec;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     char str[128] = {};
     srsran_pdcch_nr_info(q, NULL, str, sizeof(str));
     PDCCH_INFO_TX("%s", str);
@@ -622,7 +622,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   }
 
   // Print channel estimates if enabled
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PDCCH_DEBUG_RX("ce=");
     srsran_vec_fprint_c(stdout, ce->ce, q->M);
   }
@@ -631,7 +631,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   srsran_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, q->M, 1.0f, ce->noise_var);
 
   // Print symbols if enabled
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PDCCH_DEBUG_RX("symbols=");
     srsran_vec_fprint_c(stdout, q->symbols, q->M);
   }
@@ -662,7 +662,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   }
 
   // Print d
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     PDCCH_DEBUG_RX("d=");
     srsran_vec_fprint_bs(stdout, d, q->K);
   }
@@ -685,7 +685,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   srsran_polar_interleaver_run_u8(c_prime, c, q->K, false);
 
   // Print c
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     PDCCH_INFO_RX("c_prime=");
     srsran_vec_fprint_hex(stdout, c_prime, q->K);
     PDCCH_INFO_RX("c=");
@@ -706,7 +706,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
   uint32_t checksum2 = srsran_bit_pack(&ptr, 24);
   res->crc           = checksum1 == checksum2;
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     PDCCH_INFO_RX("CRC={%06x, %06x}; msg=", checksum1, checksum2);
     srsran_vec_fprint_hex(stdout, c, dci_msg->nof_bits);
   }
@@ -720,7 +720,7 @@ int srsran_pdcch_nr_decode(srsran_pdcch_nr_t*      q,
     q->meas_time_us = (uint32_t)t[0].tv_usec;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     char str[128] = {};
     srsran_pdcch_nr_info(q, res, str, sizeof(str));
     PDCCH_INFO_RX("%s", str);

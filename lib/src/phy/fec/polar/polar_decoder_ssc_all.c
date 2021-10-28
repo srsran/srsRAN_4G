@@ -140,7 +140,7 @@ int compute_node_type(void*           p,
   }
   uint16_t code_stage_size = 0;
   uint16_t code_size_log_s = 0;
-  for (s = 1; s < code_size_log + 1; s++) {
+  for (s = 1; s < (uint8_t)(code_size_log + 1); s++) {
     code_size_log_s = code_size_log - s;
     code_stage_size = (1U << code_size_log_s);
     for (uint16_t j = 0; j < code_stage_size; j++) {

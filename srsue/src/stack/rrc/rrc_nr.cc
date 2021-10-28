@@ -1335,8 +1335,8 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   current_phycfg.csi                  = prev_csi;
   phy->set_config(current_phycfg);
 
-  // Start RA procedure
-  mac->start_ra_procedure();
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
+
   return true;
 }
 
@@ -1456,17 +1456,11 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
       case ciphering_algorithm_e::nea0:
         sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
         break;
-      case ciphering_algorithm_e::nea1:
-        sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA1;
-        break;
-      case ciphering_algorithm_e::nea2:
-        sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA2;
-        break;
-      case ciphering_algorithm_e::nea3:
-        sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA3;
-        break;
       default:
-        logger.warning("Unsupported algorithm %s", security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+        logger.error("Ciphering not supported by PDCP-NR at the moment %s. Requested algorithm=%s",
+                     security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+        srsran::console("Ciphering not supported by PDCP-NR at the moment. Requested algorithm=%s\n",
+                        security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
         return false;
     }
 
@@ -1475,18 +1469,11 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
         case integrity_prot_algorithm_e::nia0:
           sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
           break;
-        case integrity_prot_algorithm_e::nia1:
-          sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA1;
-          break;
-        case integrity_prot_algorithm_e::nia2:
-          sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA2;
-          break;
-        case integrity_prot_algorithm_e::nia3:
-          sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA3;
-          break;
         default:
-          logger.warning("Unsupported algorithm %s",
-                         security_cfg.security_algorithm_cfg.integrity_prot_algorithm.to_string());
+          logger.error("Integrity protection not supported by PDCP-NR at the moment. Requested algorithm=%s.",
+                       security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
+          srsran::console("Integrity protection not supported by PDCP-NR at the moment. Requested algorithm %s.\n",
+                          security_cfg.security_algorithm_cfg.ciphering_algorithm.to_string());
           return false;
       }
     }
@@ -1535,6 +1522,7 @@ void rrc_nr::ra_completed()
 {
   logger.info("RA completed. Applying remaining CSI configuration.");
   phy->set_config(phy_cfg);
+  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
 }
 void rrc_nr::ra_problem()
 {
@@ -1546,6 +1534,24 @@ void rrc_nr::release_pucch_srs() {}
 // STACK interface
 void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell)
 {}
+
+void rrc_nr::set_phy_config_complete(bool status)
+{
+  switch (phy_cfg_state) {
+    case PHY_CFG_STATE_NONE:
+      logger.warning("PHY configuration completed without a clear state.");
+      break;
+    case PHY_CFG_STATE_APPLY_SP_CELL:
+      // Start RA procedure
+      logger.info("PHY configuration completed. Starting RA procedure.");
+      mac->start_ra_procedure();
+      break;
+    case PHY_CFG_STATE_RA_COMPLETED:
+      logger.info("Remaining CSI configuration completed.");
+      break;
+  }
+  phy_cfg_state = PHY_CFG_STATE_NONE;
+}
 
 /* Procedures */
 rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_), initiator(nr) {}

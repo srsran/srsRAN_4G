@@ -826,9 +826,9 @@ void srsran_vec_interleave_add(const cf_t* x, const cf_t* y, cf_t* z, const int 
   srsran_vec_interleave_add_simd(x, y, z, len);
 }
 
-void srsran_vec_gen_sine(cf_t amplitude, float freq, cf_t* z, int len)
+cf_t srsran_vec_gen_sine(cf_t amplitude, float freq, cf_t* z, int len)
 {
-  srsran_vec_gen_sine_simd(amplitude, freq, z, len);
+  return srsran_vec_gen_sine_simd(amplitude, freq, z, len);
 }
 
 void srsran_vec_apply_cfo(const cf_t* x, float cfo, cf_t* z, int len)

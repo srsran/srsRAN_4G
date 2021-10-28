@@ -68,7 +68,7 @@ void parse_args(int argc, char** argv)
         output_matlab = argv[optind];
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -146,7 +146,7 @@ int main(int argc, char** argv)
       for (uint32_t n_port = 0; n_port < cell.nof_ports; n_port++) {
         srsran_vec_cf_zero(input, num_re);
         for (i = 0; i < num_re; i++) {
-          input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - rand() / RAND_MAX);
+          input[i] = 0.5 - rand() / (float)RAND_MAX + I * (0.5 - rand() / (float)RAND_MAX);
         }
 
         srsran_vec_cf_zero(ce, num_re);
@@ -172,7 +172,7 @@ int main(int argc, char** argv)
 
       struct timeval t[3];
       gettimeofday(&t[1], NULL);
-      for (int j = 0; j < 100; j++) {
+      for (int k = 0; k < 100; k++) {
         srsran_chest_dl_estimate(&est, &sf_cfg, input_m, &res);
       }
       gettimeofday(&t[2], NULL);
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
       printf("CHEST: %f us\n", (float)t[0].tv_usec / 100);
 
       gettimeofday(&t[1], NULL);
-      for (int j = 0; j < 100; j++) {
+      for (int k = 0; k < 100; k++) {
         srsran_predecoding_single(input, ce, output, NULL, num_re, 1.0f, 0);
       }
       gettimeofday(&t[2], NULL);
@@ -195,7 +195,7 @@ int main(int argc, char** argv)
       printf("MSE: %f\n", mse);
 
       gettimeofday(&t[1], NULL);
-      for (int j = 0; j < 100; j++) {
+      for (int k = 0; k < 100; k++) {
         srsran_predecoding_single(input, ce, output, NULL, num_re, 1.0f, res.noise_estimate);
       }
       gettimeofday(&t[2], NULL);

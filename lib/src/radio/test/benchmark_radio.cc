@@ -155,7 +155,7 @@ void parse_args(int argc, char** argv)
         fft_plot_enable ^= true;
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'h':
       default:

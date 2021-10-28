@@ -463,7 +463,7 @@ static inline int sch_nr_encode(srsran_sch_nr_t*        q,
 
   // Calculate TB CRC
   uint32_t checksum_tb = srsran_crc_checksum_byte(crc_tb, data, tb->tbs);
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("tb=");
     srsran_vec_fprint_byte(stdout, data, tb->tbs / 8);
   }
@@ -498,7 +498,7 @@ static inline int sch_nr_encode(srsran_sch_nr_t*        q,
         srsran_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
       }
 
-      if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+      if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
         DEBUG("cb%d=", r);
         srsran_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
       }
@@ -519,7 +519,7 @@ static inline int sch_nr_encode(srsran_sch_nr_t*        q,
       // Encode code block
       srsran_ldpc_encoder_encode(encoder, q->temp_cb, rm_buffer, cfg.Kr);
 
-      if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+      if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
         DEBUG("encoded=");
         srsran_vec_fprint_b(stdout, rm_buffer, encoder->liftN - 2 * encoder->ls);
       }
@@ -677,7 +677,7 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     SCH_INFO_RX("CB %d/%d iter=%d CRC=%s", r, cfg.C, n_iter_cb, tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
 
     // CB Debug trace
-    if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+    if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
       DEBUG("CB %d/%d:", r, cfg.C);
       srsran_vec_fprint_hex(stdout, q->temp_cb, cb_len);
     }
@@ -740,7 +740,7 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
     SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_DEBUG && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_DEBUG && !is_handler_registered()) {
     DEBUG("Decode: ");
     srsran_vec_fprint_byte(stdout, res->payload, tb->tbs / 8);
   }

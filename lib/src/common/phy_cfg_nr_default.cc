@@ -398,7 +398,7 @@ void phy_cfg_nr_default_t::make_harq_auto(srsran_harq_ack_cfg_hl_t&        harq,
 void phy_cfg_nr_default_t::make_prach_default_lte(srsran_prach_cfg_t& prach)
 {
   prach.is_nr            = true;
-  prach.config_idx       = 0;
+  prach.config_idx       = 8;
   prach.root_seq_idx     = 0;
   prach.zero_corr_zone   = 0;
   prach.freq_offset      = 4;

@@ -35,7 +35,7 @@ public:
   virtual void reset()                                                                                              = 0;
   virtual void set_enabled(uint32_t lcid, bool enabled)                                                             = 0;
   virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1)                              = 0;
-  virtual int  add_bearer(uint32_t lcid, srsran::pdcp_config_t cnfg)                                                = 0;
+  virtual int  add_bearer(uint32_t lcid, const srsran::pdcp_config_t& cnfg)                                         = 0;
   virtual void del_bearer(uint32_t lcid)                                                                            = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
   virtual void config_security(uint32_t lcid, const srsran::as_security_config_t& sec_cfg)                          = 0;

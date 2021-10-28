@@ -30,6 +30,18 @@ if(RF_FOUND)
             tx_port=tcp://*:2000,rx_port=tcp://localhost:2000\;tx_port=tcp://*:2001,rx_port=tcp://localhost:2001\;tx_port=tcp://*:2002,rx_port=tcp://localhost:2002\;tx_port=tcp://*:2003,rx_port=tcp://localhost:2003\;
             -p 4)
   endif (ZEROMQ_FOUND)
+
+  add_executable(test_radio_rt_gain test_radio_rt_gain.cc)
+  target_link_libraries(test_radio_rt_gain
+          srsran_common
+          srsran_phy
+          srsran_radio
+          ${CMAKE_THREAD_LIBS_INIT}
+          ${Boost_LIBRARIES})
+  if (ZEROMQ_FOUND)
+    add_test(test_radio_rt_gain_zmq test_radio_rt_gain --srate=3.84e6 --dev_name=zmq --dev_args=tx_port=ipc:///tmp/test_radio_rt_gain_zmq,rx_port=ipc:///tmp/test_radio_rt_gain_zmq,base_srate=3.84e6)
+  endif (ZEROMQ_FOUND)
+
 endif(RF_FOUND)
 
 

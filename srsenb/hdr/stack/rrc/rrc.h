@@ -140,6 +140,7 @@ public:
   void sgnb_addition_ack(uint16_t eutra_rnti, const sgnb_addition_ack_params_t params) override;
   void sgnb_addition_reject(uint16_t eutra_rnti) override;
   void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) override;
+  void sgnb_inactivity_timeout(uint16_t eutra_rnti) override;
   void sgnb_release_ack(uint16_t eutra_rnti) override;
 
   // rrc_interface_pdcp

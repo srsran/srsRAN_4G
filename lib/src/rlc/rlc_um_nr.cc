@@ -58,10 +58,11 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
     return false;
   }
 
-  logger.info("%s configured in %s: sn_field_length=%u bits",
+  logger.info("%s configured in %s: sn_field_length=%u bits, t_reassembly=%d ms",
               rb_name.c_str(),
               srsran::to_string(cnfg_.rlc_mode),
-              srsran::to_number(cfg.um_nr.sn_field_length));
+              srsran::to_number(cfg.um_nr.sn_field_length),
+              cfg.um_nr.t_reassembly_ms);
 
   rx_enabled = true;
   tx_enabled = true;
@@ -93,8 +94,13 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::get_buffer_state()
   }
 
   // Room needed for fixed header?
-  if (n_bytes > 0)
+  if (n_bytes > 0) {
     n_bytes += (cfg.um.is_mrb) ? 2 : 3;
+  }
+
+  if (bsr_callback) {
+    bsr_callback(parent->get_lcid(), n_bytes, 0);
+  }
 
   return n_bytes;
 }
@@ -208,7 +214,12 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8
   srsran_expect(
       ret <= nof_bytes, "Error while packing MAC PDU (more bytes written (%d) than expected (%d)!", ret, nof_bytes);
 
-  logger.info(payload, ret, "%s Tx PDU SN=%d (%d B)", rb_name.c_str(), header.sn, pdu->N_bytes);
+  if (header.si == rlc_nr_si_field_t::full_sdu) {
+    // log without SN
+    logger.info(payload, ret, "%s Tx PDU (%d B)", rb_name.c_str(), pdu->N_bytes);
+  } else {
+    logger.info(payload, ret, "%s Tx PDU SN=%d (%d B)", rb_name.c_str(), header.sn, pdu->N_bytes);
+  }
 
   debug_state();
 
@@ -317,8 +328,8 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 
     // check start of t_reassembly
     if (RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1) ||
-        (RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
-         has_missing_byte_segment(RX_Next_Reassembly))) {
+        ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
+          has_missing_byte_segment(RX_Next_Reassembly)))) {
       reassembly_timer.run();
       RX_Timer_Trigger = RX_Next_Highest;
     }
@@ -364,7 +375,7 @@ bool rlc_um_nr::rlc_um_nr_rx::has_missing_byte_segment(const uint32_t sn)
 {
   // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
   // all received segments of this RLC SDU
-  return true;
+  return (rx_window.find(sn) != rx_window.end());
 }
 
 // Sect 5.2.2.2.3
@@ -419,9 +430,12 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
 
             // find next SN in rx buffer
             if (sn == RX_Next_Reassembly) {
-              RX_Next_Reassembly = ((RX_Next_Reassembly + 1) % mod);
-              while (RX_MOD_NR_BASE(RX_Next_Reassembly) < RX_MOD_NR_BASE(RX_Next_Highest)) {
-                RX_Next_Reassembly = (RX_Next_Reassembly + 1) % mod;
+              for (auto it = rx_window.begin(); it != rx_window.end(); ++it) {
+                logger.debug("SN=%d has %zd segments", it->first, it->second.segments.size());
+                if (RX_MOD_NR_BASE(it->first) > RX_MOD_NR_BASE(RX_Next_Reassembly)) {
+                  RX_Next_Reassembly = it->first;
+                  break;
+                }
               }
               logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
             }
@@ -530,10 +544,13 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
     // check if this SN is already present in rx buffer
     if (rx_window.find(header.sn) == rx_window.end()) {
       // first received segment of this SN, add to rx buffer
-      logger.info("%s placing %s segment of SN=%d in Rx buffer",
+      logger.info(rx_pdu.buf->msg,
+                  rx_pdu.buf->N_bytes,
+                  "%s placing %s segment of SN=%d (%d B) in Rx buffer",
                   rb_name.c_str(),
                   to_string_short(header.si).c_str(),
-                  header.sn);
+                  header.sn,
+                  rx_pdu.buf->N_bytes);
       rlc_umd_pdu_segments_nr_t pdu_segments = {};
       update_total_sdu_length(pdu_segments, rx_pdu);
       pdu_segments.segments.emplace(header.so, std::move(rx_pdu));

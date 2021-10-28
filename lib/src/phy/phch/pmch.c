@@ -291,9 +291,7 @@ int srsran_pmch_decode(srsran_pmch_t*         q,
                        cf_t*                  sf_symbols[SRSRAN_MAX_PORTS],
                        srsran_pdsch_res_t*    out)
 {
-  /* Set pointers for layermapping & precoding */
   uint32_t i, n;
-  cf_t*    x[SRSRAN_MAX_LAYERS];
 
   if (q != NULL && sf_symbols != NULL && out != NULL && cfg != NULL) {
     INFO("Decoding PMCH SF: %d, MBSFN area ID: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, "
@@ -307,12 +305,6 @@ int srsran_pmch_decode(srsran_pmch_t*         q,
          0,
          cfg->pdsch_cfg.grant.nof_prb,
          sf->cfi);
-
-    /* number of layers equals number of ports */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->x[i];
-    }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSRAN_MAX_LAYERS - q->cell.nof_ports));
 
     uint32_t lstart = SRSRAN_NOF_CTRL_SYMBOLS(q->cell, sf->cfi);
     for (int j = 0; j < q->nof_rx_antennas; j++) {
@@ -384,6 +376,7 @@ int srsran_pmch_decode(srsran_pmch_t*         q,
 void srsran_configure_pmch(srsran_pmch_cfg_t* pmch_cfg, srsran_cell_t* cell, srsran_mbsfn_cfg_t* mbsfn_cfg)
 {
   pmch_cfg->area_id                       = 1;
+  pmch_cfg->pdsch_cfg.rnti                = SRSRAN_MRNTI;
   pmch_cfg->pdsch_cfg.grant.nof_layers    = 1;
   pmch_cfg->pdsch_cfg.grant.nof_prb       = cell->nof_prb;
   pmch_cfg->pdsch_cfg.grant.tb[0].mcs_idx = mbsfn_cfg->mbsfn_mcs;
@@ -410,9 +403,7 @@ int srsran_pmch_encode(srsran_pmch_t*      q,
                        cf_t*               sf_symbols[SRSRAN_MAX_PORTS])
 {
   int i;
-  /* Set pointers for layermapping & precoding */
-  cf_t* x[SRSRAN_MAX_LAYERS];
-  int   ret = SRSRAN_ERROR_INVALID_INPUTS;
+  int ret = SRSRAN_ERROR_INVALID_INPUTS;
   if (q != NULL && cfg != NULL) {
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (sf_symbols[i] == NULL) {
@@ -439,12 +430,6 @@ int srsran_pmch_encode(srsran_pmch_t*      q,
          cfg->pdsch_cfg.grant.nof_re,
          cfg->pdsch_cfg.grant.tb[0].nof_bits,
          0);
-
-    /* number of layers equals number of ports */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->x[i];
-    }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSRAN_MAX_LAYERS - q->cell.nof_ports));
 
     // TODO: use tb_encode directly
     if (srsran_dlsch_encode(&q->dl_sch, &cfg->pdsch_cfg, data, q->e)) {

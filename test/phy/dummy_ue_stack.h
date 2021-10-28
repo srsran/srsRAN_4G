@@ -132,6 +132,11 @@ public:
   bool is_valid() const { return valid; }
 
   metrics_t get_metrics() { return metrics; }
+
+  void set_phy_config_complete(bool status) override
+  {
+
+  }
 };
 
 #endif // SRSRAN_DUMMY_UE_STACK_H

@@ -62,7 +62,7 @@ void parse_args(int argc, char** argv)
         seed = (uint32_t)strtoul(argv[optind], NULL, 0);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     data[i] = rand() % 2;
   }
 
-  if (SRSRAN_DEBUG_ENABLED && srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     INFO("data=");
     srsran_vec_fprint_b(stdout, data, num_bits);
   }

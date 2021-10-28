@@ -186,11 +186,13 @@ int mac::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t* cfg)
   ue_ptr->start_ta();
 
   // Update Scheduler configuration
-  if (scheduler.ue_cfg(rnti, *cfg) == SRSRAN_ERROR) {
-    logger.error("Registering UE rnti=0x%x to SCHED", rnti);
-    return SRSRAN_ERROR;
+  if (cfg) {
+    if (scheduler.ue_cfg(rnti, *cfg) == SRSRAN_ERROR) {
+      logger.error("Registering UE rnti=0x%x to SCHED", rnti);
+      return SRSRAN_ERROR;
+    }
+    ue_ptr->ue_cfg(*cfg);
   }
-  ue_ptr->ue_cfg(*cfg);
 
   return SRSRAN_SUCCESS;
 }
@@ -993,9 +995,11 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length     = mcch_payload_length;
-  std::unique_ptr<ue> ptr = std::unique_ptr<ue>{
-      new ue(SRSRAN_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get())};
-  auto ret = ue_db.insert(SRSRAN_MRNTI, std::move(ptr));
+
+  unique_rnti_ptr<ue> ue_ptr = make_rnti_obj<ue>(
+      SRSRAN_MRNTI, SRSRAN_MRNTI, 0, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get());
+
+  auto ret = ue_db.insert(SRSRAN_MRNTI, std::move(ue_ptr));
   if (!ret) {
     logger.info("Failed to allocate rnti=0x%x.for eMBMS", SRSRAN_MRNTI);
   }

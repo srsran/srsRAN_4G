@@ -95,6 +95,13 @@ public:
   virtual void sgnb_addition_complete(uint16_t eutra_rnti, uint16_t nr_rnti) = 0;
 
   /**
+   * @brief Signal timeout for inactivity or MSG5 timers
+   *
+   * @param eutra_rnti The RNTI that the EUTRA RRC used to request the SgNB addition
+   */
+  virtual void sgnb_inactivity_timeout(uint16_t eutra_rnti) = 0;
+
+  /**
    * @brief Signal release of all UE resources on the NR cell
    *
    * @param eutra_rnti The RNTI that the EUTRA RRC used to request the SgNB addition

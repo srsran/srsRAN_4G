@@ -163,8 +163,10 @@ public:
                         const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                         uint32_t                              nof_pdu_elems,
                         uint32_t                              grant_size);
-  uint8_t*
-  generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
+  uint8_t* generate_mch_pdu(uint32_t                             harq_pid,
+                            const sched_interface::dl_pdu_mch_t& sched,
+                            uint32_t                             nof_pdu_elems,
+                            uint32_t                             grant_size);
 
   srsran_softbuffer_tx_t* get_tx_softbuffer(uint32_t enb_cc_idx, uint32_t harq_process, uint32_t tb_idx);
   srsran_softbuffer_rx_t* get_rx_softbuffer(uint32_t enb_cc_idx, uint32_t tti);

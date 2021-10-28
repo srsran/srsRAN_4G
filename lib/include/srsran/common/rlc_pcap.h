@@ -33,7 +33,7 @@ class rlc_pcap
 public:
   rlc_pcap() {}
   void enable(bool en);
-  void open(const char* filename, rlc_config_t config);
+  void open(const char* filename, const rlc_config_t& config);
   void close();
 
   void set_ue_id(uint16_t ue_id);

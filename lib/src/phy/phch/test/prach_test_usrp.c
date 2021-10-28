@@ -56,9 +56,6 @@ static float uhd_rx_gain = 40, uhd_tx_gain = 60, uhd_freq = 2.4e9;
 static char* uhd_args    = "";
 static char* device_name = "";
 
-// SRSRAN Verbose
-SRSRAN_API extern int srsran_verbose;
-
 void usage(char* prog)
 {
   printf("Usage: %s \n", prog);
@@ -145,7 +142,7 @@ void parse_args(int argc, char** argv)
         seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       case 'z':
         zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);

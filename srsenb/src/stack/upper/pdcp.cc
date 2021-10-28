@@ -77,7 +77,7 @@ void pdcp::rem_user(uint16_t rnti)
   }
 }
 
-void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srsran::pdcp_config_t cfg)
+void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, const srsran::pdcp_config_t& cfg)
 {
   if (users.count(rnti)) {
     if (rnti != SRSRAN_MRNTI) {
@@ -109,7 +109,7 @@ void pdcp::reset(uint16_t rnti)
   }
 }
 
-void pdcp::config_security(uint16_t rnti, uint32_t lcid, srsran::as_security_config_t sec_cfg)
+void pdcp::config_security(uint16_t rnti, uint32_t lcid, const srsran::as_security_config_t& sec_cfg)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, sec_cfg);

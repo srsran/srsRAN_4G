@@ -154,7 +154,7 @@ int srsran_resampler_fft_init(srsran_resampler_fft_t* q, srsran_resampler_mode_t
     q->in_buffer[i] = (float)h;
   }
 
-  if (srsran_verbose >= SRSRAN_VERBOSE_INFO && !handler_registered) {
+  if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
     printf("h_%s=", q->mode == SRSRAN_RESAMPLER_MODE_INTERPOLATE ? "interp" : "decimate");
     srsran_vec_fprint_c(stdout, q->in_buffer, high_size);
   }
@@ -243,30 +243,26 @@ static void resampler_fft_decimate(srsran_resampler_fft_t* q, const cf_t* input,
   while (count < nsamples) {
     uint32_t n = SRSRAN_MIN(q->window_sz, nsamples - count);
 
-    if (input) {
-      // Copy input samples
-      srsran_vec_cf_copy(q->in_buffer, &input[count], n);
+    // Copy input samples
+    srsran_vec_cf_copy(q->in_buffer, &input[count], n);
 
-      // Pad zeroes
-      srsran_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
+    // Pad zeroes
+    srsran_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
 
-      // Execute FFT
-      srsran_dft_run_guru_c(&q->fft);
+    // Execute FFT
+    srsran_dft_run_guru_c(&q->fft);
 
-      // Apply filter
-      srsran_vec_prod_ccc(q->out_buffer, q->filter, q->out_buffer, q->fft.size);
+    // Apply filter
+    srsran_vec_prod_ccc(q->out_buffer, q->filter, q->out_buffer, q->fft.size);
 
-      // Decimate
-      srsran_vec_cf_copy(q->in_buffer, q->out_buffer, q->ifft.size);
-      for (uint32_t i = 1; i < q->ratio; i++) {
-        srsran_vec_sum_ccc(&q->out_buffer[q->ifft.size * i], q->in_buffer, q->in_buffer, q->ifft.size);
-      }
-
-      // Execute iFFT
-      srsran_dft_run_guru_c(&q->ifft);
-    } else {
-      srsran_vec_cf_zero(q->out_buffer, q->ifft.size);
+    // Decimate
+    srsran_vec_cf_copy(q->in_buffer, q->out_buffer, q->ifft.size);
+    for (uint32_t i = 1; i < q->ratio; i++) {
+      srsran_vec_sum_ccc(&q->out_buffer[q->ifft.size * i], q->in_buffer, q->in_buffer, q->ifft.size);
     }
+
+    // Execute iFFT
+    srsran_dft_run_guru_c(&q->ifft);
 
     // Add previous state
     srsran_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);

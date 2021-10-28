@@ -23,6 +23,7 @@
 #include "srsran/phy/common/sequence.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
+#include <assert.h>
 #include <complex.h>
 
 // Implements TS 38.211 table 6.4.1.3.1.1-1: Number of DM-RS symbols and the corresponding N_PUCCH...
@@ -191,7 +192,11 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
     return SRSRAN_ERROR;
   }
 
-  cf_t     ce[SRSRAN_PUCCH_NR_FORMAT1_N_MAX][SRSRAN_NRE];
+  cf_t ce[SRSRAN_PUCCH_NR_FORMAT1_N_MAX][SRSRAN_NRE];
+
+  // Prevent ce[m] overflow
+  assert(n_pucch <= SRSRAN_PUCCH_NR_FORMAT1_N_MAX);
+
   uint32_t l_prime = resource->start_symbol_idx;
   for (uint32_t m = 0; m < n_pucch; m++) {
     // Clause 6.4.1.3.1.2 specifies l=0,2,4...
@@ -222,6 +227,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
     cf_t z[SRSRAN_NRE];
     srsran_vec_sc_prod_ccc(r_uv, w_i_m, z, SRSRAN_NRE);
 
+    // TODO: can ce[m] overflow?
     // Calculate least square estimates for this symbol
     srsran_vec_prod_conj_ccc(slot_symbols_ptr, z, ce[m], SRSRAN_NRE);
   }

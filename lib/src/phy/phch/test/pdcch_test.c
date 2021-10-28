@@ -90,7 +90,7 @@ static void parse_args(int argc, char** argv)
         snr_dB = (float)strtof(argv[optind], NULL);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);
@@ -180,9 +180,12 @@ static float get_snr_dB(uint32_t L)
 
   if (isnormal(snr_dB) && L < 4) {
     return snr_dB;
+  } else if (L < 4) {
+    return snr_table_dB[L];
+  } else {
+    ERROR("L >= 4\n");
+    return 0.0f;
   }
-
-  return snr_table_dB[L];
 }
 
 static int test_case1()
@@ -307,13 +310,13 @@ static int test_case1()
             }
           }
 
-          if (srsran_verbose >= SRSRAN_VERBOSE_INFO || !payload_match) {
+          if (get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO || !payload_match) {
             // If payload is not match and there is no logging, set logging to info and run the decoder again
-            if (srsran_verbose < SRSRAN_VERBOSE_INFO) {
+            if (get_srsran_verbose_level() < SRSRAN_VERBOSE_INFO) {
               printf("-- Detected payload was not matched, repeating decode with INFO logs (n0: %+.1f dB, corr: %f)\n",
                      n0_dB,
                      corr);
-              srsran_verbose = SRSRAN_VERBOSE_INFO;
+              set_srsran_verbose_level(SRSRAN_VERBOSE_INFO);
               srsran_pdcch_decode_msg(&pdcch_rx, &dl_sf_cfg, &dci_cfg, &dci_rx);
             }
             print_dci_msg("Tx: ", &dci_tx);
@@ -324,6 +327,11 @@ static int test_case1()
           TESTASSERT(payload_match);
         }
       }
+    }
+
+    if (!t_encode_count || !t_decode_count) {
+      ERROR("Error in test case 1: undefined division");
+      return SRSRAN_ERROR;
     }
 
     printf("test_case_1 - format %s - passed - %.1f usec/encode; %.1f usec/llr; %.1f usec/decode; min_corr=%f; "
@@ -341,9 +349,9 @@ static int test_case1()
 
 int main(int argc, char** argv)
 {
-  srsran_regs_t regs;
-  int           i;
-  int           ret = SRSRAN_ERROR;
+  srsran_regs_t regs = {};
+  int           i    = 0;
+  int           ret  = SRSRAN_ERROR;
 
   parse_args(argc, argv);
   random_gen = srsran_random_init(0x1234);

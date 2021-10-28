@@ -188,7 +188,7 @@ public:
   // UL alloc methods
   alloc_result alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant);
   alloc_result
-               alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, bool is_msg3 = false, int msg3_mcs = -1);
+  alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, bool is_msg3 = false, int msg3_mcs = -1);
   alloc_result reserve_ul_prbs(const prbmask_t& ulmask, bool strict)
   {
     return tti_alloc.reserve_ul_prbs(ulmask, strict);
@@ -223,9 +223,9 @@ private:
                            sched_ue_list&                          ue_list);
 
   // consts
-  const sched_cell_params_t* cc_cfg = nullptr;
+  const sched_cell_params_t* cc_cfg     = nullptr;
+  sf_sched_result*           cc_results = nullptr; ///< Results of other CCs for the same Subframe
   srslog::basic_logger&      logger;
-  sf_sched_result*           cc_results; ///< Results of other CCs for the same Subframe
 
   // internal state
   sf_grid_t tti_alloc;

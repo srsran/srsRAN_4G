@@ -112,7 +112,7 @@ srsran_dci_cfg_nr_t phy_cfg_nr_t::get_dci_cfg() const
 bool phy_cfg_nr_t::assert_ss_id(uint32_t ss_id) const
 {
   // Make sure SS access if bounded
-  if (ss_id > SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE) {
+  if (ss_id >= SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE) {
     return false;
   }
 

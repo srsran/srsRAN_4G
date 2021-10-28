@@ -191,8 +191,16 @@ private:
   /// TS 36.321, Table 7.2.2-2
   static uint32_t nof_bandwidth_parts(uint32_t nof_prb)
   {
-    static const uint32_t nrb[] = {0, 2, 2, 3, 4, 4};
-    return nrb[srsran::lte_cell_nof_prb_to_index(nof_prb)];
+    static const uint32_t nrb_size = 6u;
+    static const uint32_t nrb[]    = {0, 2, 2, 3, 4, 4};
+    uint32_t              index    = srsran::lte_cell_nof_prb_to_index(nof_prb);
+
+    srsran_assert(index < nrb_size, "nrb index out of bounds");
+
+    // Fix error out of bounds, returns the array's first element by default.
+    index = (index < nrb_size) ? index : 0;
+
+    return nrb[index];
   }
 
   uint32_t J() const { return nof_bandwidth_parts(); }

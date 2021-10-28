@@ -63,7 +63,6 @@ public:
   bool handle_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
 
   bool was_uectxtrelease_requested() const { return release_requested; }
-  void ue_ctxt_setup_complete();
   void notify_rrc_reconf_complete(const bool reconf_complete_outcome);
 
   ngap_ue_ctxt_t ctxt      = {};

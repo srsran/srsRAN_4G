@@ -90,7 +90,7 @@ static void parse_args(int argc, char** argv)
         assert_hrf      = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

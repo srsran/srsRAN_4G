@@ -64,7 +64,7 @@ void intra_measure_base::init_generic(uint32_t cc_idx_, const args_t& args)
 
   // Reallocate only if the required capacity exceds the new requirement
   if (ring_buffer.capacity < max_required_bytes) {
-    search_buffer.resize(context.meas_len_ms * context.sf_len);
+    search_buffer.resize((size_t)context.meas_len_ms * (size_t)context.sf_len);
 
     srsran_ringbuffer_free(&ring_buffer);
 
@@ -120,7 +120,7 @@ void intra_measure_base::write(cf_t* data, uint32_t nsamples)
   int nbytes = (int)(nsamples * sizeof(cf_t));
 
   mutex.lock();
-  int required_nbytes = (int)(context.meas_len_ms * context.sf_len * sizeof(cf_t));
+  int required_nbytes = ((int)context.meas_len_ms * (int)context.sf_len * (int)sizeof(cf_t));
   mutex.unlock();
 
   // As nbytes might not match the sub-frame size, make sure that buffer does not overflow
@@ -178,8 +178,10 @@ void intra_measure_base::measure_proc()
   measure_context_t context_copy = get_context();
 
   // Read data from buffer and find cells in it
-  int ret = srsran_ringbuffer_read_timed(
-      &ring_buffer, search_buffer.data(), (int)(context_copy.meas_len_ms * context_copy.sf_len * sizeof(cf_t)), 1000);
+  int ret = srsran_ringbuffer_read_timed(&ring_buffer,
+                                         search_buffer.data(),
+                                         ((int)context_copy.meas_len_ms * (int)context_copy.sf_len * (int)sizeof(cf_t)),
+                                         1000);
 
   // As this function is called once the ring-buffer has enough data to process, it is not expected to fail
   if (ret < SRSRAN_SUCCESS) {

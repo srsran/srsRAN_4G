@@ -319,9 +319,7 @@ static int dci_nr_format_0_0_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
 
   // Frequency domain resource assignment
   uint32_t N = dci_nr_freq_resource_size_type1(N_UL_BWP_RB);
-  if (N < N_UL_hop) {
-    return SRSRAN_ERROR;
-  }
+
   dci->freq_domain_assigment = srsran_bit_pack(&y, N - N_UL_hop - trim);
 
   // Time domain resource assignment – 4 bits
@@ -1027,8 +1025,8 @@ static int dci_nr_format_1_0_pack(const srsran_dci_nr_t* q, const srsran_dci_dl_
   srsran_rnti_type_t         rnti_type   = msg->ctx.rnti_type;
   srsran_search_space_type_t ss_type     = dci->ctx.ss_type;
   uint32_t                   N_DL_BWP_RB = SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)
-                             ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
-                             : q->cfg.bwp_dl_active_bw;
+                                               ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
+                                               : q->cfg.bwp_dl_active_bw;
 
   // Identifier for DCI formats – 1 bits
   if (rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_tc) {
@@ -1133,8 +1131,8 @@ static int dci_nr_format_1_0_unpack(const srsran_dci_nr_t* q, srsran_dci_msg_nr_
   srsran_rnti_type_t         rnti_type   = msg->ctx.rnti_type;
   srsran_search_space_type_t ss_type     = msg->ctx.ss_type;
   uint32_t                   N_DL_BWP_RB = SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)
-                             ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
-                             : q->cfg.bwp_dl_active_bw;
+                                               ? (q->cfg.coreset0_bw == 0) ? q->cfg.bwp_dl_initial_bw : q->cfg.coreset0_bw
+                                               : q->cfg.bwp_dl_active_bw;
 
   uint32_t nof_bits = srsran_dci_nr_size(q, ss_type, srsran_dci_format_nr_1_0);
   if (msg->nof_bits != nof_bits) {

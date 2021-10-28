@@ -103,7 +103,7 @@ void parse_args(int argc, char** argv)
         seed = (uint32_t)strtoul(argv[optind], NULL, 0);
         break;
       case 'v':
-        srsran_verbose++;
+        increase_srsran_verbose_level();
         break;
       default:
         usage(argv[0]);

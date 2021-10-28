@@ -68,6 +68,10 @@ bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
 
   // Set UE PHY data-base stack and configuration
   ue_db.init(stack, params, cell_list_lte);
+  if (mcch_configured) {
+    build_mch_table();
+    build_mcch_table();
+  }
 
   reset();
   return true;
@@ -173,10 +177,7 @@ void phy_common::set_mch_period_stop(uint32_t stop)
 
 void phy_common::configure_mbsfn(srsran::phy_cfg_mbsfn_t* cfg)
 {
-  mbsfn = *cfg;
-
-  build_mch_table();
-  build_mcch_table();
+  mbsfn            = *cfg;
   sib13_configured = true;
   mcch_configured  = true;
 }

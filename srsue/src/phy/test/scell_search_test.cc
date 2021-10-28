@@ -491,7 +491,7 @@ int main(int argc, char** argv)
   phy_args.rx_gain_offset               = rx_gain + 62.0f;
 
   // Set phy-lib logging level
-  srsran_verbose = phy_lib_log_level;
+  set_srsran_verbose_level(phy_lib_log_level);
 
   // Allocate PDSCH data and tx-soft-buffers only if pdsch is enabled and radio is not available
   for (int i = 0; i < SRSRAN_MAX_TB && serving_cell_pdsch_enable && radio == nullptr; i++) {
