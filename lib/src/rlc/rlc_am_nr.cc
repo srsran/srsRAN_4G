@@ -383,8 +383,23 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     rx_next = sn_upd;
   }
 
-  // if t-Reassembly is running: (TODO)
-  // if t-Reassembly is not running (includes the case t-Reassembly is stopped due to actions above): (TODO)
+  if (reassembly_timer.is_running()) {
+    // if t-Reassembly is running:
+    /*
+     * - if RX_Next_Status_Trigger = RX_Next; or
+     * - if RX_Next_Status_Trigger = RX_Next + 1 and there is no missing byte segment of the SDU associated with
+     *   SN = RX_Next before the last byte of all received segments of this SDU; or
+     * - if RX_Next_Status_Trigger falls outside of the receiving window and RX_Next_Status_Trigger is not equal
+     *   to RX_Next + AM_Window_Size:
+     * - stop and reset t-Reassembly.
+     */
+  } else {
+    /*
+     * - if RX_Next_Highest> RX_Next +1; or
+     * - if RX_Next_Highest = RX_Next + 1 and there is at least one missing byte segment of the SDU associated
+     *   with SN = RX_Next before the last byte of all received segments of this SDU:
+     */
+  }
 }
 
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
@@ -480,6 +495,13 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       reassembly_timer.run();
       rx_next_status_trigger = rx_next_highest;
     }
+
+    /* 5.3.4 Status reporting:
+     * - The receiving side of an AM RLC entity shall trigger a STATUS report when t-Reassembly expires.
+     *   NOTE 2: The expiry of t-Reassembly triggers both RX_Highest_Status to be updated and a STATUS report to be
+     *   triggered, but the STATUS report shall be triggered after RX_Highest_Status is updated.
+     */
+    do_status = true;
     return;
   }
 }
