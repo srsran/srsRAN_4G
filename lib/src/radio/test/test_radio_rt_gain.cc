@@ -262,8 +262,8 @@ int main(int argc, char** argv)
           continue;
         }
         break;
-      case END:
-        continue;
+      default:
+        break;
     }
 
     // Prepare reception buffers
