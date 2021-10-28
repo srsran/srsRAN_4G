@@ -298,9 +298,9 @@ int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 
 int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
 {
-  logger.set_context(slot_cfg.idx - TX_ENB_DELAY);
-
   slot_point pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+
+  logger.set_context((pdsch_slot - TX_ENB_DELAY).to_uint());
 
   // Run Scheduler
   sched_nr_interface::sched_rar_list_t rar_list;
