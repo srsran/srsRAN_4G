@@ -644,7 +644,7 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
       break;
     case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
-      state = rrc_nr_state_t::RRC_IDLE;
+      state                = rrc_nr_state_t::RRC_IDLE;
       uint32_t rnti_to_rem = rnti;
       parent->task_sched.defer_task([this, rnti_to_rem]() { parent->rem_user(rnti_to_rem); });
       break;
@@ -1402,7 +1402,10 @@ int rrc_nr::ue::add_drb()
 
   // add RLC bearer
   srsran::rlc_config_t rlc_cfg;
-  if (srsran::make_rlc_config_t(cell_group_cfg.rlc_bearer_to_add_mod_list[0].rlc_cfg, &rlc_cfg) != SRSRAN_SUCCESS) {
+  /// NOTE, we need to pass the radio-bearer to the rlc_config
+  if (srsran::make_rlc_config_t(cell_group_cfg.rlc_bearer_to_add_mod_list[0].rlc_cfg,
+                                &rlc_cfg,
+                                rlc_bearer.served_radio_bearer.drb_id()) != SRSRAN_SUCCESS) {
     parent->logger.error("Failed to build RLC config");
     return SRSRAN_ERROR;
   }

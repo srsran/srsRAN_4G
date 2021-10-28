@@ -111,6 +111,7 @@ struct rlc_um_nr_config_t {
 
   rlc_um_nr_sn_size_t sn_field_length; // Number of bits used for sequence number
   int32_t             t_reassembly_ms; // Timer used by rx to detect PDU loss (ms)
+  uint8_t             bearer_id;       // This is not in the 3GPP TS 38.322
 };
 
 #define RLC_TX_QUEUE_LEN (256)

@@ -41,6 +41,9 @@ public:
   ~rlc_um_nr();
   bool configure(const rlc_config_t& cnfg);
 
+  // logging helpers
+  std::string get_rb_name() const;
+
 private:
   // Transmitter sub-class for NR
   class rlc_um_nr_tx : public rlc_um_base_tx

@@ -33,11 +33,11 @@ rlc_um_nr::~rlc_um_nr()
 
 bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
 {
-  // determine bearer name and configure Rx/Tx objects
-  rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
-
   // store config
   cfg = cnfg_;
+
+  // determine bearer name and configure Rx/Tx objects
+  rb_name = get_rb_name();
 
   rx.reset(new rlc_um_nr_rx(this));
   if (not rx->configure(cfg, rb_name)) {
@@ -59,6 +59,22 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
   tx_enabled = true;
 
   return true;
+}
+
+
+/****************************************************************************
+ * Logging helpers
+ ***************************************************************************/
+std::string rlc_um_nr::get_rb_name() const
+{
+  fmt::memory_buffer fmtbuf;
+  // currently we only support DRB 1 (hardcoded)
+  if (cfg.um_nr.bearer_id == 1) {
+    fmt::format_to(fmtbuf, "DRB{}", cfg.um_nr.bearer_id);
+  } else {
+    fmt::format_to(fmtbuf, "DRB N/A");
+  }
+  return fmt::to_string(fmtbuf);
 }
 
 /****************************************************************************
@@ -252,6 +268,8 @@ bool rlc_um_nr::rlc_um_nr_rx::configure(const rlc_config_t& cnfg_, std::string r
     reassembly_timer.set(static_cast<uint32_t>(cfg.um_nr.t_reassembly_ms),
                          [this](uint32_t tid) { timer_expired(tid); });
   }
+
+  rb_name = rb_name_;
 
   return true;
 }
