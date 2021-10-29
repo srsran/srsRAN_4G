@@ -229,9 +229,8 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   ue_metrics.dl_buffer = dl_buffer;
 
   // set PCell sector id
-  std::array<int, SRSRAN_MAX_CARRIERS> cc_list; //= sched->get_enb_ue_cc_map(rnti);
-  auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
-  ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
+  // TODO: use ue_cfg when multiple NR carriers are supported
+  ue_metrics.cc_idx = 0;
 
   *metrics_            = ue_metrics;
   phr_counter          = 0;
