@@ -53,6 +53,12 @@ void srsran_vec_sub_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint3
   srsran_vec_sub_bbb_simd(x, y, z, len);
 }
 
+/* sum a scalar to all elements of a vector */
+void srsran_vec_sc_sum_fff(const float* x, float h, float* z, uint32_t len)
+{
+  srsran_vec_sc_sum_fff_simd(x, h, z, len);
+}
+
 // Noise estimation in chest_dl, interpolation
 void srsran_vec_sub_ccc(const cf_t* x, const cf_t* y, cf_t* z, const uint32_t len)
 {
