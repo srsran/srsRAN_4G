@@ -60,8 +60,8 @@ public:
   void get_metrics(mac_metrics_t& metrics);
 
 private:
-  void ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
-  bool add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u);
+  int ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
+  int add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u);
 
   // args
   sched_nr_impl::sched_params cfg;
@@ -81,8 +81,8 @@ private:
   std::unique_ptr<ul_sched_result_buffer> pending_results;
 
   // Feedback management
-  class common_event_manager;
-  std::unique_ptr<common_event_manager> pending_events;
+  class event_manager;
+  std::unique_ptr<event_manager> pending_events;
 
   // metrics extraction
   class ue_metrics_manager;
