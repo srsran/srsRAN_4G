@@ -15,6 +15,7 @@
 #include "srsenb/hdr/stack/mac/nr/harq_softbuffer.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
+#include "srsran/common/string_helpers.h"
 #include "srsran/common/thread_pool.h"
 
 namespace srsenb {
@@ -69,16 +70,45 @@ private:
 /// Class that stores events that are not specific to a CC (e.g. SRs, removal of UEs, buffer state updates)
 class sched_nr::common_event_manager
 {
-public:
-  struct ue_event_t {
+  struct event_t {
     uint16_t                      rnti;
+    const char*                   event_name;
     srsran::move_callback<void()> callback;
+    event_t(uint16_t rnti_, const char* event_name_, srsran::move_callback<void()> c) :
+      rnti(rnti_), event_name(event_name_), callback(std::move(c))
+    {}
+  };
+  struct ue_event_t {
+    uint16_t                                 rnti;
+    srsran::move_callback<void(bool, void*)> callback;
+    ue_event_t(uint16_t rnti_, srsran::move_callback<void(bool, void*)> c) : rnti(rnti_), callback(std::move(c)) {}
   };
 
-  void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev)
+public:
+  explicit common_event_manager(srslog::basic_logger& logger_) : logger(logger_) {}
+
+  void enqueue_event(const char* event_name, srsran::move_callback<void()> ev, uint16_t rnti = SRSRAN_INVALID_RNTI)
   {
     std::lock_guard<std::mutex> lock(event_mutex);
-    next_slot_events.push_back(ue_event_t{rnti, std::move(ev)});
+    next_slot_events.emplace_back(rnti, event_name, std::move(ev));
+  }
+
+  template <typename R, typename... FmtArgs>
+  void enqueue_ue_event(uint16_t rnti, R (ue::*ue_action)(FmtArgs...), const char* fmt_str, FmtArgs... args)
+  {
+    srsran_assert(rnti != SRSRAN_INVALID_RNTI, "Invalid rnti=0x%x passed to common event manager", rnti);
+
+    auto callback = [fmt_str, ue_action, args...](bool call_or_fmt, void* a) {
+      if (call_or_fmt) {
+        ue* u = static_cast<ue*>(a);
+        (u->*ue_action)(args...);
+      } else {
+        fmt::memory_buffer* fmtbuf = static_cast<fmt::memory_buffer*>(a);
+        fmt::format_to(*fmtbuf, fmt_str, args...);
+      }
+    };
+    std::lock_guard<std::mutex> lock(event_mutex);
+    next_slot_ue_events.emplace_back(rnti, std::move(callback));
   }
 
   /// Process events synchronized during slot_indication() that are directed at CA-enabled UEs
@@ -86,36 +116,88 @@ public:
   void process_common(ue_map_t& ues)
   {
     // Extract pending feedback events
+    current_slot_ue_events.clear();
     current_slot_events.clear();
     {
       std::lock_guard<std::mutex> ev_lock(event_mutex);
+      next_slot_ue_events.swap(current_slot_ue_events);
       next_slot_events.swap(current_slot_events);
     }
+    log_slot_events();
 
-    for (common_event_manager::ue_event_t& ev : current_slot_events) {
-      auto ue_it       = ues.find(ev.rnti);
-      bool contains_ue = ue_it != ues.end();
-      if (not contains_ue or (ue_it->second->has_ca())) {
-        ev.callback();
+    // non-UE specific events
+    for (event_t& ev : current_slot_events) {
+      ev.callback();
+    }
+
+    for (ue_event_t& ev : current_slot_ue_events) {
+      auto ue_it = ues.find(ev.rnti);
+      if (ue_it == ues.end()) {
+        fmt::memory_buffer fmtbuf;
+        ev.callback(false, &fmtbuf);
+        logger.warning("SCHED: \"%s\" called for inexistent rnti=0x%x.", srsran::to_c_str(fmtbuf), ev.rnti);
+        ev.rnti = SRSRAN_INVALID_RNTI;
+      } else if (ue_it->second->has_ca()) {
+        // events specific to existing UEs with CA
+        ev.callback(true, ue_it->second.get());
         ev.rnti = SRSRAN_INVALID_RNTI;
       }
     }
   }
+
   /// Process events synchronized during slot_indication() that are directed at non CA-enabled UEs
   void process_carrier_events(ue_map_t& ues, uint32_t cc)
   {
-    for (common_event_manager::ue_event_t& ev : current_slot_events) {
-      auto ue_it       = ues.find(ev.rnti);
-      bool contains_ue = ue_it != ues.end();
-      if (contains_ue and not ue_it->second->has_ca() and ue_it->second->carriers[cc] != nullptr) {
-        ev.callback();
+    for (ue_event_t& ev : current_slot_ue_events) {
+      if (ev.rnti == SRSRAN_INVALID_RNTI) {
+        // events already processed
+        continue;
+      }
+      auto ue_it = ues.find(ev.rnti);
+      if (ue_it == ues.end()) {
+        fmt::memory_buffer fmtbuf;
+        ev.callback(false, &fmtbuf);
+        logger.warning("SCHED: \"%s\" called for inexistent rnti=0x%x.", srsran::to_c_str(fmtbuf), ev.rnti);
+        ev.rnti = SRSRAN_INVALID_RNTI;
+      } else if (not ue_it->second->has_ca() and ue_it->second->carriers[cc] != nullptr) {
+        ev.callback(true, ue_it->second.get());
+        ev.rnti = SRSRAN_INVALID_RNTI;
       }
     }
   }
 
 private:
+  /// logs events to be processed in the current slot
+  void log_slot_events()
+  {
+    if (not logger.debug.enabled()) {
+      return;
+    }
+    fmt::memory_buffer common_fmtbuf;
+    fmt::memory_buffer fmtbuf;
+    const char*        prefix = "";
+    for (event_t& ev : current_slot_events) {
+      if (ev.rnti != SRSRAN_INVALID_RNTI) {
+        fmt::format_to(common_fmtbuf, "{}{{0x{:x}: {}}}", prefix, ev.rnti, ev.event_name);
+      } else {
+        fmt::format_to(common_fmtbuf, "{}{{{}}}", prefix, ev.event_name);
+      }
+      prefix = ", ";
+    }
+    for (ue_event_t& ev : current_slot_ue_events) {
+      fmt::format_to(fmtbuf, "{}{{0x{:x}: ", prefix, ev.rnti);
+      ev.callback(false, &fmtbuf);
+      fmt::format_to(fmtbuf, "}}");
+      prefix = ", ";
+    }
+    logger.debug("SCHED: Pending slot events: [%s%s]", srsran::to_c_str(common_fmtbuf), srsran::to_c_str(fmtbuf));
+  }
+
+  srslog::basic_logger& logger;
+
   std::mutex                event_mutex;
-  srsran::deque<ue_event_t> next_slot_events, current_slot_events;
+  srsran::deque<ue_event_t> next_slot_ue_events, current_slot_ue_events;
+  srsran::deque<event_t>    next_slot_events, current_slot_events;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -185,11 +267,7 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr() :
-  logger(&srslog::fetch_basic_logger("MAC-NR")),
-  metrics_handler(new ue_metrics_manager{ue_db}),
-  pending_events(new common_event_manager{})
-{}
+sched_nr::sched_nr() : logger(&srslog::fetch_basic_logger("MAC-NR")), metrics_handler(new ue_metrics_manager{ue_db}) {}
 
 sched_nr::~sched_nr()
 {
@@ -214,6 +292,8 @@ int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_
 
   pending_results.reset(new ul_sched_result_buffer(cell_list.size()));
 
+  pending_events.reset(new common_event_manager{*logger});
+
   // Initiate cell-specific schedulers
   cc_workers.resize(cfg.cells.size());
   for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
@@ -226,33 +306,22 @@ int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_
 void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   srsran_assert(assert_ue_cfg_valid(rnti, uecfg) == SRSRAN_SUCCESS, "Invalid UE configuration");
-  pending_events->enqueue_event(rnti, [this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); });
+  pending_events->enqueue_event(
+      "ue_cfg", [this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); }, rnti);
 }
 
 void sched_nr::ue_rem(uint16_t rnti)
 {
-  pending_events->enqueue_event(rnti, [this, rnti]() {
-    auto ue_it = ue_db.find(rnti);
-    if (ue_it == ue_db.end()) {
-      logger->warning("SCHED: ue_rem(rnti) called for inexistent rnti=0x%x", rnti);
-      return;
-    }
-    ue_db.erase(rnti);
-  });
-}
-
-bool sched_nr::ue_exists(uint16_t rnti)
-{
-  return ue_db.contains(rnti);
+  pending_events->enqueue_event(
+      "ue_rem", [this, rnti]() { ue_db.erase(rnti); }, rnti);
 }
 
 void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
+    logger->info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
     auto ret = ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
-    if (ret.has_value()) {
-      logger->info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
-    } else {
+    if (not ret.has_value()) {
       logger->error("SCHED: Failed to create new user rnti=0x%x", rnti);
     }
   } else {
@@ -371,35 +440,18 @@ void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
 
 void sched_nr::ul_sr_info(uint16_t rnti)
 {
-  pending_events->enqueue_event(rnti, [this, rnti]() {
-    if (ue_db.contains(rnti)) {
-      ue_db[rnti]->ul_sr_info();
-    } else {
-      logger->warning("Received SR for inexistent rnti=0x%x", rnti);
-    }
-  });
+  pending_events->enqueue_ue_event(rnti, &ue::ul_sr_info, "ul_sr_info");
 }
 
 void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
 {
-  pending_events->enqueue_event(rnti, [this, rnti, lcg_id, bsr]() {
-    if (ue_db.contains(rnti)) {
-      ue_db[rnti]->ul_bsr(lcg_id, bsr);
-    } else {
-      logger->warning("Received BSR=%d for inexistent rnti=0x%x", bsr, rnti);
-    }
-  });
+  pending_events->enqueue_ue_event(rnti, &ue::ul_bsr, "ul_bsr(lcg_id={}, bsr={})", lcg_id, bsr);
 }
 
 void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx)
 {
-  pending_events->enqueue_event(rnti, [this, rnti, lcid, newtx, retx]() {
-    if (ue_db.contains(rnti)) {
-      ue_db[rnti]->rlc_buffer_state(lcid, newtx, retx);
-    } else {
-      logger->warning("Received DL buffer state=%d/%d for inexistent rnti=0x%x", newtx, retx, rnti);
-    }
-  });
+  pending_events->enqueue_ue_event(
+      rnti, &ue::rlc_buffer_state, "dl_buffer_state(lcid={}, newtx={}, retx={})", lcid, newtx, retx);
 }
 
 #define VERIFY_INPUT(cond, msg, ...)                                                                                   \

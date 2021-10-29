@@ -114,8 +114,9 @@ public:
   ue_buffer_manager<true>                                        buffers;
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
+  const uint16_t rnti;
+
 private:
-  const uint16_t      rnti;
   const sched_params& sched_cfg;
 
   slot_point last_pdcch_slot;
