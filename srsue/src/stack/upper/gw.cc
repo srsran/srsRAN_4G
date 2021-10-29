@@ -71,21 +71,28 @@ int gw::init(const gw_args_t& args_, stack_interface_gw* stack_)
   return SRSRAN_SUCCESS;
 }
 
+gw::~gw()
+{
+  if (tun_fd > 0) {
+    close(tun_fd);
+  }
+}
+
 void gw::stop()
 {
   if (run_enable) {
     run_enable = false;
     if (if_up) {
-      close(tun_fd);
+      if_up = false;
+      if (running) {
+        thread_cancel();
+      }
 
       // Wait thread to exit gracefully otherwise might leave a mutex locked
       int cnt = 0;
       while (running && cnt < 100) {
         usleep(10000);
         cnt++;
-      }
-      if (running) {
-        thread_cancel();
       }
       wait_thread_finish();
 
@@ -134,7 +141,9 @@ void gw::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     dl_tput_bytes += pdu->N_bytes;
   }
   if (!if_up) {
-    logger.warning("TUN/TAP not up - dropping gw RX message");
+    if (run_enable) {
+      logger.warning("TUN/TAP not up - dropping gw RX message");
+    }
   } else if (pdu->N_bytes < 20) {
     // Packet not large enough to hold IPv4 Header
     logger.warning("Packet to small to hold IPv4 header. Dropping packet with %d B", pdu->N_bytes);
@@ -172,7 +181,9 @@ void gw::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     memcpy(&dst_addr.s_addr, &pdu->msg[16], 4);
 
     if (!if_up) {
-      logger.warning("TUN/TAP not up - dropping gw RX message");
+      if (run_enable) {
+        logger.warning("TUN/TAP not up - dropping gw RX message");
+      }
     } else {
       int n = write(tun_fd, pdu->msg, pdu->N_bytes);
       if (n > 0 && (pdu->N_bytes != (uint32_t)n)) {
@@ -331,6 +342,10 @@ void gw::run_thread()
         // If we are still not attached by this stage, drop packet
         if (run_enable && default_eps_bearer_id == NOT_ASSIGNED) {
           continue;
+        }
+
+        if (!run_enable) {
+          break;
         }
 
         // Beyond this point we should have a activated default EPS bearer

@@ -142,6 +142,8 @@ public:
   virtual pdcp_bearer_metrics_t get_metrics()   = 0;
   virtual void                  reset_metrics() = 0;
 
+  const char* get_rb_name() const { return rb_name.c_str(); }
+
 protected:
   srslog::basic_logger&     logger;
   srsran::task_sched_handle task_sched;
@@ -163,6 +165,7 @@ protected:
                        pdcp_discard_timer_t::infinity,
                        false,
                        srsran_rat_t::lte};
+  std::string   rb_name;
 
   srsran::as_security_config_t sec_cfg = {};
 

@@ -138,7 +138,11 @@ int pdcp::add_bearer(uint32_t lcid, const pdcp_config_t& cfg)
     valid_lcids_cached.insert(lcid);
   }
 
-  logger.info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)", rrc->get_rb_name(lcid), lcid, cfg.bearer_id, cfg.sn_len);
+  logger.info("Add %s%d (lcid=%d, sn_len=%dbits)",
+              cfg.rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB",
+              cfg.bearer_id,
+              lcid,
+              cfg.sn_len);
 
   return SRSRAN_SUCCESS;
 }
@@ -171,10 +175,10 @@ void pdcp::del_bearer(uint32_t lcid)
     valid_lcids_cached.erase(lcid);
   }
   if (valid_lcid(lcid)) {
+    logger.info("Deleted PDCP bearer %s", pdcp_array[lcid]->get_rb_name());
     pdcp_array.erase(lcid);
-    logger.info("Deleted PDCP bearer %s", rrc->get_rb_name(lcid));
   } else {
-    logger.warning("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid));
+    logger.warning("Can't delete bearer with LCID=%s. Cause: bearer doesn't exist.", lcid);
   }
 }
 

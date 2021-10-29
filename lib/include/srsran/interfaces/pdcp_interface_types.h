@@ -174,6 +174,8 @@ public:
            status_report_required == other.status_report_required;
   }
   bool operator!=(const pdcp_config_t& other) const { return not(*this == other); }
+
+  std::string get_rb_name() const { return (rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB") + std::to_string(bearer_id); }
 };
 
 // Specifies in which direction security (integrity and ciphering) are enabled for PDCP

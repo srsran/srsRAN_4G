@@ -46,7 +46,7 @@ pdcp_entity_nr::~pdcp_entity_nr() {}
 // Reestablishment procedure: 38.323 5.2
 void pdcp_entity_nr::reestablish()
 {
-  logger.info("Re-establish %s with bearer ID: %d", rrc->get_rb_name(lcid), cfg.bearer_id);
+  logger.info("Re-establish %s with bearer ID: %d", rb_name.c_str(), cfg.bearer_id);
   // TODO
 }
 
@@ -55,13 +55,14 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
   if (active) {
     // Already configured
     if (cnfg_ != cfg) {
-      logger.error("Bearer reconfiguration not supported. LCID=%s.", rrc->get_rb_name(lcid));
+      logger.error("Bearer reconfiguration not supported. LCID=%s.", rb_name.c_str());
       return false;
     }
     return true;
   }
 
   cfg         = cnfg_;
+  rb_name     = cfg.get_rb_name();
   window_size = 1 << (cfg.sn_len - 1);
 
   // Timers
@@ -79,7 +80,7 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
 void pdcp_entity_nr::reset()
 {
   active = false;
-  logger.debug("Reset %s", rrc->get_rb_name(lcid));
+  logger.debug("Reset %s", rb_name.c_str());
 }
 
 // SDAP/RRC interface
@@ -89,7 +90,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
   logger.info(sdu->msg,
               sdu->N_bytes,
               "TX %s SDU, integrity=%s, encryption=%s",
-              rrc->get_rb_name(lcid),
+              rb_name.c_str(),
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
 
@@ -145,7 +146,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   logger.info(pdu->msg,
               pdu->N_bytes,
               "RX %s PDU (%d B), integrity=%s, encryption=%s",
-              rrc->get_rb_name(lcid),
+              rb_name.c_str(),
               pdu->N_bytes,
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
