@@ -44,7 +44,7 @@ public:
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
   void ue_rem(uint16_t rnti) override;
 
-  int dl_rach_info(uint32_t cc, const rar_info_t& rar_info);
+  int dl_rach_info(const rar_info_t& rar_info, const ue_cfg_t& uecfg);
 
   void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) override;
   void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc) override;
@@ -61,6 +61,7 @@ public:
 
 private:
   void ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
+  bool add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u);
 
   // args
   sched_nr_impl::sched_params cfg;

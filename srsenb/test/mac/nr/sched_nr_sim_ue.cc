@@ -146,7 +146,6 @@ int sched_nr_base_tester::add_user(uint16_t                            rnti,
                                    uint32_t                            preamble_idx)
 {
   sem_wait(&slot_sem);
-  sched_ptr->ue_cfg(rnti, ue_cfg_);
 
   TESTASSERT(ue_db.count(rnti) == 0);
 
@@ -157,7 +156,7 @@ int sched_nr_base_tester::add_user(uint16_t                            rnti,
   rach_info.prach_slot   = tti_rx;
   rach_info.preamble_idx = preamble_idx;
   rach_info.msg3_size    = 7;
-  sched_ptr->dl_rach_info(ue_cfg_.carriers[0].cc, rach_info);
+  sched_ptr->dl_rach_info(rach_info, ue_cfg_);
 
   sem_post(&slot_sem);
 

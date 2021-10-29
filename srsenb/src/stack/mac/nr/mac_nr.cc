@@ -161,7 +161,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     sched_nr_ue_cfg_t uecfg = {};
     uecfg.carriers.resize(1);
     uecfg.carriers[0].active      = true;
-    uecfg.carriers[0].cc          = 0;
+    uecfg.carriers[0].cc          = enb_cc_idx;
     uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
     srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
     ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
@@ -170,7 +170,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
     uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
-    uint16_t rnti = reserve_rnti(enb_cc_idx, uecfg);
+    uint16_t rnti = alloc_ue(enb_cc_idx);
 
     // Log this event.
     ++detected_rachs[enb_cc_idx];
@@ -182,7 +182,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.ta_cmd                                 = rach_info.time_adv;
     rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
-    sched->dl_rach_info(enb_cc_idx, rar_info);
+    sched->dl_rach_info(rar_info, uecfg);
     rrc->add_user(rnti, uecfg);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",

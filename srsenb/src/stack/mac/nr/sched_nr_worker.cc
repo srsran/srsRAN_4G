@@ -91,6 +91,11 @@ bool cc_worker::save_sched_result(dl_sched_res_t& dl_res, ul_sched_t& ul_res, sl
   return true;
 }
 
+void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
+{
+  bwps[0].ra.dl_rach_info(rar_info);
+}
+
 /// Called within a locked context, to generate {slot, cc} scheduling decision
 void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {

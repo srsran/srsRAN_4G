@@ -67,6 +67,8 @@ public:
 
   explicit cc_worker(const cell_params_t& params);
 
+  void dl_rach_info(const sched_nr_interface::rar_info_t& rar_info);
+
   void run_slot(slot_point pdcch_slot, ue_map_t& ue_db_, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
 
   // const params

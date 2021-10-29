@@ -15,6 +15,7 @@
 #include "srsenb/hdr/stack/mac/nr/harq_softbuffer.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsenb/hdr/stack/mac/nr/sched_nr_worker.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/common/thread_pool.h"
 
@@ -87,12 +88,15 @@ class sched_nr::common_event_manager
 public:
   explicit common_event_manager(srslog::basic_logger& logger_) : logger(logger_) {}
 
+  /// Enqueue an event that does not map into a ue method (e.g. rem_user, add_user)
   void enqueue_event(const char* event_name, srsran::move_callback<void()> ev, uint16_t rnti = SRSRAN_INVALID_RNTI)
   {
     std::lock_guard<std::mutex> lock(event_mutex);
     next_slot_events.emplace_back(rnti, event_name, std::move(ev));
   }
 
+  /// Enqueue an event that directly maps into a ue method (e.g. ul_sr_info, ul_bsr, etc.)
+  /// Note: these events can be processed sequentially or in parallel, depending on whether the UE supports CA
   template <typename R, typename... FmtArgs>
   void enqueue_ue_event(uint16_t rnti, R (ue::*ue_action)(FmtArgs...), const char* fmt_str, FmtArgs... args)
   {
@@ -111,7 +115,7 @@ public:
     next_slot_ue_events.emplace_back(rnti, std::move(callback));
   }
 
-  /// Process events synchronized during slot_indication() that are directed at CA-enabled UEs
+  /// Process all events that are directed at CA-enabled UEs
   /// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
   void process_common(ue_map_t& ues)
   {
@@ -146,7 +150,7 @@ public:
   }
 
   /// Process events synchronized during slot_indication() that are directed at non CA-enabled UEs
-  void process_carrier_events(ue_map_t& ues, uint32_t cc)
+  void process_single_cc_ue_events(ue_map_t& ues, uint32_t cc)
   {
     for (ue_event_t& ev : current_slot_ue_events) {
       if (ev.rnti == SRSRAN_INVALID_RNTI) {
@@ -190,7 +194,9 @@ private:
       fmt::format_to(fmtbuf, "}}");
       prefix = ", ";
     }
-    logger.debug("SCHED: Pending slot events: [%s%s]", srsran::to_c_str(common_fmtbuf), srsran::to_c_str(fmtbuf));
+    if (common_fmtbuf.size() > 0 or fmtbuf.size() > 0) {
+      logger.debug("SCHED: Pending slot events: [%s%s]", srsran::to_c_str(common_fmtbuf), srsran::to_c_str(fmtbuf));
+    }
   }
 
   srslog::basic_logger& logger;
@@ -306,6 +312,7 @@ int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_
 void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   srsran_assert(assert_ue_cfg_valid(rnti, uecfg) == SRSRAN_SUCCESS, "Invalid UE configuration");
+  logger->info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
   pending_events->enqueue_event(
       "ue_cfg", [this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); }, rnti);
 }
@@ -316,14 +323,20 @@ void sched_nr::ue_rem(uint16_t rnti)
       "ue_rem", [this, rnti]() { ue_db.erase(rnti); }, rnti);
 }
 
+bool sched_nr::add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u)
+{
+  auto ret = ue_db.insert(rnti, std::move(u));
+  if (not ret.has_value()) {
+    logger->error("SCHED: Failed to create new user rnti=0x%x", rnti);
+    return false;
+  }
+  return true;
+}
+
 void sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
-    logger->info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
-    auto ret = ue_db.insert(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
-    if (not ret.has_value()) {
-      logger->error("SCHED: Failed to create new user rnti=0x%x", rnti);
-    }
+    add_ue_impl(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
   } else {
     ue_db[rnti]->set_cfg(uecfg);
   }
@@ -363,7 +376,7 @@ int sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result)
   ul_res_t& ul_res = pending_results->add_ul_result(pdsch_tti, cc);
 
   // process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for non-CA UEs
-  pending_events->process_carrier_events(ue_db, cc);
+  pending_events->process_single_cc_ue_events(ue_db, cc);
 
   // prepare non-CA UEs internal state for new slot
   for (auto& u : ue_db) {
@@ -405,10 +418,24 @@ void sched_nr::get_metrics(mac_metrics_t& metrics)
   metrics_handler->get_metrics(metrics);
 }
 
-int sched_nr::dl_rach_info(uint32_t cc, const rar_info_t& rar_info)
+int sched_nr::dl_rach_info(const rar_info_t& rar_info, const ue_cfg_t& uecfg)
 {
-  cc_workers[cc]->pending_feedback.enqueue_common_event(
-      [this, cc, rar_info]() { cc_workers[cc]->bwps[0].ra.dl_rach_info(rar_info); });
+  // enqueue UE creation event + RACH handling
+  auto add_ue = [this, uecfg, rar_info]() {
+    // create user
+    // Note: UEs being created in sched main thread, which has higher priority
+    logger->info("SCHED: New user rnti=0x%x, cc=%d", rar_info.temp_crnti, uecfg.carriers[0].cc);
+    std::unique_ptr<ue> u{new ue{rar_info.temp_crnti, uecfg, cfg}};
+
+    uint16_t rnti = rar_info.temp_crnti;
+    if (add_ue_impl(rnti, std::move(u))) {
+      // RACH is handled in cc worker, once the UE object is created and inserted in the ue_db
+      uint32_t cc = uecfg.carriers[0].cc;
+      cc_workers[cc]->pending_feedback.enqueue_common_event(
+          [this, cc, rar_info]() { cc_workers[cc]->dl_rach_info(rar_info); });
+    }
+  };
+  pending_events->enqueue_event("dl_rach_info", add_ue);
   return SRSRAN_SUCCESS;
 }
 
