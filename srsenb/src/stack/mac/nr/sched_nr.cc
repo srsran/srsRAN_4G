@@ -66,25 +66,64 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void sched_nr::feedback_manager::enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev)
+/// Class that stores events that are not specific to a CC (e.g. SRs, removal of UEs, buffer state updates)
+class sched_nr::common_event_manager
 {
-  std::lock_guard<std::mutex> lock(event_mutex);
-  next_slot_events.push_back(ue_event_t{rnti, std::move(ev)});
-}
+public:
+  struct ue_event_t {
+    uint16_t                      rnti;
+    srsran::move_callback<void()> callback;
+  };
 
-void sched_nr::feedback_manager::get_pending_events(srsran::deque<ue_event_t>& current_events)
-{
-  current_events.clear();
-  std::lock_guard<std::mutex> ev_lock(event_mutex);
-  next_slot_events.swap(current_events);
-}
+  void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev)
+  {
+    std::lock_guard<std::mutex> lock(event_mutex);
+    next_slot_events.push_back(ue_event_t{rnti, std::move(ev)});
+  }
+
+  /// Process events synchronized during slot_indication() that are directed at CA-enabled UEs
+  /// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
+  void process_common(ue_map_t& ues)
+  {
+    // Extract pending feedback events
+    current_slot_events.clear();
+    {
+      std::lock_guard<std::mutex> ev_lock(event_mutex);
+      next_slot_events.swap(current_slot_events);
+    }
+
+    for (common_event_manager::ue_event_t& ev : current_slot_events) {
+      auto ue_it       = ues.find(ev.rnti);
+      bool contains_ue = ue_it != ues.end();
+      if (not contains_ue or (ue_it->second->has_ca())) {
+        ev.callback();
+        ev.rnti = SRSRAN_INVALID_RNTI;
+      }
+    }
+  }
+  /// Process events synchronized during slot_indication() that are directed at non CA-enabled UEs
+  void process_carrier_events(ue_map_t& ues, uint32_t cc)
+  {
+    for (common_event_manager::ue_event_t& ev : current_slot_events) {
+      auto ue_it       = ues.find(ev.rnti);
+      bool contains_ue = ue_it != ues.end();
+      if (contains_ue and not ue_it->second->has_ca() and ue_it->second->carriers[cc] != nullptr) {
+        ev.callback();
+      }
+    }
+  }
+
+private:
+  std::mutex                event_mutex;
+  srsran::deque<ue_event_t> next_slot_events, current_slot_events;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class sched_nr::ue_metrics_manager
 {
 public:
-  ue_metrics_manager(ue_map_t& ues_) : ues(ues_) {}
+  explicit ue_metrics_manager(ue_map_t& ues_) : ues(ues_) {}
 
   void stop()
   {
@@ -146,10 +185,11 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr::sched_nr() : logger(&srslog::fetch_basic_logger("MAC-NR"))
-{
-  metrics_handler.reset(new ue_metrics_manager{ue_db});
-}
+sched_nr::sched_nr() :
+  logger(&srslog::fetch_basic_logger("MAC-NR")),
+  metrics_handler(new ue_metrics_manager{ue_db}),
+  pending_events(new common_event_manager{})
+{}
 
 sched_nr::~sched_nr()
 {
@@ -186,12 +226,12 @@ int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_
 void sched_nr::ue_cfg(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   srsran_assert(assert_ue_cfg_valid(rnti, uecfg) == SRSRAN_SUCCESS, "Invalid UE configuration");
-  pending_feedback.enqueue_event(rnti, [this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); });
+  pending_events->enqueue_event(rnti, [this, rnti, uecfg]() { ue_cfg_impl(rnti, uecfg); });
 }
 
 void sched_nr::ue_rem(uint16_t rnti)
 {
-  pending_feedback.enqueue_event(rnti, [this, rnti]() {
+  pending_events->enqueue_event(rnti, [this, rnti]() {
     auto ue_it = ue_db.find(rnti);
     if (ue_it == ue_db.end()) {
       logger->warning("SCHED: ue_rem(rnti) called for inexistent rnti=0x%x", rnti);
@@ -229,18 +269,9 @@ void sched_nr::slot_indication(slot_point slot_tx)
   current_slot_tx = slot_tx;
   worker_count.store(static_cast<int>(cfg.cells.size()), std::memory_order_relaxed);
 
-  // Extract pending feedback events
-  pending_feedback.get_pending_events(current_slot_events);
-
   // process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for CA-enabled UEs
   // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
-  for (feedback_manager::ue_event_t& ev : current_slot_events) {
-    auto ue_it       = ue_db.find(ev.rnti);
-    bool contains_ue = ue_it != ue_db.end();
-    if (not contains_ue or (ue_it->second->has_ca())) {
-      ev.callback();
-    }
-  }
+  pending_events->process_common(ue_db);
 
   // prepare CA-enabled UEs internal state for new slot
   // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
@@ -263,13 +294,7 @@ int sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result)
   ul_res_t& ul_res = pending_results->add_ul_result(pdsch_tti, cc);
 
   // process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for non-CA UEs
-  for (feedback_manager::ue_event_t& ev : current_slot_events) {
-    auto ue_it       = ue_db.find(ev.rnti);
-    bool contains_ue = ue_it != ue_db.end();
-    if (contains_ue and not ue_it->second->has_ca() and ue_it->second->carriers[cc] != nullptr) {
-      ev.callback();
-    }
-  }
+  pending_events->process_carrier_events(ue_db, cc);
 
   // prepare non-CA UEs internal state for new slot
   for (auto& u : ue_db) {
@@ -346,7 +371,7 @@ void sched_nr::ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
 
 void sched_nr::ul_sr_info(uint16_t rnti)
 {
-  pending_feedback.enqueue_event(rnti, [this, rnti]() {
+  pending_events->enqueue_event(rnti, [this, rnti]() {
     if (ue_db.contains(rnti)) {
       ue_db[rnti]->ul_sr_info();
     } else {
@@ -357,7 +382,7 @@ void sched_nr::ul_sr_info(uint16_t rnti)
 
 void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
 {
-  pending_feedback.enqueue_event(rnti, [this, rnti, lcg_id, bsr]() {
+  pending_events->enqueue_event(rnti, [this, rnti, lcg_id, bsr]() {
     if (ue_db.contains(rnti)) {
       ue_db[rnti]->ul_bsr(lcg_id, bsr);
     } else {
@@ -368,7 +393,7 @@ void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
 
 void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx)
 {
-  pending_feedback.enqueue_event(rnti, [this, rnti, lcid, newtx, retx]() {
+  pending_events->enqueue_event(rnti, [this, rnti, lcid, newtx, retx]() {
     if (ue_db.contains(rnti)) {
       ue_db[rnti]->rlc_buffer_state(lcid, newtx, retx);
     } else {

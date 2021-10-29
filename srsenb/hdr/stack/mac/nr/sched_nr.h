@@ -61,22 +61,6 @@ public:
   void get_metrics(mac_metrics_t& metrics);
 
 private:
-  class feedback_manager
-  {
-  public:
-    struct ue_event_t {
-      uint16_t                      rnti;
-      srsran::move_callback<void()> callback;
-    };
-
-    void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
-    void get_pending_events(srsran::deque<ue_event_t>& current_events);
-
-  private:
-    std::mutex                event_mutex;
-    srsran::deque<ue_event_t> next_slot_events;
-  };
-
   void ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
 
   // args
@@ -97,8 +81,8 @@ private:
   std::unique_ptr<ul_sched_result_buffer> pending_results;
 
   // Feedback management
-  feedback_manager                            pending_feedback;
-  srsran::deque<feedback_manager::ue_event_t> current_slot_events;
+  class common_event_manager;
+  std::unique_ptr<common_event_manager> pending_events;
 
   // metrics extraction
   class ue_metrics_manager;
