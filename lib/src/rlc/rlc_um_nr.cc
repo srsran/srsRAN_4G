@@ -61,7 +61,6 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
   return true;
 }
 
-
 /****************************************************************************
  * Logging helpers
  ***************************************************************************/
@@ -70,7 +69,7 @@ std::string rlc_um_nr::get_rb_name() const
   fmt::memory_buffer fmtbuf;
   // currently we only support DRB 1 (hardcoded)
   if (cfg.um_nr.bearer_id == 1) {
-    fmt::format_to(fmtbuf, "DRB{}", cfg.um_nr.bearer_id);
+    fmt::format_to(fmtbuf, "{}{}", cfg.um_nr.rb_type == RLC_RB_IS_SRB ? "SRB" : "DRB", cfg.um_nr.bearer_id);
   } else {
     fmt::format_to(fmtbuf, "DRB N/A");
   }

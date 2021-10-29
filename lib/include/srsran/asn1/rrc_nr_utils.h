@@ -134,7 +134,10 @@ bool                     make_mac_dl_harq_cfg_nr_t(const asn1::rrc_nr::pdsch_ser
 /***************************
  *      RLC Config
  **************************/
-int make_rlc_config_t(const asn1::rrc_nr::rlc_cfg_c& asn1_type, rlc_config_t* rlc_config_out, uint8_t bearer_id = 0);
+int make_rlc_config_t(const asn1::rrc_nr::rlc_cfg_c& asn1_type,
+                      uint8_t                        bearer_id,
+                      rlc_rb_type_t                  rb_type,
+                      rlc_config_t*                  rlc_config_out);
 
 /***************************
  *      PDCP Config
