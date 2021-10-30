@@ -56,7 +56,6 @@ void test_single_prach()
   auto                 run_slot = [&res_grid, &rasched, &pdcch_slot, &slot_ues, &u]() -> const bwp_slot_grid* {
     mac_logger.set_context(pdcch_slot.to_uint());
     u.new_slot(pdcch_slot);
-    u.carriers[0]->new_slot(pdcch_slot);
     slot_ues.clear();
     slot_ue sfu = u.try_reserve(pdcch_slot, 0);
     if (not sfu.empty()) {

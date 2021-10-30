@@ -73,6 +73,25 @@ void lch_ue_manager::new_tti()
   }
 }
 
+void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
+{
+  if (base_type::dl_buffer_state(lcid, tx_queue, prio_tx_queue) == SRSRAN_SUCCESS) {
+    logger.debug("SCHED: rnti=0x%x DL lcid=%d buffer_state=%d,%d", rnti, lcid, tx_queue, prio_tx_queue);
+  }
+}
+
+void lch_ue_manager::ul_bsr(uint32_t lcg_id, uint32_t val)
+{
+  if (base_type::ul_bsr(lcg_id, val) == SRSRAN_SUCCESS) {
+    if (logger.debug.enabled()) {
+      fmt::memory_buffer str_buffer;
+      fmt::format_to(str_buffer, "{}", lcg_bsr);
+      logger.debug(
+          "SCHED: rnti=0x%x, lcg_id=%d, bsr=%d. Current state=%s", rnti, lcg_id, val, srsran::to_c_str(str_buffer));
+    }
+  }
+}
+
 void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
 {
   if (lcid >= sched_interface::MAX_LC) {

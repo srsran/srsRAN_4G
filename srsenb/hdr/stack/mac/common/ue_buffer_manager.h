@@ -44,8 +44,8 @@ public:
   void config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
 
   // Buffer Status update
-  void ul_bsr(uint32_t lcg_id, uint32_t val);
-  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
+  int ul_bsr(uint32_t lcg_id, uint32_t val);
+  int dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
 
   // Configuration getters
   uint16_t               get_rnti() const { return rnti; }

@@ -18,51 +18,8 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-carrier_feedback_manager::carrier_feedback_manager(const cell_params_t& cell_cfg) :
-  cfg(cell_cfg), logger(srslog::fetch_basic_logger(cell_cfg.sched_args.logger_name))
-{}
-
-void carrier_feedback_manager::enqueue_common_event(srsran::move_callback<void()> ev)
-{
-  std::lock_guard<std::mutex> lock(feedback_mutex);
-  pending_events.emplace_back(std::move(ev));
-}
-
-void carrier_feedback_manager::enqueue_ue_feedback(uint16_t rnti, feedback_callback_t fdbk)
-{
-  std::lock_guard<std::mutex> lock(feedback_mutex);
-  pending_feedback.emplace_back();
-  pending_feedback.back().rnti = rnti;
-  pending_feedback.back().fdbk = std::move(fdbk);
-}
-
-void carrier_feedback_manager::run(ue_map_t& ue_db)
-{
-  {
-    std::lock_guard<std::mutex> lock(feedback_mutex);
-    tmp_feedback_to_run.swap(pending_feedback);
-    tmp_events_to_run.swap(pending_events);
-  }
-
-  for (srsran::move_callback<void()>& ev : tmp_events_to_run) {
-    ev();
-  }
-  tmp_events_to_run.clear();
-
-  for (feedback_t& f : tmp_feedback_to_run) {
-    if (ue_db.contains(f.rnti) and ue_db[f.rnti]->carriers[cfg.cc] != nullptr) {
-      f.fdbk(*ue_db[f.rnti]->carriers[cfg.cc]);
-    } else {
-      logger.info("SCHED: feedback received for rnti=0x%x, cc=%d that has been removed.", f.rnti, cfg.cc);
-    }
-  }
-  tmp_feedback_to_run.clear();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 cc_worker::cc_worker(const cell_params_t& params) :
-  cfg(params), logger(srslog::fetch_basic_logger(params.sched_args.logger_name)), pending_feedback(params)
+  cfg(params), logger(srslog::fetch_basic_logger(params.sched_args.logger_name))
 {
   for (uint32_t bwp_id = 0; bwp_id < cfg.cfg.bwps.size(); ++bwp_id) {
     bwps.emplace_back(cfg.bwps[bwp_id]);
@@ -102,9 +59,6 @@ void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t&
   // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
   bwp_slot_allocator bwp_alloc{bwps[0].grid, pdcch_slot, slot_ues};
 
-  // Run pending cell feedback (process feedback)
-  pending_feedback.run(ue_db);
-
   // Reserve UEs for this worker slot (select candidate UEs)
   for (auto& ue_pair : ue_db) {
     uint16_t rnti = ue_pair.first;
@@ -112,9 +66,6 @@ void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t&
     if (u.carriers[cfg.cc] == nullptr) {
       continue;
     }
-
-    // Update UE CC state
-    u.carriers[cfg.cc]->new_slot(pdcch_slot);
 
     // info for a given UE on a slot to be process
     slot_ues.insert(rnti, u.try_reserve(pdcch_slot, cfg.cc));

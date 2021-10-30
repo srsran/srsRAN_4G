@@ -24,6 +24,7 @@ slot_ue::slot_ue(uint16_t rnti_, slot_point slot_rx_, uint32_t cc_) : rnti(rnti_
 ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params_t& cell_params_) :
   rnti(rnti_),
   cc(cell_params_.cc),
+  logger(srslog::fetch_basic_logger(cell_params_.sched_args.logger_name)),
   bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
   cell_params(cell_params_),
   harq_ent(rnti_, cell_params_.nof_prb(), SCHED_NR_MAX_HARQ, cell_params_.bwps[0].logger)
@@ -34,9 +35,29 @@ void ue_carrier::set_cfg(const ue_cfg_t& ue_cfg)
   bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], ue_cfg);
 }
 
-void ue_carrier::new_slot(slot_point slot_tx)
+int ue_carrier::dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack)
 {
-  harq_ent.new_slot(slot_tx - TX_ENB_DELAY);
+  int tbs = harq_ent.dl_ack_info(pid, tb_idx, ack);
+  if (tbs < 0) {
+    logger.warning("SCHED: rnti=0x%x received DL HARQ-ACK for empty pid=%d", rnti, pid);
+    return tbs;
+  }
+  if (ack) {
+    metrics.tx_brate += tbs;
+  } else {
+    metrics.tx_errors++;
+  }
+  metrics.tx_pkts++;
+  return tbs;
+}
+
+int ue_carrier::ul_crc_info(uint32_t pid, bool crc)
+{
+  int ret = harq_ent.ul_crc_info(pid, crc);
+  if (ret < 0) {
+    logger.warning("SCHED: rnti=0x%x,cc=%d received CRC for empty pid=%d", rnti, cc, pid);
+  }
+  return ret;
 }
 
 slot_ue ue_carrier::try_reserve(slot_point pdcch_slot, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes)
@@ -107,6 +128,12 @@ void ue::set_cfg(const ue_cfg_t& cfg)
 void ue::new_slot(slot_point pdcch_slot)
 {
   last_pdcch_slot = pdcch_slot;
+
+  for (std::unique_ptr<ue_carrier>& cc : carriers) {
+    if (cc != nullptr) {
+      cc->harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY);
+    }
+  }
 
   // Compute pending DL/UL bytes for {rnti, pdcch_slot}
   if (sched_cfg.sched_cfg.auto_refill_buffer) {

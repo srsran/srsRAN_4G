@@ -65,8 +65,8 @@ public:
   ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const cell_params_t& cell_params_);
   void set_cfg(const ue_cfg_t& ue_cfg);
 
-  /// Called after CC Feedback has been processed
-  void new_slot(slot_point slot_tx);
+  int dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack);
+  int ul_crc_info(uint32_t pid, bool crc);
 
   slot_ue try_reserve(slot_point pdcch_slot, uint32_t dl_harq_bytes, uint32_t ul_harq_bytes);
 
@@ -83,8 +83,9 @@ public:
   mac_ue_metrics_t metrics = {};
 
 private:
-  bwp_ue_cfg           bwp_cfg;
-  const cell_params_t& cell_params;
+  srslog::basic_logger& logger;
+  bwp_ue_cfg            bwp_cfg;
+  const cell_params_t&  cell_params;
 };
 
 class ue
