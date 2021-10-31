@@ -53,16 +53,6 @@ public:
 
   ///// Configuration /////
 
-  struct pdsch_td_res_alloc {
-    uint8_t k0 = 0; // 0..32
-    uint8_t k1 = 4; // 0..32
-  };
-  using pdsch_td_res_alloc_list = srsran::bounded_vector<pdsch_td_res_alloc, MAX_GRANTS>;
-  struct pusch_td_res_alloc {
-    uint8_t k2 = 4; // 0..32
-  };
-  using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, MAX_GRANTS>;
-
   struct bwp_cfg_t {
     uint32_t               start_rb        = 0;
     uint32_t               rb_width        = 100;
