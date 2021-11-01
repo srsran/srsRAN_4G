@@ -125,8 +125,7 @@ void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uin
   for (const auto& ue_pair : slot_ues) {
     auto& ue = ue_pair->second;
 
-    fmt::format_to(
-        fmtbuf, "{}{{rnti=0x{:x}, dl_bs={}, ul_bs={}}}", use_comma, ue->rnti, ue.dl_pending_bytes, ue.ul_pending_bytes);
+    fmt::format_to(fmtbuf, "{}{{rnti=0x{:x}, dl_bs={}, ul_bs={}}}", use_comma, ue->rnti, ue.dl_bytes, ue.ul_bytes);
     use_comma = ", ";
   }
 
@@ -157,7 +156,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      ue.h_dl->nof_retx(),
                      pdcch.dci.dai,
                      ue.h_dl->tbs() / 8u,
-                     ue.dl_pending_bytes,
+                     ue.dl_bytes,
                      ue.pdsch_slot,
                      ue.uci_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
@@ -194,7 +193,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      srsran_dci_format_nr_string(pdcch.dci.ctx.format),
                      ue.h_ul->nof_retx(),
                      ue.h_ul->tbs() / 8u,
-                     ue.ul_pending_bytes,
+                     ue.ul_bytes,
                      ue.pusch_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];

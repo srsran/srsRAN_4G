@@ -118,7 +118,7 @@ public:
   ul_harq_proc* find_empty_ul_harq() { return ue->harq_ent.find_empty_ul_harq(); }
 
   // UE parameters common to all sectors
-  uint32_t dl_pending_bytes = 0, ul_pending_bytes = 0;
+  uint32_t dl_bytes = 0, ul_bytes = 0;
 
   // UE parameters that are sector specific
   bool          dl_active;

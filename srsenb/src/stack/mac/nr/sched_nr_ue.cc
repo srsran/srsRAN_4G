@@ -17,7 +17,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_bytes, uint32_t ul_bytes) :
+slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes) :
   ue(&ue_), pdcch_slot(slot_tx_)
 {
   const uint32_t k0 = 0;
@@ -31,16 +31,16 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_bytes, uint32
 
   dl_active = srsran_duplex_nr_is_dl(&tdd_cfg, 0, pdsch_slot.slot_idx());
   if (dl_active) {
-    dl_pending_bytes = dl_bytes;
-    h_dl             = ue->harq_ent.find_pending_dl_retx();
+    dl_bytes = dl_pending_bytes;
+    h_dl     = ue->harq_ent.find_pending_dl_retx();
     if (h_dl == nullptr) {
       h_dl = ue->harq_ent.find_empty_dl_harq();
     }
   }
   ul_active = srsran_duplex_nr_is_ul(&tdd_cfg, 0, pusch_slot.slot_idx());
   if (ul_active) {
-    ul_pending_bytes = ul_bytes;
-    h_ul             = ue->harq_ent.find_pending_ul_retx();
+    ul_bytes = ul_pending_bytes;
+    h_ul     = ue->harq_ent.find_pending_ul_retx();
     if (h_ul == nullptr) {
       h_ul = ue->harq_ent.find_empty_ul_harq();
     }
