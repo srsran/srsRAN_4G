@@ -47,15 +47,6 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_bytes, uint32
   }
 }
 
-dl_harq_proc* slot_ue::find_empty_dl_harq()
-{
-  return dl_active ? ue->harq_ent.find_empty_dl_harq() : nullptr;
-}
-ul_harq_proc* slot_ue::find_empty_ul_harq()
-{
-  return ul_active ? ue->harq_ent.find_empty_ul_harq() : nullptr;
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params_t& cell_params_) :
@@ -160,9 +151,9 @@ void ue::new_slot(slot_point pdcch_slot)
   }
 }
 
-slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
+slot_ue ue::make_slot_ue(slot_point pdcch_slot, uint32_t cc)
 {
-  srsran_assert(carriers[cc] != nullptr, "try_reserve() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
+  srsran_assert(carriers[cc] != nullptr, "make_slot_ue() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
   return slot_ue(*carriers[cc], pdcch_slot, dl_pending_bytes, ul_pending_bytes);
 }
 

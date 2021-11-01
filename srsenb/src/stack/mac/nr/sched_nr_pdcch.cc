@@ -11,7 +11,6 @@
  */
 
 #include "srsenb/hdr/stack/mac/nr/sched_nr_pdcch.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr_ue.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -47,10 +46,10 @@ void coreset_region::reset()
   pdcch_ul_list.clear();
 }
 
-bool coreset_region::alloc_dci(pdcch_grant_type_t alloc_type,
-                               uint32_t           aggr_idx,
-                               uint32_t           search_space_id,
-                               slot_ue*           user)
+bool coreset_region::alloc_dci(pdcch_grant_type_t         alloc_type,
+                               uint32_t                   aggr_idx,
+                               uint32_t                   search_space_id,
+                               const ue_carrier_params_t* user)
 {
   srsran_assert(aggr_idx <= 4, "Invalid DCI aggregation level=%d", 1U << aggr_idx);
   srsran_assert((user == nullptr) xor
@@ -141,7 +140,7 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
   tree_node node;
   node.dci_pos_idx = start_dci_idx;
   node.dci_pos.L   = record.aggr_idx;
-  node.rnti        = record.ue != nullptr ? (*record.ue)->rnti : SRSRAN_INVALID_RNTI;
+  node.rnti        = record.ue != nullptr ? record.ue->rnti : SRSRAN_INVALID_RNTI;
   node.current_mask.resize(nof_cces());
   // get cumulative pdcch bitmap
   if (not alloc_dfs.empty()) {
@@ -181,7 +180,7 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
     case pdcch_grant_type_t::ul_data:
-      return (*record.ue)->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
+      return record.ue->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::rar:
       return rar_cce_list[slot_idx][record.aggr_idx];
     default:

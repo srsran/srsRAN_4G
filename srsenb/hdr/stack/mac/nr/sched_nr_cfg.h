@@ -161,37 +161,6 @@ private:
   std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;
 };
 
-class ue_cfg_extended : public ue_cfg_t
-{
-public:
-  struct search_space_params {
-    const srsran_search_space_t* cfg;
-    bwp_cce_pos_list             cce_positions;
-  };
-  struct coreset_params {
-    srsran_coreset_t*     cfg = nullptr;
-    std::vector<uint32_t> ss_list;
-  };
-  struct bwp_params {
-    std::array<srsran::optional<search_space_params>, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_list;
-    std::vector<coreset_params>                                                             coresets;
-  };
-  struct cc_params {
-    srsran::bounded_vector<bwp_params, SCHED_NR_MAX_BWP_PER_CELL> bwps;
-  };
-
-  ue_cfg_extended() = default;
-  explicit ue_cfg_extended(uint16_t rnti, const ue_cfg_t& uecfg);
-
-  const bwp_cce_pos_list& get_dci_pos_list(uint32_t cc, uint32_t bwp_id, uint32_t search_space_id) const
-  {
-    return cc_params[cc].bwps[bwp_id].ss_list[search_space_id]->cce_positions;
-  }
-
-  uint16_t               rnti;
-  std::vector<cc_params> cc_params;
-};
-
 } // namespace sched_nr_impl
 
 } // namespace srsenb

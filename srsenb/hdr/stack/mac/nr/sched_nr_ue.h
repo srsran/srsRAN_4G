@@ -39,8 +39,9 @@ public:
   int dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack);
   int ul_crc_info(uint32_t pid, bool crc);
 
-  const uint16_t rnti;
-  const uint32_t cc;
+  const uint16_t       rnti;
+  const uint32_t       cc;
+  const cell_params_t& cell_params;
 
   // Channel state
   uint32_t dl_cqi = 1;
@@ -56,7 +57,6 @@ private:
 
   srslog::basic_logger& logger;
   ue_carrier_params_t   bwp_cfg;
-  const cell_params_t&  cell_params;
 };
 
 class ue
@@ -66,11 +66,12 @@ public:
 
   void new_slot(slot_point pdcch_slot);
 
-  slot_ue try_reserve(slot_point pdcch_slot, uint32_t cc);
+  slot_ue make_slot_ue(slot_point pdcch_slot, uint32_t cc);
 
   void            set_cfg(const ue_cfg_t& cfg);
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
+  /// UE state feedback
   void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
   void ul_sr_info() { last_sr_slot = last_pdcch_slot - TX_ENB_DELAY; }
@@ -108,12 +109,13 @@ public:
   bool     empty() const { return ue == nullptr; }
   void     release() { ue = nullptr; }
 
+  const ue_carrier_params_t& cfg() const { return ue->bwp_cfg; }
   const ue_carrier_params_t& operator*() const { return ue->bwp_cfg; }
   const ue_carrier_params_t* operator->() const { return &ue->bwp_cfg; }
 
   // mutable interface to ue_carrier state
-  dl_harq_proc* find_empty_dl_harq();
-  ul_harq_proc* find_empty_ul_harq();
+  dl_harq_proc* find_empty_dl_harq() { return ue->harq_ent.find_empty_dl_harq(); }
+  ul_harq_proc* find_empty_ul_harq() { return ue->harq_ent.find_empty_ul_harq(); }
 
   // UE parameters common to all sectors
   uint32_t dl_pending_bytes = 0, ul_pending_bytes = 0;

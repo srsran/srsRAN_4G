@@ -65,7 +65,7 @@ void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t&
     }
 
     // info for a given UE on a slot to be process
-    slot_ues.insert(rnti, u.try_reserve(pdcch_slot, cfg.cc));
+    slot_ues.insert(rnti, u.make_slot_ue(pdcch_slot, cfg.cc));
     if (slot_ues[rnti].empty()) {
       // Failed to generate slot UE because UE has no conditions for DL/UL tx
       slot_ues.erase(rnti);

@@ -127,31 +127,5 @@ ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp
   }
 }
 
-ue_cfg_extended::ue_cfg_extended(uint16_t rnti_, const ue_cfg_t& uecfg) : ue_cfg_t(uecfg), rnti(rnti_)
-{
-  auto ss_view      = srsran::make_optional_span(phy_cfg.pdcch.search_space, phy_cfg.pdcch.search_space_present);
-  auto coreset_view = srsran::make_optional_span(phy_cfg.pdcch.coreset, phy_cfg.pdcch.coreset_present);
-  cc_params.resize(carriers.size());
-  for (uint32_t cc = 0; cc < cc_params.size(); ++cc) {
-    cc_params[cc].bwps.resize(1);
-    auto& bwp = cc_params[cc].bwps[0];
-    for (auto& ss : ss_view) {
-      bwp.ss_list[ss.id].emplace();
-      bwp.ss_list[ss.id]->cfg = &ss;
-      get_dci_locs(phy_cfg.pdcch.coreset[ss.coreset_id], ss, rnti, bwp.ss_list[ss.id]->cce_positions);
-    }
-    for (auto& coreset_cfg : coreset_view) {
-      bwp.coresets.emplace_back();
-      auto& coreset = bwp.coresets.back();
-      coreset.cfg   = &coreset_cfg;
-      for (auto& ss : bwp.ss_list) {
-        if (ss.has_value() and ss->cfg->coreset_id == coreset.cfg->id) {
-          coreset.ss_list.push_back(ss->cfg->id);
-        }
-      }
-    }
-  }
-}
-
 } // namespace sched_nr_impl
 } // namespace srsenb

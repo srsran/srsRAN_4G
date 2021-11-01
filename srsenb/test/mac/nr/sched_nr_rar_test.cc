@@ -57,7 +57,7 @@ void test_single_prach()
     mac_logger.set_context(pdcch_slot.to_uint());
     u.new_slot(pdcch_slot);
     slot_ues.clear();
-    slot_ue sfu = u.try_reserve(pdcch_slot, 0);
+    slot_ue sfu = u.make_slot_ue(pdcch_slot, 0);
     if (not sfu.empty()) {
       slot_ues.insert(rnti, std::move(sfu));
     }

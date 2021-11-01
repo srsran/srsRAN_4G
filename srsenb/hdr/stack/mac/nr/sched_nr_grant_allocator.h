@@ -111,8 +111,10 @@ public:
   const bwp_params_t& cfg;
 
 private:
-  alloc_result verify_pdsch_space(bwp_slot_grid& pdsch_grid, bwp_slot_grid& pdcch_grid) const;
+  alloc_result
+               verify_pdsch_space(bwp_slot_grid& pdsch_grid, bwp_slot_grid& pdcch_grid, bwp_slot_grid* uci_grid = nullptr) const;
   alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid = nullptr) const;
+  alloc_result verify_ue_cfg(const ue_carrier_params_t& ue_cfg, harq_proc* harq) const;
 
   srslog::basic_logger& logger;
   bwp_res_grid&         bwp_grid;
