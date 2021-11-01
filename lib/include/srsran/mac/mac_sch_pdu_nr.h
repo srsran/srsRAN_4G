@@ -57,17 +57,18 @@ public:
   mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), logger(&srslog::fetch_basic_logger("MAC-NR")){};
 
   nr_lcid_sch_t get_type();
-  bool          is_sdu();
+  bool          is_sdu() const;
   bool          is_valid_lcid();
   bool          is_var_len_ce(uint32_t lcid);
   bool          is_ul_ccch();
 
-  int32_t  read_subheader(const uint8_t* ptr);
-  uint32_t get_total_length();
-  uint32_t get_sdu_length();
-  uint32_t get_lcid();
-  uint8_t* get_sdu();
-  uint16_t get_c_rnti();
+  int32_t        read_subheader(const uint8_t* ptr);
+  uint32_t       get_total_length() const;
+  uint32_t       get_sdu_length() const;
+  uint32_t       get_lcid() const;
+  uint8_t*       get_sdu();
+  const uint8_t* get_sdu() const;
+  uint16_t       get_c_rnti() const;
 
   // both return the reported values as per TS 38.321, mapping to dB according to TS 38.133 Sec 10.1.17 not done here
   uint8_t get_phr();
@@ -78,13 +79,13 @@ public:
     uint8_t lcg_id;
     uint8_t buffer_size;
   };
-  lcg_bsr_t            get_sbsr();
+  lcg_bsr_t            get_sbsr() const;
   static const uint8_t max_num_lcg_lbsr = 8;
   struct lbsr_t {
     uint8_t                bitmap; // the first octet of LBSR and Long Trunc BSR
     std::vector<lcg_bsr_t> list;   // one entry for each reported LCG
   };
-  lbsr_t get_lbsr();
+  lbsr_t get_lbsr() const;
 
   // TA
   struct ta_t {
@@ -171,7 +172,8 @@ private:
     }
 
     /// Returns the SDU pointer.
-    uint8_t* ptr() { return sdu; }
+    const uint8_t* ptr() const { return sdu; }
+    uint8_t*       ptr() { return sdu; }
   };
 
   sdu_buffer sdu;
@@ -187,7 +189,8 @@ public:
   void                     pack();
   int                      unpack(const uint8_t* payload, const uint32_t& len);
   uint32_t                 get_num_subpdus();
-  const mac_sch_subpdu_nr& get_subpdu(const uint32_t& index);
+  const mac_sch_subpdu_nr& get_subpdu(const uint32_t& index) const;
+  mac_sch_subpdu_nr&       get_subpdu(uint32_t index);
   bool                     is_ulsch();
 
   int  init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool is_ulsch_ = false);

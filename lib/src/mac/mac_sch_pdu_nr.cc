@@ -23,7 +23,7 @@ mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
   return CCCH;
 }
 
-bool mac_sch_subpdu_nr::is_sdu()
+bool mac_sch_subpdu_nr::is_sdu() const
 {
   return (lcid <= 32);
 }
@@ -191,17 +191,17 @@ uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
   return ptr - start_;
 }
 
-uint32_t mac_sch_subpdu_nr::get_total_length()
+uint32_t mac_sch_subpdu_nr::get_total_length() const
 {
   return (header_length + sdu_length);
 }
 
-uint32_t mac_sch_subpdu_nr::get_sdu_length()
+uint32_t mac_sch_subpdu_nr::get_sdu_length() const
 {
   return sdu_length;
 }
 
-uint32_t mac_sch_subpdu_nr::get_lcid()
+uint32_t mac_sch_subpdu_nr::get_lcid() const
 {
   return lcid;
 }
@@ -211,10 +211,15 @@ uint8_t* mac_sch_subpdu_nr::get_sdu()
   return sdu.ptr();
 }
 
-uint16_t mac_sch_subpdu_nr::get_c_rnti()
+const uint8_t* mac_sch_subpdu_nr::get_sdu() const
+{
+  return sdu.ptr();
+}
+
+uint16_t mac_sch_subpdu_nr::get_c_rnti() const
 {
   if (parent->is_ulsch() && lcid == CRNTI) {
-    uint8_t* ptr = sdu.ptr();
+    const uint8_t* ptr = sdu.ptr();
     return le16toh((uint16_t)ptr[0] << 8 | ptr[1]);
   }
   return 0;
@@ -249,26 +254,26 @@ mac_sch_subpdu_nr::ta_t mac_sch_subpdu_nr::get_ta()
   return ta;
 }
 
-mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
+mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr() const
 {
   lcg_bsr_t sbsr = {};
   if (parent->is_ulsch() && (lcid == SHORT_BSR || lcid == SHORT_TRUNC_BSR)) {
-    uint8_t* ptr     = sdu.ptr();
-    sbsr.lcg_id      = (ptr[0] & 0xe0) >> 5;
-    sbsr.buffer_size = ptr[0] & 0x1f;
+    const uint8_t* ptr = sdu.ptr();
+    sbsr.lcg_id        = (ptr[0] & 0xe0) >> 5;
+    sbsr.buffer_size   = ptr[0] & 0x1f;
   }
   return sbsr;
 }
 
-mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr()
+mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr() const
 {
   lbsr_t lbsr = {};
   lbsr.list.reserve(mac_sch_subpdu_nr::max_num_lcg_lbsr);
 
   if (parent->is_ulsch() && (lcid == LONG_BSR || lcid == LONG_TRUNC_BSR)) {
-    uint8_t* ptr = sdu.ptr();
-    lbsr.bitmap  = *ptr; // read LCG bitmap
-    ptr++;               // skip LCG bitmap
+    const uint8_t* ptr = sdu.ptr();
+    lbsr.bitmap        = *ptr; // read LCG bitmap
+    ptr++;                     // skip LCG bitmap
 
     // early stop if LBSR is empty
     if (lbsr.bitmap == 0) {
@@ -444,7 +449,12 @@ uint32_t mac_sch_pdu_nr::get_num_subpdus()
   return subpdus.size();
 }
 
-const mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(const uint32_t& index)
+const mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(const uint32_t& index) const
+{
+  return subpdus.at(index);
+}
+
+mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(uint32_t index)
 {
   return subpdus.at(index);
 }
@@ -551,11 +561,11 @@ uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
   return SRSRAN_SUCCESS;
 }
 
-void mac_sch_pdu_nr::to_string(fmt::memory_buffer& buffer)
+void mac_sch_pdu_nr::to_string(fmt::memory_buffer& fmtbuffer)
 {
-  fmt::format_to(buffer, "{}", is_ulsch() ? "UL" : "DL");
+  fmt::format_to(fmtbuffer, "{}", is_ulsch() ? "UL" : "DL");
   for (auto& subpdu : subpdus) {
-    subpdu.to_string(buffer);
+    subpdu.to_string(fmtbuffer);
   }
 }
 
