@@ -35,7 +35,7 @@ void test_single_prach()
 
   // Set cells configuration
   std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(1);
-  sched_params                                schedparams{sched_cfg};
+  sched_params_t                              schedparams{sched_cfg};
   schedparams.cells.emplace_back(0, cells_cfg[0], sched_cfg);
   const bwp_params_t& bwpparams = schedparams.cells[0].bwps[0];
   slot_ue_map_t       slot_ues;

@@ -64,8 +64,8 @@ private:
   int add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u);
 
   // args
-  sched_nr_impl::sched_params cfg;
-  srslog::basic_logger*       logger = nullptr;
+  sched_nr_impl::sched_params_t cfg;
+  srslog::basic_logger*         logger = nullptr;
 
   // slot-specific
   slot_point       current_slot_tx;

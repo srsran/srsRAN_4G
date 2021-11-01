@@ -96,7 +96,7 @@ sched_nr_base_tester::sched_nr_base_tester(const sched_nr_interface::sched_args_
                                            std::string                                        test_name_,
                                            uint32_t                                           nof_workers) :
   logger(srslog::fetch_basic_logger("TEST")),
-  mac_logger(srslog::fetch_basic_logger("MAC")),
+  mac_logger(srslog::fetch_basic_logger("MAC-NR")),
   sched_ptr(new sched_nr()),
   test_name(std::move(test_name_))
 {

@@ -56,9 +56,6 @@ void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
 /// Called within a locked context, to generate {slot, cc} scheduling decision
 void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
 {
-  // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
-  bwp_slot_allocator bwp_alloc{bwps[0].grid, pdcch_slot, slot_ues};
-
   // Reserve UEs for this worker slot (select candidate UEs)
   for (auto& ue_pair : ue_db) {
     uint16_t rnti = ue_pair.first;
@@ -76,6 +73,9 @@ void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t&
     }
     // UE acquired successfully for scheduling in this {slot, cc}
   }
+
+  // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
+  bwp_slot_allocator bwp_alloc{bwps[0].grid, pdcch_slot, slot_ues};
 
   // Log UEs state for slot
   log_sched_slot_ues(logger, pdcch_slot, cfg.cc, slot_ues);
@@ -132,7 +132,7 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
     srsran_pdsch_ack_nr_t ack = {};
 
     for (auto& h_ack : bwp_slot.pending_acks) {
-      if (h_ack.res.rnti == ue.rnti) {
+      if (h_ack.res.rnti == ue->rnti) {
         ack.nof_cc = 1;
 
         srsran_harq_ack_m_t ack_m = {};
@@ -143,7 +143,7 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
     }
 
     srsran_uci_cfg_nr_t uci_cfg = {};
-    if (not ue.cfg->phy().get_uci_cfg(slot_cfg, ack, uci_cfg)) {
+    if (not ue->phy().get_uci_cfg(slot_cfg, ack, uci_cfg)) {
       logger.error("Error getting UCI configuration");
       continue;
     }
@@ -154,14 +154,14 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
 
     bool has_pusch = false;
     for (auto& pusch : bwp_slot.puschs) {
-      if (pusch.sch.grant.rnti == ue.rnti) {
+      if (pusch.sch.grant.rnti == ue->rnti) {
         // Put UCI configuration in PUSCH config
         has_pusch = true;
 
         // If has PUSCH, no SR shall be received
         uci_cfg.o_sr = 0;
 
-        if (not ue.cfg->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
+        if (not ue->phy().get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
           logger.error("Error setting UCI configuration in PUSCH");
           continue;
         }
@@ -177,10 +177,10 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
       bwp_slot.pucch.emplace_back();
       mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
 
-      uci_cfg.pucch.rnti = ue.rnti;
+      uci_cfg.pucch.rnti = ue->rnti;
       pucch.candidates.emplace_back();
       pucch.candidates.back().uci_cfg = uci_cfg;
-      if (not ue.cfg->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+      if (not ue->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
         logger.error("Error getting UCI CFG");
         continue;
       }
@@ -196,7 +196,7 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
         // Append new resource
         pucch.candidates.emplace_back();
         pucch.candidates.back().uci_cfg = uci_cfg;
-        if (not ue.cfg->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+        if (not ue->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
           logger.error("Error getting UCI CFG");
           continue;
         }

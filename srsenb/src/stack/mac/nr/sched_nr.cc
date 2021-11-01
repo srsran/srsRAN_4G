@@ -110,7 +110,7 @@ public:
     fmt::memory_buffer    event_fmtbuf;
   };
 
-  explicit event_manager(sched_params& params) :
+  explicit event_manager(sched_params_t& params) :
     sched_logger(srslog::fetch_basic_logger(params.sched_cfg.logger_name)), carriers(params.cells.size())
   {}
 
@@ -333,7 +333,7 @@ void sched_nr::stop()
 
 int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list)
 {
-  cfg    = sched_params{sched_cfg};
+  cfg    = sched_params_t{sched_cfg};
   logger = &srslog::fetch_basic_logger(sched_cfg.logger_name);
 
   // Initiate Common Sched Configuration

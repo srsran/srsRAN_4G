@@ -101,7 +101,7 @@ cell_params_t::cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_a
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }
 
-sched_params::sched_params(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg_)
+sched_params_t::sched_params_t(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg_)
 {
   srsran_assert(sched_cfg.fixed_dl_mcs >= 0, "Dynamic DL MCS not supported");
   srsran_assert(sched_cfg.fixed_ul_mcs >= 0, "Dynamic DL MCS not supported");
@@ -109,8 +109,8 @@ sched_params::sched_params(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bwp_ue_cfg::bwp_ue_cfg(uint16_t rnti_, const bwp_params_t& bwp_cfg_, const ue_cfg_t& uecfg_) :
-  rnti(rnti_), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
+ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp_cfg_, const ue_cfg_t& uecfg_) :
+  rnti(rnti_), cc(bwp_cfg_.cc), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
 {
   std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
   const auto& pdcch        = phy().pdcch;

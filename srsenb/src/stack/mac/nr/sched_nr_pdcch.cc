@@ -141,7 +141,7 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
   tree_node node;
   node.dci_pos_idx = start_dci_idx;
   node.dci_pos.L   = record.aggr_idx;
-  node.rnti        = record.ue != nullptr ? record.ue->rnti : SRSRAN_INVALID_RNTI;
+  node.rnti        = record.ue != nullptr ? (*record.ue)->rnti : SRSRAN_INVALID_RNTI;
   node.current_mask.resize(nof_cces());
   // get cumulative pdcch bitmap
   if (not alloc_dfs.empty()) {
@@ -180,9 +180,8 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 {
   switch (record.alloc_type) {
     case pdcch_grant_type_t::dl_data:
-      return record.ue->cfg->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::ul_data:
-      return record.ue->cfg->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
+      return (*record.ue)->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     case pdcch_grant_type_t::rar:
       return rar_cce_list[slot_idx][record.aggr_idx];
     default:

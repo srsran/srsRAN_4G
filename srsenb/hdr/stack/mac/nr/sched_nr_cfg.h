@@ -107,26 +107,30 @@ struct cell_params_t {
 };
 
 /// Structure packing both the sched args and all gNB NR cell configurations
-struct sched_params {
+struct sched_params_t {
   sched_args_t               sched_cfg;
   std::vector<cell_params_t> cells;
 
-  sched_params() = default;
-  explicit sched_params(const sched_args_t& sched_cfg_);
+  sched_params_t() = default;
+  explicit sched_params_t(const sched_args_t& sched_cfg_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Configuration of a UE for a given BWP
-class bwp_ue_cfg
+/// Semi-static configuration of a UE for a given CC.
+class ue_carrier_params_t
 {
 public:
-  bwp_ue_cfg() = default;
-  explicit bwp_ue_cfg(uint16_t rnti, const bwp_params_t& bwp_cfg, const ue_cfg_t& uecfg_);
+  ue_carrier_params_t() = default;
+  explicit ue_carrier_params_t(uint16_t rnti, const bwp_params_t& active_bwp_cfg, const ue_cfg_t& uecfg_);
 
-  const ue_cfg_t*              ue_cfg() const { return cfg_; }
-  const srsran::phy_cfg_nr_t&  phy() const { return cfg_->phy_cfg; }
-  const bwp_params_t&          active_bwp() const { return *bwp_cfg; }
+  uint16_t rnti = SRSRAN_INVALID_RNTI;
+  uint32_t cc   = SRSRAN_MAX_CARRIERS;
+
+  const ue_cfg_t&             ue_cfg() const { return *cfg_; }
+  const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
+  const bwp_params_t&         active_bwp() const { return *bwp_cfg; }
+
   srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
   {
     if (cce_positions_list.size() > ss_id_to_cce_idx[search_id]) {
@@ -150,7 +154,6 @@ public:
   int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
 
 private:
-  uint16_t            rnti    = SRSRAN_INVALID_RNTI;
   const ue_cfg_t*     cfg_    = nullptr;
   const bwp_params_t* bwp_cfg = nullptr;
 
