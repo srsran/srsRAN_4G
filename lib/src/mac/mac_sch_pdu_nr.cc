@@ -444,11 +444,6 @@ int mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
   return SRSRAN_SUCCESS;
 }
 
-uint32_t mac_sch_pdu_nr::get_num_subpdus()
-{
-  return subpdus.size();
-}
-
 const mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(const uint32_t& index) const
 {
   return subpdus.at(index);

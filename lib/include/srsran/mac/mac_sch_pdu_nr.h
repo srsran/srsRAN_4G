@@ -29,7 +29,7 @@ class mac_sch_subpdu_nr
 {
 public:
   // 3GPP 38.321 v15.3.0 Combined Tables 6.2.1-1, 6.2.1-2
-  typedef enum {
+  enum nr_lcid_sch_t {
     // Values for DL-SCH
     CCCH       = 0b000000,
     DRX_CMD    = 0b111100,
@@ -44,12 +44,14 @@ public:
     CCCH_SIZE_64    = 0b000000,
     SE_PHR          = 0b111001, // Single Entry PHR
 
+    MIN_LCID  = 0b000001,
+    MAX_LCID  = 0b100000,
     SHORT_BSR = 0b111101,
     LONG_BSR  = 0b111110,
 
     // Common
     PADDING = 0b111111,
-  } nr_lcid_sch_t;
+  };
 
   // SDUs up to 256 B can use the short 8-bit L field
   static const int32_t MAC_SUBHEADER_LEN_THRESHOLD = 256;
@@ -188,7 +190,7 @@ public:
 
   void                     pack();
   int                      unpack(const uint8_t* payload, const uint32_t& len);
-  uint32_t                 get_num_subpdus();
+  uint32_t                 get_num_subpdus() const { return subpdus.size(); }
   const mac_sch_subpdu_nr& get_subpdu(const uint32_t& index) const;
   mac_sch_subpdu_nr&       get_subpdu(uint32_t index);
   bool                     is_ulsch();
