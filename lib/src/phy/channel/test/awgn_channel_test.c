@@ -68,11 +68,68 @@ static int parse_args(int argc, char** argv)
   return SRSRAN_SUCCESS;
 }
 
+static int compare_floats(const void* a, const void* b)
+{
+  float arg1 = *(const float*) a;
+  float arg2 = *(const float*) b;
+
+  if (arg1 < arg2) return -1;
+  if (arg1 > arg2) return 1;
+  return 0;
+}
+
+/*
+ * Checks for Gaussianity with the Anderson--Darling test: if the returned statistic A2 is larger than 1
+ * (and if the number of samples is larger than 100), then the Gaussianity hypothesis is rejected with a significance
+ * level of approximately 1% (see https://en.wikipedia.org/wiki/Anderson%E2%80%93Darling_test).
+ *
+ * x points to the vector of samples (real values and imaginary values)
+ * half_length is the number of complex samples
+ * y is a pointer to a helper vector used for temporary computations
+*/
+static float anderson(const float* x, uint32_t half_length, float* y)
+{
+#define SQRT1_2 ((float)M_SQRT1_2)
+#define CDF(a) ((1 + erff((a)*SQRT1_2)) * .5)
+
+  uint32_t length        = 2 * half_length;
+  float length_f = (float)length;
+
+  // estimate mean and variance (the test works better with estimated  than nominal ones)
+  float mean = srsran_vec_acc_ff(x, length);
+  mean /= length_f;
+
+  srsran_vec_sc_sum_fff(x, -mean, y, length);
+  float variance = srsran_vec_dot_prod_fff(y, y, length);
+  variance /= length_f - 1;
+
+  // standardize samples
+  srsran_vec_sc_prod_fff(y, 1 / sqrtf(variance), y, length);
+
+  // sort standardized samples
+  qsort(y, length, sizeof(float), compare_floats);
+
+  // compute Anderson--Darling statistic
+  float cdf1, cdf2;
+  float a2 = 0;
+  for (uint32_t ii = 0; ii < nof_samples; ii++) {
+    cdf1 = CDF(y[ii]);
+    cdf2 = CDF(y[length - ii - 1]);
+    a2 += (2 * ii + 1) * (logf(cdf1) + log1pf(-cdf2)) +
+          (2 * (length - ii) - 1) * (logf(cdf2) + log1pf(-cdf1));
+  }
+  a2 = -length_f - a2 / length_f;
+  a2 = a2 * (1 + (4 - 25 / length_f) / length_f);
+
+  return a2;
+}
+
 int main(int argc, char** argv)
 {
   int      ret           = SRSRAN_SUCCESS;
   cf_t*    input_buffer  = NULL;
   cf_t*    output_buffer = NULL;
+  float*   help_buffer   = NULL;
   uint64_t count_samples = 0;
   uint64_t count_us      = 0;
 
@@ -89,6 +146,7 @@ int main(int argc, char** argv)
   // Initialise buffers
   input_buffer  = srsran_vec_cf_malloc(nof_samples);
   output_buffer = srsran_vec_cf_malloc(nof_samples);
+  help_buffer = srsran_vec_f_malloc(2 * nof_samples);
 
   if (!input_buffer || !output_buffer) {
     ERROR("Error: Allocating memory");
@@ -150,6 +208,13 @@ int main(int argc, char** argv)
 
     if ((n0 + tolerance) < power_dB || (n0 - tolerance) > power_dB) {
       printf("-- failed: %.3f<%.3f<%.3f\n", n0 - tolerance, power_dB, n0 + tolerance);
+      ret = SRSRAN_ERROR;
+    }
+
+    // Check for Gaussianity
+    float a2 = anderson((float*)output_buffer, nof_samples, help_buffer);
+    if ((nof_samples > 100 && a2 > 1) || !isfinite(a2)) {
+      printf("-- failed: A2 = %f > 1: not Gaussian\n", a2);
       ret = SRSRAN_ERROR;
     }
 
