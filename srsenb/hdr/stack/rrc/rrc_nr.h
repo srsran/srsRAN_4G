@@ -238,10 +238,25 @@ private:
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
   int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
 
+  // Helper to create PDU from RRC message
+  template <class T>
+  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg);
+
   // logging
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
-  void log_rrc_message(const std::string& source, direction_t dir, const srsran::byte_buffer_t* pdu, const T& msg);
+  void log_rrc_message(const std::string&         source,
+                       const direction_t          dir,
+                       const asn1::dyn_octstring& oct,
+                       const T&                   msg,
+                       const std::string&         msg_type);
+
+  template <class T>
+  void log_rrc_message(const std::string&           source,
+                       const direction_t            dir,
+                       const srsran::byte_buffer_t& pdu,
+                       const T&                     msg,
+                       const std::string&           msg_type);
 };
 
 } // namespace srsenb
