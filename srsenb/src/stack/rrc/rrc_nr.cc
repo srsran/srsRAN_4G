@@ -694,9 +694,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
     parent->logger.error("Failed to send DL-CCCH");
     return;
   }
-  fmt::memory_buffer strbuf;
-  fmt::format_to(strbuf, "rnti=0x{:x}", rnti);
-  parent->log_rrc_message(fmt::to_string(strbuf), Tx, *pdu.get(), *dl_ccch_msg, "DL-CCCH");
+  log_rrc_message(Tx, *pdu.get(), *dl_ccch_msg, "DL-CCCH");
   parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
 }
 
@@ -1247,10 +1245,7 @@ int rrc_nr::ue::pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_second
   }
   packed_secondary_cell_config.resize(bref_pack.distance_bytes());
 
-  fmt::memory_buffer strbuf;
-  fmt::format_to(strbuf, "rnti=0x{:x}", rnti);
-  parent->log_rrc_message(
-      fmt::to_string(strbuf), Tx, packed_secondary_cell_config, cell_group_cfg_pack, "nr-SecondaryCellGroupConfig-r15");
+  log_rrc_message(Tx, packed_secondary_cell_config, cell_group_cfg_pack, "nr-SecondaryCellGroupConfig-r15");
 
   return SRSRAN_SUCCESS;
 }
@@ -1307,10 +1302,7 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
   // resize to packed length
   packed_nr_bearer_config.resize(bref_pack.distance_bytes());
 
-  fmt::memory_buffer strbuf;
-  fmt::format_to(strbuf, "rnti=0x{:x}", rnti);
-  parent->log_rrc_message(
-      fmt::to_string(strbuf), Tx, packed_nr_bearer_config, radio_bearer_cfg_pack, "nr-RadioBearerConfig1-r15");
+  log_rrc_message(Tx, packed_nr_bearer_config, radio_bearer_cfg_pack, "nr-RadioBearerConfig1-r15");
 
   return SRSRAN_SUCCESS;
 }
@@ -1476,6 +1468,14 @@ void rrc_nr::ue::deactivate_bearers()
 
   // No need to check the returned value, as the function ue_cfg will return SRSRAN_SUCCESS (it asserts if it fails)
   parent->mac->ue_cfg(rnti, uecfg);
+}
+
+template <class T, class M>
+void rrc_nr::ue::log_rrc_message(const direction_t dir, const M& pdu, const T& msg, const std::string& msg_type)
+{
+  fmt::memory_buffer strbuf;
+  fmt::format_to(strbuf, "rnti=0x{:x}", rnti);
+  parent->log_rrc_message(fmt::to_string(strbuf), Tx, pdu, msg, msg_type);
 }
 
 } // namespace srsenb
