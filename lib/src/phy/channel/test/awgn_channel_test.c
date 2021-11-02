@@ -70,11 +70,13 @@ static int parse_args(int argc, char** argv)
 
 static int compare_floats(const void* a, const void* b)
 {
-  float arg1 = *(const float*) a;
-  float arg2 = *(const float*) b;
+  float arg1 = *(const float*)a;
+  float arg2 = *(const float*)b;
 
-  if (arg1 < arg2) return -1;
-  if (arg1 > arg2) return 1;
+  if (arg1 < arg2)
+    return -1;
+  if (arg1 > arg2)
+    return 1;
   return 0;
 }
 
@@ -86,16 +88,16 @@ static int compare_floats(const void* a, const void* b)
  * x points to the vector of samples (real values and imaginary values)
  * half_length is the number of complex samples
  * y is a pointer to a helper vector used for temporary computations
-*/
+ */
 static float anderson(const float* x, uint32_t half_length, float* y)
 {
 #define SQRT1_2 ((float)M_SQRT1_2)
 #define CDF(a) ((1 + erff((a)*SQRT1_2)) * .5)
 
-  uint32_t length        = 2 * half_length;
-  float length_f = (float)length;
+  uint32_t length   = 2 * half_length;
+  float    length_f = (float)length;
 
-  // estimate mean and variance (the test works better with estimated  than nominal ones)
+  // estimate mean and variance (the test works better with estimated values than with nominal ones)
   float mean = srsran_vec_acc_ff(x, length);
   mean /= length_f;
 
@@ -115,8 +117,7 @@ static float anderson(const float* x, uint32_t half_length, float* y)
   for (uint32_t ii = 0; ii < nof_samples; ii++) {
     cdf1 = CDF(y[ii]);
     cdf2 = CDF(y[length - ii - 1]);
-    a2 += (2 * ii + 1) * (logf(cdf1) + log1pf(-cdf2)) +
-          (2 * (length - ii) - 1) * (logf(cdf2) + log1pf(-cdf1));
+    a2 += (2 * ii + 1) * (logf(cdf1) + log1pf(-cdf2)) + (2 * (length - ii) - 1) * (logf(cdf2) + log1pf(-cdf1));
   }
   a2 = -length_f - a2 / length_f;
   a2 = a2 * (1 + (4 - 25 / length_f) / length_f);
@@ -146,9 +147,9 @@ int main(int argc, char** argv)
   // Initialise buffers
   input_buffer  = srsran_vec_cf_malloc(nof_samples);
   output_buffer = srsran_vec_cf_malloc(nof_samples);
-  help_buffer = srsran_vec_f_malloc(2 * nof_samples);
+  help_buffer   = srsran_vec_f_malloc(2 * nof_samples);
 
-  if (!input_buffer || !output_buffer) {
+  if (!input_buffer || !output_buffer || !help_buffer) {
     ERROR("Error: Allocating memory");
     ret = SRSRAN_ERROR;
     goto clean_exit;
