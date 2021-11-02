@@ -627,13 +627,13 @@ int main(int argc, char** argv)
           dci.rnti                = serving_cell_pdsch_rnti;
           dci.is_tdd              = false;
           dci.is_dwpts            = false;
-          dci.is_ra_order         = false;
+          dci.is_pdcch_order      = false;
           dci.tb_cw_swap          = false;
           dci.pconf               = false;
           dci.power_offset        = false;
           dci.tpc_pucch           = 0;
-          dci.ra_preamble         = 0;
-          dci.ra_mask_idx         = 0;
+          dci.preamble_idx        = 0;
+          dci.prach_mask_idx      = 0;
           dci.srs_request         = false;
           dci.srs_request_present = false;
           dci.cif_present         = false;

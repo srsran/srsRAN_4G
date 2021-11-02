@@ -70,7 +70,6 @@ typedef struct SRSRAN_API {
 } srsran_dci_tb_t;
 
 typedef struct SRSRAN_API {
-
   uint16_t              rnti;
   srsran_dci_format_t   format;
   srsran_dci_location_t location;
@@ -94,10 +93,10 @@ typedef struct SRSRAN_API {
   bool    power_offset;
   uint8_t tpc_pucch;
 
-  // RA order
-  bool     is_ra_order;
-  uint32_t ra_preamble;
-  uint32_t ra_mask_idx;
+  // PDCCH order
+  bool     is_pdcch_order;
+  uint32_t preamble_idx;
+  uint32_t prach_mask_idx;
 
   // Release 10
   uint32_t cif;
@@ -121,7 +120,6 @@ typedef struct SRSRAN_API {
 
 /** Unpacked DCI Format0 message */
 typedef struct SRSRAN_API {
-
   uint16_t              rnti;
   srsran_dci_format_t   format;
   srsran_dci_location_t location;
