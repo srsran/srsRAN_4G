@@ -31,8 +31,6 @@ class cc_worker;
 
 } // namespace sched_nr_impl
 
-class ul_sched_result_buffer;
-
 class sched_nr final : public sched_nr_interface
 {
 public:
@@ -53,9 +51,9 @@ public:
   void dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx);
 
   /// Called once per slot in a non-concurrent fashion
-  void slot_indication(slot_point slot_tx) override;
-  int  get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result) override;
-  int  get_ul_sched(slot_point pusch_tti, uint32_t cc, ul_res_t& result) override;
+  void      slot_indication(slot_point slot_tx) override;
+  dl_res_t* get_dl_sched(slot_point pdsch_tti, uint32_t cc) override;
+  ul_res_t* get_ul_sched(slot_point pusch_tti, uint32_t cc) override;
 
   void get_metrics(mac_metrics_t& metrics);
 
@@ -76,9 +74,6 @@ private:
 
   using ue_map_t = sched_nr_impl::ue_map_t;
   ue_map_t ue_db;
-
-  // management of Sched Result buffering
-  std::unique_ptr<ul_sched_result_buffer> pending_results;
 
   // Feedback management
   class event_manager;

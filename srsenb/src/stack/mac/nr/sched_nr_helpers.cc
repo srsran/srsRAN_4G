@@ -139,7 +139,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
 {
   const bwp_slot_grid& bwp_slot  = res_grid[pdcch_slot];
   size_t               rar_count = 0;
-  for (const pdcch_dl_t& pdcch : bwp_slot.dl_pdcchs) {
+  for (const pdcch_dl_t& pdcch : bwp_slot.dl.phy.pdcch_dl) {
     fmt::memory_buffer fmtbuf;
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
@@ -160,7 +160,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      ue.pdsch_slot,
                      ue.uci_slot);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
-      const pdsch_t&           pdsch = bwp_slot.pdschs[std::distance(bwp_slot.dl_pdcchs.data(), &pdcch)];
+      const pdsch_t&           pdsch = bwp_slot.dl.phy.pdsch[std::distance(bwp_slot.dl.phy.pdcch_dl.data(), &pdcch)];
       srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + pdsch.sch.grant.nof_prb};
       uint32_t                 start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
       uint32_t end_idx = std::distance(prbs.begin(), std::find(prbs.begin() + start_idx, prbs.end(), false));
@@ -171,7 +171,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      srsran::interval<uint32_t>{start_idx, end_idx},
                      pdcch_slot,
                      pdcch_slot + res_grid.cfg->pusch_ra_list[0].msg3_delay,
-                     bwp_slot.rar[rar_count].grants.size());
+                     bwp_slot.dl.rar[rar_count].grants.size());
       rar_count++;
     } else {
       fmt::format_to(fmtbuf, "SCHED: unknown format");
@@ -179,7 +179,7 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
 
     logger.info("%s", srsran::to_c_str(fmtbuf));
   }
-  for (const pdcch_ul_t& pdcch : bwp_slot.ul_pdcchs) {
+  for (const pdcch_ul_t& pdcch : bwp_slot.dl.phy.pdcch_ul) {
     fmt::memory_buffer fmtbuf;
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];

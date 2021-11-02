@@ -49,15 +49,9 @@ struct bwp_slot_grid {
 
   bwp_rb_bitmap     dl_prbs;
   bwp_rb_bitmap     ul_prbs;
-  ssb_list          ssb;
-  nzp_csi_rs_list   nzp_csi_rs;
-  pdcch_dl_list_t   dl_pdcchs;
-  pdcch_ul_list_t   ul_pdcchs;
-  pdsch_list_t      pdschs;
-  pucch_list_t      pucch;
-  sched_rar_list_t  rar;
+  dl_sched_res_t    dl;
+  ul_sched_t        ul;
   slot_coreset_list coresets;
-  pusch_list_t      puschs;
   harq_ack_list_t   pending_acks;
 
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;

@@ -27,47 +27,6 @@ static int assert_ue_cfg_valid(uint16_t rnti, const sched_nr_interface::ue_cfg_t
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class ul_sched_result_buffer
-{
-public:
-  explicit ul_sched_result_buffer(uint32_t nof_cc_)
-  {
-    for (auto& v : results) {
-      v.resize(nof_cc_);
-    }
-  }
-
-  ul_sched_t& add_ul_result(slot_point tti, uint32_t cc)
-  {
-    if (not has_ul_result(tti, cc)) {
-      results[tti.to_uint()][cc].slot_ul = tti;
-      results[tti.to_uint()][cc].ul_res  = {};
-    }
-    return results[tti.to_uint()][cc].ul_res;
-  }
-
-  bool has_ul_result(slot_point tti, uint32_t cc) const { return results[tti.to_uint()][cc].slot_ul == tti; }
-
-  ul_sched_t pop_ul_result(slot_point tti, uint32_t cc)
-  {
-    if (has_ul_result(tti, cc)) {
-      results[tti.to_uint()][cc].slot_ul.clear();
-      return results[tti.to_uint()][cc].ul_res;
-    }
-    return {};
-  }
-
-private:
-  struct slot_result_t {
-    slot_point slot_ul;
-    ul_sched_t ul_res;
-  };
-
-  srsran::circular_array<std::vector<slot_result_t>, TTIMOD_SZ> results;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 /// Class that stores events that are not specific to a CC (e.g. SRs, removal of UEs, buffer state updates)
 class sched_nr::event_manager
 {
@@ -342,7 +301,6 @@ int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_
     cfg.cells.emplace_back(cc, cell_list[cc], cfg.sched_cfg);
   }
 
-  pending_results.reset(new ul_sched_result_buffer(cell_list.size()));
   pending_events.reset(new event_manager{cfg});
 
   // Initiate cell-specific schedulers
@@ -416,12 +374,9 @@ void sched_nr::slot_indication(slot_point slot_tx)
 }
 
 /// Generate {pdcch_slot,cc} scheduling decision
-int sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result)
+sched_nr::dl_res_t* sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc)
 {
   srsran_assert(pdsch_tti == current_slot_tx, "Unexpected pdsch_tti slot received");
-
-  // Copy UL results to intermediate buffer
-  ul_res_t& ul_res = pending_results->add_ul_result(pdsch_tti, cc);
 
   // process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for non-CA UEs
   pending_events->process_cc_events(ue_db, cc);
@@ -434,7 +389,7 @@ int sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result)
   }
 
   // Process pending CC-specific feedback, generate {slot_idx,cc} scheduling decision
-  cc_workers[cc]->run_slot(pdsch_tti, ue_db, result, ul_res);
+  sched_nr::dl_res_t* ret = cc_workers[cc]->run_slot(pdsch_tti, ue_db);
 
   // decrement the number of active workers
   int rem_workers = worker_count.fetch_sub(1, std::memory_order_release) - 1;
@@ -444,21 +399,13 @@ int sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc, dl_res_t& result)
     // TODO: Sync sched results with ue_db state
   }
 
-  return SRSRAN_SUCCESS;
+  return ret;
 }
 
 /// Fetch {ul_slot,cc} UL scheduling decision
-int sched_nr::get_ul_sched(slot_point slot_ul, uint32_t cc, ul_res_t& result)
+sched_nr::ul_res_t* sched_nr::get_ul_sched(slot_point slot_ul, uint32_t cc)
 {
-  if (not pending_results->has_ul_result(slot_ul, cc)) {
-    // sched result hasn't been generated
-    result.pucch.clear();
-    result.pusch.clear();
-    return SRSRAN_SUCCESS;
-  }
-
-  result = pending_results->pop_ul_result(slot_ul, cc);
-  return SRSRAN_SUCCESS;
+  return cc_workers[cc]->get_ul_sched(slot_ul);
 }
 
 void sched_nr::get_metrics(mac_metrics_t& metrics)

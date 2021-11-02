@@ -37,7 +37,8 @@ public:
 
   void dl_rach_info(const sched_nr_interface::rar_info_t& rar_info);
 
-  void run_slot(slot_point pdcch_slot, ue_map_t& ue_db_, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
+  dl_sched_res_t* run_slot(slot_point pdcch_slot, ue_map_t& ue_db_);
+  ul_sched_t*     get_ul_sched(slot_point sl);
 
   // const params
   const cell_params_t&  cfg;
@@ -47,9 +48,6 @@ public:
   srsran::bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL> bwps;
 
 private:
-  /// Derive the remaining scheduling parameters and save result
-  bool save_sched_result(dl_sched_res_t& dl_res, ul_sched_t& ul_res, slot_point slot_tx);
-
   void alloc_dl_ues(bwp_slot_allocator& bwp_alloc);
   void alloc_ul_ues(bwp_slot_allocator& bwp_alloc);
   void postprocess_decisions(bwp_slot_allocator& bwp_alloc);

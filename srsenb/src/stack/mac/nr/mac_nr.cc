@@ -293,7 +293,7 @@ int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
   return 0;
 }
 
-int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
+mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
 {
   slot_point pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
 
@@ -303,17 +303,15 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   sched->slot_indication(pdsch_slot);
 
   // Run DL Scheduler for CC
-  sched_nr_interface::sched_rar_list_t rar_list;
-  sched_nr_interface::dl_res_t         dl_res(rar_list, dl_sched);
-  int                                  ret = sched->get_dl_sched(pdsch_slot, 0, dl_res);
-  if (ret != SRSRAN_SUCCESS) {
-    return ret;
+  sched_nr::dl_res_t* dl_res = sched->get_dl_sched(pdsch_slot, 0);
+  if (dl_res == nullptr) {
+    return nullptr;
   }
 
   // Generate MAC DL PDUs
   uint32_t                  rar_count = 0;
   srsran::rwlock_read_guard rw_lock(rwmutex);
-  for (pdsch_t& pdsch : dl_sched.pdsch) {
+  for (pdsch_t& pdsch : dl_res->phy.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
       uint16_t rnti = pdsch.sch.grant.rnti;
       if (not is_rnti_active_nolock(rnti)) {
@@ -332,7 +330,7 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
         }
       }
     } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
-      sched_nr_interface::rar_t& rar = dl_res.rar[rar_count++];
+      sched_nr_interface::rar_t& rar = dl_res->rar[rar_count++];
       // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
       pdsch.data[0] = assemble_rar(rar.grants);
     }
@@ -340,23 +338,22 @@ int mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched
   for (auto& u : ue_db) {
     u.second->metrics_cnt();
   }
-  return SRSRAN_SUCCESS;
+
+  return &dl_res->phy;
 }
 
-int mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
+mac_nr::ul_sched_t* mac_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg)
 {
-  int ret = 0;
-
-  slot_point pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
-  ret                   = sched->get_ul_sched(pusch_slot, 0, ul_sched);
+  slot_point  pusch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
+  ul_sched_t* ul_sched   = sched->get_ul_sched(pusch_slot, 0);
 
   srsran::rwlock_read_guard rw_lock(rwmutex);
-  for (auto& pusch : ul_sched.pusch) {
+  for (auto& pusch : ul_sched->pusch) {
     if (ue_db.contains(pusch.sch.grant.rnti)) {
       ue_db[pusch.sch.grant.rnti]->metrics_ul_mcs(pusch.sch.grant.tb->mcs);
     }
   }
-  return ret;
+  return ul_sched;
 }
 
 int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)

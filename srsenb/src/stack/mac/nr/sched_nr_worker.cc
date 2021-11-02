@@ -29,33 +29,21 @@ cc_worker::cc_worker(const cell_params_t& params) :
   harq_softbuffer_pool::get_instance().init_pool(cfg.nof_prb());
 }
 
-bool cc_worker::save_sched_result(dl_sched_res_t& dl_res, ul_sched_t& ul_res, slot_point slot_tx)
-{
-  auto& bwp_slot = bwps[0].grid[slot_tx];
-
-  dl_res.dl_sched.pdcch_dl   = bwp_slot.dl_pdcchs;
-  dl_res.dl_sched.pdcch_ul   = bwp_slot.ul_pdcchs;
-  dl_res.dl_sched.pdsch      = bwp_slot.pdschs;
-  dl_res.rar                 = bwp_slot.rar;
-  dl_res.dl_sched.ssb        = bwp_slot.ssb;
-  dl_res.dl_sched.nzp_csi_rs = bwp_slot.nzp_csi_rs;
-  ul_res.pusch               = bwp_slot.puschs;
-  ul_res.pucch               = bwp_slot.pucch;
-
-  // clear up BWP slot
-  bwp_slot.reset();
-
-  return true;
-}
-
 void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
 {
   bwps[0].ra.dl_rach_info(rar_info);
 }
 
 /// Called within a locked context, to generate {slot, cc} scheduling decision
-void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t& dl_res, ul_sched_t& ul_res)
+
+dl_sched_res_t* cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db)
 {
+  // Reset old sched outputs
+  slot_point old_slot = pdcch_slot - TX_ENB_DELAY - 1;
+  for (bwp_manager& bwp : bwps) {
+    bwp.grid[old_slot].reset();
+  }
+
   // Reserve UEs for this worker slot (select candidate UEs)
   for (auto& ue_pair : ue_db) {
     uint16_t rnti = ue_pair.first;
@@ -82,7 +70,7 @@ void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t&
 
   // Allocate cell DL signalling
   bwp_slot_grid& bwp_pdcch_slot = bwps[0].grid[pdcch_slot];
-  sched_dl_signalling(*bwps[0].cfg, pdcch_slot, bwp_pdcch_slot.ssb, bwp_pdcch_slot.nzp_csi_rs);
+  sched_dl_signalling(*bwps[0].cfg, pdcch_slot, bwp_pdcch_slot.dl.phy.ssb, bwp_pdcch_slot.dl.phy.nzp_csi_rs);
 
   // Allocate pending RARs
   bwps[0].ra.run_slot(bwp_alloc);
@@ -97,11 +85,15 @@ void cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db, dl_sched_res_t&
   // Log CC scheduler result
   log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), bwps[0].grid, slot_ues);
 
-  // Post-process and copy results to intermediate buffer
-  save_sched_result(dl_res, ul_res, pdcch_slot);
-
   // releases UE resources
   slot_ues.clear();
+
+  return &bwp_pdcch_slot.dl;
+}
+
+ul_sched_t* cc_worker::get_ul_sched(slot_point sl)
+{
+  return &bwps[0].grid[sl].ul;
 }
 
 void cc_worker::alloc_dl_ues(bwp_slot_allocator& bwp_alloc)
@@ -153,7 +145,7 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
     }
 
     bool has_pusch = false;
-    for (auto& pusch : bwp_slot.puschs) {
+    for (auto& pusch : bwp_slot.ul.pusch) {
       if (pusch.sch.grant.rnti == ue->rnti) {
         // Put UCI configuration in PUSCH config
         has_pusch = true;
@@ -170,12 +162,12 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
     }
     if (not has_pusch) {
       // If any UCI information is triggered, schedule PUCCH
-      if (bwp_slot.pucch.full()) {
+      if (bwp_slot.ul.pucch.full()) {
         logger.warning("SCHED: Cannot fit pending UCI into PUCCH");
         continue;
       }
-      bwp_slot.pucch.emplace_back();
-      mac_interface_phy_nr::pucch_t& pucch = bwp_slot.pucch.back();
+      bwp_slot.ul.pucch.emplace_back();
+      mac_interface_phy_nr::pucch_t& pucch = bwp_slot.ul.pucch.back();
 
       uci_cfg.pucch.rnti = ue->rnti;
       pucch.candidates.emplace_back();
