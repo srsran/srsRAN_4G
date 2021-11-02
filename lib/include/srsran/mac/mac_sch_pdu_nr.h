@@ -44,8 +44,6 @@ public:
     CCCH_SIZE_64    = 0b000000,
     SE_PHR          = 0b111001, // Single Entry PHR
 
-    MIN_LCID  = 0b000001,
-    MAX_LCID  = 0b100000,
     SHORT_BSR = 0b111101,
     LONG_BSR  = 0b111110,
 

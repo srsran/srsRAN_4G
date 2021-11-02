@@ -78,7 +78,7 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
   uint32_t crnti_ce_pos = mac_pdu_ul.get_num_subpdus();
   for (uint32_t n = mac_pdu_ul.get_num_subpdus(); n > 0; --n) {
     srsran::mac_sch_subpdu_nr& subpdu = mac_pdu_ul.get_subpdu(n - 1);
-    if (subpdu.is_sdu() and subpdu.get_lcid() == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI) {
+    if (subpdu.get_lcid() == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI) {
       if (process_ce_subpdu(subpdu) != SRSRAN_SUCCESS) {
         return SRSRAN_ERROR;
       }
