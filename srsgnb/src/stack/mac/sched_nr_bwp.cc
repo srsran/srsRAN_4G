@@ -17,66 +17,6 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
-  bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
-{}
-
-void si_sched::run_slot(bwp_slot_allocator& slot_alloc)
-{
-  const uint32_t    si_aggr_level = 2;
-  slot_point        pdcch_slot    = slot_alloc.get_pdcch_tti();
-  const prb_bitmap& prbs          = slot_alloc.res_grid()[pdcch_slot].dl_prbs.prbs();
-
-  // Update SI windows
-  uint32_t N = bwp_cfg->slots.size();
-  for (sched_si_t& si : pending_sis) {
-    uint32_t x = (si.n - 1) * si.win_len;
-
-    if (not si.win_start.valid() and (pdcch_slot.sfn() % si.period == x / N) and
-        pdcch_slot.slot_idx() == x % bwp_cfg->slots.size()) {
-      // If start o SI message window
-      si.win_start = pdcch_slot;
-    } else if (si.win_start.valid() and si.win_start + si.win_len >= pdcch_slot) {
-      // If end of SI message window
-      logger.warning(
-          "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
-      si.win_start.clear();
-    }
-  }
-
-  // Schedule pending SIs
-  if (bwp_cfg->slots[pdcch_slot.slot_idx()].is_dl) {
-    for (sched_si_t& si : pending_sis) {
-      if (not si.win_start.valid()) {
-        continue;
-      }
-
-      // TODO: NOTE 2: The UE is not required to monitor PDCCH monitoring occasion(s) corresponding to each transmitted
-      // SSB in SI-window.
-
-      // Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
-      si.result              = alloc_result::invalid_coderate;
-      uint32_t prb_start_idx = 0;
-      for (uint32_t nprbs = 4; nprbs < bwp_cfg->cfg.rb_width and si.result == alloc_result::invalid_coderate; ++nprbs) {
-        prb_interval grant = find_empty_interval_of_length(prbs, nprbs, prb_start_idx);
-        prb_start_idx      = grant.start();
-        if (grant.length() != nprbs) {
-          si.result = alloc_result::no_sch_space;
-          break;
-        }
-        si.result = slot_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant);
-        if (si.result == alloc_result::success) {
-          // SIB scheduled successfully
-          si.win_start.clear();
-          si.n_tx++;
-        }
-      }
-    }
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 ra_sched::ra_sched(const bwp_params_t& bwp_cfg_) :
   bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
 {}
@@ -221,7 +161,7 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
 }
 
 bwp_manager::bwp_manager(const bwp_params_t& bwp_cfg) :
-  cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg), data_sched(new sched_nr_time_rr())
+  cfg(&bwp_cfg), ra(bwp_cfg), si(bwp_cfg), grid(bwp_cfg), data_sched(new sched_nr_time_rr())
 {}
 
 } // namespace sched_nr_impl

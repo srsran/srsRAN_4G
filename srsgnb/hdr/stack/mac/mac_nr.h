@@ -89,8 +89,9 @@ private:
   void get_metrics_nolock(srsenb::mac_metrics_t& metrics);
 
   // Encoding
-  srsran::byte_buffer_t*       assemble_rar(srsran::const_span<sched_nr_interface::msg3_grant_t> grants);
-  srsran::unique_byte_buffer_t rar_pdu_buffer = nullptr;
+  srsran::byte_buffer_t* assemble_rar(srsran::const_span<sched_nr_interface::msg3_grant_t> grants);
+
+  srsran::unique_byte_buffer_t rar_pdu_buffer;
 
   // Interaction with other components
   phy_interface_stack_nr* phy   = nullptr;

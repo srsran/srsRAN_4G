@@ -89,7 +89,7 @@ public:
   using ue_cc_cfg_t = sched_nr_ue_cc_cfg_t;
   using ue_cfg_t    = sched_nr_ue_cfg_t;
 
-  ////// RA procedure //////
+  ////// RA signalling //////
 
   struct rar_info_t {
     uint32_t   preamble_idx; // is this the RAPID?
@@ -117,6 +117,8 @@ public:
   struct dl_res_t {
     dl_sched_t       phy;
     sched_rar_list_t rar;
+
+    srsran::bounded_vector<uint32_t, MAX_GRANTS> sib_idxs;
   };
 
   virtual ~sched_nr_interface() = default;

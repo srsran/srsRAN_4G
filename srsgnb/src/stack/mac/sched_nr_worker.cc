@@ -69,8 +69,10 @@ dl_sched_res_t* cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db)
   log_sched_slot_ues(logger, pdcch_slot, cfg.cc, slot_ues);
 
   // Allocate cell DL signalling
-  bwp_slot_grid& bwp_pdcch_slot = bwps[0].grid[pdcch_slot];
-  sched_dl_signalling(*bwps[0].cfg, pdcch_slot, bwp_pdcch_slot.dl.phy.ssb, bwp_pdcch_slot.dl.phy.nzp_csi_rs);
+  sched_dl_signalling(bwp_alloc);
+
+  // Allocate pending SIBs
+  bwps[0].si.run_slot(bwp_alloc);
 
   // Allocate pending RARs
   bwps[0].ra.run_slot(bwp_alloc);
@@ -88,7 +90,7 @@ dl_sched_res_t* cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db)
   // releases UE resources
   slot_ues.clear();
 
-  return &bwp_pdcch_slot.dl;
+  return &bwp_alloc.tx_slot_grid().dl;
 }
 
 ul_sched_t* cc_worker::get_ul_sched(slot_point sl)

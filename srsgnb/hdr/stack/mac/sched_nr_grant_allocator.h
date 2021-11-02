@@ -54,6 +54,8 @@ struct bwp_slot_grid {
   slot_coreset_list coresets;
   harq_ack_list_t   pending_acks;
 
+  srsran::bounded_vector<uint32_t, MAX_GRANTS> sib_idxs;
+
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
   bwp_slot_grid() = default;
@@ -98,11 +100,14 @@ public:
   alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
   alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
 
-  slot_point          get_pdcch_tti() const { return pdcch_slot; }
-  slot_point          get_tti_rx() const { return pdcch_slot - TX_ENB_DELAY; }
-  const bwp_res_grid& res_grid() const { return bwp_grid; }
+  slot_point           get_pdcch_tti() const { return pdcch_slot; }
+  slot_point           get_tti_rx() const { return pdcch_slot - TX_ENB_DELAY; }
+  const bwp_res_grid&  res_grid() const { return bwp_grid; }
+  const bwp_slot_grid& tx_slot_grid() const { return bwp_grid[pdcch_slot]; }
+  bwp_slot_grid&       tx_slot_grid() { return bwp_grid[pdcch_slot]; }
 
-  const bwp_params_t& cfg;
+  srslog::basic_logger& logger;
+  const bwp_params_t&   cfg;
 
 private:
   alloc_result
@@ -110,8 +115,7 @@ private:
   alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid = nullptr) const;
   alloc_result verify_ue_cfg(const ue_carrier_params_t& ue_cfg, harq_proc* harq) const;
 
-  srslog::basic_logger& logger;
-  bwp_res_grid&         bwp_grid;
+  bwp_res_grid& bwp_grid;
 
   slot_point     pdcch_slot;
   slot_ue_map_t& slot_ues;

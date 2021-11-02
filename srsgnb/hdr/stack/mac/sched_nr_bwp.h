@@ -15,35 +15,12 @@
 
 #include "sched_nr_cfg.h"
 #include "sched_nr_grant_allocator.h"
+#include "sched_nr_signalling.h"
 #include "sched_nr_time_rr.h"
 #include "srsran/adt/pool/cached_alloc.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
-
-/// SIB scheduler
-class si_sched
-{
-public:
-  explicit si_sched(const bwp_params_t& bwp_cfg_);
-
-  void run_slot(bwp_slot_allocator& slot_alloc);
-
-private:
-  const bwp_params_t*   bwp_cfg = nullptr;
-  srslog::basic_logger& logger;
-
-  struct sched_si_t {
-    uint32_t     n       = 0;
-    uint32_t     len     = 0;
-    uint32_t     win_len = 0;
-    uint32_t     period  = 0;
-    uint32_t     n_tx    = 0;
-    alloc_result result  = alloc_result::invalid_coderate;
-    slot_point   win_start;
-  };
-  srsran::bounded_vector<sched_si_t, 10> pending_sis;
-};
 
 using dl_sched_rar_info_t = sched_nr_interface::rar_info_t;
 
@@ -87,6 +64,7 @@ public:
   const bwp_params_t* cfg;
 
   // channel-specific schedulers
+  si_sched                       si;
   ra_sched                       ra;
   std::unique_ptr<sched_nr_base> data_sched;
 

@@ -260,7 +260,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
     if (true) {
       sib_info_t sib  = {};
       sib.index       = i;
-      sib.periodicity = 4; // TODO: read period_rf from config
+      sib.periodicity = 160; // TODO: read period_rf from config
       sib.payload     = srsran::make_byte_buffer();
       if (sib.payload == nullptr) {
         logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -460,7 +460,7 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
   }
 
   // Generate MAC DL PDUs
-  uint32_t                  rar_count = 0;
+  uint32_t                  rar_count = 0, si_count = 0;
   srsran::rwlock_read_guard rw_lock(rwmutex);
   for (pdsch_t& pdsch : dl_res->phy.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
@@ -484,6 +484,9 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
       sched_nr_interface::rar_t& rar = dl_res->rar[rar_count++];
       // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
       pdsch.data[0] = assemble_rar(rar.grants);
+    } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
+      uint32_t sib_idx = dl_res->sib_idxs[si_count++];
+      pdsch.data[0]    = bcch_dlsch_payload[sib_idx].payload.get();
     }
   }
   for (auto& u : ue_db) {
