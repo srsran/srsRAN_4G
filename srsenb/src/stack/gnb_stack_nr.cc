@@ -11,6 +11,9 @@
  */
 
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
+#include "srsenb/hdr/stack/ngap/ngap.h"
+#include "srsenb/hdr/stack/upper/gtpu.h"
+#include "srsran/common/network_utils.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srsran.h"
 #include <srsran/interfaces/enb_metrics_interface.h>
@@ -25,6 +28,8 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   pdcp_logger(srslog::fetch_basic_logger("PDCP-NR", log_sink, false)),
   rrc_logger(srslog::fetch_basic_logger("RRC-NR", log_sink, false)),
   stack_logger(srslog::fetch_basic_logger("STCK-NR", log_sink, false)),
+  gtpu_logger(srslog::fetch_basic_logger("GTPU", log_sink, false)),
+  ngap_logger(srslog::fetch_basic_logger("NGAP", log_sink, false)),
   mac(&task_sched),
   rrc(&task_sched),
   pdcp(&task_sched, pdcp_logger),
@@ -61,12 +66,21 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
   rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
+  ngap_logger.set_level(srslog::str_to_basic_level(args.log.s1ap_level));
+  gtpu_logger.set_level(srslog::str_to_basic_level(args.log.gtpu_level));
 
   mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
   rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
+  ngap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
+  gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
+
+  if (x2_ != nullptr) {
+    ngap.reset(new srsenb::ngap(&task_sched, ngap_logger, &srsran::get_rx_io_manager()));
+    gtpu.reset(new srsenb::gtpu(&task_sched, gtpu_logger, &srsran::get_rx_io_manager()));
+  }
 
   // Init all layers
   if (mac.init(args.mac, phy, nullptr, &rlc, &rrc) != SRSRAN_SUCCESS) {
@@ -77,15 +91,21 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
   pdcp.init(&rlc, &rrc, x2_);
 
-  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, nullptr, nullptr, x2_) != SRSRAN_SUCCESS) {
+  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), nullptr, x2_) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }
 
-  // TODO: add SDAP, NGAP
-  //  m_gtpu->init(args.s1ap.gtp_bind_addr, args.s1ap.mme_addr,
-  //      args.expert.m1u_multiaddr, args.expert.m1u_if_addr, nullptr, &gtpu_log,
-  //      args.expert.enable_mbsfn);
+  if (ngap != nullptr) {
+    ngap->init(args.ngap, &rrc, nullptr);
+    gtpu_args_t gtpu_args;
+    gtpu_args.embms_enable  = false;
+    gtpu_args.mme_addr      = args.ngap.amf_addr;
+    gtpu_args.gtp_bind_addr = args.ngap.gtp_bind_addr;
+    gtpu->init(gtpu_args, &pdcp);
+  }
+
+  // TODO: add SDAP
 
   running = true;
 
@@ -104,6 +124,8 @@ void gnb_stack_nr::stop()
 
 void gnb_stack_nr::stop_impl()
 {
+  srsran::get_rx_io_manager().stop();
+
   rrc.stop();
   pdcp.stop();
   mac.stop();

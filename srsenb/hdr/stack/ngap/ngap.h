@@ -26,16 +26,16 @@
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/threads.h"
+#include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/gnb_ngap_interfaces.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
-#include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include <iostream>
 #include <unordered_map>
 
 namespace srsenb {
 
-class ngap : public ngap_interface_rrc_nr
+class ngap final : public ngap_interface_rrc_nr
 {
 public:
   class ue;
@@ -70,7 +70,7 @@ public:
 
   // Stack interface
   bool
-  handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void get_metrics(ngap_metrics_t& m);
   void get_args(ngap_args_t& args_);
 

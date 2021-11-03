@@ -29,9 +29,13 @@
 
 namespace srsenb {
 
+class ngap;
+class gtpu;
+
 struct gnb_stack_args_t {
   stack_log_args_t log;
   mac_nr_args_t    mac;
+  ngap_args_t      ngap;
 };
 
 class gnb_stack_nr final : public srsenb::enb_stack_base,
@@ -121,6 +125,8 @@ private:
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;
   srslog::basic_logger& pdcp_logger;
+  srslog::basic_logger& ngap_logger;
+  srslog::basic_logger& gtpu_logger;
   srslog::basic_logger& stack_logger;
 
   // task scheduling
@@ -133,11 +139,13 @@ private:
   std::mutex              metrics_mutex;
   std::condition_variable metrics_cvar;
 
-  // derived
-  srsenb::mac_nr mac;
-  srsenb::rlc    rlc;
-  srsenb::pdcp   pdcp;
-  srsenb::rrc_nr rrc;
+  // layers
+  srsenb::mac_nr                mac;
+  srsenb::rlc                   rlc;
+  srsenb::pdcp                  pdcp;
+  srsenb::rrc_nr                rrc;
+  std::unique_ptr<srsenb::ngap> ngap;
+  std::unique_ptr<srsenb::gtpu> gtpu;
   // std::unique_ptr<sdap> m_sdap;
 
   // state

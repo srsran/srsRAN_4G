@@ -89,8 +89,8 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
-  gtpu(&task_sched, gtpu_logger, &rx_sockets),
-  s1ap(&task_sched, s1ap_logger, &rx_sockets),
+  gtpu(&task_sched, gtpu_logger, &get_rx_io_manager()),
+  s1ap(&task_sched, s1ap_logger, &get_rx_io_manager()),
   rrc(&task_sched, bearers),
   mac_pcap(),
   pending_stack_metrics(64)
@@ -229,7 +229,7 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-  rx_sockets.stop();
+  get_rx_io_manager().stop();
 
   s1ap.stop();
   gtpu.stop();

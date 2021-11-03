@@ -149,8 +149,6 @@ private:
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
-  srsran::socket_manager rx_sockets;
-
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;
   srslog::basic_logger& pdcp_logger;
