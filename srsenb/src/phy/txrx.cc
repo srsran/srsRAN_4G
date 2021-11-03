@@ -176,7 +176,7 @@ void txrx::run_thread()
           tti,
           timestamp.get(0).full_secs,
           timestamp.get(0).frac_secs,
-          lte_worker->get_id());
+          lte_worker ? lte_worker->get_id() : 0);
 
     // Trigger prach worker execution
     for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {
