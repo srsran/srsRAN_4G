@@ -63,7 +63,7 @@ private:
   srslog::basic_logger& logger;
 
   struct si_msg_ctxt_t {
-    uint32_t     n       = 0; /// index in schedulingInfoList in si-SchedulingInfo in SIB1
+    uint32_t     n       = 0; /// 0 for SIB1, n/index in schedulingInfoList in si-SchedulingInfo in SIB1
     uint32_t     len     = 0;
     uint32_t     win_len = 0;
     uint32_t     period  = 0;
@@ -71,7 +71,7 @@ private:
     alloc_result result  = alloc_result::invalid_coderate; /// last attempt to schedule SI
     slot_point   win_start;                                /// start of SI window, invalid if outside
   };
-  srsran::bounded_vector<si_msg_ctxt_t, 10> pending_sis;
+  srsran::bounded_vector<si_msg_ctxt_t, 10> pending_sis; /// configured SIB1 and SI messages
 };
 
 } // namespace sched_nr_impl

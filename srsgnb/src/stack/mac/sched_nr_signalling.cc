@@ -123,7 +123,14 @@ bool fill_dci_sib(prb_interval interv, uint32_t sib_id, const bwp_params_t& bwp_
 
 si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
   bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
-{}
+{
+  // TODO: Get SIB1 other SI msgs config from RRC
+  pending_sis.emplace_back();
+  pending_sis[0].n       = 0;
+  pending_sis[0].len     = 77;
+  pending_sis[0].period  = 160;
+  pending_sis[0].win_len = 1;
+}
 
 void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
 {
@@ -136,60 +143,67 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
   slot_point        sl_pdcch      = bwp_alloc.get_pdcch_tti();
   const prb_bitmap& prbs          = bwp_alloc.res_grid()[sl_pdcch].dl_prbs.prbs();
 
-  // SIB1 case
-  if (sl_pdcch.to_uint() % 160 == 0) {
-    // TODO: compute if SIB1 slot based on config
-    const uint32_t aggr_lvl_idx = 2;
-    const uint32_t sib_id       = 1;
-    const uint32_t sib1len      = 77; // TODO: extract from config
-    alloc_result   ret          = bwp_alloc.alloc_si(aggr_lvl_idx, sib_id, sib1len, prb_interval{0, 7});
-    if (ret != alloc_result::success) {
-      bwp_alloc.logger.warning("SCHED: Cannot allocate SIB1.");
-    }
-  }
-
   // Update SI windows
   uint32_t N = bwp_cfg->slots.size();
   for (si_msg_ctxt_t& si : pending_sis) {
     uint32_t x = (si.n - 1) * si.win_len;
 
-    if (not si.win_start.valid() and (sl_pdcch.sfn() % si.period == x / N) and
-        sl_pdcch.slot_idx() == x % bwp_cfg->slots.size()) {
-      // If start of SI message window
-      si.win_start = sl_pdcch;
-    } else if (si.win_start.valid() and si.win_start + si.win_len >= sl_pdcch) {
+    if (not si.win_start.valid()) {
+      bool start_window;
+      if (si.n == 0) {
+        // SIB1
+        start_window = sl_pdcch.to_uint() % si.period == 0;
+      } else {
+        // SI messages
+        start_window = (sl_pdcch.sfn() % si.period == x / N) and sl_pdcch.slot_idx() == x % bwp_cfg->slots.size();
+      }
+      if (start_window) {
+        // If start of SI message window
+        si.win_start = sl_pdcch;
+      }
+    } else if (si.win_start + si.win_len >= sl_pdcch) {
       // If end of SI message window
-      logger.warning(
-          "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
+      if (si.n == 0) {
+        logger.error("SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
+      } else {
+        logger.warning(
+            "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
+      }
       si.win_start.clear();
     }
   }
 
-  // Schedule pending SIs
-  if (bwp_cfg->slots[sl_pdcch.slot_idx()].is_dl) {
-    for (si_msg_ctxt_t& si : pending_sis) {
-      if (not si.win_start.valid()) {
-        continue;
+  // Schedule pending SIBs
+  if (not bwp_cfg->slots[sl_pdcch.slot_idx()].is_dl) {
+    return;
+  }
+  for (si_msg_ctxt_t& si : pending_sis) {
+    if (not si.win_start.valid()) {
+      continue;
+    }
+
+    // TODO: NOTE 2: The UE is not required to monitor PDCCH monitoring occasion(s) corresponding to each transmitted
+    // SSB in SI-window.
+
+    // Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
+    si.result              = alloc_result::invalid_coderate;
+    uint32_t prb_start_idx = 0;
+    for (uint32_t nprbs = 4; nprbs < bwp_cfg->cfg.rb_width and si.result == alloc_result::invalid_coderate; ++nprbs) {
+      prb_interval grant = find_empty_interval_of_length(prbs, nprbs, prb_start_idx);
+      prb_start_idx      = grant.start();
+      if (grant.length() != nprbs) {
+        si.result = alloc_result::no_sch_space;
+        break;
       }
-
-      // TODO: NOTE 2: The UE is not required to monitor PDCCH monitoring occasion(s) corresponding to each transmitted
-      // SSB in SI-window.
-
-      // Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
-      si.result              = alloc_result::invalid_coderate;
-      uint32_t prb_start_idx = 0;
-      for (uint32_t nprbs = 4; nprbs < bwp_cfg->cfg.rb_width and si.result == alloc_result::invalid_coderate; ++nprbs) {
-        prb_interval grant = find_empty_interval_of_length(prbs, nprbs, prb_start_idx);
-        prb_start_idx      = grant.start();
-        if (grant.length() != nprbs) {
-          si.result = alloc_result::no_sch_space;
-          break;
-        }
-        si.result = bwp_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant);
-        if (si.result == alloc_result::success) {
-          // SIB scheduled successfully
-          si.win_start.clear();
-          si.n_tx++;
+      si.result = bwp_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant);
+      if (si.result == alloc_result::success) {
+        // SIB scheduled successfully
+        si.win_start.clear();
+        si.n_tx++;
+        if (si.n == 0) {
+          logger.debug("SCHED: Allocated SIB1, len=%d.", si.n, si.len);
+        } else {
+          logger.debug("SCHED: Allocated SI message idx=%d, len=%d.", si.n, si.len);
         }
       }
     }
