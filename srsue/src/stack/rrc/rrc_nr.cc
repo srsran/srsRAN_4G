@@ -458,14 +458,14 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   uint32_t     srb_id   = 0;
   rlc_config_t rlc_cfg;
   // We set this to true if below we detect it's a DRB
-  bool isDRB = false;
+  bool is_drb = false;
 
   lc_ch_id = rlc_bearer_cfg.lc_ch_id;
   if (rlc_bearer_cfg.served_radio_bearer_present == true) {
     if (rlc_bearer_cfg.served_radio_bearer.type() == rlc_bearer_cfg_s::served_radio_bearer_c_::types::drb_id) {
       drb_id = rlc_bearer_cfg.served_radio_bearer.drb_id();
       add_lcid_drb(lc_ch_id, drb_id);
-      isDRB = true;
+      is_drb = true;
     }
   } else {
     logger.error("In RLC bearer cfg does not contain served radio bearer");
@@ -473,7 +473,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   }
 
   if (rlc_bearer_cfg.rlc_cfg_present == true) {
-    uint8_t bearer_id = static_cast<uint8_t>(isDRB ? drb_id : srb_id);
+    uint8_t bearer_id = static_cast<uint8_t>(is_drb ? drb_id : srb_id);
     if (srsran::make_rlc_config_t(rlc_bearer_cfg.rlc_cfg, bearer_id, &rlc_cfg) != SRSRAN_SUCCESS) {
       logger.error("Failed to build RLC config");
       return false;
