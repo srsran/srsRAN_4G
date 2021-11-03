@@ -22,7 +22,7 @@
 using namespace backward;
 void srsran_debug_handle_crash(int argc, char** argv)
 {
-  backward::SignalHandling sh;
+  static backward::SignalHandling sh;
 }
 #else // HAVE_BACKWARD
 #include "srsran/common/backtrace.h"
