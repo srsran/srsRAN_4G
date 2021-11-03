@@ -134,7 +134,7 @@ void enb_bearer_manager::add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, sr
                 lcid,
                 to_string(rat).c_str());
   } else {
-    logger.error("Bearers: EPS bearer ID %d for rnti=0x%x already registered", eps_bearer_id, rnti);
+    logger.warning("Bearers: EPS bearer ID %d for rnti=0x%x already registered", eps_bearer_id, rnti);
   }
 }
 
@@ -142,14 +142,14 @@ void enb_bearer_manager::remove_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id)
 {
   auto user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
-    logger.error("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
+    logger.info("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
     return;
   }
 
   if (user_it->second.remove_eps_bearer(eps_bearer_id)) {
     logger.info("Bearers: Removed mapping for EPS bearer ID %d for rnti=0x%x", eps_bearer_id, rnti);
   } else {
-    logger.error("Bearers: Can't remove EPS bearer ID %d, rnti=0x%x", eps_bearer_id, rnti);
+    logger.info("Bearers: Can't remove EPS bearer ID %d, rnti=0x%x", eps_bearer_id, rnti);
   }
 }
 
@@ -157,7 +157,7 @@ void enb_bearer_manager::rem_user(uint16_t rnti)
 {
   auto user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
-    logger.error("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
+    logger.info("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
     return;
   }
 
