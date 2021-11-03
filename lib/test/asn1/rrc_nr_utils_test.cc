@@ -36,7 +36,7 @@ int test_rlc_config()
 
   rlc_config_t rlc_cfg;
   // We hard-code the bearer_id=1 and rb_type=DRB
-  TESTASSERT(make_rlc_config_t(rlc_cfg_asn1, /* bearer_id */ 1, /*rb_type*/ RLC_RB_IS_DRB, &rlc_cfg) == SRSRAN_SUCCESS);
+  TESTASSERT(make_rlc_config_t(rlc_cfg_asn1, /* bearer_id */ 1, &rlc_cfg) == SRSRAN_SUCCESS);
   TESTASSERT(rlc_cfg.rat == srsran_rat_t::nr);
   TESTASSERT(rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size12bits);
   return SRSRAN_SUCCESS;

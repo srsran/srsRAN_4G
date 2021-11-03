@@ -1405,7 +1405,6 @@ int rrc_nr::ue::add_drb()
   /// NOTE, we need to pass the radio-bearer to the rlc_config
   if (srsran::make_rlc_config_t(cell_group_cfg.rlc_bearer_to_add_mod_list[0].rlc_cfg,
                                 rlc_bearer.served_radio_bearer.drb_id(),
-                                srsran::RLC_RB_IS_DRB,
                                 &rlc_cfg) != SRSRAN_SUCCESS) {
     parent->logger.error("Failed to build RLC config");
     return SRSRAN_ERROR;

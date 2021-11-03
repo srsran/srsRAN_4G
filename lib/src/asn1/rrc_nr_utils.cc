@@ -101,7 +101,7 @@ rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
   return rach_nr_cfg;
 };
 
-int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_rb_type_t rb_type, rlc_config_t* cfg_out)
+int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)
 {
   rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
   rlc_cfg.rat          = srsran_rat_t::nr;
@@ -113,7 +113,6 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_rb_type
       rlc_cfg.rlc_mode              = rlc_mode_t::um;
       rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.to_number();
       rlc_cfg.um_nr.bearer_id       = bearer_id;
-      rlc_cfg.um_nr.rb_type         = rb_type;
       if (asn1_type.um_bi_dir().dl_um_rlc.sn_field_len_present &&
           asn1_type.um_bi_dir().ul_um_rlc.sn_field_len_present &&
           asn1_type.um_bi_dir().dl_um_rlc.sn_field_len != asn1_type.um_bi_dir().ul_um_rlc.sn_field_len) {
