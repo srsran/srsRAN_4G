@@ -112,9 +112,20 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     return 0;
   }
 
+  // Check wether polling is required
+  uint8_t poll = 0;
+  if (cfg.poll_pdu > 0) {
+    if (st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
+      poll                = 1;
+      st.pdu_without_poll = 0;
+    } else {
+      st.pdu_without_poll++;
+    }
+  }
+
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = 1; // FIXME
+  hdr.p                      = poll; // FIXME
   hdr.si                     = rlc_nr_si_field_t::full_sdu;
   hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
   hdr.sn                     = st.tx_next;
@@ -234,6 +245,7 @@ rlc_am_nr_rx::rlc_am_nr_rx(rlc_am* parent_) :
   parent(parent_),
   pool(byte_buffer_pool::get_instance()),
   status_prohibit_timer(parent->timers->get_unique_timer()),
+  reassembly_timer(parent->timers->get_unique_timer()),
   rlc_am_base_rx(parent_, &parent_->logger)
 {}
 
@@ -250,6 +262,7 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   // Configure t_reassembly timer
   if (cfg.t_reassembly > 0) {
     reassembly_timer.set(static_cast<uint32_t>(cfg.t_reassembly), [this](uint32_t timerid) { timer_expired(timerid); });
+    logger->info("Configured reassembly timer. t-Reassembly=%d ms", cfg.t_reassembly);
   }
 
   return true;
@@ -398,7 +411,21 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
      * - if RX_Next_Highest> RX_Next +1; or
      * - if RX_Next_Highest = RX_Next + 1 and there is at least one missing byte segment of the SDU associated
      *   with SN = RX_Next before the last byte of all received segments of this SDU:
+     *   - start t-Reassembly;
+     *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
+    bool restart_reassembly_timer = false;
+    if (rx_next_highest > rx_next + 1) {
+      restart_reassembly_timer = true;
+    }
+    if (rx_next_highest == rx_next + 1 &&
+        rx_window[rx_next + 1].fully_received == false) { // TODO: does the last by need to be received?
+      restart_reassembly_timer = true;
+    }
+    if (restart_reassembly_timer) {
+      reassembly_timer.run();
+      rx_next_status_trigger = rx_next_highest;
+    }
   }
 }
 
@@ -419,7 +446,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   }
 
   status->N_nack = 0;
-  status->ack_sn = rx_highest_status; // ACK RX_Highest_Status
+  status->ack_sn = rx_next; // Start with the lower end of the window
   byte_buffer_t tmp_buf;
   uint32_t      len;
 
@@ -438,6 +465,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     // TODO
     i = (i + 1) % MOD;
   }
+
   if (max_len != UINT32_MAX) {
     status_prohibit_timer.run(); // UINT32_MAX is used just to querry the status PDU length
   }

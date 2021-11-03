@@ -53,9 +53,11 @@ int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
 
 /*
  * Test the transmission and acknowledgement of 5 SDUs.
- * These are transmitted as single PDUs.
- * There is no lost PDUs, and the byte size is small, so the Poll_PDU configuration
+ *
+ * Each SDU is transmitted as a single PDU.
+ * There are no lost PDUs, and the byte size is small, so the Poll_PDU configuration
  * will trigger the status report.
+ * Poll PDU is configured to 4, so the 5th PDU should set the polling bit.
  */
 int basic_test()
 {
@@ -100,12 +102,9 @@ int basic_test()
   rlc_am_nr_status_pdu_t status_check = {};
   rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
   TESTASSERT(status_check.ack_sn == 5); // 5 is the last SN that was not received.
-                                        // TESTASSERT(rlc_am_is_valid_status_pdu(status_check));
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
-  // Check PDCP notifications
-  // TODO
 
   // Check statistics
   TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
@@ -150,24 +149,52 @@ int lost_pdu_test()
     }
   }
 
+  // Only after t-reassembly has expired, will the status report include NACKs.
+  TESTASSERT(3 == rlc2.get_buffer_state());
+  {
+    // Read status PDU from RLC2
+    byte_buffer_t status_buf;
+    int           len  = rlc2.read_pdu(status_buf.msg, 5);
+    status_buf.N_bytes = len;
+
+    TESTASSERT(0 == rlc2.get_buffer_state());
+
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
+    TESTASSERT(status_check.ack_sn == 3); // 3 is the next expected SN (i.e. the lost packet.)
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  }
+
+  // Step timers until reassambly timeout expires
+  for (int cnt = 0; cnt < 35; cnt++) {
+    timers.step_all();
+  }
+
+  // t-reassembly has expired. There should be a NACK in the status report.
   TESTASSERT(5 == rlc2.get_buffer_state());
-  // Read status PDU from RLC2
-  byte_buffer_t status_buf;
-  int           len  = rlc2.read_pdu(status_buf.msg, 5);
-  status_buf.N_bytes = len;
+  {
+    // Read status PDU from RLC2
+    byte_buffer_t status_buf;
+    int           len  = rlc2.read_pdu(status_buf.msg, 5);
+    status_buf.N_bytes = len;
 
-  // TESTASSERT(0 == rlc2.get_buffer_state());
+    TESTASSERT(0 == rlc2.get_buffer_state());
 
-  // Assert status is correct
-  rlc_am_nr_status_pdu_t status_check = {};
-  rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
-  TESTASSERT(status_check.ack_sn == 5); // 5 is the last SN that was not received.
-                                        // TESTASSERT(rlc_am_is_valid_status_pdu(status_check));
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
+    TESTASSERT(status_check.ack_sn == 5);           // 5 is the next expected SN.
+    TESTASSERT(status_check.N_nack == 1);           // We lost one PDU.
+    TESTASSERT(status_check.nacks[0].nack_sn == 3); // Lost PDU SN=3.
 
-  // Write status PDU to RLC1
-  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
-  // Check PDCP notifications
-  // TODO
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+    // Check there is an Retx of SN=3
+    TESTASSERT(0 == rlc1.get_buffer_state());
+  }
 
   // Check statistics
   TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
