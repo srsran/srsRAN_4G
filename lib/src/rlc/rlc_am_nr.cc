@@ -76,7 +76,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   //  logger.debug("tx_window size - %zu PDUs", tx_window.size());
 
   // Tx STATUS if requested
-  if (do_status() /*&& not status_prohibit_timer.is_running()*/) {
+  if (do_status()) {
     unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
     build_status_pdu(tx_pdu.get(), nof_bytes);
     memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
@@ -131,7 +131,13 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   hdr.sn                     = st.tx_next;
   log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
 
-  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu.get());
+  // insert newly assigned SN into window and use reference for in-place operations
+  // NOTE: from now on, we can't return from this function anymore before increasing vt_s
+  rlc_amd_tx_pdu_nr& tx_pdu = tx_window.add_pdu(hdr.sn);
+  tx_pdu.buf                = srsran::make_byte_buffer();
+  memcpy(tx_pdu.buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
+  tx_pdu.buf->N_bytes = tx_sdu->N_bytes;
+  uint32_t len        = rlc_am_nr_write_data_pdu_header(hdr, tx_pdu.buf.get());
   if (len > nof_bytes) {
     logger->error("Error writing AMD PDU header");
   }
@@ -139,10 +145,10 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Update TX Next
   st.tx_next = (st.tx_next + 1) % MOD;
 
-  memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
+  memcpy(payload, tx_pdu.buf->msg, tx_pdu.buf->N_bytes);
   logger->debug("Wrote RLC PDU - %d bytes", tx_sdu->N_bytes);
 
-  return tx_sdu->N_bytes;
+  return tx_pdu.buf->N_bytes;
 }
 
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
@@ -176,8 +182,6 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   rlc_am_nr_read_status_pdu(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &status);
   log_rlc_am_nr_status_pdu_to_string(logger->info, "%s Rx Status PDU: %s", &status, parent->rb_name);
   // Local variables for handling Status PDU will be updated with lock
-  uint32_t ack_sn  = status.ack_sn;
-  uint32_t n_nacks = status.N_nack;
   /*
    * - if the SN of the corresponding RLC SDU falls within the range
    *   TX_Next_Ack <= SN < = the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer:
@@ -185,9 +189,8 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    *     retransmission.
    */
   // Process N_acks
-  /*
   for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
-    if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= tx_window.end()) {
+    if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
       uint32_t nack_sn = status.nacks[nack_idx].nack_sn;
       if (tx_window.has_sn(nack_sn)) {
         auto& pdu = tx_window[nack_sn];
@@ -196,7 +199,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
         if (not retx_queue.has_sn(nack_sn)) {
           // increment Retx counter and inform upper layers if needed
           pdu.retx_count++;
-          check_sn_reached_max_retx(i);
+          // check_sn_reached_max_retx(nack_sn);
 
           rlc_amd_retx_t& retx = retx_queue.push();
           srsran_expect(tx_window[nack_sn].rlc_sn == nack_sn,
@@ -210,7 +213,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
         }
       }
     }
-  }*/
+  }
 
   /**
    * Section 5.3.3.3: Reception of a STATUS report
@@ -234,14 +237,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   logger->debug("Buffer state requested, %s", rb_name);
   std::lock_guard<std::mutex> lock(mutex);
 
-  /*
-  logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
-               rb_name,
-               do_status() ? "yes" : "no",
-               status_prohibit_timer.is_running() ? "yes" : "no",
-               status_prohibit_timer.time_elapsed(),
-               status_prohibit_timer.duration());
-  */
+  logger->debug("%s Buffer state - do_status=%s", rb_name, do_status() ? "yes" : "no");
 
   // Bytes needed for status report
   if (do_status()) {
@@ -250,7 +246,25 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   }
 
   // Bytes needed for retx
-  // TODO
+  if (not retx_queue.empty()) {
+    rlc_amd_retx_t& retx = retx_queue.front();
+    logger->debug("%s Buffer state - retx - SN=%d, Segment: %s, %d:%d",
+                  parent->rb_name,
+                  retx.sn,
+                  retx.is_segment ? "true" : "false",
+                  retx.so_start,
+                  retx.so_end);
+    if (tx_window.has_sn(retx.sn)) {
+      int req_bytes = retx.so_end - retx.so_start;
+      if (req_bytes <= 0) {
+        logger->error("In get_buffer_state(): Removing retx.sn=%d from queue", retx.sn);
+        retx_queue.pop();
+      } else {
+        n_bytes_prio += req_bytes;
+        logger->debug("Buffer state - retx: %d bytes", n_bytes_prio);
+      }
+    }
+  }
 
   // Bytes needed for tx SDUs
   uint32_t n_sdus = tx_sdu_queue.get_n_sdus();

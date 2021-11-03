@@ -86,6 +86,7 @@ private:
 
   using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
+  pdu_retx_queue<RLC_AM_WINDOW_SIZE>                      retx_queue;
 };
 
 // Receiver sub-class

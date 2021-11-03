@@ -193,7 +193,7 @@ int lost_pdu_test()
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
     // Check there is an Retx of SN=3
-    TESTASSERT(0 == rlc1.get_buffer_state());
+    TESTASSERT(3 == rlc1.get_buffer_state());
   }
 
   // Check statistics
