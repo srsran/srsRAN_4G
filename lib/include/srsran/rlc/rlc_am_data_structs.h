@@ -300,6 +300,59 @@ private:
   uint32_t                                count = 0;
 };
 
+struct rlc_amd_retx_t {
+  uint32_t sn;
+  bool     is_segment;
+  uint32_t so_start;
+  uint32_t so_end;
+};
+
+template <std::size_t WINDOW_SIZE>
+class pdu_retx_queue
+{
+public:
+  rlc_amd_retx_t& push()
+  {
+    assert(not full());
+    rlc_amd_retx_t& p = buffer[wpos];
+    wpos              = (wpos + 1) % WINDOW_SIZE;
+    return p;
+  }
+
+  void pop() { rpos = (rpos + 1) % WINDOW_SIZE; }
+
+  rlc_amd_retx_t& front()
+  {
+    assert(not empty());
+    return buffer[rpos];
+  }
+
+  void clear()
+  {
+    wpos = 0;
+    rpos = 0;
+  }
+
+  bool has_sn(uint32_t sn) const
+  {
+    for (size_t i = rpos; i != wpos; i = (i + 1) % WINDOW_SIZE) {
+      if (buffer[i].sn == sn) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  size_t size() const { return (wpos >= rpos) ? wpos - rpos : WINDOW_SIZE + wpos - rpos; }
+  bool   empty() const { return wpos == rpos; }
+  bool   full() const { return size() == WINDOW_SIZE - 1; }
+
+private:
+  std::array<rlc_amd_retx_t, WINDOW_SIZE> buffer;
+  size_t                                  wpos = 0;
+  size_t                                  rpos = 0;
+};
+
 } // namespace srsran
 
 #endif // SRSRAN_RLC_AM_DATA_STRUCTS_H

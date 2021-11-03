@@ -156,11 +156,6 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     logger->debug("Generated Status PDU. Bytes:%d", pdu_len);
     log_rlc_am_nr_status_pdu_to_string(logger->info, "%s Tx status PDU - %s", &tx_status, rb_name);
-    // if (cfg.t_status_prohibit > 0 && status_prohibit_timer.is_valid()) {
-    // re-arm timer
-    //  status_prohibit_timer.run();
-    //}
-    // debug_state();
     pdu_len = rlc_am_nr_write_status_pdu(tx_status, rlc_am_nr_sn_size_t::size12bits, payload);
   } else {
     logger->info("%s Cannot tx status PDU - %d bytes available, %d bytes required", rb_name, nof_bytes, pdu_len);
@@ -170,7 +165,61 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
   return payload->N_bytes;
 }
 
-void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) {}
+void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
+{
+  if (not tx_enabled) {
+    return;
+  }
+
+  rlc_am_nr_status_pdu_t status = {};
+  logger->debug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
+  rlc_am_nr_read_status_pdu(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &status);
+  log_rlc_am_nr_status_pdu_to_string(logger->info, "%s Rx Status PDU: %s", &status, parent->rb_name);
+  // Local variables for handling Status PDU will be updated with lock
+  uint32_t ack_sn  = status.ack_sn;
+  uint32_t n_nacks = status.N_nack;
+  /*
+   * - if the SN of the corresponding RLC SDU falls within the range
+   *   TX_Next_Ack <= SN < = the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer:
+   *   - consider the RLC SDU or the RLC SDU segment for which a negative acknowledgement was received for
+   *     retransmission.
+   */
+  // Process N_acks
+  /*
+  for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
+    if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= tx_window.end()) {
+      uint32_t nack_sn = status.nacks[nack_idx].nack_sn;
+      if (tx_window.has_sn(nack_sn)) {
+        auto& pdu = tx_window[nack_sn];
+
+        // add to retx queue if it's not already there
+        if (not retx_queue.has_sn(nack_sn)) {
+          // increment Retx counter and inform upper layers if needed
+          pdu.retx_count++;
+          check_sn_reached_max_retx(i);
+
+          rlc_amd_retx_t& retx = retx_queue.push();
+          srsran_expect(tx_window[nack_sn].rlc_sn == nack_sn,
+                        "Incorrect RLC SN=%d!=%d being accessed",
+                        tx_window[nack_sn].rlc_sn,
+                        nack_sn);
+          retx.sn         = nack_sn;
+          retx.is_segment = false;
+          retx.so_start   = 0;
+          retx.so_end     = pdu.buf->N_bytes;
+        }
+      }
+    }
+  }*/
+
+  /**
+   * Section 5.3.3.3: Reception of a STATUS report
+   * - if the STATUS report comprises a positive or negative acknowledgement for the RLC SDU with sequence
+   *   number equal to POLL_SN:
+   *   - if t-PollRetransmit is running:
+   *     - stop and reset t-PollRetransmit.
+   */
+}
 
 uint32_t rlc_am_nr_tx::get_buffer_state()
 {
@@ -351,8 +400,8 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Update RX_Highest_Status
   /*
    * - if x = RX_Highest_Status,
-   *   - update RX_Highest_Status to the SN of the first RLC SDU with SN > current RX_Highest_Status for which not all
-   *     bytes have been received.
+   *   - update RX_Highest_Status to the SN of the first RLC SDU with SN > current RX_Highest_Status for which not
+   * all bytes have been received.
    */
   if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
     uint32_t sn_upd     = 0;
