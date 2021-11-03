@@ -28,38 +28,32 @@ void srsran_debug_handle_crash(int argc, char** argv)
 #include "srsran/common/backtrace.h"
 #include "srsran/version.h"
 
-const static char crash_file_name[] = "./srsRAN.backtrace.crash";
-static int        bt_argc;
-static char**     bt_argv;
+static int    bt_argc;
+static char** bt_argv;
 
 static void crash_handler(int sig)
 {
-  FILE* f = fopen(crash_file_name, "a");
-  if (!f) {
-    printf("srsRAN crashed... we could not save backtrace in '%s'...\n", crash_file_name);
-  } else {
-    time_t     lnTime;
-    struct tm  stTime;
-    char       strdate[32];
+  FILE*     f = stderr;
+  time_t    lnTime;
+  struct tm stTime;
+  char      strdate[32];
 
-    time(&lnTime);
-    gmtime_r(&lnTime, &stTime);
+  time(&lnTime);
+  gmtime_r(&lnTime, &stTime);
 
-    strftime(strdate, sizeof(strdate), "%d/%m/%Y %H:%M:%S", &stTime);
+  strftime(strdate, sizeof(strdate), "%d/%m/%Y %H:%M:%S", &stTime);
 
-    fprintf(f, "--- command='");
-    for (int i = 0; i < bt_argc; i++) {
-      fprintf(f, "%s%s", (i == 0) ? "" : " ", bt_argv[i]);
-    }
-    fprintf(f, "' version=%s signal=%d date='%s' ---\n", SRSRAN_VERSION_STRING, sig, strdate);
-
-    srsran_backtrace_print(f);
-    fprintf(f, "\n");
-
-    printf("srsRAN crashed... backtrace saved in '%s'...\n", crash_file_name);
-    fclose(f);
+  fprintf(f, "--- command='");
+  for (int i = 0; i < bt_argc; i++) {
+    fprintf(f, "%s%s", (i == 0) ? "" : " ", bt_argv[i]);
   }
-  printf("---  exiting  ---\n");
+  fprintf(f, "' version=%s signal=%d date='%s' ---\n", SRSRAN_VERSION_STRING, sig, strdate);
+
+  srsran_backtrace_print(f);
+
+  fprintf(f, "srsRAN crashed. Please send this backtrace to the developers ...\n");
+
+  fprintf(f, "---  exiting  ---\n");
   exit(1);
 }
 
