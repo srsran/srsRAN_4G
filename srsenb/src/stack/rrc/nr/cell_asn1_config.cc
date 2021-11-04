@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/nr/cell_asn1_config.h"
+#include "srsran/rrc/nr/rrc_nr_cfg_utils.h"
 #include <bitset>
 
 using namespace asn1::rrc_nr;
@@ -587,6 +588,24 @@ int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_
   sp_cell.sp_cell_cfg_ded_present = true;
   HANDLE_ERROR(fill_serv_cell_from_enb_cfg(cfg, cc, sp_cell.sp_cell_cfg_ded));
 
+  return SRSRAN_SUCCESS;
+}
+
+int fill_mib_from_enb_cfg(const rrc_nr_cfg_t& cfg, asn1::rrc_nr::mib_s& mib)
+{
+  srsran::basic_cell_args_t args;
+  args.scs = cfg.cell_list[0].phy_cell.carrier.scs;
+  srsran::generate_default_mib(args, mib);
+  return SRSRAN_SUCCESS;
+}
+
+int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, asn1::rrc_nr::sib1_s& sib1)
+{
+  srsran::basic_cell_args_t args;
+  args.is_standalone = cfg.is_standalone;
+  args.scs = subcarrier_spacing_e{(subcarrier_spacing_opts::options)cfg.cell_list[0].phy_cell.carrier.scs}.to_number();
+  args.is_fdd = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD;
+  srsran::generate_default_sib1(args, sib1);
   return SRSRAN_SUCCESS;
 }
 

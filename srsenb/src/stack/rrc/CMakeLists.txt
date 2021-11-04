@@ -11,3 +11,4 @@ add_library(srsenb_rrc STATIC ${SOURCES})
 
 set(SOURCES rrc_nr.cc nr/cell_asn1_config.cc)
 add_library(srsgnb_rrc STATIC ${SOURCES})
+target_link_libraries(srsgnb_rrc srsran_rrc_nr)
