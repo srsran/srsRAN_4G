@@ -35,6 +35,7 @@ struct mac_nr_args_t {
 };
 
 class sched_nr;
+class mac_nr_rx;
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
@@ -82,10 +83,7 @@ private:
   bool is_rnti_active_nolock(uint16_t rnti);
 
   // handle UCI data from either PUCCH or PUSCH
-  bool handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value);
-
-  // PDU processing
-  int handle_pdu(srsran::unique_byte_buffer_t pdu);
+  bool handle_uci_data(uint16_t rnti, const srsran_uci_cfg_nr_t& cfg, const srsran_uci_value_nr_t& value);
 
   // Metrics processing
   void get_metrics_nolock(srsenb::mac_metrics_t& metrics);
@@ -101,8 +99,8 @@ private:
   rrc_interface_mac_nr*   rrc   = nullptr;
 
   // args
-  srsran::task_sched_handle             task_sched;
-  srsran::task_multiqueue::queue_handle stack_task_queue;
+  srsran::task_sched_handle task_sched;
+  srsran::task_queue_handle stack_task_queue;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
   mac_nr_args_t                     args = {};
@@ -132,6 +130,9 @@ private:
 
   // Number of rach preambles detected for a CC
   std::vector<uint32_t> detected_rachs;
+
+  // Decoding of UL PDUs
+  std::unique_ptr<mac_nr_rx> rx;
 };
 
 } // namespace srsenb

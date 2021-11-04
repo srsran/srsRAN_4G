@@ -22,6 +22,155 @@
 
 namespace srsenb {
 
+class mac_nr_rx
+{
+public:
+  explicit mac_nr_rx(rlc_interface_mac*         rlc_,
+                     rrc_interface_mac_nr*      rrc_,
+                     srsran::task_queue_handle& stack_task_queue_,
+                     sched_nr_interface*        sched_,
+                     srslog::basic_logger&      logger_) :
+    task_queue(stack_task_queue_), rlc(rlc_), rrc(rrc_), sched(sched_), logger(logger_)
+  {}
+
+  void handle_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+  {
+    task_queue.push(std::bind(
+        [this, rnti](srsran::unique_byte_buffer_t& pdu) { handle_pdu_impl(rnti, std::move(pdu)); }, std::move(pdu)));
+  }
+
+private:
+  int handle_pdu_impl(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+  {
+    pdu_ul.init_rx(true);
+    if (pdu_ul.unpack(pdu->msg, pdu->N_bytes) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    if (logger.info.enabled()) {
+      fmt::memory_buffer str_buffer;
+      pdu_ul.to_string(str_buffer);
+      logger.info("Rx PDU: rnti=0x%x, %s", rnti, srsran::to_c_str(str_buffer));
+    }
+
+    // Process MAC CRNTI CE first, if it exists
+    uint32_t crnti_ce_pos = pdu_ul.get_num_subpdus();
+    for (uint32_t n = pdu_ul.get_num_subpdus(); n > 0; --n) {
+      srsran::mac_sch_subpdu_nr& subpdu = pdu_ul.get_subpdu(n - 1);
+      if (subpdu.get_lcid() == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI) {
+        if (process_ce_subpdu(rnti, subpdu) != SRSRAN_SUCCESS) {
+          return SRSRAN_ERROR;
+        }
+        crnti_ce_pos = n - 1;
+      }
+    }
+
+    // Process SDUs and remaining MAC CEs
+    for (uint32_t n = 0; n < pdu_ul.get_num_subpdus(); ++n) {
+      srsran::mac_sch_subpdu_nr& subpdu = pdu_ul.get_subpdu(n);
+      if (subpdu.is_sdu()) {
+        rrc->set_activity_user(rnti);
+        rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+      } else if (n != crnti_ce_pos) {
+        if (process_ce_subpdu(rnti, subpdu) != SRSRAN_SUCCESS) {
+          return SRSRAN_ERROR;
+        }
+      }
+    }
+
+    return SRSRAN_SUCCESS;
+  }
+
+  int process_ce_subpdu(uint16_t& rnti, const srsran::mac_sch_subpdu_nr& subpdu)
+  {
+    // Handle MAC CEs
+    switch (subpdu.get_lcid()) {
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
+        uint16_t ce_crnti  = subpdu.get_c_rnti();
+        uint16_t prev_rnti = rnti;
+        rnti               = ce_crnti;
+        rrc->update_user(prev_rnti, rnti);
+        sched->ul_sr_info(rnti); // provide UL grant regardless of other BSR content for UE to complete RA
+      } break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_BSR:
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::SHORT_TRUNC_BSR: {
+        srsran::mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
+        uint32_t buffer_size_bytes                = buff_size_field_to_bytes(sbsr.buffer_size, srsran::SHORT_BSR);
+        // Assume all LCGs are 0 if reported SBSR is 0
+        if (buffer_size_bytes == 0) {
+          for (uint32_t j = 0; j <= SCHED_NR_MAX_LC_GROUP; j++) {
+            sched->ul_bsr(rnti, j, 0);
+          }
+        } else {
+          sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);
+        }
+      } break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_BSR:
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::LONG_TRUNC_BSR: {
+        srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
+        for (auto& lb : lbsr.list) {
+          sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, srsran::LONG_BSR));
+        }
+      } break;
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::PADDING:
+        break;
+      default:
+        logger.warning("Unhandled subPDU with LCID=%d", subpdu.get_lcid());
+    }
+
+    return SRSRAN_SUCCESS;
+  }
+
+  /** Converts the buffer size field of a BSR (5 or 8-bit Buffer Size field) into Bytes
+   * @param buff_size_field The buffer size field contained in the MAC PDU
+   * @param format          The BSR format that determines the buffer size field length
+   * @return uint32_t       The actual buffer size level in Bytes
+   */
+  static uint32_t buff_size_field_to_bytes(uint32_t buff_size_index, const srsran::bsr_format_nr_t& format)
+  {
+    using namespace srsran;
+
+    // early exit
+    if (buff_size_index == 0) {
+      return 0;
+    }
+
+    const uint32_t max_offset = 1; // make the reported value bigger than the 2nd biggest
+
+    switch (format) {
+      case SHORT_BSR:
+      case SHORT_TRUNC_BSR:
+        if (buff_size_index >= buffer_size_levels_5bit_max_idx) {
+          return buffer_size_levels_5bit[buffer_size_levels_5bit_max_idx] + max_offset;
+        } else {
+          return buffer_size_levels_5bit[buff_size_index];
+        }
+        break;
+      case LONG_BSR:
+      case LONG_TRUNC_BSR:
+        if (buff_size_index > buffer_size_levels_8bit_max_idx) {
+          return buffer_size_levels_8bit[buffer_size_levels_8bit_max_idx] + max_offset;
+        } else {
+          return buffer_size_levels_8bit[buff_size_index];
+        }
+        break;
+      default:
+        break;
+    }
+    return 0;
+  }
+
+  rlc_interface_mac*         rlc;
+  rrc_interface_mac_nr*      rrc;
+  sched_nr_interface*        sched;
+  srslog::basic_logger&      logger;
+  srsran::task_queue_handle& task_queue;
+
+  srsran::mac_sch_pdu_nr pdu_ul;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 mac_nr::mac_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("MAC-NR")),
   task_sched(task_sched_),
@@ -125,6 +274,8 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
       bcch_dlsch_payload.push_back(std::move(sib));
     }
   }
+
+  rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), logger});
 
   return SRSRAN_SUCCESS;
 }
@@ -373,7 +524,7 @@ int mac_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_ph
   return SRSRAN_SUCCESS;
 }
 
-bool mac_nr::handle_uci_data(const uint16_t rnti, const srsran_uci_cfg_nr_t& cfg_, const srsran_uci_value_nr_t& value)
+bool mac_nr::handle_uci_data(uint16_t rnti, const srsran_uci_cfg_nr_t& cfg_, const srsran_uci_value_nr_t& value)
 {
   // Process HARQ-ACK
   for (uint32_t i = 0; i < cfg_.ack.count; i++) {
@@ -422,15 +573,8 @@ int mac_nr::pusch_info(const srsran_slot_cfg_t& slot_cfg, mac_interface_phy_nr::
           pusch_info.pdu->msg, pusch_info.pdu->N_bytes, pusch_info.rnti, pusch_info.pid, slot_cfg.idx);
     }
 
-    auto process_pdu_task = [this, rnti](srsran::unique_byte_buffer_t& pdu) {
-      srsran::rwlock_read_guard lock(rwmutex);
-      if (is_rnti_active_nolock(rnti)) {
-        ue_db[rnti]->process_pdu(std::move(pdu));
-      } else {
-        logger.debug("Discarding PDU rnti=0x%x", rnti);
-      }
-    };
-    stack_task_queue.try_push(std::bind(process_pdu_task, std::move(pusch_info.pdu)));
+    // Decode and send PDU to upper layers
+    rx->handle_pdu(rnti, std::move(pusch_info.pdu));
   }
   srsran::rwlock_read_guard rw_lock(rwmutex);
   if (ue_db.contains(rnti)) {

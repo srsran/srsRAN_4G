@@ -50,7 +50,6 @@ public:
   bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
 
   int generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size);
-  int process_pdu(srsran::unique_byte_buffer_t pdu);
 
   std::mutex metrics_mutex = {};
   void       metrics_read(mac_ue_metrics_t* metrics_);
@@ -69,10 +68,6 @@ public:
   uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
-  // helper methods
-  uint32_t buff_size_field_to_bytes(uint32_t buff_size_index, const srsran::bsr_format_nr_t& format);
-  int      process_ce_subpdu(const srsran::mac_sch_subpdu_nr& subpdu);
-
   rlc_interface_mac*      rlc = nullptr;
   rrc_interface_mac_nr*   rrc = nullptr;
   phy_interface_stack_nr* phy = nullptr;
