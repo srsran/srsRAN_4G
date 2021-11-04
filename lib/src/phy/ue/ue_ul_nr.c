@@ -133,12 +133,9 @@ int srsran_ue_ul_nr_encode_pusch(srsran_ue_ul_nr_t*            q,
   // Generate signal
   srsran_ofdm_tx_sf(&q->ifft);
 
-  // Normalise to peak
-  uint32_t max_idx  = srsran_vec_max_abs_ci(q->ifft.cfg.out_buffer, q->ifft.sf_sz);
-  float    max_peak = cabsf(q->ifft.cfg.out_buffer[max_idx]);
-  if (isnormal(max_peak)) {
-    srsran_vec_sc_prod_cfc(q->ifft.cfg.out_buffer, 0.99f / max_peak, q->ifft.cfg.out_buffer, q->ifft.sf_sz);
-  }
+  // Scale iFFT output to compensate for iFFT amplification (due to FFTW implementation).
+  float scaling = 1 / sqrtf(q->ifft.cfg.symbol_sz);
+  srsran_vec_sc_prod_cfc(q->ifft.cfg.out_buffer, scaling, q->ifft.cfg.out_buffer, q->ifft.sf_sz);
 
   // Apply frequency offset
   if (isnormal(q->freq_offset_hz)) {
