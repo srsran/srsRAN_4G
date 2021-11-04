@@ -31,22 +31,17 @@ namespace srsran {
 class nas_pcap
 {
 public:
-  nas_pcap()
-  {
-    enable_write = false;
-    ue_id        = 0;
-    pcap_file    = NULL;
-  }
+  nas_pcap();
   void enable();
   uint32_t open(std::string filename_, uint32_t ue_id = 0, srsran_rat_t rat_type = srsran_rat_t::lte);
   void close();
   void write_nas(uint8_t* pdu, uint32_t pdu_len_bytes);
 
 private:
-  bool        enable_write;
+  bool        enable_write = false;
   std::string filename;
-  FILE*       pcap_file;
-  uint32_t    ue_id;
+  FILE*       pcap_file = nullptr;
+  uint32_t    ue_id     = 0;
   void        pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes);
 };
 
