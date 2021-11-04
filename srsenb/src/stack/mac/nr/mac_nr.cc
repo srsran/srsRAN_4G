@@ -117,7 +117,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
         logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
         return SRSRAN_ERROR;
       }
-      if (rrc->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSRAN_SUCCESS) {
+      if (rrc->read_pdu_bcch_dlsch(sib.index, *sib.payload) != SRSRAN_SUCCESS) {
         logger.error("Couldn't read SIB %d from RRC", sib.index);
       }
 

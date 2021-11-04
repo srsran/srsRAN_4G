@@ -65,8 +65,8 @@ public:
   void         config_phy();
   void         config_mac();
   int32_t      generate_sibs();
-  int          read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) final;
-  int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) final;
+  int          read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer) final;
+  int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) final;
 
   /// User manegement
   int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg);

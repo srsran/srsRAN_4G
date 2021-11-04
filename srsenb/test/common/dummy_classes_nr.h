@@ -21,8 +21,8 @@ namespace srsenb {
 class rrc_nr_dummy : public rrc_interface_mac_nr
 {
 public:
-  int  read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
-  int  read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
+  int  read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
+  int  read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
   int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg) { return SRSRAN_SUCCESS; }
   int  update_user(uint16_t new_rnti, uint16_t old_rnti) { return SRSRAN_SUCCESS; }
   void set_activity_user(uint16_t rnti) {}

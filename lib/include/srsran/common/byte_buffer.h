@@ -119,7 +119,7 @@ public:
     // avoid self assignment
     if (&buf == this)
       return *this;
-    msg     = &buffer[SRSRAN_BUFFER_HEADER_OFFSET];
+    msg     = &buffer[buf.msg - &(*buf.buffer)];
     N_bytes = buf.N_bytes;
     md      = buf.md;
     memcpy(msg, buf.msg, N_bytes);

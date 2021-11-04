@@ -307,22 +307,6 @@ void rrc_nr::config_mac()
   ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
   srsran_assert(ret2, "Invalid NR cell configuration.");
 
-  // FIXME: entire SI configuration, etc needs to be ported to NR
-  sched_interface::cell_cfg_t cell_cfg;
-  set_sched_cell_cfg_sib1(&cell_cfg, cfg.sib1);
-
-  // set SIB length
-  for (uint32_t i = 0; i < nof_si_messages + 1; i++) {
-    cell_cfg.sibs[i].len = sib_buffer[i]->N_bytes;
-  }
-
-  // PUCCH width
-  cell_cfg.nrb_pucch = SRSRAN_MAX(cfg.sr_cfg.nof_prb, /* TODO: where is n_rb2 in NR? */ 0);
-  logger.info("Allocating %d PRBs for PUCCH", cell_cfg.nrb_pucch);
-
-  // Copy Cell configuration
-  // cell_cfg.cell = cfg.cell;
-
   // Configure MAC/scheduler
   mac->cell_cfg(sched_cells_cfg);
 }
@@ -397,33 +381,23 @@ int32_t rrc_nr::generate_sibs()
   MAC interface
 *******************************************************************************/
 
-int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer)
+int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer)
 {
-  if (mib_buffer == nullptr || buffer->get_tailroom() < mib_buffer->N_bytes) {
+  if (mib_buffer == nullptr || buffer.get_tailroom() < mib_buffer->N_bytes) {
     return SRSRAN_ERROR;
   }
-  memcpy(buffer->msg, mib_buffer->msg, mib_buffer->N_bytes);
-  buffer->N_bytes = mib_buffer->N_bytes;
+  buffer = *mib_buffer;
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer)
+int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer)
 {
   if (sib_index >= sib_buffer.size()) {
     logger.error("SIB %d is not a configured SIB.", sib_index);
     return SRSRAN_ERROR;
   }
 
-  if (buffer->get_tailroom() < sib_buffer[sib_index]->N_bytes) {
-    logger.error("Not enough space to fit SIB %d into buffer (%d < %d)",
-                 sib_index,
-                 buffer->get_tailroom(),
-                 sib_buffer[sib_index]->N_bytes);
-    return SRSRAN_ERROR;
-  }
-
-  memcpy(buffer->msg, sib_buffer[sib_index]->msg, sib_buffer[sib_index]->N_bytes);
-  buffer->N_bytes = sib_buffer[sib_index]->N_bytes;
+  buffer = *sib_buffer[sib_index];
 
   return SRSRAN_SUCCESS;
 }
@@ -527,9 +501,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers[0].cc          = 0;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex   = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
   uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 

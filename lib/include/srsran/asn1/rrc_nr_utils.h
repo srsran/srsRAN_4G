@@ -13,7 +13,6 @@
 #ifndef SRSRAN_RRC_NR_UTILS_H
 #define SRSRAN_RRC_NR_UTILS_H
 
-#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/phy_cfg_nr.h"
 #include "srsran/interfaces/mac_interface_types.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
@@ -142,10 +141,5 @@ int make_rlc_config_t(const asn1::rrc_nr::rlc_cfg_c& asn1_type, uint8_t bearer_i
 pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc_nr::pdcp_cfg_s& pdcp_cfg);
 
 } // namespace srsran
-
-namespace srsenb {
-
-int set_sched_cell_cfg_sib1(srsenb::sched_interface::cell_cfg_t* sched_cfg, const asn1::rrc_nr::sib1_s& sib1);
-}
 
 #endif // SRSRAN_RRC_NR_UTILS_H
