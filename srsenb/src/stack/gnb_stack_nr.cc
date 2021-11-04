@@ -77,7 +77,8 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   ngap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
   gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
 
-  if (x2_ != nullptr) {
+  if (x2_ == nullptr) {
+    // SA mode
     ngap.reset(new srsenb::ngap(&task_sched, ngap_logger, &srsran::get_rx_io_manager()));
     gtpu.reset(new srsenb::gtpu(&task_sched, gtpu_logger, &srsran::get_rx_io_manager()));
   }
