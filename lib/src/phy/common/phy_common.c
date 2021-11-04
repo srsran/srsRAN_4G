@@ -365,7 +365,7 @@ int srsran_symbol_sz(uint32_t nof_prb)
       return 768;
     } else if (nof_prb <= 79) {
       return 1024;
-    } else if (nof_prb <= 106) {
+    } else if (nof_prb <= 110) {
       return 1536;
     } else {
       return SRSRAN_ERROR;
