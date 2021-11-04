@@ -41,27 +41,51 @@ int test_sib_generation()
 {
   srsran::task_scheduler task_sched;
 
+  phy_nr_dummy phy_obj;
   mac_nr_dummy mac_obj;
   rlc_dummy    rlc_obj;
   pdcp_dummy   pdcp_obj;
   rrc_nr       rrc_obj(&task_sched);
 
   // set cfg
-  rrc_nr_cfg_t default_cfg = {};
-  rrc_nr_cfg_t rrc_cfg     = rrc_obj.update_default_cfg(default_cfg);
-  auto&        sched_elem  = rrc_cfg.sib1.si_sched_info.sched_info_list[0];
+  all_args_t   args{};
+  phy_cfg_t    phy_cfg{};
+  rrc_nr_cfg_t rrc_cfg_nr = {};
+  rrc_cfg_nr.cell_list.emplace_back();
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
+  rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
+  rrc_cfg_nr.cell_list[0].band                 = 78;
+  rrc_cfg_nr.is_standalone                     = true;
+  args.enb.n_prb                               = 50;
+  enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
 
-  TESTASSERT(rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
 
-  TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSRAN_SUCCESS);
-  // TEMP tests
-  TESTASSERT(mac_obj.cellcfgobj.sibs[1].len > 0);
-  TESTASSERT(mac_obj.cellcfgobj.sibs[1].period_rf == sched_elem.si_periodicity.to_number());
-  for (int i = 2; i < 16; ++i) {
-    TESTASSERT(mac_obj.cellcfgobj.sibs[i].len == 0);
+  const sched_nr_interface::cell_cfg_t& nrcell = mac_obj.nr_cells.at(0);
+
+  TESTASSERT(nrcell.sibs.size() > 0);
+
+  // TEST SIB1
+  TESTASSERT(nrcell.sibs[0].len > 0);
+  TESTASSERT_EQ(16, nrcell.sibs[0].period_rf);
+
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  TESTASSERT_EQ(SRSRAN_SUCCESS, rrc_obj.read_pdu_bcch_dlsch(0, *pdu));
+  TESTASSERT(pdu->size() > 0);
+  asn1::rrc_nr::bcch_dl_sch_msg_s msg;
+  {
+    asn1::cbit_ref bref{pdu->data(), pdu->size()};
+    TESTASSERT_EQ(SRSRAN_SUCCESS, msg.unpack(bref));
   }
-  TESTASSERT(mac_obj.cellcfgobj.cell.nof_prb == 25);
+  TESTASSERT_EQ(bcch_dl_sch_msg_type_c::types_opts::c1, msg.msg.type().value);
+  TESTASSERT_EQ(bcch_dl_sch_msg_type_c::c1_c_::types_opts::sib_type1, msg.msg.c1().type().value);
+  asn1::rrc_nr::sib1_s& sib1 = msg.msg.c1().sib_type1();
+  TESTASSERT(sib1.serving_cell_cfg_common_present);
+
+  pdcch_cfg_common_s& pdcch = sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+  TESTASSERT(not pdcch.ctrl_res_set_zero_present); // CORESET#0 id is passed in MIB
+  TESTASSERT(not pdcch.search_space_zero_present); // SS#0 id is passed in MIB
 
   return SRSRAN_SUCCESS;
 }
@@ -79,11 +103,12 @@ int test_rrc_setup()
   // set cfg
   all_args_t   args{};
   phy_cfg_t    phy_cfg{};
-  rrc_nr_cfg_t rrc_cfg_nr = rrc_obj.update_default_cfg(rrc_nr_cfg_t{});
+  rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
   rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
   rrc_cfg_nr.cell_list[0].band                 = 78;
+  rrc_cfg_nr.is_standalone                     = false;
   args.enb.n_prb                               = 50;
   enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
   TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
@@ -115,8 +140,7 @@ int main(int argc, char** argv)
   }
   argparse::parse_args(argc, argv);
 
-  // FIXME: disabled temporarily until SIB generation is fixed
-  // TESTASSERT(srsenb::test_sib_generation() == SRSRAN_SUCCESS);
+  TESTASSERT(srsenb::test_sib_generation() == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;

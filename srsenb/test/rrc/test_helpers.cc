@@ -14,6 +14,8 @@
 #include "srsenb/hdr/enb.h"
 #include "srsran/common/test_common.h"
 
+using namespace asn1::rrc;
+
 namespace argparse {
 
 std::string          repository_dir;

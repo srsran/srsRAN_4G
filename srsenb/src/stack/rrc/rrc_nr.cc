@@ -44,8 +44,9 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   gtpu      = gtpu_;
   rrc_eutra = rrc_eutra_;
 
-  // TODO: overwriting because we are not passing config right now
-  cfg = update_default_cfg(cfg_);
+  cfg = cfg_;
+
+  cell_ctxt.reset(new cell_ctxt_t{});
 
   // derived
   slot_dur_ms = 1;
@@ -130,54 +131,6 @@ void rrc_nr::log_rrc_message(const std::string&           source,
   } else if (logger.info.enabled()) {
     logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu.N_bytes);
   }
-}
-
-rrc_nr_cfg_t rrc_nr::update_default_cfg(const rrc_nr_cfg_t& current)
-{
-  // NOTE: This function is temporary.
-  rrc_nr_cfg_t cfg_default = current;
-
-  // Fill MIB
-  cfg_default.mib.sub_carrier_spacing_common.value = mib_s::sub_carrier_spacing_common_opts::scs15or60;
-  cfg_default.mib.ssb_subcarrier_offset            = 0;
-  cfg_default.mib.intra_freq_resel.value           = mib_s::intra_freq_resel_opts::allowed;
-  cfg_default.mib.cell_barred.value                = mib_s::cell_barred_opts::not_barred;
-  cfg_default.mib.pdcch_cfg_sib1.search_space_zero = 0;
-  cfg_default.mib.pdcch_cfg_sib1.ctrl_res_set_zero = 0;
-  cfg_default.mib.dmrs_type_a_position.value       = mib_s::dmrs_type_a_position_opts::pos2;
-  cfg_default.mib.sys_frame_num.from_number(0);
-
-  // Fill SIB1
-  cfg_default.sib1.cell_access_related_info.plmn_id_list.resize(1);
-  cfg_default.sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.resize(1);
-  srsran::plmn_id_t plmn;
-  plmn.from_string("90170");
-  srsran::to_asn1(&cfg_default.sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0], plmn);
-  cfg_default.sib1.cell_access_related_info.plmn_id_list[0].cell_id.from_number(1);
-  cfg_default.sib1.cell_access_related_info.plmn_id_list[0].cell_reserved_for_oper.value =
-      plmn_id_info_s::cell_reserved_for_oper_opts::not_reserved;
-  cfg_default.sib1.si_sched_info_present                                  = true;
-  cfg_default.sib1.si_sched_info.si_request_cfg.rach_occasions_si_present = true;
-  cfg_default.sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win.value =
-      rach_cfg_generic_s::ra_resp_win_opts::sl8;
-  cfg_default.sib1.si_sched_info.si_win_len.value = si_sched_info_s::si_win_len_opts::s20;
-  cfg_default.sib1.si_sched_info.sched_info_list.resize(1);
-  cfg_default.sib1.si_sched_info.sched_info_list[0].si_broadcast_status.value =
-      sched_info_s::si_broadcast_status_opts::broadcasting;
-  cfg_default.sib1.si_sched_info.sched_info_list[0].si_periodicity.value = sched_info_s::si_periodicity_opts::rf16;
-  cfg_default.sib1.si_sched_info.sched_info_list[0].sib_map_info.resize(1);
-  // scheduling of SI messages
-  cfg_default.sib1.si_sched_info.sched_info_list[0].sib_map_info[0].type.value = sib_type_info_s::type_opts::sib_type2;
-  cfg_default.sib1.si_sched_info.sched_info_list[0].sib_map_info[0].value_tag_present = true;
-  cfg_default.sib1.si_sched_info.sched_info_list[0].sib_map_info[0].value_tag         = 0;
-
-  // Fill SIB2+
-  cfg_default.nof_sibs                     = 1;
-  sib2_s& sib2                             = cfg_default.sibs[0].set_sib2();
-  sib2.cell_resel_info_common.q_hyst.value = sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
-  // TODO: Fill SIB2 values
-
-  return cfg_default;
 }
 
 /* @brief PRIVATE function, gets called by sgnb_addition_request
@@ -307,6 +260,17 @@ void rrc_nr::config_mac()
   ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
   srsran_assert(ret2, "Invalid NR cell configuration.");
 
+  // Set SIB1 and SI messages
+  cell.sibs.resize(cell_ctxt->sib_buffer.size());
+  for (uint32_t i = 0; i < cell_ctxt->sib_buffer.size(); i++) {
+    cell.sibs[i].len = cell_ctxt->sib_buffer[i]->N_bytes;
+    if (i == 0) {
+      cell.sibs[i].period_rf = 16; // SIB1 is always 16 rf
+    } else {
+      cell.sibs[i].period_rf = cell_ctxt->sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
+    }
+  }
+
   // Configure MAC/scheduler
   mac->cell_cfg(sched_cells_cfg);
 }
@@ -314,9 +278,9 @@ void rrc_nr::config_mac()
 int32_t rrc_nr::generate_sibs()
 {
   // MIB packing
+  fill_mib_from_enb_cfg(cfg, cell_ctxt->mib);
   bcch_bch_msg_s mib_msg;
-  mib_s&         mib = mib_msg.msg.set_mib();
-  mib                = cfg.mib;
+  mib_msg.msg.set_mib() = cell_ctxt->mib;
   {
     srsran::unique_byte_buffer_t mib_buf = srsran::make_byte_buffer();
     if (mib_buf == nullptr) {
@@ -330,19 +294,27 @@ int32_t rrc_nr::generate_sibs()
     }
     mib_buf->N_bytes = bref.distance_bytes();
     logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
-    mib_buffer = std::move(mib_buf);
+    cell_ctxt->mib_buffer = std::move(mib_buf);
   }
 
-  si_sched_info_s::sched_info_list_l_& sched_info = cfg.sib1.si_sched_info.sched_info_list;
-  uint32_t nof_messages = cfg.sib1.si_sched_info_present ? cfg.sib1.si_sched_info.sched_info_list.size() : 0;
+  // SIB1 packing
+  fill_sib1_from_enb_cfg(cfg, cell_ctxt->sib1);
+  si_sched_info_s::sched_info_list_l_& sched_info = cell_ctxt->sib1.si_sched_info.sched_info_list;
+
+  // SI messages packing
+  cell_ctxt->sibs.resize(1);
+  sib2_s& sib2                             = cell_ctxt->sibs[0].set_sib2();
+  sib2.cell_resel_info_common.q_hyst.value = asn1::rrc_nr::sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
 
   // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
   // all SIBs in a SI message msg[i] share the same periodicity
-  sib_buffer.reserve(nof_messages + 1);
+  const uint32_t nof_messages =
+      cell_ctxt->sib1.si_sched_info_present ? cell_ctxt->sib1.si_sched_info.sched_info_list.size() : 0;
+  cell_ctxt->sib_buffer.reserve(nof_messages + 1);
   asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
   // Copy SIB1 to first SI message
-  msg[0].msg.set_c1().set_sib_type1() = cfg.sib1;
+  msg[0].msg.set_c1().set_sib_type1() = cell_ctxt->sib1;
 
   // Copy rest of SIBs
   for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
@@ -353,26 +325,24 @@ int32_t rrc_nr::generate_sibs()
 
     for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].sib_map_info.size(); ++mapping) {
       uint32_t sibidx = sched_info[sched_info_elem].sib_map_info[mapping].type; // SIB2 == 0
-      sib_list.push_back(cfg.sibs[sibidx]);
+      sib_list.push_back(cell_ctxt->sibs[sibidx]);
     }
   }
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages + 1; msg_index++) {
-    srsran::unique_byte_buffer_t sib = pack_into_pdu(msg[msg_index]);
-    if (sib == nullptr) {
+    srsran::unique_byte_buffer_t sib_pdu = pack_into_pdu(msg[msg_index]);
+    if (sib_pdu == nullptr) {
       logger.error("Failed to pack SIB");
       return SRSRAN_ERROR;
     }
-    sib_buffer.push_back(std::move(sib));
+    cell_ctxt->sib_buffer.push_back(std::move(sib_pdu));
 
     // Log SIBs in JSON format
     fmt::memory_buffer strbuf;
     fmt::format_to(strbuf, "SI message={} payload", msg_index);
-    log_rrc_message(fmt::to_string(strbuf), Tx, *sib_buffer.back().get(), msg[msg_index], "");
+    log_rrc_message(fmt::to_string(strbuf), Tx, *cell_ctxt->sib_buffer.back(), msg[msg_index], "");
   }
-
-  nof_si_messages = sib_buffer.size() - 1;
 
   return SRSRAN_SUCCESS;
 }
@@ -383,21 +353,21 @@ int32_t rrc_nr::generate_sibs()
 
 int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer)
 {
-  if (mib_buffer == nullptr || buffer.get_tailroom() < mib_buffer->N_bytes) {
+  if (cell_ctxt->mib_buffer == nullptr || buffer.get_tailroom() < cell_ctxt->mib_buffer->N_bytes) {
     return SRSRAN_ERROR;
   }
-  buffer = *mib_buffer;
+  buffer = *cell_ctxt->mib_buffer;
   return SRSRAN_SUCCESS;
 }
 
 int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer)
 {
-  if (sib_index >= sib_buffer.size()) {
+  if (sib_index >= cell_ctxt->sib_buffer.size()) {
     logger.error("SIB %d is not a configured SIB.", sib_index);
     return SRSRAN_ERROR;
   }
 
-  buffer = *sib_buffer[sib_index];
+  buffer = *cell_ctxt->sib_buffer[sib_index];
 
   return SRSRAN_SUCCESS;
 }

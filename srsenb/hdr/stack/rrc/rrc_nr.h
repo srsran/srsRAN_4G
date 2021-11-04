@@ -61,12 +61,11 @@ public:
 
   void get_metrics(srsenb::rrc_metrics_t& m);
 
-  rrc_nr_cfg_t update_default_cfg(const rrc_nr_cfg_t& rrc_cfg);
-  void         config_phy();
-  void         config_mac();
-  int32_t      generate_sibs();
-  int          read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer) final;
-  int          read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) final;
+  void    config_phy();
+  void    config_mac();
+  int32_t generate_sibs();
+  int     read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer) final;
+  int     read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) final;
 
   /// User manegement
   int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg);
@@ -245,12 +244,16 @@ private:
   asn1::rrc_nr::sp_cell_cfg_s base_sp_cell_cfg;
 
   // vars
-  std::map<uint16_t, std::unique_ptr<ue> >  users;
-  bool                                      running = false;
-  std::vector<srsran::unique_byte_buffer_t> sib_buffer;
-  srsran::unique_byte_buffer_t              mib_buffer = nullptr;
-
-  uint32_t nof_si_messages = 0;
+  struct cell_ctxt_t {
+    asn1::rrc_nr::mib_s                                mib;
+    asn1::rrc_nr::sib1_s                               sib1;
+    asn1::rrc_nr::sys_info_ies_s::sib_type_and_info_l_ sibs;
+    srsran::unique_byte_buffer_t                       mib_buffer = nullptr;
+    std::vector<srsran::unique_byte_buffer_t>          sib_buffer;
+  };
+  std::unique_ptr<cell_ctxt_t>             cell_ctxt;
+  std::map<uint16_t, std::unique_ptr<ue> > users;
+  bool                                     running = false;
 
   /// Private Methods
   void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);

@@ -1181,11 +1181,13 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
     // NR cells available.
     if (rrc_cfg_->cell_list.size() == 0) {
       // SA mode. Update NGAP args
+      rrc_nr_cfg_->is_standalone   = true;
       args_->nr_stack.ngap.gnb_id  = args_->enb.enb_id;
       args_->nr_stack.ngap.cell_id = rrc_nr_cfg_->cell_list[0].phy_cell.cell_id;
       args_->nr_stack.ngap.tac     = rrc_nr_cfg_->cell_list[0].tac;
     } else {
       // NSA mode.
+      rrc_nr_cfg_->is_standalone = false;
       // update EUTRA RRC params for ENDC
       rrc_cfg_->endc_cfg.abs_frequency_ssb = rrc_nr_cfg_->cell_list.at(0).ssb_absolute_freq_point;
       rrc_cfg_->endc_cfg.nr_band           = rrc_nr_cfg_->cell_list.at(0).band;

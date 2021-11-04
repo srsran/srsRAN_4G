@@ -50,6 +50,7 @@ class sched_nr_interface
 {
 public:
   static const size_t MAX_GRANTS = mac_interface_phy_nr::MAX_GRANTS;
+  static const size_t MAX_SIBS   = 2;
 
   ///// Configuration /////
 
@@ -63,11 +64,17 @@ public:
     uint32_t               numerology_idx  = 0;
   };
 
+  struct cell_cfg_sib_t {
+    uint32_t len;
+    uint32_t period_rf;
+  };
+
   struct cell_cfg_t {
     srsran_carrier_nr_t                                          carrier = {};
     srsran_duplex_config_nr_t                                    duplex  = {};
     srsran::phy_cfg_nr_t::ssb_cfg_t                              ssb     = {};
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
+    srsran::bounded_vector<cell_cfg_sib_t, MAX_SIBS>             sibs;
   };
 
   struct sched_args_t {
