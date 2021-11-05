@@ -19,7 +19,7 @@
 #define POS_IN_BURST_FOURTH_BIT_IDX 3
 
 #define DEFAULT_SSB_PERIODICITY 5
-#define MAX_SIB_TX 4
+#define MAX_SIB_TX 8
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -135,7 +135,7 @@ si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
 
 void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
 {
-  if (true) {
+  if (not bwp_alloc.cfg.cfg.pdcch.coreset_present[0]) {
     // CORESET#0 must be present, otherwise SIs are not allocated
     // TODO: provide proper config
     return;

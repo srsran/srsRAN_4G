@@ -270,7 +270,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
         logger.error("Couldn't read SIB %d from RRC", sib.index);
       }
 
-      logger.info("Including SIB %d into SI scheduling", sib.index);
+      logger.info("Including SIB %d into SI scheduling", sib.index + 1);
       bcch_dlsch_payload.push_back(std::move(sib));
     }
   }

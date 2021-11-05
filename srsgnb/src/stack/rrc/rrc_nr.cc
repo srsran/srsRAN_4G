@@ -340,7 +340,11 @@ int32_t rrc_nr::generate_sibs()
 
     // Log SIBs in JSON format
     fmt::memory_buffer strbuf;
-    fmt::format_to(strbuf, "SI message={} payload", msg_index);
+    if (msg_index == 0) {
+      fmt::format_to(strbuf, "SIB1 payload");
+    } else {
+      fmt::format_to(strbuf, "SI message={} payload", msg_index + 1);
+    }
     log_rrc_message(fmt::to_string(strbuf), Tx, *cell_ctxt->sib_buffer.back(), msg[msg_index], "");
   }
 
