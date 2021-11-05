@@ -19,6 +19,7 @@
 #define POS_IN_BURST_FOURTH_BIT_IDX 3
 
 #define DEFAULT_SSB_PERIODICITY 5
+#define MAX_SIB_TX 4
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -152,7 +153,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
       bool start_window;
       if (si.n == 0) {
         // SIB1
-        start_window = sl_pdcch.to_uint() % si.period == 0;
+        start_window = sl_pdcch.slot_idx() == 0 and sl_pdcch.sfn() % 2 == 0;
       } else {
         // SI messages
         start_window = (sl_pdcch.sfn() % si.period == x / N) and sl_pdcch.slot_idx() == x % bwp_cfg->slots.size();
@@ -160,6 +161,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
       if (start_window) {
         // If start of SI message window
         si.win_start = sl_pdcch;
+        si.n_tx      = 0;
       }
     } else if (si.win_start + si.win_len >= sl_pdcch) {
       // If end of SI message window
@@ -178,12 +180,9 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
     return;
   }
   for (si_msg_ctxt_t& si : pending_sis) {
-    if (not si.win_start.valid()) {
+    if (not si.win_start.valid() or si.n_tx >= MAX_SIB_TX) {
       continue;
     }
-
-    // TODO: NOTE 2: The UE is not required to monitor PDCCH monitoring occasion(s) corresponding to each transmitted
-    // SSB in SI-window.
 
     // Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
     si.result              = alloc_result::invalid_coderate;
