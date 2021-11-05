@@ -130,7 +130,7 @@ si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
   pending_sis[0].n       = 0;
   pending_sis[0].len     = 77;
   pending_sis[0].period  = 160;
-  pending_sis[0].win_len = 1;
+  pending_sis[0].win_len = 160;
 }
 
 void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
@@ -166,7 +166,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
     } else if (si.win_start + si.win_len >= sl_pdcch) {
       // If end of SI message window
       if (si.n == 0) {
-        logger.error("SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
+        logger.error("SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.len, to_string(si.result));
       } else {
         logger.warning(
             "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len, to_string(si.result));

@@ -16,6 +16,7 @@
 #include "sched_nr_interface.h"
 #include "sched_nr_rb.h"
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsran/adt/optional_array.h"
 
 namespace srsenb {
 
@@ -90,6 +91,8 @@ struct bwp_params_t {
   std::vector<pusch_ra_time_cfg> pusch_ra_list;
 
   bwp_cce_pos_list rar_cce_list;
+
+  srsran::optional_vector<bwp_cce_pos_list> common_cce_list;
 
   bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 };

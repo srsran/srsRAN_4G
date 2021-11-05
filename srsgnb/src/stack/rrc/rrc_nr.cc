@@ -45,6 +45,31 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   rrc_eutra = rrc_eutra_;
 
   cfg = cfg_;
+  if (cfg.is_standalone) {
+    // Generate parameters of Coreset#0 and SS#0
+    // Taken from TS 38.211, Section 7.3.2.2
+    cfg.cell_list[0].phy_cell.pdcch.coreset_present[0]              = true;
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].id                   = 0;
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].mapping_type         = srsran_coreset_mapping_type_interleaved;
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].reg_bundle_size      = srsran_coreset_bundle_size_n6;
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].interleaver_size     = srsran_coreset_bundle_size_n2;
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].shift_index          = cfg.cell_list[0].phy_cell.cell_id;
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      cfg.cell_list[0].phy_cell.pdcch.coreset[0].freq_resources[i] = true;
+    }
+    cfg.cell_list[0].phy_cell.pdcch.coreset[0].duration               = 1;
+    cfg.cell_list[0].phy_cell.pdcch.search_space_present[0]           = true;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].id                = 0;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].coreset_id        = 0;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].type              = srsran_search_space_type_common_0;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[0] = 1;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[1] = 1;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[2] = 1;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_1_0;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_formats       = 1;
+    cfg.cell_list[0].phy_cell.pdcch.search_space[0].duration          = 1;
+  }
 
   cell_ctxt.reset(new cell_ctxt_t{});
 
@@ -60,10 +85,15 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   int ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, base_sp_cell_cfg);
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
 
-  // Fill rrc_nr_cfg with UE-specific search spaces and coresets
-  bool ret2 = srsran::fill_phy_pdcch_cfg_common(
-      base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup(),
-      &cfg.cell_list[0].phy_cell.pdcch);
+  pdcch_cfg_common_s* asn1_pdcch;
+  if (not cfg.is_standalone) {
+    // Fill rrc_nr_cfg with UE-specific search spaces and coresets
+    asn1_pdcch =
+        &base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+  } else {
+    asn1_pdcch = &cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+  }
+  bool ret2 = srsran::fill_phy_pdcch_cfg_common(*asn1_pdcch, &cfg.cell_list[0].phy_cell.pdcch);
   srsran_assert(ret2, "Invalid NR cell configuration.");
   ret2 = srsran::fill_phy_pdcch_cfg(base_sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
                                     &cfg.cell_list[0].phy_cell.pdcch);
@@ -295,6 +325,10 @@ int32_t rrc_nr::generate_sibs()
     mib_buf->N_bytes = bref.distance_bytes();
     logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
     cell_ctxt->mib_buffer = std::move(mib_buf);
+  }
+
+  if (not cfg.is_standalone) {
+    return SRSRAN_SUCCESS;
   }
 
   // SIB1 packing

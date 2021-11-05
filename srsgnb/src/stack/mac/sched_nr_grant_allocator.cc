@@ -80,7 +80,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, ui
   const uint32_t coreset_id = 0;
   const uint32_t ss_id      = 0;
   if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::sib, aggr_idx, ss_id)) {
-    logger.warning("SCHED: Cannot allocate SIB1.");
+    logger.warning("SCHED: Cannot allocate SIB1 due to lack of PDCCH space.");
     return alloc_result::no_cch_space;
   }
 
@@ -101,7 +101,12 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, ui
   slot_cfg.idx = pdcch_slot.to_uint();
   int code     = srsran_ra_dl_dci_to_grant_nr(
       &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
-  srsran_assert(code == SRSRAN_SUCCESS, "Error converting DCI to grant");
+  if (code != SRSRAN_SUCCESS) {
+    logger.warning("Error generating SIB PDSCH grant.");
+    bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
+    bwp_pdcch_slot.dl.phy.pdsch.pop_back();
+    return alloc_result::other_cause;
+  }
 
   // Store SI msg index
   bwp_pdcch_slot.sib_idxs.push_back(si_idx);

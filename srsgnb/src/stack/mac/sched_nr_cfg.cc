@@ -89,6 +89,24 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
       rar_cce_list[sl][agg_idx].resize(n);
     }
   }
+
+  for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
+    if (cell_cfg.bwps[0].pdcch.search_space_present[ss_id]) {
+      auto& ss      = cell_cfg.bwps[0].pdcch.search_space[ss_id];
+      auto& coreset = cell_cfg.bwps[0].pdcch.coreset[ss.coreset_id];
+      common_cce_list.emplace(ss_id);
+      bwp_cce_pos_list& ss_cce_list = common_cce_list[ss_id];
+      for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
+        for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
+          ss_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+          int n = srsran_pdcch_nr_locations_coreset(
+              &coreset, &ss, SRSRAN_SIRNTI, agg_idx, sl, ss_cce_list[sl][agg_idx].data());
+          srsran_assert(n >= 0, "Failed to configure DCI locations of search space id=%d", ss_id);
+          ss_cce_list[sl][agg_idx].resize(n);
+        }
+      }
+    }
+  }
 }
 
 cell_params_t::cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_) :
