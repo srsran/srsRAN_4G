@@ -88,7 +88,15 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // TODO
 
   // RETX if required
-  // TODO
+  if (not retx_queue.empty()) {
+    logger->info("Retx required. Retx queue size: %d", retx_queue.size());
+    unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
+    tx_pdu->N_bytes             = build_retx_pdu(tx_pdu.get(), nof_bytes);
+    if (tx_pdu->N_bytes > 0) {
+      memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
+      return tx_pdu->N_bytes;
+    }
+  }
 
   // Read new SDU from TX queue
   if (tx_sdu_queue.is_empty()) {
@@ -112,32 +120,25 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     return 0;
   }
 
-  // Check wether polling is required
-  uint8_t poll = 0;
-  if (cfg.poll_pdu > 0) {
-    if (st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
-      poll                = 1;
-      st.pdu_without_poll = 0;
-    } else {
-      st.pdu_without_poll++;
-    }
-  }
-
-  rlc_am_nr_pdu_header_t hdr = {};
-  hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = poll; // FIXME
-  hdr.si                     = rlc_nr_si_field_t::full_sdu;
-  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
-  hdr.sn                     = st.tx_next;
-  log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
-
   // insert newly assigned SN into window and use reference for in-place operations
-  // NOTE: from now on, we can't return from this function anymore before increasing vt_s
-  rlc_amd_tx_pdu_nr& tx_pdu = tx_window.add_pdu(hdr.sn);
+  // NOTE: from now on, we can't return from this function anymore before increasing tx_next
+  rlc_amd_tx_pdu_nr& tx_pdu = tx_window.add_pdu(st.tx_next);
   tx_pdu.buf                = srsran::make_byte_buffer();
   memcpy(tx_pdu.buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
   tx_pdu.buf->N_bytes = tx_sdu->N_bytes;
-  uint32_t len        = rlc_am_nr_write_data_pdu_header(hdr, tx_pdu.buf.get());
+
+  // Prepare header
+  rlc_am_nr_pdu_header_t hdr = {};
+  hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
+  hdr.p                      = get_pdu_poll();
+  hdr.si                     = rlc_nr_si_field_t::full_sdu;
+  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn                     = st.tx_next;
+  tx_pdu.header              = hdr;
+  log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
+
+  // Write header
+  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu.get());
   if (len > nof_bytes) {
     logger->error("Error writing AMD PDU header");
   }
@@ -145,10 +146,58 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Update TX Next
   st.tx_next = (st.tx_next + 1) % MOD;
 
-  memcpy(payload, tx_pdu.buf->msg, tx_pdu.buf->N_bytes);
+  memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
   logger->debug("Wrote RLC PDU - %d bytes", tx_sdu->N_bytes);
 
-  return tx_pdu.buf->N_bytes;
+  return tx_sdu->N_bytes;
+}
+
+int rlc_am_nr_tx::build_retx_pdu(byte_buffer_t* tx_pdu, uint32_t nof_bytes)
+{
+  // Check there is at least 1 element before calling front()
+  if (retx_queue.empty()) {
+    logger->error("In build_retx_pdu(): retx_queue is empty");
+    return -1;
+  }
+
+  rlc_amd_retx_t retx = retx_queue.front();
+
+  // Sanity check - drop any retx SNs not present in tx_window
+  while (not tx_window.has_sn(retx.sn)) {
+    logger->warning("%s SN=%d not in Tx window. Ignoring retx.", parent->rb_name, retx.sn);
+    retx_queue.pop();
+    if (!retx_queue.empty()) {
+      retx = retx_queue.front();
+    } else {
+      logger->warning("%s empty retx queue, cannot provid retx PDU", parent->rb_name);
+      return 0;
+    }
+  }
+  // TODO Consider re-segmentation
+
+  // Update & write header
+  rlc_am_nr_pdu_header_t new_header = tx_window[retx.sn].header;
+  new_header.p                      = 0;
+
+  uint32_t len = rlc_am_nr_write_data_pdu_header(new_header, tx_pdu);
+  memcpy(&tx_pdu->msg[len], tx_window[retx.sn].buf->msg, tx_window[retx.sn].buf->N_bytes);
+  tx_pdu->N_bytes += tx_window[retx.sn].buf->N_bytes;
+
+  retx_queue.pop();
+
+  logger->info(tx_window[retx.sn].buf->msg,
+               tx_window[retx.sn].buf->N_bytes,
+               "%s Original SDU SN=%d (%d B) (attempt %d/%d)",
+               parent->rb_name,
+               retx.sn,
+               tx_window[retx.sn].buf->N_bytes,
+               tx_window[retx.sn].retx_count + 1,
+               cfg.max_retx_thresh);
+  logger->info(tx_pdu->msg, tx_pdu->N_bytes, "%s ReTx PDU SN=%d (%d B)", parent->rb_name, retx.sn, tx_pdu->N_bytes);
+  log_rlc_am_nr_pdu_header_to_string(logger->debug, new_header);
+
+  // debug_state();
+  return len + tx_window[retx.sn].buf->N_bytes;
 }
 
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
@@ -255,12 +304,13 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
                   retx.so_start,
                   retx.so_end);
     if (tx_window.has_sn(retx.sn)) {
-      int req_bytes = retx.so_end - retx.so_start;
+      int req_bytes     = retx.so_end - retx.so_start;
+      int hdr_req_bytes = retx.is_segment ? 4 : 2; // Segmentation not supported yet
       if (req_bytes <= 0) {
         logger->error("In get_buffer_state(): Removing retx.sn=%d from queue", retx.sn);
         retx_queue.pop();
       } else {
-        n_bytes_prio += req_bytes;
+        n_bytes_prio += (req_bytes + hdr_req_bytes);
         logger->debug("Buffer state - retx: %d bytes", n_bytes_prio);
       }
     }
@@ -278,6 +328,20 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
     logger->debug("%s Calling BSR callback - %d new_tx, %d prio bytes", parent->rb_name, n_bytes_new, n_bytes_prio);
     bsr_callback(parent->lcid, n_bytes_new, n_bytes_prio);
   }
+}
+
+uint8_t rlc_am_nr_tx::get_pdu_poll()
+{
+  uint8_t poll = 0;
+  if (cfg.poll_pdu > 0) {
+    if (st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
+      poll                = 1;
+      st.pdu_without_poll = 0;
+    } else {
+      st.pdu_without_poll++;
+    }
+  }
+  return poll;
 }
 
 void rlc_am_nr_tx::reestablish()

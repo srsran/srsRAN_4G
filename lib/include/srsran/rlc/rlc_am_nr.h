@@ -60,6 +60,10 @@ public:
   bool     do_status();
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
+  uint8_t get_pdu_poll();
+
+  int build_retx_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
+
   void stop() final;
 
 private:

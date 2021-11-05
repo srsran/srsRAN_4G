@@ -163,6 +163,7 @@ int lost_pdu_test()
     rlc_am_nr_status_pdu_t status_check = {};
     rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
     TESTASSERT(status_check.ack_sn == 3); // 3 is the next expected SN (i.e. the lost packet.)
+
     // Write status PDU to RLC1
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
   }
@@ -196,6 +197,17 @@ int lost_pdu_test()
     TESTASSERT(3 == rlc1.get_buffer_state());
   }
 
+  {
+    // Check correct re-transmission
+    byte_buffer_t retx_buf;
+    int           len = rlc1.read_pdu(retx_buf.msg, 3);
+    retx_buf.N_bytes  = len;
+    TESTASSERT(3 == len);
+
+    rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
+
+    TESTASSERT(0 == rlc2.get_buffer_state());
+  }
   // Check statistics
   TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
   return SRSRAN_SUCCESS;
@@ -216,8 +228,8 @@ int main(int argc, char** argv)
   }
   srslog::set_default_sink(*spy);
 
-  auto& logger_rlc1 = srslog::fetch_basic_logger("RLC_NR_AM_1", *spy, false);
-  auto& logger_rlc2 = srslog::fetch_basic_logger("RLC_NR_AM_2", *spy, false);
+  auto& logger_rlc1 = srslog::fetch_basic_logger("RLC_AM_1", *spy, false);
+  auto& logger_rlc2 = srslog::fetch_basic_logger("RLC_AM_2", *spy, false);
   logger_rlc1.set_hex_dump_max_size(100);
   logger_rlc2.set_hex_dump_max_size(100);
   logger_rlc1.set_level(srslog::basic_levels::debug);
