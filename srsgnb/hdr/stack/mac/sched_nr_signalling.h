@@ -13,9 +13,9 @@
 #ifndef SRSRAN_SCHED_NR_SIGNALLING_H
 #define SRSRAN_SCHED_NR_SIGNALLING_H
 
-#include "../sched_common.h"
 #include "sched_nr_cfg.h"
 #include "sched_nr_interface.h"
+#include "srsenb/hdr/stack/mac/sched_common.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
