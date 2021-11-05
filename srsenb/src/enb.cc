@@ -12,9 +12,9 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
-#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/hdr/x2_adapter.h"
 #include "srsenb/src/enb_cfg_parser.h"
+#include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsran/build_info.h"
 #include "srsran/common/enb_events.h"
 #include "srsran/radio/radio_null.h"

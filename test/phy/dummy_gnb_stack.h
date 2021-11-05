@@ -15,11 +15,11 @@
 
 #include "dummy_rx_harq_proc.h"
 #include "dummy_tx_harq_proc.h"
-#include "srsenb/hdr/stack/mac/nr/mac_nr.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/common/rlc_test_dummy.h"
-#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
+#include "srsgnb/hdr/stack/mac/mac_nr.h"
+#include "srsgnb/hdr/stack/mac/sched_nr.h"
+#include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/srslog/srslog.h"
 #include <mutex>
 #include <set>

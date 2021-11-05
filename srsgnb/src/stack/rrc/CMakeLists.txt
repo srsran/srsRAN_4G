@@ -6,6 +6,10 @@
 # the distribution.
 #
 
-set(SOURCES gtpu.cc pdcp.cc rlc.cc)
-add_library(srsenb_upper STATIC ${SOURCES})
-target_link_libraries(srsenb_upper srsran_asn1 srsran_gtpu)
+set(SOURCES rrc_nr.cc cell_asn1_config.cc)
+add_library(srsgnb_rrc STATIC ${SOURCES})
+target_link_libraries(srsgnb_rrc srsran_rrc_nr)
+
+include_directories(${PROJECT_SOURCE_DIR})
+
+add_subdirectory(test)

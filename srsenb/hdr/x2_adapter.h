@@ -30,9 +30,9 @@
 #ifndef SRSENB_X2_ADAPTER_H
 #define SRSENB_X2_ADAPTER_H
 
+#include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsran/interfaces/enb_x2_interfaces.h"
 #include "stack/enb_stack_lte.h"
-#include "stack/gnb_stack_nr.h"
 
 namespace srsenb {
 

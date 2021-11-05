@@ -6,6 +6,13 @@
 # the distribution.
 #
 
-set(SOURCES gtpu.cc pdcp.cc rlc.cc)
-add_library(srsenb_upper STATIC ${SOURCES})
-target_link_libraries(srsenb_upper srsran_asn1 srsran_gtpu)
+include_directories(${PROJECT_SOURCE_DIR})
+
+add_subdirectory(mac)
+add_subdirectory(ngap)
+add_subdirectory(rrc)
+add_subdirectory(sdap)
+
+set(SOURCES gnb_stack_nr.cc)
+
+add_library(srsgnb_stack STATIC ${SOURCES})

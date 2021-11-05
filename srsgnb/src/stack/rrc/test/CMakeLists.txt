@@ -6,6 +6,6 @@
 # the distribution.
 #
 
-set(SOURCES gtpu.cc pdcp.cc rlc.cc)
-add_library(srsenb_upper STATIC ${SOURCES})
-target_link_libraries(srsenb_upper srsran_asn1 srsran_gtpu)
+add_executable(rrc_nr_test rrc_nr_test.cc)
+target_link_libraries(rrc_nr_test srsgnb_rrc test_helpers ${ATOMIC_LIBS})
+add_test(rrc_nr_test rrc_nr_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)

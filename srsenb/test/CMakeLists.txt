@@ -11,7 +11,6 @@ add_subdirectory(phy)
 add_subdirectory(upper)
 add_subdirectory(rrc)
 add_subdirectory(s1ap)
-add_subdirectory(ngap)
 
 add_executable(enb_metrics_test enb_metrics_test.cc ../src/metrics_stdout.cc ../src/metrics_csv.cc)
 target_link_libraries(enb_metrics_test srsran_phy srsran_common)
