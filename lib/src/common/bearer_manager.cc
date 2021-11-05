@@ -86,7 +86,7 @@ void ue_bearer_manager::add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat
     logger.info(
         "Bearers: Registered EPS bearer ID %d for lcid=%d over %s-PDCP", eps_bearer_id, lcid, to_string(rat).c_str());
   } else {
-    logger.error("Bearers: EPS bearer ID %d already registered", eps_bearer_id);
+    logger.warning("Bearers: EPS bearer ID %d already registered", eps_bearer_id);
   }
 }
 
