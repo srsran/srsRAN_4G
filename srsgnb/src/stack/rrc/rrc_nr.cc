@@ -47,18 +47,23 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   cfg = cfg_;
   if (cfg.is_standalone) {
     // Generate parameters of Coreset#0 and SS#0
-    // Taken from TS 38.211, Section 7.3.2.2
-    cfg.cell_list[0].phy_cell.pdcch.coreset_present[0]              = true;
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].id                   = 0;
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].mapping_type         = srsran_coreset_mapping_type_interleaved;
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].reg_bundle_size      = srsran_coreset_bundle_size_n6;
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].interleaver_size     = srsran_coreset_bundle_size_n2;
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].shift_index          = cfg.cell_list[0].phy_cell.cell_id;
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
-    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-      cfg.cell_list[0].phy_cell.pdcch.coreset[0].freq_resources[i] = true;
-    }
-    cfg.cell_list[0].phy_cell.pdcch.coreset[0].duration               = 1;
+    const uint32_t coreset0_idx                        = 7;
+    cfg.cell_list[0].phy_cell.pdcch.coreset_present[0] = true;
+    // Get pointA and SSB absolute frequencies
+    double pointA_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz -
+                                cfg.cell_list[0].phy_cell.carrier.nof_prb * SRSRAN_NRE *
+                                    SRSRAN_SUBC_SPACING_NR(cfg.cell_list[0].phy_cell.carrier.scs) / 2;
+    double ssb_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.ssb_center_freq_hz;
+    // Calculate integer SSB to pointA frequency offset in Hz
+    uint32_t ssb_pointA_freq_offset_Hz =
+        (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+    int ret = srsran_coreset_zero(cfg.cell_list[0].phy_cell.cell_id,
+                                  ssb_pointA_freq_offset_Hz,
+                                  cfg.cell_list[0].ssb_cfg.scs,
+                                  cfg.cell_list[0].phy_cell.carrier.scs,
+                                  coreset0_idx,
+                                  &cfg.cell_list[0].phy_cell.pdcch.coreset[0]);
+    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to generate CORESET#0");
     cfg.cell_list[0].phy_cell.pdcch.search_space_present[0]           = true;
     cfg.cell_list[0].phy_cell.pdcch.search_space[0].id                = 0;
     cfg.cell_list[0].phy_cell.pdcch.search_space[0].coreset_id        = 0;
