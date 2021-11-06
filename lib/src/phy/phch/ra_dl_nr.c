@@ -140,7 +140,8 @@ int srsran_ra_dl_nr_time(const srsran_sch_hl_cfg_nr_t*    cfg,
   // Determine which PDSCH Time domain RA configuration to apply (TS 38.214 Table 5.1.2.1.1-1)
   if (rnti_type == srsran_rnti_type_si && ss_type == srsran_search_space_type_common_0) {
     // Row 1
-    ERROR("Row not implemented");
+    // Note: Only Default A is supported, which corresponds SS/PBCH block and coreset mux pattern 1
+    srsran_ra_dl_nr_time_default_A(m, cfg->typeA_pos, grant);
   } else if (rnti_type == srsran_rnti_type_si && ss_type == srsran_search_space_type_common_0A) {
     // Row 2
     ERROR("Row not implemented");
