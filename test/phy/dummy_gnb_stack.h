@@ -463,11 +463,18 @@ public:
 
   ~gnb_dummy_stack() = default;
 
+  void stop()
+  {
+    if (not use_dummy_mac) {
+      mac->stop();
+    }
+  }
+
   bool is_valid() const { return valid; }
 
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
 
-  int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override
+  dl_sched_t* get_dl_sched(const srsran_slot_cfg_t& slot_cfg) override
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
@@ -478,36 +485,41 @@ public:
         mac->ul_bsr(rnti, 0, 100000);
       }
 
-      int ret = mac->get_dl_sched(slot_cfg, dl_sched);
+      dl_sched_t* dl_res = mac->get_dl_sched(slot_cfg);
+      if (dl_res == nullptr) {
+        return nullptr;
+      }
 
-      for (pdsch_t& pdsch : dl_sched.pdsch) {
+      for (pdsch_t& pdsch : dl_res->pdsch) {
         // Set TBS
         // Select grant and set data
         pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs);
         pdsch.data[1] = nullptr;
       }
 
-      return ret;
+      return dl_res;
     }
+    dl_sched_t& dl_sched = dl_scheds[slot_cfg.idx];
+    dl_sched             = {};
 
     // Check if it is TDD DL slot and PDSCH mask, if no PDSCH shall be scheduled, do not set any grant and skip
     if (not srsran_duplex_nr_is_dl(&phy_cfg.duplex, phy_cfg.carrier.scs, slot_cfg.idx)) {
-      return SRSRAN_SUCCESS;
+      return nullptr;
     }
 
     if (not schedule_pdsch(slot_cfg, dl_sched)) {
       logger.error("Error scheduling PDSCH");
-      return SRSRAN_ERROR;
+      return nullptr;
     }
 
     // Check if the UL slot is valid, if not skip UL scheduling
     if (not srsran_duplex_nr_is_ul(&phy_cfg.duplex, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
-      return SRSRAN_SUCCESS;
+      return &dl_sched;
     }
 
     if (not schedule_pusch(slot_cfg, dl_sched)) {
       logger.error("Error scheduling PUSCH");
-      return SRSRAN_ERROR;
+      return nullptr;
     }
 
     // Schedule NZP-CSI-RS, iterate all NZP-CSI-RS sets
@@ -543,19 +555,21 @@ public:
       }
     }
 
-    return SRSRAN_SUCCESS;
+    return &dl_sched;
   }
 
-  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override
+  ul_sched_t* get_ul_sched(const srsran_slot_cfg_t& slot_cfg) override
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
 
     if (not use_dummy_mac) {
-      int ret = mac->get_ul_sched(slot_cfg, ul_sched);
-
-      return ret;
+      ul_sched_t* ul_res = mac->get_ul_sched(slot_cfg);
+      return ul_res;
     }
+    ul_sched_t& ul_sched = ul_scheds[slot_cfg.idx];
+    ul_sched.pucch.clear();
+    ul_sched.pusch.clear();
 
     // Get ACK information
     srsran_pdsch_ack_nr_t ack     = pending_ack[slot_cfg.idx % pending_ack.size()].get_ack();
@@ -575,7 +589,7 @@ public:
     srsran_uci_cfg_nr_t uci_cfg = {};
     if (not phy_cfg.get_uci_cfg(slot_cfg, ack, uci_cfg)) {
       logger.error("Error getting UCI configuration");
-      return SRSRAN_ERROR;
+      return nullptr;
     }
 
     // Schedule PUSCH
@@ -586,15 +600,12 @@ public:
       // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
         logger.error("Error setting UCI configuration in PUSCH");
-        return SRSRAN_ERROR;
+        return nullptr;
       }
 
       ul_sched.pusch.push_back(pusch);
-      return SRSRAN_SUCCESS;
-    }
-
-    // If any UCI information is triggered, schedule PUCCH
-    if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
+    } else if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
+      // If any UCI information is triggered, schedule PUCCH
       ul_sched.pucch.emplace_back();
 
       uci_cfg.pucch.rnti = rnti;
@@ -604,7 +615,7 @@ public:
       pucch.candidates.back().uci_cfg = uci_cfg;
       if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
         logger.error("Error getting UCI CFG");
-        return SRSRAN_ERROR;
+        return nullptr;
       }
 
       // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
@@ -620,15 +631,12 @@ public:
         pucch.candidates.back().uci_cfg = uci_cfg;
         if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
           logger.error("Error getting UCI CFG");
-          return SRSRAN_ERROR;
+          return nullptr;
         }
       }
-
-      return SRSRAN_SUCCESS;
     }
 
-    // Otherwise no UL scheduling
-    return SRSRAN_SUCCESS;
+    return &ul_sched;
   }
 
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
@@ -730,6 +738,10 @@ public:
     }
     return metrics;
   }
+
+private:
+  srsran::circular_array<dl_sched_t, TTIMOD_SZ> dl_scheds;
+  srsran::circular_array<ul_sched_t, TTIMOD_SZ> ul_scheds;
 };
 
 #endif // SRSRAN_DUMMY_GNB_STACK_H

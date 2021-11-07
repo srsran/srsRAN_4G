@@ -49,17 +49,9 @@ struct ue_nr_harq_ctxt_t {
 };
 struct sched_nr_cc_result_view {
   slot_point                          slot;
-  uint32_t                            cc;
-  const sched_nr_interface::dl_res_t  dl_cc_result;
-  const sched_nr_interface::ul_res_t* ul_cc_result;
-
-  sched_nr_cc_result_view(slot_point                            slot_,
-                          uint32_t                              cc_,
-                          sched_nr_interface::sched_rar_list_t& rar,
-                          sched_nr_interface::dl_sched_t&       dl_res,
-                          sched_nr_interface::ul_res_t&         ul_res) :
-    slot(slot_), cc(cc_), dl_cc_result(rar, dl_res), ul_cc_result(&ul_res)
-  {}
+  uint32_t                            cc = 0;
+  const sched_nr_interface::dl_res_t* dl = nullptr;
+  const sched_nr_interface::ul_res_t* ul = nullptr;
 };
 
 struct ue_nr_cc_ctxt_t {
@@ -125,12 +117,8 @@ class sched_nr_base_tester
 {
 public:
   struct cc_result_t {
-    slot_point                           slot_tx;
-    uint32_t                             cc;
-    sched_nr_interface::dl_sched_t       dl_res;
-    sched_nr_interface::sched_rar_list_t rar;
-    sched_nr_interface::ul_res_t         ul_res;
-    std::chrono::nanoseconds             cc_latency_ns;
+    sched_nr_cc_result_view  res;
+    std::chrono::nanoseconds cc_latency_ns;
   };
 
   sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,

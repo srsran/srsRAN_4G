@@ -24,6 +24,9 @@
 #include "srsran/common/string_helpers.h"
 #include "srsran/srslog/bundled/fmt/format.h"
 #include "srsran/srslog/bundled/fmt/ranges.h"
+extern "C" {
+#include "srsran/config.h"
+}
 
 namespace srsenb {
 
@@ -153,37 +156,26 @@ int ue_buffer_manager<isNR>::get_bsr() const
 }
 
 template <bool isNR>
-void ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
+int ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
 {
   if (not is_lcg_valid(lcg_id)) {
     logger.warning("SCHED: The provided lcg_id=%d for rnti=0x%x is not valid", lcg_id, rnti);
-    return;
+    return SRSRAN_ERROR;
   }
   lcg_bsr[lcg_id] = val;
-
-  if (logger.debug.enabled()) {
-    fmt::memory_buffer str_buffer;
-    fmt::format_to(str_buffer, "{}", lcg_bsr);
-    logger.debug(
-        "SCHED: rnti=0x%x, lcg_id=%d, bsr=%d. Current state=%s", rnti, lcg_id, val, srsran::to_c_str(str_buffer));
-  }
+  return SRSRAN_SUCCESS;
 }
 
 template <bool isNR>
-void ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
+int ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
 {
   if (not is_lcid_valid(lcid)) {
     logger.warning("The provided lcid=%d is not valid", lcid);
-    return;
-  }
-  if (lcid <= MAX_SRB_LC_ID and
-      (channels[lcid].buf_tx != (int)tx_queue or channels[lcid].buf_prio_tx != (int)prio_tx_queue)) {
-    logger.info("SCHED: rnti=0x%x DL lcid=%d buffer_state=%d,%d", rnti, lcid, tx_queue, prio_tx_queue);
-  } else {
-    logger.debug("SCHED: rnti=0x%x DL lcid=%d buffer_state=%d,%d", rnti, lcid, tx_queue, prio_tx_queue);
+    return SRSRAN_ERROR;
   }
   channels[lcid].buf_prio_tx = prio_tx_queue;
   channels[lcid].buf_tx      = tx_queue;
+  return SRSRAN_SUCCESS;
 }
 
 // Explicit instantiation

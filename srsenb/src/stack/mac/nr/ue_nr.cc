@@ -83,29 +83,35 @@ int ue_nr::process_pdu(srsran::unique_byte_buffer_t pdu)
     logger.info("Rx PDU: rnti=0x%x, %s", rnti, srsran::to_c_str(str_buffer));
   }
 
-  // First, process MAC CEs in reverse order (CE like C-RNTI get handled first)
-  for (uint32_t n = mac_pdu_ul.get_num_subpdus(), i = mac_pdu_ul.get_num_subpdus() - 1; n > 0; --n, i = n - 1) {
-    srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
-    if (not subpdu.is_sdu()) {
+  // Process MAC CRNTI CE first, if it exists
+  uint32_t crnti_ce_pos = mac_pdu_ul.get_num_subpdus();
+  for (uint32_t n = mac_pdu_ul.get_num_subpdus(); n > 0; --n) {
+    srsran::mac_sch_subpdu_nr& subpdu = mac_pdu_ul.get_subpdu(n - 1);
+    if (subpdu.get_lcid() == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI) {
+      if (process_ce_subpdu(subpdu) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      crnti_ce_pos = n - 1;
+    }
+  }
+
+  // Process SDUs and remaining MAC CEs
+  for (uint32_t n = 0; n < mac_pdu_ul.get_num_subpdus(); ++n) {
+    srsran::mac_sch_subpdu_nr& subpdu = mac_pdu_ul.get_subpdu(n);
+    if (subpdu.is_sdu()) {
+      rrc->set_activity_user(rnti);
+      rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+    } else if (n != crnti_ce_pos) {
       if (process_ce_subpdu(subpdu) != SRSRAN_SUCCESS) {
         return SRSRAN_ERROR;
       }
     }
   }
 
-  // Second, handle all SDUs in order to avoid unnecessary reordering at higher layers
-  for (uint32_t i = 0; i < mac_pdu_ul.get_num_subpdus(); ++i) {
-    srsran::mac_sch_subpdu_nr subpdu = mac_pdu_ul.get_subpdu(i);
-    if (subpdu.is_sdu()) {
-      rrc->set_activity_user(rnti);
-      rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-    }
-  }
-
   return SRSRAN_SUCCESS;
 }
 
-int ue_nr::process_ce_subpdu(srsran::mac_sch_subpdu_nr& subpdu)
+int ue_nr::process_ce_subpdu(const srsran::mac_sch_subpdu_nr& subpdu)
 {
   // Handle MAC CEs
   switch (subpdu.get_lcid()) {
@@ -238,9 +244,8 @@ void ue_nr::metrics_read(mac_ue_metrics_t* metrics_)
   ue_metrics.dl_buffer = dl_buffer;
 
   // set PCell sector id
-  std::array<int, SRSRAN_MAX_CARRIERS> cc_list; //= sched->get_enb_ue_cc_map(rnti);
-  auto                                 it = std::find(cc_list.begin(), cc_list.end(), 0);
-  ue_metrics.cc_idx                       = std::distance(cc_list.begin(), it);
+  // TODO: use ue_cfg when multiple NR carriers are supported
+  ue_metrics.cc_idx = 0;
 
   *metrics_            = ue_metrics;
   phr_counter          = 0;

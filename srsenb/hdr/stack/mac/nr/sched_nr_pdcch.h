@@ -38,8 +38,6 @@ enum class pdcch_grant_type_t { sib, rar, dl_data, ul_data };
 
 class slot_ue;
 
-using bwp_cfg_t = sched_nr_interface::bwp_cfg_t;
-
 class coreset_region
 {
 public:
@@ -57,7 +55,10 @@ public:
    * @param user UE object or null in case of broadcast/RAR/paging allocation
    * @return if the allocation was successful
    */
-  bool alloc_dci(pdcch_grant_type_t alloc_type, uint32_t aggr_idx, uint32_t search_space_id, slot_ue* user = nullptr);
+  bool alloc_dci(pdcch_grant_type_t         alloc_type,
+                 uint32_t                   aggr_idx,
+                 uint32_t                   search_space_id,
+                 const ue_carrier_params_t* user = nullptr);
 
   void rem_last_dci();
 
@@ -75,11 +76,11 @@ private:
 
   // List of PDCCH grants
   struct alloc_record {
-    uint32_t           aggr_idx;
-    uint32_t           ss_id;
-    uint32_t           idx;
-    pdcch_grant_type_t alloc_type;
-    slot_ue*           ue;
+    uint32_t                   aggr_idx;
+    uint32_t                   ss_id;
+    uint32_t                   idx;
+    pdcch_grant_type_t         alloc_type;
+    const ue_carrier_params_t* ue;
   };
   srsran::bounded_vector<alloc_record, 2 * MAX_GRANTS> dci_list;
   pdcch_dl_list_t&                                     pdcch_dl_list;

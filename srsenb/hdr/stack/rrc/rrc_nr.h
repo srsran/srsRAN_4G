@@ -110,6 +110,21 @@ public:
   int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates);
   int  allocate_lcid(uint16_t rnti);
 
+  // logging
+  typedef enum { Rx = 0, Tx } direction_t;
+  template <class T>
+  void log_rrc_message(const std::string&         source,
+                       const direction_t          dir,
+                       const asn1::dyn_octstring& oct,
+                       const T&                   msg,
+                       const std::string&         msg_type);
+
+  template <class T>
+  void log_rrc_message(const std::string&           source,
+                       const direction_t            dir,
+                       const srsran::byte_buffer_t& pdu,
+                       const T&                     msg,
+                       const std::string&           msg_type);
   class ue
   {
   public:
@@ -195,6 +210,10 @@ public:
 
     int add_drb();
 
+    // logging helpers
+    template <class T, class M>
+    void log_rrc_message(const direction_t dir, const M& pdu, const T& msg, const std::string& msg_type);
+
     // state
     rrc_nr_state_t state          = rrc_nr_state_t::RRC_IDLE;
     uint8_t        transaction_id = 0;
@@ -247,10 +266,9 @@ private:
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
   int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
 
-  // logging
-  typedef enum { Rx = 0, Tx } direction_t;
+  // Helper to create PDU from RRC message
   template <class T>
-  void log_rrc_message(const std::string& source, direction_t dir, const srsran::byte_buffer_t* pdu, const T& msg);
+  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg);
 };
 
 } // namespace srsenb

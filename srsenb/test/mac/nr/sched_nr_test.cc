@@ -45,16 +45,16 @@ public:
         })->cc_latency_ns.count();
 
     for (auto& cc_out : cc_list) {
-      pdsch_count += cc_out.dl_res.pdcch_dl.size();
+      pdsch_count += cc_out.res.dl->phy.pdcch_dl.size();
       cc_res_count++;
 
-      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
+      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
 
       if (is_dl_slot) {
-        if (cc_out.dl_res.ssb.empty()) {
-          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.dl_res.pdcch_dl.size() == 1);
+        if (cc_out.res.dl->phy.ssb.empty()) {
+          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.res.dl->phy.pdcch_dl.size() == 1);
         } else {
-          TESTASSERT(cc_out.dl_res.pdcch_dl.size() == 0);
+          TESTASSERT(cc_out.res.dl->phy.pdcch_dl.size() == 0);
         }
       }
     }

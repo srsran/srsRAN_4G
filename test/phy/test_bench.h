@@ -141,6 +141,7 @@ public:
     gnb_phy_com.stop();
     gnb_phy.stop();
     ue_phy.stop();
+    gnb_stack.stop();
   }
 
   ~test_bench() = default;

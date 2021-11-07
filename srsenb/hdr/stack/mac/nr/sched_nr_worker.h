@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_NR_WORKER_H
 #define SRSRAN_SCHED_NR_WORKER_H
 
-#include "sched_nr_cell.h"
+#include "sched_nr_bwp.h"
 #include "sched_nr_cfg.h"
 #include "sched_nr_grant_allocator.h"
 #include "sched_nr_ue.h"
@@ -39,109 +39,30 @@ struct mac_metrics_t;
 
 namespace sched_nr_impl {
 
-class slot_cc_worker
+class cc_worker
 {
 public:
-  using feedback_callback_t = srsran::move_callback<void(ue_carrier&)>;
+  explicit cc_worker(const cell_params_t& params);
 
-  explicit slot_cc_worker(serv_cell_manager& sched);
+  void dl_rach_info(const sched_nr_interface::rar_info_t& rar_info);
 
-  void run(slot_point pdcch_slot, ue_map_t& ue_db_);
-  bool running() const { return slot_rx.valid(); }
+  dl_sched_res_t* run_slot(slot_point pdcch_slot, ue_map_t& ue_db_);
+  ul_sched_t*     get_ul_sched(slot_point sl);
 
-  void enqueue_cc_event(srsran::move_callback<void()> ev);
-
-  /// Enqueue feedback directed at a given UE in a given cell
-  void enqueue_cc_feedback(uint16_t rnti, feedback_callback_t fdbk);
-
-private:
-  /// Run all pending feedback. This should be called at the beginning of a TTI
-  void run_feedback(ue_map_t& ue_db);
-
-  void alloc_dl_ues();
-  void alloc_ul_ues();
-  void postprocess_decisions();
-
+  // const params
   const cell_params_t&  cfg;
-  serv_cell_manager&    cell;
   srslog::basic_logger& logger;
 
-  slot_point         slot_rx;
-  bwp_slot_allocator bwp_alloc;
-
-  // Process of UE cell-specific feedback
-  struct feedback_t {
-    uint16_t            rnti;
-    feedback_callback_t fdbk;
-  };
-  std::mutex                                    feedback_mutex;
-  srsran::deque<feedback_t>                     pending_feedback, tmp_feedback_to_run;
-  srsran::deque<srsran::move_callback<void()> > pending_events, tmp_events_to_run;
-
-  slot_ue_map_t slot_ues;
-};
-
-class sched_worker_manager
-{
-  struct slot_worker_ctxt {
-    std::mutex                  slot_mutex; // lock of all workers of the same slot.
-    std::condition_variable     cvar;
-    slot_point                  slot_rx;
-    int                         nof_workers_waiting = 0;
-    std::atomic<int>            worker_count{0}; // variable shared across slot_cc_workers
-    std::vector<slot_cc_worker> workers;
-  };
-
-public:
-  explicit sched_worker_manager(ue_map_t&                                         ue_db_,
-                                const sched_params&                               cfg_,
-                                srsran::span<std::unique_ptr<serv_cell_manager> > cells_);
-  sched_worker_manager(const sched_worker_manager&) = delete;
-  sched_worker_manager(sched_worker_manager&&)      = delete;
-  ~sched_worker_manager();
-
-  void run_slot(slot_point slot_tx, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
-
-  void get_metrics(mac_metrics_t& metrics);
-
-  void enqueue_event(uint16_t rnti, srsran::move_callback<void()> ev);
-  void enqueue_cc_event(uint32_t cc, srsran::move_callback<void()> ev);
-  void enqueue_cc_feedback(uint16_t rnti, uint32_t cc, slot_cc_worker::feedback_callback_t fdbk)
-  {
-    cc_worker_list[cc]->worker.enqueue_cc_feedback(rnti, std::move(fdbk));
-  }
+  // cc-specific resources
+  srsran::bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL> bwps;
 
 private:
-  void update_ue_db(slot_point slot_tx, bool locked_context);
-  void get_metrics_nolocking(mac_metrics_t& metrics);
-  bool save_sched_result(slot_point pdcch_slot, uint32_t cc, dl_sched_res_t& dl_res, ul_sched_t& ul_res);
+  void alloc_dl_ues(bwp_slot_allocator& bwp_alloc);
+  void alloc_ul_ues(bwp_slot_allocator& bwp_alloc);
+  void postprocess_decisions(bwp_slot_allocator& bwp_alloc);
 
-  const sched_params&                               cfg;
-  ue_map_t&                                         ue_db;
-  srsran::span<std::unique_ptr<serv_cell_manager> > cells;
-  srslog::basic_logger&                             logger;
-
-  struct ue_event_t {
-    uint16_t                      rnti;
-    srsran::move_callback<void()> callback;
-  };
-  std::mutex                event_mutex;
-  srsran::deque<ue_event_t> next_slot_events, slot_events;
-
-  std::vector<std::unique_ptr<slot_worker_ctxt> > slot_worker_ctxts;
-  struct cc_context {
-    std::condition_variable cvar;
-    int                     waiting = 0;
-    slot_cc_worker          worker;
-
-    cc_context(serv_cell_manager& sched) : worker(sched) {}
-  };
-
-  std::mutex                                slot_mutex;
-  std::condition_variable                   cvar;
-  slot_point                                current_slot;
-  std::atomic<int>                          worker_count{0}; // variable shared across slot_cc_workers
-  std::vector<std::unique_ptr<cc_context> > cc_worker_list;
+  // {slot,cc} specific variables
+  slot_ue_map_t slot_ues;
 };
 
 } // namespace sched_nr_impl

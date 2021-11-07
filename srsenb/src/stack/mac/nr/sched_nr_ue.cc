@@ -26,13 +26,42 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-slot_ue::slot_ue(uint16_t rnti_, slot_point slot_rx_, uint32_t cc_) : rnti(rnti_), slot_rx(slot_rx_), cc(cc_) {}
+slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes) :
+  ue(&ue_), pdcch_slot(slot_tx_)
+{
+  const uint32_t k0 = 0;
+  pdsch_slot        = pdcch_slot + k0;
+  uint32_t k1       = ue->bwp_cfg.get_k1(pdsch_slot);
+  uci_slot          = pdsch_slot + k1;
+  uint32_t k2       = ue->bwp_cfg.active_bwp().pusch_ra_list[0].K;
+  pusch_slot        = pdcch_slot + k2;
+
+  const srsran_duplex_config_nr_t& tdd_cfg = ue->cell_params.cfg.duplex;
+
+  dl_active = srsran_duplex_nr_is_dl(&tdd_cfg, 0, pdsch_slot.slot_idx());
+  if (dl_active) {
+    dl_bytes = dl_pending_bytes;
+    h_dl     = ue->harq_ent.find_pending_dl_retx();
+    if (h_dl == nullptr) {
+      h_dl = ue->harq_ent.find_empty_dl_harq();
+    }
+  }
+  ul_active = srsran_duplex_nr_is_ul(&tdd_cfg, 0, pusch_slot.slot_idx());
+  if (ul_active) {
+    ul_bytes = ul_pending_bytes;
+    h_ul     = ue->harq_ent.find_pending_ul_retx();
+    if (h_ul == nullptr) {
+      h_ul = ue->harq_ent.find_empty_ul_harq();
+    }
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params_t& cell_params_) :
   rnti(rnti_),
   cc(cell_params_.cc),
+  logger(srslog::fetch_basic_logger(cell_params_.sched_args.logger_name)),
   bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
   cell_params(cell_params_),
   harq_ent(rnti_, cell_params_.nof_prb(), SCHED_NR_MAX_HARQ, cell_params_.bwps[0].logger)
@@ -40,58 +69,37 @@ ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params
 
 void ue_carrier::set_cfg(const ue_cfg_t& ue_cfg)
 {
-  bwp_cfg = bwp_ue_cfg(rnti, cell_params.bwps[0], ue_cfg);
+  bwp_cfg = ue_carrier_params_t(rnti, cell_params.bwps[0], ue_cfg);
 }
 
-void ue_carrier::new_slot(slot_point slot_tx)
+int ue_carrier::dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack)
 {
-  harq_ent.new_slot(slot_tx - TX_ENB_DELAY);
+  int tbs = harq_ent.dl_ack_info(pid, tb_idx, ack);
+  if (tbs < 0) {
+    logger.warning("SCHED: rnti=0x%x received DL HARQ-ACK for empty pid=%d", rnti, pid);
+    return tbs;
+  }
+  if (ack) {
+    metrics.tx_brate += tbs;
+  } else {
+    metrics.tx_errors++;
+  }
+  metrics.tx_pkts++;
+  return tbs;
 }
 
-slot_ue ue_carrier::try_reserve(slot_point pdcch_slot, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes)
+int ue_carrier::ul_crc_info(uint32_t pid, bool crc)
 {
-  slot_point slot_rx = pdcch_slot - TX_ENB_DELAY;
-
-  // copy cc-specific parameters and find available HARQs
-  slot_ue sfu(rnti, slot_rx, cc);
-  sfu.cfg           = &bwp_cfg;
-  sfu.pdcch_slot    = pdcch_slot;
-  sfu.harq_ent      = &harq_ent;
-  const uint32_t k0 = 0;
-  sfu.pdsch_slot    = sfu.pdcch_slot + k0;
-  uint32_t k1       = sfu.cfg->get_k1(sfu.pdsch_slot);
-  sfu.uci_slot      = sfu.pdsch_slot + k1;
-  uint32_t k2       = bwp_cfg.active_bwp().pusch_ra_list[0].K;
-  sfu.pusch_slot    = sfu.pdcch_slot + k2;
-  sfu.dl_cqi        = dl_cqi;
-  sfu.ul_cqi        = ul_cqi;
-
-  // set UE-common parameters
-  sfu.dl_pending_bytes = dl_pending_bytes;
-  sfu.ul_pending_bytes = ul_pending_bytes;
-
-  const srsran_duplex_config_nr_t& tdd_cfg = cell_params.cfg.duplex;
-  if (srsran_duplex_nr_is_dl(&tdd_cfg, 0, sfu.pdsch_slot.slot_idx())) {
-    // If DL enabled
-    sfu.h_dl = harq_ent.find_pending_dl_retx();
-    if (sfu.h_dl == nullptr and sfu.dl_pending_bytes > 0) {
-      sfu.h_dl = harq_ent.find_empty_dl_harq();
-    }
+  int ret = harq_ent.ul_crc_info(pid, crc);
+  if (ret < 0) {
+    logger.warning("SCHED: rnti=0x%x,cc=%d received CRC for empty pid=%d", rnti, cc, pid);
   }
-  if (srsran_duplex_nr_is_ul(&tdd_cfg, 0, sfu.pusch_slot.slot_idx())) {
-    // If UL enabled
-    sfu.h_ul = harq_ent.find_pending_ul_retx();
-    if (sfu.h_ul == nullptr and sfu.ul_pending_bytes > 0) {
-      sfu.h_ul = harq_ent.find_empty_ul_harq();
-    }
-  }
-
-  return sfu;
+  return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params& sched_cfg_) :
+ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params_t& sched_cfg_) :
   rnti(rnti_), sched_cfg(sched_cfg_), buffers(rnti_, srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
 {
   set_cfg(cfg);
@@ -116,6 +124,12 @@ void ue::set_cfg(const ue_cfg_t& cfg)
 void ue::new_slot(slot_point pdcch_slot)
 {
   last_pdcch_slot = pdcch_slot;
+
+  for (std::unique_ptr<ue_carrier>& cc : carriers) {
+    if (cc != nullptr) {
+      cc->harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY);
+    }
+  }
 
   // Compute pending DL/UL bytes for {rnti, pdcch_slot}
   if (sched_cfg.sched_cfg.auto_refill_buffer) {
@@ -146,10 +160,10 @@ void ue::new_slot(slot_point pdcch_slot)
   }
 }
 
-slot_ue ue::try_reserve(slot_point pdcch_slot, uint32_t cc)
+slot_ue ue::make_slot_ue(slot_point pdcch_slot, uint32_t cc)
 {
-  srsran_assert(carriers[cc] != nullptr, "try_reserve() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
-  return carriers[cc]->try_reserve(pdcch_slot, dl_pending_bytes, ul_pending_bytes);
+  srsran_assert(carriers[cc] != nullptr, "make_slot_ue() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
+  return slot_ue(*carriers[cc], pdcch_slot, dl_pending_bytes, ul_pending_bytes);
 }
 
 } // namespace sched_nr_impl

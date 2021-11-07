@@ -195,13 +195,13 @@ int gnb_stack_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
   return mac.slot_indication(slot_cfg);
 }
-int gnb_stack_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
+gnb_stack_nr::dl_sched_t* gnb_stack_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
 {
-  return mac.get_dl_sched(slot_cfg, dl_sched);
+  return mac.get_dl_sched(slot_cfg);
 }
-int gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)
+gnb_stack_nr::ul_sched_t* gnb_stack_nr::get_ul_sched(const srsran_slot_cfg_t& slot_cfg)
 {
-  return mac.get_ul_sched(slot_cfg, ul_sched);
+  return mac.get_ul_sched(slot_cfg);
 }
 int gnb_stack_nr::pucch_info(const srsran_slot_cfg_t& slot_cfg, const mac_interface_phy_nr::pucch_info_t& pucch_info)
 {

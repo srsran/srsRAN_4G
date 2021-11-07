@@ -116,7 +116,7 @@ public:
 
   // Stack interface
   bool
-  handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srsran::s1ap_pcap* pcap_);
 
 private:
@@ -261,6 +261,9 @@ private:
     bool send_erab_modify_response(const erab_id_list& erabs_modified, const erab_item_list& erabs_failed);
     bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
     bool send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio_cap);
+
+    /// TS 36.413 8.4.5 - Handover Cancellation
+    void send_ho_cancel(const asn1::s1ap::cause_c& cause);
 
     bool was_uectxtrelease_requested() const { return release_requested; }
 

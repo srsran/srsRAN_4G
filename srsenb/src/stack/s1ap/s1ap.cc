@@ -1301,16 +1301,7 @@ void s1ap::send_ho_cancel(uint16_t rnti, const asn1::s1ap::cause_c& cause)
     return;
   }
 
-  s1ap_pdu_c tx_pdu;
-
-  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_CANCEL);
-  ho_cancel_ies_container& container = tx_pdu.init_msg().value.ho_cancel().protocol_ies;
-
-  container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id.value();
-  container.enb_ue_s1ap_id.value = user_ptr->ctxt.enb_ue_s1ap_id;
-  container.cause.value          = cause;
-
-  sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverCancel");
+  user_ptr->send_ho_cancel(cause);
 }
 
 bool s1ap::release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released)
@@ -1737,6 +1728,24 @@ bool s1ap::ue::send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio
   memcpy(container.ue_radio_cap.value.data(), ue_radio_cap->msg, ue_radio_cap->N_bytes);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UECapabilityInfoIndication");
+}
+
+void s1ap::ue::send_ho_cancel(const asn1::s1ap::cause_c& cause)
+{
+  // Stop handover timers
+  ts1_reloc_prep.stop();
+  ts1_reloc_overall.stop();
+
+  // Send S1AP Handover Cancel
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_CANCEL);
+  ho_cancel_ies_container& container = tx_pdu.init_msg().value.ho_cancel().protocol_ies;
+
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id.value();
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.cause.value          = cause;
+
+  s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "HandoverCancel");
 }
 
 void s1ap::ue::set_state(s1ap_proc_id_t        next_state,

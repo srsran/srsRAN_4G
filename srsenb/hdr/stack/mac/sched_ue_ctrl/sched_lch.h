@@ -41,7 +41,6 @@ public:
 
   // Inherited methods from ue_buffer_manager base class
   using base_type::config_lcid;
-  using base_type::dl_buffer_state;
   using base_type::get_bsr;
   using base_type::get_bsr_state;
   using base_type::get_dl_prio_tx;
@@ -51,8 +50,9 @@ public:
   using base_type::is_bearer_dl;
   using base_type::is_bearer_ul;
   using base_type::is_lcg_active;
-  using base_type::ul_bsr;
 
+  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
+  void ul_bsr(uint32_t lcg_id, uint32_t val);
   void ul_buffer_add(uint8_t lcid, uint32_t bytes);
 
   int alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);

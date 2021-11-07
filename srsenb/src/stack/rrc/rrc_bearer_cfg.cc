@@ -221,12 +221,12 @@ void bearer_cfg_handler::reestablish_bearers(bearer_cfg_handler&& old_rnti_beare
   old_rnti_bearers.current_drbs.clear();
 }
 
-int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
-                                 const asn1::s1ap::erab_level_qos_params_s&         qos,
-                                 const asn1::bounded_bitstring<1, 160, true, true>& addr,
-                                 uint32_t                                           teid_out,
-                                 srsran::const_span<uint8_t>                        nas_pdu,
-                                 asn1::s1ap::cause_c&                               cause)
+int bearer_cfg_handler::addmod_erab(uint8_t                                            erab_id,
+                                    const asn1::s1ap::erab_level_qos_params_s&         qos,
+                                    const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                                    uint32_t                                           teid_out,
+                                    srsran::const_span<uint8_t>                        nas_pdu,
+                                    asn1::s1ap::cause_c&                               cause)
 {
   if (erab_id < 5) {
     logger->error("ERAB id=%d is invalid", erab_id);
@@ -287,6 +287,16 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
       logger->error("Provided E-RAB id=%d QoS not supported (guaranteed bitrates)", erab_id);
       cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
       return SRSRAN_ERROR;
+    }
+  }
+
+  // If it is an E-RAB modification, remove previous DRB object
+  if (erabs.count(erab_id) > 0) {
+    for (auto& drb : current_drbs) {
+      if (drb.eps_bearer_id_present and drb.eps_bearer_id == erab_id) {
+        srsran::rem_rrc_obj_id(current_drbs, drb.drb_id);
+        break;
+      }
     }
   }
 
@@ -361,8 +371,7 @@ int bearer_cfg_handler::modify_erab(uint8_t                                    e
   }
   auto     address  = erab_it->second.address;
   uint32_t teid_out = erab_it->second.teid_out;
-  release_erab(erab_id);
-  return add_erab(erab_id, qos, address, teid_out, nas_pdu, cause);
+  return addmod_erab(erab_id, qos, address, teid_out, nas_pdu, cause);
 }
 
 int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)

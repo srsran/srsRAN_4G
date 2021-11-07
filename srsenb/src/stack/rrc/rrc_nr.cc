@@ -96,25 +96,48 @@ void rrc_nr::stop()
 }
 
 template <class T>
-void rrc_nr::log_rrc_message(const std::string&           source,
-                             const direction_t            dir,
-                             const srsran::byte_buffer_t* pdu,
-                             const T&                     msg)
+void rrc_nr::log_rrc_message(const std::string&         source,
+                             const direction_t          dir,
+                             const asn1::dyn_octstring& oct,
+                             const T&                   msg,
+                             const std::string&         msg_type)
 {
   if (logger.debug.enabled()) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
-    logger.debug(pdu->msg,
-                 pdu->N_bytes,
+    logger.debug(oct.data(),
+                 oct.size(),
                  "%s - %s %s (%d B)",
                  source.c_str(),
                  dir == Tx ? "Tx" : "Rx",
-                 msg.msg.c1().type().to_string(),
-                 pdu->N_bytes);
+                 msg_type.c_str(),
+                 oct.size());
     logger.debug("Content:\n%s", json_writer.to_string().c_str());
   } else if (logger.info.enabled()) {
-    logger.info(
-        "%s - %s %s (%d B)", source.c_str(), dir == Tx ? "Tx" : "Rx", msg.msg.c1().type().to_string(), pdu->N_bytes);
+    logger.info("%s - %s %s (%d B)", source.c_str(), dir == Tx ? "Tx" : "Rx", msg_type.c_str(), oct.size());
+  }
+}
+
+template <class T>
+void rrc_nr::log_rrc_message(const std::string&           source,
+                             const direction_t            dir,
+                             const srsran::byte_buffer_t& pdu,
+                             const T&                     msg,
+                             const std::string&           msg_type)
+{
+  if (logger.debug.enabled()) {
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    logger.debug(pdu.msg,
+                 pdu.N_bytes,
+                 "%s - %s %s (%d B)",
+                 source.c_str(),
+                 (dir == Rx) ? "Rx" : "Tx",
+                 msg_type.c_str(),
+                 pdu.N_bytes);
+    logger.debug("Content:%s", json_writer.to_string().c_str());
+  } else if (logger.info.enabled()) {
+    logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu.N_bytes);
   }
 }
 
@@ -361,23 +384,17 @@ int32_t rrc_nr::generate_sibs()
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages + 1; msg_index++) {
-    srsran::unique_byte_buffer_t sib = srsran::make_byte_buffer();
+    srsran::unique_byte_buffer_t sib = pack_into_pdu(msg[msg_index]);
     if (sib == nullptr) {
-      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      logger.error("Failed to pack SIB");
       return SRSRAN_ERROR;
     }
-    asn1::bit_ref bref(sib->msg, sib->get_tailroom());
-    if (msg[msg_index].pack(bref) != asn1::SRSASN_SUCCESS) {
-      logger.error("Failed to pack SIB message %d", msg_index);
-      return SRSRAN_ERROR;
-    }
-    sib->N_bytes = bref.distance_bytes();
     sib_buffer.push_back(std::move(sib));
 
     // Log SIBs in JSON format
     fmt::memory_buffer strbuf;
     fmt::format_to(strbuf, "SI message={} payload", msg_index);
-    log_rrc_message(fmt::to_string(strbuf), Tx, sib_buffer.back().get(), msg[msg_index]);
+    log_rrc_message(fmt::to_string(strbuf), Tx, *sib_buffer.back().get(), msg[msg_index], "");
   }
 
   nof_si_messages = sib_buffer.size() - 1;
@@ -636,7 +653,7 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
       break;
     case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
-      state = rrc_nr_state_t::RRC_IDLE;
+      state                = rrc_nr_state_t::RRC_IDLE;
       uint32_t rnti_to_rem = rnti;
       parent->task_sched.defer_task([this, rnti_to_rem]() { parent->rem_user(rnti_to_rem); });
       break;
@@ -681,20 +698,31 @@ void rrc_nr::ue::send_connection_setup()
 void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(*dl_ccch_msg);
+  if (pdu == nullptr) {
+    parent->logger.error("Failed to send DL-CCCH");
+    return;
+  }
+  log_rrc_message(Tx, *pdu.get(), *dl_ccch_msg, "DL-CCCH");
+  parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
+}
+
+template <class T>
+srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu(const T& msg)
+{
+  // Allocate a new PDU buffer and pack the
   srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == nullptr) {
-    parent->logger.error("Allocating pdu");
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return nullptr;
   }
   asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-  if (dl_ccch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-    parent->logger.error("Failed to pack DL-CCCH message. Discarding msg.");
+  if (msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+    logger.error("Failed to pack message. Discarding it.");
+    return nullptr;
   }
   pdu->N_bytes = bref.distance_bytes();
-
-  char buf[32] = {};
-  sprintf(buf, "SRB0 - rnti=0x%x", rnti);
-  parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
-  parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
+  return pdu;
 }
 
 int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
@@ -1226,6 +1254,8 @@ int rrc_nr::ue::pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_second
   }
   packed_secondary_cell_config.resize(bref_pack.distance_bytes());
 
+  log_rrc_message(Tx, packed_secondary_cell_config, cell_group_cfg_pack, "nr-SecondaryCellGroupConfig-r15");
+
   return SRSRAN_SUCCESS;
 }
 
@@ -1280,6 +1310,8 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
 
   // resize to packed length
   packed_nr_bearer_config.resize(bref_pack.distance_bytes());
+
+  log_rrc_message(Tx, packed_nr_bearer_config, radio_bearer_cfg_pack, "nr-RadioBearerConfig1-r15");
 
   return SRSRAN_SUCCESS;
 }
@@ -1379,7 +1411,10 @@ int rrc_nr::ue::add_drb()
 
   // add RLC bearer
   srsran::rlc_config_t rlc_cfg;
-  if (srsran::make_rlc_config_t(cell_group_cfg.rlc_bearer_to_add_mod_list[0].rlc_cfg, &rlc_cfg) != SRSRAN_SUCCESS) {
+  /// NOTE, we need to pass the radio-bearer to the rlc_config
+  if (srsran::make_rlc_config_t(cell_group_cfg.rlc_bearer_to_add_mod_list[0].rlc_cfg,
+                                rlc_bearer.served_radio_bearer.drb_id(),
+                                &rlc_cfg) != SRSRAN_SUCCESS) {
     parent->logger.error("Failed to build RLC config");
     return SRSRAN_ERROR;
   }
@@ -1445,6 +1480,14 @@ void rrc_nr::ue::deactivate_bearers()
 
   // No need to check the returned value, as the function ue_cfg will return SRSRAN_SUCCESS (it asserts if it fails)
   parent->mac->ue_cfg(rnti, uecfg);
+}
+
+template <class T, class M>
+void rrc_nr::ue::log_rrc_message(const direction_t dir, const M& pdu, const T& msg, const std::string& msg_type)
+{
+  fmt::memory_buffer strbuf;
+  fmt::format_to(strbuf, "rnti=0x{:x}", rnti);
+  parent->log_rrc_message(fmt::to_string(strbuf), Tx, pdu, msg, msg_type);
 }
 
 } // namespace srsenb

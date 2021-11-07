@@ -62,16 +62,6 @@ public:
 
   ///// Configuration /////
 
-  struct pdsch_td_res_alloc {
-    uint8_t k0 = 0; // 0..32
-    uint8_t k1 = 4; // 0..32
-  };
-  using pdsch_td_res_alloc_list = srsran::bounded_vector<pdsch_td_res_alloc, MAX_GRANTS>;
-  struct pusch_td_res_alloc {
-    uint8_t k2 = 4; // 0..32
-  };
-  using pusch_td_res_alloc_list = srsran::bounded_vector<pusch_td_res_alloc, MAX_GRANTS>;
-
   struct bwp_cfg_t {
     uint32_t               start_rb        = 0;
     uint32_t               rb_width        = 100;
@@ -127,18 +117,18 @@ public:
 
   using sched_rar_list_t = srsran::bounded_vector<rar_t, MAX_GRANTS>;
   struct dl_res_t {
-    sched_rar_list_t& rar;
-    dl_sched_t&       dl_sched;
-    dl_res_t(sched_rar_list_t& rar_, dl_sched_t& dl_sched_) : rar(rar_), dl_sched(dl_sched_) {}
+    dl_sched_t       phy;
+    sched_rar_list_t rar;
   };
 
   virtual ~sched_nr_interface() = default;
   virtual int  config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
   virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                                                    = 0;
   virtual void ue_rem(uint16_t rnti)                                                                            = 0;
-  virtual bool ue_exists(uint16_t rnti)                                                                         = 0;
-  virtual int  run_slot(slot_point slot_rx, uint32_t cc, dl_res_t& result)                                      = 0;
-  virtual int  get_ul_sched(slot_point slot_rx, uint32_t cc, ul_res_t& result)                                  = 0;
+
+  virtual void      slot_indication(slot_point slot_tx)           = 0;
+  virtual dl_res_t* get_dl_sched(slot_point slot_rx, uint32_t cc) = 0;
+  virtual ul_res_t* get_ul_sched(slot_point slot_rx, uint32_t cc) = 0;
 
   virtual void dl_ack_info(uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack) = 0;
   virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;

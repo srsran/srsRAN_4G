@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/nr/sched_nr_cell.h"
+#include "srsenb/hdr/stack/mac/nr/sched_nr_bwp.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 
@@ -229,22 +229,9 @@ int ra_sched::dl_rach_info(const dl_sched_rar_info_t& rar_info)
   return SRSRAN_SUCCESS;
 }
 
-bwp_ctxt::bwp_ctxt(const bwp_params_t& bwp_cfg) :
+bwp_manager::bwp_manager(const bwp_params_t& bwp_cfg) :
   cfg(&bwp_cfg), ra(bwp_cfg), grid(bwp_cfg), data_sched(new sched_nr_time_rr())
 {}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-serv_cell_manager::serv_cell_manager(const cell_params_t& cell_cfg_) :
-  cfg(cell_cfg_), logger(srslog::fetch_basic_logger(cell_cfg_.sched_args.logger_name))
-{
-  for (uint32_t bwp_id = 0; bwp_id < cfg.cfg.bwps.size(); ++bwp_id) {
-    bwps.emplace_back(cell_cfg_.bwps[bwp_id]);
-  }
-
-  // Pre-allocate HARQs in common pool of softbuffers
-  harq_softbuffer_pool::get_instance().init_pool(cfg.nof_prb());
-}
 
 } // namespace sched_nr_impl
 } // namespace srsenb

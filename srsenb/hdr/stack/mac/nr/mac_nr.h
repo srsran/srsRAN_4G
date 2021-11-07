@@ -27,7 +27,6 @@
 
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
 #include "srsenb/hdr/stack/mac/nr/ue_nr.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
@@ -43,6 +42,8 @@ struct mac_nr_args_t {
   sched_nr_interface::sched_args_t sched_cfg    = {};
   srsenb::pcap_args_t              pcap;
 };
+
+class sched_nr;
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
@@ -71,12 +72,12 @@ public:
   int rlc_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) override;
 
   // Interface for PHY
-  int  slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
-  int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override;
-  int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override;
-  int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override;
-  int  pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override;
-  void rach_detected(const rach_info_t& rach_info) override;
+  int         slot_indication(const srsran_slot_cfg_t& slot_cfg) override;
+  dl_sched_t* get_dl_sched(const srsran_slot_cfg_t& slot_cfg) override;
+  ul_sched_t* get_ul_sched(const srsran_slot_cfg_t& slot_cfg) override;
+  int         pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override;
+  int         pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override;
+  void        rach_detected(const rach_info_t& rach_info) override;
 
   // Test interface
   void ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr);
@@ -119,7 +120,7 @@ private:
   std::atomic<bool> started = {false};
 
   const static uint32_t                       NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
-  srsenb::sched_nr                            sched;
+  std::unique_ptr<srsenb::sched_nr>           sched;
   std::vector<sched_nr_interface::cell_cfg_t> cell_config;
 
   // Map of active UEs
