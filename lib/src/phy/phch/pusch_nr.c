@@ -725,7 +725,7 @@ int srsran_pusch_nr_encode(srsran_pusch_nr_t*            q,
     return SRSRAN_ERROR;
   }
 
-  // 7.3.1.1 and 7.3.1.2
+  // 6.3.1.1 and 6.3.1.2
   uint32_t nof_cw = 0;
   for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
@@ -737,20 +737,23 @@ int srsran_pusch_nr_encode(srsran_pusch_nr_t*            q,
     }
   }
 
-  // 7.3.1.3 Layer mapping
+  // 6.3.1.3 Layer mapping
   cf_t** x = q->d;
   if (grant->nof_layers > 1) {
     x = q->x;
     srsran_layermap_nr(q->d, nof_cw, x, grant->nof_layers, grant->nof_layers);
   }
 
-  // 7.3.1.4 Antenna port mapping
+  // 6.3.1.4 Transform precoding
   // ... Not implemented
 
-  // 7.3.1.5 Mapping to virtual resource blocks
+  // 6.3.1.5 Precoding
   // ... Not implemented
 
-  // 7.3.1.6 Mapping from virtual to physical resource blocks
+  // 6.3.1.6 Mapping to virtual resource blocks
+  // ... Not implemented
+
+  // 6.3.1.7 Mapping from virtual to physical resource blocks
   int n = pusch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
   if (n < SRSRAN_SUCCESS) {
     ERROR("Putting NR PUSCH resources");

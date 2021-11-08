@@ -61,7 +61,7 @@ int srsran_gnb_dl_init(srsran_gnb_dl_t* q, cf_t* output[SRSRAN_MAX_PORTS], const
     return SRSRAN_ERROR;
   }
 
-  // Check symbol size is vlid
+  // Check symbol size is valid
   int symbol_sz = srsran_symbol_sz_from_srate(args->srate_hz, args->scs);
   if (symbol_sz <= 0) {
     ERROR("Error calculating symbol size from sampling rate of %.2f MHz and subcarrier spacing %s",

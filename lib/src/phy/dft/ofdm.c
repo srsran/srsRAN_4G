@@ -72,7 +72,7 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
   if (q->fft_plan.size) {
     // Replan if it was initialised previously
     if (srsran_dft_replan(&q->fft_plan, q->cfg.symbol_sz)) {
-      ERROR("Reeplaning DFT plan");
+      ERROR("Replanning DFT plan");
       return SRSRAN_ERROR;
     }
   } else {
@@ -85,7 +85,7 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
 
   // Reallocate temporal buffer only if the new number of resource blocks is bigger than initial
   if (q->cfg.nof_prb > q->max_prb) {
-    // Free before reallocating if allocted
+    // Free before reallocating if allocated
     if (q->tmp) {
       free(q->tmp);
       free(q->shift_buffer);
@@ -553,7 +553,7 @@ void srsran_ofdm_rx_sf_ng(srsran_ofdm_t* q, cf_t* input, cf_t* output)
 }
 
 /* Transforms input OFDM symbols into output samples.
- * Performs FFT on a each symbol and adds CP.
+ * Performs the FFT on each symbol and adds CP.
  */
 static void ofdm_tx_slot(srsran_ofdm_t* q, int slot_in_sf)
 {
