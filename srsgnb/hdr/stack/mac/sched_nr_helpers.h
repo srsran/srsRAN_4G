@@ -25,7 +25,11 @@ struct bwp_res_grid;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_sib(prb_interval interv, uint32_t sib_idx, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci);
+bool fill_dci_sib(prb_interval        interv,
+                  uint32_t            sib_idx,
+                  uint32_t            si_ntx,
+                  const bwp_params_t& bwp_cfg,
+                  srsran_dci_dl_nr_t& dci);
 
 bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci);
 

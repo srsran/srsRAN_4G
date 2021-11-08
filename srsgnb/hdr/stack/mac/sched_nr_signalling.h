@@ -13,6 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_SIGNALLING_H
 #define SRSRAN_SCHED_NR_SIGNALLING_H
 
+#include "harq_softbuffer.h"
 #include "sched_nr_cfg.h"
 #include "sched_nr_interface.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
@@ -63,13 +64,17 @@ private:
   srslog::basic_logger& logger;
 
   struct si_msg_ctxt_t {
-    uint32_t     n       = 0; /// 0 for SIB1, n/index in schedulingInfoList in si-SchedulingInfo in SIB1
-    uint32_t     len     = 0;
-    uint32_t     win_len = 0;
-    uint32_t     period  = 0;
-    uint32_t     n_tx    = 0;
-    alloc_result result  = alloc_result::invalid_coderate; /// last attempt to schedule SI
-    slot_point   win_start;                                /// start of SI window, invalid if outside
+    // args
+    uint32_t n       = 0; /// 0 for SIB1, n/index in schedulingInfoList in si-SchedulingInfo in SIB1
+    uint32_t len     = 0; /// length in bytes of SIB1 / SI message
+    uint32_t win_len = 0; /// window length in slots
+    uint32_t period  = 0; /// periodicity of SIB1/SI window
+
+    // state
+    uint32_t                                    n_tx   = 0; /// nof transmissions of the same SIB1 / SI message
+    alloc_result                                result = alloc_result::invalid_coderate; /// last attempt to schedule SI
+    slot_point                                  win_start; /// start of SI window, invalid if outside
+    srsran::unique_pool_ptr<tx_harq_softbuffer> si_softbuffer;
   };
   srsran::bounded_vector<si_msg_ctxt_t, 10> pending_sis; /// configured SIB1 and SI messages
 };

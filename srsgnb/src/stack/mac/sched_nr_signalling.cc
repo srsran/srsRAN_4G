@@ -103,7 +103,11 @@ void sched_dl_signalling(bwp_slot_allocator& bwp_alloc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_sib(prb_interval interv, uint32_t sib_id, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
+bool fill_dci_sib(prb_interval        interv,
+                  uint32_t            sib_id,
+                  uint32_t            si_ntx,
+                  const bwp_params_t& bwp_cfg,
+                  srsran_dci_dl_nr_t& dci)
 {
   dci.mcs                   = 5;
   dci.ctx.format            = srsran_dci_format_nr_1_0;
@@ -117,7 +121,7 @@ bool fill_dci_sib(prb_interval interv, uint32_t sib_id, const bwp_params_t& bwp_
   dci.bwp_id                = bwp_cfg.bwp_id;
   dci.cc_id                 = bwp_cfg.cc;
   dci.rv                    = 0;
-  dci.sii                   = sib_id == 1 ? 0 : 1;
+  dci.sii                   = sib_id == 0 ? 0 : 1;
 
   return true;
 }
@@ -127,10 +131,11 @@ si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
 {
   // TODO: Get SIB1 other SI msgs config from RRC
   pending_sis.emplace_back();
-  pending_sis[0].n       = 0;
-  pending_sis[0].len     = 77;
-  pending_sis[0].period  = 160;
-  pending_sis[0].win_len = 160;
+  pending_sis[0].n             = 0;
+  pending_sis[0].len           = 77;
+  pending_sis[0].period        = 160;
+  pending_sis[0].win_len       = 160;
+  pending_sis[0].si_softbuffer = harq_softbuffer_pool::get_instance().get_tx(bwp_cfg->nof_prb());
 }
 
 void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
@@ -152,10 +157,10 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
     if (not si.win_start.valid()) {
       bool start_window;
       if (si.n == 0) {
-        // SIB1
+        // SIB1 (slot index zero of even frames)
         start_window = sl_pdcch.slot_idx() == 0 and sl_pdcch.sfn() % 2 == 0;
       } else {
-        // SI messages
+        // 5.2.2.3.2 - Acquisition of SI message
         start_window = (sl_pdcch.sfn() % si.period == x / N) and sl_pdcch.slot_idx() == x % bwp_cfg->slots.size();
       }
       if (start_window) {
@@ -194,7 +199,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
         si.result = alloc_result::no_sch_space;
         break;
       }
-      si.result = bwp_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant);
+      si.result = bwp_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant, *si.si_softbuffer.get());
       if (si.result == alloc_result::success) {
         // SIB scheduled successfully
         si.win_start.clear();

@@ -66,7 +66,11 @@ bwp_slot_allocator::bwp_slot_allocator(bwp_res_grid& bwp_grid_, slot_point pdcch
   logger(bwp_grid_.cfg->logger), cfg(*bwp_grid_.cfg), bwp_grid(bwp_grid_), pdcch_slot(pdcch_slot_), slot_ues(ues_)
 {}
 
-alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs)
+alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
+                                          uint32_t            si_idx,
+                                          uint32_t            si_ntx,
+                                          const prb_interval& prbs,
+                                          tx_harq_softbuffer& softbuffer)
 {
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
   alloc_result   ret            = verify_pdsch_space(bwp_pdcch_slot, bwp_pdcch_slot);
@@ -88,7 +92,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, ui
   bwp_pdcch_slot.dl_prbs |= prbs;
   // Generate DCI for RAR with given RA-RNTI
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-  if (not fill_dci_sib(prbs, si_idx, *bwp_grid.cfg, pdcch.dci)) {
+  if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
@@ -107,9 +111,10 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t aggr_idx, uint32_t si_idx, ui
     bwp_pdcch_slot.dl.phy.pdsch.pop_back();
     return alloc_result::other_cause;
   }
+  pdsch.sch.grant.tb[0].softbuffer.tx = softbuffer.get();
 
   // Store SI msg index
-  bwp_pdcch_slot.sib_idxs.push_back(si_idx);
+  bwp_pdcch_slot.dl.sib_idxs.push_back(si_idx);
 
   return alloc_result::success;
 }

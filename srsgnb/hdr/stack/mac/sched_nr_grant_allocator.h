@@ -54,8 +54,6 @@ struct bwp_slot_grid {
   slot_coreset_list coresets;
   harq_ack_list_t   pending_acks;
 
-  srsran::bounded_vector<uint32_t, MAX_GRANTS> sib_idxs;
-
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
   bwp_slot_grid() = default;
@@ -92,7 +90,11 @@ class bwp_slot_allocator
 public:
   explicit bwp_slot_allocator(bwp_res_grid& bwp_grid_, slot_point pdcch_slot_, slot_ue_map_t& ues_);
 
-  alloc_result alloc_si(uint32_t aggr_idx, uint32_t si_idx, uint32_t si_ntx, const prb_interval& prbs);
+  alloc_result alloc_si(uint32_t            aggr_idx,
+                        uint32_t            si_idx,
+                        uint32_t            si_ntx,
+                        const prb_interval& prbs,
+                        tx_harq_softbuffer& softbuffer);
   alloc_result alloc_rar_and_msg3(uint16_t                                ra_rnti,
                                   uint32_t                                aggr_idx,
                                   prb_interval                            interv,
