@@ -304,9 +304,9 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (reassembly_timer.id() == timeout_id) {
-    logger.info("%s reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling",
-                rb_name.c_str(),
-                RX_Next_Reassembly);
+    logger.debug("%s reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling",
+                 rb_name.c_str(),
+                 RX_Next_Reassembly);
 
     metrics.num_lost_pdus++;
 
@@ -334,7 +334,7 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
     if (RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1) ||
         ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
           has_missing_byte_segment(RX_Next_Reassembly)))) {
-      logger.info("%s Starting reassembly timer for SN=%d", rb_name.c_str(), RX_Next_Reassembly);
+      logger.debug("%s starting reassembly timer for SN=%d", rb_name.c_str(), RX_Next_Reassembly);
       reassembly_timer.run();
       RX_Timer_Trigger = RX_Next_Highest;
     }
@@ -444,7 +444,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
 
     if (sdu_complete) {
       // deliver full SDU to upper layers
-      logger.info("%s Delivering SDU SN=%d (%d B)", rb_name.c_str(), sn, pdu.sdu->N_bytes);
+      logger.info("%s Rx SDU (%d B)", rb_name.c_str(), pdu.sdu->N_bytes);
       pdcp->write_pdu(lcid, std::move(pdu.sdu));
 
       // delete PDU from rx_window
@@ -511,7 +511,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
     if (not reassembly_timer.is_running()) {
       if ((RX_Next_Highest > RX_Next_Reassembly + 1) ||
           ((RX_Next_Highest == RX_Next_Reassembly + 1) && has_missing_byte_segment(RX_Next_Reassembly))) {
-        logger.info("%s Starting reassembly timer for SN=%d", rb_name.c_str(), sn);
+        logger.debug("%s Starting reassembly timer for SN=%d", rb_name.c_str(), sn);
         reassembly_timer.run();
         RX_Timer_Trigger = RX_Next_Highest;
       }
@@ -526,10 +526,10 @@ inline void rlc_um_nr::rlc_um_nr_rx::update_total_sdu_length(rlc_umd_pdu_segment
 {
   if (rx_pdu.header.si == rlc_nr_si_field_t::last_segment) {
     pdu_segments.total_sdu_length = rx_pdu.header.so + rx_pdu.buf->N_bytes;
-    logger.info("%s updating total SDU length for SN=%d to %d B",
-                rb_name.c_str(),
-                rx_pdu.header.sn,
-                pdu_segments.total_sdu_length);
+    logger.debug("%s updating total SDU length for SN=%d to %d B",
+                 rb_name.c_str(),
+                 rx_pdu.header.sn,
+                 pdu_segments.total_sdu_length);
   }
 };
 
@@ -540,7 +540,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
 
   rlc_um_nr_pdu_header_t header = {};
   rlc_um_nr_read_data_pdu_header(payload, nof_bytes, cfg.um_nr.sn_field_length, &header);
-  logger.debug(payload, nof_bytes, "RX %s Rx data PDU (%d B)", rb_name.c_str(), nof_bytes);
+  logger.debug(payload, nof_bytes, "%s Rx data PDU (%d B)", rb_name.c_str(), nof_bytes);
 
   // check if PDU contains a SN
   if (header.si == rlc_nr_si_field_t::full_sdu) {
@@ -548,7 +548,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
     unique_byte_buffer_t sdu = rlc_um_nr_strip_pdu_header(header, payload, nof_bytes);
 
     // deliver to PDCP
-    logger.info("Delivering %s SDU (%d B)", rb_name.c_str(), sdu->N_bytes);
+    logger.info("%s Rx SDU (%d B)", rb_name.c_str(), sdu->N_bytes);
     pdcp->write_pdu(lcid, std::move(sdu));
   } else if (sn_invalid_for_rx_buffer(header.sn)) {
     logger.info("%s Discarding SN=%d", rb_name.c_str(), header.sn);
@@ -562,24 +562,26 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
     // check if this SN is already present in rx buffer
     if (rx_window.find(header.sn) == rx_window.end()) {
       // first received segment of this SN, add to rx buffer
-      logger.info(rx_pdu.buf->msg,
-                  rx_pdu.buf->N_bytes,
-                  "%s placing %s segment of SN=%d (%d B) in Rx buffer",
-                  rb_name.c_str(),
-                  to_string_short(header.si).c_str(),
-                  header.sn,
-                  rx_pdu.buf->N_bytes);
+      logger.debug(rx_pdu.buf->msg,
+                   rx_pdu.buf->N_bytes,
+                   "%s placing %s segment of SN=%d (%d B) in Rx buffer",
+                   rb_name.c_str(),
+                   to_string_short(header.si).c_str(),
+                   header.sn,
+                   rx_pdu.buf->N_bytes);
       rlc_umd_pdu_segments_nr_t pdu_segments = {};
       update_total_sdu_length(pdu_segments, rx_pdu);
       pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
       rx_window[header.sn] = std::move(pdu_segments);
     } else {
       // other segment for this SN already present, update received data
-      logger.info("%s updating SN=%d at SO=%d with %d B",
-                  rb_name.c_str(),
-                  rx_pdu.header.sn,
-                  rx_pdu.header.so,
-                  rx_pdu.buf->N_bytes);
+      logger.debug(rx_pdu.buf->msg,
+                   rx_pdu.buf->N_bytes,
+                   "%s updating SN=%d at SO=%d with %d B",
+                   rb_name.c_str(),
+                   rx_pdu.header.sn,
+                   rx_pdu.header.so,
+                   rx_pdu.buf->N_bytes);
 
       auto& pdu_segments = rx_window.at(header.sn);
 
