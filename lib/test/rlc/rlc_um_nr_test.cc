@@ -667,13 +667,10 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
-// temporarily disabling
-#if 0
   if (rlc_um_nr_test9()) {
     fprintf(stderr, "rlc_um_nr_test9() failed.\n");
     return SRSRAN_ERROR;
   }
-#endif
 
 #if PCAP
   pcap_handle->close();
