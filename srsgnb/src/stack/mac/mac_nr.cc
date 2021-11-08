@@ -255,24 +255,21 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
   detected_rachs.resize(nr_cells.size());
 
   // read SIBs from RRC (SIB1 for now only)
-  for (int i = 0; i < 1 /* srsenb::sched_interface::MAX_SIBS */; i++) {
-    // TODO: add flag for SIBs into cell config
-    if (true) {
-      sib_info_t sib  = {};
-      sib.index       = i;
-      sib.periodicity = 160; // TODO: read period_rf from config
-      sib.payload     = srsran::make_byte_buffer();
-      if (sib.payload == nullptr) {
-        logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-        return SRSRAN_ERROR;
-      }
-      if (rrc->read_pdu_bcch_dlsch(sib.index, *sib.payload) != SRSRAN_SUCCESS) {
-        logger.error("Couldn't read SIB %d from RRC", sib.index);
-      }
-
-      logger.info("Including SIB %d into SI scheduling", sib.index + 1);
-      bcch_dlsch_payload.push_back(std::move(sib));
+  for (uint32_t i = 0; i < nr_cells[0].sibs.size(); i++) {
+    sib_info_t sib  = {};
+    sib.index       = i;
+    sib.periodicity = 160; // TODO: read period_rf from config
+    sib.payload     = srsran::make_byte_buffer();
+    if (sib.payload == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return SRSRAN_ERROR;
     }
+    if (rrc->read_pdu_bcch_dlsch(sib.index, *sib.payload) != SRSRAN_SUCCESS) {
+      logger.error("Couldn't read SIB %d from RRC", sib.index);
+    }
+
+    logger.info("Including SIB %d into SI scheduling", sib.index + 1);
+    bcch_dlsch_payload.push_back(std::move(sib));
   }
 
   rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), logger});

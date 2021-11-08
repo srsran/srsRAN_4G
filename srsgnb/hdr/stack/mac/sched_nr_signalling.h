@@ -65,10 +65,10 @@ private:
 
   struct si_msg_ctxt_t {
     // args
-    uint32_t n       = 0; /// 0 for SIB1, n/index in schedulingInfoList in si-SchedulingInfo in SIB1
-    uint32_t len     = 0; /// length in bytes of SIB1 / SI message
-    uint32_t win_len = 0; /// window length in slots
-    uint32_t period  = 0; /// periodicity of SIB1/SI window
+    uint32_t n             = 0; /// 0 for SIB1, n/index in schedulingInfoList in si-SchedulingInfo in SIB1
+    uint32_t len_bytes     = 0; /// length in bytes of SIB1 / SI message
+    uint32_t win_len_slots = 0; /// window length in slots
+    uint32_t period_frames = 0; /// periodicity of SIB1/SI window in frames
 
     // state
     uint32_t                                    n_tx   = 0; /// nof transmissions of the same SIB1 / SI message

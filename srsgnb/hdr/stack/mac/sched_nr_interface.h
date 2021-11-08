@@ -67,6 +67,7 @@ public:
   struct cell_cfg_sib_t {
     uint32_t len;
     uint32_t period_rf;
+    uint32_t si_window_slots;
   };
 
   struct cell_cfg_t {

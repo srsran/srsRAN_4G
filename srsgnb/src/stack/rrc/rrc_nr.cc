@@ -300,9 +300,11 @@ void rrc_nr::config_mac()
   for (uint32_t i = 0; i < cell_ctxt->sib_buffer.size(); i++) {
     cell.sibs[i].len = cell_ctxt->sib_buffer[i]->N_bytes;
     if (i == 0) {
-      cell.sibs[i].period_rf = 16; // SIB1 is always 16 rf
+      cell.sibs[i].period_rf       = 16; // SIB1 is always 16 rf
+      cell.sibs[i].si_window_slots = 160;
     } else {
-      cell.sibs[i].period_rf = cell_ctxt->sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
+      cell.sibs[i].period_rf       = cell_ctxt->sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
+      cell.sibs[i].si_window_slots = cell_ctxt->sib1.si_sched_info.si_win_len.to_number();
     }
   }
 
@@ -406,7 +408,7 @@ int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer)
 int rrc_nr::read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer)
 {
   if (sib_index >= cell_ctxt->sib_buffer.size()) {
-    logger.error("SIB %d is not a configured SIB.", sib_index);
+    logger.error("SI%s%d is not a configured SIB.", sib_index == 0 ? "B" : "", sib_index + 1);
     return SRSRAN_ERROR;
   }
 

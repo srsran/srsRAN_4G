@@ -129,13 +129,15 @@ bool fill_dci_sib(prb_interval        interv,
 si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
   bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
 {
-  // TODO: Get SIB1 other SI msgs config from RRC
-  pending_sis.emplace_back();
-  pending_sis[0].n             = 0;
-  pending_sis[0].len           = 77;
-  pending_sis[0].period        = 160;
-  pending_sis[0].win_len       = 160;
-  pending_sis[0].si_softbuffer = harq_softbuffer_pool::get_instance().get_tx(bwp_cfg->nof_prb());
+  for (uint32_t i = 0; i < bwp_cfg->cell_cfg.sibs.size(); ++i) {
+    pending_sis.emplace_back();
+    si_msg_ctxt_t& si = pending_sis.back();
+    si.n              = i;
+    si.len_bytes      = bwp_cfg->cell_cfg.sibs[i].len;
+    si.period_frames  = bwp_cfg->cell_cfg.sibs[i].period_rf;
+    si.win_len_slots  = bwp_cfg->cell_cfg.sibs[i].si_window_slots;
+    si.si_softbuffer  = harq_softbuffer_pool::get_instance().get_tx(bwp_cfg->nof_prb());
+  }
 }
 
 void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
@@ -152,7 +154,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
   // Update SI windows
   uint32_t N = bwp_cfg->slots.size();
   for (si_msg_ctxt_t& si : pending_sis) {
-    uint32_t x = (si.n - 1) * si.win_len;
+    uint32_t x = (si.n - 1) * si.win_len_slots;
 
     if (not si.win_start.valid()) {
       bool start_window;
@@ -161,20 +163,21 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
         start_window = sl_pdcch.slot_idx() == 0 and sl_pdcch.sfn() % 2 == 0;
       } else {
         // 5.2.2.3.2 - Acquisition of SI message
-        start_window = (sl_pdcch.sfn() % si.period == x / N) and sl_pdcch.slot_idx() == x % bwp_cfg->slots.size();
+        start_window =
+            (sl_pdcch.sfn() % si.period_frames == x / N) and sl_pdcch.slot_idx() == x % bwp_cfg->slots.size();
       }
       if (start_window) {
         // If start of SI message window
         si.win_start = sl_pdcch;
         si.n_tx      = 0;
       }
-    } else if (si.win_start + si.win_len >= sl_pdcch) {
+    } else if (si.win_start + si.win_len_slots >= sl_pdcch) {
       // If end of SI message window
       if (si.n == 0) {
-        logger.error("SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.len, to_string(si.result));
+        logger.error("SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.len_bytes, to_string(si.result));
       } else {
         logger.warning(
-            "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len, to_string(si.result));
+            "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len_bytes, to_string(si.result));
       }
       si.win_start.clear();
     }
@@ -205,9 +208,9 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
         si.win_start.clear();
         si.n_tx++;
         if (si.n == 0) {
-          logger.debug("SCHED: Allocated SIB1, len=%d.", si.n, si.len);
+          logger.debug("SCHED: Allocated SIB1, len=%d.", si.n, si.len_bytes);
         } else {
-          logger.debug("SCHED: Allocated SI message idx=%d, len=%d.", si.n, si.len);
+          logger.debug("SCHED: Allocated SI message idx=%d, len=%d.", si.n, si.len_bytes);
         }
       }
     }
