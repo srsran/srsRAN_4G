@@ -552,7 +552,7 @@ int rlc_um_nr_test8()
   return SRSRAN_SUCCESS;
 }
 
-// Similar to rlc_um_nr_test9() but out-of-order PDUs have SNs (from multiple SDUs)
+// Similar to rlc_um_nr_test8() but out-of-order PDUs have SNs (from multiple SDUs)
 int rlc_um_nr_test9()
 {
   rlc_um_nr_test_context1 ctxt;
@@ -611,6 +611,8 @@ int rlc_um_nr_test9()
     TESTASSERT(ctxt.tester.sdus.at(i)->N_bytes == sdu_size);
     TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
   }
+
+  TESTASSERT(ctxt.timers.nof_running_timers() == 0);
 
   return SRSRAN_SUCCESS;
 }
