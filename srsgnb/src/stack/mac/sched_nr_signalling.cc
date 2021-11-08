@@ -193,15 +193,10 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
     }
 
     // Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
-    si.result              = alloc_result::invalid_coderate;
-    uint32_t prb_start_idx = 0;
-    for (uint32_t nprbs = 4; nprbs < bwp_cfg->cfg.rb_width and si.result == alloc_result::invalid_coderate; ++nprbs) {
-      prb_interval grant = find_empty_interval_of_length(prbs, nprbs, prb_start_idx);
-      prb_start_idx      = grant.start();
-      if (grant.length() != nprbs) {
-        si.result = alloc_result::no_sch_space;
-        break;
-      }
+    si.result          = alloc_result::invalid_coderate;
+    uint32_t     nprbs = 8;
+    prb_interval grant = find_empty_interval_of_length(prbs, nprbs, 0);
+    if (grant.length() >= nprbs) {
       si.result = bwp_alloc.alloc_si(si_aggr_level, si.n, si.n_tx, grant, *si.si_softbuffer.get());
       if (si.result == alloc_result::success) {
         // SIB scheduled successfully
@@ -213,6 +208,9 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
           logger.debug("SCHED: Allocated SI message idx=%d, len=%d.", si.n, si.len_bytes);
         }
       }
+    }
+    if (si.result != alloc_result::success) {
+      logger.warning("SCHED: Failed to allocate SI%s%d ntx=%d", si.n == 0 ? "B" : " message idx=", si.n + 1, si.n_tx);
     }
   }
 }
