@@ -304,9 +304,10 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (reassembly_timer.id() == timeout_id) {
-    logger.info("%s reassembly timeout expiry - updating RX_Next_Reassembly and reassembling", rb_name.c_str());
+    logger.info("%s reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling",
+                rb_name.c_str(),
+                RX_Next_Reassembly);
 
-    logger.info("Lost PDU SN=%d", RX_Next_Reassembly);
     metrics.num_lost_pdus++;
 
     if (rx_sdu != nullptr) {
@@ -333,6 +334,7 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
     if (RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1) ||
         ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
           has_missing_byte_segment(RX_Next_Reassembly)))) {
+      logger.info("%s Starting reassembly timer for SN=%d", rb_name.c_str(), RX_Next_Reassembly);
       reassembly_timer.run();
       RX_Timer_Trigger = RX_Next_Highest;
     }
@@ -385,6 +387,8 @@ bool rlc_um_nr::rlc_um_nr_rx::has_missing_byte_segment(const uint32_t sn)
 void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
 {
   if (rx_window.find(sn) != rx_window.end()) {
+    bool sdu_complete = false;
+
     // iterate over received segments and try to assemble full SDU
     auto& pdu = rx_window.at(sn);
     for (auto it = pdu.segments.begin(); it != pdu.segments.end();) {
@@ -427,25 +431,9 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
           it = pdu.segments.erase(it);
 
           if (pdu.next_expected_so == pdu.total_sdu_length) {
-            // deliver full SDU to upper layers
-            logger.info("Delivering %s SDU SN=%d (%d B)", rb_name.c_str(), sn, pdu.sdu->N_bytes);
-            pdcp->write_pdu(lcid, std::move(pdu.sdu));
-
-            // find next SN in rx buffer
-            if (sn == RX_Next_Reassembly) {
-              for (auto it = rx_window.begin(); it != rx_window.end(); ++it) {
-                logger.debug("SN=%d has %zd segments", it->first, it->second.segments.size());
-                if (RX_MOD_NR_BASE(it->first) > RX_MOD_NR_BASE(RX_Next_Reassembly)) {
-                  RX_Next_Reassembly = it->first;
-                  break;
-                }
-              }
-              logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
-            }
-
-            // delete PDU from rx_window
-            rx_window.erase(sn);
-            return;
+            // entire SDU has been received, it will be passed up the stack outside the loop
+            sdu_complete = true;
+            break;
           }
         }
       } else {
@@ -454,10 +442,34 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
       }
     }
 
-    // check for SN outside of rx window
-    if (not sn_in_reassembly_window(sn)) {
-      // update RX_Next_highest
-      RX_Next_Highest = sn + 1;
+    if (sdu_complete) {
+      // deliver full SDU to upper layers
+      logger.info("%s Delivering SDU SN=%d (%d B)", rb_name.c_str(), sn, pdu.sdu->N_bytes);
+      pdcp->write_pdu(lcid, std::move(pdu.sdu));
+
+      // delete PDU from rx_window
+      rx_window.erase(sn);
+
+      // find next SN in rx buffer
+      if (sn == RX_Next_Reassembly) {
+        if (rx_window.empty()) {
+          // no further segments received
+          RX_Next_Reassembly = RX_Next_Highest;
+        } else {
+          for (auto it = rx_window.begin(); it != rx_window.end(); ++it) {
+            logger.debug("SN=%d has %zd segments", it->first, it->second.segments.size());
+            if (RX_MOD_NR_BASE(it->first) > RX_MOD_NR_BASE(RX_Next_Reassembly)) {
+              RX_Next_Reassembly = it->first;
+              break;
+            }
+          }
+        }
+        logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+      }
+    } else if (not sn_in_reassembly_window(sn)) {
+      // SN outside of rx window
+
+      RX_Next_Highest = sn + 1; // update RX_Next_highest
       logger.debug("Updating RX_Next_Highest=%d", RX_Next_Highest);
 
       // drop all SNs outside of new rx window
@@ -480,29 +492,32 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
         for (const auto& rx_pdu : rx_window) {
           if (rx_pdu.first >= RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size)) {
             RX_Next_Reassembly = rx_pdu.first;
-            logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+            logger.debug("%s Updating RX_Next_Reassembly=%d", rb_name.c_str(), RX_Next_Reassembly);
             break;
           }
         }
       }
+    }
 
-      if (reassembly_timer.is_running()) {
-        if (RX_Timer_Trigger <= RX_Next_Reassembly ||
-            (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
-            ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(sn))) {
-          reassembly_timer.stop();
-        }
+    if (reassembly_timer.is_running()) {
+      if (RX_Timer_Trigger <= RX_Next_Reassembly ||
+          (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
+          ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(RX_Next_Reassembly))) {
+        logger.debug("%s stopping reassembly timer", rb_name.c_str());
+        reassembly_timer.stop();
       }
+    }
 
-      if (not reassembly_timer.is_running() && has_missing_byte_segment(sn)) {
-        if (RX_Next_Highest > RX_Next_Reassembly + 1) {
-          reassembly_timer.run();
-          RX_Timer_Trigger = RX_Next_Highest;
-        }
+    if (not reassembly_timer.is_running()) {
+      if ((RX_Next_Highest > RX_Next_Reassembly + 1) ||
+          ((RX_Next_Highest == RX_Next_Reassembly + 1) && has_missing_byte_segment(RX_Next_Reassembly))) {
+        logger.info("%s Starting reassembly timer for SN=%d", rb_name.c_str(), sn);
+        reassembly_timer.run();
+        RX_Timer_Trigger = RX_Next_Highest;
       }
     }
   } else {
-    logger.error("SN=%d does not exist in Rx buffer", sn);
+    logger.error("%s SN=%d does not exist in Rx buffer", rb_name.c_str(), sn);
   }
 }
 
