@@ -45,24 +45,6 @@ inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
   cell_cfg.bwps[0].pusch    = phy_cfg.pusch;
   cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
 
-  cell_cfg.bwps[0].pdcch.coreset_present[0]      = true;
-  cell_cfg.bwps[0].pdcch.coreset[0]              = get_default_coreset0(phy_cfg.carrier.nof_prb);
-  cell_cfg.bwps[0].pdcch.search_space_present[0] = true;
-  auto& ss                                       = cell_cfg.bwps[0].pdcch.search_space[0];
-  ss.id                                          = 0;
-  ss.coreset_id                                  = 0;
-  ss.duration                                    = 1;
-  ss.type                                        = srsran_search_space_type_common_0;
-  ss.nof_candidates[0]                           = 1;
-  ss.nof_candidates[1]                           = 1;
-  ss.nof_candidates[2]                           = 1;
-  ss.nof_candidates[3]                           = 0;
-  ss.nof_candidates[4]                           = 0;
-  ss.nof_formats                                 = 1;
-  ss.formats[0]                                  = srsran_dci_format_nr_1_0;
-  cell_cfg.bwps[0].pdcch.ra_search_space_present = true;
-  cell_cfg.bwps[0].pdcch.ra_search_space         = cell_cfg.bwps[0].pdcch.search_space[1];
-
   return cell_cfg;
 }
 
