@@ -108,8 +108,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 
-  logger.info("Started");
-
   running = true;
 
   return SRSRAN_SUCCESS;
@@ -416,15 +414,14 @@ void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
 
 void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu)
 {
-  logger.info(pdu.data(), pdu.size(), "Rx %s PDU", get_rb_name(lcid));
-
   switch (static_cast<srsran::nr_srb>(lcid)) {
     case srsran::nr_srb::srb0:
-      parse_ul_ccch(rnti, pdu);
+      handle_ul_ccch(rnti, pdu);
       break;
     case srsran::nr_srb::srb1:
     case srsran::nr_srb::srb2:
-      //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
+    case srsran::nr_srb::srb3:
+      handle_ul_dcch(rnti, lcid, std::move(pdu));
       break;
     default:
       std::string errcause = fmt::format("Invalid LCID=%d", lcid);
@@ -433,7 +430,7 @@ void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pd
   }
 }
 
-void rrc_nr::parse_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu)
+void rrc_nr::handle_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu)
 {
   // Parse UL-CCCH
   ul_ccch_msg_s ul_ccch_msg;
@@ -459,6 +456,43 @@ void rrc_nr::parse_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu)
       break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type");
+      // TODO Remove user
+  }
+}
+
+void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu)
+{
+  // Parse UL-DCCH
+  ul_dcch_msg_s ul_dcch_msg;
+  {
+    asn1::cbit_ref bref(pdu.data(), pdu.size());
+    if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+        ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
+      log_rx_pdu_fail(rnti, lcid, pdu, "Failed to unpack UL-DCCH message");
+      return;
+    }
+  }
+
+  // Verify UE exists
+  auto ue_it = users.find(rnti);
+  if (ue_it == users.end()) {
+    log_rx_pdu_fail(rnti, lcid, pdu, "Inexistent rnti");
+  }
+  ue& u = *ue_it->second;
+
+  // Log Rx message
+  fmt::memory_buffer fmtbuf, fmtbuf2;
+  fmt::format_to(fmtbuf, "rnti=0x{:x}, {}", rnti, srsran::get_srb_name(srsran::nr_lcid_to_srb(lcid)));
+  fmt::format_to(fmtbuf2, "UL-DCCH.{}", ul_dcch_msg.msg.c1().type().to_string());
+  log_rrc_message(srsran::to_c_str(fmtbuf), Rx, pdu, ul_dcch_msg, srsran::to_c_str(fmtbuf2));
+
+  // Handle message
+  switch (ul_dcch_msg.msg.c1().type().value) {
+    case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_setup_complete:
+      u.handle_rrc_setup_complete(ul_dcch_msg.msg.c1().rrc_setup_complete());
+      break;
+    default:
+      log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user
   }
 }
@@ -1507,6 +1541,12 @@ void rrc_nr::ue::send_rrc_setup()
   srb1.srb_id            = 1;
 
   send_dl_ccch(msg);
+}
+
+/// TS 38.331, RRCSetupComplete
+void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
+{
+  // TODO: handle RRCSetupComplete
 }
 
 /**

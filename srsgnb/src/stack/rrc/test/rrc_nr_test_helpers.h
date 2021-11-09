@@ -49,11 +49,21 @@ public:
   srsran::unique_byte_buffer_t last_sdu;
 };
 
-/// Run TS 38.331, 5.3.3 "RRC connection establishment" to completion
-int test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
-                                         rrc_nr&                 rrc_obj,
-                                         rlc_nr_rrc_tester&      rlc,
-                                         uint16_t                rnti);
+/**
+ * Run TS 38.331, 5.3.3 "RRC connection establishment" to completion
+ * RRC actions:
+ * - Rx RRCSetupRequest
+ * - Tx RRCSetup to lower layers
+ * - Tx RRCSetupComplete
+ * Checks:
+ * - the RRC sends RRCSetup as reply to RRCSetupRequest
+ * - verify that RRCSetup rnti, lcid are correct
+ * - verify that RRCSetup adds an SRB1
+ */
+void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
+                                          rrc_nr&                 rrc_obj,
+                                          rlc_nr_rrc_tester&      rlc,
+                                          uint16_t                rnti);
 
 } // namespace srsenb
 

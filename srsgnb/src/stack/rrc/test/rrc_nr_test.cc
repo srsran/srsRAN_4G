@@ -39,15 +39,16 @@ int test_cell_cfg(const srsenb::sched_interface::cell_cfg_t& cellcfg)
  * Test 1 - Test default SIB generation
  * Description: Check whether the SIBs were set correctly
  */
-int test_sib_generation()
+void test_sib_generation()
 {
-  srsran::task_scheduler task_sched;
+  srsran::test_delimit_logger test_logger{"SIB generation"};
 
-  phy_nr_dummy phy_obj;
-  mac_nr_dummy mac_obj;
-  rlc_dummy    rlc_obj;
-  pdcp_dummy   pdcp_obj;
-  rrc_nr       rrc_obj(&task_sched);
+  srsran::task_scheduler task_sched;
+  phy_nr_dummy           phy_obj;
+  mac_nr_dummy           mac_obj;
+  rlc_dummy              rlc_obj;
+  pdcp_dummy             pdcp_obj;
+  rrc_nr                 rrc_obj(&task_sched);
 
   // set cfg
   all_args_t   args{};
@@ -88,19 +89,18 @@ int test_sib_generation()
   pdcch_cfg_common_s& pdcch = sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   TESTASSERT(not pdcch.ctrl_res_set_zero_present); // CORESET#0 id is passed in MIB
   TESTASSERT(not pdcch.search_space_zero_present); // SS#0 id is passed in MIB
-
-  return SRSRAN_SUCCESS;
 }
 
 int test_rrc_setup()
 {
-  srsran::task_scheduler task_sched;
+  srsran::test_delimit_logger test_logger{"NSA RRC"};
 
-  phy_nr_dummy phy_obj;
-  mac_nr_dummy mac_obj;
-  rlc_dummy    rlc_obj;
-  pdcp_dummy   pdcp_obj;
-  rrc_nr       rrc_obj(&task_sched);
+  srsran::task_scheduler task_sched;
+  phy_nr_dummy           phy_obj;
+  mac_nr_dummy           mac_obj;
+  rlc_dummy              rlc_obj;
+  pdcp_dummy             pdcp_obj;
+  rrc_nr                 rrc_obj(&task_sched);
 
   // set cfg
   all_args_t   args{};
@@ -129,13 +129,14 @@ int test_rrc_setup()
 
 void test_rrc_sa_connection()
 {
-  srsran::task_scheduler task_sched;
+  srsran::test_delimit_logger test_logger{"SA RRCConnectionEstablishment"};
 
-  phy_nr_dummy       phy_obj;
-  mac_nr_dummy       mac_obj;
-  rlc_nr_rrc_tester  rlc_obj;
-  pdcp_nr_rrc_tester pdcp_obj;
-  ngap_dummy         ngap_obj;
+  srsran::task_scheduler task_sched;
+  phy_nr_dummy           phy_obj;
+  mac_nr_dummy           mac_obj;
+  rlc_nr_rrc_tester      rlc_obj;
+  pdcp_nr_rrc_tester     pdcp_obj;
+  ngap_dummy             ngap_obj;
 
   rrc_nr rrc_obj(&task_sched);
 
@@ -157,7 +158,7 @@ void test_rrc_sa_connection()
   sched_nr_ue_cfg_t uecfg = get_default_ue_cfg(1);
   TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
 
-  TESTASSERT_SUCCESS(test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, 0x4601));
+  test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, 0x4601);
 }
 
 } // namespace srsenb
@@ -177,7 +178,7 @@ int main(int argc, char** argv)
   }
   argparse::parse_args(argc, argv);
 
-  TESTASSERT(srsenb::test_sib_generation() == SRSRAN_SUCCESS);
+  srsenb::test_sib_generation();
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
   srsenb::test_rrc_sa_connection();
 

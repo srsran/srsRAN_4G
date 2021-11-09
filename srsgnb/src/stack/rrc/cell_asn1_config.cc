@@ -297,7 +297,7 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
           (search_space_cfg.type == srsran_search_space_type_common_1) or
           (search_space_cfg.type == srsran_search_space_type_common_2) or
           (search_space_cfg.type == srsran_search_space_type_common_3)) {
-        search_spaces[0].search_space_type.set_common();
+        search_spaces[ss_mod_list_idx].search_space_type.set_common();
 
         search_spaces[ss_mod_list_idx].search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
       } else {

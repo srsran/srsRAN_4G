@@ -17,10 +17,10 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-int test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
-                                         rrc_nr&                 rrc_obj,
-                                         rlc_nr_rrc_tester&      rlc,
-                                         uint16_t                rnti)
+void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
+                                          rrc_nr&                 rrc_obj,
+                                          rlc_nr_rrc_tester&      rlc,
+                                          uint16_t                rnti)
 {
   srsran::unique_byte_buffer_t pdu;
 
@@ -49,7 +49,7 @@ int test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   }
   TESTASSERT_EQ(dl_ccch_msg_type_c::types_opts::c1, dl_ccch_msg.msg.type().value);
   TESTASSERT_EQ(dl_ccch_msg_type_c::c1_c_::types_opts::rrc_setup, dl_ccch_msg.msg.c1().type().value);
-  TESTASSERT_EQ(asn1::rrc_nr::rrc_setup_s::crit_exts_c_::types_opts::rrc_setup,
+  TESTASSERT_EQ(rrc_setup_s::crit_exts_c_::types_opts::rrc_setup,
                 dl_ccch_msg.msg.c1().rrc_setup().crit_exts.type().value);
 
   const rrc_setup_ies_s& setup_ies = dl_ccch_msg.msg.c1().rrc_setup().crit_exts.rrc_setup();
@@ -59,7 +59,17 @@ int test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   const srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
   TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), srb1.srb_id);
 
-  return SRSRAN_SUCCESS;
+  ul_dcch_msg_s         ul_dcch_msg;
+  rrc_setup_complete_s& complete         = ul_dcch_msg.msg.set_c1().set_rrc_setup_complete();
+  complete.rrc_transaction_id            = dl_ccch_msg.msg.c1().rrc_setup().rrc_transaction_id;
+  rrc_setup_complete_ies_s& complete_ies = complete.crit_exts.set_rrc_setup_complete();
+  {
+    pdu = srsran::make_byte_buffer();
+    asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
+    TESTASSERT_SUCCESS(ul_dcch_msg.pack(bref));
+    pdu->N_bytes = bref.distance_bytes();
+  }
+  rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
 
 } // namespace srsenb

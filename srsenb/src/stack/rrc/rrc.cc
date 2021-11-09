@@ -634,7 +634,7 @@ void rrc::sgnb_release_ack(uint16_t eutra_rnti)
 
 void rrc::parse_ul_ccch(ue& ue, srsran::unique_byte_buffer_t pdu)
 {
-  srsran_assert(pdu != nullptr, "parse_ul_ccch called for empty message");
+  srsran_assert(pdu != nullptr, "handle_ul_ccch called for empty message");
 
   ul_ccch_msg_s  ul_ccch_msg;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
@@ -667,7 +667,7 @@ void rrc::parse_ul_ccch(ue& ue, srsran::unique_byte_buffer_t pdu)
 ///< User mutex must be hold by caller
 void rrc::parse_ul_dcch(ue& ue, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  srsran_assert(pdu != nullptr, "parse_ul_dcch called for empty message");
+  srsran_assert(pdu != nullptr, "handle_ul_dcch called for empty message");
 
   ue.parse_ul_dcch(lcid, std::move(pdu));
 }

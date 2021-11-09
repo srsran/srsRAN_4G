@@ -123,14 +123,8 @@ public:
 
     void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_dcch_msg);
 
-    /* TS 38.331 - 5.3.3 RRC connection establishment */
-    void send_rrc_setup();
-    void send_rrc_reject(uint8_t reject_wait_time_secs);
-
     int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);
     void crnti_ce_received();
-
-    void handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg);
 
     // getters
     bool     is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
@@ -151,9 +145,17 @@ public:
     void        set_activity(bool enabled = true);
     void        activity_timer_expired(const activity_timeout_type_t type);
 
+    /* TS 38.331 - 5.3.3 RRC connection establishment */
+    void handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg);
+    void handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg);
+
   private:
     rrc_nr*  parent = nullptr;
     uint16_t rnti   = SRSRAN_INVALID_RNTI;
+
+    /* TS 38.331 - 5.3.3 RRC connection establishment */
+    void send_rrc_setup();
+    void send_rrc_reject(uint8_t reject_wait_time_secs);
 
     int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
     int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
@@ -260,8 +262,12 @@ private:
 
   /// Private Methods
   void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu);
-  void parse_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu);
+  void handle_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu);
+  void handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu);
+
+  // TS 38.331, 5.3.3 - RRC connection establishment
   void handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_setup_request_s& msg);
+
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
   int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
 
