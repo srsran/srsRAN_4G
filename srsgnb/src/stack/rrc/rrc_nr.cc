@@ -18,6 +18,7 @@
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/string_helpers.h"
 
 using namespace asn1::rrc_nr;
 
@@ -123,48 +124,33 @@ void rrc_nr::stop()
 }
 
 template <class T>
-void rrc_nr::log_rrc_message(const std::string&         source,
-                             const direction_t          dir,
-                             const asn1::dyn_octstring& oct,
-                             const T&                   msg,
-                             const std::string&         msg_type)
+void rrc_nr::log_rrc_message(const char*             source,
+                             const direction_t       dir,
+                             srsran::const_byte_span pdu,
+                             const T&                msg,
+                             const char*             msg_type)
 {
   if (logger.debug.enabled()) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
-    logger.debug(oct.data(),
-                 oct.size(),
-                 "%s - %s %s (%d B)",
-                 source.c_str(),
-                 dir == Tx ? "Tx" : "Rx",
-                 msg_type.c_str(),
-                 oct.size());
-    logger.debug("Content:\n%s", json_writer.to_string().c_str());
+    logger.debug(pdu.data(), pdu.size(), "%s - %s %s (%d B)", source, (dir == Rx) ? "Rx" : "Tx", msg_type, pdu.size());
+    logger.debug("Content:%s", json_writer.to_string().c_str());
   } else if (logger.info.enabled()) {
-    logger.info("%s - %s %s (%d B)", source.c_str(), dir == Tx ? "Tx" : "Rx", msg_type.c_str(), oct.size());
+    logger.info(pdu.data(), pdu.size(), "%s - %s %s (%d B)", source, (dir == Rx) ? "Rx" : "Tx", msg_type, pdu.size());
   }
 }
 
-template <class T>
-void rrc_nr::log_rrc_message(const std::string&           source,
-                             const direction_t            dir,
-                             const srsran::byte_buffer_t& pdu,
-                             const T&                     msg,
-                             const std::string&           msg_type)
+void rrc_nr::log_rx_pdu_fail(uint16_t                rnti,
+                             uint32_t                lcid,
+                             srsran::const_byte_span pdu,
+                             const char*             cause_str,
+                             bool                    log_hex)
 {
-  if (logger.debug.enabled()) {
-    asn1::json_writer json_writer;
-    msg.to_json(json_writer);
-    logger.debug(pdu.msg,
-                 pdu.N_bytes,
-                 "%s - %s %s (%d B)",
-                 source.c_str(),
-                 (dir == Rx) ? "Rx" : "Tx",
-                 msg_type.c_str(),
-                 pdu.N_bytes);
-    logger.debug("Content:%s", json_writer.to_string().c_str());
-  } else if (logger.info.enabled()) {
-    logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu.N_bytes);
+  if (log_hex) {
+    logger.error(
+        pdu.data(), pdu.size(), "Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
+  } else {
+    logger.error("Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
   }
 }
 
@@ -174,9 +160,9 @@ void rrc_nr::log_rrc_message(const std::string&           source,
  */
 int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer)
 {
-  if (users.count(rnti) == 0) {
+  if (users.contains(rnti) == 0) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, start_msg3_timer))));
+    users.insert(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, start_msg3_timer)));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -386,7 +372,7 @@ int32_t rrc_nr::generate_sibs()
     } else {
       fmt::format_to(strbuf, "SI message={} payload", msg_index + 1);
     }
-    log_rrc_message(fmt::to_string(strbuf), Tx, *cell_ctxt->sib_buffer.back(), msg[msg_index], "");
+    log_rrc_message("BCCH", Tx, *cell_ctxt->sib_buffer.back(), msg[msg_index], srsran::to_c_str(strbuf));
   }
 
   return SRSRAN_SUCCESS;
@@ -428,28 +414,66 @@ void rrc_nr::get_metrics(srsenb::rrc_metrics_t& m)
   }
 }
 
-void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu)
 {
-  if (pdu) {
-    logger.info(pdu->msg, pdu->N_bytes, "Rx %s PDU", get_rb_name(lcid));
+  logger.info(pdu.data(), pdu.size(), "Rx %s PDU", get_rb_name(lcid));
+
+  switch (static_cast<srsran::nr_srb>(lcid)) {
+    case srsran::nr_srb::srb0:
+      parse_ul_ccch(rnti, pdu);
+      break;
+    case srsran::nr_srb::srb1:
+    case srsran::nr_srb::srb2:
+      //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
+      break;
+    default:
+      std::string errcause = fmt::format("Invalid LCID=%d", lcid);
+      log_rx_pdu_fail(rnti, lcid, pdu, errcause.c_str());
+      break;
+  }
+}
+
+void rrc_nr::parse_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu)
+{
+  // Parse UL-CCCH
+  ul_ccch_msg_s ul_ccch_msg;
+  {
+    asn1::cbit_ref bref(pdu.data(), pdu.size());
+    if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+        ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
+      log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Failed to unpack UL-CCCH message", true);
+      return;
+    }
   }
 
-  if (users.count(rnti) == 1) {
-    switch (static_cast<srsran::nr_srb>(lcid)) {
-      case srsran::nr_srb::srb0:
-        //        parse_ul_ccch(rnti, std::move(pdu));
-        break;
-      case srsran::nr_srb::srb1:
-      case srsran::nr_srb::srb2:
-        //        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
-        break;
-      default:
-        logger.error("Rx PDU with invalid bearer id: %d", lcid);
-        break;
-    }
-  } else {
-    logger.warning("Discarding PDU for removed rnti=0x%x", rnti);
+  // Log Rx message
+  fmt::memory_buffer fmtbuf, fmtbuf2;
+  fmt::format_to(fmtbuf, "rnti=0x{:x}, SRB0", rnti);
+  fmt::format_to(fmtbuf2, "UL-CCCH.{}", ul_ccch_msg.msg.c1().type().to_string());
+  log_rrc_message(srsran::to_c_str(fmtbuf), Rx, pdu, ul_ccch_msg, srsran::to_c_str(fmtbuf2));
+
+  // Handle message
+  switch (ul_ccch_msg.msg.c1().type().value) {
+    case ul_ccch_msg_type_c::c1_c_::types_opts::rrc_setup_request:
+      handle_rrc_setup_request(rnti, ul_ccch_msg.msg.c1().rrc_setup_request());
+      break;
+    default:
+      log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type");
+      // TODO Remove user
   }
+}
+
+void rrc_nr::handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_setup_request_s& msg)
+{
+  auto ue_it = users.find(rnti);
+
+  // TODO: Defer creation of ue to this point
+  if (ue_it == users.end()) {
+    logger.error("%s received for inexistent rnti=0x%x", "UL-CCCH", rnti);
+    return;
+  }
+  ue& u = *ue_it->second;
+  u.handle_rrc_setup_request(msg);
 }
 
 /*******************************************************************************
@@ -457,7 +481,11 @@ void rrc_nr::handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer
 *******************************************************************************/
 void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  handle_pdu(rnti, lcid, std::move(pdu));
+  if (pdu == nullptr or pdu->N_bytes == 0) {
+    logger.error("Rx %s PDU, rnti=0x%x - Discarding. Cause: PDU is empty", srsenb::get_rb_name(lcid), rnti);
+    return;
+  }
+  handle_pdu(rnti, lcid, *pdu);
 }
 
 void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
@@ -652,39 +680,18 @@ std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
-void rrc_nr::ue::send_connection_setup()
-{
-  dl_ccch_msg_s dl_ccch_msg;
-  dl_ccch_msg.msg.set_c1().set_rrc_setup().rrc_transaction_id = ((transaction_id++) % 4u);
-  rrc_setup_ies_s&    setup  = dl_ccch_msg.msg.c1().rrc_setup().crit_exts.set_rrc_setup();
-  radio_bearer_cfg_s& rr_cfg = setup.radio_bearer_cfg;
-
-  // Add DRB1 to cfg
-  rr_cfg.drb_to_add_mod_list_present = true;
-  rr_cfg.drb_to_add_mod_list.resize(1);
-  auto& drb_item                               = rr_cfg.drb_to_add_mod_list[0];
-  drb_item.drb_id                              = 1;
-  drb_item.pdcp_cfg_present                    = true;
-  drb_item.pdcp_cfg.ciphering_disabled_present = true;
-  //  drb_item.cn_assoc_present = true;
-  //  drb_item.cn_assoc.set_eps_bearer_id() = ;
-  drb_item.recover_pdcp_present = false;
-
-  // TODO: send config to RLC/PDCP
-
-  send_dl_ccch(&dl_ccch_msg);
-}
-
-void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
+void rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(*dl_ccch_msg);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_ccch_msg);
   if (pdu == nullptr) {
     parent->logger.error("Failed to send DL-CCCH");
     return;
   }
-  log_rrc_message(Tx, *pdu.get(), *dl_ccch_msg, "DL-CCCH");
-  parent->rlc->write_sdu(rnti, (uint32_t)srsran::nr_srb::srb0, std::move(pdu));
+  fmt::memory_buffer fmtbuf;
+  fmt::format_to(fmtbuf, "DL-CCCH.{}", dl_ccch_msg.msg.c1().type().to_string());
+  log_rrc_message(srsran::nr_srb::srb0, Tx, *pdu.get(), dl_ccch_msg, srsran::to_c_str(fmtbuf));
+  parent->rlc->write_sdu(rnti, srsran::srb_to_lcid(srsran::nr_srb::srb0), std::move(pdu));
 }
 
 template <class T>
@@ -1234,7 +1241,7 @@ int rrc_nr::ue::pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_second
   }
   packed_secondary_cell_config.resize(bref_pack.distance_bytes());
 
-  log_rrc_message(Tx, packed_secondary_cell_config, cell_group_cfg_pack, "nr-SecondaryCellGroupConfig-r15");
+  log_rrc_container(Tx, packed_secondary_cell_config, cell_group_cfg_pack, "nr-SecondaryCellGroupConfig-r15");
 
   return SRSRAN_SUCCESS;
 }
@@ -1291,7 +1298,7 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
   // resize to packed length
   packed_nr_bearer_config.resize(bref_pack.distance_bytes());
 
-  log_rrc_message(Tx, packed_nr_bearer_config, radio_bearer_cfg_pack, "nr-RadioBearerConfig1-r15");
+  log_rrc_container(Tx, packed_nr_bearer_config, radio_bearer_cfg_pack, "nr-RadioBearerConfig1-r15");
 
   return SRSRAN_SUCCESS;
 }
@@ -1446,6 +1453,62 @@ int rrc_nr::ue::add_drb()
   return SRSRAN_SUCCESS;
 }
 
+void rrc_nr::ue::handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg)
+{
+  if (not parent->ngap->is_amf_connected()) {
+    parent->logger.error("MME isn't connected. Sending Connection Reject");
+    const uint8_t max_wait_time_secs = 16;
+    send_rrc_reject(max_wait_time_secs); // See TS 38.331, RejectWaitTime
+    return;
+  }
+
+  // TODO: Allocate PUCCH resources and reject if not available
+
+  switch (msg.rrc_setup_request.ue_id.type().value) {
+    case asn1::rrc_nr::init_ue_id_c::types_opts::ng_minus5_g_s_tmsi_part1:
+      // TODO: communicate with NGAP
+      break;
+    case asn1::rrc_nr::init_ue_id_c::types_opts::random_value:
+      // TODO: communicate with NGAP
+      break;
+    default:
+      parent->logger.error("Unsupported RRCSetupRequest");
+  }
+
+  send_rrc_setup();
+  set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+}
+
+/// TS 38.331, RRCReject message
+void rrc_nr::ue::send_rrc_reject(uint8_t reject_wait_time_secs)
+{
+  dl_ccch_msg_s     msg;
+  rrc_reject_ies_s& reject = msg.msg.set_c1().set_rrc_reject().crit_exts.set_rrc_reject();
+  if (reject_wait_time_secs > 0) {
+    reject.wait_time_present = true;
+    reject.wait_time         = reject_wait_time_secs;
+  }
+  send_dl_ccch(msg);
+}
+
+/// TS 38.331, RRCSetup
+void rrc_nr::ue::send_rrc_setup()
+{
+  dl_ccch_msg_s msg;
+  rrc_setup_s&  setup        = msg.msg.set_c1().set_rrc_setup();
+  setup.rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
+  rrc_setup_ies_s& setup_ies = setup.crit_exts.set_rrc_setup();
+
+  // Fill RRC Setup
+  // Note: See 5.3.5.6.3 - SRB addition/modification
+  setup_ies.radio_bearer_cfg.srb_to_add_mod_list_present = true;
+  setup_ies.radio_bearer_cfg.srb_to_add_mod_list.resize(1);
+  srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
+  srb1.srb_id            = 1;
+
+  send_dl_ccch(msg);
+}
+
 /**
  * @brief Deactivate all Bearers (MAC logical channel) for this specific RNTI
  *
@@ -1462,12 +1525,27 @@ void rrc_nr::ue::deactivate_bearers()
   parent->mac->ue_cfg(rnti, uecfg);
 }
 
-template <class T, class M>
-void rrc_nr::ue::log_rrc_message(const direction_t dir, const M& pdu, const T& msg, const std::string& msg_type)
+template <class M>
+void rrc_nr::ue::log_rrc_message(srsran::nr_srb          srb,
+                                 const direction_t       dir,
+                                 srsran::const_byte_span pdu,
+                                 const M&                msg,
+                                 const char*             msg_type)
 {
   fmt::memory_buffer strbuf;
-  fmt::format_to(strbuf, "rnti=0x{:x}", rnti);
-  parent->log_rrc_message(fmt::to_string(strbuf), Tx, pdu, msg, msg_type);
+  fmt::format_to(strbuf, "rnti=0x{:x}, {}", rnti, srsran::get_srb_name(srb));
+  parent->log_rrc_message(srsran::to_c_str(strbuf), Tx, pdu, msg, msg_type);
+}
+
+template <class M>
+void rrc_nr::ue::log_rrc_container(const direction_t       dir,
+                                   srsran::const_byte_span pdu,
+                                   const M&                msg,
+                                   const char*             msg_type)
+{
+  fmt::memory_buffer strbuf;
+  fmt::format_to(strbuf, "rnti=0x{:x}, container", rnti);
+  parent->log_rrc_message(srsran::to_c_str(strbuf), Tx, pdu, msg, msg_type);
 }
 
 } // namespace srsenb

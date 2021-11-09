@@ -299,14 +299,7 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
           (search_space_cfg.type == srsran_search_space_type_common_3)) {
         search_spaces[0].search_space_type.set_common();
 
-        if ((search_space_cfg.formats[0] == srsran_dci_format_nr_0_0) and
-            (search_space_cfg.formats[1] == srsran_dci_format_nr_1_0)) {
-          search_spaces[ss_mod_list_idx].search_space_type.common().dci_format0_minus0_and_format1_minus0_present =
-              true;
-        } else {
-          get_logger(cfg).error("Config Error: Unsupported dci nr formats.");
-          return SRSRAN_ERROR;
-        }
+        search_spaces[ss_mod_list_idx].search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
       } else {
         get_logger(cfg).error("Config Error: Unsupported search space type.");
         return SRSRAN_ERROR;

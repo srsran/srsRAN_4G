@@ -103,18 +103,11 @@ public:
   // logging
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
-  void log_rrc_message(const std::string&         source,
-                       const direction_t          dir,
-                       const asn1::dyn_octstring& oct,
-                       const T&                   msg,
-                       const std::string&         msg_type);
-
-  template <class T>
-  void log_rrc_message(const std::string&           source,
-                       const direction_t            dir,
-                       const srsran::byte_buffer_t& pdu,
-                       const T&                     msg,
-                       const std::string&           msg_type);
+  void log_rrc_message(const char*             source,
+                       const direction_t       dir,
+                       srsran::const_byte_span pdu,
+                       const T&                msg,
+                       const char*             msg_type);
   class ue
   {
   public:
@@ -128,11 +121,16 @@ public:
     /// @param [in] start_msg3_timer: indicates whether the UE is created as part of a RACH process
     ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer = true);
 
-    void send_connection_setup();
-    void send_dl_ccch(asn1::rrc_nr::dl_ccch_msg_s* dl_dcch_msg);
+    void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_dcch_msg);
+
+    /* TS 38.331 - 5.3.3 RRC connection establishment */
+    void send_rrc_setup();
+    void send_rrc_reject(uint8_t reject_wait_time_secs);
 
     int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);
     void crnti_ce_received();
+
+    void handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg);
 
     // getters
     bool     is_connected() { return state == rrc_nr_state_t::RRC_CONNECTED; }
@@ -156,8 +154,6 @@ public:
   private:
     rrc_nr*  parent = nullptr;
     uint16_t rnti   = SRSRAN_INVALID_RNTI;
-    /// for basic DL/UL activity timeout
-    srsran::unique_timer activity_timer;
 
     int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
     int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
@@ -201,12 +197,19 @@ public:
     int add_drb();
 
     // logging helpers
-    template <class T, class M>
-    void log_rrc_message(const direction_t dir, const M& pdu, const T& msg, const std::string& msg_type);
+    template <class M>
+    void log_rrc_message(srsran::nr_srb          srb,
+                         const direction_t       dir,
+                         srsran::const_byte_span pdu,
+                         const M&                msg,
+                         const char*             msg_type);
+    template <class M>
+    void log_rrc_container(const direction_t dir, srsran::const_byte_span pdu, const M& msg, const char* msg_type);
 
     // state
-    rrc_nr_state_t state          = rrc_nr_state_t::RRC_IDLE;
-    uint8_t        transaction_id = 0;
+    rrc_nr_state_t       state          = rrc_nr_state_t::RRC_IDLE;
+    uint8_t              transaction_id = 0;
+    srsran::unique_timer activity_timer; /// for basic DL/UL activity timeout
 
     // RRC configs for UEs
     asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
@@ -251,18 +254,25 @@ private:
     srsran::unique_byte_buffer_t                       mib_buffer = nullptr;
     std::vector<srsran::unique_byte_buffer_t>          sib_buffer;
   };
-  std::unique_ptr<cell_ctxt_t>             cell_ctxt;
-  std::map<uint16_t, std::unique_ptr<ue> > users;
-  bool                                     running = false;
+  std::unique_ptr<cell_ctxt_t>     cell_ctxt;
+  rnti_map_t<std::unique_ptr<ue> > users;
+  bool                             running = false;
 
   /// Private Methods
-  void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void handle_pdu(uint16_t rnti, uint32_t lcid, srsran::const_byte_span pdu);
+  void parse_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu);
+  void handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_setup_request_s& msg);
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
   int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
 
   // Helper to create PDU from RRC message
   template <class T>
   srsran::unique_byte_buffer_t pack_into_pdu(const T& msg);
+  void                         log_rx_pdu_fail(uint16_t                rnti,
+                                               uint32_t                lcid,
+                                               srsran::const_byte_span pdu,
+                                               const char*             cause_str,
+                                               bool                    log_hex = true);
 };
 
 } // namespace srsenb

@@ -15,8 +15,31 @@
 
 #include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/interfaces/gnb_mac_interfaces.h"
+#include "srsran/interfaces/gnb_ngap_interfaces.h"
 
 namespace srsenb {
+
+class ngap_dummy : public ngap_interface_rrc_nr
+{
+  void initial_ue(uint16_t                                rnti,
+                  uint32_t                                gnb_cc_idx,
+                  asn1::ngap_nr::rrcestablishment_cause_e cause,
+                  srsran::unique_byte_buffer_t            pdu)
+  {}
+  void initial_ue(uint16_t                                rnti,
+                  uint32_t                                gnb_cc_idx,
+                  asn1::ngap_nr::rrcestablishment_cause_e cause,
+                  srsran::unique_byte_buffer_t            pdu,
+                  uint32_t                                m_tmsi)
+  {}
+
+  void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu) {}
+  bool user_exists(uint16_t rnti) { return true; }
+  void user_mod(uint16_t old_rnti, uint16_t new_rnti) {}
+  bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) { return true; }
+  bool is_amf_connected() { return true; }
+  void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome) {}
+};
 
 class rrc_nr_dummy : public rrc_interface_mac_nr
 {

@@ -10,11 +10,13 @@
  *
  */
 
+#include "rrc_nr_test_helpers.h"
 #include "srsenb/hdr/enb.h"
 #include "srsenb/test/common/dummy_classes_common.h"
-#include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/rrc/test_helpers.h"
+#include "srsgnb/hdr/stack/common/test/dummy_nr_classes.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr.h"
+#include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include <iostream>
@@ -125,12 +127,47 @@ int test_rrc_setup()
   return SRSRAN_SUCCESS;
 }
 
+void test_rrc_sa_connection()
+{
+  srsran::task_scheduler task_sched;
+
+  phy_nr_dummy       phy_obj;
+  mac_nr_dummy       mac_obj;
+  rlc_nr_rrc_tester  rlc_obj;
+  pdcp_nr_rrc_tester pdcp_obj;
+  ngap_dummy         ngap_obj;
+
+  rrc_nr rrc_obj(&task_sched);
+
+  // set cfg
+  all_args_t   args{};
+  phy_cfg_t    phy_cfg{};
+  rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
+  rrc_cfg_nr.cell_list.emplace_back();
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
+  rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
+  rrc_cfg_nr.cell_list[0].band                 = 78;
+  rrc_cfg_nr.is_standalone                     = true;
+  args.enb.n_prb                               = 50;
+  enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
+
+  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, nullptr, nullptr) ==
+             SRSRAN_SUCCESS);
+
+  sched_nr_ue_cfg_t uecfg = get_default_ue_cfg(1);
+  TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
+
+  TESTASSERT_SUCCESS(test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, 0x4601));
+}
+
 } // namespace srsenb
 
 int main(int argc, char** argv)
 {
   auto& logger = srslog::fetch_basic_logger("ASN1");
   logger.set_level(srslog::basic_levels::info);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC-NR");
+  rrc_logger.set_level(srslog::basic_levels::info);
 
   srslog::init();
 
@@ -142,6 +179,7 @@ int main(int argc, char** argv)
 
   TESTASSERT(srsenb::test_sib_generation() == SRSRAN_SUCCESS);
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
+  srsenb::test_rrc_sa_connection();
 
   return SRSRAN_SUCCESS;
 }
