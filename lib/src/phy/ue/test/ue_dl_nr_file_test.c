@@ -28,6 +28,10 @@ static srsran_slot_cfg_t      slot_cfg     = {};
 static srsran_softbuffer_rx_t softbuffer = {};
 static uint8_t*               data       = NULL;
 
+static uint32_t                   coreset_index     = 0;
+static uint32_t                   coreset_offset_rb = 0;
+static srsran_search_space_type_t ss_type           = srsran_search_space_type_common_0;
+
 static void usage(char* prog)
 {
   printf("Usage: %s [pTLR] \n", prog);
@@ -36,7 +40,10 @@ static void usage(char* prog)
   printf("\t-i Physical cell identifier [Default %d]\n", carrier.pci);
   printf("\t-n Slot index [Default %d]\n", slot_cfg.idx);
   printf("\t-R RNTI in hexadecimal [Default 0x%x]\n", rnti);
-  printf("\t-T RNTI type (c, ra) [Default %s]\n", srsran_rnti_type_str(rnti_type));
+  printf("\t-T RNTI type (c, ra, si) [Default %s]\n", srsran_rnti_type_str(rnti_type));
+  printf("\t-s Search space type (common0, common3) [Default %s]\n", srsran_ss_type_str(ss_type));
+  printf("\t-c Coreset index (i.e. 0 for CoresetZero) [Default %d]\n", coreset_index);
+  printf("\t-o Coreset PRB offset [Default %d]\n", coreset_offset_rb);
   printf("\t-S Use standard rates [Default %s]\n", srsran_symbol_size_is_standard() ? "yes" : "no");
 
   printf("\t-v [set srsran_verbose to debug, default none]\n");
@@ -45,7 +52,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "fPivnSRT")) != -1) {
+  while ((opt = getopt(argc, argv, "fPivnSRTsco")) != -1) {
     switch (opt) {
       case 'f':
         filename = argv[optind];
@@ -70,11 +77,30 @@ static int parse_args(int argc, char** argv)
           rnti_type = srsran_rnti_type_c;
         } else if (strcmp(argv[optind], "ra") == 0) {
           rnti_type = srsran_rnti_type_ra;
+        } else if (strcmp(argv[optind], "si") == 0) {
+          rnti_type = srsran_rnti_type_si;
         } else {
           printf("Invalid RNTI type '%s'\n", argv[optind]);
           usage(argv[0]);
           return SRSRAN_ERROR;
         }
+        break;
+      case 's':
+        if (strcmp(argv[optind], "common0") == 0) {
+          ss_type = srsran_search_space_type_common_0;
+        } else if (strcmp(argv[optind], "common3") == 0) {
+          ss_type = srsran_search_space_type_common_3;
+        } else {
+          printf("Invalid SS type '%s'\n", argv[optind]);
+          usage(argv[0]);
+          return SRSRAN_ERROR;
+        }
+        break;
+      case 'c':
+        coreset_index = (uint16_t)strtol(argv[optind], NULL, 16);
+        break;
+      case 'o':
+        coreset_offset_rb = (uint16_t)strtol(argv[optind], NULL, 16);
         break;
       case 'S':
         srsran_use_standard_symbol_size(true);
@@ -161,6 +187,11 @@ int main(int argc, char** argv)
   srsran_ue_dl_nr_t ue_dl                    = {};
   cf_t*             buffer[SRSRAN_MAX_PORTS] = {};
 
+  // parse args
+  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
+    goto clean_exit;
+  }
+
   uint32_t sf_len = SRSRAN_SF_LEN_PRB(carrier.nof_prb);
   buffer[0]       = srsran_vec_cf_malloc(sf_len);
   if (buffer[0] == NULL) {
@@ -180,6 +211,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
+  // Set default PDSCH configuration
   srsran_ue_dl_nr_args_t ue_dl_args        = {};
   ue_dl_args.nof_rx_antennas               = 1;
   ue_dl_args.pdsch.sch.disable_simd        = false;
@@ -188,11 +220,6 @@ int main(int argc, char** argv)
   ue_dl_args.pdcch.disable_simd            = false;
   ue_dl_args.pdcch.measure_evm             = true;
   ue_dl_args.nof_max_prb                   = carrier.nof_prb;
-
-  // Set default PDSCH configuration
-  if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
-    goto clean_exit;
-  }
 
   // Check for filename
   if (filename == NULL) {
@@ -208,19 +235,21 @@ int main(int argc, char** argv)
   }
 
   // Configure CORESET
-  srsran_coreset_t* coreset    = &pdcch_cfg.coreset[1];
-  pdcch_cfg.coreset_present[1] = true;
-  coreset->duration            = 2;
+  srsran_coreset_t* coreset                = &pdcch_cfg.coreset[coreset_index];
+  pdcch_cfg.coreset_present[coreset_index] = true;
+  coreset->duration                        = 2;
+  coreset->offset_rb                       = coreset_offset_rb;
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
     coreset->freq_resources[i] = i < carrier.nof_prb / 6;
   }
+  // coreset->precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
 
   // Configure Search Space
   srsran_search_space_t* search_space = &pdcch_cfg.search_space[0];
   pdcch_cfg.search_space_present[0]   = true;
   search_space->id                    = 0;
-  search_space->coreset_id            = 1;
-  search_space->type                  = srsran_search_space_type_common_3;
+  search_space->coreset_id            = coreset_index;
+  search_space->type                  = ss_type;
   search_space->formats[0]            = srsran_dci_format_nr_0_0;
   search_space->formats[1]            = srsran_dci_format_nr_1_0;
   search_space->nof_formats           = 2;
