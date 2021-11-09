@@ -141,6 +141,9 @@ public:
   struct bc_alloc_t : public ctrl_alloc_t {
     sched_interface::dl_sched_bc_t bc_grant;
   };
+  struct po_alloc_t : public ctrl_alloc_t {
+    sched_interface::dl_sched_po_t po_grant;
+  };
   struct dl_alloc_t {
     size_t    dci_idx;
     uint16_t  rnti;
@@ -174,6 +177,8 @@ public:
   alloc_result alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx, rbg_interval rbgs);
   alloc_result alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload, rbg_interval rbgs);
   alloc_result alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant, rbg_interval rbgs, uint32_t nof_grants);
+  alloc_result
+       alloc_pdcch_order(const sched_interface::dl_sched_po_info_t& po_cfg, uint32_t aggr_lvl, rbg_interval rbgs);
   bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
 
   // UL alloc methods
@@ -223,6 +228,7 @@ private:
 
   srsran::bounded_vector<bc_alloc_t, sched_interface::MAX_BC_LIST>   bc_allocs;
   srsran::bounded_vector<rar_alloc_t, sched_interface::MAX_RAR_LIST> rar_allocs;
+  srsran::bounded_vector<po_alloc_t, sched_interface::MAX_PO_LIST>   po_allocs;
   srsran::bounded_vector<dl_alloc_t, sched_interface::MAX_DATA_LIST> data_allocs;
   srsran::bounded_vector<ul_alloc_t, sched_interface::MAX_DATA_LIST> ul_data_allocs;
   uint32_t                                                           last_msg3_prb = 0, max_msg3_prb = 0;

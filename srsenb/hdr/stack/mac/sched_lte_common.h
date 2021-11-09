@@ -82,10 +82,11 @@ public:
 };
 
 /// Type of Allocation stored in PDSCH/PUSCH
-enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
+enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_PDCCH_ORDER, DL_DATA, UL_DATA };
 inline bool is_dl_ctrl_alloc(alloc_type_t a)
 {
-  return a == alloc_type_t::DL_BC or a == alloc_type_t::DL_PCCH or a == alloc_type_t::DL_RAR;
+  return a == alloc_type_t::DL_BC or a == alloc_type_t::DL_PCCH or a == alloc_type_t::DL_RAR or
+         a == alloc_type_t::DL_PDCCH_ORDER;
 }
 
 } // namespace srsenb

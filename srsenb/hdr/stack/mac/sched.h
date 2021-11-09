@@ -71,6 +71,8 @@ public:
   int dl_sched(uint32_t tti, uint32_t enb_cc_idx, dl_sched_res_t& sched_result) final;
   int ul_sched(uint32_t tti, uint32_t enb_cc_idx, ul_sched_res_t& sched_result) final;
 
+  int set_pdcch_order(uint32_t enb_cc_idx, dl_sched_po_info_t pdcch_order_info) final;
+
   /* Custom functions
    */
   void                                 set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;

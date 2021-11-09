@@ -104,6 +104,11 @@ bool generate_rar_dci(sched_interface::dl_sched_rar_t& rar,
                       const sched_cell_params_t&       cell_params,
                       uint32_t                         current_cfi);
 
+void generate_pdcch_order_dci(sched_interface::dl_sched_po_t& pdcch_order,
+                              tti_point                       tti_tx_dl,
+                              const sched_cell_params_t&      cell_params,
+                              uint32_t                        current_cfi);
+
 void log_broadcast_allocation(const sched_interface::dl_sched_bc_t& bc,
                               rbg_interval                          rbg_range,
                               const sched_cell_params_t&            cell_params);
@@ -113,6 +118,10 @@ void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar,
                         const sched_cell_params_t&             cell_params);
 
 void log_rar_allocation(const sched_interface::dl_sched_rar_t& rar, rbg_interval rbg_range);
+
+void log_po_allocation(const sched_interface::dl_sched_po_t& pdcch_order,
+                       rbg_interval                          rbg_range,
+                       const sched_cell_params_t&            cell_params);
 
 } // namespace srsenb
 

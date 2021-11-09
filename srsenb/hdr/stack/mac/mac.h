@@ -110,6 +110,16 @@ private:
   uint16_t allocate_ue(uint32_t enb_cc_idx);
   bool     is_valid_rnti_unprotected(uint16_t rnti);
 
+  /* helper function for PDCCH orders */
+  /**
+   * @brief Checks if the current RACH is a RACH triggered by a PDCCH order.
+   *
+   * @param[in] preamble_idx RACH preamble idx
+   * @param rnti is the rnti where the crnti of the RACH is written
+   * @return true if this is a RACH triggered by a PDCCH order, otherwise it returns false
+   */
+  bool is_pending_pdcch_order_prach(const uint32_t preamble_idx, uint16_t& rnti);
+
   srslog::basic_logger& logger;
 
   // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
@@ -180,6 +190,9 @@ private:
 
   // Number of rach preambles detected for a cc.
   std::vector<uint32_t> detected_rachs;
+
+  // PDCCH order
+  std::vector<sched_interface::dl_sched_po_info_t> pending_po_prachs = {};
 
   // Softbuffer pool
   std::unique_ptr<srsran::obj_pool_itf<ue_cc_softbuffers> > softbuffer_pool;
