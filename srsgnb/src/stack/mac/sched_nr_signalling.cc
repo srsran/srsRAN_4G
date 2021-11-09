@@ -203,7 +203,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
         si.win_start.clear();
         si.n_tx++;
         if (si.n == 0) {
-          logger.debug("SCHED: Allocated SIB1, len=%d.", si.n, si.len_bytes);
+          logger.debug("SCHED: Allocated SIB1, len=%d.", si.len_bytes);
         } else {
           logger.debug("SCHED: Allocated SI message idx=%d, len=%d.", si.n, si.len_bytes);
         }

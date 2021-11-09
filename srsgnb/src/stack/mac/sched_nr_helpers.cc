@@ -183,7 +183,6 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                        "SCHED: SI{}, cc={}, prbs={}, pdsch_slot={}",
                        pdcch.dci.sii == 0 ? "B" : " message",
                        res_grid.cfg->cc,
-                       pdcch.dci.ctx.rnti,
                        srsran::interval<uint32_t>{start_idx, end_idx},
                        pdcch_slot);
         si_count++;
@@ -191,7 +190,11 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     }
 
     if (fmtbuf.size() > 0) {
-      logger.info("%s", srsran::to_c_str(fmtbuf));
+      if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_si) {
+        logger.debug("%s", srsran::to_c_str(fmtbuf));
+      } else {
+        logger.info("%s", srsran::to_c_str(fmtbuf));
+      }
     }
   }
   for (const pdcch_ul_t& pdcch : bwp_slot.dl.phy.pdcch_ul) {
