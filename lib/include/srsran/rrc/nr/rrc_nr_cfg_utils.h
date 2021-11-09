@@ -24,7 +24,7 @@ struct basic_cell_args_t {
   uint32_t    scs           = 15;
   bool        is_standalone = true;
   bool        is_fdd        = true;
-  std::string plmn          = "90170";
+  std::string plmn          = "00101";
   uint32_t    tac           = 7;
 };
 
