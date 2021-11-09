@@ -35,11 +35,14 @@ rlc_am_nr::rlc_am_nr(srslog::basic_logger&      logger,
   rx_base = rx;
 }
 
-/*******************************
- *     RLC AM NR
- *     Tx subclass implementation
+/***************************************************************************
+ *  Tx subclass implementation
  ***************************************************************************/
-rlc_am_nr::rlc_am_nr_tx::rlc_am_nr_tx(rlc_am_nr* parent_) : parent(parent_), rlc_am_base_tx(&parent_->logger) {}
+rlc_am_nr::rlc_am_nr_tx::rlc_am_nr_tx(rlc_am_nr* parent_) : parent(parent_), rlc_am_base_tx(&parent_->logger)
+{
+  parent->logger.debug("Initializing RLC AM NR TX: Tx_Next: %d",
+                       st.tx_next); // Temporarly silence unused variable warning
+}
 
 bool rlc_am_nr::rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 {
@@ -101,7 +104,9 @@ void rlc_am_nr::rlc_am_nr_tx::stop() {}
  ***************************************************************************/
 rlc_am_nr::rlc_am_nr_rx::rlc_am_nr_rx(rlc_am_nr* parent_) :
   parent(parent_), pool(byte_buffer_pool::get_instance()), rlc_am_base_rx(parent_, &parent_->logger)
-{}
+{
+  parent->logger.debug("Initializing RLC AM NR RX"); // Temporarly silence unused variable warning
+}
 
 bool rlc_am_nr::rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
 {
