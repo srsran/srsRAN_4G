@@ -293,6 +293,16 @@ static int ue_dl_nr_find_dci_ncce(srsran_ue_dl_nr_t*     q,
     return SRSRAN_ERROR;
   }
 
+#if 0
+  static uint32_t num_pdcch = 0;
+  char            tmpstr[64];
+  snprintf(tmpstr, 64, "pdcch_symbols%d.dat", num_pdcch);
+  printf("save %d syms to %s\n", q->pdcch.M / 4, tmpstr);
+  srsran_vec_save_file(tmpstr, q->pdcch.symbols, q->pdcch.M / 4 * sizeof(cf_t));
+  // srsran_vec_fprint_c(stdout, q->pdcch.symbols, q->pdcch.M/4);
+  num_pdcch++;
+#endif
+
   // Save information
   pdcch_info->result = *pdcch_res;
 
