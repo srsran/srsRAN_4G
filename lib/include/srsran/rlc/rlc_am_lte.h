@@ -85,7 +85,7 @@ private:
  * RLC AM LTE entity
  *
  *****************************/
-class rlc_am_lte : public rlc_am_base
+class rlc_am_lte : public rlc_am
 {
 public:
   rlc_am_lte(srslog::basic_logger&      logger,

@@ -32,7 +32,7 @@ namespace srsran {
  * RLC AM NR entity
  *
  *****************************/
-class rlc_am_nr : public rlc_am_base
+class rlc_am_nr : public rlc_am
 {
 public:
   rlc_am_nr(srslog::basic_logger&      logger,

@@ -30,7 +30,7 @@ bool rlc_am_is_control_pdu(byte_buffer_t* pdu)
  *     This entity is common between LTE and NR
  *     and only the TX/RX entities change between them
  *******************************************************/
-bool rlc_am_base::configure(const rlc_config_t& cfg_)
+bool rlc_am::configure(const rlc_config_t& cfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = rrc->get_rb_name(lcid);
@@ -60,14 +60,14 @@ bool rlc_am_base::configure(const rlc_config_t& cfg_)
   return true;
 }
 
-void rlc_am_base::stop()
+void rlc_am::stop()
 {
   logger.debug("Stopped bearer %s", rb_name.c_str());
   tx_base->stop();
   rx_base->stop();
 }
 
-void rlc_am_base::reestablish()
+void rlc_am::reestablish()
 {
   logger.debug("Reestablished bearer %s", rb_name.c_str());
   tx_base->reestablish(); // calls stop and enables tx again
@@ -77,7 +77,7 @@ void rlc_am_base::reestablish()
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
-void rlc_am_base::write_sdu(unique_byte_buffer_t sdu)
+void rlc_am::write_sdu(unique_byte_buffer_t sdu)
 {
   if (tx_base->write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
     std::lock_guard<std::mutex> lock(metrics_mutex);
@@ -85,7 +85,7 @@ void rlc_am_base::write_sdu(unique_byte_buffer_t sdu)
   }
 }
 
-void rlc_am_base::discard_sdu(uint32_t discard_sn)
+void rlc_am::discard_sdu(uint32_t discard_sn)
 {
   tx_base->discard_sdu(discard_sn);
 
@@ -93,7 +93,7 @@ void rlc_am_base::discard_sdu(uint32_t discard_sn)
   metrics.num_lost_sdus++;
 }
 
-bool rlc_am_base::sdu_queue_is_full()
+bool rlc_am::sdu_queue_is_full()
 {
   return tx_base->sdu_queue_is_full();
 }
@@ -101,23 +101,23 @@ bool rlc_am_base::sdu_queue_is_full()
 /****************************************************************************
  * MAC interface
  ***************************************************************************/
-bool rlc_am_base::has_data()
+bool rlc_am::has_data()
 {
   return tx_base->has_data();
 }
 
-uint32_t rlc_am_base::get_buffer_state()
+uint32_t rlc_am::get_buffer_state()
 {
   return tx_base->get_buffer_state();
 }
 
-void rlc_am_base::get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio)
+void rlc_am::get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio)
 {
   tx_base->get_buffer_state(n_bytes_newtx, n_bytes_prio);
   return;
 }
 
-uint32_t rlc_am_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+uint32_t rlc_am::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t read_bytes = tx_base->read_pdu(payload, nof_bytes);
 
@@ -127,7 +127,7 @@ uint32_t rlc_am_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   return read_bytes;
 }
 
-void rlc_am_base::write_pdu(uint8_t* payload, uint32_t nof_bytes)
+void rlc_am::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   rx_base->write_pdu(payload, nof_bytes);
 
@@ -139,7 +139,7 @@ void rlc_am_base::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 /****************************************************************************
  * Metrics
  ***************************************************************************/
-rlc_bearer_metrics_t rlc_am_base::get_metrics()
+rlc_bearer_metrics_t rlc_am::get_metrics()
 {
   // update values that aren't calculated on the fly
   uint32_t latency        = rx_base->get_sdu_rx_latency_ms();
@@ -151,7 +151,7 @@ rlc_bearer_metrics_t rlc_am_base::get_metrics()
   return metrics;
 }
 
-void rlc_am_base::reset_metrics()
+void rlc_am::reset_metrics()
 {
   std::lock_guard<std::mutex> lock(metrics_mutex);
   metrics = {};
@@ -160,7 +160,7 @@ void rlc_am_base::reset_metrics()
 /****************************************************************************
  * BSR callback
  ***************************************************************************/
-void rlc_am_base::set_bsr_callback(bsr_callback_t callback)
+void rlc_am::set_bsr_callback(bsr_callback_t callback)
 {
   tx_base->set_bsr_callback(callback);
 }
@@ -170,7 +170,7 @@ void rlc_am_base::set_bsr_callback(bsr_callback_t callback)
  *     This class is used for common code between the
  *     LTE and NR TX entitites
  *******************************************************/
-int rlc_am_base::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
+int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -207,7 +207,7 @@ int rlc_am_base::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   return SRSRAN_SUCCESS;
 }
 
-void rlc_am_base::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
+void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
 {
   bsr_callback = callback;
 }
@@ -217,7 +217,7 @@ void rlc_am_base::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
  *     This class is used for common code between the
  *     LTE and NR TX entitites
  *******************************************************/
-void rlc_am_base::rlc_am_base_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
+void rlc_am::rlc_am_base_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
   if (nof_bytes < 1) {
     return;

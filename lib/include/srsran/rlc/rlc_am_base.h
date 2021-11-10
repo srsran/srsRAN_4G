@@ -41,20 +41,20 @@ bool rlc_am_is_control_pdu(byte_buffer_t* pdu);
  *     This entity is common between LTE and NR
  *     and only the TX/RX entities change between them
  *******************************************************/
-class rlc_am_base : public rlc_common
+class rlc_am : public rlc_common
 {
 protected:
   class rlc_am_base_tx;
   class rlc_am_base_rx;
 
 public:
-  rlc_am_base(srslog::basic_logger&      logger,
-              uint32_t                   lcid_,
-              srsue::pdcp_interface_rlc* pdcp_,
-              srsue::rrc_interface_rlc*  rrc_,
-              srsran::timer_handler*     timers_,
-              rlc_am_base_tx*            tx_base_,
-              rlc_am_base_rx*            rx_base_) :
+  rlc_am(srslog::basic_logger&      logger,
+         uint32_t                   lcid_,
+         srsue::pdcp_interface_rlc* pdcp_,
+         srsue::rrc_interface_rlc*  rrc_,
+         srsran::timer_handler*     timers_,
+         rlc_am_base_tx*            tx_base_,
+         rlc_am_base_rx*            rx_base_) :
     logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx_base(tx_base_), rx_base(rx_base_)
   {}
 
@@ -165,7 +165,7 @@ protected:
   class rlc_am_base_rx
   {
   public:
-    explicit rlc_am_base_rx(rlc_am_base* parent_, srslog::basic_logger* logger_) : parent(parent_), logger(logger_) {}
+    explicit rlc_am_base_rx(rlc_am* parent_, srslog::basic_logger* logger_) : parent(parent_), logger(logger_) {}
 
     virtual bool     configure(const rlc_config_t& cfg_)                   = 0;
     virtual void     handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
@@ -178,7 +178,7 @@ protected:
 
     srslog::basic_logger* logger = nullptr;
     byte_buffer_pool*     pool   = nullptr;
-    rlc_am_base*          parent = nullptr;
+    rlc_am*               parent = nullptr;
   };
 
   std::unique_ptr<rlc_am_base_tx> tx_base = {};

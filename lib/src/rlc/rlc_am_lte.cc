@@ -37,13 +37,7 @@ rlc_am_lte::rlc_am_lte(srslog::basic_logger&      logger,
                        srsue::pdcp_interface_rlc* pdcp_,
                        srsue::rrc_interface_rlc*  rrc_,
                        srsran::timer_handler*     timers_) :
-  rlc_am_base(logger,
-              lcid_,
-              pdcp_,
-              rrc_,
-              timers_,
-              new rlc_am_lte::rlc_am_lte_tx(this),
-              new rlc_am_lte::rlc_am_lte_rx(this))
+  rlc_am(logger, lcid_, pdcp_, rrc_, timers_, new rlc_am_lte::rlc_am_lte_tx(this), new rlc_am_lte::rlc_am_lte_rx(this))
 {}
 /****************************************************************************
  * Tx subclass implementation
