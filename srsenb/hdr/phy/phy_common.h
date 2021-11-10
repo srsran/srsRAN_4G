@@ -91,8 +91,8 @@ public:
 
     if (cc_idx < cell_list_lte.size()) {
       ret = cell_list_lte[cc_idx].cell.nof_ports;
-    } else if (cc_idx == 1 && !cell_list_nr.empty()) {
-      // one RF port for basic NSA config
+    } else if ((cc_idx == 0 || cc_idx == 1) && !cell_list_nr.empty()) {
+      // one RF port for basic NSA/SA config
       ret = 1;
     }
 
