@@ -32,6 +32,9 @@ namespace srsran {
  * RLC AM NR entity
  *
  *****************************/
+class rlc_am_nr_tx;
+class rlc_am_nr_rx;
+
 // Transmitter sub-class
 class rlc_am_nr_tx : public rlc_am::rlc_am_base_tx
 {
@@ -39,6 +42,7 @@ public:
   explicit rlc_am_nr_tx(rlc_am* parent_);
   ~rlc_am_nr_tx() = default;
 
+  void     set_rx(rlc_am_nr_rx* rx_) { rx = rx_; }
   bool     configure(const rlc_config_t& cfg_) final;
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
   void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) final;
@@ -56,7 +60,8 @@ public:
   void stop() final;
 
 private:
-  rlc_am* parent = nullptr;
+  rlc_am*       parent = nullptr;
+  rlc_am_nr_rx* rx     = nullptr;
 
   /****************************************************************************
    * Configurable parameters
@@ -87,6 +92,7 @@ public:
   explicit rlc_am_nr_rx(rlc_am* parent_);
   ~rlc_am_nr_rx() = default;
 
+  void set_tx(rlc_am_nr_tx* tx_) { tx = tx_; }
   bool configure(const rlc_config_t& cfg_) final;
 
   void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
@@ -99,6 +105,7 @@ public:
 
 private:
   rlc_am*           parent = nullptr;
+  rlc_am_nr_tx*     tx     = nullptr;
   byte_buffer_pool* pool   = nullptr;
 
   /****************************************************************************

@@ -41,11 +41,19 @@ rlc_am::rlc_am(srsran_rat_t               rat,
   logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_)
 {
   if (rat == srsran_rat_t::lte) {
-    tx_base = std::unique_ptr<rlc_am_base_tx>(new rlc_am_lte_tx(this));
-    rx_base = std::unique_ptr<rlc_am_base_rx>(new rlc_am_lte_rx(this));
+    rlc_am_lte_tx* tx = new rlc_am_lte_tx(this);
+    rlc_am_lte_rx* rx = new rlc_am_lte_rx(this);
+    tx_base           = std::unique_ptr<rlc_am_base_tx>(tx);
+    rx_base           = std::unique_ptr<rlc_am_base_rx>(rx);
+    tx->set_rx(rx);
+    rx->set_tx(tx);
   } else if (rat == srsran_rat_t::nr) {
-    tx_base = std::unique_ptr<rlc_am_base_tx>(new rlc_am_nr_tx(this));
-    rx_base = std::unique_ptr<rlc_am_base_rx>(new rlc_am_nr_rx(this));
+    rlc_am_nr_tx* tx = new rlc_am_nr_tx(this);
+    rlc_am_nr_rx* rx = new rlc_am_nr_rx(this);
+    tx_base          = std::unique_ptr<rlc_am_base_tx>(tx);
+    rx_base          = std::unique_ptr<rlc_am_base_rx>(rx);
+    tx->set_rx(rx);
+    rx->set_tx(tx);
   } else {
     logger.error("Invalid RAT at entity initialization");
   }

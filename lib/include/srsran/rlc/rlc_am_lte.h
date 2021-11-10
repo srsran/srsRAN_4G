@@ -97,6 +97,7 @@ public:
   explicit rlc_am_lte_tx(rlc_am* parent_);
   ~rlc_am_lte_tx() = default;
 
+  void set_rx(rlc_am_lte_rx* rx_) { rx = rx_; };
   bool configure(const rlc_config_t& cfg_);
   void empty_queue();
   void reestablish();
@@ -198,9 +199,10 @@ private:
 class rlc_am_lte_rx : public rlc_am::rlc_am_base_rx, public timer_callback
 {
 public:
-  rlc_am_lte_rx(rlc_am* parent_);
-  ~rlc_am_lte_rx();
+  explicit rlc_am_lte_rx(rlc_am* parent_);
+  ~rlc_am_lte_rx() = default;
 
+  void set_tx(rlc_am_lte_tx* tx_) { tx = tx_; };
   bool configure(const rlc_config_t& cfg_) final;
   void reestablish() final;
   void stop() final;

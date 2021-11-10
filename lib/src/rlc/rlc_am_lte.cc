@@ -1191,11 +1191,7 @@ rlc_am_lte_rx::rlc_am_lte_rx(rlc_am* parent_) :
   pool(byte_buffer_pool::get_instance()),
   reordering_timer(parent_->timers->get_unique_timer()),
   rlc_am_base_rx(parent_, &parent_->logger)
-{
-  tx = dynamic_cast<rlc_am_lte_tx*>(parent->tx_base.get());
-}
-
-rlc_am_lte_rx::~rlc_am_lte_rx() {}
+{}
 
 bool rlc_am_lte_rx::configure(const rlc_config_t& cfg_)
 {
