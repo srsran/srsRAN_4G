@@ -28,8 +28,11 @@ static srsran_slot_cfg_t      slot_cfg     = {};
 static srsran_softbuffer_rx_t softbuffer = {};
 static uint8_t*               data       = NULL;
 
-static uint32_t                   coreset_index     = 0;
+static uint32_t                   coreset0_idx      = 0; // if ss_type=si coreset0 is used and this is the index
 static uint32_t                   coreset_offset_rb = 0;
+
+static uint32_t                   coreset_n_rb      = 48;
+static uint32_t                   coreset_len       = 1;
 static srsran_search_space_type_t ss_type           = srsran_search_space_type_common_0;
 
 static void usage(char* prog)
@@ -42,8 +45,10 @@ static void usage(char* prog)
   printf("\t-R RNTI in hexadecimal [Default 0x%x]\n", rnti);
   printf("\t-T RNTI type (c, ra, si) [Default %s]\n", srsran_rnti_type_str(rnti_type));
   printf("\t-s Search space type (common0, common3) [Default %s]\n", srsran_ss_type_str(ss_type));
-  printf("\t-c Coreset index (i.e. 0 for CoresetZero) [Default %d]\n", coreset_index);
-  printf("\t-o Coreset PRB offset [Default %d]\n", coreset_offset_rb);
+  printf("\t-c Coreset0 index (only used if SS type is common0 for SIB) [Default %d]\n", coreset0_idx);
+  printf("\t-o Coreset RB offset [Default %d]\n", coreset_offset_rb);
+  printf("\t-N Coreset N_RB [Default %d]\n", coreset_n_rb);
+  printf("\t-l Coreset duration in symbols [Default %d]\n", coreset_len);
   printf("\t-S Use standard rates [Default %s]\n", srsran_symbol_size_is_standard() ? "yes" : "no");
 
   printf("\t-v [set srsran_verbose to debug, default none]\n");
@@ -52,7 +57,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "fPivnSRTsco")) != -1) {
+  while ((opt = getopt(argc, argv, "fPivnSRTscoNl")) != -1) {
     switch (opt) {
       case 'f':
         filename = argv[optind];
@@ -97,10 +102,16 @@ static int parse_args(int argc, char** argv)
         }
         break;
       case 'c':
-        coreset_index = (uint16_t)strtol(argv[optind], NULL, 16);
+        coreset0_idx = (uint16_t)strtol(argv[optind], NULL, 10);
         break;
       case 'o':
-        coreset_offset_rb = (uint16_t)strtol(argv[optind], NULL, 16);
+        coreset_offset_rb = (uint16_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'N':
+        coreset_n_rb = (uint16_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        coreset_len = (uint16_t)strtol(argv[optind], NULL, 10);
         break;
       case 'S':
         srsran_use_standard_symbol_size(true);
@@ -147,7 +158,7 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
 
   if (nof_found_dci < 1) {
     printf("No DCI found :'(\n");
-    return SRSRAN_SUCCESS;
+    return SRSRAN_ERROR;
   }
 
   char str[1024] = {};
@@ -177,6 +188,9 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
     ERROR("Error decoding PDSCH search");
     return SRSRAN_ERROR;
   }
+
+  printf("Decoded PDSCH (%d B)\n", pdsch_cfg.grant.tb[0].tbs / 8);
+  srsran_vec_fprint_byte(stdout, pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8);
 
   return SRSRAN_SUCCESS;
 }
@@ -234,22 +248,47 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
+  srsran_coreset_t* coreset = NULL;
+
   // Configure CORESET
-  srsran_coreset_t* coreset                = &pdcch_cfg.coreset[coreset_index];
-  pdcch_cfg.coreset_present[coreset_index] = true;
-  coreset->duration                        = 2;
-  coreset->offset_rb                       = coreset_offset_rb;
-  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    coreset->freq_resources[i] = i < carrier.nof_prb / 6;
+  if (rnti_type == srsran_rnti_type_si) {
+    // configure to use coreset0
+    coreset                      = &pdcch_cfg.coreset[0];
+    pdcch_cfg.coreset_present[0] = true;
+
+    srsran_subcarrier_spacing_t ssb_scs   = srsran_subcarrier_spacing_15kHz;
+    srsran_subcarrier_spacing_t pdcch_scs = srsran_subcarrier_spacing_15kHz;
+
+    uint32_t ssb_pointA_freq_offset_Hz = 0;
+
+    if (srsran_coreset_zero(carrier.pci, ssb_pointA_freq_offset_Hz, ssb_scs, pdcch_scs, coreset0_idx, coreset) !=
+        SRSRAN_SUCCESS) {
+      printf("Not possible to create CORESET Zero (ssb_scs=%s, pdcch_scs=%s, idx=%d)",
+             srsran_subcarrier_spacing_to_str(ssb_scs),
+             srsran_subcarrier_spacing_to_str(pdcch_scs),
+             coreset0_idx);
+      return false;
+    }
+    // FIXME: use ssb_pointA_freq_offset_Hz and let srsran_coreset_zero() calculate this
+    coreset->offset_rb = coreset_offset_rb;
+  } else {
+    // configure to use coreset1
+    coreset                      = &pdcch_cfg.coreset[1];
+    pdcch_cfg.coreset_present[1] = true;
+    coreset->duration            = coreset_len;
+    coreset->offset_rb           = coreset_offset_rb;
+    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      coreset->freq_resources[i] = i < coreset_n_rb / 6;
+    }
   }
-  // coreset->precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
 
   // Configure Search Space
   srsran_search_space_t* search_space = &pdcch_cfg.search_space[0];
   pdcch_cfg.search_space_present[0]   = true;
   search_space->id                    = 0;
-  search_space->coreset_id            = coreset_index;
+  search_space->coreset_id            = (rnti_type == srsran_rnti_type_si) ? 0 : 1;
   search_space->type                  = ss_type;
+  // search_space->duration              = coreset->duration;
   search_space->formats[0]            = srsran_dci_format_nr_0_0;
   search_space->formats[1]            = srsran_dci_format_nr_1_0;
   search_space->nof_formats           = 2;
@@ -288,9 +327,7 @@ int main(int argc, char** argv)
   }
 
   // Actual decode
-  work_ue_dl(&ue_dl, &slot_cfg);
-
-  ret = SRSRAN_SUCCESS;
+  ret = work_ue_dl(&ue_dl, &slot_cfg);
 
 clean_exit:
   if (buffer[0] != NULL) {
