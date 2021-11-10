@@ -11,6 +11,8 @@
  */
 
 #include "srsran/rlc/rlc_am_base.h"
+#include "srsran/rlc/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_nr.h"
 #include <sstream>
 
 namespace srsran {
@@ -30,6 +32,24 @@ bool rlc_am_is_control_pdu(byte_buffer_t* pdu)
  *     This entity is common between LTE and NR
  *     and only the TX/RX entities change between them
  *******************************************************/
+rlc_am::rlc_am(srsran_rat_t               rat,
+               srslog::basic_logger&      logger,
+               uint32_t                   lcid_,
+               srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srsran::timer_handler*     timers_) :
+  logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_)
+{
+  if (rat == srsran_rat_t::lte) {
+    tx_base = std::unique_ptr<rlc_am_base_tx>(new rlc_am_lte_tx(this));
+    rx_base = std::unique_ptr<rlc_am_base_rx>(new rlc_am_lte_rx(this));
+  } else if (rat == srsran_rat_t::nr) {
+    tx_base = std::unique_ptr<rlc_am_base_tx>(new rlc_am_nr_tx(this));
+    rx_base = std::unique_ptr<rlc_am_base_rx>(new rlc_am_nr_rx(this));
+  } else {
+    logger.error("Invalid RAT at entity initialization");
+  }
+}
 bool rlc_am::configure(const rlc_config_t& cfg_)
 {
   // determine bearer name and configure Rx/Tx objects

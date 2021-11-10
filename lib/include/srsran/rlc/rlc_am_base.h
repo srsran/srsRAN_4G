@@ -43,20 +43,21 @@ bool rlc_am_is_control_pdu(byte_buffer_t* pdu);
  *******************************************************/
 class rlc_am : public rlc_common
 {
-protected:
+public:
   class rlc_am_base_tx;
   class rlc_am_base_rx;
 
-public:
-  rlc_am(srslog::basic_logger&      logger,
+  friend class rlc_am_lte_tx;
+  friend class rlc_am_lte_rx;
+  friend class rlc_am_nr_tx;
+  friend class rlc_am_nr_rx;
+
+  rlc_am(srsran_rat_t               rat,
+         srslog::basic_logger&      logger,
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         srsran::timer_handler*     timers_,
-         rlc_am_base_tx*            tx_base_,
-         rlc_am_base_rx*            rx_base_) :
-    logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx_base(tx_base_), rx_base(rx_base_)
-  {}
+         srsran::timer_handler*     timers_);
 
   bool configure(const rlc_config_t& cfg_) final;
 
@@ -122,6 +123,7 @@ protected:
    *     This class is used for common code between the
    *     LTE and NR TX entitites
    *******************************************************/
+public:
   class rlc_am_base_tx
   {
   public:
@@ -181,6 +183,7 @@ protected:
     rlc_am*               parent = nullptr;
   };
 
+protected:
   std::unique_ptr<rlc_am_base_tx> tx_base = {};
   std::unique_ptr<rlc_am_base_rx> rx_base = {};
 };

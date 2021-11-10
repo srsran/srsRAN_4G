@@ -85,201 +85,191 @@ private:
  * RLC AM LTE entity
  *
  *****************************/
-class rlc_am_lte : public rlc_am
+
+/******************************
+ * RLC AM LTE TX entity
+ *****************************/
+class rlc_am_lte_tx;
+class rlc_am_lte_rx;
+class rlc_am_lte_tx : public rlc_am::rlc_am_base_tx, timer_callback
 {
 public:
-  rlc_am_lte(srslog::basic_logger&      logger,
-             uint32_t                   lcid_,
-             srsue::pdcp_interface_rlc* pdcp_,
-             srsue::rrc_interface_rlc*  rrc_,
-             srsran::timer_handler*     timers_);
+  explicit rlc_am_lte_tx(rlc_am* parent_);
+  ~rlc_am_lte_tx() = default;
 
-  class rlc_am_lte_tx;
-  class rlc_am_lte_rx;
+  bool configure(const rlc_config_t& cfg_);
+  void empty_queue();
+  void reestablish();
+  void stop();
 
-  /******************************
-   * RLC AM LTE TX entity
-   *****************************/
-  class rlc_am_lte_tx : public rlc_am_base_tx, timer_callback
-  {
-  public:
-    explicit rlc_am_lte_tx(rlc_am_lte* parent_);
-    ~rlc_am_lte_tx() = default;
+  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
+  void     discard_sdu(uint32_t discard_sn);
+  bool     sdu_queue_is_full();
 
-    bool configure(const rlc_config_t& cfg_);
-    void empty_queue();
-    void reestablish();
-    void stop();
+  bool     has_data();
+  uint32_t get_buffer_state();
+  void     get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio);
 
-    uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void     discard_sdu(uint32_t discard_sn);
-    bool     sdu_queue_is_full();
+  void empty_queue_nolock();
+  void debug_state();
 
-    bool     has_data();
-    uint32_t get_buffer_state();
-    void     get_buffer_state(uint32_t& n_bytes_newtx, uint32_t& n_bytes_prio);
+  // Timeout callback interface
+  void timer_expired(uint32_t timeout_id) final;
 
-    void empty_queue_nolock();
-    void debug_state();
+  // Interface for Rx subclass
+  void handle_control_pdu(uint8_t* payload, uint32_t nof_bytes);
 
-    // Timeout callback interface
-    void timer_expired(uint32_t timeout_id) final;
+private:
+  void stop_nolock();
 
-    // Interface for Rx subclass
-    void handle_control_pdu(uint8_t* payload, uint32_t nof_bytes);
+  int  build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
+  int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
+  int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
+  int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
+  void update_notification_ack_info(uint32_t rlc_sn);
 
-  private:
-    void stop_nolock();
+  int  required_buffer_size(const rlc_amd_retx_t& retx);
+  void retransmit_pdu(uint32_t sn);
 
-    int  build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
-    int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-    int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
-    int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void update_notification_ack_info(uint32_t rlc_sn);
+  // Helpers
+  bool poll_required();
+  bool do_status();
+  void check_sn_reached_max_retx(uint32_t sn);
+  void get_buffer_state_nolock(uint32_t& new_tx, uint32_t& prio_tx);
 
-    int  required_buffer_size(const rlc_amd_retx_t& retx);
-    void retransmit_pdu(uint32_t sn);
+  rlc_am*                                       parent = nullptr;
+  rlc_am_lte_rx*                                rx     = nullptr;
+  byte_buffer_pool*                             pool   = nullptr;
+  rlc_am_pdu_segment_pool<rlc_amd_pdu_header_t> segment_pool;
 
-    // Helpers
-    bool poll_required();
-    bool do_status();
-    void check_sn_reached_max_retx(uint32_t sn);
-    void get_buffer_state_nolock(uint32_t& new_tx, uint32_t& prio_tx);
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
 
-    rlc_am_lte*                                   parent = nullptr;
-    rlc_am_lte_rx*                                rx     = nullptr;
-    byte_buffer_pool*                             pool   = nullptr;
-    rlc_am_pdu_segment_pool<rlc_amd_pdu_header_t> segment_pool;
+  rlc_am_config_t cfg = {};
 
-    /****************************************************************************
-     * Configurable parameters
-     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-     ***************************************************************************/
+  // TX SDU buffers
+  unique_byte_buffer_t tx_sdu;
 
-    rlc_am_config_t cfg = {};
+  /****************************************************************************
+   * State variables and counters
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
 
-    // TX SDU buffers
-    unique_byte_buffer_t tx_sdu;
+  // Tx state variables
+  uint32_t vt_a    = 0;                  // ACK state. SN of next PDU in sequence to be ACKed. Low edge of tx window.
+  uint32_t vt_ms   = RLC_AM_WINDOW_SIZE; // Max send state. High edge of tx window. vt_a + window_size.
+  uint32_t vt_s    = 0;                  // Send state. SN to be assigned for next PDU.
+  uint32_t poll_sn = 0;                  // Poll send state. SN of most recent PDU txed with poll bit set.
 
-    /****************************************************************************
-     * State variables and counters
-     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-     ***************************************************************************/
+  // Tx counters
+  uint32_t pdu_without_poll  = 0;
+  uint32_t byte_without_poll = 0;
 
-    // Tx state variables
-    uint32_t vt_a    = 0;                  // ACK state. SN of next PDU in sequence to be ACKed. Low edge of tx window.
-    uint32_t vt_ms   = RLC_AM_WINDOW_SIZE; // Max send state. High edge of tx window. vt_a + window_size.
-    uint32_t vt_s    = 0;                  // Send state. SN to be assigned for next PDU.
-    uint32_t poll_sn = 0;                  // Poll send state. SN of most recent PDU txed with poll bit set.
+  rlc_status_pdu_t tx_status;
 
-    // Tx counters
-    uint32_t pdu_without_poll  = 0;
-    uint32_t byte_without_poll = 0;
+  /****************************************************************************
+   * Timers
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
 
-    rlc_status_pdu_t tx_status;
+  srsran::timer_handler::unique_timer poll_retx_timer;
+  srsran::timer_handler::unique_timer status_prohibit_timer;
 
-    /****************************************************************************
-     * Timers
-     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-     ***************************************************************************/
+  // SDU info for PDCP notifications
+  buffered_pdcp_pdu_list<rlc_amd_pdu_header_t> undelivered_sdu_info_queue;
 
-    srsran::timer_handler::unique_timer poll_retx_timer;
-    srsran::timer_handler::unique_timer status_prohibit_timer;
+  // Tx windows
+  rlc_ringbuffer_t<rlc_amd_tx_pdu<rlc_amd_pdu_header_t>, RLC_AM_WINDOW_SIZE> tx_window;
+  pdu_retx_queue                                                             retx_queue;
+  pdcp_sn_vector_t                                                           notify_info_vec;
 
-    // SDU info for PDCP notifications
-    buffered_pdcp_pdu_list<rlc_amd_pdu_header_t> undelivered_sdu_info_queue;
+  // Mutexes
+  std::mutex mutex;
 
-    // Tx windows
-    rlc_ringbuffer_t<rlc_amd_tx_pdu<rlc_amd_pdu_header_t>, RLC_AM_WINDOW_SIZE> tx_window;
-    pdu_retx_queue                                                             retx_queue;
-    pdcp_sn_vector_t                                                           notify_info_vec;
+  // default to RLC SDU queue length
+  const uint32_t MAX_SDUS_PER_RLC_PDU = RLC_TX_QUEUE_LEN;
+};
 
-    // Mutexes
-    std::mutex mutex;
+/******************************
+ * RLC AM LTE RX entity
+ *****************************/
+class rlc_am_lte_rx : public rlc_am::rlc_am_base_rx, public timer_callback
+{
+public:
+  rlc_am_lte_rx(rlc_am* parent_);
+  ~rlc_am_lte_rx();
 
-    // default to RLC SDU queue length
-    const uint32_t MAX_SDUS_PER_RLC_PDU = RLC_TX_QUEUE_LEN;
-  };
+  bool configure(const rlc_config_t& cfg_) final;
+  void reestablish() final;
+  void stop() final;
 
-  /******************************
-   * RLC AM LTE RX entity
-   *****************************/
-  class rlc_am_lte_rx : public rlc_am_base_rx, public timer_callback
-  {
-  public:
-    rlc_am_lte_rx(rlc_am_lte* parent_);
-    ~rlc_am_lte_rx();
+  uint32_t get_rx_buffered_bytes() final; // returns sum of PDUs in rx_window
+  uint32_t get_sdu_rx_latency_ms() final;
 
-    bool configure(const rlc_config_t& cfg_) final;
-    void reestablish() final;
-    void stop() final;
+  // Timeout callback interface
+  void timer_expired(uint32_t timeout_id) final;
 
-    uint32_t get_rx_buffered_bytes() final; // returns sum of PDUs in rx_window
-    uint32_t get_sdu_rx_latency_ms() final;
+  // Functions needed by Tx subclass to query rx state
+  int  get_status_pdu_length();
+  int  get_status_pdu(rlc_status_pdu_t* status, uint32_t nof_bytes);
+  bool get_do_status();
 
-    // Timeout callback interface
-    void timer_expired(uint32_t timeout_id) final;
+private:
+  void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+  void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
+  void handle_data_pdu_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
+  void reassemble_rx_sdus();
+  bool inside_rx_window(const int16_t sn);
+  void debug_state();
+  void print_rx_segments();
+  bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu* segment);
+  void reset_status();
 
-    // Functions needed by Tx subclass to query rx state
-    int  get_status_pdu_length();
-    int  get_status_pdu(rlc_status_pdu_t* status, uint32_t nof_bytes);
-    bool get_do_status();
+  rlc_am*           parent = nullptr;
+  rlc_am_lte_tx*    tx     = nullptr;
+  byte_buffer_pool* pool   = nullptr;
 
-  private:
-    void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
-    void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
-    void handle_data_pdu_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
-    void reassemble_rx_sdus();
-    bool inside_rx_window(const int16_t sn);
-    void debug_state();
-    void print_rx_segments();
-    bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu* segment);
-    void reset_status();
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
+  rlc_am_config_t cfg = {};
 
-    rlc_am_lte*       parent = nullptr;
-    rlc_am_lte_tx*    tx     = nullptr;
-    byte_buffer_pool* pool   = nullptr;
+  // RX SDU buffers
+  unique_byte_buffer_t rx_sdu;
 
-    /****************************************************************************
-     * Configurable parameters
-     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-     ***************************************************************************/
-    rlc_am_config_t cfg = {};
+  /****************************************************************************
+   * State variables and counters
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
 
-    // RX SDU buffers
-    unique_byte_buffer_t rx_sdu;
+  // Rx state variables
+  uint32_t vr_r  = 0; // Receive state. SN following last in-sequence received PDU. Low edge of rx window
+  uint32_t vr_mr = RLC_AM_WINDOW_SIZE; // Max acceptable receive state. High edge of rx window. vr_r + window size.
+  uint32_t vr_x  = 0;                  // t_reordering state. SN following PDU which triggered t_reordering.
+  uint32_t vr_ms = 0;                  // Max status tx state. Highest possible value of SN for ACK_SN in status PDU.
+  uint32_t vr_h  = 0;                  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
 
-    /****************************************************************************
-     * State variables and counters
-     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-     ***************************************************************************/
+  // Mutex to protect members
+  std::mutex mutex;
 
-    // Rx state variables
-    uint32_t vr_r  = 0; // Receive state. SN following last in-sequence received PDU. Low edge of rx window
-    uint32_t vr_mr = RLC_AM_WINDOW_SIZE; // Max acceptable receive state. High edge of rx window. vr_r + window size.
-    uint32_t vr_x  = 0;                  // t_reordering state. SN following PDU which triggered t_reordering.
-    uint32_t vr_ms = 0;                  // Max status tx state. Highest possible value of SN for ACK_SN in status PDU.
-    uint32_t vr_h  = 0;                  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
+  // Rx windows
+  rlc_ringbuffer_t<rlc_amd_rx_pdu, RLC_AM_WINDOW_SIZE> rx_window;
+  std::map<uint32_t, rlc_amd_rx_pdu_segments_t>        rx_segments;
 
-    // Mutex to protect members
-    std::mutex mutex;
+  bool              poll_received = false;
+  std::atomic<bool> do_status     = {false}; // light-weight access from Tx entity
 
-    // Rx windows
-    rlc_ringbuffer_t<rlc_amd_rx_pdu, RLC_AM_WINDOW_SIZE> rx_window;
-    std::map<uint32_t, rlc_amd_rx_pdu_segments_t>        rx_segments;
+  /****************************************************************************
+   * Timers
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
 
-    bool              poll_received = false;
-    std::atomic<bool> do_status     = {false}; // light-weight access from Tx entity
+  srsran::timer_handler::unique_timer reordering_timer;
 
-    /****************************************************************************
-     * Timers
-     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-     ***************************************************************************/
-
-    srsran::timer_handler::unique_timer reordering_timer;
-
-    srsran::rolling_average<double> sdu_rx_latency_ms;
-  };
+  srsran::rolling_average<double> sdu_rx_latency_ms;
 };
 
 } // namespace srsran

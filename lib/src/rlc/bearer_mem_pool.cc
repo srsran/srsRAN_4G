@@ -24,9 +24,8 @@ srsran::background_mem_pool* get_bearer_pool()
 {
   static background_mem_pool pool(
       4,
-      std::max(
-          std::max(std::max(std::max(sizeof(rlc_am_lte), sizeof(rlc_am_nr)), sizeof(rlc_um_lte)), sizeof(rlc_um_nr)),
-          sizeof(rlc_tm)),
+      std::max(std::max(std::max(std::max(sizeof(rlc_am), sizeof(rlc_am)), sizeof(rlc_um_lte)), sizeof(rlc_um_nr)),
+               sizeof(rlc_tm)),
       8,
       8);
   return &pool;

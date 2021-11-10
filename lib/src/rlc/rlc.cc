@@ -396,7 +396,7 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     case rlc_mode_t::am:
       switch (cnfg.rat) {
         case srsran_rat_t::lte:
-          rlc_entity = std::unique_ptr<rlc_common>(new rlc_am_lte(logger, lcid, pdcp, rrc, timers));
+          rlc_entity = std::unique_ptr<rlc_common>(new rlc_am(cnfg.rat, logger, lcid, pdcp, rrc, timers));
           break;
         default:
           logger.error("AM not supported for this RAT");
