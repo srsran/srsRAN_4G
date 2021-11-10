@@ -10,10 +10,16 @@
  *
  */
 
+#ifdef __cplusplus
+extern "C" {
 #include "srsran/phy/io/filesource.h"
 #include "srsran/phy/phch/ra_nr.h"
 #include "srsran/phy/ue/ue_dl_nr.h"
 #include "srsran/phy/utils/debug.h"
+}
+#endif // __cplusplus
+
+#include "srsran/common/band_helper.h"
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier = SRSRAN_DEFAULT_CARRIER_NR;
@@ -25,15 +31,21 @@ static uint16_t               rnti         = 0x1234;
 static srsran_rnti_type_t     rnti_type    = srsran_rnti_type_c;
 static srsran_slot_cfg_t      slot_cfg     = {};
 
-static srsran_softbuffer_rx_t softbuffer = {};
-static uint8_t*               data       = NULL;
+static srsran_filesource_t    filesource               = {};
+static srsran_ue_dl_nr_t      ue_dl                    = {};
+static cf_t*                  buffer[SRSRAN_MAX_PORTS] = {};
+static srsran_softbuffer_rx_t softbuffer               = {};
+static uint8_t*               data                     = NULL;
 
-static uint32_t                   coreset0_idx      = 0; // if ss_type=si coreset0 is used and this is the index
-static uint32_t                   coreset_offset_rb = 0;
+static uint32_t coreset0_idx      = 0; // if ss_type=si coreset0 is used and this is the index
+static uint32_t coreset_offset_rb = 0;
 
-static uint32_t                   coreset_n_rb      = 48;
-static uint32_t                   coreset_len       = 1;
-static srsran_search_space_type_t ss_type           = srsran_search_space_type_common_0;
+static uint32_t dl_arfcn  = 161200; // center of the NR carrier (default at 806e6 Hz)
+static uint32_t ssb_arfcn = 161290; // center of the SSB within the carrier (default at 806.45e6)
+
+static uint32_t                   coreset_n_rb = 48;
+static uint32_t                   coreset_len  = 1;
+static srsran_search_space_type_t ss_type      = srsran_search_space_type_common_0;
 
 static void usage(char* prog)
 {
@@ -49,6 +61,10 @@ static void usage(char* prog)
   printf("\t-o Coreset RB offset [Default %d]\n", coreset_offset_rb);
   printf("\t-N Coreset N_RB [Default %d]\n", coreset_n_rb);
   printf("\t-l Coreset duration in symbols [Default %d]\n", coreset_len);
+
+  printf("\t-A ARFCN of the NR carrier (center) [Default %d]\n", dl_arfcn);
+  printf("\t-a center of the SSB within the carrier [Default %d]\n", ssb_arfcn);
+
   printf("\t-S Use standard rates [Default %s]\n", srsran_symbol_size_is_standard() ? "yes" : "no");
 
   printf("\t-v [set srsran_verbose to debug, default none]\n");
@@ -57,7 +73,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "fPivnSRTscoNl")) != -1) {
+  while ((opt = getopt(argc, argv, "fPivnSRTscoNlAa")) != -1) {
     switch (opt) {
       case 'f':
         filename = argv[optind];
@@ -112,6 +128,12 @@ static int parse_args(int argc, char** argv)
         break;
       case 'l':
         coreset_len = (uint16_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'A':
+        dl_arfcn = (uint16_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'a':
+        ssb_arfcn = (uint16_t)strtol(argv[optind], NULL, 10);
         break;
       case 'S':
         srsran_use_standard_symbol_size(true);
@@ -195,34 +217,47 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
   return SRSRAN_SUCCESS;
 }
 
+// helper to avoid goto in C++
+int clean_exit(int ret)
+{
+  if (buffer[0] != NULL) {
+    free(buffer[0]);
+  }
+  if (data != NULL) {
+    free(data);
+  }
+  srsran_ue_dl_nr_free(&ue_dl);
+  srsran_filesource_free(&filesource);
+  srsran_softbuffer_rx_free(&softbuffer);
+  return ret;
+}
+
 int main(int argc, char** argv)
 {
-  int               ret                      = SRSRAN_ERROR;
-  srsran_ue_dl_nr_t ue_dl                    = {};
-  cf_t*             buffer[SRSRAN_MAX_PORTS] = {};
+  int ret = SRSRAN_ERROR;
 
   // parse args
   if (parse_args(argc, argv) < SRSRAN_SUCCESS) {
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   uint32_t sf_len = SRSRAN_SF_LEN_PRB(carrier.nof_prb);
   buffer[0]       = srsran_vec_cf_malloc(sf_len);
   if (buffer[0] == NULL) {
     ERROR("Error malloc");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   if (srsran_softbuffer_rx_init_guru(&softbuffer, SRSRAN_SCH_NR_MAX_NOF_CB_LDPC, SRSRAN_LDPC_MAX_LEN_ENCODED_CB) <
       SRSRAN_SUCCESS) {
     ERROR("Error init soft-buffer");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   data = srsran_vec_u8_malloc(SRSRAN_SLOT_MAX_NOF_BITS_NR);
   if (data == NULL) {
     ERROR("Error malloc");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   // Set default PDSCH configuration
@@ -238,14 +273,13 @@ int main(int argc, char** argv)
   // Check for filename
   if (filename == NULL) {
     ERROR("Filename was not provided");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   // Open filesource
-  srsran_filesource_t filesource = {};
   if (srsran_filesource_init(&filesource, filename, SRSRAN_COMPLEX_FLOAT_BIN) < SRSRAN_SUCCESS) {
     ERROR("Error opening filesource");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   srsran_coreset_t* coreset = NULL;
@@ -256,21 +290,28 @@ int main(int argc, char** argv)
     coreset                      = &pdcch_cfg.coreset[0];
     pdcch_cfg.coreset_present[0] = true;
 
-    srsran_subcarrier_spacing_t ssb_scs   = srsran_subcarrier_spacing_15kHz;
-    srsran_subcarrier_spacing_t pdcch_scs = srsran_subcarrier_spacing_15kHz;
+    // derive absolute frequencies from ARFCNs
+    srsran::srsran_band_helper band_helper;
+    carrier.ssb_center_freq_hz     = band_helper.nr_arfcn_to_freq(ssb_arfcn);
+    carrier.dl_center_frequency_hz = band_helper.nr_arfcn_to_freq(dl_arfcn);
 
-    uint32_t ssb_pointA_freq_offset_Hz = 0;
+    // Get pointA and SSB absolute frequencies
+    double pointA_abs_freq_Hz =
+        carrier.dl_center_frequency_hz - carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(carrier.scs) / 2;
+    double ssb_abs_freq_Hz = carrier.ssb_center_freq_hz;
+    // Calculate integer SSB to pointA frequency offset in Hz
+    uint32_t ssb_pointA_freq_offset_Hz =
+        (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
 
-    if (srsran_coreset_zero(carrier.pci, ssb_pointA_freq_offset_Hz, ssb_scs, pdcch_scs, coreset0_idx, coreset) !=
+    // derive coreset0 parameters
+    if (srsran_coreset_zero(carrier.pci, ssb_pointA_freq_offset_Hz, carrier.scs, carrier.scs, coreset0_idx, coreset) !=
         SRSRAN_SUCCESS) {
       printf("Not possible to create CORESET Zero (ssb_scs=%s, pdcch_scs=%s, idx=%d)",
-             srsran_subcarrier_spacing_to_str(ssb_scs),
-             srsran_subcarrier_spacing_to_str(pdcch_scs),
+             srsran_subcarrier_spacing_to_str(carrier.scs),
+             srsran_subcarrier_spacing_to_str(carrier.scs),
              coreset0_idx);
-      return false;
+      return clean_exit(ret);
     }
-    // FIXME: use ssb_pointA_freq_offset_Hz and let srsran_coreset_zero() calculate this
-    coreset->offset_rb = coreset_offset_rb;
   } else {
     // configure to use coreset1
     coreset                      = &pdcch_cfg.coreset[1];
@@ -288,7 +329,6 @@ int main(int argc, char** argv)
   search_space->id                    = 0;
   search_space->coreset_id            = (rnti_type == srsran_rnti_type_si) ? 0 : 1;
   search_space->type                  = ss_type;
-  // search_space->duration              = coreset->duration;
   search_space->formats[0]            = srsran_dci_format_nr_0_0;
   search_space->formats[1]            = srsran_dci_format_nr_1_0;
   search_space->nof_formats           = 2;
@@ -303,18 +343,18 @@ int main(int argc, char** argv)
 
   if (srsran_ue_dl_nr_init(&ue_dl, buffer, &ue_dl_args)) {
     ERROR("Error UE DL");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   if (srsran_ue_dl_nr_set_carrier(&ue_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   // Read baseband from file
   if (srsran_filesource_read(&filesource, buffer[0], (int)ue_dl.fft->sf_sz) < SRSRAN_SUCCESS) {
     ERROR("Error reading baseband");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   srsran_dci_cfg_nr_t dci_cfg = {};
@@ -323,22 +363,12 @@ int main(int argc, char** argv)
   dci_cfg.monitor_common_0_0  = true;
   if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &pdcch_cfg, &dci_cfg)) {
     ERROR("Error setting CORESET");
-    goto clean_exit;
+    return clean_exit(ret);
   }
 
   // Actual decode
   ret = work_ue_dl(&ue_dl, &slot_cfg);
 
-clean_exit:
-  if (buffer[0] != NULL) {
-    free(buffer[0]);
-  }
-  if (data != NULL) {
-    free(data);
-  }
-  srsran_ue_dl_nr_free(&ue_dl);
-  srsran_filesource_free(&filesource);
-  srsran_softbuffer_rx_free(&softbuffer);
-
-  return ret;
+  // free memory and return last value of ret
+  return clean_exit(ret);
 }
