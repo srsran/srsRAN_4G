@@ -564,6 +564,10 @@ bool s1ap::handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu,
       logger.info("SCTP peer addres unreachable. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
       restart_s1 = true;
+    } else if (notification->sn_header.sn_type == SCTP_REMOTE_ERROR) {
+      logger.info("SCTP remote error. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP remote error. Association: %d\n", sri.sinfo_assoc_id);
+      restart_s1 = true;
     } else if (notification->sn_header.sn_type == SCTP_ASSOC_CHANGE) {
       logger.info("SCTP association changed. Association: %d", sri.sinfo_assoc_id);
       srsran::console("SCTP association changed. Association: %d\n", sri.sinfo_assoc_id);
