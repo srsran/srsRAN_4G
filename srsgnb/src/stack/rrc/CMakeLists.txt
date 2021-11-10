@@ -6,7 +6,7 @@
 # the distribution.
 #
 
-set(SOURCES rrc_nr.cc cell_asn1_config.cc)
+set(SOURCES rrc_nr.cc rrc_nr_ue.cc cell_asn1_config.cc)
 add_library(srsgnb_rrc STATIC ${SOURCES})
 target_link_libraries(srsgnb_rrc srsran_rrc_nr)
 
