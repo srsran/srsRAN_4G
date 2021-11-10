@@ -27,13 +27,8 @@ rlc_am_nr::rlc_am_nr(srslog::basic_logger&      logger,
                      srsue::pdcp_interface_rlc* pdcp_,
                      srsue::rrc_interface_rlc*  rrc_,
                      srsran::timer_handler*     timers_) :
-  rlc_am_base(logger, lcid_, pdcp_, rrc_, timers_, nullptr, nullptr)
-{
-  tx      = new rlc_am_nr::rlc_am_nr_tx(this);
-  rx      = new rlc_am_nr::rlc_am_nr_rx(this);
-  tx_base = tx;
-  rx_base = rx;
-}
+  rlc_am_base(logger, lcid_, pdcp_, rrc_, timers_, new rlc_am_nr::rlc_am_nr_tx(this), new rlc_am_nr::rlc_am_nr_rx(this))
+{}
 
 /***************************************************************************
  *  Tx subclass implementation

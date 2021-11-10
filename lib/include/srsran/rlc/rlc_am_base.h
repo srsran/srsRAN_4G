@@ -53,9 +53,9 @@ public:
               srsue::pdcp_interface_rlc* pdcp_,
               srsue::rrc_interface_rlc*  rrc_,
               srsran::timer_handler*     timers_,
-              rlc_am_base_tx*            tx_,
-              rlc_am_base_rx*            rx_) :
-    logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx_base(tx_), rx_base(rx_)
+              rlc_am_base_tx*            tx_base_,
+              rlc_am_base_rx*            rx_base_) :
+    logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx_base(tx_base_), rx_base(rx_base_)
   {}
 
   bool configure(const rlc_config_t& cfg_) final;
@@ -181,8 +181,8 @@ protected:
     rlc_am_base*          parent = nullptr;
   };
 
-  rlc_am_base_tx* tx_base = nullptr;
-  rlc_am_base_rx* rx_base = nullptr;
+  std::unique_ptr<rlc_am_base_tx> tx_base = {};
+  std::unique_ptr<rlc_am_base_rx> rx_base = {};
 };
 
 } // namespace srsran

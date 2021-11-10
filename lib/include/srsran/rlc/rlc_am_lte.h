@@ -94,6 +94,9 @@ public:
              srsue::rrc_interface_rlc*  rrc_,
              srsran::timer_handler*     timers_);
 
+  class rlc_am_lte_tx;
+  class rlc_am_lte_rx;
+
   /******************************
    * RLC AM LTE TX entity
    *****************************/
@@ -144,6 +147,7 @@ public:
     void get_buffer_state_nolock(uint32_t& new_tx, uint32_t& prio_tx);
 
     rlc_am_lte*                                   parent = nullptr;
+    rlc_am_lte_rx*                                rx     = nullptr;
     byte_buffer_pool*                             pool   = nullptr;
     rlc_am_pdu_segment_pool<rlc_amd_pdu_header_t> segment_pool;
 
@@ -233,6 +237,7 @@ public:
     void reset_status();
 
     rlc_am_lte*       parent = nullptr;
+    rlc_am_lte_tx*    tx     = nullptr;
     byte_buffer_pool* pool   = nullptr;
 
     /****************************************************************************
@@ -275,10 +280,6 @@ public:
 
     srsran::rolling_average<double> sdu_rx_latency_ms;
   };
-
-private:
-  rlc_am_lte_tx* tx = nullptr;
-  rlc_am_lte_rx* rx = nullptr;
 };
 
 } // namespace srsran

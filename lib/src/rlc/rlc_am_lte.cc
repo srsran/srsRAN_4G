@@ -37,18 +37,20 @@ rlc_am_lte::rlc_am_lte(srslog::basic_logger&      logger,
                        srsue::pdcp_interface_rlc* pdcp_,
                        srsue::rrc_interface_rlc*  rrc_,
                        srsran::timer_handler*     timers_) :
-  rlc_am_base(logger, lcid_, pdcp_, rrc_, timers_, nullptr, nullptr)
-{
-  tx      = new rlc_am_lte::rlc_am_lte_tx(this);
-  rx      = new rlc_am_lte::rlc_am_lte_rx(this);
-  tx_base = tx;
-  rx_base = rx;
-}
+  rlc_am_base(logger,
+              lcid_,
+              pdcp_,
+              rrc_,
+              timers_,
+              new rlc_am_lte::rlc_am_lte_tx(this),
+              new rlc_am_lte::rlc_am_lte_rx(this))
+{}
 /****************************************************************************
  * Tx subclass implementation
  ***************************************************************************/
 rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   parent(parent_),
+  rx(dynamic_cast<rlc_am_lte_rx*>(parent->rx_base.get())),
   pool(byte_buffer_pool::get_instance()),
   poll_retx_timer(parent_->timers->get_unique_timer()),
   status_prohibit_timer(parent_->timers->get_unique_timer()),
@@ -160,7 +162,7 @@ void rlc_am_lte::rlc_am_lte_tx::reestablish()
 
 bool rlc_am_lte::rlc_am_lte_tx::do_status()
 {
-  return parent->rx->get_do_status();
+  return rx->get_do_status();
 }
 
 // Function is supposed to return as fast as possible
@@ -225,7 +227,7 @@ void rlc_am_lte::rlc_am_lte_tx::get_buffer_state_nolock(uint32_t& n_bytes_newtx,
 
   // Bytes needed for status report
   if (do_status() && not status_prohibit_timer.is_running()) {
-    n_bytes_prio += parent->rx->get_status_pdu_length();
+    n_bytes_prio += rx->get_status_pdu_length();
     logger->debug("%s Buffer state - total status report: %d bytes", RB_NAME, n_bytes_prio);
   }
 
@@ -437,7 +439,7 @@ bool rlc_am_lte::rlc_am_lte_tx::poll_required()
 int rlc_am_lte::rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   logger->debug("%s Generating status PDU. Nof bytes %d", RB_NAME, nof_bytes);
-  int pdu_len = parent->rx->get_status_pdu(&tx_status, nof_bytes);
+  int pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
     logger->debug("%s Deferred Status PDU. Cause: Failed to acquire Rx lock", RB_NAME);
     pdu_len = 0;
