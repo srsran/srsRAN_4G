@@ -126,14 +126,29 @@ public:
 
   /**
    * @brief Compute the absolute frequency of the SSB for a DL ARFCN and a band. This selects an SSB center frequency
+   * following the band SS/PBCH frequency raster provided by TS38.104 table 5.4.3.1-1, which is the upper bound
+   * of the provided center frequency
+   *
+   * @param scs ssb subcarrier spacing.
+   * @param min_center_freq_hz center frequency above which the SSB absolute frequency must be.
+   * @return absolute frequency of the SSB in arfcn notation.
+   */
+  uint32_t find_lower_bound_abs_freq_ssb(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t min_center_freq_hz);
+
+  /**
+   * @brief Compute the absolute frequency of the SSB for a DL ARFCN and a band. This finds an SSB center frequency
    * following the band SS/PBCH frequency raster provided by TS38.104 table 5.4.3.1-1 as close as possible to PointA
-   * without letting any SS/PBCH subcarrier below PointA
+   * without letting any SS/PBCH subcarrier and CORESET#0 subcarrier (if RB offset is defined) below PointA
    *
    * @param scs ssb subcarrier spacing.
    * @param freq_point_a_arfcn frequency point a in arfcn notation.
+   * @param coreset0_offset_rb CORESET#0 RB offset. See TS 38.213, Table 13-1,2,3
    * @return absolute frequency of the SSB in arfcn notation.
    */
-  uint32_t get_abs_freq_ssb_arfcn(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t freq_point_a_arfcn);
+  uint32_t get_abs_freq_ssb_arfcn(uint16_t                    band,
+                                  srsran_subcarrier_spacing_t scs,
+                                  uint32_t                    freq_point_a_arfcn,
+                                  uint32_t                    coreset0_offset_rb = 0);
 
   /**
    * @brief Compute SSB center frequency for NR carrier

@@ -1161,6 +1161,21 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
     return SRSRAN_ERROR;
   }
 
+  // update number of NR cells
+  rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.size();
+  args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_nr_cfg_->cell_list.size();
+  ASSERT_VALID_CFG(args_->rf.nof_carriers > 0, "There must be at least one NR or LTE cell");
+  if (rrc_nr_cfg_->cell_list.size() > 0) {
+    // NR cells available.
+    if (rrc_cfg_->cell_list.size() == 0) {
+      // SA mode.
+      rrc_nr_cfg_->is_standalone = true;
+    } else {
+      // NSA mode.
+      rrc_nr_cfg_->is_standalone = false;
+    }
+  }
+
   // Set fields derived from others, and check for correctness of the parsed configuration
   if (enb_conf_sections::set_derived_args(args_, rrc_cfg_, phy_cfg_, cell_common_cfg) != SRSRAN_SUCCESS) {
     fprintf(stderr, "Error deriving EUTRA cell parameters\n");
@@ -1174,20 +1189,15 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   }
 
   // update number of NR cells
-  rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.size();
-  args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_nr_cfg_->cell_list.size();
-  ASSERT_VALID_CFG(args_->rf.nof_carriers > 0, "There must be at least one NR or LTE cell");
   if (rrc_nr_cfg_->cell_list.size() > 0) {
     // NR cells available.
-    if (rrc_cfg_->cell_list.size() == 0) {
+    if (rrc_nr_cfg_->is_standalone) {
       // SA mode. Update NGAP args
-      rrc_nr_cfg_->is_standalone   = true;
       args_->nr_stack.ngap.gnb_id  = args_->enb.enb_id;
       args_->nr_stack.ngap.cell_id = rrc_nr_cfg_->cell_list[0].phy_cell.cell_id;
       args_->nr_stack.ngap.tac     = rrc_nr_cfg_->cell_list[0].tac;
     } else {
       // NSA mode.
-      rrc_nr_cfg_->is_standalone = false;
       // update EUTRA RRC params for ENDC
       rrc_cfg_->endc_cfg.abs_frequency_ssb = rrc_nr_cfg_->cell_list.at(0).ssb_absolute_freq_point;
       rrc_cfg_->endc_cfg.nr_band           = rrc_nr_cfg_->cell_list.at(0).band;
@@ -1633,8 +1643,19 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     }
 
     // fill remaining SSB fields
+    uint32_t coreset0_rb_offset = 0;
+    if (rrc_nr_cfg_->is_standalone) {
+      // Taken from TS 38.213, Table 13-1
+      if (cfg.phy_cell.carrier.nof_prb > 96) {
+        coreset0_rb_offset = 96;
+      } else if (cfg.phy_cell.carrier.nof_prb > 48) {
+        coreset0_rb_offset = 16;
+      } else {
+        coreset0_rb_offset = 4;
+      }
+    }
     cfg.ssb_absolute_freq_point =
-        band_helper.get_abs_freq_ssb_arfcn(cfg.band, cfg.ssb_cfg.scs, cfg.dl_absolute_freq_point_a);
+        band_helper.get_abs_freq_ssb_arfcn(cfg.band, cfg.ssb_cfg.scs, cfg.dl_absolute_freq_point_a, coreset0_rb_offset);
     if (cfg.ssb_absolute_freq_point == 0) {
       ERROR("Can't derive SSB freq point for dl_arfcn %d and band %d", cfg.dl_arfcn, cfg.band);
       return SRSRAN_ERROR;
