@@ -214,6 +214,19 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
   printf("Decoded PDSCH (%d B)\n", pdsch_cfg.grant.tb[0].tbs / 8);
   srsran_vec_fprint_byte(stdout, pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8);
 
+  // check payload is not all null
+  bool all_zero = true;
+  for (uint32_t i = 0; i < pdsch_cfg.grant.tb[0].tbs / 8; ++i) {
+    if (pdsch_res.tb[0].payload[i] != 0x0) {
+      all_zero = false;
+      break;
+    }
+  }
+  if (all_zero) {
+    ERROR("PDSCH payload is all zeros");
+    return SRSRAN_ERROR;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
