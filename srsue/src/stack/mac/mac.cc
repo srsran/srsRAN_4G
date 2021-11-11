@@ -362,7 +362,10 @@ void mac::mch_decoded(uint32_t len, bool crc)
 
 void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSRAN_MAX_CODEWORDS])
 {
-  if (SRSRAN_RNTI_ISRAR(grant.rnti)) {
+  if (grant.is_pdcch_order) {
+    ra_procedure.set_config_ded(grant.preamble_idx, grant.prach_mask_idx);
+    ra_procedure.start_pdcch_order();
+  } else if (SRSRAN_RNTI_ISRAR(grant.rnti)) {
     if (ack[0]) {
       ra_procedure.tb_decoded_ok(cc_idx, grant.tti);
     }

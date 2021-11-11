@@ -36,6 +36,9 @@ public:
     uint32_t pid;
     uint16_t rnti;
     bool     is_sps_release;
+    bool     is_pdcch_order;
+    uint32_t preamble_idx;
+    uint32_t prach_mask_idx;
     uint32_t tti;
   } mac_grant_dl_t;
 
