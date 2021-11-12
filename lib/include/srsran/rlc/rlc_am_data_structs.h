@@ -22,13 +22,13 @@
 
 namespace srsran {
 
-template <typename header_t>
+template <typename HeaderType>
 class rlc_amd_tx_pdu;
-template <typename header_t>
+template <typename HeaderType>
 class pdcp_pdu_info;
 
 /// Pool that manages the allocation of RLC AM PDU Segments to RLC PDUs and tracking of segments ACK state
-template <typename header_t>
+template <typename HeaderType>
 struct rlc_am_pdu_segment_pool {
   const static size_t MAX_POOL_SIZE = 16384;
 
@@ -64,10 +64,10 @@ struct rlc_am_pdu_segment_pool {
     bool     empty() const { return rlc_sn_ == invalid_rlc_sn and pdcp_sn_ == invalid_pdcp_sn; }
 
   private:
-    friend struct rlc_am_pdu_segment_pool<header_t>;
-    uint32_t                           rlc_sn_     = invalid_rlc_sn;
-    uint32_t                           pdcp_sn_    = invalid_pdcp_sn;
-    rlc_am_pdu_segment_pool<header_t>* parent_pool = nullptr;
+    friend struct rlc_am_pdu_segment_pool<HeaderType>;
+    uint32_t                             rlc_sn_     = invalid_rlc_sn;
+    uint32_t                             pdcp_sn_    = invalid_pdcp_sn;
+    rlc_am_pdu_segment_pool<HeaderType>* parent_pool = nullptr;
   };
 
   rlc_am_pdu_segment_pool()
@@ -83,7 +83,7 @@ struct rlc_am_pdu_segment_pool {
   rlc_am_pdu_segment_pool& operator=(rlc_am_pdu_segment_pool&&) = delete;
 
   bool has_segments() const { return not free_list.empty(); }
-  bool make_segment(rlc_amd_tx_pdu<header_t>& rlc_list, pdcp_pdu_info<header_t>& pdcp_list)
+  bool make_segment(rlc_amd_tx_pdu<HeaderType>& rlc_list, pdcp_pdu_info<HeaderType>& pdcp_list)
   {
     if (not has_segments()) {
       return false;
@@ -97,15 +97,15 @@ struct rlc_am_pdu_segment_pool {
   }
 
 private:
-  intrusive_forward_list<rlc_am_pdu_segment_pool<header_t>::segment_resource, free_list_tag> free_list;
-  std::array<rlc_am_pdu_segment_pool<header_t>::segment_resource, MAX_POOL_SIZE>             segments;
+  intrusive_forward_list<rlc_am_pdu_segment_pool<HeaderType>::segment_resource, free_list_tag> free_list;
+  std::array<rlc_am_pdu_segment_pool<HeaderType>::segment_resource, MAX_POOL_SIZE>             segments;
 };
 
 /// Class that contains the parameters and state (e.g. segments) of a RLC PDU
-template <typename header_t>
+template <typename HeaderType>
 class rlc_amd_tx_pdu
 {
-  using rlc_am_pdu_segment             = typename rlc_am_pdu_segment_pool<header_t>::segment_resource;
+  using rlc_am_pdu_segment             = typename rlc_am_pdu_segment_pool<HeaderType>::segment_resource;
   using list_type                      = intrusive_forward_list<rlc_am_pdu_segment>;
   const static uint32_t invalid_rlc_sn = std::numeric_limits<uint32_t>::max();
 
@@ -117,7 +117,7 @@ public:
 
   const uint32_t       rlc_sn     = invalid_rlc_sn;
   uint32_t             retx_count = 0;
-  header_t             header;
+  HeaderType           header;
   unique_byte_buffer_t buf;
 
   explicit rlc_amd_tx_pdu(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
@@ -144,10 +144,10 @@ public:
 };
 
 /// Class that contains the parameters and state (e.g. unACKed segments) of a PDCP PDU
-template <typename header_t>
+template <typename HeaderType>
 class pdcp_pdu_info
 {
-  using rlc_am_pdu_segment = typename rlc_am_pdu_segment_pool<header_t>::segment_resource;
+  using rlc_am_pdu_segment = typename rlc_am_pdu_segment_pool<HeaderType>::segment_resource;
   using list_type          = intrusive_double_linked_list<rlc_am_pdu_segment>;
 
   list_type list; // List of unACKed RLC PDUs that contain segments that belong to the PDCP PDU.
@@ -231,7 +231,7 @@ private:
   srsran::static_circular_map<uint32_t, T, WINDOW_SIZE> window;
 };
 
-template <typename header_t>
+template <typename HeaderType>
 struct buffered_pdcp_pdu_list {
 public:
   explicit buffered_pdcp_pdu_list() : buffered_pdus(buffered_pdcp_pdu_list::buffer_size) { clear(); }
@@ -239,7 +239,7 @@ public:
   void clear()
   {
     count = 0;
-    for (pdcp_pdu_info<header_t>& b : buffered_pdus) {
+    for (pdcp_pdu_info<HeaderType>& b : buffered_pdus) {
       b.clear();
     }
   }
@@ -248,7 +248,7 @@ public:
   {
     srsran_expect(sn <= max_pdcp_sn or sn == status_report_sn, "Invalid PDCP SN=%d", sn);
     srsran_assert(not has_pdcp_sn(sn), "Cannot re-add same PDCP SN twice");
-    pdcp_pdu_info<header_t>& pdu = get_pdu_(sn);
+    pdcp_pdu_info<HeaderType>& pdu = get_pdu_(sn);
     if (pdu.valid()) {
       pdu.clear();
       count--;
@@ -259,17 +259,15 @@ public:
 
   void clear_pdcp_sdu(uint32_t sn)
   {
-    pdcp_pdu_info<header_t>& pdu = get_pdu_(sn);
+    pdcp_pdu_info<HeaderType>& pdu = get_pdu_(sn);
     if (not pdu.valid()) {
-      {
-        return;
-      }
-      pdu.clear();
-      count--;
+      return;
     }
+    pdu.clear();
+    count--;
   }
 
-  pdcp_pdu_info<header_t>& operator[](uint32_t sn)
+  pdcp_pdu_info<HeaderType>& operator[](uint32_t sn)
   {
     srsran_expect(has_pdcp_sn(sn), "Invalid access to non-existent PDCP SN=%d", sn);
     return get_pdu_(sn);
@@ -285,21 +283,21 @@ public:
 private:
   const static size_t   max_pdcp_sn      = 262143u;
   const static size_t   buffer_size      = 4096u;
-  const static uint32_t status_report_sn = pdcp_pdu_info<header_t>::status_report_sn;
+  const static uint32_t status_report_sn = pdcp_pdu_info<HeaderType>::status_report_sn;
 
-  pdcp_pdu_info<header_t>& get_pdu_(uint32_t sn)
+  pdcp_pdu_info<HeaderType>& get_pdu_(uint32_t sn)
   {
     return (sn == status_report_sn) ? status_report_pdu : buffered_pdus[static_cast<size_t>(sn % buffer_size)];
   }
-  const pdcp_pdu_info<header_t>& get_pdu_(uint32_t sn) const
+  const pdcp_pdu_info<HeaderType>& get_pdu_(uint32_t sn) const
   {
     return (sn == status_report_sn) ? status_report_pdu : buffered_pdus[static_cast<size_t>(sn % buffer_size)];
   }
 
   // size equal to buffer_size
-  std::vector<pdcp_pdu_info<header_t> > buffered_pdus;
-  pdcp_pdu_info<header_t>               status_report_pdu;
-  uint32_t                              count = 0;
+  std::vector<pdcp_pdu_info<HeaderType> > buffered_pdus;
+  pdcp_pdu_info<HeaderType>               status_report_pdu;
+  uint32_t                                count = 0;
 };
 
 } // namespace srsran
