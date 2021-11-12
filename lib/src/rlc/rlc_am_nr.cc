@@ -169,12 +169,10 @@ uint32_t rlc_am_nr_tx::get_buffer_state()
   return tx_queue + prio_tx_queue;
 }
 
-void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
+void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_prio)
 {
   logger->debug("Buffer state requested, %s", rb_name);
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t                    n_bytes = 0;
-  uint32_t                    n_sdus  = 0;
 
   /*
   logger.debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)",
@@ -187,22 +185,25 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
 
   // Bytes needed for status report
   if (do_status() /* && not TODO status_prohibit_timer*/) {
-    n_bytes += rx->get_status_pdu_length();
-    logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes);
+    n_bytes_prio += rx->get_status_pdu_length();
+    logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes_prio);
   }
 
   // Bytes needed for retx
   // TODO
 
   // Bytes needed for tx SDUs
-  n_sdus = tx_sdu_queue.get_n_sdus();
-  n_bytes += tx_sdu_queue.size_bytes();
+  uint32_t n_sdus = tx_sdu_queue.get_n_sdus();
+  n_bytes_new += tx_sdu_queue.size_bytes();
 
   // Room needed for fixed header of data PDUs
-  n_bytes += 2 * n_sdus; // TODO make header size configurable
-  logger->debug("%s Total buffer state - %d SDUs (%d B)", rb_name, n_sdus, n_bytes);
+  n_bytes_new += 2 * n_sdus; // TODO make header size configurable
+  logger->debug("%s Total buffer state - %d SDUs (%d B)", rb_name, n_sdus, n_bytes_new + n_bytes_prio);
 
-  tx_queue = n_bytes;
+  if (bsr_callback) {
+    logger->debug("%s Calling BSR callback - %d new_tx, %d prio bytes", parent->rb_name, n_bytes_new, n_bytes_prio);
+    bsr_callback(parent->lcid, n_bytes_new, n_bytes_prio);
+  }
 }
 
 void rlc_am_nr_tx::reestablish()
