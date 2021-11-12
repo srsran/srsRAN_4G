@@ -151,15 +151,8 @@ int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s
   rlc_bearer.served_radio_bearer.set_drb_id();
   rlc_bearer.served_radio_bearer.drb_id() = 1;
   rlc_bearer.rlc_cfg_present              = true;
-  /*
-  rlc_bearer.rlc_cfg.set_um_bi_dir();
-  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
-  */
 
+#ifdef USE_RLC_AM_NR
   rlc_bearer.rlc_cfg.set_am();
   rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
@@ -172,6 +165,14 @@ int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s
   rlc_bearer.rlc_cfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_opts::t8;
   rlc_bearer.rlc_cfg.am().dl_am_rlc.t_reassembly      = t_reassembly_opts::ms50;
   rlc_bearer.rlc_cfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_opts::ms50;
+#else
+  rlc_bearer.rlc_cfg.set_um_bi_dir();
+  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
+  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
+  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
+#endif
 
   // MAC logical channel config
   rlc_bearer.mac_lc_ch_cfg_present                    = true;
@@ -772,19 +773,21 @@ int rrc_nr::ue::add_drb()
   rlc_bearer.served_radio_bearer.set_drb_id();
   rlc_bearer.served_radio_bearer.drb_id() = 1;
   rlc_bearer.rlc_cfg_present              = true;
-  /*
+
+#ifdef USE_RLC_AM_NR
+  rlc_bearer.rlc_cfg.set_am();
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+#else
   rlc_bearer.rlc_cfg.set_um_bi_dir();
   rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
-  */
-  rlc_bearer.rlc_cfg.set_am();
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+#endif
 
   // add RLC bearer
   srsran::rlc_config_t rlc_cfg;
