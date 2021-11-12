@@ -211,6 +211,11 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
     return SRSRAN_ERROR;
   }
 
+  if (!pdsch_res.tb[0].crc) {
+    ERROR("Error decoding PDSCH");
+    return SRSRAN_ERROR;
+  }
+
   printf("Decoded PDSCH (%d B)\n", pdsch_cfg.grant.tb[0].tbs / 8);
   srsran_vec_fprint_byte(stdout, pdsch_res.tb[0].payload, pdsch_cfg.grant.tb[0].tbs / 8);
 
@@ -295,6 +300,12 @@ int main(int argc, char** argv)
     return clean_exit(ret);
   }
 
+  // initial DCI config
+  srsran_dci_cfg_nr_t dci_cfg = {};
+  dci_cfg.bwp_dl_initial_bw   = carrier.nof_prb;
+  dci_cfg.bwp_ul_initial_bw   = carrier.nof_prb;
+  dci_cfg.monitor_common_0_0  = true;
+
   srsran_coreset_t* coreset = NULL;
 
   // Configure CORESET
@@ -325,6 +336,12 @@ int main(int argc, char** argv)
              coreset0_idx);
       return clean_exit(ret);
     }
+
+    // Setup PDSCH DMRS (also signaled through MIB)
+    pdsch_hl_cfg.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
+
+    // set coreset0 bandwidth
+    dci_cfg.coreset0_bw = srsran_coreset_get_bw(coreset);    
   } else {
     // configure to use coreset1
     coreset                      = &pdcch_cfg.coreset[1];
@@ -370,10 +387,6 @@ int main(int argc, char** argv)
     return clean_exit(ret);
   }
 
-  srsran_dci_cfg_nr_t dci_cfg = {};
-  dci_cfg.bwp_dl_initial_bw   = carrier.nof_prb;
-  dci_cfg.bwp_ul_initial_bw   = carrier.nof_prb;
-  dci_cfg.monitor_common_0_0  = true;
   if (srsran_ue_dl_nr_set_pdcch_config(&ue_dl, &pdcch_cfg, &dci_cfg)) {
     ERROR("Error setting CORESET");
     return clean_exit(ret);
