@@ -29,7 +29,7 @@ static char*    filename       = NULL;
 static double   srate_hz       = 23.04e6; // Base-band sampling rate in Hz
 static double   center_freq_hz = NAN;     // Center frequency in Hz
 static double   ssb_freq_hz    = NAN;     // SSB frequency in Hz
-static uint32_t nof_samples    = 0;       // Number of half-frames
+static uint32_t nof_samples    = 0;       // Number of samples
 
 // Assertion
 static bool     assert          = false;
@@ -44,8 +44,10 @@ static void usage(char* prog)
 {
   printf("Usage: %s -i filename [rv]\n", prog);
   printf("\t-r sampling rate in Hz [Default %.2f MHz]\n", srate_hz / 1e6);
+  printf("\t-n number of samples [Default %d]\n", nof_samples);
+  printf("\t-s SSB subcarrier spacing (15, 30) [Default %s]\n", srsran_subcarrier_spacing_to_str(ssb_scs));
+  printf("\t-d duplex mode [Default %s]\n", duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "FDD" : "TDD");
   printf("\t-f absolute baseband center frequency in Hz [Default %.2f MHz]\n", center_freq_hz / 1e3);
-  printf("\t-F absolute SSB center freuqency in Hz [Default %.2f MHz]\n", ssb_freq_hz / 1e3);
   printf("\t-F absolute SSB center freuqency in Hz [Default %.2f MHz]\n", ssb_freq_hz / 1e3);
   printf("\t-A Assert: PCI t_offset sfn_lsb ssb_idx ssb_k hrf");
   printf("\t-v [set srsran_verbose to debug, default none]\n");
@@ -54,13 +56,31 @@ static void usage(char* prog)
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "inrfFAv")) != -1) {
+  while ((opt = getopt(argc, argv, "insdrfFAv")) != -1) {
     switch (opt) {
       case 'i':
         filename = argv[optind];
         break;
       case 'n':
         nof_samples = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 's':
+        if ((uint32_t)strtol(argv[optind], NULL, 10) == 15) {
+          ssb_scs = srsran_subcarrier_spacing_15kHz;
+        } else {
+          ssb_scs = srsran_subcarrier_spacing_30kHz;
+        }
+        break;
+      case 'd':
+        if (strcmp(argv[optind], "tdd") == 0) {
+          duplex_mode = SRSRAN_DUPLEX_MODE_TDD;
+        } else if (strcmp(argv[optind], "fdd") == 0) {
+          duplex_mode = SRSRAN_DUPLEX_MODE_FDD;
+        } else {
+          printf("Invalid duplex mode '%s'\n", argv[optind]);
+          usage(argv[0]);
+          exit(-1);
+        }
         break;
       case 'r':
         srate_hz = strtod(argv[optind], NULL);
@@ -194,6 +214,17 @@ int main(int argc, char** argv)
        search_res.N_id,
        str,
        search_res.pbch_msg.crc ? "OK" : "KO");
+
+  // unpack MIB
+  srsran_mib_nr_t mib = {};
+  if (srsran_pbch_msg_nr_mib_unpack(&search_res.pbch_msg, &mib) < SRSRAN_SUCCESS) {
+    ERROR("Error unpacking PBCH-MIB");
+    goto clean_exit;
+  }
+
+  char mib_info[512] = {};
+  srsran_pbch_msg_nr_mib_info(&mib, mib_info, sizeof(mib_info));
+  INFO("PBCH-MIB: %s", mib_info);
 
   // Assert search
   if (assert) {

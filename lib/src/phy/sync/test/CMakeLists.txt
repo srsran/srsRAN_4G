@@ -164,4 +164,6 @@ target_link_libraries(ssb_file_test srsran_phy)
 
 # File test 1
 # Captured with command: lib/examples/usrp_capture -a type=x300,clock=external,sampling_rate=46.08e6,rx_subdev_spec=B:0 -g 20 -r 46.08e6 -n 460800  -f 3502.8e6 -o /tmp/n78.fo35028.fs2304M.data
-add_nr_test(ssb_file_test ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/n78.fo35028.fs4608M.data -v -r 46.08e6 -f 3502.8e6 -F 3512.64e6 -n 460800 -A 500 357802 2 0 1 0)
+add_nr_test(ssb_file_test_tdd ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/n78.fo35028.fs4608M.data -v -r 46.08e6 -f 3502.8e6 -F 3512.64e6 -n 460800 -A 500 357802 2 0 1 0)
+# Capture with third-party gNB on band n3 (FDD) 15kHz SSB SCS, f_s=15.36e6, f_c=1842.5e6, f_c_ssb=1842.05e6, PCI=500
+add_nr_test(ssb_file_test_fdd ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../../ue/test/ue_dl_nr_pci500_rb52_si_coreset0_idx6_s15.36e6.dat -v -r 15.36e6 -f 1842.5e6 -F 1842.05e6 -n 15360 -d fdd -s 15 -A 500 2200 0 0 0 0)
