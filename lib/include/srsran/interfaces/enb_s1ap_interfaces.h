@@ -32,7 +32,7 @@ struct s1ap_args_t {
   std::string enb_name;
   uint32_t    ts1_reloc_prep_timeout;
   uint32_t    ts1_reloc_overall_timeout;
-  uint32_t    max_s1_setup_retries;
+  int32_t     max_s1_setup_retries;
 };
 
 // S1AP interface for RRC
