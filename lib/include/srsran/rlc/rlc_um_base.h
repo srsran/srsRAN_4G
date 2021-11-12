@@ -48,7 +48,7 @@ public:
   bool is_mrb();
 
   rlc_mode_t get_mode();
-  uint32_t   get_bearer();
+  uint32_t   get_lcid() final;
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu);

@@ -241,8 +241,8 @@ public:
     }
   }
 
-  virtual rlc_mode_t get_mode()   = 0;
-  virtual uint32_t   get_bearer() = 0;
+  virtual rlc_mode_t get_mode() = 0;
+  virtual uint32_t   get_lcid() = 0;
 
   virtual rlc_bearer_metrics_t get_metrics()   = 0;
   virtual void                 reset_metrics() = 0;

@@ -64,7 +64,7 @@ rlc_mode_t rlc_tm::get_mode()
   return rlc_mode_t::tm;
 }
 
-uint32_t rlc_tm::get_bearer()
+uint32_t rlc_tm::get_lcid()
 {
   return lcid;
 }

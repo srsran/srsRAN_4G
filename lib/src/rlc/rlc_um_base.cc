@@ -42,7 +42,7 @@ rlc_mode_t rlc_um_base::get_mode()
   return rlc_mode_t::um;
 }
 
-uint32_t rlc_um_base::get_bearer()
+uint32_t rlc_um_base::get_lcid()
 {
   return lcid;
 }
