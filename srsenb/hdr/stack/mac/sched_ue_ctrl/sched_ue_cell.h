@@ -43,6 +43,8 @@ struct sched_ue_cell {
   const ue_cc_cfg* get_ue_cc_cfg() const { return configured() ? &ue_cfg->supported_cc_list[ue_cc_idx] : nullptr; }
   const sched_interface::ue_cfg_t* get_ue_cfg() const { return configured() ? ue_cfg : nullptr; }
   cc_st                            cc_state() const { return cc_state_; }
+  float                            get_ul_snr_offset() const { return ul_snr_coeff; }
+  float                            get_dl_cqi_offset() const { return dl_cqi_coeff; }
 
   int get_dl_cqi() const;
   int get_dl_cqi(const rbgmask_t& rbgs) const;

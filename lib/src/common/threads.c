@@ -80,7 +80,9 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
 #else
   // All threads have normal priority except prio_offset=0,1,2,3,4
   if (prio_offset >= 0 && prio_offset < 5) {
-    param.sched_priority = sched_get_priority_max(SCHED_FIFO) - prio_offset;
+    // Subtract one to the priority offset to avoid scheduling threads with the highest priority that could contend with
+    // OS critical tasks.
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO) - prio_offset - 1;
     if (pthread_attr_init(&attr)) {
       perror("pthread_attr_init");
     } else {

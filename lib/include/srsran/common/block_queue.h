@@ -95,6 +95,8 @@ public:
     return value;
   }
 
+  bool timedwait_pop(myobj* value, const struct timespec* abstime) { return pop_(value, true, abstime); }
+
   bool empty()
   { // queue is empty?
     pthread_mutex_lock(&mutex);
@@ -130,7 +132,7 @@ public:
   }
 
 private:
-  bool pop_(myobj* value, bool block)
+  bool pop_(myobj* value, bool block, const struct timespec* abstime = nullptr)
   {
     if (!enable) {
       return false;
@@ -142,7 +144,13 @@ private:
       goto exit;
     }
     while (q.empty() && enable) {
-      pthread_cond_wait(&cv_empty, &mutex);
+      if (abstime == nullptr) {
+        pthread_cond_wait(&cv_empty, &mutex);
+      } else {
+        if (pthread_cond_timedwait(&cv_empty, &mutex, abstime)) {
+          goto exit;
+        }
+      }
     }
     if (!enable) {
       goto exit;

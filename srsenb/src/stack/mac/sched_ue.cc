@@ -164,6 +164,13 @@ void sched_ue::unset_sr()
   sr = false;
 }
 
+void sched_ue::metrics_read(mac_ue_metrics_t& metrics)
+{
+  sched_ue_cell& pcell  = cells[cfg.supported_cc_list[0].enb_cc_idx];
+  metrics.ul_snr_offset = pcell.get_ul_snr_offset();
+  metrics.dl_cqi_offset = pcell.get_dl_cqi_offset();
+}
+
 tti_point prev_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
 {
   return tti_point{static_cast<uint32_t>(floor(static_cast<float>((tti - offset).to_uint()) / period)) * period +

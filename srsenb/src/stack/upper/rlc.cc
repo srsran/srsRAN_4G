@@ -75,13 +75,16 @@ void rlc::add_user(uint16_t rnti)
 
 void rlc::rem_user(uint16_t rnti)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].rlc->stop();
-    users.erase(rnti);
   } else {
     logger.error("Removing rnti=0x%x. Already removed", rnti);
   }
+  pthread_rwlock_unlock(&rwlock);
+
+  pthread_rwlock_wrlock(&rwlock);
+  users.erase(rnti);
   pthread_rwlock_unlock(&rwlock);
 }
 
