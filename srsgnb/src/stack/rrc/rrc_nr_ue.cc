@@ -126,6 +126,20 @@ void rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
   parent->rlc->write_sdu(rnti, srsran::srb_to_lcid(srsran::nr_srb::srb0), std::move(pdu));
 }
 
+void rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg)
+{
+  // Allocate a new PDU buffer, pack the message and send to PDCP
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_dcch_msg);
+  if (pdu == nullptr) {
+    parent->logger.error("Failed to send DL-DCCH");
+    return;
+  }
+  fmt::memory_buffer fmtbuf;
+  fmt::format_to(fmtbuf, "DL-DCCH.{}", dl_dcch_msg.msg.c1().type().to_string());
+  log_rrc_message(srb, Tx, *pdu.get(), dl_dcch_msg, srsran::to_c_str(fmtbuf));
+  parent->pdcp->write_sdu(rnti, srsran::srb_to_lcid(srb), std::move(pdu));
+}
+
 int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   // RLC for DRB1 (with fixed LCID)
@@ -927,6 +941,54 @@ void rrc_nr::ue::send_rrc_setup()
 void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
 {
   // TODO: handle RRCSetupComplete
+
+  send_security_mode_command();
+}
+
+/// TS 38.331, SecurityModeCommand
+void rrc_nr::ue::send_security_mode_command()
+{
+  asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_security_mode_cmd().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  security_mode_cmd_ies_s& ies = dl_dcch_msg.msg.c1().security_mode_cmd().crit_exts.set_security_mode_cmd();
+
+  ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm_present = true;
+  ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value   = integrity_prot_algorithm_opts::nia0;
+  ies.security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value        = ciphering_algorithm_opts::nea0;
+
+  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+}
+
+/// TS 38.331, SecurityModeComplete
+void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg)
+{
+  // TODO: handle SecurityModeComplete
+
+  send_rrc_reconfiguration();
+}
+
+void rrc_nr::ue::send_rrc_reconfiguration()
+{
+  asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_rrc_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_recfg_ies_s& ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.set_rrc_recfg();
+
+  ies.non_crit_ext_present                   = true;
+  ies.non_crit_ext.master_cell_group_present = false; // TODO
+
+  // Update lower layers
+
+  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+}
+
+void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
+{
+  // TODO: handle RRCReconfComplete
+}
+
+void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg)
+{
+  // TODO: handle UL information transfer
 }
 
 /**

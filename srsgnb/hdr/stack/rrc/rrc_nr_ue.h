@@ -31,8 +31,6 @@ public:
   ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer = true);
   ~ue();
 
-  void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_dcch_msg);
-
   int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);
   void crnti_ce_received();
 
@@ -58,13 +56,31 @@ public:
   void handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg);
   void handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg);
 
+  /* TS 38.331 - 5.3.4 Initial AS security activation */
+  void handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg);
+
+  /* TS 38.331 - 5.3.5 RRC reconfiguration */
+  void handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg);
+
+  /* TS 38.331 - 5.7.2 UL information transfer */
+  void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
+
 private:
   rrc_nr*  parent = nullptr;
   uint16_t rnti   = SRSRAN_INVALID_RNTI;
 
+  void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
+  void send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
+
   /* TS 38.331 - 5.3.3 RRC connection establishment */
   void send_rrc_setup();
   void send_rrc_reject(uint8_t reject_wait_time_secs);
+
+  /* TS 38.331 - 5.3.4 Initial AS security activation */
+  void send_security_mode_command();
+
+  /* TS 38.331 - 5.3.5 RRC reconfiguration */
+  void send_rrc_reconfiguration();
 
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
