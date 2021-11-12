@@ -184,10 +184,6 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
                status_prohibit_timer.time_elapsed(),
                status_prohibit_timer.duration());
   */
-  if (do_status() /* && not TODO status_prohibit_timer*/) {
-    n_bytes += rx->get_status_pdu_length();
-    logger->debug("%s Buffer state - total status report: %d bytes", rb_name, n_bytes);
-  }
 
   // Bytes needed for status report
   if (do_status() /* && not TODO status_prohibit_timer*/) {
