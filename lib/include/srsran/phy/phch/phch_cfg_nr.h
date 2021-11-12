@@ -77,6 +77,8 @@ typedef struct {
   srsran_dmrs_sch_typeA_pos_t typeA_pos;
   bool                        lte_CRS_to_match_around;
 
+  uint32_t reference_point_k_rb;
+
   /// Parameters provided by FeatureSetDownlink-v1540
   bool additional_DMRS_DL_Alt;
 

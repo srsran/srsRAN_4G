@@ -216,7 +216,8 @@ static int srsran_dmrs_sch_put_symbol(srsran_dmrs_sch_t*           q,
         // ... save first consecutive PRB in the group
         prb_start = prb_idx;
 
-        // ... discard unused pilots and reset counter
+        // ... discard unused pilots and reset counter unless the PDSCH transmission carries SIB
+        prb_skip = SRSRAN_MAX(0, (int)prb_skip - (int)dmrs_cfg->reference_point_k_rb);
         srsran_sequence_state_advance(&sequence_state, prb_skip * nof_pilots_x_prb * 2);
         prb_skip = 0;
       }
@@ -704,7 +705,8 @@ static int srsran_dmrs_sch_get_symbol(srsran_dmrs_sch_t*           q,
         // ... save first consecutive PRB in the group
         prb_start = prb_idx;
 
-        // ... discard unused pilots and reset counter
+        // ... discard unused pilots and reset counter unless the PDSCH transmission carries SIB
+        prb_skip = SRSRAN_MAX(0, (int)prb_skip - (int)dmrs_cfg->reference_point_k_rb);
         srsran_sequence_state_advance(&sequence_state, prb_skip * nof_pilots_x_prb * 2);
         prb_skip = 0;
       }

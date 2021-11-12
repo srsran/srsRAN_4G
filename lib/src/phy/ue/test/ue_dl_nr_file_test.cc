@@ -205,6 +205,14 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
   srsran_pdsch_res_nr_t pdsch_res = {};
   pdsch_res.tb[0].payload         = data;
 
+  // See 7.4.1.1.2 38.211 The reference point for k is
+  // - for PDSCH transmission carrying SIB1, subcarrier 0 of the lowest-numbered common resource block in the
+  //  CORESET configured by the PBCH
+  //- otherwise, subcarrier 0 in common resource block 0
+  if (rnti_type == srsran_rnti_type_si) {
+    pdsch_cfg.dmrs.reference_point_k_rb = pdcch_cfg.coreset[0].offset_rb;
+  }
+
   // Decode PDSCH
   if (srsran_ue_dl_nr_decode_pdsch(ue_dl, slot, &pdsch_cfg, &pdsch_res) < SRSRAN_SUCCESS) {
     ERROR("Error decoding PDSCH search");
