@@ -11,6 +11,7 @@
  */
 
 #ifdef __cplusplus
+#include <complex.h>
 extern "C" {
 #include "srsran/phy/io/filesource.h"
 #include "srsran/phy/phch/ra_nr.h"
