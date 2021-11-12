@@ -53,8 +53,8 @@ public:
     metrics[0].stack.mac.ues[0].dl_pmi    = 1.0;
     metrics[0].stack.mac.ues[0].phr       = 12.0;
     metrics[0].phy.resize(2);
-    metrics[0].phy[0].dl.mcs  = 28.0;
-    metrics[0].phy[0].ul.mcs  = 20.2;
+    metrics[0].phy[0].dl.mcs        = 28.0;
+    metrics[0].phy[0].ul.mcs        = 20.2;
     metrics[0].phy[0].ul.pucch_sinr = 14.2;
     metrics[0].phy[0].ul.pusch_sinr = 14.2;
 
@@ -96,8 +96,8 @@ public:
     metrics[1].stack.mac.ues[0].dl_pmi    = 1.0;
     metrics[1].stack.mac.ues[0].phr       = 99.1;
     metrics[1].phy.resize(1);
-    metrics[1].phy[0].dl.mcs  = 6.2;
-    metrics[1].phy[0].ul.mcs  = 28.0;
+    metrics[1].phy[0].dl.mcs        = 6.2;
+    metrics[1].phy[0].ul.mcs        = 28.0;
     metrics[1].phy[0].ul.pucch_sinr = 22.2;
     metrics[1].phy[0].ul.pusch_sinr = 22.2;
 
@@ -119,8 +119,8 @@ public:
     metrics[2].stack.mac.ues[0].dl_pmi    = 1.0;
     metrics[2].stack.mac.ues[0].phr       = 12.0;
     metrics[2].phy.resize(1);
-    metrics[2].phy[0].dl.mcs  = 28.0;
-    metrics[2].phy[0].ul.mcs  = 20.2;
+    metrics[2].phy[0].dl.mcs        = 28.0;
+    metrics[2].phy[0].ul.mcs        = 20.2;
     metrics[2].phy[0].ul.pusch_sinr = 14.2;
     metrics[2].phy[0].ul.pucch_sinr = 14.2;
 
@@ -201,8 +201,7 @@ int main(int argc, char** argv)
   metrics_screen.set_handle(&enb);
 
   // the CSV file writer
-  metrics_csv metrics_file(csv_file_name);
-  metrics_file.set_handle(&enb);
+  metrics_csv metrics_file(csv_file_name, &enb);
 
   // create metrics hub and register metrics for stdout
   srsran::metrics_hub<enb_metrics_t> metricshub;

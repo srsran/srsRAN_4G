@@ -632,10 +632,9 @@ int main(int argc, char* argv[])
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_handle(enb.get());
 
-  srsenb::metrics_csv metrics_file(args.general.metrics_csv_filename);
+  srsenb::metrics_csv metrics_file(args.general.metrics_csv_filename, enb.get());
   if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
-    metrics_file.set_handle(enb.get());
   }
 
   srsenb::metrics_json json_metrics(json_channel, enb.get());
