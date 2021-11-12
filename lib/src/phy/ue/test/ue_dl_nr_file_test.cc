@@ -130,10 +130,10 @@ static int parse_args(int argc, char** argv)
         coreset_len = (uint16_t)strtol(argv[optind], NULL, 10);
         break;
       case 'A':
-        dl_arfcn = (uint16_t)strtol(argv[optind], NULL, 10);
+        dl_arfcn = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'a':
-        ssb_arfcn = (uint16_t)strtol(argv[optind], NULL, 10);
+        ssb_arfcn = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'S':
         srsran_use_standard_symbol_size(true);
@@ -221,7 +221,7 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
 
   // check payload is not all null
   bool all_zero = true;
-  for (uint32_t i = 0; i < pdsch_cfg.grant.tb[0].tbs / 8; ++i) {
+  for (int i = 0; i < pdsch_cfg.grant.tb[0].tbs / 8; ++i) {
     if (pdsch_res.tb[0].payload[i] != 0x0) {
       all_zero = false;
       break;
