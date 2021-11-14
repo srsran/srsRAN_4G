@@ -705,6 +705,16 @@ SRSRAN_API int srsran_coreset_zero(uint32_t                    n_cell_id,
                                    srsran_coreset_t*           coreset);
 
 /**
+ * @brief Obtain offset in RBs between CoresetZero and SSB. See TS 38.213, Tables 13-{1,...,10}
+ * @param idx Index of 13-{1,...10} table
+ * @param ssb_scs SS/PBCH block subcarrier spacing
+ * @param pdcch_scs PDCCH subcarrier spacing
+ * @return offset in RBs, or -1 in case of invalid inputs
+ */
+SRSRAN_API int
+srsran_coreset0_ssb_offset(uint32_t idx, srsran_subcarrier_spacing_t ssb_scs, srsran_subcarrier_spacing_t pdcch_scs);
+
+/**
  * @brief Convert SSB pattern to string
  * @param pattern
  * @return a string describing the SSB pattern

@@ -163,7 +163,7 @@ uint32_t srsran_band_helper::get_abs_freq_ssb_arfcn(uint16_t                    
   double freq_point_a_hz    = nr_arfcn_to_freq(freq_point_a_arfcn);
   double ssb_bw_hz          = SRSRAN_SSB_BW_SUBC * SRSRAN_SUBC_SPACING_NR(scs);
   double coreset0_offset_hz = coreset0_offset_rb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(scs);
-  return find_lower_bound_abs_freq_ssb(band, scs, freq_point_a_hz + coreset0_offset_hz / 2 + ssb_bw_hz / 2);
+  return find_lower_bound_abs_freq_ssb(band, scs, freq_point_a_hz + coreset0_offset_hz + ssb_bw_hz / 2);
 }
 
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const

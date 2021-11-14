@@ -1643,23 +1643,20 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     }
 
     // fill remaining SSB fields
-    uint32_t coreset0_rb_offset = 0;
+    int coreset0_rb_offset = 0;
     if (rrc_nr_cfg_->is_standalone) {
-      // Taken from TS 38.213, Table 13-1
-      if (cfg.phy_cell.carrier.nof_prb > 96) {
-        coreset0_rb_offset = 96;
-      } else if (cfg.phy_cell.carrier.nof_prb > 48) {
-        coreset0_rb_offset = 16;
-      } else {
-        coreset0_rb_offset = 4;
-      }
+      const uint32_t coreset0_idx           = 6; // See TS 38.331 - controlResourceSetZero / Table 13-1 index
+      cfg.phy_cell.pdcch.coreset_present[0] = true;
+      // Get offset in RBs between CORESET#0 and SSB
+      coreset0_rb_offset = srsran_coreset0_ssb_offset(coreset0_idx, cfg.ssb_cfg.scs, cfg.phy_cell.carrier.scs);
+      srsran_assert(coreset0_rb_offset >= 0, "Failed to compute RB offset between CORESET#0 and SSB");
     }
     cfg.ssb_absolute_freq_point =
         band_helper.get_abs_freq_ssb_arfcn(cfg.band, cfg.ssb_cfg.scs, cfg.dl_absolute_freq_point_a, coreset0_rb_offset);
-    if (cfg.ssb_absolute_freq_point == 0) {
-      ERROR("Can't derive SSB freq point for dl_arfcn %d and band %d", cfg.dl_arfcn, cfg.band);
-      return SRSRAN_ERROR;
-    }
+    srsran_assert(cfg.ssb_absolute_freq_point > 0,
+                  "Can't derive SSB freq point for dl_arfcn %d and band %d",
+                  cfg.dl_arfcn,
+                  cfg.band);
 
     // Convert to frequency for PHY
     cfg.phy_cell.carrier.ssb_center_freq_hz = band_helper.nr_arfcn_to_freq(cfg.ssb_absolute_freq_point);

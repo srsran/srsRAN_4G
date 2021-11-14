@@ -51,7 +51,7 @@ int bands_test_nr()
   TESTASSERT(bands.nr_arfcn_to_freq(376000) == 1880.0e6);
   TESTASSERT(bands.get_abs_freq_point_a_arfcn(52, 368500) == 367564);
   TESTASSERT(bands.get_abs_freq_ssb_arfcn(3, srsran_subcarrier_spacing_15kHz, 367564) > 367924);
-  TESTASSERT_EQ(368410, bands.get_abs_freq_ssb_arfcn(3, srsran_subcarrier_spacing_15kHz, 367564, 16));
+  TESTASSERT_EQ(368410, bands.get_abs_freq_ssb_arfcn(3, srsran_subcarrier_spacing_15kHz, 367564, 12));
   // n5
   TESTASSERT(bands.get_duplex_mode(5) == SRSRAN_DUPLEX_MODE_FDD);
   TESTASSERT(bands.nr_arfcn_to_freq(176300) == 881.5e6);

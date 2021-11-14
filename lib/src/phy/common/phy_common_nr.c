@@ -682,6 +682,48 @@ int srsran_coreset_zero(uint32_t                    n_cell_id,
   return SRSRAN_SUCCESS;
 }
 
+int srsran_coreset0_ssb_offset(uint32_t idx, srsran_subcarrier_spacing_t ssb_scs, srsran_subcarrier_spacing_t pdcch_scs)
+{
+  // Verify inputs
+  if (idx >= 16) {
+    ERROR("Invalid CORESET Zero input. idx=%d", idx);
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Default entry to NULL
+  const coreset_zero_entry_t* entry = NULL;
+
+  // Table 13-1: Set of resource blocks and slot symbols of CORESET for Type0-PDCCH search space set
+  // when {SS/PBCH block, PDCCH} SCS is {15, 15} kHz for frequency bands with minimum channel
+  // bandwidth 5 MHz or 10 MHz
+  if (ssb_scs == srsran_subcarrier_spacing_15kHz && pdcch_scs == srsran_subcarrier_spacing_15kHz) {
+    entry = &coreset_zero_15_15[idx];
+  }
+  // Table 13-2: Set of resource blocks and slot symbols of CORESET for Type0-PDCCH search space set
+  // when {SS/PBCH block, PDCCH} SCS is {15, 30} kHz for frequency bands with minimum channel
+  // bandwidth 5 MHz or 10 MHz
+  if (ssb_scs == srsran_subcarrier_spacing_15kHz && pdcch_scs == srsran_subcarrier_spacing_30kHz) {
+    entry = &coreset_zero_15_30[idx];
+  }
+
+  // Table 13-3: Set of resource blocks and slot symbols of CORESET for Type0-PDCCH search space set
+  // when {SS/PBCH block, PDCCH} SCS is {30, 15} kHz for frequency bands with minimum channel
+  // bandwidth 5 MHz or 10 MHz
+  if (ssb_scs == srsran_subcarrier_spacing_30kHz && pdcch_scs == srsran_subcarrier_spacing_15kHz) {
+    entry = &coreset_zero_30_15[idx];
+  }
+
+  // Check a valid entry has been selected
+  if (entry == NULL) {
+    ERROR("Unhandled case ssb_scs=%s, pdcch_scs=%s",
+          srsran_subcarrier_spacing_to_str(ssb_scs),
+          srsran_subcarrier_spacing_to_str(pdcch_scs));
+    return SRSRAN_ERROR;
+  }
+
+  return entry->offset_rb;
+}
+
 const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern)
 {
   switch (pattern) {

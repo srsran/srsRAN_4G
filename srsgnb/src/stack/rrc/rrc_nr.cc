@@ -51,7 +51,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   cfg = cfg_;
   if (cfg.is_standalone) {
     // Generate parameters of Coreset#0 and SS#0
-    const uint32_t coreset0_idx                        = 6;
+    const uint32_t coreset0_idx                        = 6; // See TS 38.331 - controlResourceSetZero
     cfg.cell_list[0].phy_cell.pdcch.coreset_present[0] = true;
     // Get pointA and SSB absolute frequencies
     double pointA_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz -
