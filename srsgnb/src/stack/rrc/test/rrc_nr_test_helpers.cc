@@ -63,6 +63,14 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   rrc_setup_complete_s& complete         = ul_dcch_msg.msg.set_c1().set_rrc_setup_complete();
   complete.rrc_transaction_id            = dl_ccch_msg.msg.c1().rrc_setup().rrc_transaction_id;
   rrc_setup_complete_ies_s& complete_ies = complete.crit_exts.set_rrc_setup_complete();
+  complete_ies.sel_plmn_id               = 1; // First PLMN in list
+  complete_ies.registered_amf_present    = true;
+  complete_ies.registered_amf.amf_id.from_number(0x800101);
+  complete_ies.guami_type_present = true;
+  complete_ies.guami_type.value   = rrc_setup_complete_ies_s::guami_type_opts::native;
+  complete_ies.ded_nas_msg.from_string("7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F"
+                                       "110800101347B80801001002E02F0702F0201015200F11000006418010174000090530101");
+
   {
     pdu = srsran::make_byte_buffer();
     asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};

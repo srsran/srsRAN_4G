@@ -138,11 +138,12 @@ private:
 
   // vars
   struct cell_ctxt_t {
-    asn1::rrc_nr::mib_s                                mib;
-    asn1::rrc_nr::sib1_s                               sib1;
-    asn1::rrc_nr::sys_info_ies_s::sib_type_and_info_l_ sibs;
-    srsran::unique_byte_buffer_t                       mib_buffer = nullptr;
-    std::vector<srsran::unique_byte_buffer_t>          sib_buffer;
+    asn1::rrc_nr::mib_s                                   mib;
+    asn1::rrc_nr::sib1_s                                  sib1;
+    asn1::rrc_nr::sys_info_ies_s::sib_type_and_info_l_    sibs;
+    srsran::unique_byte_buffer_t                          mib_buffer = nullptr;
+    std::vector<srsran::unique_byte_buffer_t>             sib_buffer;
+    std::unique_ptr<const asn1::rrc_nr::cell_group_cfg_s> master_cell_group;
   };
   std::unique_ptr<cell_ctxt_t>     cell_ctxt;
   rnti_map_t<std::unique_ptr<ue> > users;

@@ -26,7 +26,7 @@ Every function in UE class is called from a mutex environment thus does not
     need extra protection.
     *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
-  parent(parent_), rnti(rnti_), uecfg(uecfg_)
+  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_)
 {
   // Derive UE cfg from rrc_cfg_nr_t
   uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
@@ -56,12 +56,12 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       deadline_ms = 10000;
       break;
     default:
-      parent->logger.error("Unknown timeout type %d", type);
+      logger.error("Unknown timeout type %d", type);
       return;
   }
 
   activity_timer.set(deadline_ms, [this, type](uint32_t tid) { activity_timer_expired(type); });
-  parent->logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline_ms);
+  logger.debug("Setting timer for %s for rnti=0x%x to %dms", to_string(type).c_str(), rnti, deadline_ms);
 
   set_activity();
 }
@@ -70,7 +70,7 @@ void rrc_nr::ue::set_activity(bool enabled)
 {
   if (not enabled) {
     if (activity_timer.is_running()) {
-      parent->logger.debug("Inactivity timer interrupted for rnti=0x%x", rnti);
+      logger.debug("Inactivity timer interrupted for rnti=0x%x", rnti);
     }
     activity_timer.stop();
     return;
@@ -78,12 +78,12 @@ void rrc_nr::ue::set_activity(bool enabled)
 
   // re-start activity timer with current timeout value
   activity_timer.run();
-  parent->logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
+  logger.debug("Activity registered for rnti=0x%x (timeout_value=%dms)", rnti, activity_timer.duration());
 }
 
 void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 {
-  parent->logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
+  logger.info("Activity timer for rnti=0x%x expired after %d ms", rnti, activity_timer.time_elapsed());
 
   switch (type) {
     case MSG5_RX_TIMEOUT:
@@ -101,7 +101,7 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
     default:
       // Unhandled activity timeout, just remove UE and log an error
       parent->rem_user(rnti);
-      parent->logger.error(
+      logger.error(
           "Unhandled reason for activity timer expiration. rnti=0x%x, cause %d", rnti, static_cast<unsigned>(type));
   }
 }
@@ -117,7 +117,7 @@ void rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
   // Allocate a new PDU buffer, pack the message and send to PDCP
   srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_ccch_msg);
   if (pdu == nullptr) {
-    parent->logger.error("Failed to send DL-CCCH");
+    logger.error("Failed to send DL-CCCH");
     return;
   }
   fmt::memory_buffer fmtbuf;
@@ -131,7 +131,7 @@ void rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_ms
   // Allocate a new PDU buffer, pack the message and send to PDCP
   srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_dcch_msg);
   if (pdu == nullptr) {
-    parent->logger.error("Failed to send DL-DCCH");
+    logger.error("Failed to send DL-DCCH");
     return;
   }
   fmt::memory_buffer fmtbuf;
@@ -213,7 +213,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s&
 {
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp_present = true;
 
-  pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(cell_group_cfg_pack);
   pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(cell_group_cfg_pack);
 
   return SRSRAN_SUCCESS;
@@ -232,58 +231,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(
   fail_detec_res_elem.radio_link_monitoring_rs_id = 0;
   fail_detec_res_elem.purpose                     = asn1::rrc_nr::radio_link_monitoring_rs_s::purpose_opts::rlf;
   fail_detec_res_elem.detection_res.set_ssb_idx() = 0;
-
-  return SRSRAN_SUCCESS;
-}
-
-int rrc_nr::ue::pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg_present = true;
-  auto& pdsch_cfg_dedicated = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg;
-
-  pdsch_cfg_dedicated.set_setup();
-  pdsch_cfg_dedicated.setup().dmrs_dl_for_pdsch_map_type_a_present = true;
-  pdsch_cfg_dedicated.setup().dmrs_dl_for_pdsch_map_type_a.set_setup();
-  pdsch_cfg_dedicated.setup().dmrs_dl_for_pdsch_map_type_a.setup().dmrs_add_position_present = true;
-  pdsch_cfg_dedicated.setup().dmrs_dl_for_pdsch_map_type_a.setup().dmrs_add_position =
-      asn1::rrc_nr::dmrs_dl_cfg_s::dmrs_add_position_opts::pos1;
-  pdsch_cfg_dedicated.setup().tci_states_to_add_mod_list_present = true;
-  pdsch_cfg_dedicated.setup().tci_states_to_add_mod_list.resize(1);
-  pdsch_cfg_dedicated.setup().tci_states_to_add_mod_list[0].tci_state_id = 0;
-  pdsch_cfg_dedicated.setup().tci_states_to_add_mod_list[0].qcl_type1.ref_sig.set_ssb();
-  pdsch_cfg_dedicated.setup().tci_states_to_add_mod_list[0].qcl_type1.ref_sig.ssb() = 0;
-  pdsch_cfg_dedicated.setup().tci_states_to_add_mod_list[0].qcl_type1.qcl_type =
-      asn1::rrc_nr::qcl_info_s::qcl_type_opts::type_d;
-  pdsch_cfg_dedicated.setup().res_alloc = pdsch_cfg_s::res_alloc_opts::res_alloc_type1;
-  pdsch_cfg_dedicated.setup().rbg_size  = asn1::rrc_nr::pdsch_cfg_s::rbg_size_opts::cfg1;
-  pdsch_cfg_dedicated.setup().prb_bundling_type.set_static_bundling();
-  pdsch_cfg_dedicated.setup().prb_bundling_type.static_bundling().bundle_size_present = true;
-  pdsch_cfg_dedicated.setup().prb_bundling_type.static_bundling().bundle_size =
-      asn1::rrc_nr::pdsch_cfg_s::prb_bundling_type_c_::static_bundling_s_::bundle_size_opts::wideband;
-
-  // ZP-CSI
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list_present = false;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list.resize(1);
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row4();
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0b100);
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports =
-      asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p4;
-
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.first_ofdm_symbol_in_time_domain = 8;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.cdm_type =
-      asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::fd_cdm2;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.density.set_one();
-
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.start_rb     = 0;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.nrof_rbs     = 52;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset_present = true;
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset.set_slots80();
-  pdsch_cfg_dedicated.setup().zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset.slots80() = 1;
-  pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set_present                                       = false;
-  pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.set_setup();
-  pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_set_id = 0;
-  pdsch_cfg_dedicated.setup().p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.resize(1);
 
   return SRSRAN_SUCCESS;
 }
@@ -357,13 +304,13 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pucch_cfg(asn1::rrc_nr::
   pucch_cfg.setup().res_to_add_mod_list_present = true;
   pucch_cfg.setup().res_to_add_mod_list.resize(3);
   if (not srsran::make_phy_res_config(resource_small, pucch_cfg.setup().res_to_add_mod_list[0], 0)) {
-    parent->logger.warning("Failed to create 1-2 bit NR PUCCH resource");
+    logger.warning("Failed to create 1-2 bit NR PUCCH resource");
   }
   if (not srsran::make_phy_res_config(resource_big, pucch_cfg.setup().res_to_add_mod_list[1], 1)) {
-    parent->logger.warning("Failed to create >2 bit NR PUCCH resource");
+    logger.warning("Failed to create >2 bit NR PUCCH resource");
   }
   if (not srsran::make_phy_res_config(resource_sr, pucch_cfg.setup().res_to_add_mod_list[2], 2)) {
-    parent->logger.warning("Failed to create SR NR PUCCH resource");
+    logger.warning("Failed to create SR NR PUCCH resource");
   }
 
   // Make 2 PUCCH resource sets
@@ -467,14 +414,7 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_pdcch_serving_cell_cfg(asn1::rrc_nr::cell_g
 int rrc_nr::ue::pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   // SP Cell Dedicated config
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded_present                        = true;
-  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id_present = true;
-
-  if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id = 0;
-  } else {
-    cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id = 1;
-  }
+  cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded_present = true;
 
   pack_sp_cell_cfg_ded_ul_cfg(cell_group_cfg_pack);
   pack_sp_cell_cfg_ded_init_dl_bwp(cell_group_cfg_pack);
@@ -484,7 +424,7 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_
 
   // spCellConfig
   if (fill_sp_cell_cfg_from_enb_cfg(parent->cfg, UE_PSCELL_CC_IDX, cell_group_cfg_pack.sp_cell_cfg) != SRSRAN_SUCCESS) {
-    parent->logger.error("Failed to pack spCellConfig for rnti=0x%x", rnti);
+    logger.error("Failed to pack spCellConfig for rnti=0x%x", rnti);
   }
 
   return SRSRAN_SUCCESS;
@@ -664,7 +604,7 @@ int rrc_nr::ue::pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_second
   packed_secondary_cell_config.resize(256);
   asn1::bit_ref bref_pack(packed_secondary_cell_config.data(), packed_secondary_cell_config.size());
   if (cell_group_cfg_pack.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
-    parent->logger.error("Failed to pack NR secondary cell config");
+    logger.error("Failed to pack NR secondary cell config");
     return SRSRAN_ERROR;
   }
   packed_secondary_cell_config.resize(bref_pack.distance_bytes());
@@ -685,7 +625,7 @@ int rrc_nr::ue::pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfi
   recfg_ies.secondary_cell_group_present = true;
 
   if (pack_secondary_cell_group_cfg(recfg_ies.secondary_cell_group) == SRSRAN_ERROR) {
-    parent->logger.error("Failed to pack secondary cell group");
+    logger.error("Failed to pack secondary cell group");
     return SRSRAN_ERROR;
   }
 
@@ -693,7 +633,7 @@ int rrc_nr::ue::pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfi
   packed_rrc_reconfig.resize(512);
   asn1::bit_ref bref_pack(packed_rrc_reconfig.data(), packed_rrc_reconfig.size());
   if (reconfig.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
-    parent->logger.error("Failed to pack RRC Reconfiguration");
+    logger.error("Failed to pack RRC Reconfiguration");
     return SRSRAN_ERROR;
   }
   packed_rrc_reconfig.resize(bref_pack.distance_bytes());
@@ -719,7 +659,7 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
   packed_nr_bearer_config.resize(128);
   asn1::bit_ref bref_pack(packed_nr_bearer_config.data(), packed_nr_bearer_config.size());
   if (radio_bearer_cfg_pack.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
-    parent->logger.error("Failed to pack NR radio bearer config");
+    logger.error("Failed to pack NR radio bearer config");
     return SRSRAN_ERROR;
   }
 
@@ -883,25 +823,36 @@ int rrc_nr::ue::add_drb()
 
 void rrc_nr::ue::handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg)
 {
+  const uint8_t max_wait_time_secs = 16;
   if (not parent->ngap->is_amf_connected()) {
-    parent->logger.error("MME isn't connected. Sending Connection Reject");
-    const uint8_t max_wait_time_secs = 16;
-    send_rrc_reject(max_wait_time_secs); // See TS 38.331, RejectWaitTime
+    logger.error("MME isn't connected. Sending Connection Reject");
+    send_rrc_reject(max_wait_time_secs);
     return;
   }
 
-  // TODO: Allocate PUCCH resources and reject if not available
+  // Allocate PUCCH resources and reject if not available
+  if (not init_pucch()) {
+    logger.warning("Could not allocate PUCCH resources for rnti=0x%x. Sending Connection Reject", rnti);
+    send_rrc_reject(max_wait_time_secs);
+    return;
+  }
 
-  switch (msg.rrc_setup_request.ue_id.type().value) {
-    case asn1::rrc_nr::init_ue_id_c::types_opts::ng_minus5_g_s_tmsi_part1:
-      // TODO: communicate with NGAP
+  const rrc_setup_request_ies_s& ies = msg.rrc_setup_request;
+
+  switch (ies.ue_id.type().value) {
+    case init_ue_id_c::types_opts::ng_minus5_g_s_tmsi_part1:
+      ctxt.setup_ue_id = ies.ue_id.ng_minus5_g_s_tmsi_part1().to_number();
       break;
     case asn1::rrc_nr::init_ue_id_c::types_opts::random_value:
+      ctxt.setup_ue_id = ies.ue_id.random_value().to_number();
       // TODO: communicate with NGAP
       break;
     default:
-      parent->logger.error("Unsupported RRCSetupRequest");
+      logger.error("Unsupported RRCSetupRequest");
+      send_rrc_reject(max_wait_time_secs);
+      return;
   }
+  ctxt.connection_cause.value = ies.establishment_cause.value;
 
   send_rrc_setup();
   set_activity_timeout(UE_INACTIVITY_TIMEOUT);
@@ -912,16 +863,22 @@ void rrc_nr::ue::send_rrc_reject(uint8_t reject_wait_time_secs)
 {
   dl_ccch_msg_s     msg;
   rrc_reject_ies_s& reject = msg.msg.set_c1().set_rrc_reject().crit_exts.set_rrc_reject();
+
+  // See TS 38.331, RejectWaitTime
   if (reject_wait_time_secs > 0) {
     reject.wait_time_present = true;
     reject.wait_time         = reject_wait_time_secs;
   }
   send_dl_ccch(msg);
+
+  // TODO: remove user
 }
 
 /// TS 38.331, RRCSetup
 void rrc_nr::ue::send_rrc_setup()
 {
+  const uint8_t max_wait_time_secs = 16;
+
   dl_ccch_msg_s msg;
   rrc_setup_s&  setup        = msg.msg.set_c1().set_rrc_setup();
   setup.rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
@@ -934,6 +891,25 @@ void rrc_nr::ue::send_rrc_setup()
   srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
   srb1.srb_id            = 1;
 
+  {
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    asn1::bit_ref                bref{pdu->data(), pdu->get_tailroom()};
+    if (parent->cell_ctxt->master_cell_group->pack(bref) != SRSRAN_SUCCESS) {
+      logger.error("Failed to pack master cell group");
+      send_rrc_reject(max_wait_time_secs);
+      return;
+    }
+    pdu->N_bytes = bref.distance_bytes();
+
+    setup_ies.master_cell_group.resize(pdu->N_bytes);
+    memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+  }
+  if (logger.debug.enabled()) {
+    asn1::json_writer js;
+    parent->cell_ctxt->master_cell_group->to_json(js);
+    logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+  }
+
   send_dl_ccch(msg);
 }
 
@@ -941,6 +917,9 @@ void rrc_nr::ue::send_rrc_setup()
 void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
 {
   // TODO: handle RRCSetupComplete
+  using ngap_cause_t = asn1::ngap_nr::rrcestablishment_cause_opts::options;
+  auto ngap_cause    = (ngap_cause_t)ctxt.connection_cause.value; // NGAP and RRC causes seem to have a 1-1 mapping
+  parent->ngap->initial_ue(rnti, uecfg.carriers[0].cc, ngap_cause, {}, ctxt.setup_ue_id);
 
   send_security_mode_command();
 }
@@ -989,6 +968,13 @@ void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_rec
 void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg)
 {
   // TODO: handle UL information transfer
+}
+
+bool rrc_nr::ue::init_pucch()
+{
+  // TODO: Allocate PUCCH resources
+
+  return true;
 }
 
 /**

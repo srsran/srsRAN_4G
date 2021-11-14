@@ -228,7 +228,8 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
 
-  for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; cs_idx++) {
+  // Note: Skip CORESET#0
+  for (uint32_t cs_idx = 1; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; cs_idx++) {
     if (cell_cfg.phy_cell.pdcch.coreset_present[cs_idx]) {
       auto& coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[cs_idx];
 
@@ -263,7 +264,8 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
     }
   }
 
-  for (uint32_t ss_idx = 0; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
+  // Note: Skip SearchSpace#0
+  for (uint32_t ss_idx = 1; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
     if (cell_cfg.phy_cell.pdcch.search_space_present[ss_idx]) {
       // search spaces
       auto& search_space_cfg                          = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
@@ -309,15 +311,202 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
   return SRSRAN_SUCCESS;
 }
 
+void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg_s& out)
+{
+  out.dmrs_dl_for_pdsch_map_type_a_present = true;
+  out.dmrs_dl_for_pdsch_map_type_a.set_setup();
+  out.dmrs_dl_for_pdsch_map_type_a.setup().dmrs_add_position_present = true;
+  out.dmrs_dl_for_pdsch_map_type_a.setup().dmrs_add_position         = dmrs_dl_cfg_s::dmrs_add_position_opts::pos1;
+
+  out.tci_states_to_add_mod_list_present = true;
+  out.tci_states_to_add_mod_list.resize(1);
+  out.tci_states_to_add_mod_list[0].tci_state_id = 0;
+  out.tci_states_to_add_mod_list[0].qcl_type1.ref_sig.set_ssb();
+  out.tci_states_to_add_mod_list[0].qcl_type1.ref_sig.ssb() = 0;
+  out.tci_states_to_add_mod_list[0].qcl_type1.qcl_type      = asn1::rrc_nr::qcl_info_s::qcl_type_opts::type_d;
+
+  out.res_alloc = pdsch_cfg_s::res_alloc_opts::res_alloc_type1;
+  out.rbg_size  = pdsch_cfg_s::rbg_size_opts::cfg1;
+  out.prb_bundling_type.set_static_bundling();
+  out.prb_bundling_type.static_bundling().bundle_size_present = true;
+  out.prb_bundling_type.static_bundling().bundle_size =
+      pdsch_cfg_s::prb_bundling_type_c_::static_bundling_s_::bundle_size_opts::wideband;
+
+  // ZP-CSI
+  out.zp_csi_rs_res_to_add_mod_list_present = false; // TEMP
+  out.zp_csi_rs_res_to_add_mod_list.resize(1);
+  out.zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row4();
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.row4().from_number(0b100);
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p4;
+
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.first_ofdm_symbol_in_time_domain = 8;
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.cdm_type = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::fd_cdm2;
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.density.set_one();
+
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.start_rb     = 0;
+  out.zp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.nrof_rbs     = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
+  out.zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset_present = true;
+  out.zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset.set_slots80() = 1;
+
+  out.p_zp_csi_rs_res_set_present = false; // TEMP
+  out.p_zp_csi_rs_res_set.set_setup();
+  out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_set_id = 0;
+  out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.resize(1);
+  out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list[0] = 0;
+}
+
 /// Fill InitDlBwp with gNB config
 int fill_init_dl_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_ded_s& init_dl_bwp)
 {
   init_dl_bwp.pdcch_cfg_present = true;
   HANDLE_ERROR(fill_pdcch_cfg_from_enb_cfg(cfg, cc, init_dl_bwp.pdcch_cfg.set_setup()));
 
+  init_dl_bwp.pdsch_cfg_present = true;
+  fill_pdsch_cfg_from_enb_cfg(cfg, cc, init_dl_bwp.pdsch_cfg.set_setup());
+
   // TODO: ADD missing fields
 
   return SRSRAN_SUCCESS;
+}
+
+void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg_s& out)
+{
+  // Make 2 PUCCH resource sets
+  out.res_set_to_add_mod_list_present = true;
+  out.res_set_to_add_mod_list.resize(2);
+
+  // Make PUCCH resource set for 1-2 bit
+  for (uint32_t set_id = 0; set_id < out.res_set_to_add_mod_list.size(); ++set_id) {
+    auto& res_set            = out.res_set_to_add_mod_list[set_id];
+    res_set.pucch_res_set_id = set_id;
+    res_set.res_list.resize(8);
+    for (uint32_t i = 0; i < res_set.res_list.size(); ++i) {
+      if (cfg.is_standalone) {
+        res_set.res_list[i] = i + set_id * 8;
+      } else {
+        res_set.res_list[i] = set_id;
+      }
+    }
+  }
+
+  // Make 3 possible resources
+  out.res_to_add_mod_list_present = true;
+  out.res_to_add_mod_list.resize(18);
+  uint32_t j = 0, j2 = 0;
+  for (uint32_t i = 0; i < out.res_to_add_mod_list.size(); ++i) {
+    out.res_to_add_mod_list[i].pucch_res_id                = i;
+    out.res_to_add_mod_list[i].intra_slot_freq_hop_present = true;
+    out.res_to_add_mod_list[i].second_hop_prb_present      = true;
+    if (i < 8 or i == 16) {
+      out.res_to_add_mod_list[i].start_prb                              = 51;
+      out.res_to_add_mod_list[i].second_hop_prb                         = 0;
+      out.res_to_add_mod_list[i].format.set_format1().init_cyclic_shift = (4 * (j % 3));
+      out.res_to_add_mod_list[i].format.format1().nrof_symbols          = 14;
+      out.res_to_add_mod_list[i].format.format1().start_symbol_idx      = 0;
+      out.res_to_add_mod_list[i].format.format1().time_domain_occ       = j / 3;
+      j++;
+    } else if (i < 15) {
+      out.res_to_add_mod_list[i].start_prb                         = 1;
+      out.res_to_add_mod_list[i].second_hop_prb                    = 50;
+      out.res_to_add_mod_list[i].format.set_format2().nrof_prbs    = 1;
+      out.res_to_add_mod_list[i].format.format2().nrof_symbols     = 2;
+      out.res_to_add_mod_list[i].format.format2().start_symbol_idx = 2 * (j2 % 7);
+      j2++;
+    } else {
+      out.res_to_add_mod_list[i].start_prb                         = 50;
+      out.res_to_add_mod_list[i].second_hop_prb                    = 1;
+      out.res_to_add_mod_list[i].format.set_format2().nrof_prbs    = 1;
+      out.res_to_add_mod_list[i].format.format2().nrof_symbols     = 2;
+      out.res_to_add_mod_list[i].format.format2().start_symbol_idx = 2 * (j2 % 7);
+      j2++;
+    }
+  }
+
+  out.format1_present = true;
+  out.format1.set_setup();
+
+  out.format2_present = true;
+  out.format2.set_setup();
+  out.format2.setup().max_code_rate_present = true;
+  out.format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
+
+  // SR resources
+  out.sched_request_res_to_add_mod_list_present = true;
+  out.sched_request_res_to_add_mod_list.resize(1);
+  auto& sr_res1                             = out.sched_request_res_to_add_mod_list[0];
+  sr_res1.sched_request_res_id              = 1;
+  sr_res1.sched_request_id                  = 0;
+  sr_res1.periodicity_and_offset_present    = true;
+  sr_res1.periodicity_and_offset.set_sl40() = 0;
+  sr_res1.res_present                       = true;
+  sr_res1.res                               = 16;
+
+  // DL data
+  out.dl_data_to_ul_ack_present = true;
+  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+    out.dl_data_to_ul_ack.resize(1);
+    out.dl_data_to_ul_ack[0] = 4;
+  } else {
+    out.dl_data_to_ul_ack.resize(6);
+    out.dl_data_to_ul_ack[0] = 6;
+    out.dl_data_to_ul_ack[1] = 5;
+    out.dl_data_to_ul_ack[2] = 4;
+    out.dl_data_to_ul_ack[3] = 4;
+    out.dl_data_to_ul_ack[4] = 4;
+    out.dl_data_to_ul_ack[5] = 4;
+  }
+}
+
+void fill_pusch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pusch_cfg_s& out)
+{
+  out.dmrs_ul_for_pusch_map_type_a_present = true;
+  out.dmrs_ul_for_pusch_map_type_a.set_setup();
+  out.dmrs_ul_for_pusch_map_type_a.setup().dmrs_add_position_present = true;
+  out.dmrs_ul_for_pusch_map_type_a.setup().dmrs_add_position         = dmrs_ul_cfg_s::dmrs_add_position_opts::pos1;
+  // PUSH power control skipped
+  out.res_alloc = pusch_cfg_s::res_alloc_opts::res_alloc_type1;
+
+  // UCI
+  out.uci_on_pusch_present = true;
+  out.uci_on_pusch.set_setup();
+  out.uci_on_pusch.setup().beta_offsets_present = true;
+  out.uci_on_pusch.setup().beta_offsets.set_semi_static();
+  auto& beta_offset_semi_static                              = out.uci_on_pusch.setup().beta_offsets.semi_static();
+  beta_offset_semi_static.beta_offset_ack_idx1_present       = true;
+  beta_offset_semi_static.beta_offset_ack_idx1               = 9;
+  beta_offset_semi_static.beta_offset_ack_idx2_present       = true;
+  beta_offset_semi_static.beta_offset_ack_idx2               = 9;
+  beta_offset_semi_static.beta_offset_ack_idx3_present       = true;
+  beta_offset_semi_static.beta_offset_ack_idx3               = 9;
+  beta_offset_semi_static.beta_offset_csi_part1_idx1_present = true;
+  beta_offset_semi_static.beta_offset_csi_part1_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2_present = true;
+  beta_offset_semi_static.beta_offset_csi_part1_idx2         = 6;
+  beta_offset_semi_static.beta_offset_csi_part2_idx1_present = true;
+  beta_offset_semi_static.beta_offset_csi_part2_idx1         = 6;
+  beta_offset_semi_static.beta_offset_csi_part2_idx2_present = true;
+  beta_offset_semi_static.beta_offset_csi_part2_idx2         = 6;
+
+  out.uci_on_pusch.setup().scaling = uci_on_pusch_s::scaling_opts::f1;
+}
+
+void fill_init_ul_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_ul_ded_s& out)
+{
+  if (cfg.is_standalone) {
+    out.pucch_cfg_present = true;
+    fill_pucch_cfg_from_enb_cfg(cfg, cc, out.pucch_cfg.set_setup());
+
+    out.pusch_cfg_present = true;
+    fill_pusch_cfg_from_enb_cfg(cfg, cc, out.pusch_cfg.set_setup());
+  }
+}
+
+/// Fill InitUlBwp with gNB config
+void fill_ul_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ul_cfg_s& out)
+{
+  out.init_ul_bwp_present = true;
+  fill_init_ul_bwp_from_enb_cfg(cfg, cc, out.init_ul_bwp);
 }
 
 /// Fill ServingCellConfig with gNB config
@@ -328,6 +517,16 @@ int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_ce
 
   serv_cell.init_dl_bwp_present = true;
   fill_init_dl_bwp_from_enb_cfg(cfg, cc, serv_cell.init_dl_bwp);
+
+  serv_cell.first_active_dl_bwp_id_present = true;
+  if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+    serv_cell.first_active_dl_bwp_id = 0;
+  } else {
+    serv_cell.first_active_dl_bwp_id = 1;
+  }
+
+  serv_cell.ul_cfg_present = true;
+  fill_ul_cfg_from_enb_cfg(cfg, cc, serv_cell.ul_cfg);
 
   // TODO: remaining fields
 
@@ -583,6 +782,95 @@ int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_
 
   return SRSRAN_SUCCESS;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void fill_srb1(const rrc_nr_cfg_t& cfg, rlc_bearer_cfg_s& srb1)
+{
+  srb1.lc_ch_id                         = 1;
+  srb1.served_radio_bearer_present      = true;
+  srb1.served_radio_bearer.set_srb_id() = 1;
+  srb1.rlc_cfg_present                  = true;
+  ul_am_rlc_s& am_ul                    = srb1.rlc_cfg.set_am().ul_am_rlc;
+  am_ul.sn_field_len_present            = true;
+  am_ul.sn_field_len.value              = asn1::rrc_nr::sn_field_len_am_opts::size12;
+  am_ul.t_poll_retx.value               = asn1::rrc_nr::t_poll_retx_opts::ms45;
+  am_ul.poll_pdu.value                  = asn1::rrc_nr::poll_pdu_opts::infinity;
+  am_ul.poll_byte.value                 = asn1::rrc_nr::poll_byte_opts::infinity;
+  am_ul.max_retx_thres.value            = asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_opts::t8;
+  dl_am_rlc_s& am_dl                    = srb1.rlc_cfg.am().dl_am_rlc;
+  am_dl.sn_field_len_present            = true;
+  am_dl.sn_field_len.value              = asn1::rrc_nr::sn_field_len_am_opts::size12;
+  am_dl.t_reassembly.value              = t_reassembly_opts::ms35;
+  am_dl.t_status_prohibit.value         = asn1::rrc_nr::t_status_prohibit_opts::ms0;
+
+  // mac-LogicalChannelConfig -- Cond LCH-Setup
+  srb1.mac_lc_ch_cfg_present                    = true;
+  srb1.mac_lc_ch_cfg.ul_specific_params_present = true;
+  srb1.mac_lc_ch_cfg.ul_specific_params.prio    = 1;
+  srb1.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.value =
+      lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::infinity;
+  srb1.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.value =
+      lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::ms5;
+  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present          = true;
+  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_group                  = 0;
+  srb1.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present     = true;
+  srb1.mac_lc_ch_cfg.ul_specific_params.sched_request_id             = 0;
+  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_mask                = false;
+  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_delay_timer_applied = false;
+}
+
+/// Fill MasterCellConfig with gNB config
+int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::cell_group_cfg_s& out)
+{
+  out.cell_group_id                      = 0;
+  out.rlc_bearer_to_add_mod_list_present = true;
+  out.rlc_bearer_to_add_mod_list.resize(1);
+  fill_srb1(cfg, out.rlc_bearer_to_add_mod_list[0]);
+
+  // mac-CellGroupConfig -- Need M
+  out.mac_cell_group_cfg_present                                                 = true;
+  out.mac_cell_group_cfg.sched_request_cfg_present                               = true;
+  out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present = true;
+  out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.resize(1);
+  out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0].sched_request_id = 0;
+  out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0].sr_trans_max.value =
+      sched_request_to_add_mod_s::sr_trans_max_opts::n64;
+  out.mac_cell_group_cfg.bsr_cfg_present                     = true;
+  out.mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.value    = bsr_cfg_s::periodic_bsr_timer_opts::sf20;
+  out.mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.value        = bsr_cfg_s::retx_bsr_timer_opts::sf320;
+  out.mac_cell_group_cfg.tag_cfg_present                     = true;
+  out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list_present = true;
+  out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.resize(1);
+  out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].tag_id                 = 0;
+  out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].time_align_timer.value = time_align_timer_opts::infinity;
+  out.mac_cell_group_cfg.phr_cfg_present                                       = true;
+  phr_cfg_s& phr                            = out.mac_cell_group_cfg.phr_cfg.set_setup();
+  phr.phr_periodic_timer.value              = asn1::rrc_nr::phr_cfg_s::phr_periodic_timer_opts::sf500;
+  phr.phr_prohibit_timer.value              = asn1::rrc_nr::phr_cfg_s::phr_prohibit_timer_opts::sf200;
+  phr.phr_tx_pwr_factor_change.value        = asn1::rrc_nr::phr_cfg_s::phr_tx_pwr_factor_change_opts::db3;
+  phr.multiple_phr                          = false;
+  phr.dummy                                 = false;
+  phr.phr_type2_other_cell                  = false;
+  phr.phr_mode_other_cg.value               = asn1::rrc_nr::phr_cfg_s::phr_mode_other_cg_opts::real;
+  out.mac_cell_group_cfg.skip_ul_tx_dynamic = false;
+
+  // physicalCellGroupConfig -- Need M
+  out.phys_cell_group_cfg_present          = true;
+  out.phys_cell_group_cfg.p_nr_fr1_present = true;
+  out.phys_cell_group_cfg.p_nr_fr1         = 10;
+  out.phys_cell_group_cfg.pdsch_harq_ack_codebook.value =
+      phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value;
+
+  // spCellConfig -- Need M
+  out.sp_cell_cfg_present = true;
+  fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
+  out.sp_cell_cfg.recfg_with_sync_present = false;
+
+  return SRSRAN_SUCCESS;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int fill_mib_from_enb_cfg(const rrc_nr_cfg_t& cfg, asn1::rrc_nr::mib_s& mib)
 {

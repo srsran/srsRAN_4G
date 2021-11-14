@@ -66,9 +66,6 @@ public:
   void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
 
 private:
-  rrc_nr*  parent = nullptr;
-  uint16_t rnti   = SRSRAN_INVALID_RNTI;
-
   void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
   void send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
 
@@ -93,7 +90,6 @@ private:
   int pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
   int pack_sp_cell_cfg_ded_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-  int pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
   int pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
   int pack_sp_cell_cfg_ded_ul_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
@@ -123,6 +119,8 @@ private:
 
   int add_drb();
 
+  bool init_pucch();
+
   // logging helpers
   template <class M>
   void log_rrc_message(srsran::nr_srb          srb,
@@ -132,6 +130,11 @@ private:
                        const char*             msg_type);
   template <class M>
   void log_rrc_container(const direction_t dir, srsran::const_byte_span pdu, const M& msg, const char* msg_type);
+
+  // args
+  rrc_nr*               parent = nullptr;
+  srslog::basic_logger& logger;
+  uint16_t              rnti = SRSRAN_INVALID_RNTI;
 
   // state
   rrc_nr_state_t       state          = rrc_nr_state_t::RRC_IDLE;
@@ -146,6 +149,12 @@ private:
   sched_nr_interface::ue_cfg_t uecfg{};
 
   const uint32_t drb1_lcid = 4;
+
+  // SA specific variables
+  struct ctxt_t {
+    uint64_t                               setup_ue_id = -1;
+    asn1::rrc_nr::establishment_cause_opts connection_cause;
+  } ctxt;
 
   // NSA specific variables
   bool     endc       = false;
