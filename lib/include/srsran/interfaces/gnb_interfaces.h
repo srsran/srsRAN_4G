@@ -141,8 +141,8 @@ class rrc_interface_mac_nr
 {
 public:
   // Provides MIB packed message
-  virtual int read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer)   = 0;
-  virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) = 0;
+  virtual int read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer)   = 0;
+  virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) = 0;
 
   /// User management
   virtual int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg) = 0;

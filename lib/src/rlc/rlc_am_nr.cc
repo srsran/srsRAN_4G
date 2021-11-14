@@ -20,240 +20,206 @@
  */
 
 #include "srsran/rlc/rlc_am_nr.h"
-#include <sstream>
+#include "srsran/common/string_helpers.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
+#include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/srslog/event_trace.h"
+#include <iostream>
 
 namespace srsran {
 
+/*******************************
+ *     RLC AM NR class
+ ******************************/
+rlc_am_nr::rlc_am_nr(srslog::basic_logger&      logger,
+                     uint32_t                   lcid_,
+                     srsue::pdcp_interface_rlc* pdcp_,
+                     srsue::rrc_interface_rlc*  rrc_,
+                     srsran::timer_handler*     timers_) :
+  logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx(this), rx(this)
+{}
+
+// Applies new configuration. Must be just reestablished or initiated
+bool rlc_am_nr::configure(const rlc_config_t& cfg_)
+{
+  // determine bearer name and configure Rx/Tx objects
+  rb_name = rrc->get_rb_name(lcid);
+
+  // store config
+  cfg = cfg_;
+
+  if (not rx.configure(cfg.am)) {
+    logger.error("Error configuring bearer (RX)");
+    return false;
+  }
+
+  if (not tx.configure(cfg.am)) {
+    logger.error("Error configuring bearer (TX)");
+    return false;
+  }
+
+  logger.info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+              "t_reordering=%d, t_status_prohibit=%d",
+              rb_name.c_str(),
+              cfg.am.t_poll_retx,
+              cfg.am.poll_pdu,
+              cfg.am.poll_byte,
+              cfg.am.max_retx_thresh,
+              cfg.am.t_reordering,
+              cfg.am.t_status_prohibit);
+  return true;
+}
+
+void rlc_am_nr::stop() {}
+
+rlc_mode_t rlc_am_nr::get_mode()
+{
+  return rlc_mode_t::am;
+}
+
+uint32_t rlc_am_nr::get_bearer()
+{
+  return 0;
+}
+
+void rlc_am_nr::reestablish() {}
+
+void rlc_am_nr::empty_queue() {}
+
+void rlc_am_nr::set_bsr_callback(bsr_callback_t callback) {}
+
+rlc_bearer_metrics_t rlc_am_nr::get_metrics()
+{
+  return {};
+}
+
+void rlc_am_nr::reset_metrics() {}
+
 /****************************************************************************
- * Header pack/unpack helper functions
- * Ref: 3GPP TS 38.322 v15.3.0 Section 6.2.2.4
+ * PDCP interface
+ ***************************************************************************/
+void rlc_am_nr::write_sdu(unique_byte_buffer_t sdu)
+{
+  if (tx.write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
+    metrics.num_tx_sdus++;
+  }
+}
+
+void rlc_am_nr::discard_sdu(uint32_t pdcp_sn)
+{
+  tx.discard_sdu(pdcp_sn);
+  metrics.num_lost_sdus++;
+}
+
+bool rlc_am_nr::sdu_queue_is_full()
+{
+  return tx.sdu_queue_is_full();
+}
+
+/****************************************************************************
+ * MAC interface
  ***************************************************************************/
 
-uint32_t rlc_am_nr_read_data_pdu_header(const byte_buffer_t*      pdu,
-                                        const rlc_am_nr_sn_size_t sn_size,
-                                        rlc_am_nr_pdu_header_t*   header)
+bool rlc_am_nr::has_data()
 {
-  return rlc_am_nr_read_data_pdu_header(pdu->msg, pdu->N_bytes, sn_size, header);
+  return tx.has_data();
 }
 
-uint32_t rlc_am_nr_read_data_pdu_header(const uint8_t*            payload,
-                                        const uint32_t            nof_bytes,
-                                        const rlc_am_nr_sn_size_t sn_size,
-                                        rlc_am_nr_pdu_header_t*   header)
+uint32_t rlc_am_nr::get_buffer_state()
 {
-  uint8_t* ptr = const_cast<uint8_t*>(payload);
+  return tx.get_buffer_state();
+}
 
-  header->sn_size = sn_size;
+void rlc_am_nr::get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue)
+{
+  // TODO
+  tx_queue      = tx.get_buffer_state();
+  prio_tx_queue = 0;
+}
 
-  // Fixed part
-  header->dc = (rlc_dc_field_t)((*ptr >> 7) & 0x01);    // 1 bit D/C field
-  header->p  = (*ptr >> 6) & 0x01;                      // 1 bit P flag
-  header->si = (rlc_nr_si_field_t)((*ptr >> 4) & 0x03); // 2 bits SI
+uint32_t rlc_am_nr::read_pdu(uint8_t* payload, uint32_t nof_bytes)
+{
+  uint32_t read_bytes = tx.read_pdu(payload, nof_bytes);
+  metrics.num_tx_pdus++;
+  metrics.num_tx_pdu_bytes += read_bytes;
+  return read_bytes;
+}
 
-  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
-    header->sn = (*ptr & 0x0F) << 8; // first 4 bits SN
-    ptr++;
+void rlc_am_nr::write_pdu(uint8_t* payload, uint32_t nof_bytes)
+{
+  rx.write_pdu(payload, nof_bytes);
+  metrics.num_rx_pdus++;
+  metrics.num_rx_pdu_bytes += nof_bytes;
+}
 
-    header->sn |= (*ptr & 0xFF); // last 8 bits SN
-    ptr++;
-  } else if (sn_size == rlc_am_nr_sn_size_t::size18bits) {
-    // sanity check
-    if ((*ptr & 0x0c) != 0) {
-      fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
-      return 0;
+/****************************************************************************
+ * Tx subclass implementation
+ ***************************************************************************/
+rlc_am_nr::rlc_am_nr_tx::rlc_am_nr_tx(rlc_am_nr* parent_) :
+  parent(parent_), logger(parent_->logger), pool(byte_buffer_pool::get_instance())
+{}
+
+bool rlc_am_nr::rlc_am_nr_tx::configure(const rlc_am_config_t& cfg_)
+{
+  /*
+    if (cfg_.tx_queue_length > MAX_SDUS_PER_RLC_PDU) {
+      logger.error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
+                   cfg_.tx_queue_length,
+                   MAX_SDUS_PER_RLC_PDU);
+      return false;
     }
-    header->sn = (*ptr & 0x03) << 16; // first 4 bits SN
-    ptr++;
-    header->sn |= (*ptr & 0xFF) << 8; // bit 2-10 of SN
-    ptr++;
-    header->sn |= (*ptr & 0xFF); // last 8 bits SN
-    ptr++;
-  } else {
-    fprintf(stderr, "Unsupported SN length\n");
-    return 0;
-  }
+  */
+  cfg = cfg_;
 
-  // Read optional part
-  if (header->si == rlc_nr_si_field_t::last_segment ||
-      header->si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
-    // read SO
-    header->so = (*ptr & 0xFF) << 8;
-    ptr++;
-    header->so |= (*ptr & 0xFF);
-    ptr++;
-  }
-
-  // return consumed bytes
-  return (ptr - payload);
+  return true;
 }
 
-uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header)
+int rlc_am_nr::rlc_am_nr_tx::write_sdu(unique_byte_buffer_t sdu)
 {
-  uint32_t len = 0;
-  if (header.si == rlc_nr_si_field_t::full_sdu || header.si == rlc_nr_si_field_t::first_segment) {
-    len = 2;
-    if (header.sn_size == rlc_am_nr_sn_size_t::size18bits) {
-      len++;
-    }
-  } else {
-    // PDU contains SO
-    len = 4;
-    if (header.sn_size == rlc_am_nr_sn_size_t::size18bits) {
-      len++;
-    }
-  }
-  return len;
+  return 0;
 }
 
-uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu)
+void rlc_am_nr::rlc_am_nr_tx::discard_sdu(uint32_t sn)
 {
-  // Make room for the header
-  uint32_t len = rlc_am_nr_packed_length(header);
-  pdu->msg -= len;
-  uint8_t* ptr = pdu->msg;
-
-  // fixed header part
-  *ptr = (header.dc & 0x01) << 7;  ///< 1 bit D/C field
-  *ptr |= (header.p & 0x01) << 6;  ///< 1 bit P flag
-  *ptr |= (header.si & 0x03) << 4; ///< 2 bits SI
-
-  if (header.sn_size == rlc_am_nr_sn_size_t::size12bits) {
-    // write first 4 bit of SN
-    *ptr |= (header.sn >> 8) & 0x0f; // 4 bit SN
-    ptr++;
-    *ptr = header.sn & 0xff; // remaining 8 bit of SN
-    ptr++;
-  } else {
-    // 18bit SN
-    *ptr |= (header.sn >> 16) & 0x3; // 2 bit SN
-    ptr++;
-    *ptr = header.sn >> 8; // bit 3 - 10 of SN
-    ptr++;
-    *ptr = (header.sn & 0xff); // remaining 8 bit of SN
-    ptr++;
-  }
-
-  if (header.so) {
-    // write SO
-    *ptr = header.so >> 8; // first part of SO
-    ptr++;
-    *ptr = (header.so & 0xff); // second part of SO
-    ptr++;
-  }
-
-  pdu->N_bytes += ptr - pdu->msg;
-
-  return len;
+  return;
 }
 
-uint32_t
-rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status)
+bool rlc_am_nr::rlc_am_nr_tx::sdu_queue_is_full()
 {
-  return rlc_am_nr_read_status_pdu(pdu->msg, pdu->N_bytes, sn_size, status);
+  return false;
 }
 
-uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
-                                   const uint32_t            nof_bytes,
-                                   const rlc_am_nr_sn_size_t sn_size,
-                                   rlc_am_nr_status_pdu_t*   status)
+bool rlc_am_nr::rlc_am_nr_tx::has_data()
 {
-  uint8_t* ptr = const_cast<uint8_t*>(payload);
-
-  // fixed part
-  status->cpt = (rlc_am_nr_control_pdu_type_t)((*ptr >> 4) & 0x07); // 3 bits CPT
-
-  // sanity check
-  if (status->cpt != rlc_am_nr_control_pdu_type_t::status_pdu) {
-    fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
-    return 0;
-  }
-
-  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
-    status->ack_sn = (*ptr & 0x0F) << 8; // first 4 bits SN
-    ptr++;
-
-    status->ack_sn |= (*ptr & 0xFF); // last 8 bits SN
-    ptr++;
-
-    // read E1 flag
-    uint8_t e1 = *ptr & 0x80;
-
-    // sanity check for reserved bits
-    if ((*ptr & 0x7f) != 0) {
-      fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
-      return 0;
-    }
-
-    // all good, continue with next byte depending on E1
-    ptr++;
-
-    // reset number of acks
-    status->N_nack = 0;
-
-    if (e1) {
-      // E1 flag set, read a NACK_SN
-      rlc_status_nack_t nack = {};
-      nack.nack_sn           = (*ptr & 0xff) << 4;
-      ptr++;
-      // uint8_t len2 = (*ptr & 0xF0) >> 4;
-      nack.nack_sn |= (*ptr & 0xF0) >> 4;
-      status->nacks[status->N_nack] = nack;
-
-      status->N_nack++;
-    }
-  }
-
-  return SRSRAN_SUCCESS;
+  return true;
 }
 
-/**
- * Write a RLC AM NR status PDU to a PDU buffer and eets the length of the generate PDU accordingly
- * @param status_pdu The status PDU
- * @param pdu A pointer to a unique bytebuffer
- * @return SRSRAN_SUCCESS if PDU was written, SRSRAN_ERROR otherwise
- */
-int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
-                                   const rlc_am_nr_sn_size_t     sn_size,
-                                   byte_buffer_t*                pdu)
+uint32_t rlc_am_nr::rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  uint8_t* ptr = pdu->msg;
-
-  // fixed header part
-  *ptr = 0; ///< 1 bit D/C field and 3bit CPT are all zero
-
-  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
-    // write first 4 bit of ACK_SN
-    *ptr |= (status_pdu.ack_sn >> 8) & 0x0f; // 4 bit ACK_SN
-    ptr++;
-    *ptr = status_pdu.ack_sn & 0xff; // remaining 8 bit of SN
-    ptr++;
-
-    // write E1 flag in octet 3
-    *ptr = (status_pdu.N_nack > 0) ? 0x80 : 0x00;
-    ptr++;
-
-    if (status_pdu.N_nack > 0) {
-      // write first 8 bit of NACK_SN
-      *ptr = (status_pdu.nacks[0].nack_sn >> 4) & 0xff;
-      ptr++;
-
-      // write remaining 4 bits of NACK_SN
-      *ptr = status_pdu.nacks[0].nack_sn & 0xf0;
-      ptr++;
-    }
-  } else {
-    // 18bit SN
-    *ptr |= (status_pdu.ack_sn >> 14) & 0x0f; // 4 bit ACK_SN
-    ptr++;
-    *ptr = status_pdu.ack_sn >> 8; // bit 3 - 10 of SN
-    ptr++;
-    *ptr = (status_pdu.ack_sn & 0xff); // remaining 6 bit of SN
-    ptr++;
-  }
-
-  pdu->N_bytes = ptr - pdu->msg;
-
-  return SRSRAN_SUCCESS;
+  return 0;
 }
+
+uint32_t rlc_am_nr::rlc_am_nr_tx::get_buffer_state()
+{
+  return 0;
+}
+
+/****************************************************************************
+ * Rx subclass implementation
+ ***************************************************************************/
+rlc_am_nr::rlc_am_nr_rx::rlc_am_nr_rx(rlc_am_nr* parent_) :
+  parent(parent_), pool(byte_buffer_pool::get_instance()), logger(parent_->logger)
+{}
+
+bool rlc_am_nr::rlc_am_nr_rx::configure(const rlc_am_config_t& cfg_)
+{
+  cfg = cfg_;
+
+  return true;
+}
+
+void rlc_am_nr::rlc_am_nr_rx::stop() {}
+
+void rlc_am_nr::rlc_am_nr_rx::write_pdu(uint8_t* payload, uint32_t nof_bytes) {}
 
 } // namespace srsran

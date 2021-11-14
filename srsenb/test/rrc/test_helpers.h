@@ -28,7 +28,6 @@
 #include "srsran/adt/span.h"
 
 using namespace srsenb;
-using namespace asn1::rrc;
 
 namespace argparse {
 
@@ -238,9 +237,9 @@ namespace srsenb {
 
 meas_cell_cfg_t generate_cell1();
 
-report_cfg_eutra_s generate_rep1();
+asn1::rrc::report_cfg_eutra_s generate_rep1();
 
-bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell);
+bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const asn1::rrc::cells_to_add_mod_s& cell);
 
 } // namespace srsenb
 

@@ -1185,15 +1185,26 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   // update number of NR cells
   rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.size();
   args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_nr_cfg_->cell_list.size();
-
-  // update EUTRA RRC params for ENDC
-  if (rrc_nr_cfg_->cell_list.size() == 1) {
-    rrc_cfg_->endc_cfg.abs_frequency_ssb = rrc_nr_cfg_->cell_list.at(0).ssb_absolute_freq_point;
-    rrc_cfg_->endc_cfg.nr_band           = rrc_nr_cfg_->cell_list.at(0).band;
-    rrc_cfg_->endc_cfg.ssb_period_offset.set_sf10_r15();
-    rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
-    rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
-    rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
+  ASSERT_VALID_CFG(args_->rf.nof_carriers > 0, "There must be at least one NR or LTE cell");
+  if (rrc_nr_cfg_->cell_list.size() > 0) {
+    // NR cells available.
+    if (rrc_cfg_->cell_list.size() == 0) {
+      // SA mode. Update NGAP args
+      rrc_nr_cfg_->is_standalone   = true;
+      args_->nr_stack.ngap.gnb_id  = args_->enb.enb_id;
+      args_->nr_stack.ngap.cell_id = rrc_nr_cfg_->cell_list[0].phy_cell.cell_id;
+      args_->nr_stack.ngap.tac     = rrc_nr_cfg_->cell_list[0].tac;
+    } else {
+      // NSA mode.
+      rrc_nr_cfg_->is_standalone = false;
+      // update EUTRA RRC params for ENDC
+      rrc_cfg_->endc_cfg.abs_frequency_ssb = rrc_nr_cfg_->cell_list.at(0).ssb_absolute_freq_point;
+      rrc_cfg_->endc_cfg.nr_band           = rrc_nr_cfg_->cell_list.at(0).band;
+      rrc_cfg_->endc_cfg.ssb_period_offset.set_sf10_r15();
+      rrc_cfg_->endc_cfg.ssb_duration      = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::sf1;
+      rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
+      rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
+    }
   }
 
   return SRSRAN_SUCCESS;
@@ -1202,41 +1213,42 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
 int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_)
 {
   // Sanity checks
-  ASSERT_VALID_CFG(not rrc_cfg_->cell_list.empty(), "No cell specified in rr.conf.");
   ASSERT_VALID_CFG(args_->stack.mac.nof_prealloc_ues <= SRSENB_MAX_UES,
                    "mac.nof_prealloc_ues=%d must be within [0, %d]",
                    args_->stack.mac.nof_prealloc_ues,
                    SRSENB_MAX_UES);
 
   // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
-  if (rrc_cfg_->cell_list.size() == 1) {
-    auto& cfg = rrc_cfg_->cell_list.at(0);
-    if (args_->enb.dl_earfcn > 0 and args_->enb.dl_earfcn != cfg.dl_earfcn) {
-      cfg.dl_earfcn = args_->enb.dl_earfcn;
-      ERROR("Force DL EARFCN for cell PCI=%d to %d", cfg.pci, cfg.dl_earfcn);
+  if (rrc_cfg_->cell_list.size() > 0) {
+    if (rrc_cfg_->cell_list.size() == 1) {
+      auto& cfg = rrc_cfg_->cell_list.at(0);
+      if (args_->enb.dl_earfcn > 0 and args_->enb.dl_earfcn != cfg.dl_earfcn) {
+        cfg.dl_earfcn = args_->enb.dl_earfcn;
+        ERROR("Force DL EARFCN for cell PCI=%d to %d", cfg.pci, cfg.dl_earfcn);
+      }
+      if (args_->rf.dl_freq > 0) {
+        cfg.dl_freq_hz = args_->rf.dl_freq;
+        ERROR("Force DL freq for cell PCI=%d to %f MHz", cfg.pci, cfg.dl_freq_hz / 1e6f);
+      }
+      if (args_->rf.ul_freq > 0) {
+        cfg.ul_freq_hz = args_->rf.ul_freq;
+        ERROR("Force UL freq for cell PCI=%d to %f MHz", cfg.pci, cfg.ul_freq_hz / 1e6f);
+      }
+    } else {
+      // If more than one cell is defined, single EARFCN or DL freq will be ignored
+      if (args_->enb.dl_earfcn > 0 || args_->rf.dl_freq > 0) {
+        INFO("Multiple cells defined in rr.conf. Ignoring single EARFCN and/or frequency config.");
+      }
     }
-    if (args_->rf.dl_freq > 0) {
-      cfg.dl_freq_hz = args_->rf.dl_freq;
-      ERROR("Force DL freq for cell PCI=%d to %f MHz", cfg.pci, cfg.dl_freq_hz / 1e6f);
-    }
-    if (args_->rf.ul_freq > 0) {
-      cfg.ul_freq_hz = args_->rf.ul_freq;
-      ERROR("Force UL freq for cell PCI=%d to %f MHz", cfg.pci, cfg.ul_freq_hz / 1e6f);
-    }
-  } else {
-    // If more than one cell is defined, single EARFCN or DL freq will be ignored
-    if (args_->enb.dl_earfcn > 0 || args_->rf.dl_freq > 0) {
-      INFO("Multiple cells defined in rr.conf. Ignoring single EARFCN and/or frequency config.");
-    }
+
+    // set config for RRC's base cell
+    rrc_cfg_->cell = cell_cfg_;
+
+    // Set S1AP related params from cell list
+    args_->stack.s1ap.enb_id  = args_->enb.enb_id;
+    args_->stack.s1ap.cell_id = rrc_cfg_->cell_list.at(0).cell_id;
+    args_->stack.s1ap.tac     = rrc_cfg_->cell_list.at(0).tac;
   }
-
-  // set config for RRC's base cell
-  rrc_cfg_->cell = cell_cfg_;
-
-  // Set S1AP related params from cell list
-  args_->stack.s1ap.enb_id  = args_->enb.enb_id;
-  args_->stack.s1ap.cell_id = rrc_cfg_->cell_list.at(0).cell_id;
-  args_->stack.s1ap.tac     = rrc_cfg_->cell_list.at(0).tac;
 
   // Create dedicated cell configuration from RRC configuration
   for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {

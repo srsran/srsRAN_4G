@@ -196,6 +196,12 @@ make_sctp_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& q
 socket_manager_itf::recv_callback_t
 make_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue, recvfrom_callback_t rx_callback);
 
+inline socket_manager& get_rx_io_manager()
+{
+  static socket_manager io;
+  return io;
+}
+
 } // namespace srsran
 
 #endif // SRSRAN_RX_SOCKET_HANDLER_H

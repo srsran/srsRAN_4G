@@ -28,5 +28,3 @@ set(SOURCES mac.cc ue.cc sched.cc sched_carrier.cc sched_grid.cc sched_ue_ctrl/s
             sched_helpers.cc)
 add_library(srsenb_mac STATIC ${SOURCES} $<TARGET_OBJECTS:mac_schedulers>)
 target_link_libraries(srsenb_mac srsenb_mac_common)
-
-add_subdirectory(nr)

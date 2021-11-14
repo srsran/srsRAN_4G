@@ -22,10 +22,12 @@ set(SOURCES rlc.cc
             rlc_tm.cc
             rlc_um_base.cc
             rlc_um_lte.cc
+            rlc_um_nr.cc
             rlc_am_base.cc
             rlc_am_lte.cc
-            rlc_um_nr.cc
             rlc_am_nr.cc
+            rlc_am_lte_packing.cc
+            rlc_am_nr_packing.cc
             bearer_mem_pool.cc)
 
 add_library(srsran_rlc STATIC ${SOURCES})

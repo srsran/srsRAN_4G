@@ -1604,32 +1604,3 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
 }
 
 } // namespace srsran
-
-namespace srsenb {
-
-int set_sched_cell_cfg_sib1(srsenb::sched_interface::cell_cfg_t* sched_cfg, const asn1::rrc_nr::sib1_s& sib1)
-{
-  bzero(sched_cfg, sizeof(srsenb::sched_interface::cell_cfg_t));
-
-  // set SIB1 and SIB2+ period
-  sched_cfg->sibs[0].period_rf = 16; // SIB1 is always 16 rf
-  for (uint32_t i = 0; i < sib1.si_sched_info.sched_info_list.size(); i++) {
-    sched_cfg->sibs[i + 1].period_rf = sib1.si_sched_info.sched_info_list[i].si_periodicity.to_number();
-  }
-
-  // si-WindowLength
-  sched_cfg->si_window_ms = sib1.si_sched_info.si_win_len.to_number();
-
-  // setup PRACH
-  if (not sib1.si_sched_info.si_request_cfg.rach_occasions_si_present) {
-    asn1::log_warning("rach_occasions_si option not present");
-    return SRSRAN_ERROR;
-  }
-  sched_cfg->prach_rar_window = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win.to_number();
-  sched_cfg->prach_freq_offset = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.msg1_freq_start;
-  sched_cfg->maxharq_msg3tx    = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.preamb_trans_max;
-
-  return SRSRAN_SUCCESS;
-}
-
-} // namespace srsenb

@@ -40,8 +40,8 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 
-#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/hdr/stack/mac/sched_interface.h"
+#include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/interfaces_common.h"

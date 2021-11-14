@@ -92,6 +92,10 @@ public:
   using iterator       = iterator_impl<T>;
   using const_iterator = iterator_impl<const T>;
 
+  base_optional_span() = default;
+  base_optional_span(Vec&& v, size_t nof_elems_) : vec(std::move(v)), nof_elems(nof_elems_) {}
+  base_optional_span(const Vec& v, size_t nof_elems_) : vec(v), nof_elems(nof_elems_) {}
+
   // Find first position that is empty
   size_t find_first_empty(size_t start_guess = 0)
   {
@@ -143,6 +147,16 @@ public:
     this->nof_elems += this->contains(idx) ? 0 : 1;
     this->vec[idx] = std::forward<U>(u);
   }
+
+  template <typename... Args>
+  void emplace(size_t idx, Args&&... args)
+  {
+    srsran_assert(idx < this->vec.size(), "Out-of-bounds access to array: %zd>=%zd", idx, this->vec.size());
+    if (not this->contains(idx)) {
+      this->nof_elems++;
+    }
+    this->vec[idx].emplace(std::forward<Args>(args)...);
+  }
 };
 
 template <typename Vec>
@@ -157,8 +171,7 @@ public:
 
   base_optional_vector()                            = default;
   base_optional_vector(const base_optional_vector&) = default;
-  base_optional_vector(base_optional_vector&& other) noexcept : base_t::vec(std::move(other.vec)),
-                                                                base_t::nof_elems(other.nof_elems)
+  base_optional_vector(base_optional_vector&& other) noexcept : base_t(std::move(other.vec), other.size())
   {
     other.nof_elems = 0;
   }
@@ -167,7 +180,7 @@ public:
   {
     this->vec       = std::move(other.vec);
     this->nof_elems = other.nof_elems;
-    this->nof_elems = 0;
+    other.nof_elems = 0;
     return *this;
   }
 };
@@ -204,6 +217,16 @@ public:
       this->vec.resize(idx + 1);
     }
     base_t::insert(idx, std::forward<U>(u));
+  }
+
+  /// May allocate and cause pointer invalidation
+  template <typename... Args>
+  void emplace(size_t idx, Args&&... args)
+  {
+    if (idx >= this->vec.size()) {
+      this->vec.resize(idx + 1);
+    }
+    base_t::emplace(idx, std::forward<Args>(args)...);
   }
 };
 

@@ -392,7 +392,7 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   rwlock_write_guard lock(rwlock);
 
   if (valid_lcid(lcid)) {
-    logger.error("LCID %d already exists", lcid);
+    logger.warning("LCID %d already exists", lcid);
     return SRSRAN_ERROR;
   }
 

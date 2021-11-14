@@ -24,6 +24,7 @@
 
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
+#include "srsran/common/timers.h"
 #include "srsran/rlc/rlc_am_base.h"
 #include "srsran/upper/byte_buffer_queue.h"
 #include <map>
@@ -33,41 +34,113 @@
 
 namespace srsran {
 
-typedef struct {
-  rlc_am_nr_pdu_header_t header;
-  unique_byte_buffer_t   buf;
-} rlc_amd_pdu_nr_t;
+class rlc_am_nr : public rlc_common
+{
+public:
+  rlc_am_nr(srslog::basic_logger&      logger,
+            uint32_t                   lcid_,
+            srsue::pdcp_interface_rlc* pdcp_,
+            srsue::rrc_interface_rlc*  rrc_,
+            srsran::timer_handler*     timers_);
+  bool configure(const rlc_config_t& cfg_) final;
+  void stop() final;
 
-///< add class here
+  rlc_mode_t get_mode() final;
+  uint32_t   get_bearer() final;
 
-/****************************************************************************
- * Header pack/unpack helper functions for NR
- * Ref: 3GPP TS 38.322 v15.3.0 Section 6.2.2.3
- ***************************************************************************/
-uint32_t rlc_am_nr_read_data_pdu_header(const byte_buffer_t*      pdu,
-                                        const rlc_am_nr_sn_size_t sn_size,
-                                        rlc_am_nr_pdu_header_t*   header);
+  void reestablish() final;
+  void empty_queue() final;
+  void set_bsr_callback(bsr_callback_t callback) final;
 
-uint32_t rlc_am_nr_read_data_pdu_header(const uint8_t*            payload,
-                                        const uint32_t            nof_bytes,
-                                        const rlc_am_nr_sn_size_t sn_size,
-                                        rlc_am_nr_pdu_header_t*   header);
+  // PDCP interface
+  void write_sdu(unique_byte_buffer_t sdu) final;
+  void discard_sdu(uint32_t pdcp_sn) final;
+  bool sdu_queue_is_full() final;
 
-uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu);
+  // MAC interface
+  bool     has_data() final;
+  uint32_t get_buffer_state() final;
+  void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) final;
+  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+  void     write_pdu(uint8_t* payload, uint32_t nof_bytes) final;
 
-uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header);
+  rlc_bearer_metrics_t get_metrics() final;
+  void                 reset_metrics() final;
 
-uint32_t
-rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status);
+private:
+  // Transmitter sub-class
+  class rlc_am_nr_tx
+  {
+  public:
+    explicit rlc_am_nr_tx(rlc_am_nr* parent_);
+    ~rlc_am_nr_tx() = default;
 
-uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
-                                   const uint32_t            nof_bytes,
-                                   const rlc_am_nr_sn_size_t sn_size,
-                                   rlc_am_nr_status_pdu_t*   status);
+    bool configure(const rlc_am_config_t& cfg_);
+    void stop();
 
-int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
-                                   const rlc_am_nr_sn_size_t     sn_size,
-                                   byte_buffer_t*                pdu);
+    int      write_sdu(unique_byte_buffer_t sdu);
+    uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
+    void     discard_sdu(uint32_t discard_sn);
+    bool     sdu_queue_is_full();
+
+    bool     has_data();
+    uint32_t get_buffer_state();
+
+    rlc_am_nr*            parent = nullptr;
+    srslog::basic_logger& logger;
+
+  private:
+    byte_buffer_pool* pool = nullptr;
+
+    /****************************************************************************
+     * Configurable parameters
+     * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+     ***************************************************************************/
+    rlc_am_config_t cfg = {};
+  };
+
+  // Receiver sub-class
+  class rlc_am_nr_rx
+  {
+  public:
+    explicit rlc_am_nr_rx(rlc_am_nr* parent_);
+    ~rlc_am_nr_rx() = default;
+
+    bool configure(const rlc_am_config_t& cfg_);
+    void stop();
+
+    void write_pdu(uint8_t* payload, uint32_t nof_bytes);
+
+    rlc_am_nr*            parent = nullptr;
+    srslog::basic_logger& logger;
+
+  private:
+    byte_buffer_pool* pool = nullptr;
+
+    /****************************************************************************
+     * Configurable parameters
+     * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+     ***************************************************************************/
+    rlc_am_config_t cfg = {};
+  };
+
+  // Common variables needed/provided by parent class
+  srsue::rrc_interface_rlc*  rrc = nullptr;
+  srslog::basic_logger&      logger;
+  srsue::pdcp_interface_rlc* pdcp   = nullptr;
+  srsran::timer_handler*     timers = nullptr;
+  uint32_t                   lcid   = 0;
+  rlc_config_t               cfg    = {};
+  std::string                rb_name;
+
+  static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
+
+  // Rx and Tx objects
+  rlc_am_nr_tx tx;
+  rlc_am_nr_rx rx;
+
+  rlc_bearer_metrics_t metrics = {};
+};
 
 } // namespace srsran
 
