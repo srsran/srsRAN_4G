@@ -1495,6 +1495,7 @@ bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
   mib->ss0_idx                = mib_cfg.pdcch_cfg_sib1.search_space_zero;
   mib->cell_barred            = mib_cfg.cell_barred.value == asn1::rrc_nr::mib_s::cell_barred_opts::barred;
   mib->intra_freq_reselection = mib_cfg.intra_freq_resel.value == asn1::rrc_nr::mib_s::intra_freq_resel_opts::allowed;
+  return true;
 }
 
 bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
