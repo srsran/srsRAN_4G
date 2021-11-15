@@ -36,14 +36,18 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
  *
  * @param[in]  sl_point         Slot point carrying information about current slot.
  * @param[in]  ssb_periodicity  Periodicity of SSB in ms.
- * @param[out]  ssb_list         List of SSB messages to be sent to PHY.
+ * @param[in]  mib              MIB message content
+ * @param[out]  ssb_list        List of SSB messages to be sent to PHY.
  *
  * @remark This function a is basic scheduling function that uses the following simplified assumption:
  * 1) Subcarrier spacing: 15kHz
  * 2) Frequency below 3GHz
  * 3) Position in Burst is 1000, i.e., Only the first SSB of the 4 opportunities gets scheduled
  */
-void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_list& ssb_list);
+void sched_ssb_basic(const slot_point&      sl_point,
+                     uint32_t               ssb_periodicity,
+                     const srsran_mib_nr_t& mib,
+                     ssb_list&              ssb_list);
 
 /// Fill DCI fields with SIB info
 bool fill_dci_sib(prb_interval interv, uint32_t sib_idx, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci);

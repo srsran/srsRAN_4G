@@ -270,6 +270,8 @@ void rrc_nr::config_mac()
   srsran_assert(ret2, "Invalid NR cell configuration.");
   ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
   srsran_assert(ret2, "Invalid NR cell configuration.");
+  ret2 = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
+  srsran_assert(ret2, "Invalid NR cell MIB configuration.");
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());

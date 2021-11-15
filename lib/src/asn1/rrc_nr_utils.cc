@@ -1480,6 +1480,23 @@ bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
   return true;
 }
 
+bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
+{
+  mib->sfn     = 0;
+  mib->ssb_idx = 0;
+  mib->hrf     = 0;
+  mib->scs_common =
+      mib_cfg.sub_carrier_spacing_common.value == asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60
+          ? srsran_subcarrier_spacing_15kHz
+          : srsran_subcarrier_spacing_30kHz;
+  mib->ssb_offset             = mib_cfg.ssb_subcarrier_offset;
+  mib->dmrs_typeA_pos         = (srsran_dmrs_sch_typeA_pos_t)mib_cfg.dmrs_type_a_position.value;
+  mib->coreset0_idx           = mib_cfg.pdcch_cfg_sib1.ctrl_res_set_zero;
+  mib->ss0_idx                = mib_cfg.pdcch_cfg_sib1.search_space_zero;
+  mib->cell_barred            = mib_cfg.cell_barred.value == asn1::rrc_nr::mib_s::cell_barred_opts::barred;
+  mib->intra_freq_reselection = mib_cfg.intra_freq_resel.value == asn1::rrc_nr::mib_s::intra_freq_resel_opts::allowed;
+}
+
 bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
 {
   if (serv_cell.csi_meas_cfg_present and

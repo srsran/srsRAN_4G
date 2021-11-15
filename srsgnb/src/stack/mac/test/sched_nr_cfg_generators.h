@@ -35,9 +35,11 @@ inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
 {
   sched_nr_interface::cell_cfg_t cell_cfg{};
 
-  cell_cfg.carrier = phy_cfg.carrier;
-  cell_cfg.duplex  = phy_cfg.duplex;
-  cell_cfg.ssb     = phy_cfg.ssb;
+  cell_cfg.carrier          = phy_cfg.carrier;
+  cell_cfg.duplex           = phy_cfg.duplex;
+  cell_cfg.ssb              = phy_cfg.ssb;
+  cell_cfg.mib.coreset0_idx = 6;
+  cell_cfg.mib.scs_common   = srsran_subcarrier_spacing_15kHz;
 
   cell_cfg.bwps.resize(1);
   cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;

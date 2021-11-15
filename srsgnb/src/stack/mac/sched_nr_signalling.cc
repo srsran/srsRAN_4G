@@ -46,7 +46,10 @@ void sched_nzp_csi_rs(srsran::const_span<srsran_csi_rs_nzp_set_t> nzp_csi_rs_set
   }
 }
 
-void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_list& ssb_list)
+void sched_ssb_basic(const slot_point&      sl_point,
+                     uint32_t               ssb_periodicity,
+                     const srsran_mib_nr_t& mib,
+                     ssb_list&              ssb_list)
 {
   if (ssb_list.full()) {
     srslog::fetch_basic_logger("MAC-NR").error("SCHED: Failed to allocate SSB");
@@ -66,17 +69,13 @@ void sched_ssb_basic(const slot_point& sl_point, uint32_t ssb_periodicity, ssb_l
   // code below is simplified, it assumes 15kHz subcarrier spacing and sub 3GHz carrier
   if (sl_point_mod == 0) {
     ssb_t           ssb_msg = {};
-    srsran_mib_nr_t mib_msg = {};
+    srsran_mib_nr_t mib_msg = mib;
     mib_msg.sfn             = sl_point.sfn();
     mib_msg.hrf             = (sl_point.slot_idx() % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) >=
                    SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) / 2);
     // This corresponds to "Position in Burst" = 1000
     mib_msg.ssb_idx = 0;
-    // Setting the following 4 parameters is redundant, but it makes it explicit what values are passed to PHY
-    mib_msg.dmrs_typeA_pos = srsran_dmrs_sch_typeA_pos_2;
-    mib_msg.scs_common     = srsran_subcarrier_spacing_15kHz;
-    mib_msg.coreset0_idx   = 0;
-    mib_msg.ss0_idx        = 0;
+    // Remaining MIB parameters remain constant
 
     // Pack mib message to be sent to PHY
     int packing_ret_code = srsran_pbch_msg_nr_mib_pack(&mib_msg, &ssb_msg.pbch_msg);
@@ -95,7 +94,7 @@ void sched_dl_signalling(bwp_slot_allocator& bwp_alloc)
   cfg.idx = sl_pdcch.to_uint();
 
   // Schedule SSB
-  sched_ssb_basic(sl_pdcch, bwp_params.cell_cfg.ssb.periodicity_ms, sl_grid.dl.phy.ssb);
+  sched_ssb_basic(sl_pdcch, bwp_params.cell_cfg.ssb.periodicity_ms, bwp_params.cell_cfg.mib, sl_grid.dl.phy.ssb);
 
   // Schedule NZP-CSI-RS
   sched_nzp_csi_rs(bwp_params.cfg.pdsch.nzp_csi_rs_sets, cfg, sl_grid.dl.phy.nzp_csi_rs);
