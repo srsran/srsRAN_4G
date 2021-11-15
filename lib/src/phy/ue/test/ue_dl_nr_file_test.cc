@@ -110,8 +110,12 @@ static int parse_args(int argc, char** argv)
       case 's':
         if (strcmp(argv[optind], "common0") == 0) {
           ss_type = srsran_search_space_type_common_0;
+        } else if (strcmp(argv[optind], "common1") == 0) {
+          ss_type = srsran_search_space_type_common_1;
         } else if (strcmp(argv[optind], "common3") == 0) {
           ss_type = srsran_search_space_type_common_3;
+        } else if (strcmp(argv[optind], "ue") == 0) {
+          ss_type = srsran_search_space_type_ue;
         } else {
           printf("Invalid SS type '%s'\n", argv[optind]);
           usage(argv[0]);
@@ -346,13 +350,19 @@ int main(int argc, char** argv)
   } else {
     // configure to use coreset1
     coreset                      = &pdcch_cfg.coreset[1];
+    coreset->id                  = 1;
     pdcch_cfg.coreset_present[1] = true;
     coreset->duration            = coreset_len;
     coreset->offset_rb           = coreset_offset_rb;
     for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
       coreset->freq_resources[i] = i < coreset_n_rb / 6;
     }
+    pdsch_hl_cfg.nof_common_time_ra = 1;
   }
+
+  char coreset_info[512] = {};
+  srsran_coreset_to_str(coreset, coreset_info, sizeof(coreset_info));
+  INFO("Coreset parameter: %s", coreset_info);
 
   // Configure Search Space
   srsran_search_space_t* search_space = &pdcch_cfg.search_space[0];
