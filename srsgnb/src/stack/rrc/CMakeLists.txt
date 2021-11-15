@@ -6,9 +6,13 @@
 # the distribution.
 #
 
+set(SOURCES rrc_nr_config_utils.cc)
+add_library(srsgnb_rrc_config_utils STATIC ${SOURCES})
+target_link_libraries(srsgnb_rrc_config_utils srsran_rrc_nr srsran_phy)
+
 set(SOURCES rrc_nr.cc rrc_nr_ue.cc cell_asn1_config.cc)
 add_library(srsgnb_rrc STATIC ${SOURCES})
-target_link_libraries(srsgnb_rrc srsran_rrc_nr)
+target_link_libraries(srsgnb_rrc srsran_rrc_nr srsgnb_rrc_config_utils)
 
 include_directories(${PROJECT_SOURCE_DIR})
 

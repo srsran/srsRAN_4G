@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef SRSRAN_RRC_CONFIG_NR_H
-#define SRSRAN_RRC_CONFIG_NR_H
+#ifndef SRSRAN_RRC_NR_CONFIG_H
+#define SRSRAN_RRC_NR_CONFIG_H
 
 #include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsenb/hdr/stack/rrc/rrc_config_common.h"
@@ -40,6 +40,7 @@ struct rrc_cell_cfg_nr_t {
   uint32_t             ul_absolute_freq_point_a; // derived from UL ARFCN
   uint32_t             ssb_absolute_freq_point;  // derived from DL ARFCN
   uint32_t             band;
+  uint32_t             coreset0_idx; // Table 13-{1,...15} row index
   srsran_duplex_mode_t duplex_mode;
   srsran_ssb_cfg_t     ssb_cfg;
 };
@@ -61,4 +62,4 @@ struct rrc_nr_cfg_t {
 
 } // namespace srsenb
 
-#endif // SRSRAN_RRC_CONFIG_NR_H
+#endif // SRSRAN_RRC_NR_CONFIG_H

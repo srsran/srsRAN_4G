@@ -586,9 +586,9 @@ int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_
 
 int fill_mib_from_enb_cfg(const rrc_nr_cfg_t& cfg, asn1::rrc_nr::mib_s& mib)
 {
-  srsran::basic_cell_args_t args;
-  args.scs = cfg.cell_list[0].phy_cell.carrier.scs;
-  srsran::generate_default_mib(args, mib);
+  uint32_t scs =
+      subcarrier_spacing_e{(subcarrier_spacing_opts::options)cfg.cell_list[0].phy_cell.carrier.scs}.to_number();
+  srsran::generate_default_mib(scs, cfg.cell_list[0].coreset0_idx, mib);
   return SRSRAN_SUCCESS;
 }
 

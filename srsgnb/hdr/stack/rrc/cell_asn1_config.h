@@ -13,7 +13,7 @@
 #ifndef SRSRAN_CELL_ASN1_CONFIG_H
 #define SRSRAN_CELL_ASN1_CONFIG_H
 
-#include "rrc_config_nr.h"
+#include "rrc_nr_config.h"
 #include "srsran/asn1/rrc_nr.h"
 
 namespace srsenb {

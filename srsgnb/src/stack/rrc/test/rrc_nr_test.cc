@@ -168,7 +168,7 @@ int main(int argc, char** argv)
   auto& logger = srslog::fetch_basic_logger("ASN1");
   logger.set_level(srslog::basic_levels::info);
   auto& rrc_logger = srslog::fetch_basic_logger("RRC-NR");
-  rrc_logger.set_level(srslog::basic_levels::info);
+  rrc_logger.set_level(srslog::basic_levels::debug);
 
   srslog::init();
 

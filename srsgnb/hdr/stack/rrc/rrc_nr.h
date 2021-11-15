@@ -16,7 +16,7 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config_common.h"
 #include "srsenb/hdr/stack/rrc/rrc_metrics.h"
-#include "srsgnb/hdr/stack/rrc/rrc_config_nr.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/block_queue.h"
 #include "srsran/common/buffer_pool.h"

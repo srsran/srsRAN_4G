@@ -49,37 +49,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   rrc_eutra = rrc_eutra_;
 
   cfg = cfg_;
-  if (cfg.is_standalone) {
-    // Generate parameters of Coreset#0 and SS#0
-    const uint32_t coreset0_idx                        = 6; // See TS 38.331 - controlResourceSetZero
-    cfg.cell_list[0].phy_cell.pdcch.coreset_present[0] = true;
-    // Get pointA and SSB absolute frequencies
-    double pointA_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz -
-                                cfg.cell_list[0].phy_cell.carrier.nof_prb * SRSRAN_NRE *
-                                    SRSRAN_SUBC_SPACING_NR(cfg.cell_list[0].phy_cell.carrier.scs) / 2;
-    double ssb_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.ssb_center_freq_hz;
-    // Calculate integer SSB to pointA frequency offset in Hz
-    uint32_t ssb_pointA_freq_offset_Hz =
-        (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-    int ret = srsran_coreset_zero(cfg.cell_list[0].phy_cell.cell_id,
-                                  ssb_pointA_freq_offset_Hz,
-                                  cfg.cell_list[0].ssb_cfg.scs,
-                                  cfg.cell_list[0].phy_cell.carrier.scs,
-                                  coreset0_idx,
-                                  &cfg.cell_list[0].phy_cell.pdcch.coreset[0]);
-    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to generate CORESET#0");
-    cfg.cell_list[0].phy_cell.pdcch.search_space_present[0]           = true;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].id                = 0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].coreset_id        = 0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].type              = srsran_search_space_type_common_0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[0] = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[1] = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[2] = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_1_0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_formats       = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].duration          = 1;
-  }
-
   cell_ctxt.reset(new cell_ctxt_t{});
 
   // derived
