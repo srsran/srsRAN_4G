@@ -119,7 +119,7 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
   // Send SecurityModeComplete (UE -> gNB)
   ul_dcch_msg_s ul_dcch_msg;
   auto&         sec_cmd_complete_msg = ul_dcch_msg.msg.set_c1().set_security_mode_complete();
-  sec_cmd_complete_msg.rrc_transaction_id = dl_dcch_msg.msg.set_c1().security_mode_cmd().rrc_transaction_id;
+  sec_cmd_complete_msg.rrc_transaction_id = dl_dcch_msg.msg.c1().security_mode_cmd().rrc_transaction_id;
   auto& ies_complete                      = sec_cmd_complete_msg.crit_exts.set_security_mode_complete();
 
   {
