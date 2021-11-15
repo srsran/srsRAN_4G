@@ -165,6 +165,7 @@ void test_rrc_sa_connection()
   TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
 
   test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, 0x4601);
+  test_rrc_nr_security_mode_cmd(task_sched, rrc_obj, pdcp_obj, 0x4601);
 }
 
 } // namespace srsenb

@@ -65,6 +65,11 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           rlc_nr_rrc_tester&      rlc,
                                           uint16_t                rnti);
 
+void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
+                                   rrc_nr&                 rrc_obj,
+                                   pdcp_nr_rrc_tester&     pdcp,
+                                   uint16_t                rnti);
+
 } // namespace srsenb
 
 #endif // SRSRAN_RRC_NR_TEST_HELPERS_H

@@ -495,10 +495,13 @@ void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_spa
       break;
     case ul_dcch_msg_type_c::c1_c_::types_opts::security_mode_complete:
       u.handle_security_mode_complete(ul_dcch_msg.msg.c1().security_mode_complete());
+      break;
     case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_recfg_complete:
       u.handle_rrc_reconfiguration_complete(ul_dcch_msg.msg.c1().rrc_recfg_complete());
+      break;
     case ul_dcch_msg_type_c::c1_c_::types_opts::ul_info_transfer:
       u.handle_ul_information_transfer(ul_dcch_msg.msg.c1().ul_info_transfer());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user
