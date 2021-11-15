@@ -528,6 +528,19 @@ void srsran_combine_csi_trs_measurements(const srsran_csi_trs_measurements_t* a,
   dst->nof_re     = nof_re_sum;
 }
 
+uint32_t pdcch_nr_bundle_size(srsran_coreset_bundle_size_t x)
+{
+  switch (x) {
+    case srsran_coreset_bundle_size_n2:
+      return 2;
+    case srsran_coreset_bundle_size_n3:
+      return 3;
+    case srsran_coreset_bundle_size_n6:
+      return 6;
+  }
+  return 0;
+}
+
 typedef struct {
   uint32_t mux_pattern;
   uint32_t nof_prb;
@@ -595,6 +608,44 @@ static const coreset_zero_entry_t coreset_zero_30_15[16] = {
     {},
     {},
 };
+
+int srsran_coreset_to_str(srsran_coreset_t* coreset, char* str, uint32_t str_len)
+{
+  if (coreset == NULL || str == NULL || str_len == 0) {
+    return 0;
+  }
+
+  char freq_res_str[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE] = {};
+  srsran_vec_sprint_bin(
+      freq_res_str, sizeof(freq_res_str), (uint8_t*)coreset->freq_resources, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE);
+
+  return srsran_print_check(
+      str,
+      str_len,
+      0,
+      "\n"
+      "  - coreset_id=%d\n"
+      "  - mapping_type=%s\n"
+      "  - duration=%d\n"
+      "  - freq_res=%s\n"
+      "  - dmrs_scrambling_present=%s (id=%d)\n"
+      "  - precoder_granularity=%s\n"
+      "  - interleaver_size=%d\n"
+      "  - reg_bundle_size=%d\n"
+      "  - shift_index=%d\n"
+      "  - offset_rb=%d\n",
+      coreset->id,
+      coreset->mapping_type == srsran_coreset_mapping_type_non_interleaved ? "non-interleaved" : "interleaved",
+      coreset->duration,
+      freq_res_str,
+      coreset->dmrs_scrambling_id_present ? "true" : "false",
+      coreset->dmrs_scrambling_id,
+      coreset->precoder_granularity == srsran_coreset_precoder_granularity_contiguous ? "contiguous" : "reg_bundle",
+      pdcch_nr_bundle_size(coreset->interleaver_size),
+      pdcch_nr_bundle_size(coreset->reg_bundle_size),
+      coreset->shift_index,
+      coreset->offset_rb);
+}
 
 int srsran_coreset_zero(uint32_t                    n_cell_id,
                         uint32_t                    ssb_pointA_freq_offset_Hz,
