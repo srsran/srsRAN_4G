@@ -97,7 +97,9 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
     return alloc_result::invalid_coderate;
   }
-  pdcch.dci.coreset0_bw = pdcch.dci_cfg.coreset0_bw;
+
+  pdcch.dci.coreset0_bw          = pdcch.dci_cfg.coreset0_bw;
+  pdcch.dci.ctx.coreset_start_rb = cfg.cfg.pdcch.coreset[0].offset_rb;
 
   // Generate PDSCH
   bwp_pdcch_slot.dl.phy.pdsch.emplace_back();
