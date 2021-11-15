@@ -156,6 +156,14 @@ void cc_worker::decode_pdcch_dl()
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
+    if (logger.debug.enabled()) {
+      // log coreset info
+      srsran_coreset_t* coreset = &ue_dl.cfg.coreset[dci_rx[i].ctx.coreset_id];
+      std::array<char, 512> coreset_str;
+      srsran_coreset_to_str(coreset, coreset_str.data(), coreset_str.size());
+      logger.info("PDCCH: coreset=%d, %s", cc_idx, coreset_str.data());
+    }
+
     // Enqueue UL grants
     phy.set_dl_pending_grant(cfg, dl_slot_cfg, dci_rx[i]);
   }
