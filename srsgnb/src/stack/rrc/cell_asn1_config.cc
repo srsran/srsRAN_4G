@@ -959,14 +959,17 @@ void fill_init_dl_bwp(const rrc_cell_cfg_nr_t& cell_cfg, bwp_dl_common_s& cfg)
 
 void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib_s& cfg)
 {
+  uint32_t scs_hz = SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs);
+  uint32_t prb_bw = scs_hz * SRSRAN_NRE;
+
   srsran::srsran_band_helper band_helper;
   cfg.freq_info_dl.freq_band_list.resize(1);
   cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
   cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
-  uint32_t offset_point_a_hz =
-      cell_cfg.phy_cell.dl_freq_hz - band_helper.nr_arfcn_to_freq(cell_cfg.dl_absolute_freq_point_a);
-  uint32_t offset_point_a_rbs = offset_point_a_hz / SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs) / SRSRAN_NRE;
-  cfg.freq_info_dl.offset_to_point_a = offset_point_a_rbs;
+  double   ssb_freq_start            = cell_cfg.ssb_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
+  double   offset_point_a_hz         = ssb_freq_start - band_helper.nr_arfcn_to_freq(cell_cfg.dl_absolute_freq_point_a);
+  uint32_t offset_point_a_prbs       = offset_point_a_hz / prb_bw;
+  cfg.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
   cfg.freq_info_dl.scs_specific_carrier_list.resize(1);
   cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = 0;
   cfg.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
