@@ -20,6 +20,8 @@
 #include "srsran/common/time_prof.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
 
+//#define WRITE_SIB_PCAP
+
 namespace srsenb {
 
 class mac_nr_rx
@@ -484,6 +486,15 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
     } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
       uint32_t sib_idx = dl_res->sib_idxs[si_count++];
       pdsch.data[0]    = bcch_dlsch_payload[sib_idx].payload.get();
+#ifdef WRITE_SIB_PCAP
+      if (pcap != nullptr) {
+        pcap->write_dl_si_rnti_nr(bcch_dlsch_payload[sib_idx].payload->msg,
+                                  bcch_dlsch_payload[sib_idx].payload->N_bytes,
+                                  SI_RNTI,
+                                  0,
+                                  slot_cfg.idx);
+      }
+#endif
     }
   }
   for (auto& u : ue_db) {
