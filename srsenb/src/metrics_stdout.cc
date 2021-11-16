@@ -88,8 +88,8 @@ void metrics_stdout::set_metrics_helper(uint32_t                          num_ue
       fmt::print("rx caution errors {} > {}\n", mac.ues[i].rx_errors, mac.ues[i].rx_pkts);
     }
 
-    fmt::print("{:>4}", mac.ues[i].pci);
-    fmt::print(" {:>3.5}", (is_nr) ? "nr" : "lte");
+    fmt::print("{:>3.5}", (is_nr) ? "nr" : "lte");
+    fmt::print(" {:>4}", mac.ues[i].pci);
     fmt::print("{:>5x}", mac.ues[i].rnti);
     if (not iszero(mac.ues[i].dl_cqi)) {
       fmt::print("  {:>3}", int(mac.ues[i].dl_cqi));
@@ -189,7 +189,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     fmt::print(
         "               -----------------DL----------------|-------------------------UL-------------------------\n");
     fmt::print(
-        " pci rat rnti  cqi  ri  mcs  brate   ok  nok  (%) | pusch  pucch  phr  mcs  brate   ok  nok  (%)    bsr\n");
+        "rat  pci rnti  cqi  ri  mcs  brate   ok  nok  (%) | pusch  pucch  phr  mcs  brate   ok  nok  (%)    bsr\n");
   }
 
   set_metrics_helper(metrics.stack.rrc.ues.size(), metrics.stack.mac, metrics.phy, false);
