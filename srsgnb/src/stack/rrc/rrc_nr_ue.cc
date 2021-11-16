@@ -943,6 +943,8 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
 {
   // TODO: handle SecurityModeComplete
 
+  // Note: Skip UE capabilities
+
   send_rrc_reconfiguration();
 }
 

@@ -786,40 +786,79 @@ int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void fill_srb1(const rrc_nr_cfg_t& cfg, rlc_bearer_cfg_s& srb1)
+/// Fill SRB with parameters derived from cfg
+void fill_srb(const rrc_nr_cfg_t& cfg, srsran::nr_srb srb_id, asn1::rrc_nr::rlc_bearer_cfg_s& out)
 {
-  srb1.lc_ch_id                         = 1;
-  srb1.served_radio_bearer_present      = true;
-  srb1.served_radio_bearer.set_srb_id() = 1;
-  srb1.rlc_cfg_present                  = true;
-  ul_am_rlc_s& am_ul                    = srb1.rlc_cfg.set_am().ul_am_rlc;
-  am_ul.sn_field_len_present            = true;
-  am_ul.sn_field_len.value              = asn1::rrc_nr::sn_field_len_am_opts::size12;
-  am_ul.t_poll_retx.value               = asn1::rrc_nr::t_poll_retx_opts::ms45;
-  am_ul.poll_pdu.value                  = asn1::rrc_nr::poll_pdu_opts::infinity;
-  am_ul.poll_byte.value                 = asn1::rrc_nr::poll_byte_opts::infinity;
-  am_ul.max_retx_thres.value            = asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_opts::t8;
-  dl_am_rlc_s& am_dl                    = srb1.rlc_cfg.am().dl_am_rlc;
-  am_dl.sn_field_len_present            = true;
-  am_dl.sn_field_len.value              = asn1::rrc_nr::sn_field_len_am_opts::size12;
-  am_dl.t_reassembly.value              = t_reassembly_opts::ms35;
-  am_dl.t_status_prohibit.value         = asn1::rrc_nr::t_status_prohibit_opts::ms0;
+  srsran_assert(srb_id > srsran::nr_srb::srb0 and srb_id < srsran::nr_srb::count, "Invalid srb_id argument");
+
+  out.lc_ch_id                         = srsran::srb_to_lcid(srb_id);
+  out.served_radio_bearer_present      = true;
+  out.served_radio_bearer.set_srb_id() = (uint8_t)srb_id;
+
+  out.rlc_cfg_present           = true;
+  auto& ul_am                   = out.rlc_cfg.set_am().ul_am_rlc;
+  ul_am.sn_field_len_present    = true;
+  ul_am.sn_field_len.value      = asn1::rrc_nr::sn_field_len_am_opts::size12;
+  ul_am.t_poll_retx.value       = asn1::rrc_nr::t_poll_retx_opts::ms45;
+  ul_am.poll_pdu.value          = asn1::rrc_nr::poll_pdu_opts::infinity;
+  ul_am.poll_byte.value         = asn1::rrc_nr::poll_byte_opts::infinity;
+  ul_am.max_retx_thres.value    = asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_opts::t8;
+  auto& dl_am                   = out.rlc_cfg.am().dl_am_rlc;
+  dl_am.sn_field_len_present    = true;
+  dl_am.sn_field_len.value      = asn1::rrc_nr::sn_field_len_am_opts::size12;
+  dl_am.t_reassembly.value      = t_reassembly_opts::ms35;
+  dl_am.t_status_prohibit.value = asn1::rrc_nr::t_status_prohibit_opts::ms0;
 
   // mac-LogicalChannelConfig -- Cond LCH-Setup
-  srb1.mac_lc_ch_cfg_present                    = true;
-  srb1.mac_lc_ch_cfg.ul_specific_params_present = true;
-  srb1.mac_lc_ch_cfg.ul_specific_params.prio    = 1;
-  srb1.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.value =
+  out.mac_lc_ch_cfg_present                    = true;
+  out.mac_lc_ch_cfg.ul_specific_params_present = true;
+  out.mac_lc_ch_cfg.ul_specific_params.prio    = srb_id == srsran::nr_srb::srb1 ? 1 : 3;
+  out.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.value =
       lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::infinity;
-  srb1.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.value =
+  out.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.value =
       lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::ms5;
-  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present          = true;
-  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_group                  = 0;
-  srb1.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present     = true;
-  srb1.mac_lc_ch_cfg.ul_specific_params.sched_request_id             = 0;
-  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_mask                = false;
-  srb1.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_delay_timer_applied = false;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present          = true;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_group                  = 0;
+  out.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present     = true;
+  out.mac_lc_ch_cfg.ul_specific_params.sched_request_id             = 0;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_mask                = false;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_delay_timer_applied = false;
 }
+
+/// Fill DRB with parameters derived from cfg
+void fill_drb(const rrc_nr_cfg_t& cfg, uint32_t lcid, srsran::nr_drb drb_id, asn1::rrc_nr::rlc_bearer_cfg_s& out)
+{
+  out.lc_ch_id                         = lcid;
+  out.served_radio_bearer_present      = true;
+  out.served_radio_bearer.set_drb_id() = (uint8_t)drb_id;
+
+  out.rlc_cfg_present        = true;
+  auto& ul_um                = out.rlc_cfg.set_um_bi_dir().ul_um_rlc;
+  ul_um.sn_field_len_present = true;
+  ul_um.sn_field_len.value   = sn_field_len_um_opts::size12;
+  auto& dl_um                = out.rlc_cfg.um_bi_dir().dl_um_rlc;
+  dl_um.sn_field_len_present = true;
+  dl_um.sn_field_len.value   = sn_field_len_um_opts::size12;
+  dl_um.t_reassembly.value   = t_reassembly_opts::ms50;
+
+  // MAC logical channel config
+  out.mac_lc_ch_cfg_present                    = true;
+  out.mac_lc_ch_cfg.ul_specific_params_present = true;
+  out.mac_lc_ch_cfg.ul_specific_params.prio    = 11; // TODO
+  out.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate =
+      lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::kbps0;
+  out.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur =
+      asn1::rrc_nr::lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::ms100;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present          = true;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_group                  = 3; // TODO
+  out.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present     = true;
+  out.mac_lc_ch_cfg.ul_specific_params.sched_request_id             = 0; // TODO
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_mask                = false;
+  out.mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_delay_timer_applied = false;
+  // TODO: add LC config to MAC
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Fill MasterCellConfig with gNB config
 int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::cell_group_cfg_s& out)
@@ -827,7 +866,7 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   out.cell_group_id                      = 0;
   out.rlc_bearer_to_add_mod_list_present = true;
   out.rlc_bearer_to_add_mod_list.resize(1);
-  fill_srb1(cfg, out.rlc_bearer_to_add_mod_list[0]);
+  fill_srb(cfg, srsran::nr_srb::srb1, out.rlc_bearer_to_add_mod_list[0]);
 
   // mac-CellGroupConfig -- Need M
   out.mac_cell_group_cfg_present                                                 = true;
@@ -1126,6 +1165,31 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   sib1.ue_timers_and_consts.t319.value = ue_timers_and_consts_s::t319_opts::ms1000;
 
   return SRSRAN_SUCCESS;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
+                                          const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
+                                          asn1::rrc_nr::cell_group_cfg_s&         out)
+{
+  // Add SRBs
+  for (const srb_to_add_mod_s& srb : bearers.srb_to_add_mod_list) {
+    out.rlc_bearer_to_add_mod_list.push_back({});
+    fill_srb(cfg, (srsran::nr_srb)srb.srb_id, out.rlc_bearer_to_add_mod_list.back());
+  }
+  // Add DRBs
+  for (const drb_to_add_mod_s& drb : bearers.drb_to_add_mod_list) {
+    out.rlc_bearer_to_add_mod_list.push_back({});
+    fill_srb(cfg, (srsran::nr_srb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
+  }
+  out.rlc_bearer_to_add_mod_list_present = out.rlc_bearer_to_add_mod_list.size() > 0;
+
+  // Release DRBs
+  for (uint8_t drb_id : bearers.drb_to_release_list) {
+    out.rlc_bearer_to_release_list.push_back(drb_id);
+  }
+  out.rlc_bearer_to_release_list_present = out.rlc_bearer_to_release_list.size() > 0;
 }
 
 } // namespace srsenb
