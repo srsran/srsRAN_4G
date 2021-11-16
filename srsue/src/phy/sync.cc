@@ -82,7 +82,7 @@ void sync::init(srsran::radio_interface_phy* _radio,
   }
 
   // Initialize cell searcher
-  search_p.init(sf_buffer, nof_rf_channels, this, worker_com->args->force_N_id_2);
+  search_p.init(sf_buffer, nof_rf_channels, this, worker_com->args->force_N_id_2, worker_com->args->force_N_id_1);
   search_p.set_cp_en(worker_com->args->detect_cp);
   // Initialize SFN synchronizer, it uses only pcell buffer
   sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size());

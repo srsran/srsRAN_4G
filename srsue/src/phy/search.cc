@@ -46,7 +46,7 @@ search::~search()
   srsran_ue_cellsearch_free(&cs);
 }
 
-void search::init(srsran::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search_callback* parent, int force_N_id_2_)
+void search::init(srsran::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search_callback* parent, int force_N_id_2_, int force_N_id_1_)
 {
   p = parent;
 
@@ -65,6 +65,7 @@ void search::init(srsran::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search
   p->set_ue_sync_opts(&cs.ue_sync, 0);
 
   force_N_id_2 = force_N_id_2_;
+  force_N_id_1 = force_N_id_1_;
 }
 
 void search::set_cp_en(bool enable)
@@ -125,6 +126,21 @@ search::ret_code search::run(srsran_cell_t* cell_, std::array<uint8_t, SRSRAN_BC
     Info("SYNC:  Could not find any cell in this frequency");
     return CELL_NOT_FOUND;
   }
+
+  if (force_N_id_1 >= 0 && force_N_id_1 < SRSRAN_NOF_NID_1) {
+    bool N_id_1_found = false;
+    for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2; N_id_2++) {
+      if (found_cells[N_id_2].cell_id / SRSRAN_NOF_NID_2 == (uint32_t)force_N_id_1) {
+        N_id_1_found = true;
+        max_peak_cell = N_id_2;
+      }
+    }
+    if (!N_id_1_found) {
+      Info("SYNC:  Could not find any cell in this SSS");
+      return CELL_NOT_FOUND;
+    }
+  }
+
   // Save result
   new_cell.id         = found_cells[max_peak_cell].cell_id;
   new_cell.cp         = found_cells[max_peak_cell].cp;
