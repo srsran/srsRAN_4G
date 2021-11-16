@@ -90,8 +90,9 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
 
   // RAR allocation successful.
   bwp_pdcch_slot.dl_prbs |= prbs;
-  // Generate DCI for RAR with given RA-RNTI
+  // Generate DCI for SIB
   pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
+  pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
   if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();

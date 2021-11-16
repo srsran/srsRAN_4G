@@ -928,7 +928,7 @@ int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s
     default:
       srsran_terminate("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));
   }
-  mib.ssb_subcarrier_offset            = 0;
+  mib.ssb_subcarrier_offset            = 6; // FIXME: currently hard-coded
   mib.dmrs_type_a_position.value       = mib_s::dmrs_type_a_position_opts::pos2;
   mib.pdcch_cfg_sib1.search_space_zero = 0;
   mib.pdcch_cfg_sib1.ctrl_res_set_zero = cell_cfg.coreset0_idx;

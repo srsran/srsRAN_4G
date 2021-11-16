@@ -111,7 +111,7 @@ int derive_coreset0_params(rrc_cell_cfg_nr_t& cell)
   // Calculate integer SSB to pointA frequency offset in Hz
   uint32_t ssb_pointA_freq_offset_Hz =
       (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-  int ret = srsran_coreset_zero(cell.phy_cell.cell_id,
+  int ret = srsran_coreset_zero(cell.phy_cell.carrier.pci,
                                 ssb_pointA_freq_offset_Hz,
                                 cell.ssb_cfg.scs,
                                 cell.phy_cell.carrier.scs,
