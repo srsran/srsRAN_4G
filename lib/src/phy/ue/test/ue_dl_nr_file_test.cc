@@ -44,8 +44,8 @@ static int                    pdsch_time_ra_length     = -1;
 static uint32_t coreset0_idx      = 0; // if ss_type=si coreset0 is used and this is the index
 static uint32_t coreset_offset_rb = 0;
 static bool     interleaved_pdcch = false;
-static uint32_t dl_arfcn  = 161200; // center of the NR carrier (default at 806e6 Hz)
-static uint32_t ssb_arfcn = 161290; // center of the SSB within the carrier (default at 806.45e6)
+static uint32_t dl_arfcn          = 161200; // center of the NR carrier (default at 806e6 Hz)
+static uint32_t ssb_arfcn         = 161290; // center of the SSB within the carrier (default at 806.45e6)
 
 static uint32_t                   coreset_n_rb = 48;
 static uint32_t                   coreset_len  = 1;
@@ -99,8 +99,8 @@ static int parse_args(int argc, char** argv)
         rnti = (uint16_t)strtol(argv[optind], NULL, 16);
         break;
       case 't':
-        pdsch_time_ra_start  = (int) strtol(argv[optind++], NULL, 10);
-        pdsch_time_ra_length = (int) strtol(argv[optind],   NULL, 10);
+        pdsch_time_ra_start  = (int)strtol(argv[optind++], NULL, 10);
+        pdsch_time_ra_length = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         if (strcmp(argv[optind], "c") == 0) {
@@ -380,14 +380,30 @@ int main(int argc, char** argv)
       coreset->freq_resources[i] = i < coreset_n_rb / 6;
     }
     if (interleaved_pdcch) {
-      coreset->mapping_type = srsran_coreset_mapping_type_interleaved;
-      coreset->reg_bundle_size = srsran_coreset_bundle_size_n6;
-      coreset->interleaver_size = srsran_coreset_bundle_size_n2;
+      coreset->mapping_type         = srsran_coreset_mapping_type_interleaved;
+      coreset->reg_bundle_size      = srsran_coreset_bundle_size_n6;
+      coreset->interleaver_size     = srsran_coreset_bundle_size_n2;
       coreset->precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
-      coreset->shift_index = carrier.pci;
+      coreset->shift_index          = carrier.pci;
     }
     // set coreset0 bandwidth (it is used in RA when ss_type = common3)
     dci_cfg.coreset0_bw = coreset_n_rb;
+
+    // SCH configuration parameters
+    if (pdsch_time_ra_start >= 0 && pdsch_time_ra_length >= 0) {
+      auto last_pdsch_symbol = (uint16_t)(pdsch_time_ra_start + pdsch_time_ra_length);
+
+      if (last_pdsch_symbol > SRSRAN_NSYMB_PER_SLOT_NR) {
+        ERROR("incorrect PDSCH start symbol or length provided");
+        return clean_exit(ret);
+      }
+      uint32_t sliv = srsran_sliv_from_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, pdsch_time_ra_start, pdsch_time_ra_length);
+
+      pdsch_hl_cfg.nof_dedicated_time_ra             = 1;
+      pdsch_hl_cfg.dedicated_time_ra[0].mapping_type = srsran_sch_mapping_type_A;
+      pdsch_hl_cfg.dedicated_time_ra[0].k            = 0;
+      pdsch_hl_cfg.dedicated_time_ra[0].sliv         = sliv;
+    }
   }
 
   char coreset_info[512] = {};
@@ -411,22 +427,6 @@ int main(int argc, char** argv)
   pdcch_cfg.ra_search_space_present = true;
   pdcch_cfg.ra_search_space         = *search_space;
   pdcch_cfg.ra_search_space.type    = srsran_search_space_type_common_1;
-
-  // SCH configuration parameters
-  if (pdsch_time_ra_start >= 0 && pdsch_time_ra_length >= 0) {
-    auto last_pdsch_symbol = (uint16_t) (pdsch_time_ra_start + pdsch_time_ra_length);
-
-    if (last_pdsch_symbol > SRSRAN_NSYMB_PER_SLOT_NR) {
-      ERROR("incorrect PDSCH start symbol or length provided");
-      return clean_exit(ret);
-    }
-    uint32_t sliv  = srsran_sliv_from_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, pdsch_time_ra_start, pdsch_time_ra_length);
-
-    pdsch_hl_cfg.nof_dedicated_time_ra             = 1;
-    pdsch_hl_cfg.dedicated_time_ra[0].mapping_type = srsran_sch_mapping_type_A;
-    pdsch_hl_cfg.dedicated_time_ra[0].k            = 0;
-    pdsch_hl_cfg.dedicated_time_ra[0].sliv         = sliv;
-  }
 
   if (srsran_ue_dl_nr_init(&ue_dl, buffer, &ue_dl_args)) {
     ERROR("Error UE DL");
