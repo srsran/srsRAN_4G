@@ -45,7 +45,7 @@ if(RF_FOUND)
 endif(RF_FOUND)
 
 add_executable(ue_dl_nr_file_test ue_dl_nr_file_test.cc)
-target_link_libraries(ue_dl_nr_file_test srsran_phy srsran_common pthread)
+target_link_libraries(ue_dl_nr_file_test srsran_phy srsran_phy_common srsran_common pthread)
 foreach (n RANGE 0 9)
     #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
     #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
