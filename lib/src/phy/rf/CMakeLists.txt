@@ -59,7 +59,7 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
   endif (ZEROMQ_FOUND)
 
-  list(APPEND SOURCES_RF rf_file_imp.c rf_file_imp_rx.c)
+  list(APPEND SOURCES_RF rf_file_imp.c rf_file_imp_tx.c rf_file_imp_rx.c)
 
   add_library(srsran_rf_object OBJECT ${SOURCES_RF})
   set_property(TARGET srsran_rf_object PROPERTY POSITION_INDEPENDENT_CODE 1)
@@ -99,6 +99,10 @@ if(RF_FOUND)
     target_link_libraries(rf_zmq_test srsran_rf)
     #add_test(rf_zmq_test rf_zmq_test)
   endif (ZEROMQ_FOUND)
+
+  add_executable(rf_file_test rf_file_test.c)
+  target_link_libraries(rf_file_test srsran_rf)
+  add_test(rf_file_test rf_file_test)
 
   INSTALL(TARGETS srsran_rf DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)

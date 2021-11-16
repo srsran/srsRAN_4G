@@ -21,7 +21,7 @@ int rf_file_rx_open(rf_file_rx_t* q, rf_file_opts_t opts)
 
   if (q) {
     // Zero object
-    bzero(q, sizeof(rf_file_rx_t));
+    memset(q, 0, sizeof(rf_file_rx_t));
 
     // Copy id
     strncpy(q->id, opts.id, FILE_ID_STRLEN - 1);
@@ -62,7 +62,7 @@ clean_exit:
 
 int rf_file_rx_baseband(rf_file_rx_t* q, cf_t* buffer, uint32_t nsamples)
 {
-  uint32_t sample_sz  = sizeof(cf_t);
+  uint32_t sample_sz = sizeof(cf_t);
 
   int ret = fread(buffer, sample_sz, nsamples, q->file);
   if (ret > 0) {
@@ -83,6 +83,7 @@ bool rf_file_rx_match_freq(rf_file_rx_t* q, uint32_t freq_hz)
 
 void rf_file_rx_close(rf_file_rx_t* q)
 {
+  rf_file_info(q->id, "Closing ...\n");
   q->running = false;
 
   if (q->temp_buffer) {

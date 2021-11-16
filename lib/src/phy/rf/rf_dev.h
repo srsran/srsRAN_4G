@@ -324,4 +324,5 @@ static rf_dev_t* available_devices[] = {
 #ifdef ENABLE_DUMMY_DEV
     &dev_dummy,
 #endif
+    &dev_file,
     NULL};

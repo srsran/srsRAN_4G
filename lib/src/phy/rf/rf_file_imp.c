@@ -16,6 +16,7 @@
 #include "rf_file_imp.h"
 #include "rf_file_imp_trx.h"
 #include "rf_helper.h"
+#include <errno.h>
 #include <math.h>
 #include <srsran/phy/common/phy_common.h>
 #include <srsran/phy/common/timestamp.h>
@@ -35,18 +36,18 @@ typedef struct {
   uint32_t base_srate;
   uint32_t decim_factor; // decimation factor between base_srate used on transport on radio's rate
   double   rx_gain;
-  uint32_t tx_freq_mhz[SRSRAN_MAX_PORTS];
-  uint32_t rx_freq_mhz[SRSRAN_MAX_PORTS];
-  bool     tx_used;
+  uint32_t tx_freq_mhz[SRSRAN_MAX_CHANNELS];
+  uint32_t rx_freq_mhz[SRSRAN_MAX_CHANNELS];
+  bool     tx_off;
+  char     id[RF_PARAM_LEN];
 
   // FILEs
-  rf_file_tx_t transmitter[SRSRAN_MAX_PORTS];
-  rf_file_rx_t receiver[SRSRAN_MAX_PORTS];
-
-  char id[PARAM_LEN_SHORT];
+  rf_file_tx_t transmitter[SRSRAN_MAX_CHANNELS];
+  rf_file_rx_t receiver[SRSRAN_MAX_CHANNELS];
+  bool         close_files;
 
   // Various sample buffers
-  cf_t* buffer_decimation[SRSRAN_MAX_PORTS];
+  cf_t* buffer_decimation[SRSRAN_MAX_CHANNELS];
   cf_t* buffer_tx;
 
   // Rx timestamp
@@ -55,6 +56,7 @@ typedef struct {
   pthread_mutex_t tx_config_mutex;
   pthread_mutex_t rx_config_mutex;
   pthread_mutex_t decim_mutex;
+  pthread_mutex_t rx_gain_mutex;
 } rf_file_handler_t;
 
 /*
@@ -62,6 +64,31 @@ typedef struct {
  */
 
 static void update_rates(rf_file_handler_t* handler, double srate);
+
+void rf_file_info(char* id, const char* format, ...)
+{
+#if VERBOSE
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  va_list args;
+  va_start(args, format);
+  printf("[%s@%02ld.%06ld] ", id ? id : "file", t.tv_sec % 10, t.tv_usec);
+  vprintf(format, args);
+  va_end(args);
+#else  /* VERBOSE */
+  // Do nothing
+#endif /* VERBOSE */
+}
+
+void rf_file_error(char* id, const char* format, ...)
+{
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
+}
 
 static inline int update_ts(void* h, uint64_t* ts, int nsamples, const char* dir)
 {
@@ -74,6 +101,8 @@ static inline int update_ts(void* h, uint64_t* ts, int nsamples, const char* dir
 
     srsran_timestamp_t _ts = {};
     srsran_timestamp_init_uint64(&_ts, *ts, handler->base_srate);
+    rf_file_info(
+        handler->id, "    -> next %s time after %d samples: %d + %.3f\n", dir, nsamples, _ts.full_secs, _ts.frac_secs);
 
     ret = SRSRAN_SUCCESS;
   }
@@ -138,11 +167,76 @@ int rf_file_open(char* args, void** h)
 
 int rf_file_open_multi(char* args, void** h, uint32_t nof_channels)
 {
-  perror("Cannot open file-based RF as regular device. Use rf_file_open_file() instead.");
-  return SRSRAN_ERROR_INVALID_COMMAND;
+  int ret = SRSRAN_ERROR;
+
+  FILE* rx_files[SRSRAN_MAX_CHANNELS] = {NULL};
+  FILE* tx_files[SRSRAN_MAX_CHANNELS] = {NULL};
+
+  if (h && nof_channels < SRSRAN_MAX_CHANNELS) {
+    uint32_t base_srate = FILE_BASERATE_DEFAULT_HZ;
+
+    // parse args
+    if (args && strlen(args)) {
+      // base_srate
+      parse_uint32(args, "base_srate", -1, &base_srate);
+    } else {
+      fprintf(stderr, "[file] Error: RF device args are required for file-based no-RF module\n");
+      goto clean_exit;
+    }
+
+    for (int i = 0; i < nof_channels; i++) {
+      // rx_file
+      char rx_file[RF_PARAM_LEN] = {};
+      parse_string(args, "rx_file", i, rx_file);
+
+      // tx_file
+      char tx_file[RF_PARAM_LEN] = {};
+      parse_string(args, "tx_file", i, tx_file);
+
+      // initialize transmitter
+      if (strlen(tx_file) != 0) {
+        tx_files[i] = fopen(tx_file, "wb");
+        if (tx_files[i] == NULL) {
+          fprintf(stderr, "[file] Error: opening tx_file%d: %s; %s\n", i, tx_file, strerror(errno));
+          goto clean_exit;
+        }
+      }
+
+      // initialize receiver
+      if (strlen(rx_file) != 0) {
+        rx_files[i] = fopen(rx_file, "rb");
+        if (rx_files[i] == NULL) {
+          fprintf(stderr, "[file] Error: opening rx_file%d: %s; %s\n", i, rx_file, strerror(errno));
+          goto clean_exit;
+        }
+      }
+    }
+
+    // defer further initialization to open_file method
+    ret = rf_file_open_file(h, rx_files, tx_files, nof_channels, base_srate);
+    if (ret != SRSRAN_SUCCESS) {
+      goto clean_exit;
+    }
+
+    // add flag to close all files when closing device
+    rf_file_handler_t* handler = (rf_file_handler_t*)(*h);
+    handler->close_files       = true;
+    return ret;
+  }
+
+clean_exit:
+  for (int i = 0; i < nof_channels; i++) {
+    if (rx_files[i] != NULL) {
+      fclose(rx_files[i]);
+    }
+    if (tx_files[i] != NULL) {
+      fclose(tx_files[i]);
+    }
+  }
+  return ret;
 }
 
-int rf_file_open_file(void** h, FILE **rx_files, FILE **tx_files, uint32_t nof_channels, uint32_t base_srate)
+int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
 {
   int ret = SRSRAN_ERROR;
 
@@ -151,13 +245,12 @@ int rf_file_open_file(void** h, FILE **rx_files, FILE **tx_files, uint32_t nof_c
 
     rf_file_handler_t* handler = (rf_file_handler_t*)malloc(sizeof(rf_file_handler_t));
     if (!handler) {
-      perror("malloc");
+      fprintf(stderr, "malloc: %s\n", strerror(errno));
       return SRSRAN_ERROR;
     }
     memset(handler, 0, sizeof(rf_file_handler_t));
     *h                        = handler;
-    handler->base_srate       = FILE_BASERATE_DEFAULT_HZ; // Sample rate for 100 PRB cell
-    handler->rx_gain          = 0.0;
+    handler->base_srate       = base_srate;
     handler->info.max_rx_gain = FILE_MAX_GAIN_DB;
     handler->info.min_rx_gain = FILE_MIN_GAIN_DB;
     handler->info.max_tx_gain = FILE_MAX_GAIN_DB;
@@ -171,17 +264,21 @@ int rf_file_open_file(void** h, FILE **rx_files, FILE **tx_files, uint32_t nof_c
     rx_opts.id             = handler->id;
 
     if (pthread_mutex_init(&handler->tx_config_mutex, NULL)) {
-      perror("Mutex init");
+      fprintf(stderr, "Mutex init: %s\n", strerror(errno));
     }
     if (pthread_mutex_init(&handler->rx_config_mutex, NULL)) {
-      perror("Mutex init");
+      fprintf(stderr, "Mutex init: %s\n", strerror(errno));
     }
     if (pthread_mutex_init(&handler->decim_mutex, NULL)) {
-      perror("Mutex init");
+      fprintf(stderr, "Mutex init: %s\n", strerror(errno));
+    }
+    if (pthread_mutex_init(&handler->rx_gain_mutex, NULL)) {
+      fprintf(stderr, "Mutex init: %s\n", strerror(errno));
     }
 
-    // base_srate
-    handler->base_srate = base_srate;
+    pthread_mutex_lock(&handler->rx_gain_mutex);
+    handler->rx_gain = 0.0;
+    pthread_mutex_unlock(&handler->rx_gain_mutex);
 
     // id
     // TODO: set some meaningful ID in handler->id
@@ -195,29 +292,30 @@ int rf_file_open_file(void** h, FILE **rx_files, FILE **tx_files, uint32_t nof_c
 
     // Create channels
     for (int i = 0; i < handler->nof_channels; i++) {
-      if (rx_files != NULL) {
+      if (rx_files != NULL && rx_files[i] != NULL) {
         rx_opts.file = rx_files[i];
         if (rf_file_rx_open(&handler->receiver[i], rx_opts) != SRSRAN_SUCCESS) {
           fprintf(stderr, "[file] Error: opening receiver\n");
           goto clean_exit;
         }
       } else {
-        fprintf(stdout, "[file] %s Rx file not specified. Disabling receiver.\n", handler->id);
+        // no rx_files provided
+        fprintf(stdout, "[file] %s rx channel %d not specified. Disabling receiver.\n", handler->id, i);
       }
-      if (tx_files != NULL) {
+      if (tx_files != NULL && tx_files[i] != NULL) {
         tx_opts.file = tx_files[i];
-        // TX is not implemented yet
-        //        if(rf_file_tx_open(&handler->transmitter[i], tx_opts) != SRSRAN_SUCCESS) {
-        //          fprintf(stderr, "[file] Error: opening transmitter\n");
-        //          goto clean_exit;
-        //        }
+        if (rf_file_tx_open(&handler->transmitter[i], tx_opts) != SRSRAN_SUCCESS) {
+          fprintf(stderr, "[file] Error: opening transmitter\n");
+          goto clean_exit;
+        }
       } else {
         // no tx_files provided
-        fprintf(stdout, "[file] %s Tx file not specified. Disabling transmitter.\n", handler->id);
+        fprintf(stdout, "[file] %s tx channel %d not specified. Disabling transmitter.\n", handler->id, i);
+        handler->tx_off = true;
       }
 
       if (!handler->transmitter[i].running && !handler->receiver[i].running) {
-        fprintf(stderr, "[file] Error: Neither Tx file nor Rx file specified.\n");
+        fprintf(stderr, "[file] Error: Neither tx nor rx specificed for channel %d.\n", i);
         goto clean_exit;
       }
     }
@@ -249,8 +347,14 @@ int rf_file_open_file(void** h, FILE **rx_files, FILE **tx_files, uint32_t nof_c
 
 int rf_file_close(void* h)
 {
-
   rf_file_handler_t* handler = (rf_file_handler_t*)h;
+
+  rf_file_info(handler->id, "Closing ...\n");
+
+  for (int i = 0; i < handler->nof_channels; i++) {
+    rf_file_tx_close(&handler->transmitter[i]);
+    rf_file_rx_close(&handler->receiver[i]);
+  }
 
   for (uint32_t i = 0; i < handler->nof_channels; i++) {
     if (handler->buffer_decimation[i]) {
@@ -265,6 +369,18 @@ int rf_file_close(void* h)
   pthread_mutex_destroy(&handler->tx_config_mutex);
   pthread_mutex_destroy(&handler->rx_config_mutex);
   pthread_mutex_destroy(&handler->decim_mutex);
+  pthread_mutex_destroy(&handler->rx_gain_mutex);
+
+  if (handler->close_files) {
+    for (int i = 0; i < handler->nof_channels; i++) {
+      if (handler->receiver[i].file != NULL) {
+        fclose(handler->receiver[i].file);
+      }
+      if (handler->transmitter[i].file != NULL) {
+        fclose(handler->transmitter[i].file);
+      }
+    }
+  }
 
   // Free all
   free(handler);
@@ -412,13 +528,11 @@ void rf_file_get_time(void* h, time_t* secs, double* frac_secs)
 
 int rf_file_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
 {
-  void* data_multi[SRSRAN_MAX_PORTS] = {NULL};
-  data_multi[0] = data;
-  return rf_file_recv_with_time_multi(h, data_multi, nsamples, blocking, secs, frac_secs);
+  return rf_file_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
 int rf_file_recv_with_time_multi(void*    h,
-                                 void*    data[SRSRAN_MAX_PORTS],
+                                 void**   data,
                                  uint32_t nsamples,
                                  bool     blocking,
                                  time_t*  secs,
@@ -431,23 +545,28 @@ int rf_file_recv_with_time_multi(void*    h,
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->rx_config_mutex);
-    cf_t* buffers[SRSRAN_MAX_PORTS] = {}; // Buffer pointers, NULL if unmatched
-    for (uint32_t i = 0; i < handler->nof_channels; i++) {
-      bool mapped = false;
+    bool  mapped[SRSRAN_MAX_CHANNELS]  = {}; // Mapped mask, set to true when the physical channel is used
+    cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
 
-      // Find first matching frequency
-      for (uint32_t j = 0; j < handler->nof_channels && !mapped; j++) {
-        // Traverse all channels, break if mapped
-        if (buffers[j] == NULL && rf_file_rx_match_freq(&handler->receiver[j], handler->rx_freq_mhz[i])) {
-          // Available buffer and matched frequency with receiver
-          buffers[j] = (cf_t*)data[i];
-          mapped     = true;
+    // For each logical channel...
+    for (uint32_t logical = 0; logical < handler->nof_channels; logical++) {
+      bool unmatched = true;
+
+      // For each physical channel...
+      for (uint32_t physical = 0; physical < handler->nof_channels; physical++) {
+        // Consider a match if the physical channel is NOT mapped and the frequency match
+        if (!mapped[physical] && rf_file_rx_match_freq(&handler->receiver[physical], handler->rx_freq_mhz[logical])) {
+          // Not mapped and matched frequency with receiver
+          buffers[physical] = (cf_t*)data[logical];
+          mapped[physical]  = true;
+          unmatched         = false;
+          break;
         }
       }
 
       // If no matching frequency found; set data to zeros
-      if (!mapped && data[i]) {
-        memset(data[i], 0, sizeof(cf_t) * nsamples);
+      if (unmatched) {
+        srsran_vec_zero(data[logical], nsamples);
       }
     }
     pthread_mutex_unlock(&handler->rx_config_mutex);
@@ -459,6 +578,8 @@ int rf_file_recv_with_time_multi(void*    h,
 
     uint32_t nbytes            = NSAMPLES2NBYTES(nsamples * decim_factor);
     uint32_t nsamples_baserate = nsamples * decim_factor;
+
+    rf_file_info(handler->id, "Rx %d samples (%d B)\n", nsamples, nbytes);
 
     // set timestamp for this reception
     if (secs != NULL && frac_secs != NULL) {
@@ -488,10 +609,19 @@ int rf_file_recv_with_time_multi(void*    h,
     srsran_timestamp_t ts_tx = {}, ts_rx = {};
     srsran_timestamp_init_uint64(&ts_tx, handler->transmitter[0].nsamples, handler->base_srate);
     srsran_timestamp_init_uint64(&ts_rx, handler->next_rx_ts, handler->base_srate);
+    rf_file_info(handler->id, " - next rx time: %d + %.3f\n", ts_rx.full_secs, ts_rx.frac_secs);
+    rf_file_info(handler->id, " - next tx time: %d + %.3f\n", ts_tx.full_secs, ts_tx.frac_secs);
+
+    // check for tx gap if we're also transmitting on this radio
+    for (int i = 0; i < handler->nof_channels; i++) {
+      if (handler->transmitter[i].running) {
+        rf_file_tx_align(&handler->transmitter[i], handler->next_rx_ts + nsamples_baserate);
+      }
+    }
 
     // copy from rx buffer as many samples as requested into provided buffer
-    bool    completed               = false;
-    int32_t count[SRSRAN_MAX_PORTS] = {};
+    bool    completed                  = false;
+    int32_t count[SRSRAN_MAX_CHANNELS] = {};
     while (!completed) {
       uint32_t completed_count = 0;
 
@@ -523,6 +653,7 @@ int rf_file_recv_with_time_multi(void*    h,
       // Check if all channels are completed
       completed = (completed_count == handler->nof_channels);
     }
+    rf_file_info(handler->id, " - read %d samples.\n", NBYTES2NSAMPLES(nbytes));
 
     // decimate if needed
     if (decim_factor != 1) {
@@ -538,14 +669,24 @@ int rf_file_recv_with_time_multi(void*    h,
             for (int j = 0; j < decim_factor; j++, n++) {
               avg += ptr[n];
             }
-            dst[i] = avg;
+            dst[i] = avg; // divide by decim_factor later via scale
           }
+
+          rf_file_info(handler->id,
+                       "  - re-adjust bytes due to %dx decimation %d --> %d samples)\n",
+                       decim_factor,
+                       nsamples_baserate,
+                       nsamples);
         }
       }
     }
 
     // Set gain
+    pthread_mutex_lock(&handler->rx_gain_mutex);
     float scale = srsran_convert_dB_to_amplitude(handler->rx_gain);
+    pthread_mutex_unlock(&handler->rx_gain_mutex);
+    // scale shall also incorporate decim_factor
+    scale = scale / decim_factor;
     for (uint32_t c = 0; c < handler->nof_channels; c++) {
       if (buffers[c]) {
         srsran_vec_sc_prod_cfc(buffers[c], scale, buffers[c], nsamples);
@@ -589,9 +730,127 @@ int rf_file_send_timed_multi(void*  h,
                              bool   is_start_of_burst,
                              bool   is_end_of_burst)
 {
-  // Not implemented
-  fprintf(stderr, "Error: rf_file_send_timed_multi not implemented.\n");
-  return SRSRAN_ERROR;
+  int ret = SRSRAN_ERROR;
+
+  if (h && data && nsamples > 0) {
+    rf_file_handler_t* handler = (rf_file_handler_t*)h;
+
+    // Map ports to data buffers according to the selected frequencies
+    pthread_mutex_lock(&handler->tx_config_mutex);
+    bool  mapped[SRSRAN_MAX_CHANNELS]  = {}; // Mapped mask, set to true when the physical channel is used
+    cf_t* buffers[SRSRAN_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched or zero transmission
+
+    // For each logical channel...
+    for (uint32_t logical = 0; logical < handler->nof_channels; logical++) {
+      // For each physical channel...
+      for (uint32_t physical = 0; physical < handler->nof_channels; physical++) {
+        // Consider a match if the physical channel is NOT mapped and the frequency match
+        if (!mapped[physical] &&
+            rf_file_tx_match_freq(&handler->transmitter[physical], handler->tx_freq_mhz[logical])) {
+          // Not mapped and matched frequency with receiver
+          buffers[physical] = (cf_t*)data[logical];
+          mapped[physical]  = true;
+          break;
+        }
+      }
+    }
+    pthread_mutex_unlock(&handler->tx_config_mutex);
+
+    // Protect the access to decim_factor since is a shared variable
+    pthread_mutex_lock(&handler->decim_mutex);
+    uint32_t decim_factor = handler->decim_factor;
+    pthread_mutex_unlock(&handler->decim_mutex);
+
+    uint32_t nbytes            = NSAMPLES2NBYTES(nsamples);
+    uint32_t nsamples_baseband = nsamples * decim_factor;
+    uint32_t nbytes_baseband   = NSAMPLES2NBYTES(nsamples_baseband);
+    if (nbytes_baseband > FILE_MAX_BUFFER_SIZE) {
+      fprintf(stderr, "Error: trying to transmit too many samples (%d > %zu).\n", nbytes, FILE_MAX_BUFFER_SIZE);
+      goto clean_exit;
+    }
+
+    rf_file_info(handler->id, "Tx %d samples (%d B)\n", nsamples, nbytes);
+
+    // return if transmitter is switched off
+    if (handler->tx_off) {
+      return SRSRAN_SUCCESS;
+    }
+
+    // check if this is a tx in the future
+    if (has_time_spec) {
+      rf_file_info(handler->id, "    - tx time: %d + %.3f\n", secs, frac_secs);
+
+      srsran_timestamp_t ts = {};
+      srsran_timestamp_init(&ts, secs, frac_secs);
+      uint64_t tx_ts              = srsran_timestamp_uint64(&ts, handler->base_srate);
+      int      num_tx_gap_samples = 0;
+
+      for (int i = 0; i < handler->nof_channels; i++) {
+        if (handler->transmitter[i].running) {
+          num_tx_gap_samples = rf_file_tx_align(&handler->transmitter[i], tx_ts);
+        }
+      }
+
+      if (num_tx_gap_samples < 0) {
+        fprintf(stderr,
+                "[file] Error: tx time is %.3f ms in the past (%" PRIu64 " < %" PRIu64 ")\n",
+                -1000.0 * num_tx_gap_samples / handler->base_srate,
+                tx_ts,
+                handler->transmitter[0].nsamples);
+        goto clean_exit;
+      }
+    }
+
+    // Send base-band samples
+    for (int i = 0; i < handler->nof_channels; i++) {
+      if (buffers[i] != NULL) {
+        // Select buffer pointer depending on interpolation
+        cf_t* buf = (decim_factor != 1) ? handler->buffer_tx : buffers[i];
+
+        // Interpolate if required
+        if (decim_factor != 1) {
+          rf_file_info(handler->id,
+                       "  - re-adjust bytes due to %dx interpolation %d --> %d samples)\n",
+                       decim_factor,
+                       nsamples,
+                       nsamples_baseband);
+
+          int   n   = 0;
+          cf_t* src = buffers[i];
+          for (int k = 0; k < nsamples; k++) {
+            // perform zero order hold
+            for (int j = 0; j < decim_factor; j++, n++) {
+              buf[n] = src[k];
+            }
+          }
+
+          if (nsamples_baseband != n) {
+            fprintf(stderr,
+                    "Number of tx samples (%d) does not match with number of interpolated samples (%d)\n",
+                    nsamples_baseband,
+                    n);
+            goto clean_exit;
+          }
+        }
+
+        int n = rf_file_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);
+        if (n == SRSRAN_ERROR) {
+          goto clean_exit;
+        }
+      } else {
+        int n = rf_file_tx_zeros(&handler->transmitter[i], nsamples_baseband);
+        if (n == SRSRAN_ERROR) {
+          goto clean_exit;
+        }
+      }
+    }
+  }
+
+  ret = SRSRAN_SUCCESS;
+
+clean_exit:
+
+  return ret;
 }
 
 #endif

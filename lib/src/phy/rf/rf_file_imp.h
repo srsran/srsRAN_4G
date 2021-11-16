@@ -95,12 +95,8 @@ SRSRAN_API void rf_file_get_time(void* h, time_t* secs, double* frac_secs);
 SRSRAN_API int
 rf_file_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs);
 
-SRSRAN_API int rf_file_recv_with_time_multi(void*    h,
-                                            void*    data[SRSRAN_MAX_PORTS],
-                                            uint32_t nsamples,
-                                            bool     blocking,
-                                            time_t*  secs,
-                                            double*  frac_secs);
+SRSRAN_API int
+rf_file_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs);
 
 SRSRAN_API int rf_file_send_timed(void*  h,
                                   void*  data,

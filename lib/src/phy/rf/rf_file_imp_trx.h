@@ -42,7 +42,8 @@ typedef struct {
   pthread_mutex_t  mutex;
   cf_t*            zeros;
   void*            temp_buffer_convert;
-  uint32_t         frequency_hz_mhz;
+  uint32_t         frequency_mhz;
+  int32_t          sample_offset;
 } rf_file_tx_t;
 
 typedef struct {
@@ -68,7 +69,28 @@ typedef struct {
 /*
  * Common functions
  */
+SRSRAN_API void rf_file_info(char* id, const char* format, ...);
+
+SRSRAN_API void rf_file_error(char* id, const char* format, ...);
+
 SRSRAN_API int rf_file_handle_error(char* id, const char* text);
+
+/*
+ * Transmitter functions
+ */
+SRSRAN_API int rf_file_tx_open(rf_file_tx_t* q, rf_file_opts_t opts);
+
+SRSRAN_API int rf_file_tx_align(rf_file_tx_t* q, uint64_t ts);
+
+SRSRAN_API int rf_file_tx_baseband(rf_file_tx_t* q, cf_t* buffer, uint32_t nsamples);
+
+SRSRAN_API int rf_file_tx_get_nsamples(rf_file_tx_t* q);
+
+SRSRAN_API int rf_file_tx_zeros(rf_file_tx_t* q, uint32_t nsamples);
+
+SRSRAN_API bool rf_file_tx_match_freq(rf_file_tx_t* q, uint32_t freq_hz);
+
+SRSRAN_API void rf_file_tx_close(rf_file_tx_t* q);
 
 /*
  * Receiver functions
