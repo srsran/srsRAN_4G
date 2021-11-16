@@ -1025,6 +1025,9 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
   cfg.freq_info_ul.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
 
+  cfg.freq_info_ul.p_max_present = true;
+  cfg.freq_info_ul.p_max         = 10;
+
   cfg.init_ul_bwp.generic_params.location_and_bw = 14025;
   cfg.init_ul_bwp.generic_params.subcarrier_spacing.value =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
