@@ -1624,3 +1624,29 @@ ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::report_cfg_to_add_mod_s, report_cfg_id);
 ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_id_to_add_mod_s, meas_id);
 
 } // namespace srsran
+
+namespace asn1 {
+
+namespace rrc_nr {
+
+bool operator==(const srb_to_add_mod_s& lhs, const srb_to_add_mod_s& rhs)
+{
+  if (lhs.srb_id != rhs.srb_id or lhs.pdcp_cfg_present != rhs.pdcp_cfg_present) {
+    return false;
+  }
+  // TODO: check remaining fields
+  return true;
+}
+bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs)
+{
+  if (lhs.drb_id != rhs.drb_id or lhs.pdcp_cfg_present != rhs.pdcp_cfg_present or
+      lhs.cn_assoc_present != rhs.cn_assoc_present) {
+    return false;
+  }
+  // TODO: check remaining fields
+  return true;
+}
+
+} // namespace rrc_nr
+
+} // namespace asn1

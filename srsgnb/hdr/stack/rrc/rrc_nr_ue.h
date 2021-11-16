@@ -149,7 +149,7 @@ private:
 
   // RRC configs for UEs
   asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
-  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
+  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg, next_radio_bearer_cfg;
 
   // MAC controller
   sched_nr_interface::ue_cfg_t uecfg{};

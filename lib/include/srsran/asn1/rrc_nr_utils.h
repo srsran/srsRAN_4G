@@ -60,6 +60,9 @@ struct pdcch_cfg_common_s;
 struct pdcch_cfg_s;
 struct mib_s;
 
+struct srb_to_add_mod_s;
+struct drb_to_add_mod_s;
+
 } // namespace rrc_nr
 } // namespace asn1
 
@@ -143,5 +146,17 @@ int make_rlc_config_t(const asn1::rrc_nr::rlc_cfg_c& asn1_type, uint8_t bearer_i
 pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc_nr::pdcp_cfg_s& pdcp_cfg);
 
 } // namespace srsran
+
+/************************
+ * ASN1 RRC extensions
+ ***********************/
+namespace asn1 {
+
+namespace rrc_nr {
+bool operator==(const srb_to_add_mod_s& lhs, const srb_to_add_mod_s& rhs);
+bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs);
+} // namespace rrc_nr
+
+} // namespace asn1
 
 #endif // SRSRAN_RRC_NR_UTILS_H

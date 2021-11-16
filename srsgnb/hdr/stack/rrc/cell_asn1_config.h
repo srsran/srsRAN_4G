@@ -30,6 +30,15 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
 int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s& mib);
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1);
 
+/**
+ * Based on the previous and new radio bearer config, generate ASN1 diff
+ * @return if a change was detected
+ */
+bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
+                                   const asn1::rrc_nr::radio_bearer_cfg_s& prev_bearers,
+                                   const asn1::rrc_nr::radio_bearer_cfg_s& next_bearers,
+                                   asn1::rrc_nr::radio_bearer_cfg_s&       diff);
+
 /// Apply radioBearerConfig updates to CellGroupConfig
 void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
                                           const asn1::rrc_nr::radio_bearer_cfg_s& bearers,

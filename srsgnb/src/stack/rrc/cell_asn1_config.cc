@@ -11,6 +11,7 @@
  */
 
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/band_helper.h"
 #include <bitset>
@@ -1168,6 +1169,28 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&       cfg,
+                                   const radio_bearer_cfg_s& prev_bearers,
+                                   const radio_bearer_cfg_s& next_bearers,
+                                   radio_bearer_cfg_s&       diff)
+{
+  // Compute SRB differences
+  std::vector<uint8_t> srbs_to_rem;
+  srsran::compute_cfg_diff(
+      prev_bearers.srb_to_add_mod_list, next_bearers.srb_to_add_mod_list, diff.srb_to_add_mod_list, srbs_to_rem);
+  diff.srb_to_add_mod_list_present = diff.srb_to_add_mod_list.size() > 0;
+
+  // Compute DRB differences
+  srsran::compute_cfg_diff(prev_bearers.drb_to_add_mod_list,
+                           next_bearers.drb_to_add_mod_list,
+                           diff.drb_to_add_mod_list,
+                           diff.drb_to_release_list);
+  diff.drb_to_add_mod_list_present = diff.drb_to_add_mod_list.size() > 0;
+  diff.drb_to_release_list_present = diff.drb_to_release_list.size() > 0;
+
+  return diff.srb_to_add_mod_list_present or diff.drb_to_release_list_present or diff.drb_to_add_mod_list_present;
+}
 
 void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
                                           const asn1::rrc_nr::radio_bearer_cfg_s& bearers,

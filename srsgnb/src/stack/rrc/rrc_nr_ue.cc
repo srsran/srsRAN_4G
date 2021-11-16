@@ -879,23 +879,28 @@ void rrc_nr::ue::send_rrc_setup()
 {
   const uint8_t max_wait_time_secs = 16;
 
+  // Add SRB1 to UE context
+  // Note: See 5.3.5.6.3 - SRB addition/modification
+  next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
+  next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
+  srb_to_add_mod_s& srb1 = next_radio_bearer_cfg.srb_to_add_mod_list[0];
+  srb1.srb_id            = 1;
+
+  // Generate RRC setup message
+
   dl_ccch_msg_s msg;
   rrc_setup_s&  setup        = msg.msg.set_c1().set_rrc_setup();
   setup.rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
   rrc_setup_ies_s& setup_ies = setup.crit_exts.set_rrc_setup();
 
   // Fill RRC Setup
-  // Note: See 5.3.5.6.3 - SRB addition/modification
-  setup_ies.radio_bearer_cfg.srb_to_add_mod_list_present = true;
-  setup_ies.radio_bearer_cfg.srb_to_add_mod_list.resize(1);
-  srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
-  srb1.srb_id            = 1;
+  // - Setup SRB1
+  compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, setup_ies.radio_bearer_cfg);
 
+  // - Setup masterCellGroup
   asn1::rrc_nr::cell_group_cfg_s master_cell_group = *parent->cell_ctxt->master_cell_group;
-
-  // Derive master cell group config bearers
+  // - Derive master cell group config bearers
   fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, master_cell_group);
-
   {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     asn1::bit_ref                bref{pdu->data(), pdu->get_tailroom()};
@@ -921,7 +926,8 @@ void rrc_nr::ue::send_rrc_setup()
 /// TS 38.331, RRCSetupComplete
 void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
 {
-  // TODO: handle RRCSetupComplete
+  // Update current radio bearer cfg
+  radio_bearer_cfg = next_radio_bearer_cfg;
 
   // Create UE context in NGAP
   using ngap_cause_t = asn1::ngap_nr::rrcestablishment_cause_opts::options;
@@ -959,6 +965,10 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   dl_dcch_msg.msg.set_c1().set_rrc_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_recfg_ies_s& ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.set_rrc_recfg();
 
+  // Add new SRBs/DRBs
+  ies.radio_bearer_cfg_present =
+      compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, ies.radio_bearer_cfg);
+
   ies.non_crit_ext_present                   = true;
   ies.non_crit_ext.master_cell_group_present = false; // TODO
 
@@ -969,7 +979,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
 {
-  // TODO: handle RRCReconfComplete
+  radio_bearer_cfg = next_radio_bearer_cfg;
 }
 
 void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
@@ -991,7 +1001,40 @@ void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_tran
   parent->ngap->write_pdu(rnti, msg.crit_exts.ul_info_transfer().ded_nas_msg);
 }
 
-void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid) {}
+void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+{
+  // Add SRB2, if not yet added
+  if (radio_bearer_cfg.srb_to_add_mod_list.size() <= 1) {
+    next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
+    next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
+    next_radio_bearer_cfg.srb_to_add_mod_list[0].srb_id = 2;
+  }
+
+  drb_to_add_mod_s drb;
+  drb.cn_assoc_present                                    = true;
+  drb.cn_assoc.set_sdap_cfg().pdu_session                 = 1;
+  drb.cn_assoc.sdap_cfg().sdap_hdr_dl.value               = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::absent;
+  drb.cn_assoc.sdap_cfg().sdap_hdr_ul.value               = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::absent;
+  drb.cn_assoc.sdap_cfg().default_drb                     = true;
+  drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add_present = true;
+  drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add.resize(1);
+  drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add[0] = 1;
+
+  drb.drb_id                               = 1;
+  drb.pdcp_cfg_present                     = true;
+  drb.pdcp_cfg.drb.discard_timer_present   = true;
+  drb.pdcp_cfg.drb.discard_timer.value     = pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
+  drb.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
+  drb.pdcp_cfg.drb.pdcp_sn_size_ul.value   = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_opts::len18bits;
+  drb.pdcp_cfg.drb.pdcp_sn_size_dl_present = true;
+  drb.pdcp_cfg.drb.pdcp_sn_size_dl.value   = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::len18bits;
+  drb.pdcp_cfg.drb.hdr_compress.set_not_used();
+  drb.pdcp_cfg.t_reordering_present = true;
+  drb.pdcp_cfg.t_reordering.value   = asn1::rrc_nr::pdcp_cfg_s::t_reordering_opts::ms0;
+
+  next_radio_bearer_cfg.drb_to_add_mod_list_present = true;
+  next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
+}
 
 bool rrc_nr::ue::init_pucch()
 {
