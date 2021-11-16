@@ -24,16 +24,16 @@ class ngap_dummy : public ngap_interface_rrc_nr
   void initial_ue(uint16_t                                rnti,
                   uint32_t                                gnb_cc_idx,
                   asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::unique_byte_buffer_t            pdu)
+                  srsran::const_byte_span                 pdu)
   {}
   void initial_ue(uint16_t                                rnti,
                   uint32_t                                gnb_cc_idx,
                   asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::unique_byte_buffer_t            pdu,
+                  srsran::const_byte_span                 pdu,
                   uint32_t                                m_tmsi)
   {}
 
-  void write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu) {}
+  void write_pdu(uint16_t rnti, srsran::const_byte_span pdu) {}
   bool user_exists(uint16_t rnti) { return true; }
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) {}
   bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) { return true; }

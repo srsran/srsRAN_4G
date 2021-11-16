@@ -31,11 +31,11 @@ public:
   virtual ~ue();
   // TS 38.413 - Section 9.2.5.1 - Initial UE Message
   bool send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e cause,
-                               srsran::unique_byte_buffer_t            pdu,
+                               srsran::const_byte_span                 pdu,
                                bool                                    has_tmsi,
                                uint32_t                                s_tmsi = 0);
   // TS 38.413 - Section 9.2.5.3 - Uplink NAS Transport
-  bool send_ul_nas_transport(srsran::unique_byte_buffer_t pdu);
+  bool send_ul_nas_transport(srsran::const_byte_span pdu);
   // TS 38.413 - Section 9.2.2.2 - Initial Context Setup Response
   bool send_initial_ctxt_setup_response();
   // TS 38.413 - Section 9.2.2.3 - Initial Context Setup Failure
