@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/ngap/ngap.h"
+#include "srsgnb/hdr/stack/ngap/ngap.h"
 #include "srsran/common/network_utils.h"
 #include "srsran/common/test_common.h"
 
@@ -65,30 +65,63 @@ struct amf_dummy {
 class rrc_nr_dummy : public rrc_interface_ngap_nr
 {
 public:
+  rrc_nr_dummy() : rrc_logger(srslog::fetch_basic_logger("RRC_NR")) { rrc_logger.set_hex_dump_max_size(32); }
   int ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key)
   {
+    for (uint32_t i = 0; i < key.nof_octets(); ++i) {
+      sec_key[i] = key.data()[key.nof_octets() - 1 - i];
+    }
+    rrc_logger.info(sec_key, 32, "Security key");
     return SRSRAN_SUCCESS;
   }
   int ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
   {
+    rrc_logger.info("Setting aggregate max bitrate. RNTI 0x%x", rnti);
     return SRSRAN_SUCCESS;
   }
   int set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
   {
+    rrc_logger.info("Setting aggregate max bitrate");
     return SRSRAN_SUCCESS;
   }
   int ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
   {
+    rrc_logger.info("Setting security capabilities");
+    for (uint8_t i = 0; i < 8; i++) {
+      rrc_logger.info("NIA%d = %s", i, caps.nrintegrity_protection_algorithms.get(i) ? "true" : "false");
+    }
+    for (uint8_t i = 0; i < 8; i++) {
+      rrc_logger.info("NEA%d = %s", i, caps.nrencryption_algorithms.get(i) ? "true" : "false");
+    }
+    for (uint8_t i = 0; i < 8; i++) {
+      rrc_logger.info("EEA%d = %s", i, caps.eutr_aencryption_algorithms.get(i) ? "true" : "false");
+    }
+    for (uint8_t i = 0; i < 8; i++) {
+      rrc_logger.info("EIA%d = %s", i, caps.eutr_aintegrity_protection_algorithms.get(i) ? "true" : "false");
+    }
+    sec_caps = caps;
     return SRSRAN_SUCCESS;
   }
-  int start_security_mode_procedure(uint16_t rnti) { return SRSRAN_SUCCESS; }
+  int start_security_mode_procedure(uint16_t rnti)
+  {
+    rrc_logger.info("Starting securtity mode procedure");
+    sec_mod_proc_started = true;
+    return SRSRAN_SUCCESS;
+  }
   int establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
   {
+    rrc_logger.info("Establish RRC bearer");
     return SRSRAN_SUCCESS;
   }
+
   int  release_bearers(uint16_t rnti) { return SRSRAN_SUCCESS; }
   int  allocate_lcid(uint16_t rnti) { return SRSRAN_SUCCESS; }
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
+
+  bool                             sec_mod_proc_started = false;
+  uint8_t                          sec_key[32]          = {};
+  asn1::ngap_nr::ue_security_cap_s sec_caps             = {};
+  srslog::basic_logger&            rrc_logger;
 };
 struct dummy_socket_manager : public srsran::socket_manager_itf {
   dummy_socket_manager() : srsran::socket_manager_itf(srslog::fetch_basic_logger("TEST")) {}
@@ -146,10 +179,100 @@ void run_ng_setup(ngap& ngap_obj, amf_dummy& amf)
   TESTASSERT(ngap_obj.handle_amf_rx_msg(std::move(sdu), amf_addr, rcvinfo, flags));
 }
 
+void run_ng_initial_ue(ngap& ngap_obj, amf_dummy& amf, rrc_nr_dummy& rrc)
+{
+  // RRC will call the initial UE request with the NAS PDU
+  uint8_t nas_reg_req[] = {0x7e, 0x00, 0x41, 0x79, 0x00, 0x0d, 0x01, 0x00, 0xf1, 0x10, 0x00, 0x00,
+                           0x00, 0x00, 0x10, 0x32, 0x54, 0x76, 0x98, 0x2e, 0x02, 0xf0, 0xf0};
+
+  srsran::unique_byte_buffer_t nas_pdu = srsran::make_byte_buffer();
+  memcpy(nas_pdu->msg, nas_reg_req, sizeof(nas_reg_req));
+  nas_pdu->N_bytes = sizeof(nas_reg_req);
+
+  ngap_obj.initial_ue(0xf0f0, 0, asn1::ngap_nr::rrcestablishment_cause_opts::mo_sig, srsran::make_span(nas_pdu));
+
+  // gNB -> AMF: Inital UE message
+  asn1::ngap_nr::ngap_pdu_c    ngap_initial_ue_pdu;
+  srsran::unique_byte_buffer_t sdu = amf.read_msg();
+  TESTASSERT(sdu->N_bytes > 0);
+  asn1::cbit_ref cbref(sdu->msg, sdu->N_bytes);
+  TESTASSERT_EQ(ngap_initial_ue_pdu.unpack(cbref), asn1::SRSASN_SUCCESS);
+  TESTASSERT_EQ(ngap_initial_ue_pdu.type().value, asn1::ngap_nr::ngap_pdu_c::types_opts::init_msg);
+  TESTASSERT_EQ(ngap_initial_ue_pdu.init_msg().proc_code, ASN1_NGAP_NR_ID_INIT_UE_MSG);
+
+  // AMF -> gNB: Initial Context Setup Request
+  sockaddr_in     amf_addr = {};
+  sctp_sndrcvinfo rcvinfo  = {};
+  int             flags    = 0;
+
+  asn1::ngap_nr::ngap_pdu_c ngap_initial_ctx_req_pdu;
+  ngap_initial_ctx_req_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
+  auto& container = ngap_initial_ctx_req_pdu.init_msg().value.init_context_setup_request().protocol_ies;
+
+  container.amf_ue_ngap_id.value = 0x1;
+  container.ran_ue_ngap_id.value = 0x1;
+  container.nas_pdu_present      = true;
+
+  // Set allowed NSSAI (FIXME)
+  container.allowed_nssai.value.resize(1);
+
+  // Set security key
+  uint8_t sec_key[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+                       0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
+  for (uint8_t i = 0; i < 32; ++i) {
+    container.security_key.value.data()[31 - i] = sec_key[i];
+  }
+
+  // Set security capabilities
+  container.ue_security_cap.value.nrencryption_algorithms.set(0, true);
+  container.ue_security_cap.value.nrencryption_algorithms.set(1, true);
+  container.ue_security_cap.value.nrintegrity_protection_algorithms.set(0, true);
+  container.ue_security_cap.value.nrintegrity_protection_algorithms.set(1, true);
+  container.ue_security_cap.value.eutr_aencryption_algorithms.set(0, true);
+  container.ue_security_cap.value.eutr_aencryption_algorithms.set(1, true);
+  container.ue_security_cap.value.eutr_aintegrity_protection_algorithms.set(0, true);
+  container.ue_security_cap.value.eutr_aintegrity_protection_algorithms.set(1, true);
+
+  // Set PDU Session Response Setup Item
+  // TODO
+
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
+  TESTASSERT_NEQ(buf, nullptr);
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  TESTASSERT_EQ(ngap_initial_ctx_req_pdu.pack(bref), asn1::SRSASN_SUCCESS);
+  buf->N_bytes = bref.distance_bytes();
+
+  // Feed Initial Context Setup Request to NGAP
+  TESTASSERT(ngap_obj.handle_amf_rx_msg(std::move(buf), amf_addr, rcvinfo, flags));
+
+  // Check RRC security key
+  for (uint8_t i = 0; i < 32; ++i) {
+    TESTASSERT_EQ(sec_key[i], rrc.sec_key[i]);
+  }
+
+  // Check RRC security capabilities
+  for (uint8_t i = 0; i < 8; ++i) {
+    TESTASSERT_EQ(container.ue_security_cap.value.nrencryption_algorithms.get(i),
+                  rrc.sec_caps.nrencryption_algorithms.get(i));
+    TESTASSERT_EQ(container.ue_security_cap.value.nrintegrity_protection_algorithms.get(i),
+                  rrc.sec_caps.nrintegrity_protection_algorithms.get(i));
+    TESTASSERT_EQ(container.ue_security_cap.value.eutr_aencryption_algorithms.get(i),
+                  rrc.sec_caps.eutr_aencryption_algorithms.get(i));
+    TESTASSERT_EQ(container.ue_security_cap.value.eutr_aintegrity_protection_algorithms.get(i),
+                  rrc.sec_caps.eutr_aintegrity_protection_algorithms.get(i));
+  }
+
+  // Check PDU Session Response Setup Item
+  // TODO
+
+  // Check RRC security mode command was started
+  TESTASSERT(rrc.sec_mod_proc_started);
+}
+
 int main(int argc, char** argv)
 {
   // Setup logging.
-  auto& logger = srslog::fetch_basic_logger("NGAP");
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("NGAP");
   logger.set_level(srslog::basic_levels::debug);
   logger.set_hex_dump_max_size(-1);
 
@@ -179,4 +302,5 @@ int main(int argc, char** argv)
   // Start the log backend.
   srsran::test_init(argc, argv);
   run_ng_setup(ngap_obj, amf);
+  run_ng_initial_ue(ngap_obj, amf, rrc);
 }
