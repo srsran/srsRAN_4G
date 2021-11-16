@@ -13,7 +13,6 @@
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/band_helper.h"
-#include "srsran/rrc/nr/rrc_nr_cfg_utils.h"
 #include <bitset>
 
 using namespace asn1::rrc_nr;

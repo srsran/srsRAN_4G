@@ -16,6 +16,7 @@
 #include "srsenb/test/rrc/test_helpers.h"
 #include "srsgnb/hdr/stack/common/test/dummy_nr_classes.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
@@ -55,6 +56,7 @@ void test_sib_generation()
   phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = {};
   rrc_cfg_nr.cell_list.emplace_back();
+  generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
   rrc_cfg_nr.cell_list[0].dl_arfcn             = 368500;
   rrc_cfg_nr.cell_list[0].band                 = 3;
@@ -108,6 +110,7 @@ int test_rrc_setup()
   phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
+  generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
   rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
   rrc_cfg_nr.cell_list[0].band                 = 78;
@@ -146,6 +149,7 @@ void test_rrc_sa_connection()
   phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
+  generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
   rrc_cfg_nr.cell_list[0].dl_arfcn             = 368500;
   rrc_cfg_nr.cell_list[0].band                 = 3;
