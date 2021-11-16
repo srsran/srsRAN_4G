@@ -1008,6 +1008,17 @@ void fill_rach_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, rach_cfg_common_s& 
 
 void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib_s& cfg)
 {
+  srsran::srsran_band_helper band_helper;
+
+  cfg.freq_info_ul.freq_band_list_present = true;
+  cfg.freq_info_ul.freq_band_list.resize(1);
+  cfg.freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
+  cfg.freq_info_ul.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
+
+  cfg.freq_info_ul.absolute_freq_point_a_present = true;
+  cfg.freq_info_ul.absolute_freq_point_a =
+      band_helper.get_abs_freq_point_a_arfcn(cell_cfg.phy_cell.carrier.nof_prb, cell_cfg.ul_arfcn);
+
   cfg.freq_info_ul.scs_specific_carrier_list.resize(1);
   cfg.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = 0;
   cfg.freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing =

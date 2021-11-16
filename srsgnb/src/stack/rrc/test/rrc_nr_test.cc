@@ -180,8 +180,8 @@ int main(int argc, char** argv)
   }
   argparse::parse_args(argc, argv);
 
-  TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
   srsenb::test_sib_generation();
+  TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
   srsenb::test_rrc_sa_connection();
 
   return SRSRAN_SUCCESS;
