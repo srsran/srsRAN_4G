@@ -932,7 +932,8 @@ void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complet
   // Create UE context in NGAP
   using ngap_cause_t = asn1::ngap_nr::rrcestablishment_cause_opts::options;
   auto ngap_cause    = (ngap_cause_t)ctxt.connection_cause.value; // NGAP and RRC causes seem to have a 1-1 mapping
-  parent->ngap->initial_ue(rnti, uecfg.carriers[0].cc, ngap_cause, {}, ctxt.setup_ue_id);
+  parent->ngap->initial_ue(
+      rnti, uecfg.carriers[0].cc, ngap_cause, msg.crit_exts.rrc_setup_complete().ded_nas_msg, ctxt.setup_ue_id);
 }
 
 /// TS 38.331, SecurityModeCommand
