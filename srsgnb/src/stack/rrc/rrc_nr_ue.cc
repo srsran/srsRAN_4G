@@ -891,10 +891,15 @@ void rrc_nr::ue::send_rrc_setup()
   srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
   srb1.srb_id            = 1;
 
+  asn1::rrc_nr::cell_group_cfg_s master_cell_group = *parent->cell_ctxt->master_cell_group;
+
+  // Derive master cell group config bearers
+  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, master_cell_group);
+
   {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     asn1::bit_ref                bref{pdu->data(), pdu->get_tailroom()};
-    if (parent->cell_ctxt->master_cell_group->pack(bref) != SRSRAN_SUCCESS) {
+    if (master_cell_group.pack(bref) != SRSRAN_SUCCESS) {
       logger.error("Failed to pack master cell group");
       send_rrc_reject(max_wait_time_secs);
       return;
@@ -917,11 +922,11 @@ void rrc_nr::ue::send_rrc_setup()
 void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
 {
   // TODO: handle RRCSetupComplete
+
+  // Create UE context in NGAP
   using ngap_cause_t = asn1::ngap_nr::rrcestablishment_cause_opts::options;
   auto ngap_cause    = (ngap_cause_t)ctxt.connection_cause.value; // NGAP and RRC causes seem to have a 1-1 mapping
   parent->ngap->initial_ue(rnti, uecfg.carriers[0].cc, ngap_cause, {}, ctxt.setup_ue_id);
-
-  send_security_mode_command();
 }
 
 /// TS 38.331, SecurityModeCommand
@@ -967,10 +972,26 @@ void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_rec
   // TODO: handle RRCReconfComplete
 }
 
+void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_dl_info_transfer().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  dl_info_transfer_ies_s& ies = dl_dcch_msg.msg.c1().dl_info_transfer().crit_exts.set_dl_info_transfer();
+
+  ies.ded_nas_msg_present = true;
+  ies.ded_nas_msg.resize(sdu->N_bytes);
+  memcpy(ies.ded_nas_msg.data(), sdu->data(), ies.ded_nas_msg.size());
+
+  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+}
+
 void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg)
 {
-  // TODO: handle UL information transfer
+  // Forward dedicatedNAS-Message to NGAP
+  parent->ngap->write_pdu(rnti, msg.crit_exts.ul_info_transfer().ded_nas_msg);
 }
+
+void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid) {}
 
 bool rrc_nr::ue::init_pucch()
 {

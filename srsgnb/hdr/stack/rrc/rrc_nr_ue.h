@@ -62,8 +62,14 @@ public:
   /* TS 38.331 - 5.3.5 RRC reconfiguration */
   void handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg);
 
+  /* TS 38.331 - 5.7.1 DL information transfer */
+  void send_dl_information_transfer(srsran::unique_byte_buffer_t sdu);
+
   /* TS 38.331 - 5.7.2 UL information transfer */
   void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
+
+  // NGAP interface
+  void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
 
 private:
   void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);

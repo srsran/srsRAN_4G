@@ -558,6 +558,12 @@ int rrc_nr::start_security_mode_procedure(uint16_t rnti)
 }
 int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
 {
+  if (not users.contains(rnti)) {
+    logger.error("Establishing RRC bearers for inexistent rnti=0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+
+  users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid);
   return SRSRAN_SUCCESS;
 }
 
@@ -571,7 +577,18 @@ int rrc_nr::allocate_lcid(uint16_t rnti)
   return SRSRAN_SUCCESS;
 }
 
-void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
+void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
+{
+  if (not users.contains(rnti)) {
+    logger.error("Received DL information transfer for inexistent rnti=0x%x", rnti);
+    return;
+  }
+  if (sdu == nullptr or sdu->size() == 0) {
+    logger.error("Received empty DL information transfer for rnti=0x%x", rnti);
+    return;
+  }
+  users[rnti]->send_dl_information_transfer(std::move(sdu));
+}
 
 /*******************************************************************************
   Interface for EUTRA RRC
