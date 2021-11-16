@@ -114,6 +114,8 @@ bool fill_dci_sib(prb_interval        interv,
   dci.ctx.rnti_type         = srsran_rnti_type_si;
   dci.ctx.rnti              = SRSRAN_SIRNTI;
   dci.ctx.coreset_id        = 0;
+  dci.ctx.coreset_start_rb  = bwp_cfg.cfg.pdcch.coreset[0].offset_rb;
+  dci.coreset0_bw           = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]);
   dci.freq_domain_assigment =
       srsran_ra_nr_type1_riv(srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]), interv.start(), interv.length());
   dci.time_domain_assigment = 0;
