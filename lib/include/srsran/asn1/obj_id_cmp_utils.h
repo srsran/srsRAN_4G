@@ -10,18 +10,37 @@
  *
  */
 
-#ifndef SRSRAN_RRC_CFG_UTILS_H
-#define SRSRAN_RRC_CFG_UTILS_H
+#ifndef SRSRAN_OBJ_ID_CMP_UTILS_H
+#define SRSRAN_OBJ_ID_CMP_UTILS_H
 
-#include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/common.h"
 #include <algorithm>
 #include <cassert>
 
 namespace srsran {
 
-template <typename rrcObj>
-using rrc_obj_id_t = decltype(asn1::rrc::get_rrc_obj_id(std::declval<rrcObj>()));
+using asn1_obj_id_t = uint8_t;
+
+/// Template function to generically obtain id of asn1 object (e.g. srb_id of srbs, drb_id of drbs, etc.)
+template <typename Asn1Obj>
+uint8_t get_asn1_obj_id(const Asn1Obj& obj);
+
+/// Template function to generically set id of asn1 object (e.g. srb_id of srbs, drb_id of drbs, etc.)
+template <typename Asn1Obj>
+void set_asn1_obj_id(Asn1Obj& obj, uint8_t id);
+
+/// helper macro to help define get_asn1_obj_id and set_asn1_obj_id for specific asn1 objects
+#define ASN1_OBJ_ID_DEFINE(Asn1ObjType, member)                                                                        \
+  template <>                                                                                                          \
+  uint8_t get_asn1_obj_id<Asn1ObjType>(const Asn1ObjType& obj)                                                         \
+  {                                                                                                                    \
+    return obj.member;                                                                                                 \
+  }                                                                                                                    \
+  template <>                                                                                                          \
+  void set_asn1_obj_id<Asn1ObjType>(Asn1ObjType & obj, uint8_t id)                                                     \
+  {                                                                                                                    \
+    obj.member = id;                                                                                                   \
+  }
 
 //! Functor to compare RRC config elements (e.g. SRB/measObj/Rep) based on ID
 struct rrc_obj_id_cmp {
@@ -29,27 +48,27 @@ struct rrc_obj_id_cmp {
   typename std::enable_if<not std::is_integral<T>::value and not std::is_integral<U>::value, bool>::type
   operator()(const T& lhs, const U& rhs) const
   {
-    return asn1::rrc::get_rrc_obj_id(lhs) < asn1::rrc::get_rrc_obj_id(rhs);
+    return get_asn1_obj_id(lhs) < get_asn1_obj_id(rhs);
   }
   template <typename T>
-  bool operator()(const T& lhs, rrc_obj_id_t<T> id) const
+  bool operator()(const T& lhs, asn1_obj_id_t id) const
   {
-    return asn1::rrc::get_rrc_obj_id(lhs) < id;
+    return get_asn1_obj_id(lhs) < id;
   }
   template <typename T>
-  bool operator()(rrc_obj_id_t<T> id, const T& rhs) const
+  bool operator()(asn1_obj_id_t id, const T& rhs) const
   {
-    return id < asn1::rrc::get_rrc_obj_id(rhs);
+    return id < get_asn1_obj_id(rhs);
   }
 };
 
 template <typename Container>
 struct unary_rrc_obj_id {
-  rrc_obj_id_t<typename Container::value_type> id;
+  asn1_obj_id_t id;
   template <typename T>
   explicit unary_rrc_obj_id(T id_) : id(id_)
   {}
-  bool operator()(const typename Container::value_type& e) const { return asn1::rrc::get_rrc_obj_id(e) == id; }
+  bool operator()(const typename Container::value_type& e) const { return get_asn1_obj_id(e) == id; }
 };
 
 /// Find rrc object in list based on ID
@@ -69,13 +88,13 @@ template <typename Container, typename IdType>
 typename Container::iterator sorted_find_rrc_obj_id(Container& c, IdType id)
 {
   auto it = std::lower_bound(c.begin(), c.end(), id, rrc_obj_id_cmp{});
-  return (it == c.end() or asn1::rrc::get_rrc_obj_id(*it) != id) ? c.end() : it;
+  return (it == c.end() or get_asn1_obj_id(*it) != id) ? c.end() : it;
 }
 template <typename Container, typename IdType>
 typename Container::const_iterator sorted_find_rrc_obj_id(const Container& c, IdType id)
 {
   auto it = std::lower_bound(c.begin(), c.end(), id, rrc_obj_id_cmp{});
-  return (it == c.end() or asn1::rrc::get_rrc_obj_id(*it) != id) ? c.end() : it;
+  return (it == c.end() or get_asn1_obj_id(*it) != id) ? c.end() : it;
 }
 
 template <typename Container, typename Container2>
@@ -86,7 +105,7 @@ bool equal_rrc_obj_ids(const Container& c, const Container2& c2)
                     c2.begin(),
                     c2.end(),
                     [](const typename Container::value_type& e, const typename Container2::value_type& e2) {
-                      return asn1::rrc::get_rrc_obj_id(e) == asn1::rrc::get_rrc_obj_id(e2);
+                      return get_asn1_obj_id(e) == get_asn1_obj_id(e2);
                     });
 }
 
@@ -98,7 +117,7 @@ typename Container::iterator add_rrc_obj_id(Container& c, IdType id)
   if (it == c.end()) {
     c.push_back({});
     it = c.end() - 1;
-    asn1::rrc::set_rrc_obj_id(*it, id);
+    set_asn1_obj_id(*it, id);
     std::sort(c.begin(), c.end(), rrc_obj_id_cmp{});
     it = sorted_find_rrc_obj_id(c, id);
   }
@@ -108,11 +127,11 @@ typename Container::iterator add_rrc_obj_id(Container& c, IdType id)
 template <typename Container>
 typename Container::iterator add_rrc_obj(Container& c, const typename Container::value_type& v)
 {
-  auto it = sorted_find_rrc_obj_id(c, asn1::rrc::get_rrc_obj_id(v));
+  auto it = sorted_find_rrc_obj_id(c, get_asn1_obj_id(v));
   if (it == c.end()) {
     c.push_back(v);
     std::sort(c.begin(), c.end(), rrc_obj_id_cmp{});
-    it = sorted_find_rrc_obj_id(c, asn1::rrc::get_rrc_obj_id(v));
+    it = sorted_find_rrc_obj_id(c, get_asn1_obj_id(v));
   } else {
     *it = v;
   }
@@ -136,21 +155,21 @@ bool rem_rrc_obj_id(Container& c, IdType id)
  * @return id value
  */
 template <typename Container>
-auto find_rrc_obj_id_gap(const Container& c) -> decltype(asn1::rrc::get_rrc_obj_id(c[0]))
+auto find_rrc_obj_id_gap(const Container& c) -> decltype(get_asn1_obj_id(c[0]))
 {
   auto id_cmp_op = rrc_obj_id_cmp{};
   assert(std::is_sorted(c.begin(), c.end(), id_cmp_op));
 
   auto prev_it = c.begin();
-  if (prev_it != c.end() and asn1::rrc::get_rrc_obj_id(*prev_it) == 1) {
+  if (prev_it != c.end() and get_asn1_obj_id(*prev_it) == 1) {
     auto it = prev_it;
     for (++it; it != c.end(); prev_it = it, ++it) {
-      if (asn1::rrc::get_rrc_obj_id(*it) > asn1::rrc::get_rrc_obj_id(*prev_it) + 1) {
+      if (get_asn1_obj_id(*it) > get_asn1_obj_id(*prev_it) + 1) {
         break;
       }
     }
   }
-  return (prev_it == c.end()) ? 1 : asn1::rrc::get_rrc_obj_id(*prev_it) + 1; // starts at 1.
+  return (prev_it == c.end()) ? 1 : get_asn1_obj_id(*prev_it) + 1; // starts at 1.
 }
 
 /**
@@ -307,7 +326,7 @@ void compute_cfg_diff(const toAddModList& src_list,
   }
 
   using it_t    = typename toAddModList::const_iterator;
-  auto rem_func = [&rem_diff_list](it_t rem_it) { rem_diff_list.push_back(asn1::rrc::get_rrc_obj_id(*rem_it)); };
+  auto rem_func = [&rem_diff_list](it_t rem_it) { rem_diff_list.push_back(get_asn1_obj_id(*rem_it)); };
   auto add_func = [&add_diff_list](it_t add_it) { add_diff_list.push_back(*add_it); };
   auto mod_func = [&add_diff_list](it_t src_it, it_t target_it) {
     if (not(*src_it == *target_it)) {
@@ -319,4 +338,4 @@ void compute_cfg_diff(const toAddModList& src_list,
 
 } // namespace srsran
 
-#endif // SRSRAN_RRC_CFG_UTILS_H
+#endif // SRSRAN_OBJ_ID_CMP_UTILS_H

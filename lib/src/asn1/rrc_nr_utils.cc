@@ -11,6 +11,7 @@
  */
 
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/config.h"
@@ -1611,5 +1612,15 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
 
   return true;
 }
+
+/**************************
+ *     Asn1 Obj Id
+ *************************/
+
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::srb_to_add_mod_s, srb_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::drb_to_add_mod_s, drb_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_obj_to_add_mod_s, meas_obj_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::report_cfg_to_add_mod_s, report_cfg_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_id_to_add_mod_s, meas_id);
 
 } // namespace srsran

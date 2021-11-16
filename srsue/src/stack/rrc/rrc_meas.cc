@@ -11,9 +11,9 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc/dl_dcch_msg.h"
 #include "srsran/interfaces/ue_phy_interfaces.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 
 /************************************************************************
@@ -403,7 +403,7 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
 
   meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
 
-  report->meas_id = (uint8_t)measId;
+  report->meas_id                       = (uint8_t)measId;
   report->meas_result_pcell.rsrp_result = rrc_value_to_range(quant_rsrp, serv_cell->get_rsrp());
   report->meas_result_pcell.rsrq_result = rrc_value_to_range(quant_rsrq, serv_cell->get_rsrq());
 

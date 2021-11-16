@@ -12,8 +12,8 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_utils.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
 
 namespace srsenb {
 

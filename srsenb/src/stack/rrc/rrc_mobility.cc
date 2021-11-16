@@ -15,6 +15,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/common.h"
@@ -25,7 +26,6 @@
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
 
 #include <algorithm>
 #include <cstdio>
