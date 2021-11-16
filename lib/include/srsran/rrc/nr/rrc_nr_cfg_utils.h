@@ -32,8 +32,6 @@ void generate_default_pdcch_cfg_common(asn1::rrc_nr::pdcch_cfg_common_s& cfg, co
 void generate_default_init_dl_bwp(asn1::rrc_nr::bwp_dl_common_s& cfg, const basic_cell_args_t& args = {});
 void generate_default_dl_cfg_common(asn1::rrc_nr::dl_cfg_common_s& cfg, const basic_cell_args_t& args = {});
 
-void generate_default_mib(uint32_t pdcch_scs, uint32_t coreset0_idx, asn1::rrc_nr::mib_s& cfg);
-
 void generate_default_serv_cell_cfg_common_sib(const basic_cell_args_t&                     args,
                                                asn1::rrc_nr::serving_cell_cfg_common_sib_s& cfg);
 void generate_default_sib1(const basic_cell_args_t& args, asn1::rrc_nr::sib1_s& cfg);

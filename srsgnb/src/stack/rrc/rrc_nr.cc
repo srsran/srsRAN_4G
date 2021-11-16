@@ -301,7 +301,7 @@ void rrc_nr::config_mac()
 int32_t rrc_nr::generate_sibs()
 {
   // MIB packing
-  fill_mib_from_enb_cfg(cfg, cell_ctxt->mib);
+  fill_mib_from_enb_cfg(cfg.cell_list[0], cell_ctxt->mib);
   bcch_bch_msg_s mib_msg;
   mib_msg.msg.set_mib() = cell_ctxt->mib;
   {
@@ -325,7 +325,7 @@ int32_t rrc_nr::generate_sibs()
   }
 
   // SIB1 packing
-  fill_sib1_from_enb_cfg(cfg, cell_ctxt->sib1);
+  fill_sib1_from_enb_cfg(cfg, 0, cell_ctxt->sib1);
   si_sched_info_s::sched_info_list_l_& sched_info = cell_ctxt->sib1.si_sched_info.sched_info_list;
 
   // SI messages packing

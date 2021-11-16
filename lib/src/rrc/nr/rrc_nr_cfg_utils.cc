@@ -172,19 +172,6 @@ void generate_default_serv_cell_cfg_common_sib(const basic_cell_args_t& args, se
   cfg.ss_pbch_block_pwr = -16;
 }
 
-void generate_default_mib(uint32_t pdcch_scs, uint32_t coreset0_idx, mib_s& cfg)
-{
-  bool ret = asn1::number_to_enum(cfg.sub_carrier_spacing_common, pdcch_scs);
-  srsran_assert(ret, "Invalid SCS=%d kHz", pdcch_scs);
-  cfg.ssb_subcarrier_offset            = 0;
-  cfg.intra_freq_resel.value           = mib_s::intra_freq_resel_opts::allowed;
-  cfg.cell_barred.value                = mib_s::cell_barred_opts::not_barred;
-  cfg.pdcch_cfg_sib1.search_space_zero = 0;
-  cfg.pdcch_cfg_sib1.ctrl_res_set_zero = coreset0_idx;
-  cfg.dmrs_type_a_position.value       = mib_s::dmrs_type_a_position_opts::pos2;
-  cfg.sys_frame_num.from_number(0);
-}
-
 void generate_default_sib1(const basic_cell_args_t& args, sib1_s& cfg)
 {
   cfg.cell_sel_info_present            = true;
