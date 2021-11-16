@@ -557,6 +557,12 @@ int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr:
 }
 int rrc_nr::start_security_mode_procedure(uint16_t rnti)
 {
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()){
+    logger.error("Starting SecurityModeCommand procedure failed - rnti=0x%x not found", rnti);
+    return SRSRAN_ERROR;
+  }
+  user_it->second->send_security_mode_command();
   return SRSRAN_SUCCESS;
 }
 int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)

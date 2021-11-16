@@ -94,6 +94,9 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
 {
   srsran::unique_byte_buffer_t pdu;
 
+  // Trigger Send SecurityCommand (simulate request from NGAP)
+  rrc_obj.start_security_mode_procedure(rnti);
+
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was setup in a different function
   TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
