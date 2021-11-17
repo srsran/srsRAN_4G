@@ -989,9 +989,10 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   send_rrc_reconfiguration();
 }
 
+/// TS 38.331, RRCReconfiguration
 void rrc_nr::ue::send_rrc_reconfiguration()
 {
-  asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_recfg_ies_s& ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.set_rrc_recfg();
 
@@ -1010,12 +1011,20 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   // Pack masterCellGroup into container
   srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group);
   if (pdu == nullptr) {
-    // TODO: Handle
+    send_rrc_release();
     return;
   }
   ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
   memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
-  // TODO: pass stored NAS PDU
+
+  // Pass stored NAS PDUs
+  ies.non_crit_ext.ded_nas_msg_list_present = true;
+  ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
+  for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
+    ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
+    memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
+  }
+  nas_pdu_queue.clear();
 
   // Update lower layers
   if (ies.radio_bearer_cfg_present) {
@@ -1035,6 +1044,11 @@ void rrc_nr::ue::send_rrc_reconfiguration()
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
 {
   radio_bearer_cfg = next_radio_bearer_cfg;
+}
+
+void rrc_nr::ue::send_rrc_release()
+{
+  // TODO
 }
 
 void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
@@ -1058,6 +1072,16 @@ void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_tran
 
 void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
 {
+  // Enqueue NAS PDU
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate NAS PDU in %s().", __FUNCTION__);
+    return;
+  }
+  pdu->resize(nas_pdu.size());
+  memcpy(pdu->data(), nas_pdu.data(), nas_pdu.size());
+  nas_pdu_queue.push_back(std::move(pdu));
+
   // Add SRB2, if not yet added
   if (radio_bearer_cfg.srb_to_add_mod_list.size() <= 1) {
     next_radio_bearer_cfg.srb_to_add_mod_list_present = true;

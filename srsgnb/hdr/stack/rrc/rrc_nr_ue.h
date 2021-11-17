@@ -52,20 +52,23 @@ public:
   void        set_activity(bool enabled = true);
   void        activity_timer_expired(const activity_timeout_type_t type);
 
-  /* TS 38.331 - 5.3.3 RRC connection establishment */
+  /** TS 38.331 - 5.3.3 RRC connection establishment */
   void handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg);
   void handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg);
 
-  /* TS 38.331 - 5.3.4 Initial AS security activation */
+  /** TS 38.331 - 5.3.4 Initial AS security activation */
   void handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg);
 
-  /* TS 38.331 - 5.3.5 RRC reconfiguration */
+  /** TS 38.331 - 5.3.5 RRC reconfiguration */
   void handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg);
 
-  /* TS 38.331 - 5.7.1 DL information transfer */
+  /** TS 38.331 - 5.3.8 Connection Release */
+  void send_rrc_release();
+
+  /** TS 38.331 - 5.7.1 DL information transfer */
   void send_dl_information_transfer(srsran::unique_byte_buffer_t sdu);
 
-  /* TS 38.331 - 5.7.2 UL information transfer */
+  /** TS 38.331 - 5.7.2 UL information transfer */
   void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
 
   // NGAP interface
@@ -158,8 +161,9 @@ private:
   srsran::unique_timer activity_timer; /// for basic DL/UL activity timeout
 
   // RRC configs for UEs
-  asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
-  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg, next_radio_bearer_cfg;
+  asn1::rrc_nr::cell_group_cfg_s            cell_group_cfg;
+  asn1::rrc_nr::radio_bearer_cfg_s          radio_bearer_cfg, next_radio_bearer_cfg;
+  std::vector<srsran::unique_byte_buffer_t> nas_pdu_queue;
 
   // MAC controller
   sched_nr_interface::ue_cfg_t uecfg{};
