@@ -1141,7 +1141,7 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
     }
     if (rlc_bearer == nullptr) {
       logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
-      continue;
+      return SRSRAN_ERROR;
     }
     parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
   }
@@ -1159,7 +1159,7 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
     }
     if (rlc_bearer == nullptr) {
       logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
-      continue;
+      return SRSRAN_ERROR;
     }
     parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
   }
@@ -1180,7 +1180,7 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
     if (srsran::make_rlc_config_t(rb.rlc_cfg, rb.served_radio_bearer.drb_id(), &rlc_cfg) != SRSRAN_SUCCESS) {
       logger.error("Failed to build RLC config");
       // TODO: HANDLE
-      continue;
+      return SRSRAN_ERROR;
     }
     parent->rlc->add_bearer(rnti, rb.lc_ch_id, rlc_cfg);
   }
