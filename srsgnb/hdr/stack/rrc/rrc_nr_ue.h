@@ -75,8 +75,8 @@ public:
   void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
 
 private:
-  void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
-  void send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
+  int send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
+  int send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
 
   /* TS 38.331 - 5.3.3 RRC connection establishment */
   void send_rrc_setup();

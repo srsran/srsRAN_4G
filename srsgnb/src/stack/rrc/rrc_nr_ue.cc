@@ -112,32 +112,34 @@ std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
-void rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
+int rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_ccch_msg);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_ccch_msg, __FUNCTION__);
   if (pdu == nullptr) {
     logger.error("Failed to send DL-CCCH");
-    return;
+    return SRSRAN_ERROR;
   }
   fmt::memory_buffer fmtbuf;
   fmt::format_to(fmtbuf, "DL-CCCH.{}", dl_ccch_msg.msg.c1().type().to_string());
   log_rrc_message(srsran::nr_srb::srb0, Tx, *pdu.get(), dl_ccch_msg, srsran::to_c_str(fmtbuf));
   parent->rlc->write_sdu(rnti, srsran::srb_to_lcid(srsran::nr_srb::srb0), std::move(pdu));
+  return SRSRAN_SUCCESS;
 }
 
-void rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg)
+int rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_dcch_msg);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_dcch_msg, __FUNCTION__);
   if (pdu == nullptr) {
-    logger.error("Failed to send DL-DCCH");
-    return;
+    return SRSRAN_ERROR;
   }
   fmt::memory_buffer fmtbuf;
   fmt::format_to(fmtbuf, "DL-DCCH.{}", dl_dcch_msg.msg.c1().type().to_string());
   log_rrc_message(srb, Tx, *pdu.get(), dl_dcch_msg, srsran::to_c_str(fmtbuf));
   parent->pdcp->write_sdu(rnti, srsran::srb_to_lcid(srb), std::move(pdu));
+
+  return SRSRAN_SUCCESS;
 }
 
 int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
@@ -894,7 +896,9 @@ void rrc_nr::ue::send_rrc_reject(uint8_t reject_wait_time_secs)
     reject.wait_time_present = true;
     reject.wait_time         = reject_wait_time_secs;
   }
-  send_dl_ccch(msg);
+  if (send_dl_ccch(msg) != SRSRAN_SUCCESS) {
+    // TODO: Handle
+  }
 
   // TODO: remove user
 }
@@ -927,7 +931,7 @@ void rrc_nr::ue::send_rrc_setup()
   // - Derive master cell group config bearers
   fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, master_cell_group);
   // - Pack masterCellGroup into container
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
   if (pdu == nullptr) {
     send_rrc_reject(max_wait_time_secs);
     return;
@@ -949,7 +953,10 @@ void rrc_nr::ue::send_rrc_setup()
   // add MAC bearers
   update_mac(master_cell_group);
 
-  send_dl_ccch(msg);
+  // Send RRC Setup message to UE
+  if (send_dl_ccch(msg) != SRSRAN_SUCCESS) {
+    send_rrc_reject(max_wait_time_secs);
+  }
 }
 
 /// TS 38.331, RRCSetupComplete
@@ -976,7 +983,9 @@ void rrc_nr::ue::send_security_mode_command()
   ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value   = integrity_prot_algorithm_opts::nia0;
   ies.security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value        = ciphering_algorithm_opts::nea0;
 
-  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
+    send_rrc_release();
+  }
 }
 
 /// TS 38.331, SecurityModeComplete
@@ -1009,7 +1018,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
 
   // Pack masterCellGroup into container
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
   if (pdu == nullptr) {
     send_rrc_release();
     return;
@@ -1038,7 +1047,9 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     update_mac(master_cell_group);
   }
 
-  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
+    send_rrc_release();
+  }
 }
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
@@ -1061,7 +1072,9 @@ void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
   ies.ded_nas_msg.resize(sdu->N_bytes);
   memcpy(ies.ded_nas_msg.data(), sdu->data(), ies.ded_nas_msg.size());
 
-  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
+    send_rrc_release();
+  }
 }
 
 void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg)

@@ -162,17 +162,18 @@ private:
 
   // Helper to create PDU from RRC message
   template <class T>
-  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg)
+  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg, const char* context_name = nullptr)
   {
+    context_name = context_name == nullptr ? __FUNCTION__ : context_name;
     // Allocate a new PDU buffer and pack the
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (pdu == nullptr) {
-      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      logger.error("Couldn't allocate PDU in %s.", context_name);
       return nullptr;
     }
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     if (msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      logger.error("Failed to pack message. Discarding it.");
+      logger.error("Failed to pack message in %s. Discarding it.", context_name);
       return nullptr;
     }
     pdu->N_bytes = bref.distance_bytes();
