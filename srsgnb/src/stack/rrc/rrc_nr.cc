@@ -648,25 +648,4 @@ void rrc_nr::sgnb_release_request(uint16_t nr_rnti)
   }
 }
 
-template <class T>
-srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu(const T& msg)
-{
-  // Allocate a new PDU buffer and pack the
-  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-  if (pdu == nullptr) {
-    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    return nullptr;
-  }
-  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-  if (msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-    logger.error("Failed to pack message. Discarding it.");
-    return nullptr;
-  }
-  pdu->N_bytes = bref.distance_bytes();
-  return pdu;
-}
-
-template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_ccch_msg_s>(const dl_ccch_msg_s& msg);
-template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_dcch_msg_s>(const dl_dcch_msg_s& msg);
-
 } // namespace srsenb

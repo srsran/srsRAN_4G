@@ -926,19 +926,14 @@ void rrc_nr::ue::send_rrc_setup()
   asn1::rrc_nr::cell_group_cfg_s master_cell_group = *parent->cell_ctxt->master_cell_group;
   // - Derive master cell group config bearers
   fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, master_cell_group);
-  {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    asn1::bit_ref                bref{pdu->data(), pdu->get_tailroom()};
-    if (master_cell_group.pack(bref) != SRSRAN_SUCCESS) {
-      logger.error("Failed to pack master cell group");
-      send_rrc_reject(max_wait_time_secs);
-      return;
-    }
-    pdu->N_bytes = bref.distance_bytes();
-
-    setup_ies.master_cell_group.resize(pdu->N_bytes);
-    memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+  // - Pack masterCellGroup into container
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group);
+  if (pdu == nullptr) {
+    send_rrc_reject(max_wait_time_secs);
+    return;
   }
+  setup_ies.master_cell_group.resize(pdu->N_bytes);
+  memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
   if (logger.debug.enabled()) {
     asn1::json_writer js;
     master_cell_group.to_json(js);
@@ -1007,23 +1002,19 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   ies.non_crit_ext_present                   = true;
   ies.non_crit_ext.master_cell_group_present = true;
 
-  // masterCellGroup
-  asn1::rrc_nr::cell_group_cfg_s master_cell_group;
+  // Fill masterCellGroup
+  cell_group_cfg_s master_cell_group;
   master_cell_group.cell_group_id = 0;
   fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
-  {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    asn1::bit_ref                bref{pdu->data(), pdu->get_tailroom()};
-    if (master_cell_group.pack(bref) != SRSRAN_SUCCESS) {
-      logger.error("Failed to pack master cell group");
-      // TODO: handle
-      return;
-    }
-    pdu->N_bytes = bref.distance_bytes();
 
-    ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
-    memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+  // Pack masterCellGroup into container
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group);
+  if (pdu == nullptr) {
+    // TODO: Handle
+    return;
   }
+  ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
+  memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
   // TODO: pass stored NAS PDU
 
   // Update lower layers
@@ -1070,8 +1061,8 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
   // Add SRB2, if not yet added
   if (radio_bearer_cfg.srb_to_add_mod_list.size() <= 1) {
     next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
-    next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
-    next_radio_bearer_cfg.srb_to_add_mod_list[0].srb_id = 2;
+    next_radio_bearer_cfg.srb_to_add_mod_list.push_back(srb_to_add_mod_s{});
+    next_radio_bearer_cfg.srb_to_add_mod_list.back().srb_id = 2;
   }
 
   drb_to_add_mod_s drb;

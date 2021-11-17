@@ -162,12 +162,27 @@ private:
 
   // Helper to create PDU from RRC message
   template <class T>
-  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg);
-  void                         log_rx_pdu_fail(uint16_t                rnti,
-                                               uint32_t                lcid,
-                                               srsran::const_byte_span pdu,
-                                               const char*             cause_str,
-                                               bool                    log_hex = true);
+  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg)
+  {
+    // Allocate a new PDU buffer and pack the
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return nullptr;
+    }
+    asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+    if (msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      logger.error("Failed to pack message. Discarding it.");
+      return nullptr;
+    }
+    pdu->N_bytes = bref.distance_bytes();
+    return pdu;
+  }
+  void log_rx_pdu_fail(uint16_t                rnti,
+                       uint32_t                lcid,
+                       srsran::const_byte_span pdu,
+                       const char*             cause_str,
+                       bool                    log_hex = true);
 };
 
 } // namespace srsenb
