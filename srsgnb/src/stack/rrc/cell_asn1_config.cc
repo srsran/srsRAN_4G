@@ -61,6 +61,9 @@ void set_search_space_from_phy_cfg(const srsran_search_space_t& cfg, asn1::rrc_n
     out.search_space_type.set_common();
 
     out.search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
+  } else if (cfg.type == srsran_search_space_type_ue) {
+    out.search_space_type.set_ue_specific().dci_formats.value =
+        search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_opts::formats0_minus0_and_minus1_minus0;
   } else {
     srsran_terminate("Config Error: Unsupported search space type.");
   }
@@ -264,15 +267,15 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
 
-  // Note: Skip CORESET#0
-  for (uint32_t cs_idx = 1; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; cs_idx++) {
+  // Note: Skip common CORESETs
+  for (uint32_t cs_idx = 2; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; cs_idx++) {
     if (cell_cfg.phy_cell.pdcch.coreset_present[cs_idx]) {
       auto& coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[cs_idx];
 
       pdcch_cfg.ctrl_res_set_to_add_mod_list_present = true;
 
       uint8_t cs_mod_list_idx = pdcch_cfg.ctrl_res_set_to_add_mod_list.size();
-      pdcch_cfg.ctrl_res_set_to_add_mod_list.resize(cs_mod_list_idx + 1);
+      pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
       auto& ctrl_res_items                            = pdcch_cfg.ctrl_res_set_to_add_mod_list;
       ctrl_res_items[cs_mod_list_idx].ctrl_res_set_id = coreset_cfg.id;
 
@@ -300,48 +303,18 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
     }
   }
 
-  // Note: Skip SearchSpace#0
+  // Note: Skip Common SearchSpaces
   for (uint32_t ss_idx = 1; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
     if (cell_cfg.phy_cell.pdcch.search_space_present[ss_idx]) {
       // search spaces
-      auto& search_space_cfg                          = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
-      pdcch_cfg.search_spaces_to_add_mod_list_present = true;
-
-      uint8_t ss_mod_list_idx = pdcch_cfg.search_spaces_to_add_mod_list.size();
-      pdcch_cfg.search_spaces_to_add_mod_list.resize(ss_mod_list_idx + 1);
-      auto& search_spaces                                    = pdcch_cfg.search_spaces_to_add_mod_list;
-      search_spaces[ss_mod_list_idx].search_space_id         = search_space_cfg.id;
-      search_spaces[ss_mod_list_idx].ctrl_res_set_id_present = true;
-      search_spaces[ss_mod_list_idx].ctrl_res_set_id         = search_space_cfg.coreset_id;
-      search_spaces[ss_mod_list_idx].monitoring_slot_periodicity_and_offset_present = true;
-      search_spaces[ss_mod_list_idx].monitoring_slot_periodicity_and_offset.set_sl1();
-      search_spaces[ss_mod_list_idx].monitoring_symbols_within_slot_present = true;
-      search_spaces[ss_mod_list_idx].monitoring_symbols_within_slot.from_number(0b10000000000000);
-      search_spaces[ss_mod_list_idx].nrof_candidates_present = true;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level1 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level2 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n2;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level4 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n2;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level8 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level16 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-      search_spaces[ss_mod_list_idx].search_space_type_present = true;
-
-      if ((search_space_cfg.type == srsran_search_space_type_common_0) or
-          (search_space_cfg.type == srsran_search_space_type_common_0A) or
-          (search_space_cfg.type == srsran_search_space_type_common_1) or
-          (search_space_cfg.type == srsran_search_space_type_common_2) or
-          (search_space_cfg.type == srsran_search_space_type_common_3)) {
-        search_spaces[ss_mod_list_idx].search_space_type.set_common();
-
-        search_spaces[ss_mod_list_idx].search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
-      } else {
-        get_logger(cfg).error("Config Error: Unsupported search space type.");
-        return SRSRAN_ERROR;
+      auto& search_space_cfg = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
+      if (search_space_cfg.type != srsran_search_space_type_ue) {
+        // Only add UE-specific search spaces at this stage
+        continue;
       }
+      pdcch_cfg.search_spaces_to_add_mod_list_present = true;
+      pdcch_cfg.search_spaces_to_add_mod_list.push_back({});
+      set_search_space_from_phy_cfg(search_space_cfg, pdcch_cfg.search_spaces_to_add_mod_list.back());
     }
   }
   return SRSRAN_SUCCESS;
@@ -581,32 +554,11 @@ int fill_pdcch_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdc
 
   // common search space list
   pdcch_cfg_common.common_search_space_list_present = true;
-  pdcch_cfg_common.common_search_space_list.resize(1);
-  pdcch_cfg_common.common_search_space_list[0].search_space_id           = 1;
-  pdcch_cfg_common.common_search_space_list[0].ctrl_res_set_id_present   = true;
-  pdcch_cfg_common.common_search_space_list[0].ctrl_res_set_id           = 1;
-  pdcch_cfg_common.common_search_space_list[0].search_space_type_present = true;
-  pdcch_cfg_common.common_search_space_list[0].search_space_type.set_common();
-  pdcch_cfg_common.common_search_space_list[0]
-      .search_space_type.common()
-      .dci_format0_minus0_and_format1_minus0_present                   = true;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates_present = true;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level1 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n1;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level2 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n1;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level4 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level8 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level16 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-  pdcch_cfg_common.common_search_space_list[0].monitoring_slot_periodicity_and_offset_present = true;
-  pdcch_cfg_common.common_search_space_list[0].monitoring_slot_periodicity_and_offset.set_sl1();
-  pdcch_cfg_common.common_search_space_list[0].monitoring_symbols_within_slot_present = true;
-  pdcch_cfg_common.common_search_space_list[0].monitoring_symbols_within_slot.from_number(0b10000000000000);
+  pdcch_cfg_common.common_search_space_list.push_back({});
+  set_search_space_from_phy_cfg(cfg.cell_list[0].phy_cell.pdcch.search_space[1],
+                                pdcch_cfg_common.common_search_space_list.back());
   pdcch_cfg_common.ra_search_space_present = true;
-  pdcch_cfg_common.ra_search_space         = 1;
+  pdcch_cfg_common.ra_search_space         = cfg.cell_list[cc].phy_cell.pdcch.ra_search_space.id;
 
   if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     pdcch_cfg_common.ext = false;

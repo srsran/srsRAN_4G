@@ -52,6 +52,32 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
   phy_cell.prach.hs_flag               = false;
   phy_cell.prach.tdd_config.configured = false;
 
+  // PDCCH
+  // - Add CORESET#2 as UE-specific
+  phy_cell.pdcch.coreset_present[2]              = true;
+  phy_cell.pdcch.coreset[2].id                   = 2;
+  phy_cell.pdcch.coreset[2].duration             = 1;
+  phy_cell.pdcch.coreset[2].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
+  phy_cell.pdcch.coreset[2].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+  // Generate frequency resources for the full BW
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    phy_cell.pdcch.coreset[2].freq_resources[i] = i < SRSRAN_FLOOR(phy_cell.carrier.nof_prb, 6);
+  }
+  // - Add SearchSpace#2 as UE-specific
+  phy_cell.pdcch.search_space_present[2]    = true;
+  phy_cell.pdcch.search_space[2].id         = 2;
+  phy_cell.pdcch.search_space[2].coreset_id = 2;
+  phy_cell.pdcch.search_space[2].type       = srsran_search_space_type_ue;
+  // Generate frequency resources for the full BW
+  for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+    phy_cell.pdcch.search_space[2].nof_candidates[L] =
+        SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&phy_cell.pdcch.coreset[2], L));
+  }
+  phy_cell.pdcch.search_space[2].nof_formats = 2;
+  phy_cell.pdcch.search_space[2].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+  phy_cell.pdcch.search_space[2].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
+  phy_cell.pdcch.search_space[2].duration    = 1;
+
   // PDSCH
   phy_cell.pdsch.rs_power = 0;
   phy_cell.pdsch.p_b      = 0;
