@@ -49,6 +49,23 @@ public:
   srsran::unique_byte_buffer_t last_sdu;
 };
 
+class ngap_rrc_tester : public ngap_dummy
+{
+public:
+  void initial_ue(uint16_t                                rnti,
+                  uint32_t                                gnb_cc_idx,
+                  asn1::ngap_nr::rrcestablishment_cause_e cause,
+                  srsran::const_byte_span                 pdu,
+                  uint32_t                                s_tmsi)
+  {
+    last_sdu_rnti = rnti;
+    last_pdu      = pdu;
+  }
+
+  uint16_t                last_sdu_rnti;
+  srsran::const_byte_span last_pdu;
+};
+
 /**
  * Run TS 38.331, 5.3.3 "RRC connection establishment" to completion
  * RRC actions:
@@ -64,6 +81,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           rrc_nr&                 rrc_obj,
                                           rlc_nr_rrc_tester&      rlc,
                                           mac_nr_dummy&           mac,
+                                          ngap_rrc_tester&        ngap,
                                           uint16_t                rnti);
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,

@@ -10,8 +10,11 @@
  *
  */
 
+#define DED_NAS_MSG_STRING "7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F110800101347B80801001002E02F0702F0201015200F11000006418010174000090530101"
+
 #include "rrc_nr_test_helpers.h"
 #include "srsran/common/test_common.h"
+#include <string>
 
 using namespace asn1::rrc_nr;
 
@@ -21,6 +24,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           rrc_nr&                 rrc_obj,
                                           rlc_nr_rrc_tester&      rlc,
                                           mac_nr_dummy&           mac,
+                                          ngap_rrc_tester&        ngap,
                                           uint16_t                rnti)
 {
   srsran::unique_byte_buffer_t pdu;
@@ -96,8 +100,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   complete_ies.registered_amf.amf_id.from_number(0x800101);
   complete_ies.guami_type_present = true;
   complete_ies.guami_type.value   = rrc_setup_complete_ies_s::guami_type_opts::native;
-  complete_ies.ded_nas_msg.from_string("7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F"
-                                       "110800101347B80801001002E02F0702F0201015200F11000006418010174000090530101");
+  auto& ded_nas_msg = complete_ies.ded_nas_msg.from_string(DED_NAS_MSG_STRING);
 
   {
     pdu = srsran::make_byte_buffer();
@@ -118,6 +121,14 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
     }
   }
   TESTASSERT(ss_ue_found); /// Ensure UE-specific SearchSpace was added
+
+  // Check here if the MSG sent to NGAP is correct
+  // Create a srsran::span object for the expected MSG
+  asn1::unbounded_octstring<false> expected;
+  expected.from_string(DED_NAS_MSG_STRING);
+  srsran::span<const uint8_t> expected_span{expected};
+  TESTASSERT(expected_span == ngap.last_pdu);
+
 }
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
