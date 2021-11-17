@@ -31,6 +31,41 @@ srslog::basic_logger& get_logger(const rrc_nr_cfg_t& cfg)
   return log_obj;
 }
 
+void set_search_space_from_phy_cfg(const srsran_search_space_t& cfg, asn1::rrc_nr::search_space_s& out)
+{
+  out.search_space_id                                = cfg.id;
+  out.ctrl_res_set_id_present                        = true;
+  out.ctrl_res_set_id                                = cfg.coreset_id;
+  out.monitoring_slot_periodicity_and_offset_present = true;
+  out.monitoring_slot_periodicity_and_offset.set_sl1();
+  out.dur_present                            = false; // false for duration=1
+  out.monitoring_symbols_within_slot_present = true;
+  out.monitoring_symbols_within_slot.from_number(0b10000000000000);
+
+  out.nrof_candidates_present = true;
+  bool ret                    = asn1::number_to_enum(out.nrof_candidates.aggregation_level1, cfg.nof_candidates[0]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[0]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level2, cfg.nof_candidates[1]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[1]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level4, cfg.nof_candidates[2]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[2]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level8, cfg.nof_candidates[3]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[3]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level16, cfg.nof_candidates[4]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[4]);
+
+  out.search_space_type_present = true;
+  if ((cfg.type == srsran_search_space_type_common_0) or (cfg.type == srsran_search_space_type_common_0A) or
+      (cfg.type == srsran_search_space_type_common_1) or (cfg.type == srsran_search_space_type_common_2) or
+      (cfg.type == srsran_search_space_type_common_3)) {
+    out.search_space_type.set_common();
+
+    out.search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
+  } else {
+    srsran_terminate("Config Error: Unsupported search space type.");
+  }
+}
+
 /// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -51,9 +86,8 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
   // Report freq config (optional)
   csi_report.report_freq_cfg_present                = true;
   csi_report.report_freq_cfg.cqi_format_ind_present = true;
-  csi_report.report_freq_cfg.cqi_format_ind =
-      asn1::rrc_nr::csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
-  csi_report.time_restrict_for_ch_meass = asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+  csi_report.report_freq_cfg.cqi_format_ind = csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+  csi_report.time_restrict_for_ch_meass     = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
   csi_report.time_restrict_for_interference_meass =
       asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
   csi_report.group_based_beam_report.set_disabled();
@@ -949,23 +983,7 @@ void fill_pdcch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdcch_cfg_common_s
 
   cfg.common_search_space_list_present = true;
   cfg.common_search_space_list.resize(1);
-  search_space_s& ss                                = cfg.common_search_space_list[0];
-  ss.search_space_id                                = 1;
-  ss.ctrl_res_set_id_present                        = true;
-  ss.ctrl_res_set_id                                = 0;
-  ss.monitoring_slot_periodicity_and_offset_present = true;
-  ss.monitoring_slot_periodicity_and_offset.set_sl1();
-  ss.monitoring_symbols_within_slot_present = true;
-  ss.monitoring_symbols_within_slot.from_number(0x2000);
-  ss.nrof_candidates_present                   = true;
-  ss.nrof_candidates.aggregation_level1.value  = search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
-  ss.nrof_candidates.aggregation_level2.value  = search_space_s::nrof_candidates_s_::aggregation_level2_opts::n0;
-  ss.nrof_candidates.aggregation_level4.value  = search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
-  ss.nrof_candidates.aggregation_level8.value  = search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-  ss.nrof_candidates.aggregation_level16.value = search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-  ss.search_space_type_present                 = true;
-  auto& common                                 = ss.search_space_type.set_common();
-  common.dci_format0_minus0_and_format1_minus0_present = true;
+  set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], cfg.common_search_space_list[0]);
 
   cfg.search_space_sib1_present           = true;
   cfg.search_space_sib1                   = 0;

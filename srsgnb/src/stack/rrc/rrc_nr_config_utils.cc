@@ -51,39 +51,6 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
   phy_cell.prach.hs_flag               = false;
   phy_cell.prach.tdd_config.configured = false;
 
-  // PDCCH
-  // Configure CORESET ID 1
-  phy_cell.pdcch.coreset_present[1]              = true;
-  phy_cell.pdcch.coreset[1].id                   = 1;
-  phy_cell.pdcch.coreset[1].duration             = 1;
-  phy_cell.pdcch.coreset[1].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
-  phy_cell.pdcch.coreset[1].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
-
-  // Generate frequency resources for the full BW
-  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    phy_cell.pdcch.coreset[1].freq_resources[i] = i < SRSRAN_FLOOR(phy_cell.carrier.nof_prb, 6);
-  }
-
-  // Configure Search Space 1 as common
-  phy_cell.pdcch.search_space_present[1]     = true;
-  phy_cell.pdcch.search_space[1].id          = 1;
-  phy_cell.pdcch.search_space[1].coreset_id  = 1;
-  phy_cell.pdcch.search_space[1].duration    = 1;
-  phy_cell.pdcch.search_space[1].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
-  phy_cell.pdcch.search_space[1].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
-  phy_cell.pdcch.search_space[1].nof_formats = 2;
-  phy_cell.pdcch.search_space[1].type        = srsran_search_space_type_common_3;
-
-  // Generate 1 candidate for each aggregation level if possible
-  for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    phy_cell.pdcch.search_space[1].nof_candidates[L] =
-        SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&phy_cell.pdcch.coreset[1], L));
-  }
-
-  phy_cell.pdcch.ra_search_space_present = true;
-  phy_cell.pdcch.ra_search_space         = phy_cell.pdcch.search_space[1];
-  phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
-
   // PDSCH
   phy_cell.pdsch.rs_power = 0;
   phy_cell.pdsch.p_b      = 0;
@@ -269,10 +236,56 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
     cell.phy_cell.pdcch.search_space[0].nof_candidates[0] = 1;
     cell.phy_cell.pdcch.search_space[0].nof_candidates[1] = 1;
     cell.phy_cell.pdcch.search_space[0].nof_candidates[2] = 1;
-    cell.phy_cell.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_1_0;
+    cell.phy_cell.pdcch.search_space[0].nof_candidates[3] = 0;
+    cell.phy_cell.pdcch.search_space[0].nof_candidates[4] = 0;
     cell.phy_cell.pdcch.search_space[0].nof_formats       = 1;
+    cell.phy_cell.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_1_0;
     cell.phy_cell.pdcch.search_space[0].duration          = 1;
+    cell.phy_cell.pdcch.search_space_present[1]           = true;
+    cell.phy_cell.pdcch.search_space[1].id                = 1;
+    cell.phy_cell.pdcch.search_space[1].coreset_id        = 0;
+    cell.phy_cell.pdcch.search_space[1].type              = srsran_search_space_type_common_3;
+    cell.phy_cell.pdcch.search_space[1].nof_candidates[0] = 0;
+    cell.phy_cell.pdcch.search_space[1].nof_candidates[1] = 0;
+    cell.phy_cell.pdcch.search_space[1].nof_candidates[2] = 1;
+    cell.phy_cell.pdcch.search_space[1].nof_candidates[3] = 0;
+    cell.phy_cell.pdcch.search_space[1].nof_candidates[4] = 0;
+    cell.phy_cell.pdcch.search_space[1].nof_formats       = 2;
+    cell.phy_cell.pdcch.search_space[1].formats[0]        = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+    cell.phy_cell.pdcch.search_space[1].formats[1]        = srsran_dci_format_nr_1_0; // DCI format for PDSCH
+    cell.phy_cell.pdcch.search_space[1].duration          = 1;
+  } else {
+    // Configure CORESET#1
+    cell.phy_cell.pdcch.coreset_present[1]              = true;
+    cell.phy_cell.pdcch.coreset[1].id                   = 1;
+    cell.phy_cell.pdcch.coreset[1].duration             = 1;
+    cell.phy_cell.pdcch.coreset[1].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
+    cell.phy_cell.pdcch.coreset[1].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+
+    // Generate frequency resources for the full BW
+    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      cell.phy_cell.pdcch.coreset[1].freq_resources[i] = i < SRSRAN_FLOOR(cell.phy_cell.carrier.nof_prb, 6);
+    }
+
+    // Configure SearchSpace#1 -> CORESET#1
+    cell.phy_cell.pdcch.search_space_present[1]    = true;
+    cell.phy_cell.pdcch.search_space[1].id         = 1;
+    cell.phy_cell.pdcch.search_space[1].coreset_id = 1;
+    cell.phy_cell.pdcch.search_space[1].type       = srsran_search_space_type_common_3;
+    // Generate frequency resources for the full BW
+    for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+      cell.phy_cell.pdcch.search_space[1].nof_candidates[L] =
+          SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&cell.phy_cell.pdcch.coreset[1], L));
+    }
+    cell.phy_cell.pdcch.search_space[1].nof_formats = 2;
+    cell.phy_cell.pdcch.search_space[1].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
+    cell.phy_cell.pdcch.search_space[1].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
+    cell.phy_cell.pdcch.search_space[1].duration    = 1;
   }
+
+  cell.phy_cell.pdcch.ra_search_space_present = true;
+  cell.phy_cell.pdcch.ra_search_space         = cell.phy_cell.pdcch.search_space[1];
+  cell.phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
 
   // Derive remaining PHY cell params
   cell.phy_cell.prach.num_ra_preambles      = cell.phy_cell.num_ra_preambles;

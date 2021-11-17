@@ -21,6 +21,9 @@ namespace srsenb {
 
 using rlc_bearer_list_t = asn1::rrc_nr::cell_group_cfg_s::rlc_bearer_to_add_mod_list_l_;
 
+// PHY helpers
+void set_search_space_from_phy_cfg(const srsran_search_space_t& ss, asn1::rrc_nr::search_space_s& out);
+
 // NSA helpers
 int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sp_cell_cfg_s& sp_cell);
 
