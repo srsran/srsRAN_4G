@@ -80,11 +80,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   } else {
     asn1_pdcch = &cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   }
-  bool ret2 = srsran::fill_phy_pdcch_cfg_common(*asn1_pdcch, &cfg.cell_list[0].phy_cell.pdcch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::fill_phy_pdcch_cfg(base_sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
-                                    &cfg.cell_list[0].phy_cell.pdcch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
   srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization

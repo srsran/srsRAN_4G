@@ -69,6 +69,37 @@ void set_search_space_from_phy_cfg(const srsran_search_space_t& cfg, asn1::rrc_n
   }
 }
 
+void set_coreset_from_phy_cfg(const srsran_coreset_t& coreset_cfg, asn1::rrc_nr::ctrl_res_set_s& out)
+{
+  out.ctrl_res_set_id = coreset_cfg.id;
+
+  std::bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE> freq_domain_res;
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    freq_domain_res[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i] = coreset_cfg.freq_resources[i];
+  }
+  out.freq_domain_res.from_number(freq_domain_res.to_ulong());
+
+  out.dur = coreset_cfg.duration;
+
+  if (coreset_cfg.mapping_type == srsran_coreset_mapping_type_non_interleaved) {
+    out.cce_reg_map_type.set_non_interleaved();
+  } else {
+    auto& interleaved                  = out.cce_reg_map_type.set_interleaved();
+    interleaved.reg_bundle_size.value  = (decltype(interleaved.reg_bundle_size.value))coreset_cfg.reg_bundle_size;
+    interleaved.interleaver_size.value = (decltype(interleaved.interleaver_size.value))coreset_cfg.interleaver_size;
+    interleaved.shift_idx_present      = true;
+    interleaved.shift_idx              = coreset_cfg.shift_index;
+  }
+
+  if (coreset_cfg.precoder_granularity == srsran_coreset_precoder_granularity_reg_bundle) {
+    out.precoder_granularity = asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+  } else {
+    out.precoder_granularity = asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::all_contiguous_rbs;
+  }
+
+  // TODO: Remaining fields
+}
+
 /// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -266,55 +297,25 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
 int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_s& pdcch_cfg)
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
-
-  // Note: Skip common CORESETs
-  for (uint32_t cs_idx = 2; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; cs_idx++) {
-    if (cell_cfg.phy_cell.pdcch.coreset_present[cs_idx]) {
-      auto& coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[cs_idx];
-
-      pdcch_cfg.ctrl_res_set_to_add_mod_list_present = true;
-
-      uint8_t cs_mod_list_idx = pdcch_cfg.ctrl_res_set_to_add_mod_list.size();
-      pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
-      auto& ctrl_res_items                            = pdcch_cfg.ctrl_res_set_to_add_mod_list;
-      ctrl_res_items[cs_mod_list_idx].ctrl_res_set_id = coreset_cfg.id;
-
-      std::bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE> freq_domain_res;
-      for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-        freq_domain_res[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i] = coreset_cfg.freq_resources[i];
-      }
-
-      ctrl_res_items[cs_mod_list_idx].freq_domain_res.from_number(freq_domain_res.to_ulong());
-      ctrl_res_items[cs_mod_list_idx].dur = coreset_cfg.duration;
-
-      if (coreset_cfg.mapping_type == srsran_coreset_mapping_type_non_interleaved) {
-        ctrl_res_items[cs_mod_list_idx].cce_reg_map_type.set_non_interleaved();
-      } else {
-        ctrl_res_items[cs_mod_list_idx].cce_reg_map_type.set_interleaved();
-      }
-
-      if (coreset_cfg.precoder_granularity == srsran_coreset_precoder_granularity_reg_bundle) {
-        ctrl_res_items[cs_mod_list_idx].precoder_granularity =
-            asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
-      } else {
-        ctrl_res_items[cs_mod_list_idx].precoder_granularity =
-            asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::all_contiguous_rbs;
-      }
-    }
-  }
-
-  // Note: Skip Common SearchSpaces
   for (uint32_t ss_idx = 1; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
     if (cell_cfg.phy_cell.pdcch.search_space_present[ss_idx]) {
-      // search spaces
       auto& search_space_cfg = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
       if (search_space_cfg.type != srsran_search_space_type_ue) {
         // Only add UE-specific search spaces at this stage
         continue;
       }
+
+      // Add UE-specific SearchSpace
       pdcch_cfg.search_spaces_to_add_mod_list_present = true;
       pdcch_cfg.search_spaces_to_add_mod_list.push_back({});
       set_search_space_from_phy_cfg(search_space_cfg, pdcch_cfg.search_spaces_to_add_mod_list.back());
+
+      // Add CORESET associated with SearchSpace
+      uint32_t coreset_id                            = search_space_cfg.coreset_id;
+      auto&    coreset_cfg                           = cell_cfg.phy_cell.pdcch.coreset[coreset_id];
+      pdcch_cfg.ctrl_res_set_to_add_mod_list_present = true;
+      pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
+      set_coreset_from_phy_cfg(coreset_cfg, pdcch_cfg.ctrl_res_set_to_add_mod_list.back());
     }
   }
   return SRSRAN_SUCCESS;
@@ -544,18 +545,12 @@ int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_ce
 
 int fill_pdcch_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& pdcch_cfg_common)
 {
-  pdcch_cfg_common.common_ctrl_res_set_present         = true;
-  pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id = 1;
-  pdcch_cfg_common.common_ctrl_res_set.freq_domain_res.from_number(0b111111110000000000000000000000000000000000000);
-  pdcch_cfg_common.common_ctrl_res_set.dur = 1;
-  pdcch_cfg_common.common_ctrl_res_set.cce_reg_map_type.set_non_interleaved();
-  pdcch_cfg_common.common_ctrl_res_set.precoder_granularity =
-      asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+  pdcch_cfg_common.common_ctrl_res_set_present = true;
+  set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], pdcch_cfg_common.common_ctrl_res_set);
 
-  // common search space list
   pdcch_cfg_common.common_search_space_list_present = true;
   pdcch_cfg_common.common_search_space_list.push_back({});
-  set_search_space_from_phy_cfg(cfg.cell_list[0].phy_cell.pdcch.search_space[1],
+  set_search_space_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.search_space[1],
                                 pdcch_cfg_common.common_search_space_list.back());
   pdcch_cfg_common.ra_search_space_present = true;
   pdcch_cfg_common.ra_search_space         = cfg.cell_list[cc].phy_cell.pdcch.ra_search_space.id;
