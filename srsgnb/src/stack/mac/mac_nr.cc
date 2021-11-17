@@ -282,7 +282,15 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
                         : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   default_ue_phy_cfg       = srsran::phy_cfg_nr_default_t{ref_args};
   default_ue_phy_cfg.pdcch = cell_config[0].bwps[0].pdcch;
-  default_ue_phy_cfg.csi   = {}; // disable CSI until RA is complete
+  // remove UE-specific SearchSpaces (they will be added later via RRC)
+  for (uint32_t i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+    if (default_ue_phy_cfg.pdcch.search_space_present[i] and
+        default_ue_phy_cfg.pdcch.search_space[i].type == srsran_search_space_type_ue) {
+      default_ue_phy_cfg.pdcch.search_space_present[i] = false;
+      default_ue_phy_cfg.pdcch.search_space[i]         = {};
+    }
+  }
+  default_ue_phy_cfg.csi = {}; // disable CSI until RA is complete
 
   return SRSRAN_SUCCESS;
 }
