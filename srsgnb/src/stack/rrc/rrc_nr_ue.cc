@@ -27,7 +27,7 @@ Every function in UE class is called from a mutex environment thus does not
     need extra protection.
     *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
-  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_)
+  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_), sec_ctx(parent->cfg)
 {
   if (not parent->cfg.is_standalone) {
     // Add the final PDCCH config in case of NSA

@@ -538,6 +538,15 @@ void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
 
 int rrc_nr::ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key)
 {
+  logger.debug("Setting securtiy key for rnti=0x%x", rnti);
+  auto ue_it = users.find(rnti);
+
+  if (ue_it == users.end()) {
+    logger.error("Trying to set key for non-existing rnti=0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  ue& u = *ue_it->second;
+  u.set_security_key(key);
   return SRSRAN_SUCCESS;
 }
 int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
@@ -550,6 +559,15 @@ int rrc_nr::set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_agg
 }
 int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
 {
+  logger.debug("Setting securtiy capabilites for rnti=0x%x", rnti);
+  auto ue_it = users.find(rnti);
+
+  if (ue_it == users.end()) {
+    logger.error("Trying to set security capabilities for non-existing rnti=0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  ue& u = *ue_it->second;
+  u.set_security_capabilities(caps);
   return SRSRAN_SUCCESS;
 }
 int rrc_nr::start_security_mode_procedure(uint16_t rnti)
@@ -609,9 +627,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers[0].cc          = 0;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  ref_args.duplex   = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
   uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 

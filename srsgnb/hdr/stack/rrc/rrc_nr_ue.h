@@ -14,6 +14,7 @@
 #define SRSRAN_RRC_NR_UE_H
 
 #include "rrc_nr.h"
+#include "rrc_nr_security_context.h"
 
 namespace srsenb {
 
@@ -43,6 +44,11 @@ public:
   void     get_metrics(rrc_ue_metrics_t& ue_metrics) { ue_metrics = {}; /*TODO fill RRC metrics*/ };
 
   // setters
+  void set_security_key(const asn1::fixed_bitstring<256, false, true>& key) { sec_ctx.set_security_key(key); }
+  void set_security_capabilities(const asn1::ngap_nr::ue_security_cap_s& caps)
+  {
+    sec_ctx.set_security_capabilities(caps);
+  }
 
   void deactivate_bearers();
 
@@ -169,6 +175,9 @@ private:
   sched_nr_interface::ue_cfg_t uecfg{};
 
   const uint32_t drb1_lcid = 4;
+
+  // Security helper
+  srsgnb::nr_security_context sec_ctx;
 
   // SA specific variables
   struct ctxt_t {
