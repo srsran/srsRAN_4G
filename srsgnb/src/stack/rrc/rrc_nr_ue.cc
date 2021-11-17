@@ -12,6 +12,7 @@
 
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/string_helpers.h"
 
@@ -750,6 +751,7 @@ void rrc_nr::ue::crnti_ce_received()
     srsran::make_duplex_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
                                            &uecfg.phy_cfg.duplex);
 
+    srsran_assert(check_nr_pdcch_cfg_valid(uecfg.phy_cfg.pdcch) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
     parent->mac->ue_cfg(rnti, uecfg);
   }
 }

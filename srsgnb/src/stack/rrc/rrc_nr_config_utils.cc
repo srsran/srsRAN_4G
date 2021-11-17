@@ -13,21 +13,22 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/common/band_helper.h"
 
+#define RETURN_IF_ERROR(x)                                                                                             \
+  do {                                                                                                                 \
+    if (x != SRSRAN_SUCCESS) {                                                                                         \
+      return SRSRAN_ERROR;                                                                                             \
+    }                                                                                                                  \
+  } while (0)
+
 #define INVALID_PARAM(x, fmt, ...)                                                                                     \
   do {                                                                                                                 \
     if (not(x)) {                                                                                                      \
-      get_logger().error("ERROR: " fmt, ##__VA_ARGS__);                                                                \
+      fprintf(stderr, "ERROR: " fmt, ##__VA_ARGS__);                                                                   \
       return SRSRAN_ERROR;                                                                                             \
     }                                                                                                                  \
   } while (0)
 
 namespace srsenb {
-
-static srslog::basic_logger& get_logger()
-{
-  static srslog::basic_logger& logger = srslog::fetch_basic_logger("ALL");
-  return logger;
-}
 
 /// Generate default phy cell configuration
 void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
@@ -298,7 +299,28 @@ int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa)
 {
   // verify SSB params are consistent
   INVALID_PARAM(cell.ssb_cfg.center_freq_hz == cell.phy_cell.dl_freq_hz, "Invalid SSB param generation");
+  RETURN_IF_ERROR(check_nr_phy_cell_cfg_valid(cell.phy_cell));
 
+  return SRSRAN_SUCCESS;
+}
+
+int check_nr_phy_cell_cfg_valid(const phy_cell_cfg_nr_t& phy_cell)
+{
+  RETURN_IF_ERROR(check_nr_pdcch_cfg_valid(phy_cell.pdcch));
+  return SRSRAN_SUCCESS;
+}
+
+int check_nr_pdcch_cfg_valid(const srsran_pdcch_cfg_nr_t& pdcch)
+{
+  // Verify Search Spaces
+  for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
+    if (pdcch.search_space_present[ss_id]) {
+      const srsran_search_space_t& ss = pdcch.search_space[ss_id];
+      INVALID_PARAM(ss.id == ss_id, "SearchSpace#%d should match list index", ss_id);
+      uint32_t cs_id = ss.coreset_id;
+      INVALID_PARAM(pdcch.coreset_present[cs_id], "SearchSpace#%d points to absent CORESET#%d", ss_id, cs_id);
+    }
+  }
   return SRSRAN_SUCCESS;
 }
 

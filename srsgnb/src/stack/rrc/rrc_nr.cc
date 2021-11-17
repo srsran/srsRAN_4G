@@ -13,6 +13,7 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
@@ -84,6 +85,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   ret2 = srsran::fill_phy_pdcch_cfg(base_sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
                                     &cfg.cell_list[0].phy_cell.pdcch);
   srsran_assert(ret2, "Invalid NR cell configuration.");
+  srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
@@ -612,9 +614,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers[0].cc          = 0;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex   = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
   uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
