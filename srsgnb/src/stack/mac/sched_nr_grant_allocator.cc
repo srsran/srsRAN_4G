@@ -91,7 +91,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   // RAR allocation successful.
   bwp_pdcch_slot.dl_prbs |= prbs;
   // Generate DCI for SIB
-  pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
+  pdcch_dl_t& pdcch         = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
   pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
   if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
@@ -366,6 +366,11 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
       ss_id              = i;
       max_nof_candidates = nof_candidates;
     }
+  }
+  if (max_nof_candidates == 0) {
+    // Could not find space in PDCCH
+    logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
+    return alloc_result::no_cch_space;
   }
   uint32_t coreset_id = ue->phy().pdcch.search_space[ss_id].coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
