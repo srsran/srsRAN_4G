@@ -276,6 +276,14 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
 
   rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), logger});
 
+  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
+  ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  default_ue_phy_cfg       = srsran::phy_cfg_nr_default_t{ref_args};
+  default_ue_phy_cfg.pdcch = cell_config[0].bwps[0].pdcch;
+  default_ue_phy_cfg.csi   = {}; // disable CSI until RA is complete
+
   return SRSRAN_SUCCESS;
 }
 
@@ -313,12 +321,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uecfg.carriers[0].active      = true;
     uecfg.carriers[0].cc          = enb_cc_idx;
     uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-    srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-    ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-    uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
-    uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+    uecfg.phy_cfg                 = default_ue_phy_cfg;
 
     uint16_t rnti = alloc_ue(enb_cc_idx);
 

@@ -102,10 +102,13 @@ private:
   // args
   srsran::task_sched_handle task_sched;
   srsran::task_queue_handle stack_task_queue;
+  mac_nr_args_t             args = {};
+  srslog::basic_logger&     logger;
+
+  // derived
+  srsran::phy_cfg_nr_t default_ue_phy_cfg;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
-  mac_nr_args_t                     args = {};
-  srslog::basic_logger&             logger;
 
   std::atomic<bool> started = {false};
 
