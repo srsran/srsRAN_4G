@@ -24,12 +24,11 @@ class nr_security_context
 {
 public:
   explicit nr_security_context(const srsenb::rrc_nr_cfg_t& cfg_) :
-    cfg(&cfg_), logger(srslog::fetch_basic_logger("RRC_NR"))
+    cfg(cfg_), logger(srslog::fetch_basic_logger("RRC_NR"))
   {}
 
-  explicit nr_security_context(const nr_security_context& other) : logger(srslog::fetch_basic_logger("RRC_NR"))
+  nr_security_context(const nr_security_context& other) : cfg(other.cfg), logger(srslog::fetch_basic_logger("RRC_NR"))
   {
-    cfg                   = other.cfg;
     k_gnb_present         = other.k_gnb_present;
     security_capabilities = other.security_capabilities;
     std::copy(other.k_gnb, other.k_gnb + 32, k_gnb);
@@ -39,7 +38,6 @@ public:
 
   nr_security_context& operator=(const nr_security_context& other)
   {
-    cfg                   = other.cfg;
     k_gnb_present         = other.k_gnb_present;
     security_capabilities = other.security_capabilities;
     std::copy(other.k_gnb, other.k_gnb + 32, k_gnb);
@@ -53,7 +51,7 @@ public:
   void set_ncc(uint8_t ncc_) { ncc = ncc_; }
 
   asn1::rrc_nr::security_algorithm_cfg_s get_security_algorithm_cfg() const;
-  const srsran::as_security_config_t&    get_as_sec_cfg() const { return sec_cfg; }
+  const srsran::nr_as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
   uint8_t                                get_ncc() const { return ncc; }
   bool                                   is_as_sec_cfg_valid() const { return k_gnb_present; }
 
@@ -63,11 +61,11 @@ private:
   void generate_as_keys();
 
   srslog::basic_logger&            logger;
-  const srsenb::rrc_nr_cfg_t*      cfg                   = nullptr;
+  const srsenb::rrc_nr_cfg_t&      cfg;
   bool                             k_gnb_present         = false;
   asn1::ngap_nr::ue_security_cap_s security_capabilities = {};
   uint8_t                          k_gnb[32]             = {}; // Provided by MME
-  srsran::as_security_config_t     sec_cfg               = {};
+  srsran::nr_as_security_config_t  sec_cfg               = {};
   uint8_t                          ncc                   = 0;
 };
 } // namespace srsgnb

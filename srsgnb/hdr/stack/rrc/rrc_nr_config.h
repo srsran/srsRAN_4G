@@ -53,8 +53,8 @@ struct rrc_nr_cfg_t {
   rrc_cell_list_nr_t cell_list;
   bool               is_standalone;
 
-  std::array<srsran::CIPHERING_ALGORITHM_ID_ENUM, srsran::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
-  std::array<srsran::INTEGRITY_ALGORITHM_ID_ENUM, srsran::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
+  std::array<srsran::CIPHERING_ALGORITHM_ID_NR_ENUM, srsran::CIPHERING_ALGORITHM_ID_NR_N_ITEMS> nea_preference_list;
+  std::array<srsran::INTEGRITY_ALGORITHM_ID_NR_ENUM, srsran::INTEGRITY_ALGORITHM_ID_NR_N_ITEMS> nia_preference_list;
 
   std::string log_name = "RRC-NR";
   std::string log_level;
