@@ -782,6 +782,35 @@ int mac_ul_sch_pdu_unpack_test6()
   return SRSRAN_SUCCESS;
 }
 
+int mac_ul_sch_pdu_unpack_test7()
+{
+  // TV1 - MAC PDU with UL-SCH with CCCH (48 bits) subPDU (LCID=0x34) and padding
+  uint8_t        mac_ul_sch_pdu_1[] = {0x34, 0x10, 0xb7, 0xcd, 0x6e, 0x38, 0xa6, 0x3f, 0x21, 0x21, 0x21};
+  const uint8_t* ccch_sdu           = &mac_ul_sch_pdu_1[1];
+  const uint32_t ccch_sdu_len       = 6;
+
+  if (pcap_handle) {
+    pcap_handle->write_ul_crnti_nr(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  srsran::mac_sch_pdu_nr pdu(true);
+  pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
+  TESTASSERT(pdu.get_num_subpdus() == 2);
+
+  // 1st is CCCH
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
+  TESTASSERT(subpdu.get_total_length() == 7);
+  TESTASSERT(subpdu.get_sdu_length() == 6);
+  TESTASSERT(subpdu.get_lcid() == 0x34);
+  TESTASSERT(memcmp(subpdu.get_sdu(), ccch_sdu, ccch_sdu_len) == 0);
+
+  // 2nd is padding
+  subpdu = pdu.get_subpdu(1);
+  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if PCAP
@@ -877,6 +906,11 @@ int main(int argc, char** argv)
 
   if (mac_ul_sch_pdu_unpack_test6()) {
     fprintf(stderr, "mac_ul_sch_pdu_unpack_test6() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (mac_ul_sch_pdu_unpack_test7()) {
+    fprintf(stderr, "mac_ul_sch_pdu_unpack_test7() failed.\n");
     return SRSRAN_ERROR;
   }
 
