@@ -47,6 +47,9 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
+// Global counter for every RF port used by the eNB to avoid misconfiguration/mapping of cells
+static uint32_t next_rf_port = 0;
+
 template <typename T>
 bool contains_value(T value, const std::initializer_list<T>& list)
 {
@@ -941,6 +944,13 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 
   // Configuration check
   for (auto it = rrc_cfg->cell_list.begin(); it != rrc_cfg->cell_list.end(); it++) {
+    // Make sure RF ports are assigned in order
+    if (it->rf_port != next_rf_port) {
+      ERROR("RF ports need to be in order starting with 0 (%d != %d)", it->rf_port, next_rf_port);
+      return SRSRAN_ERROR;
+    }
+    next_rf_port++;
+
     for (auto it2 = it + 1; it2 != rrc_cfg->cell_list.end(); it2++) {
       // Check RF port is not repeated
       if (it->rf_port == it2->rf_port) {
@@ -987,7 +997,14 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
   srsran::srsran_band_helper band_helper;
   // Configuration check
   for (auto it = rrc_cfg_nr->cell_list.begin(); it != rrc_cfg_nr->cell_list.end(); ++it) {
-    // check against NR cells
+    // Make sure RF ports are assigned in order
+    if (it->phy_cell.rf_port != next_rf_port) {
+      ERROR("RF ports need to be in order starting with 0 (%d != %d)", it->phy_cell.rf_port, next_rf_port);
+      return SRSRAN_ERROR;
+    }
+    next_rf_port++;
+
+    // check against other NR cells
     for (auto it2 = it + 1; it2 != rrc_cfg_nr->cell_list.end(); it2++) {
       // Check RF port is not repeated
       if (it->phy_cell.rf_port == it2->phy_cell.rf_port) {
