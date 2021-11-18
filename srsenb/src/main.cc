@@ -262,14 +262,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.nr_pusch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_ul_mcs)->default_value(28), "Fixed NR UL MCS (-1 for dynamic).")
     ("expert.nr_pusch_max_its", bpo::value<uint32_t>(&args->phy.nr_pusch_max_its)->default_value(10),     "Maximum number of LDPC iterations for NR.")
 
-    //NGAP section
-    ("gnb.enb_id",             bpo::value<uint32_t>(&args->nr_stack.ngap.gnb_id)->default_value(0),                       "gNodeB ID")
-    ("gnb.name",               bpo::value<string>(&args->nr_stack.ngap.gnb_name)->default_value("srsgnb01"), "gNodeB Name")
-    ("gnb.amf_addr",           bpo::value<string>(&args->nr_stack.ngap.amf_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connection")
-    ("gnb.gtp_bind_addr",      bpo::value<string>(&args->nr_stack.ngap.gtp_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for GTP connection")
-    ("gnb.gtp_advertise_addr", bpo::value<string>(&args->nr_stack.ngap.gtp_advertise_addr)->default_value(""), "IP address of eNB to advertise for DL GTP-U Traffic")
-    ("gnb.ngc_bind_addr",      bpo::value<string>(&args->nr_stack.ngap.ngc_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for S1AP connection")
-
     // VNF params
     ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue].")
     ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface.")

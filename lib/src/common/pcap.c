@@ -336,7 +336,7 @@ int LTE_PCAP_S1AP_WritePDU(FILE* fd, S1AP_Context_Info_t* context, const unsigne
   return 1;
 }
 
-/* Write an individual PDU (PCAP packet header + s1ap-context + s1ap-pdu) */
+/* Write an individual PDU (PCAP packet header + ngap-context + ngap-pdu) */
 int LTE_PCAP_NGAP_WritePDU(FILE* fd, NGAP_Context_Info_t* context, const unsigned char* PDU, unsigned int length)
 {
   pcaprec_hdr_t packet_header;

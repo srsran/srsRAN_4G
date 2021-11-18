@@ -22,6 +22,7 @@ class ngap_pcap
 {
 public:
   ngap_pcap();
+  ~ngap_pcap()                      = default;
   ngap_pcap(const ngap_pcap& other) = delete;
   ngap_pcap& operator=(const ngap_pcap& other) = delete;
   ngap_pcap(ngap_pcap&& other)                 = delete;
@@ -40,4 +41,4 @@ private:
 
 } // namespace srsran
 
-#endif // SRSRAN_NAS_PCAP_H
+#endif // SRSRAN_NGAP_PCAP_H
