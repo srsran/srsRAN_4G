@@ -10,8 +10,6 @@
  *
  */
 
-#define DED_NAS_MSG_STRING "7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F110800101347B80801001002E02F0702F0201015200F11000006418010174000090530101"
-
 #include "rrc_nr_test_helpers.h"
 #include "srsran/common/test_common.h"
 #include <string>
@@ -100,7 +98,9 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   complete_ies.registered_amf.amf_id.from_number(0x800101);
   complete_ies.guami_type_present = true;
   complete_ies.guami_type.value   = rrc_setup_complete_ies_s::guami_type_opts::native;
-  auto& ded_nas_msg = complete_ies.ded_nas_msg.from_string(DED_NAS_MSG_STRING);
+  std::string NAS_msg_str = "7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F11080010134"
+                            "7B80801001002E02F0702F0201015200F11000006418010174000090530101";
+  auto&       ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
 
   {
     pdu = srsran::make_byte_buffer();
@@ -125,10 +125,75 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   // Check here if the MSG sent to NGAP is correct
   // Create a srsran::span object for the expected MSG
   asn1::unbounded_octstring<false> expected;
-  expected.from_string(DED_NAS_MSG_STRING);
-  srsran::span<const uint8_t> expected_span{expected};
-  TESTASSERT(expected_span == ngap.last_pdu);
+  expected.from_string(NAS_msg_str);
+  TESTASSERT(expected == ngap.last_pdu);
+}
 
+void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
+                               rrc_nr&                 rrc_obj,
+                               pdcp_nr_rrc_tester&     pdcp,
+                               ngap_rrc_tester&        ngap,
+                               uint16_t                rnti)
+{
+  // STEP 1 : Send DLInformationTransfer (gNB -> UE)
+  // generate sdu to pass as NAS message in DLInformationTransfer
+  srsran::unique_byte_buffer_t sdu;
+  sdu = srsran::make_byte_buffer();
+
+  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  asn1::unbounded_octstring<false> NAS_DL_msg;
+  NAS_DL_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
+  sdu->append_bytes(NAS_DL_msg.data(), NAS_DL_msg.size());
+
+  // trigger the RRC to send the DLInformationTransfer
+  rrc_obj.write_dl_info(rnti, std::move(sdu));
+
+  // Test whether there exists the SRB1 initiated in the Connection Establishment
+  // We test this as the SRB1 was setup in a different function
+  TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), 1);
+
+  // Send SecurityModeCommand (gNB -> UE)
+  dl_dcch_msg_s dl_dcch_msg;
+  {
+    asn1::cbit_ref bref{pdcp.last_sdu->data(), pdcp.last_sdu->size()};
+    TESTASSERT_SUCCESS(dl_dcch_msg.unpack(bref));
+  }
+
+  // Test if the unpacked message retrived from PCDP is correct
+  TESTASSERT_EQ(dl_dcch_msg_type_c::types_opts::c1, dl_dcch_msg.msg.type().value);
+  TESTASSERT_EQ(dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer, dl_dcch_msg.msg.c1().type().value);
+  TESTASSERT_EQ(dl_info_transfer_s::crit_exts_c_::types_opts::dl_info_transfer,
+                dl_dcch_msg.msg.c1().dl_info_transfer().crit_exts.type().value);
+
+  dl_info_transfer_ies_s& ies_DL = dl_dcch_msg.msg.c1().dl_info_transfer().crit_exts.dl_info_transfer();
+  TESTASSERT(ies_DL.ded_nas_msg_present == true);
+  TESTASSERT(NAS_DL_msg == ies_DL.ded_nas_msg);
+
+  // STEP 2: Send ULInformationTransfer (UE -> gNB)
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         ies_UL       = ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
+  ies_UL.ded_nas_msg_present = true;
+
+  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  asn1::unbounded_octstring<false> NAS_UL_msg;
+  NAS_UL_msg.from_string("6671f8bc80b1860f29b3a8b3b8563ce6c36a591bb1a3dc6612674448fb958d274426d326356aa9aa");
+  ies_UL.ded_nas_msg.resize(NAS_UL_msg.size());
+  memcpy(ies_UL.ded_nas_msg.data(), NAS_UL_msg.data(), NAS_UL_msg.size());
+
+  srsran::unique_byte_buffer_t pdu;
+  {
+    pdu = srsran::make_byte_buffer();
+    asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
+    TESTASSERT_SUCCESS(ul_dcch_msg.pack(bref));
+    pdu->N_bytes = bref.distance_bytes();
+  }
+
+  // send message to RRC
+  rrc_obj.write_pdu(rnti, 1, std::move(pdu));
+
+  // get a span for both NAS msg and compare if the actual transmitted is correct
+  TESTASSERT(NAS_UL_msg == ngap.last_pdu);
 }
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,

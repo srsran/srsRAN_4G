@@ -59,11 +59,19 @@ public:
                   uint32_t                                s_tmsi)
   {
     last_sdu_rnti = rnti;
-    last_pdu      = pdu;
+    last_pdu.resize(pdu.size());
+    memcpy(last_pdu.data(), pdu.data(), pdu.size());
   }
 
-  uint16_t                last_sdu_rnti;
-  srsran::const_byte_span last_pdu;
+  void write_pdu(uint16_t rnti, srsran::const_byte_span pdu)
+  {
+    last_sdu_rnti = rnti;
+    last_pdu.resize(pdu.size());
+    memcpy(last_pdu.data(), pdu.data(), pdu.size());
+  }
+
+  uint16_t             last_sdu_rnti;
+  asn1::dyn_octstring  last_pdu;
 };
 
 /**
@@ -83,6 +91,12 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           mac_nr_dummy&           mac,
                                           ngap_rrc_tester&        ngap,
                                           uint16_t                rnti);
+
+void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
+                                   rrc_nr&                 rrc_obj,
+                                   pdcp_nr_rrc_tester&     pdcp,
+                                   ngap_rrc_tester&        ngap,
+                                   uint16_t                rnti);
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                                    rrc_nr&                 rrc_obj,

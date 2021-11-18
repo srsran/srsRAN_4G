@@ -158,8 +158,8 @@ void test_rrc_sa_connection()
   uecfg.phy_cfg.pdcch.search_space_present[2] = false;
   TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
 
-
   test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, mac_obj, ngap_obj,0x4601);
+  test_rrc_nr_info_transfer(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
   test_rrc_nr_security_mode_cmd(task_sched, rrc_obj, pdcp_obj, 0x4601);
 }
 
