@@ -1053,7 +1053,7 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
 
   cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms20;
 
-  cfg.ss_pbch_block_pwr = -16;
+  cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
 }
 
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1)

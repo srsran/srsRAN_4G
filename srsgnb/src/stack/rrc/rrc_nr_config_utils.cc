@@ -30,6 +30,20 @@
 
 namespace srsenb {
 
+template <typename T>
+T uninit_value()
+{
+  return std::numeric_limits<T>::max();
+}
+
+template <typename T>
+void set_if_unset(T value, T& out)
+{
+  if (out == std::numeric_limits<T>::max()) {
+    out = value;
+  }
+}
+
 /// Generate default phy cell configuration
 void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
 {
@@ -44,12 +58,13 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
   phy_cell.num_ra_preambles = 52;
 
   // PRACH
-  phy_cell.prach.is_nr                 = true;
-  phy_cell.prach.config_idx            = 8;
-  phy_cell.prach.root_seq_idx          = 1;
-  phy_cell.prach.freq_offset           = 1;
-  phy_cell.prach.num_ra_preambles      = phy_cell.num_ra_preambles;
-  phy_cell.prach.hs_flag               = false;
+  phy_cell.prach.is_nr            = true;
+  phy_cell.prach.config_idx       = uninit_value<uint32_t>();
+  phy_cell.prach.root_seq_idx     = 1;
+  phy_cell.prach.freq_offset      = 1; // msg1-FrequencyStart (zero not supported with current PRACH implementation)
+  phy_cell.prach.zero_corr_zone   = uninit_value<uint32_t>();
+  phy_cell.prach.num_ra_preambles = phy_cell.num_ra_preambles;
+  phy_cell.prach.hs_flag          = false;
   phy_cell.prach.tdd_config.configured = false;
 
   // PDCCH
@@ -317,13 +332,11 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   // Derive remaining PHY cell params
   if (is_sa) {
     // PRACH
-    cell.phy_cell.prach.config_idx  = 16;
-    cell.phy_cell.prach.freq_offset = 1; // msg1-FrequencyStart (zero not supported with current PRACH implementation)
-    cell.phy_cell.prach.zero_corr_zone = 15;
+    set_if_unset(16u, cell.phy_cell.prach.config_idx);
+    set_if_unset(15u, cell.phy_cell.prach.zero_corr_zone);
   } else {
-    cell.phy_cell.prach.config_idx     = 0;
-    cell.phy_cell.prach.freq_offset    = 1;
-    cell.phy_cell.prach.zero_corr_zone = 0;
+    set_if_unset(0u, cell.phy_cell.prach.config_idx);
+    set_if_unset(0u, cell.phy_cell.prach.zero_corr_zone);
   }
   cell.phy_cell.prach.num_ra_preambles      = cell.phy_cell.num_ra_preambles;
   cell.phy_cell.prach.tdd_config.configured = (cell.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
