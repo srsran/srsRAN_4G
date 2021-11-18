@@ -22,6 +22,7 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/network_utils.h"
+#include "srsran/common/ngap_pcap.h"
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/task_scheduler.h"
@@ -70,9 +71,12 @@ public:
 
   // Stack interface
   bool
-       handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void get_metrics(ngap_metrics_t& m);
   void get_args(ngap_args_t& args_);
+
+  // PCAP
+  void start_pcap(srsran::ngap_pcap* pcap_);
 
 private:
   static const int AMF_PORT        = 38412;
@@ -127,6 +131,9 @@ private:
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
   bool handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+
+  // PCAP
+  srsran::ngap_pcap* pcap = nullptr;
 
   class user_list
   {

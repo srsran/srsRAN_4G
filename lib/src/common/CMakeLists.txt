@@ -27,6 +27,7 @@ set(SOURCES arch_select.cc
             rrc_common.cc
             rlc_pcap.cc
             s1ap_pcap.cc
+            ngap_pcap.cc
             security.cc
             standard_streams.cc
             thread_pool.cc

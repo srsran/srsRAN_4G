@@ -104,6 +104,11 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
     gtpu_args.mme_addr      = args.ngap.amf_addr;
     gtpu_args.gtp_bind_addr = args.ngap.gtp_bind_addr;
     gtpu->init(gtpu_args, &pdcp);
+
+    if (args.ngap_pcap.enable) {
+      ngap_pcap.open(args.ngap_pcap.filename.c_str());
+      ngap->start_pcap(&ngap_pcap);
+    }
   }
 
   // TODO: add SDAP
