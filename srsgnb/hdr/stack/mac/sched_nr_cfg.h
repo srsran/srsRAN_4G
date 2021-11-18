@@ -146,6 +146,33 @@ public:
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];
   }
+  const srsran_search_space_t* find_ss_with_dci_format(srsran_dci_format_nr_t valid_format) const
+  {
+    for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
+      if (phy().pdcch.search_space_present[ss_id]) {
+        for (uint32_t i = 0; i < phy().pdcch.search_space[ss_id].nof_formats; ++i) {
+          if (phy().pdcch.search_space[ss_id].formats[i] == valid_format) {
+            return &phy().pdcch.search_space[ss_id];
+          }
+        }
+      }
+    }
+    return nullptr;
+  }
+  const srsran_search_space_t* find_ss(uint32_t aggr_idx, bool is_dl) const
+  {
+    using format_list_t = std::array<srsran_dci_format_nr_t, 2>;
+    static const format_list_t ul_formats{srsran_dci_format_nr_0_1, srsran_dci_format_nr_0_0};
+    static const format_list_t dl_formats{srsran_dci_format_nr_1_1, srsran_dci_format_nr_1_0};
+    const format_list_t&       formats = is_dl ? dl_formats : ul_formats;
+    for (srsran_dci_format_nr_t f : formats) {
+      const srsran_search_space_t* ss = find_ss_with_dci_format(f);
+      if (ss != nullptr and ss->nof_candidates[aggr_idx] > 0) {
+        return ss;
+      }
+    }
+    return nullptr;
+  }
   uint32_t get_k1(slot_point pdsch_slot) const
   {
     if (phy().duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {

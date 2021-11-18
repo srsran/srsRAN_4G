@@ -264,16 +264,14 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   // Find space and allocate PDCCH
   const uint32_t aggr_idx = 2;
   // Choose the ss_id the highest number of candidates
-  uint32_t ss_id = 0, max_nof_candidates = 0;
-  for (uint32_t i = 0; i < 3; ++i) {
-    uint32_t nof_candidates = ue->cce_pos_list(i, pdcch_slot.slot_idx(), aggr_idx).size();
-    if (nof_candidates > max_nof_candidates) {
-      ss_id              = i;
-      max_nof_candidates = nof_candidates;
-    }
+  const srsran_search_space_t* ss = ue->find_ss(aggr_idx, true);
+  if (ss == nullptr) {
+    // Could not find space in PDCCH
+    logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
+    return alloc_result::no_cch_space;
   }
-  uint32_t coreset_id = ue->phy().pdcch.search_space[ss_id].coreset_id;
-  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss_id, &ue.cfg())) {
+  uint32_t coreset_id = ss->coreset_id;
+  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss->id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -295,7 +293,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   while (true) {
     // Generate PDCCH
     pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss->id, pdcch.dci.ctx.location, pdcch.dci);
     pdcch.dci.pucch_resource = 0;
     pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
                                   bwp_uci_slot.pending_acks.end(),
@@ -357,24 +355,16 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   if (bwp_pusch_slot.ul_prbs.collides(ul_prbs)) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 2;
-  // Choose the ss_id the highest number of candidates
-  uint32_t ss_id = 0, max_nof_candidates = 0;
-  for (uint32_t i = 0; i < 3; ++i) {
-    uint32_t nof_candidates = ue->cce_pos_list(i, pdcch_slot.slot_idx(), aggr_idx).size();
-    if (nof_candidates > max_nof_candidates) {
-      ss_id              = i;
-      max_nof_candidates = nof_candidates;
-    }
-  }
-  if (max_nof_candidates == 0) {
+  const uint32_t               aggr_idx = 2;
+  const srsran_search_space_t* ss       = ue->find_ss(aggr_idx, false);
+  if (ss == nullptr) {
     // Could not find space in PDCCH
     logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
     return alloc_result::no_cch_space;
   }
-  uint32_t coreset_id = ue->phy().pdcch.search_space[ss_id].coreset_id;
+  uint32_t coreset_id = ss->coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
-          pdcch_grant_type_t::ul_data, aggr_idx, ss_id, &ue.cfg())) {
+          pdcch_grant_type_t::ul_data, aggr_idx, ss->id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -392,7 +382,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
 
   // Generate PDCCH
   pdcch_ul_t& pdcch = pdcchs.back();
-  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss->id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci_cfg = ue->phy().get_dci_cfg();
   // Generate PUSCH
   bwp_pusch_slot.ul_prbs |= ul_prbs;
