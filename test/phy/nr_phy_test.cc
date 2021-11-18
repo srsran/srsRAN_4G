@@ -32,8 +32,8 @@ static double assert_pucch_snr_min       = 0.000;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
-  std::string              config_file = "";
-  std::string              reference_cfg_str = "";
+  std::string              config_file;
+  std::string              reference_cfg_str;
   bpo::options_description options;
   bpo::options_description options_tb("Test bench options");
   bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
@@ -143,7 +143,7 @@ test_bench::args_t::args_t(int argc, char** argv)
   }
 
   // if config file given
-  if (vm.count("config_file")) {
+  if (vm.count("config_file") != 0U) {
     std::cout << "Reading configuration file " << config_file << "..." << std::endl;
     std::ifstream conf(config_file.c_str(), std::ios::in);
     if (conf.fail()) {

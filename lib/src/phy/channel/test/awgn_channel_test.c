@@ -73,10 +73,12 @@ static int compare_floats(const void* a, const void* b)
   float arg1 = *(const float*)a;
   float arg2 = *(const float*)b;
 
-  if (arg1 < arg2)
+  if (arg1 < arg2) {
     return -1;
-  if (arg1 > arg2)
+  }
+  if (arg1 > arg2) {
     return 1;
+  }
   return 0;
 }
 
@@ -112,12 +114,13 @@ static float anderson(const float* x, uint32_t half_length, float* y)
   qsort(y, length, sizeof(float), compare_floats);
 
   // compute Anderson--Darling statistic
-  float cdf1, cdf2;
-  float a2 = 0;
+  float cdf1 = NAN;
+  float cdf2 = NAN;
+  float a2   = 0;
   for (uint32_t ii = 0; ii < nof_samples; ii++) {
     cdf1 = CDF(y[ii]);
     cdf2 = CDF(y[length - ii - 1]);
-    a2 += (2 * ii + 1) * (logf(cdf1) + log1pf(-cdf2)) + (2 * (length - ii) - 1) * (logf(cdf2) + log1pf(-cdf1));
+    a2 += (2.F * ii + 1) * (logf(cdf1) + log1pf(-cdf2)) + (2.F * (length - ii) - 1) * (logf(cdf2) + log1pf(-cdf1));
   }
   a2 = -length_f - a2 / length_f;
   a2 = a2 * (1 + (4 - 25 / length_f) / length_f);
