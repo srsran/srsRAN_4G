@@ -1196,9 +1196,17 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
     // NR cells available.
     if (rrc_nr_cfg_->is_standalone) {
       // SA mode. Update NGAP args
-      args_->nr_stack.ngap.gnb_id  = args_->enb.enb_id;
       args_->nr_stack.ngap.cell_id = rrc_nr_cfg_->cell_list[0].phy_cell.cell_id;
       args_->nr_stack.ngap.tac     = rrc_nr_cfg_->cell_list[0].tac;
+      // take equivalent S1AP params to update NGAP params
+      args_->nr_stack.ngap.gnb_name           = args_->stack.s1ap.enb_name;
+      args_->nr_stack.ngap.gnb_id             = args_->enb.enb_id;
+      args_->nr_stack.ngap.mcc                = args_->stack.s1ap.mcc;
+      args_->nr_stack.ngap.mnc                = args_->stack.s1ap.mnc;
+      args_->nr_stack.ngap.gtp_bind_addr      = args_->stack.s1ap.gtp_bind_addr;
+      args_->nr_stack.ngap.gtp_advertise_addr = args_->stack.s1ap.gtp_advertise_addr;
+      args_->nr_stack.ngap.amf_addr           = args_->stack.s1ap.mme_addr;
+      args_->nr_stack.ngap.ngc_bind_addr      = args_->stack.s1ap.gtp_bind_addr;
     } else {
       // NSA mode.
       // update EUTRA RRC params for ENDC
