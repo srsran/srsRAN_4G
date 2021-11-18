@@ -48,12 +48,10 @@ struct rrc_cell_cfg_nr_t {
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
 
 struct rrc_nr_cfg_t {
-  rrc_nr_cfg_sr_t                 sr_cfg;
-  rrc_cfg_cqi_t                   cqi_cfg;
-  rrc_cell_list_nr_t              cell_list;
-  asn1::rrc_nr::rach_cfg_common_s rach_cfg_common;
-  uint16_t                        prach_root_seq_idx_type;
-  bool                            is_standalone;
+  rrc_nr_cfg_sr_t    sr_cfg;
+  rrc_cfg_cqi_t      cqi_cfg;
+  rrc_cell_list_nr_t cell_list;
+  bool               is_standalone;
 
   std::string log_name = "RRC-NR";
   std::string log_level;

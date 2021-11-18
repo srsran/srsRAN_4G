@@ -100,6 +100,28 @@ void set_coreset_from_phy_cfg(const srsran_coreset_t& coreset_cfg, asn1::rrc_nr:
   // TODO: Remaining fields
 }
 
+void set_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& out)
+{
+  // rach-ConfigGeneric
+  out.rach_cfg_generic.prach_cfg_idx             = prach_cfg.config_idx;
+  out.rach_cfg_generic.msg1_fdm.value            = rach_cfg_generic_s::msg1_fdm_opts::one;
+  out.rach_cfg_generic.msg1_freq_start           = prach_cfg.freq_offset;
+  out.rach_cfg_generic.zero_correlation_zone_cfg = prach_cfg.zero_corr_zone;
+  out.rach_cfg_generic.preamb_rx_target_pwr      = -110;
+  out.rach_cfg_generic.preamb_trans_max.value    = rach_cfg_generic_s::preamb_trans_max_opts::n7;
+  out.rach_cfg_generic.pwr_ramp_step.value       = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
+  out.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
+
+  out.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  out.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one().value =
+      rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n8;
+  out.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
+  out.prach_root_seq_idx.set_l839()        = prach_cfg.root_seq_idx;
+  out.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -638,34 +660,11 @@ int fill_freq_info_ul_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_in
   return SRSRAN_SUCCESS;
 }
 
-/// Fill RachConfigCommon with gNB config
-int fill_rach_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, rach_cfg_common_s& rach_cfg_common)
-{
-  auto& cell_cfg = cfg.cell_list.at(cc);
-
-  rach_cfg_common = cfg.rach_cfg_common;
-
-  rach_cfg_common.rach_cfg_generic.msg1_freq_start           = cell_cfg.phy_cell.prach.freq_offset;
-  rach_cfg_common.rach_cfg_generic.prach_cfg_idx             = cell_cfg.phy_cell.prach.config_idx;
-  rach_cfg_common.rach_cfg_generic.zero_correlation_zone_cfg = cell_cfg.phy_cell.prach.zero_corr_zone;
-
-  if (cfg.prach_root_seq_idx_type == 139) {
-    rach_cfg_common.prach_root_seq_idx.set_l139() = cell_cfg.phy_cell.prach.root_seq_idx;
-  } else if (cfg.prach_root_seq_idx_type == 839) {
-    rach_cfg_common.prach_root_seq_idx.set_l839() = cell_cfg.phy_cell.prach.root_seq_idx;
-  } else {
-    get_logger(cfg).error("Config Error: Invalid prach_root_seq_idx_type (%d)\n", cfg.prach_root_seq_idx_type);
-    return SRSRAN_ERROR;
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
 /// Fill InitUlBwp with gNB config
 int fill_init_ul_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_ul_common_s& init_ul_bwp)
 {
   init_ul_bwp.rach_cfg_common_present = true;
-  fill_rach_cfg_common_from_enb_cfg(cfg, cc, init_ul_bwp.rach_cfg_common.set_setup());
+  set_rach_cfg_common(cfg.cell_list[cc].phy_cell.prach, init_ul_bwp.rach_cfg_common.set_setup());
 
   // TODO: Add missing fields
 
@@ -992,24 +991,6 @@ void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib
   cfg.pcch_cfg.ns.value = pcch_cfg_s::ns_opts::one;
 }
 
-void fill_rach_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, rach_cfg_common_s& cfg)
-{
-  cfg.rach_cfg_generic.prach_cfg_idx                       = 16;
-  cfg.rach_cfg_generic.msg1_fdm.value                      = rach_cfg_generic_s::msg1_fdm_opts::one;
-  cfg.rach_cfg_generic.msg1_freq_start                     = 0;
-  cfg.rach_cfg_generic.zero_correlation_zone_cfg           = 15;
-  cfg.rach_cfg_generic.preamb_rx_target_pwr                = -110;
-  cfg.rach_cfg_generic.preamb_trans_max.value              = rach_cfg_generic_s::preamb_trans_max_opts::n7;
-  cfg.rach_cfg_generic.pwr_ramp_step.value                 = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
-  cfg.rach_cfg_generic.ra_resp_win.value                   = rach_cfg_generic_s::ra_resp_win_opts::sl10;
-  cfg.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
-  cfg.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one().value =
-      rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n8;
-  cfg.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
-  cfg.prach_root_seq_idx.set_l839()        = 1;
-  cfg.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
-}
-
 void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib_s& cfg)
 {
   srsran::srsran_band_helper band_helper;
@@ -1037,7 +1018,7 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
 
   cfg.init_ul_bwp.rach_cfg_common_present = true;
-  fill_rach_cfg_common(cell_cfg, cfg.init_ul_bwp.rach_cfg_common.set_setup());
+  set_rach_cfg_common(cell_cfg.phy_cell.prach, cfg.init_ul_bwp.rach_cfg_common.set_setup());
 
   cfg.init_ul_bwp.pusch_cfg_common_present   = true;
   pusch_cfg_common_s& pusch                  = cfg.init_ul_bwp.pusch_cfg_common.set_setup();
