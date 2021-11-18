@@ -1035,6 +1035,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
     memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
   }
+  ies.non_crit_ext.ded_nas_msg_list_present = nas_pdu_queue.size() > 0;
   nas_pdu_queue.clear();
 
   // Update lower layers
