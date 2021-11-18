@@ -286,7 +286,7 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
     cell.phy_cell.pdcch.search_space_present[1]           = true;
     cell.phy_cell.pdcch.search_space[1].id                = 1;
     cell.phy_cell.pdcch.search_space[1].coreset_id        = 0;
-    cell.phy_cell.pdcch.search_space[1].type              = srsran_search_space_type_common_3;
+    cell.phy_cell.pdcch.search_space[1].type              = srsran_search_space_type_common_1;
     cell.phy_cell.pdcch.search_space[1].nof_candidates[0] = 0;
     cell.phy_cell.pdcch.search_space[1].nof_candidates[1] = 0;
     cell.phy_cell.pdcch.search_space[1].nof_candidates[2] = 1;
