@@ -29,8 +29,13 @@ Every function in UE class is called from a mutex environment thus does not
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
   parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_)
 {
-  // Derive UE cfg from rrc_cfg_nr_t
-  uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+  if (not parent->cfg.is_standalone) {
+    // Add the final PDCCH config in case of NSA
+    uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+  } else {
+    cell_group_cfg      = *parent->cell_ctxt->master_cell_group;
+    next_cell_group_cfg = cell_group_cfg;
+  }
 
   // Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
   activity_timer = parent->task_sched.get_unique_timer();
@@ -929,11 +934,10 @@ void rrc_nr::ue::send_rrc_setup()
   compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, setup_ies.radio_bearer_cfg);
 
   // - Setup masterCellGroup
-  asn1::rrc_nr::cell_group_cfg_s master_cell_group = *parent->cell_ctxt->master_cell_group;
   // - Derive master cell group config bearers
-  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, master_cell_group);
+  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, next_cell_group_cfg);
   // - Pack masterCellGroup into container
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(next_cell_group_cfg, __FUNCTION__);
   if (pdu == nullptr) {
     send_rrc_reject(max_wait_time_secs);
     return;
@@ -942,18 +946,18 @@ void rrc_nr::ue::send_rrc_setup()
   memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
   if (logger.debug.enabled()) {
     asn1::json_writer js;
-    master_cell_group.to_json(js);
+    next_cell_group_cfg.to_json(js);
     logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
   }
 
   // add PDCP bearers
-  update_pdcp_bearers(setup_ies.radio_bearer_cfg, master_cell_group);
+  update_pdcp_bearers(setup_ies.radio_bearer_cfg, next_cell_group_cfg);
 
   // add RLC bearers
-  update_rlc_bearers(master_cell_group);
+  update_rlc_bearers(next_cell_group_cfg);
 
   // add MAC bearers
-  update_mac(master_cell_group);
+  update_mac(next_cell_group_cfg, false);
 
   // Send RRC Setup message to UE
   if (send_dl_ccch(msg) != SRSRAN_SUCCESS) {
@@ -964,8 +968,11 @@ void rrc_nr::ue::send_rrc_setup()
 /// TS 38.331, RRCSetupComplete
 void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
 {
+  update_mac(next_cell_group_cfg, true);
+
   // Update current radio bearer cfg
   radio_bearer_cfg = next_radio_bearer_cfg;
+  cell_group_cfg   = next_cell_group_cfg;
 
   // Create UE context in NGAP
   using ngap_cause_t = asn1::ngap_nr::rrcestablishment_cause_opts::options;
@@ -996,8 +1003,6 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   // TODO: handle SecurityModeComplete
 
   // Note: Skip UE capabilities
-
-  send_rrc_reconfiguration();
 }
 
 /// TS 38.331, RRCReconfiguration
@@ -1047,7 +1052,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     update_rlc_bearers(master_cell_group);
 
     // add MAC bearers
-    update_mac(master_cell_group);
+    update_mac(master_cell_group, false);
   }
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
@@ -1058,6 +1063,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
 {
   radio_bearer_cfg = next_radio_bearer_cfg;
+  cell_group_cfg   = next_cell_group_cfg;
 }
 
 void rrc_nr::ue::send_rrc_release()
@@ -1204,21 +1210,36 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff)
+int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_config_complete)
 {
-  // Release bearers
-  for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
-    uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
-  }
+  if (not is_config_complete) {
+    // Release bearers
+    for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
+      uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
+    }
 
-  for (const rlc_bearer_cfg_s& bearer : cell_group_diff.rlc_bearer_to_add_mod_list) {
-    uecfg.ue_bearers[bearer.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
-    if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
-      uecfg.ue_bearers[bearer.lc_ch_id].priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
-      uecfg.ue_bearers[bearer.lc_ch_id].pbr = bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
-      uecfg.ue_bearers[bearer.lc_ch_id].bsd = bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
-      uecfg.ue_bearers[bearer.lc_ch_id].group = bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
-      // TODO: remaining fields
+    for (const rlc_bearer_cfg_s& bearer : cell_group_diff.rlc_bearer_to_add_mod_list) {
+      uecfg.ue_bearers[bearer.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
+      if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
+        uecfg.ue_bearers[bearer.lc_ch_id].priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
+        uecfg.ue_bearers[bearer.lc_ch_id].pbr =
+            bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
+        uecfg.ue_bearers[bearer.lc_ch_id].bsd   = bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
+        uecfg.ue_bearers[bearer.lc_ch_id].group = bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
+        // TODO: remaining fields
+      }
+    }
+  } else {
+    auto& pdcch = cell_group_diff.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
+    for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
+      uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
+      uecfg.phy_cfg.pdcch.search_space[ss.search_space_id] =
+          parent->cfg.cell_list[0].phy_cell.pdcch.search_space[ss.search_space_id];
+    }
+    for (auto& cs : pdcch.ctrl_res_set_to_add_mod_list) {
+      uecfg.phy_cfg.pdcch.coreset_present[cs.ctrl_res_set_id] = true;
+      uecfg.phy_cfg.pdcch.coreset[cs.ctrl_res_set_id] =
+          parent->cfg.cell_list[0].phy_cell.pdcch.coreset[cs.ctrl_res_set_id];
     }
   }
 

@@ -96,7 +96,7 @@ private:
   int update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff);
 
   /// Update MAC based on ASN1 message
-  int update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff);
+  int update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff, bool is_config_complete);
 
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
@@ -161,7 +161,7 @@ private:
   srsran::unique_timer activity_timer; /// for basic DL/UL activity timeout
 
   // RRC configs for UEs
-  asn1::rrc_nr::cell_group_cfg_s            cell_group_cfg;
+  asn1::rrc_nr::cell_group_cfg_s            cell_group_cfg, next_cell_group_cfg;
   asn1::rrc_nr::radio_bearer_cfg_s          radio_bearer_cfg, next_radio_bearer_cfg;
   std::vector<srsran::unique_byte_buffer_t> nas_pdu_queue;
 

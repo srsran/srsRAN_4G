@@ -20,6 +20,7 @@ namespace srsenb {
 void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           rrc_nr&                 rrc_obj,
                                           rlc_nr_rrc_tester&      rlc,
+                                          mac_nr_dummy&           mac,
                                           uint16_t                rnti)
 {
   srsran::unique_byte_buffer_t pdu;
@@ -64,6 +65,26 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
 
   const srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
   TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), srb1.srb_id);
+  // Test UE context in MAC
+  TESTASSERT_EQ(rnti, mac.last_ue_cfg_rnti);
+  // Only LCID=0 and LCID=2 are active
+  TESTASSERT_EQ(mac_lc_ch_cfg_t::BOTH, mac.last_ue_cfg.ue_bearers[0].direction);
+  TESTASSERT_EQ(mac_lc_ch_cfg_t::BOTH, mac.last_ue_cfg.ue_bearers[1].direction);
+  for (uint32_t lcid = 2; lcid < mac.last_ue_cfg.ue_bearers.size(); ++lcid) {
+    TESTASSERT_EQ(mac_lc_ch_cfg_t::IDLE, mac.last_ue_cfg.ue_bearers[lcid].direction);
+  }
+  bool found_common_ul_dci_format = false;
+  for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
+    if (mac.last_ue_cfg.phy_cfg.pdcch.search_space_present[ss_id]) {
+      const srsran_search_space_t& ss = mac.last_ue_cfg.phy_cfg.pdcch.search_space[ss_id];
+      // Ensure MAC ue_cfg does not have yet any UE-specific SS
+      TESTASSERT_NEQ(srsran_search_space_type_ue, ss.type);
+      for (uint32_t f = 0; f < ss.nof_formats; ++f) {
+        found_common_ul_dci_format |= ss.formats[f] == srsran_dci_format_nr_0_0;
+      }
+    }
+  }
+  TESTASSERT(found_common_ul_dci_format);
 
   // Step 3 - RRCSetupComplete (UE -> gNB) - Configure the msg and send it to RRC
   ul_dcch_msg_s         ul_dcch_msg;
@@ -85,6 +106,18 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
     pdu->N_bytes = bref.distance_bytes();
   }
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
+
+  // Test new UE context in MAC
+  bool ss_ue_found = false;
+  for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
+    if (mac.last_ue_cfg.phy_cfg.pdcch.search_space_present[ss_id]) {
+      const srsran_search_space_t& ss = mac.last_ue_cfg.phy_cfg.pdcch.search_space[ss_id];
+      if (ss.type == srsran_search_space_type_ue) {
+        ss_ue_found = true;
+      }
+    }
+  }
+  TESTASSERT(ss_ue_found); /// Ensure UE-specific SearchSpace was added
 }
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
@@ -121,7 +154,7 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
 
   // Send SecurityModeComplete (UE -> gNB)
   ul_dcch_msg_s ul_dcch_msg;
-  auto&         sec_cmd_complete_msg = ul_dcch_msg.msg.set_c1().set_security_mode_complete();
+  auto&         sec_cmd_complete_msg      = ul_dcch_msg.msg.set_c1().set_security_mode_complete();
   sec_cmd_complete_msg.rrc_transaction_id = dl_dcch_msg.msg.c1().security_mode_cmd().rrc_transaction_id;
   auto& ies_complete                      = sec_cmd_complete_msg.crit_exts.set_security_mode_complete();
 

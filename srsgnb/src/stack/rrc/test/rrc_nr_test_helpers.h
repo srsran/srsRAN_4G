@@ -63,6 +63,7 @@ public:
 void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           rrc_nr&                 rrc_obj,
                                           rlc_nr_rrc_tester&      rlc,
+                                          mac_nr_dummy&           mac,
                                           uint16_t                rnti);
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
