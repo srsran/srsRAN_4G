@@ -113,8 +113,7 @@ void set_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach
   out.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
 
   out.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
-  out.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one().value =
-      rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n8;
+  asn1::number_to_enum(out.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(), prach_cfg.num_ra_preambles);
   out.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
   out.prach_root_seq_idx.set_l839()        = prach_cfg.root_seq_idx;
   out.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
