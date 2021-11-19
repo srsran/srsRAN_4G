@@ -8,7 +8,6 @@
 
 add_subdirectory(asn1)
 add_subdirectory(common)
-add_subdirectory(mac)
 add_subdirectory(phy)
 add_subdirectory(srslog)
 add_subdirectory(rlc)
