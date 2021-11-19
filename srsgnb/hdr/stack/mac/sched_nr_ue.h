@@ -16,8 +16,8 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "srsenb/hdr/stack/mac/common/base_ue_buffer_manager.h"
 #include "srsenb/hdr/stack/mac/common/mac_metrics.h"
-#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
@@ -25,6 +25,31 @@
 namespace srsenb {
 
 namespace sched_nr_impl {
+
+class ue_buffer_manager : public base_ue_buffer_manager<true>
+{
+  using base_type = base_ue_buffer_manager<true>;
+
+public:
+  // Inherited methods from base_ue_buffer_manager base class
+  using base_type::base_type;
+  using base_type::config_lcid;
+  using base_type::dl_buffer_state;
+  using base_type::get_bsr;
+  using base_type::get_bsr_state;
+  using base_type::get_dl_prio_tx;
+  using base_type::get_dl_tx;
+  using base_type::is_bearer_active;
+  using base_type::is_bearer_dl;
+  using base_type::is_bearer_ul;
+  using base_type::is_lcg_active;
+  using base_type::ul_bsr;
+
+  int get_dl_tx_total() const;
+
+  // Control Element Command queue
+  srsran::deque<uint32_t> pending_ces;
+};
 
 class slot_ue;
 
@@ -71,8 +96,10 @@ public:
   void            set_cfg(const ue_cfg_t& cfg);
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
-  /// UE state feedback
+  void mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds = 1);
   void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
+
+  /// UE state feedback
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
   void ul_sr_info() { last_sr_slot = last_pdcch_slot - TX_ENB_DELAY; }
 
@@ -84,7 +111,7 @@ public:
   }
   uint32_t pcell_cc() const { return ue_cfg.carriers[0].cc; }
 
-  ue_buffer_manager<true>                                        buffers;
+  ue_buffer_manager                                              buffers;
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
   const uint16_t rnti;

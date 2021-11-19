@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
+#include "srsenb/hdr/stack/mac/common/base_ue_buffer_manager.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/srslog/bundled/fmt/format.h"
@@ -22,13 +22,14 @@ extern "C" {
 namespace srsenb {
 
 template <bool isNR>
-ue_buffer_manager<isNR>::ue_buffer_manager(uint16_t rnti_, srslog::basic_logger& logger_) : logger(logger_), rnti(rnti_)
+base_ue_buffer_manager<isNR>::base_ue_buffer_manager(uint16_t rnti_, srslog::basic_logger& logger_) :
+  logger(logger_), rnti(rnti_)
 {
   std::fill(lcg_bsr.begin(), lcg_bsr.end(), 0);
 }
 
 template <bool isNR>
-void ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list)
+void base_ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list)
 {
   bool                                            log_enabled = logger.info.enabled();
   srsran::bounded_vector<uint32_t, MAX_NOF_LCIDS> changed_list;
@@ -58,7 +59,7 @@ void ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> b
 }
 
 template <bool isNR>
-void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
+void base_ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
 {
   bool cfg_changed = config_lcid_internal(lcid, bearer_cfg);
   if (cfg_changed) {
@@ -77,7 +78,7 @@ void ue_buffer_manager<isNR>::config_lcid(uint32_t lcid, const mac_lc_ch_cfg_t& 
  * @return true if the lcid was updated with new parameters. False in case of case of error or no update.
  */
 template <bool isNR>
-bool ue_buffer_manager<isNR>::config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
+bool base_ue_buffer_manager<isNR>::config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg)
 {
   if (not is_lcid_valid(lcid)) {
     logger.warning("SCHED: Configuring rnti=0x%x bearer with invalid lcid=%d", rnti, lcid);
@@ -105,7 +106,7 @@ bool ue_buffer_manager<isNR>::config_lcid_internal(uint32_t lcid, const mac_lc_c
 }
 
 template <bool isNR>
-int ue_buffer_manager<isNR>::get_dl_tx_total() const
+int base_ue_buffer_manager<isNR>::get_dl_tx_total() const
 {
   int sum = 0;
   for (size_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
@@ -115,7 +116,7 @@ int ue_buffer_manager<isNR>::get_dl_tx_total() const
 }
 
 template <bool isNR>
-bool ue_buffer_manager<isNR>::is_lcg_active(uint32_t lcg) const
+bool base_ue_buffer_manager<isNR>::is_lcg_active(uint32_t lcg) const
 {
   if (lcg == 0) {
     return true;
@@ -129,13 +130,13 @@ bool ue_buffer_manager<isNR>::is_lcg_active(uint32_t lcg) const
 }
 
 template <bool isNR>
-int ue_buffer_manager<isNR>::get_bsr(uint32_t lcg) const
+int base_ue_buffer_manager<isNR>::get_bsr(uint32_t lcg) const
 {
   return is_lcg_active(lcg) ? lcg_bsr[lcg] : 0;
 }
 
 template <bool isNR>
-int ue_buffer_manager<isNR>::get_bsr() const
+int base_ue_buffer_manager<isNR>::get_bsr() const
 {
   uint32_t count = 0;
   for (uint32_t lcg = 0; is_lcg_valid(lcg); ++lcg) {
@@ -147,7 +148,7 @@ int ue_buffer_manager<isNR>::get_bsr() const
 }
 
 template <bool isNR>
-int ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
+int base_ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
 {
   if (not is_lcg_valid(lcg_id)) {
     logger.warning("SCHED: The provided lcg_id=%d for rnti=0x%x is not valid", lcg_id, rnti);
@@ -158,7 +159,7 @@ int ue_buffer_manager<isNR>::ul_bsr(uint32_t lcg_id, uint32_t val)
 }
 
 template <bool isNR>
-int ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
+int base_ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
 {
   if (not is_lcid_valid(lcid)) {
     logger.warning("The provided lcid=%d is not valid", lcid);
@@ -170,7 +171,7 @@ int ue_buffer_manager<isNR>::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, ui
 }
 
 // Explicit instantiation
-template class ue_buffer_manager<true>;
-template class ue_buffer_manager<false>;
+template class base_ue_buffer_manager<true>;
+template class base_ue_buffer_manager<false>;
 
 } // namespace srsenb

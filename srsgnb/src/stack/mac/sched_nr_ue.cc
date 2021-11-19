@@ -13,9 +13,21 @@
 #include "srsgnb/hdr/stack/mac/sched_nr_ue.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_pdcch.h"
 #include "srsran/common/string_helpers.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
+
+int ue_buffer_manager::get_dl_tx_total() const
+{
+  int total_bytes = base_type::get_dl_tx_total();
+  for (uint32_t lcid : pending_ces) {
+    total_bytes += srsran::mac_sch_subpdu_nr::sizeof_ce(lcid, false);
+  }
+  return total_bytes;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes) :
   ue(&ue_), pdcch_slot(slot_tx_)
@@ -98,6 +110,8 @@ ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params_t& sched_cfg_) :
 
 void ue::set_cfg(const ue_cfg_t& cfg)
 {
+  bool conres_needed = cfg.is_temp_crnti != ue_cfg.is_temp_crnti;
+
   ue_cfg = cfg;
   for (auto& ue_cc_cfg : cfg.carriers) {
     if (ue_cc_cfg.active) {
@@ -110,6 +124,17 @@ void ue::set_cfg(const ue_cfg_t& cfg)
   }
 
   buffers.config_lcids(cfg.ue_bearers);
+
+  if (conres_needed) {
+    mac_buffer_state(62, 1);
+  }
+}
+
+void ue::mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds)
+{
+  for (uint32_t i = 0; i < nof_cmds; ++i) {
+    buffers.pending_ces.push_back(ce_lcid);
+  }
 }
 
 void ue::new_slot(slot_point pdcch_slot)
