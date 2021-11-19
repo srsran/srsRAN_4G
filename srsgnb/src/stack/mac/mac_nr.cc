@@ -476,7 +476,7 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
   }
 
   // Generate MAC DL PDUs
-  uint32_t                  rar_count = 0, si_count = 0;
+  uint32_t                  rar_count = 0, si_count = 0, data_count = 0;
   srsran::rwlock_read_guard rw_lock(rwmutex);
   for (pdsch_t& pdsch : dl_res->phy.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
@@ -487,7 +487,8 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
       for (auto& tb_data : pdsch.data) {
         if (tb_data != nullptr and tb_data->N_bytes == 0) {
           // TODO: exclude retx from packing
-          ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+          const sched_nr_interface::dl_pdu_t& pdu = dl_res->data[data_count++];
+          ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8, pdu.subpdus);
 
           if (pcap != nullptr) {
             uint32_t pid = 0; // TODO: get PID from PDCCH struct?

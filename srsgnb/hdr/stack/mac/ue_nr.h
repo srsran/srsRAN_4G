@@ -49,7 +49,7 @@ public:
   void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
   bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
 
-  int generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size);
+  int generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size, srsran::const_span<uint32_t> subpdu_lcids);
 
   std::mutex metrics_mutex = {};
   void       metrics_read(mac_ue_metrics_t* metrics_);

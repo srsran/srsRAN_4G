@@ -64,7 +64,7 @@ uint32_t ue_nr::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_byt
   return rlc->read_pdu(rnti, lcid, payload, requested_bytes);
 }
 
-int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size)
+int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size, srsran::const_span<uint32_t> subpdu_lcids)
 {
   std::lock_guard<std::mutex> lock(mutex);
 

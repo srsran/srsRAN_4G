@@ -39,6 +39,7 @@ public:
   using base_type::get_bsr_state;
   using base_type::get_dl_prio_tx;
   using base_type::get_dl_tx;
+  using base_type::get_dl_tx_total;
   using base_type::is_bearer_active;
   using base_type::is_bearer_dl;
   using base_type::is_bearer_ul;
@@ -48,7 +49,26 @@ public:
   int get_dl_tx_total() const;
 
   // Control Element Command queue
-  srsran::deque<uint32_t> pending_ces;
+  struct ce_t {
+    uint32_t lcid;
+    uint32_t cc;
+  };
+  srsran::deque<ce_t> pending_ces;
+
+  /// Protected, thread-safe interface of "ue_buffer_manager" for "slot_ue"
+  struct slot_itf {
+    slot_itf() = default;
+    explicit slot_itf(uint32_t cc_, ue_buffer_manager& parent_) : cc(cc_), parent(&parent_) {}
+    void alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu);
+
+  private:
+    uint32_t           cc     = SRSRAN_MAX_CARRIERS;
+    ue_buffer_manager* parent = nullptr;
+  };
+
+private:
+  /// Update of buffers is mutexed when carrier aggreg. is in place
+  std::mutex mutex;
 };
 
 class slot_ue;
@@ -111,7 +131,6 @@ public:
   }
   uint32_t pcell_cc() const { return ue_cfg.carriers[0].cc; }
 
-  ue_buffer_manager                                              buffers;
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
   const uint16_t rnti;
@@ -119,18 +138,24 @@ public:
 private:
   const sched_params_t& sched_cfg;
 
+  ue_cfg_t ue_cfg;
+
   slot_point last_pdcch_slot;
   slot_point last_sr_slot;
   int        ul_pending_bytes = 0, dl_pending_bytes = 0;
 
-  ue_cfg_t ue_cfg;
+  ue_buffer_manager buffers;
 };
 
 class slot_ue
 {
 public:
   slot_ue() = default;
-  explicit slot_ue(ue_carrier& ue, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes);
+  explicit slot_ue(ue_carrier&                 ue,
+                   slot_point                  slot_tx_,
+                   uint32_t                    dl_pending_bytes,
+                   uint32_t                    ul_pending_bytes,
+                   ue_buffer_manager::slot_itf buffers_);
   slot_ue(slot_ue&&) noexcept = default;
   slot_ue& operator=(slot_ue&&) noexcept = default;
   bool     empty() const { return ue == nullptr; }
@@ -148,14 +173,15 @@ public:
   uint32_t dl_bytes = 0, ul_bytes = 0;
 
   // UE parameters that are sector specific
-  bool          dl_active;
-  bool          ul_active;
-  slot_point    pdcch_slot;
-  slot_point    pdsch_slot;
-  slot_point    pusch_slot;
-  slot_point    uci_slot;
-  dl_harq_proc* h_dl = nullptr;
-  ul_harq_proc* h_ul = nullptr;
+  bool                        dl_active;
+  bool                        ul_active;
+  slot_point                  pdcch_slot;
+  slot_point                  pdsch_slot;
+  slot_point                  pusch_slot;
+  slot_point                  uci_slot;
+  dl_harq_proc*               h_dl = nullptr;
+  ul_harq_proc*               h_ul = nullptr;
+  ue_buffer_manager::slot_itf buffers;
 
 private:
   ue_carrier* ue = nullptr;

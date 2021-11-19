@@ -21,16 +21,44 @@ namespace sched_nr_impl {
 int ue_buffer_manager::get_dl_tx_total() const
 {
   int total_bytes = base_type::get_dl_tx_total();
-  for (uint32_t lcid : pending_ces) {
-    total_bytes += srsran::mac_sch_subpdu_nr::sizeof_ce(lcid, false);
+  for (ue_buffer_manager::ce_t ce : pending_ces) {
+    total_bytes += srsran::mac_sch_subpdu_nr::sizeof_ce(ce.lcid, false);
   }
   return total_bytes;
 }
 
+void ue_buffer_manager::slot_itf::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+{
+  for (ce_t ce : parent->pending_ces) {
+    if (ce.cc == cc) {
+      // Note: This check also avoids thread collisions across UE carriers
+      uint32_t size_ce = srsran::mac_sch_subpdu_nr::sizeof_ce(ce.lcid, false);
+      if (size_ce > rem_bytes) {
+        break;
+      }
+      rem_bytes -= size_ce;
+      pdu.subpdus.push_back(ce.lcid);
+      parent->pending_ces.pop_front();
+    }
+  }
+
+  for (uint32_t lcid = 0; rem_bytes > 0 and is_lcid_valid(lcid); ++lcid) {
+    uint32_t pending_lcid_bytes = parent->get_dl_tx_total(lcid);
+    if (pending_lcid_bytes > 0) {
+      rem_bytes -= std::min(rem_bytes, pending_lcid_bytes);
+      pdu.subpdus.push_back(lcid);
+    }
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes) :
-  ue(&ue_), pdcch_slot(slot_tx_)
+slot_ue::slot_ue(ue_carrier&                 ue_,
+                 slot_point                  slot_tx_,
+                 uint32_t                    dl_pending_bytes,
+                 uint32_t                    ul_pending_bytes,
+                 ue_buffer_manager::slot_itf buffers_) :
+  ue(&ue_), pdcch_slot(slot_tx_), buffers(buffers_)
 {
   const uint32_t k0 = 0;
   pdsch_slot        = pdcch_slot + k0;
@@ -133,7 +161,8 @@ void ue::set_cfg(const ue_cfg_t& cfg)
 void ue::mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds)
 {
   for (uint32_t i = 0; i < nof_cmds; ++i) {
-    buffers.pending_ces.push_back(ce_lcid);
+    // If not specified otherwise, the CE is transmitted in PCell
+    buffers.pending_ces.push_back(ue_buffer_manager::ce_t{ce_lcid, cfg().carriers[0].cc});
   }
 }
 
@@ -179,7 +208,11 @@ void ue::new_slot(slot_point pdcch_slot)
 slot_ue ue::make_slot_ue(slot_point pdcch_slot, uint32_t cc)
 {
   srsran_assert(carriers[cc] != nullptr, "make_slot_ue() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
-  return slot_ue(*carriers[cc], pdcch_slot, dl_pending_bytes, ul_pending_bytes);
+  return slot_ue(*carriers[cc],
+                 pdcch_slot,
+                 dl_pending_bytes,
+                 ul_pending_bytes,
+                 ue_buffer_manager::slot_itf{cfg().carriers[cc].cc, buffers});
 }
 
 } // namespace sched_nr_impl

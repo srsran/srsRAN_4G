@@ -101,6 +101,7 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
     auto& h = ctxt.cc_list[cc].ul_harqs[data.dci.pid];
     if (h.nof_txs == 0 or h.ndi != data.dci.ndi) {
       // It is newtx
+      h.is_msg3       = false;
       h.nof_retxs     = 0;
       h.ndi           = data.dci.ndi;
       h.first_slot_tx = cc_out.slot + 4; // TODO
@@ -131,6 +132,7 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
       auto& h = ctxt.cc_list[cc].ul_harqs[msg3_grant.msg3_dci.pid];
       if (h.nof_txs == 0) {
         // It is newtx
+        h.is_msg3       = true;
         h.nof_retxs     = 0;
         h.ndi           = msg3_grant.msg3_dci.ndi;
         h.first_slot_tx = cc_out.slot + 4 + MSG3_DELAY_MS; // TODO
@@ -376,6 +378,10 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
       if (ack.ack) {
         logger.info(
             "UL ACK rnti=0x%x, slot_ul_tx=%u, cc=%d pid=%d", ue_ctxt.rnti, h.last_slot_tx.to_uint(), enb_cc_idx, h.pid);
+      }
+
+      if (h.is_msg3) {
+        logger.info("STATUS: rnti=0x%x received Msg3", ue_ctxt.rnti);
       }
 
       // update scheduler

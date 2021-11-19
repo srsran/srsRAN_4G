@@ -31,6 +31,7 @@ const static uint32_t MAX_GRANTS = mac_interface_phy_nr::MAX_GRANTS;
 struct ue_nr_harq_ctxt_t {
   bool                  active    = false;
   bool                  ndi       = false;
+  bool                  is_msg3   = false;
   uint32_t              pid       = 0;
   uint32_t              nof_txs   = 0;
   uint32_t              nof_retxs = std::numeric_limits<uint32_t>::max();

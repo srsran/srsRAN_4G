@@ -144,14 +144,14 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                           const slot_ue_map_t&  slot_ues)
 {
   const bwp_slot_grid& bwp_slot  = res_grid[pdcch_slot];
-  size_t               rar_count = 0, si_count = 0;
+  size_t               rar_count = 0, si_count = 0, data_count = 0;
   for (const pdcch_dl_t& pdcch : bwp_slot.dl.phy.pdcch_dl) {
     fmt::memory_buffer fmtbuf;
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       const slot_ue& ue = slot_ues[pdcch.dci.ctx.rnti];
       fmt::format_to(fmtbuf,
                      "SCHED: DL {}, cc={}, rnti=0x{:x}, pid={}, cs={}, f={}, prbs={}, nrtx={}, dai={}, "
-                     "tbs={}, bs={}, pdsch_slot={}, ack_slot={}",
+                     "lcids=[{}], tbs={}, bs={}, pdsch_slot={}, ack_slot={}",
                      ue.h_dl->nof_retx() == 0 ? "tx" : "retx",
                      res_grid.cfg->cc,
                      ue->rnti,
@@ -161,10 +161,12 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
                      ue.h_dl->prbs(),
                      ue.h_dl->nof_retx(),
                      pdcch.dci.dai,
+                     fmt::join(bwp_slot.dl.data[data_count].subpdus, ", "),
                      ue.h_dl->tbs() / 8u,
                      ue.dl_bytes,
                      ue.pdsch_slot,
                      ue.uci_slot);
+      data_count++;
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
       const pdsch_t&           pdsch = bwp_slot.dl.phy.pdsch[std::distance(bwp_slot.dl.phy.pdcch_dl.data(), &pdcch)];
       srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + pdsch.sch.grant.nof_prb};

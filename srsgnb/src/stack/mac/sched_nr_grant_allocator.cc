@@ -46,6 +46,7 @@ void bwp_slot_grid::reset()
   dl.phy.pdcch_dl.clear();
   dl.phy.pdcch_ul.clear();
   dl.phy.pdsch.clear();
+  dl.data.clear();
   dl.rar.clear();
   dl.sib_idxs.clear();
   ul.pusch.clear();
@@ -335,6 +336,10 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   if (mcs == 0) {
     logger.warning("Couldn't find mcs that leads to R<0.9");
   }
+
+  // Select scheduled LCIDs and update UE buffer state
+  bwp_pdsch_slot.dl.data.emplace_back();
+  ue.buffers.alloc_subpdus(ue.h_dl->tbs(), bwp_pdsch_slot.dl.data.back());
 
   return alloc_result::success;
 }

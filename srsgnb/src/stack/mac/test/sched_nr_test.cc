@@ -74,7 +74,7 @@ void run_sched_nr_test()
 int main()
 {
   auto& test_logger = srslog::fetch_basic_logger("TEST");
-  test_logger.set_level(srslog::basic_levels::warning);
+  test_logger.set_level(srslog::basic_levels::info);
   auto& mac_nr_logger = srslog::fetch_basic_logger("MAC-NR");
   mac_nr_logger.set_level(srslog::basic_levels::debug);
   auto& pool_logger = srslog::fetch_basic_logger("POOL");
