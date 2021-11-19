@@ -239,19 +239,23 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    */
   // Process ACKs
   uint32_t stop_sn = status.N_nack == 0
-                         ? st.tx_next
-                         : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
-  if (status.ack_sn >= st.tx_next_ack) {
-    for (uint32_t sn = st.tx_next_ack; sn < stop_sn; sn++) {
-      if (tx_window.has_sn(sn)) {
-        tx_window.remove_pdu(sn);
-        st.tx_next_ack = sn + 1;
-      } else {
-        logger->error("Missing ACKed SN from TX window");
-        break;
-      }
+                         ? status.ack_sn
+                         : status.nacks[0].nack_sn - 1; // Stop processing ACKs at the first NACK, if it exists.
+  if (stop_sn > st.tx_next) {
+    logger->error("Rx'ed ACK or NACK larger than TX_NEXT. Ignoring status report");
+    return;
+  }
+  for (uint32_t sn = st.tx_next_ack; sn < stop_sn; sn++) {
+    if (tx_window.has_sn(sn)) {
+      tx_window.remove_pdu(sn);
+      st.tx_next_ack = sn + 1;
+      // TODO notify PDCP
+    } else {
+      logger->error("Missing ACKed SN from TX window");
+      break;
     }
   }
+
   // Process N_acks
   for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
     if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
