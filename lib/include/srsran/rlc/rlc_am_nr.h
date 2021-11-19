@@ -35,7 +35,41 @@ namespace srsran {
 class rlc_am_nr_tx;
 class rlc_am_nr_rx;
 
-// Transmitter sub-class
+/****************************************************************************
+ * Tx state variables
+ * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
+ ***************************************************************************/
+struct rlc_am_nr_tx_state_t {
+  /*
+   * TX_Next_Ack: This state variable holds the value of the SN of the next RLC SDU for which a positive
+   * acknowledgment is to be received in-sequence, and it serves as the lower edge of the transmitting window. It is
+   * initially set to 0, and is updated whenever the AM RLC entity receives a positive acknowledgment for an RLC SDU
+   * with SN = TX_Next_Ack.
+   */
+  uint32_t tx_next_ack;
+  /*
+   * TX_Next: This state variable holds the value of the SN to be assigned for the next newly generated AMD PDU. It is
+   * initially set to 0, and is updated whenever the AM RLC entity constructs an AMD PDU with SN = TX_Next and
+   * contains an RLC SDU or the last segment of a RLC SDU.
+   */
+  uint32_t tx_next;
+  /*
+   * POLL_SN: This state variable holds the value of the highest SN of the AMD PDU among the AMD PDUs submitted to
+   * lower layer when POLL_SN is set according to sub clause 5.3.3.2. It is initially set to 0.
+   */
+  uint32_t poll_sn;
+  /*
+   * PDU_WITHOUT_POLL: This counter is initially set to 0. It counts the number of AMD PDUs sent since the most recent
+   * poll bit was transmitted.
+   */
+  uint32_t pdu_without_poll;
+  /*
+   * BYTE_WITHOUT_POLL: This counter is initially set to 0. It counts the number of data bytes sent since the most
+   * recent poll bit was transmitted.
+   */
+  uint32_t byte_without_poll;
+};
+
 class rlc_am_nr_tx : public rlc_am::rlc_am_base_tx
 {
 public:
@@ -80,17 +114,16 @@ private:
    * Tx state variables
    * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
    ***************************************************************************/
-  struct rlc_nr_tx_state_t {
-    uint32_t tx_next_ack;
-    uint32_t tx_next;
-    uint32_t poll_sn;
-    uint32_t pdu_without_poll;
-    uint32_t byte_without_poll;
-  } st = {};
+  struct rlc_am_nr_tx_state_t st = {};
 
   using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
   pdu_retx_queue<RLC_AM_WINDOW_SIZE>                      retx_queue;
+
+public:
+  // Getters/Setters
+  rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
+  uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
 };
 
 // Receiver sub-class

@@ -72,6 +72,11 @@ int basic_test()
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+  rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
+  rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
+
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());
 
@@ -106,6 +111,10 @@ int basic_test()
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
+  // Check TX_NEXT_ACK
+  rlc_am_nr_tx_state_t st = tx1->get_tx_state();
+  TESTASSERT_EQ(5, st.tx_next_ack);
+  TESTASSERT_EQ(0, tx1->get_tx_window_size());
   // Check statistics
   TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
   return SRSRAN_SUCCESS;
