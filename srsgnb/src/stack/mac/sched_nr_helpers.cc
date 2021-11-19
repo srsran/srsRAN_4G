@@ -49,12 +49,16 @@ void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, DciDlOrUl& 
 
 bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
 {
+  uint32_t cs_id = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
+
   dci.mcs                   = 5;
   dci.ctx.format            = srsran_dci_format_nr_1_0;
   dci.ctx.ss_type           = srsran_search_space_type_common_1;
   dci.ctx.rnti_type         = srsran_rnti_type_ra;
   dci.ctx.rnti              = ra_rnti;
-  dci.ctx.coreset_id        = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
+  dci.ctx.coreset_id        = cs_id;
+  dci.ctx.coreset_start_rb  = bwp_cfg.cfg.pdcch.coreset[cs_id].offset_rb;
+  dci.coreset0_bw           = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[cs_id]);
   dci.freq_domain_assigment = srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, interv.start(), interv.length());
   dci.time_domain_assigment = 0;
   dci.tpc                   = 1;
