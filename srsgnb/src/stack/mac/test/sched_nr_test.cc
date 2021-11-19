@@ -25,7 +25,7 @@ struct sched_event_t {
 sched_event_t add_user(uint32_t slot_count, uint16_t rnti, uint32_t preamble_idx)
 {
   auto task = [rnti, preamble_idx](sched_nr_base_tester& tester) {
-    tester.add_user(rnti, get_rach_ue_cfg(1), tester.get_slot_tx() - TX_ENB_DELAY, preamble_idx);
+    tester.add_user(rnti, get_rach_ue_cfg(0), tester.get_slot_tx() - TX_ENB_DELAY, preamble_idx);
   };
   return sched_event_t{slot_count, task};
 }
@@ -76,7 +76,7 @@ int main()
   auto& test_logger = srslog::fetch_basic_logger("TEST");
   test_logger.set_level(srslog::basic_levels::warning);
   auto& mac_nr_logger = srslog::fetch_basic_logger("MAC-NR");
-  mac_nr_logger.set_level(srslog::basic_levels::warning);
+  mac_nr_logger.set_level(srslog::basic_levels::debug);
   auto& pool_logger = srslog::fetch_basic_logger("POOL");
   pool_logger.set_level(srslog::basic_levels::debug);
 

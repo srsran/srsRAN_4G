@@ -74,7 +74,7 @@ void test_single_prach()
 
     log_sched_bwp_result(mac_logger, alloc.get_pdcch_tti(), alloc.res_grid(), slot_ues);
     const bwp_slot_grid* result = &alloc.res_grid()[alloc.get_pdcch_tti()];
-    test_dl_pdcch_consistency(result->dl.phy.pdcch_dl);
+    test_dl_pdcch_consistency(res_grid->cfg->cell_cfg, result->dl.phy.pdcch_dl);
     ++pdcch_slot;
     return result;
   };

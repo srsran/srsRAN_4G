@@ -110,7 +110,7 @@ ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params_t& sched_cfg_) :
 
 void ue::set_cfg(const ue_cfg_t& cfg)
 {
-  bool conres_needed = cfg.is_temp_crnti != ue_cfg.is_temp_crnti;
+  bool conres_needed = not cfg.is_temp_crnti and ue_cfg.is_temp_crnti;
 
   ue_cfg = cfg;
   for (auto& ue_cc_cfg : cfg.carriers) {

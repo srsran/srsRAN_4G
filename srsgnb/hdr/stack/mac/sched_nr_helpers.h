@@ -15,6 +15,7 @@
 
 #include "sched_nr_cfg.h"
 #include "sched_nr_ue.h"
+#include "srsran/adt/optional_array.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -22,8 +23,6 @@ namespace sched_nr_impl {
 class slot_ue;
 class ul_harq_proc;
 struct bwp_res_grid;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool fill_dci_sib(prb_interval        interv,
                   uint32_t            sib_idx,

@@ -64,6 +64,8 @@ int sched_nr_ue_sim::update(const sched_nr_cc_result_view& cc_out)
 void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
 {
   uint32_t cc = cc_out.cc;
+
+  // Update DL Harqs
   for (uint32_t i = 0; i < cc_out.dl->phy.pdcch_dl.size(); ++i) {
     const auto& data = cc_out.dl->phy.pdcch_dl[i];
     if (data.dci.ctx.rnti != ctxt.rnti) {
@@ -89,6 +91,61 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
             .dl_data_to_ul_ack[h.last_slot_tx.slot_idx() % ctxt.ue_cfg.phy_cfg.harq_ack.nof_dl_data_to_ul_ack];
     h.nof_txs++;
   }
+
+  // Update UL harqs
+  for (uint32_t i = 0; i < cc_out.dl->phy.pdcch_ul.size(); ++i) {
+    const auto& data = cc_out.dl->phy.pdcch_ul[i];
+    if (data.dci.ctx.rnti != ctxt.rnti) {
+      continue;
+    }
+    auto& h = ctxt.cc_list[cc].ul_harqs[data.dci.pid];
+    if (h.nof_txs == 0 or h.ndi != data.dci.ndi) {
+      // It is newtx
+      h.nof_retxs     = 0;
+      h.ndi           = data.dci.ndi;
+      h.first_slot_tx = cc_out.slot + 4; // TODO
+      h.dci_loc       = data.dci.ctx.location;
+      h.tbs           = 100; // TODO
+    } else {
+      // it is retx
+      h.nof_retxs++;
+    }
+    h.active        = true;
+    h.last_slot_tx  = cc_out.slot + 4; // TODO
+    h.last_slot_ack = h.last_slot_tx;
+    h.nof_txs++;
+  }
+
+  uint32_t rar_count = 0;
+  for (uint32_t i = 0; i < cc_out.dl->phy.pdcch_dl.size(); ++i) {
+    const auto& rar_pdcch = cc_out.dl->phy.pdcch_dl[i];
+    if (rar_pdcch.dci.ctx.rnti_type != srsran_rnti_type_ra) {
+      continue;
+    }
+    const auto& rar_data = cc_out.dl->rar[rar_count++];
+    for (uint32_t j = 0; j < rar_data.grants.size(); ++j) {
+      auto& msg3_grant = rar_data.grants[j];
+      if (msg3_grant.msg3_dci.ctx.rnti != ctxt.rnti) {
+        continue;
+      }
+      auto& h = ctxt.cc_list[cc].ul_harqs[msg3_grant.msg3_dci.pid];
+      if (h.nof_txs == 0) {
+        // It is newtx
+        h.nof_retxs     = 0;
+        h.ndi           = msg3_grant.msg3_dci.ndi;
+        h.first_slot_tx = cc_out.slot + 4 + MSG3_DELAY_MS; // TODO
+        h.dci_loc       = msg3_grant.msg3_dci.ctx.location;
+        h.tbs           = 100; // TODO
+      } else {
+        // it is retx
+        h.nof_retxs++;
+      }
+      h.active        = true;
+      h.last_slot_tx  = cc_out.slot + 4 + MSG3_DELAY_MS; // TODO
+      h.last_slot_ack = h.last_slot_tx;
+      h.nof_txs++;
+    }
+  }
 }
 
 sched_nr_base_tester::sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,
@@ -98,11 +155,10 @@ sched_nr_base_tester::sched_nr_base_tester(const sched_nr_interface::sched_args_
   logger(srslog::fetch_basic_logger("TEST")),
   mac_logger(srslog::fetch_basic_logger("MAC-NR")),
   sched_ptr(new sched_nr()),
-  test_name(std::move(test_name_))
+  test_delimiter(new srsran::test_delimit_logger{test_name_.c_str()})
 {
   sem_init(&slot_sem, 0, 1);
 
-  printf("\n=========== Start %s ===========\n", test_name.c_str());
   cell_params.reserve(cell_cfg_list.size());
   for (uint32_t cc = 0; cc < cell_cfg_list.size(); ++cc) {
     cell_params.emplace_back(cc, cell_cfg_list[cc], sched_args);
@@ -136,7 +192,7 @@ void sched_nr_base_tester::stop()
       worker->stop();
     }
     sem_destroy(&slot_sem);
-    printf("============ End %s ===========\n", test_name.c_str());
+    test_delimiter.reset();
   }
 }
 
@@ -161,6 +217,14 @@ int sched_nr_base_tester::add_user(uint16_t                            rnti,
   sem_post(&slot_sem);
 
   return SRSRAN_SUCCESS;
+}
+
+void sched_nr_base_tester::user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_)
+{
+  TESTASSERT(ue_db.count(rnti) > 0);
+
+  ue_db.at(rnti).get_ctxt().ue_cfg = ue_cfg_;
+  sched_ptr->ue_cfg(rnti, ue_cfg_);
 }
 
 void sched_nr_base_tester::run_slot(slot_point slot_tx)
@@ -236,7 +300,7 @@ void sched_nr_base_tester::process_results()
     sched_nr_cc_result_view cc_out = cc_results[cc].res;
 
     // Run common tests
-    test_dl_pdcch_consistency(cc_out.dl->phy.pdcch_dl);
+    test_dl_pdcch_consistency(cell_params[cc].cfg, cc_out.dl->phy.pdcch_dl);
     test_pdsch_consistency(cc_out.dl->phy.pdsch);
     test_ssb_scheduled_grant(cc_out.slot, cell_params[cc_out.cc].cfg, cc_out.dl->phy.ssb);
 
@@ -265,12 +329,12 @@ int sched_nr_base_tester::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctx
       auto& ul_h = ue_ctxt.cc_list[enb_cc_idx].ul_harqs[pid];
 
       // Set default DL ACK
-      if (dl_h.active and (dl_h.last_slot_ack) == current_slot_tx) {
+      if (dl_h.active and dl_h.last_slot_ack == current_slot_tx) {
         cc_feedback.dl_acks.push_back(ue_nr_slot_events::ack_t{pid, true});
       }
 
       // Set default UL ACK
-      if (ul_h.active and (ul_h.last_slot_tx + 8) == current_slot_tx) {
+      if (ul_h.active and ul_h.last_slot_ack == current_slot_tx) {
         cc_feedback.ul_acks.emplace_back(ue_nr_slot_events::ack_t{pid, true});
       }
 
@@ -314,11 +378,8 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
             "UL ACK rnti=0x%x, slot_ul_tx=%u, cc=%d pid=%d", ue_ctxt.rnti, h.last_slot_tx.to_uint(), enb_cc_idx, h.pid);
       }
 
-      //      // update scheduler
-      //      if (sched_ptr->ul_crc_info(events.slot_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_ack) < 0) {
-      //        logger.error("The ACKed UL Harq pid=%d does not exist.", cc_feedback.ul_pid);
-      //        error_counter++;
-      //      }
+      // update scheduler
+      sched_ptr->ul_crc_info(ue_ctxt.rnti, enb_cc_idx, ack.pid, ack.ack);
     }
   }
 

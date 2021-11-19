@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_CFG_GENERATORS_H
 #define SRSRAN_SCHED_NR_CFG_GENERATORS_H
 
-#include "srsgnb/hdr/stack/mac/sched_nr_interface.h"
+#include "srsgnb/hdr/stack/mac/sched_nr_interface_utils.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 
 namespace srsenb {
@@ -62,11 +62,14 @@ inline std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(
   return cells;
 }
 
-inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t cc)
+inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t                    cc,
+                                                    const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{
+                                                        srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
   sched_nr_interface::ue_cfg_t uecfg{};
+  uecfg.is_temp_crnti = true;
 
-  // set Pcell
+  // set PCell
   uecfg.carriers.resize(1);
   uecfg.carriers[0].active = true;
   uecfg.carriers[0].cc     = cc;
@@ -77,6 +80,12 @@ inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t cc)
   // set basic PHY config
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
   uecfg.phy_cfg.csi = {};
+  for (srsran_search_space_t& ss : view_active_search_spaces(uecfg.phy_cfg.pdcch)) {
+    // disable UE-specific search spaces
+    if (ss.type == srsran_search_space_type_ue) {
+      uecfg.phy_cfg.pdcch.search_space_present[ss.id] = false;
+    }
+  }
 
   return uecfg;
 }

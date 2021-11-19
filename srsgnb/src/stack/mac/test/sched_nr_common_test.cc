@@ -16,13 +16,23 @@
 
 namespace srsenb {
 
-void test_dl_pdcch_consistency(srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcchs)
+void test_dl_pdcch_consistency(const sched_nr_interface::cell_cfg_t&         cell_cfg,
+                               srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcchs)
 {
   for (const auto& pdcch : dl_pdcchs) {
+    TESTASSERT(pdcch.dci.bwp_id < cell_cfg.bwps.size());
+    const srsran_pdcch_cfg_nr_t& pdcch_cfg = cell_cfg.bwps[pdcch.dci.bwp_id].pdcch;
+    TESTASSERT(pdcch_cfg.coreset_present[pdcch.dci.ctx.coreset_id]);
+
     if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
       TESTASSERT_EQ(pdcch.dci.ctx.format, srsran_dci_format_nr_1_0);
       TESTASSERT_EQ(pdcch.dci.ctx.ss_type, srsran_search_space_type_common_1);
-      TESTASSERT(pdcch.dci.ctx.location.L > 0);
+      TESTASSERT(pdcch.dci.ctx.location.L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR);
+
+      // check consistency with cell_cfg
+      TESTASSERT(pdcch_cfg.ra_search_space_present);
+      TESTASSERT_EQ(pdcch_cfg.ra_search_space.coreset_id, pdcch.dci.ctx.coreset_id);
+      TESTASSERT(pdcch_cfg.ra_search_space.nof_candidates[pdcch.dci.ctx.location.L] > 0);
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
       TESTASSERT(pdcch.dci.ctx.format == srsran_dci_format_nr_1_0 or pdcch.dci.ctx.format == srsran_dci_format_nr_1_1);
     }

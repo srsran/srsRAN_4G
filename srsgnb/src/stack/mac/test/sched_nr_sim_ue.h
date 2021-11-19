@@ -16,6 +16,7 @@
 #include "srsenb/test/mac/sched_sim_ue.h"
 #include "srsgnb/hdr/stack/mac/sched_nr.h"
 #include "srsran/adt/circular_array.h"
+#include "srsran/common/test_common.h"
 #include <condition_variable>
 #include <semaphore.h>
 
@@ -103,7 +104,7 @@ private:
   sim_nr_ue_ctxt_t      ctxt;
 };
 
-/// Implementation of features common to sched_nr_sim_parallel and sched_nr_sim
+/// Implementation of features common to parallel and sequential sched nr testers
 class sched_nr_base_tester
 {
 public:
@@ -121,7 +122,11 @@ public:
   void run_slot(slot_point slot_tx);
   void stop();
 
+  slot_point get_slot_tx() const { return current_slot_tx; }
+
   int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, slot_point tti_rx, uint32_t preamble_idx);
+
+  void user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_);
 
   srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() { return cell_params; }
 
@@ -141,11 +146,11 @@ protected:
   /// Runs general tests to verify result consistency, and updates UE state
   void process_results();
 
-  std::string                               test_name;
-  srslog::basic_logger&                     logger;
-  srslog::basic_logger&                     mac_logger;
-  std::unique_ptr<sched_nr>                 sched_ptr;
-  std::vector<sched_nr_impl::cell_params_t> cell_params;
+  std::unique_ptr<srsran::test_delimit_logger> test_delimiter;
+  srslog::basic_logger&                        logger;
+  srslog::basic_logger&                        mac_logger;
+  std::unique_ptr<sched_nr>                    sched_ptr;
+  std::vector<sched_nr_impl::cell_params_t>    cell_params;
 
   std::vector<std::unique_ptr<srsran::task_worker> > cc_workers;
 

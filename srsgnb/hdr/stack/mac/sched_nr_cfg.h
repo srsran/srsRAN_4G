@@ -13,7 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_CFG_H
 #define SRSRAN_SCHED_NR_CFG_H
 
-#include "sched_nr_interface.h"
+#include "sched_nr_interface_utils.h"
 #include "sched_nr_rb.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/optional_array.h"
@@ -148,12 +148,11 @@ public:
   }
   const srsran_search_space_t* find_ss_with_dci_format(srsran_dci_format_nr_t valid_format) const
   {
-    for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
-      if (phy().pdcch.search_space_present[ss_id]) {
-        for (uint32_t i = 0; i < phy().pdcch.search_space[ss_id].nof_formats; ++i) {
-          if (phy().pdcch.search_space[ss_id].formats[i] == valid_format) {
-            return &phy().pdcch.search_space[ss_id];
-          }
+    auto active_ss_lst = view_active_search_spaces(phy().pdcch);
+    for (const srsran_search_space_t& ss : active_ss_lst) {
+      for (uint32_t i = 0; i < ss.nof_formats; ++i) {
+        if (ss.formats[i] == valid_format) {
+          return &ss;
         }
       }
     }
@@ -192,7 +191,6 @@ private:
 };
 
 } // namespace sched_nr_impl
-
 } // namespace srsenb
 
 #endif // SRSRAN_SCHED_NR_CFG_H
