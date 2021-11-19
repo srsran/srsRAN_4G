@@ -107,9 +107,11 @@ void rlc_am::reestablish()
  ***************************************************************************/
 void rlc_am::write_sdu(unique_byte_buffer_t sdu)
 {
+  uint32_t nof_bytes = sdu->N_bytes;
   if (tx_base->write_sdu(std::move(sdu)) == SRSRAN_SUCCESS) {
     std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_tx_sdus++;
+    metrics.num_tx_sdu_bytes += nof_bytes;
   }
 }
 

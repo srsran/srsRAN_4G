@@ -470,7 +470,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     memcpy(rx_sdu.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
     rx_sdu.buf->N_bytes   = nof_bytes - hdr_len;
     rx_sdu.fully_received = true;
-    parent->pdcp->write_pdu(parent->lcid, std::move(rx_window[header.sn].buf));
+    write_to_upper_layers(parent->lcid, std::move(rx_window[header.sn].buf));
   } else {
     // Check if all bytes of the RLC SDU with SN = x are received:
     // TODO
@@ -678,6 +678,15 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
     do_status = true;
     return;
   }
+}
+
+void rlc_am_nr_rx::write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu)
+{
+  uint32_t nof_bytes = sdu->N_bytes;
+  parent->pdcp->write_pdu(lcid, std::move(sdu));
+  std::lock_guard<std::mutex> lock(parent->metrics_mutex);
+  parent->metrics.num_rx_sdus++;
+  parent->metrics.num_rx_sdu_bytes += nof_bytes;
 }
 
 /*
