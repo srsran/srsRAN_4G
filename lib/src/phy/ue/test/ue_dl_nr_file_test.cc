@@ -397,7 +397,7 @@ int main(int argc, char** argv)
         ERROR("incorrect PDSCH start symbol or length provided");
         return clean_exit(ret);
       }
-      uint32_t sliv = srsran_sliv_from_s_and_l(SRSRAN_NSYMB_PER_SLOT_NR, pdsch_time_ra_start, pdsch_time_ra_length);
+      uint32_t sliv = srsran_ra_nr_type1_riv(SRSRAN_NSYMB_PER_SLOT_NR, pdsch_time_ra_start, pdsch_time_ra_length);
 
       pdsch_hl_cfg.nof_dedicated_time_ra             = 1;
       pdsch_hl_cfg.dedicated_time_ra[0].mapping_type = srsran_sch_mapping_type_A;
