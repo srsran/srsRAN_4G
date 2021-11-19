@@ -15,6 +15,7 @@
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/band_helper.h"
 #include <bitset>
+#include <srsenb/hdr/common/common_enb.h>
 
 using namespace asn1::rrc_nr;
 
@@ -1153,7 +1154,8 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
   // Add DRBs
   for (const drb_to_add_mod_s& drb : bearers.drb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});
-    fill_srb(cfg, (srsran::nr_srb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
+    uint32_t lcid = drb_to_lcid(static_cast<lte_drb>(drb.drb_id));
+    fill_drb(cfg, lcid, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
   }
   out.rlc_bearer_to_add_mod_list_present = out.rlc_bearer_to_add_mod_list.size() > 0;
 

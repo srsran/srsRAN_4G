@@ -123,7 +123,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   TESTASSERT(ss_ue_found); /// Ensure UE-specific SearchSpace was added
 
   // Check here if the MSG sent to NGAP is correct
-  // Create a srsran::span object for the expected MSG
+  // Create a unbounded_octstring<false> for the expected MSG
   asn1::unbounded_octstring<false> expected;
   expected.from_string(NAS_msg_str);
   TESTASSERT(expected == ngap.last_pdu);
@@ -151,7 +151,7 @@ void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was setup in a different function
   TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
-  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), 1);
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
 
   // Send SecurityModeCommand (gNB -> UE)
   dl_dcch_msg_s dl_dcch_msg;
@@ -175,7 +175,8 @@ void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
   auto&         ies_UL       = ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
   ies_UL.ded_nas_msg_present = true;
 
-  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  // Create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  // We reuse NAS_UL_msg below to compare the string with the message sent to and unpacked by the gNB
   asn1::unbounded_octstring<false> NAS_UL_msg;
   NAS_UL_msg.from_string("6671f8bc80b1860f29b3a8b3b8563ce6c36a591bb1a3dc6612674448fb958d274426d326356aa9aa");
   ies_UL.ded_nas_msg.resize(NAS_UL_msg.size());
@@ -192,7 +193,7 @@ void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
   // send message to RRC
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 
-  // get a span for both NAS msg and compare if the actual transmitted is correct
+  // compare if the actual transmitted matches with the MSG created from the original string
   TESTASSERT(NAS_UL_msg == ngap.last_pdu);
 }
 
@@ -209,9 +210,9 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was setup in a different function
   TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
-  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), 1);
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
 
-  // Send SecurityModeCommand (gNB -> UE)
+  // STEP 1 - Send SecurityModeCommand (gNB -> UE)
   dl_dcch_msg_s dl_dcch_msg;
   {
     asn1::cbit_ref bref{pdcp.last_sdu->data(), pdcp.last_sdu->size()};
@@ -228,12 +229,93 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                 ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value);
   TESTASSERT_EQ(ciphering_algorithm_opts::nea0, ies.security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value);
 
-  // Send SecurityModeComplete (UE -> gNB)
+  // STEP 2 - Send SecurityModeComplete (UE -> gNB)
   ul_dcch_msg_s ul_dcch_msg;
   auto&         sec_cmd_complete_msg      = ul_dcch_msg.msg.set_c1().set_security_mode_complete();
   sec_cmd_complete_msg.rrc_transaction_id = dl_dcch_msg.msg.c1().security_mode_cmd().rrc_transaction_id;
   auto& ies_complete                      = sec_cmd_complete_msg.crit_exts.set_security_mode_complete();
 
+  {
+    pdu = srsran::make_byte_buffer();
+    asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
+    TESTASSERT_SUCCESS(ul_dcch_msg.pack(bref));
+    pdu->N_bytes = bref.distance_bytes();
+  }
+
+  // send message to RRC
+  rrc_obj.write_pdu(rnti, 1, std::move(pdu));
+}
+
+void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
+                                 rrc_nr&                 rrc_obj,
+                                 pdcp_nr_rrc_tester&     pdcp,
+                                 uint16_t                rnti)
+{
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
+
+  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  asn1::unbounded_octstring<false> NAS_msg;
+  NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
+  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, srsran::srb_to_lcid(srsran::nr_srb::srb1));
+
+  // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
+  rrc_obj.start_rrc_reconfiguration(rnti);
+
+  // Test whether there exists the SRB1 initiated in the Connection Establishment
+  // We test this as the SRB1 was set up in a different function
+  TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
+
+  dl_dcch_msg_s dl_dcch_msg;
+  {
+    asn1::cbit_ref bref{pdcp.last_sdu->data(), pdcp.last_sdu->size()};
+    TESTASSERT_SUCCESS(dl_dcch_msg.unpack(bref));
+  }
+
+  // Test whether the unpacked message is correct
+  TESTASSERT_EQ(dl_dcch_msg_type_c::types_opts::c1, dl_dcch_msg.msg.type().value);
+  TESTASSERT_EQ(dl_dcch_msg_type_c::c1_c_::types_opts::rrc_recfg, dl_dcch_msg.msg.c1().type().value);
+  TESTASSERT_EQ(rrc_recfg_s::crit_exts_c_::types_opts::rrc_recfg,
+                dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.type().value);
+  const rrc_recfg_ies_s& reconf_ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.rrc_recfg();
+  TESTASSERT_EQ(true, reconf_ies.radio_bearer_cfg_present);
+  TESTASSERT_EQ(true, reconf_ies.radio_bearer_cfg.srb_to_add_mod_list_present);
+  TESTASSERT_EQ(1, reconf_ies.radio_bearer_cfg.srb_to_add_mod_list.size());
+  TESTASSERT_EQ(2, reconf_ies.radio_bearer_cfg.srb_to_add_mod_list[0].srb_id);
+  TESTASSERT_EQ(1, reconf_ies.radio_bearer_cfg.drb_to_add_mod_list.size());
+  auto& drb = reconf_ies.radio_bearer_cfg.drb_to_add_mod_list[0];
+  TESTASSERT_EQ(1, drb.drb_id);
+
+  TESTASSERT_EQ(true, reconf_ies.non_crit_ext_present);
+  TESTASSERT_EQ(true, reconf_ies.non_crit_ext.master_cell_group_present);
+  auto& master_group_msg = reconf_ies.non_crit_ext.master_cell_group;
+
+  cell_group_cfg_s master_cell_group;
+  {
+    asn1::cbit_ref bref{master_group_msg.data(), master_group_msg.size()};
+    TESTASSERT_SUCCESS(master_cell_group.unpack(bref));
+  }
+
+  // Test if the master_cell_group SRB and DRB IDs match those in the RadioBearerConfig
+  TESTASSERT_EQ(0, master_cell_group.cell_group_id);
+  TESTASSERT_EQ(true, master_cell_group.rlc_bearer_to_add_mod_list_present);
+  auto& rlc_srb = master_cell_group.rlc_bearer_to_add_mod_list[0];
+  TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.srb_to_add_mod_list[0].srb_id, rlc_srb.served_radio_bearer.srb_id());
+  auto& rlc_drb = master_cell_group.rlc_bearer_to_add_mod_list[1];
+  TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.drb_to_add_mod_list[1].drb_id, rlc_drb.served_radio_bearer.drb_id());
+
+  asn1::unbounded_octstring<false> expected_nas;
+  expected_nas.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
+  TESTASSERT_EQ(true, reconf_ies.non_crit_ext.ded_nas_msg_list_present);
+  TESTASSERT( expected_nas == reconf_ies.non_crit_ext.ded_nas_msg_list[0]);
+
+  // STEP 2 - Send RRCReconfiguration (UE -> gNB)
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         RRC_recfg_complete  = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete();
+  RRC_recfg_complete.rrc_transaction_id = dl_dcch_msg.msg.c1().rrc_recfg().rrc_transaction_id;
+  RRC_recfg_complete.crit_exts.set_rrc_recfg_complete();
+
+  srsran::unique_byte_buffer_t pdu;
   {
     pdu = srsran::make_byte_buffer();
     asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};

@@ -103,6 +103,11 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                                    pdcp_nr_rrc_tester&     pdcp,
                                    uint16_t                rnti);
 
+void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
+                                   rrc_nr&                 rrc_obj,
+                                   pdcp_nr_rrc_tester&     pdcp,
+                                   uint16_t                rnti);
+
 } // namespace srsenb
 
 #endif // SRSRAN_RRC_NR_TEST_HELPERS_H

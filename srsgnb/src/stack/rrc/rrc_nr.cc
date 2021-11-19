@@ -634,7 +634,16 @@ void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
   }
   users[rnti]->send_dl_information_transfer(std::move(sdu));
 }
-
+int rrc_nr::start_rrc_reconfiguration(uint16_t rnti)
+{
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()){
+    logger.error("Starting RRCRecofiguration failed - rnti=0x%x not found", rnti);
+    return SRSRAN_ERROR;
+  }
+  user_it->second->send_rrc_reconfiguration();
+  return SRSRAN_SUCCESS;
+}
 /*******************************************************************************
   Interface for EUTRA RRC
 *******************************************************************************/

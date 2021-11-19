@@ -103,6 +103,7 @@ public:
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) final;
   int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates) final;
   int  allocate_lcid(uint16_t rnti) final;
+  int  start_rrc_reconfiguration(uint16_t rnti);
 
   // logging
   typedef enum { Rx = 0, Tx } direction_t;

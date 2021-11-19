@@ -1056,6 +1056,11 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   }
   ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
   memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+  if (logger.debug.enabled()) {
+    asn1::json_writer js;
+    master_cell_group.to_json(js);
+    logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+  }
 
   // Pass stored NAS PDUs
   ies.non_crit_ext.ded_nas_msg_list_present = true;
@@ -1086,6 +1091,8 @@ void rrc_nr::ue::send_rrc_reconfiguration()
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
 {
+  update_mac(next_cell_group_cfg, true);
+
   radio_bearer_cfg = next_radio_bearer_cfg;
   cell_group_cfg   = next_cell_group_cfg;
   parent->ngap->ue_notify_rrc_reconf_complete(rnti, true);
