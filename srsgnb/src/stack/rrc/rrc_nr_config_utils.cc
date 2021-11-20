@@ -318,6 +318,10 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   // Derive remaining PHY cell params
   cell.phy_cell.prach.num_ra_preambles      = cell.phy_cell.num_ra_preambles;
   cell.phy_cell.prach.tdd_config.configured = (cell.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
+  if (cell.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    // Note: Give more time margin to fit RAR
+    cell.phy_cell.prach.config_idx = 8;
+  }
 
   return check_nr_cell_cfg_valid(cell, is_sa);
 }
