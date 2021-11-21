@@ -29,38 +29,6 @@
 
 namespace srsran {
 
-/// Class that contains the parameters and state (e.g. segments) of a RLC PDU
-class rlc_amd_tx_pdu
-{
-  using list_type                      = intrusive_forward_list<rlc_am_pdu_segment>;
-  const static uint32_t invalid_rlc_sn = std::numeric_limits<uint32_t>::max();
-
-  list_type list;
-
-public:
-  using iterator       = typename list_type::iterator;
-  using const_iterator = typename list_type::const_iterator;
-
-  const uint32_t       rlc_sn     = invalid_rlc_sn;
-  uint32_t             retx_count = 0;
-  rlc_amd_pdu_header_t header;
-  unique_byte_buffer_t buf;
-
-  explicit rlc_amd_tx_pdu(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
-  rlc_amd_tx_pdu(const rlc_amd_tx_pdu&)           = delete;
-  rlc_amd_tx_pdu(rlc_amd_tx_pdu&& other) noexcept = default;
-  rlc_amd_tx_pdu& operator=(const rlc_amd_tx_pdu& other) = delete;
-  rlc_amd_tx_pdu& operator=(rlc_amd_tx_pdu&& other) = delete;
-  ~rlc_amd_tx_pdu();
-
-  // Segment List Interface
-  void           add_segment(rlc_am_pdu_segment& segment) { list.push_front(&segment); }
-  const_iterator begin() const { return list.begin(); }
-  const_iterator end() const { return list.end(); }
-  iterator       begin() { return list.begin(); }
-  iterator       end() { return list.end(); }
-};
-
 struct rlc_amd_retx_t {
   uint32_t sn;
   bool     is_segment;
@@ -99,17 +67,18 @@ void rlc_am_read_status_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_status_pdu
 void rlc_am_write_status_pdu(rlc_status_pdu_t* status, byte_buffer_t* pdu);
 int  rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload);
 
-uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t* header);
-uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
-uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
-bool        rlc_am_is_pdu_segment(uint8_t* payload);
-bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_min = 0);
-std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_pdu_info>& info_queue);
-void        log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header);
-bool        rlc_am_start_aligned(const uint8_t fi);
-bool        rlc_am_end_aligned(const uint8_t fi);
-bool        rlc_am_is_unaligned(const uint8_t fi);
-bool        rlc_am_not_start_aligned(const uint8_t fi);
+uint32_t rlc_am_packed_length(rlc_amd_pdu_header_t* header);
+uint32_t rlc_am_packed_length(rlc_status_pdu_t* status);
+uint32_t rlc_am_packed_length(rlc_amd_retx_t retx);
+bool     rlc_am_is_pdu_segment(uint8_t* payload);
+bool     rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_min = 0);
+std::string
+     rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_pdu_info<rlc_amd_pdu_header_t> >& info_queue);
+void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header);
+bool rlc_am_start_aligned(const uint8_t fi);
+bool rlc_am_end_aligned(const uint8_t fi);
+bool rlc_am_is_unaligned(const uint8_t fi);
+bool rlc_am_not_start_aligned(const uint8_t fi);
 
 /**
  * Logs Status PDU into provided log channel, using fmt_str as format string

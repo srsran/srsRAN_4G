@@ -313,9 +313,10 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (reassembly_timer.id() == timeout_id) {
-    logger.info("%s reassembly timeout expiry - updating RX_Next_Reassembly and reassembling", rb_name.c_str());
+    logger.debug("%s reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling",
+                 rb_name.c_str(),
+                 RX_Next_Reassembly);
 
-    logger.info("Lost PDU SN=%d", RX_Next_Reassembly);
     metrics.num_lost_pdus++;
 
     if (rx_sdu != nullptr) {
@@ -331,7 +332,7 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 
     // discard all segments with SN < updated RX_Next_Reassembly
     for (auto it = rx_window.begin(); it != rx_window.end();) {
-      if (it->first < RX_Next_Reassembly) {
+      if (RX_MOD_NR_BASE(it->first) < RX_MOD_NR_BASE(RX_Next_Reassembly)) {
         it = rx_window.erase(it);
       } else {
         ++it;
@@ -342,6 +343,7 @@ void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
     if (RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1) ||
         ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
           has_missing_byte_segment(RX_Next_Reassembly)))) {
+      logger.debug("%s starting reassembly timer for SN=%d", rb_name.c_str(), RX_Next_Reassembly);
       reassembly_timer.run();
       RX_Timer_Trigger = RX_Next_Highest;
     }
@@ -394,6 +396,8 @@ bool rlc_um_nr::rlc_um_nr_rx::has_missing_byte_segment(const uint32_t sn)
 void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
 {
   if (rx_window.find(sn) != rx_window.end()) {
+    bool sdu_complete = false;
+
     // iterate over received segments and try to assemble full SDU
     auto& pdu = rx_window.at(sn);
     for (auto it = pdu.segments.begin(); it != pdu.segments.end();) {
@@ -436,22 +440,9 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
           it = pdu.segments.erase(it);
 
           if (pdu.next_expected_so == pdu.total_sdu_length) {
-            // deliver full SDU to upper layers
-            logger.info("Delivering %s SDU SN=%d (%d B)", rb_name.c_str(), sn, pdu.sdu->N_bytes);
-            pdcp->write_pdu(lcid, std::move(pdu.sdu));
-
-            // find next SN in rx buffer
-            if (sn == RX_Next_Reassembly) {
-              RX_Next_Reassembly = ((RX_Next_Reassembly + 1) % mod);
-              while (RX_MOD_NR_BASE(RX_Next_Reassembly) < RX_MOD_NR_BASE(RX_Next_Highest)) {
-                RX_Next_Reassembly = (RX_Next_Reassembly + 1) % mod;
-              }
-              logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
-            }
-
-            // delete PDU from rx_window
-            rx_window.erase(sn);
-            return;
+            // entire SDU has been received, it will be passed up the stack outside the loop
+            sdu_complete = true;
+            break;
           }
         }
       } else {
@@ -460,10 +451,34 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
       }
     }
 
-    // check for SN outside of rx window
-    if (not sn_in_reassembly_window(sn)) {
-      // update RX_Next_highest
-      RX_Next_Highest = sn + 1;
+    if (sdu_complete) {
+      // deliver full SDU to upper layers
+      logger.info("%s Rx SDU (%d B)", rb_name.c_str(), pdu.sdu->N_bytes);
+      pdcp->write_pdu(lcid, std::move(pdu.sdu));
+
+      // delete PDU from rx_window
+      rx_window.erase(sn);
+
+      // find next SN in rx buffer
+      if (sn == RX_Next_Reassembly) {
+        if (rx_window.empty()) {
+          // no further segments received
+          RX_Next_Reassembly = RX_Next_Highest;
+        } else {
+          for (auto it = rx_window.begin(); it != rx_window.end(); ++it) {
+            logger.debug("SN=%d has %zd segments", it->first, it->second.segments.size());
+            if (RX_MOD_NR_BASE(it->first) > RX_MOD_NR_BASE(RX_Next_Reassembly)) {
+              RX_Next_Reassembly = it->first;
+              break;
+            }
+          }
+        }
+        logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+      }
+    } else if (not sn_in_reassembly_window(sn)) {
+      // SN outside of rx window
+
+      RX_Next_Highest = (sn + 1) % mod; // update RX_Next_highest
       logger.debug("Updating RX_Next_Highest=%d", RX_Next_Highest);
 
       // drop all SNs outside of new rx window
@@ -486,29 +501,33 @@ void rlc_um_nr::rlc_um_nr_rx::handle_rx_buffer_update(const uint32_t sn)
         for (const auto& rx_pdu : rx_window) {
           if (rx_pdu.first >= RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size)) {
             RX_Next_Reassembly = rx_pdu.first;
-            logger.debug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+            logger.debug("%s Updating RX_Next_Reassembly=%d", rb_name.c_str(), RX_Next_Reassembly);
             break;
           }
         }
       }
+    }
 
-      if (reassembly_timer.is_running()) {
-        if (RX_Timer_Trigger <= RX_Next_Reassembly ||
-            (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
-            ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(sn))) {
-          reassembly_timer.stop();
-        }
+    if (reassembly_timer.is_running()) {
+      if (RX_Timer_Trigger <= RX_Next_Reassembly ||
+          (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
+          ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(RX_Next_Reassembly))) {
+        logger.debug("%s stopping reassembly timer", rb_name.c_str());
+        reassembly_timer.stop();
       }
+    }
 
-      if (not reassembly_timer.is_running() && has_missing_byte_segment(sn)) {
-        if (RX_Next_Highest > RX_Next_Reassembly + 1) {
-          reassembly_timer.run();
-          RX_Timer_Trigger = RX_Next_Highest;
-        }
+    if (not reassembly_timer.is_running()) {
+      if ((RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1)) ||
+          ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1)) &&
+           has_missing_byte_segment(RX_Next_Reassembly))) {
+        logger.debug("%s Starting reassembly timer for SN=%d", rb_name.c_str(), sn);
+        reassembly_timer.run();
+        RX_Timer_Trigger = RX_Next_Highest;
       }
     }
   } else {
-    logger.error("SN=%d does not exist in Rx buffer", sn);
+    logger.error("%s SN=%d does not exist in Rx buffer", rb_name.c_str(), sn);
   }
 }
 
@@ -517,10 +536,10 @@ inline void rlc_um_nr::rlc_um_nr_rx::update_total_sdu_length(rlc_umd_pdu_segment
 {
   if (rx_pdu.header.si == rlc_nr_si_field_t::last_segment) {
     pdu_segments.total_sdu_length = rx_pdu.header.so + rx_pdu.buf->N_bytes;
-    logger.info("%s updating total SDU length for SN=%d to %d B",
-                rb_name.c_str(),
-                rx_pdu.header.sn,
-                pdu_segments.total_sdu_length);
+    logger.debug("%s updating total SDU length for SN=%d to %d B",
+                 rb_name.c_str(),
+                 rx_pdu.header.sn,
+                 pdu_segments.total_sdu_length);
   }
 };
 
@@ -531,7 +550,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
 
   rlc_um_nr_pdu_header_t header = {};
   rlc_um_nr_read_data_pdu_header(payload, nof_bytes, cfg.um_nr.sn_field_length, &header);
-  logger.debug(payload, nof_bytes, "RX %s Rx data PDU (%d B)", rb_name.c_str(), nof_bytes);
+  logger.debug(payload, nof_bytes, "%s Rx data PDU (%d B)", rb_name.c_str(), nof_bytes);
 
   // check if PDU contains a SN
   if (header.si == rlc_nr_si_field_t::full_sdu) {
@@ -539,7 +558,7 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
     unique_byte_buffer_t sdu = rlc_um_nr_strip_pdu_header(header, payload, nof_bytes);
 
     // deliver to PDCP
-    logger.info("Delivering %s SDU (%d B)", rb_name.c_str(), sdu->N_bytes);
+    logger.info("%s Rx SDU (%d B)", rb_name.c_str(), sdu->N_bytes);
     pdcp->write_pdu(lcid, std::move(sdu));
   } else if (sn_invalid_for_rx_buffer(header.sn)) {
     logger.info("%s Discarding SN=%d", rb_name.c_str(), header.sn);
@@ -553,24 +572,26 @@ void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_byt
     // check if this SN is already present in rx buffer
     if (rx_window.find(header.sn) == rx_window.end()) {
       // first received segment of this SN, add to rx buffer
-      logger.info(rx_pdu.buf->msg,
-                  rx_pdu.buf->N_bytes,
-                  "%s placing %s segment of SN=%d (%d B) in Rx buffer",
-                  rb_name.c_str(),
-                  to_string_short(header.si).c_str(),
-                  header.sn,
-                  rx_pdu.buf->N_bytes);
+      logger.debug(rx_pdu.buf->msg,
+                   rx_pdu.buf->N_bytes,
+                   "%s placing %s segment of SN=%d (%d B) in Rx buffer",
+                   rb_name.c_str(),
+                   to_string_short(header.si).c_str(),
+                   header.sn,
+                   rx_pdu.buf->N_bytes);
       rlc_umd_pdu_segments_nr_t pdu_segments = {};
       update_total_sdu_length(pdu_segments, rx_pdu);
       pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
       rx_window[header.sn] = std::move(pdu_segments);
     } else {
       // other segment for this SN already present, update received data
-      logger.info("%s updating SN=%d at SO=%d with %d B",
-                  rb_name.c_str(),
-                  rx_pdu.header.sn,
-                  rx_pdu.header.so,
-                  rx_pdu.buf->N_bytes);
+      logger.debug(rx_pdu.buf->msg,
+                   rx_pdu.buf->N_bytes,
+                   "%s updating SN=%d at SO=%d with %d B",
+                   rb_name.c_str(),
+                   rx_pdu.header.sn,
+                   rx_pdu.header.so,
+                   rx_pdu.buf->N_bytes);
 
       auto& pdu_segments = rx_window.at(header.sn);
 

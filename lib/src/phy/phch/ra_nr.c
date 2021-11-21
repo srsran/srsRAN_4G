@@ -568,6 +568,14 @@ static int ra_dl_dmrs(const srsran_sch_hl_cfg_nr_t* hl_cfg, const srsran_dci_dl_
       (cfg->grant.mapping == srsran_sch_mapping_type_A) ? hl_cfg->dmrs_typeA.present : hl_cfg->dmrs_typeB.present;
 
   if (dci->ctx.format == srsran_dci_format_nr_1_0 || !dedicated_dmrs_present) {
+    // The reference point for k is
+    // - for PDSCH transmission carrying SIB1, subcarrier 0 of the lowest-numbered common resource block in the
+    //  CORESET configured by the PBCH
+    //- otherwise, subcarrier 0 in common resource block 0
+    if (dci->ctx.rnti_type == srsran_rnti_type_si) {
+      cfg->dmrs.reference_point_k_rb = dci->ctx.coreset_start_rb;
+    }
+
     if (cfg->grant.mapping == srsran_sch_mapping_type_A) {
       // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
       cfg->dmrs.additional_pos         = srsran_dmrs_sch_add_pos_2;

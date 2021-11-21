@@ -84,6 +84,7 @@ public:
     srsran_duplex_config_nr_t                                    duplex  = {};
     srsran::phy_cfg_nr_t::ssb_cfg_t                              ssb     = {};
     srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
+    srsran_mib_nr_t                                              mib;
     srsran::bounded_vector<cell_cfg_sib_t, MAX_SIBS>             sibs;
   };
 

@@ -229,6 +229,7 @@ void s1ap::ue::ho_prep_proc_t::then(const srsran::proc_state_t& result)
 srsran::proc_outcome_t s1ap::s1_setup_proc_t::init()
 {
   procInfo("Starting new MME connection.");
+  connect_count++;
   return start_mme_connection();
 }
 
@@ -274,7 +275,7 @@ srsran::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup
   return srsran::proc_outcome_t::error;
 }
 
-void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result) const
+void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result)
 {
   if (result.is_error()) {
     procInfo("Failed to initiate S1 connection. Attempting reconnection in %d seconds",
@@ -285,7 +286,13 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result) const
     s1ap_ptr->mme_socket.close();
     procInfo("S1AP socket closed.");
     s1ap_ptr->mme_connect_timer.run();
+    if (s1ap_ptr->args.max_s1_setup_retries > 0 && connect_count > s1ap_ptr->args.max_s1_setup_retries) {
+      s1ap_ptr->alarms_channel("s1apError");
+      srsran_terminate("Error connecting to MME");
+    }
     // Try again with in 10 seconds
+  } else {
+    connect_count = 0;
   }
 }
 
@@ -296,7 +303,11 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result) const
 s1ap::s1ap(srsran::task_sched_handle   task_sched_,
            srslog::basic_logger&       logger,
            srsran::socket_manager_itf* rx_socket_handler_) :
-  s1setup_proc(this), logger(logger), task_sched(task_sched_), rx_socket_handler(rx_socket_handler_)
+  s1setup_proc(this),
+  logger(logger),
+  task_sched(task_sched_),
+  rx_socket_handler(rx_socket_handler_),
+  alarms_channel(srslog::fetch_log_channel("alarms"))
 {
   mme_task_queue = task_sched.make_task_queue();
 }
@@ -312,7 +323,7 @@ int s1ap::init(const s1ap_args_t& args_, rrc_interface_s1ap* rrc_)
   mme_connect_timer    = task_sched.get_unique_timer();
   auto mme_connect_run = [this](uint32_t tid) {
     if (s1setup_proc.is_busy()) {
-      logger.error("Failed to initiate S1Setup procedure.");
+      logger.error("Failed to initiate S1Setup procedure: procedure is busy.");
     }
     s1setup_proc.launch();
   };
@@ -330,7 +341,7 @@ int s1ap::init(const s1ap_args_t& args_, rrc_interface_s1ap* rrc_)
   running = true;
   // starting MME connection
   if (not s1setup_proc.launch()) {
-    logger.error("Failed to initiate S1Setup procedure.");
+    logger.error("Failed to initiate S1Setup procedure: error launching procedure.");
   }
 
   return SRSRAN_SUCCESS;
@@ -710,6 +721,13 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
 
 bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 {
+  if (s1setup_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
+    return false;
+  }
+
   s1setupresponse = msg;
   mme_connected   = true;
   s1_setup_proc_t::s1setupresult res;
@@ -1084,6 +1102,13 @@ bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 
 bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
 {
+  if (s1setup_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
+    return false;
+  }
+
   std::string cause = get_cause(msg.protocol_ies.cause.value);
   logger.error("S1 Setup Failure. Cause: %s", cause.c_str());
   srsran::console("S1 Setup Failure. Cause: %s\n", cause.c_str());
@@ -1097,6 +1122,14 @@ bool s1ap::handle_handover_preparation_failure(const ho_prep_fail_s& msg)
   if (u == nullptr) {
     return false;
   }
+
+  if (u->ho_prep_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
+    return false;
+  }
+
   u->ho_prep_proc.trigger(msg);
   return true;
 }
@@ -1106,6 +1139,13 @@ bool s1ap::handle_handover_command(const asn1::s1ap::ho_cmd_s& msg)
   ue* u =
       handle_s1apmsg_ue_id(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
+    return false;
+  }
+
+  if (u->ho_prep_proc.is_idle()) {
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause);
     return false;
   }
   u->ho_prep_proc.trigger(msg);

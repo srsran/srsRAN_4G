@@ -41,11 +41,10 @@ namespace srsenb {
 class metrics_csv : public srsran::metrics_listener<enb_metrics_t>
 {
 public:
-  metrics_csv(std::string filename);
+  metrics_csv(std::string filename, enb_metrics_interface* enb_);
   ~metrics_csv();
 
   void set_metrics(const enb_metrics_t& m, const uint32_t period_usec);
-  void set_handle(enb_metrics_interface* enb_);
   void stop();
 
 private:

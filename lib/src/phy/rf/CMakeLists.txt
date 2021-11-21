@@ -71,12 +71,12 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
   endif (ZEROMQ_FOUND)
 
-  add_library(srsran_rf SHARED ${SOURCES_RF})
+  add_library(srsran_rf STATIC ${SOURCES_RF})
   target_link_libraries(srsran_rf srsran_rf_utils srsran_phy)
   set_target_properties(srsran_rf PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
   
   if (UHD_FOUND)
-    target_link_libraries(srsran_rf ${UHD_LIBRARIES})
+    target_link_libraries(srsran_rf ${UHD_LIBRARIES} ${Boost_LIBRARIES}) # Ubuntu 18.04 requires 'system' from Boost_LIBRARIES
   endif (UHD_FOUND)
 
   if (BLADERF_FOUND)

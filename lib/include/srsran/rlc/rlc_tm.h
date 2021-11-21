@@ -50,7 +50,7 @@ public:
   void empty_queue() override;
 
   rlc_mode_t get_mode() override;
-  uint32_t   get_bearer() override;
+  uint32_t   get_lcid() override;
 
   rlc_bearer_metrics_t get_metrics() override;
   void                 reset_metrics() override;

@@ -36,7 +36,8 @@ using namespace std;
 
 namespace srsenb {
 
-metrics_csv::metrics_csv(std::string filename) : n_reports(0), metrics_report_period(1.0), enb(NULL)
+metrics_csv::metrics_csv(std::string filename, enb_metrics_interface* enb_) :
+  n_reports(0), metrics_report_period(1.0), enb(enb_)
 {
   file.open(filename.c_str(), std::ios_base::out);
 }
@@ -44,11 +45,6 @@ metrics_csv::metrics_csv(std::string filename) : n_reports(0), metrics_report_pe
 metrics_csv::~metrics_csv()
 {
   stop();
-}
-
-void metrics_csv::set_handle(enb_metrics_interface* enb_)
-{
-  enb = enb_;
 }
 
 void metrics_csv::stop()

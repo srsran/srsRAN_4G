@@ -40,8 +40,6 @@ public:
   ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer = true);
   ~ue();
 
-  void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_dcch_msg);
-
   int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);
   void crnti_ce_received();
 
@@ -67,13 +65,34 @@ public:
   void handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_s& msg);
   void handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg);
 
+  /* TS 38.331 - 5.3.4 Initial AS security activation */
+  void handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg);
+
+  /* TS 38.331 - 5.3.5 RRC reconfiguration */
+  void handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg);
+
+  /* TS 38.331 - 5.7.1 DL information transfer */
+  void send_dl_information_transfer(srsran::unique_byte_buffer_t sdu);
+
+  /* TS 38.331 - 5.7.2 UL information transfer */
+  void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
+
+  // NGAP interface
+  void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
+
 private:
-  rrc_nr*  parent = nullptr;
-  uint16_t rnti   = SRSRAN_INVALID_RNTI;
+  void send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
+  void send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
 
   /* TS 38.331 - 5.3.3 RRC connection establishment */
   void send_rrc_setup();
   void send_rrc_reject(uint8_t reject_wait_time_secs);
+
+  /* TS 38.331 - 5.3.4 Initial AS security activation */
+  void send_security_mode_command();
+
+  /* TS 38.331 - 5.3.5 RRC reconfiguration */
+  void send_rrc_reconfiguration();
 
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
@@ -86,7 +105,6 @@ private:
   int pack_sp_cell_cfg_ded(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
   int pack_sp_cell_cfg_ded_init_dl_bwp(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
-  int pack_sp_cell_cfg_ded_init_dl_bwp_pdsch_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
   int pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
   int pack_sp_cell_cfg_ded_ul_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
@@ -116,6 +134,8 @@ private:
 
   int add_drb();
 
+  bool init_pucch();
+
   // logging helpers
   template <class M>
   void log_rrc_message(srsran::nr_srb          srb,
@@ -126,6 +146,11 @@ private:
   template <class M>
   void log_rrc_container(const direction_t dir, srsran::const_byte_span pdu, const M& msg, const char* msg_type);
 
+  // args
+  rrc_nr*               parent = nullptr;
+  srslog::basic_logger& logger;
+  uint16_t              rnti = SRSRAN_INVALID_RNTI;
+
   // state
   rrc_nr_state_t       state          = rrc_nr_state_t::RRC_IDLE;
   uint8_t              transaction_id = 0;
@@ -133,12 +158,18 @@ private:
 
   // RRC configs for UEs
   asn1::rrc_nr::cell_group_cfg_s   cell_group_cfg;
-  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg;
+  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg, next_radio_bearer_cfg;
 
   // MAC controller
   sched_nr_interface::ue_cfg_t uecfg{};
 
   const uint32_t drb1_lcid = 4;
+
+  // SA specific variables
+  struct ctxt_t {
+    uint64_t                               setup_ue_id = -1;
+    asn1::rrc_nr::establishment_cause_opts connection_cause;
+  } ctxt;
 
   // NSA specific variables
   bool     endc       = false;

@@ -223,7 +223,7 @@ int ngap::build_tai_cgi()
 void ngap::initial_ue(uint16_t                                rnti,
                       uint32_t                                gnb_cc_idx,
                       asn1::ngap_nr::rrcestablishment_cause_e cause,
-                      srsran::unique_byte_buffer_t            pdu)
+                      srsran::const_byte_span                 pdu)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this, rrc, gtpu, logger}};
   ue_ptr->ctxt.rnti       = rnti;
@@ -233,13 +233,13 @@ void ngap::initial_ue(uint16_t                                rnti,
     logger.error("Failed to add rnti=0x%x", rnti);
     return;
   }
-  u->send_initial_ue_message(cause, std::move(pdu), false);
+  u->send_initial_ue_message(cause, pdu, false);
 }
 
 void ngap::initial_ue(uint16_t                                rnti,
                       uint32_t                                gnb_cc_idx,
                       asn1::ngap_nr::rrcestablishment_cause_e cause,
-                      srsran::unique_byte_buffer_t            pdu,
+                      srsran::const_byte_span                 pdu,
                       uint32_t                                s_tmsi)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this, rrc, gtpu, logger}};
@@ -250,7 +250,7 @@ void ngap::initial_ue(uint16_t                                rnti,
     logger.error("Failed to add rnti=0x%x", rnti);
     return;
   }
-  u->send_initial_ue_message(cause, std::move(pdu), true, s_tmsi);
+  u->send_initial_ue_message(cause, pdu, true, s_tmsi);
 }
 
 void ngap::ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)
@@ -262,16 +262,16 @@ void ngap::ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)
   u->notify_rrc_reconf_complete(outcome);
 }
 
-void ngap::write_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+void ngap::write_pdu(uint16_t rnti, srsran::const_byte_span pdu)
 {
-  logger.info(pdu->msg, pdu->N_bytes, "Received RRC SDU");
+  logger.info(pdu.data(), pdu.size(), "Received RRC SDU");
 
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
     logger.info("The rnti=0x%x does not exist", rnti);
     return;
   }
-  u->send_ul_nas_transport(std::move(pdu));
+  u->send_ul_nas_transport(pdu);
 }
 
 /*********************************************************

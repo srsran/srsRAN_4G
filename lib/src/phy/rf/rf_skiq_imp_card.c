@@ -218,7 +218,13 @@ int rf_skiq_card_init(rf_skiq_card_t* q, uint8_t card, uint8_t nof_ports, const 
   // Launch thread
   if (pthread_create(&q->thread, &attr, reader_thread, q)) {
     ERROR("Error creating reader thread with attributes (Did you miss sudo?). Trying without attributes.\n");
-    return SRSRAN_ERROR;
+
+    // try to create thread without attributes
+    pthread_attr_destroy(&attr);
+    if (pthread_create(&q->thread, NULL, reader_thread, q)) {
+      ERROR("Error creating reader thread, even without thread attributes. Exiting.\n");
+      return SRSRAN_ERROR;
+    }
   }
 
   // Rename thread

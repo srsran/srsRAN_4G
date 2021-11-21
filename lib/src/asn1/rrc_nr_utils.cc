@@ -20,6 +20,7 @@
  */
 
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/config.h"
@@ -1489,6 +1490,24 @@ bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
   return true;
 }
 
+bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
+{
+  mib->sfn     = 0;
+  mib->ssb_idx = 0;
+  mib->hrf     = 0;
+  mib->scs_common =
+      mib_cfg.sub_carrier_spacing_common.value == asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60
+          ? srsran_subcarrier_spacing_15kHz
+          : srsran_subcarrier_spacing_30kHz;
+  mib->ssb_offset             = mib_cfg.ssb_subcarrier_offset;
+  mib->dmrs_typeA_pos         = (srsran_dmrs_sch_typeA_pos_t)mib_cfg.dmrs_type_a_position.value;
+  mib->coreset0_idx           = mib_cfg.pdcch_cfg_sib1.ctrl_res_set_zero;
+  mib->ss0_idx                = mib_cfg.pdcch_cfg_sib1.search_space_zero;
+  mib->cell_barred            = mib_cfg.cell_barred.value == asn1::rrc_nr::mib_s::cell_barred_opts::barred;
+  mib->intra_freq_reselection = mib_cfg.intra_freq_resel.value == asn1::rrc_nr::mib_s::intra_freq_resel_opts::allowed;
+  return true;
+}
+
 bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
 {
   if (serv_cell.csi_meas_cfg_present and
@@ -1603,4 +1622,40 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
   return true;
 }
 
+/**************************
+ *     Asn1 Obj Id
+ *************************/
+
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::srb_to_add_mod_s, srb_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::drb_to_add_mod_s, drb_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_obj_to_add_mod_s, meas_obj_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::report_cfg_to_add_mod_s, report_cfg_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_id_to_add_mod_s, meas_id);
+
 } // namespace srsran
+
+namespace asn1 {
+
+namespace rrc_nr {
+
+bool operator==(const srb_to_add_mod_s& lhs, const srb_to_add_mod_s& rhs)
+{
+  if (lhs.srb_id != rhs.srb_id or lhs.pdcp_cfg_present != rhs.pdcp_cfg_present) {
+    return false;
+  }
+  // TODO: check remaining fields
+  return true;
+}
+bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs)
+{
+  if (lhs.drb_id != rhs.drb_id or lhs.pdcp_cfg_present != rhs.pdcp_cfg_present or
+      lhs.cn_assoc_present != rhs.cn_assoc_present) {
+    return false;
+  }
+  // TODO: check remaining fields
+  return true;
+}
+
+} // namespace rrc_nr
+
+} // namespace asn1

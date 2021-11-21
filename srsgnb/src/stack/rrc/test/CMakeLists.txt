@@ -21,5 +21,5 @@
 add_library(rrc_nr_test_helpers rrc_nr_test_helpers.cc)
 
 add_executable(rrc_nr_test rrc_nr_test.cc)
-target_link_libraries(rrc_nr_test srsgnb_rrc test_helpers rrc_nr_test_helpers)
+target_link_libraries(rrc_nr_test srsgnb_rrc srsgnb_rrc_config_utils test_helpers rrc_nr_test_helpers ${ATOMIC_LIBS})
 add_test(rrc_nr_test rrc_nr_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)

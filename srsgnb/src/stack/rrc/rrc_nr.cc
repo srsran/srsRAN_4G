@@ -58,38 +58,15 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   rrc_eutra = rrc_eutra_;
 
   cfg = cfg_;
-  if (cfg.is_standalone) {
-    // Generate parameters of Coreset#0 and SS#0
-    const uint32_t coreset0_idx                        = 7;
-    cfg.cell_list[0].phy_cell.pdcch.coreset_present[0] = true;
-    // Get pointA and SSB absolute frequencies
-    double pointA_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz -
-                                cfg.cell_list[0].phy_cell.carrier.nof_prb * SRSRAN_NRE *
-                                    SRSRAN_SUBC_SPACING_NR(cfg.cell_list[0].phy_cell.carrier.scs) / 2;
-    double ssb_abs_freq_Hz = cfg.cell_list[0].phy_cell.carrier.ssb_center_freq_hz;
-    // Calculate integer SSB to pointA frequency offset in Hz
-    uint32_t ssb_pointA_freq_offset_Hz =
-        (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-    int ret = srsran_coreset_zero(cfg.cell_list[0].phy_cell.cell_id,
-                                  ssb_pointA_freq_offset_Hz,
-                                  cfg.cell_list[0].ssb_cfg.scs,
-                                  cfg.cell_list[0].phy_cell.carrier.scs,
-                                  coreset0_idx,
-                                  &cfg.cell_list[0].phy_cell.pdcch.coreset[0]);
-    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to generate CORESET#0");
-    cfg.cell_list[0].phy_cell.pdcch.search_space_present[0]           = true;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].id                = 0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].coreset_id        = 0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].type              = srsran_search_space_type_common_0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[0] = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[1] = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_candidates[2] = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_1_0;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].nof_formats       = 1;
-    cfg.cell_list[0].phy_cell.pdcch.search_space[0].duration          = 1;
-  }
 
+  // Generate cell config structs
   cell_ctxt.reset(new cell_ctxt_t{});
+  if (cfg.is_standalone) {
+    std::unique_ptr<cell_group_cfg_s> master_cell_group{new cell_group_cfg_s{}};
+    int                               ret = fill_master_cell_cfg_from_enb_cfg(cfg, 0, *master_cell_group);
+    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure MasterCellGroup");
+    cell_ctxt->master_cell_group = std::move(master_cell_group);
+  }
 
   // derived
   slot_dur_ms = 1;
@@ -153,6 +130,11 @@ template void rrc_nr::log_rrc_message<dl_ccch_msg_s>(const char*             sou
                                                      const direction_t       dir,
                                                      srsran::const_byte_span pdu,
                                                      const dl_ccch_msg_s&    msg,
+                                                     const char*             msg_type);
+template void rrc_nr::log_rrc_message<dl_dcch_msg_s>(const char*             source,
+                                                     const direction_t       dir,
+                                                     srsran::const_byte_span pdu,
+                                                     const dl_dcch_msg_s&    msg,
                                                      const char*             msg_type);
 template void rrc_nr::log_rrc_message<cell_group_cfg_s>(const char*             source,
                                                         const direction_t       dir,
@@ -305,6 +287,8 @@ void rrc_nr::config_mac()
   srsran_assert(ret2, "Invalid NR cell configuration.");
   ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
   srsran_assert(ret2, "Invalid NR cell configuration.");
+  ret2 = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
+  srsran_assert(ret2, "Invalid NR cell MIB configuration.");
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());
@@ -326,7 +310,7 @@ void rrc_nr::config_mac()
 int32_t rrc_nr::generate_sibs()
 {
   // MIB packing
-  fill_mib_from_enb_cfg(cfg, cell_ctxt->mib);
+  fill_mib_from_enb_cfg(cfg.cell_list[0], cell_ctxt->mib);
   bcch_bch_msg_s mib_msg;
   mib_msg.msg.set_mib() = cell_ctxt->mib;
   {
@@ -350,7 +334,7 @@ int32_t rrc_nr::generate_sibs()
   }
 
   // SIB1 packing
-  fill_sib1_from_enb_cfg(cfg, cell_ctxt->sib1);
+  fill_sib1_from_enb_cfg(cfg, 0, cell_ctxt->sib1);
   si_sched_info_s::sched_info_list_l_& sched_info = cell_ctxt->sib1.si_sched_info.sched_info_list;
 
   // SI messages packing
@@ -518,6 +502,12 @@ void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_spa
     case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_setup_complete:
       u.handle_rrc_setup_complete(ul_dcch_msg.msg.c1().rrc_setup_complete());
       break;
+    case ul_dcch_msg_type_c::c1_c_::types_opts::security_mode_complete:
+      u.handle_security_mode_complete(ul_dcch_msg.msg.c1().security_mode_complete());
+    case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_recfg_complete:
+      u.handle_rrc_reconfiguration_complete(ul_dcch_msg.msg.c1().rrc_recfg_complete());
+    case ul_dcch_msg_type_c::c1_c_::types_opts::ul_info_transfer:
+      u.handle_ul_information_transfer(ul_dcch_msg.msg.c1().ul_info_transfer());
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user
@@ -577,6 +567,12 @@ int rrc_nr::start_security_mode_procedure(uint16_t rnti)
 }
 int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
 {
+  if (not users.contains(rnti)) {
+    logger.error("Establishing RRC bearers for inexistent rnti=0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+
+  users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid);
   return SRSRAN_SUCCESS;
 }
 
@@ -590,7 +586,18 @@ int rrc_nr::allocate_lcid(uint16_t rnti)
   return SRSRAN_SUCCESS;
 }
 
-void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
+void rrc_nr::write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu)
+{
+  if (not users.contains(rnti)) {
+    logger.error("Received DL information transfer for inexistent rnti=0x%x", rnti);
+    return;
+  }
+  if (sdu == nullptr or sdu->size() == 0) {
+    logger.error("Received empty DL information transfer for rnti=0x%x", rnti);
+    return;
+  }
+  users[rnti]->send_dl_information_transfer(std::move(sdu));
+}
 
 /*******************************************************************************
   Interface for EUTRA RRC
@@ -668,5 +675,6 @@ srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu(const T& msg)
   return pdu;
 }
 template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_ccch_msg_s>(const dl_ccch_msg_s& msg);
+template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_dcch_msg_s>(const dl_dcch_msg_s& msg);
 
 } // namespace srsenb

@@ -25,6 +25,7 @@
 #include "srsenb/test/rrc/test_helpers.h"
 #include "srsgnb/hdr/stack/common/test/dummy_nr_classes.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
@@ -64,9 +65,11 @@ void test_sib_generation()
   phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = {};
   rrc_cfg_nr.cell_list.emplace_back();
+  generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
-  rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
-  rrc_cfg_nr.cell_list[0].band                 = 78;
+  rrc_cfg_nr.cell_list[0].dl_arfcn             = 368500;
+  rrc_cfg_nr.cell_list[0].band                 = 3;
+  rrc_cfg_nr.cell_list[0].duplex_mode          = SRSRAN_DUPLEX_MODE_FDD;
   rrc_cfg_nr.is_standalone                     = true;
   args.enb.n_prb                               = 50;
   enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
@@ -116,6 +119,7 @@ int test_rrc_setup()
   phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
+  generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
   rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
   rrc_cfg_nr.cell_list[0].band                 = 78;
@@ -154,9 +158,11 @@ void test_rrc_sa_connection()
   phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
+  generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
-  rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
-  rrc_cfg_nr.cell_list[0].band                 = 78;
+  rrc_cfg_nr.cell_list[0].dl_arfcn             = 368500;
+  rrc_cfg_nr.cell_list[0].band                 = 3;
+  rrc_cfg_nr.cell_list[0].duplex_mode          = SRSRAN_DUPLEX_MODE_FDD;
   rrc_cfg_nr.is_standalone                     = true;
   args.enb.n_prb                               = 50;
   enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
@@ -177,7 +183,7 @@ int main(int argc, char** argv)
   auto& logger = srslog::fetch_basic_logger("ASN1");
   logger.set_level(srslog::basic_levels::info);
   auto& rrc_logger = srslog::fetch_basic_logger("RRC-NR");
-  rrc_logger.set_level(srslog::basic_levels::info);
+  rrc_logger.set_level(srslog::basic_levels::debug);
 
   srslog::init();
 

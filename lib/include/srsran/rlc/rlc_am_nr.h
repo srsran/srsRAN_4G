@@ -26,6 +26,8 @@
 #include "srsran/common/common.h"
 #include "srsran/common/timers.h"
 #include "srsran/rlc/rlc_am_base.h"
+#include "srsran/rlc/rlc_am_data_structs.h"
+#include "srsran/rlc/rlc_am_nr_packing.h"
 #include "srsran/upper/byte_buffer_queue.h"
 #include <map>
 #include <mutex>
@@ -34,114 +36,93 @@
 
 namespace srsran {
 
-class rlc_am_nr : public rlc_common
+/******************************
+ *
+ * RLC AM NR entity
+ *
+ *****************************/
+class rlc_am_nr_tx;
+class rlc_am_nr_rx;
+
+// Transmitter sub-class
+class rlc_am_nr_tx : public rlc_am::rlc_am_base_tx
 {
 public:
-  rlc_am_nr(srslog::basic_logger&      logger,
-            uint32_t                   lcid_,
-            srsue::pdcp_interface_rlc* pdcp_,
-            srsue::rrc_interface_rlc*  rrc_,
-            srsran::timer_handler*     timers_);
-  bool configure(const rlc_config_t& cfg_) final;
-  void stop() final;
+  explicit rlc_am_nr_tx(rlc_am* parent_);
+  ~rlc_am_nr_tx() = default;
 
-  rlc_mode_t get_mode() final;
-  uint32_t   get_bearer() final;
+  void     set_rx(rlc_am_nr_rx* rx_) { rx = rx_; }
+  bool     configure(const rlc_config_t& cfg_) final;
+  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+  void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) final;
 
-  void reestablish() final;
-  void empty_queue() final;
-  void set_bsr_callback(bsr_callback_t callback) final;
-
-  // PDCP interface
-  void write_sdu(unique_byte_buffer_t sdu) final;
-  void discard_sdu(uint32_t pdcp_sn) final;
+  void discard_sdu(uint32_t discard_sn) final;
   bool sdu_queue_is_full() final;
+  void reestablish() final;
 
-  // MAC interface
+  int      write_sdu(unique_byte_buffer_t sdu);
+  void     empty_queue() final;
   bool     has_data() final;
   uint32_t get_buffer_state() final;
-  void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) final;
-  uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
-  void     write_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+  void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue);
 
-  rlc_bearer_metrics_t get_metrics() final;
-  void                 reset_metrics() final;
+  void stop() final;
 
 private:
-  // Transmitter sub-class
-  class rlc_am_nr_tx
-  {
-  public:
-    explicit rlc_am_nr_tx(rlc_am_nr* parent_);
-    ~rlc_am_nr_tx() = default;
+  rlc_am*       parent = nullptr;
+  rlc_am_nr_rx* rx     = nullptr;
 
-    bool configure(const rlc_am_config_t& cfg_);
-    void stop();
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+   ***************************************************************************/
+  rlc_am_config_t cfg = {};
 
-    int      write_sdu(unique_byte_buffer_t sdu);
-    uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void     discard_sdu(uint32_t discard_sn);
-    bool     sdu_queue_is_full();
+  /****************************************************************************
+   * Tx state variables
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
+   ***************************************************************************/
+  struct rlc_nr_tx_state_t {
+    uint32_t tx_next_ack;
+    uint32_t tx_next;
+    uint32_t poll_sn;
+    uint32_t pdu_without_poll;
+    uint32_t byte_without_poll;
+  } st = {};
 
-    bool     has_data();
-    uint32_t get_buffer_state();
+  using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+  rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
+};
 
-    rlc_am_nr*            parent = nullptr;
-    srslog::basic_logger& logger;
+// Receiver sub-class
+class rlc_am_nr_rx : public rlc_am::rlc_am_base_rx
+{
+public:
+  explicit rlc_am_nr_rx(rlc_am* parent_);
+  ~rlc_am_nr_rx() = default;
 
-  private:
-    byte_buffer_pool* pool = nullptr;
+  void set_tx(rlc_am_nr_tx* tx_) { tx = tx_; }
+  bool configure(const rlc_config_t& cfg_) final;
 
-    /****************************************************************************
-     * Configurable parameters
-     * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
-     ***************************************************************************/
-    rlc_am_config_t cfg = {};
-  };
+  void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
 
-  // Receiver sub-class
-  class rlc_am_nr_rx
-  {
-  public:
-    explicit rlc_am_nr_rx(rlc_am_nr* parent_);
-    ~rlc_am_nr_rx() = default;
+  void stop();
+  void reestablish();
 
-    bool configure(const rlc_am_config_t& cfg_);
-    void stop();
+  uint32_t get_sdu_rx_latency_ms();
+  uint32_t get_rx_buffered_bytes();
 
-    void write_pdu(uint8_t* payload, uint32_t nof_bytes);
+private:
+  rlc_am*           parent = nullptr;
+  rlc_am_nr_tx*     tx     = nullptr;
+  byte_buffer_pool* pool   = nullptr;
 
-    rlc_am_nr*            parent = nullptr;
-    srslog::basic_logger& logger;
-
-  private:
-    byte_buffer_pool* pool = nullptr;
-
-    /****************************************************************************
-     * Configurable parameters
-     * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
-     ***************************************************************************/
-    rlc_am_config_t cfg = {};
-  };
-
-  // Common variables needed/provided by parent class
-  srsue::rrc_interface_rlc*  rrc = nullptr;
-  srslog::basic_logger&      logger;
-  srsue::pdcp_interface_rlc* pdcp   = nullptr;
-  srsran::timer_handler*     timers = nullptr;
-  uint32_t                   lcid   = 0;
-  rlc_config_t               cfg    = {};
-  std::string                rb_name;
-
-  static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
-
-  // Rx and Tx objects
-  rlc_am_nr_tx tx;
-  rlc_am_nr_rx rx;
-
-  rlc_bearer_metrics_t metrics = {};
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+   ***************************************************************************/
+  rlc_am_config_t cfg = {};
 };
 
 } // namespace srsran
-
 #endif // SRSRAN_RLC_AM_NR_H

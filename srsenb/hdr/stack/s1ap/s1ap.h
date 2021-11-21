@@ -131,6 +131,7 @@ private:
   rrc_interface_s1ap*         rrc = nullptr;
   s1ap_args_t                 args;
   srslog::basic_logger&       logger;
+  srslog::log_channel&        alarms_channel;
   srsran::task_sched_handle   task_sched;
   srsran::task_queue_handle   mme_task_queue;
   srsran::socket_manager_itf* rx_socket_handler;
@@ -338,8 +339,9 @@ private:
     srsran::proc_outcome_t init();
     srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
     srsran::proc_outcome_t react(const s1setupresult& event);
-    void                   then(const srsran::proc_state_t& result) const;
+    void                   then(const srsran::proc_state_t& result);
     const char*            name() const { return "MME Connection"; }
+    uint16_t               connect_count = 0;
 
   private:
     srsran::proc_outcome_t start_mme_connection();

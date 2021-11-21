@@ -370,6 +370,12 @@ bool sched::is_generated(srsran::tti_point tti_rx, uint32_t enb_cc_idx) const
   return sched_results.has_sf(tti_rx) and sched_results.get_sf(tti_rx)->is_generated(enb_cc_idx);
 }
 
+int sched::metrics_read(uint16_t rnti, mac_ue_metrics_t& metrics)
+{
+  return ue_db_access_locked(
+      rnti, [&metrics](sched_ue& ue) { ue.metrics_read(metrics); }, "metrics_read");
+}
+
 // Common way to access ue_db elements in a read locking way
 template <typename Func>
 int sched::ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name, bool log_fail)

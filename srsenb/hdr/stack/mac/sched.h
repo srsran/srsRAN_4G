@@ -86,6 +86,7 @@ public:
   std::array<int, SRSRAN_MAX_CARRIERS> get_enb_ue_cc_map(uint16_t rnti) final;
   std::array<int, SRSRAN_MAX_CARRIERS> get_enb_ue_activ_cc_map(uint16_t rnti) final;
   int                                  ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;
+  int                                  metrics_read(uint16_t rnti, mac_ue_metrics_t& metrics);
 
   class carrier_sched;
 

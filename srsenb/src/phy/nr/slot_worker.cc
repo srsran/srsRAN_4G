@@ -23,6 +23,14 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 
+//#define DEBUG_WRITE_FILE
+
+#ifdef DEBUG_WRITE_FILE
+FILE*           f;
+static uint32_t num_slots = 0;
+static uint32_t slots_to_dump = 10;
+#endif
+
 namespace srsenb {
 namespace nr {
 slot_worker::slot_worker(srsran::phy_common_interface& common_,
@@ -94,6 +102,12 @@ bool slot_worker::init(const args_t& args)
     logger.error("Error gNb DL init");
     return false;
   }
+
+#ifdef DEBUG_WRITE_FILE
+  const char* filename = "nr_baseband.dat";
+  printf("Opening %s to dump baseband\n", filename);
+  f = fopen(filename, "w");
+#endif
 
   return true;
 }
@@ -416,6 +430,16 @@ void slot_worker::work_imp()
   }
 
   common.worker_end(context, true, tx_rf_buffer);
+
+#ifdef DEBUG_WRITE_FILE
+  if (num_slots++ < slots_to_dump) {
+    printf("Writing slot %d\n", dl_slot_cfg.idx);
+    fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
+  } else if (num_slots == slots_to_dump) {
+    printf("Baseband signaled dump finished. Please close app.\n");
+    fclose(f);
+  }
+#endif
 }
 
 bool slot_worker::set_common_cfg(const srsran_carrier_nr_t&   carrier,

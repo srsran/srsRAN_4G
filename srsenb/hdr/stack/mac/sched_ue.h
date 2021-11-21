@@ -27,6 +27,7 @@
 #include "sched_ue_ctrl/sched_ue_cell.h"
 #include "sched_ue_ctrl/tpc.h"
 #include "srsenb/hdr/common/common_enb.h"
+#include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsran/srslog/srslog.h"
 #include <bitset>
 #include <map>
@@ -82,6 +83,7 @@ public:
   const ue_cfg_t&           get_ue_cfg() const { return cfg; }
   uint32_t                  get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits);
   void                      ul_buffer_add(uint8_t lcid, uint32_t bytes);
+  void                      metrics_read(mac_ue_metrics_t& metrics);
 
   /*******************************************************
    * Functions used by scheduler metric objects

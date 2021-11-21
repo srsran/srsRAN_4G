@@ -35,7 +35,7 @@
 using namespace srsue;
 using namespace srsran;
 
-int basic_test_tx(rlc_am_nr* rlc, byte_buffer_t pdu_bufs[NBUFS])
+int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
 {
   // Push 5 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[NBUFS];
@@ -66,8 +66,8 @@ int basic_test()
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
-  rlc_am_nr rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_nr rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());

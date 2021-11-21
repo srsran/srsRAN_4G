@@ -38,7 +38,7 @@ using namespace srsran;
 class ul_writer : public thread
 {
 public:
-  ul_writer(rlc_am_lte* rlc_) : rlc(rlc_), thread("UL_WRITER") {}
+  ul_writer(rlc_am* rlc_) : rlc(rlc_), thread("UL_WRITER") {}
   ~ul_writer() { stop(); }
   void stop()
   {
@@ -74,11 +74,11 @@ private:
     running = false;
   }
 
-  rlc_am_lte*       rlc     = nullptr;
+  rlc_am*           rlc     = nullptr;
   std::atomic<bool> running = {false};
 };
 
-int basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
+int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
 {
   // Push 5 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[NBUFS];
@@ -109,8 +109,8 @@ int basic_test()
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());
@@ -167,8 +167,8 @@ int concat_test()
   rlc_am_tester         tester;
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -242,8 +242,8 @@ int segment_test(bool in_seq_rx)
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -337,8 +337,8 @@ int retx_test()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -473,7 +473,7 @@ int max_retx_test()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_config();
   if (not rlc1.configure(rlc_cfg)) {
@@ -536,8 +536,8 @@ int segment_retx_test()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -661,8 +661,8 @@ int resegment_test_1()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -818,8 +818,8 @@ int resegment_test_2()
   rlc_am_tester tester;
   timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -950,8 +950,8 @@ int resegment_test_3()
   rlc_am_tester         tester;
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1080,8 +1080,8 @@ int resegment_test_4()
   rlc_am_tester         tester;
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1212,8 +1212,8 @@ int resegment_test_5()
   rlc_am_tester         tester;
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1339,8 +1339,8 @@ int resegment_test_6()
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1508,8 +1508,8 @@ int resegment_test_7()
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1693,8 +1693,8 @@ int resegment_test_8()
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1845,8 +1845,8 @@ int resegment_test_9()
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(config)) {
     return SRSRAN_ERROR;
@@ -1987,8 +1987,8 @@ int resegment_test_10()
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(config)) {
     return SRSRAN_ERROR;
@@ -2136,8 +2136,8 @@ int resegment_test_11()
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(config)) {
     return SRSRAN_ERROR;
@@ -2294,8 +2294,8 @@ int resegment_test_12()
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(config)) {
     return SRSRAN_ERROR;
@@ -2438,7 +2438,7 @@ int header_reconstruction_test(srsran::log_sink_message_spy& spy)
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -2501,7 +2501,7 @@ int header_reconstruction_test2(srsran::log_sink_message_spy& spy)
 #endif
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -2565,7 +2565,7 @@ int header_reconstruction_test3(srsran::log_sink_message_spy& spy)
   srsran::timer_handler timers(8);
 
   // configure RLC
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -2651,7 +2651,7 @@ int header_reconstruction_test4(srsran::log_sink_message_spy& spy)
   srsran::timer_handler timers(8);
 
   // configure RLC
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -2728,7 +2728,7 @@ int header_reconstruction_test5(srsran::log_sink_message_spy& spy)
   srsran::timer_handler timers(8);
 
   // configure RLC
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -2807,7 +2807,7 @@ int header_reconstruction_test6(srsran::log_sink_message_spy& spy)
   srsran::timer_handler timers(8);
 
   // configure RLC
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -2906,7 +2906,7 @@ int header_reconstruction_test7(srsran::log_sink_message_spy& spy)
   srsran::timer_handler timers(8);
 
   // configure RLC
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -3008,7 +3008,7 @@ int header_reconstruction_test8(srsran::log_sink_message_spy& spy)
   srsran::timer_handler timers(8);
 
   // configure RLC
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -3039,7 +3039,7 @@ bool reset_test()
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -3081,7 +3081,7 @@ bool resume_test()
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -3122,7 +3122,7 @@ bool stop_test()
   rlc_am_tester         tester;
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -3149,8 +3149,8 @@ bool status_pdu_test()
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -3258,8 +3258,8 @@ bool incorrect_status_pdu_test()
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -3323,8 +3323,8 @@ bool incorrect_status_pdu_test2()
   srsran::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -3437,8 +3437,8 @@ bool reestablish_test()
 
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);
@@ -3557,8 +3557,8 @@ bool discard_test()
 
   srsran::timer_handler timers(8);
 
-  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);

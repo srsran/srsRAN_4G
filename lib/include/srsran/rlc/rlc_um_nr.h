@@ -111,8 +111,8 @@ private:
     uint32_t RX_Next_Highest    = 0; // the SN following the SN of the UMD PDU with the highest SN among
                                      // received UMD PDUs. It serves as the higher edge of the reassembly window.
 
-    uint32_t UM_Window_Size;
-    uint32_t mod; // Rx counter modulus
+    uint32_t UM_Window_Size = 0;
+    uint32_t mod            = 0; // Rx counter modulus
 
     // Rx window
     typedef struct {

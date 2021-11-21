@@ -347,9 +347,9 @@ int srsran_symbol_sz_power2(uint32_t nof_prb)
     return 256;
   } else if (nof_prb <= 25) {
     return 512;
-  } else if (nof_prb <= 50) {
+  } else if (nof_prb <= 52) {
     return 1024;
-  } else if (nof_prb <= 75) {
+  } else if (nof_prb <= 79) {
     return 1536;
   } else if (nof_prb <= 110) {
     return 2048;

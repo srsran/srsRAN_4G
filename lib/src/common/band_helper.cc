@@ -142,29 +142,37 @@ double srsran_band_helper::get_abs_freq_point_a_from_center_freq(uint32_t nof_pr
           SRSRAN_NRE);
 }
 
-uint32_t
-srsran_band_helper::get_abs_freq_ssb_arfcn(uint16_t band, srsran_subcarrier_spacing_t scs, uint32_t freq_point_a_arfcn)
+uint32_t srsran_band_helper::find_lower_bound_abs_freq_ssb(uint16_t                    band,
+                                                           srsran_subcarrier_spacing_t scs,
+                                                           uint32_t                    min_center_freq_hz)
 {
   sync_raster_t sync_raster = get_sync_raster(band, scs);
   if (!sync_raster.valid()) {
     return 0;
   }
 
-  // double abs_freq_ssb_hz = sync_raster.get_frequency();
-  double freq_point_a_hz = nr_arfcn_to_freq(freq_point_a_arfcn);
-  double ssb_bw_hz       = SRSRAN_SSB_BW_SUBC * SRSRAN_SUBC_SPACING_NR(scs);
-
+  double ssb_bw_hz = SRSRAN_SSB_BW_SUBC * SRSRAN_SUBC_SPACING_NR(scs);
   while (!sync_raster.end()) {
     double abs_freq_ssb_hz = sync_raster.get_frequency();
 
-    if ((abs_freq_ssb_hz > (freq_point_a_hz + ssb_bw_hz / 2)) and
-        ((uint32_t)std::round(abs_freq_ssb_hz - freq_point_a_hz) % SRSRAN_SUBC_SPACING_NR(scs) == 0)) {
+    if ((abs_freq_ssb_hz > min_center_freq_hz + ssb_bw_hz / 2) and
+        ((uint32_t)std::round(abs_freq_ssb_hz - min_center_freq_hz) % SRSRAN_SUBC_SPACING_NR(scs) == 0)) {
       return freq_to_nr_arfcn(abs_freq_ssb_hz);
     }
 
     sync_raster.next();
   }
   return 0;
+}
+
+uint32_t srsran_band_helper::get_abs_freq_ssb_arfcn(uint16_t                    band,
+                                                    srsran_subcarrier_spacing_t scs,
+                                                    uint32_t                    freq_point_a_arfcn,
+                                                    uint32_t                    coreset0_offset_rb)
+{
+  double freq_point_a_hz    = nr_arfcn_to_freq(freq_point_a_arfcn);
+  double coreset0_offset_hz = coreset0_offset_rb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(scs);
+  return find_lower_bound_abs_freq_ssb(band, scs, freq_point_a_hz + coreset0_offset_hz);
 }
 
 srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const

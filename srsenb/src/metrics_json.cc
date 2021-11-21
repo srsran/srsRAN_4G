@@ -54,6 +54,13 @@ DECLARE_METRIC("dl_bitrate", metric_dl_bitrate, float, "");
 DECLARE_METRIC("dl_bler", metric_dl_bler, float, "");
 DECLARE_METRIC("ul_snr", metric_ul_snr, float, "");
 DECLARE_METRIC("ul_mcs", metric_ul_mcs, float, "");
+DECLARE_METRIC("ul_pusch_rssi", metric_ul_pusch_rssi, float, "");
+DECLARE_METRIC("ul_pucch_rssi", metric_ul_pucch_rssi, float, "");
+DECLARE_METRIC("ul_pucch_ni", metric_ul_pucch_ni, float, "");
+DECLARE_METRIC("ul_pusch_tpc", metric_ul_pusch_tpc, int64_t, "");
+DECLARE_METRIC("ul_pucch_tpc", metric_ul_pucch_tpc, int64_t, "");
+DECLARE_METRIC("dl_cqi_offset", metric_dl_cqi_offset, float, "");
+DECLARE_METRIC("ul_snr_offset", metric_ul_snr_offset, float, "");
 DECLARE_METRIC("ul_bitrate", metric_ul_bitrate, float, "");
 DECLARE_METRIC("ul_bler", metric_ul_bler, float, "");
 DECLARE_METRIC("ul_phr", metric_ul_phr, float, "");
@@ -64,6 +71,13 @@ DECLARE_METRIC_SET("ue_container",
                    metric_ue_rnti,
                    metric_dl_cqi,
                    metric_dl_mcs,
+                   metric_ul_pusch_rssi,
+                   metric_ul_pucch_rssi,
+                   metric_ul_pucch_ni,
+                   metric_ul_pusch_tpc,
+                   metric_ul_pucch_tpc,
+                   metric_dl_cqi_offset,
+                   metric_ul_snr_offset,
                    metric_dl_bitrate,
                    metric_dl_bler,
                    metric_ul_snr,
@@ -97,24 +111,40 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
   ue.write<metric_ue_rnti>(m.stack.mac.ues[i].rnti);
   ue.write<metric_dl_cqi>(std::max(0.1f, m.stack.mac.ues[i].dl_cqi));
   if (!std::isnan(m.phy[i].dl.mcs)) {
-    ue.write<metric_dl_mcs>(std::max(0.1f, m.phy[i].dl.mcs));
+    ue.write<metric_dl_mcs>(m.phy[i].dl.mcs);
   }
   if (m.stack.mac.ues[i].tx_brate > 0 && m.stack.mac.ues[i].nof_tti > 0) {
     ue.write<metric_dl_bitrate>(
         std::max(0.1f, (float)m.stack.mac.ues[i].tx_brate / (m.stack.mac.ues[i].nof_tti * 0.001f)));
   }
   if (m.stack.mac.ues[i].tx_pkts > 0 && m.stack.mac.ues[i].tx_errors > 0) {
-    ue.write<metric_dl_bler>(std::max(0.1f, (float)100 * m.stack.mac.ues[i].tx_errors / m.stack.mac.ues[i].tx_pkts));
+    ue.write<metric_dl_bler>((float)100 * m.stack.mac.ues[i].tx_errors / m.stack.mac.ues[i].tx_pkts);
   }
   if (!std::isnan(m.phy[i].ul.pusch_sinr)) {
-    ue.write<metric_ul_snr>(std::max(0.1f, m.phy[i].ul.pusch_sinr));
+    ue.write<metric_ul_snr>(m.phy[i].ul.pusch_sinr);
+  }
+  if (!std::isnan(m.phy[i].ul.pusch_rssi)) {
+    ue.write<metric_ul_pusch_rssi>(m.phy[i].ul.pusch_rssi);
+  }
+  if (!std::isnan(m.phy[i].ul.pucch_rssi)) {
+    ue.write<metric_ul_pucch_rssi>(m.phy[i].ul.pucch_rssi);
+  }
+  if (!std::isnan(m.phy[i].ul.pucch_ni)) {
+    ue.write<metric_ul_pucch_ni>(m.phy[i].ul.pucch_ni);
+  }
+  ue.write<metric_ul_pusch_tpc>(m.phy[i].ul.pusch_tpc);
+  ue.write<metric_ul_pucch_tpc>(m.phy[i].dl.pucch_tpc);
+  if (!std::isnan(m.stack.mac.ues[i].dl_cqi_offset)) {
+    ue.write<metric_dl_cqi_offset>(m.stack.mac.ues[i].dl_cqi_offset);
+  }
+  if (!std::isnan(m.stack.mac.ues[i].ul_snr_offset)) {
+    ue.write<metric_ul_snr_offset>(m.stack.mac.ues[i].ul_snr_offset);
   }
   if (!std::isnan(m.phy[i].ul.mcs)) {
-    ue.write<metric_ul_mcs>(std::max(0.1f, m.phy[i].ul.mcs));
+    ue.write<metric_ul_mcs>(m.phy[i].ul.mcs);
   }
   if (m.stack.mac.ues[i].rx_brate > 0 && m.stack.mac.ues[i].nof_tti > 0) {
-    ue.write<metric_ul_bitrate>(
-        std::max(0.1f, (float)m.stack.mac.ues[i].rx_brate / (m.stack.mac.ues[i].nof_tti * 0.001f)));
+    ue.write<metric_ul_bitrate>((float)m.stack.mac.ues[i].rx_brate / (m.stack.mac.ues[i].nof_tti * 0.001f));
   }
   if (m.stack.mac.ues[i].rx_pkts > 0 && m.stack.mac.ues[i].rx_errors > 0) {
     ue.write<metric_ul_bler>(std::max(0.1f, (float)100 * m.stack.mac.ues[i].rx_errors / m.stack.mac.ues[i].rx_pkts));

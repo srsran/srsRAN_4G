@@ -250,7 +250,11 @@ void mac::get_metrics(mac_metrics_t& metrics)
       continue;
     }
     metrics.ues.emplace_back();
-    u.second->metrics_read(&metrics.ues.back());
+    auto& ue_metrics = metrics.ues.back();
+
+    u.second->metrics_read(&ue_metrics);
+    scheduler.metrics_read(u.first, ue_metrics);
+    ue_metrics.pci = (ue_metrics.cc_idx < cell_config.size()) ? cell_config[ue_metrics.cc_idx].cell.id : 0;
   }
   metrics.cc_info.resize(detected_rachs.size());
   for (unsigned cc = 0, e = detected_rachs.size(); cc != e; ++cc) {
@@ -579,11 +583,22 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
 
-    logger.info(
-        "RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x", tti, enb_cc_idx, preamble_idx, time_adv, rnti);
-    srsran::console("RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+    auto get_pci = [this, enb_cc_idx]() {
+      srsran::rwlock_read_guard lock(rwlock);
+      return (enb_cc_idx < cell_config.size()) ? cell_config[enb_cc_idx].cell.id : 0;
+    };
+    uint32_t pci = get_pci();
+    logger.info("RACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+                tti,
+                enb_cc_idx,
+                pci,
+                preamble_idx,
+                time_adv,
+                rnti);
+    srsran::console("RACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
                     tti,
                     enb_cc_idx,
+                    pci,
                     preamble_idx,
                     time_adv,
                     rnti);
@@ -840,9 +855,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid    = current_lcid;
-      mch.pdu[0].nbytes  = bytes_received;
+      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid     = current_lcid;
+      mch.pdu[0].nbytes   = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {

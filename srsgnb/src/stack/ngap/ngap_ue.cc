@@ -55,7 +55,7 @@ ngap::ue::~ue() {}
 ********************************************************************************/
 
 bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e cause,
-                                       srsran::unique_byte_buffer_t            pdu,
+                                       srsran::const_byte_span                 pdu,
                                        bool                                    has_tmsi,
                                        uint32_t                                s_tmsi)
 {
@@ -80,8 +80,8 @@ bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e c
   container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
   // NAS_PDU
-  container.nas_pdu.value.resize(pdu->N_bytes);
-  memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
+  container.nas_pdu.value.resize(pdu.size());
+  memcpy(container.nas_pdu.value.data(), pdu.data(), pdu.size());
 
   // RRC Establishment Cause
   container.rrcestablishment_cause.value = cause;
@@ -102,7 +102,7 @@ bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e c
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialUEMessage");
 }
 
-bool ngap::ue::send_ul_nas_transport(srsran::unique_byte_buffer_t pdu)
+bool ngap::ue::send_ul_nas_transport(srsran::const_byte_span pdu)
 {
   if (not ngap_ptr->amf_connected) {
     logger.warning("AMF not connected");
@@ -125,8 +125,8 @@ bool ngap::ue::send_ul_nas_transport(srsran::unique_byte_buffer_t pdu)
   container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
   // NAS PDU
-  container.nas_pdu.value.resize(pdu->N_bytes);
-  memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
+  container.nas_pdu.value.resize(pdu.size());
+  memcpy(container.nas_pdu.value.data(), pdu.data(), pdu.size());
 
   // User Location Info
   // userLocationInformationNR

@@ -163,6 +163,12 @@ inline void copy_msg_to_buffer(unique_byte_buffer_t& pdu, const_byte_span msg)
   pdu->N_bytes = msg.size();
 }
 
+/**
+ * Delimits beginning/ending of a test with the following console output:
+ * ============= [Test <Name of the Test>] ===============
+ * <test log>
+ * =======================================================
+ */
 class test_delimit_logger
 {
   const size_t delimiter_length = 128;

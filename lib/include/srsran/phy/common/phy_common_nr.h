@@ -221,6 +221,8 @@ typedef enum SRSRAN_API {
   srsran_coreset_bundle_size_n6,
 } srsran_coreset_bundle_size_t;
 
+uint32_t pdcch_nr_bundle_size(srsran_coreset_bundle_size_t x);
+
 typedef enum SRSRAN_API {
   srsran_coreset_precoder_granularity_contiguous = 0,
   srsran_coreset_precoder_granularity_reg_bundle
@@ -712,6 +714,26 @@ SRSRAN_API int srsran_coreset_zero(uint32_t                    n_cell_id,
                                    srsran_subcarrier_spacing_t pdcch_scs,
                                    uint32_t                    idx,
                                    srsran_coreset_t*           coreset);
+
+/**
+ * @brief Obtain offset in RBs between CoresetZero and SSB. See TS 38.213, Tables 13-{1,...,10}
+ * @param idx Index of 13-{1,...10} table
+ * @param ssb_scs SS/PBCH block subcarrier spacing
+ * @param pdcch_scs PDCCH subcarrier spacing
+ * @return offset in RBs, or -1 in case of invalid inputs
+ */
+SRSRAN_API int
+srsran_coreset0_ssb_offset(uint32_t idx, srsran_subcarrier_spacing_t ssb_scs, srsran_subcarrier_spacing_t pdcch_scs);
+
+/**
+ * @brief Convert Coreset to string
+ *
+ * @param coreset The coreset structure as input
+ * @param str The string to write to
+ * @param str_len Maximum string length
+ * @return SRSRAN_API
+ */
+SRSRAN_API int srsran_coreset_to_str(srsran_coreset_t* coreset, char* str, uint32_t str_len);
 
 /**
  * @brief Convert SSB pattern to string

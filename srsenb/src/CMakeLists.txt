@@ -34,7 +34,7 @@ if (RPATH)
 endif (RPATH)
 
 add_library(enb_cfg_parser STATIC parser.cc enb_cfg_parser.cc)
-target_link_libraries(enb_cfg_parser srsran_common ${LIBCONFIGPP_LIBRARIES})
+target_link_libraries(enb_cfg_parser srsran_common srsgnb_rrc_config_utils ${LIBCONFIGPP_LIBRARIES})
 
 add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc metrics_json.cc)
 

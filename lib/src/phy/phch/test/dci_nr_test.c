@@ -100,8 +100,10 @@ static int test_52prb_base()
   TESTASSERT(srsran_dci_nr_size(&dci, srsran_search_space_type_ue, srsran_dci_format_nr_0_1) == 36);
   TESTASSERT(srsran_dci_nr_size(&dci, srsran_search_space_type_ue, srsran_dci_format_nr_1_1) == 41);
   TESTASSERT(srsran_dci_nr_size(&dci, srsran_search_space_type_rar, srsran_dci_format_nr_rar) == 27);
+  TESTASSERT(srsran_dci_nr_size(&dci, srsran_search_space_type_common_0, srsran_dci_format_nr_1_0) == 39);
 
   srsran_dci_ctx_t ctx = {};
+
   ctx.rnti             = 0x1234;
   ctx.ss_type          = srsran_search_space_type_common_3;
   ctx.rnti_type        = srsran_rnti_type_c;
@@ -338,6 +340,43 @@ static int test_52prb_base()
     dci_tx.cbg_info              = 0; // unavailable
     dci_tx.cbg_flush             = 0; // unavailable
     dci_tx.dmrs_id               = 0; // unavailable
+
+    // Pack
+    srsran_dci_msg_nr_t dci_msg = {};
+    TESTASSERT(srsran_dci_nr_dl_pack(&dci, &dci_tx, &dci_msg) == SRSRAN_SUCCESS);
+
+    // Unpack
+    srsran_dci_dl_nr_t dci_rx = {};
+    TESTASSERT(srsran_dci_nr_dl_unpack(&dci, &dci_msg, &dci_rx) == SRSRAN_SUCCESS);
+
+    // To string
+    char str[512];
+    TESTASSERT(srsran_dci_dl_nr_to_str(&dci, &dci_tx, str, (uint32_t)sizeof(str)) != 0);
+    INFO("Tx: %s", str);
+    TESTASSERT(srsran_dci_dl_nr_to_str(&dci, &dci_rx, str, (uint32_t)sizeof(str)) != 0);
+    INFO("Rx: %s", str);
+
+    // Assert
+    TESTASSERT(memcmp(&dci_tx, &dci_rx, sizeof(srsran_dci_dl_nr_t)) == 0);
+  }
+
+  // Test DL DCI 1_0 Packing/Unpacking and info for SI-RNTI
+  ctx.format          = srsran_dci_format_nr_1_0;
+  ctx.rnti            = 0xffff;
+  ctx.ss_type         = srsran_search_space_type_common_0;
+  ctx.rnti_type       = srsran_rnti_type_si;
+  dci.cfg.coreset0_bw = 48;
+
+  for (uint32_t i = 0; i < nof_repetitions; i++) {
+    srsran_dci_dl_nr_t dci_tx    = {};
+    dci_tx.ctx                   = ctx;
+    dci_tx.freq_domain_assigment = 0x120;
+    dci_tx.time_domain_assigment = 0;
+    dci_tx.vrb_to_prb_mapping    = 0;
+    dci_tx.mcs                   = srsran_random_uniform_int_dist(random_gen, 0, 31);
+    dci_tx.rv                    = srsran_random_uniform_int_dist(random_gen, 0, 3);
+    dci_tx.sii                   = 1; // bit set to 1 indicates SI message other than SIB1
+    dci_tx.coreset0_bw           = 48;
 
     // Pack
     srsran_dci_msg_nr_t dci_msg = {};

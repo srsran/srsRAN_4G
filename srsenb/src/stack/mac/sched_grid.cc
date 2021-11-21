@@ -87,8 +87,8 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
 
   // Compute reserved PRBs for CQI, SR and HARQ-ACK, and store it in a bitmask
   pucch_mask.resize(cc_cfg->nof_prb());
-  pucch_nrb                    = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
-  srsran_pucch_cfg_t pucch_cfg = cell_params_.pucch_cfg_common;
+  pucch_nrb                     = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
+  srsran_pucch_cfg_t pucch_cfg  = cell_params_.pucch_cfg_common;
   uint32_t           harq_pucch = 0;
   if (cc_cfg->sched_cfg->pucch_harq_max_rb > 0) {
     harq_pucch = cc_cfg->sched_cfg->pucch_harq_max_rb;
@@ -831,13 +831,13 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
     sched_interface::ul_sched_data_t& pusch = ul_result->pusch.back();
     uint32_t total_data_before              = user->get_pending_ul_data_total(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     int      tbs                            = user->generate_format0(&pusch,
-                                     get_tti_tx_ul(),
-                                     cc_cfg->enb_cc_idx,
-                                     ul_alloc.alloc,
-                                     ul_alloc.needs_pdcch(),
-                                     cce_range,
-                                     ul_alloc.msg3_mcs,
-                                     uci_type);
+                                                                     get_tti_tx_ul(),
+                                                                     cc_cfg->enb_cc_idx,
+                                                                     ul_alloc.alloc,
+                                                                     ul_alloc.needs_pdcch(),
+                                                                     cce_range,
+                                                                     ul_alloc.msg3_mcs,
+                                                                     uci_type);
 
     ul_harq_proc* h                 = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     uint32_t      new_pending_bytes = user->get_pending_ul_new_data(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
@@ -863,23 +863,24 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
     uint32_t old_pending_bytes = user->get_pending_ul_old_data();
     if (logger.info.enabled()) {
       fmt::memory_buffer str_buffer;
-      fmt::format_to(
-          str_buffer,
-          "SCHED: {} {} rnti=0x{:x}, cc={}, pid={}, dci=({},{}), prb={}, n_rtx={}, cfi={}, tbs={}, bsr={} ({}-{})",
-          ul_alloc.is_msg3 ? "Msg3" : "UL",
-          ul_alloc.is_retx() ? "retx" : "tx",
-          user->get_rnti(),
-          cc_cfg->enb_cc_idx,
-          h->get_id(),
-          pusch.dci.location.L,
-          pusch.dci.location.ncce,
-          ul_alloc.alloc,
-          h->nof_retx(0),
-          tti_alloc.get_cfi(),
-          tbs,
-          new_pending_bytes,
-          total_data_before,
-          old_pending_bytes);
+      fmt::format_to(str_buffer,
+                     "SCHED: {} {} rnti=0x{:x}, cc={}, pid={}, dci=({},{}), prb={}, n_rtx={}, cfi={}, tbs={}, bsr={} "
+                     "({}-{}), tti_tx_ul={}",
+                     ul_alloc.is_msg3 ? "Msg3" : "UL",
+                     ul_alloc.is_retx() ? "retx" : "tx",
+                     user->get_rnti(),
+                     cc_cfg->enb_cc_idx,
+                     h->get_id(),
+                     pusch.dci.location.L,
+                     pusch.dci.location.ncce,
+                     ul_alloc.alloc,
+                     h->nof_retx(0),
+                     tti_alloc.get_cfi(),
+                     tbs,
+                     new_pending_bytes,
+                     total_data_before,
+                     old_pending_bytes,
+                     get_tti_tx_ul().to_uint());
       logger.info("%s", srsran::to_c_str(str_buffer));
     }
 

@@ -21,7 +21,8 @@
 
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
+#include "srsran/asn1/rrc_utils.h"
 
 using namespace asn1::rrc;
 

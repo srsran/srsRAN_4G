@@ -1282,6 +1282,7 @@ static uint32_t dci_nr_format_1_0_to_str(const srsran_dci_dl_nr_t* dci, char* st
   // System information indicator – 1 bit
   if (rnti_type == srsran_rnti_type_si) {
     len = srsran_print_check(str, str_len, len, "sii=%d ", dci->sii);
+    len = srsran_print_check(str, str_len, len, "coreset0_bw=%d ", dci->coreset0_bw);
   }
 
   // Downlink assignment index – 2 bits

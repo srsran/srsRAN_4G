@@ -22,6 +22,8 @@
 #ifndef SRSENB_PHY_METRICS_H
 #define SRSENB_PHY_METRICS_H
 
+#include <limits>
+
 namespace srsenb {
 
 // PHY metrics per user
@@ -29,7 +31,15 @@ namespace srsenb {
 struct ul_metrics_t {
   float n;
   float pusch_sinr;
-  float pucch_sinr;
+  // Initialize this member with an invalid value as this field is optional.
+  float pusch_rssi = std::numeric_limits<float>::quiet_NaN();
+  // Initialize this member with an invalid value as this field is optional.
+  int64_t pusch_tpc = 0;
+  float   pucch_sinr;
+  // Initialize this member with an invalid value as this field is optional.
+  float pucch_rssi = std::numeric_limits<float>::quiet_NaN();
+  // Initialize this member with an invalid value as this field is optional.
+  float pucch_ni = std::numeric_limits<float>::quiet_NaN();
   float rssi;
   float turbo_iters;
   float mcs;
@@ -39,7 +49,9 @@ struct ul_metrics_t {
 
 struct dl_metrics_t {
   float mcs;
-  int   n_samples;
+  // Initialize this member with an invalid value as this field is optional.
+  int64_t pucch_tpc = 0;
+  int     n_samples;
 };
 
 struct phy_metrics_t {
