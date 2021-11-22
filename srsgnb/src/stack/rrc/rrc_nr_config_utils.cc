@@ -13,14 +13,14 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/common/band_helper.h"
 
-#define RETURN_IF_ERROR(x)                                                                                             \
+#define HANDLE_ERROR(x)                                                                                                \
   do {                                                                                                                 \
     if (x != SRSRAN_SUCCESS) {                                                                                         \
       return SRSRAN_ERROR;                                                                                             \
     }                                                                                                                  \
   } while (0)
 
-#define RETURN_IF_NOT(x, fmt, ...)                                                                                     \
+#define ERROR_IF_NOT(x, fmt, ...)                                                                                      \
   do {                                                                                                                 \
     if (not(x)) {                                                                                                      \
       fprintf(stderr, "ERROR: " fmt "\n", ##__VA_ARGS__);                                                              \
@@ -112,7 +112,7 @@ int derive_coreset0_params(rrc_cell_cfg_nr_t& cell)
                                 cell.phy_cell.carrier.scs,
                                 cell.coreset0_idx,
                                 &cell.phy_cell.pdcch.coreset[0]);
-  RETURN_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to generate CORESET#0");
+  ERROR_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to generate CORESET#0");
   return SRSRAN_SUCCESS;
 }
 
@@ -125,11 +125,11 @@ int derive_ssb_params(bool                        is_sa,
                       srsran_ssb_cfg_t&           ssb)
 {
   // Verify essential parameters are specified and valid
-  RETURN_IF_NOT(dl_arfcn > 0, "Invalid DL ARFCN=%d", dl_arfcn);
-  RETURN_IF_NOT(band > 0, "Band is a mandatory parameter");
-  RETURN_IF_NOT(pdcch_scs < srsran_subcarrier_spacing_invalid, "Invalid carrier SCS");
-  RETURN_IF_NOT(coreset0_idx < 15, "Invalid controlResourceSetZero");
-  RETURN_IF_NOT(nof_prb > 0, "Invalid DL number of PRBS=%d", nof_prb);
+  ERROR_IF_NOT(dl_arfcn > 0, "Invalid DL ARFCN=%d", dl_arfcn);
+  ERROR_IF_NOT(band > 0, "Band is a mandatory parameter");
+  ERROR_IF_NOT(pdcch_scs < srsran_subcarrier_spacing_invalid, "Invalid carrier SCS");
+  ERROR_IF_NOT(coreset0_idx < 15, "Invalid controlResourceSetZero");
+  ERROR_IF_NOT(nof_prb > 0, "Invalid DL number of PRBS=%d", nof_prb);
 
   srsran::srsran_band_helper band_helper;
 
@@ -160,16 +160,16 @@ int derive_ssb_params(bool                        is_sa,
   if (is_sa) {
     // Get offset in RBs between CORESET#0 and SSB
     coreset0_rb_offset = srsran_coreset0_ssb_offset(coreset0_idx, ssb.scs, pdcch_scs);
-    RETURN_IF_NOT(coreset0_rb_offset >= 0, "Failed to compute RB offset between CORESET#0 and SSB");
+    ERROR_IF_NOT(coreset0_rb_offset >= 0, "Failed to compute RB offset between CORESET#0 and SSB");
   } else {
     // TODO: Verify if specified SSB frequency is valid
   }
   uint32_t ssb_abs_freq_point =
       band_helper.get_abs_freq_ssb_arfcn(band, ssb.scs, dl_absolute_freq_point_a, coreset0_rb_offset);
-  RETURN_IF_NOT(ssb_abs_freq_point > 0,
-                "Can't derive SSB freq point for dl_arfcn=%d and band %d",
-                band_helper.freq_to_nr_arfcn(dl_freq_hz),
-                band);
+  ERROR_IF_NOT(ssb_abs_freq_point > 0,
+               "Can't derive SSB freq point for dl_arfcn=%d and band %d",
+               band_helper.freq_to_nr_arfcn(dl_freq_hz),
+               band);
 
   // Convert to frequency for PHY
   ssb.ssb_freq_hz = band_helper.nr_arfcn_to_freq(ssb_abs_freq_point);
@@ -189,7 +189,7 @@ int derive_ssb_params(bool                        is_sa,
 int derive_phy_cell_freq_params(uint32_t dl_arfcn, uint32_t ul_arfcn, phy_cell_cfg_nr_t& phy_cell)
 {
   // Verify essential parameters are specified and valid
-  RETURN_IF_NOT(dl_arfcn > 0, "DL ARFCN is a mandatory parameter");
+  ERROR_IF_NOT(dl_arfcn > 0, "DL ARFCN is a mandatory parameter");
 
   // Use helper class to derive NR carrier parameters
   srsran::srsran_band_helper band_helper;
@@ -205,7 +205,7 @@ int derive_phy_cell_freq_params(uint32_t dl_arfcn, uint32_t ul_arfcn, phy_cell_c
     if (ul_arfcn == 0) {
       // derive UL ARFCN from given DL ARFCN
       ul_arfcn = band_helper.get_ul_arfcn_from_dl_arfcn(dl_arfcn);
-      RETURN_IF_NOT(ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", dl_arfcn);
+      ERROR_IF_NOT(ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", dl_arfcn);
     }
     phy_cell.ul_freq_hz = band_helper.nr_arfcn_to_freq(ul_arfcn);
   }
@@ -220,9 +220,9 @@ int derive_phy_cell_freq_params(uint32_t dl_arfcn, uint32_t ul_arfcn, phy_cell_c
 int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
 {
   // Verify essential parameters are specified and valid
-  RETURN_IF_NOT(cell.dl_arfcn > 0, "DL ARFCN is a mandatory parameter");
-  RETURN_IF_NOT(cell.band > 0, "Band is a mandatory parameter");
-  RETURN_IF_NOT(cell.phy_cell.carrier.nof_prb > 0, "Number of PRBs is a mandatory parameter");
+  ERROR_IF_NOT(cell.dl_arfcn > 0, "DL ARFCN is a mandatory parameter");
+  ERROR_IF_NOT(cell.band > 0, "Band is a mandatory parameter");
+  ERROR_IF_NOT(cell.phy_cell.carrier.nof_prb > 0, "Number of PRBs is a mandatory parameter");
 
   // Use helper class to derive NR carrier parameters
   srsran::srsran_band_helper band_helper;
@@ -230,7 +230,7 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   if (cell.ul_arfcn == 0) {
     // derive UL ARFCN from given DL ARFCN
     cell.ul_arfcn = band_helper.get_ul_arfcn_from_dl_arfcn(cell.dl_arfcn);
-    RETURN_IF_NOT(cell.ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", cell.dl_arfcn);
+    ERROR_IF_NOT(cell.ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", cell.dl_arfcn);
   }
 
   // duplex mode
@@ -329,15 +329,19 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
 int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa)
 {
   // verify SSB params are consistent
-  RETURN_IF_NOT(cell.ssb_cfg.center_freq_hz == cell.phy_cell.dl_freq_hz, "Invalid SSB param generation");
-  RETURN_IF_ERROR(check_nr_phy_cell_cfg_valid(cell.phy_cell));
+  ERROR_IF_NOT(cell.ssb_cfg.center_freq_hz == cell.phy_cell.dl_freq_hz, "Invalid SSB param generation");
+  HANDLE_ERROR(check_nr_phy_cell_cfg_valid(cell.phy_cell));
+
+  if (is_sa) {
+    ERROR_IF_NOT(cell.phy_cell.pdcch.coreset_present[0], "CORESET#0 must be defined in Standalone mode");
+  }
 
   return SRSRAN_SUCCESS;
 }
 
 int check_nr_phy_cell_cfg_valid(const phy_cell_cfg_nr_t& phy_cell)
 {
-  RETURN_IF_ERROR(check_nr_pdcch_cfg_valid(phy_cell.pdcch));
+  HANDLE_ERROR(check_nr_pdcch_cfg_valid(phy_cell.pdcch));
   return SRSRAN_SUCCESS;
 }
 
@@ -348,16 +352,27 @@ int check_nr_pdcch_cfg_valid(const srsran_pdcch_cfg_nr_t& pdcch)
   for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
     if (pdcch.search_space_present[ss_id]) {
       const srsran_search_space_t& ss = pdcch.search_space[ss_id];
-      RETURN_IF_NOT(ss.id == ss_id, "SearchSpace#%d should match list index", ss_id);
+      ERROR_IF_NOT(ss.id == ss_id, "SearchSpace#%d should match list index", ss_id);
       uint32_t cs_id = ss.coreset_id;
-      RETURN_IF_NOT(pdcch.coreset_present[cs_id], "SearchSpace#%d points to absent CORESET#%d", ss_id, cs_id);
+      ERROR_IF_NOT(pdcch.coreset_present[cs_id], "SearchSpace#%d points to absent CORESET#%d", ss_id, cs_id);
       used_coresets[cs_id] = true;
     }
   }
 
   // Verify CORESET id
   for (uint32_t cs_id = 0; cs_id < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_id) {
-    RETURN_IF_NOT(pdcch.coreset_present[cs_id] == used_coresets[cs_id], "CORESET#%d is configured but not used", cs_id);
+    ERROR_IF_NOT(pdcch.coreset_present[cs_id] == used_coresets[cs_id], "CORESET#%d is configured but not used", cs_id);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int check_rrc_nr_cfg_valid(const rrc_nr_cfg_t& cfg)
+{
+  ERROR_IF_NOT(cfg.cell_list.size() > 0, "The number of NR cells must be positive");
+
+  for (const rrc_cell_cfg_nr_t& cell : cfg.cell_list) {
+    HANDLE_ERROR(check_nr_cell_cfg_valid(cell, cfg.is_standalone));
   }
 
   return SRSRAN_SUCCESS;

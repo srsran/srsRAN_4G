@@ -11,10 +11,6 @@
  */
 
 #include "rrc_nr_test_helpers.h"
-#include "srsenb/hdr/enb.h"
-#include "srsenb/test/common/dummy_classes_common.h"
-#include "srsenb/test/rrc/test_helpers.h"
-#include "srsgnb/hdr/stack/common/test/dummy_nr_classes.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
@@ -52,18 +48,17 @@ void test_sib_generation()
   rrc_nr                 rrc_obj(&task_sched);
 
   // set cfg
-  all_args_t   args{};
-  phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = {};
   rrc_cfg_nr.cell_list.emplace_back();
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
-  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
-  rrc_cfg_nr.cell_list[0].dl_arfcn             = 368500;
-  rrc_cfg_nr.cell_list[0].band                 = 3;
-  rrc_cfg_nr.cell_list[0].duplex_mode          = SRSRAN_DUPLEX_MODE_FDD;
-  rrc_cfg_nr.is_standalone                     = true;
-  args.enb.n_prb                               = 50;
-  enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
+  rrc_cfg_nr.cell_list[0].dl_arfcn                 = 368500;
+  rrc_cfg_nr.cell_list[0].band                     = 3;
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.nof_prb = 52;
+  rrc_cfg_nr.cell_list[0].duplex_mode              = SRSRAN_DUPLEX_MODE_FDD;
+  rrc_cfg_nr.is_standalone                         = true;
+  set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
+  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
   TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
@@ -106,17 +101,16 @@ int test_rrc_setup()
   rrc_nr                 rrc_obj(&task_sched);
 
   // set cfg
-  all_args_t   args{};
-  phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
-  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
-  rrc_cfg_nr.cell_list[0].dl_arfcn             = 634240;
-  rrc_cfg_nr.cell_list[0].band                 = 78;
-  rrc_cfg_nr.is_standalone                     = false;
-  args.enb.n_prb                               = 50;
-  enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
+  rrc_cfg_nr.cell_list[0].dl_arfcn                 = 634240;
+  rrc_cfg_nr.cell_list[0].band                     = 78;
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.nof_prb = 52;
+  rrc_cfg_nr.is_standalone                         = false;
+  set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
+  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
   TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
 
@@ -145,18 +139,17 @@ void test_rrc_sa_connection()
   rrc_nr rrc_obj(&task_sched);
 
   // set cfg
-  all_args_t   args{};
-  phy_cfg_t    phy_cfg{};
   rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
   rrc_cfg_nr.cell_list.emplace_back();
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
-  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci = 500;
-  rrc_cfg_nr.cell_list[0].dl_arfcn             = 368500;
-  rrc_cfg_nr.cell_list[0].band                 = 3;
-  rrc_cfg_nr.cell_list[0].duplex_mode          = SRSRAN_DUPLEX_MODE_FDD;
-  rrc_cfg_nr.is_standalone                     = true;
-  args.enb.n_prb                               = 50;
-  enb_conf_sections::set_derived_args_nr(&args, &rrc_cfg_nr, &phy_cfg);
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
+  rrc_cfg_nr.cell_list[0].dl_arfcn                 = 368500;
+  rrc_cfg_nr.cell_list[0].band                     = 3;
+  rrc_cfg_nr.cell_list[0].phy_cell.carrier.nof_prb = 52;
+  rrc_cfg_nr.cell_list[0].duplex_mode              = SRSRAN_DUPLEX_MODE_FDD;
+  rrc_cfg_nr.is_standalone                         = true;
+  set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
+  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
   TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, nullptr, nullptr) ==
              SRSRAN_SUCCESS);
@@ -180,12 +173,6 @@ int main(int argc, char** argv)
   rrc_logger.set_level(srslog::basic_levels::debug);
 
   srslog::init();
-
-  if (argc < 3) {
-    argparse::usage(argv[0]);
-    return -1;
-  }
-  argparse::parse_args(argc, argv);
 
   srsenb::test_sib_generation();
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
