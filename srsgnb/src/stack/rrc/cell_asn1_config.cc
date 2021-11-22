@@ -1141,6 +1141,9 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
                                           const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
                                           asn1::rrc_nr::cell_group_cfg_s&         out)
 {
+  out.rlc_bearer_to_add_mod_list.clear();
+  out.rlc_bearer_to_release_list.clear();
+
   // Add SRBs
   for (const srb_to_add_mod_s& srb : bearers.srb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});
