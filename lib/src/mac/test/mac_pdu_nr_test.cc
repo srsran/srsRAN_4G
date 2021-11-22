@@ -252,6 +252,71 @@ int mac_dl_sch_pdu_unpack_test6()
   return SRSRAN_SUCCESS;
 }
 
+int mac_dl_sch_pdu_unpack_pack_test7()
+{
+  // MAC PDU with DL-SCH subheader with ConRes CE and dummy 8B SDU on SRB1
+  uint8_t tv[] = {
+      0x3e, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x04, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x3f, 0x00};
+  uint8_t con_res_id_tv[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+
+  // unpack
+  srsran::mac_sch_pdu_nr rx_pdu;
+  rx_pdu.unpack(tv, sizeof(tv));
+
+  TESTASSERT(rx_pdu.get_num_subpdus() == 3);
+
+  // Read ConRes CE
+  mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(0);
+  TESTASSERT(subpdu.get_total_length() == 7);
+  TESTASSERT(subpdu.get_sdu_length() == 6);
+  TESTASSERT(subpdu.get_lcid() == 0x3e);
+  mac_sch_subpdu_nr::ue_con_res_id_t con_res = subpdu.get_ue_con_res_id_ce();
+  TESTASSERT(memcmp(con_res.data(), con_res_id_tv, con_res.size()) == 0);
+
+  // skip other subPDUs ..
+
+  // pack again
+  const uint32_t sdu_len      = 8;
+  uint8_t        sdu[sdu_len] = {};
+
+  // populate SDU payload
+  for (uint32_t i = 0; i < sdu_len; i++) {
+    sdu[i] = i % 256;
+  }
+
+  // pack buffer
+  byte_buffer_t tx_buffer;
+
+  srsran::mac_sch_pdu_nr tx_pdu;
+  tx_pdu.init_tx(&tx_buffer, sizeof(tv));
+
+  // add ConRes CE
+  srsran::mac_sch_subpdu_nr::ue_con_res_id_t id = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+  TESTASSERT(tx_pdu.add_ue_con_res_id_ce(id) == SRSRAN_SUCCESS);
+
+  // Add SDU
+  tx_pdu.add_sdu(4, sdu, sizeof(sdu));
+
+  tx_pdu.pack();
+
+  TESTASSERT(tx_buffer.N_bytes == sizeof(tv));
+  TESTASSERT(memcmp(tx_buffer.msg, tv, tx_buffer.N_bytes) == 0);
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  // pretty print PDU
+  fmt::memory_buffer buff;
+  tx_pdu.to_string(buff);
+
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(
+      tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B): %s", tx_buffer.N_bytes, srsran::to_c_str(buff));
+
+  return SRSRAN_SUCCESS;
+}
+
 int mac_rar_pdu_test7()
 {
   // MAC PDU with RAR PDU with single RAPID=0
@@ -851,6 +916,11 @@ int main(int argc, char** argv)
 
   if (mac_dl_sch_pdu_unpack_test6()) {
     fprintf(stderr, "mac_dl_sch_pdu_unpack_test6() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (mac_dl_sch_pdu_unpack_pack_test7()) {
+    fprintf(stderr, "mac_dl_sch_pdu_unpack_pack_test7() failed.\n");
     return SRSRAN_ERROR;
   }
 
