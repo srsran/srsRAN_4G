@@ -11,7 +11,6 @@
  */
 
 #include "rrc_nr_test_helpers.h"
-#include "srsgnb/hdr/stack/rrc/rrc_nr.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/common/test_common.h"

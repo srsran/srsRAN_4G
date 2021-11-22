@@ -13,11 +13,11 @@
 #ifndef SRSRAN_RRC_NR_CONFIG_H
 #define SRSRAN_RRC_NR_CONFIG_H
 
-#include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsenb/hdr/stack/rrc/rrc_config_common.h"
+#include "srsgnb/hdr/phy/phy_nr_interfaces.h"
 #include "srsran/asn1/rrc_nr.h"
+#include "srsran/common/security.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
-#include "srsue/hdr/phy/phy_common.h"
 
 namespace srsenb {
 
