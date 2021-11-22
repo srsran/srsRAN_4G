@@ -37,7 +37,7 @@ class rlc_am_nr_rx;
 
 /****************************************************************************
  * Tx state variables
- * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
+ * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
  ***************************************************************************/
 struct rlc_am_nr_tx_state_t {
   /*
@@ -106,13 +106,13 @@ private:
 
   /****************************************************************************
    * Configurable parameters
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * Tx state variables
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
+   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_tx_state_t st = {};
 
@@ -174,7 +174,7 @@ private:
 
   /****************************************************************************
    * State Variables
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.1
+   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
    ***************************************************************************/
   /*
    * RX_Next: This state variable holds the value of the SN following the last in-sequence completely received RLC
@@ -200,14 +200,14 @@ private:
 
   /****************************************************************************
    * Rx timers
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.3
+   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.3
    ***************************************************************************/
   srsran::timer_handler::unique_timer status_prohibit_timer;
   srsran::timer_handler::unique_timer reassembly_timer;
 
   /****************************************************************************
    * Configurable parameters
-   * Ref: 3GPP TS 38.322 v10.0.0 Section 7.4
+   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
 };
