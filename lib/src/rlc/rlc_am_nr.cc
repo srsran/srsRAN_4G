@@ -78,6 +78,10 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Tx STATUS if requested
   if (do_status()) {
     unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
+    if (tx_pdu == nullptr) {
+      logger->error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return 0;
+    }
     build_status_pdu(tx_pdu.get(), nof_bytes);
     memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
     logger->debug("Status PDU built - %d bytes", tx_pdu->N_bytes);
@@ -91,7 +95,11 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (not retx_queue.empty()) {
     logger->info("Retx required. Retx queue size: %d", retx_queue.size());
     unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
-    tx_pdu->N_bytes             = build_retx_pdu(tx_pdu.get(), nof_bytes);
+    if (tx_pdu == nullptr) {
+      logger->error("Couldn't allocate PDU in %s().", __FUNCTION__);
+      return 0;
+    }
+    tx_pdu->N_bytes = build_retx_pdu(tx_pdu.get(), nof_bytes);
     if (tx_pdu->N_bytes > 0) {
       memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
       return tx_pdu->N_bytes;
@@ -124,6 +132,11 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   // NOTE: from now on, we can't return from this function anymore before increasing tx_next
   rlc_amd_tx_pdu_nr& tx_pdu = tx_window.add_pdu(st.tx_next);
   tx_pdu.buf                = srsran::make_byte_buffer();
+  if (tx_pdu.buf == nullptr) {
+    logger->error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return 0;
+  }
+
   memcpy(tx_pdu.buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
   tx_pdu.buf->N_bytes = tx_sdu->N_bytes;
 
@@ -157,7 +170,7 @@ int rlc_am_nr_tx::build_retx_pdu(byte_buffer_t* tx_pdu, uint32_t nof_bytes)
   // Check there is at least 1 element before calling front()
   if (retx_queue.empty()) {
     logger->error("In build_retx_pdu(): retx_queue is empty");
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   rlc_amd_retx_t retx = retx_queue.front();
@@ -452,7 +465,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     rlc_amd_rx_sdu_nr_t& rx_sdu = rx_window.add_pdu(header.sn);
     rx_sdu.buf                  = srsran::make_byte_buffer();
     if (rx_sdu.buf == nullptr) {
-      logger->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().");
+      logger->error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
       rx_window.remove_pdu(header.sn);
       return;
     }
