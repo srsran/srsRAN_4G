@@ -42,9 +42,9 @@ struct rlc_amd_pdu_nr_t {
 };
 
 struct rlc_amd_rx_pdu_nr {
-  rlc_am_nr_pdu_header_t header;
+  rlc_am_nr_pdu_header_t header{};
   unique_byte_buffer_t   buf;
-  uint32_t               rlc_sn;
+  uint32_t               rlc_sn{};
 
   rlc_amd_rx_pdu_nr() = default;
   explicit rlc_amd_rx_pdu_nr(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
