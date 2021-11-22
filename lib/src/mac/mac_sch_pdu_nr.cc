@@ -47,12 +47,18 @@ bool mac_sch_subpdu_nr::is_valid_lcid()
 
 bool mac_sch_subpdu_nr::is_var_len_ce(uint32_t lcid)
 {
-  switch (lcid) {
-    case LONG_TRUNC_BSR:
-    case LONG_BSR:
-      return true;
-    default:
-      return false;
+  if (parent->is_ulsch()) {
+    // UL fixed-size CE
+    switch (lcid) {
+      case LONG_TRUNC_BSR:
+      case LONG_BSR:
+        return true;
+      default:
+        return false;
+    }
+  } else {
+    // all currently supported CEs in the DL are fixed-size
+    return false;
   }
 }
 
@@ -152,6 +158,18 @@ void mac_sch_subpdu_nr::set_sbsr(const lcg_bsr_t bsr_)
 
 // Turn a subPDU into a long BSR with variable size
 void mac_sch_subpdu_nr::set_lbsr(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, max_num_lcg_lbsr> bsr_) {}
+
+// Turn subPDU into a Con
+void mac_sch_subpdu_nr::set_ue_con_res_id_ce(const mac_sch_subpdu_nr::ue_con_res_id_t id)
+{
+  lcid          = CON_RES_ID;
+  header_length = 1;
+  sdu_length    = sizeof_ce(lcid, parent->is_ulsch());
+  uint8_t* ptr  = sdu.use_internal_storage();
+  for (int32_t i = 0; i < sdu_length; ++i) {
+    ptr[i] = id.at(i);
+  }
+}
 
 // Section 6.1.2
 uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
@@ -303,6 +321,16 @@ mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr() const
   return lbsr;
 }
 
+mac_sch_subpdu_nr::ue_con_res_id_t mac_sch_subpdu_nr::get_ue_con_res_id_ce()
+{
+  mac_sch_subpdu_nr::ue_con_res_id_t id;
+  if (!parent->is_ulsch() && lcid == CON_RES_ID) {
+    const uint8_t* ptr = sdu.ptr();
+    memcpy(id.data(), ptr, id.size());
+  }
+  return id;
+}
+
 uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
 {
   if (is_ul) {
@@ -389,9 +417,17 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
         case mac_sch_subpdu_nr::TA_CMD:
           fmt::format_to(buffer, " TA: id={} command={}", get_ta().tag_id, get_ta().ta_command);
           break;
-        case mac_sch_subpdu_nr::CON_RES_ID:
-          fmt::format_to(buffer, " CONRES: len={}", get_total_length());
-          break;
+        case mac_sch_subpdu_nr::CON_RES_ID: {
+          ue_con_res_id_t id = get_ue_con_res_id_ce();
+          fmt::format_to(buffer,
+                         " CON_RES: id={:x}{:x}{:x}{:x}{:x}{:x}",
+                         id.at(0),
+                         id.at(1),
+                         id.at(2),
+                         id.at(3),
+                         id.at(4),
+                         id.at(5));
+        } break;
         case mac_sch_subpdu_nr::PADDING:
           fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
@@ -534,6 +570,13 @@ mac_sch_pdu_nr::add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_s
 {
   mac_sch_subpdu_nr ce(this);
   ce.set_lbsr(bsr_);
+  return add_sudpdu(ce);
+}
+
+uint32_t mac_sch_pdu_nr::add_ue_con_res_id_ce(const mac_sch_subpdu_nr::ue_con_res_id_t id)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_ue_con_res_id_ce(id);
   return add_sudpdu(ce);
 }
 
