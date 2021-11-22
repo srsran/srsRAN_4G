@@ -96,7 +96,7 @@ public:
 
   uint8_t get_pdu_poll();
 
-  int build_retx_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
+  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
 
   void stop() final;
 

@@ -99,8 +99,8 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
       logger->error("Couldn't allocate PDU in %s().", __FUNCTION__);
       return 0;
     }
-    tx_pdu->N_bytes = build_retx_pdu(tx_pdu.get(), nof_bytes);
-    if (tx_pdu->N_bytes > 0) {
+    int retx_err = build_retx_pdu(tx_pdu, nof_bytes);
+    if (retx_err >= 0 && tx_pdu->N_bytes <= nof_bytes) {
       memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
       return tx_pdu->N_bytes;
     }
@@ -165,7 +165,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   return tx_sdu->N_bytes;
 }
 
-int rlc_am_nr_tx::build_retx_pdu(byte_buffer_t* tx_pdu, uint32_t nof_bytes)
+int rlc_am_nr_tx::build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes)
 {
   // Check there is at least 1 element before calling front()
   if (retx_queue.empty()) {
@@ -182,18 +182,23 @@ int rlc_am_nr_tx::build_retx_pdu(byte_buffer_t* tx_pdu, uint32_t nof_bytes)
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
     } else {
-      logger->warning("%s empty retx queue, cannot provid retx PDU", parent->rb_name);
-      return 0;
+      logger->warning("%s empty retx queue, cannot provide retx PDU", parent->rb_name);
+      return SRSRAN_ERROR;
     }
   }
-  // TODO Consider re-segmentation
-
   // Update & write header
   rlc_am_nr_pdu_header_t new_header = tx_window[retx.sn].header;
   new_header.p                      = 0;
+  uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, tx_pdu.get());
 
-  uint32_t len = rlc_am_nr_write_data_pdu_header(new_header, tx_pdu);
-  memcpy(&tx_pdu->msg[len], tx_window[retx.sn].buf->msg, tx_window[retx.sn].buf->N_bytes);
+  // Check if we exceed allocated number of bytes
+  if (hdr_len + tx_window[retx.sn].buf->N_bytes > nof_bytes) {
+    logger->warning("%s segmentation not supported yet. Cannot provide retx PDU", parent->rb_name);
+    return SRSRAN_ERROR;
+  }
+  // TODO Consider re-segmentation
+
+  memcpy(&tx_pdu->msg[hdr_len], tx_window[retx.sn].buf->msg, tx_window[retx.sn].buf->N_bytes);
   tx_pdu->N_bytes += tx_window[retx.sn].buf->N_bytes;
 
   retx_queue.pop();
@@ -210,7 +215,7 @@ int rlc_am_nr_tx::build_retx_pdu(byte_buffer_t* tx_pdu, uint32_t nof_bytes)
   log_rlc_am_nr_pdu_header_to_string(logger->debug, new_header);
 
   // debug_state();
-  return len + tx_window[retx.sn].buf->N_bytes;
+  return SRSRAN_SUCCESS;
 }
 
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
