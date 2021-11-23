@@ -286,6 +286,9 @@ void rrc_nr::config_mac()
     valid_cfg =
         srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
     srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+  } else {
+    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
+    bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
   }
 
   // Set SIB1 and SI messages
