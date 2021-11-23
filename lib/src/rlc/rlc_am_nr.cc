@@ -23,6 +23,7 @@
 
 namespace srsran {
 
+const static uint32_t max_tx_queue_size = 128;
 /****************************************************************************
  * RLC AM NR entity
  ***************************************************************************/
@@ -41,14 +42,12 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
     return false;
   }
 
-  /*
-    if (cfg_.tx_queue_length > MAX_SDUS_PER_RLC_PDU) {
-      logger.error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
-                   cfg_.tx_queue_length,
-                   MAX_SDUS_PER_RLC_PDU);
-      return false;
-    }
-  */
+  if (cfg_.tx_queue_length > max_tx_queue_size) {
+    logger->error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
+                  cfg_.tx_queue_length,
+                  max_tx_queue_size);
+    return false;
+  }
 
   mod_nr = (cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits) ? 4096 : 262144;
 
@@ -73,7 +72,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     logger->debug("RLC entity not active. Not generating PDU.");
     return 0;
   }
-  //  logger.debug("tx_window size - %zu PDUs", tx_window.size());
+  logger->debug("tx_window size - %zu PDUs", tx_window.size());
 
   // Tx STATUS if requested
   if (do_status()) {
