@@ -172,7 +172,7 @@ int rf_file_open_multi(char* args, void** h, uint32_t nof_channels)
   FILE* rx_files[SRSRAN_MAX_CHANNELS] = {NULL};
   FILE* tx_files[SRSRAN_MAX_CHANNELS] = {NULL};
 
-  if (h && nof_channels < SRSRAN_MAX_CHANNELS) {
+  if (h && nof_channels <= SRSRAN_MAX_CHANNELS) {
     uint32_t base_srate = FILE_BASERATE_DEFAULT_HZ;
 
     // parse args

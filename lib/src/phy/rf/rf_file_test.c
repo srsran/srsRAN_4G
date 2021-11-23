@@ -228,6 +228,11 @@ void create_file(const char* filename)
   fclose(f);
 }
 
+void remove_file(const char* filename)
+{
+  remove(filename);
+}
+
 int main()
 {
   // create files for testing
@@ -305,6 +310,16 @@ int main()
     fprintf(stderr, "Two TRx radio test failed (with decimation, timed tx)!\n");
     return -1;
   }
+
+  // clean workspace
+  remove_file("rx_file0");
+  remove_file("rx_file1");
+  remove_file("rx_file2");
+  remove_file("rx_file3");
+  remove_file("tx_file0");
+  remove_file("tx_file1");
+  remove_file("tx_file2");
+  remove_file("tx_file3");
 
   fprintf(stdout, "Test passed!\n");
 
