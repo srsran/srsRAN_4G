@@ -296,8 +296,8 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
 
-#if 0
-void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
+
+void test_rrc_nr_reconfiguration_II(srsran::task_scheduler& task_sched,
                                  rrc_nr&                 rrc_obj,
                                  pdcp_nr_rrc_tester&     pdcp,
                                  uint16_t                rnti)
@@ -309,7 +309,7 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
 
   // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
-  //rrc_obj.start_rrc_reconfiguration(rnti);
+  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, srsran::srb_to_lcid(srsran::nr_srb::srb1));
 
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was set up in a different function
@@ -376,6 +376,5 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   // send message to RRC
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
-#endif
 
 } // namespace srsenb

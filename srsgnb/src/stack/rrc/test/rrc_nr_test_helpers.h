@@ -70,8 +70,8 @@ public:
     memcpy(last_pdu.data(), pdu.data(), pdu.size());
   }
 
-  uint16_t             last_sdu_rnti;
-  asn1::dyn_octstring  last_pdu;
+  uint16_t            last_sdu_rnti;
+  asn1::dyn_octstring last_pdu;
 };
 
 /**
@@ -93,10 +93,10 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                                           uint16_t                rnti);
 
 void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
-                                   rrc_nr&                 rrc_obj,
-                                   pdcp_nr_rrc_tester&     pdcp,
-                                   ngap_rrc_tester&        ngap,
-                                   uint16_t                rnti);
+                               rrc_nr&                 rrc_obj,
+                               pdcp_nr_rrc_tester&     pdcp,
+                               ngap_rrc_tester&        ngap,
+                               uint16_t                rnti);
 
 void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                                    rrc_nr&                 rrc_obj,
@@ -104,9 +104,14 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                                    uint16_t                rnti);
 
 void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
-                                   rrc_nr&                 rrc_obj,
-                                   pdcp_nr_rrc_tester&     pdcp,
-                                   uint16_t                rnti);
+                                 rrc_nr&                 rrc_obj,
+                                 pdcp_nr_rrc_tester&     pdcp,
+                                 uint16_t                rnti);
+
+void test_rrc_nr_reconfiguration_II(srsran::task_scheduler& task_sched,
+                                    rrc_nr&                 rrc_obj,
+                                    pdcp_nr_rrc_tester&     pdcp,
+                                    uint16_t                rnti);
 
 } // namespace srsenb
 
