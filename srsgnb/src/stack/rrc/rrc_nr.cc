@@ -610,6 +610,8 @@ int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran:
 
   users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid);
 
+  // TODO: verify whether this is the best place where to call the RRCReconfig
+  users[rnti]->send_rrc_reconfiguration();
   return SRSRAN_SUCCESS;
 }
 
