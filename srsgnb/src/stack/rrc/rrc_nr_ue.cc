@@ -984,13 +984,27 @@ void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complet
 /// TS 38.331, SecurityModeCommand
 void rrc_nr::ue::send_security_mode_command()
 {
+  // FIXME: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
+  // When we start using PDCP-NR we can avoid this step.
+  srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
+  srsran::as_security_config_t    pdcp_cnfg = {};
+  pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
+  pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
+  pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
+  pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
+  pdcp_cnfg.integ_algo                      = (srsran::INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
+  pdcp_cnfg.cipher_algo                     = (srsran::CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
+
+  // Setup SRB1 security/integrity. Encryption is set on completion
+  parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
+  parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+
   asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_security_mode_cmd().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   security_mode_cmd_ies_s& ies = dl_dcch_msg.msg.c1().security_mode_cmd().crit_exts.set_security_mode_cmd();
 
   ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm_present = true;
-  ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value   = integrity_prot_algorithm_opts::nia0;
-  ies.security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value        = ciphering_algorithm_opts::nea0;
+  ies.security_cfg_smc.security_algorithm_cfg                                  = sec_ctx.get_security_algorithm_cfg();
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
     send_rrc_release();
@@ -1000,7 +1014,8 @@ void rrc_nr::ue::send_security_mode_command()
 /// TS 38.331, SecurityModeComplete
 void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg)
 {
-  // TODO: handle SecurityModeComplete
+  parent->logger.info("SecurityModeComplete transaction ID: %d", msg.rrc_transaction_id);
+  parent->pdcp->enable_encryption(rnti, srb_to_lcid(srsran::nr_srb::srb1));
 
   // Note: Skip UE capabilities
 }

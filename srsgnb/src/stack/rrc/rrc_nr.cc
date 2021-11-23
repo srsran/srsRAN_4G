@@ -85,6 +85,14 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 
+  logger.debug("NIA preference list: NIA%d, NIA%d, NIA%d",
+               cfg.nia_preference_list[0],
+               cfg.nia_preference_list[1],
+               cfg.nia_preference_list[2]);
+  logger.debug("NEA preference list: NEA%d, NEA%d, NEA%d",
+               cfg.nea_preference_list[0],
+               cfg.nea_preference_list[1],
+               cfg.nea_preference_list[2]);
   running = true;
 
   return SRSRAN_SUCCESS;
