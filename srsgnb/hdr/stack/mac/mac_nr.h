@@ -111,7 +111,7 @@ private:
   mac_nr_args_t             args = {};
   srslog::basic_logger&     logger;
 
-  // derived
+  // initial UE config, before RRC setup (without UE-dedicated)
   srsran::phy_cfg_nr_t default_ue_phy_cfg;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;

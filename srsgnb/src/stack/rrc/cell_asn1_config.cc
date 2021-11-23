@@ -898,11 +898,11 @@ int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s
   switch (cell_cfg.phy_cell.carrier.scs) {
     case srsran_subcarrier_spacing_15kHz:
     case srsran_subcarrier_spacing_60kHz:
-      mib.sub_carrier_spacing_common.value = asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60;
+      mib.sub_carrier_spacing_common.value = mib_s::sub_carrier_spacing_common_opts::scs15or60;
       break;
     case srsran_subcarrier_spacing_30kHz:
     case srsran_subcarrier_spacing_120kHz:
-      mib.sub_carrier_spacing_common.value = asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs30or120;
+      mib.sub_carrier_spacing_common.value = mib_s::sub_carrier_spacing_common_opts::scs30or120;
       break;
     default:
       srsran_terminate("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));

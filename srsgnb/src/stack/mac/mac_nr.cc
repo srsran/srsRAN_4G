@@ -298,21 +298,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
 
   rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});
 
-  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
-                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  default_ue_phy_cfg       = srsran::phy_cfg_nr_default_t{ref_args};
-  default_ue_phy_cfg.pdcch = cell_config[0].bwps[0].pdcch;
-  // remove UE-specific SearchSpaces (they will be added later via RRC)
-  for (uint32_t i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
-    if (default_ue_phy_cfg.pdcch.search_space_present[i] and
-        default_ue_phy_cfg.pdcch.search_space[i].type == srsran_search_space_type_ue) {
-      default_ue_phy_cfg.pdcch.search_space_present[i] = false;
-      default_ue_phy_cfg.pdcch.search_space[i]         = {};
-    }
-  }
-  default_ue_phy_cfg.csi = {}; // disable CSI until RA is complete
+  default_ue_phy_cfg = get_common_ue_phy_cfg(cell_config[0]);
 
   return SRSRAN_SUCCESS;
 }

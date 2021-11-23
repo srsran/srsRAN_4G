@@ -16,11 +16,12 @@ set(SOURCES mac_nr.cc
             sched_nr_pdcch.cc
             sched_nr_cfg.cc
             sched_nr_helpers.cc
-        sched_nr_bwp.cc
+            sched_nr_bwp.cc
             sched_nr_rb.cc
             sched_nr_time_rr.cc
             harq_softbuffer.cc
-        sched_nr_signalling.cc)
+            sched_nr_signalling.cc
+            sched_nr_interface_utils.cc)
 
 add_library(srsgnb_mac STATIC ${SOURCES})
 target_link_libraries(srsgnb_mac srsenb_mac_common srsran_mac)

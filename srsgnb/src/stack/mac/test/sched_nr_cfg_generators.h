@@ -45,6 +45,9 @@ inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
   cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;
   cell_cfg.bwps[0].pdsch    = phy_cfg.pdsch;
   cell_cfg.bwps[0].pusch    = phy_cfg.pusch;
+  cell_cfg.bwps[0].pucch    = phy_cfg.pucch;
+  cell_cfg.bwps[0].prach    = phy_cfg.prach;
+  cell_cfg.bwps[0].harq_ack = phy_cfg.harq_ack;
   cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
 
   return cell_cfg;

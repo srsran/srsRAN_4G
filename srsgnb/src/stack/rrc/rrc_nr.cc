@@ -262,21 +262,31 @@ void rrc_nr::config_mac()
 {
   // Fill MAC scheduler configuration for SIBs
   // TODO: use parsed cell NR cfg configuration
-  std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
-  sched_nr_interface::cell_cfg_t&                     cell            = sched_cells_cfg[0];
+  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
+  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  std::vector<sched_nr_interface::cell_cfg_t> sched_cells_cfg(
+      1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
+  sched_nr_interface::cell_cfg_t& cell = sched_cells_cfg[0];
 
   // Derive cell config from rrc_nr_cfg_t
   cell.bwps[0].pdcch = cfg.cell_list[0].phy_cell.pdcch;
-  // Derive cell config from ASN1
-  bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_phy_ssb_cfg(
-      cfg.cell_list[0].phy_cell.carrier, base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.ssb);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
-  srsran_assert(ret2, "Invalid NR cell MIB configuration.");
+  bool valid_cfg     = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
+  srsran_assert(valid_cfg, "Invalid NR cell MIB configuration.");
+  cell.ssb.periodicity_ms       = cfg.cell_list[0].ssb_cfg.periodicity_ms;
+  cell.ssb.position_in_burst[0] = true;
+  cell.ssb.scs                  = cfg.cell_list[0].ssb_cfg.scs;
+  cell.ssb.pattern              = cfg.cell_list[0].ssb_cfg.pattern;
+  cell.duplex.mode              = SRSRAN_DUPLEX_MODE_FDD;
+  if (not cfg.is_standalone) {
+    // Derive cell config from ASN1
+    valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
+    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+    valid_cfg =
+        srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
+    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+  }
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());
@@ -573,7 +583,7 @@ int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr:
 int rrc_nr::start_security_mode_procedure(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
-  if (user_it == users.end()){
+  if (user_it == users.end()) {
     logger.error("Starting SecurityModeCommand procedure failed - rnti=0x%x not found", rnti);
     return SRSRAN_ERROR;
   }
@@ -627,9 +637,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers[0].cc          = 0;
   uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex   = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
   uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
 
