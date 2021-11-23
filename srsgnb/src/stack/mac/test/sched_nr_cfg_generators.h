@@ -67,7 +67,6 @@ inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t                    
                                                         srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
   sched_nr_interface::ue_cfg_t uecfg{};
-  uecfg.is_temp_crnti = true;
 
   // set PCell
   uecfg.carriers.resize(1);

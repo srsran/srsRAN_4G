@@ -330,7 +330,6 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
 
     // Add new user to the scheduler so that it can RX/TX SRB0
     sched_nr_ue_cfg_t uecfg = {};
-    uecfg.is_temp_crnti     = true;
     uecfg.carriers.resize(1);
     uecfg.carriers[0].active      = true;
     uecfg.carriers[0].cc          = enb_cc_idx;

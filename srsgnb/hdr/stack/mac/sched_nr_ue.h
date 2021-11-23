@@ -56,9 +56,9 @@ public:
   srsran::deque<ce_t> pending_ces;
 
   /// Protected, thread-safe interface of "ue_buffer_manager" for "slot_ue"
-  struct slot_itf {
-    slot_itf() = default;
-    explicit slot_itf(uint32_t cc_, ue_buffer_manager& parent_) : cc(cc_), parent(&parent_) {}
+  struct pdu_builder {
+    pdu_builder() = default;
+    explicit pdu_builder(uint32_t cc_, ue_buffer_manager& parent_) : cc(cc_), parent(&parent_) {}
     void alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu);
 
   private:
@@ -76,7 +76,10 @@ class slot_ue;
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const cell_params_t& cell_params_);
+  ue_carrier(uint16_t                              rnti,
+             const ue_cfg_t&                       cfg,
+             const cell_params_t&                  cell_params_,
+             const ue_buffer_manager::pdu_builder& pdu_builder_);
 
   void                       set_cfg(const ue_cfg_t& ue_cfg);
   const ue_carrier_params_t& cfg() const { return bwp_cfg; }
@@ -93,6 +96,8 @@ public:
   uint32_t ul_cqi = 0;
 
   harq_entity harq_ent;
+
+  ue_buffer_manager::pdu_builder pdu_builder;
 
   // metrics
   mac_ue_metrics_t metrics = {};
@@ -117,7 +122,7 @@ public:
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
   void mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds = 1);
-  void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
+  void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx);
 
   /// UE state feedback
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
@@ -151,11 +156,7 @@ class slot_ue
 {
 public:
   slot_ue() = default;
-  explicit slot_ue(ue_carrier&                 ue,
-                   slot_point                  slot_tx_,
-                   uint32_t                    dl_pending_bytes,
-                   uint32_t                    ul_pending_bytes,
-                   ue_buffer_manager::slot_itf buffers_);
+  explicit slot_ue(ue_carrier& ue, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes);
   slot_ue(slot_ue&&) noexcept = default;
   slot_ue& operator=(slot_ue&&) noexcept = default;
   bool     empty() const { return ue == nullptr; }
@@ -169,19 +170,23 @@ public:
   dl_harq_proc* find_empty_dl_harq() { return ue->harq_ent.find_empty_dl_harq(); }
   ul_harq_proc* find_empty_ul_harq() { return ue->harq_ent.find_empty_ul_harq(); }
 
+  void build_pdu(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+  {
+    ue->pdu_builder.alloc_subpdus(rem_bytes, pdu);
+  }
+
   // UE parameters common to all sectors
   uint32_t dl_bytes = 0, ul_bytes = 0;
 
   // UE parameters that are sector specific
-  bool                        dl_active;
-  bool                        ul_active;
-  slot_point                  pdcch_slot;
-  slot_point                  pdsch_slot;
-  slot_point                  pusch_slot;
-  slot_point                  uci_slot;
-  dl_harq_proc*               h_dl = nullptr;
-  ul_harq_proc*               h_ul = nullptr;
-  ue_buffer_manager::slot_itf buffers;
+  bool          dl_active;
+  bool          ul_active;
+  slot_point    pdcch_slot;
+  slot_point    pdsch_slot;
+  slot_point    pusch_slot;
+  slot_point    uci_slot;
+  dl_harq_proc* h_dl = nullptr;
+  ul_harq_proc* h_ul = nullptr;
 
 private:
   ue_carrier* ue = nullptr;

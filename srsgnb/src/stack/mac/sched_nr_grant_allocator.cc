@@ -339,7 +339,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
 
   // Select scheduled LCIDs and update UE buffer state
   bwp_pdsch_slot.dl.data.emplace_back();
-  ue.buffers.alloc_subpdus(ue.h_dl->tbs(), bwp_pdsch_slot.dl.data.back());
+  ue.build_pdu(ue.h_dl->tbs(), bwp_pdsch_slot.dl.data.back());
 
   return alloc_result::success;
 }

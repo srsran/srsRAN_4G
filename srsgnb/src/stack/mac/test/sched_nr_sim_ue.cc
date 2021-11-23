@@ -380,12 +380,13 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
             "UL ACK rnti=0x%x, slot_ul_tx=%u, cc=%d pid=%d", ue_ctxt.rnti, h.last_slot_tx.to_uint(), enb_cc_idx, h.pid);
       }
 
-      if (h.is_msg3) {
-        logger.info("STATUS: rnti=0x%x received Msg3", ue_ctxt.rnti);
-      }
-
       // update scheduler
       sched_ptr->ul_crc_info(ue_ctxt.rnti, enb_cc_idx, ack.pid, ack.ack);
+
+      if (h.is_msg3) {
+        logger.info("STATUS: rnti=0x%x received Msg3", ue_ctxt.rnti);
+        sched_ptr->dl_buffer_state(ue_ctxt.rnti, 0, 150, 0); // Schedule RRC setup
+      }
     }
   }
 

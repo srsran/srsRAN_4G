@@ -40,8 +40,7 @@ struct sched_nr_ue_cc_cfg_t {
 };
 
 struct sched_nr_ue_cfg_t {
-  bool                                                                is_temp_crnti = false;
-  uint32_t                                                            maxharq_tx    = 4;
+  uint32_t                                                            maxharq_tx = 4;
   srsran::bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
   std::array<mac_lc_ch_cfg_t, SCHED_NR_MAX_LCID>                      ue_bearers = {};
   srsran::phy_cfg_nr_t                                                phy_cfg    = {};

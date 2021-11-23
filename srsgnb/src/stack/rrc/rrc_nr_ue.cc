@@ -1216,7 +1216,6 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
 int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_config_complete)
 {
   if (not is_config_complete) {
-    uecfg.is_temp_crnti = false;
     // Release bearers
     for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
       uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
