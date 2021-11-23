@@ -175,7 +175,6 @@ uint32_t rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     metrics.num_tx_pdu_bytes += pdu_size;
     return pdu_size;
   } else {
-    logger.warning("Queue empty while trying to read");
     if (ul_queue.size_bytes() > 0) {
       logger.warning("Corrupted queue: empty but size_bytes > 0. Resetting queue");
       ul_queue.reset();
