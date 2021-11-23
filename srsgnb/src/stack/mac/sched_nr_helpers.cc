@@ -22,7 +22,7 @@ namespace sched_nr_impl {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, DciDlOrUl& dci)
+void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, const srsran_dci_ctx_t& dci_ctx, DciDlOrUl& dci)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
@@ -40,9 +40,16 @@ void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, DciDlOrUl& 
   const prb_grant& grant = h->prbs();
   if (grant.is_alloc_type0()) {
     dci.freq_domain_assigment = grant.rbgs().to_uint64();
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_ctx.ss_type) and dci_ctx.coreset_start_rb > 0) {
+      dci.freq_domain_assigment =
+          (dci.freq_domain_assigment << dci_ctx.coreset_start_rb) & ((1U << grant.rbgs().size()) - 1);
+    }
   } else {
-    dci.freq_domain_assigment =
-        srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, grant.prbs().start(), grant.prbs().length());
+    uint32_t rb_start = grant.prbs().start();
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_ctx.ss_type)) {
+      rb_start -= dci_ctx.coreset_start_rb;
+    }
+    dci.freq_domain_assigment = srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, rb_start, grant.prbs().length());
   }
   dci.time_domain_assigment = 0;
 }
@@ -51,13 +58,14 @@ bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp
 {
   uint32_t cs_id = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
 
-  dci.mcs                  = 5;
   dci.ctx.format           = srsran_dci_format_nr_1_0;
   dci.ctx.ss_type          = srsran_search_space_type_common_1;
   dci.ctx.rnti_type        = srsran_rnti_type_ra;
   dci.ctx.rnti             = ra_rnti;
   dci.ctx.coreset_id       = cs_id;
-  dci.ctx.coreset_start_rb = bwp_cfg.cfg.pdcch.coreset[cs_id].offset_rb;
+  dci.ctx.coreset_start_rb = srsran_coreset_start_rb(&bwp_cfg.cfg.pdcch.coreset[cs_id]);
+
+  dci.mcs = 5;
   if (bwp_cfg.cfg.pdcch.coreset_present[0] and cs_id == 0) {
     dci.coreset0_bw = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[cs_id]);
   }
@@ -73,7 +81,6 @@ bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp
 
 bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
 {
-  fill_dci_common(ue, bwp_cfg, msg3_dci);
   msg3_dci.ctx.coreset_id = ue->phy().pdcch.ra_search_space.coreset_id;
   msg3_dci.ctx.rnti_type  = srsran_rnti_type_tc;
   msg3_dci.ctx.rnti       = ue->rnti;
@@ -83,6 +90,7 @@ bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul
   } else {
     msg3_dci.ctx.format = srsran_dci_format_nr_0_0;
   }
+  fill_dci_common(ue, bwp_cfg, msg3_dci.ctx, msg3_dci);
 
   return true;
 }
@@ -98,7 +106,7 @@ void fill_dl_dci_ue_fields(const slot_ue&        ue,
   bool ret = ue->phy().get_dci_ctx_pdsch_rnti_c(ss_id, dci_pos, ue->rnti, dci.ctx);
   srsran_assert(ret, "Invalid DL DCI format");
 
-  fill_dci_common(ue, bwp_cfg, dci);
+  fill_dci_common(ue, bwp_cfg, dci.ctx, dci);
   if (dci.ctx.format == srsran_dci_format_nr_1_0) {
     dci.harq_feedback = (ue.uci_slot - ue.pdsch_slot) - 1;
   } else {
@@ -115,7 +123,7 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
   bool ret = ue->phy().get_dci_ctx_pusch_rnti_c(ss_id, dci_pos, ue->rnti, dci.ctx);
   srsran_assert(ret, "Invalid DL DCI format");
 
-  fill_dci_common(ue, bwp_cfg, dci);
+  fill_dci_common(ue, bwp_cfg, dci.ctx, dci);
 }
 
 void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)

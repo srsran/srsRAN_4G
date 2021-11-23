@@ -118,6 +118,7 @@ public:
 
   slot_ue make_slot_ue(slot_point pdcch_slot, uint32_t cc);
 
+  /// Update UE CC configuration
   void            set_cfg(const ue_cfg_t& cfg);
   const ue_cfg_t& cfg() const { return ue_cfg; }
 

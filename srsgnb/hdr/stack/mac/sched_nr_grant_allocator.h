@@ -99,8 +99,8 @@ public:
                                   uint32_t                                aggr_idx,
                                   prb_interval                            interv,
                                   srsran::const_span<dl_sched_rar_info_t> pending_rars);
-  alloc_result alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant);
-  alloc_result alloc_pusch(slot_ue& ue, const prb_grant& dl_mask);
+  alloc_result alloc_pdsch(slot_ue& ue, prb_grant dl_grant);
+  alloc_result alloc_pusch(slot_ue& ue, prb_grant dl_mask);
 
   slot_point           get_pdcch_tti() const { return pdcch_slot; }
   slot_point           get_tti_rx() const { return pdcch_slot - TX_ENB_DELAY; }

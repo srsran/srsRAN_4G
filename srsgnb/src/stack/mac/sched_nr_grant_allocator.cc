@@ -295,7 +295,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
 
 // ue is the UE (1 only) that will be allocated
 // func computes the grant allocation for this UE
-alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant)
+alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
 {
   static const uint32_t                              aggr_idx = 2;
   static const std::array<srsran_dci_format_nr_t, 2> dci_fmt_list{srsran_dci_format_nr_1_1, srsran_dci_format_nr_1_0};
@@ -334,6 +334,9 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
     return alloc_result::no_cch_space;
   }
   uint32_t coreset_id = ss[0]->coreset_id;
+  if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss[0]->type)) {
+    dl_grant &= prb_interval{ue->phy().pdcch.coreset[ss[0]->coreset_id].offset_rb, ue->phy().carrier.nof_prb};
+  }
   if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss[0]->id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
@@ -406,7 +409,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   return alloc_result::success;
 }
 
-alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_prbs)
+alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
 {
   static const uint32_t                              aggr_idx = 2;
   static const std::array<srsran_dci_format_nr_t, 2> dci_fmt_list{srsran_dci_format_nr_0_1, srsran_dci_format_nr_0_0};
@@ -422,7 +425,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
     return ret;
   }
   pdcch_ul_list_t& pdcchs = bwp_pdcch_slot.dl.phy.pdcch_ul;
-  if (bwp_pusch_slot.ul_prbs.collides(ul_prbs)) {
+  if (bwp_pusch_slot.ul_prbs.collides(ul_grant)) {
     return alloc_result::sch_collision;
   }
 
@@ -435,6 +438,9 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
     return alloc_result::no_cch_space;
   }
   uint32_t coreset_id = ss[0]->coreset_id;
+  if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss[0]->type)) {
+    ul_grant &= prb_interval{ue->phy().pdcch.coreset[ss[0]->coreset_id].offset_rb, ue->phy().carrier.nof_prb};
+  }
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
           pdcch_grant_type_t::ul_data, aggr_idx, ss[0]->id, &ue.cfg())) {
     // Could not find space in PDCCH
@@ -445,10 +451,10 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
 
   if (ue.h_ul->empty()) {
     int  mcs     = ue->fixed_pusch_mcs();
-    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, ue->ue_cfg().maxharq_tx);
+    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_grant, mcs, ue->ue_cfg().maxharq_tx);
     srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
-    bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_prbs);
+    bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_grant);
     srsran_assert(success, "Failed to allocate UL HARQ retx");
   }
 
@@ -457,7 +463,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
   fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss[0]->id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci_cfg = ue->phy().get_dci_cfg();
   // Generate PUSCH
-  bwp_pusch_slot.ul_prbs |= ul_prbs;
+  bwp_pusch_slot.ul_prbs |= ul_grant;
   bwp_pusch_slot.ul.pusch.emplace_back();
   pusch_t&          pusch = bwp_pusch_slot.ul.pusch.back();
   srsran_slot_cfg_t slot_cfg;
