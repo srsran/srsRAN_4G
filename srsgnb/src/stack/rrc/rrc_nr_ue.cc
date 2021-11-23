@@ -1245,15 +1245,15 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_config_complete)
+int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_config_complete)
 {
   if (not is_config_complete) {
     // Release bearers
-    for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
+    for (uint8_t lcid : cell_group_config.rlc_bearer_to_release_list) {
       uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
     }
 
-    for (const rlc_bearer_cfg_s& bearer : cell_group_diff.rlc_bearer_to_add_mod_list) {
+    for (const rlc_bearer_cfg_s& bearer : cell_group_config.rlc_bearer_to_add_mod_list) {
       uecfg.ue_bearers[bearer.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
       if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
         uecfg.ue_bearers[bearer.lc_ch_id].priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
@@ -1265,7 +1265,7 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_conf
       }
     }
   } else {
-    auto& pdcch = cell_group_diff.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
+    auto& pdcch = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
     for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
       uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
       uecfg.phy_cfg.pdcch.search_space[ss.search_space_id] =

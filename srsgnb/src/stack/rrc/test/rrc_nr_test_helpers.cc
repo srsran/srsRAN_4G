@@ -256,10 +256,10 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
   asn1::unbounded_octstring<false> NAS_msg;
   NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
-  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, srsran::srb_to_lcid(srsran::nr_srb::srb1));
 
   // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
-  rrc_obj.start_rrc_reconfiguration(rnti);
+  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, srsran::srb_to_lcid(srsran::nr_srb::srb1));
+  //rrc_obj.start_rrc_reconfiguration(rnti);
 
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was set up in a different function

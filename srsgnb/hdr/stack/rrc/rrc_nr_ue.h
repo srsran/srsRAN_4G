@@ -102,7 +102,7 @@ private:
   int update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff);
 
   /// Update MAC based on ASN1 message
-  int update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff, bool is_config_complete);
+  int update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_config, bool is_config_complete);
 
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
