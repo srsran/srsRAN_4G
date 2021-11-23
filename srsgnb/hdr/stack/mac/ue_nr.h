@@ -48,6 +48,7 @@ public:
   uint16_t get_rnti() const { return rnti; }
   void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
   bool     is_active() const { return active_state.load(std::memory_order_relaxed); }
+  void     store_msg3(srsran::unique_byte_buffer_t pdu);
 
   int generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size, srsran::const_span<uint32_t> subpdu_lcids);
 
@@ -97,6 +98,8 @@ private:
   srsran::block_queue<srsran::unique_byte_buffer_t>
                                ue_rx_pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
   srsran::unique_byte_buffer_t ue_rlc_buffer;
+
+  srsran::unique_byte_buffer_t last_msg3; ///< holds UE ID received in Msg3 for ConRes CE
 
   static constexpr int32_t MIN_RLC_PDU_LEN =
       5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU

@@ -122,6 +122,17 @@ public:
 };
 
 /*****************************
+ *      MAC internal INTERFACES
+ ****************************/
+
+class mac_interface_pdu_demux_nr
+{
+public:
+  // Called by PDU handler from Stack thread to store Msg3 content (According to O-RAN WG8 v3.0, Sec. 9.2.2.3.5 MAC)
+  virtual void store_msg3(uint16_t rnti, srsran::unique_byte_buffer_t pdu) = 0;
+};
+
+/*****************************
  *      RRC INTERFACES
  ****************************/
 class rrc_interface_phy_nr

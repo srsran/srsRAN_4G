@@ -74,46 +74,64 @@ int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size, srsran:
   }
 
   bool drb_activity = false; // inform RRC about user activity if true
-  int  lcid         = 4;     // only supporting single DRB right now
 
   int32_t remaining_len = mac_pdu_dl.get_remaing_len();
 
-  logger.debug("Adding MAC PDU for RNTI=%d (max %d B)", rnti, remaining_len);
-  while (remaining_len >= MIN_RLC_PDU_LEN) {
-    // clear read buffer
-    ue_rlc_buffer->clear();
+  logger.debug("0x%x Generating MAC PDU (%d B)", rnti, remaining_len);
 
-    // Determine space for RLC
-    remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
-
-    // read RLC PDU
-    int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, remaining_len);
-
-    if (pdu_len > remaining_len) {
-      logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
-      break;
-    } else {
-      // Add SDU if RLC has something to tx
-      if (pdu_len > 0) {
-        ue_rlc_buffer->N_bytes = pdu_len;
-        logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
-
-        // add to MAC PDU and pack
-        if (mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
-          logger.error("Error packing MAC PDU");
-          break;
+  // First, add CEs as indicated by scheduler
+  for (const auto& lcid : subpdu_lcids) {
+    logger.debug("adding lcid=%d", lcid);
+    if (lcid == srsran::mac_sch_subpdu_nr::CON_RES_ID) {
+      if (last_msg3 != nullptr) {
+        srsran::mac_sch_subpdu_nr::ue_con_res_id_t id;
+        memcpy(id.data(), last_msg3->msg, id.size());
+        if (mac_pdu_dl.add_ue_con_res_id_ce(id) != SRSRAN_SUCCESS) {
+          logger.error("0x%x Failed to add ConRes CE.", rnti);
         }
-
-        // set DRB activity flag but only notify RRC once
-        if (lcid > 3) {
-          drb_activity = true;
-        }
+        last_msg3 = nullptr; // don't use this Msg3 again
       } else {
-        break;
+        logger.warning("0x%x Can't add ConRes CE. No Msg3 stored.", rnti);
       }
+    } else {
+      // add SDUs for given LCID
+      while (remaining_len >= MIN_RLC_PDU_LEN) {
+        // clear read buffer
+        ue_rlc_buffer->clear();
 
-      remaining_len -= pdu_len;
-      logger.debug("%d B remaining PDU", remaining_len);
+        // Determine space for RLC
+        remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+
+        // read RLC PDU
+        int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, remaining_len);
+
+        if (pdu_len > remaining_len) {
+          logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
+          break;
+        } else {
+          // Add SDU if RLC has something to tx
+          if (pdu_len > 0) {
+            ue_rlc_buffer->N_bytes = pdu_len;
+            logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+
+            // add to MAC PDU and pack
+            if (mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
+              logger.error("Error packing MAC PDU");
+              break;
+            }
+
+            // set DRB activity flag but only notify RRC once
+            if (lcid > 3) {
+              drb_activity = true;
+            }
+          } else {
+            break;
+          }
+
+          remaining_len -= pdu_len;
+          logger.debug("%d B remaining PDU", remaining_len);
+        }
+      }
     }
   }
 
@@ -234,6 +252,13 @@ void ue_nr::metrics_pusch_sinr(float sinr)
     ue_metrics.pusch_sinr = SRSRAN_VEC_SAFE_CMA((float)sinr, ue_metrics.pusch_sinr, pusch_sinr_counter);
     pusch_sinr_counter++;
   }
+}
+
+// Called from Stack thread when demuxing UL PDUs
+void ue_nr::store_msg3(srsran::unique_byte_buffer_t pdu)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  last_msg3 = std::move(pdu);
 }
 
 } // namespace srsenb

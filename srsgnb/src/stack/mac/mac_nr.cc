@@ -24,15 +24,28 @@
 
 namespace srsenb {
 
+/**
+ * @brief Handles UL PDU processing
+ *
+ * This class implements the demuxing of UL PDUs received at the MAC layer.
+ * When the PHY decodes a valid PUSCH it passes the PDU to the MAC which
+ * in turn puts them in a thread-safe task queue to return to the calling
+ * thread as quick as possible.
+ *
+ * The demuxing of the PDUs for all users takes place on the Stack thread
+ * which calls RLC and RRC for SDUs, or the MAC/scheduler for control elements.
+ *
+ */
 class mac_nr_rx
 {
 public:
-  explicit mac_nr_rx(rlc_interface_mac*         rlc_,
-                     rrc_interface_mac_nr*      rrc_,
-                     srsran::task_queue_handle& stack_task_queue_,
-                     sched_nr_interface*        sched_,
-                     srslog::basic_logger&      logger_) :
-    task_queue(stack_task_queue_), rlc(rlc_), rrc(rrc_), sched(sched_), logger(logger_)
+  explicit mac_nr_rx(rlc_interface_mac*          rlc_,
+                     rrc_interface_mac_nr*       rrc_,
+                     srsran::task_queue_handle&  stack_task_queue_,
+                     sched_nr_interface*         sched_,
+                     mac_interface_pdu_demux_nr& mac_,
+                     srslog::basic_logger&       logger_) :
+    task_queue(stack_task_queue_), rlc(rlc_), rrc(rrc_), sched(sched_), mac(mac_), logger(logger_)
   {}
 
   void handle_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
@@ -91,6 +104,9 @@ private:
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH_SIZE_64: {
         srsran::mac_sch_subpdu_nr& ccch_subpdu = const_cast<srsran::mac_sch_subpdu_nr&>(subpdu);
         rlc->write_pdu(rnti, 0, ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length());
+        // store content for ConRes CE
+        mac.store_msg3(rnti,
+                       srsran::make_byte_buffer(ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length(), __FUNCTION__));
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
         uint16_t ce_crnti  = subpdu.get_c_rnti();
@@ -170,6 +186,7 @@ private:
   rlc_interface_mac*         rlc;
   rrc_interface_mac_nr*      rrc;
   sched_nr_interface*        sched;
+  mac_interface_pdu_demux_nr& mac;
   srslog::basic_logger&      logger;
   srsran::task_queue_handle& task_queue;
 
@@ -279,7 +296,7 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
     bcch_dlsch_payload.push_back(std::move(sib));
   }
 
-  rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), logger});
+  rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});
 
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
   ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
@@ -457,6 +474,16 @@ void mac_nr::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr)
 int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
 {
   return 0;
+}
+
+void mac_nr::store_msg3(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+{
+  srsran::rwlock_read_guard rw_lock(rwmutex);
+  if (is_rnti_active_nolock(rnti)) {
+    ue_db[rnti]->store_msg3(std::move(pdu));
+  } else {
+    logger.error("User rnti=0x%x not found. Can't store Msg3.", rnti);
+  }
 }
 
 mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
