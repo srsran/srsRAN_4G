@@ -258,7 +258,57 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
 
   // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
-  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, srsran::srb_to_lcid(srsran::nr_srb::srb1));
+  //rrc_obj.start_rrc_reconfiguration(rnti);
+
+  // Test whether there exists the SRB1 initiated in the Connection Establishment
+  // We test this as the SRB1 was set up in a different function
+  TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
+
+  dl_dcch_msg_s dl_dcch_msg;
+  {
+    asn1::cbit_ref bref{pdcp.last_sdu->data(), pdcp.last_sdu->size()};
+    TESTASSERT_SUCCESS(dl_dcch_msg.unpack(bref));
+  }
+
+  // Test whether the unpacked message is correct
+  TESTASSERT_EQ(dl_dcch_msg_type_c::types_opts::c1, dl_dcch_msg.msg.type().value);
+  TESTASSERT_EQ(dl_dcch_msg_type_c::c1_c_::types_opts::rrc_recfg, dl_dcch_msg.msg.c1().type().value);
+  TESTASSERT_EQ(rrc_recfg_s::crit_exts_c_::types_opts::rrc_recfg,
+                dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.type().value);
+  const rrc_recfg_ies_s& reconf_ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.rrc_recfg();
+
+  // STEP 2 - Send RRCReconfiguration (UE -> gNB)
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         RRC_recfg_complete  = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete();
+  RRC_recfg_complete.rrc_transaction_id = dl_dcch_msg.msg.c1().rrc_recfg().rrc_transaction_id;
+  RRC_recfg_complete.crit_exts.set_rrc_recfg_complete();
+
+  srsran::unique_byte_buffer_t pdu;
+  {
+    pdu = srsran::make_byte_buffer();
+    asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
+    TESTASSERT_SUCCESS(ul_dcch_msg.pack(bref));
+    pdu->N_bytes = bref.distance_bytes();
+  }
+
+  // send message to RRC
+  rrc_obj.write_pdu(rnti, 1, std::move(pdu));
+}
+
+#if 0
+void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
+                                 rrc_nr&                 rrc_obj,
+                                 pdcp_nr_rrc_tester&     pdcp,
+                                 uint16_t                rnti)
+{
+  TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
+
+  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  asn1::unbounded_octstring<false> NAS_msg;
+  NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
+
+  // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
   //rrc_obj.start_rrc_reconfiguration(rnti);
 
   // Test whether there exists the SRB1 initiated in the Connection Establishment
@@ -326,5 +376,6 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   // send message to RRC
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
+#endif
 
 } // namespace srsenb

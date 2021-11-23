@@ -1021,6 +1021,7 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   parent->logger.info("SecurityModeComplete transaction ID: %d", msg.rrc_transaction_id);
   parent->pdcp->enable_encryption(rnti, srb_to_lcid(srsran::nr_srb::srb1));
 
+  send_rrc_reconfiguration();
   // Note: Skip UE capabilities
 
   // Send RRCReconfiguration if necessary
@@ -1040,49 +1041,56 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   ies.radio_bearer_cfg_present =
       compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, ies.radio_bearer_cfg);
 
-  ies.non_crit_ext_present                   = true;
-  ies.non_crit_ext.master_cell_group_present = true;
+  // If no bearer to add/mod/remove, do not include master_cell_group
+  // Set ies.non_crit_ext_present only if master_cell_group_present = true or
+  if (ies.radio_bearer_cfg_present){
 
-  // Fill masterCellGroup
-  cell_group_cfg_s master_cell_group;
-  master_cell_group.cell_group_id = 0;
-  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
+    ies.non_crit_ext.master_cell_group_present = true;
 
-  // Pack masterCellGroup into container
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
-  if (pdu == nullptr) {
-    send_rrc_release();
-    return;
+    // Fill masterCellGroup
+    cell_group_cfg_s master_cell_group;
+    master_cell_group.cell_group_id = 0;
+    fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
+
+    // Pack masterCellGroup into container
+    srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
+    if (pdu == nullptr) {
+      send_rrc_release();
+      return;
+    }
+    ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
+    memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+    if (logger.debug.enabled()) {
+      asn1::json_writer js;
+      master_cell_group.to_json(js);
+      logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+    }
+
+    // Update lower layers
+    if (ies.radio_bearer_cfg_present) {
+      // add PDCP bearers
+      update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
+
+      // add RLC bearers
+      update_rlc_bearers(master_cell_group);
+
+      // add MAC bearers
+      update_mac(master_cell_group, false);
+    }
   }
-  ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
-  memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
-  if (logger.debug.enabled()) {
-    asn1::json_writer js;
-    master_cell_group.to_json(js);
-    logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+
+  if (nas_pdu_queue.size() > 0) {
+    // Pass stored NAS PDUs
+    ies.non_crit_ext.ded_nas_msg_list_present = true;
+    ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
+    for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
+      ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
+      memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
+    }
+    nas_pdu_queue.clear();
   }
 
-  // Pass stored NAS PDUs
-  ies.non_crit_ext.ded_nas_msg_list_present = true;
-  ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
-  for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
-    ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
-    memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
-  }
-  ies.non_crit_ext.ded_nas_msg_list_present = nas_pdu_queue.size() > 0;
-  nas_pdu_queue.clear();
-
-  // Update lower layers
-  if (ies.radio_bearer_cfg_present) {
-    // add PDCP bearers
-    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
-
-    // add RLC bearers
-    update_rlc_bearers(master_cell_group);
-
-    // add MAC bearers
-    update_mac(master_cell_group, false);
-  }
+  ies.non_crit_ext_present = ies.non_crit_ext.master_cell_group_present or ies.non_crit_ext.ded_nas_msg_list_present;
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
     send_rrc_release();
