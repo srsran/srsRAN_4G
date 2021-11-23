@@ -20,6 +20,7 @@ namespace srsenb {
 void generate_default_nr_cell(rrc_cell_cfg_nr_t& cell);
 
 int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell);
+int set_derived_nr_rrc_params(rrc_nr_cfg_t& rrc_cfg);
 
 // Tests to ensure validity of config
 

@@ -326,6 +326,14 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   return check_nr_cell_cfg_valid(cell, is_sa);
 }
 
+int set_derived_nr_rrc_params(rrc_nr_cfg_t& rrc_cfg)
+{
+  for (rrc_cell_cfg_nr_t& cell : rrc_cfg.cell_list) {
+    HANDLE_ERROR(set_derived_nr_cell_params(rrc_cfg.is_standalone, cell));
+  }
+  return SRSRAN_SUCCESS;
+}
+
 int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa)
 {
   // verify SSB params are consistent

@@ -1486,9 +1486,7 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
   }
 
   // Create NR dedicated cell configuration from RRC configuration
-  for (auto it = rrc_nr_cfg_->cell_list.begin(); it != rrc_nr_cfg_->cell_list.end(); ++it) {
-    auto& cfg = *it;
-
+  for (auto& cfg : rrc_nr_cfg_->cell_list) {
     cfg.phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
 
     // NR cells have the same bandwidth as EUTRA cells, adjust PRB sizes
@@ -1507,12 +1505,6 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
         return SRSRAN_ERROR;
     }
 
-    // Derive cross-dependent cell params
-    if (set_derived_nr_cell_params(rrc_nr_cfg_->is_standalone, cfg) != SRSRAN_SUCCESS) {
-      ERROR("Failed to derive NR cell params.");
-      return SRSRAN_ERROR;
-    }
-
     // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
 
     // PRACH
@@ -1523,6 +1515,12 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;
 
     phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
+  }
+
+  // Derive cross-dependent cell params
+  if (set_derived_nr_rrc_params(*rrc_nr_cfg_) != SRSRAN_SUCCESS) {
+    ERROR("Failed to derive NR cell params.");
+    return SRSRAN_ERROR;
   }
 
   // MAC-NR PCAP options
