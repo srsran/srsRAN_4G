@@ -75,6 +75,11 @@ bool cell_search::start(const cfg_t& cfg)
     return false;
   }
 
+  logger.info("Cell search: starting in center frequency %.2f and SSB frequency %.2f with subcarrier spacing of %s",
+              cfg.center_freq_hz / 1e6,
+              cfg.ssb_freq_hz / 1e6,
+              srsran_subcarrier_spacing_to_str(cfg.ssb_scs));
+
   // Set RX frequency
   radio.set_rx_freq(0, cfg.center_freq_hz);
 
@@ -105,7 +110,7 @@ bool cell_search::run()
   }
 
   // Consider the SSB is found and decoded if the PBCH CRC matched
-  if (res.pbch_msg.crc) {
+  if (res.measurements.snr_dB >= -10.0f and res.pbch_msg.crc) {
     rrc_interface_phy_sa_nr::cell_search_result_t cs_res = {};
     cs_res.pci                                           = res.N_id;
     cs_res.pbch_msg                                      = res.pbch_msg;

@@ -10,164 +10,31 @@
  *
  */
 
+#include "gnb_rf_emulator.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/band_helper.h"
+#include "srsran/common/crash_handler.h"
+#include "srsran/common/string_helpers.h"
 #include "srsue/hdr/phy/phy_nr_sa.h"
+#include "test/phy/dummy_ue_stack.h"
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <iostream>
 
-struct test_args_t {};
-
-class gnb_emulator : public srsran::radio_interface_phy
+class throttled_dummy_stack : public ue_dummy_stack
 {
 private:
-  const uint32_t        BUFFER_SIZE_SF = 10;
-  const std::string     LOGNAME        = "RF";
-  uint32_t              sf_len         = 0;
-  srsran_ssb_t          ssb            = {};
-  srsran_ringbuffer_t   ringbuffer     = {};
-  cf_t*                 buffer         = nullptr;
-  uint32_t              slot_idx       = 0;
-  srsran_carrier_nr_t   carrier        = {};
-  std::atomic<bool>     running        = {true};
-  srslog::basic_logger& logger;
-
-  void run_async_slot()
-  {
-    // Early return if not running
-    if (not running) {
-      return;
-    }
-
-    // Zero slot buffer
-    srsran_vec_cf_zero(buffer, sf_len);
-
-    if (srsran_ssb_send(&ssb, slot_idx)) {
-      // Create MIB for this slot
-      srsran_mib_nr_t mib = {};
-
-      // Create PBCH message from packed MIB
-      srsran_pbch_msg_nr_t pbch_msg = {};
-      srsran_assert(srsran_pbch_msg_nr_mib_pack(&mib, &pbch_msg) >= SRSRAN_SUCCESS,
-                    "Error packing MIB into PBCH message");
-
-      // Encode SSB signal and add it to the baseband
-      srsran_assert(srsran_ssb_add(&ssb, carrier.pci, &pbch_msg, buffer, buffer) >= SRSRAN_SUCCESS,
-                    "Error adding SSB signal");
-    }
-    slot_idx++;
-
-    // Write slot samples in ringbuffer
-    srsran_assert(srsran_ringbuffer_write(&ringbuffer, buffer, (int)sizeof(cf_t) * sf_len) > SRSRAN_SUCCESS,
-                  "Error writing in ringbuffer");
-  }
-
-public:
-  struct args_t {
-    double                      srate_hz;
-    srsran_carrier_nr_t         carrier;
-    srsran_subcarrier_spacing_t ssb_scs;
-    srsran_ssb_patern_t         ssb_pattern;
-    uint32_t                    ssb_periodicity_ms;
-    srsran_duplex_mode_t        duplex_mode;
-  };
-  gnb_emulator(const args_t& args) : logger(srslog::fetch_basic_logger(LOGNAME))
-  {
-    srsran_assert(
-        std::isnormal(args.srate_hz) and args.srate_hz > 0, "Invalid sampling rate (%.2f MHz)", args.srate_hz);
-
-    sf_len  = args.srate_hz / 1000;
-    carrier = args.carrier;
-
-    srsran_ssb_args_t ssb_args = {};
-    ssb_args.enable_encode     = true;
-    srsran_assert(srsran_ssb_init(&ssb, &ssb_args) == SRSRAN_SUCCESS, "SSB initialisation failed");
-
-    srsran_ssb_cfg_t ssb_cfg = {};
-    ssb_cfg.srate_hz         = args.srate_hz;
-    ssb_cfg.center_freq_hz   = args.carrier.dl_center_frequency_hz;
-    ssb_cfg.ssb_freq_hz      = args.carrier.ssb_center_freq_hz;
-    ssb_cfg.scs              = args.ssb_scs;
-    ssb_cfg.pattern          = args.ssb_pattern;
-    ssb_cfg.duplex_mode      = args.duplex_mode;
-    ssb_cfg.periodicity_ms   = args.ssb_periodicity_ms;
-    srsran_assert(srsran_ssb_set_cfg(&ssb, &ssb_cfg) == SRSRAN_SUCCESS, "SSB set config failed");
-
-    srsran_assert(srsran_ringbuffer_init(&ringbuffer, sizeof(cf_t) * BUFFER_SIZE_SF * sf_len) >= SRSRAN_SUCCESS,
-                  "Ringbuffer initialisation failed");
-
-    buffer = srsran_vec_cf_malloc(BUFFER_SIZE_SF * sf_len);
-  }
-  ~gnb_emulator()
-  {
-    srsran_ssb_free(&ssb);
-    srsran_ringbuffer_free(&ringbuffer);
-    if (buffer != nullptr) {
-      free(buffer);
-    }
-  }
-  void tx_end() override {}
-  bool tx(srsran::rf_buffer_interface& tx_buffer, const srsran::rf_timestamp_interface& tx_time) override
-  {
-    return false;
-  }
-  bool rx_now(srsran::rf_buffer_interface& rx_buffer, srsran::rf_timestamp_interface& rxd_time) override
-  {
-    int   nbytes      = (int)(sizeof(cf_t) * rx_buffer.get_nof_samples());
-    cf_t* temp_buffer = rx_buffer.get(0);
-
-    // If the buffer is invalid, use internal temporal buffer
-    if (temp_buffer == nullptr) {
-      temp_buffer = buffer;
-    }
-
-    // As long as there are not enough samples
-    while (srsran_ringbuffer_status(&ringbuffer) < nbytes and running) {
-      run_async_slot();
-    }
-
-    if (not running) {
-      return true;
-    }
-
-    srsran_assert(srsran_ringbuffer_read(&ringbuffer, temp_buffer, nbytes) >= SRSRAN_SUCCESS,
-                  "Error reading from ringbuffer");
-
-    return true;
-  }
-  void              set_tx_freq(const uint32_t& carrier_idx, const double& freq) override {}
-  void              set_rx_freq(const uint32_t& carrier_idx, const double& freq) override {}
-  void              release_freq(const uint32_t& carrier_idx) override {}
-  void              set_tx_gain(const float& gain) override {}
-  void              set_rx_gain_th(const float& gain) override {}
-  void              set_rx_gain(const float& gain) override {}
-  void              set_tx_srate(const double& srate) override {}
-  void              set_rx_srate(const double& srate) override {}
-  void              set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override {}
-  double            get_freq_offset() override { return 0; }
-  float             get_rx_gain() override { return 0; }
-  bool              is_continuous_tx() override { return false; }
-  bool              get_is_start_of_burst() override { return false; }
-  bool              is_init() override { return false; }
-  void              reset() override { running = false; }
-  srsran_rf_info_t* get_info() override { return nullptr; }
-};
-
-class dummy_stack : public srsue::stack_interface_phy_sa_nr
-{
-private:
-  srslog::basic_logger&   logger      = srslog::fetch_basic_logger("STACK");
   bool                    pending_tti = false;
   std::mutex              pending_tti_mutex;
   std::condition_variable pending_tti_cvar;
   std::atomic<bool>       running = {true};
 
 public:
-  dummy_stack() { logger.set_level(srslog::str_to_basic_level("info")); }
-  void in_sync() override {}
-  void out_of_sync() override {}
-  void run_tti(const uint32_t tti) override
+  throttled_dummy_stack(const ue_dummy_stack::args_t& args, srsue::phy_interface_stack_nr& phy) :
+    ue_dummy_stack(args, phy)
+  {}
+  void wait_tti() override
   {
-    logger.debug("Run TTI %d", tti);
-
     // Wait for tick
     std::unique_lock<std::mutex> lock(pending_tti_mutex);
     while (not pending_tti and running) {
@@ -178,35 +45,6 @@ public:
     pending_tti = false;
     pending_tti_cvar.notify_all();
   }
-  void cell_search_found_cell(const cell_search_result_t& result) override
-  {
-    // Unpack MIB with ASN1
-    asn1::rrc_nr::mib_s mib;
-    asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
-    mib.unpack(cbit);
-
-    // Convert MIB to JSON
-    asn1::json_writer json;
-    mib.to_json(json);
-
-    // Convert CSI to string
-    std::array<char, 512> csi_info = {};
-    srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
-
-    logger.info("Cell found pci=%d %s MIB: %s", result.pci, csi_info.data(), json.to_string().c_str());
-  }
-  int sf_indication(const uint32_t tti) override
-  {
-    logger.info("SF %d indication", tti);
-    return 0;
-  }
-  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override { return sched_rnti_t(); }
-  sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) override { return sched_rnti_t(); }
-  void         new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_t* action) override {}
-  void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result) override {}
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action) override {}
-  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) override {}
-  bool sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx) override { return false; }
 
   void tick()
   {
@@ -229,28 +67,189 @@ public:
 };
 
 struct args_t {
-  double                      srate_hz           = 11.52e6;
-  srsran_carrier_nr_t         carrier            = SRSRAN_DEFAULT_CARRIER_NR;
-  srsran_ssb_patern_t         ssb_pattern        = SRSRAN_SSB_PATTERN_A;
-  uint32_t                    ssb_periodicity_ms = 10;
-  srsran_subcarrier_spacing_t ssb_scs            = srsran_subcarrier_spacing_15kHz;
-  srsran_duplex_mode_t        duplex_mode        = SRSRAN_DUPLEX_MODE_FDD;
-  uint32_t                    duration_ms        = 1000;
+  // Generic parameters
+  double                      srate_hz        = 11.52e6;
+  srsran_carrier_nr_t         base_carrier    = SRSRAN_DEFAULT_CARRIER_NR;
+  srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
+  srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_15kHz;
+  srsran_duplex_mode_t        duplex_mode     = SRSRAN_DUPLEX_MODE_FDD;
+  uint32_t                    duration_ms     = 1000;
+  std::string                 phy_log_level   = "warning";
+  std::string                 stack_log_level = "warning";
 
-  void set_ssb_from_band(uint16_t band)
+  // Simulation parameters
+  uint32_t           sim_ssb_periodicity_ms = 10;
+  std::set<uint32_t> sim_cell_pci;
+
+  // RF parameters
+  std::string rf_device_name    = "auto";
+  std::string rf_device_args    = "auto";
+  std::string rf_log_level      = "info";
+  float       rf_rx_gain_dB     = 20.0f;
+  float       rf_freq_offset_Hz = 0.0f;
+
+  void set_ssb_from_band()
   {
     srsran::srsran_band_helper bands;
-    duplex_mode                = bands.get_duplex_mode(band);
-    ssb_scs                    = bands.get_ssb_scs(band);
-    ssb_pattern                = bands.get_ssb_pattern(band, ssb_scs);
-    carrier.ssb_center_freq_hz = bands.get_ssb_center_freq(carrier);
+
+    // Deduce band number
+    uint16_t band = bands.get_band_from_dl_freq_Hz(base_carrier.dl_center_frequency_hz);
+    srsran_assert(band != UINT16_MAX, "Invalid band");
+
+    // Deduce point A in Hz
+    double pointA_Hz =
+        bands.get_abs_freq_point_a_from_center_freq(base_carrier.nof_prb, base_carrier.dl_center_frequency_hz);
+
+    // Deduce DL center frequency ARFCN
+    uint32_t pointA_arfcn = bands.freq_to_nr_arfcn(pointA_Hz);
+    srsran_assert(pointA_arfcn != 0, "Invalid frequency");
+
+    // Select a valid SSB subcarrier spacing
+    ssb_scs = bands.get_ssb_scs(band);
+
+    // Deduce SSB center frequency ARFCN
+    uint32_t ssb_arfcn = bands.get_abs_freq_ssb_arfcn(band, ssb_scs, pointA_arfcn);
+    srsran_assert(ssb_arfcn, "Invalid SSB center frequency");
+
+    duplex_mode                     = bands.get_duplex_mode(band);
+    ssb_pattern                     = bands.get_ssb_pattern(band, ssb_scs);
+    base_carrier.ssb_center_freq_hz = bands.nr_arfcn_to_freq(ssb_arfcn);
+  }
+};
+
+// shorten boost program options namespace
+namespace bpo = boost::program_options;
+
+static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& list)
+{
+  if (list_str == "all") {
+    // Add all possible cells
+    for (int i = 0; i < 504; i++) {
+      list.insert(i);
+    }
+  } else if (list_str == "none") {
+    // Do nothing
+  } else if (not list_str.empty()) {
+    // Remove spaces from neightbour cell list
+    list_str = srsran::string_remove_char(list_str, ' ');
+
+    // Add cell to known cells
+    srsran::string_parse_list(list_str, ',', list);
+  }
+}
+
+int parse_args(int argc, char** argv, args_t& args)
+{
+  int ret = SRSRAN_SUCCESS;
+
+  std::string simulation_cell_list = "";
+
+  bpo::options_description options("General options");
+  bpo::options_description phy("Physical layer options");
+  bpo::options_description stack("Stack options");
+  bpo::options_description over_the_air("Mode 1: Over the air options (Default)");
+  bpo::options_description simulation("Mode 2: Simulation options (enabled if simulation_cell_list is not empty)");
+
+  // clang-format off
+  over_the_air.add_options()
+      ("rf.device_name", bpo::value<std::string>(&args.rf_device_name)->default_value(args.rf_device_name), "RF Device Name")
+      ("rf.device_args", bpo::value<std::string>(&args.rf_device_args)->default_value(args.rf_device_args), "RF Device arguments")
+      ("rf.log_level",   bpo::value<std::string>(&args.rf_log_level)->default_value(args.rf_log_level),     "RF Log level (none, warning, info, debug)")
+      ("rf.rx_gain",     bpo::value<float>(&args.rf_rx_gain_dB)->default_value(args.rf_rx_gain_dB),                           "RF Receiver gain in dB")
+      ("rf.freq_offset",     bpo::value<float>(&args.rf_freq_offset_Hz)->default_value(args.rf_freq_offset_Hz),                           "RF Frequency offset")
+      ;
+
+  simulation.add_options()
+      ("sim.pci_list", bpo::value<std::string>(&simulation_cell_list)->default_value(simulation_cell_list), "Comma separated PCI cell list to simulate")
+      ("sim.bw", bpo::value<uint32_t>(&args.base_carrier.nof_prb)->default_value(args.base_carrier.nof_prb), "Carrier bandwidth in RB")
+      ("sim.ssb_period",           bpo::value<uint32_t>(&args.sim_ssb_periodicity_ms)->default_value(args.sim_ssb_periodicity_ms),        "SSB period in ms")
+      ;
+
+  phy.add_options()
+      ("phy.srate", bpo::value<double>(&args.srate_hz)->default_value(args.srate_hz), "Sampling Rate in Hz")
+      ("phy.log.level", bpo::value<std::string>(&args.phy_log_level)->default_value(args.phy_log_level), "Physical layer logging level")
+      ;
+
+  stack.add_options()
+      ("stack.log.level", bpo::value<std::string>(&args.stack_log_level)->default_value(args.stack_log_level), "Stack logging level")
+      ;
+
+  options.add(over_the_air).add(simulation).add(phy).add(stack).add_options()
+      ("help,h",        "Show this message")
+      ("duration",      bpo::value<uint32_t>(&args.duration_ms)->default_value(args.duration_ms),     "Duration of the test in milli-seconds")
+      ("freq_dl", bpo::value<double>(&args.base_carrier.dl_center_frequency_hz)->default_value(args.base_carrier.dl_center_frequency_hz), "Carrier center frequency in Hz")
+      ;
+  // clang-format on
+
+  bpo::variables_map vm;
+  try {
+    bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
+    bpo::notify(vm);
+  } catch (bpo::error& e) {
+    std::cerr << e.what() << std::endl;
+    ret = SRSRAN_ERROR;
+  }
+
+  // help option was given or error - print usage and exit
+  if (vm.count("help") || ret) {
+    std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
+    std::cout << options << std::endl << std::endl;
+    ret = SRSRAN_ERROR;
+  }
+
+  // Parse PCI lists
+  pci_list_parse_helper(simulation_cell_list, args.sim_cell_pci);
+
+  args.set_ssb_from_band();
+
+  return ret;
+}
+
+class dummy_ue
+{
+private:
+  throttled_dummy_stack stack;
+  srsue::phy_nr_sa      phy;
+
+public:
+  struct args_t {
+    srsue::phy_nr_sa::args_t phy;
+    ue_dummy_stack::args_t   stack;
+  };
+  dummy_ue(const args_t& args, srsran::radio_interface_phy& radio) : stack(args.stack, phy), phy(stack, radio)
+  {
+    srsran_assert(phy.init(args.phy), "Failed to initialise PHY");
+  }
+
+  bool start_cell_search(const srsue::phy_interface_stack_sa_nr::cell_search_args_t& args)
+  {
+    return phy.start_cell_search(args);
+  }
+
+  void run_tti() { stack.tick(); }
+  void stop()
+  {
+    // First transition PHY to IDLE
+    phy.reset();
+
+    // Make sure PHY transitioned to IDLE
+    // ...
+
+    // Stop stack, it will let PHY free run
+    stack.stop();
+
+    // Stop PHY
+    phy.stop();
   }
 };
 
 int main(int argc, char** argv)
 {
+  srsran_debug_handle_crash(argc, argv);
+
   // Parse Test arguments
   args_t args;
+  srsran_assert(parse_args(argc, argv, args) == SRSRAN_SUCCESS, "Failed to parse arguments");
 
   // Initialise logging infrastructure
   srslog::init();
@@ -258,53 +257,77 @@ int main(int argc, char** argv)
   // Radio can be constructed from different options
   std::shared_ptr<srsran::radio_interface_phy> radio = nullptr;
 
-  // Create Radio as gNb emulator
-  gnb_emulator::args_t gnb_args = {};
-  gnb_args.srate_hz             = args.srate_hz;
-  gnb_args.carrier              = args.carrier;
-  gnb_args.ssb_pattern          = args.ssb_pattern;
-  gnb_args.ssb_periodicity_ms   = args.ssb_periodicity_ms;
-  gnb_args.duplex_mode          = args.duplex_mode;
-  radio                         = std::make_shared<gnb_emulator>(gnb_args);
+  // Build radio
+  if (not args.sim_cell_pci.empty()) {
+    // Create Radio as gNb emulator if the device RF name is not defined
+    gnb_rf_emulator::args_t gnb_args = {};
+    gnb_args.srate_hz                = args.srate_hz;
+    gnb_args.base_carrier            = args.base_carrier;
+    gnb_args.ssb_pattern             = args.ssb_pattern;
+    gnb_args.ssb_periodicity_ms      = args.sim_ssb_periodicity_ms;
+    gnb_args.ssb_scs                 = args.ssb_scs;
+    gnb_args.duplex_mode             = args.duplex_mode;
+    gnb_args.pci_list                = args.sim_cell_pci;
 
-  // Create stack
-  dummy_stack stack;
+    radio = std::make_shared<gnb_rf_emulator>(gnb_args);
+  } else {
+    // Create an actual radio based on RF
+    srsran::rf_args_t rf_args = {};
+    rf_args.type              = "multi";
+    rf_args.log_level         = args.rf_log_level;
+    rf_args.srate_hz          = args.srate_hz;
+    rf_args.rx_gain           = args.rf_rx_gain_dB;
+    rf_args.nof_carriers      = 1;
+    rf_args.nof_antennas      = 1;
+    rf_args.device_args       = args.rf_device_args;
+    rf_args.device_name       = args.rf_device_name;
+    rf_args.freq_offset       = args.rf_freq_offset_Hz;
 
-  // Create UE PHY
-  srsue::phy_nr_sa phy(stack, *radio);
+    // Instantiate
+    std::shared_ptr<srsran::radio> r = std::make_shared<srsran::radio>();
+    srsran_assert(r->init(rf_args, nullptr) == SRSRAN_SUCCESS, "Failed Radio initialisation");
 
-  // Initialise PHY, it will instantly start free running
-  srsue::phy_nr_sa::args_t phy_args = {};
-  phy_args.srate_hz                 = args.srate_hz;
-  phy.init(phy_args);
+    // Move to base pointer
+    radio = std::move(r);
+
+    // Set sampling rate
+    radio->set_rx_srate(args.srate_hz);
+
+    // Set DL center frequency
+    radio->set_rx_freq(0, args.base_carrier.dl_center_frequency_hz);
+
+    // Set Rx gain
+    radio->set_rx_gain(args.rf_rx_gain_dB);
+  }
+
+  // Create dummy UE
+  dummy_ue::args_t ue_args = {};
+  ue_args.stack.log_level  = args.stack_log_level;
+  ue_args.phy.log_level    = args.phy_log_level;
+  ue_args.phy.srate_hz     = args.srate_hz;
+  dummy_ue ue(ue_args, *radio);
 
   // Transition PHY to cell search
   srsue::phy_nr_sa::cell_search_args_t cell_search_req = {};
-  cell_search_req.center_freq_hz                       = args.carrier.dl_center_frequency_hz;
-  cell_search_req.ssb_freq_hz                          = args.carrier.ssb_center_freq_hz;
+  cell_search_req.center_freq_hz                       = args.base_carrier.dl_center_frequency_hz;
+  cell_search_req.ssb_freq_hz                          = args.base_carrier.ssb_center_freq_hz;
   cell_search_req.ssb_scs                              = args.ssb_scs;
   cell_search_req.ssb_pattern                          = args.ssb_pattern;
   cell_search_req.duplex_mode                          = args.duplex_mode;
-  phy.start_cell_search(cell_search_req);
+  srsran_assert(ue.start_cell_search(cell_search_req), "Failed cell search start");
 
   for (uint32_t i = 0; i < args.duration_ms; i++) {
-    stack.tick();
+    ue.run_tti();
   }
 
-  // First transition PHY to IDLE
-  phy.reset();
-
-  // Make sure PHY transitioned to IDLE
-  // ...
-
-  // Stop stack, it will let PHY free run
-  stack.stop();
-
-  // Stop PHY
-  phy.stop();
+  // Tear down UE
+  ue.stop();
 
   // Stop Radio
   radio->reset();
+
+  // Erase radio
+  radio = nullptr;
 
   return 0;
 }
