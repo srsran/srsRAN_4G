@@ -25,7 +25,8 @@ mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
 
 bool mac_sch_subpdu_nr::is_sdu() const
 {
-  return (lcid <= 32);
+  // UL-CCCH handling in done as CE
+  return (lcid <= 32 && !is_ul_ccch());
 }
 
 bool mac_sch_subpdu_nr::has_length_field()
@@ -367,7 +368,7 @@ uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
   return 0;
 }
 
-inline bool mac_sch_subpdu_nr::is_ul_ccch()
+bool mac_sch_subpdu_nr::is_ul_ccch() const
 {
   return (parent->is_ulsch() && (lcid == CCCH_SIZE_48 || lcid == CCCH_SIZE_64));
 }
@@ -381,6 +382,12 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
     if (parent->is_ulsch()) {
       // UL-SCH case
       switch (get_lcid()) {
+        case mac_sch_subpdu_nr::CCCH_SIZE_48:
+          fmt::format_to(buffer, " CCCH48: len={}", get_sdu_length());
+          break;
+        case mac_sch_subpdu_nr::CCCH_SIZE_64:
+          fmt::format_to(buffer, " CCCH64: len={}", get_sdu_length());
+          break;
         case mac_sch_subpdu_nr::CRNTI:
           fmt::format_to(buffer, " C-RNTI: {:#04x}", get_c_rnti());
           break;
@@ -408,7 +415,7 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
           fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
         default:
-          fmt::format_to(buffer, " CE={}", get_lcid());
+          fmt::format_to(buffer, " CE={} total_len={}", get_lcid(), get_total_length());
           break;
       }
     } else {
@@ -432,7 +439,7 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
           fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
         default:
-          fmt::format_to(buffer, " CE={}", get_lcid());
+          fmt::format_to(buffer, " CE={} total_len={}", get_lcid(), get_total_length());
           break;
       }
     }
