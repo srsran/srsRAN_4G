@@ -982,7 +982,7 @@ void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complet
 }
 
 /// TS 38.331, SecurityModeCommand
-void rrc_nr::ue::send_security_mode_command()
+void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu)
 {
   // FIXME: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
   // When we start using PDCP-NR we can avoid this step.
@@ -998,6 +998,8 @@ void rrc_nr::ue::send_security_mode_command()
   // Setup SRB1 security/integrity. Encryption is set on completion
   parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
   parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+
+  nas_pdu_queue.push_back(std::move(nas_pdu));
 
   asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_security_mode_cmd().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
@@ -1018,6 +1020,11 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   parent->pdcp->enable_encryption(rnti, srb_to_lcid(srsran::nr_srb::srb1));
 
   // Note: Skip UE capabilities
+
+  // Send RRCReconfiguration if necessary
+  if (not nas_pdu_queue.empty()) {
+    send_rrc_reconfiguration();
+  }
 }
 
 /// TS 38.331, RRCReconfiguration
@@ -1079,6 +1086,7 @@ void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_rec
 {
   radio_bearer_cfg = next_radio_bearer_cfg;
   cell_group_cfg   = next_cell_group_cfg;
+  parent->ngap->ue_notify_rrc_reconf_complete(rnti, true);
 }
 
 void rrc_nr::ue::send_rrc_release()

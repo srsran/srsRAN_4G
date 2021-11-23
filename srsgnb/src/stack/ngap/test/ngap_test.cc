@@ -102,7 +102,7 @@ public:
     sec_caps = caps;
     return SRSRAN_SUCCESS;
   }
-  int start_security_mode_procedure(uint16_t rnti)
+  int start_security_mode_procedure(uint16_t rnti, srsran::unique_byte_buffer_t nas_pdu)
   {
     rrc_logger.info("Starting securtity mode procedure");
     sec_mod_proc_started = true;
@@ -189,7 +189,8 @@ void run_ng_initial_ue(ngap& ngap_obj, amf_dummy& amf, rrc_nr_dummy& rrc)
   memcpy(nas_pdu->msg, nas_reg_req, sizeof(nas_reg_req));
   nas_pdu->N_bytes = sizeof(nas_reg_req);
 
-  ngap_obj.initial_ue(0xf0f0, 0, asn1::ngap_nr::rrcestablishment_cause_opts::mo_sig, srsran::make_span(nas_pdu));
+  uint32_t rnti = 0xf0f0;
+  ngap_obj.initial_ue(rnti, 0, asn1::ngap_nr::rrcestablishment_cause_opts::mo_sig, srsran::make_span(nas_pdu));
 
   // gNB -> AMF: Inital UE message
   asn1::ngap_nr::ngap_pdu_c    ngap_initial_ue_pdu;

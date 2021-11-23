@@ -33,18 +33,20 @@ proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap_nr::ini
   }
   rrc->ue_set_security_cfg_capabilities(ue_ctxt->rnti, msg.protocol_ies.ue_security_cap.value);
   rrc->ue_set_security_cfg_key(ue_ctxt->rnti, msg.protocol_ies.security_key.value);
-  rrc->start_security_mode_procedure(ue_ctxt->rnti);
 
   if (msg.protocol_ies.nas_pdu_present) {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (pdu == nullptr) {
-      logger.error("Fatal Error: Couldn't allocate buffer in ngap_ue_initial_context_setup_proc::init().");
+      logger.error("Fatal Error: Couldn't allocate buffer in %s.", __FUNCTION__);
       return proc_outcome_t::error;
     }
     memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
     pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
-    rrc->write_dl_info(ue_ctxt->rnti, std::move(pdu));
+    rrc->start_security_mode_procedure(ue_ctxt->rnti, std::move(pdu));
+  } else {
+    rrc->start_security_mode_procedure(ue_ctxt->rnti, nullptr);
   }
+
   return proc_outcome_t::yield;
 };
 

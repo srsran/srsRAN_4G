@@ -81,7 +81,7 @@ public:
   void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
 
   /* TS 38.331 - 5.3.4 Initial AS security activation */
-  void send_security_mode_command();
+  void send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu);
 
 private:
   int send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
