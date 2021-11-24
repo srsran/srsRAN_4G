@@ -117,8 +117,8 @@ public:
 
   const uint32_t       rlc_sn     = invalid_rlc_sn;
   uint32_t             retx_count = 0;
-  HeaderType           header;
-  unique_byte_buffer_t buf;
+  HeaderType           header     = {};
+  unique_byte_buffer_t buf        = nullptr;
 
   explicit rlc_amd_tx_pdu(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
   rlc_amd_tx_pdu(const rlc_amd_tx_pdu&)           = delete;

@@ -28,12 +28,12 @@ struct rlc_am_nr_pdu_header_t {
 
   rlc_am_nr_pdu_header_t& operator=(rlc_am_nr_pdu_header_t&& h) = default;
 
-  rlc_dc_field_t      dc;      ///< Data/Control (D/C) field
-  uint8_t             p;       ///< Polling bit
-  rlc_nr_si_field_t   si;      ///< Segmentation info
-  rlc_am_nr_sn_size_t sn_size; ///< Sequence number size (12 or 18 bits)
-  uint32_t            sn;      ///< Sequence number
-  uint16_t            so;      ///< Sequence offset
+  rlc_dc_field_t      dc      = {}; ///< Data/Control (D/C) field
+  uint8_t             p       = {}; ///< Polling bit
+  rlc_nr_si_field_t   si      = {}; ///< Segmentation info
+  rlc_am_nr_sn_size_t sn_size = {}; ///< Sequence number size (12 or 18 bits)
+  uint32_t            sn      = {}; ///< Sequence number
+  uint16_t            so      = {}; ///< Sequence offset
 };
 
 struct rlc_amd_pdu_nr_t {
@@ -42,9 +42,9 @@ struct rlc_amd_pdu_nr_t {
 };
 
 struct rlc_amd_rx_pdu_nr {
-  rlc_am_nr_pdu_header_t header{};
-  unique_byte_buffer_t   buf;
-  uint32_t               rlc_sn{};
+  rlc_am_nr_pdu_header_t header = {};
+  unique_byte_buffer_t   buf    = nullptr;
+  uint32_t               rlc_sn = {};
 
   rlc_amd_rx_pdu_nr() = default;
   explicit rlc_amd_rx_pdu_nr(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
