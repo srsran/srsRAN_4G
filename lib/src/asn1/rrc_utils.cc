@@ -130,12 +130,12 @@ srsran::rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type)
   srsran::rlc_config_t rlc_cfg;
   switch (asn1_type.type().value) {
     case asn1::rrc::rlc_cfg_c::types_opts::am:
-      rlc_cfg.rlc_mode       = rlc_mode_t::am;
-      rlc_cfg.am.t_poll_retx = asn1_type.am().ul_am_rlc.t_poll_retx.to_number();
-      rlc_cfg.am.poll_pdu    = asn1_type.am().ul_am_rlc.poll_pdu.to_number();
-      rlc_cfg.am.poll_byte   = asn1_type.am().ul_am_rlc.poll_byte.to_number() < 0
-                                 ? -1
-                                 : asn1_type.am().ul_am_rlc.poll_byte.to_number() * 1000; // KB
+      rlc_cfg.rlc_mode             = rlc_mode_t::am;
+      rlc_cfg.am.t_poll_retx       = asn1_type.am().ul_am_rlc.t_poll_retx.to_number();
+      rlc_cfg.am.poll_pdu          = asn1_type.am().ul_am_rlc.poll_pdu.to_number();
+      rlc_cfg.am.poll_byte         = asn1_type.am().ul_am_rlc.poll_byte.to_number() < 0
+                                         ? -1
+                                         : asn1_type.am().ul_am_rlc.poll_byte.to_number() * 1000; // KB
       rlc_cfg.am.max_retx_thresh   = asn1_type.am().ul_am_rlc.max_retx_thres.to_number();
       rlc_cfg.am.t_reordering      = asn1_type.am().dl_am_rlc.t_reordering.to_number();
       rlc_cfg.am.t_status_prohibit = asn1_type.am().dl_am_rlc.t_status_prohibit.to_number();
@@ -208,6 +208,20 @@ srsran::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
                     is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
                     PDCP_SN_LEN_5,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity,
+                    false,
+                    srsran_rat_t::lte);
+  return cfg;
+}
+
+srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
                     false,

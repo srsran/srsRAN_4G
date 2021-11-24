@@ -1167,7 +1167,7 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
 
   // add SRBs
   for (const srb_to_add_mod_s& srb : radio_bearer_diff.srb_to_add_mod_list) {
-    srsran::pdcp_config_t   pdcp_cnfg  = srsran::make_srb_pdcp_config_t(srb.srb_id, false);
+    srsran::pdcp_config_t   pdcp_cnfg  = srsran::make_nr_srb_pdcp_config_t(srb.srb_id, false);
     const rlc_bearer_cfg_s* rlc_bearer = nullptr;
     for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
       if (item.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::srb_id and

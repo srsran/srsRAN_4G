@@ -144,6 +144,7 @@ int make_rlc_config_t(const asn1::rrc_nr::rlc_cfg_c& asn1_type, uint8_t bearer_i
  *      PDCP Config
  **************************/
 pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
+pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc_nr::pdcp_cfg_s& pdcp_cfg);
 
 } // namespace srsran
