@@ -21,60 +21,104 @@ namespace sched_nr_impl {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void reduce_to_dl_coreset_bw(const bwp_params_t&    bwp_cfg,
+                             uint32_t               ss_id,
+                             srsran_dci_format_nr_t dci_fmt,
+                             prb_grant&             grant)
+{
+  const srsran_search_space_t& ss =
+      dci_fmt == srsran_dci_format_nr_rar ? bwp_cfg.cfg.pdcch.ra_search_space : bwp_cfg.cfg.pdcch.search_space[ss_id];
+  if (not SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type)) {
+    return;
+  }
+  uint32_t rb_start = 0, nof_prbs = bwp_cfg.nof_prb();
+  if (dci_fmt == srsran_dci_format_nr_1_0) {
+    rb_start = srsran_coreset_start_rb(&bwp_cfg.cfg.pdcch.coreset[ss.coreset_id]);
+  }
+  if (ss.coreset_id == 0) {
+    nof_prbs = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]);
+  }
+  grant &= prb_interval{rb_start, rb_start + nof_prbs};
+}
+
+void fill_dci_common(const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
+{
+  dci.bwp_id      = bwp_cfg.bwp_id;
+  dci.cc_id       = bwp_cfg.cc;
+  dci.tpc         = 1;
+  dci.coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]) : 0;
+}
+
+void fill_dci_common(const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci)
+{
+  dci.bwp_id = bwp_cfg.bwp_id;
+  dci.cc_id  = bwp_cfg.cc;
+  dci.tpc    = 1;
+}
+
 template <typename DciDlOrUl>
-void fill_dci_common(const slot_ue& ue, const bwp_params_t& bwp_cfg, const srsran_dci_ctx_t& dci_ctx, DciDlOrUl& dci)
+void fill_dci_harq(const slot_ue& ue, DciDlOrUl& dci)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
-  dci.bwp_id = ue->active_bwp().bwp_id;
-  dci.cc_id  = ue->cc;
-  dci.tpc    = 1;
-  // harq
   harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? static_cast<harq_proc*>(ue.h_dl)
                                                                     : static_cast<harq_proc*>(ue.h_ul);
+
   dci.pid = h->pid;
   dci.ndi = h->ndi();
   dci.mcs = h->mcs();
   dci.rv  = rv_idx[h->nof_retx() % 4];
-  // PRB assignment
-  const prb_grant& grant = h->prbs();
+}
+
+void fill_dci_grant(const bwp_params_t& bwp_cfg, const prb_grant& grant, srsran_dci_dl_nr_t& dci)
+{
+  dci.time_domain_assigment = 0;
+  if (grant.is_alloc_type0()) {
+    srsran_assert(not SRSRAN_SEARCH_SPACE_IS_COMMON(dci.ctx.ss_type), "AllocType0 for common search space");
+    dci.freq_domain_assigment = grant.rbgs().to_uint64();
+  } else {
+    uint32_t rb_start = 0, nof_prb = bwp_cfg.nof_prb();
+    if (dci.ctx.format == srsran_dci_format_nr_1_0 && SRSRAN_SEARCH_SPACE_IS_COMMON(dci.ctx.ss_type)) {
+      rb_start = dci.ctx.coreset_start_rb;
+    }
+    if (dci.ctx.coreset_id == 0 and SRSRAN_SEARCH_SPACE_IS_COMMON(dci.ctx.ss_type)) {
+      nof_prb = dci.coreset0_bw;
+    }
+    uint32_t grant_start      = grant.prbs().start() - rb_start;
+    dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, grant_start, grant.prbs().length());
+  }
+}
+
+void fill_dci_grant(const bwp_params_t& bwp_cfg, const prb_grant& grant, srsran_dci_ul_nr_t& dci)
+{
+  dci.time_domain_assigment = 0;
   if (grant.is_alloc_type0()) {
     dci.freq_domain_assigment = grant.rbgs().to_uint64();
-    if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_ctx.ss_type) and dci_ctx.coreset_start_rb > 0) {
-      dci.freq_domain_assigment =
-          (dci.freq_domain_assigment << dci_ctx.coreset_start_rb) & ((1U << grant.rbgs().size()) - 1);
-    }
   } else {
-    uint32_t rb_start = grant.prbs().start();
-    if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_ctx.ss_type)) {
-      rb_start -= dci_ctx.coreset_start_rb;
-    }
-    dci.freq_domain_assigment = srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, rb_start, grant.prbs().length());
+    uint32_t nof_prb          = bwp_cfg.nof_prb();
+    dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, grant.prbs().start(), grant.prbs().length());
   }
-  dci.time_domain_assigment = 0;
+}
+
+void fill_rar_dci_context(const bwp_params_t& bwp_cfg, uint16_t ra_rnti, srsran_dci_ctx_t& dci_ctx)
+{
+  uint32_t cs_id = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
+
+  dci_ctx.format           = srsran_dci_format_nr_1_0;
+  dci_ctx.ss_type          = srsran_search_space_type_common_1;
+  dci_ctx.rnti_type        = srsran_rnti_type_ra;
+  dci_ctx.rnti             = ra_rnti;
+  dci_ctx.coreset_id       = cs_id;
+  dci_ctx.coreset_start_rb = srsran_coreset_start_rb(&bwp_cfg.cfg.pdcch.coreset[cs_id]);
 }
 
 bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
 {
-  uint32_t cs_id = bwp_cfg.cfg.pdcch.ra_search_space.coreset_id;
-
-  // Fill DCI context
-  dci.ctx.format           = srsran_dci_format_nr_1_0;
-  dci.ctx.ss_type          = srsran_search_space_type_common_1;
-  dci.ctx.rnti_type        = srsran_rnti_type_ra;
-  dci.ctx.rnti             = ra_rnti;
-  dci.ctx.coreset_id       = cs_id;
-  dci.ctx.coreset_start_rb = srsran_coreset_start_rb(&bwp_cfg.cfg.pdcch.coreset[cs_id]);
+  fill_rar_dci_context(bwp_cfg, ra_rnti, dci.ctx);
 
   dci.mcs = 5;
-  if (cs_id == 0) {
-    dci.coreset0_bw = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[cs_id]);
-  }
-  dci.freq_domain_assigment = srsran_ra_nr_type1_riv(bwp_cfg.cfg.rb_width, interv.start(), interv.length());
-  dci.time_domain_assigment = 0;
-  dci.tpc                   = 1;
-  dci.bwp_id                = bwp_cfg.bwp_id;
-  dci.cc_id                 = bwp_cfg.cc;
+  fill_dci_common(bwp_cfg, dci);
+  fill_dci_grant(bwp_cfg, interv, dci);
   // TODO: Fill
 
   return true;
@@ -94,7 +138,9 @@ bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul
   }
 
   // Fill DCI content
-  fill_dci_common(ue, bwp_cfg, msg3_dci.ctx, msg3_dci);
+  fill_dci_common(bwp_cfg, msg3_dci);
+  fill_dci_harq(ue, msg3_dci);
+  fill_dci_grant(bwp_cfg, ue.h_ul->prbs(), msg3_dci);
 
   return true;
 }
@@ -110,14 +156,13 @@ void fill_dl_dci_ue_fields(const slot_ue&        ue,
   bool ret = ue->phy().get_dci_ctx_pdsch_rnti_c(ss_id, dci_pos, ue->rnti, dci.ctx);
   srsran_assert(ret, "Invalid DL DCI format");
 
-  fill_dci_common(ue, bwp_cfg, dci.ctx, dci);
+  fill_dci_common(bwp_cfg, dci);
+  fill_dci_harq(ue, dci);
+  fill_dci_grant(bwp_cfg, ue.h_dl->prbs(), dci);
   if (dci.ctx.format == srsran_dci_format_nr_1_0) {
     dci.harq_feedback = (ue.uci_slot - ue.pdsch_slot) - 1;
   } else {
     dci.harq_feedback = ue.pdsch_slot.slot_idx();
-  }
-  if (dci.ctx.coreset_id == 0 and dci.ctx.format == srsran_dci_format_nr_1_0) {
-    dci.coreset0_bw = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]);
   }
 }
 
@@ -130,8 +175,12 @@ void fill_ul_dci_ue_fields(const slot_ue&        ue,
   bool ret = ue->phy().get_dci_ctx_pusch_rnti_c(ss_id, dci_pos, ue->rnti, dci.ctx);
   srsran_assert(ret, "Invalid DL DCI format");
 
-  fill_dci_common(ue, bwp_cfg, dci.ctx, dci);
+  fill_dci_common(bwp_cfg, dci);
+  fill_dci_harq(ue, dci);
+  fill_dci_grant(bwp_cfg, ue.h_ul->prbs(), dci);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)
 {

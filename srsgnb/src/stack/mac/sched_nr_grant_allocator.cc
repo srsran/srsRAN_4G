@@ -28,7 +28,7 @@ candidate_ss_list_t find_ss(const srsran_pdcch_cfg_nr_t&               pdcch,
   candidate_ss_list_t ret;
   auto                active_ss_lst = view_active_search_spaces(pdcch);
 
-  auto has_dci_fmt_helper = [prio_dcis, aggr_idx](const srsran_search_space_t& ss) {
+  auto contains_dci_fmt = [prio_dcis, aggr_idx](const srsran_search_space_t& ss) {
     if (ss.nof_candidates[aggr_idx] > 0 and ss.nof_formats > 0) {
       for (uint32_t i = 0; i < prio_dcis.size(); ++i) {
         for (uint32_t j = 0; j < prio_dcis.size(); ++j) {
@@ -60,13 +60,13 @@ candidate_ss_list_t find_ss(const srsran_pdcch_cfg_nr_t&               pdcch,
   if (rnti_type == srsran_rnti_type_c) {
     // First search UE-specific
     for (const srsran_search_space_t& ss : active_ss_lst) {
-      if (ss.type == srsran_search_space_type_ue and has_dci_fmt_helper(ss)) {
+      if (ss.type == srsran_search_space_type_ue and contains_dci_fmt(ss)) {
         ret.push_back(&ss);
       }
     }
   }
   for (const srsran_search_space_t& ss : active_ss_lst) {
-    if (is_common_ss_allowed(ss.type) and has_dci_fmt_helper(ss)) {
+    if (is_common_ss_allowed(ss.type) and contains_dci_fmt(ss)) {
       ret.push_back(&ss);
     }
   }
@@ -323,24 +323,27 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   // Find space in PUCCH
   // TODO
 
-  // Find space and allocate PDCCH
+  // Choose SearchSpace + DCI format
   srsran_rnti_type_t rnti_type =
       ue->ue_cfg().ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE ? srsran_rnti_type_tc : srsran_rnti_type_c;
   // Choose the ss_id the highest number of candidates
-  candidate_ss_list_t ss = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
-  if (ss.empty()) {
+  candidate_ss_list_t ss_candidates = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
+  if (ss_candidates.empty()) {
     // Could not find space in PDCCH
     logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
     return alloc_result::no_cch_space;
   }
-  uint32_t coreset_id = ss[0]->coreset_id;
-  if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss[0]->type)) {
-    dl_grant &= prb_interval{ue->phy().pdcch.coreset[ss[0]->coreset_id].offset_rb, ue->phy().carrier.nof_prb};
-  }
-  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss[0]->id, &ue.cfg())) {
+  const srsran_search_space_t& ss = *ss_candidates[0];
+
+  // Find space and allocate PDCCH
+  uint32_t coreset_id = ss.coreset_id;
+  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss.id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
+
+  // Update PRB grant based on the start and end of CORESET RBs
+  reduce_to_dl_coreset_bw(cfg, ss.id, srsran_dci_format_nr_1_0, dl_grant);
 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();
@@ -359,7 +362,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   while (true) {
     // Generate PDCCH
     pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss[0]->id, pdcch.dci.ctx.location, pdcch.dci);
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
     pdcch.dci.pucch_resource = 0;
     pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
                                   bwp_uci_slot.pending_acks.end(),
@@ -429,20 +432,20 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
     return alloc_result::sch_collision;
   }
 
+  // Choose SearchSpace + DCI format
   srsran_rnti_type_t rnti_type =
       ue->ue_cfg().ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE ? srsran_rnti_type_tc : srsran_rnti_type_c;
-  candidate_ss_list_t ss = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
-  if (ss.empty()) {
+  candidate_ss_list_t ss_candidates = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
+  if (ss_candidates.empty()) {
     // Could not find space in PDCCH
     logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
     return alloc_result::no_cch_space;
   }
-  uint32_t coreset_id = ss[0]->coreset_id;
-  if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss[0]->type)) {
-    ul_grant &= prb_interval{ue->phy().pdcch.coreset[ss[0]->coreset_id].offset_rb, ue->phy().carrier.nof_prb};
-  }
+  const srsran_search_space_t& ss = *ss_candidates[0];
+
+  uint32_t coreset_id = ss.coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
-          pdcch_grant_type_t::ul_data, aggr_idx, ss[0]->id, &ue.cfg())) {
+          pdcch_grant_type_t::ul_data, aggr_idx, ss.id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -460,7 +463,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
 
   // Generate PDCCH
   pdcch_ul_t& pdcch = pdcchs.back();
-  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss[0]->id, pdcch.dci.ctx.location, pdcch.dci);
+  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci_cfg = ue->phy().get_dci_cfg();
   // Generate PUSCH
   bwp_pusch_slot.ul_prbs |= ul_grant;
