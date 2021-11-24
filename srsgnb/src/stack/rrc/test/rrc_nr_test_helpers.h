@@ -70,8 +70,11 @@ public:
     memcpy(last_pdu.data(), pdu.data(), pdu.size());
   }
 
+  void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome) { last_rrc_recnf_complete = outcome; }
+
   uint16_t            last_sdu_rnti;
   asn1::dyn_octstring last_pdu;
+  bool                last_rrc_recnf_complete = false;
 };
 
 /**
@@ -106,11 +109,13 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
 void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                                  rrc_nr&                 rrc_obj,
                                  pdcp_nr_rrc_tester&     pdcp,
+                                 ngap_rrc_tester&        ngap,
                                  uint16_t                rnti);
 
 void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
                                      rrc_nr&                 rrc_obj,
                                      pdcp_nr_rrc_tester&     pdcp,
+                                     ngap_rrc_tester&        ngap,
                                      uint16_t                rnti);
 
 } // namespace srsenb

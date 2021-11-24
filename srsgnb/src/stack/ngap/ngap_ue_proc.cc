@@ -169,7 +169,7 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
 
   // QoS parameter mapping in config in LTE enb
   if (su_req.pdu_session_nas_pdu_present) {
-    if (rrc-> establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
+    if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
         SRSRAN_SUCCESS) {
       parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_in, addr_in);
       return proc_outcome_t::success;

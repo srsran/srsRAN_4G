@@ -1042,7 +1042,8 @@ void rrc_nr::ue::send_rrc_reconfiguration()
       compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, ies.radio_bearer_cfg);
 
   // If no bearer to add/mod/remove, do not include master_cell_group
-  // Set ies.non_crit_ext_present only if master_cell_group_present = true or
+  // Set ies.non_crit_ext_present (a few lines below) only if
+  // master_cell_group_present == true or ies.non_crit_ext.ded_nas_msg_list_present == true
   if (ies.radio_bearer_cfg_present){
 
     ies.non_crit_ext.master_cell_group_present = true;
@@ -1067,16 +1068,14 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     }
 
     // Update lower layers
-    if (ies.radio_bearer_cfg_present) {
-      // add PDCP bearers
-      update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
+    // add PDCP bearers
+    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
 
-      // add RLC bearers
-      update_rlc_bearers(master_cell_group);
+    // add RLC bearers
+    update_rlc_bearers(master_cell_group);
 
-      // add MAC bearers
-      update_mac(master_cell_group, false);
-    }
+    // add MAC bearers
+    update_mac(master_cell_group, false);
   }
 
   if (nas_pdu_queue.size() > 0) {

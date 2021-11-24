@@ -161,8 +161,8 @@ void test_rrc_sa_connection()
   test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, mac_obj, ngap_obj,0x4601);
   test_rrc_nr_info_transfer(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
   test_rrc_nr_security_mode_cmd(task_sched, rrc_obj, pdcp_obj, 0x4601);
-  test_rrc_nr_reconfiguration( task_sched, rrc_obj, pdcp_obj, 0x4601);
-  test_rrc_nr_2nd_reconfiguration( task_sched, rrc_obj, pdcp_obj, 0x4601);
+  test_rrc_nr_reconfiguration(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
+  test_rrc_nr_2nd_reconfiguration(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
 }
 
 } // namespace srsenb
