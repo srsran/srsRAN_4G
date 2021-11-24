@@ -14,6 +14,8 @@
 #include "srsran/common/test_common.h"
 #include <string>
 
+#define NAS_SEC_CMD_STR "d9119b97d7bb59fc842d5b9cc12f00c27e9d5e4c80ee4cceb99a0dbbc6e0b54daa21a5d9e36d2e3b"
+
 using namespace asn1::rrc_nr;
 
 namespace srsenb {
@@ -137,16 +139,16 @@ void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
 {
   // STEP 1 : Send DLInformationTransfer (gNB -> UE)
   // generate sdu to pass as NAS message in DLInformationTransfer
-  srsran::unique_byte_buffer_t sdu;
-  sdu = srsran::make_byte_buffer();
+  srsran::unique_byte_buffer_t nsa_sdu;
+  nsa_sdu = srsran::make_byte_buffer();
 
   // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
   asn1::unbounded_octstring<false> NAS_DL_msg;
-  NAS_DL_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
-  sdu->append_bytes(NAS_DL_msg.data(), NAS_DL_msg.size());
+  NAS_DL_msg.from_string("21d9dfe07800371095c79a751be8352fb44aba7d69b836f5aad594ede9e72b8e34105ca8d7669d5c");
+  nsa_sdu->append_bytes(NAS_DL_msg.data(), NAS_DL_msg.size());
 
   // trigger the RRC to send the DLInformationTransfer
-  rrc_obj.write_dl_info(rnti, std::move(sdu));
+  rrc_obj.write_dl_info(rnti, std::move(nsa_sdu));
 
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was setup in a different function
@@ -202,10 +204,15 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                                    pdcp_nr_rrc_tester&     pdcp,
                                    uint16_t                rnti)
 {
-  srsran::unique_byte_buffer_t pdu;
+  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  asn1::unbounded_octstring<false> NAS_msg;
+  NAS_msg.from_string(NAS_SEC_CMD_STR);
+  srsran::unique_byte_buffer_t nas_pdu;
+  nas_pdu = srsran::make_byte_buffer();
+  nas_pdu->append_bytes(NAS_msg.data(), NAS_msg.size());
 
   // Trigger Send SecurityCommand (simulate request from NGAP)
-  rrc_obj.start_security_mode_procedure(rnti, nullptr);
+  rrc_obj.start_security_mode_procedure(rnti, std::move(nas_pdu));
 
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was setup in a different function
@@ -235,6 +242,7 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
   sec_cmd_complete_msg.rrc_transaction_id = dl_dcch_msg.msg.c1().security_mode_cmd().rrc_transaction_id;
   auto& ies_complete                      = sec_cmd_complete_msg.crit_exts.set_security_mode_complete();
 
+  srsran::unique_byte_buffer_t pdu;
   {
     pdu = srsran::make_byte_buffer();
     asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
@@ -252,13 +260,6 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                                  uint16_t                rnti)
 {
   TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
-
-  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
-  asn1::unbounded_octstring<false> NAS_msg;
-  NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
-
-  // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
-  //rrc_obj.start_rrc_reconfiguration(rnti);
 
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was set up in a different function
@@ -278,9 +279,18 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                 dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.type().value);
   const rrc_recfg_ies_s& reconf_ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.rrc_recfg();
 
+
+  // create an unbounded_octstring object that contains the same NAS message as in SecurityModeCommand
+  // The RRCreconfiguration reads the SecurityModeCommand NAS msg previously saved in the queue
+  asn1::unbounded_octstring<false> NAS_msg;
+  NAS_msg.from_string(NAS_SEC_CMD_STR);
+  TESTASSERT_EQ(true, reconf_ies.non_crit_ext.ded_nas_msg_list_present);
+  // Test if NAS_msg is the same as the one sent in SecurityModeCommand
+  TESTASSERT(NAS_msg == reconf_ies.non_crit_ext.ded_nas_msg_list[0]);
+
   // STEP 2 - Send RRCReconfiguration (UE -> gNB)
   ul_dcch_msg_s ul_dcch_msg;
-  auto&         RRC_recfg_complete  = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete();
+  auto&         RRC_recfg_complete      = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete();
   RRC_recfg_complete.rrc_transaction_id = dl_dcch_msg.msg.c1().rrc_recfg().rrc_transaction_id;
   RRC_recfg_complete.crit_exts.set_rrc_recfg_complete();
 
@@ -296,15 +306,14 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
 
-
-void test_rrc_nr_reconfiguration_II(srsran::task_scheduler& task_sched,
-                                 rrc_nr&                 rrc_obj,
-                                 pdcp_nr_rrc_tester&     pdcp,
-                                 uint16_t                rnti)
+void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
+                                     rrc_nr&                 rrc_obj,
+                                     pdcp_nr_rrc_tester&     pdcp,
+                                     uint16_t                rnti)
 {
   TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
 
-  // create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
+  // create an unbounded_octstring object that contains a NAS message (we simulate a random NAS nas)
   asn1::unbounded_octstring<false> NAS_msg;
   NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
 
@@ -354,14 +363,13 @@ void test_rrc_nr_reconfiguration_II(srsran::task_scheduler& task_sched,
   auto& rlc_drb = master_cell_group.rlc_bearer_to_add_mod_list[1];
   TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.drb_to_add_mod_list[1].drb_id, rlc_drb.served_radio_bearer.drb_id());
 
-  asn1::unbounded_octstring<false> expected_nas;
-  expected_nas.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
+  // Test if NAS_msg is the same as the one sent in DLInformationTransfer
   TESTASSERT_EQ(true, reconf_ies.non_crit_ext.ded_nas_msg_list_present);
-  TESTASSERT( expected_nas == reconf_ies.non_crit_ext.ded_nas_msg_list[0]);
+  TESTASSERT(NAS_msg == reconf_ies.non_crit_ext.ded_nas_msg_list[0]);
 
   // STEP 2 - Send RRCReconfiguration (UE -> gNB)
   ul_dcch_msg_s ul_dcch_msg;
-  auto&         RRC_recfg_complete  = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete();
+  auto&         RRC_recfg_complete      = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete();
   RRC_recfg_complete.rrc_transaction_id = dl_dcch_msg.msg.c1().rrc_recfg().rrc_transaction_id;
   RRC_recfg_complete.crit_exts.set_rrc_recfg_complete();
 

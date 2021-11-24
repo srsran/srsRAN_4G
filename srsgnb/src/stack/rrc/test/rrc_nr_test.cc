@@ -162,23 +162,38 @@ void test_rrc_sa_connection()
   test_rrc_nr_info_transfer(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
   test_rrc_nr_security_mode_cmd(task_sched, rrc_obj, pdcp_obj, 0x4601);
   test_rrc_nr_reconfiguration( task_sched, rrc_obj, pdcp_obj, 0x4601);
-  test_rrc_nr_reconfiguration_II( task_sched, rrc_obj, pdcp_obj, 0x4601);
+  test_rrc_nr_2nd_reconfiguration( task_sched, rrc_obj, pdcp_obj, 0x4601);
 }
 
 } // namespace srsenb
 
 int main(int argc, char** argv)
 {
-  auto& logger = srslog::fetch_basic_logger("ASN1");
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srsran::log_sink_spy::name(),
+          std::unique_ptr<srsran::log_sink_spy>(new srsran::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSRAN_ERROR;
+  }
+
+  auto* spy = static_cast<srsran::log_sink_spy*>(srslog::find_sink(srsran::log_sink_spy::name()));
+  if (!spy) {
+    return SRSRAN_ERROR;
+  }
+
+  auto& logger = srslog::fetch_basic_logger("ASN1", *spy, true);
   logger.set_level(srslog::basic_levels::info);
-  auto& rrc_logger = srslog::fetch_basic_logger("RRC-NR");
-  rrc_logger.set_level(srslog::basic_levels::debug);
+  auto& test_log = srslog::fetch_basic_logger("RRC-NR", *spy, true);
+  test_log.set_level(srslog::basic_levels::debug);
 
   srslog::init();
 
   srsenb::test_sib_generation();
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
   srsenb::test_rrc_sa_connection();
+  TESTASSERT_EQ( 0, spy->get_warning_counter());
+  TESTASSERT_EQ( 0, spy->get_error_counter());
+
 
   return SRSRAN_SUCCESS;
 }

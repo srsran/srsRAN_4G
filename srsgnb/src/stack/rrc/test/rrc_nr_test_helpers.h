@@ -108,10 +108,10 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                                  pdcp_nr_rrc_tester&     pdcp,
                                  uint16_t                rnti);
 
-void test_rrc_nr_reconfiguration_II(srsran::task_scheduler& task_sched,
-                                    rrc_nr&                 rrc_obj,
-                                    pdcp_nr_rrc_tester&     pdcp,
-                                    uint16_t                rnti);
+void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
+                                     rrc_nr&                 rrc_obj,
+                                     pdcp_nr_rrc_tester&     pdcp,
+                                     uint16_t                rnti);
 
 } // namespace srsenb
 
