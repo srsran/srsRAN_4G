@@ -999,7 +999,9 @@ void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu
   parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
   parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
 
-  nas_pdu_queue.push_back(std::move(nas_pdu));
+  if (nas_pdu != nullptr) {
+    nas_pdu_queue.push_back(std::move(nas_pdu));
+  }
 
   asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_security_mode_cmd().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
