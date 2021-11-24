@@ -24,6 +24,26 @@
 using namespace asn1;
 using namespace asn1::rrc_nr;
 
+void test_rrc_setup_complete()
+{
+  uint8_t msg[] = {0x10, 0xc0, 0x10, 0x00, 0x20, 0x25, 0x97, 0xe0, 0x1e, 0x1e, 0x34, 0xb5, 0x30, 0xb7, 0xe0, 0x04,
+                   0x10, 0x90, 0x00, 0xbf, 0x20, 0x0f, 0x11, 0x08, 0x00, 0x10, 0x15, 0x66, 0x75, 0xf7, 0x12, 0xe0,
+                   0x4f, 0x07, 0x0f, 0x07, 0x07, 0x10, 0x03, 0x87, 0xe0, 0x04, 0x10, 0x90, 0x00, 0xbf, 0x20, 0x0f,
+                   0x11, 0x08, 0x00, 0x10, 0x15, 0x66, 0x75, 0xf7, 0x11, 0x00, 0x10, 0x32, 0xe0, 0x4f, 0x07, 0x0f,
+                   0x07, 0x02, 0xf0, 0x20, 0x10, 0x15, 0x20, 0x0f, 0x11, 0x00, 0x00, 0x06, 0x41, 0x70, 0x7f, 0x07,
+                   0x00, 0x00, 0x01, 0x88, 0x0b, 0x01, 0x80, 0x10, 0x17, 0x40, 0x00, 0x09, 0x05, 0x30, 0x10, 0x10};
+  // 10c01000202597e01e1e34b530b7e004109000bf200f11080010156675f712e04f070f0707100387e004109000bf200f11080010156675f711001032e04f070f0702f0201015200f1100000641707f07000001880b0180101740000905301010
+
+  asn1::cbit_ref              bref{msg, sizeof(msg)};
+  asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+  TESTASSERT_SUCCESS(ul_dcch_msg.unpack(bref));
+
+  TESTASSERT_EQ(ul_dcch_msg_type_c::types_opts::c1, ul_dcch_msg.msg.type().value);
+  TESTASSERT_EQ(ul_dcch_msg_type_c::c1_c_::types_opts::rrc_setup_complete, ul_dcch_msg.msg.c1().type().value);
+
+  TESTASSERT_SUCCESS(test_pack_unpack_consistency(ul_dcch_msg));
+}
+
 int test_eutra_nr_capabilities()
 {
   struct ue_mrdc_cap_s mrdc_cap;
@@ -211,7 +231,7 @@ int test_ue_rrc_reconfiguration()
 
 int test_radio_bearer_config()
 {
-  uint8_t            rrc_msg[]   = "\x14\x09\x28\x17\x87\xc0\x0c\x28";
+  uint8_t            rrc_msg[] = "\x14\x09\x28\x17\x87\xc0\x0c\x28";
   cbit_ref           bref(&rrc_msg[0], sizeof(rrc_msg));
   radio_bearer_cfg_s radio_bearer_cfg;
   TESTASSERT(radio_bearer_cfg.unpack(bref) == SRSASN_SUCCESS);
@@ -1157,9 +1177,8 @@ int test_cell_group_config_fdd()
   ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack.resize(1);
   ul_config.init_ul_bwp.pucch_cfg.setup().dl_data_to_ul_ack[0] = 4;
 
-
-  //TODO?
-  // PUCCH resources (only one format1 for the moment)
+  // TODO?
+  //  PUCCH resources (only one format1 for the moment)
   ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list_present = true;
   ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list.resize(1);
   auto& pucch_res1        = ul_config.init_ul_bwp.pucch_cfg.setup().res_to_add_mod_list[0];
@@ -1224,8 +1243,7 @@ int test_cell_group_config_fdd()
   // nzp-CSI-RS Resource
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list_present = true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_to_add_mod_list.resize(5);
-  auto& nzp_csi_res =
-      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup();
+  auto& nzp_csi_res = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup();
   // item 0
   nzp_csi_res.nzp_csi_rs_res_to_add_mod_list[0].nzp_csi_rs_res_id = 0;
   nzp_csi_res.nzp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row2();
@@ -1336,8 +1354,7 @@ int test_cell_group_config_fdd()
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list_present =
       true;
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup().nzp_csi_rs_res_set_to_add_mod_list.resize(2);
-  auto& nzp_csi_res_set =
-      cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup();
+  auto& nzp_csi_res_set = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.setup();
   // item 0
   nzp_csi_res_set.nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_res_set_id = 0;
   nzp_csi_res_set.nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res.resize(1);
@@ -1387,7 +1404,7 @@ int test_cell_group_config_fdd()
   // Reconfig with Sync
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync_present   = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.new_ue_id = 17933;
-  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304 = recfg_with_sync_s::t304_opts::ms1000;
+  cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.t304      = recfg_with_sync_s::t304_opts::ms1000;
 
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present           = true;
   cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ss_pbch_block_pwr = -36;
@@ -1616,7 +1633,6 @@ int test_cell_group_config_fdd()
   return SRSRAN_SUCCESS;
 }
 
-
 int main()
 {
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
@@ -1634,6 +1650,7 @@ int main()
   pcap_handle->open("srsran_asn1_rrc_nr_test.pcap");
 #endif
 
+  test_rrc_setup_complete();
   TESTASSERT(test_eutra_nr_capabilities() == SRSRAN_SUCCESS);
   TESTASSERT(test_ue_mrdc_capabilities() == SRSRAN_SUCCESS);
   TESTASSERT(test_ue_rrc_reconfiguration() == SRSRAN_SUCCESS);
