@@ -1225,55 +1225,12 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
       args_->nr_stack.ngap.amf_addr           = args_->stack.s1ap.mme_addr;
       args_->nr_stack.ngap.ngc_bind_addr      = args_->stack.s1ap.gtp_bind_addr;
 
-      // Parse EEA preference list (use same as LTE for now)
-      std::vector<std::string> eea_pref_list;
-      boost::split(eea_pref_list, args_->general.eea_pref_list, boost::is_any_of(","));
-      int i = 0;
-      for (auto it = eea_pref_list.begin(); it != eea_pref_list.end() && i < srsran::CIPHERING_ALGORITHM_ID_N_ITEMS;
-           it++) {
-        boost::trim_left(*it);
-        if ((*it) == "EEA0") {
-          rrc_nr_cfg_->nea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_NR_NEA0;
-          i++;
-        } else if ((*it) == "EEA1") {
-          rrc_nr_cfg_->nea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_NR_128_NEA1;
-          i++;
-        } else if ((*it) == "EEA2") {
-          rrc_nr_cfg_->nea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_NR_128_NEA2;
-          i++;
-        } else if ((*it) == "EEA3") {
-          rrc_nr_cfg_->nea_preference_list[i] = srsran::CIPHERING_ALGORITHM_ID_NR_128_NEA3;
-          i++;
-        } else {
-          fprintf(stderr, "Failed to parse EEA prefence list %s \n", args_->general.eea_pref_list.c_str());
-          return SRSRAN_ERROR;
-        }
+      // Parse NIA/NEA preference list (use same as LTE for now)
+      for (uint32_t i = 0; i < rrc_cfg_->eea_preference_list.size(); i++) {
+        rrc_nr_cfg_->nea_preference_list[i] = (srsran::CIPHERING_ALGORITHM_ID_NR_ENUM)rrc_cfg_->eea_preference_list[i];
+        rrc_nr_cfg_->nia_preference_list[i] = (srsran::INTEGRITY_ALGORITHM_ID_NR_ENUM)rrc_cfg_->eia_preference_list[i];
       }
 
-      // Parse EIA preference list (use same as LTE for now)
-      std::vector<std::string> eia_pref_list;
-      boost::split(eia_pref_list, args_->general.eia_pref_list, boost::is_any_of(","));
-      i = 0;
-      for (auto it = eia_pref_list.begin(); it != eia_pref_list.end() && i < srsran::INTEGRITY_ALGORITHM_ID_N_ITEMS;
-           it++) {
-        boost::trim_left(*it);
-        if ((*it) == "EIA0") {
-          rrc_nr_cfg_->nia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_NR_NIA0;
-          i++;
-        } else if ((*it) == "EIA1") {
-          rrc_nr_cfg_->nia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_NR_128_NIA1;
-          i++;
-        } else if ((*it) == "EIA2") {
-          rrc_nr_cfg_->nia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_NR_128_NIA2;
-          i++;
-        } else if ((*it) == "EIA3") {
-          rrc_nr_cfg_->nia_preference_list[i] = srsran::INTEGRITY_ALGORITHM_ID_NR_128_NIA3;
-          i++;
-        } else {
-          fprintf(stderr, "Failed to parse EIA prefence list %s \n", args_->general.eia_pref_list.c_str());
-          return SRSRAN_ERROR;
-        }
-      }
     } else {
       // NSA mode.
       // update EUTRA RRC params for ENDC
