@@ -105,12 +105,13 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     }
   }
 
-  // Read new SDU from TX queue
+  // Check wether there is something to TX
   if (tx_sdu_queue.is_empty()) {
     logger->info("No data available to be sent");
     return 0;
   }
 
+  // Read new SDU from TX queue
   unique_byte_buffer_t tx_sdu;
   logger->debug("Reading from RLC SDU queue. Queue size %d", tx_sdu_queue.size());
   do {
@@ -119,11 +120,8 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   if (tx_sdu != nullptr) {
     logger->debug("Read RLC SDU - %d bytes", tx_sdu->N_bytes);
-  }
-
-  uint16_t hdr_size = 2;
-  if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
-    logger->warning("Segmentation not supported yet");
+  } else {
+    logger->info("No SDUs left in the tx queue.");
     return 0;
   }
 
@@ -134,6 +132,16 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (tx_pdu.buf == nullptr) {
     logger->error("Couldn't allocate PDU in %s().", __FUNCTION__);
     return 0;
+  }
+
+  // Segment new SDU if necessary
+  uint16_t hdr_size = 2;
+  if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
+    logger->info("Trying to build PDU segment from SDU.");
+    if (build_new_sdu_segment(tx_sdu, tx_pdu, payload, nof_bytes) != SRSRAN_SUCCESS) {
+      return 0;
+    }
+    return tx_pdu.buf->N_bytes;
   }
 
   memcpy(tx_pdu.buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
@@ -162,6 +170,43 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   logger->debug("Wrote RLC PDU - %d bytes", tx_sdu->N_bytes);
 
   return tx_sdu->N_bytes;
+}
+
+int rlc_am_nr_tx::build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
+                                        rlc_amd_tx_pdu_nr&          tx_pdu,
+                                        uint8_t*                    payload,
+                                        uint32_t                    nof_bytes)
+{
+  // Sanity check: can this SDU be sent this in a single PDU?
+  if (tx_sdu->N_bytes + 2 >= nof_bytes) {
+    logger->error("Calling build_new_sdu_segment(), but there are enough bytes to tx in a single PDU.");
+    return SRSRAN_ERROR;
+  }
+
+  // Sanity check: can this SDU be sent considering header overhead?
+  if (1 + 2 >= nof_bytes) { // Only two bytes, as SO is 0
+    logger->error("Cannot build new sdu_segment, but there are not enough bytes to tx header plus data.");
+    return SRSRAN_ERROR;
+  }
+
+  // Prepare header
+  rlc_am_nr_pdu_header_t hdr = {};
+  hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
+  hdr.p                      = get_pdu_poll();
+  hdr.si                     = rlc_nr_si_field_t::first_segment;
+  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn                     = st.tx_next;
+  hdr.so                     = 0;
+  tx_pdu.header              = hdr;
+  log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
+
+  // Write header
+  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, payload);
+  if (len > nof_bytes) {
+    logger->error("Error writing AMD PDU header");
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 int rlc_am_nr_tx::build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes)

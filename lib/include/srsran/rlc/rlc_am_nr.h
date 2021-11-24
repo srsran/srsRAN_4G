@@ -85,18 +85,28 @@ public:
   bool sdu_queue_is_full() final;
   void reestablish() final;
 
-  int      write_sdu(unique_byte_buffer_t sdu);
-  void     empty_queue() final;
+  int  write_sdu(unique_byte_buffer_t sdu);
+  void empty_queue() final;
+
+  // Data PDU helpers
+  using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+  int build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
+                            rlc_amd_tx_pdu_nr&          tx_pdu,
+                            uint8_t*                    payload,
+                            uint32_t                    nof_bytes);
+  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
+
+  // Buffer State
   bool     has_data() final;
   uint32_t get_buffer_state() final;
   void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) final;
 
+  // Status PDU
   bool     do_status();
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
+  // Polling
   uint8_t get_pdu_poll();
-
-  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
 
   void stop() final;
 
@@ -119,9 +129,7 @@ private:
    * Tx state variables
    * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
    ***************************************************************************/
-  struct rlc_am_nr_tx_state_t st = {};
-
-  using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+  struct rlc_am_nr_tx_state_t                             st = {};
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
   pdu_retx_queue<RLC_AM_WINDOW_SIZE>                      retx_queue;
 

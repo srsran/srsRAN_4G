@@ -82,6 +82,7 @@ uint32_t rlc_am_nr_read_data_pdu_header(const uint8_t*            payload,
                                         const rlc_am_nr_sn_size_t sn_size,
                                         rlc_am_nr_pdu_header_t*   header);
 
+uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, uint8_t* payload);
 uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu);
 
 uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header);
