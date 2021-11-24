@@ -20,8 +20,9 @@ asn1::rrc_nr::security_algorithm_cfg_s nr_security_context::get_security_algorit
 {
   asn1::rrc_nr::security_algorithm_cfg_s ret;
   // TODO: select these based on UE capabilities and preference order
-  ret.integrity_prot_algorithm = (asn1::rrc_nr::integrity_prot_algorithm_e::options)sec_cfg.integ_algo;
-  ret.ciphering_algorithm      = (asn1::rrc_nr::ciphering_algorithm_e::options)sec_cfg.cipher_algo;
+  ret.integrity_prot_algorithm_present = true;
+  ret.integrity_prot_algorithm         = (asn1::rrc_nr::integrity_prot_algorithm_e::options)sec_cfg.integ_algo;
+  ret.ciphering_algorithm              = (asn1::rrc_nr::ciphering_algorithm_e::options)sec_cfg.cipher_algo;
   return ret;
 }
 
