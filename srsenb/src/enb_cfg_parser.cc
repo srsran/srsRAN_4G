@@ -1513,14 +1513,17 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     // PDSCH
     cfg.phy_cell.pdsch.rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
     cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;
-
-    phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
 
   // Derive cross-dependent cell params
   if (set_derived_nr_rrc_params(*rrc_nr_cfg_) != SRSRAN_SUCCESS) {
     ERROR("Failed to derive NR cell params.");
     return SRSRAN_ERROR;
+  }
+
+  // Update PHY with RRC cell configs
+  for (auto& cfg : rrc_nr_cfg_->cell_list) {
+    phy_cfg_->phy_cell_cfg_nr.push_back(cfg.phy_cell);
   }
 
   // MAC-NR PCAP options
