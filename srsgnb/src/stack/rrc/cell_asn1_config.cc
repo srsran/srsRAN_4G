@@ -885,7 +885,8 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   // spCellConfig -- Need M
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
-  out.sp_cell_cfg.recfg_with_sync_present = false;
+  out.sp_cell_cfg.recfg_with_sync_present              = false;
+  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false;
 
   return SRSRAN_SUCCESS;
 }
