@@ -94,7 +94,6 @@ void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
  *      PDCP Config
  **************************/
 srsran::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
-srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 uint8_t               get_pdcp_drb_sn_len(const asn1::rrc::pdcp_cfg_s& pdcp_cfg);
 srsran::pdcp_config_t

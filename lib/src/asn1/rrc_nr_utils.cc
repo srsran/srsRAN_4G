@@ -163,6 +163,20 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_
   return SRSRAN_SUCCESS;
 }
 
+srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity,
+                    false,
+                    srsran_rat_t::lte);
+  return cfg;
+}
+
 srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)
 {
   // TODO: complete config processing
