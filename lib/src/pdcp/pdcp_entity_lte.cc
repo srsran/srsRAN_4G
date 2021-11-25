@@ -806,10 +806,6 @@ bool pdcp_entity_lte::check_valid_config()
     logger.error("Trying to configure SRB or RLC AM bearer with SN LEN of 7");
     return false;
   }
-  if (cfg.sn_len == PDCP_SN_LEN_12 && is_srb()) {
-    logger.error("Trying to configure SRB with SN LEN of 12.");
-    return false;
-  }
   return true;
 }
 
