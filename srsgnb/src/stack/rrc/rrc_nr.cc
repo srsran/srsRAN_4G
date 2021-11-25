@@ -203,6 +203,13 @@ void rrc_nr::rem_user(uint16_t rnti)
   }
 }
 
+/// This function is called when the INACTIVITY TIMER FOR
+int rrc_nr::rrc_release(uint16_t rnti)
+{
+  // TODO: we do not have yet a defined procedure to handle this
+  return SRSRAN_SUCCESS;
+}
+
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
  * valid RNTI.
  */

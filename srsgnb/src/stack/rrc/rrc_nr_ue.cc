@@ -92,10 +92,16 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 
   switch (type) {
     case MSG5_RX_TIMEOUT:
-    case UE_INACTIVITY_TIMEOUT:
+    case UE_INACTIVITY_TIMEOUT: {
       state = rrc_nr_state_t::RRC_INACTIVE;
-      parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
+      if (parent->cfg.is_standalone) {
+        // TODO: This procedure needs to be defined
+        parent->rrc_release(rnti);
+      } else {
+        parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
+      }
       break;
+    }
     case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
       state                = rrc_nr_state_t::RRC_IDLE;

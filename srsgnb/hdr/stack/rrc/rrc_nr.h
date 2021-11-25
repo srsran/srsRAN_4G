@@ -73,6 +73,7 @@ public:
   void rem_user(uint16_t rnti);
   int  update_user(uint16_t new_rnti, uint16_t old_rnti) final;
   void set_activity_user(uint16_t rnti) final;
+  int  rrc_release(uint16_t rnti);
 
   // RLC interface
   // TODO
