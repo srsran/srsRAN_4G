@@ -47,9 +47,6 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-// Global counter for every RF port used by the eNB to avoid misconfiguration/mapping of cells
-static uint32_t next_rf_port = 0;
-
 template <typename T>
 bool contains_value(T value, const std::initializer_list<T>& list)
 {
@@ -943,6 +940,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
   }
 
   // Configuration check
+  // counter for every RF port used by the eNB to avoid misconfiguration/mapping of cells
+  uint32_t next_rf_port = 0;
   for (auto it = rrc_cfg->cell_list.begin(); it != rrc_cfg->cell_list.end(); it++) {
     // Make sure RF ports are assigned in order
     if (it->rf_port != next_rf_port) {
@@ -996,6 +995,8 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
 
   srsran::srsran_band_helper band_helper;
   // Configuration check
+  // counter for every RF port used by the eNB to avoid misconfiguration/mapping of cells
+  uint32_t next_rf_port = rrc_cfg_eutra->cell_list.size();
   for (auto it = rrc_cfg_nr->cell_list.begin(); it != rrc_cfg_nr->cell_list.end(); ++it) {
     // Make sure RF ports are assigned in order
     if (it->phy_cell.rf_port != next_rf_port) {
