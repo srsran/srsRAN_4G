@@ -376,6 +376,7 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
     pcap->write_ngap(pdu->msg, pdu->N_bytes);
   }
 
+  // Unpack
   ngap_pdu_c     rx_pdu;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
 
@@ -387,6 +388,10 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
     return false;
   }
 
+  // Logging
+  log_ngap_message(rx_pdu, Rx, srsran::make_span(*pdu));
+
+  // Handle the NGAP message
   switch (rx_pdu.type().value) {
     case ngap_pdu_c::types_opts::init_msg:
       return handle_initiating_message(rx_pdu.init_msg());
@@ -804,5 +809,31 @@ std::string ngap::get_cause(const cause_c& c)
 void ngap::start_pcap(srsran::ngap_pcap* pcap_)
 {
   pcap = pcap_;
+}
+
+void ngap::log_ngap_message(const ngap_pdu_c& msg, const direction_t dir, srsran::const_byte_span pdu)
+{
+  std::string msg_type = {};
+  switch (msg.type().value) {
+    case ngap_pdu_c::types_opts::init_msg:
+      msg_type = msg.init_msg().value.type().to_string();
+      break;
+    case ngap_pdu_c::types_opts::successful_outcome:
+      msg_type = msg.successful_outcome().value.type().to_string();
+      break;
+    case ngap_pdu_c::types_opts::unsuccessful_outcome:
+      msg_type = msg.unsuccessful_outcome().value.type().to_string();
+      break;
+    default:
+      return;
+  }
+  if (logger.debug.enabled()) {
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    logger.debug(pdu.data(), pdu.size(), "%s - %s (%d B)", (dir == Rx) ? "Rx" : "Tx", msg_type, pdu.size());
+    logger.debug("Content:%s", json_writer.to_string().c_str());
+  } else if (logger.info.enabled()) {
+    logger.info(pdu.data(), pdu.size(), "%s - %s (%d B)", (dir == Rx) ? "Rx" : "Tx", msg_type, pdu.size());
+  }
 }
 } // namespace srsenb

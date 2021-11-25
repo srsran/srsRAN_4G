@@ -78,6 +78,10 @@ public:
   // PCAP
   void start_pcap(srsran::ngap_pcap* pcap_);
 
+  // Logging
+  typedef enum { Rx = 0, Tx } direction_t;
+  void log_ngap_message(const asn1::ngap_nr::ngap_pdu_c& msg, const direction_t dir, srsran::const_byte_span pdu);
+
 private:
   static const int AMF_PORT        = 38412;
   static const int ADDR_FAMILY     = AF_INET;
