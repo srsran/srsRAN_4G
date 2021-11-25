@@ -1174,6 +1174,8 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
 
   next_radio_bearer_cfg.drb_to_add_mod_list_present = true;
   next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
+
+  logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
 }
 
 bool rrc_nr::ue::init_pucch()
