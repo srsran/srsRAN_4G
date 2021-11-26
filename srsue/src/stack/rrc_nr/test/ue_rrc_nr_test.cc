@@ -16,7 +16,7 @@
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsran/interfaces/ue_usim_interfaces.h"
-#include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 
 using namespace srsue;
 

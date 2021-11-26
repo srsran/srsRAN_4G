@@ -12,7 +12,7 @@
 
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include "srsran/srsran.h"
-#include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 
 using namespace srsran;
 

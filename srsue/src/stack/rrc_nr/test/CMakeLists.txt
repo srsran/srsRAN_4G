@@ -6,7 +6,5 @@
 # the distribution.
 #
 
-add_subdirectory(test)
-
-set(SOURCES rrc.cc rrc_procedures.cc rrc_meas.cc rrc_cell.cc rrc_rlf_report.cc phy_controller.cc)
-add_library(srsue_rrc STATIC ${SOURCES})
+add_executable(ue_rrc_nr_test ue_rrc_nr_test.cc)
+target_link_libraries(ue_rrc_nr_test srsue_rrc_nr srsue_upper srsran_common srsran_pdcp srsran_phy rrc_asn1 rrc_nr_asn1)

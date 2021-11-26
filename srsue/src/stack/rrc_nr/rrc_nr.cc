@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/common/security.h"
 #include "srsran/common/standard_streams.h"
