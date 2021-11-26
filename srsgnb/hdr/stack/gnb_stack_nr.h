@@ -34,7 +34,7 @@ namespace srsenb {
 class ngap;
 class gtpu;
 class enb_bearer_manager;
-class gtpu_pdcp_adapter_nr;
+class gtpu_pdcp_adapter;
 
 struct gnb_stack_args_t {
   stack_log_args_t log;
@@ -155,8 +155,8 @@ private:
   std::unique_ptr<srsenb::gtpu> gtpu;
   // std::unique_ptr<sdap> m_sdap;
 
-  std::unique_ptr<enb_bearer_manager>   bearer_manager;
-  std::unique_ptr<gtpu_pdcp_adapter_nr> gtpu_adapter;
+  std::unique_ptr<enb_bearer_manager> bearer_manager;
+  std::unique_ptr<gtpu_pdcp_adapter>  gtpu_adapter;
 
   // state
   std::atomic<bool> running = {false};
