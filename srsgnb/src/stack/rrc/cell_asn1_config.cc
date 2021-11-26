@@ -470,9 +470,9 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   sr_res1.sched_request_res_id              = 1;
   sr_res1.sched_request_id                  = 0;
   sr_res1.periodicity_and_offset_present    = true;
-  sr_res1.periodicity_and_offset.set_sl40() = 0;
+  sr_res1.periodicity_and_offset.set_sl40() = 8;
   sr_res1.res_present                       = true;
-  sr_res1.res                               = 16;
+  sr_res1.res                               = 2;
 
   // DL data
   out.dl_data_to_ul_ack_present = true;
