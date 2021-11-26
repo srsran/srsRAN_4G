@@ -143,8 +143,8 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
 
   // TODO: Check cause
   asn1::ngap_nr::cause_c                      cause;
-  uint32_t                                    teid_in;
-  uint16_t                                    lcid;
+  uint32_t                                    teid_in = {};
+  uint16_t                                    lcid    = {};
   asn1::bounded_bitstring<1, 160, true, true> addr_in;
 
   if (bearer_manager->add_pdu_session(

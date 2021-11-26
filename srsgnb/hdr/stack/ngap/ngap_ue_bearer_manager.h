@@ -61,13 +61,16 @@ private:
   std::map<uint8_t, pdu_session_t> pdu_session_list;
   srslog::basic_logger&            logger;
 
-  int  add_gtpu_bearer(uint16_t                                    rnti,
-                       uint32_t                                    pdu_session_id,
-                       uint32_t                                    teid_out,
-                       asn1::bounded_bitstring<1, 160, true, true> address,
-                       pdu_session_t::gtpu_tunnel&                 tunnel, // out parameter
-                       const gtpu_interface_rrc::bearer_props*     props = nullptr);
-  void rem_gtpu_bearer(uint16_t rnti, uint32_t pdu_session_id);
+  std::map<uint32_t, uint32_t> next_lcid_list; // Map RNTI to next LCID to be allocated
+
+  int     add_gtpu_bearer(uint16_t                                    rnti,
+                          uint32_t                                    pdu_session_id,
+                          uint32_t                                    teid_out,
+                          asn1::bounded_bitstring<1, 160, true, true> address,
+                          pdu_session_t::gtpu_tunnel&                 tunnel, // out parameter
+                          const gtpu_interface_rrc::bearer_props*     props = nullptr);
+  void    rem_gtpu_bearer(uint16_t rnti, uint32_t pdu_session_id);
+  uint8_t allocate_lcid(uint32_t rnti);
 };
 } // namespace srsenb
 #endif // SRSENB_NGAP_UE_BEARER_MANAGER_H
