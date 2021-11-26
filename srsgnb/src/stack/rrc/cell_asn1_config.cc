@@ -1155,7 +1155,7 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
   // Add DRBs
   for (const drb_to_add_mod_s& drb : bearers.drb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});
-    uint32_t lcid = drb_to_lcid(static_cast<lte_drb>(drb.drb_id));
+    uint32_t lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
     fill_drb(cfg, lcid, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
   }
   out.rlc_bearer_to_add_mod_list_present = out.rlc_bearer_to_add_mod_list.size() > 0;

@@ -1166,6 +1166,7 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
 
   drb.drb_id                               = 1;
   drb.pdcp_cfg_present                     = true;
+  drb.pdcp_cfg.drb_present                 = true;
   drb.pdcp_cfg.drb.discard_timer_present   = true;
   drb.pdcp_cfg.drb.discard_timer.value     = pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
   drb.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
