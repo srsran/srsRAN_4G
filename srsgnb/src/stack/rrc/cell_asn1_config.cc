@@ -875,6 +875,7 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   phr.phr_type2_other_cell                  = false;
   phr.phr_mode_other_cg.value               = asn1::rrc_nr::phr_cfg_s::phr_mode_other_cg_opts::real;
   out.mac_cell_group_cfg.skip_ul_tx_dynamic = false;
+  out.mac_cell_group_cfg.phr_cfg_present    = false; // Note: not supported
 
   // physicalCellGroupConfig -- Need M
   out.phys_cell_group_cfg_present          = true;
@@ -887,7 +888,7 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
   out.sp_cell_cfg.recfg_with_sync_present              = false;
-  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false;
+  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false; // Note: not supported
 
   return SRSRAN_SUCCESS;
 }
