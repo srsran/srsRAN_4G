@@ -216,6 +216,7 @@ public:
 
   /* Uplink NAS messages handling */
   bool handle_attach_request(srsran::byte_buffer_t* nas_rx);
+  bool handle_pdn_connectivity_request(srsran::byte_buffer_t* nas_rx);
   bool handle_authentication_response(srsran::byte_buffer_t* nas_rx);
   bool handle_security_mode_complete(srsran::byte_buffer_t* nas_rx);
   bool handle_attach_complete(srsran::byte_buffer_t* nas_rx);

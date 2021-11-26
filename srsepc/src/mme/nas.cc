@@ -956,12 +956,53 @@ bool nas::handle_attach_request(srsran::byte_buffer_t* nas_rx)
     m_s1ap->send_downlink_nas_transport(
         m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx.get(), m_ecm_ctx.enb_sri);
 
-    m_logger.info("Downlink NAS: Sending Authentication Request");
-    srsran::console("Downlink NAS: Sending Authentication Request\n");
+    m_logger.info("DL NAS: Sending Authentication Request");
+    srsran::console("DL NAS: Sending Authentication Request\n");
     return true;
   } else {
     m_logger.error("Attach request from known UE");
   }
+  return true;
+}
+
+bool nas::handle_pdn_connectivity_request(srsran::byte_buffer_t* nas_rx)
+{
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
+
+  // Get PDN connectivity request messages
+  LIBLTE_ERROR_ENUM err =
+      liblte_mme_unpack_pdn_connectivity_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx->msg, &pdn_con_req);
+  if (err != LIBLTE_SUCCESS) {
+    m_logger.error("Error unpacking NAS PDN Connectivity Request. Error: %s", liblte_error_text[err]);
+    return false;
+  }
+
+  // Send PDN connectivity reject
+  srsran::unique_byte_buffer_t nas_tx = srsran::make_byte_buffer();
+  if (nas_tx == nullptr) {
+    m_logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return false;
+  }
+
+  LIBLTE_MME_PDN_CONNECTIVITY_REJECT_MSG_STRUCT pdn_con_reject = {};
+  pdn_con_reject.eps_bearer_id                                 = pdn_con_req.eps_bearer_id;
+  pdn_con_reject.proc_transaction_id                           = pdn_con_req.proc_transaction_id;
+  pdn_con_reject.esm_cause                                     = LIBLTE_MME_ESM_CAUSE_SERVICE_OPTION_NOT_SUPPORTED;
+
+  err = liblte_mme_pack_pdn_connectivity_reject_msg(&pdn_con_reject, (LIBLTE_BYTE_MSG_STRUCT*)nas_tx.get());
+  if (err != LIBLTE_SUCCESS) {
+    m_logger.error("Error packing PDN connectivity reject");
+    srsran::console("Error packing PDN connectivity reject\n");
+    return false;
+  }
+
+  // Send reply to eNB
+  m_s1ap->send_downlink_nas_transport(
+      m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx.get(), m_ecm_ctx.enb_sri);
+
+  m_logger.info("DL NAS: Sending PDN Connectivity Reject");
+  srsran::console("DL NAS: Sending PDN Connectivity Reject\n");
+
   return true;
 }
 

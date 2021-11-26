@@ -308,6 +308,11 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
       srsran::console("UL NAS: Tracking Area Update Request\n");
       nas_ctx->handle_tracking_area_update_request(nas_msg.get());
       break;
+    case LIBLTE_MME_MSG_TYPE_PDN_CONNECTIVITY_REQUEST:
+      m_logger.info("UL NAS: PDN Connectivity Request");
+      srsran::console("UL NAS: PDN Connectivity Request\n");
+      nas_ctx->handle_pdn_connectivity_request(nas_msg.get());
+      break;
     default:
       m_logger.warning("Unhandled NAS integrity protected message %s", liblte_nas_msg_type_to_string(msg_type));
       srsran::console("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));
