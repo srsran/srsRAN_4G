@@ -37,7 +37,8 @@ srsran_dci_cfg_nr_t phy_cfg_nr_t::get_dci_cfg() const
 
     // Iterate all configured formats
     for (uint32_t j = 0; j < pdcch.search_space[i].nof_formats; j++) {
-      if (pdcch.search_space[i].type == srsran_search_space_type_common_3 &&
+      if ((pdcch.search_space[i].type == srsran_search_space_type_common_3 or
+           pdcch.search_space[i].type == srsran_search_space_type_common_1) &&
           pdcch.search_space[i].formats[j] == srsran_dci_format_nr_0_0) {
         dci_cfg.monitor_common_0_0 = true;
       } else if (pdcch.search_space[i].type == srsran_search_space_type_ue &&
