@@ -103,7 +103,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
       ngap->start_pcap(&ngap_pcap);
     }
 
-    ngap->init(args.ngap, &rrc, nullptr);
+    ngap->init(args.ngap, &rrc, gtpu.get());
     gtpu_args_t gtpu_args;
     gtpu_args.embms_enable  = false;
     gtpu_args.mme_addr      = args.ngap.amf_addr;
