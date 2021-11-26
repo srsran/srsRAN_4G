@@ -58,7 +58,6 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       deadline_ms = 5000;
       break;
     case UE_INACTIVITY_TIMEOUT:
-      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 5s
       deadline_ms = parent->cfg.inactivity_timeout_ms;
       break;
     default:
