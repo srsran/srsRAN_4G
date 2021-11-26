@@ -8,5 +8,5 @@
 
 add_subdirectory(test)
 
-set(SOURCES rrc_nr.cc ../rrc/rrc_cell.cc)
+set(SOURCES rrc_nr.cc rrc_nr_procedures.cc ../rrc/rrc_cell.cc)
 add_library(srsue_rrc_nr STATIC ${SOURCES})
