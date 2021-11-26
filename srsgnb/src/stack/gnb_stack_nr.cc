@@ -13,12 +13,53 @@
 #include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srsgnb/hdr/stack/ngap/ngap.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/network_utils.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srsran.h"
 #include <srsran/interfaces/enb_metrics_interface.h>
 
 namespace srsenb {
+
+class gtpu_pdcp_adapter_nr final : public gtpu_interface_pdcp, public pdcp_interface_gtpu
+{
+public:
+  gtpu_pdcp_adapter_nr(srslog::basic_logger& logger_,
+                       pdcp_interface_gtpu*  pdcp_,
+                       gtpu*                 gtpu_,
+                       enb_bearer_manager&   bearers_) :
+    logger(logger_), pdcp_obj(pdcp_), gtpu_obj(gtpu_), bearers(&bearers_)
+  {}
+
+  /// Converts LCID to EPS-BearerID and sends corresponding PDU to GTPU
+  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override
+  {
+    auto bearer = bearers->get_lcid_bearer(rnti, lcid);
+    if (not bearer.is_valid()) {
+      logger.error("Bearer rnti=0x%x, lcid=%d not found", rnti, lcid);
+      return;
+    }
+    gtpu_obj->write_pdu(rnti, bearer.eps_bearer_id, std::move(pdu));
+  }
+  void write_sdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override
+  {
+    auto bearer = bearers->get_radio_bearer(rnti, eps_bearer_id);
+    // route SDU to PDCP entity
+    pdcp_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
+  }
+  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t eps_bearer_id) override
+  {
+    auto bearer = bearers->get_radio_bearer(rnti, eps_bearer_id);
+    // route SDU to PDCP entity
+    return pdcp_obj->get_buffered_pdus(rnti, bearer.lcid);
+  }
+
+private:
+  srslog::basic_logger& logger;
+  gtpu*                 gtpu_obj = nullptr;
+  pdcp_interface_gtpu*  pdcp_obj = nullptr;
+  enb_bearer_manager*   bearers  = nullptr;
+};
 
 gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   task_sched{512, 128},
@@ -33,6 +74,7 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   mac(&task_sched),
   rrc(&task_sched),
   pdcp(&task_sched, pdcp_logger),
+  bearer_manager(new srsenb::enb_bearer_manager()),
   rlc(rlc_logger)
 {
   sync_task_queue    = task_sched.make_task_queue();
@@ -81,6 +123,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
     // SA mode
     ngap.reset(new srsenb::ngap(&task_sched, ngap_logger, &srsran::get_rx_io_manager()));
     gtpu.reset(new srsenb::gtpu(&task_sched, gtpu_logger, &srsran::get_rx_io_manager()));
+    gtpu_adapter.reset(new gtpu_pdcp_adapter_nr(gtpu_logger, &pdcp, gtpu.get(), *bearer_manager));
   }
 
   // Init all layers
@@ -90,14 +133,15 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   }
 
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
-  pdcp.init(&rlc, &rrc, x2_);
 
-  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), nullptr, x2_) != SRSRAN_SUCCESS) {
+  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), *bearer_manager, x2_) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }
 
   if (ngap != nullptr) {
+    pdcp.init(&rlc, &rrc, gtpu_adapter.get());
+
     if (args.ngap_pcap.enable) {
       ngap_pcap.open(args.ngap_pcap.filename.c_str());
       ngap->start_pcap(&ngap_pcap);
@@ -108,7 +152,9 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
     gtpu_args.embms_enable  = false;
     gtpu_args.mme_addr      = args.ngap.amf_addr;
     gtpu_args.gtp_bind_addr = args.ngap.gtp_bind_addr;
-    gtpu->init(gtpu_args, &pdcp);
+    gtpu->init(gtpu_args, gtpu_adapter.get());
+  } else {
+    pdcp.init(&rlc, &rrc, x2_);
   }
 
   // TODO: add SDAP

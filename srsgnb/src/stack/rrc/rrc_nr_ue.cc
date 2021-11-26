@@ -14,6 +14,7 @@
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/string_helpers.h"
 
 using namespace asn1::rrc_nr;
@@ -1179,6 +1180,9 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
 
   next_radio_bearer_cfg.drb_to_add_mod_list_present = true;
   next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
+
+  parent->bearer_mapper->add_eps_bearer(
+      rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid); // TODO: configurable bearer id <-> lcid mapping
 
   logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
 }

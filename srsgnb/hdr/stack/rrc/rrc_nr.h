@@ -37,6 +37,8 @@
 
 namespace srsenb {
 
+class enb_bearer_manager;
+
 enum class rrc_nr_state_t { RRC_IDLE, RRC_INACTIVE, RRC_CONNECTED };
 
 class rrc_nr final : public rrc_interface_pdcp_nr,
@@ -55,7 +57,7 @@ public:
                rlc_interface_rrc*          rlc,
                pdcp_interface_rrc*         pdcp,
                ngap_interface_rrc_nr*      ngap_,
-               gtpu_interface_rrc_nr*      gtpu,
+               enb_bearer_manager&         bearer_mapper_,
                rrc_eutra_interface_rrc_nr* rrc_eutra_);
 
   void stop();
@@ -121,13 +123,13 @@ private:
   rrc_nr_cfg_t              cfg              = {};
 
   // interfaces
-  phy_interface_stack_nr*     phy       = nullptr;
-  mac_interface_rrc_nr*       mac       = nullptr;
-  rlc_interface_rrc*          rlc       = nullptr;
-  pdcp_interface_rrc*         pdcp      = nullptr;
-  gtpu_interface_rrc_nr*      gtpu      = nullptr;
-  ngap_interface_rrc_nr*      ngap      = nullptr;
-  rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
+  phy_interface_stack_nr*     phy           = nullptr;
+  mac_interface_rrc_nr*       mac           = nullptr;
+  rlc_interface_rrc*          rlc           = nullptr;
+  pdcp_interface_rrc*         pdcp          = nullptr;
+  ngap_interface_rrc_nr*      ngap          = nullptr;
+  rrc_eutra_interface_rrc_nr* rrc_eutra     = nullptr;
+  enb_bearer_manager*         bearer_mapper = nullptr;
 
   // args
   srsran::task_sched_handle task_sched;

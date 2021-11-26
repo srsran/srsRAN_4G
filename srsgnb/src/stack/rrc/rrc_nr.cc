@@ -17,6 +17,7 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/standard_streams.h"
@@ -38,16 +39,16 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
                  ngap_interface_rrc_nr*      ngap_,
-                 gtpu_interface_rrc_nr*      gtpu_,
+                 enb_bearer_manager&         bearer_mapper_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
-  phy       = phy_;
-  mac       = mac_;
-  rlc       = rlc_;
-  pdcp      = pdcp_;
-  ngap      = ngap_;
-  gtpu      = gtpu_;
-  rrc_eutra = rrc_eutra_;
+  phy           = phy_;
+  mac           = mac_;
+  rlc           = rlc_;
+  pdcp          = pdcp_;
+  ngap          = ngap_;
+  bearer_mapper = &bearer_mapper_;
+  rrc_eutra     = rrc_eutra_;
 
   cfg = cfg_;
 

@@ -13,6 +13,7 @@
 #include "rrc_nr_test_helpers.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
 #include <iostream>
@@ -45,6 +46,7 @@ void test_sib_generation()
   rlc_dummy              rlc_obj;
   pdcp_dummy             pdcp_obj;
   rrc_nr                 rrc_obj(&task_sched);
+  enb_bearer_manager     bearer_mapper;
 
   // set cfg
   rrc_nr_cfg_t rrc_cfg_nr = {};
@@ -59,7 +61,7 @@ void test_sib_generation()
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, bearer_mapper, nullptr) ==
              SRSRAN_SUCCESS);
 
   const sched_nr_interface::cell_cfg_t& nrcell = mac_obj.nr_cells.at(0);
@@ -97,6 +99,7 @@ int test_rrc_setup()
   mac_nr_dummy           mac_obj;
   rlc_dummy              rlc_obj;
   pdcp_dummy             pdcp_obj;
+  enb_bearer_manager     bearer_mapper;
   rrc_nr                 rrc_obj(&task_sched);
 
   // set cfg
@@ -110,7 +113,7 @@ int test_rrc_setup()
   rrc_cfg_nr.is_standalone                         = false;
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, nullptr) ==
+  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, bearer_mapper, nullptr) ==
              SRSRAN_SUCCESS);
 
   for (uint32_t n = 0; n < 2; ++n) {
@@ -134,6 +137,7 @@ void test_rrc_sa_connection()
   rlc_nr_rrc_tester      rlc_obj;
   pdcp_nr_rrc_tester     pdcp_obj;
   ngap_rrc_tester        ngap_obj;
+  enb_bearer_manager     bearer_mapper;
 
   rrc_nr rrc_obj(&task_sched);
 
@@ -150,7 +154,7 @@ void test_rrc_sa_connection()
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, nullptr, nullptr) ==
+  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, bearer_mapper, nullptr) ==
              SRSRAN_SUCCESS);
 
   sched_nr_ue_cfg_t uecfg                     = get_default_ue_cfg(1);
@@ -158,7 +162,7 @@ void test_rrc_sa_connection()
   uecfg.phy_cfg.pdcch.search_space_present[2] = false;
   TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
 
-  test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, mac_obj, ngap_obj,0x4601);
+  test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, mac_obj, ngap_obj, 0x4601);
   test_rrc_nr_info_transfer(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
   test_rrc_nr_security_mode_cmd(task_sched, rrc_obj, pdcp_obj, 0x4601);
   test_rrc_nr_reconfiguration(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
@@ -191,9 +195,8 @@ int main(int argc, char** argv)
   srsenb::test_sib_generation();
   TESTASSERT(srsenb::test_rrc_setup() == SRSRAN_SUCCESS);
   srsenb::test_rrc_sa_connection();
-  TESTASSERT_EQ( 0, spy->get_warning_counter());
-  TESTASSERT_EQ( 0, spy->get_error_counter());
-
+  TESTASSERT_EQ(0, spy->get_warning_counter());
+  TESTASSERT_EQ(0, spy->get_error_counter());
 
   return SRSRAN_SUCCESS;
 }
