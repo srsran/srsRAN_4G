@@ -31,7 +31,7 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this)
+  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this), meas_cells(task_sched_)
 {}
 
 rrc_nr::~rrc_nr() = default;
@@ -209,6 +209,44 @@ void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::notify_pdcp_integrity_error(uint32_t lcid) {}
 
+// NAS interface
+int rrc_nr::write_sdu(srsran::unique_byte_buffer_t sdu)
+{
+  if (state == RRC_NR_STATE_IDLE) {
+    logger.warning("Received ULInformationTransfer SDU when in IDLE");
+    return SRSRAN_ERROR;
+  }
+  send_ul_info_transfer(std::move(sdu));
+  return SRSRAN_SUCCESS;
+}
+
+bool rrc_nr::is_connected()
+{
+  return false;
+}
+
+int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
+{
+  return SRSRAN_SUCCESS;
+}
+
+uint16_t rrc_nr::get_mcc()
+{
+  return meas_cells.serving_cell().get_mcc();
+}
+
+uint16_t rrc_nr::get_mnc()
+{
+  return meas_cells.serving_cell().get_mnc();
+}
+
+// Senders
+void rrc_nr::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
+{
+  logger.warning("%s not implemented yet.", __FUNCTION__);
+}
+
+// EUTRA-RRC interface
 int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
 {
   struct ue_mrdc_cap_s mrdc_cap;
