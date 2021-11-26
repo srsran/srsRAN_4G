@@ -251,10 +251,11 @@ void rrc_nr::set_activity_user(uint16_t rnti)
   }
   ue* ue_ptr = it->second.get();
 
+  // Restart inactivity timer for RRC-NR
+  ue_ptr->set_activity();
+
   // inform EUTRA RRC about user activity
   if (ue_ptr->is_endc()) {
-    // Restart inactivity timer for RRC-NR
-    ue_ptr->set_activity();
     // inform EUTRA RRC about user activity
     rrc_eutra->set_activity_user(ue_ptr->get_eutra_rnti());
   }
