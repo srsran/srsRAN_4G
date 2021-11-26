@@ -59,7 +59,7 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       break;
     case UE_INACTIVITY_TIMEOUT:
       // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 5s
-      deadline_ms = 10000;
+      deadline_ms = parent->cfg.inactivity_timeout_ms;
       break;
     default:
       logger.error("Unknown timeout type %d", type);
@@ -1044,8 +1044,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   // If no bearer to add/mod/remove, do not include master_cell_group
   // Set ies.non_crit_ext_present (a few lines below) only if
   // master_cell_group_present == true or ies.non_crit_ext.ded_nas_msg_list_present == true
-  if (ies.radio_bearer_cfg_present){
-
+  if (ies.radio_bearer_cfg_present) {
     ies.non_crit_ext.master_cell_group_present = true;
 
     // Fill masterCellGroup

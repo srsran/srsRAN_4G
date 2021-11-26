@@ -1510,6 +1510,8 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     return SRSRAN_ERROR;
   }
 
+  rrc_nr_cfg_->inactivity_timeout_ms = args_->general.rrc_inactivity_timer;
+
   // Create NR dedicated cell configuration from RRC configuration
   for (auto& cfg : rrc_nr_cfg_->cell_list) {
     cfg.phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
