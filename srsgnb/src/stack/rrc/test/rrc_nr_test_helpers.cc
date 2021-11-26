@@ -361,7 +361,7 @@ void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
   auto& rlc_srb = master_cell_group.rlc_bearer_to_add_mod_list[0];
   TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.srb_to_add_mod_list[0].srb_id, rlc_srb.served_radio_bearer.srb_id());
   auto& rlc_drb = master_cell_group.rlc_bearer_to_add_mod_list[1];
-  TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.drb_to_add_mod_list[1].drb_id, rlc_drb.served_radio_bearer.drb_id());
+  TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.drb_to_add_mod_list[0].drb_id, rlc_drb.served_radio_bearer.drb_id());
 
   // Test if NAS_msg is the same as the one sent in DLInformationTransfer
   TESTASSERT_EQ(true, reconf_ies.non_crit_ext.ded_nas_msg_list_present);
