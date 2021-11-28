@@ -345,6 +345,34 @@ int LTE_PCAP_S1AP_WritePDU(FILE* fd, S1AP_Context_Info_t* context, const unsigne
   return 1;
 }
 
+/* Write an individual PDU (PCAP packet header + ngap-context + ngap-pdu) */
+int LTE_PCAP_NGAP_WritePDU(FILE* fd, NGAP_Context_Info_t* context, const unsigned char* PDU, unsigned int length)
+{
+  pcaprec_hdr_t packet_header;
+
+  /* Can't write if file wasn't successfully opened */
+  if (fd == NULL) {
+    printf("Error: Can't write to empty file handle\n");
+    return 0;
+  }
+
+  /****************************************************************/
+  /* PCAP Header                                                  */
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  packet_header.ts_sec   = t.tv_sec;
+  packet_header.ts_usec  = t.tv_usec;
+  packet_header.incl_len = length;
+  packet_header.orig_len = length;
+
+  /***************************************************************/
+  /* Now write everything to the file                            */
+  fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
+  fwrite(PDU, 1, length, fd);
+
+  return 1;
+}
+
 /**************************************************************************
  * API functions for writing MAC-NR PCAP files                           *
  **************************************************************************/

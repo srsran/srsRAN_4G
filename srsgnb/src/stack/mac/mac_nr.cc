@@ -33,15 +33,28 @@
 
 namespace srsenb {
 
+/**
+ * @brief Handles UL PDU processing
+ *
+ * This class implements the demuxing of UL PDUs received at the MAC layer.
+ * When the PHY decodes a valid PUSCH it passes the PDU to the MAC which
+ * in turn puts them in a thread-safe task queue to return to the calling
+ * thread as quick as possible.
+ *
+ * The demuxing of the PDUs for all users takes place on the Stack thread
+ * which calls RLC and RRC for SDUs, or the MAC/scheduler for control elements.
+ *
+ */
 class mac_nr_rx
 {
 public:
-  explicit mac_nr_rx(rlc_interface_mac*         rlc_,
-                     rrc_interface_mac_nr*      rrc_,
-                     srsran::task_queue_handle& stack_task_queue_,
-                     sched_nr_interface*        sched_,
-                     srslog::basic_logger&      logger_) :
-    task_queue(stack_task_queue_), rlc(rlc_), rrc(rrc_), sched(sched_), logger(logger_)
+  explicit mac_nr_rx(rlc_interface_mac*          rlc_,
+                     rrc_interface_mac_nr*       rrc_,
+                     srsran::task_queue_handle&  stack_task_queue_,
+                     sched_nr_interface*         sched_,
+                     mac_interface_pdu_demux_nr& mac_,
+                     srslog::basic_logger&       logger_) :
+    task_queue(stack_task_queue_), rlc(rlc_), rrc(rrc_), sched(sched_), mac(mac_), logger(logger_)
   {}
 
   void handle_pdu(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
@@ -96,6 +109,14 @@ private:
   {
     // Handle MAC CEs
     switch (subpdu.get_lcid()) {
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH_SIZE_48:
+      case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH_SIZE_64: {
+        srsran::mac_sch_subpdu_nr& ccch_subpdu = const_cast<srsran::mac_sch_subpdu_nr&>(subpdu);
+        rlc->write_pdu(rnti, 0, ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length());
+        // store content for ConRes CE
+        mac.store_msg3(rnti,
+                       srsran::make_byte_buffer(ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length(), __FUNCTION__));
+      } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
         uint16_t ce_crnti  = subpdu.get_c_rnti();
         uint16_t prev_rnti = rnti;
@@ -174,6 +195,7 @@ private:
   rlc_interface_mac*         rlc;
   rrc_interface_mac_nr*      rrc;
   sched_nr_interface*        sched;
+  mac_interface_pdu_demux_nr& mac;
   srslog::basic_logger&      logger;
   srsran::task_queue_handle& task_queue;
 
@@ -283,7 +305,9 @@ int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& 
     bcch_dlsch_payload.push_back(std::move(sib));
   }
 
-  rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), logger});
+  rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});
+
+  default_ue_phy_cfg = get_common_ue_phy_cfg(cell_config[0]);
 
   return SRSRAN_SUCCESS;
 }
@@ -322,12 +346,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uecfg.carriers[0].active      = true;
     uecfg.carriers[0].cc          = enb_cc_idx;
     uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-    srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-    ref_args.duplex = cell_config[0].duplex.mode == SRSRAN_DUPLEX_MODE_TDD
-                          ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                          : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-    uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
-    uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+    uecfg.phy_cfg                 = default_ue_phy_cfg;
 
     uint16_t rnti = alloc_ue(enb_cc_idx);
 
@@ -452,6 +471,16 @@ int mac_nr::slot_indication(const srsran_slot_cfg_t& slot_cfg)
   return 0;
 }
 
+void mac_nr::store_msg3(uint16_t rnti, srsran::unique_byte_buffer_t pdu)
+{
+  srsran::rwlock_read_guard rw_lock(rwmutex);
+  if (is_rnti_active_nolock(rnti)) {
+    ue_db[rnti]->store_msg3(std::move(pdu));
+  } else {
+    logger.error("User rnti=0x%x not found. Can't store Msg3.", rnti);
+  }
+}
+
 mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
 {
   slot_point pdsch_slot = srsran::slot_point{NUMEROLOGY_IDX, slot_cfg.idx};
@@ -468,7 +497,7 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
   }
 
   // Generate MAC DL PDUs
-  uint32_t                  rar_count = 0, si_count = 0;
+  uint32_t                  rar_count = 0, si_count = 0, data_count = 0;
   srsran::rwlock_read_guard rw_lock(rwmutex);
   for (pdsch_t& pdsch : dl_res->phy.pdsch) {
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
@@ -479,7 +508,8 @@ mac_nr::dl_sched_t* mac_nr::get_dl_sched(const srsran_slot_cfg_t& slot_cfg)
       for (auto& tb_data : pdsch.data) {
         if (tb_data != nullptr and tb_data->N_bytes == 0) {
           // TODO: exclude retx from packing
-          ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8);
+          const sched_nr_interface::dl_pdu_t& pdu = dl_res->data[data_count++];
+          ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8, pdu.subpdus);
 
           if (pcap != nullptr) {
             uint32_t pid = 0; // TODO: get PID from PDCCH struct?

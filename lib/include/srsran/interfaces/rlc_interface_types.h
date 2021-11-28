@@ -96,6 +96,26 @@ struct rlc_am_config_t {
   int32_t t_status_prohibit; // Timer used by rx to prohibit tx of status PDU (ms)
 };
 
+struct rlc_am_nr_config_t {
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 38.322 Section 7
+   ***************************************************************************/
+
+  rlc_am_nr_sn_size_t tx_sn_field_length; // Number of bits used for tx (UL) sequence number
+  rlc_am_nr_sn_size_t rx_sn_field_length; // Number of bits used for rx (DL) sequence number
+
+  // Timers Ref: 3GPP TS 38.322 Section 7.3
+  int32_t t_poll_retx;       // Poll retx timeout (ms)
+  int32_t t_reassembly;      // Timer used by rx to detect PDU loss  (ms)
+  int32_t t_status_prohibit; // Timer used by rx to prohibit tx of status PDU (ms)
+
+  // Configurable Parameters. Ref: 3GPP TS 38.322 Section 7.4
+  uint32_t max_retx_thresh; // Max number of retx
+  int32_t  poll_pdu;        // Insert poll bit after this many PDUs
+  int32_t  poll_byte;       // Insert poll bit after this much data (KB)
+};
+
 struct rlc_um_config_t {
   /****************************************************************************
    * Configurable parameters
@@ -131,12 +151,13 @@ public:
   srsran_rat_t       rat;
   rlc_mode_t         rlc_mode;
   rlc_am_config_t    am;
+  rlc_am_nr_config_t am_nr;
   rlc_um_config_t    um;
   rlc_um_nr_config_t um_nr;
   uint32_t           tx_queue_length;
 
   rlc_config_t() :
-    rat(srsran_rat_t::lte), rlc_mode(rlc_mode_t::tm), am(), um(), um_nr(), tx_queue_length(RLC_TX_QUEUE_LEN){};
+    rat(srsran_rat_t::lte), rlc_mode(rlc_mode_t::tm), am(), am_nr(), um(), um_nr(), tx_queue_length(RLC_TX_QUEUE_LEN){};
 
   // Factory for MCH
   static rlc_config_t mch_config()
@@ -205,6 +226,16 @@ public:
     rlc_cnfg.am.poll_byte         = 25;
     rlc_cnfg.am.poll_pdu          = 4;
     rlc_cnfg.am.t_poll_retx       = 5;
+    return rlc_cnfg;
+  }
+  static rlc_config_t default_rlc_am_nr_config()
+  {
+    rlc_config_t rlc_cnfg            = {};
+    rlc_cnfg.rat                     = srsran_rat_t::nr;
+    rlc_cnfg.rlc_mode                = rlc_mode_t::am;
+    rlc_cnfg.am_nr.t_status_prohibit = 8;
+    rlc_cnfg.am_nr.t_reassembly      = 35;
+    rlc_cnfg.am_nr.poll_pdu          = 4;
     return rlc_cnfg;
   }
   static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)

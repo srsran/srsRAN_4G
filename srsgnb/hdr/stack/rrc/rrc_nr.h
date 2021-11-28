@@ -103,7 +103,7 @@ public:
   int  ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key) final;
   int  ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates) final;
   int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps) final;
-  int  start_security_mode_procedure(uint16_t rnti) final;
+  int  start_security_mode_procedure(uint16_t rnti, srsran::unique_byte_buffer_t nas_pdu) final;
   int  establish_rrc_bearer(uint16_t                rnti,
                             uint16_t                pdu_session_id,
                             srsran::const_byte_span nas_pdu,
@@ -171,12 +171,28 @@ private:
 
   // Helper to create PDU from RRC message
   template <class T>
-  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg);
-  void                         log_rx_pdu_fail(uint16_t                rnti,
-                                               uint32_t                lcid,
-                                               srsran::const_byte_span pdu,
-                                               const char*             cause_str,
-                                               bool                    log_hex = true);
+  srsran::unique_byte_buffer_t pack_into_pdu(const T& msg, const char* context_name = nullptr)
+  {
+    context_name = context_name == nullptr ? __FUNCTION__ : context_name;
+    // Allocate a new PDU buffer and pack the
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Couldn't allocate PDU in %s.", context_name);
+      return nullptr;
+    }
+    asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+    if (msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      logger.error("Failed to pack message in %s. Discarding it.", context_name);
+      return nullptr;
+    }
+    pdu->N_bytes = bref.distance_bytes();
+    return pdu;
+  }
+  void log_rx_pdu_fail(uint16_t                rnti,
+                       uint32_t                lcid,
+                       srsran::const_byte_span pdu,
+                       const char*             cause_str,
+                       bool                    log_hex = true);
 };
 
 } // namespace srsenb

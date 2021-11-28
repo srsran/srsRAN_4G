@@ -29,8 +29,14 @@ namespace srsenb {
 void generate_default_nr_cell(rrc_cell_cfg_nr_t& cell);
 
 int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell);
+int set_derived_nr_rrc_params(rrc_nr_cfg_t& rrc_cfg);
+
+// Tests to ensure validity of config
 
 int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa);
+int check_nr_phy_cell_cfg_valid(const phy_cell_cfg_nr_t& phy_cell);
+int check_nr_pdcch_cfg_valid(const srsran_pdcch_cfg_nr_t& pdcch);
+int check_rrc_nr_cfg_valid(const rrc_nr_cfg_t& cfg);
 
 } // namespace srsenb
 

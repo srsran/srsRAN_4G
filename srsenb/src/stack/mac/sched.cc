@@ -301,6 +301,12 @@ std::array<int, SRSRAN_MAX_CARRIERS> sched::get_enb_ue_activ_cc_map(uint16_t rnt
   return ret;
 }
 
+int sched::set_pdcch_order(uint32_t enb_cc_idx, dl_sched_po_info_t pdcch_order_info)
+{
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  return carrier_schedulers[enb_cc_idx]->pdcch_order_info(pdcch_order_info);
+}
+
 /*******************************************************
  *
  * Main sched functions

@@ -24,14 +24,12 @@
 
 #include "srsran/srsran.h"
 
-#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/common/security.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
 #include "srsran/interfaces/rrc_interface_types.h"
 // EUTRA interfaces that are used unmodified
-#include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
@@ -130,6 +128,17 @@ class gtpu_interface_sdap_nr
 {
 public:
   virtual void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
+};
+
+/*****************************
+ *      MAC internal INTERFACES
+ ****************************/
+
+class mac_interface_pdu_demux_nr
+{
+public:
+  // Called by PDU handler from Stack thread to store Msg3 content (According to O-RAN WG8 v3.0, Sec. 9.2.2.3.5 MAC)
+  virtual void store_msg3(uint16_t rnti, srsran::unique_byte_buffer_t pdu) = 0;
 };
 
 /*****************************

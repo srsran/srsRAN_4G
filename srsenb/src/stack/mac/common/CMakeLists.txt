@@ -18,5 +18,5 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES ue_buffer_manager.cc)
+set(SOURCES base_ue_buffer_manager.cc)
 add_library(srsenb_mac_common STATIC ${SOURCES})

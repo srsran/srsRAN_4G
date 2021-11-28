@@ -21,7 +21,7 @@
 set(CTEST_LABELS "lib;phy;phch")
 
 ########################################################################
-# PBCH TEST  
+# PBCH TEST
 ########################################################################
 
 add_executable(pbch_test pbch_test.c)
@@ -234,6 +234,14 @@ foreach (nof_prb 6 15 25 50 75 100)
         endforeach ()
     endforeach ()
 endforeach ()
+
+########################################################################
+# DCI TEST
+########################################################################
+
+add_executable(dci_test dci_test.c)
+target_link_libraries(dci_test srsran_phy)
+add_test(dci_test dci_test)
 
 ########################################################################
 # PDSCH TEST

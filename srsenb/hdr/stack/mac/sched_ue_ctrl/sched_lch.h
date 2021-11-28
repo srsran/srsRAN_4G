@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_LCH_H
 #define SRSRAN_SCHED_LCH_H
 
-#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
+#include "srsenb/hdr/stack/mac/common/base_ue_buffer_manager.h"
 #include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/adt/pool/cached_alloc.h"
 #include "srsran/mac/pdu.h"
@@ -30,12 +30,12 @@
 
 namespace srsenb {
 
-class lch_ue_manager : private ue_buffer_manager<false>
+class lch_ue_manager : private base_ue_buffer_manager<false>
 {
-  using base_type = ue_buffer_manager<false>;
+  using base_type = base_ue_buffer_manager<false>;
 
 public:
-  explicit lch_ue_manager(uint16_t rnti) : ue_buffer_manager(rnti, srslog::fetch_basic_logger("MAC")) {}
+  explicit lch_ue_manager(uint16_t rnti) : base_ue_buffer_manager(rnti, srslog::fetch_basic_logger("MAC")) {}
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
   void new_tti();
 

@@ -308,6 +308,7 @@ public:
     return size() == other.size() and std::equal(data_, data_ + size(), other.data_);
   }
   void resize(uint32_t new_size) { current_size = new_size; }
+  void clear() { resize(0); }
   void push_back(const T& elem)
   {
     if (current_size >= MAX_N) {

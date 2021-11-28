@@ -22,11 +22,11 @@
 #ifndef SRSRAN_RRC_NR_CONFIG_H
 #define SRSRAN_RRC_NR_CONFIG_H
 
-#include "srsenb/hdr/phy/phy_interfaces.h"
 #include "srsenb/hdr/stack/rrc/rrc_config_common.h"
+#include "srsgnb/hdr/phy/phy_nr_interfaces.h"
 #include "srsran/asn1/rrc_nr.h"
+#include "srsran/common/security.h"
 #include "srsran/interfaces/gnb_rrc_nr_interfaces.h"
-#include "srsue/hdr/phy/phy_common.h"
 
 namespace srsenb {
 
@@ -57,12 +57,13 @@ struct rrc_cell_cfg_nr_t {
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
 
 struct rrc_nr_cfg_t {
-  rrc_nr_cfg_sr_t                 sr_cfg;
-  rrc_cfg_cqi_t                   cqi_cfg;
-  rrc_cell_list_nr_t              cell_list;
-  asn1::rrc_nr::rach_cfg_common_s rach_cfg_common;
-  uint16_t                        prach_root_seq_idx_type;
-  bool                            is_standalone;
+  rrc_nr_cfg_sr_t    sr_cfg;
+  rrc_cfg_cqi_t      cqi_cfg;
+  rrc_cell_list_nr_t cell_list;
+  bool               is_standalone;
+
+  std::array<srsran::CIPHERING_ALGORITHM_ID_NR_ENUM, srsran::CIPHERING_ALGORITHM_ID_NR_N_ITEMS> nea_preference_list;
+  std::array<srsran::INTEGRITY_ALGORITHM_ID_NR_ENUM, srsran::INTEGRITY_ALGORITHM_ID_NR_N_ITEMS> nia_preference_list;
 
   std::string log_name = "RRC-NR";
   std::string log_level;

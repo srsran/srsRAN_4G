@@ -36,6 +36,8 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 
+#include "srsran/common/ngap_pcap.h"
+
 namespace srsenb {
 
 class ngap;
@@ -45,6 +47,7 @@ struct gnb_stack_args_t {
   stack_log_args_t log;
   mac_nr_args_t    mac;
   ngap_args_t      ngap;
+  pcap_args_t      ngap_pcap;
 };
 
 class gnb_stack_nr final : public srsenb::enb_stack_base,
@@ -137,6 +140,8 @@ private:
   srslog::basic_logger& ngap_logger;
   srslog::basic_logger& gtpu_logger;
   srslog::basic_logger& stack_logger;
+
+  srsran::ngap_pcap ngap_pcap;
 
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;

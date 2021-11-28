@@ -107,6 +107,11 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   }
 
   if (ngap != nullptr) {
+    if (args.ngap_pcap.enable) {
+      ngap_pcap.open(args.ngap_pcap.filename.c_str());
+      ngap->start_pcap(&ngap_pcap);
+    }
+
     ngap->init(args.ngap, &rrc, nullptr);
     gtpu_args_t gtpu_args;
     gtpu_args.embms_enable  = false;

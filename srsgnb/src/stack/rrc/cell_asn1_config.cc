@@ -40,6 +40,96 @@ srslog::basic_logger& get_logger(const rrc_nr_cfg_t& cfg)
   return log_obj;
 }
 
+void set_search_space_from_phy_cfg(const srsran_search_space_t& cfg, asn1::rrc_nr::search_space_s& out)
+{
+  out.search_space_id                                = cfg.id;
+  out.ctrl_res_set_id_present                        = true;
+  out.ctrl_res_set_id                                = cfg.coreset_id;
+  out.monitoring_slot_periodicity_and_offset_present = true;
+  out.monitoring_slot_periodicity_and_offset.set_sl1();
+  out.dur_present                            = false; // false for duration=1
+  out.monitoring_symbols_within_slot_present = true;
+  out.monitoring_symbols_within_slot.from_number(0b10000000000000);
+
+  out.nrof_candidates_present = true;
+  bool ret                    = asn1::number_to_enum(out.nrof_candidates.aggregation_level1, cfg.nof_candidates[0]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[0]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level2, cfg.nof_candidates[1]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[1]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level4, cfg.nof_candidates[2]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[2]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level8, cfg.nof_candidates[3]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[3]);
+  ret = asn1::number_to_enum(out.nrof_candidates.aggregation_level16, cfg.nof_candidates[4]);
+  srsran_assert(ret, "Failed to convert nof candidates=%d", cfg.nof_candidates[4]);
+
+  out.search_space_type_present = true;
+  if ((cfg.type == srsran_search_space_type_common_0) or (cfg.type == srsran_search_space_type_common_0A) or
+      (cfg.type == srsran_search_space_type_common_1) or (cfg.type == srsran_search_space_type_common_2) or
+      (cfg.type == srsran_search_space_type_common_3)) {
+    out.search_space_type.set_common();
+
+    out.search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
+  } else if (cfg.type == srsran_search_space_type_ue) {
+    out.search_space_type.set_ue_specific().dci_formats.value =
+        search_space_s::search_space_type_c_::ue_specific_s_::dci_formats_opts::formats0_minus0_and_minus1_minus0;
+  } else {
+    srsran_terminate("Config Error: Unsupported search space type.");
+  }
+}
+
+void set_coreset_from_phy_cfg(const srsran_coreset_t& coreset_cfg, asn1::rrc_nr::ctrl_res_set_s& out)
+{
+  out.ctrl_res_set_id = coreset_cfg.id;
+
+  std::bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE> freq_domain_res;
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    freq_domain_res[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i] = coreset_cfg.freq_resources[i];
+  }
+  out.freq_domain_res.from_number(freq_domain_res.to_ulong());
+
+  out.dur = coreset_cfg.duration;
+
+  if (coreset_cfg.mapping_type == srsran_coreset_mapping_type_non_interleaved) {
+    out.cce_reg_map_type.set_non_interleaved();
+  } else {
+    auto& interleaved                  = out.cce_reg_map_type.set_interleaved();
+    interleaved.reg_bundle_size.value  = (decltype(interleaved.reg_bundle_size.value))coreset_cfg.reg_bundle_size;
+    interleaved.interleaver_size.value = (decltype(interleaved.interleaver_size.value))coreset_cfg.interleaver_size;
+    interleaved.shift_idx_present      = true;
+    interleaved.shift_idx              = coreset_cfg.shift_index;
+  }
+
+  if (coreset_cfg.precoder_granularity == srsran_coreset_precoder_granularity_reg_bundle) {
+    out.precoder_granularity = asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+  } else {
+    out.precoder_granularity = asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::all_contiguous_rbs;
+  }
+
+  // TODO: Remaining fields
+}
+
+void set_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& out)
+{
+  // rach-ConfigGeneric
+  out.rach_cfg_generic.prach_cfg_idx             = prach_cfg.config_idx;
+  out.rach_cfg_generic.msg1_fdm.value            = rach_cfg_generic_s::msg1_fdm_opts::one;
+  out.rach_cfg_generic.msg1_freq_start           = prach_cfg.freq_offset;
+  out.rach_cfg_generic.zero_correlation_zone_cfg = prach_cfg.zero_corr_zone;
+  out.rach_cfg_generic.preamb_rx_target_pwr      = -110;
+  out.rach_cfg_generic.preamb_trans_max.value    = rach_cfg_generic_s::preamb_trans_max_opts::n7;
+  out.rach_cfg_generic.pwr_ramp_step.value       = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
+  out.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
+
+  out.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  asn1::number_to_enum(out.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(), prach_cfg.num_ra_preambles);
+  out.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
+  out.prach_root_seq_idx.set_l839()        = prach_cfg.root_seq_idx;
+  out.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -60,9 +150,8 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
   // Report freq config (optional)
   csi_report.report_freq_cfg_present                = true;
   csi_report.report_freq_cfg.cqi_format_ind_present = true;
-  csi_report.report_freq_cfg.cqi_format_ind =
-      asn1::rrc_nr::csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
-  csi_report.time_restrict_for_ch_meass = asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+  csi_report.report_freq_cfg.cqi_format_ind = csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+  csi_report.time_restrict_for_ch_meass     = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
   csi_report.time_restrict_for_interference_meass =
       asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
   csi_report.group_based_beam_report.set_disabled();
@@ -238,85 +327,25 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
 int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_s& pdcch_cfg)
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
-
-  // Note: Skip CORESET#0
-  for (uint32_t cs_idx = 1; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; cs_idx++) {
-    if (cell_cfg.phy_cell.pdcch.coreset_present[cs_idx]) {
-      auto& coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[cs_idx];
-
-      pdcch_cfg.ctrl_res_set_to_add_mod_list_present = true;
-
-      uint8_t cs_mod_list_idx = pdcch_cfg.ctrl_res_set_to_add_mod_list.size();
-      pdcch_cfg.ctrl_res_set_to_add_mod_list.resize(cs_mod_list_idx + 1);
-      auto& ctrl_res_items                            = pdcch_cfg.ctrl_res_set_to_add_mod_list;
-      ctrl_res_items[cs_mod_list_idx].ctrl_res_set_id = coreset_cfg.id;
-
-      std::bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE> freq_domain_res;
-      for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-        freq_domain_res[SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i] = coreset_cfg.freq_resources[i];
-      }
-
-      ctrl_res_items[cs_mod_list_idx].freq_domain_res.from_number(freq_domain_res.to_ulong());
-      ctrl_res_items[cs_mod_list_idx].dur = coreset_cfg.duration;
-
-      if (coreset_cfg.mapping_type == srsran_coreset_mapping_type_non_interleaved) {
-        ctrl_res_items[cs_mod_list_idx].cce_reg_map_type.set_non_interleaved();
-      } else {
-        ctrl_res_items[cs_mod_list_idx].cce_reg_map_type.set_interleaved();
-      }
-
-      if (coreset_cfg.precoder_granularity == srsran_coreset_precoder_granularity_reg_bundle) {
-        ctrl_res_items[cs_mod_list_idx].precoder_granularity =
-            asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
-      } else {
-        ctrl_res_items[cs_mod_list_idx].precoder_granularity =
-            asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::all_contiguous_rbs;
-      }
-    }
-  }
-
-  // Note: Skip SearchSpace#0
   for (uint32_t ss_idx = 1; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
     if (cell_cfg.phy_cell.pdcch.search_space_present[ss_idx]) {
-      // search spaces
-      auto& search_space_cfg                          = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
-      pdcch_cfg.search_spaces_to_add_mod_list_present = true;
-
-      uint8_t ss_mod_list_idx = pdcch_cfg.search_spaces_to_add_mod_list.size();
-      pdcch_cfg.search_spaces_to_add_mod_list.resize(ss_mod_list_idx + 1);
-      auto& search_spaces                                    = pdcch_cfg.search_spaces_to_add_mod_list;
-      search_spaces[ss_mod_list_idx].search_space_id         = search_space_cfg.id;
-      search_spaces[ss_mod_list_idx].ctrl_res_set_id_present = true;
-      search_spaces[ss_mod_list_idx].ctrl_res_set_id         = search_space_cfg.coreset_id;
-      search_spaces[ss_mod_list_idx].monitoring_slot_periodicity_and_offset_present = true;
-      search_spaces[ss_mod_list_idx].monitoring_slot_periodicity_and_offset.set_sl1();
-      search_spaces[ss_mod_list_idx].monitoring_symbols_within_slot_present = true;
-      search_spaces[ss_mod_list_idx].monitoring_symbols_within_slot.from_number(0b10000000000000);
-      search_spaces[ss_mod_list_idx].nrof_candidates_present = true;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level1 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level2 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n2;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level4 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n2;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level8 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-      search_spaces[ss_mod_list_idx].nrof_candidates.aggregation_level16 =
-          asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-      search_spaces[ss_mod_list_idx].search_space_type_present = true;
-
-      if ((search_space_cfg.type == srsran_search_space_type_common_0) or
-          (search_space_cfg.type == srsran_search_space_type_common_0A) or
-          (search_space_cfg.type == srsran_search_space_type_common_1) or
-          (search_space_cfg.type == srsran_search_space_type_common_2) or
-          (search_space_cfg.type == srsran_search_space_type_common_3)) {
-        search_spaces[ss_mod_list_idx].search_space_type.set_common();
-
-        search_spaces[ss_mod_list_idx].search_space_type.common().dci_format0_minus0_and_format1_minus0_present = true;
-      } else {
-        get_logger(cfg).error("Config Error: Unsupported search space type.");
-        return SRSRAN_ERROR;
+      auto& search_space_cfg = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
+      if (search_space_cfg.type != srsran_search_space_type_ue) {
+        // Only add UE-specific search spaces at this stage
+        continue;
       }
+
+      // Add UE-specific SearchSpace
+      pdcch_cfg.search_spaces_to_add_mod_list_present = true;
+      pdcch_cfg.search_spaces_to_add_mod_list.push_back({});
+      set_search_space_from_phy_cfg(search_space_cfg, pdcch_cfg.search_spaces_to_add_mod_list.back());
+
+      // Add CORESET associated with SearchSpace
+      uint32_t coreset_id                            = search_space_cfg.coreset_id;
+      auto&    coreset_cfg                           = cell_cfg.phy_cell.pdcch.coreset[coreset_id];
+      pdcch_cfg.ctrl_res_set_to_add_mod_list_present = true;
+      pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
+      set_coreset_from_phy_cfg(coreset_cfg, pdcch_cfg.ctrl_res_set_to_add_mod_list.back());
     }
   }
   return SRSRAN_SUCCESS;
@@ -546,42 +575,15 @@ int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_ce
 
 int fill_pdcch_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& pdcch_cfg_common)
 {
-  pdcch_cfg_common.common_ctrl_res_set_present         = true;
-  pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id = 1;
-  pdcch_cfg_common.common_ctrl_res_set.freq_domain_res.from_number(0b111111110000000000000000000000000000000000000);
-  pdcch_cfg_common.common_ctrl_res_set.dur = 1;
-  pdcch_cfg_common.common_ctrl_res_set.cce_reg_map_type.set_non_interleaved();
-  pdcch_cfg_common.common_ctrl_res_set.precoder_granularity =
-      asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+  pdcch_cfg_common.common_ctrl_res_set_present = true;
+  set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], pdcch_cfg_common.common_ctrl_res_set);
 
-  // common search space list
   pdcch_cfg_common.common_search_space_list_present = true;
-  pdcch_cfg_common.common_search_space_list.resize(1);
-  pdcch_cfg_common.common_search_space_list[0].search_space_id           = 1;
-  pdcch_cfg_common.common_search_space_list[0].ctrl_res_set_id_present   = true;
-  pdcch_cfg_common.common_search_space_list[0].ctrl_res_set_id           = 1;
-  pdcch_cfg_common.common_search_space_list[0].search_space_type_present = true;
-  pdcch_cfg_common.common_search_space_list[0].search_space_type.set_common();
-  pdcch_cfg_common.common_search_space_list[0]
-      .search_space_type.common()
-      .dci_format0_minus0_and_format1_minus0_present                   = true;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates_present = true;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level1 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n1;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level2 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n1;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level4 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level8 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-  pdcch_cfg_common.common_search_space_list[0].nrof_candidates.aggregation_level16 =
-      asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-  pdcch_cfg_common.common_search_space_list[0].monitoring_slot_periodicity_and_offset_present = true;
-  pdcch_cfg_common.common_search_space_list[0].monitoring_slot_periodicity_and_offset.set_sl1();
-  pdcch_cfg_common.common_search_space_list[0].monitoring_symbols_within_slot_present = true;
-  pdcch_cfg_common.common_search_space_list[0].monitoring_symbols_within_slot.from_number(0b10000000000000);
+  pdcch_cfg_common.common_search_space_list.push_back({});
+  set_search_space_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.search_space[1],
+                                pdcch_cfg_common.common_search_space_list.back());
   pdcch_cfg_common.ra_search_space_present = true;
-  pdcch_cfg_common.ra_search_space         = 1;
+  pdcch_cfg_common.ra_search_space         = cfg.cell_list[cc].phy_cell.pdcch.ra_search_space.id;
 
   if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     pdcch_cfg_common.ext = false;
@@ -666,34 +668,11 @@ int fill_freq_info_ul_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_in
   return SRSRAN_SUCCESS;
 }
 
-/// Fill RachConfigCommon with gNB config
-int fill_rach_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, rach_cfg_common_s& rach_cfg_common)
-{
-  auto& cell_cfg = cfg.cell_list.at(cc);
-
-  rach_cfg_common = cfg.rach_cfg_common;
-
-  rach_cfg_common.rach_cfg_generic.msg1_freq_start           = cell_cfg.phy_cell.prach.freq_offset;
-  rach_cfg_common.rach_cfg_generic.prach_cfg_idx             = cell_cfg.phy_cell.prach.config_idx;
-  rach_cfg_common.rach_cfg_generic.zero_correlation_zone_cfg = cell_cfg.phy_cell.prach.zero_corr_zone;
-
-  if (cfg.prach_root_seq_idx_type == 139) {
-    rach_cfg_common.prach_root_seq_idx.set_l139() = cell_cfg.phy_cell.prach.root_seq_idx;
-  } else if (cfg.prach_root_seq_idx_type == 839) {
-    rach_cfg_common.prach_root_seq_idx.set_l839() = cell_cfg.phy_cell.prach.root_seq_idx;
-  } else {
-    get_logger(cfg).error("Config Error: Invalid prach_root_seq_idx_type (%d)\n", cfg.prach_root_seq_idx_type);
-    return SRSRAN_ERROR;
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
 /// Fill InitUlBwp with gNB config
 int fill_init_ul_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_ul_common_s& init_ul_bwp)
 {
   init_ul_bwp.rach_cfg_common_present = true;
-  fill_rach_cfg_common_from_enb_cfg(cfg, cc, init_ul_bwp.rach_cfg_common.set_setup());
+  set_rach_cfg_common(cfg.cell_list[cc].phy_cell.prach, init_ul_bwp.rach_cfg_common.set_setup());
 
   // TODO: Add missing fields
 
@@ -915,7 +894,8 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   // spCellConfig -- Need M
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
-  out.sp_cell_cfg.recfg_with_sync_present = false;
+  out.sp_cell_cfg.recfg_with_sync_present              = false;
+  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false;
 
   return SRSRAN_SUCCESS;
 }
@@ -928,16 +908,16 @@ int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s
   switch (cell_cfg.phy_cell.carrier.scs) {
     case srsran_subcarrier_spacing_15kHz:
     case srsran_subcarrier_spacing_60kHz:
-      mib.sub_carrier_spacing_common.value = asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60;
+      mib.sub_carrier_spacing_common.value = mib_s::sub_carrier_spacing_common_opts::scs15or60;
       break;
     case srsran_subcarrier_spacing_30kHz:
     case srsran_subcarrier_spacing_120kHz:
-      mib.sub_carrier_spacing_common.value = asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs30or120;
+      mib.sub_carrier_spacing_common.value = mib_s::sub_carrier_spacing_common_opts::scs30or120;
       break;
     default:
       srsran_terminate("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));
   }
-  mib.ssb_subcarrier_offset            = 0;
+  mib.ssb_subcarrier_offset            = 6; // FIXME: currently hard-coded
   mib.dmrs_type_a_position.value       = mib_s::dmrs_type_a_position_opts::pos2;
   mib.pdcch_cfg_sib1.search_space_zero = 0;
   mib.pdcch_cfg_sib1.ctrl_res_set_zero = cell_cfg.coreset0_idx;
@@ -958,23 +938,7 @@ void fill_pdcch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdcch_cfg_common_s
 
   cfg.common_search_space_list_present = true;
   cfg.common_search_space_list.resize(1);
-  search_space_s& ss                                = cfg.common_search_space_list[0];
-  ss.search_space_id                                = 1;
-  ss.ctrl_res_set_id_present                        = true;
-  ss.ctrl_res_set_id                                = 0;
-  ss.monitoring_slot_periodicity_and_offset_present = true;
-  ss.monitoring_slot_periodicity_and_offset.set_sl1();
-  ss.monitoring_symbols_within_slot_present = true;
-  ss.monitoring_symbols_within_slot.from_number(0x2000);
-  ss.nrof_candidates_present                   = true;
-  ss.nrof_candidates.aggregation_level1.value  = search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
-  ss.nrof_candidates.aggregation_level2.value  = search_space_s::nrof_candidates_s_::aggregation_level2_opts::n0;
-  ss.nrof_candidates.aggregation_level4.value  = search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
-  ss.nrof_candidates.aggregation_level8.value  = search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
-  ss.nrof_candidates.aggregation_level16.value = search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
-  ss.search_space_type_present                 = true;
-  auto& common                                 = ss.search_space_type.set_common();
-  common.dci_format0_minus0_and_format1_minus0_present = true;
+  set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], cfg.common_search_space_list[0]);
 
   cfg.search_space_sib1_present           = true;
   cfg.search_space_sib1                   = 0;
@@ -1036,24 +1000,6 @@ void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib
   cfg.pcch_cfg.ns.value = pcch_cfg_s::ns_opts::one;
 }
 
-void fill_rach_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, rach_cfg_common_s& cfg)
-{
-  cfg.rach_cfg_generic.prach_cfg_idx                       = 16;
-  cfg.rach_cfg_generic.msg1_fdm.value                      = rach_cfg_generic_s::msg1_fdm_opts::one;
-  cfg.rach_cfg_generic.msg1_freq_start                     = 0;
-  cfg.rach_cfg_generic.zero_correlation_zone_cfg           = 15;
-  cfg.rach_cfg_generic.preamb_rx_target_pwr                = -110;
-  cfg.rach_cfg_generic.preamb_trans_max.value              = rach_cfg_generic_s::preamb_trans_max_opts::n7;
-  cfg.rach_cfg_generic.pwr_ramp_step.value                 = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
-  cfg.rach_cfg_generic.ra_resp_win.value                   = rach_cfg_generic_s::ra_resp_win_opts::sl10;
-  cfg.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
-  cfg.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one().value =
-      rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::one_opts::n8;
-  cfg.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
-  cfg.prach_root_seq_idx.set_l839()        = 1;
-  cfg.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
-}
-
 void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib_s& cfg)
 {
   srsran::srsran_band_helper band_helper;
@@ -1081,7 +1027,7 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
 
   cfg.init_ul_bwp.rach_cfg_common_present = true;
-  fill_rach_cfg_common(cell_cfg, cfg.init_ul_bwp.rach_cfg_common.set_setup());
+  set_rach_cfg_common(cell_cfg.phy_cell.prach, cfg.init_ul_bwp.rach_cfg_common.set_setup());
 
   cfg.init_ul_bwp.pusch_cfg_common_present   = true;
   pusch_cfg_common_s& pusch                  = cfg.init_ul_bwp.pusch_cfg_common.set_setup();
@@ -1116,7 +1062,7 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
 
   cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms20;
 
-  cfg.ss_pbch_block_pwr = -16;
+  cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
 }
 
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1)
@@ -1205,6 +1151,9 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
                                           const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
                                           asn1::rrc_nr::cell_group_cfg_s&         out)
 {
+  out.rlc_bearer_to_add_mod_list.clear();
+  out.rlc_bearer_to_release_list.clear();
+
   // Add SRBs
   for (const srb_to_add_mod_s& srb : bearers.srb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});

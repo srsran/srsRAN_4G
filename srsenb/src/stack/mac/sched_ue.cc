@@ -748,8 +748,9 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
-    logger.error("SCHED: DL CQI does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
+    logger.error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
                  "Consider increasing initial CQI value.",
+                 cells[enb_cc_idx].get_dl_cqi(),
                  req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }

@@ -79,6 +79,9 @@ static void dmrs_pdcch_put_symbol(const srsran_carrier_nr_t* carrier,
   // CORESET Resource Block counter
   uint32_t rb_coreset_idx = 0;
 
+  // Get CORESET offset
+  uint32_t offset_k = coreset->offset_rb * SRSRAN_NRE;
+
   // For each frequency resource (6 RB groups)
   for (uint32_t res_idx = 0; res_idx < nof_freq_res; res_idx++) {
     // Skip frequency resource if outside of the CORESET
@@ -113,7 +116,7 @@ static void dmrs_pdcch_put_symbol(const srsran_carrier_nr_t* carrier,
         uint32_t k = n * SRSRAN_NRE + 4 * k_prime + 1;
 
         // Write DMRS
-        sf_symbol[k] = rl[k_prime];
+        sf_symbol[k + offset_k] = rl[k_prime];
       }
     }
   }

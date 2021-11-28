@@ -69,7 +69,7 @@ public:
   bool          is_sdu() const;
   bool          is_valid_lcid();
   bool          is_var_len_ce(uint32_t lcid);
-  bool          is_ul_ccch();
+  bool          is_ul_ccch() const;
 
   int32_t        read_subheader(const uint8_t* ptr);
   uint32_t       get_total_length() const;
@@ -103,6 +103,11 @@ public:
   };
   ta_t get_ta();
 
+  // UE contention resolution identity CE
+  static const uint8_t                           ue_con_res_id_len = 6;
+  typedef std::array<uint8_t, ue_con_res_id_len> ue_con_res_id_t;
+  ue_con_res_id_t                                get_ue_con_res_id_ce();
+
   // setters
   void set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
   void set_padding(const uint32_t len_);
@@ -110,6 +115,7 @@ public:
   void set_se_phr(const uint8_t phr_, const uint8_t pcmax_);
   void set_sbsr(const lcg_bsr_t bsr_);
   void set_lbsr(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, max_num_lcg_lbsr> bsr_);
+  void set_ue_con_res_id_ce(const ue_con_res_id_t id);
 
   uint32_t write_subpdu(const uint8_t* start_);
 
@@ -212,6 +218,7 @@ public:
   uint32_t add_se_phr_ce(const uint8_t phr_, const uint8_t pcmax_);
   uint32_t add_sbsr_ce(const mac_sch_subpdu_nr::lcg_bsr_t bsr_);
   uint32_t add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_sch_subpdu_nr::max_num_lcg_lbsr> bsr_);
+  uint32_t add_ue_con_res_id_ce(const mac_sch_subpdu_nr::ue_con_res_id_t id);
 
   uint32_t get_remaing_len();
 

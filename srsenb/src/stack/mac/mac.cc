@@ -525,6 +525,21 @@ uint16_t mac::allocate_ue(uint32_t enb_cc_idx)
   return rnti;
 }
 
+bool mac::is_pending_pdcch_order_prach(const uint32_t preamble_idx, uint16_t& rnti)
+{
+  for (auto it = pending_po_prachs.begin(); it != pending_po_prachs.end();) {
+    auto& pending_po_prach = *it;
+    if (pending_po_prach.preamble_idx == preamble_idx) {
+      rnti = pending_po_prach.crnti;
+      // delete pending PDCCH PRACH from vector
+      it = pending_po_prachs.erase(it);
+      return true;
+    }
+    ++it;
+  }
+  return false;
+}
+
 uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& uecfg)
 {
   uint16_t rnti = allocate_ue(uecfg.supported_cc_list[0].enb_cc_idx);
@@ -546,9 +561,14 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   auto rach_tprof_meas = rach_tprof.start();
 
   stack_task_queue.push([this, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
-    uint16_t rnti = allocate_ue(enb_cc_idx);
-    if (rnti == SRSRAN_INVALID_RNTI) {
-      return;
+    uint16_t rnti = 0;
+    // check if this is a PRACH from a PDCCH order
+    bool is_po_prach = is_pending_pdcch_order_prach(preamble_idx, rnti);
+    if (!is_po_prach) {
+      rnti = allocate_ue(enb_cc_idx);
+      if (rnti == SRSRAN_INVALID_RNTI) {
+        return;
+      }
     }
 
     rach_tprof_meas.defer_stop();
@@ -563,21 +583,24 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Log this event.
     ++detected_rachs[enb_cc_idx];
 
-    // Add new user to the scheduler so that it can RX/TX SRB0
-    sched_interface::ue_cfg_t uecfg = {};
-    uecfg.supported_cc_list.emplace_back();
-    uecfg.supported_cc_list.back().active     = true;
-    uecfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
-    uecfg.ue_bearers[0].direction             = mac_lc_ch_cfg_t::BOTH;
-    uecfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
-    if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
-      return;
-    }
+    // If this is a PRACH from a PDCCH order, the user already exists
+    if (not is_po_prach) {
+      // Add new user to the scheduler so that it can RX/TX SRB0
+      sched_interface::ue_cfg_t uecfg = {};
+      uecfg.supported_cc_list.emplace_back();
+      uecfg.supported_cc_list.back().active     = true;
+      uecfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
+      uecfg.ue_bearers[0].direction             = mac_lc_ch_cfg_t::BOTH;
+      uecfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
+      if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
+        return;
+      }
 
-    // Register new user in RRC
-    if (rrc_h->add_user(rnti, uecfg) == SRSRAN_ERROR) {
-      ue_rem(rnti);
-      return;
+      // Register new user in RRC
+      if (rrc_h->add_user(rnti, uecfg) == SRSRAN_ERROR) {
+        ue_rem(rnti);
+        return;
+      }
     }
 
     // Trigger scheduler RACH
@@ -588,14 +611,16 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
       return (enb_cc_idx < cell_config.size()) ? cell_config[enb_cc_idx].cell.id : 0;
     };
     uint32_t pci = get_pci();
-    logger.info("RACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+    logger.info("%sRACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+                (is_po_prach) ? "PDCCH order " : "",
                 tti,
                 enb_cc_idx,
                 pci,
                 preamble_idx,
                 time_adv,
                 rnti);
-    srsran::console("RACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+    srsran::console("%sRACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+                    (is_po_prach) ? "PDCCH order " : "",
                     tti,
                     enb_cc_idx,
                     pci,
@@ -758,6 +783,21 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
       n++;
     }
 
+    // Copy PDCCH order grants
+    for (uint32_t i = 0; i < sched_result.po.size(); i++) {
+      // Copy dci info
+      dl_sched_res->pdsch[n].dci = sched_result.po[i].dci;
+
+      if (pcap) {
+        pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+      }
+      if (pcap_net) {
+        pcap_net->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+      }
+
+      n++;
+    }
+
     dl_sched_res->nof_grants = n;
 
     // Number of CCH symbols
@@ -838,7 +878,6 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
     ue_db[SRSRAN_MRNTI]->metrics_tx(true, mcs.tbs);
     dl_sched_res->pdsch[0].data[0] =
         ue_db[SRSRAN_MRNTI]->generate_mch_pdu(tti % SRSRAN_FDD_NOF_HARQ, mch, mch.num_mtch_sched + 1, mcs.tbs / 8);
-
   } else {
     uint32_t current_lcid = 1;
     uint32_t mtch_index   = 0;
@@ -974,7 +1013,6 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
         } else {
           logger.warning("Invalid UL scheduling result. User 0x%x does not exist", rnti);
         }
-
       } else {
         logger.warning("Grant %d for rnti=0x%x has zero TBS", i, sched_result.pusch[i].dci.rnti);
       }

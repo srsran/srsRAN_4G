@@ -26,6 +26,64 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+using candidate_ss_list_t =
+    srsran::bounded_vector<const srsran_search_space_t*, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
+
+candidate_ss_list_t find_ss(const srsran_pdcch_cfg_nr_t&               pdcch,
+                            uint32_t                                   aggr_idx,
+                            srsran_rnti_type_t                         rnti_type,
+                            srsran::const_span<srsran_dci_format_nr_t> prio_dcis)
+{
+  candidate_ss_list_t ret;
+  auto                active_ss_lst = view_active_search_spaces(pdcch);
+
+  auto contains_dci_fmt = [prio_dcis, aggr_idx](const srsran_search_space_t& ss) {
+    if (ss.nof_candidates[aggr_idx] > 0 and ss.nof_formats > 0) {
+      for (uint32_t i = 0; i < prio_dcis.size(); ++i) {
+        for (uint32_t j = 0; j < prio_dcis.size(); ++j) {
+          if (ss.formats[j] == prio_dcis[i]) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+  auto is_common_ss_allowed = [rnti_type](srsran_search_space_type_t ss_type) {
+    switch (rnti_type) {
+      case srsran_rnti_type_c:
+        return ss_type == srsran_search_space_type_common_1 or ss_type == srsran_search_space_type_common_3;
+      case srsran_rnti_type_tc:
+      case srsran_rnti_type_ra:
+        // TODO: Fix UE config to not use common3
+        return ss_type == srsran_search_space_type_common_1 or ss_type == srsran_search_space_type_common_3;
+      case srsran_rnti_type_si:
+        return ss_type == srsran_search_space_type_common_0;
+      default:
+        // TODO: Remaining cases
+        break;
+    }
+    return false;
+  };
+
+  if (rnti_type == srsran_rnti_type_c) {
+    // First search UE-specific
+    for (const srsran_search_space_t& ss : active_ss_lst) {
+      if (ss.type == srsran_search_space_type_ue and contains_dci_fmt(ss)) {
+        ret.push_back(&ss);
+      }
+    }
+  }
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    if (is_common_ss_allowed(ss.type) and contains_dci_fmt(ss)) {
+      ret.push_back(&ss);
+    }
+  }
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 bwp_slot_grid::bwp_slot_grid(const bwp_params_t& bwp_cfg_, uint32_t slot_idx_) :
   dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
@@ -55,6 +113,7 @@ void bwp_slot_grid::reset()
   dl.phy.pdcch_dl.clear();
   dl.phy.pdcch_ul.clear();
   dl.phy.pdsch.clear();
+  dl.data.clear();
   dl.rar.clear();
   dl.sib_idxs.clear();
   ul.pusch.clear();
@@ -99,8 +158,9 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
 
   // RAR allocation successful.
   bwp_pdcch_slot.dl_prbs |= prbs;
-  // Generate DCI for RAR with given RA-RNTI
-  pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
+  // Generate DCI for SIB
+  pdcch_dl_t& pdcch         = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
+  pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
   if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
@@ -244,8 +304,11 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
 
 // ue is the UE (1 only) that will be allocated
 // func computes the grant allocation for this UE
-alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_grant)
+alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
 {
+  static const uint32_t                              aggr_idx = 2;
+  static const std::array<srsran_dci_format_nr_t, 2> dci_fmt_list{srsran_dci_format_nr_1_1, srsran_dci_format_nr_1_0};
+
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
   bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot]; // UCI : UL control info
@@ -269,22 +332,27 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   // Find space in PUCCH
   // TODO
 
-  // Find space and allocate PDCCH
-  const uint32_t aggr_idx = 2;
+  // Choose SearchSpace + DCI format
+  srsran_rnti_type_t rnti_type =
+      ue->ue_cfg().ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE ? srsran_rnti_type_tc : srsran_rnti_type_c;
   // Choose the ss_id the highest number of candidates
-  uint32_t ss_id = 0, max_nof_candidates = 0;
-  for (uint32_t i = 0; i < 3; ++i) {
-    uint32_t nof_candidates = ue->cce_pos_list(i, pdcch_slot.slot_idx(), aggr_idx).size();
-    if (nof_candidates > max_nof_candidates) {
-      ss_id              = i;
-      max_nof_candidates = nof_candidates;
-    }
+  candidate_ss_list_t ss_candidates = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
+  if (ss_candidates.empty()) {
+    // Could not find space in PDCCH
+    logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
+    return alloc_result::no_cch_space;
   }
-  uint32_t coreset_id = ue->phy().pdcch.search_space[ss_id].coreset_id;
-  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss_id, &ue.cfg())) {
+  const srsran_search_space_t& ss = *ss_candidates[0];
+
+  // Find space and allocate PDCCH
+  uint32_t coreset_id = ss.coreset_id;
+  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss.id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
+
+  // Update PRB grant based on the start and end of CORESET RBs
+  reduce_to_dl_coreset_bw(cfg, ss.id, srsran_dci_format_nr_1_0, dl_grant);
 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();
@@ -303,7 +371,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
   while (true) {
     // Generate PDCCH
     pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
     pdcch.dci.pucch_resource = 0;
     pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
                                   bwp_uci_slot.pending_acks.end(),
@@ -346,11 +414,18 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, const prb_grant& dl_gr
     logger.warning("Couldn't find mcs that leads to R<0.9");
   }
 
+  // Select scheduled LCIDs and update UE buffer state
+  bwp_pdsch_slot.dl.data.emplace_back();
+  ue.build_pdu(ue.h_dl->tbs(), bwp_pdsch_slot.dl.data.back());
+
   return alloc_result::success;
 }
 
-alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_prbs)
+alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
 {
+  static const uint32_t                              aggr_idx = 2;
+  static const std::array<srsran_dci_format_nr_t, 2> dci_fmt_list{srsran_dci_format_nr_0_1, srsran_dci_format_nr_0_0};
+
   auto&        bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   auto&        bwp_pusch_slot = bwp_grid[ue.pusch_slot];
   alloc_result ret            = verify_pusch_space(bwp_pusch_slot, &bwp_pdcch_slot);
@@ -362,22 +437,24 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
     return ret;
   }
   pdcch_ul_list_t& pdcchs = bwp_pdcch_slot.dl.phy.pdcch_ul;
-  if (bwp_pusch_slot.ul_prbs.collides(ul_prbs)) {
+  if (bwp_pusch_slot.ul_prbs.collides(ul_grant)) {
     return alloc_result::sch_collision;
   }
-  const uint32_t aggr_idx = 2;
-  // Choose the ss_id the highest number of candidates
-  uint32_t ss_id = 0, max_nof_candidates = 0;
-  for (uint32_t i = 0; i < 3; ++i) {
-    uint32_t nof_candidates = ue->cce_pos_list(i, pdcch_slot.slot_idx(), aggr_idx).size();
-    if (nof_candidates > max_nof_candidates) {
-      ss_id              = i;
-      max_nof_candidates = nof_candidates;
-    }
+
+  // Choose SearchSpace + DCI format
+  srsran_rnti_type_t rnti_type =
+      ue->ue_cfg().ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE ? srsran_rnti_type_tc : srsran_rnti_type_c;
+  candidate_ss_list_t ss_candidates = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
+  if (ss_candidates.empty()) {
+    // Could not find space in PDCCH
+    logger.warning("SCHED: No PDCCH candidates for any of the rnti=0x%x search spaces", ue->rnti);
+    return alloc_result::no_cch_space;
   }
-  uint32_t coreset_id = ue->phy().pdcch.search_space[ss_id].coreset_id;
+  const srsran_search_space_t& ss = *ss_candidates[0];
+
+  uint32_t coreset_id = ss.coreset_id;
   if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
-          pdcch_grant_type_t::ul_data, aggr_idx, ss_id, &ue.cfg())) {
+          pdcch_grant_type_t::ul_data, aggr_idx, ss.id, &ue.cfg())) {
     // Could not find space in PDCCH
     return alloc_result::no_cch_space;
   }
@@ -386,19 +463,19 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_pr
 
   if (ue.h_ul->empty()) {
     int  mcs     = ue->fixed_pusch_mcs();
-    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_prbs, mcs, ue->ue_cfg().maxharq_tx);
+    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_grant, mcs, ue->ue_cfg().maxharq_tx);
     srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
-    bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_prbs);
+    bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_grant);
     srsran_assert(success, "Failed to allocate UL HARQ retx");
   }
 
   // Generate PDCCH
   pdcch_ul_t& pdcch = pdcchs.back();
-  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss_id, pdcch.dci.ctx.location, pdcch.dci);
+  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
   pdcch.dci_cfg = ue->phy().get_dci_cfg();
   // Generate PUSCH
-  bwp_pusch_slot.ul_prbs |= ul_prbs;
+  bwp_pusch_slot.ul_prbs |= ul_grant;
   bwp_pusch_slot.ul.pusch.emplace_back();
   pusch_t&          pusch = bwp_pusch_slot.ul.pusch.back();
   srsran_slot_cfg_t slot_cfg;

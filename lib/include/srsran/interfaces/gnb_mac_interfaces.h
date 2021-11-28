@@ -23,6 +23,7 @@
 #define SRSRAN_GNB_MAC_INTERFACES_H
 
 #include "srsgnb/hdr/stack/mac/sched_nr_interface.h"
+#include "srsran/interfaces/enb_mac_interfaces.h"
 
 namespace srsenb {
 

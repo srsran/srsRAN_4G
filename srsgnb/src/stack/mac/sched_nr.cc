@@ -428,7 +428,6 @@ int sched_nr::dl_rach_info(const rar_info_t& rar_info, const ue_cfg_t& uecfg)
   auto add_ue = [this, uecfg, rar_info](event_manager::logger& ev_logger) {
     // create user
     // Note: UEs being created in sched main thread, which has higher priority
-    logger->info("SCHED: New user rnti=0x%x, cc=%d", rar_info.temp_crnti, uecfg.carriers[0].cc);
     std::unique_ptr<ue> u{new ue{rar_info.temp_crnti, uecfg, cfg}};
 
     uint16_t rnti = rar_info.temp_crnti;

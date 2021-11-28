@@ -115,6 +115,16 @@ struct prb_grant {
     return alloc.interv;
   }
 
+  prb_grant& operator&=(const prb_interval interv)
+  {
+    if (is_alloc_type0()) {
+      alloc.rbgs &= rbg_bitmap{alloc.rbgs.size()}.fill(interv.start(), interv.stop());
+    } else {
+      alloc.interv.intersect(interv);
+    }
+    return *this;
+  }
+
 private:
   bool alloc_type_0 = false;
   union alloc_t {

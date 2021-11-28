@@ -20,3 +20,6 @@
 
 set(SOURCES ngap.cc ngap_ue.cc ngap_ue_proc.cc ngap_ue_bearer_manager.cc)
 add_library(srsgnb_ngap STATIC ${SOURCES})
+
+add_subdirectory(test)
+

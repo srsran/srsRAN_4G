@@ -69,6 +69,28 @@ static const char integrity_algorithm_id_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20
                                                                                      "128-EIA3"};
 
 typedef enum {
+  CIPHERING_ALGORITHM_ID_NR_NEA0 = 0,
+  CIPHERING_ALGORITHM_ID_NR_128_NEA1,
+  CIPHERING_ALGORITHM_ID_NR_128_NEA2,
+  CIPHERING_ALGORITHM_ID_NR_128_NEA3,
+  CIPHERING_ALGORITHM_ID_NR_N_ITEMS,
+} CIPHERING_ALGORITHM_ID_NR_ENUM;
+static const char ciphering_algorithm_id_nr_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {"NEA0",
+                                                                                        "128-NEA1",
+                                                                                        "128-NEA2",
+                                                                                        "128-NEA3"};
+typedef enum {
+  INTEGRITY_ALGORITHM_ID_NR_NIA0 = 0,
+  INTEGRITY_ALGORITHM_ID_NR_128_NIA1,
+  INTEGRITY_ALGORITHM_ID_NR_128_NIA2,
+  INTEGRITY_ALGORITHM_ID_NR_128_NIA3,
+  INTEGRITY_ALGORITHM_ID_NR_N_ITEMS,
+} INTEGRITY_ALGORITHM_ID_NR_ENUM;
+static const char integrity_algorithm_id_nr_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"NIA0",
+                                                                                        "128-NIA1",
+                                                                                        "128-NIA2",
+                                                                                        "128-NIA3"};
+typedef enum {
   SECURITY_DIRECTION_UPLINK   = 0,
   SECURITY_DIRECTION_DOWNLINK = 1,
   SECURITY_DIRECTION_N_ITEMS,
@@ -94,6 +116,15 @@ struct as_security_config_t {
   as_key_t                    k_up_enc;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+};
+
+struct nr_as_security_config_t {
+  as_key_t                       k_nr_rrc_int;
+  as_key_t                       k_nr_rrc_enc;
+  as_key_t                       k_nr_up_int;
+  as_key_t                       k_nr_up_enc;
+  INTEGRITY_ALGORITHM_ID_NR_ENUM integ_algo;
+  CIPHERING_ALGORITHM_ID_NR_ENUM cipher_algo;
 };
 
 template <typename... Args>

@@ -19,7 +19,7 @@
 #
 
 add_executable(ngap_test ngap_test.cc)
-target_link_libraries(ngap_test srsran_common ngap_nr_asn1 srsenb_upper srsran_gtpu ngap_nr_asn1 srsgnb_upper srsgnb_ngap ${SCTP_LIBRARIES})
+target_link_libraries(ngap_test srsran_common ngap_nr_asn1 srsenb_upper srsran_gtpu ngap_nr_asn1 srsgnb_stack srsgnb_ngap ${SCTP_LIBRARIES})
 
 add_test(ngap_test ngap_test)
 

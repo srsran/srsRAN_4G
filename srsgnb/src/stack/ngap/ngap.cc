@@ -380,11 +380,10 @@ bool ngap::handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu,
 
 bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
 {
-  // TODO:
   // Save message to PCAP
-  // if (pcap != nullptr) {
-  //   pcap->write_ngap(pdu->msg, pdu->N_bytes);
-  // }
+  if (pcap != nullptr) {
+    pcap->write_ngap(pdu->msg, pdu->N_bytes);
+  }
 
   ngap_pdu_c     rx_pdu;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
@@ -705,6 +704,11 @@ bool ngap::sctp_send_ngap_pdu(const asn1::ngap_nr::ngap_pdu_c& tx_pdu, uint32_t 
   }
   buf->N_bytes = bref.distance_bytes();
 
+  // Save message to PCAP
+  if (pcap != nullptr) {
+    pcap->write_ngap(buf->msg, buf->N_bytes);
+  }
+
   if (rnti != SRSRAN_INVALID_RNTI) {
     logger.info(buf->msg, buf->N_bytes, "Tx NGAP SDU, %s, rnti=0x%x", procedure_name, rnti);
   } else {
@@ -803,4 +807,11 @@ std::string ngap::get_cause(const cause_c& c)
   return cause;
 }
 
+/*
+ * PCAP
+ */
+void ngap::start_pcap(srsran::ngap_pcap* pcap_)
+{
+  pcap = pcap_;
+}
 } // namespace srsenb

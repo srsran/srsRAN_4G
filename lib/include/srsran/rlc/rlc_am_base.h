@@ -192,11 +192,19 @@ public:
     srslog::basic_logger* logger = nullptr;
     byte_buffer_pool*     pool   = nullptr;
     rlc_am*               parent = nullptr;
+
+  protected:
+    std::atomic<bool> do_status = {false}; // light-weight access from Tx entity
   };
 
 protected:
   std::unique_ptr<rlc_am_base_tx> tx_base = {};
   std::unique_ptr<rlc_am_base_rx> rx_base = {};
+
+public:
+  // Getters for TX/RX entities. Useful for testing.
+  rlc_am_base_rx* get_rx() { return rx_base.get(); }
+  rlc_am_base_tx* get_tx() { return tx_base.get(); }
 };
 
 } // namespace srsran

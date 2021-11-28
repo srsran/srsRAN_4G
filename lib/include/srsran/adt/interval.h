@@ -86,6 +86,17 @@ public:
 
   bool contains(T point) const { return start_ <= point and point < stop_; }
 
+  interval<T>& intersect(const interval<T>& other)
+  {
+    if (not overlaps(other)) {
+      *this = interval<T>{};
+    } else {
+      start_ = std::max(start(), other.start());
+      stop_  = std::min(stop(), other.stop());
+    }
+    return *this;
+  }
+
 private:
   T start_;
   T stop_;

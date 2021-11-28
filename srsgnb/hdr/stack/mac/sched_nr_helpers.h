@@ -24,6 +24,7 @@
 
 #include "sched_nr_cfg.h"
 #include "sched_nr_ue.h"
+#include "srsran/adt/optional_array.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -32,7 +33,11 @@ class slot_ue;
 class ul_harq_proc;
 struct bwp_res_grid;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// In case of Common SearchSpace, not all PRBs might be available
+void reduce_to_dl_coreset_bw(const bwp_params_t&    bwp_cfg,
+                             uint32_t               ss_id,
+                             srsran_dci_format_nr_t dci_fmt,
+                             prb_grant&             grant);
 
 bool fill_dci_sib(prb_interval        interv,
                   uint32_t            sib_idx,

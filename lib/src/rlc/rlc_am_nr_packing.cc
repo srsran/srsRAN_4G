@@ -238,7 +238,7 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
       ptr++;
 
       // write remaining 4 bits of NACK_SN
-      *ptr = status_pdu.nacks[0].nack_sn & 0xf0;
+      *ptr = (status_pdu.nacks[0].nack_sn & 0x0f) << 4;
       ptr++;
     }
   } else {

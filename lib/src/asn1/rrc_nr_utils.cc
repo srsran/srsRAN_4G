@@ -117,8 +117,25 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_
   rlc_cfg.rat          = srsran_rat_t::nr;
   switch (asn1_type.type().value) {
     case rlc_cfg_c::types_opts::am:
-      asn1::log_warning("NR RLC type %s is not supported", asn1_type.type().to_string());
-      return SRSRAN_ERROR;
+      if (asn1_type.am().dl_am_rlc.sn_field_len_present && asn1_type.am().ul_am_rlc.sn_field_len_present &&
+          asn1_type.am().dl_am_rlc.sn_field_len != asn1_type.am().ul_am_rlc.sn_field_len) {
+        asn1::log_warning("NR RLC sequence number length is not the same in uplink and downlink");
+        return SRSRAN_ERROR;
+      }
+      rlc_cfg.rlc_mode = rlc_mode_t::am;
+      switch (asn1_type.am().dl_am_rlc.sn_field_len.value) {
+        case asn1::rrc_nr::sn_field_len_am_opts::options::size12:
+          rlc_cfg.am_nr.tx_sn_field_length = rlc_am_nr_sn_size_t::size12bits;
+          rlc_cfg.am_nr.rx_sn_field_length = rlc_am_nr_sn_size_t::size12bits;
+          break;
+        case asn1::rrc_nr::sn_field_len_am_opts::options::size18:
+          rlc_cfg.am_nr.tx_sn_field_length = rlc_am_nr_sn_size_t::size18bits;
+          rlc_cfg.am_nr.rx_sn_field_length = rlc_am_nr_sn_size_t::size18bits;
+          break;
+        default:
+          break;
+      }
+      break;
     case rlc_cfg_c::types_opts::um_bi_dir:
       rlc_cfg.rlc_mode              = rlc_mode_t::um;
       rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.to_number();
@@ -153,6 +170,20 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_
 
   *cfg_out = rlc_cfg;
   return SRSRAN_SUCCESS;
+}
+
+srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity,
+                    false,
+                    srsran_rat_t::lte);
+  return cfg;
 }
 
 srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSRAN_UE_BUFFER_MANAGER_H
-#define SRSRAN_UE_BUFFER_MANAGER_H
+#ifndef SRSRAN_BASE_UE_BUFFER_MANAGER_H
+#define SRSRAN_BASE_UE_BUFFER_MANAGER_H
 
 #include "sched_config.h"
 #include "srsran/adt/span.h"
@@ -35,7 +35,7 @@ namespace srsenb {
  * Class to handle UE DL+UL RLC and MAC buffers state
  */
 template <bool isNR>
-class ue_buffer_manager
+class base_ue_buffer_manager
 {
 protected:
   const static uint32_t     MAX_LC_ID     = isNR ? (srsran::MAX_NR_NOF_BEARERS - 1) : srsran::MAX_LTE_LCID;
@@ -46,7 +46,7 @@ protected:
   constexpr static uint32_t pbr_infinity  = -1;
 
 public:
-  explicit ue_buffer_manager(uint16_t rnti, srslog::basic_logger& logger_);
+  explicit base_ue_buffer_manager(uint16_t rnti, srslog::basic_logger& logger_);
 
   // Bearer configuration
   void config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list);
@@ -89,6 +89,8 @@ public:
   static bool is_lcg_valid(uint32_t lcg) { return lcg <= MAX_LCG_ID; }
 
 protected:
+  ~base_ue_buffer_manager() = default;
+
   bool config_lcid_internal(uint32_t lcid, const mac_lc_ch_cfg_t& bearer_cfg);
 
   srslog::basic_logger& logger;
@@ -108,4 +110,4 @@ protected:
 
 } // namespace srsenb
 
-#endif // SRSRAN_UE_BUFFER_MANAGER_H
+#endif // SRSRAN_BASE_UE_BUFFER_MANAGER_H

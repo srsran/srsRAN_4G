@@ -29,13 +29,6 @@
 
 namespace srsran {
 
-struct rlc_amd_retx_t {
-  uint32_t sn;
-  bool     is_segment;
-  uint32_t so_start;
-  uint32_t so_end;
-};
-
 struct rlc_sn_info_t {
   uint32_t sn;
   bool     is_acked;

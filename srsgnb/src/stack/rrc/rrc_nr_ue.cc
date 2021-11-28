@@ -21,6 +21,7 @@
 
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/string_helpers.h"
 
@@ -35,10 +36,15 @@ Every function in UE class is called from a mutex environment thus does not
     need extra protection.
     *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
-  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_)
+  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_), sec_ctx(parent->cfg)
 {
-  // Derive UE cfg from rrc_cfg_nr_t
-  uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+  if (not parent->cfg.is_standalone) {
+    // Add the final PDCCH config in case of NSA
+    uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+  } else {
+    cell_group_cfg      = *parent->cell_ctxt->master_cell_group;
+    next_cell_group_cfg = cell_group_cfg;
+  }
 
   // Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
   activity_timer = parent->task_sched.get_unique_timer();
@@ -121,32 +127,34 @@ std::string rrc_nr::ue::to_string(const activity_timeout_type_t& type)
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
-void rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
+int rrc_nr::ue::send_dl_ccch(const dl_ccch_msg_s& dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_ccch_msg);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_ccch_msg, __FUNCTION__);
   if (pdu == nullptr) {
     logger.error("Failed to send DL-CCCH");
-    return;
+    return SRSRAN_ERROR;
   }
   fmt::memory_buffer fmtbuf;
   fmt::format_to(fmtbuf, "DL-CCCH.{}", dl_ccch_msg.msg.c1().type().to_string());
   log_rrc_message(srsran::nr_srb::srb0, Tx, *pdu.get(), dl_ccch_msg, srsran::to_c_str(fmtbuf));
   parent->rlc->write_sdu(rnti, srsran::srb_to_lcid(srsran::nr_srb::srb0), std::move(pdu));
+  return SRSRAN_SUCCESS;
 }
 
-void rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg)
+int rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_dcch_msg);
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(dl_dcch_msg, __FUNCTION__);
   if (pdu == nullptr) {
-    logger.error("Failed to send DL-DCCH");
-    return;
+    return SRSRAN_ERROR;
   }
   fmt::memory_buffer fmtbuf;
   fmt::format_to(fmtbuf, "DL-DCCH.{}", dl_dcch_msg.msg.c1().type().to_string());
   log_rrc_message(srb, Tx, *pdu.get(), dl_dcch_msg, srsran::to_c_str(fmtbuf));
   parent->pdcp->write_sdu(rnti, srsran::srb_to_lcid(srb), std::move(pdu));
+
+  return SRSRAN_SUCCESS;
 }
 
 int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
@@ -160,12 +168,28 @@ int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s
   rlc_bearer.served_radio_bearer.set_drb_id();
   rlc_bearer.served_radio_bearer.drb_id() = 1;
   rlc_bearer.rlc_cfg_present              = true;
+
+#ifdef USE_RLC_AM_NR
+  rlc_bearer.rlc_cfg.set_am();
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_opts::ms500;
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.poll_pdu          = poll_pdu_opts::p8;
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.poll_byte         = poll_byte_opts::infinity;
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_opts::t8;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.t_reassembly      = t_reassembly_opts::ms50;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_opts::ms50;
+#else
   rlc_bearer.rlc_cfg.set_um_bi_dir();
   rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
+#endif
 
   // MAC logical channel config
   rlc_bearer.mac_lc_ch_cfg_present                    = true;
@@ -741,6 +765,7 @@ void rrc_nr::ue::crnti_ce_received()
     srsran::make_duplex_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
                                            &uecfg.phy_cfg.duplex);
 
+    srsran_assert(check_nr_pdcch_cfg_valid(uecfg.phy_cfg.pdcch) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
     parent->mac->ue_cfg(rnti, uecfg);
   }
 }
@@ -766,12 +791,21 @@ int rrc_nr::ue::add_drb()
   rlc_bearer.served_radio_bearer.set_drb_id();
   rlc_bearer.served_radio_bearer.drb_id() = 1;
   rlc_bearer.rlc_cfg_present              = true;
+
+#ifdef USE_RLC_AM_NR
+  rlc_bearer.rlc_cfg.set_am();
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len_present = true;
+  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
+#else
   rlc_bearer.rlc_cfg.set_um_bi_dir();
   rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
   rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
+#endif
 
   // add RLC bearer
   srsran::rlc_config_t rlc_cfg;
@@ -878,7 +912,9 @@ void rrc_nr::ue::send_rrc_reject(uint8_t reject_wait_time_secs)
     reject.wait_time_present = true;
     reject.wait_time         = reject_wait_time_secs;
   }
-  send_dl_ccch(msg);
+  if (send_dl_ccch(msg) != SRSRAN_SUCCESS) {
+    // TODO: Handle
+  }
 
   // TODO: remove user
 }
@@ -907,36 +943,45 @@ void rrc_nr::ue::send_rrc_setup()
   compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, setup_ies.radio_bearer_cfg);
 
   // - Setup masterCellGroup
-  asn1::rrc_nr::cell_group_cfg_s master_cell_group = *parent->cell_ctxt->master_cell_group;
   // - Derive master cell group config bearers
-  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, master_cell_group);
-  {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    asn1::bit_ref                bref{pdu->data(), pdu->get_tailroom()};
-    if (master_cell_group.pack(bref) != SRSRAN_SUCCESS) {
-      logger.error("Failed to pack master cell group");
-      send_rrc_reject(max_wait_time_secs);
-      return;
-    }
-    pdu->N_bytes = bref.distance_bytes();
-
-    setup_ies.master_cell_group.resize(pdu->N_bytes);
-    memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, next_cell_group_cfg);
+  // - Pack masterCellGroup into container
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(next_cell_group_cfg, __FUNCTION__);
+  if (pdu == nullptr) {
+    send_rrc_reject(max_wait_time_secs);
+    return;
   }
+  setup_ies.master_cell_group.resize(pdu->N_bytes);
+  memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
   if (logger.debug.enabled()) {
     asn1::json_writer js;
-    parent->cell_ctxt->master_cell_group->to_json(js);
+    next_cell_group_cfg.to_json(js);
     logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
   }
 
-  send_dl_ccch(msg);
+  // add PDCP bearers
+  update_pdcp_bearers(setup_ies.radio_bearer_cfg, next_cell_group_cfg);
+
+  // add RLC bearers
+  update_rlc_bearers(next_cell_group_cfg);
+
+  // add MAC bearers
+  update_mac(next_cell_group_cfg, false);
+
+  // Send RRC Setup message to UE
+  if (send_dl_ccch(msg) != SRSRAN_SUCCESS) {
+    send_rrc_reject(max_wait_time_secs);
+  }
 }
 
 /// TS 38.331, RRCSetupComplete
 void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complete_s& msg)
 {
+  update_mac(next_cell_group_cfg, true);
+
   // Update current radio bearer cfg
   radio_bearer_cfg = next_radio_bearer_cfg;
+  cell_group_cfg   = next_cell_group_cfg;
 
   // Create UE context in NGAP
   using ngap_cause_t = asn1::ngap_nr::rrcestablishment_cause_opts::options;
@@ -946,32 +991,57 @@ void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complet
 }
 
 /// TS 38.331, SecurityModeCommand
-void rrc_nr::ue::send_security_mode_command()
+void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu)
 {
+  // FIXME: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
+  // When we start using PDCP-NR we can avoid this step.
+  srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
+  srsran::as_security_config_t    pdcp_cnfg = {};
+  pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
+  pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
+  pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
+  pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
+  pdcp_cnfg.integ_algo                      = (srsran::INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
+  pdcp_cnfg.cipher_algo                     = (srsran::CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
+
+  // Setup SRB1 security/integrity. Encryption is set on completion
+  parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
+  parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+
+  if (nas_pdu != nullptr) {
+    nas_pdu_queue.push_back(std::move(nas_pdu));
+  }
+
   asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_security_mode_cmd().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   security_mode_cmd_ies_s& ies = dl_dcch_msg.msg.c1().security_mode_cmd().crit_exts.set_security_mode_cmd();
 
   ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm_present = true;
-  ies.security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value   = integrity_prot_algorithm_opts::nia0;
-  ies.security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value        = ciphering_algorithm_opts::nea0;
+  ies.security_cfg_smc.security_algorithm_cfg                                  = sec_ctx.get_security_algorithm_cfg();
 
-  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
+    send_rrc_release();
+  }
 }
 
 /// TS 38.331, SecurityModeComplete
 void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg)
 {
-  // TODO: handle SecurityModeComplete
+  parent->logger.info("SecurityModeComplete transaction ID: %d", msg.rrc_transaction_id);
+  parent->pdcp->enable_encryption(rnti, srb_to_lcid(srsran::nr_srb::srb1));
 
   // Note: Skip UE capabilities
 
-  send_rrc_reconfiguration();
+  // Send RRCReconfiguration if necessary
+  if (not nas_pdu_queue.empty()) {
+    send_rrc_reconfiguration();
+  }
 }
 
+/// TS 38.331, RRCReconfiguration
 void rrc_nr::ue::send_rrc_reconfiguration()
 {
-  asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_recfg_ies_s& ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.set_rrc_recfg();
 
@@ -980,16 +1050,59 @@ void rrc_nr::ue::send_rrc_reconfiguration()
       compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, ies.radio_bearer_cfg);
 
   ies.non_crit_ext_present                   = true;
-  ies.non_crit_ext.master_cell_group_present = false; // TODO
+  ies.non_crit_ext.master_cell_group_present = true;
+
+  // Fill masterCellGroup
+  cell_group_cfg_s master_cell_group;
+  master_cell_group.cell_group_id = 0;
+  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
+
+  // Pack masterCellGroup into container
+  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
+  if (pdu == nullptr) {
+    send_rrc_release();
+    return;
+  }
+  ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
+  memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+
+  // Pass stored NAS PDUs
+  ies.non_crit_ext.ded_nas_msg_list_present = true;
+  ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
+  for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
+    ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
+    memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
+  }
+  ies.non_crit_ext.ded_nas_msg_list_present = nas_pdu_queue.size() > 0;
+  nas_pdu_queue.clear();
 
   // Update lower layers
+  if (ies.radio_bearer_cfg_present) {
+    // add PDCP bearers
+    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
 
-  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+    // add RLC bearers
+    update_rlc_bearers(master_cell_group);
+
+    // add MAC bearers
+    update_mac(master_cell_group, false);
+  }
+
+  if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
+    send_rrc_release();
+  }
 }
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
 {
   radio_bearer_cfg = next_radio_bearer_cfg;
+  cell_group_cfg   = next_cell_group_cfg;
+  parent->ngap->ue_notify_rrc_reconf_complete(rnti, true);
+}
+
+void rrc_nr::ue::send_rrc_release()
+{
+  // TODO
 }
 
 void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
@@ -1002,7 +1115,9 @@ void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
   ies.ded_nas_msg.resize(sdu->N_bytes);
   memcpy(ies.ded_nas_msg.data(), sdu->data(), ies.ded_nas_msg.size());
 
-  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
+    send_rrc_release();
+  }
 }
 
 void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg)
@@ -1013,11 +1128,21 @@ void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_tran
 
 void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
 {
+  // Enqueue NAS PDU
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate NAS PDU in %s().", __FUNCTION__);
+    return;
+  }
+  pdu->resize(nas_pdu.size());
+  memcpy(pdu->data(), nas_pdu.data(), nas_pdu.size());
+  nas_pdu_queue.push_back(std::move(pdu));
+
   // Add SRB2, if not yet added
   if (radio_bearer_cfg.srb_to_add_mod_list.size() <= 1) {
     next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
-    next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
-    next_radio_bearer_cfg.srb_to_add_mod_list[0].srb_id = 2;
+    next_radio_bearer_cfg.srb_to_add_mod_list.push_back(srb_to_add_mod_s{});
+    next_radio_bearer_cfg.srb_to_add_mod_list.back().srb_id = 2;
   }
 
   drb_to_add_mod_s drb;
@@ -1051,6 +1176,112 @@ bool rrc_nr::ue::init_pucch()
   // TODO: Allocate PUCCH resources
 
   return true;
+}
+
+int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_diff,
+                                    const asn1::rrc_nr::cell_group_cfg_s&   cell_group_diff)
+{
+  // release DRBs
+  // TODO
+
+  // add SRBs
+  for (const srb_to_add_mod_s& srb : radio_bearer_diff.srb_to_add_mod_list) {
+    srsran::pdcp_config_t   pdcp_cnfg  = srsran::make_nr_srb_pdcp_config_t(srb.srb_id, false);
+    const rlc_bearer_cfg_s* rlc_bearer = nullptr;
+    for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
+      if (item.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::srb_id and
+          item.served_radio_bearer.srb_id() == srb.srb_id) {
+        rlc_bearer = &item;
+        break;
+      }
+    }
+    if (rlc_bearer == nullptr) {
+      logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
+      return SRSRAN_ERROR;
+    }
+    parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+  }
+
+  // Add DRBs
+  for (const drb_to_add_mod_s& drb : radio_bearer_diff.drb_to_add_mod_list) {
+    srsran::pdcp_config_t   pdcp_cnfg  = srsran::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+    const rlc_bearer_cfg_s* rlc_bearer = nullptr;
+    for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
+      if (item.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::drb_id and
+          item.served_radio_bearer.drb_id() == drb.drb_id) {
+        rlc_bearer = &item;
+        break;
+      }
+    }
+    if (rlc_bearer == nullptr) {
+      logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
+      return SRSRAN_ERROR;
+    }
+    parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff)
+{
+  // Release RLC radio bearers
+  for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
+    parent->rlc->del_bearer(rnti, lcid);
+  }
+
+  // Add/Mod RLC radio bearers
+  for (const rlc_bearer_cfg_s& rb : cell_group_diff.rlc_bearer_to_add_mod_list) {
+    srsran::rlc_config_t rlc_cfg;
+    uint8_t rb_id = rb.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::drb_id
+                        ? rb.served_radio_bearer.drb_id()
+                        : rb.served_radio_bearer.srb_id();
+    if (srsran::make_rlc_config_t(rb.rlc_cfg, rb_id, &rlc_cfg) != SRSRAN_SUCCESS) {
+      logger.error("Failed to build RLC config");
+      // TODO: HANDLE
+      return SRSRAN_ERROR;
+    }
+    parent->rlc->add_bearer(rnti, rb.lc_ch_id, rlc_cfg);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_config_complete)
+{
+  if (not is_config_complete) {
+    // Release bearers
+    for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
+      uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
+    }
+
+    for (const rlc_bearer_cfg_s& bearer : cell_group_diff.rlc_bearer_to_add_mod_list) {
+      uecfg.ue_bearers[bearer.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
+      if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
+        uecfg.ue_bearers[bearer.lc_ch_id].priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
+        uecfg.ue_bearers[bearer.lc_ch_id].pbr =
+            bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
+        uecfg.ue_bearers[bearer.lc_ch_id].bsd   = bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
+        uecfg.ue_bearers[bearer.lc_ch_id].group = bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
+        // TODO: remaining fields
+      }
+    }
+  } else {
+    auto& pdcch = cell_group_diff.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
+    for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
+      uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
+      uecfg.phy_cfg.pdcch.search_space[ss.search_space_id] =
+          parent->cfg.cell_list[0].phy_cell.pdcch.search_space[ss.search_space_id];
+    }
+    for (auto& cs : pdcch.ctrl_res_set_to_add_mod_list) {
+      uecfg.phy_cfg.pdcch.coreset_present[cs.ctrl_res_set_id] = true;
+      uecfg.phy_cfg.pdcch.coreset[cs.ctrl_res_set_id] =
+          parent->cfg.cell_list[0].phy_cell.pdcch.coreset[cs.ctrl_res_set_id];
+    }
+  }
+
+  parent->mac->ue_cfg(rnti, uecfg);
+  return SRSRAN_SUCCESS;
 }
 
 /**

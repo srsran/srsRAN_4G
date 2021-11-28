@@ -21,7 +21,7 @@
 
 #include "srsran/rlc/rlc.h"
 #include "srsran/common/rwlock_guard.h"
-#include "srsran/rlc/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_base.h"
 #include "srsran/rlc/rlc_tm.h"
 #include "srsran/rlc/rlc_um_lte.h"
 #include "srsran/rlc/rlc_um_nr.h"
@@ -405,6 +405,9 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     case rlc_mode_t::am:
       switch (cnfg.rat) {
         case srsran_rat_t::lte:
+          rlc_entity = std::unique_ptr<rlc_common>(new rlc_am(cnfg.rat, logger, lcid, pdcp, rrc, timers));
+          break;
+        case srsran_rat_t::nr:
           rlc_entity = std::unique_ptr<rlc_common>(new rlc_am(cnfg.rat, logger, lcid, pdcp, rrc, timers));
           break;
         default:

@@ -187,6 +187,23 @@ inline unique_byte_buffer_t make_byte_buffer(const char* debug_ctxt) noexcept
   return buffer;
 }
 
+inline unique_byte_buffer_t make_byte_buffer(const uint8_t* payload, uint32_t len, const char* debug_ctxt) noexcept
+{
+  std::unique_ptr<byte_buffer_t> buffer(new (std::nothrow) byte_buffer_t());
+  if (buffer == nullptr) {
+    srslog::fetch_basic_logger("POOL").error("Failed to allocate byte buffer in %s", debug_ctxt);
+  } else {
+    if (buffer->get_tailroom() >= len) {
+      memcpy(buffer->msg, payload, len);
+      buffer->N_bytes = len;
+    } else {
+      srslog::fetch_basic_logger("POOL").error(
+          "Failed to create byte buffer in %s. Payload too large (%d > %d)", debug_ctxt, len, buffer->get_tailroom());
+    }
+  }
+  return buffer;
+}
+
 namespace detail {
 
 struct byte_buffer_pool_deleter {

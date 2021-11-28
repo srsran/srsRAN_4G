@@ -22,9 +22,45 @@
 #include "srsgnb/hdr/stack/mac/sched_nr_ue.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_pdcch.h"
 #include "srsran/common/string_helpers.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
+
+int ue_buffer_manager::get_dl_tx_total() const
+{
+  int total_bytes = base_type::get_dl_tx_total();
+  for (ue_buffer_manager::ce_t ce : pending_ces) {
+    total_bytes += srsran::mac_sch_subpdu_nr::sizeof_ce(ce.lcid, false);
+  }
+  return total_bytes;
+}
+
+void ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+{
+  for (ce_t ce : parent->pending_ces) {
+    if (ce.cc == cc) {
+      // Note: This check also avoids thread collisions across UE carriers
+      uint32_t size_ce = srsran::mac_sch_subpdu_nr::sizeof_ce(ce.lcid, false);
+      if (size_ce > rem_bytes) {
+        break;
+      }
+      rem_bytes -= size_ce;
+      pdu.subpdus.push_back(ce.lcid);
+      parent->pending_ces.pop_front();
+    }
+  }
+
+  for (uint32_t lcid = 0; rem_bytes > 0 and is_lcid_valid(lcid); ++lcid) {
+    uint32_t pending_lcid_bytes = parent->get_dl_tx_total(lcid);
+    if (pending_lcid_bytes > 0) {
+      rem_bytes -= std::min(rem_bytes, pending_lcid_bytes);
+      pdu.subpdus.push_back(lcid);
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes) :
   ue(&ue_), pdcch_slot(slot_tx_)
@@ -58,12 +94,16 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue_carrier::ue_carrier(uint16_t rnti_, const ue_cfg_t& uecfg_, const cell_params_t& cell_params_) :
+ue_carrier::ue_carrier(uint16_t                              rnti_,
+                       const ue_cfg_t&                       uecfg_,
+                       const cell_params_t&                  cell_params_,
+                       const ue_buffer_manager::pdu_builder& pdu_builder_) :
   rnti(rnti_),
   cc(cell_params_.cc),
   logger(srslog::fetch_basic_logger(cell_params_.sched_args.logger_name)),
   bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
   cell_params(cell_params_),
+  pdu_builder(pdu_builder_),
   harq_ent(rnti_, cell_params_.nof_prb(), SCHED_NR_MAX_HARQ, cell_params_.bwps[0].logger)
 {}
 
@@ -111,7 +151,8 @@ void ue::set_cfg(const ue_cfg_t& cfg)
   for (auto& ue_cc_cfg : cfg.carriers) {
     if (ue_cc_cfg.active) {
       if (carriers[ue_cc_cfg.cc] == nullptr) {
-        carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti, ue_cfg, sched_cfg.cells[ue_cc_cfg.cc]));
+        carriers[ue_cc_cfg.cc].reset(new ue_carrier(
+            rnti, ue_cfg, sched_cfg.cells[ue_cc_cfg.cc], ue_buffer_manager::pdu_builder{ue_cc_cfg.cc, buffers}));
       } else {
         carriers[ue_cc_cfg.cc]->set_cfg(ue_cfg);
       }
@@ -119,6 +160,26 @@ void ue::set_cfg(const ue_cfg_t& cfg)
   }
 
   buffers.config_lcids(cfg.ue_bearers);
+}
+
+void ue::mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds)
+{
+  for (uint32_t i = 0; i < nof_cmds; ++i) {
+    // If not specified otherwise, the CE is transmitted in PCell
+    buffers.pending_ces.push_back(ue_buffer_manager::ce_t{ce_lcid, cfg().carriers[0].cc});
+  }
+}
+
+void ue::rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx)
+{
+  if (lcid == 0 and buffers.get_dl_tx_total(0) == 0) {
+    // In case of DL-CCCH, schedule ConRes CE
+    // Note1: rlc_buffer_state may be called multiple times for the same CCCH. Thus, we need to confirm lcid=0 buffer
+    //        state is zero to avoid that multiple CEs being scheduled.
+    // Note2: use push_front because ConRes CE has priority
+    buffers.pending_ces.push_front({srsran::mac_sch_subpdu_nr::CON_RES_ID, cfg().carriers[0].cc});
+  }
+  buffers.dl_buffer_state(lcid, newtx, retx);
 }
 
 void ue::new_slot(slot_point pdcch_slot)

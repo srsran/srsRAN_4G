@@ -46,7 +46,10 @@ struct mac_nr_args_t {
 class sched_nr;
 class mac_nr_rx;
 
-class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
+class mac_nr final : public mac_interface_phy_nr,
+                     public mac_interface_rrc_nr,
+                     public mac_interface_rlc_nr,
+                     public mac_interface_pdu_demux_nr
 {
 public:
   explicit mac_nr(srsran::task_sched_handle task_sched_);
@@ -80,6 +83,9 @@ public:
   int         pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info) override;
   void        rach_detected(const rach_info_t& rach_info) override;
 
+  // MAC-internal interface
+  void store_msg3(uint16_t rnti, srsran::unique_byte_buffer_t pdu) override;
+
   // Test interface
   void ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr);
 
@@ -111,10 +117,13 @@ private:
   // args
   srsran::task_sched_handle task_sched;
   srsran::task_queue_handle stack_task_queue;
+  mac_nr_args_t             args = {};
+  srslog::basic_logger&     logger;
+
+  // initial UE config, before RRC setup (without UE-dedicated)
+  srsran::phy_cfg_nr_t default_ue_phy_cfg;
 
   std::unique_ptr<srsran::mac_pcap> pcap = nullptr;
-  mac_nr_args_t                     args = {};
-  srslog::basic_logger&             logger;
 
   std::atomic<bool> started = {false};
 

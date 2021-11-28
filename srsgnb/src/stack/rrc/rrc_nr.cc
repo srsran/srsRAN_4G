@@ -22,6 +22,7 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
@@ -88,15 +89,19 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   } else {
     asn1_pdcch = &cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   }
-  bool ret2 = srsran::fill_phy_pdcch_cfg_common(*asn1_pdcch, &cfg.cell_list[0].phy_cell.pdcch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::fill_phy_pdcch_cfg(base_sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
-                                    &cfg.cell_list[0].phy_cell.pdcch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
+  srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 
+  logger.debug("NIA preference list: NIA%d, NIA%d, NIA%d",
+               cfg.nia_preference_list[0],
+               cfg.nia_preference_list[1],
+               cfg.nia_preference_list[2]);
+  logger.debug("NEA preference list: NEA%d, NEA%d, NEA%d",
+               cfg.nea_preference_list[0],
+               cfg.nea_preference_list[1],
+               cfg.nea_preference_list[2]);
   running = true;
 
   return SRSRAN_SUCCESS;
@@ -274,21 +279,34 @@ void rrc_nr::config_mac()
 {
   // Fill MAC scheduler configuration for SIBs
   // TODO: use parsed cell NR cfg configuration
-  std::vector<srsenb::sched_nr_interface::cell_cfg_t> sched_cells_cfg = {srsenb::get_default_cells_cfg(1)};
-  sched_nr_interface::cell_cfg_t&                     cell            = sched_cells_cfg[0];
+  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
+  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
+                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  std::vector<sched_nr_interface::cell_cfg_t> sched_cells_cfg(
+      1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
+  sched_nr_interface::cell_cfg_t& cell = sched_cells_cfg[0];
 
   // Derive cell config from rrc_nr_cfg_t
   cell.bwps[0].pdcch = cfg.cell_list[0].phy_cell.pdcch;
-  // Derive cell config from ASN1
-  bool ret2 = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_phy_ssb_cfg(
-      cfg.cell_list[0].phy_cell.carrier, base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.ssb);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
-  srsran_assert(ret2, "Invalid NR cell configuration.");
-  ret2 = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
-  srsran_assert(ret2, "Invalid NR cell MIB configuration.");
+  bool valid_cfg     = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
+  srsran_assert(valid_cfg, "Invalid NR cell MIB configuration.");
+  cell.ssb.periodicity_ms       = cfg.cell_list[0].ssb_cfg.periodicity_ms;
+  cell.ssb.position_in_burst[0] = true;
+  cell.ssb.scs                  = cfg.cell_list[0].ssb_cfg.scs;
+  cell.ssb.pattern              = cfg.cell_list[0].ssb_cfg.pattern;
+  cell.duplex.mode              = SRSRAN_DUPLEX_MODE_FDD;
+  if (not cfg.is_standalone) {
+    // Derive cell config from ASN1
+    valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
+    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+    valid_cfg =
+        srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
+    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+  } else {
+    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
+    bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
+  }
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());
@@ -504,10 +522,13 @@ void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_spa
       break;
     case ul_dcch_msg_type_c::c1_c_::types_opts::security_mode_complete:
       u.handle_security_mode_complete(ul_dcch_msg.msg.c1().security_mode_complete());
+      break;
     case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_recfg_complete:
       u.handle_rrc_reconfiguration_complete(ul_dcch_msg.msg.c1().rrc_recfg_complete());
+      break;
     case ul_dcch_msg_type_c::c1_c_::types_opts::ul_info_transfer:
       u.handle_ul_information_transfer(ul_dcch_msg.msg.c1().ul_info_transfer());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user
@@ -547,6 +568,15 @@ void rrc_nr::notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid) {}
 
 int rrc_nr::ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key)
 {
+  logger.debug("Setting securtiy key for rnti=0x%x", rnti);
+  auto ue_it = users.find(rnti);
+
+  if (ue_it == users.end()) {
+    logger.error("Trying to set key for non-existing rnti=0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  ue& u = *ue_it->second;
+  u.set_security_key(key);
   return SRSRAN_SUCCESS;
 }
 int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
@@ -559,10 +589,25 @@ int rrc_nr::set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_agg
 }
 int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
 {
+  logger.debug("Setting securtiy capabilites for rnti=0x%x", rnti);
+  auto ue_it = users.find(rnti);
+
+  if (ue_it == users.end()) {
+    logger.error("Trying to set security capabilities for non-existing rnti=0x%x", rnti);
+    return SRSRAN_ERROR;
+  }
+  ue& u = *ue_it->second;
+  u.set_security_capabilities(caps);
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::start_security_mode_procedure(uint16_t rnti)
+int rrc_nr::start_security_mode_procedure(uint16_t rnti, srsran::unique_byte_buffer_t nas_pdu)
 {
+  auto user_it = users.find(rnti);
+  if (user_it == users.end()) {
+    logger.error("Starting SecurityModeCommand procedure failed - rnti=0x%x not found", rnti);
+    return SRSRAN_ERROR;
+  }
+  user_it->second->send_security_mode_command(std::move(nas_pdu));
   return SRSRAN_SUCCESS;
 }
 int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
@@ -656,25 +701,5 @@ void rrc_nr::sgnb_release_request(uint16_t nr_rnti)
     rrc_eutra->sgnb_release_ack(eutra_rnti);
   }
 }
-
-template <class T>
-srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu(const T& msg)
-{
-  // Allocate a new PDU buffer and pack the
-  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-  if (pdu == nullptr) {
-    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-    return nullptr;
-  }
-  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-  if (msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-    logger.error("Failed to pack message. Discarding it.");
-    return nullptr;
-  }
-  pdu->N_bytes = bref.distance_bytes();
-  return pdu;
-}
-template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_ccch_msg_s>(const dl_ccch_msg_s& msg);
-template srsran::unique_byte_buffer_t rrc_nr::pack_into_pdu<dl_dcch_msg_s>(const dl_dcch_msg_s& msg);
 
 } // namespace srsenb

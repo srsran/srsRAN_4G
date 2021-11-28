@@ -44,51 +44,6 @@ namespace srsran {
 
 #undef RLC_AM_BUFFER_DEBUG
 
-class pdu_retx_queue
-{
-public:
-  rlc_amd_retx_t& push()
-  {
-    assert(not full());
-    rlc_amd_retx_t& p = buffer[wpos];
-    wpos              = (wpos + 1) % RLC_AM_WINDOW_SIZE;
-    return p;
-  }
-
-  void pop() { rpos = (rpos + 1) % RLC_AM_WINDOW_SIZE; }
-
-  rlc_amd_retx_t& front()
-  {
-    assert(not empty());
-    return buffer[rpos];
-  }
-
-  void clear()
-  {
-    wpos = 0;
-    rpos = 0;
-  }
-
-  bool has_sn(uint32_t sn) const
-  {
-    for (size_t i = rpos; i != wpos; i = (i + 1) % RLC_AM_WINDOW_SIZE) {
-      if (buffer[i].sn == sn) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  size_t size() const { return (wpos >= rpos) ? wpos - rpos : RLC_AM_WINDOW_SIZE + wpos - rpos; }
-  bool   empty() const { return wpos == rpos; }
-  bool   full() const { return size() == RLC_AM_WINDOW_SIZE - 1; }
-
-private:
-  std::array<rlc_amd_retx_t, RLC_AM_WINDOW_SIZE> buffer;
-  size_t                                         wpos = 0;
-  size_t                                         rpos = 0;
-};
-
 /******************************
  *
  * RLC AM LTE entity
@@ -192,7 +147,7 @@ private:
 
   // Tx windows
   rlc_ringbuffer_t<rlc_amd_tx_pdu<rlc_amd_pdu_header_t>, RLC_AM_WINDOW_SIZE> tx_window;
-  pdu_retx_queue                                                             retx_queue;
+  pdu_retx_queue<RLC_AM_WINDOW_SIZE>                                         retx_queue;
   pdcp_sn_vector_t                                                           notify_info_vec;
 
   // Mutexes

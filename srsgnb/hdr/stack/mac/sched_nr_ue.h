@@ -25,8 +25,8 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "srsenb/hdr/stack/mac/common/base_ue_buffer_manager.h"
 #include "srsenb/hdr/stack/mac/common/mac_metrics.h"
-#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
@@ -35,12 +35,60 @@ namespace srsenb {
 
 namespace sched_nr_impl {
 
+class ue_buffer_manager : public base_ue_buffer_manager<true>
+{
+  using base_type = base_ue_buffer_manager<true>;
+
+public:
+  // Inherited methods from base_ue_buffer_manager base class
+  using base_type::base_type;
+  using base_type::config_lcid;
+  using base_type::dl_buffer_state;
+  using base_type::get_bsr;
+  using base_type::get_bsr_state;
+  using base_type::get_dl_prio_tx;
+  using base_type::get_dl_tx;
+  using base_type::get_dl_tx_total;
+  using base_type::is_bearer_active;
+  using base_type::is_bearer_dl;
+  using base_type::is_bearer_ul;
+  using base_type::is_lcg_active;
+  using base_type::ul_bsr;
+
+  int get_dl_tx_total() const;
+
+  // Control Element Command queue
+  struct ce_t {
+    uint32_t lcid;
+    uint32_t cc;
+  };
+  srsran::deque<ce_t> pending_ces;
+
+  /// Protected, thread-safe interface of "ue_buffer_manager" for "slot_ue"
+  struct pdu_builder {
+    pdu_builder() = default;
+    explicit pdu_builder(uint32_t cc_, ue_buffer_manager& parent_) : cc(cc_), parent(&parent_) {}
+    void alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu);
+
+  private:
+    uint32_t           cc     = SRSRAN_MAX_CARRIERS;
+    ue_buffer_manager* parent = nullptr;
+  };
+
+private:
+  /// Update of buffers is mutexed when carrier aggreg. is in place
+  std::mutex mutex;
+};
+
 class slot_ue;
 
 class ue_carrier
 {
 public:
-  ue_carrier(uint16_t rnti, const ue_cfg_t& cfg, const cell_params_t& cell_params_);
+  ue_carrier(uint16_t                              rnti,
+             const ue_cfg_t&                       cfg,
+             const cell_params_t&                  cell_params_,
+             const ue_buffer_manager::pdu_builder& pdu_builder_);
 
   void                       set_cfg(const ue_cfg_t& ue_cfg);
   const ue_carrier_params_t& cfg() const { return bwp_cfg; }
@@ -57,6 +105,8 @@ public:
   uint32_t ul_cqi = 0;
 
   harq_entity harq_ent;
+
+  ue_buffer_manager::pdu_builder pdu_builder;
 
   // metrics
   mac_ue_metrics_t metrics = {};
@@ -77,11 +127,14 @@ public:
 
   slot_ue make_slot_ue(slot_point pdcch_slot, uint32_t cc);
 
+  /// Update UE CC configuration
   void            set_cfg(const ue_cfg_t& cfg);
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
+  void mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds = 1);
+  void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx);
+
   /// UE state feedback
-  void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx) { buffers.dl_buffer_state(lcid, newtx, retx); }
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
   void ul_sr_info() { last_sr_slot = last_pdcch_slot - TX_ENB_DELAY; }
 
@@ -93,7 +146,6 @@ public:
   }
   uint32_t pcell_cc() const { return ue_cfg.carriers[0].cc; }
 
-  ue_buffer_manager<true>                                        buffers;
   std::array<std::unique_ptr<ue_carrier>, SCHED_NR_MAX_CARRIERS> carriers;
 
   const uint16_t rnti;
@@ -101,11 +153,13 @@ public:
 private:
   const sched_params_t& sched_cfg;
 
+  ue_cfg_t ue_cfg;
+
   slot_point last_pdcch_slot;
   slot_point last_sr_slot;
   int        ul_pending_bytes = 0, dl_pending_bytes = 0;
 
-  ue_cfg_t ue_cfg;
+  ue_buffer_manager buffers;
 };
 
 class slot_ue
@@ -125,6 +179,11 @@ public:
   // mutable interface to ue_carrier state
   dl_harq_proc* find_empty_dl_harq() { return ue->harq_ent.find_empty_dl_harq(); }
   ul_harq_proc* find_empty_ul_harq() { return ue->harq_ent.find_empty_ul_harq(); }
+
+  void build_pdu(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+  {
+    ue->pdu_builder.alloc_subpdus(rem_bytes, pdu);
+  }
 
   // UE parameters common to all sectors
   uint32_t dl_bytes = 0, ul_bytes = 0;

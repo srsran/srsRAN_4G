@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_NR_CFG_H
 #define SRSRAN_SCHED_NR_CFG_H
 
-#include "sched_nr_interface.h"
+#include "sched_nr_interface_utils.h"
 #include "sched_nr_rb.h"
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/optional_array.h"
@@ -155,6 +155,7 @@ public:
   {
     return cce_positions_list[ss_id_to_cce_idx[search_id]];
   }
+
   uint32_t get_k1(slot_point pdsch_slot) const
   {
     if (phy().duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
@@ -174,7 +175,6 @@ private:
 };
 
 } // namespace sched_nr_impl
-
 } // namespace srsenb
 
 #endif // SRSRAN_SCHED_NR_CFG_H

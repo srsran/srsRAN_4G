@@ -58,19 +58,23 @@ struct sched_nr_ue_cfg_t {
 class sched_nr_interface
 {
 public:
-  static const size_t MAX_GRANTS = mac_interface_phy_nr::MAX_GRANTS;
-  static const size_t MAX_SIBS   = 2;
+  static const size_t MAX_GRANTS  = mac_interface_phy_nr::MAX_GRANTS;
+  static const size_t MAX_SIBS    = 2;
+  static const size_t MAX_SUBPDUS = 8;
 
   ///// Configuration /////
 
   struct bwp_cfg_t {
-    uint32_t               start_rb        = 0;
-    uint32_t               rb_width        = 100;
-    srsran_pdcch_cfg_nr_t  pdcch           = {};
-    srsran_sch_hl_cfg_nr_t pdsch           = {};
-    srsran_sch_hl_cfg_nr_t pusch           = {};
-    uint32_t               rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
-    uint32_t               numerology_idx  = 0;
+    uint32_t                 start_rb        = 0;
+    uint32_t                 rb_width        = 100;
+    srsran_pdcch_cfg_nr_t    pdcch           = {};
+    srsran_sch_hl_cfg_nr_t   pdsch           = {};
+    srsran_sch_hl_cfg_nr_t   pusch           = {};
+    srsran_pucch_nr_hl_cfg_t pucch           = {};
+    srsran_prach_cfg_t       prach           = {};
+    srsran_harq_ack_cfg_hl_t harq_ack        = {};
+    uint32_t                 rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
+    uint32_t                 numerology_idx  = 0;
   };
 
   struct cell_cfg_sib_t {
@@ -119,17 +123,25 @@ public:
     srsran::bounded_vector<msg3_grant_t, MAX_GRANTS> grants;
   };
 
+  ////// DL data signalling //////
+
+  struct dl_pdu_t {
+    srsran::bounded_vector<uint32_t, MAX_SUBPDUS> subpdus;
+  };
+
   ///// Sched Result /////
 
   using dl_sched_t = mac_interface_phy_nr::dl_sched_t;
   using ul_res_t   = mac_interface_phy_nr::ul_sched_t;
 
-  using sched_rar_list_t = srsran::bounded_vector<rar_t, MAX_GRANTS>;
+  using sched_sib_list_t    = srsran::bounded_vector<uint32_t, MAX_GRANTS>; /// list of SI indexes
+  using sched_rar_list_t    = srsran::bounded_vector<rar_t, MAX_GRANTS>;
+  using sched_dl_pdu_list_t = srsran::bounded_vector<dl_pdu_t, MAX_GRANTS>;
   struct dl_res_t {
-    dl_sched_t       phy;
-    sched_rar_list_t rar;
-
-    srsran::bounded_vector<uint32_t, MAX_GRANTS> sib_idxs;
+    dl_sched_t          phy;
+    sched_dl_pdu_list_t data;
+    sched_rar_list_t    rar;
+    sched_sib_list_t    sib_idxs;
   };
 
   virtual ~sched_nr_interface() = default;

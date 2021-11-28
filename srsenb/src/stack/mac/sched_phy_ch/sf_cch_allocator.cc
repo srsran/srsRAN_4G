@@ -61,6 +61,8 @@ sf_cch_allocator::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uin
       return &cc_cfg->common_locations[cfix];
     case alloc_type_t::DL_RAR:
       return &cc_cfg->rar_locations[to_tx_dl(tti_rx).sf_idx()][cfix];
+    case alloc_type_t::DL_PDCCH_ORDER:
+      return &cc_cfg->common_locations[cfix];
     case alloc_type_t::DL_DATA:
     case alloc_type_t::UL_DATA:
       return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, to_tx_dl(tti_rx).sf_idx());
