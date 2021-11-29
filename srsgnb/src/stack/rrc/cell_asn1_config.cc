@@ -1060,8 +1060,6 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
 
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1)
 {
-  std::string              plmn_str = "00101";
-  uint32_t                 cell_id  = 0x19B01;
   const rrc_cell_cfg_nr_t& cell_cfg = cfg.cell_list[cc];
 
   sib1.cell_sel_info_present            = true;
@@ -1072,11 +1070,11 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   sib1.cell_access_related_info.plmn_id_list.resize(1);
   sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.resize(1);
   srsran::plmn_id_t plmn;
-  plmn.from_string(plmn_str);
+  plmn.from_number(cfg.mcc, cfg.mnc);
   srsran::to_asn1(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0], plmn);
   sib1.cell_access_related_info.plmn_id_list[0].tac_present = true;
   sib1.cell_access_related_info.plmn_id_list[0].tac.from_number(cell_cfg.tac);
-  sib1.cell_access_related_info.plmn_id_list[0].cell_id.from_number(cell_id);
+  sib1.cell_access_related_info.plmn_id_list[0].cell_id.from_number((cfg.enb_id << 8U) + cell_cfg.phy_cell.cell_id);
   sib1.cell_access_related_info.plmn_id_list[0].cell_reserved_for_oper.value =
       plmn_id_info_s::cell_reserved_for_oper_opts::not_reserved;
 
