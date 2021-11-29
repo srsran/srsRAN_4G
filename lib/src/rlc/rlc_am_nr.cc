@@ -21,7 +21,7 @@
 
 #define RLC_AM_NR_WINDOW_SIZE 2048
 #define MOD_NR 4096
-#define RX_MOD_BASE_NR(x) (((x)-rx_next) % MOD_NR)
+#define RX_MOD_BASE_NR(x) ((((int32_t)x) - (int32_t)rx_next) % MOD_NR)
 //#define TX_MOD_BASE_NR(x) (((x)-vt_a) % MOD_NR)
 
 namespace srsran {
@@ -613,7 +613,6 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   status->N_nack = 0;
   status->ack_sn = rx_next; // Start with the lower end of the window
   byte_buffer_t tmp_buf;
-  uint32_t      len;
 
   uint32_t i = status->ack_sn;
   while (RX_MOD_BASE_NR(i) <= RX_MOD_BASE_NR(rx_highest_status)) {
