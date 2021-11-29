@@ -23,7 +23,7 @@
 
 namespace srsran {
 
-const static uint32_t max_tx_queue_size = 128;
+const static uint32_t max_tx_queue_size = 256;
 /****************************************************************************
  * RLC AM NR entity
  ***************************************************************************/

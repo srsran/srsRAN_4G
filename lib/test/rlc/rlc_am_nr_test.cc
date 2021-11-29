@@ -44,7 +44,7 @@ int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
   for (int i = 0; i < NBUFS; i++) {
     uint32_t len        = rlc->read_pdu(pdu_bufs[i].msg, 3); // 2 bytes for header + 1 byte payload
     pdu_bufs[i].N_bytes = len;
-    TESTASSERT(3 == len);
+    TESTASSERT_EQ(3, len);
   }
 
   TESTASSERT(0 == rlc->get_buffer_state());
@@ -128,12 +128,10 @@ int basic_test()
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
-  auto& test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_logger.info("====================");
-  test_logger.info("==== Basic Test ====");
-  test_logger.info("====================");
-  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("basic tx/rx");
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
   rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
@@ -348,16 +346,13 @@ int lost_pdu_test()
  */
 int basic_segmentation_test()
 {
-  rlc_am_tester tester;
-  timer_handler timers(8);
-  byte_buffer_t pdu_bufs[NBUFS];
-
-  auto& test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_logger.info("=======================");
-  test_logger.info("==== Lost PDU Test ====");
-  test_logger.info("=======================");
-  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  rlc_am_tester       tester;
+  timer_handler       timers(8);
+  byte_buffer_t       pdu_bufs[NBUFS];
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("basic segmentation");
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());
@@ -378,98 +373,9 @@ int basic_segmentation_test()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes); // Don't write RLC_SN=3.
     }
   }
-
-  // Only after t-reassembly has expired, will the status report include NACKs.
-  TESTASSERT(3 == rlc2.get_buffer_state());
-  {
-    // Read status PDU from RLC2
-    byte_buffer_t status_buf;
-    int           len  = rlc2.read_pdu(status_buf.msg, 5);
-    status_buf.N_bytes = len;
-
-    TESTASSERT(0 == rlc2.get_buffer_state());
-
-    // Assert status is correct
-    rlc_am_nr_status_pdu_t status_check = {};
-    rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
-    TESTASSERT(status_check.ack_sn == 3); // 3 is the next expected SN (i.e. the lost packet.)
-
-    // Write status PDU to RLC1
-    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
-  }
-
-  // Step timers until reassambly timeout expires
-  for (int cnt = 0; cnt < 35; cnt++) {
-    timers.step_all();
-  }
-
-  // t-reassembly has expired. There should be a NACK in the status report.
-  TESTASSERT(5 == rlc2.get_buffer_state());
-  {
-    // Read status PDU from RLC2
-    byte_buffer_t status_buf;
-    int           len  = rlc2.read_pdu(status_buf.msg, 5);
-    status_buf.N_bytes = len;
-
-    TESTASSERT(0 == rlc2.get_buffer_state());
-
-    // Assert status is correct
-    rlc_am_nr_status_pdu_t status_check = {};
-    rlc_am_nr_read_status_pdu(&status_buf, rlc_am_nr_sn_size_t::size12bits, &status_check);
-    TESTASSERT(status_check.ack_sn == 5);           // 5 is the next expected SN.
-    TESTASSERT(status_check.N_nack == 1);           // We lost one PDU.
-    TESTASSERT(status_check.nacks[0].nack_sn == 3); // Lost PDU SN=3.
-
-    // Write status PDU to RLC1
-    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
-
-    // Check there is an Retx of SN=3
-    TESTASSERT(3 == rlc1.get_buffer_state());
-  }
-
-  {
-    // Check correct re-transmission
-    byte_buffer_t retx_buf;
-    int           len = rlc1.read_pdu(retx_buf.msg, 3);
-    retx_buf.N_bytes  = len;
-    TESTASSERT(3 == len);
-
-    rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
-
-    TESTASSERT(0 == rlc2.get_buffer_state());
-  }
-
-  // Check statistics
-  rlc_bearer_metrics_t metrics1 = rlc1.get_metrics();
-  rlc_bearer_metrics_t metrics2 = rlc2.get_metrics();
-
-  // SDU metrics
-  TESTASSERT_EQ(5, metrics1.num_tx_sdus);
-  TESTASSERT_EQ(0, metrics1.num_rx_sdus);
-  TESTASSERT_EQ(5, metrics1.num_tx_sdu_bytes);
-  TESTASSERT_EQ(0, metrics1.num_rx_sdu_bytes);
-  TESTASSERT_EQ(0, metrics1.num_lost_sdus);
-  // PDU metrics
-  TESTASSERT_EQ(5 + 1, metrics1.num_tx_pdus);      // One re-transmission
-  TESTASSERT_EQ(2, metrics1.num_rx_pdus);          // One status PDU
-  TESTASSERT_EQ(18, metrics1.num_tx_pdu_bytes);    // 2 Bytes * NBUFFS (header size) + NBUFFS (data) + 1 rext (3) = 18
-  TESTASSERT_EQ(3 + 5, metrics1.num_rx_pdu_bytes); // Two status PDU (one with a NACK)
-  TESTASSERT_EQ(0, metrics1.num_lost_sdus);        // No lost SDUs
-
-  // PDU metrics
-  TESTASSERT_EQ(0, metrics2.num_tx_sdus);
-  TESTASSERT_EQ(5, metrics2.num_rx_sdus);
-  TESTASSERT_EQ(0, metrics2.num_tx_sdu_bytes);
-  TESTASSERT_EQ(5, metrics2.num_rx_sdu_bytes);
-  TESTASSERT_EQ(0, metrics2.num_lost_sdus);
-  // SDU metrics
-  TESTASSERT_EQ(2, metrics2.num_tx_pdus);          // Two status PDUs
-  TESTASSERT_EQ(5, metrics2.num_rx_pdus);          // 5 PDUs (6 tx'ed, but one was lost)
-  TESTASSERT_EQ(5 + 3, metrics2.num_tx_pdu_bytes); // Two status PDU (one with a NACK)
-  TESTASSERT_EQ(15, metrics2.num_rx_pdu_bytes);    // 2 Bytes * NBUFFS (header size) + NBUFFS (data) = 15
-  TESTASSERT_EQ(0, metrics2.num_lost_sdus);        // No lost SDUs
   return SRSRAN_SUCCESS;
 }
+
 int main(int argc, char** argv)
 {
   // Setup the log message spy to intercept error and warning log entries from RLC

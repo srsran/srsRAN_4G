@@ -136,6 +136,7 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
   // Make room for the header
   uint32_t len = rlc_am_nr_packed_length(header);
   pdu->msg -= len;
+  pdu->N_bytes += len;
   rlc_am_nr_write_data_pdu_header(header, pdu->msg);
   return len;
 }
