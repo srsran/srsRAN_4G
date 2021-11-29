@@ -32,7 +32,6 @@ public:
 
   virtual std::string get_type() = 0;
 
-  virtual int init(const phy_args_t& args_)                                                                         = 0;
   virtual int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_) = 0;
   virtual void stop()                                                                                               = 0;
 

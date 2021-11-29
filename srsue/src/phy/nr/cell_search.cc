@@ -18,9 +18,7 @@
 
 namespace srsue {
 namespace nr {
-cell_search::cell_search(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_) :
-  logger(srslog::fetch_basic_logger("PHY")), stack(stack_), radio(radio_)
-{}
+cell_search::cell_search(srslog::basic_logger& logger_) : logger(logger_) {}
 
 cell_search::~cell_search()
 {
@@ -30,8 +28,11 @@ cell_search::~cell_search()
   }
 }
 
-bool cell_search::init(const args_t& args)
+bool cell_search::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
+  stack = stack_;
+  radio = radio_;
+
   // Compute subframe size
   sf_sz = (uint32_t)(args.max_srate_hz / 1000.0f);
 
@@ -81,7 +82,7 @@ bool cell_search::start(const cfg_t& cfg)
               srsran_subcarrier_spacing_to_str(cfg.ssb_scs));
 
   // Set RX frequency
-  radio.set_rx_freq(0, cfg.center_freq_hz);
+  radio->set_rx_freq(0, cfg.center_freq_hz);
 
   // Zero receive buffer
   srsran_vec_zero(buffer, sf_sz);
@@ -98,7 +99,7 @@ bool cell_search::run()
 
   // Receive
   srsran::rf_timestamp_t rf_timestamp = {};
-  if (not radio.rx_now(rf_buffer, rf_timestamp)) {
+  if (not radio->rx_now(rf_buffer, rf_timestamp)) {
     return false;
   }
 
@@ -111,15 +112,15 @@ bool cell_search::run()
 
   // Consider the SSB is found and decoded if the PBCH CRC matched
   if (res.measurements.snr_dB >= -10.0f and res.pbch_msg.crc) {
-    rrc_interface_phy_sa_nr::cell_search_result_t cs_res = {};
+    rrc_interface_phy_nr::cell_search_result_t cs_res    = {};
     cs_res.pci                                           = res.N_id;
     cs_res.pbch_msg                                      = res.pbch_msg;
     cs_res.measurements                                  = res.measurements;
-    stack.cell_search_found_cell(cs_res);
+    stack->cell_search_found_cell(cs_res);
   }
 
   // Advance stack TTI
-  stack.run_tti(0);
+  stack->run_tti(0);
 
   return true;
 }

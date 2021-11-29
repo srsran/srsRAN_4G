@@ -84,6 +84,7 @@ public:
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
+  void cell_search_found_cell(const cell_search_result_t& result) final{};
 
   // RLC interface
   void max_retx_attempted() final;

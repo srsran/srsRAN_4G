@@ -631,12 +631,12 @@ int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran
   return SRSRAN_SUCCESS;
 }
 
-int phy::set_ul_grant(uint32_t                                       rar_slot_idx,
-                      std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                      uint16_t                                       rnti,
-                      srsran_rnti_type_t                             rnti_type)
+int phy::set_rar_grant(uint32_t                                       rar_slot_idx,
+                       std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                       uint16_t                                       rnti,
+                       srsran_rnti_type_t                             rnti_type)
 {
-  return nr_workers.set_ul_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
+  return nr_workers.set_rar_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
 }
 
 void phy::send_prach(const uint32_t prach_occasion,
@@ -645,11 +645,6 @@ void phy::send_prach(const uint32_t prach_occasion,
                      const float    ta_base_sec)
 {
   nr_workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
-}
-
-int phy::tx_request(const phy_interface_mac_nr::tx_request_t& request)
-{
-  return 0;
 }
 
 void phy::set_earfcn(std::vector<uint32_t> earfcns)

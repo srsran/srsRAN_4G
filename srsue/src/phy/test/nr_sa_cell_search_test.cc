@@ -213,15 +213,15 @@ private:
 
 public:
   struct args_t {
-    srsue::phy_nr_sa::args_t phy;
+    srsue::phy_args_nr_t     phy;
     ue_dummy_stack::args_t   stack;
   };
-  dummy_ue(const args_t& args, srsran::radio_interface_phy& radio) : stack(args.stack, phy), phy(stack, radio)
+  dummy_ue(const args_t& args, srsran::radio_interface_phy* radio) : stack(args.stack, phy), phy("PHY")
   {
-    srsran_assert(phy.init(args.phy), "Failed to initialise PHY");
+    srsran_assert(phy.init(args.phy, &stack, radio), "Failed to initialise PHY");
   }
 
-  bool start_cell_search(const srsue::phy_interface_stack_sa_nr::cell_search_args_t& args)
+  bool start_cell_search(const srsue::phy_interface_stack_nr::cell_search_args_t& args)
   {
     return phy.start_cell_search(args);
   }
@@ -230,7 +230,7 @@ public:
   void stop()
   {
     // First transition PHY to IDLE
-    phy.reset();
+    phy.reset_nr();
 
     // Make sure PHY transitioned to IDLE
     // ...
@@ -303,9 +303,7 @@ int main(int argc, char** argv)
   // Create dummy UE
   dummy_ue::args_t ue_args = {};
   ue_args.stack.log_level  = args.stack_log_level;
-  ue_args.phy.log_level    = args.phy_log_level;
-  ue_args.phy.srate_hz     = args.srate_hz;
-  dummy_ue ue(ue_args, *radio);
+  dummy_ue ue(ue_args, radio.get());
 
   // Transition PHY to cell search
   srsue::phy_nr_sa::cell_search_args_t cell_search_req = {};

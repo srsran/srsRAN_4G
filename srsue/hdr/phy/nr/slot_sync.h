@@ -34,10 +34,10 @@ public:
     int                         thread_priority = -1;
   };
 
-  slot_sync(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_);
+  slot_sync(srslog::basic_logger& logger);
   ~slot_sync();
 
-  bool init(const args_t& args);
+  bool init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
 
   int  recv_callback(srsran::rf_buffer_t& rf_buffer, srsran_timestamp_t* timestamp);
   void run_stack_tti();
@@ -47,8 +47,8 @@ private:
   const static int MAX_TTI_JUMP         = 1000; ///< Maximum time gap tolerance in RF stream metadata
   enum { SEARCHING = 0, CAMPING } state = SEARCHING;
   srslog::basic_logger&        logger;
-  stack_interface_phy_sa_nr&   stack;
-  srsran::radio_interface_phy& radio;
+  stack_interface_phy_nr*      stack = nullptr;
+  srsran::radio_interface_phy* radio = nullptr;
   srsran::rf_timestamp_t       last_rx_time;
   srsran_ue_sync_nr_t          ue_sync_nr          = {};
   srsran_timestamp_t           stack_tti_ts_new    = {};

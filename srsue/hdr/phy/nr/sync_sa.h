@@ -69,10 +69,10 @@ public:
     STATE_CELL_SELECT
   } state_t;
 
-  sync_sa(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_, worker_pool& workers_);
+  sync_sa(srslog::basic_logger& logger, worker_pool& workers_);
   ~sync_sa();
 
-  bool init(const args_t& args_);
+  bool init(const args_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
 
   // The following methods control the SYNC state machine
   bool start_cell_search(const cell_search::cfg_t& cfg);
@@ -86,8 +86,8 @@ public:
   void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
 private:
-  stack_interface_phy_sa_nr&   stack;  ///< Stand-Alone RRC interface
-  srsran::radio_interface_phy& radio;  ///< Radio object
+  stack_interface_phy_nr*      stack = nullptr; ///< Stand-Alone RRC interface
+  srsran::radio_interface_phy* radio = nullptr; ///< Radio object
   srslog::basic_logger&        logger; ///< General PHY logger
   worker_pool&                 workers;
 

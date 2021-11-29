@@ -71,7 +71,7 @@ public:
     logger_phy(srslog::fetch_basic_logger("PHY")),
     logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
     lte_workers(MAX_WORKERS),
-    nr_workers(MAX_WORKERS),
+    nr_workers(logger_phy, MAX_WORKERS),
     common(logger_phy),
     sfsync(logger_phy, logger_phy_lib),
     prach_buffer(logger_phy),
@@ -163,20 +163,24 @@ public:
 
   std::string get_type() final { return "lte_soft"; }
 
+  /********** NR INTERFACE ********************/
   int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_) final;
   bool set_config(const srsran::phy_cfg_nr_t& cfg) final;
-  int  set_ul_grant(uint32_t                                       rx_tti,
-                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                    uint16_t                                       rnti,
-                    srsran_rnti_type_t                             rnti_type) final;
   void send_prach(const uint32_t prach_occasion,
                   const int      preamble_index,
                   const float    preamble_received_target_power,
                   const float    ta_base_sec = 0.0f) final;
-  int  tx_request(const tx_request_t& request) final;
   void set_earfcn(std::vector<uint32_t> earfcns) final;
   bool has_valid_sr_resource(uint32_t sr_id) final;
   void clear_pending_grants() final;
+  int            set_rar_grant(uint32_t                                       rar_slot_idx,
+                               std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                               uint16_t                                       rnti,
+                               srsran_rnti_type_t                             rnti_type) final;
+  phy_nr_state_t get_state() const override { return PHY_NR_STATE_IDLE; };
+  void           reset_nr() override{};
+  bool           start_cell_search(const cell_search_args_t& req) override { return false; };
+  bool           start_cell_select(const cell_search_args_t& req) override { return false; };
 
 private:
   void run_thread() final;

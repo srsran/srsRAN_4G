@@ -15,11 +15,7 @@
 namespace srsue {
 namespace nr {
 
-slot_sync::slot_sync(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_) :
-  logger(srslog::fetch_basic_logger("PHY")),
-  stack(stack_),
-  radio(radio_)
-{}
+slot_sync::slot_sync(srslog::basic_logger& logger_) : logger(logger_) {}
 
 slot_sync::~slot_sync()
 {
@@ -37,8 +33,11 @@ int sync_sa_recv_callback(void* ptr, cf_t** buffer, uint32_t nsamples, srsran_ti
   return sync->recv_callback(rf_buffer, ts);
 }
 
-bool slot_sync::init(const args_t& args)
+bool slot_sync::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
+  stack = stack_;
+  radio = radio_;
+
   srsran_ue_sync_nr_args_t ue_sync_nr_args = {};
   ue_sync_nr_args.max_srate_hz             = args.max_srate_hz;
   ue_sync_nr_args.min_scs                  = args.ssb_min_scs;
@@ -63,7 +62,7 @@ int slot_sync::recv_callback(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_t
   srsran::rf_timestamp_t& rf_timestamp = (rx_time == nullptr) ? dummy_ts : last_rx_time;
 
   // Receive
-  if (not radio.rx_now(data, rf_timestamp)) {
+  if (not radio->rx_now(data, rf_timestamp)) {
     return SRSRAN_ERROR;
   }
 
@@ -120,7 +119,7 @@ void slot_sync::run_stack_tti()
 
     // Run stack
     logger.debug("run_stack_tti: calling stack tti=%d, tti_jump=%d", tti, tti_jump);
-    stack.run_tti(tti);
+    stack->run_tti(tti);
     logger.debug("run_stack_tti: stack called");
   }
 

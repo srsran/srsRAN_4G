@@ -22,7 +22,11 @@ using namespace srsue;
 
 class dummy_phy : public phy_interface_rrc_nr
 {
-  bool set_config(const srsran::phy_cfg_nr_t& cfg) { return true; }
+  bool           set_config(const srsran::phy_cfg_nr_t& cfg) override { return true; }
+  phy_nr_state_t get_state() const override { return PHY_NR_STATE_IDLE; };
+  void           reset_nr() override{};
+  bool           start_cell_search(const cell_search_args_t& req) override { return false; };
+  bool           start_cell_select(const cell_search_args_t& req) override { return false; };
 };
 
 class dummy_mac : public mac_interface_rrc_nr

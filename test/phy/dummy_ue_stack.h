@@ -18,7 +18,7 @@
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 
-class ue_dummy_stack : public srsue::stack_interface_phy_sa_nr
+class ue_dummy_stack : public srsue::stack_interface_phy_nr
 {
 public:
   struct prach_metrics_t {
@@ -141,6 +141,7 @@ public:
 
   void cell_search_found_cell(const cell_search_result_t& result) override
   {
+#if 0
     // Unpack MIB with ASN1
     asn1::rrc_nr::mib_s mib_asn1;
     asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
@@ -164,6 +165,7 @@ public:
 
     logger.info(
         "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
+#endif
   }
 };
 

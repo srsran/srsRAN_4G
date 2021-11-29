@@ -29,11 +29,7 @@ public:
   virtual void out_of_sync()                        = 0;
   virtual void run_tti(const uint32_t tti)          = 0;
   virtual void set_phy_config_complete(bool status) = 0;
-};
 
-class rrc_interface_phy_sa_nr
-{
-public:
   /**
    * @brief Describes a cell search result
    */
@@ -228,20 +224,12 @@ struct phy_args_nr_t {
 class phy_interface_mac_nr
 {
 public:
-  typedef struct {
-    uint32_t tti;
-    uint32_t tb_len;
-    uint8_t* data; // always a pointer in our case
-  } tx_request_t;
 
   // MAC informs PHY about UL grant included in RAR PDU
-  virtual int set_ul_grant(uint32_t                                       rar_slot_idx,
-                           std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                           uint16_t                                       rnti,
-                           srsran_rnti_type_t                             rnti_type) = 0;
-
-  // MAC instructs PHY to transmit MAC TB at the given TTI
-  virtual int tx_request(const tx_request_t& request) = 0;
+  virtual int set_rar_grant(uint32_t                                       rar_slot_idx,
+                            std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                            uint16_t                                       rnti,
+                            srsran_rnti_type_t                             rnti_type) = 0;
 
   /// Instruct PHY to send PRACH in the next occasion.
   virtual void send_prach(const uint32_t prach_occasion,
@@ -266,30 +254,26 @@ class phy_interface_rrc_nr
 {
 public:
   virtual bool set_config(const srsran::phy_cfg_nr_t& cfg) = 0;
-};
 
-class phy_interface_rrc_sa_nr
-{
-public:
   /**
    * @brief Describe the possible NR standalone physical layer possible states
    */
   typedef enum {
-    PHY_NR_SA_STATE_IDLE = 0,    ///< There is no process going on
-    PHY_NR_SA_STATE_CELL_SEARCH, ///< Cell search is currently in progress
-    PHY_NR_SA_STATE_CELL_SELECT, ///< Cell selection is in progress or it is camped on a cell
-  } phy_nr_sa_state_t;
+    PHY_NR_STATE_IDLE = 0,    ///< There is no process going on
+    PHY_NR_STATE_CELL_SEARCH, ///< Cell search is currently in progress
+    PHY_NR_STATE_CELL_SELECT, ///< Cell selection is in progress or it is camped on a cell
+  } phy_nr_state_t;
 
   /**
    * @brief Retrieves the physical layer state
    * @return
    */
-  virtual phy_nr_sa_state_t get_state() const = 0;
+  virtual phy_nr_state_t get_state() const = 0;
 
   /**
    * @brief Stops the ongoing process and transitions to IDLE
    */
-  virtual void reset() = 0;
+  virtual void reset_nr() = 0;
 
   /**
    * @brief Describes cell search arguments
@@ -330,20 +314,8 @@ class stack_interface_phy_nr : public mac_interface_phy_nr,
                                public srsran::stack_interface_phy_nr
 {};
 
-/**
- * @brief Combines the stack interfaces for PHY to access stack (MAC and RRC) including the standalone interface
- */
-class stack_interface_phy_sa_nr : public stack_interface_phy_nr, public rrc_interface_phy_sa_nr
-{};
-
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_nr : public phy_interface_mac_nr, public phy_interface_rrc_nr
-{};
-
-/**
- * @brief Combines the PHY interfaces for stack (MAC and RRC) to access PHY for NSA including the standalone interfaces
- */
-class phy_interface_stack_sa_nr : public phy_interface_stack_nr, public phy_interface_rrc_sa_nr
 {};
 
 } // namespace srsue

@@ -123,6 +123,9 @@ public:
 
   void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
+  // RRC interface for NR PHY
+  void cell_search_found_cell(const cell_search_result_t& result) final {}
+
   // MAC Interface for NR PHY
   int  sf_indication(const uint32_t tti) final { return SRSRAN_SUCCESS; }
   void tb_decoded(const uint32_t                              cc_idx,

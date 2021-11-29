@@ -15,53 +15,68 @@
 
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsue/hdr/phy/nr/sync_sa.h"
+#include "srsue/hdr/phy/ue_nr_phy_base.h"
 
 namespace srsue {
 
 /**
  * @brief NR Standalone PHY
  */
-class phy_nr_sa : public phy_interface_stack_sa_nr
+class phy_nr_sa final : public ue_nr_phy_base
 {
 public:
-  struct args_t {
-    std::string log_level = "info";  ///< General PHY logging level
-    double      srate_hz  = 61.44e6; ///< Sampling rate in Hz
-  };
+  phy_nr_sa(const char* logname);
 
-  phy_nr_sa(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_);
+  int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_) final;
 
-  bool init(const args_t& args_);
+  std::string get_type() final { return "nr_soft"; }
 
-  int set_ul_grant(uint32_t                                       rar_slot_idx,
-                   std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                   uint16_t                                       rnti,
-                   srsran_rnti_type_t                             rnti_type) override
+  int set_rar_grant(uint32_t                                       rar_slot_idx,
+                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                    uint16_t                                       rnti,
+                    srsran_rnti_type_t                             rnti_type) final
   {
-    return 0;
+    return -1;
   }
-  int  tx_request(const tx_request_t& request) override { return 0; }
+
   void send_prach(const uint32_t prach_occasion,
                   const int      preamble_index,
                   const float    preamble_received_target_power,
-                  const float    ta_base_sec) override
+                  const float    ta_base_sec) final
   {}
-  bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
-  void clear_pending_grants() override {}
-  bool set_config(const srsran::phy_cfg_nr_t& cfg) override { return false; }
+  void set_earfcn(std::vector<uint32_t> earfcns) final{};
+  bool has_valid_sr_resource(uint32_t sr_id) final { return false; }
+  void clear_pending_grants() final {}
+  bool set_config(const srsran::phy_cfg_nr_t& cfg) final { return false; }
 
-  phy_nr_sa_state_t get_state() const override;
-  void              reset() override;
-  bool              start_cell_search(const cell_search_args_t& req) override;
-  bool              start_cell_select(const cell_search_args_t& req) override { return false; }
+  phy_nr_state_t get_state() const final;
+  void           reset_nr() final;
+  bool           start_cell_search(const cell_search_args_t& req) final;
+  bool           start_cell_select(const cell_search_args_t& req) final { return false; }
 
-  void stop() { sync.stop(); }
+  void stop() final { sync.stop(); }
+
+  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final{};
 
 private:
-  nr::worker_pool       workers;
-  nr::sync_sa           sync;
   srslog::basic_logger& logger;
-  args_t                args;
+
+  nr::worker_pool       workers;
+  phy_common            common;
+  prach                 prach_buffer;
+  nr::sync_sa           sync;
+
+  srsran::phy_cfg_nr_t config_nr = {};
+  phy_args_nr_t        args      = {};
+
+  srsran::radio_interface_phy* radio = nullptr;
+
+  std::mutex              config_mutex;
+  std::condition_variable config_cond;
+  std::atomic<bool>       is_configured = {false};
+
+  const static int SF_RECV_THREAD_PRIO = 0;
+  const static int WORKERS_THREAD_PRIO = 2;
 };
 
 } // namespace srsue

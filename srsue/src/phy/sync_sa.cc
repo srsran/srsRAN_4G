@@ -14,30 +14,26 @@
 
 namespace srsue {
 namespace nr {
-sync_sa::sync_sa(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_, worker_pool& workers_) :
-  logger(srslog::fetch_basic_logger("PHY-NR")),
-  stack(stack_),
-  radio(radio_),
-  workers(workers_),
-  srsran::thread("SYNC"),
-  searcher(stack_, radio_),
-  slot_synchronizer(stack_, radio_)
+sync_sa::sync_sa(srslog::basic_logger& logger_, worker_pool& workers_) :
+  logger(logger_), workers(workers_), slot_synchronizer(logger_), searcher(logger_), srsran::thread("SYNC")
 {}
 
 sync_sa::~sync_sa() {}
 
-bool sync_sa::init(const args_t& args)
+bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
+  stack = stack_;
+  radio = radio_;
   sf_sz = (uint32_t)(args.srate_hz / 1000.0f);
 
   // Initialise cell search internal object
-  if (not searcher.init(args.get_cell_search())) {
+  if (not searcher.init(args.get_cell_search(), stack, radio)) {
     logger.error("Error initialising cell searcher");
     return false;
   }
 
   // Initialise slot synchronizer object
-  if (not slot_synchronizer.init(args.get_slot_sync())) {
+  if (not slot_synchronizer.init(args.get_slot_sync(), stack, radio)) {
     logger.error("Error initialising slot synchronizer");
     return false;
   }
@@ -114,9 +110,9 @@ void sync_sa::run_state_idle()
   srsran::rf_timestamp_t ts = {};
 
   // Receives from radio 1 slot
-  radio.rx_now(rf_buffer, ts);
+  radio->rx_now(rf_buffer, ts);
 
-  stack.run_tti(slot_cfg.idx);
+  stack->run_tti(slot_cfg.idx);
 }
 
 void sync_sa::run_state_cell_search()

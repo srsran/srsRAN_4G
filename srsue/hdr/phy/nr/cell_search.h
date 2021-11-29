@@ -36,11 +36,10 @@ public:
     srsran_duplex_mode_t        duplex_mode;
   };
 
-  cell_search(stack_interface_phy_sa_nr& stack_, srsran::radio_interface_phy& radio_);
-
+  cell_search(srslog::basic_logger& logger);
   ~cell_search();
 
-  bool init(const args_t& args);
+  bool init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
 
   bool start(const cfg_t& cfg);
 
@@ -50,8 +49,8 @@ public:
 
 private:
   srslog::basic_logger&        logger;
-  stack_interface_phy_sa_nr&   stack;
-  srsran::radio_interface_phy& radio;
+  stack_interface_phy_nr*      stack  = nullptr;
+  srsran::radio_interface_phy* radio  = nullptr;
   srsran_ssb_t                 ssb    = {};
   uint32_t                     sf_sz  = 0;       ///< subframe size in samples (1 ms)
   cf_t*                        buffer = nullptr; ///< Receive buffer
