@@ -24,7 +24,7 @@
 
 namespace srsue {
 
-class ue_nr_phy_base : public phy_interface_stack_nr
+class ue_nr_phy_base : public ue_phy_base, public phy_interface_stack_nr
 {
 public:
   ue_nr_phy_base(){};

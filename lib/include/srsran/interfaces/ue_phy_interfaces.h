@@ -96,7 +96,6 @@ struct phy_args_t {
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;
 
-  srsran::vnf_args_t vnf_args;
 };
 
 /* RAT agnostic Interface MAC -> PHY */

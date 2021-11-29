@@ -27,17 +27,16 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
   stack  = stack_;
   syssim = syssim_;
 
-  return init(args_);
+  logger.set_level(srslog::str_to_basic_level(args_.log.phy_level));
+  logger.set_hex_dump_max_size(-1);
+
+  return SRSRAN_SUCCESS;
 }
 
 int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
-  return init(args_);
-}
+  stack = stack_;
 
-// ue_phy_base interface
-int lte_ttcn3_phy::init(const phy_args_t& args_)
-{
   logger.set_level(srslog::str_to_basic_level(args_.log.phy_level));
   logger.set_hex_dump_max_size(-1);
 

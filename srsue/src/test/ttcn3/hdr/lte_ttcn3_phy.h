@@ -44,8 +44,6 @@ public:
 
   int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_) override;
 
-  // ue_phy_base interface
-  int         init(const phy_args_t& args_) override;
   void        stop() override;
   void        wait_initialize() override;
   void        start_plot() override;

@@ -309,9 +309,7 @@ public:
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)
-class stack_interface_phy_nr : public mac_interface_phy_nr,
-                               public rrc_interface_phy_nr,
-                               public srsran::stack_interface_phy_nr
+class stack_interface_phy_nr : public mac_interface_phy_nr, public rrc_interface_phy_nr
 {};
 
 // Combined interface for stack (MAC and RRC) to access PHY

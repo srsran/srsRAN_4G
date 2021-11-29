@@ -33,37 +33,6 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class phy_cmd_proc : public srsran::thread
-{
-public:
-  phy_cmd_proc() : thread("PHY_CMD") { start(); }
-
-  ~phy_cmd_proc() { stop(); }
-
-  void add_cmd(std::function<void(void)> cmd) { cmd_queue.push(cmd); }
-
-  void stop()
-  {
-    if (running) {
-      add_cmd([this]() { running = false; });
-      wait_thread_finish();
-    }
-  }
-
-private:
-  void run_thread()
-  {
-    std::function<void(void)> cmd;
-    while (running) {
-      cmd = cmd_queue.wait_pop();
-      cmd();
-    }
-  }
-  bool running = true;
-  // Queue for commands
-  srsran::block_queue<std::function<void(void)> > cmd_queue;
-};
-
 class phy final : public ue_lte_phy_base, public ue_nr_phy_base, public srsran::thread
 {
 public:
@@ -80,16 +49,13 @@ public:
 
   ~phy() final { stop(); }
 
-  // Init defined in base class
-  int init(const phy_args_t& args_) final;
-
   // Init for LTE PHYs
   int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_) final;
 
   void stop() final;
 
   void wait_initialize() final;
-  bool is_initiated();
+  bool is_initialized() final;
 
   void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final;
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);

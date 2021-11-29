@@ -296,7 +296,7 @@ public:
   virtual void        rach_detected(const rach_info_t& rach_info)                                   = 0;
 };
 
-class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr
+class stack_interface_phy_nr : public mac_interface_phy_nr
 {};
 
 } // namespace srsenb

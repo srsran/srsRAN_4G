@@ -92,17 +92,10 @@ bool phy::check_args(const phy_args_t& args_)
 
 int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
+  std::unique_lock<std::mutex> lock(config_mutex);
+
   stack = stack_;
   radio = radio_;
-
-  init(args_);
-
-  return SRSRAN_SUCCESS;
-}
-
-int phy::init(const phy_args_t& args_)
-{
-  std::unique_lock<std::mutex> lock(config_mutex);
 
   args = args_;
 
@@ -159,7 +152,7 @@ void phy::wait_initialize()
   }
 }
 
-bool phy::is_initiated()
+bool phy::is_initialized()
 {
   return is_configured;
 }
@@ -448,7 +441,7 @@ void phy::start_plot()
 
 bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 {
-  if (!is_initiated()) {
+  if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
   }
@@ -484,7 +477,7 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 
 bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
-  if (!is_initiated()) {
+  if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
   }

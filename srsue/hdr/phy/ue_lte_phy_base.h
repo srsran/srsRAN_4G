@@ -33,11 +33,9 @@ public:
 
   virtual std::string get_type() = 0;
 
-  virtual int  init(const phy_args_t& args_)                                                                       = 0;
   virtual int  init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_) = 0;
   virtual void stop()                                                                                              = 0;
 
-  virtual void wait_initialize() = 0;
   virtual void start_plot()      = 0;
 
   virtual void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) = 0;
