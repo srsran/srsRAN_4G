@@ -119,7 +119,7 @@ void slot_sync::run_stack_tti()
 
     // Run stack
     logger.debug("run_stack_tti: calling stack tti=%d, tti_jump=%d", tti, tti_jump);
-    stack->run_tti(tti);
+    stack->run_tti(tti, tti_jump);
     logger.debug("run_stack_tti: stack called");
   }
 

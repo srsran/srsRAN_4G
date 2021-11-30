@@ -81,6 +81,9 @@ public:
                        asn1::dyn_octstring oct,
                        const T&            msg,
                        const std::string&  msg_type);
+
+  void run_tti(uint32_t tti);
+
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
@@ -91,7 +94,6 @@ public:
   void protocol_failure() final;
 
   // MAC interface
-  void run_tti(uint32_t tti) final;
   void ra_completed() final;
   void ra_problem() final;
   void release_pucch_srs() final;

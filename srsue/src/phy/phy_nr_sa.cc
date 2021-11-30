@@ -58,8 +58,7 @@ phy_nr_sa::phy_nr_sa(const char* logname) :
   logger(srslog::fetch_basic_logger(logname)),
   logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
   sync(logger, workers),
-  workers(logger, 4),
-  common(logger)
+  workers(logger, 4)
 {}
 
 int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
@@ -81,14 +80,14 @@ int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, 
   logger.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   if (!check_args(args)) {
-    return false;
+    return SRSRAN_ERROR;
   }
 
   is_configured = false;
   std::thread t([this]() { init_background(); });
   init_thread = std::move(t);
 
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 void phy_nr_sa::init_background()
@@ -201,7 +200,7 @@ bool phy_nr_sa::start_cell_select(const cell_select_args_t& req)
 
   cmd_worker_cell.add_cmd([this, req]() {
     // Request cell search to lower synchronization instance.
-    start_cell_select(req);
+    sync.cell_select_run(req);
   });
 
   return true;
@@ -241,16 +240,10 @@ bool phy_nr_sa::set_config(const srsran::phy_cfg_nr_t& cfg)
   // Setup carrier configuration asynchronously
   cmd_worker.add_cmd([this]() {
     // tune radio
-    for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
-      logger.info("Tuning Rx channel %d to %.2f MHz",
-                  i + common.args->nof_lte_carriers,
-                  config_nr.carrier.dl_center_frequency_hz / 1e6);
-      radio->set_rx_freq(i + common.args->nof_lte_carriers, config_nr.carrier.dl_center_frequency_hz);
-      logger.info("Tuning Tx channel %d to %.2f MHz",
-                  i + common.args->nof_lte_carriers,
-                  config_nr.carrier.ul_center_frequency_hz / 1e6);
-      radio->set_tx_freq(i + common.args->nof_lte_carriers, config_nr.carrier.ul_center_frequency_hz);
-    }
+    logger.info("Tuning Rx channel %d to %.2f MHz", 0, config_nr.carrier.dl_center_frequency_hz / 1e6);
+    radio->set_rx_freq(0, config_nr.carrier.dl_center_frequency_hz);
+    logger.info("Tuning Tx channel %d to %.2f MHz", 0, config_nr.carrier.ul_center_frequency_hz / 1e6);
+    radio->set_tx_freq(0, config_nr.carrier.ul_center_frequency_hz);
 
     // Set UE configuration
     bool ret = workers.set_config(config_nr);

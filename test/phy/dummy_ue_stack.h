@@ -69,7 +69,7 @@ public:
   }
   void in_sync() override {}
   void out_of_sync() override {}
-  void run_tti(const uint32_t tti) override
+  void run_tti(const uint32_t tti, const uint32_t tti_jump) override
   {
     wait_tti();
 
@@ -84,7 +84,6 @@ public:
       }
     }
   }
-  int          sf_indication(const uint32_t tti) override { return 0; }
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override
   {
     std::unique_lock<std::mutex> lock(rnti_mutex);

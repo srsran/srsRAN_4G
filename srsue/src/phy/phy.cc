@@ -117,12 +117,12 @@ int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::
   logger_phy.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   if (!check_args(args)) {
-    return false;
+    return SRSRAN_ERROR;
   }
 
   is_configured = false;
   start();
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 // Initializes PHY in a thread

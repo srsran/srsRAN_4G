@@ -48,6 +48,7 @@ ue_stack_lte::ue_stack_lte() :
   pdcp(&task_sched, "PDCP"),
   pdcp_nr(&task_sched, "PDCP-NR"),
   nas(srslog::fetch_basic_logger("NAS", false), &task_sched),
+  nas_5g(srslog::fetch_basic_logger("NAS5G", false), &task_sched),
   thread("STACK"),
   task_sched(512, 64),
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
@@ -217,6 +218,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   rrc_nr.init(
       phy_nr, &mac_nr, &rlc_nr, &pdcp_nr, gw, &rrc, usim.get(), task_sched.get_timer_handler(), this, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
+  nas_5g.init(usim.get(), &rrc_nr, gw, args.nas_5g);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -238,6 +240,7 @@ void ue_stack_lte::stop_impl()
 
   usim->stop();
   nas.stop();
+  nas_5g.stop();
   rrc.stop();
 
   rlc.stop();
@@ -262,7 +265,13 @@ bool ue_stack_lte::switch_on()
 {
   if (running) {
     stack_logger.info("Triggering NAS switch on\n");
-    if (!ue_task_queue.try_push([this]() { nas.switch_on(); })) {
+    if (!ue_task_queue.try_push([this]() {
+          if (args.attach_on_nr) {
+            nas_5g.switch_on();
+          } else {
+            nas.switch_on();
+          }
+        })) {
       stack_logger.error("Triggering NAS switch on: ue_task_queue is full\n");
     }
   } else {
@@ -477,6 +486,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   rrc.run_tti();
   rrc_nr.run_tti(tti);
   nas.run_tti();
+  nas_5g.run_tti();
 
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();

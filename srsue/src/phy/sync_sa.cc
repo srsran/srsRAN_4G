@@ -200,6 +200,7 @@ void sync_sa::run_state_cell_select()
 {
   // TODO
   tti = 0;
+  phy_state.state_exit();
 }
 
 void sync_sa::run_state_cell_camping()
@@ -242,9 +243,13 @@ void sync_sa::run_thread()
       rf_buffer.set_nof_samples(slot_sz);
       rf_buffer.set(0, rx_buffer);
 
-      if (not radio->rx_now(rf_buffer, last_rx_time)) {
+#ifdef useradio
+      if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
         logger.error("SYNC: receiving from radio\n");
       }
+#else
+      sleep(1);
+#endif
     }
     switch (phy_state.run_state()) {
       case sync_state::IDLE:
@@ -255,13 +260,18 @@ void sync_sa::run_thread()
         break;
       case sync_state::SFN_SYNC:
         run_state_cell_select();
+        break;
       case sync_state::CAMPING:
         run_state_cell_camping();
         break;
     }
+      // Advance stack TTI
+#ifdef useradio
+    slot_synchronizer.run_stack_tti();
+#else
+    stack->run_tti(tti, 1);
+#endif
   }
-  // Advance stack TTI
-  stack->run_tti(tti);
 }
 void sync_sa::worker_end(const srsran::phy_common_interface::worker_context_t& w_ctx,
                          const bool&                                           tx_enable,

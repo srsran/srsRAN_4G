@@ -27,7 +27,6 @@ class rrc_interface_phy_nr
 public:
   virtual void in_sync()                            = 0;
   virtual void out_of_sync()                        = 0;
-  virtual void run_tti(const uint32_t tti)          = 0;
   virtual void set_phy_config_complete(bool status) = 0;
 
   /**
@@ -99,8 +98,6 @@ public:
   typedef struct {
     tb_ul_t tb; // only single TB in UL
   } tb_action_ul_t;
-
-  virtual int sf_indication(const uint32_t tti) = 0; ///< TODO: rename to slot indication
 
   // Query the MAC for the current RNTI to look for
   struct sched_rnti_t {
@@ -314,7 +311,11 @@ public:
 
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_nr : public mac_interface_phy_nr, public rrc_interface_phy_nr
-{};
+{
+public:
+  /* Indicate new TTI */
+  virtual void run_tti(const uint32_t tti, const uint32_t tti_jump) = 0;
+};
 
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_nr : public phy_interface_mac_nr, public phy_interface_rrc_nr

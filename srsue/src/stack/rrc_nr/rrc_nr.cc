@@ -12,6 +12,7 @@
 
 #include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsran/common/band_helper.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/security.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
@@ -223,6 +224,17 @@ bool rrc_nr::is_connected()
 
 int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
 {
+  srsran::phy_cfg_nr_default_t::reference_cfg_t cfg = {};
+  cfg.carrier = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_CARRIER_CUSTOM_10MHZ;
+  cfg.duplex  = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{cfg}};
+
+  phy_interface_rrc_nr::cell_select_args_t cell_cfg = {};
+  cell_cfg.carrier                                  = phy_cfg.carrier;
+  cell_cfg.ssb_cfg                                  = phy_cfg.get_ssb_cfg();
+  phy->start_cell_select(cell_cfg);
+  sleep(1);
+  phy->set_config(phy_cfg);
   return SRSRAN_SUCCESS;
 }
 

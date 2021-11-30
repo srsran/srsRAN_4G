@@ -199,7 +199,7 @@ public:
     ue_worker->set_context(ue_context);
 
     // Run UE stack
-    ue_stack.run_tti(slot_idx);
+    ue_stack.run_tti(slot_idx, 1);
 
     // Start UE work
     ue_phy_com.push_semaphore(ue_worker);

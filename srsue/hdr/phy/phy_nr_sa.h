@@ -23,10 +23,11 @@ namespace srsue {
 /**
  * @brief NR Standalone PHY
  */
-class phy_nr_sa final : public ue_phy_base, public phy_interface_stack_nr
+class phy_nr_sa final : public ue_phy_base, public phy_interface_stack_nr, public srsran::phy_interface_radio
 {
 public:
   phy_nr_sa(const char* logname);
+  ~phy_nr_sa() final { stop(); }
 
   int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
   void wait_initialize() final;
@@ -35,6 +36,9 @@ public:
   void reset_nr() final;
 
   void start_plot() final {}
+
+  void radio_overflow() final {}
+  void radio_failure() final {}
 
   std::string get_type() final { return "nr_soft"; }
 
@@ -63,7 +67,6 @@ private:
   srslog::basic_logger& logger_phy_lib;
 
   nr::worker_pool       workers;
-  phy_common            common;
   nr::sync_sa           sync;
 
   srsran::phy_cfg_nr_t config_nr     = {};

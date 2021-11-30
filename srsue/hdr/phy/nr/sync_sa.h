@@ -111,6 +111,8 @@ private:
   void run_state_cell_select();
   void run_state_cell_camping();
 
+  int  radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time);
+  void run_stack_tti();
   void run_thread() override;
 };
 
