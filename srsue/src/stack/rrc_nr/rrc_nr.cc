@@ -27,7 +27,12 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this), meas_cells(task_sched_)
+  logger(srslog::fetch_basic_logger("RRC-NR")),
+  task_sched(task_sched_),
+  conn_recfg_proc(*this),
+  setup_req_proc(*this),
+  cell_selector(*this),
+  meas_cells(task_sched_)
 {}
 
 rrc_nr::~rrc_nr() = default;
@@ -52,6 +57,8 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   usim      = usim_;
   stack     = stack_;
   args      = args_;
+
+  plmn_is_selected = true; // short-cut SA test
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -221,8 +228,13 @@ bool rrc_nr::is_connected()
   return false;
 }
 
-int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
+int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t dedicated_info_nas_)
 {
+  if (not setup_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
+    logger.error("Failed to initiate setup request procedure");
+    return SRSRAN_ERROR;
+  }
+  callback_list.add_proc(setup_req_proc);
   return SRSRAN_SUCCESS;
 }
 
@@ -240,6 +252,58 @@ uint16_t rrc_nr::get_mnc()
 void rrc_nr::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
   logger.warning("%s not implemented yet.", __FUNCTION__);
+}
+
+void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
+{
+  logger.debug("Preparing RRC Setup Request");
+
+  // Prepare SetupRequest packet
+  ul_ccch_msg_s            ul_ccch_msg;
+  rrc_setup_request_ies_s* rrc_setup_req = &ul_ccch_msg.msg.set_c1().set_rrc_setup_request().rrc_setup_request;
+
+  // TODO: implement ng_minus5_g_s_tmsi_part1
+  rrc_setup_req->ue_id.set_random_value();
+  // TODO use proper RNG
+  uint64_t random_id = 0;
+  for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
+    random_id |= ((uint64_t)rand() & 0xFF) << i * 8;
+  }
+  rrc_setup_req->ue_id.random_value().from_number(random_id);
+  rrc_setup_req->establishment_cause = (establishment_cause_opts::options)cause;
+
+  send_ul_ccch_msg(ul_ccch_msg);
+}
+
+void rrc_nr::send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg)
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  msg.pack(bref);
+  bref.align_bytes_zero();
+  pdu->N_bytes = (uint32_t)bref.distance_bytes(pdu->msg);
+  pdu->set_timestamp();
+
+  // Set UE contention resolution ID in MAC
+  uint64_t uecri      = 0;
+  uint8_t* ue_cri_ptr = (uint8_t*)&uecri;
+  uint32_t nbytes     = 6;
+  for (uint32_t i = 0; i < nbytes; i++) {
+    ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+  }
+
+  logger.debug("Setting UE contention resolution ID: %" PRIu64 "", uecri);
+  mac->set_contention_id(uecri);
+
+  uint32_t lcid = 0;
+  log_rrc_message(get_rb_name(lcid), Tx, pdu.get(), msg, msg.msg.c1().type().to_string());
+
+  rlc->write_sdu(lcid, std::move(pdu));
 }
 
 // EUTRA-RRC interface
@@ -1542,6 +1606,7 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
   }
   return true;
 }
+
 // RLC interface
 void rrc_nr::max_retx_attempted() {}
 void rrc_nr::protocol_failure() {}
@@ -1553,6 +1618,7 @@ void rrc_nr::ra_completed()
   phy->set_config(phy_cfg);
   phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
 }
+
 void rrc_nr::ra_problem()
 {
   rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);
