@@ -87,9 +87,6 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     return tx_pdu->N_bytes;
   }
 
-  // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
-  // TODO
-
   // RETX if required
   if (not retx_queue.empty()) {
     logger->info("Retx required. Retx queue size: %d", retx_queue.size());
@@ -103,6 +100,17 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
       memcpy(payload, tx_pdu->msg, tx_pdu->N_bytes);
       return tx_pdu->N_bytes;
     }
+  }
+
+  // Send remaining segment, if it exists
+  if (current_sdu.rlc_sn != INVALID_RLC_SN) {
+    if (not tx_window.has_sn(current_sdu.rlc_sn)) {
+      current_sdu.rlc_sn = INVALID_RLC_SN;
+      logger->error("SDU currently being segmented does not exist in tx_window. Aborting segmenttion SN=%d",
+                    current_sdu.rlc_sn);
+      return 0;
+    }
+    return build_continuation_sdu_segment(tx_window[current_sdu.rlc_sn], payload, nof_bytes);
   }
 
   // Check wether there is something to TX
@@ -138,10 +146,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   uint16_t hdr_size = 2;
   if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
     logger->info("Trying to build PDU segment from SDU.");
-    if (build_new_sdu_segment(tx_sdu, tx_pdu, payload, nof_bytes) != SRSRAN_SUCCESS) {
-      return 0;
-    }
-    return tx_pdu.buf->N_bytes;
+    return build_new_sdu_segment(tx_sdu, tx_pdu, payload, nof_bytes);
   }
 
   memcpy(tx_pdu.buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
@@ -177,16 +182,23 @@ int rlc_am_nr_tx::build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
                                         uint8_t*                    payload,
                                         uint32_t                    nof_bytes)
 {
+  logger->info("Creating new SDU segment. Tx SDU (%d B),,nof_bytes=%d B ", tx_sdu->N_bytes, nof_bytes);
+
   // Sanity check: can this SDU be sent this in a single PDU?
-  if (tx_sdu->N_bytes + 2 >= nof_bytes) {
-    logger->error("Calling build_new_sdu_segment(), but there are enough bytes to tx in a single PDU.");
-    return SRSRAN_ERROR;
+  if ((tx_sdu->N_bytes + 2) < nof_bytes) {
+    logger->error("Calling build_new_sdu_segment(), but there are enough bytes to tx in a single PDU. Tx SDU (%d B), "
+                  "nof_bytes=%d B ",
+                  tx_sdu->N_bytes,
+                  nof_bytes);
+    return 0;
   }
 
   // Sanity check: can this SDU be sent considering header overhead?
-  if (1 + 2 >= nof_bytes) { // Only two bytes, as SO is 0
-    logger->error("Cannot build new sdu_segment, but there are not enough bytes to tx header plus data.");
-    return SRSRAN_ERROR;
+  if (3 < nof_bytes) { // Only two bytes of header, as SO is 0
+    logger->error(
+        "Cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d",
+        nof_bytes);
+    return 0;
   }
 
   // Prepare header
@@ -201,12 +213,29 @@ int rlc_am_nr_tx::build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
   log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
 
   // Write header
-  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, payload);
-  if (len > nof_bytes) {
+  uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(hdr, payload);
+  if (hdr_len > nof_bytes) {
     logger->error("Error writing AMD PDU header");
   }
 
-  return SRSRAN_SUCCESS;
+  uint32_t segment_payload_len = nof_bytes - hdr_len;
+  memcpy(&payload[hdr_len], tx_pdu.buf->msg, segment_payload_len);
+  return hdr_len + segment_payload_len;
+}
+
+int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes)
+{
+  logger->info("Continuing SDU segment. SN=%d, Tx SDU (%d B), nof_bytes=%d B ",
+               current_sdu.rlc_sn,
+               current_sdu.buf->N_bytes,
+               nof_bytes);
+
+  // Can the rest of the SDU be sent on a single segment PDU?
+
+  // Sanity check: can this SDU be sent considering header overhead?
+
+  // Prepare header
+  return 0;
 }
 
 int rlc_am_nr_tx::build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes)

@@ -220,12 +220,10 @@ int lost_pdu_test()
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
-  auto& test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_logger.info("=======================");
-  test_logger.info("==== Lost PDU Test ====");
-  test_logger.info("=======================");
-  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  test_delimit_logger delimiter("lost PDU");
 
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());
@@ -340,15 +338,13 @@ int lost_pdu_test()
 }
 
 /*
- * Test the loss of a single PDU.
- * NACK should be visible in the status report.
- * Retx after NACK should be present too.
+ * Test the basic segmentation of a single SDU.
+ * A single SDU of 3 bytes is segmented into 3 PDUs
  */
 int basic_segmentation_test()
 {
   rlc_am_tester       tester;
   timer_handler       timers(8);
-  byte_buffer_t       pdu_bufs[NBUFS];
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   test_delimit_logger delimiter("basic segmentation");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -365,14 +361,29 @@ int basic_segmentation_test()
     return -1;
   }
 
-  basic_test_tx(&rlc1, pdu_bufs);
+  // Push 1 SDU into RLC1
+  unique_byte_buffer_t sdu;
+  sdu = srsran::make_byte_buffer();
+  TESTASSERT(nullptr != sdu);
+  sdu->msg[0]     = 0; // Write the index into the buffer
+  sdu->N_bytes    = 3; // Give the SDU the size of 3 bytes
+  sdu->md.pdcp_sn = 0; // PDCP SN for notifications
+  rlc1.write_sdu(std::move(sdu));
 
-  // Write 5 PDUs into RLC2
-  for (int i = 0; i < NBUFS; i++) {
-    if (i != 3) {
-      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes); // Don't write RLC_SN=3.
+  // Read 3 PDUs
+  unique_byte_buffer_t pdu_bufs[3];
+  for (int i = 0; i < 3; i++) {
+    pdu_bufs[i] = srsran::make_byte_buffer();
+    TESTASSERT(nullptr != pdu_bufs[i]);
+    if (i == 0) {
+      pdu_bufs[i]->N_bytes = rlc1.read_pdu(pdu_bufs[i]->msg, 3);
+      TESTASSERT_EQ(3, pdu_bufs[i]->N_bytes);
+    } else {
+      pdu_bufs[i]->N_bytes = rlc1.read_pdu(pdu_bufs[i]->msg, 5);
+      TESTASSERT_EQ(5, pdu_bufs[i]->N_bytes);
     }
   }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -404,6 +415,7 @@ int main(int argc, char** argv)
   TESTASSERT(window_checker_test() == SRSRAN_SUCCESS);
   TESTASSERT(basic_test() == SRSRAN_SUCCESS);
   TESTASSERT(lost_pdu_test() == SRSRAN_SUCCESS);
+  TESTASSERT(basic_segmentation_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

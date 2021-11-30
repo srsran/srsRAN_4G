@@ -90,10 +90,22 @@ public:
 
   // Data PDU helpers
   using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+  /*
+  struct rlc_amd_tx_pdu_nr {
+    const uint32_t rlc_sn  = INVALID_RLC_SN;
+    const uint32_t pdcp_sn = INVALID_RLC_SN;
+    struct tx_pdu_segment {
+      rlc_am_nr_pdu_header_t header     = {};
+      uint32_t               retx_count = 0;
+      uint32_t               so         = 0;
+      uint32_t               len        = 0;
+    };
+  };*/
   int build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
                             rlc_amd_tx_pdu_nr&          tx_pdu,
                             uint8_t*                    payload,
                             uint32_t                    nof_bytes);
+  int build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
 
   // Buffer State
@@ -131,7 +143,10 @@ private:
    ***************************************************************************/
   struct rlc_am_nr_tx_state_t                             st = {};
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
-  pdu_retx_queue<RLC_AM_WINDOW_SIZE>                      retx_queue;
+
+  // Queues and buffers
+  pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
+  rlc_amd_tx_sdu_nr_t                current_sdu; // Currently SDU beind segmented
 
 public:
   // Getters/Setters

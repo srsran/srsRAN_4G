@@ -18,6 +18,8 @@
 
 namespace srsran {
 
+const uint32_t INVALID_RLC_SN = 0xFFFFFFFF;
+
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {
   rlc_am_nr_pdu_header_t()                                = default;
@@ -58,6 +60,14 @@ struct rlc_amd_rx_sdu_nr_t {
 
   rlc_amd_rx_sdu_nr_t() = default;
   explicit rlc_amd_rx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
+};
+
+struct rlc_amd_tx_sdu_nr_t {
+  uint32_t             rlc_sn = INVALID_RLC_SN;
+  unique_byte_buffer_t buf;
+
+  rlc_amd_tx_sdu_nr_t() = default;
+  explicit rlc_amd_tx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
 };
 
 ///< AM NR Status PDU header (perhaps merge with LTE version)
