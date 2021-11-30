@@ -112,7 +112,7 @@ search::ret_code search::run(srsran_cell_t* cell_, std::array<uint8_t, SRSRAN_BC
   Info("SYNC:  Searching for cell...");
   srsran::console(".");
 
-  if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
+  if (force_N_id_2 >= 0 && force_N_id_2 < SRSRAN_NOF_NID_2) {
     ret           = srsran_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
     max_peak_cell = force_N_id_2;
   } else {
@@ -127,16 +127,33 @@ search::ret_code search::run(srsran_cell_t* cell_, std::array<uint8_t, SRSRAN_BC
     return CELL_NOT_FOUND;
   }
 
+  // In case of forced N_id_1 discard any results with different values
   if (force_N_id_1 >= 0 && force_N_id_1 < SRSRAN_NOF_NID_1) {
+    /* Note that srsran_ue_cellsearch_scan_N_id_2 only finds the strongest cell for a given N_id_2/PSS within the search
+     * window. A cell with the desired SSS can be occluded by other cells with the same PSS, if their PSS is stronger and
+     * within the same search window.
+     */
     bool N_id_1_found = false;
-    for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2; N_id_2++) {
-      if (found_cells[N_id_2].cell_id / SRSRAN_NOF_NID_2 == (uint32_t)force_N_id_1) {
+    if (force_N_id_2 >= 0 && force_N_id_2 < SRSRAN_NOF_NID_2) {
+      // N_id_2 (PSS) was forced, so there is only one search result to check
+      if (found_cells[max_peak_cell].cell_id / SRSRAN_NOF_NID_2 == (uint32_t)force_N_id_1) {
         N_id_1_found = true;
-        max_peak_cell = N_id_2;
+      }
+    } else {
+      // Go through the results for all N_id_2 (PSS); pick strongest with matching N_id_1 (SSS)
+      float max_peak_value = -1.0;
+      for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2; N_id_2++) {
+        if (found_cells[N_id_2].cell_id / SRSRAN_NOF_NID_2 == (uint32_t)force_N_id_1) {
+          if (found_cells[N_id_2].peak > max_peak_value) {
+            N_id_1_found   = true;
+            max_peak_value = found_cells[N_id_2].peak;
+            max_peak_cell  = N_id_2;
+          }
+        }
       }
     }
     if (!N_id_1_found) {
-      Info("SYNC:  Could not find any cell in this SSS");
+      Info("SYNC:  Could not find any cell with preselected SSS (force_N_id_1=%d)", force_N_id_1);
       return CELL_NOT_FOUND;
     }
   }
