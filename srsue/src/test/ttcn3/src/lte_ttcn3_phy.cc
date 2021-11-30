@@ -33,17 +33,12 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
   return SRSRAN_SUCCESS;
 }
 
-int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
-{
-  stack = stack_;
-
-  logger.set_level(srslog::str_to_basic_level(args_.log.phy_level));
-  logger.set_hex_dump_max_size(-1);
-
-  return SRSRAN_SUCCESS;
-}
-
 void lte_ttcn3_phy::stop(){};
+
+bool lte_ttcn3_phy::is_initialized()
+{
+  return true;
+}
 
 void lte_ttcn3_phy::wait_initialize() {}
 
@@ -332,16 +327,6 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
   }
 
   stack->tb_decoded(cc_idx, dl_grant, dl_ack);
-}
-
-void lte_ttcn3_phy::radio_overflow()
-{
-  logger.debug("%s not implemented.", __FUNCTION__);
-}
-
-void lte_ttcn3_phy::radio_failure()
-{
-  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 // Calling function set_tti() is holding mutex

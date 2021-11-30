@@ -23,26 +23,10 @@ cell_search::cell_search(srslog::basic_logger& logger_) : logger(logger_) {}
 cell_search::~cell_search()
 {
   srsran_ssb_free(&ssb);
-  if (buffer != nullptr) {
-    free(buffer);
-  }
 }
 
-bool cell_search::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
+bool cell_search::init(const args_t& args)
 {
-  stack = stack_;
-  radio = radio_;
-
-  // Compute subframe size
-  sf_sz = (uint32_t)(args.max_srate_hz / 1000.0f);
-
-  // Allocate receive buffer
-  buffer = srsran_vec_cf_malloc(2 * sf_sz);
-  if (buffer == nullptr) {
-    logger.error("Error allocating buffer");
-    return false;
-  }
-
   // Prepare SSB initialization arguments
   srsran_ssb_args_t ssb_args = {};
   ssb_args.max_srate_hz      = args.max_srate_hz;
@@ -75,54 +59,24 @@ bool cell_search::start(const cfg_t& cfg)
     logger.error("Cell search: Error setting SSB configuration");
     return false;
   }
-
-  logger.info("Cell search: starting in center frequency %.2f and SSB frequency %.2f with subcarrier spacing of %s",
-              cfg.center_freq_hz / 1e6,
-              cfg.ssb_freq_hz / 1e6,
-              srsran_subcarrier_spacing_to_str(cfg.ssb_scs));
-
-  // Set RX frequency
-  radio->set_rx_freq(0, cfg.center_freq_hz);
-
-  // Zero receive buffer
-  srsran_vec_zero(buffer, sf_sz);
-
   return true;
 }
 
-bool cell_search::run()
+cell_search::ret_t cell_search::run_slot(const cf_t* buffer, uint32_t slot_sz)
 {
-  // Setup RF buffer for 1ms worth of samples
-  srsran::rf_buffer_t rf_buffer = {};
-  rf_buffer.set_nof_samples(sf_sz);
-  rf_buffer.set(0, buffer + ssb.ssb_sz);
-
-  // Receive
-  srsran::rf_timestamp_t rf_timestamp = {};
-  if (not radio->rx_now(rf_buffer, rf_timestamp)) {
-    return false;
-  }
+  cell_search::ret_t ret = {};
 
   // Search for SSB
-  srsran_ssb_search_res_t res = {};
-  if (srsran_ssb_search(&ssb, buffer, sf_sz + ssb.ssb_sz, &res) < SRSRAN_SUCCESS) {
+  if (srsran_ssb_search(&ssb, buffer, slot_sz + ssb.ssb_sz, &ret.ssb_res) < SRSRAN_SUCCESS) {
     logger.error("Error occurred searching SSB");
-    return false;
+    ret.result = ret_t::ERROR;
+  } else if (ret.ssb_res.measurements.snr_dB >= -10.0f and ret.ssb_res.pbch_msg.crc) {
+    // Consider the SSB is found and decoded if the PBCH CRC matched
+    ret.result = ret_t::CELL_FOUND;
+  } else {
+    ret.result = ret_t::CELL_NOT_FOUND;
   }
-
-  // Consider the SSB is found and decoded if the PBCH CRC matched
-  if (res.measurements.snr_dB >= -10.0f and res.pbch_msg.crc) {
-    rrc_interface_phy_nr::cell_search_result_t cs_res    = {};
-    cs_res.pci                                           = res.N_id;
-    cs_res.pbch_msg                                      = res.pbch_msg;
-    cs_res.measurements                                  = res.measurements;
-    stack->cell_search_found_cell(cs_res);
-  }
-
-  // Advance stack TTI
-  stack->run_tti(0);
-
-  return true;
+  return ret;
 }
 
 } // namespace nr

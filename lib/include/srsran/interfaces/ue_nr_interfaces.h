@@ -34,6 +34,7 @@ public:
    * @brief Describes a cell search result
    */
   struct cell_search_result_t {
+    bool                          cell_found = false;
     uint32_t                      pci = 0;           ///< Physical Cell Identifier
     srsran_pbch_msg_nr_t          pbch_msg;          ///< Packed PBCH message for the upper layers
     srsran_csi_trs_measurements_t measurements = {}; ///< Measurements from SSB block
@@ -262,13 +263,14 @@ public:
     PHY_NR_STATE_IDLE = 0,    ///< There is no process going on
     PHY_NR_STATE_CELL_SEARCH, ///< Cell search is currently in progress
     PHY_NR_STATE_CELL_SELECT, ///< Cell selection is in progress or it is camped on a cell
+    PHY_NR_STATE_CAMPING
   } phy_nr_state_t;
 
   /**
    * @brief Retrieves the physical layer state
    * @return
    */
-  virtual phy_nr_state_t get_state() const = 0;
+  virtual phy_nr_state_t get_state() = 0;
 
   /**
    * @brief Stops the ongoing process and transitions to IDLE
@@ -279,6 +281,7 @@ public:
    * @brief Describes cell search arguments
    */
   struct cell_search_args_t {
+    double                      srate_hz;
     double                      center_freq_hz;
     double                      ssb_freq_hz;
     srsran_subcarrier_spacing_t ssb_scs;
@@ -297,7 +300,8 @@ public:
    * @brief Describes cell select arguments
    */
   struct cell_select_args_t {
-    srsran::phy_cfg_nr_t phy_cfg; ///< Serving cell configuration
+    srsran_ssb_cfg_t    ssb_cfg;
+    srsran_carrier_nr_t carrier;
   };
 
   /**
@@ -305,7 +309,7 @@ public:
    * @param args Cell Search arguments
    * @return true if the physical layer started successfully the cell search process
    */
-  virtual bool start_cell_select(const cell_search_args_t& req) = 0;
+  virtual bool start_cell_select(const cell_select_args_t& req) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

@@ -141,31 +141,33 @@ public:
 
   void cell_search_found_cell(const cell_search_result_t& result) override
   {
-#if 0
-    // Unpack MIB with ASN1
-    asn1::rrc_nr::mib_s mib_asn1;
-    asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
-    mib_asn1.unpack(cbit);
+    if (result.cell_found) {
+      // Unpack MIB with ASN1
+      asn1::rrc_nr::mib_s mib_asn1;
+      asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
+      mib_asn1.unpack(cbit);
 
-    // Convert MIB to JSON
-    asn1::json_writer json;
-    mib_asn1.to_json(json);
+      // Convert MIB to JSON
+      asn1::json_writer json;
+      mib_asn1.to_json(json);
 
-    // Unpack MIB with C lib
-    srsran_mib_nr_t mib_c = {};
-    srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib_c);
+      // Unpack MIB with C lib
+      srsran_mib_nr_t mib_c = {};
+      srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib_c);
 
-    // Convert MIB from C lib to info
-    std::array<char, 512> mib_info = {};
-    srsran_pbch_msg_nr_mib_info(&mib_c, mib_info.data(), (uint32_t)mib_info.size());
+      // Convert MIB from C lib to info
+      std::array<char, 512> mib_info = {};
+      srsran_pbch_msg_nr_mib_info(&mib_c, mib_info.data(), (uint32_t)mib_info.size());
 
-    // Convert CSI to string
-    std::array<char, 512> csi_info = {};
-    srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
+      // Convert CSI to string
+      std::array<char, 512> csi_info = {};
+      srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
 
-    logger.info(
-        "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
-#endif
+      logger.info(
+          "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
+    } else {
+      logger.info("Cell not found\n");
+    }
   }
 };
 

@@ -22,6 +22,7 @@
 #include "srsran/radio/rf_timestamp.h"
 #include "srsran/srslog/logger.h"
 #include "srsran/srsran.h"
+#include "srsue/hdr/phy/sync_state.h"
 #include "worker_pool.h"
 #include <condition_variable>
 #include <mutex>
@@ -63,25 +64,18 @@ public:
     }
   };
 
-  typedef enum {
-    STATE_IDLE = 0, ///< No process is in progress
-    STATE_CELL_SEARCH,
-    STATE_CELL_SELECT
-  } state_t;
-
   sync_sa(srslog::basic_logger& logger, worker_pool& workers_);
   ~sync_sa();
 
   bool init(const args_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
+  bool                reset();
+  void stop();
+  sync_state::state_t get_state();
 
   // The following methods control the SYNC state machine
-  bool start_cell_search(const cell_search::cfg_t& cfg);
-  bool start_cell_select();
-  bool go_idle();
-
-  void stop();
-
-  state_t get_state() const;
+  void               cell_go_idle();
+  cell_search::ret_t cell_search_run(const cell_search::cfg_t& cfg);
+  bool               cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req);
 
   void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
@@ -91,25 +85,31 @@ private:
   srslog::basic_logger&        logger; ///< General PHY logger
   worker_pool&                 workers;
 
-  state_t                      state      = STATE_IDLE;
-  state_t                      next_state = STATE_IDLE;
-  mutable std::mutex           state_mutex;
-  std::condition_variable      state_cvar;
-  std::atomic<bool>            running = {false};
-  uint32_t                     sf_sz   = 0; ///< Subframe size (1-ms)
-  srsran::tti_semaphore<void*> tti_semaphore;
-  srsran_slot_cfg_t            slot_cfg = {};
+  // FSM that manages RRC commands for cell search/select/sync procedures
+  std::mutex rrc_mutex;
+  enum { PROC_IDLE = 0, PROC_SELECT_RUNNING, PROC_SEARCH_RUNNING } rrc_proc_state = PROC_IDLE;
+  sync_state phy_state;
 
-  cell_search searcher;
-  slot_sync   slot_synchronizer;
+  std::atomic<bool>            running   = {false};
+  cf_t*                        rx_buffer = nullptr;
+  uint32_t                     slot_sz   = 0; ///< Subframe size (1-ms)
+  uint32_t                     tti       = 0;
+  srsran::tti_semaphore<void*> tti_semaphore;
+  srsran::rf_timestamp_t       last_rx_time;
+  bool                         is_pending_tx_end      = false;
+  uint32_t                     cell_search_nof_trials = 0;
+  const static uint32_t        cell_search_max_trials = 100;
+
+  cell_search::ret_t cs_ret;
+  cell_search        searcher;
+  slot_sync          slot_synchronizer;
 
   // FSM States
+  bool wait_idle();
   void run_state_idle();
   void run_state_cell_search();
   void run_state_cell_select();
-
-  // FSM transitions
-  void enter_state_idle();
+  void run_state_cell_camping();
 
   void run_thread() override;
 };

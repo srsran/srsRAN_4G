@@ -11,7 +11,6 @@
  */
 
 #include "srsue/hdr/phy/phy_nr_sa.h"
-#include "srsran/common/band_helper.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/srsran.h"
 
@@ -60,8 +59,7 @@ phy_nr_sa::phy_nr_sa(const char* logname) :
   logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
   sync(logger, workers),
   workers(logger, 4),
-  common(logger),
-  prach_buffer(logger)
+  common(logger)
 {}
 
 int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
@@ -100,7 +98,6 @@ void phy_nr_sa::init_background()
     logger.error("Error initialising SYNC");
     return;
   }
-  prach_buffer.init(SRSRAN_MAX_PRB);
   workers.init(args, sync, stack, WORKERS_THREAD_PRIO);
 
   is_configured = true;
@@ -113,7 +110,6 @@ void phy_nr_sa::stop()
   if (is_configured) {
     sync.stop();
     workers.stop();
-    prach_buffer.stop();
     is_configured = false;
   }
 }
@@ -128,16 +124,18 @@ void phy_nr_sa::wait_initialize()
   init_thread.join();
 }
 
-phy_interface_rrc_nr::phy_nr_state_t phy_nr_sa::get_state() const
+phy_interface_rrc_nr::phy_nr_state_t phy_nr_sa::get_state()
 {
   {
     switch (sync.get_state()) {
-      case nr::sync_sa::STATE_IDLE:
-        break;
-      case nr::sync_sa::STATE_CELL_SEARCH:
+      case sync_state::state_t::IDLE:
+        return phy_interface_rrc_nr::PHY_NR_STATE_IDLE;
+      case sync_state::state_t::CELL_SEARCH:
         return phy_interface_rrc_nr::PHY_NR_STATE_CELL_SEARCH;
-      case nr::sync_sa::STATE_CELL_SELECT:
+      case sync_state::state_t::SFN_SYNC:
         return phy_interface_rrc_nr::PHY_NR_STATE_CELL_SELECT;
+      case sync_state::state_t::CAMPING:
+        return phy_interface_rrc_nr::PHY_NR_STATE_CAMPING;
     }
   }
   return phy_interface_rrc_nr::PHY_NR_STATE_IDLE;
@@ -145,22 +143,68 @@ phy_interface_rrc_nr::phy_nr_state_t phy_nr_sa::get_state() const
 
 void phy_nr_sa::reset_nr()
 {
-  sync.go_idle();
+  sync.reset();
 }
 
+// This function executes one part of the procedure immediately and returns to continue in the background.
+// When it returns, the caller thread can expect the PHY to have switched to IDLE and have stopped all DL/UL/PRACH
+// processing.
+// It will perform cell search procedure in the background and will signal stack with function cell_search_found_cell()
+// when finished
 bool phy_nr_sa::start_cell_search(const cell_search_args_t& req)
 {
-  // Prepare cell search configuration from the request
-  nr::cell_search::cfg_t cfg = {};
-  cfg.srate_hz               = 0; // args.srate_hz;
-  cfg.center_freq_hz         = req.center_freq_hz;
-  cfg.ssb_freq_hz            = req.ssb_freq_hz;
-  cfg.ssb_scs                = req.ssb_scs;
-  cfg.ssb_pattern            = req.ssb_pattern;
-  cfg.duplex_mode            = req.duplex_mode;
+  // TODO: verify arguments are valid before starting procedure
 
-  // Request cell search to lower synchronization instance
-  return sync.start_cell_search(cfg);
+  logger.info("Cell Search: Going to IDLE");
+  sync.cell_go_idle();
+
+  cmd_worker_cell.add_cmd([this, req]() {
+    // Prepare cell search configuration from the request
+    nr::cell_search::cfg_t cfg = {};
+    cfg.srate_hz               = req.srate_hz;
+    cfg.center_freq_hz         = req.center_freq_hz;
+    cfg.ssb_freq_hz            = req.ssb_freq_hz;
+    cfg.ssb_scs                = req.ssb_scs;
+    cfg.ssb_pattern            = req.ssb_pattern;
+    cfg.duplex_mode            = req.duplex_mode;
+
+    // Request cell search to lower synchronization instance.
+    nr::cell_search::ret_t ret = sync.cell_search_run(cfg);
+
+    // Pass result to stack
+    rrc_interface_phy_nr::cell_search_result_t rrc_cs_ret = {};
+    rrc_cs_ret.cell_found                                 = ret.result == nr::cell_search::ret_t::CELL_FOUND;
+    if (rrc_cs_ret.cell_found) {
+      rrc_cs_ret.pci          = ret.ssb_res.N_id;
+      rrc_cs_ret.pbch_msg     = ret.ssb_res.pbch_msg;
+      rrc_cs_ret.measurements = ret.ssb_res.measurements;
+    }
+    stack->cell_search_found_cell(rrc_cs_ret);
+  });
+
+  return true;
+}
+
+// This function executes one part of the procedure immediately and returns to continue in the background.
+// When it returns, the caller thread can expect the PHY to have switched to IDLE and have stopped all DL/UL/PRACH
+// processing.
+// It will perform cell search procedure in the background and will signal stack with function cell_search_found_cell()
+// when finished
+bool phy_nr_sa::start_cell_select(const cell_select_args_t& req)
+{
+  // TODO: verify arguments are valid before starting procedure
+
+  logger.info("Cell Select: Going to IDLE");
+  sync.cell_go_idle();
+
+  selected_cell = req.carrier;
+
+  cmd_worker_cell.add_cmd([this, req]() {
+    // Request cell search to lower synchronization instance.
+    start_cell_select(req);
+  });
+
+  return true;
 }
 
 bool phy_nr_sa::has_valid_sr_resource(uint32_t sr_id)
@@ -196,8 +240,6 @@ bool phy_nr_sa::set_config(const srsran::phy_cfg_nr_t& cfg)
 
   // Setup carrier configuration asynchronously
   cmd_worker.add_cmd([this]() {
-    srsran::srsran_band_helper band_helper;
-
     // tune radio
     for (uint32_t i = 0; i < common.args->nof_nr_carriers; i++) {
       logger.info("Tuning Rx channel %d to %.2f MHz",

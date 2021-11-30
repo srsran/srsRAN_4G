@@ -36,24 +36,24 @@ public:
     srsran_duplex_mode_t        duplex_mode;
   };
 
+  struct ret_t {
+    enum { CELL_FOUND = 1, CELL_NOT_FOUND = 0, ERROR = -1 } result;
+    srsran_ssb_search_res_t ssb_res;
+  };
+
   cell_search(srslog::basic_logger& logger);
   ~cell_search();
 
-  bool init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
+  bool init(const args_t& args);
 
-  bool start(const cfg_t& cfg);
-
-  bool run();
+  bool  start(const cfg_t& cfg);
+  ret_t run_slot(const cf_t* buffer, uint32_t slot_sz);
 
   void reset();
 
 private:
   srslog::basic_logger&        logger;
-  stack_interface_phy_nr*      stack  = nullptr;
-  srsran::radio_interface_phy* radio  = nullptr;
   srsran_ssb_t                 ssb    = {};
-  uint32_t                     sf_sz  = 0;       ///< subframe size in samples (1 ms)
-  cf_t*                        buffer = nullptr; ///< Receive buffer
 };
 } // namespace nr
 } // namespace srsue

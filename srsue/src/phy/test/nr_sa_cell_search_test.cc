@@ -302,11 +302,13 @@ int main(int argc, char** argv)
 
   // Create dummy UE
   dummy_ue::args_t ue_args = {};
+  ue_args.phy.log.phy_level = args.phy_log_level;
   ue_args.stack.log_level  = args.stack_log_level;
   dummy_ue ue(ue_args, radio.get());
 
   // Transition PHY to cell search
   srsue::phy_nr_sa::cell_search_args_t cell_search_req = {};
+  cell_search_req.srate_hz                             = args.srate_hz;
   cell_search_req.center_freq_hz                       = args.base_carrier.dl_center_frequency_hz;
   cell_search_req.ssb_freq_hz                          = args.base_carrier.ssb_center_freq_hz;
   cell_search_req.ssb_scs                              = args.ssb_scs;

@@ -9,6 +9,7 @@
  * the distribution.
  *
  */
+
 #include "srsue/hdr/phy/nr/sync_sa.h"
 #include "srsran/radio/rf_buffer.h"
 
@@ -22,12 +23,12 @@ sync_sa::~sync_sa() {}
 
 bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
-  stack = stack_;
-  radio = radio_;
-  sf_sz = (uint32_t)(args.srate_hz / 1000.0f);
+  stack   = stack_;
+  radio   = radio_;
+  slot_sz = (uint32_t)(args.srate_hz / 1000.0f);
 
   // Initialise cell search internal object
-  if (not searcher.init(args.get_cell_search(), stack, radio)) {
+  if (not searcher.init(args.get_cell_search())) {
     logger.error("Error initialising cell searcher");
     return false;
   }
@@ -35,6 +36,16 @@ bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::r
   // Initialise slot synchronizer object
   if (not slot_synchronizer.init(args.get_slot_sync(), stack, radio)) {
     logger.error("Error initialising slot synchronizer");
+    return false;
+  }
+
+  // Compute subframe size
+  slot_sz = (uint32_t)(args.srate_hz / 1000.0f);
+
+  // Allocate receive buffer
+  rx_buffer = srsran_vec_cf_malloc(2 * slot_sz);
+  if (rx_buffer == nullptr) {
+    logger.error("Error allocating buffer");
     return false;
   }
 
@@ -46,116 +57,250 @@ bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::r
   return true;
 }
 
-bool sync_sa::start_cell_search(const cell_search::cfg_t& cfg)
+void sync_sa::stop()
 {
-  // Make sure current state is IDLE
-  std::unique_lock<std::mutex> lock(state_mutex);
-  if (state != STATE_IDLE or next_state != STATE_IDLE) {
-    logger.error("Sync: trying to start cell search but state is not IDLE");
-    return false;
-  }
-
-  // Configure searcher without locking state for avoiding stalling the Rx stream
-  lock.unlock();
-  if (not searcher.start(cfg)) {
-    logger.error("Sync: failed to start cell search");
-    return false;
-  }
-  lock.lock();
-
-  // Transition to search
-  next_state = STATE_CELL_SEARCH;
-
-  return true;
+  running = false;
+  wait_thread_finish();
+  radio->reset();
 }
 
-bool sync_sa::start_cell_select()
+bool sync_sa::reset()
 {
-  return true;
-}
-
-bool sync_sa::go_idle()
-{
-  std::unique_lock<std::mutex> lock(state_mutex);
-
-  // Force transition to IDLE
-  while (state != STATE_IDLE) {
-    next_state = STATE_IDLE;
-    state_cvar.wait(lock);
-  }
-
   // Wait worker pool to finish any processing
   tti_semaphore.wait_all();
 
   return true;
 }
 
-void sync_sa::stop()
+void sync_sa::cell_go_idle()
 {
-  running = false;
-  wait_thread_finish();
+  std::unique_lock<std::mutex> ul(rrc_mutex);
+  phy_state.go_idle();
 }
 
-sync_sa::state_t sync_sa::get_state() const
+bool sync_sa::wait_idle()
 {
-  std::unique_lock<std::mutex> lock(state_mutex);
-  return state;
+  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
+  if (!phy_state.wait_idle(100)) {
+    return false;
+  }
+
+  // Reset UE sync. Attention: doing this reset when the FSM is NOT IDLE can cause PSS/SSS out-of-sync
+  //...
+
+  // Wait for workers to finish PHY processing
+  tti_semaphore.wait_all();
+
+  // As workers have finished, make sure the Tx burst is ended
+  radio->tx_end();
+
+  return phy_state.is_idle();
+}
+
+cell_search::ret_t sync_sa::cell_search_run(const cell_search::cfg_t& cfg)
+{
+  std::unique_lock<std::mutex> ul(rrc_mutex);
+
+  cs_ret        = {};
+  cs_ret.result = cell_search::ret_t::ERROR;
+
+  // Wait the FSM to transition to IDLE
+  if (!wait_idle()) {
+    logger.error("Cell Search: SYNC thread didn't transition to IDLE after 100 ms\n");
+    return cs_ret;
+  }
+
+  rrc_proc_state = PROC_SEARCH_RUNNING;
+
+  // Configure searcher without locking state for avoiding stalling the Rx stream
+  logger.info("Cell search: starting in center frequency %.2f and SSB frequency %.2f with subcarrier spacing of %s",
+              cfg.center_freq_hz / 1e6,
+              cfg.ssb_freq_hz / 1e6,
+              srsran_subcarrier_spacing_to_str(cfg.ssb_scs));
+
+  if (not searcher.start(cfg)) {
+    logger.error("Sync: failed to start cell search");
+    return cs_ret;
+  }
+
+  // Set RX frequency
+  radio->set_rx_freq(0, cfg.center_freq_hz);
+
+  // Zero receive buffer
+  srsran_vec_zero(rx_buffer, slot_sz);
+
+  logger.info("Cell Search: Running Cell search state");
+  cell_search_nof_trials = 0;
+  phy_state.run_cell_search();
+
+  rrc_proc_state = PROC_IDLE;
+
+  return cs_ret;
+}
+
+bool sync_sa::cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req)
+{
+  std::unique_lock<std::mutex> ul(rrc_mutex);
+
+  // Wait the FSM to transition to IDLE
+  if (!wait_idle()) {
+    logger.error("Cell Search: SYNC thread didn't transition to IDLE after 100 ms\n");
+    return false;
+  }
+
+  rrc_proc_state = PROC_SELECT_RUNNING;
+
+  // Reconfigure cell if necessary
+
+  // SFN synchronization
+  phy_state.run_sfn_sync();
+  if (phy_state.is_camping()) {
+    logger.info("Cell Select: SFN synchronized. CAMPING...");
+  } else {
+    logger.info("Cell Select: Could not synchronize SFN");
+  }
+
+  rrc_proc_state = PROC_IDLE;
+  return true;
+}
+
+sync_state::state_t sync_sa::get_state()
+{
+  return phy_state.get_state();
 }
 
 void sync_sa::run_state_idle()
 {
-  srsran::rf_buffer_t rf_buffer = {};
-  rf_buffer.set_nof_samples(sf_sz);
-
-  srsran::rf_timestamp_t ts = {};
-
-  // Receives from radio 1 slot
-  radio->rx_now(rf_buffer, ts);
-
-  stack->run_tti(slot_cfg.idx);
+  if (radio->is_init()) {
+    logger.debug("Discarding samples and sending tx_end");
+    radio->tx_end();
+  } else {
+    logger.debug("Sleeping 1 ms");
+    usleep(1000);
+  }
 }
 
 void sync_sa::run_state_cell_search()
 {
   // Run Searcher
-  if (not searcher.run()) {
+  cs_ret = searcher.run_slot(rx_buffer, slot_sz);
+  if (cs_ret.result < 0) {
     logger.error("Failed to run searcher. Transitioning to IDLE...");
-
-    // Transition to IDLE if fails to run
-    state_mutex.lock();
-    next_state = STATE_IDLE;
-    state_mutex.unlock();
   }
+
+  cell_search_nof_trials++;
+
+  // Leave CELL_SEARCH state if error or success and transition to IDLE
+  if (cs_ret.result || cell_search_nof_trials >= cell_search_max_trials) {
+    phy_state.state_exit();
+  }
+}
+
+void sync_sa::run_state_cell_select()
+{
+  // TODO
+  tti = 0;
+}
+
+void sync_sa::run_state_cell_camping()
+{
+  // Update logging TTI
+  logger.set_context(tti);
+
+  last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
+
+  nr::sf_worker* nr_worker = nullptr;
+  nr_worker                = workers.wait_worker(tti);
+  if (nr_worker == nullptr) {
+    running = false;
+    return;
+  }
+
+  srsran::phy_common_interface::worker_context_t context;
+  context.sf_idx     = tti;
+  context.worker_ptr = nr_worker;
+  context.last       = true; // Set last if standalone
+  context.tx_time.copy(last_rx_time);
+
+  nr_worker->set_context(context);
+
+  // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
+  tti_semaphore.push(nr_worker);
+  workers.start_worker(nr_worker);
+
+  tti = TTI_ADD(tti, 1);
 }
 
 void sync_sa::run_thread()
 {
-  while (running) {
-    state_mutex.lock();
-    // Detect state transition
-    if (next_state != state) {
-      state = next_state;
-      state_cvar.notify_all();
-    }
-    state_t current_state = state;
-    state_mutex.unlock();
+  while (running.load(std::memory_order_relaxed)) {
+    logger.debug("SYNC:  state=%s, tti=%d", phy_state.to_string(), tti);
 
-    switch (current_state) {
-      case STATE_IDLE:
+    // Setup RF buffer for 1ms worth of samples
+    if (radio->is_init()) {
+      srsran::rf_buffer_t rf_buffer = {};
+      rf_buffer.set_nof_samples(slot_sz);
+      rf_buffer.set(0, rx_buffer);
+
+      if (not radio->rx_now(rf_buffer, last_rx_time)) {
+        logger.error("SYNC: receiving from radio\n");
+      }
+    }
+    switch (phy_state.run_state()) {
+      case sync_state::IDLE:
         run_state_idle();
         break;
-      case STATE_CELL_SEARCH:
+      case sync_state::CELL_SEARCH:
         run_state_cell_search();
         break;
-      case STATE_CELL_SELECT:
+      case sync_state::SFN_SYNC:
+        run_state_cell_select();
+      case sync_state::CAMPING:
+        run_state_cell_camping();
         break;
     }
   }
+  // Advance stack TTI
+  stack->run_tti(tti);
 }
 void sync_sa::worker_end(const srsran::phy_common_interface::worker_context_t& w_ctx,
                          const bool&                                           tx_enable,
-                         srsran::rf_buffer_t&                                  buffer)
-{}
+                         srsran::rf_buffer_t&                                  tx_buffer)
+{
+  // Wait for the green light to transmit in the current TTI
+  tti_semaphore.wait(w_ctx.worker_ptr);
+
+  // Add current time alignment
+  srsran::rf_timestamp_t tx_time = w_ctx.tx_time; // get transmit time from the last worker
+  // todo: tx_time.sub((double)ta.get_sec());
+
+  // Check if any worker had a transmission
+  if (tx_enable) {
+    // Actual baseband transmission
+    radio->tx(tx_buffer, tx_time);
+
+  } else {
+    if (radio->is_continuous_tx()) {
+      if (is_pending_tx_end) {
+        radio->tx_end();
+        is_pending_tx_end = false;
+      } else {
+        if (!radio->get_is_start_of_burst()) {
+          // TODO
+          /*
+          zeros_multi.set_nof_samples(buffer.get_nof_samples());
+          radio->tx(zeros_multi, tx_time);
+           */
+        }
+      }
+    } else {
+      radio->tx_end();
+    }
+  }
+
+  // Allow next TTI to transmit
+  tti_semaphore.release();
+}
 
 } // namespace nr
 } // namespace srsue

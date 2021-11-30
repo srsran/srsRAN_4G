@@ -16,19 +16,19 @@
 #include "phy_common.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsue/hdr/phy/nr/sync_sa.h"
-#include "srsue/hdr/phy/ue_nr_phy_base.h"
+#include "srsue/hdr/phy/ue_phy_base.h"
 
 namespace srsue {
 
 /**
  * @brief NR Standalone PHY
  */
-class phy_nr_sa final : public ue_nr_phy_base
+class phy_nr_sa final : public ue_phy_base, public phy_interface_stack_nr
 {
 public:
   phy_nr_sa(const char* logname);
 
-  int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_) final;
+  int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
   void wait_initialize() final;
   bool is_initialized() final;
   void stop() final;
@@ -46,14 +46,14 @@ public:
                   const int      preamble_index,
                   const float    preamble_received_target_power,
                   const float    ta_base_sec) final;
-  void set_earfcn(std::vector<uint32_t> earfcns) final{};
+  void set_earfcn(std::vector<uint32_t> earfcns);
   bool has_valid_sr_resource(uint32_t sr_id) final;
   void clear_pending_grants() final;
   bool set_config(const srsran::phy_cfg_nr_t& cfg) final;
 
-  phy_nr_state_t get_state() const final;
+  phy_nr_state_t get_state() final;
   bool           start_cell_search(const cell_search_args_t& req) final;
-  bool           start_cell_select(const cell_search_args_t& req) final { return false; }
+  bool           start_cell_select(const cell_select_args_t& req) final;
 
   void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final{};
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
@@ -64,11 +64,11 @@ private:
 
   nr::worker_pool       workers;
   phy_common            common;
-  prach                 prach_buffer;
   nr::sync_sa           sync;
 
-  srsran::phy_cfg_nr_t config_nr = {};
-  phy_args_nr_t        args      = {};
+  srsran::phy_cfg_nr_t config_nr     = {};
+  phy_args_nr_t        args          = {};
+  srsran_carrier_nr_t  selected_cell = {};
 
   srsran::radio_interface_phy* radio = nullptr;
   stack_interface_phy_nr*      stack = nullptr;
