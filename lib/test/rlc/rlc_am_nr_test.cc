@@ -371,7 +371,8 @@ int basic_segmentation_test()
   rlc1.write_sdu(std::move(sdu));
 
   // Read 3 PDUs
-  unique_byte_buffer_t pdu_bufs[3];
+  constexpr uint16_t   n_pdus = 3;
+  unique_byte_buffer_t pdu_bufs[n_pdus];
   for (int i = 0; i < 3; i++) {
     pdu_bufs[i] = srsran::make_byte_buffer();
     TESTASSERT(nullptr != pdu_bufs[i]);
@@ -383,6 +384,28 @@ int basic_segmentation_test()
       TESTASSERT_EQ(5, pdu_bufs[i]->N_bytes);
     }
   }
+
+  // Write 5 PDUs into RLC2
+  for (int i = 0; i < n_pdus; i++) {
+    rlc2.write_pdu(pdu_bufs[i]->msg, pdu_bufs[i]->N_bytes); // Don't write RLC_SN=3.
+  }
+
+  // Check statistics
+  rlc_bearer_metrics_t metrics1 = rlc1.get_metrics();
+  rlc_bearer_metrics_t metrics2 = rlc2.get_metrics();
+
+  // SDU metrics
+  TESTASSERT_EQ(0, metrics2.num_tx_sdus);
+  TESTASSERT_EQ(1, metrics2.num_rx_sdus);
+  TESTASSERT_EQ(0, metrics2.num_tx_sdu_bytes);
+  TESTASSERT_EQ(3, metrics2.num_rx_sdu_bytes);
+  TESTASSERT_EQ(0, metrics2.num_lost_sdus);
+  // PDU metrics
+  TESTASSERT_EQ(0, metrics2.num_tx_pdus);
+  TESTASSERT_EQ(3, metrics2.num_rx_pdus);       // 5 PDUs (6 tx'ed, but one was lost)
+  TESTASSERT_EQ(0, metrics2.num_tx_pdu_bytes);  // Two status PDU (one with a NACK)
+  TESTASSERT_EQ(13, metrics2.num_rx_pdu_bytes); // 1 PDU (No SO) + 2 PDUs (with SO) = 3 + 2*5
+  TESTASSERT_EQ(0, metrics2.num_lost_sdus);     // No lost SDUs
 
   return SRSRAN_SUCCESS;
 }

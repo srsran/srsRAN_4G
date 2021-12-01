@@ -313,12 +313,20 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
   // Copy PDU to payload
   memcpy(&payload[hdr_len], &tx_pdu.buf->msg[last_byte], segment_payload_len);
 
+  // Store PDU segment info into tx_window
+  rlc_amd_tx_pdu_nr::pdu_segment segment_info = {};
+  segment_info.so                             = last_byte;
+  segment_info.payload_len                    = segment_payload_len;
+  tx_pdu.segment_list.push_back(segment_info);
+
   if (si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
     logger->info("Grant is not large enough for full SDU."
                  "Storing SDU segment info");
   } else {
     logger->info("Grant is large enough for full SDU."
                  "Removing current SDU info");
+    current_sdu.rlc_sn = INVALID_RLC_SN;
+    current_sdu.buf    = nullptr;
   }
 
   return hdr_len + segment_payload_len;
@@ -632,7 +640,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // Section 5.2.3.2.2, discard duplicate PDUs
-  if (rx_window.has_sn(header.sn)) {
+  if (rx_window.has_sn(header.sn) && rx_window[header.sn].fully_received) {
     logger->info("%s Discarding duplicate SN=%d", parent->rb_name, header.sn);
     return;
   }
@@ -662,12 +670,65 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     rx_sdu.buf->N_bytes   = nof_bytes - hdr_len;
     rx_sdu.fully_received = true;
     write_to_upper_layers(parent->lcid, std::move(rx_window[header.sn].buf));
-  } else {
-    // Check if all bytes of the RLC SDU with SN = x are received:
-    // TODO
-    if (header.si == rlc_nr_si_field_t::first_segment) { // Check whether it's a full SDU
-    } else if (header.si == rlc_nr_si_field_t::last_segment) {
-    } else if (header.si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
+  } else if (header.si == rlc_nr_si_field_t::first_segment) { // Check whether it's a full SDU
+    logger->info("Initial segment PDU. SN=%d.", header.sn);
+    rlc_amd_rx_sdu_nr_t& rx_sdu = rx_window.add_pdu(header.sn);
+
+    rlc_amd_rx_pdu_nr pdu_segment = {};
+    pdu_segment.header            = header;
+    pdu_segment.buf               = srsran::make_byte_buffer();
+    if (pdu_segment.buf == nullptr) {
+      logger->error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+      rx_window.remove_pdu(header.sn);
+      return;
+    }
+    memcpy(pdu_segment.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
+    pdu_segment.buf->N_bytes = nof_bytes - hdr_len;
+    rx_sdu.segments.push_back(std::move(pdu_segment));
+  } else if (header.si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
+    logger->info("Middle segment PDU. SN=%d.", header.sn);
+    rlc_amd_rx_sdu_nr_t& rx_sdu = rx_window.has_sn(header.sn) ? rx_window[header.sn] : rx_window.add_pdu(header.sn);
+
+    rlc_amd_rx_pdu_nr pdu_segment = {};
+    pdu_segment.header            = header;
+    pdu_segment.buf               = srsran::make_byte_buffer();
+    if (pdu_segment.buf == nullptr) {
+      logger->error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+      rx_window.remove_pdu(header.sn);
+      return;
+    }
+    memcpy(pdu_segment.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
+    pdu_segment.buf->N_bytes = nof_bytes - hdr_len;
+    rx_sdu.segments.push_back(std::move(pdu_segment));
+  } else if (header.si == rlc_nr_si_field_t::last_segment) {
+    logger->info("Final segment PDU. SN=%d.", header.sn);
+    rlc_amd_rx_sdu_nr_t& rx_sdu = rx_window.has_sn(header.sn) ? rx_window[header.sn] : rx_window.add_pdu(header.sn);
+
+    rlc_amd_rx_pdu_nr pdu_segment = {};
+    pdu_segment.header            = header;
+    pdu_segment.buf               = srsran::make_byte_buffer();
+    if (pdu_segment.buf == nullptr) {
+      logger->error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+      rx_window.remove_pdu(header.sn);
+      return;
+    }
+    memcpy(pdu_segment.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
+    pdu_segment.buf->N_bytes = nof_bytes - hdr_len;
+    rx_sdu.segments.push_back(std::move(pdu_segment));
+    rx_sdu.fully_received = have_all_segments_been_received(rx_sdu.segments);
+    if (rx_sdu.fully_received) {
+      logger->info("Fully received segmented SDU. SN=%d.", header.sn);
+      rx_sdu.buf = srsran::make_byte_buffer();
+      if (rx_sdu.buf == nullptr) {
+        logger->error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
+        rx_window.remove_pdu(header.sn);
+        return;
+      }
+      for (const auto& it : rx_sdu.segments) {
+        memcpy(&rx_sdu.buf->msg[rx_sdu.buf->N_bytes], it.buf->msg, it.buf->N_bytes);
+        rx_sdu.buf->N_bytes += it.buf->N_bytes;
+      }
+      write_to_upper_layers(parent->lcid, std::move(rx_window[header.sn].buf));
     }
   }
 
@@ -756,8 +817,8 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (st.rx_next_highest > st.rx_next + 1) {
       restart_reassembly_timer = true;
     }
-    if (st.rx_next_highest == st.rx_next + 1 &&
-        rx_window[st.rx_next + 1].fully_received == false) { // TODO: does the last by need to be received?
+    if (st.rx_next_highest == st.rx_next + 1 && rx_window.has_sn(st.rx_next + 1) &&
+        not rx_window[st.rx_next + 1].fully_received) {
       restart_reassembly_timer = true;
     }
     if (restart_reassembly_timer) {
@@ -905,6 +966,27 @@ uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
   return 0;
 }
 
+bool rlc_am_nr_rx::have_all_segments_been_received(const std::list<rlc_amd_rx_pdu_nr>& segment_list)
+{
+  if (segment_list.empty()) {
+    return false;
+  }
+
+  // Check if we have received the last segment
+  if ((--segment_list.end())->header.si != rlc_nr_si_field_t::last_segment) {
+    return false;
+  }
+
+  // Check if all segments have been received
+  uint32_t next_byte = 0;
+  for (const auto& it : segment_list) {
+    if (it.header.so != next_byte) {
+      return false;
+    }
+    next_byte += it.buf->N_bytes;
+  }
+  return true;
+}
 /*
  * Debug Helpers
  */
