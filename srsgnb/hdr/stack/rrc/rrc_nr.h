@@ -103,6 +103,7 @@ public:
                             srsran::const_byte_span nas_pdu,
                             uint32_t                lcid) final;
   int  release_bearers(uint16_t rnti) final;
+  void release_user(uint16_t rnti) final;
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) final;
   int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates) final;
   int  allocate_lcid(uint16_t rnti) final;

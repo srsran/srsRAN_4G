@@ -629,6 +629,16 @@ int rrc_nr::release_bearers(uint16_t rnti)
   return SRSRAN_SUCCESS;
 }
 
+void rrc_nr::release_user(uint16_t rnti)
+{
+  if (not users.contains(rnti)) {
+    logger.warning("User rnti=0x%x has already been released", rnti);
+    return;
+  }
+
+  users[rnti]->send_rrc_release();
+}
+
 int rrc_nr::allocate_lcid(uint16_t rnti)
 {
   return SRSRAN_SUCCESS;

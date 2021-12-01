@@ -90,7 +90,7 @@ private:
   int send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
   int send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
 
-  /* TS 38.331 - 5.3.3 RRC connection establishment */
+  /** TS 38.331 - 5.3.3 RRC connection establishment */
   void send_rrc_setup();
   void send_rrc_reject(uint8_t reject_wait_time_secs);
 

@@ -48,6 +48,8 @@ public:
   bool send_ue_ctxt_release_complete();
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
+  // TS 38.413 - Section 9.2.2.4 - UE Context Release Request
+  bool send_ue_context_release_request(asn1::ngap_nr::cause_c cause);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
   bool handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request

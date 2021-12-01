@@ -265,6 +265,23 @@ void ngap::write_pdu(uint16_t rnti, srsran::const_byte_span pdu)
   u->send_ul_nas_transport(pdu);
 }
 
+void ngap::user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio)
+{
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    logger.warning("Released UE rnti=0x%x not found.", rnti);
+    return;
+  }
+
+  cause_c cause;
+  cause.set_radio_network().value = cause_radio;
+  if (not u->send_ue_context_release_request(cause)) {
+    logger.error("Failed to initiate RRC Release for rnti=0x%x. Removing user", rnti);
+    rrc->release_user(rnti);
+    users.erase(u);
+  }
+}
+
 /*********************************************************
  *              ngap::user_list class
  *********************************************************/

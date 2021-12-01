@@ -44,12 +44,12 @@ public:
                           srsran::const_byte_span                 pdu,
                           uint32_t                                m_tmsi)             = 0;
 
-  virtual void write_pdu(uint16_t rnti, srsran::const_byte_span pdu)                         = 0;
-  virtual bool user_exists(uint16_t rnti)                                                    = 0;
-  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                = 0;
-  virtual bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) = 0;
-  virtual bool is_amf_connected()                                                            = 0;
-  virtual void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)                    = 0;
+  virtual void write_pdu(uint16_t rnti, srsran::const_byte_span pdu)                                 = 0;
+  virtual bool user_exists(uint16_t rnti)                                                            = 0;
+  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                        = 0;
+  virtual void user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) = 0;
+  virtual bool is_amf_connected()                                                                    = 0;
+  virtual void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)                            = 0;
 };
 
 } // namespace srsenb

@@ -81,9 +81,8 @@ ngap_ue_ue_context_release_proc::ngap_ue_ue_context_release_proc(ngap_interface_
 proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
 {
   logger.info("Started %s", name());
-  // TODO: How to approach erasing users ?
   bearer_manager->reset_pdu_sessions(ue_ctxt->rnti);
-  rrc->release_bearers(ue_ctxt->rnti);
+  rrc->release_user(ue_ctxt->rnti);
   parent->send_ue_ctxt_release_complete();
   return proc_outcome_t::success;
 }

@@ -51,27 +51,30 @@ public:
   void initial_ue(uint16_t                                rnti,
                   uint32_t                                gnb_cc_idx,
                   asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::const_byte_span                 pdu);
+                  srsran::const_byte_span                 pdu) override;
   void initial_ue(uint16_t                                rnti,
                   uint32_t                                gnb_cc_idx,
                   asn1::ngap_nr::rrcestablishment_cause_e cause,
                   srsran::const_byte_span                 pdu,
-                  uint32_t                                s_tmsi);
+                  uint32_t                                s_tmsi) override;
 
-  void write_pdu(uint16_t rnti, srsran::const_byte_span pdu);
-  bool user_exists(uint16_t rnti) { return true; };
-  void user_mod(uint16_t old_rnti, uint16_t new_rnti){};
-  bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) { return true; };
-  bool is_amf_connected();
+  void write_pdu(uint16_t rnti, srsran::const_byte_span pdu) override;
+  bool user_exists(uint16_t rnti) override { return true; };
+  void user_mod(uint16_t old_rnti, uint16_t new_rnti) override {}
+
+  // TS 38.413 - Section 8.3.2 - UE Context Release Request
+  void user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) override;
+
+  bool is_amf_connected() override;
   bool send_error_indication(const asn1::ngap_nr::cause_c& cause,
                              srsran::optional<uint32_t>    ran_ue_ngap_id = {},
                              srsran::optional<uint32_t>    amf_ue_ngap_id = {});
-  void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome);
+  void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome) override;
   bool send_pdu_session_resource_setup_response();
 
   // Stack interface
   bool
-  handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void get_metrics(ngap_metrics_t& m);
   void get_args(ngap_args_t& args_);
 

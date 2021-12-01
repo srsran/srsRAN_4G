@@ -56,6 +56,8 @@ public:
 
   int reset_pdu_sessions(uint16_t rnti);
 
+  const std::map<uint8_t, pdu_session_t>& pdu_sessions() const { return pdu_session_list; }
+
 private:
   gtpu_interface_rrc*              gtpu = nullptr;
   std::map<uint8_t, pdu_session_t> pdu_session_list;

@@ -244,6 +244,43 @@ bool ngap::ue::send_ue_ctxt_release_complete()
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
 
+bool ngap::ue::send_ue_context_release_request(asn1::ngap_nr::cause_c cause)
+{
+  if (not ngap_ptr->amf_connected) {
+    logger.warning("AMF not connected");
+    return false;
+  }
+
+  if (was_uectxtrelease_requested()) {
+    // let timeout auto-remove user.
+    return false;
+  }
+  release_requested = true;
+
+  ngap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_UE_CONTEXT_RELEASE_REQUEST);
+  ue_context_release_request_s& container = tx_pdu.init_msg().value.ue_context_release_request();
+
+  container.protocol_ies.cause.value = cause;
+
+  // PDU Session Resource List
+  auto& session_lst = container.protocol_ies.pdu_session_res_list_cxt_rel_req.value;
+  for (const auto& pdu_pair : bearer_manager.pdu_sessions()) {
+    const ngap_ue_bearer_manager::pdu_session_t& session = pdu_pair.second;
+
+    pdu_session_res_item_cxt_rel_req_s obj;
+    obj.pdu_session_id = session.id;
+    session_lst.push_back(obj);
+  }
+  container.protocol_ies.pdu_session_res_list_cxt_rel_req_present = session_lst.size() > 0;
+
+  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+
+  // TODO: Implement timeout
+  return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseRequest");
+}
+
 /*******************************************************************************
 /* NGAP message handler
 ********************************************************************************/

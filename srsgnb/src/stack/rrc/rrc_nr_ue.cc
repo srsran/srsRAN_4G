@@ -96,8 +96,8 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
     case UE_INACTIVITY_TIMEOUT: {
       state = rrc_nr_state_t::RRC_INACTIVE;
       if (parent->cfg.is_standalone) {
-        // TODO: This procedure needs to be defined
-        parent->rrc_release(rnti);
+        // Start NGAP Release UE context
+        parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::user_inactivity);
       } else {
         parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
       }
@@ -1017,7 +1017,7 @@ void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu
   ies.security_cfg_smc.security_algorithm_cfg                                  = sec_ctx.get_security_algorithm_cfg();
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
-    send_rrc_release();
+    parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
   }
 }
 
@@ -1061,7 +1061,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     // Pack masterCellGroup into container
     srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
     if (pdu == nullptr) {
-      send_rrc_release();
+      parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
       return;
     }
     ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
@@ -1097,7 +1097,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   ies.non_crit_ext_present = ies.non_crit_ext.master_cell_group_present or ies.non_crit_ext.ded_nas_msg_list_present;
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
-    send_rrc_release();
+    parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
   }
 }
 
@@ -1112,7 +1112,21 @@ void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_rec
 
 void rrc_nr::ue::send_rrc_release()
 {
-  // TODO
+  static const uint32_t release_delay = 60; // Taken from TS 38.331, 5.3.8.3
+
+  dl_dcch_msg_s  dl_dcch_msg;
+  rrc_release_s& release = dl_dcch_msg.msg.set_c1().set_rrc_release();
+
+  release.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_release_ies_s& ies     = release.crit_exts.set_rrc_release();
+
+  ies.suspend_cfg_present = false; // goes to RRC_IDLE
+
+  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  state = rrc_nr_state_t::RRC_IDLE;
+
+  // TODO: Obtain acknowledgment from lower layers that RRC Release was received
+  parent->task_sched.defer_callback(release_delay, [this]() { parent->rem_user(rnti); });
 }
 
 void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
@@ -1126,7 +1140,7 @@ void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
   memcpy(ies.ded_nas_msg.data(), sdu->data(), ies.ded_nas_msg.size());
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
-    send_rrc_release();
+    parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
   }
 }
 

@@ -36,7 +36,7 @@ class ngap_dummy : public ngap_interface_rrc_nr
   void write_pdu(uint16_t rnti, srsran::const_byte_span pdu) {}
   bool user_exists(uint16_t rnti) { return true; }
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) {}
-  bool user_release(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) { return true; }
+  void user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) {}
   bool is_amf_connected() { return true; }
   void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome) {}
 };
