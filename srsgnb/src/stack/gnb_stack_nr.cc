@@ -69,6 +69,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
   ngap_logger.set_level(srslog::str_to_basic_level(args.log.s1ap_level));
   gtpu_logger.set_level(srslog::str_to_basic_level(args.log.gtpu_level));
+  srslog::fetch_basic_logger("COMN", false).set_level(srslog::str_to_basic_level(args.log.stack_level));
 
   mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
@@ -77,6 +78,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
   ngap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
   gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
+  srslog::fetch_basic_logger("COMN", false).set_hex_dump_max_size(args.log.stack_hex_limit);
 
   if (x2_ == nullptr) {
     // SA mode
