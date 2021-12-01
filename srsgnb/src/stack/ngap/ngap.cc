@@ -432,7 +432,7 @@ bool ngap::handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg)
     case ngap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request:
       return handle_initial_ctxt_setup_request(msg.value.init_context_setup_request());
     case ngap_elem_procs_o::init_msg_c::types_opts::ue_context_release_cmd:
-      return handle_ue_ctxt_release_cmd(msg.value.ue_context_release_cmd());
+      return handle_ue_context_release_cmd(msg.value.ue_context_release_cmd());
     case ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request:
       return handle_ue_pdu_session_res_setup_request(msg.value.pdu_session_res_setup_request());
     default:
@@ -547,7 +547,7 @@ bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_s
   return true;
 }
 
-bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+bool ngap::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
 {
   const asn1::ngap_nr::ue_ngap_id_pair_s& ue_ngap_id_pair = msg.protocol_ies.ue_ngap_ids.value.ue_ngap_id_pair();
 
@@ -557,9 +557,7 @@ bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cm
     return false;
   }
 
-  u->handle_ue_ctxt_release_cmd(msg);
-
-  return true;
+  return u->handle_ue_context_release_cmd(msg);
 }
 
 bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)

@@ -51,11 +51,12 @@ public:
   // TS 38.413 - Section 9.2.2.4 - UE Context Release Request
   bool send_ue_context_release_request(asn1::ngap_nr::cause_c cause);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
-  bool handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  bool handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
   bool handle_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
 
-  bool was_uectxtrelease_requested() const { return release_requested; }
+  /// Checks if a UE Context Release Request was already sent
+  bool was_ue_context_release_requested() const { return release_requested; }
   void notify_rrc_reconf_complete(const bool reconf_complete_outcome);
 
   ngap_ue_ctxt_t ctxt      = {};

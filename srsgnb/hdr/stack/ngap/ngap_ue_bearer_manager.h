@@ -56,12 +56,13 @@ public:
 
   int reset_pdu_sessions(uint16_t rnti);
 
-  const std::map<uint8_t, pdu_session_t>& pdu_sessions() const { return pdu_session_list; }
+  using pdu_session_list_t = std::map<uint8_t, pdu_session_t>;
+  const pdu_session_list_t& pdu_sessions() const { return pdu_session_list; }
 
 private:
-  gtpu_interface_rrc*              gtpu = nullptr;
-  std::map<uint8_t, pdu_session_t> pdu_session_list;
-  srslog::basic_logger&            logger;
+  gtpu_interface_rrc*   gtpu = nullptr;
+  pdu_session_list_t    pdu_session_list;
+  srslog::basic_logger& logger;
 
   std::map<uint32_t, uint32_t> next_lcid_list; // Map RNTI to next LCID to be allocated
 

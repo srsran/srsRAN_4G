@@ -133,7 +133,7 @@ private:
   // TS 38.413 - Section 9.2.6.3 - NG Setup Failure
   bool handle_ng_setup_failure(const asn1::ngap_nr::ng_setup_fail_s& msg);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
-  bool handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  bool handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
   bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request

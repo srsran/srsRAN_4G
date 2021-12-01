@@ -251,7 +251,7 @@ bool ngap::ue::send_ue_context_release_request(asn1::ngap_nr::cause_c cause)
     return false;
   }
 
-  if (was_uectxtrelease_requested()) {
+  if (was_ue_context_release_requested()) {
     // let timeout auto-remove user.
     return false;
   }
@@ -294,7 +294,7 @@ bool ngap::ue::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_conte
   return true;
 }
 
-bool ngap::ue::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+bool ngap::ue::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
 {
   // TODO: Release UE context
   if (not ue_context_release_proc.launch(msg)) {
