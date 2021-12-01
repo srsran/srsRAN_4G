@@ -39,6 +39,10 @@ bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::r
     return false;
   }
 
+  // Cell bandwidth must be provided at init so set now sampling rate
+  radio->set_rx_srate(args.srate_hz);
+  radio->set_tx_srate(args.srate_hz);
+
   // Compute subframe size
   slot_sz = (uint32_t)(args.srate_hz / 1000.0f);
 
@@ -123,9 +127,6 @@ cell_search::ret_t sync_sa::cell_search_run(const cell_search::cfg_t& cfg)
     return cs_ret;
   }
 
-  // Set RX frequency
-  radio->set_rx_freq(0, cfg.center_freq_hz);
-
   // Zero receive buffer
   srsran_vec_zero(rx_buffer, slot_sz);
 
@@ -150,7 +151,11 @@ bool sync_sa::cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& re
 
   rrc_proc_state = PROC_SELECT_RUNNING;
 
-  // Reconfigure cell if necessary
+  // tune radio
+  logger.info("Tuning Rx channel %d to %.2f MHz", 0, req.carrier.dl_center_frequency_hz / 1e6);
+  radio->set_rx_freq(0, req.carrier.dl_center_frequency_hz);
+  logger.info("Tuning Tx channel %d to %.2f MHz", 0, req.carrier.ul_center_frequency_hz / 1e6);
+  radio->set_tx_freq(0, req.carrier.ul_center_frequency_hz);
 
   // SFN synchronization
   phy_state.run_sfn_sync();
@@ -171,17 +176,32 @@ sync_state::state_t sync_sa::get_state()
 
 void sync_sa::run_state_idle()
 {
-  if (radio->is_init()) {
+#define test 0
+  if (radio->is_init() && test) {
     logger.debug("Discarding samples and sending tx_end");
+    srsran::rf_buffer_t rf_buffer = {};
+    rf_buffer.set_nof_samples(slot_sz);
+    rf_buffer.set(0, rx_buffer);
+    if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
+      logger.error("SYNC: receiving from radio\n");
+    }
     radio->tx_end();
   } else {
-    logger.debug("Sleeping 1 ms");
-    usleep(1000);
+    logger.debug("Sleeping 1 s");
+    sleep(1);
   }
 }
 
 void sync_sa::run_state_cell_search()
 {
+  // Receive samples
+  srsran::rf_buffer_t rf_buffer = {};
+  rf_buffer.set_nof_samples(slot_sz);
+  rf_buffer.set(0, rx_buffer);
+  if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
+    logger.error("SYNC: receiving from radio\n");
+  }
+
   // Run Searcher
   cs_ret = searcher.run_slot(rx_buffer, slot_sz);
   if (cs_ret.result < 0) {
@@ -199,15 +219,12 @@ void sync_sa::run_state_cell_search()
 void sync_sa::run_state_cell_select()
 {
   // TODO
-  tti = 0;
+  tti = 10240 - 4;
   phy_state.state_exit();
 }
 
 void sync_sa::run_state_cell_camping()
 {
-  // Update logging TTI
-  logger.set_context(tti);
-
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
 
   nr::sf_worker* nr_worker = nullptr;
@@ -216,6 +233,16 @@ void sync_sa::run_state_cell_camping()
     running = false;
     return;
   }
+
+  // Receive samples
+  srsran::rf_buffer_t rf_buffer = {};
+  rf_buffer.set_nof_samples(slot_sz);
+  rf_buffer.set(0, nr_worker->get_buffer(0, 0));
+  if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
+    logger.error("SYNC: receiving from radio\n");
+  }
+
+  printf("sync_tti=%d, power=%f\n", tti, srsran_vec_avg_power_cf(rf_buffer.get(0), 11520));
 
   srsran::phy_common_interface::worker_context_t context;
   context.sf_idx     = tti;
@@ -235,22 +262,10 @@ void sync_sa::run_state_cell_camping()
 void sync_sa::run_thread()
 {
   while (running.load(std::memory_order_relaxed)) {
+    logger.set_context(tti);
+
     logger.debug("SYNC:  state=%s, tti=%d", phy_state.to_string(), tti);
 
-    // Setup RF buffer for 1ms worth of samples
-    if (radio->is_init()) {
-      srsran::rf_buffer_t rf_buffer = {};
-      rf_buffer.set_nof_samples(slot_sz);
-      rf_buffer.set(0, rx_buffer);
-
-#ifdef useradio
-      if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
-        logger.error("SYNC: receiving from radio\n");
-      }
-#else
-      sleep(1);
-#endif
-    }
     switch (phy_state.run_state()) {
       case sync_state::IDLE:
         run_state_idle();
@@ -287,8 +302,9 @@ void sync_sa::worker_end(const srsran::phy_common_interface::worker_context_t& w
   // Check if any worker had a transmission
   if (tx_enable) {
     // Actual baseband transmission
+#ifdef useradio
     radio->tx(tx_buffer, tx_time);
-
+#endif
   } else {
     if (radio->is_continuous_tx()) {
       if (is_pending_tx_end) {

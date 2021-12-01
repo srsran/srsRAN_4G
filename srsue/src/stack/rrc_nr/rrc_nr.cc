@@ -229,11 +229,21 @@ int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::u
   cfg.duplex  = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{cfg}};
 
+  phy_cfg.ssb.periodicity_ms             = 10;
+  phy_cfg.carrier.ssb_center_freq_hz     = 1842.05e6;
+  phy_cfg.carrier.dl_center_frequency_hz = 1842.5e6;
+  phy_cfg.carrier.ul_center_frequency_hz = 1747.5e6;
+
   phy_interface_rrc_nr::cell_select_args_t cell_cfg = {};
   cell_cfg.carrier                                  = phy_cfg.carrier;
   cell_cfg.ssb_cfg                                  = phy_cfg.get_ssb_cfg();
   phy->start_cell_select(cell_cfg);
   sleep(1);
+
+  srsran::rach_nr_cfg_t rach_cfg = {};
+  mac->set_config(rach_cfg);
+
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
   phy->set_config(phy_cfg);
   return SRSRAN_SUCCESS;
 }

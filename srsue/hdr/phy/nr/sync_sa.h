@@ -44,7 +44,7 @@ public:
     bool                        disable_cfo     = false;
     float                       pbch_dmrs_thr   = 0.0f; ///< PBCH DMRS correlation detection threshold (0 means auto)
     float                       cfo_alpha       = 0.0f; ///< CFO averaging alpha (0 means auto)
-    int                         thread_priority = -1;
+    int                         thread_priority = 1;
 
     cell_search::args_t get_cell_search() const
     {

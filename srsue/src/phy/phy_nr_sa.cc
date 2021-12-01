@@ -79,6 +79,8 @@ int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, 
   logger.set_level(srslog::str_to_basic_level(args.log.phy_level));
   logger.set_hex_dump_max_size(args.log.phy_hex_limit);
 
+  logger.set_context(0);
+
   if (!check_args(args)) {
     return SRSRAN_ERROR;
   }
@@ -93,6 +95,7 @@ int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, 
 void phy_nr_sa::init_background()
 {
   nr::sync_sa::args_t sync_args = {};
+  sync_args.srate_hz            = srsran_sampling_freq_hz(args.max_nof_prb);
   if (not sync.init(sync_args, stack, radio)) {
     logger.error("Error initialising SYNC");
     return;
@@ -199,6 +202,7 @@ bool phy_nr_sa::start_cell_select(const cell_select_args_t& req)
   selected_cell = req.carrier;
 
   cmd_worker_cell.add_cmd([this, req]() {
+
     // Request cell search to lower synchronization instance.
     sync.cell_select_run(req);
   });
@@ -239,11 +243,6 @@ bool phy_nr_sa::set_config(const srsran::phy_cfg_nr_t& cfg)
 
   // Setup carrier configuration asynchronously
   cmd_worker.add_cmd([this]() {
-    // tune radio
-    logger.info("Tuning Rx channel %d to %.2f MHz", 0, config_nr.carrier.dl_center_frequency_hz / 1e6);
-    radio->set_rx_freq(0, config_nr.carrier.dl_center_frequency_hz);
-    logger.info("Tuning Tx channel %d to %.2f MHz", 0, config_nr.carrier.ul_center_frequency_hz / 1e6);
-    radio->set_tx_freq(0, config_nr.carrier.ul_center_frequency_hz);
 
     // Set UE configuration
     bool ret = workers.set_config(config_nr);
