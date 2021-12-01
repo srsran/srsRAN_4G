@@ -332,6 +332,17 @@ mac_sch_subpdu_nr::ue_con_res_id_t mac_sch_subpdu_nr::get_ue_con_res_id_ce()
   return id;
 }
 
+uint64_t mac_sch_subpdu_nr::get_ue_con_res_id_ce_packed()
+{
+  if (!parent->is_ulsch() && lcid == CON_RES_ID) {
+    const uint8_t* payload = sdu.ptr();
+    return le64toh(((uint64_t)payload[5]) | (((uint64_t)payload[4]) << 8) | (((uint64_t)payload[3]) << 16) |
+                   (((uint64_t)payload[2]) << 24) | (((uint64_t)payload[1]) << 32) | (((uint64_t)payload[0]) << 40));
+  } else {
+    return 0;
+  }
+}
+
 uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
 {
   if (is_ul) {

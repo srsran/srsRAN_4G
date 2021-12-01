@@ -213,9 +213,6 @@ proc_outcome_t rrc_nr::setup_request_proc::step()
   if (state == state_t::config_serving_cell) {
     // TODO: start serving cell config and start T300
 
-    srsran::rach_nr_cfg_t rach_cfg = {};
-    rrc_handle.mac->set_config(rach_cfg);
-
     rrc_handle.phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
     rrc_handle.phy->set_config(rrc_handle.phy_cfg);
 
@@ -317,17 +314,17 @@ proc_outcome_t rrc_nr::cell_selection_proc::init()
 {
   init_serv_cell = meas_cells.serving_cell().phy_cell;
 
-  // Skip cell selection if serving cell is suitable and there are no stronger neighbours in same earfcn
-  if (is_serv_cell_suitable()) {
-    Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.");
-    return set_proc_complete();
-  }
-
   // TODO: add full cell selection
   phy_interface_rrc_nr::cell_select_args_t cell_cfg = {};
   cell_cfg.carrier                                  = rrc_handle.phy_cfg.carrier;
   cell_cfg.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
   rrc_handle.phy->start_cell_select(cell_cfg);
+
+  // Skip cell selection if serving cell is suitable and there are no stronger neighbours in same earfcn
+  if (is_serv_cell_suitable()) {
+    Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.");
+    return set_proc_complete();
+  }
 
   return set_proc_complete();
 }

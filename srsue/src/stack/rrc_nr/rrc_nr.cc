@@ -206,7 +206,10 @@ void rrc_nr::out_of_sync() {}
 void rrc_nr::run_tti(uint32_t tti) {}
 
 // PDCP interface
-void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+{
+  printf("RRC received PDU\n");
+}
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
@@ -238,10 +241,85 @@ int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::u
   cfg.duplex  = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{cfg}};
 
+  // Carrier configuration
   phy_cfg.ssb.periodicity_ms             = 10;
   phy_cfg.carrier.ssb_center_freq_hz     = 1842.05e6;
   phy_cfg.carrier.dl_center_frequency_hz = 1842.5e6;
   phy_cfg.carrier.ul_center_frequency_hz = 1747.5e6;
+
+  // PRACH configuration
+  phy_cfg.prach.num_ra_preambles = 8;
+  phy_cfg.prach.config_idx       = 0;
+  phy_cfg.prach.root_seq_idx     = 1;
+  phy_cfg.prach.zero_corr_zone   = 0;
+  phy_cfg.prach.is_nr            = true;
+  phy_cfg.prach.freq_offset      = 1;
+
+  srsran::rach_nr_cfg_t rach_cfg        = {};
+  rach_cfg.prach_ConfigurationIndex     = 0;
+  rach_cfg.preambleTransMax             = 7;
+  rach_cfg.ra_responseWindow            = 10;
+  rach_cfg.ra_ContentionResolutionTimer = 64;
+  mac->set_config(rach_cfg);
+
+  srsran::dl_harq_cfg_nr_t harq_cfg = {};
+  harq_cfg.nof_procs                = 8;
+  mac->set_config(harq_cfg);
+
+  // Setup SRB0, 1 and 2
+  for (int i = 0; i < 3; i++) {
+    logical_channel_config_t lch = {};
+    lch.lcid                     = i;
+    lch.priority                 = i + 1;
+    mac->setup_lcid(lch);
+  }
+
+  // Coreset0 configuration
+  // Get pointA and SSB absolute frequencies
+  double pointA_abs_freq_Hz = phy_cfg.carrier.dl_center_frequency_hz -
+                              phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
+  double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
+  // Calculate integer SSB to pointA frequency offset in Hz
+  uint32_t ssb_pointA_freq_offset_Hz =
+      (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+
+  if (srsran_coreset_zero(phy_cfg.carrier.pci,
+                          ssb_pointA_freq_offset_Hz,
+                          phy_cfg.ssb.scs,
+                          phy_cfg.carrier.scs,
+                          6,
+                          &phy_cfg.pdcch.coreset[0])) {
+    fprintf(stderr, "Error generating coreset0\n");
+  }
+  phy_cfg.pdcch.coreset_present[0] = true;
+
+  // RAR SS
+  phy_cfg.pdcch.ra_search_space_present           = true;
+  phy_cfg.pdcch.ra_search_space.coreset_id        = 0;
+  phy_cfg.pdcch.ra_search_space.duration          = 1;
+  phy_cfg.pdcch.ra_search_space.type              = srsran_search_space_type_common_1;
+  phy_cfg.pdcch.ra_search_space.nof_formats       = 1;
+  phy_cfg.pdcch.ra_search_space.formats[1]        = srsran_dci_format_nr_1_0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[0] = 0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[1] = 0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[2] = 1;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[3] = 0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[4] = 0;
+
+  // common1 SS
+  phy_cfg.pdcch.search_space_present[0]           = true;
+  phy_cfg.pdcch.search_space[0].coreset_id        = 0;
+  phy_cfg.pdcch.search_space[0].duration          = 1;
+  phy_cfg.pdcch.search_space[0].nof_candidates[0] = 0;
+  phy_cfg.pdcch.search_space[0].nof_candidates[1] = 0;
+  phy_cfg.pdcch.search_space[0].nof_candidates[2] = 1;
+  phy_cfg.pdcch.search_space[0].nof_candidates[3] = 0;
+  phy_cfg.pdcch.search_space[0].nof_candidates[4] = 0;
+  phy_cfg.pdcch.search_space[0].type              = srsran_search_space_type_common_1;
+  phy_cfg.pdcch.search_space[0].nof_formats       = 2;
+  phy_cfg.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_0_0;
+  phy_cfg.pdcch.search_space[0].formats[1]        = srsran_dci_format_nr_1_0;
+  phy_cfg.pdcch.search_space_present[1]           = false;
 
   if (not setup_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
     logger.error("Failed to initiate setup request procedure");
@@ -1627,9 +1705,7 @@ void rrc_nr::protocol_failure() {}
 // MAC interface
 void rrc_nr::ra_completed()
 {
-  logger.info("RA completed. Applying remaining CSI configuration.");
-  phy->set_config(phy_cfg);
-  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
+  logger.info("RA completed");
 }
 
 void rrc_nr::ra_problem()

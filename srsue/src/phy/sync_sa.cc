@@ -225,8 +225,6 @@ void sync_sa::run_state_cell_select()
 
 void sync_sa::run_state_cell_camping()
 {
-  last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
-
   nr::sf_worker* nr_worker = nullptr;
   nr_worker                = workers.wait_worker(tti);
   if (nr_worker == nullptr) {
@@ -242,12 +240,11 @@ void sync_sa::run_state_cell_camping()
     logger.error("SYNC: receiving from radio\n");
   }
 
-  printf("sync_tti=%d, power=%f\n", tti, srsran_vec_avg_power_cf(rf_buffer.get(0), 11520));
-
   srsran::phy_common_interface::worker_context_t context;
   context.sf_idx     = tti;
   context.worker_ptr = nr_worker;
   context.last       = true; // Set last if standalone
+  last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
   context.tx_time.copy(last_rx_time);
 
   nr_worker->set_context(context);
@@ -302,9 +299,7 @@ void sync_sa::worker_end(const srsran::phy_common_interface::worker_context_t& w
   // Check if any worker had a transmission
   if (tx_enable) {
     // Actual baseband transmission
-#ifdef useradio
     radio->tx(tx_buffer, tx_time);
-#endif
   } else {
     if (radio->is_continuous_tx()) {
       if (is_pending_tx_end) {
