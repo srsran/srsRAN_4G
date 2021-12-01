@@ -209,7 +209,8 @@ public:
   uint32_t get_status_pdu_length();
 
   // Data handling methods
-  void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header);
+  int  handle_full_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
+  int  handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
   bool have_all_segments_been_received(const std::list<rlc_amd_rx_pdu_nr>& segment_list);
