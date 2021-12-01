@@ -179,7 +179,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     fmt::print("RF status: O={}, U={}, L={}\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 
-  if (metrics.stack.rrc.ues.size() == 0) {
+  if (metrics.stack.rrc.ues.size() == 0 && metrics.nr_stack.mac.ues.size() == 0) {
     return;
   }
 
