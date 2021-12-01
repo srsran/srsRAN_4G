@@ -95,6 +95,20 @@ struct bwp_params_t {
   srsran::optional_vector<bwp_cce_pos_list> common_cce_list;
 
   bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
+
+  const prb_bitmap& used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  {
+    if (used_common_prb_masks.contains(ss_id)) {
+      if (dci_fmt == srsran_dci_format_nr_1_0) {
+        return used_common_prb_masks[ss_id];
+      }
+    }
+    return cached_empty_prb_mask;
+  }
+
+private:
+  prb_bitmap                          cached_empty_prb_mask;
+  srsran::optional_vector<prb_bitmap> used_common_prb_masks;
 };
 
 /// Structure packing a single cell config params, and sched args
