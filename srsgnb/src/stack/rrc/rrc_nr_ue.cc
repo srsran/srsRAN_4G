@@ -1073,14 +1073,14 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     }
 
     // Update lower layers
-    // add PDCP bearers
-    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
+    // add MAC bearers
+    update_mac(master_cell_group, false);
 
     // add RLC bearers
     update_rlc_bearers(master_cell_group);
 
-    // add MAC bearers
-    update_mac(master_cell_group, false);
+    // add PDCP bearers
+    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
   }
 
   if (nas_pdu_queue.size() > 0) {
