@@ -146,7 +146,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   uint16_t hdr_size = 2;
   if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
     logger->info("Trying to build PDU segment from SDU.");
-    return build_new_sdu_segment(tx_sdu, tx_pdu, payload, nof_bytes);
+    return build_new_sdu_segment(std::move(tx_sdu), tx_pdu, payload, nof_bytes);
   }
 
   memcpy(tx_pdu.buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
@@ -177,10 +177,10 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   return tx_sdu->N_bytes;
 }
 
-int rlc_am_nr_tx::build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
-                                        rlc_amd_tx_pdu_nr&          tx_pdu,
-                                        uint8_t*                    payload,
-                                        uint32_t                    nof_bytes)
+int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
+                                        rlc_amd_tx_pdu_nr&   tx_pdu,
+                                        uint8_t*             payload,
+                                        uint32_t             nof_bytes)
 {
   logger->info("Creating new SDU segment. Tx SDU (%d B),,nof_bytes=%d B ", tx_sdu->N_bytes, nof_bytes);
 
@@ -218,8 +218,18 @@ int rlc_am_nr_tx::build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
     logger->error("Error writing AMD PDU header");
   }
 
+  // Copy PDU to payload
   uint32_t segment_payload_len = nof_bytes - hdr_len;
   memcpy(&payload[hdr_len], tx_pdu.buf->msg, segment_payload_len);
+
+  // Save SDU currently being segmented
+  current_sdu.rlc_sn = st.tx_next;
+  current_sdu.buf    = std::move(tx_sdu);
+
+  // Store Segment Info
+  rlc_amd_tx_pdu_nr::pdu_segment segment_info;
+  segment_info.payload_len = segment_payload_len;
+  tx_pdu.segment_list.push_back(segment_info);
   return hdr_len + segment_payload_len;
 }
 
@@ -230,12 +240,88 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
                current_sdu.buf->N_bytes,
                nof_bytes);
 
-  // Can the rest of the SDU be sent on a single segment PDU?
+  // Sanity check: is there an initial SDU segment?
+  if (tx_pdu.segment_list.empty()) {
+    logger->error("build_continuation_sdu_segment was called, but there was no initial segment. SN=%d, Tx SDU (%d B), "
+                  "nof_bytes=%d B ",
+                  current_sdu.rlc_sn,
+                  current_sdu.buf->N_bytes,
+                  nof_bytes);
+    current_sdu.rlc_sn = INVALID_RLC_SN;
+    current_sdu.buf    = nullptr;
+    return 0;
+  }
 
   // Sanity check: can this SDU be sent considering header overhead?
+  if (5 < nof_bytes) { // Four bytes of header, as SO is present
+    logger->error(
+        "Cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d",
+        nof_bytes);
+    return 0;
+  }
+
+  // Can the rest of the SDU be sent on a single segment PDU?
+  std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator it = tx_pdu.segment_list.end();
+  --it;
+  uint32_t last_byte = it->so + it->payload_len;
+  logger->debug("Continuing SDU segment. SN=%d, last byte transmited %d", tx_pdu.rlc_sn, last_byte);
+
+  // Sanity check: last byte must be smaller than SDU
+  if (current_sdu.buf->N_bytes < last_byte) {
+    logger->error(
+        "Last byte transmited larger than SDU len. SDU len=%d B, last_byte=%d B", tx_pdu.buf->N_bytes, last_byte);
+    return 0;
+  }
+
+  uint32_t          segment_payload_full_len = current_sdu.buf->N_bytes - last_byte + 4; // Four bytes of header
+  uint32_t          segment_payload_len      = current_sdu.buf->N_bytes - last_byte;
+  rlc_nr_si_field_t si = segment_payload_full_len > nof_bytes ? rlc_nr_si_field_t::neither_first_nor_last_segment
+                                                              : rlc_nr_si_field_t::last_segment;
+
+  if (si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
+    logger->info("Grant is not large enough for full SDU."
+                 "SDU bytes left %d, nof_bytes %d, ",
+                 segment_payload_full_len,
+                 nof_bytes);
+    segment_payload_len      = nof_bytes - 4;
+    segment_payload_full_len = nof_bytes;
+  } else {
+    logger->info("Grant is large enough for full SDU."
+                 "SDU bytes left %d, nof_bytes %d, ",
+                 segment_payload_full_len,
+                 nof_bytes);
+  }
 
   // Prepare header
-  return 0;
+  rlc_am_nr_pdu_header_t hdr = {};
+  hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
+  hdr.p                      = get_pdu_poll();
+  hdr.si                     = si;
+  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn                     = st.tx_next;
+  hdr.so                     = last_byte;
+  tx_pdu.header              = hdr;
+  log_rlc_am_nr_pdu_header_to_string(logger->info, hdr);
+
+  // Write header
+  uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(hdr, payload);
+  if (hdr_len > nof_bytes) {
+    logger->error("Error writing AMD PDU header");
+    return 0;
+  }
+
+  // Copy PDU to payload
+  memcpy(&payload[hdr_len], &tx_pdu.buf->msg[last_byte], segment_payload_len);
+
+  if (si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
+    logger->info("Grant is not large enough for full SDU."
+                 "Storing SDU segment info");
+  } else {
+    logger->info("Grant is large enough for full SDU."
+                 "Removing current SDU info");
+  }
+
+  return hdr_len + segment_payload_len;
 }
 
 int rlc_am_nr_tx::build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes)

@@ -70,6 +70,21 @@ struct rlc_am_nr_tx_state_t {
   uint32_t byte_without_poll;
 };
 
+struct rlc_amd_tx_pdu_nr {
+  const uint32_t         rlc_sn     = INVALID_RLC_SN;
+  const uint32_t         pdcp_sn    = INVALID_RLC_SN;
+  rlc_am_nr_pdu_header_t header     = {};
+  unique_byte_buffer_t   buf        = nullptr;
+  uint32_t               retx_count = 0;
+  struct pdu_segment {
+    uint32_t so          = 0;
+    uint32_t retx_count  = 0;
+    uint32_t payload_len = 0;
+  };
+  std::list<pdu_segment> segment_list;
+  explicit rlc_amd_tx_pdu_nr(uint32_t sn) : rlc_sn(sn) {}
+};
+
 class rlc_am_nr_tx : public rlc_am::rlc_am_base_tx
 {
 public:
@@ -89,22 +104,12 @@ public:
   void empty_queue() final;
 
   // Data PDU helpers
-  using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
-  /*
-  struct rlc_amd_tx_pdu_nr {
-    const uint32_t rlc_sn  = INVALID_RLC_SN;
-    const uint32_t pdcp_sn = INVALID_RLC_SN;
-    struct tx_pdu_segment {
-      rlc_am_nr_pdu_header_t header     = {};
-      uint32_t               retx_count = 0;
-      uint32_t               so         = 0;
-      uint32_t               len        = 0;
-    };
-  };*/
-  int build_new_sdu_segment(const unique_byte_buffer_t& tx_sdu,
-                            rlc_amd_tx_pdu_nr&          tx_pdu,
-                            uint8_t*                    payload,
-                            uint32_t                    nof_bytes);
+  // using rlc_amd_tx_pdu_nr_test = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+
+  int build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
+                            rlc_amd_tx_pdu_nr&   tx_pdu,
+                            uint8_t*             payload,
+                            uint32_t             nof_bytes);
   int build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
 
