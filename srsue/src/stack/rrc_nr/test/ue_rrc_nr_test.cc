@@ -62,7 +62,15 @@ class dummy_rlc : public rlc_interface_rrc
   bool has_bearer(uint32_t lcid) { return true; }
   bool has_data(const uint32_t lcid) { return true; }
   bool is_suspended(const uint32_t lcid) { return true; }
-  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
+  {
+    last_lcid = lcid;
+    last_sdu  = std::move(sdu);
+  }
+
+public:
+  uint32_t                     last_lcid = 99;
+  srsran::unique_byte_buffer_t last_sdu;
 };
 
 class dummy_pdcp : public pdcp_interface_rrc
@@ -211,9 +219,53 @@ int rrc_nr_reconfig_test()
   return SRSRAN_SUCCESS;
 }
 
+int rrc_nr_conn_setup_test()
+{
+  srslog::init();
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(-1);
+  srsran::task_scheduler    task_sched{512, 100};
+  srsran::task_sched_handle task_sched_handle(&task_sched);
+  rrc_nr                    rrc_nr(task_sched_handle);
+  srsran::byte_buffer_t     caps;
+
+  dummy_phy     dummy_phy;
+  dummy_mac     dummy_mac;
+  dummy_rlc     dummy_rlc;
+  dummy_pdcp    dummy_pdcp;
+  dummy_gw      dummy_gw;
+  dummy_eutra   dummy_eutra;
+  dummy_sim     dummy_sim;
+  dummy_stack   dummy_stack;
+  rrc_nr_args_t rrc_nr_args;
+
+  rrc_nr_args.supported_bands_nr.push_back(78);
+
+  TESTASSERT(rrc_nr.init(&dummy_phy,
+                         &dummy_mac,
+                         &dummy_rlc,
+                         &dummy_pdcp,
+                         &dummy_gw,
+                         &dummy_eutra,
+                         &dummy_sim,
+                         task_sched.get_timer_handler(),
+                         &dummy_stack,
+                         rrc_nr_args) == SRSRAN_SUCCESS);
+  rrc_nr.connection_request(srsran::nr_establishment_cause_t::mt_Access, nullptr);
+  task_sched.run_pending_tasks();
+
+  TESTASSERT(dummy_rlc.last_lcid == 0);         // SRB0 transmission
+  TESTASSERT(dummy_rlc.last_sdu->N_bytes == 6); // RRC Setup Request is 6 Bytes long
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   TESTASSERT(rrc_nr_cap_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_nr_reconfig_test() == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_nr_conn_setup_test() == SRSRAN_SUCCESS);
+
   return SRSRAN_SUCCESS;
 }
