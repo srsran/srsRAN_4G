@@ -238,7 +238,7 @@ public:
   bool pack_attach_accept(srsran::byte_buffer_t* nas_buffer);
 
   /* Security functions */
-  bool integrity_check(srsran::byte_buffer_t* pdu);
+  bool integrity_check(srsran::byte_buffer_t* pdu, bool warn_failure = true);
   bool short_integrity_check(srsran::byte_buffer_t* pdu);
   void integrity_generate(srsran::byte_buffer_t* pdu, uint8_t* mac);
   void cipher_decrypt(srsran::byte_buffer_t* pdu);

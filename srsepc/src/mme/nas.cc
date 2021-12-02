@@ -1427,8 +1427,8 @@ bool nas::pack_security_mode_command(srsran::byte_buffer_t* nas_buffer)
     sm_cmd.imeisv_req = LIBLTE_MME_IMEISV_REQUESTED;
   }
 
-  sm_cmd.nonce_ue_present   = false;
-  sm_cmd.nonce_mme_present  = false;
+  sm_cmd.nonce_ue_present  = false;
+  sm_cmd.nonce_mme_present = false;
 
   uint8_t           sec_hdr_type = 3;
   LIBLTE_ERROR_ENUM err          = liblte_mme_pack_security_mode_command_msg(
@@ -1805,7 +1805,7 @@ bool nas::short_integrity_check(srsran::byte_buffer_t* pdu)
   return true;
 }
 
-bool nas::integrity_check(srsran::byte_buffer_t* pdu)
+bool nas::integrity_check(srsran::byte_buffer_t* pdu, bool warn_failure)
 {
   uint8_t        exp_mac[4] = {};
   const uint8_t* mac        = &pdu->msg[1];
@@ -1848,20 +1848,21 @@ bool nas::integrity_check(srsran::byte_buffer_t* pdu)
   // Check if expected mac equals the sent mac
   for (int i = 0; i < 4; i++) {
     if (exp_mac[i] != mac[i]) {
-      m_logger.warning("Integrity check failure. Algorithm=EIA%d", (int)m_sec_ctx.integ_algo);
-      m_logger.warning("UL Local: est_count=%d, old_count=%d, MAC=[%02x %02x %02x %02x], "
-                       "Received: UL count=%d, MAC=[%02x %02x %02x %02x]",
-                       estimated_count,
-                       m_sec_ctx.ul_nas_count,
-                       exp_mac[0],
-                       exp_mac[1],
-                       exp_mac[2],
-                       exp_mac[3],
-                       pdu->msg[5],
-                       mac[0],
-                       mac[1],
-                       mac[2],
-                       mac[3]);
+      srslog::log_channel& channel = warn_failure ? m_logger.warning : m_logger.info;
+      channel("Integrity check failure. Algorithm=EIA%d", (int)m_sec_ctx.integ_algo);
+      channel("UL Local: est_count=%d, old_count=%d, MAC=[%02x %02x %02x %02x], "
+              "Received: UL count=%d, MAC=[%02x %02x %02x %02x]",
+              estimated_count,
+              m_sec_ctx.ul_nas_count,
+              exp_mac[0],
+              exp_mac[1],
+              exp_mac[2],
+              exp_mac[3],
+              pdu->msg[5],
+              mac[0],
+              mac[1],
+              mac[2],
+              mac[3]);
       return false;
     }
   }

@@ -59,18 +59,18 @@ void s1ap_nas_transport::init()
   m_s1ap = s1ap::get_instance();
 
   // Init NAS args
-  m_nas_init.mcc          = m_s1ap->m_s1ap_args.mcc;
-  m_nas_init.mnc          = m_s1ap->m_s1ap_args.mnc;
-  m_nas_init.mme_code     = m_s1ap->m_s1ap_args.mme_code;
-  m_nas_init.mme_group    = m_s1ap->m_s1ap_args.mme_group;
-  m_nas_init.tac          = m_s1ap->m_s1ap_args.tac;
-  m_nas_init.apn          = m_s1ap->m_s1ap_args.mme_apn;
-  m_nas_init.dns          = m_s1ap->m_s1ap_args.dns_addr;
+  m_nas_init.mcc            = m_s1ap->m_s1ap_args.mcc;
+  m_nas_init.mnc            = m_s1ap->m_s1ap_args.mnc;
+  m_nas_init.mme_code       = m_s1ap->m_s1ap_args.mme_code;
+  m_nas_init.mme_group      = m_s1ap->m_s1ap_args.mme_group;
+  m_nas_init.tac            = m_s1ap->m_s1ap_args.tac;
+  m_nas_init.apn            = m_s1ap->m_s1ap_args.mme_apn;
+  m_nas_init.dns            = m_s1ap->m_s1ap_args.dns_addr;
   m_nas_init.full_net_name  = m_s1ap->m_s1ap_args.full_net_name;
   m_nas_init.short_net_name = m_s1ap->m_s1ap_args.short_net_name;
-  m_nas_init.paging_timer = m_s1ap->m_s1ap_args.paging_timer;
-  m_nas_init.integ_algo   = m_s1ap->m_s1ap_args.integrity_algo;
-  m_nas_init.cipher_algo  = m_s1ap->m_s1ap_args.encryption_algo;
+  m_nas_init.paging_timer   = m_s1ap->m_s1ap_args.paging_timer;
+  m_nas_init.integ_algo     = m_s1ap->m_s1ap_args.integrity_algo;
+  m_nas_init.cipher_algo    = m_s1ap->m_s1ap_args.encryption_algo;
   m_nas_init.request_imeisv = m_s1ap->m_s1ap_args.request_imeisv;
 
   // Init NAS interface
@@ -170,17 +170,28 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
     m_logger.error("Unhandled security header type in Uplink NAS Transport: %d", sec_hdr_type);
     return false;
   }
-  // Todo: Check on count mismatch of uplink count and do resync nas counter...
+
+  // Some messages may have invalid MAC. Check wether we need to warn about MAC failures.
+  bool warn_integrity_fail = true;
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
+      sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT) {
+    // Avoid unecessary warnings for identity response and authentication response.
+    liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg.get(), &pd, &msg_type);
+    if (msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE || msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE) {
+      warn_integrity_fail = false;
+    }
+  }
 
   // Check MAC if message is integrity protected
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
-      sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED ||
       sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT ||
+      sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED ||
       sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT) {
-    mac_valid = nas_ctx->integrity_check(nas_msg.get());
-    if (mac_valid == false) {
-      m_logger.warning("Invalid MAC message. Even if security header indicates integrity protection (Maybe: "
-                       "Identity Response or Authentication Response)");
+    mac_valid = nas_ctx->integrity_check(nas_msg.get(), warn_integrity_fail);
+    if (not mac_valid) {
+      srslog::log_channel& channel = warn_integrity_fail ? m_logger.warning : m_logger.info;
+      channel("Invalid MAC message. Even if security header indicates integrity protection (Maybe: "
+              "Identity Response or Authentication Response)");
     }
   }
 
