@@ -31,7 +31,7 @@ candidate_ss_list_t find_ss(const srsran_pdcch_cfg_nr_t&               pdcch,
   auto contains_dci_fmt = [prio_dcis, aggr_idx](const srsran_search_space_t& ss) {
     if (ss.nof_candidates[aggr_idx] > 0 and ss.nof_formats > 0) {
       for (uint32_t i = 0; i < prio_dcis.size(); ++i) {
-        for (uint32_t j = 0; j < prio_dcis.size(); ++j) {
+        for (uint32_t j = 0; j < ss.nof_formats; ++j) {
           if (ss.formats[j] == prio_dcis[i]) {
             return true;
           }
