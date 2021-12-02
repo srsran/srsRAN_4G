@@ -20,9 +20,6 @@
 #include <iostream>
 
 #define RLC_AM_NR_WINDOW_SIZE 2048
-#define MOD_NR 4096
-#define RX_MOD_BASE_NR(x) ((((int32_t)x) - (int32_t)rx_next) % MOD_NR)
-//#define TX_MOD_BASE_NR(x) (((x)-vt_a) % MOD_NR)
 
 namespace srsran {
 
@@ -509,7 +506,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   // 5.2.3.2.3 Actions when an AMD PDU is placed in the reception buffer
   // Update Rx_Next_Highest
-  if (RX_MOD_BASE_NR(header.sn) >= RX_MOD_BASE_NR(rx_next_highest)) {
+  if (rx_mod_base_nr(header.sn) >= rx_mod_base_nr(rx_next_highest)) {
     rx_next_highest = (header.sn + 1) % MOD;
   }
 
@@ -519,7 +516,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
    *   - update RX_Highest_Status to the SN of the first RLC SDU with SN > current RX_Highest_Status for which not
    * all bytes have been received.
    */
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_highest_status)) {
+  if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(rx_highest_status)) {
     uint32_t sn_upd     = 0;
     uint32_t window_top = rx_next + RLC_AM_WINDOW_SIZE;
     for (sn_upd = rx_highest_status; sn_upd < window_top; ++sn_upd) {
@@ -541,7 +538,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
    *   - update RX_Next to the SN of the first RLC SDU with SN > current RX_Next for which not all bytes
    *     have been received.
    */
-  if (RX_MOD_BASE_NR(header.sn) == RX_MOD_BASE_NR(rx_next)) {
+  if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(rx_next)) {
     uint32_t sn_upd     = 0;
     uint32_t window_top = rx_next + RLC_AM_WINDOW_SIZE;
     for (sn_upd = rx_next; sn_upd < window_top; ++sn_upd) {
@@ -596,8 +593,8 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
 {
-  return (RX_MOD_BASE_NR(sn) >= RX_MOD_BASE_NR(rx_next)) &&
-         (RX_MOD_BASE_NR(sn) < RX_MOD_BASE_NR(rx_next + RLC_AM_NR_WINDOW_SIZE));
+  return (rx_mod_base_nr(sn) >= rx_mod_base_nr(rx_next)) &&
+         (rx_mod_base_nr(sn) < rx_mod_base_nr(rx_next + RLC_AM_NR_WINDOW_SIZE));
 }
 
 /*
@@ -615,7 +612,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   byte_buffer_t tmp_buf;
 
   uint32_t i = status->ack_sn;
-  while (RX_MOD_BASE_NR(i) <= RX_MOD_BASE_NR(rx_highest_status)) {
+  while (rx_mod_base_nr(i) <= rx_mod_base_nr(rx_highest_status)) {
     if (rx_window.has_sn(i) || i == rx_highest_status) {
       // only update ACK_SN if this SN has been received, or if we reached the maximum possible SN
       status->ack_sn = i;

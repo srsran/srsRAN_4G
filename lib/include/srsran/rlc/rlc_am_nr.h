@@ -25,6 +25,8 @@
 #include <pthread.h>
 #include <queue>
 
+const uint32_t mod_nr = 4096;
+
 namespace srsran {
 
 /******************************
@@ -104,6 +106,8 @@ private:
   rlc_am*       parent = nullptr;
   rlc_am_nr_rx* rx     = nullptr;
 
+  inline int32_t tx_mod_base_nr(uint32_t sn) { return ((int32_t)sn - (int32_t)st.tx_next_ack) % mod_nr; }
+
   /****************************************************************************
    * Configurable parameters
    * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
@@ -165,6 +169,8 @@ private:
   rlc_am*           parent = nullptr;
   rlc_am_nr_tx*     tx     = nullptr;
   byte_buffer_pool* pool   = nullptr;
+
+  inline int32_t rx_mod_base_nr(uint32_t sn) { return ((int32_t)sn - (int32_t)rx_next) % mod_nr; }
 
   // RX Window
   rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_WINDOW_SIZE> rx_window;
