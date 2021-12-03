@@ -69,6 +69,7 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   tx_pdu.init_tx(phy_tx_pdu.get(), max_pdu_len, true);
 
   if (msg3_is_pending() && mac.has_crnti()) {
+    tx_pdu.add_crnti_ce(mac.get_crnti());
     msg3_transmitted();
   }
 
