@@ -52,6 +52,61 @@ int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
 }
 
 /*
+ * Test the limits of the TX/RX window checkers
+ *
+ * This will test
+ */
+int window_checker_test()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("window checkers");
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+
+  rlc_am_nr_tx* tx = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config())) {
+    return SRSRAN_ERROR;
+  }
+
+  {
+    // RLC1 RX_NEXT == 0 and RLC2 TX_NEXT_ACK == 0
+    uint32_t sn_inside_below  = 0;
+    uint32_t sn_inside_above  = 2047;
+    uint32_t sn_outside_below = 4095;
+    uint32_t sn_outside_above = 2048;
+    TESTASSERT_EQ(true, rx->inside_rx_window(sn_inside_below));
+    TESTASSERT_EQ(true, rx->inside_rx_window(sn_inside_above));
+    TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_below));
+    TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_above));
+  }
+
+  rlc_am_nr_rx_state_t rx_st = {};
+  rx_st.rx_next              = 4095;
+  rlc_am_nr_tx_state_t tx_st = {};
+  tx_st.tx_next_ack          = 4095;
+
+  rx->set_rx_state(rx_st);
+  tx->set_tx_state(tx_st);
+
+  {
+    // RX_NEXT == 4095 TX_NEXT_ACK == 4095
+    uint32_t sn_inside_below  = 0;
+    uint32_t sn_inside_above  = 2046;
+    uint32_t sn_outside_below = 4094;
+    uint32_t sn_outside_above = 2048;
+    TESTASSERT_EQ(true, rx->inside_rx_window(sn_inside_below));
+    TESTASSERT_EQ(true, rx->inside_rx_window(sn_inside_above));
+    TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_below));
+    TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_above));
+  }
+  return SRSRAN_SUCCESS;
+}
+
+/*
  * Test the transmission and acknowledgement of 5 SDUs.
  *
  * Each SDU is transmitted as a single PDU.
@@ -303,6 +358,7 @@ int main(int argc, char** argv)
   // start log backend
   srslog::init();
 
+  TESTASSERT(window_checker_test() == SRSRAN_SUCCESS);
   TESTASSERT(basic_test() == SRSRAN_SUCCESS);
   TESTASSERT(lost_pdu_test() == SRSRAN_SUCCESS);
 
