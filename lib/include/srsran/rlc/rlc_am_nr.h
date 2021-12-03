@@ -125,8 +125,37 @@ private:
 
 public:
   // Getters/Setters
+  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
   uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
+};
+
+/****************************************************************************
+ * RX State Variables
+ * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+ ***************************************************************************/
+struct rlc_am_nr_rx_state_t {
+  /*
+   * RX_Next: This state variable holds the value of the SN following the last in-sequence completely received RLC
+   * SDU, and it serves as the lower edge of the receiving window. It is initially set to 0, and is updated whenever
+   * the AM RLC entity receives an RLC SDU with SN = RX_Next.
+   */
+  uint32_t rx_next = 0;
+  /*
+   * RX_Next_Status_Trigger: This state variable holds the value of the SN following the SN of the RLC SDU which
+   * triggered t-Reassembly.
+   */
+  uint32_t rx_next_status_trigger = 0;
+  /*
+   * RX_Next_Highest: This state variable holds the highest possible value of the SN which can be indicated by
+   *"ACK_SN" when a STATUS PDU needs to be constructed. It is initially set to 0.
+   */
+  uint32_t rx_highest_status = 0;
+  /*
+   * RX_Next_Highest: This state variable holds the value of the SN following the SN of the RLC SDU with the
+   * highest SN among received RLC SDUs. It is initially set to 0.
+   */
+  uint32_t rx_next_highest = 0;
 };
 
 // Receiver sub-class
@@ -170,39 +199,13 @@ private:
   byte_buffer_pool* pool   = nullptr;
 
   uint32_t       mod_nr = 4096;
-  inline int32_t rx_mod_base_nr(uint32_t sn) { return ((int32_t)sn - (int32_t)rx_next) % mod_nr; }
+  inline int32_t rx_mod_base_nr(uint32_t sn) { return ((int32_t)sn - (int32_t)st.rx_next) % mod_nr; }
 
   // RX Window
   rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_WINDOW_SIZE> rx_window;
 
   // Mutexes
   std::mutex mutex;
-
-  /****************************************************************************
-   * State Variables
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
-   ***************************************************************************/
-  /*
-   * RX_Next: This state variable holds the value of the SN following the last in-sequence completely received RLC
-   * SDU, and it serves as the lower edge of the receiving window. It is initially set to 0, and is updated whenever
-   * the AM RLC entity receives an RLC SDU with SN = RX_Next.
-   */
-  uint32_t rx_next = 0;
-  /*
-   * RX_Next_Status_Trigger: This state variable holds the value of the SN following the SN of the RLC SDU which
-   * triggered t-Reassembly.
-   */
-  uint32_t rx_next_status_trigger = 0;
-  /*
-   * RX_Next_Highest: This state variable holds the highest possible value of the SN which can be indicated by
-   *"ACK_SN" when a STATUS PDU needs to be constructed. It is initially set to 0.
-   */
-  uint32_t rx_highest_status = 0;
-  /*
-   * RX_Next_Highest: This state variable holds the value of the SN following the SN of the RLC SDU with the
-   * highest SN among received RLC SDUs. It is initially set to 0.
-   */
-  uint32_t rx_next_highest = 0;
 
   /****************************************************************************
    * Rx timers
@@ -216,6 +219,18 @@ private:
    * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
+
+  /****************************************************************************
+   * Tx state variables
+   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+   ***************************************************************************/
+  struct rlc_am_nr_rx_state_t st = {};
+
+public:
+  // Getters/Setters
+  void set_rx_state(const rlc_am_nr_rx_state_t& st_) { st = st_; }       // This should only be used for testing.
+  rlc_am_nr_rx_state_t get_rx_state() { return st; }                     // This should only be used for testing.
+  uint32_t             get_rx_window_size() { return rx_window.size(); } // This should only be used for testing.
 };
 
 } // namespace srsran
