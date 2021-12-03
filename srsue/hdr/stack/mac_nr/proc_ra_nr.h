@@ -32,7 +32,7 @@ public:
   ~proc_ra_nr(){};
 
   void init(phy_interface_mac_nr* phy_h_, srsran::ext_task_sched_handle* task_sched_);
-  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
+  void set_config(const srsran::rach_cfg_nr_t& rach_cfg_nr);
   bool is_contention_resolution();
 
   bool     is_rar_opportunity(uint32_t tti);
@@ -68,7 +68,7 @@ private:
   uint16_t   transmitted_crnti = SRSRAN_INVALID_RNTI;
   std::mutex mutex;
 
-  srsran::rach_nr_cfg_t rach_cfg   = {};
+  srsran::rach_cfg_nr_t rach_cfg   = {};
   bool                  configured = false;
 
   enum ra_state_t {

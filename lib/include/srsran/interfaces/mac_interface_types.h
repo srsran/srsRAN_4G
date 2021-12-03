@@ -124,7 +124,7 @@ struct rach_cfg_t {
 };
 
 // 38.321 5.1.1 Not complete yet
-struct rach_nr_cfg_t {
+struct rach_cfg_nr_t {
   uint32_t prach_ConfigurationIndex;
   int      PreambleReceivedTargetPower;
   uint32_t preambleTransMax;
@@ -132,7 +132,7 @@ struct rach_nr_cfg_t {
   uint32_t ra_responseWindow;
   uint32_t ra_ContentionResolutionTimer;
 
-  rach_nr_cfg_t() { reset(); }
+  rach_cfg_nr_t() { reset(); }
   void reset()
   {
     prach_ConfigurationIndex    = 0;
@@ -211,6 +211,33 @@ struct mac_cfg_t {
   phr_cfg_t     phr_cfg;
   sr_cfg_t      sr_cfg;
   rach_cfg_t    rach_cfg;
+  ul_harq_cfg_t harq_cfg;
+  int           time_alignment_timer = -1;
+};
+
+struct mac_cfg_nr_t {
+  // Default constructor with default values as in 36.331 9.2.2
+  mac_cfg_nr_t() { set_defaults(); }
+
+  void set_defaults()
+  {
+    rach_cfg.reset();
+    sr_cfg.reset();
+    set_mac_main_cfg_default();
+  }
+
+  void set_mac_main_cfg_default()
+  {
+    bsr_cfg.reset();
+    phr_cfg.reset();
+    harq_cfg.reset();
+    time_alignment_timer = -1;
+  }
+
+  bsr_cfg_t     bsr_cfg;
+  phr_cfg_nr_t  phr_cfg;
+  sr_cfg_t      sr_cfg;
+  rach_cfg_nr_t rach_cfg;
   ul_harq_cfg_t harq_cfg;
   int           time_alignment_timer = -1;
 };

@@ -44,7 +44,7 @@ void proc_ra_nr::init(phy_interface_mac_nr* phy_, srsran::ext_task_sched_handle*
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
-void proc_ra_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg_)
+void proc_ra_nr::set_config(const srsran::rach_cfg_nr_t& rach_cfg_)
 {
   if (state != IDLE) {
     logger.warning("Wrong state for ra reponse reception %s (expected state %s)",

@@ -91,7 +91,7 @@ int proc_ra_normal_test()
   proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
 
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
-  srsran::rach_nr_cfg_t rach_cfg;
+  srsran::rach_cfg_nr_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;
   rach_cfg.prach_ConfigurationIndex     = 16;
   rach_cfg.PreambleReceivedTargetPower  = -110;
@@ -153,7 +153,7 @@ int proc_ra_timeout_test()
 
   proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
-  srsran::rach_nr_cfg_t rach_cfg;
+  srsran::rach_cfg_nr_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;
   rach_cfg.prach_ConfigurationIndex     = 16;
   rach_cfg.PreambleReceivedTargetPower  = -110;

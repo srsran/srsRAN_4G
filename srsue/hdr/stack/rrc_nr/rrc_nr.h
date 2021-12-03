@@ -134,10 +134,14 @@ public:
   void set_phy_config_complete(bool status) final;
 
 private:
+  // parsers
+  void decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
   // senders
   void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
+  // helpers
+  void handle_sib1(const asn1::rrc_nr::sib1_s sib1);
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {

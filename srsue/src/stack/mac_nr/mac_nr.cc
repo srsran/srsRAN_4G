@@ -437,7 +437,7 @@ int mac_nr::set_config(const srsran::sr_cfg_nr_t& sr_cfg)
   return proc_sr.set_config(sr_cfg);
 }
 
-void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)
+void mac_nr::set_config(const srsran::rach_cfg_nr_t& rach_cfg)
 {
   proc_ra.set_config(rach_cfg);
 }

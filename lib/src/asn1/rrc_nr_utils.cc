@@ -90,16 +90,14 @@ bool make_mac_phr_cfg_t(const phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr)
   return true;
 }
 
-rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
+void make_mac_rach_cfg(const rach_cfg_common_s& asn1_type, rach_cfg_nr_t* rach_cfg_nr)
 {
-  rach_nr_cfg_t rach_nr_cfg                = {};
-  rach_nr_cfg.powerRampingStep             = asn1_type.rach_cfg_generic.pwr_ramp_step.to_number();
-  rach_nr_cfg.ra_responseWindow            = asn1_type.rach_cfg_generic.ra_resp_win.to_number();
-  rach_nr_cfg.prach_ConfigurationIndex     = asn1_type.rach_cfg_generic.prach_cfg_idx;
-  rach_nr_cfg.PreambleReceivedTargetPower  = asn1_type.rach_cfg_generic.preamb_rx_target_pwr;
-  rach_nr_cfg.preambleTransMax             = asn1_type.rach_cfg_generic.preamb_trans_max.to_number();
-  rach_nr_cfg.ra_ContentionResolutionTimer = asn1_type.ra_contention_resolution_timer.to_number();
-  return rach_nr_cfg;
+  rach_cfg_nr->powerRampingStep             = asn1_type.rach_cfg_generic.pwr_ramp_step.to_number();
+  rach_cfg_nr->ra_responseWindow            = asn1_type.rach_cfg_generic.ra_resp_win.to_number();
+  rach_cfg_nr->prach_ConfigurationIndex     = asn1_type.rach_cfg_generic.prach_cfg_idx;
+  rach_cfg_nr->PreambleReceivedTargetPower  = asn1_type.rach_cfg_generic.preamb_rx_target_pwr;
+  rach_cfg_nr->preambleTransMax             = asn1_type.rach_cfg_generic.preamb_trans_max.to_number();
+  rach_cfg_nr->ra_ContentionResolutionTimer = asn1_type.ra_contention_resolution_timer.to_number();
 };
 
 int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)
@@ -1624,7 +1622,7 @@ bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch
   return true;
 }
 
-bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
+void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
 {
   if (pdcch_cfg.common_ctrl_res_set_present) {
     pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
@@ -1640,8 +1638,89 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
       }
     }
   }
+}
 
+void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch)
+{
+  if (pucch_cfg.pucch_res_common_present) {
+    pucch->resource_common = pucch_cfg.pucch_res_common;
+  }
+  if (pucch_cfg.hop_id_present) {
+    pucch->hopping_id_present = true;
+    pucch->hopping_id         = pucch_cfg.hop_id;
+  }
+  if (pucch_cfg.p0_nominal_present) {
+    pucch->p0_nominal = pucch_cfg.p0_nominal;
+  }
+
+  switch (pucch_cfg.pucch_group_hop) {
+    case pucch_cfg_common_s::pucch_group_hop_opts::enable:
+      pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_ENABLE;
+      break;
+    case pucch_cfg_common_s::pucch_group_hop_opts::disable:
+      pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_DISABLE;
+      break;
+    default:
+      pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_NEITHER;
+      break;
+  }
+}
+
+bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch)
+{
+  for (uint32_t i = 0; i < pdsch_cfg.pdsch_time_domain_alloc_list.size(); i++) {
+    srsran_sch_time_ra_t common_time_ra;
+    if (make_phy_common_time_ra(pdsch_cfg.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
+      pdsch->common_time_ra[i]  = common_time_ra;
+      pdsch->nof_common_time_ra = i + 1;
+    } else {
+      asn1::log_warning("Warning while building common_time_ra structure");
+      return false;
+    }
+  }
   return true;
+}
+
+bool fill_phy_pusch_cfg_common(const asn1::rrc_nr::pusch_cfg_common_s& pusch_cfg, srsran_sch_hl_cfg_nr_t* pusch)
+{
+  for (uint32_t i = 0; i < pusch_cfg.pusch_time_domain_alloc_list.size(); i++) {
+    srsran_sch_time_ra_t common_time_ra;
+    if (make_phy_common_time_ra(pusch_cfg.pusch_time_domain_alloc_list[i], &common_time_ra) == true) {
+      pusch->common_time_ra[i]  = common_time_ra;
+      pusch->nof_common_time_ra = i + 1;
+    } else {
+      asn1::log_warning("Warning while building common_time_ra structure");
+      return false;
+    }
+  }
+  return true;
+}
+
+void fill_phy_carrier_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                          srsran_carrier_nr_t*                               out_carrier_nr)
+{
+  // TODO: Currently ony one carrier is supported
+  auto& freq_info_dl                = serv_cell_cfg.dl_cfg_common.freq_info_dl;
+  out_carrier_nr->offset_to_carrier = freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  out_carrier_nr->scs     = make_subcarrier_spacing(freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing);
+  out_carrier_nr->nof_prb = freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+
+  auto&                      freq_info_ul = serv_cell_cfg.ul_cfg_common.freq_info_ul;
+  srsran::srsran_band_helper bands;
+  out_carrier_nr->ul_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
+      freq_info_ul.scs_specific_carrier_list[0].carrier_bw, freq_info_ul.absolute_freq_point_a);
+}
+
+void fill_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb)
+{
+  out_ssb->periodicity_ms = serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+
+  if (serv_cell_cfg.ssb_positions_in_burst.group_presence_present) {
+    make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.group_presence, out_ssb->position_in_burst);
+  } else {
+    make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.in_one_group, out_ssb->position_in_burst);
+  }
 }
 
 /**************************

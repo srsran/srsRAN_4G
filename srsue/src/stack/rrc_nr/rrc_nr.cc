@@ -211,7 +211,111 @@ void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   printf("RRC received PDU\n");
 }
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
-void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
+{
+  decode_pdu_bcch_dlsch(std::move(pdu));
+}
+
+void rrc_nr::decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
+{
+  // Stop BCCH search after successful reception of 1 BCCH block
+  // mac->bcch_stop_rx();
+
+  bcch_dl_sch_msg_s dlsch_msg;
+  asn1::cbit_ref    dlsch_bref(pdu->msg, pdu->N_bytes);
+  asn1::SRSASN_CODE err = dlsch_msg.unpack(dlsch_bref);
+
+  if (err != asn1::SRSASN_SUCCESS or dlsch_msg.msg.type().value != bcch_dl_sch_msg_type_c::types_opts::c1) {
+    logger.error(pdu->msg, pdu->N_bytes, "Could not unpack BCCH DL-SCH message (%d B).", pdu->N_bytes);
+    return;
+  }
+
+  log_rrc_message("BCCH-DLSCH", Rx, pdu.get(), dlsch_msg, dlsch_msg.msg.c1().type().to_string());
+
+  if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
+    logger.info("Processing SIB1 (1/1)");
+    handle_sib1(dlsch_msg.msg.c1().sib_type1());
+  }
+}
+
+void rrc_nr::handle_sib1(const sib1_s sib1)
+{
+  logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
+
+  // clang-format off
+  // unhandled fields:
+  // - cellSelectionInfo
+  // - cellAccessRelatedInfo
+  // - connEstFailureControl
+  // - servingCellConfigCommon:
+  //    - downlinkConfigCommon.frequencyInfoDL.frequencyBandList
+  //    - downlinkConfigCommon.frequencyInfoDL.offsetToPointA
+  //    - downlinkConfigCommon.initialDownlinkBWP.genericParameters
+  //    - downlinkConfigCommon.initialDownlinkBWP.pdcch-ConfigCommon.commonSearchSpaceList.searchSpaceSIB1
+  //    - downlinkConfigCommon.initialDownlinkBWP.pdcch-ConfigCommon.commonSearchSpaceList.search_space_other_sys_info
+  //    - downlinkConfigCommon.initialDownlinkBWP.pdcch-ConfigCommon.commonSearchSpaceList.paging_search_space
+  //    - downlinkConfigCommon.bcch-Config
+  //    - downlinkConfigCommon.pcch-Config
+  //    - uplinkConfigCommon.frequencyInfoUL.frequencyBandList
+  //    - uplinkConfigCommon.frequencyInfoUL.p_max
+  //    - uplinkConfigCommon.initialUplinkBWP.genericParameters
+  //    - uplinkConfigCommon.initialUplinkBWP.rach-ConfigCommon.rach-ConfigGeneric.msg1-FDM
+  //    - uplinkConfigCommon.initialUplinkBWP.rach-ConfigCommon.ssb_per_rach_occasion_and_cb_preambs_per_ssb
+  //    - uplinkConfigCommon.initialUplinkBWP.rach-ConfigCommon.restricted_set_cfg
+  //    - uplinkConfigCommon.initialUplinkBWP.pusch-ConfigCommon.pusch-TimeDomainResourceAllocationList.p0-NominalWithGrant
+  //    - ss-PBCH-BlockPower
+  // - ue-TimersAndConstants
+  // clang-format on
+
+  // Apply RACH and timeAlginmentTimer configuration
+  mac_cfg_nr_t mac_cfg = {};
+  make_mac_rach_cfg(sib1.serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), &mac_cfg.rach_cfg);
+  mac_cfg.time_alignment_timer = sib1.serving_cell_cfg_common.ul_cfg_common.time_align_timer_common.to_number();
+
+  mac->set_config(mac_cfg.rach_cfg);
+
+  // Apply PDSCH Config Common
+  if (sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup()
+          .pdsch_time_domain_alloc_list_present) {
+    if (not fill_phy_pdsch_cfg_common(sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup(),
+                                      &phy_cfg.pdsch)) {
+      logger.warning("Could not set PDSCH config.");
+    }
+  }
+
+  // Apply PUSCH Config Common
+  if (not fill_phy_pusch_cfg_common(sib1.serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup(),
+                                    &phy_cfg.pusch)) {
+    logger.warning("Could not set PUSCH config.");
+  }
+
+  // Apply PUCCH Config Common
+  fill_phy_pucch_cfg_common(sib1.serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.pucch_cfg_common.setup(),
+                            &phy_cfg.pucch.common);
+
+  // Apply RACH Config Common
+  if (not make_phy_rach_cfg(sib1.serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(),
+                            &phy_cfg.prach)) {
+    logger.warning("Could not set phy rach config.");
+    return;
+  }
+
+  // Apply PDCCH Config Common
+  fill_phy_pdcch_cfg_common(sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup(),
+                            &phy_cfg.pdcch);
+
+  // Apply Carrier Config
+  fill_phy_carrier_cfg(sib1.serving_cell_cfg_common, &phy_cfg.carrier);
+
+  // Apply SSB Config
+  fill_phy_ssb_cfg(sib1.serving_cell_cfg_common, &phy_cfg.ssb);
+
+  if (not phy->set_config(phy_cfg)) {
+    logger.warning("Could not set phy config.");
+    return;
+  }
+}
+
 void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::notify_pdcp_integrity_error(uint32_t lcid) {}
@@ -685,6 +789,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   }
   return true;
 }
+
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
   if (mac_cell_group_cfg.sched_request_cfg_present) {
@@ -1108,8 +1213,9 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
   if (ul_cfg_common.init_ul_bwp_present) {
     if (ul_cfg_common.init_ul_bwp.rach_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
-        rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup());
-        mac->set_config(rach_nr_cfg);
+        rach_cfg_nr_t rach_cfg_nr = {};
+        make_mac_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), &rach_cfg_nr);
+        mac->set_config(rach_cfg_nr);
 
         // Make the RACH configuration for PHY
         if (not make_phy_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), &phy_cfg.prach)) {

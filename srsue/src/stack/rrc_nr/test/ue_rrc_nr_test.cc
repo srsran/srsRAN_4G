@@ -22,11 +22,7 @@ using namespace srsue;
 
 class dummy_phy : public phy_interface_rrc_nr
 {
-  bool           set_config(const srsran::phy_cfg_nr_t& cfg) override { return true; }
-  phy_nr_state_t get_state() override { return PHY_NR_STATE_IDLE; };
-  void           reset_nr() override{};
-  bool           start_cell_search(const cell_search_args_t& req) override { return false; };
-  bool           start_cell_select(const cell_select_args_t& req) override { return false; };
+  bool set_config(const srsran::phy_cfg_nr_t& cfg) { return true; }
 };
 
 class dummy_mac : public mac_interface_rrc_nr
@@ -36,7 +32,7 @@ class dummy_mac : public mac_interface_rrc_nr
   int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg) { return SRSRAN_SUCCESS; }
   int  set_config(const srsran::sr_cfg_nr_t& sr_cfg) { return SRSRAN_SUCCESS; }
   int  set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg) { return SRSRAN_SUCCESS; }
-  void set_config(const srsran::rach_nr_cfg_t& rach_cfg) {}
+  void set_config(const srsran::rach_cfg_nr_t& rach_cfg) {}
   int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg) { return SRSRAN_SUCCESS; }
   int  set_config(const srsran::phr_cfg_nr_t& phr_cfg) { return SRSRAN_SUCCESS; }
   int  remove_tag_config(const uint32_t tag_id) { return SRSRAN_SUCCESS; }
@@ -62,15 +58,7 @@ class dummy_rlc : public rlc_interface_rrc
   bool has_bearer(uint32_t lcid) { return true; }
   bool has_data(const uint32_t lcid) { return true; }
   bool is_suspended(const uint32_t lcid) { return true; }
-  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
-  {
-    last_lcid = lcid;
-    last_sdu  = std::move(sdu);
-  }
-
-public:
-  uint32_t                     last_lcid = 99;
-  srsran::unique_byte_buffer_t last_sdu;
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
 };
 
 class dummy_pdcp : public pdcp_interface_rrc
@@ -122,7 +110,6 @@ class dummy_stack : public stack_interface_rrc
 
 int rrc_nr_cap_request_test()
 {
-  srslog::init();
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
   logger.set_hex_dump_max_size(-1);
@@ -162,7 +149,6 @@ int rrc_nr_cap_request_test()
 
 int rrc_nr_reconfig_test()
 {
-  srslog::init();
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
   logger.set_hex_dump_max_size(-1);
@@ -221,7 +207,6 @@ int rrc_nr_reconfig_test()
 
 int rrc_nr_conn_setup_test()
 {
-  srslog::init();
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
   logger.set_hex_dump_max_size(-1);
@@ -261,11 +246,58 @@ int rrc_nr_conn_setup_test()
   return SRSRAN_SUCCESS;
 }
 
+int rrc_write_pdu_bcch_dlsch_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(-1);
+  srsran::task_scheduler    task_sched{512, 100};
+  srsran::task_sched_handle task_sched_handle(&task_sched);
+  rrc_nr                    rrc_nr(task_sched_handle);
+
+  dummy_phy     dummy_phy;
+  dummy_mac     dummy_mac;
+  dummy_rlc     dummy_rlc;
+  dummy_pdcp    dummy_pdcp;
+  dummy_gw      dummy_gw;
+  dummy_eutra   dummy_eutra;
+  dummy_sim     dummy_sim;
+  dummy_stack   dummy_stack;
+  rrc_nr_args_t rrc_nr_args;
+  TESTASSERT(rrc_nr.init(&dummy_phy,
+                         &dummy_mac,
+                         &dummy_rlc,
+                         &dummy_pdcp,
+                         &dummy_gw,
+                         &dummy_eutra,
+                         &dummy_sim,
+                         task_sched.get_timer_handler(),
+                         &dummy_stack,
+                         rrc_nr_args) == SRSRAN_SUCCESS);
+
+  uint8_t msg[] = {0x74, 0x81, 0x01, 0x70, 0x10, 0x40, 0x04, 0x02, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x33, 0x60, 0x38,
+                   0x05, 0x01, 0x00, 0x40, 0x1a, 0x00, 0x00, 0x06, 0x6c, 0x6d, 0x92, 0x21, 0xf3, 0x70, 0x40, 0x20,
+                   0x00, 0x00, 0x80, 0x80, 0x00, 0x41, 0x06, 0x80, 0xa0, 0x90, 0x9c, 0x20, 0x08, 0x55, 0x19, 0x40,
+                   0x00, 0x00, 0x33, 0xa1, 0xc6, 0xd9, 0x22, 0x40, 0x00, 0x00, 0x20, 0xb8, 0x94, 0x63, 0xc0, 0x09,
+                   0x28, 0x44, 0x1b, 0x7e, 0xad, 0x8e, 0x1d, 0x00, 0x9e, 0x2d, 0xa3, 0x0a};
+
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  memcpy(pdu->msg, msg, sizeof(msg));
+  pdu->N_bytes = sizeof(msg);
+
+  rrc_nr.write_pdu_bcch_dlsch(std::move(pdu));
+  task_sched.run_pending_tasks();
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   TESTASSERT(rrc_nr_cap_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_nr_reconfig_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_nr_conn_setup_test() == SRSRAN_SUCCESS);
-
+  TESTASSERT(rrc_write_pdu_bcch_dlsch_test() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }
