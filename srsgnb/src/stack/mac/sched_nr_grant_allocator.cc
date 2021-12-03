@@ -80,23 +80,13 @@ bwp_slot_grid::bwp_slot_grid(const bwp_params_t& bwp_cfg_, uint32_t slot_idx_) :
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
   cfg(&bwp_cfg_),
+  pdcch_sched(bwp_cfg_, slot_idx_, dl.phy.pdcch_dl, dl.phy.pdcch_ul),
   rar_softbuffer(harq_softbuffer_pool::get_instance().get_tx(bwp_cfg_.cfg.rb_width))
-{
-  for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
-    if (cfg->cfg.pdcch.coreset_present[cs_idx]) {
-      uint32_t cs_id = cfg->cfg.pdcch.coreset[cs_idx].id;
-      coresets[cs_id].emplace(*cfg, cs_id, slot_idx_, dl.phy.pdcch_dl, dl.phy.pdcch_ul);
-    }
-  }
-}
+{}
 
 void bwp_slot_grid::reset()
 {
-  for (auto& coreset : coresets) {
-    if (coreset.has_value()) {
-      coreset->reset();
-    }
-  }
+  pdcch_sched.reset();
   dl_prbs.reset();
   ul_prbs.reset();
   dl.phy.ssb.clear();
@@ -140,9 +130,9 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
     return alloc_result::sch_collision;
   }
 
-  const uint32_t coreset_id = 0;
-  const uint32_t ss_id      = 0;
-  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::sib, aggr_idx, ss_id)) {
+  const uint32_t ss_id = 0;
+  pdcch_dl_t*    pdcch = bwp_pdcch_slot.pdcch_sched.alloc_dl_pdcch(pdcch_grant_type_t::sib, ss_id, aggr_idx);
+  if (pdcch == nullptr) {
     logger.warning("SCHED: Cannot allocate SIB1 due to lack of PDCCH space.");
     return alloc_result::no_cch_space;
   }
@@ -150,11 +140,10 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   // RAR allocation successful.
   bwp_pdcch_slot.dl_prbs |= prbs;
   // Generate DCI for SIB
-  pdcch_dl_t& pdcch         = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-  pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
-  if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch.dci)) {
+  pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
+  if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
+    bwp_pdcch_slot.pdcch_sched.rem_last_pdcch(ss_id);
     return alloc_result::invalid_coderate;
   }
 
@@ -164,10 +153,10 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
   int code     = srsran_ra_dl_dci_to_grant_nr(
-      &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
+      &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch->dci, &pdsch.sch, &pdsch.sch.grant);
   if (code != SRSRAN_SUCCESS) {
     logger.warning("Error generating SIB PDSCH grant.");
-    bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
+    bwp_pdcch_slot.pdcch_sched.rem_last_pdcch(ss_id);
     bwp_pdcch_slot.dl.phy.pdsch.pop_back();
     return alloc_result::other_cause;
   }
@@ -189,7 +178,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
   slot_point     msg3_slot      = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
   bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_slot];
-  alloc_result   ret            = verify_pusch_space(bwp_msg3_slot, nullptr);
+  alloc_result   ret            = verify_pusch_space(bwp_msg3_slot);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -233,7 +222,8 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Find PDCCH position
   const uint32_t coreset_id      = cfg.cfg.pdcch.ra_search_space.coreset_id;
   const uint32_t search_space_id = cfg.cfg.pdcch.ra_search_space.id;
-  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::rar, aggr_idx, search_space_id, nullptr)) {
+  pdcch_dl_t*    pdcch = bwp_pdcch_slot.pdcch_sched.alloc_dl_pdcch(pdcch_grant_type_t::rar, search_space_id, aggr_idx);
+  if (pdcch == nullptr) {
     // Could not find space in PDCCH
     logger.debug("SCHED: No space in PDCCH for DL tx.");
     return alloc_result::no_cch_space;
@@ -242,21 +232,20 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // RAR allocation successful.
   bwp_pdcch_slot.dl_prbs |= interv;
   // Generate DCI for RAR with given RA-RNTI
-  pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-  if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch.dci)) {
+  if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.coresets[coreset_id]->rem_last_dci();
+    bwp_pdcch_slot.pdcch_sched.rem_last_pdcch(search_space_id);
     return alloc_result::invalid_coderate;
   }
-  auto& phy_cfg = slot_ues[pending_rachs[0].temp_crnti]->phy();
-  pdcch.dci_cfg = phy_cfg.get_dci_cfg();
+  auto& phy_cfg  = slot_ues[pending_rachs[0].temp_crnti]->phy();
+  pdcch->dci_cfg = phy_cfg.get_dci_cfg();
   // Generate RAR PDSCH
   // TODO: Properly fill Msg3 grants
   bwp_pdcch_slot.dl.phy.pdsch.emplace_back();
   pdsch_t&          pdsch = bwp_pdcch_slot.dl.phy.pdsch.back();
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
-  bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+  bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch->dci, pdsch.sch);
   srsran_assert(success, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();
 
@@ -336,9 +325,11 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   const srsran_search_space_t& ss = *ss_candidates[0];
 
   // Find space and allocate PDCCH
-  uint32_t coreset_id = ss.coreset_id;
-  if (not bwp_pdcch_slot.coresets[coreset_id]->alloc_dci(pdcch_grant_type_t::dl_data, aggr_idx, ss.id, &ue.cfg())) {
+  pdcch_dl_t* pdcch =
+      bwp_pdcch_slot.pdcch_sched.alloc_dl_pdcch(pdcch_grant_type_t::dl_data, ss.id, aggr_idx, &ue.cfg());
+  if (pdcch == nullptr) {
     // Could not find space in PDCCH
+    logger.debug("Could not find PDCCH space for rnti=0x%x PDSCH allocation", ue->rnti);
     return alloc_result::no_cch_space;
   }
 
@@ -361,19 +352,18 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   const static float max_R = 0.93;
   while (true) {
     // Generate PDCCH
-    pdcch_dl_t& pdcch = bwp_pdcch_slot.dl.phy.pdcch_dl.back();
-    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
-    pdcch.dci.pucch_resource = 0;
-    pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
-                                  bwp_uci_slot.pending_acks.end(),
-                                  [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
-    pdcch.dci.dai %= 4;
-    pdcch.dci_cfg = ue->phy().get_dci_cfg();
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch->dci.ctx.location, pdcch->dci);
+    pdcch->dci.pucch_resource = 0;
+    pdcch->dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
+                                   bwp_uci_slot.pending_acks.end(),
+                                   [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
+    pdcch->dci.dai %= 4;
+    pdcch->dci_cfg = ue->phy().get_dci_cfg();
 
     // Generate PUCCH
     bwp_uci_slot.pending_acks.emplace_back();
     bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();
-    srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
+    srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch->dci, bwp_uci_slot.pending_acks.back().res),
                   "Error getting ack resource");
 
     // Generate PDSCH
@@ -382,7 +372,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
     pdsch_t&          pdsch = bwp_pdsch_slot.dl.phy.pdsch.back();
     srsran_slot_cfg_t slot_cfg;
     slot_cfg.idx = ue.pdsch_slot.to_uint();
-    bool ret     = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+    bool ret     = ue->phy().get_pdsch_cfg(slot_cfg, pdcch->dci, pdsch.sch);
     srsran_assert(ret, "Error converting DCI to grant");
 
     pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
@@ -419,7 +409,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
 
   auto&        bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   auto&        bwp_pusch_slot = bwp_grid[ue.pusch_slot];
-  alloc_result ret            = verify_pusch_space(bwp_pusch_slot, &bwp_pdcch_slot);
+  alloc_result ret            = verify_pusch_space(bwp_pusch_slot);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -443,10 +433,10 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
   }
   const srsran_search_space_t& ss = *ss_candidates[0];
 
-  uint32_t coreset_id = ss.coreset_id;
-  if (not bwp_pdcch_slot.coresets[coreset_id].value().alloc_dci(
-          pdcch_grant_type_t::ul_data, aggr_idx, ss.id, &ue.cfg())) {
+  pdcch_ul_t* pdcch = bwp_pdcch_slot.pdcch_sched.alloc_ul_pdcch(ss.id, aggr_idx, &ue.cfg());
+  if (pdcch == nullptr) {
     // Could not find space in PDCCH
+    logger.debug("Could not find PDCCH space for rnti=0x%x PUSCH allocation", ue->rnti);
     return alloc_result::no_cch_space;
   }
 
@@ -462,9 +452,8 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
   }
 
   // Generate PDCCH
-  pdcch_ul_t& pdcch = pdcchs.back();
-  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
-  pdcch.dci_cfg = ue->phy().get_dci_cfg();
+  fill_ul_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch->dci.ctx.location, pdcch->dci);
+  pdcch->dci_cfg = ue->phy().get_dci_cfg();
   // Generate PUSCH
   bwp_pusch_slot.ul_prbs |= ul_grant;
   bwp_pusch_slot.ul.pusch.emplace_back();
@@ -472,7 +461,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = ue.pusch_slot.to_uint();
   pusch.pid    = ue.h_ul->pid;
-  bool success = ue->phy().get_pusch_cfg(slot_cfg, pdcch.dci, pusch.sch);
+  bool success = ue->phy().get_pusch_cfg(slot_cfg, pdcch->dci, pusch.sch);
   srsran_assert(success, "Error converting DCI to PUSCH grant");
   pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
   if (ue.h_ul->nof_retx() == 0) {
@@ -492,10 +481,6 @@ alloc_result bwp_slot_allocator::verify_pdsch_space(bwp_slot_grid& pdsch_grid,
     logger.warning("SCHED: Trying to allocate PDSCH in TDD non-DL slot index=%d", pdsch_grid.slot_idx);
     return alloc_result::no_sch_space;
   }
-  if (pdcch_grid.dl.phy.pdcch_dl.full()) {
-    logger.warning("SCHED: Maximum number of DL PDCCH allocations reached");
-    return alloc_result::no_cch_space;
-  }
   if (pdsch_grid.dl.phy.pdsch.full()) {
     logger.warning("SCHED: Maximum number of DL PDSCH grants reached");
     return alloc_result::no_sch_space;
@@ -509,22 +494,11 @@ alloc_result bwp_slot_allocator::verify_pdsch_space(bwp_slot_grid& pdsch_grid,
   return alloc_result::success;
 }
 
-alloc_result bwp_slot_allocator::verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid) const
+alloc_result bwp_slot_allocator::verify_pusch_space(bwp_slot_grid& pusch_grid) const
 {
   if (not pusch_grid.is_ul()) {
     logger.warning("SCHED: Trying to allocate PUSCH in TDD non-UL slot index=%d", pusch_grid.slot_idx);
     return alloc_result::no_sch_space;
-  }
-  if (pdcch_grid != nullptr) {
-    // DCI needed
-    if (not pdcch_grid->is_dl()) {
-      logger.warning("SCHED: Trying to allocate PDCCH in TDD non-DL slot index=%d", pdcch_grid->slot_idx);
-      return alloc_result::no_sch_space;
-    }
-    if (pdcch_grid->dl.phy.pdcch_ul.full()) {
-      logger.warning("SCHED: Maximum number of PUSCH allocations reached");
-      return alloc_result::no_grant_space;
-    }
   }
   if (pusch_grid.ul.pusch.full()) {
     logger.warning("SCHED: Maximum number of PUSCH allocations reached");

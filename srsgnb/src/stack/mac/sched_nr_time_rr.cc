@@ -15,6 +15,13 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+/**
+ * @brief Algorithm to select next UE to allocate in a time-domain RR fashion
+ * @param ue_db map of "slot_ue"
+ * @param rr_count starting index to select next UE
+ * @param p callable that returns true if UE allocation was successful
+ * @return true if a UE was allocated
+ */
 template <typename Predicate>
 bool round_robin_apply(slot_ue_map_t& ue_db, uint32_t rr_count, Predicate p)
 {
@@ -25,6 +32,7 @@ bool round_robin_apply(slot_ue_map_t& ue_db, uint32_t rr_count, Predicate p)
   std::advance(it, (rr_count % ue_db.size()));
   for (uint32_t count = 0; count < ue_db.size(); ++count, ++it) {
     if (it == ue_db.end()) {
+      // wrap-around
       it = ue_db.begin();
     }
     if (p(it->second)) {

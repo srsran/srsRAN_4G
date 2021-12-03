@@ -47,22 +47,20 @@ struct bwp_slot_grid {
   uint32_t            slot_idx = 0;
   const bwp_params_t* cfg      = nullptr;
 
-  bwp_rb_bitmap     dl_prbs;
-  bwp_rb_bitmap     ul_prbs;
-  dl_sched_res_t    dl;
-  ul_sched_t        ul;
-  slot_coreset_list coresets;
-  harq_ack_list_t   pending_acks;
+  bwp_rb_bitmap   dl_prbs;
+  bwp_rb_bitmap   ul_prbs;
+  dl_sched_res_t  dl;
+  ul_sched_t      ul;
+  harq_ack_list_t pending_acks;
+  pdcch_scheduler pdcch_sched; /// slot PDCCH resource scheduler
 
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
-  bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params_t& bwp_params, uint32_t slot_idx_);
   void reset();
 
-  bool is_dl() const { return cfg->slots[slot_idx].is_dl; }
-  bool is_ul() const { return cfg->slots[slot_idx].is_ul; }
-
+  bool       is_dl() const { return cfg->slots[slot_idx].is_dl; }
+  bool       is_ul() const { return cfg->slots[slot_idx].is_ul; }
   prb_bitmap used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
   {
     return dl_prbs.prbs() | cfg->used_prbs(ss_id, dci_fmt);
@@ -119,7 +117,7 @@ public:
 private:
   alloc_result
                verify_pdsch_space(bwp_slot_grid& pdsch_grid, bwp_slot_grid& pdcch_grid, bwp_slot_grid* uci_grid = nullptr) const;
-  alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid = nullptr) const;
+  alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid) const;
   alloc_result verify_ue_cfg(const ue_carrier_params_t& ue_cfg, harq_proc* harq) const;
 
   bwp_res_grid& bwp_grid;

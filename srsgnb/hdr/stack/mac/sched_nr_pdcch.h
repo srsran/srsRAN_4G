@@ -27,8 +27,6 @@ using coreset_bitmap = srsran::bounded_bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZ
 
 enum class pdcch_grant_type_t { sib, rar, dl_data, ul_data };
 
-class slot_ue;
-
 class coreset_region
 {
 public:
@@ -46,12 +44,12 @@ public:
    * @param user UE object or null in case of broadcast/RAR/paging allocation
    * @return if the allocation was successful
    */
-  bool alloc_dci(pdcch_grant_type_t         alloc_type,
-                 uint32_t                   aggr_idx,
-                 uint32_t                   search_space_id,
-                 const ue_carrier_params_t* user = nullptr);
+  bool alloc_pdcch(pdcch_grant_type_t         alloc_type,
+                   uint32_t                   aggr_idx,
+                   uint32_t                   search_space_id,
+                   const ue_carrier_params_t* user = nullptr);
 
-  void rem_last_dci();
+  void rem_last_pdcch();
 
   uint32_t get_td_symbols() const { return coreset_cfg->duration; }
   uint32_t get_freq_resources() const { return nof_freq_res; }
@@ -94,6 +92,60 @@ private:
   srsran::span<const uint32_t> get_cce_loc_table(const alloc_record& record) const;
   bool                         alloc_dfs_node(const alloc_record& record, uint32_t dci_idx);
   bool                         get_next_dfs();
+};
+
+class pdcch_scheduler
+{
+public:
+  pdcch_scheduler(const bwp_params_t& bwp_cfg_,
+                  uint32_t            slot_idx,
+                  pdcch_dl_list_t&    pdcch_dl_list,
+                  pdcch_ul_list_t&    pdcch_ul_list);
+
+  void reset();
+
+  /**
+   * Allocates RE space for DL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * @param pdcch_grant_type_t allocation type (e.g. DL data, UL data, SI, RAR)
+   * @param ss_id Search space ID
+   * @param aggr_idx Aggregation level index (0..4)
+   * @param user UE object or null in case of broadcast/RAR/paging allocation
+   * @return pdcch object if the allocation was successful
+   */
+  pdcch_dl_t* alloc_dl_pdcch(pdcch_grant_type_t         alloc_type,
+                             uint32_t                   ss_id,
+                             uint32_t                   aggr_idx,
+                             const ue_carrier_params_t* user = nullptr);
+
+  /**
+   * Allocates RE space for UL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * @param ss_id Search space ID
+   * @param aggr_idx Aggregation level index (0..4)
+   * @param user UE object parameters
+   * @return pdcch object if the allocation was successful
+   */
+  pdcch_ul_t* alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user);
+
+  /**
+   * Cancel and remove last PDCCH allocation
+   * @param ss_id Search space ID
+   */
+  void rem_last_pdcch(uint32_t ss_id);
+
+private:
+  const static size_t MAX_CORESET_PER_BWP = 3; /// limit set in TS 38.331, ControlResourceSetId
+  using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
+
+  bool check_args_valid(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user, bool is_dl) const;
+
+  // args
+  const bwp_params_t&   bwp_cfg;
+  srslog::basic_logger& logger;
+  const uint32_t        slot_idx;
+
+  pdcch_dl_list_t&  pdcch_dl_list;
+  pdcch_ul_list_t&  pdcch_ul_list;
+  slot_coreset_list coresets;
 };
 
 } // namespace sched_nr_impl

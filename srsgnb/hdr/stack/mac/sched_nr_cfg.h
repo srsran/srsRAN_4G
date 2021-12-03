@@ -106,6 +106,11 @@ struct bwp_params_t {
     return cached_empty_prb_mask;
   }
 
+  const srsran_search_space_t* get_ss(uint32_t ss_id) const
+  {
+    return cfg.pdcch.search_space_present[ss_id] ? &cfg.pdcch.search_space[ss_id] : nullptr;
+  }
+
 private:
   prb_bitmap                          cached_empty_prb_mask;
   srsran::optional_vector<prb_bitmap> used_common_prb_masks;
@@ -147,6 +152,16 @@ public:
   const ue_cfg_t&             ue_cfg() const { return *cfg_; }
   const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
   const bwp_params_t&         active_bwp() const { return *bwp_cfg; }
+
+  /// Get SearchSpace based on SearchSpaceId
+  const srsran_search_space_t* get_ss(uint32_t ss_id) const
+  {
+    if (phy().pdcch.search_space_present[ss_id]) {
+      // UE-dedicated SearchSpace
+      return &bwp_cfg->cfg.pdcch.search_space[ss_id];
+    }
+    return nullptr;
+  }
 
   srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
   {

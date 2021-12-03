@@ -47,10 +47,10 @@ void coreset_region::reset()
   pdcch_ul_list.clear();
 }
 
-bool coreset_region::alloc_dci(pdcch_grant_type_t         alloc_type,
-                               uint32_t                   aggr_idx,
-                               uint32_t                   search_space_id,
-                               const ue_carrier_params_t* user)
+bool coreset_region::alloc_pdcch(pdcch_grant_type_t         alloc_type,
+                                 uint32_t                   aggr_idx,
+                                 uint32_t                   search_space_id,
+                                 const ue_carrier_params_t* user)
 {
   srsran_assert(aggr_idx <= 4, "Invalid DCI aggregation level=%d", 1U << aggr_idx);
   srsran_assert((user == nullptr) xor
@@ -63,6 +63,7 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t         alloc_type,
   record.aggr_idx   = aggr_idx;
   record.ss_id      = search_space_id;
   record.alloc_type = alloc_type;
+
   if (record.alloc_type == pdcch_grant_type_t::ul_data) {
     record.idx = pdcch_ul_list.size();
     pdcch_ul_list.emplace_back();
@@ -95,7 +96,7 @@ bool coreset_region::alloc_dci(pdcch_grant_type_t         alloc_type,
   return false;
 }
 
-void coreset_region::rem_last_dci()
+void coreset_region::rem_last_pdcch()
 {
   srsran_assert(not dci_list.empty(), "%s called when no PDCCH have yet been allocated", __FUNCTION__);
 
@@ -189,6 +190,113 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
       break;
   }
   return {};
+}
+
+pdcch_scheduler::pdcch_scheduler(const bwp_params_t& bwp_cfg_,
+                                 uint32_t            slot_idx_,
+                                 pdcch_dl_list_t&    dl_pdcchs,
+                                 pdcch_ul_list_t&    ul_pdcchs) :
+  bwp_cfg(bwp_cfg_), pdcch_dl_list(dl_pdcchs), pdcch_ul_list(ul_pdcchs), slot_idx(slot_idx_), logger(bwp_cfg_.logger)
+{
+  for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
+    if (bwp_cfg.cfg.pdcch.coreset_present[cs_idx]) {
+      uint32_t cs_id = bwp_cfg.cfg.pdcch.coreset[cs_idx].id;
+      coresets[cs_id].emplace(bwp_cfg, cs_id, slot_idx, pdcch_dl_list, pdcch_ul_list);
+    }
+  }
+}
+
+/// Helper function to verify valid inputs
+bool pdcch_scheduler::check_args_valid(uint32_t                   ss_id,
+                                       uint32_t                   aggr_idx,
+                                       const ue_carrier_params_t* user,
+                                       bool                       is_dl) const
+{
+  srsran_assert(ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, "Invalid SearchSpace#%d", ss_id);
+  srsran_assert(
+      aggr_idx < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR, "Invalid aggregation level index=%d", aggr_idx);
+
+  // Common checks
+  if (not bwp_cfg.slots[slot_idx].is_dl) {
+    logger.warning("SCHED: Trying to allocate PDCCH in non");
+    return false;
+  }
+
+  const srsran_search_space_t* ss = (user == nullptr) ? bwp_cfg.get_ss(ss_id) : user->get_ss(ss_id);
+  if (ss == nullptr) {
+    logger.error("Failure to allocate PDCCH. Cause: SearchSpace#%d has not been configured in the scheduler", ss_id);
+    return false;
+  }
+
+  if (ss->nof_candidates[aggr_idx] == 0) {
+    logger.warning("Chosen PDCCH doesn't have any valid candidates");
+    return false;
+  }
+  if (is_dl and pdcch_dl_list.full()) {
+    logger.warning("SCHED: Maximum number of DL PDCCH allocations=%zd was reached for BWP#%d, CORESET#%d",
+                   pdcch_dl_list.size(),
+                   bwp_cfg.bwp_id,
+                   bwp_cfg.cfg.pdcch.search_space[ss_id].coreset_id);
+    return false;
+  }
+  if (not is_dl and pdcch_ul_list.full()) {
+    logger.warning("SCHED: Maximum number of UL PDCCH allocations=%zd was reached for BWP#%d",
+                   pdcch_ul_list.size(),
+                   bwp_cfg.bwp_id);
+    return false;
+  }
+  return true;
+}
+
+pdcch_dl_t* pdcch_scheduler::alloc_dl_pdcch(pdcch_grant_type_t         alloc_type,
+                                            uint32_t                   ss_id,
+                                            uint32_t                   aggr_idx,
+                                            const ue_carrier_params_t* user)
+{
+  if (not check_args_valid(ss_id, aggr_idx, user, true)) {
+    return nullptr;
+  }
+  const srsran_search_space_t& ss = (user == nullptr) ? *bwp_cfg.get_ss(ss_id) : *user->get_ss(ss_id);
+
+  if (alloc_type == pdcch_grant_type_t::rar) {
+    srsran_assert(ss_id == bwp_cfg.cfg.pdcch.ra_search_space.id and bwp_cfg.cfg.pdcch.ra_search_space_present,
+                  "PDCCH grant type does not match search space");
+  }
+
+  if (coresets[ss.coreset_id]->alloc_pdcch(alloc_type, aggr_idx, ss_id, user)) {
+    return &pdcch_dl_list.back();
+  }
+  return nullptr;
+}
+
+pdcch_ul_t* pdcch_scheduler::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user)
+{
+  if (not check_args_valid(ss_id, aggr_idx, user, false)) {
+    return nullptr;
+  }
+  const srsran_search_space_t& ss = *user->get_ss(ss_id);
+
+  if (coresets[ss.coreset_id]->alloc_pdcch(pdcch_grant_type_t::ul_data, aggr_idx, ss_id, user)) {
+    return &pdcch_ul_list.back();
+  }
+  return nullptr;
+}
+
+void pdcch_scheduler::rem_last_pdcch(uint32_t ss_id)
+{
+  const srsran_search_space_t& ss = bwp_cfg.cfg.pdcch.search_space[ss_id];
+
+  uint32_t coreset_id = ss.coreset_id;
+  coresets[coreset_id]->rem_last_pdcch();
+}
+
+void pdcch_scheduler::reset()
+{
+  for (uint32_t i = 0; i < coresets.size(); ++i) {
+    if (coresets[i].has_value()) {
+      coresets[i]->reset();
+    }
+  }
 }
 
 } // namespace sched_nr_impl
