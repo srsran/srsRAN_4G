@@ -1519,6 +1519,8 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     return SRSRAN_ERROR;
   }
 
+  rrc_nr_cfg_->inactivity_timeout_ms = args_->general.rrc_inactivity_timer;
+
   // Create NR dedicated cell configuration from RRC configuration
   for (auto& cfg : rrc_nr_cfg_->cell_list) {
     cfg.phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
@@ -1548,6 +1550,9 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     cfg.phy_cell.pdsch.rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
     cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;
   }
+  rrc_nr_cfg_->enb_id = args_->enb.enb_id;
+  rrc_nr_cfg_->mcc    = args_->stack.s1ap.mcc;
+  rrc_nr_cfg_->mnc    = args_->stack.s1ap.mnc;
 
   // Derive cross-dependent cell params
   if (set_derived_nr_rrc_params(*rrc_nr_cfg_) != SRSRAN_SUCCESS) {

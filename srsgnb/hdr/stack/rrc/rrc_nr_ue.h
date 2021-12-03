@@ -92,16 +92,16 @@ public:
   /* TS 38.331 - 5.3.4 Initial AS security activation */
   void send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu);
 
+  /* TS 38.331 - 5.3.5 RRC reconfiguration */
+  void send_rrc_reconfiguration();
+
 private:
   int send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
   int send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg_s& dl_dcch_msg);
 
-  /* TS 38.331 - 5.3.3 RRC connection establishment */
+  /** TS 38.331 - 5.3.3 RRC connection establishment */
   void send_rrc_setup();
   void send_rrc_reject(uint8_t reject_wait_time_secs);
-
-  /* TS 38.331 - 5.3.5 RRC reconfiguration */
-  void send_rrc_reconfiguration();
 
   /// Update PDCP bearers based on ASN1 structs passed to the UE
   int update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_diff,
@@ -111,7 +111,7 @@ private:
   int update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff);
 
   /// Update MAC based on ASN1 message
-  int update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_diff, bool is_config_complete);
+  int update_mac(const asn1::rrc_nr::cell_group_cfg_s& cell_group_config, bool is_config_complete);
 
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);

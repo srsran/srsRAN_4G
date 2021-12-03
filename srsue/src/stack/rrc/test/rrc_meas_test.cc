@@ -26,7 +26,7 @@
 #include "srsran/upper/pdcp.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
-#include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include <iostream>
 

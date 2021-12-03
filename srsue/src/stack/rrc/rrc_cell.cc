@@ -180,6 +180,41 @@ uint16_t meas_cell_eutra::get_mnc() const
   return 0;
 }
 
+uint16_t meas_cell_nr::get_mcc() const
+{
+  uint16_t mcc = 0;
+  if (has_valid_sib1) {
+    if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
+      // PLMN ID list is nested twice
+      if (sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.size() > 0) {
+        if (sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mcc_present) {
+          if (srsran::bytes_to_mcc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mcc[0], &mcc)) {
+            // successfully read MCC
+          }
+        }
+      }
+    }
+  }
+  return mcc;
+}
+
+uint16_t meas_cell_nr::get_mnc() const
+{
+  uint16_t mnc = 0;
+  if (has_valid_sib1) {
+    if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
+      if (sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.size() > 0) {
+        if (srsran::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mnc[0],
+                                 &mnc,
+                                 sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mnc.size())) {
+          // successfully read MNC
+        }
+      }
+    }
+  }
+  return mnc;
+}
+
 /*********************************************
  *           Neighbour Cell List
  ********************************************/

@@ -28,7 +28,7 @@
 namespace srsran {
 
 /**
- * @brief Descibes a physical layer common interface
+ * @brief Describes a physical layer common interface
  */
 class phy_common_interface
 {

@@ -23,6 +23,7 @@
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/string_helpers.h"
 
 using namespace asn1::rrc_nr;
@@ -67,8 +68,7 @@ void rrc_nr::ue::set_activity_timeout(activity_timeout_type_t type)
       deadline_ms = 5000;
       break;
     case UE_INACTIVITY_TIMEOUT:
-      // TODO: Retrieve the parameters from somewhere(RRC?) - Currently hardcoded to 5s
-      deadline_ms = 10000;
+      deadline_ms = parent->cfg.inactivity_timeout_ms;
       break;
     default:
       logger.error("Unknown timeout type %d", type);
@@ -102,10 +102,16 @@ void rrc_nr::ue::activity_timer_expired(const activity_timeout_type_t type)
 
   switch (type) {
     case MSG5_RX_TIMEOUT:
-    case UE_INACTIVITY_TIMEOUT:
+    case UE_INACTIVITY_TIMEOUT: {
       state = rrc_nr_state_t::RRC_INACTIVE;
-      parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
+      if (parent->cfg.is_standalone) {
+        // Start NGAP Release UE context
+        parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::user_inactivity);
+      } else {
+        parent->rrc_eutra->sgnb_inactivity_timeout(eutra_rnti);
+      }
       break;
+    }
     case MSG3_RX_TIMEOUT: {
       // MSG3 timeout, no need to notify NGAP or LTE stack. Just remove UE
       state                = rrc_nr_state_t::RRC_IDLE;
@@ -1020,7 +1026,7 @@ void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu
   ies.security_cfg_smc.security_algorithm_cfg                                  = sec_ctx.get_security_algorithm_cfg();
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
-    send_rrc_release();
+    parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
   }
 }
 
@@ -1030,6 +1036,7 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   parent->logger.info("SecurityModeComplete transaction ID: %d", msg.rrc_transaction_id);
   parent->pdcp->enable_encryption(rnti, srb_to_lcid(srsran::nr_srb::srb1));
 
+  send_rrc_reconfiguration();
   // Note: Skip UE capabilities
 
   // Send RRCReconfiguration if necessary
@@ -1049,52 +1056,64 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   ies.radio_bearer_cfg_present =
       compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, ies.radio_bearer_cfg);
 
-  ies.non_crit_ext_present                   = true;
-  ies.non_crit_ext.master_cell_group_present = true;
-
-  // Fill masterCellGroup
-  cell_group_cfg_s master_cell_group;
-  master_cell_group.cell_group_id = 0;
-  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
-
-  // Pack masterCellGroup into container
-  srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
-  if (pdu == nullptr) {
-    send_rrc_release();
-    return;
-  }
-  ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
-  memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
-
-  // Pass stored NAS PDUs
-  ies.non_crit_ext.ded_nas_msg_list_present = true;
-  ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
-  for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
-    ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
-    memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
-  }
-  ies.non_crit_ext.ded_nas_msg_list_present = nas_pdu_queue.size() > 0;
-  nas_pdu_queue.clear();
-
-  // Update lower layers
+  // If no bearer to add/mod/remove, do not include master_cell_group
+  // Set ies.non_crit_ext_present (a few lines below) only if
+  // master_cell_group_present == true or ies.non_crit_ext.ded_nas_msg_list_present == true
   if (ies.radio_bearer_cfg_present) {
-    // add PDCP bearers
-    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
+    ies.non_crit_ext.master_cell_group_present = true;
+
+    // Fill masterCellGroup
+    cell_group_cfg_s master_cell_group;
+    master_cell_group.cell_group_id = 0;
+    fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
+
+    // Pack masterCellGroup into container
+    srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
+    if (pdu == nullptr) {
+      parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
+      return;
+    }
+    ies.non_crit_ext.master_cell_group.resize(pdu->N_bytes);
+    memcpy(ies.non_crit_ext.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+    if (logger.debug.enabled()) {
+      asn1::json_writer js;
+      master_cell_group.to_json(js);
+      logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+    }
+
+    // Update lower layers
+    // add MAC bearers
+    update_mac(master_cell_group, false);
 
     // add RLC bearers
     update_rlc_bearers(master_cell_group);
 
-    // add MAC bearers
-    update_mac(master_cell_group, false);
+    // add PDCP bearers
+    update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
   }
 
+  if (nas_pdu_queue.size() > 0) {
+    // Pass stored NAS PDUs
+    ies.non_crit_ext.ded_nas_msg_list_present = true;
+    ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
+    for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
+      ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
+      memcpy(ies.non_crit_ext.ded_nas_msg_list[i].data(), nas_pdu_queue[i]->data(), nas_pdu_queue[i]->size());
+    }
+    nas_pdu_queue.clear();
+  }
+
+  ies.non_crit_ext_present = ies.non_crit_ext.master_cell_group_present or ies.non_crit_ext.ded_nas_msg_list_present;
+
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
-    send_rrc_release();
+    parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
   }
 }
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
 {
+  update_mac(next_cell_group_cfg, true);
+
   radio_bearer_cfg = next_radio_bearer_cfg;
   cell_group_cfg   = next_cell_group_cfg;
   parent->ngap->ue_notify_rrc_reconf_complete(rnti, true);
@@ -1102,7 +1121,21 @@ void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_rec
 
 void rrc_nr::ue::send_rrc_release()
 {
-  // TODO
+  static const uint32_t release_delay = 60; // Taken from TS 38.331, 5.3.8.3
+
+  dl_dcch_msg_s  dl_dcch_msg;
+  rrc_release_s& release = dl_dcch_msg.msg.set_c1().set_rrc_release();
+
+  release.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_release_ies_s& ies     = release.crit_exts.set_rrc_release();
+
+  ies.suspend_cfg_present = false; // goes to RRC_IDLE
+
+  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+  state = rrc_nr_state_t::RRC_IDLE;
+
+  // TODO: Obtain acknowledgment from lower layers that RRC Release was received
+  parent->task_sched.defer_callback(release_delay, [this]() { parent->rem_user(rnti); });
 }
 
 void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
@@ -1116,7 +1149,7 @@ void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
   memcpy(ies.ded_nas_msg.data(), sdu->data(), ies.ded_nas_msg.size());
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
-    send_rrc_release();
+    parent->ngap->user_release_request(rnti, asn1::ngap_nr::cause_radio_network_opts::radio_res_not_available);
   }
 }
 
@@ -1157,6 +1190,7 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
 
   drb.drb_id                               = 1;
   drb.pdcp_cfg_present                     = true;
+  drb.pdcp_cfg.drb_present                 = true;
   drb.pdcp_cfg.drb.discard_timer_present   = true;
   drb.pdcp_cfg.drb.discard_timer.value     = pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
   drb.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
@@ -1169,6 +1203,11 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
 
   next_radio_bearer_cfg.drb_to_add_mod_list_present = true;
   next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
+
+  parent->bearer_mapper->add_eps_bearer(
+      rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid); // TODO: configurable bearer id <-> lcid mapping
+
+  logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
 }
 
 bool rrc_nr::ue::init_pucch()
@@ -1247,15 +1286,15 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_config_complete)
+int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_config_complete)
 {
   if (not is_config_complete) {
     // Release bearers
-    for (uint8_t lcid : cell_group_diff.rlc_bearer_to_release_list) {
+    for (uint8_t lcid : cell_group_config.rlc_bearer_to_release_list) {
       uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
     }
 
-    for (const rlc_bearer_cfg_s& bearer : cell_group_diff.rlc_bearer_to_add_mod_list) {
+    for (const rlc_bearer_cfg_s& bearer : cell_group_config.rlc_bearer_to_add_mod_list) {
       uecfg.ue_bearers[bearer.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
       if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
         uecfg.ue_bearers[bearer.lc_ch_id].priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
@@ -1267,7 +1306,7 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_diff, bool is_conf
       }
     }
   } else {
-    auto& pdcch = cell_group_diff.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
+    auto& pdcch = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
     for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
       uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
       uecfg.phy_cfg.pdcch.search_space[ss.search_space_id] =

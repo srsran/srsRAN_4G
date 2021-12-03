@@ -170,16 +170,16 @@ void ue::mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds)
   }
 }
 
-void ue::rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx)
+void ue::rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t priotx)
 {
-  if (lcid == 0 and buffers.get_dl_tx_total(0) == 0) {
+  if (lcid == 0 and (newtx + priotx > 0) and buffers.get_dl_tx_total(0) == 0) {
     // In case of DL-CCCH, schedule ConRes CE
     // Note1: rlc_buffer_state may be called multiple times for the same CCCH. Thus, we need to confirm lcid=0 buffer
     //        state is zero to avoid that multiple CEs being scheduled.
     // Note2: use push_front because ConRes CE has priority
     buffers.pending_ces.push_front({srsran::mac_sch_subpdu_nr::CON_RES_ID, cfg().carriers[0].cc});
   }
-  buffers.dl_buffer_state(lcid, newtx, retx);
+  buffers.dl_buffer_state(lcid, newtx, priotx);
 }
 
 void ue::new_slot(slot_point pdcch_slot)

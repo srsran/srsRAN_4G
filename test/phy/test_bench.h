@@ -168,7 +168,7 @@ public:
     // Run the UL channel simulator
     ul_channel.run(gnb_rx_buffers.data(), gnb_rx_buffers.data(), (uint32_t)sf_sz, gnb_time.get(0));
 
-    // Set gnb context
+    // Set gNb context
     srsran::phy_common_interface::worker_context_t gnb_context;
     gnb_context.sf_idx     = slot_idx;
     gnb_context.worker_ptr = gnb_worker;
@@ -198,7 +198,7 @@ public:
     // Run the DL channel simulator
     dl_channel.run(ue_rx_buffers.data(), ue_rx_buffers.data(), (uint32_t)sf_sz, ue_time.get(0));
 
-    // Set gnb context
+    // Set UE context
     srsran::phy_common_interface::worker_context_t ue_context;
     ue_context.sf_idx     = slot_idx;
     ue_context.worker_ptr = ue_worker;

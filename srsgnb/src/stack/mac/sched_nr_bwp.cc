@@ -33,8 +33,9 @@ ra_sched::ra_sched(const bwp_params_t& bwp_cfg_) :
 alloc_result
 ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
 {
-  const uint32_t    rar_aggr_level = 2;
-  const prb_bitmap& prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].dl_prbs.prbs();
+  const uint32_t rar_aggr_level = 2;
+  prb_bitmap     prbs = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].used_prbs(bwp_cfg->cfg.pdcch.ra_search_space.id,
+                                                                              srsran_dci_format_nr_1_0);
 
   alloc_result                            ret = alloc_result::other_cause;
   srsran::const_span<dl_sched_rar_info_t> msg3_grants{rar.msg3_grant};

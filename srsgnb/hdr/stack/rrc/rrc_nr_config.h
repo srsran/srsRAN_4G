@@ -60,6 +60,10 @@ struct rrc_nr_cfg_t {
   rrc_nr_cfg_sr_t    sr_cfg;
   rrc_cfg_cqi_t      cqi_cfg;
   rrc_cell_list_nr_t cell_list;
+  uint32_t           inactivity_timeout_ms = 100000;
+  uint32_t           enb_id;
+  uint16_t           mcc;
+  uint16_t           mnc;
   bool               is_standalone;
 
   std::array<srsran::CIPHERING_ALGORITHM_ID_NR_ENUM, srsran::CIPHERING_ALGORITHM_ID_NR_N_ITEMS> nea_preference_list;

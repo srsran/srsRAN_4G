@@ -71,6 +71,11 @@ struct bwp_slot_grid {
 
   bool is_dl() const { return cfg->slots[slot_idx].is_dl; }
   bool is_ul() const { return cfg->slots[slot_idx].is_ul; }
+
+  prb_bitmap used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  {
+    return dl_prbs.prbs() | cfg->used_prbs(ss_id, dci_fmt);
+  }
 };
 
 struct bwp_res_grid {

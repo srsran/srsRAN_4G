@@ -29,7 +29,7 @@
 #include "mac/mac.h"
 #include "mac_nr/mac_nr.h"
 #include "rrc/rrc.h"
-#include "rrc/rrc_nr.h"
+#include "rrc_nr/rrc_nr.h"
 #include "srsran/common/bearer_manager.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/multiqueue.h"

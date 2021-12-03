@@ -21,9 +21,9 @@
 
 #include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
+#include "srsenb/hdr/stack/upper/gtpu_pdcp_adapter.h"
 #include "srsgnb/hdr/stack/ngap/ngap.h"
 #include "srsran/common/network_utils.h"
-#include "srsran/common/standard_streams.h"
 #include "srsran/srsran.h"
 #include <srsran/interfaces/enb_metrics_interface.h>
 
@@ -42,6 +42,7 @@ gnb_stack_nr::gnb_stack_nr(srslog::sink& log_sink) :
   mac(&task_sched),
   rrc(&task_sched),
   pdcp(&task_sched, pdcp_logger),
+  bearer_manager(new srsenb::enb_bearer_manager()),
   rlc(rlc_logger)
 {
   sync_task_queue    = task_sched.make_task_queue();
@@ -77,6 +78,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
   ngap_logger.set_level(srslog::str_to_basic_level(args.log.s1ap_level));
   gtpu_logger.set_level(srslog::str_to_basic_level(args.log.gtpu_level));
+  srslog::fetch_basic_logger("COMN", false).set_level(srslog::str_to_basic_level(args.log.stack_level));
 
   mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
@@ -85,11 +87,13 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
   ngap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
   gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
+  srslog::fetch_basic_logger("COMN", false).set_hex_dump_max_size(args.log.stack_hex_limit);
 
   if (x2_ == nullptr) {
     // SA mode
     ngap.reset(new srsenb::ngap(&task_sched, ngap_logger, &srsran::get_rx_io_manager()));
     gtpu.reset(new srsenb::gtpu(&task_sched, gtpu_logger, &srsran::get_rx_io_manager()));
+    gtpu_adapter.reset(new gtpu_pdcp_adapter(gtpu_logger, nullptr, &pdcp, gtpu.get(), *bearer_manager));
   }
 
   // Init all layers
@@ -99,25 +103,28 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   }
 
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
-  pdcp.init(&rlc, &rrc, x2_);
 
-  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), nullptr, x2_) != SRSRAN_SUCCESS) {
+  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), *bearer_manager, x2_) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }
 
   if (ngap != nullptr) {
+    pdcp.init(&rlc, &rrc, gtpu_adapter.get());
+
     if (args.ngap_pcap.enable) {
       ngap_pcap.open(args.ngap_pcap.filename.c_str());
       ngap->start_pcap(&ngap_pcap);
     }
 
-    ngap->init(args.ngap, &rrc, nullptr);
+    ngap->init(args.ngap, &rrc, gtpu.get());
     gtpu_args_t gtpu_args;
     gtpu_args.embms_enable  = false;
     gtpu_args.mme_addr      = args.ngap.amf_addr;
     gtpu_args.gtp_bind_addr = args.ngap.gtp_bind_addr;
-    gtpu->init(gtpu_args, &pdcp);
+    gtpu->init(gtpu_args, gtpu_adapter.get());
+  } else {
+    pdcp.init(&rlc, &rrc, x2_);
   }
 
   // TODO: add SDAP

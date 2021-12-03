@@ -46,6 +46,8 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
     return SRSRAN_ERROR;
   }
 
+  lcid = allocate_lcid(rnti);
+
   // TODO: remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
   int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel);
   if (rtn != SRSRAN_SUCCESS) {
@@ -71,6 +73,7 @@ int ngap_ue_bearer_manager::reset_pdu_sessions(uint16_t rnti)
     auto pdu_session_id = iter->first;
     rem_gtpu_bearer(pdu_session_id, rnti);
   }
+  next_lcid_list.erase(rnti);
   return true;
 }
 
@@ -117,6 +120,14 @@ void ngap_ue_bearer_manager::rem_gtpu_bearer(uint16_t rnti, uint32_t pdu_session
     return;
   }
   gtpu->rem_bearer(rnti, it->second.lcid);
+}
+
+uint8_t ngap_ue_bearer_manager::allocate_lcid(uint32_t rnti)
+{
+  if (next_lcid_list.find(rnti) == next_lcid_list.end()) {
+    next_lcid_list[rnti] = 4;
+  }
+  return next_lcid_list[rnti]++;
 }
 
 } // namespace srsenb

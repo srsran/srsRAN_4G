@@ -20,6 +20,7 @@
  */
 
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
+#include "srsenb/hdr/common/common_enb.h"
 #include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/band_helper.h"
@@ -478,9 +479,9 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   sr_res1.sched_request_res_id              = 1;
   sr_res1.sched_request_id                  = 0;
   sr_res1.periodicity_and_offset_present    = true;
-  sr_res1.periodicity_and_offset.set_sl40() = 0;
+  sr_res1.periodicity_and_offset.set_sl40() = 8;
   sr_res1.res_present                       = true;
-  sr_res1.res                               = 16;
+  sr_res1.res                               = 2;
 
   // DL data
   out.dl_data_to_ul_ack_present = true;
@@ -883,6 +884,7 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   phr.phr_type2_other_cell                  = false;
   phr.phr_mode_other_cg.value               = asn1::rrc_nr::phr_cfg_s::phr_mode_other_cg_opts::real;
   out.mac_cell_group_cfg.skip_ul_tx_dynamic = false;
+  out.mac_cell_group_cfg.phr_cfg_present    = false; // Note: not supported
 
   // physicalCellGroupConfig -- Need M
   out.phys_cell_group_cfg_present          = true;
@@ -895,7 +897,7 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
   out.sp_cell_cfg.recfg_with_sync_present              = false;
-  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false;
+  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false; // Note: not supported
 
   return SRSRAN_SUCCESS;
 }
@@ -1067,8 +1069,6 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
 
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1)
 {
-  std::string              plmn_str = "00101";
-  uint32_t                 cell_id  = 0x19B01;
   const rrc_cell_cfg_nr_t& cell_cfg = cfg.cell_list[cc];
 
   sib1.cell_sel_info_present            = true;
@@ -1079,11 +1079,11 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   sib1.cell_access_related_info.plmn_id_list.resize(1);
   sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.resize(1);
   srsran::plmn_id_t plmn;
-  plmn.from_string(plmn_str);
+  plmn.from_number(cfg.mcc, cfg.mnc);
   srsran::to_asn1(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0], plmn);
   sib1.cell_access_related_info.plmn_id_list[0].tac_present = true;
   sib1.cell_access_related_info.plmn_id_list[0].tac.from_number(cell_cfg.tac);
-  sib1.cell_access_related_info.plmn_id_list[0].cell_id.from_number(cell_id);
+  sib1.cell_access_related_info.plmn_id_list[0].cell_id.from_number((cfg.enb_id << 8U) + cell_cfg.phy_cell.cell_id);
   sib1.cell_access_related_info.plmn_id_list[0].cell_reserved_for_oper.value =
       plmn_id_info_s::cell_reserved_for_oper_opts::not_reserved;
 
@@ -1162,7 +1162,8 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
   // Add DRBs
   for (const drb_to_add_mod_s& drb : bearers.drb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});
-    fill_srb(cfg, (srsran::nr_srb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
+    uint32_t lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
+    fill_drb(cfg, lcid, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
   }
   out.rlc_bearer_to_add_mod_list_present = out.rlc_bearer_to_add_mod_list.size() > 0;
 

@@ -130,8 +130,6 @@ public:
   void set_sib3(const asn1::rrc_nr::sib3_s& sib3_);
 
   const asn1::rrc_nr::sib1_s* sib1ptr() const { return has_sib1() ? &sib1 : nullptr; }
-  const asn1::rrc_nr::sib2_s* sib2ptr() const { return has_sib2() ? &sib2 : nullptr; }
-  const asn1::rrc_nr::sib3_s* sib3ptr() const { return has_sib3() ? &sib3 : nullptr; }
 
   uint32_t get_cell_id() const { return (uint32_t)0xFFFF; } // TODO find the correct sib
 
@@ -140,11 +138,7 @@ public:
 
   std::string to_string() const;
 
-  bool                  has_mcch = false;
   asn1::rrc_nr::sib1_s  sib1     = {};
-  asn1::rrc_nr::sib2_s  sib2     = {};
-  asn1::rrc_nr::sib3_s  sib3     = {};
-  asn1::rrc::mcch_msg_s mcch     = {};
 };
 
 class meas_cell_eutra : public meas_cell

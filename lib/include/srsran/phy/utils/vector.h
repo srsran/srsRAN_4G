@@ -171,6 +171,9 @@ SRSRAN_API void srsran_vec_sub_ccc(const cf_t* x, const cf_t* y, cf_t* z, const 
 SRSRAN_API void srsran_vec_sub_sss(const int16_t* x, const int16_t* y, int16_t* z, const uint32_t len);
 SRSRAN_API void srsran_vec_sub_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint32_t len);
 
+/* sum a scalar to all elements of a vector */
+SRSRAN_API void srsran_vec_sc_sum_fff(const float* x, float h, float* z, uint32_t len);
+
 /* scalar product */
 SRSRAN_API void srsran_vec_sc_prod_cfc(const cf_t* x, const float h, cf_t* z, const uint32_t len);
 SRSRAN_API void srsran_vec_sc_prod_fcc(const float* x, const cf_t h, cf_t* z, const uint32_t len);

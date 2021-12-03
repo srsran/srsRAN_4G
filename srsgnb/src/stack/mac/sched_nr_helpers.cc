@@ -93,6 +93,7 @@ void fill_dci_grant(const bwp_params_t& bwp_cfg, const prb_grant& grant, srsran_
     if (dci.ctx.coreset_id == 0 and SRSRAN_SEARCH_SPACE_IS_COMMON(dci.ctx.ss_type)) {
       nof_prb = dci.coreset0_bw;
     }
+    srsran_assert(grant.prbs().start() >= rb_start, "Invalid PRB index=%d < %d", grant.prbs().start(), rb_start);
     uint32_t grant_start      = grant.prbs().start() - rb_start;
     dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, grant_start, grant.prbs().length());
   }
@@ -242,9 +243,9 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
       data_count++;
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
       const pdsch_t&           pdsch = bwp_slot.dl.phy.pdsch[std::distance(bwp_slot.dl.phy.pdcch_dl.data(), &pdcch)];
-      srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + pdsch.sch.grant.nof_prb};
+      srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + SRSRAN_MAX_PRB_NR};
       uint32_t                 start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
-      uint32_t end_idx = std::distance(prbs.begin(), std::find(prbs.begin() + start_idx, prbs.end(), false));
+      uint32_t                 end_idx   = start_idx + pdsch.sch.grant.nof_prb;
       fmt::format_to(fmtbuf,
                      "SCHED: RAR, cc={}, ra-rnti=0x{:x}, prbs={}, pdsch_slot={}, msg3_slot={}, nof_grants={}",
                      res_grid.cfg->cc,
@@ -257,9 +258,9 @@ void log_sched_bwp_result(srslog::basic_logger& logger,
     } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_si) {
       if (logger.debug.enabled()) {
         const pdsch_t&           pdsch = bwp_slot.dl.phy.pdsch[std::distance(bwp_slot.dl.phy.pdcch_dl.data(), &pdcch)];
-        srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + pdsch.sch.grant.nof_prb};
+        srsran::const_span<bool> prbs{pdsch.sch.grant.prb_idx, pdsch.sch.grant.prb_idx + SRSRAN_MAX_PRB_NR};
         uint32_t                 start_idx = std::distance(prbs.begin(), std::find(prbs.begin(), prbs.end(), true));
-        uint32_t end_idx = std::distance(prbs.begin(), std::find(prbs.begin() + start_idx, prbs.end(), false));
+        uint32_t                 end_idx   = start_idx + pdsch.sch.grant.nof_prb;
         fmt::format_to(fmtbuf,
                        "SCHED: SI{}, cc={}, prbs={}, pdsch_slot={}",
                        pdcch.dci.sii == 0 ? "B" : " message",

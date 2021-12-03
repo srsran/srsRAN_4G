@@ -48,6 +48,8 @@ SRSRAN_API void srsran_vec_add_fff_simd(const float* x, const float* y, float* z
 
 SRSRAN_API void srsran_vec_sub_fff_simd(const float* x, const float* y, float* z, int len);
 
+SRSRAN_API void srsran_vec_sc_sum_fff_simd(const float* x, float h, float* z, int len);
+
 /* SIMD Vector Scalar Product */
 SRSRAN_API void srsran_vec_sc_prod_cfc_simd(const cf_t* x, const float h, cf_t* y, const int len);
 

@@ -71,28 +71,40 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
   endif (ZEROMQ_FOUND)
 
-  add_library(srsran_rf STATIC ${SOURCES_RF})
+  add_library(srsran_rf_object OBJECT ${SOURCES_RF})
+  set_property(TARGET srsran_rf_object PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+  add_library(srsran_rf STATIC $<TARGET_OBJECTS:srsran_rf_object>)
+  add_library(srsran_rf_shared SHARED $<TARGET_OBJECTS:srsran_rf_object>)
+
   target_link_libraries(srsran_rf srsran_rf_utils srsran_phy)
   set_target_properties(srsran_rf PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
+  target_link_libraries(srsran_rf_shared srsran_rf_utils srsran_phy)
+  set_target_properties(srsran_rf_shared PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
   
   if (UHD_FOUND)
     target_link_libraries(srsran_rf ${UHD_LIBRARIES} ${Boost_LIBRARIES}) # Ubuntu 18.04 requires 'system' from Boost_LIBRARIES
+    target_link_libraries(srsran_rf_shared ${UHD_LIBRARIES} ${Boost_LIBRARIES})
   endif (UHD_FOUND)
 
   if (BLADERF_FOUND)
     target_link_libraries(srsran_rf ${BLADERF_LIBRARIES})
+    target_link_libraries(srsran_rf_shared ${BLADERF_LIBRARIES})
   endif (BLADERF_FOUND)
 
   if (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
     target_link_libraries(srsran_rf ${SOAPYSDR_LIBRARIES})
+    target_link_libraries(srsran_rf_shared ${SOAPYSDR_LIBRARIES})
   endif (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
 
   if(SKIQ_FOUND)
     target_link_libraries(srsran_rf ${SKIQ_LIBRARIES} rt)
+    target_link_libraries(srsran_rf_shared ${SKIQ_LIBRARIES} rt)
   endif(SKIQ_FOUND)
 
   if (ZEROMQ_FOUND)
     target_link_libraries(srsran_rf ${ZEROMQ_LIBRARIES})
+    target_link_libraries(srsran_rf_shared ${ZEROMQ_LIBRARIES})
     add_executable(rf_zmq_test rf_zmq_test.c)
     target_link_libraries(rf_zmq_test srsran_rf)
     #add_test(rf_zmq_test rf_zmq_test)

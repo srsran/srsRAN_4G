@@ -26,6 +26,7 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/standard_streams.h"
@@ -47,16 +48,16 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
                  ngap_interface_rrc_nr*      ngap_,
-                 gtpu_interface_rrc_nr*      gtpu_,
+                 enb_bearer_manager&         bearer_mapper_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
-  phy       = phy_;
-  mac       = mac_;
-  rlc       = rlc_;
-  pdcp      = pdcp_;
-  ngap      = ngap_;
-  gtpu      = gtpu_;
-  rrc_eutra = rrc_eutra_;
+  phy           = phy_;
+  mac           = mac_;
+  rlc           = rlc_;
+  pdcp          = pdcp_;
+  ngap          = ngap_;
+  bearer_mapper = &bearer_mapper_;
+  rrc_eutra     = rrc_eutra_;
 
   cfg = cfg_;
 
@@ -212,6 +213,13 @@ void rrc_nr::rem_user(uint16_t rnti)
   }
 }
 
+/// This function is called when the INACTIVITY TIMER FOR
+int rrc_nr::rrc_release(uint16_t rnti)
+{
+  // TODO: we do not have yet a defined procedure to handle this
+  return SRSRAN_SUCCESS;
+}
+
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
  * valid RNTI.
  */
@@ -252,10 +260,11 @@ void rrc_nr::set_activity_user(uint16_t rnti)
   }
   ue* ue_ptr = it->second.get();
 
+  // Restart inactivity timer for RRC-NR
+  ue_ptr->set_activity();
+
   // inform EUTRA RRC about user activity
   if (ue_ptr->is_endc()) {
-    // Restart inactivity timer for RRC-NR
-    ue_ptr->set_activity();
     // inform EUTRA RRC about user activity
     rrc_eutra->set_activity_user(ue_ptr->get_eutra_rnti());
   }
@@ -618,12 +627,25 @@ int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran:
   }
 
   users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid);
+
+  // TODO: verify whether this is the best place where to call the RRCReconfig
+  users[rnti]->send_rrc_reconfiguration();
   return SRSRAN_SUCCESS;
 }
 
 int rrc_nr::release_bearers(uint16_t rnti)
 {
   return SRSRAN_SUCCESS;
+}
+
+void rrc_nr::release_user(uint16_t rnti)
+{
+  if (not users.contains(rnti)) {
+    logger.warning("User rnti=0x%x has already been released", rnti);
+    return;
+  }
+
+  users[rnti]->send_rrc_release();
 }
 
 int rrc_nr::allocate_lcid(uint16_t rnti)

@@ -274,6 +274,23 @@ void ngap::write_pdu(uint16_t rnti, srsran::const_byte_span pdu)
   u->send_ul_nas_transport(pdu);
 }
 
+void ngap::user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio)
+{
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    logger.warning("Released UE rnti=0x%x not found.", rnti);
+    return;
+  }
+
+  cause_c cause;
+  cause.set_radio_network().value = cause_radio;
+  if (not u->send_ue_context_release_request(cause)) {
+    logger.error("Failed to initiate RRC Release for rnti=0x%x. Removing user", rnti);
+    rrc->release_user(rnti);
+    users.erase(u);
+  }
+}
+
 /*********************************************************
  *              ngap::user_list class
  *********************************************************/
@@ -385,6 +402,7 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
     pcap->write_ngap(pdu->msg, pdu->N_bytes);
   }
 
+  // Unpack
   ngap_pdu_c     rx_pdu;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
 
@@ -396,6 +414,10 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
     return false;
   }
 
+  // Logging
+  log_ngap_message(rx_pdu, Rx, srsran::make_span(*pdu));
+
+  // Handle the NGAP message
   switch (rx_pdu.type().value) {
     case ngap_pdu_c::types_opts::init_msg:
       return handle_initiating_message(rx_pdu.init_msg());
@@ -419,7 +441,7 @@ bool ngap::handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg)
     case ngap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request:
       return handle_initial_ctxt_setup_request(msg.value.init_context_setup_request());
     case ngap_elem_procs_o::init_msg_c::types_opts::ue_context_release_cmd:
-      return handle_ue_ctxt_release_cmd(msg.value.ue_context_release_cmd());
+      return handle_ue_context_release_cmd(msg.value.ue_context_release_cmd());
     case ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request:
       return handle_ue_pdu_session_res_setup_request(msg.value.pdu_session_res_setup_request());
     default:
@@ -534,7 +556,7 @@ bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_s
   return true;
 }
 
-bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+bool ngap::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
 {
   const asn1::ngap_nr::ue_ngap_id_pair_s& ue_ngap_id_pair = msg.protocol_ies.ue_ngap_ids.value.ue_ngap_id_pair();
 
@@ -544,9 +566,7 @@ bool ngap::handle_ue_ctxt_release_cmd(const asn1::ngap_nr::ue_context_release_cm
     return false;
   }
 
-  u->handle_ue_ctxt_release_cmd(msg);
-
-  return true;
+  return u->handle_ue_context_release_cmd(msg);
 }
 
 bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
@@ -813,5 +833,31 @@ std::string ngap::get_cause(const cause_c& c)
 void ngap::start_pcap(srsran::ngap_pcap* pcap_)
 {
   pcap = pcap_;
+}
+
+void ngap::log_ngap_message(const ngap_pdu_c& msg, const direction_t dir, srsran::const_byte_span pdu)
+{
+  std::string msg_type = {};
+  switch (msg.type().value) {
+    case ngap_pdu_c::types_opts::init_msg:
+      msg_type = msg.init_msg().value.type().to_string();
+      break;
+    case ngap_pdu_c::types_opts::successful_outcome:
+      msg_type = msg.successful_outcome().value.type().to_string();
+      break;
+    case ngap_pdu_c::types_opts::unsuccessful_outcome:
+      msg_type = msg.unsuccessful_outcome().value.type().to_string();
+      break;
+    default:
+      return;
+  }
+  if (logger.debug.enabled()) {
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    logger.debug(pdu.data(), pdu.size(), "%s - %s (%d B)", (dir == Rx) ? "Rx" : "Tx", msg_type, pdu.size());
+    logger.debug("Content:%s", json_writer.to_string().c_str());
+  } else if (logger.info.enabled()) {
+    logger.info(pdu.data(), pdu.size(), "%s - %s (%d B)", (dir == Rx) ? "Rx" : "Tx", msg_type, pdu.size());
+  }
 }
 } // namespace srsenb

@@ -300,7 +300,7 @@ bool slot_worker::work_dl()
   }
 
   if (srsran_gnb_dl_base_zero(&gnb_dl) < SRSRAN_SUCCESS) {
-    logger.error("Error zeroeing RE grid");
+    logger.error("Error zeroing RE grid");
     return false;
   }
 

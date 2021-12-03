@@ -27,8 +27,8 @@
 #include "srsran/common/rwlock_guard.h"
 #include "srsran/srslog/srslog.h"
 #include <map>
-#include <unordered_map>
 #include <stdint.h>
+#include <unordered_map>
 
 namespace srsran {
 
@@ -148,6 +148,7 @@ public:
   using radio_bearer_t = srsran::detail::ue_bearer_manager_impl::radio_bearer_t;
 
   enb_bearer_manager();
+  ~enb_bearer_manager();
 
   /// Multi-user interface (see comments above)
   void           add_eps_bearer(uint16_t rnti, uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid);

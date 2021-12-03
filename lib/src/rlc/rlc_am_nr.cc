@@ -511,6 +511,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (header.p) {
     logger->info("%s Status packet requested through polling bit", parent->rb_name);
     do_status = true;
+    status_prohibit_timer.stop();
   }
 
   debug_state();
@@ -640,7 +641,10 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   }
 
   if (max_len != UINT32_MAX) {
-    status_prohibit_timer.run(); // UINT32_MAX is used just to querry the status PDU length
+    // UINT32_MAX is used just to querry the status PDU length
+    if (status_prohibit_timer.is_valid()) {
+      status_prohibit_timer.run();
+    }
   }
   return tmp_buf.N_bytes;
 }

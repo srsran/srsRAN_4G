@@ -22,7 +22,8 @@
 #ifndef SRSUE_RRC_NR_H
 #define SRSUE_RRC_NR_H
 
-#include "nr/rrc_nr_config.h"
+#include "../rrc/rrc_cell.h"
+#include "rrc_nr_config.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
@@ -49,6 +50,7 @@ class rrc_nr final : public rrc_interface_phy_nr,
                      public rrc_interface_rlc,
                      public rrc_interface_mac,
                      public rrc_nr_interface_rrc,
+                     public rrc_nr_interface_nas_5g,
                      public srsran::timer_callback
 {
 public:
@@ -110,6 +112,13 @@ public:
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final;
   void notify_pdcp_integrity_error(uint32_t lcid) final;
 
+  // NAS interface
+  int      write_sdu(srsran::unique_byte_buffer_t sdu);
+  bool     is_connected();
+  int      connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu);
+  uint16_t get_mcc();
+  uint16_t get_mnc();
+
   // RRC (LTE) interface
   int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
   int  get_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
@@ -131,6 +140,9 @@ public:
   void set_phy_config_complete(bool status) final;
 
 private:
+  // senders
+  void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
+
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
     enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
@@ -154,6 +166,8 @@ private:
   usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
 
+  meas_cell_list<meas_cell_nr> meas_cells;
+
   const uint32_t                      sim_measurement_timer_duration_ms = 250;
   uint32_t                            sim_measurement_carrier_freq_r15;
   srsran::timer_handler::unique_timer sim_measurement_timer;
@@ -166,8 +180,7 @@ private:
     RRC_NR_STATE_N_ITEMS,
   };
   const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
-
-  //  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
+  rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
 
   // Stores the state of the PHy configuration setting
   enum {
@@ -214,30 +227,8 @@ private:
 
   typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;
 
-  class connection_reconf_no_ho_proc
-  {
-  public:
-    explicit connection_reconf_no_ho_proc(rrc_nr* parent_);
-    srsran::proc_outcome_t init(const reconf_initiator_t  initiator_,
-                                const bool                endc_release_and_add_r15,
-                                const bool                nr_secondary_cell_group_cfg_r15_present,
-                                const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                                const bool                sk_counter_r15_present,
-                                const uint32_t            sk_counter_r15,
-                                const bool                nr_radio_bearer_cfg1_r15_present,
-                                const asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
-    srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
-    static const char*     name() { return "NR Connection Reconfiguration"; }
-    srsran::proc_outcome_t react(const bool& config_complete);
-    void                   then(const srsran::proc_state_t& result);
-
-  private:
-    // const
-    rrc_nr*                        rrc_ptr;
-    reconf_initiator_t             initiator;
-    asn1::rrc_nr::rrc_recfg_s      rrc_recfg;
-    asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
-  };
+  // RRC procedures
+  class connection_reconf_no_ho_proc;
 
   srsran::proc_t<connection_reconf_no_ho_proc> conn_recfg_proc;
 
