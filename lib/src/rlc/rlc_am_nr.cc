@@ -49,6 +49,9 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
       return false;
     }
   */
+
+  mod_nr = (cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits) ? 4096 : 262144;
+
   tx_enabled = true;
 
   return true;
@@ -426,6 +429,7 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
     logger->info("Configured reassembly timer. t-Reassembly=%d ms", cfg.t_reassembly);
   }
 
+  mod_nr = (cfg.rx_sn_field_length == rlc_am_nr_sn_size_t::size12bits) ? 4096 : 262144;
   return true;
 }
 
