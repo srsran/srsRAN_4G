@@ -40,19 +40,24 @@ public:
   void process_pdus(); /// Called by MAC to process received PDUs
 
   // HARQ interface
-  void push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti);
+  void     push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti);
+  void     push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti);
+  uint64_t get_received_crueid();
 
 private:
   // internal helpers
-  void handle_pdu(srsran::unique_byte_buffer_t pdu);
+  void handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byte_buffer_t pdu);
 
   srslog::basic_logger& logger;
   rlc_interface_mac*    rlc = nullptr;
+
+  uint64_t received_crueid = 0;
 
   ///< currently only DCH PDUs supported (add BCH, PCH, etc)
   srsran::block_queue<srsran::unique_byte_buffer_t> pdu_queue;
 
   srsran::mac_sch_pdu_nr rx_pdu;
+  srsran::mac_sch_pdu_nr rx_pdu_tcrnti;
 };
 
 } // namespace srsue

@@ -12,6 +12,7 @@
 
 #include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsran/common/band_helper.h"
+#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/security.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
@@ -27,7 +28,12 @@ namespace srsue {
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
-  logger(srslog::fetch_basic_logger("RRC-NR")), task_sched(task_sched_), conn_recfg_proc(this), meas_cells(task_sched_)
+  logger(srslog::fetch_basic_logger("RRC-NR")),
+  task_sched(task_sched_),
+  conn_recfg_proc(*this),
+  setup_req_proc(*this),
+  cell_selector(*this),
+  meas_cells(task_sched_)
 {}
 
 rrc_nr::~rrc_nr() = default;
@@ -52,6 +58,8 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   usim      = usim_;
   stack     = stack_;
   args      = args_;
+
+  plmn_is_selected = true; // short-cut SA test
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -198,7 +206,10 @@ void rrc_nr::out_of_sync() {}
 void rrc_nr::run_tti(uint32_t tti) {}
 
 // PDCP interface
-void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) {}
+void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+{
+  printf("RRC received PDU\n");
+}
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
@@ -221,8 +232,100 @@ bool rrc_nr::is_connected()
   return false;
 }
 
-int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
+int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t dedicated_info_nas_)
 {
+  // TODO:
+  // Assume cell has been found and SSB with MIB has been decoded
+  srsran::phy_cfg_nr_default_t::reference_cfg_t cfg = {};
+  cfg.carrier = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_CARRIER_CUSTOM_10MHZ;
+  cfg.duplex  = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{cfg}};
+
+  // Carrier configuration
+  phy_cfg.ssb.periodicity_ms             = 10;
+  phy_cfg.carrier.ssb_center_freq_hz     = 1842.05e6;
+  phy_cfg.carrier.dl_center_frequency_hz = 1842.5e6;
+  phy_cfg.carrier.ul_center_frequency_hz = 1747.5e6;
+
+  // PRACH configuration
+  phy_cfg.prach.num_ra_preambles = 8;
+  phy_cfg.prach.config_idx       = 0;
+  phy_cfg.prach.root_seq_idx     = 1;
+  phy_cfg.prach.zero_corr_zone   = 0;
+  phy_cfg.prach.is_nr            = true;
+  phy_cfg.prach.freq_offset      = 1;
+
+  srsran::rach_nr_cfg_t rach_cfg        = {};
+  rach_cfg.prach_ConfigurationIndex     = 0;
+  rach_cfg.preambleTransMax             = 7;
+  rach_cfg.ra_responseWindow            = 10;
+  rach_cfg.ra_ContentionResolutionTimer = 64;
+  mac->set_config(rach_cfg);
+
+  srsran::dl_harq_cfg_nr_t harq_cfg = {};
+  harq_cfg.nof_procs                = 8;
+  mac->set_config(harq_cfg);
+
+  // Setup SRB0, 1 and 2
+  for (int i = 0; i < 3; i++) {
+    logical_channel_config_t lch = {};
+    lch.lcid                     = i;
+    lch.priority                 = i + 1;
+    mac->setup_lcid(lch);
+  }
+
+  // Coreset0 configuration
+  // Get pointA and SSB absolute frequencies
+  double pointA_abs_freq_Hz = phy_cfg.carrier.dl_center_frequency_hz -
+                              phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
+  double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
+  // Calculate integer SSB to pointA frequency offset in Hz
+  uint32_t ssb_pointA_freq_offset_Hz =
+      (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+
+  if (srsran_coreset_zero(phy_cfg.carrier.pci,
+                          ssb_pointA_freq_offset_Hz,
+                          phy_cfg.ssb.scs,
+                          phy_cfg.carrier.scs,
+                          6,
+                          &phy_cfg.pdcch.coreset[0])) {
+    fprintf(stderr, "Error generating coreset0\n");
+  }
+  phy_cfg.pdcch.coreset_present[0] = true;
+
+  // RAR SS
+  phy_cfg.pdcch.ra_search_space_present           = true;
+  phy_cfg.pdcch.ra_search_space.coreset_id        = 0;
+  phy_cfg.pdcch.ra_search_space.duration          = 1;
+  phy_cfg.pdcch.ra_search_space.type              = srsran_search_space_type_common_1;
+  phy_cfg.pdcch.ra_search_space.nof_formats       = 1;
+  phy_cfg.pdcch.ra_search_space.formats[1]        = srsran_dci_format_nr_1_0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[0] = 0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[1] = 0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[2] = 1;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[3] = 0;
+  phy_cfg.pdcch.ra_search_space.nof_candidates[4] = 0;
+
+  // common1 SS
+  phy_cfg.pdcch.search_space_present[0]           = true;
+  phy_cfg.pdcch.search_space[0].coreset_id        = 0;
+  phy_cfg.pdcch.search_space[0].duration          = 1;
+  phy_cfg.pdcch.search_space[0].nof_candidates[0] = 0;
+  phy_cfg.pdcch.search_space[0].nof_candidates[1] = 0;
+  phy_cfg.pdcch.search_space[0].nof_candidates[2] = 1;
+  phy_cfg.pdcch.search_space[0].nof_candidates[3] = 0;
+  phy_cfg.pdcch.search_space[0].nof_candidates[4] = 0;
+  phy_cfg.pdcch.search_space[0].type              = srsran_search_space_type_common_1;
+  phy_cfg.pdcch.search_space[0].nof_formats       = 2;
+  phy_cfg.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_0_0;
+  phy_cfg.pdcch.search_space[0].formats[1]        = srsran_dci_format_nr_1_0;
+  phy_cfg.pdcch.search_space_present[1]           = false;
+
+  if (not setup_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
+    logger.error("Failed to initiate setup request procedure");
+    return SRSRAN_ERROR;
+  }
+  callback_list.add_proc(setup_req_proc);
   return SRSRAN_SUCCESS;
 }
 
@@ -240,6 +343,58 @@ uint16_t rrc_nr::get_mnc()
 void rrc_nr::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
   logger.warning("%s not implemented yet.", __FUNCTION__);
+}
+
+void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
+{
+  logger.debug("Preparing RRC Setup Request");
+
+  // Prepare SetupRequest packet
+  ul_ccch_msg_s            ul_ccch_msg;
+  rrc_setup_request_ies_s* rrc_setup_req = &ul_ccch_msg.msg.set_c1().set_rrc_setup_request().rrc_setup_request;
+
+  // TODO: implement ng_minus5_g_s_tmsi_part1
+  rrc_setup_req->ue_id.set_random_value();
+  // TODO use proper RNG
+  uint64_t random_id = 0;
+  for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
+    random_id |= ((uint64_t)rand() & 0xFF) << i * 8;
+  }
+  rrc_setup_req->ue_id.random_value().from_number(random_id);
+  rrc_setup_req->establishment_cause = (establishment_cause_opts::options)cause;
+
+  send_ul_ccch_msg(ul_ccch_msg);
+}
+
+void rrc_nr::send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg)
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  msg.pack(bref);
+  bref.align_bytes_zero();
+  pdu->N_bytes = (uint32_t)bref.distance_bytes(pdu->msg);
+  pdu->set_timestamp();
+
+  // Set UE contention resolution ID in MAC
+  uint64_t uecri      = 0;
+  uint8_t* ue_cri_ptr = (uint8_t*)&uecri;
+  uint32_t nbytes     = 6;
+  for (uint32_t i = 0; i < nbytes; i++) {
+    ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+  }
+
+  logger.debug("Setting UE contention resolution ID: %" PRIu64 "", uecri);
+  mac->set_contention_id(uecri);
+
+  uint32_t lcid = 0;
+  log_rrc_message(get_rb_name(lcid), Tx, pdu.get(), msg, msg.msg.c1().type().to_string());
+
+  rlc->write_sdu(lcid, std::move(pdu));
 }
 
 // EUTRA-RRC interface
@@ -1542,6 +1697,7 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
   }
   return true;
 }
+
 // RLC interface
 void rrc_nr::max_retx_attempted() {}
 void rrc_nr::protocol_failure() {}
@@ -1549,10 +1705,9 @@ void rrc_nr::protocol_failure() {}
 // MAC interface
 void rrc_nr::ra_completed()
 {
-  logger.info("RA completed. Applying remaining CSI configuration.");
-  phy->set_config(phy_cfg);
-  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
+  logger.info("RA completed");
 }
+
 void rrc_nr::ra_problem()
 {
   rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);

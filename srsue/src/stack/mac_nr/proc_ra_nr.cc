@@ -127,6 +127,12 @@ uint16_t proc_ra_nr::get_temp_crnti()
   return temp_crnti;
 }
 
+void proc_ra_nr::received_contention_resolution(bool is_successful)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  ra_contention_resolution(is_successful);
+}
+
 void proc_ra_nr::timer_expired(uint32_t timer_id)
 {
   if (prach_send_timer.id() == timer_id) {
@@ -212,8 +218,11 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
         logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
         temp_crnti = subpdu.get_temp_crnti();
 
+        // Save transmitted C-RNTI (if any)
+        transmitted_crnti = mac.get_crnti();
+
         // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-        phy->set_ul_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
+        phy->set_rar_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
 
         // reset all parameters that are used before rar
         rar_rnti = SRSRAN_INVALID_RNTI;
@@ -237,7 +246,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
 
 // TS 38.321 Section 5.1.5 2 ways to resolve contention resolution
 // if the C-RNTI MAC CE was included in Msg3: (only this one is implemented)
-void proc_ra_nr::ra_contention_resolution()
+void proc_ra_nr::ra_contention_resolution(bool received_con_res_matches_ue_id)
 {
   if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
     logger.warning(
@@ -246,8 +255,12 @@ void proc_ra_nr::ra_contention_resolution()
         srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
     return;
   }
-  if (started_by == initiators_t::RRC || started_by == initiators_t::MAC) {
-    logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
+  if (started_by == initiators_t::RRC || started_by == initiators_t::MAC || received_con_res_matches_ue_id) {
+    if (received_con_res_matches_ue_id) {
+      logger.info("Received CONRES ID matches transmitted UE ID\n");
+    } else {
+      logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
+    }
     contention_resolution_timer.stop();
     state = WAITING_FOR_COMPLETION;
     ra_completion();
@@ -256,22 +269,8 @@ void proc_ra_nr::ra_contention_resolution()
   }
 }
 
-// or else if the CCCH SDU was included in Msg3 and the PDCCH transmission is addressed to its TEMPORARY_C-RNTI:
-void proc_ra_nr::ra_contention_resolution(uint64_t rx_contention_id)
-{
-  if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
-    logger.warning(
-        "Wrong state for ra contention resolution by phy %s (expected state %s)",
-        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
-    return;
-  }
-  // TODO
-}
-
 void proc_ra_nr::ra_completion()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (state != WAITING_FOR_COMPLETION) {
     logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
@@ -280,6 +279,9 @@ void proc_ra_nr::ra_completion()
   }
   srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
+  if (!transmitted_crnti) {
+    mac.set_crnti(temp_crnti);
+  }
   temp_crnti = SRSRAN_INVALID_RNTI;
   mac.rrc_ra_completed();
   reset();
@@ -372,7 +374,7 @@ void proc_ra_nr::handle_rar_pdu(mac_interface_phy_nr::tb_action_dl_result_t& res
 // Called from PHY thread, defer actions therefore.
 void proc_ra_nr::pdcch_to_crnti()
 {
-  task_queue.push([this]() { ra_contention_resolution(); });
+  task_queue.push([this]() { ra_contention_resolution(false); });
 }
 
 bool proc_ra_nr::is_contention_resolution()
@@ -387,6 +389,7 @@ void proc_ra_nr::reset()
   prach_send_timer.stop();
   rar_timeout_timer.stop();
   contention_resolution_timer.stop();
+  transmitted_crnti = SRSRAN_INVALID_RNTI;
 }
 
 } // namespace srsue

@@ -261,13 +261,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.nr_pdsch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_dl_mcs)->default_value(28), "Fixed NR DL MCS (-1 for dynamic).")
     ("scheduler.nr_pusch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_ul_mcs)->default_value(28), "Fixed NR UL MCS (-1 for dynamic).")
     ("expert.nr_pusch_max_its", bpo::value<uint32_t>(&args->phy.nr_pusch_max_its)->default_value(10),     "Maximum number of LDPC iterations for NR.")
-
-    // VNF params
-    ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue].")
-    ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface.")
-    ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3333), "Bind port.")
-    ("log.vnf_level",     bpo::value<string>(&args->phy.vnf_args.log_level),   "VNF log level.")
-    ("log.vnf_hex_limit", bpo::value<int>(&args->phy.vnf_args.log_hex_limit),  "VNF log hex dump limit.")
   ;
 
   // Positional options - config file location

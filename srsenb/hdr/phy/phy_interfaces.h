@@ -56,8 +56,6 @@ struct phy_args_t {
   bool                    extended_cp         = false;
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;
-
-  srsran::vnf_args_t vnf_args;
 };
 
 struct phy_cfg_t {

@@ -387,8 +387,9 @@ typedef struct SRSRAN_API {
 
 #define SRSRAN_DEFAULT_CARRIER_NR                                                                                      \
   {                                                                                                                    \
-    .pci = 500, .dl_center_frequency_hz = 3.5e9, .ul_center_frequency_hz = 3.5e9, .ssb_center_freq_hz = 3.5e9,         \
-    .offset_to_carrier = 0, .scs = srsran_subcarrier_spacing_15kHz, .nof_prb = 52, .start = 0, .max_mimo_layers = 1    \
+    .pci = 500, .dl_center_frequency_hz = 117000 * 30e3, .ul_center_frequency_hz = 117000 * 30e3,                      \
+    .ssb_center_freq_hz = 3.5e9, .offset_to_carrier = 0, .scs = srsran_subcarrier_spacing_15kHz, .nof_prb = 52,        \
+    .start = 0, .max_mimo_layers = 1                                                                                   \
   }
 
 /**

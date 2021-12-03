@@ -81,16 +81,19 @@ public:
                        asn1::dyn_octstring oct,
                        const T&            msg,
                        const std::string&  msg_type);
+
+  void run_tti(uint32_t tti);
+
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
+  void cell_search_found_cell(const cell_search_result_t& result) final{};
 
   // RLC interface
   void max_retx_attempted() final;
   void protocol_failure() final;
 
   // MAC interface
-  void run_tti(uint32_t tti) final;
   void ra_completed() final;
   void ra_problem() final;
   void release_pucch_srs() final;
@@ -132,7 +135,9 @@ public:
 
 private:
   // senders
+  void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
+  void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
@@ -159,6 +164,10 @@ private:
 
   meas_cell_list<meas_cell_nr> meas_cells;
 
+  // PLMN
+  bool                         plmn_is_selected = false;
+  srsran::unique_byte_buffer_t dedicated_info_nas;
+
   const uint32_t                      sim_measurement_timer_duration_ms = 250;
   uint32_t                            sim_measurement_carrier_freq_r15;
   srsran::timer_handler::unique_timer sim_measurement_timer;
@@ -173,7 +182,7 @@ private:
   const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
   rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
 
-  // Stores the state of the PHy configuration setting
+  // Stores the state of the PHY configuration setting
   enum {
     PHY_CFG_STATE_NONE = 0,
     PHY_CFG_STATE_APPLY_SP_CELL,
@@ -219,9 +228,14 @@ private:
   typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;
 
   // RRC procedures
+  enum class cell_search_result_t { changed_cell, same_cell, no_cell };
+  class cell_selection_proc;
   class connection_reconf_no_ho_proc;
+  class setup_request_proc;
 
-  srsran::proc_t<connection_reconf_no_ho_proc> conn_recfg_proc;
+  srsran::proc_t<cell_selection_proc, cell_search_result_t> cell_selector;
+  srsran::proc_t<connection_reconf_no_ho_proc>              conn_recfg_proc;
+  srsran::proc_t<setup_request_proc>                        setup_req_proc;
 
   srsran::proc_manager_list_t callback_list;
 };

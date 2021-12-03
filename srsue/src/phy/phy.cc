@@ -92,17 +92,10 @@ bool phy::check_args(const phy_args_t& args_)
 
 int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
+  std::unique_lock<std::mutex> lock(config_mutex);
+
   stack = stack_;
   radio = radio_;
-
-  init(args_);
-
-  return SRSRAN_SUCCESS;
-}
-
-int phy::init(const phy_args_t& args_)
-{
-  std::unique_lock<std::mutex> lock(config_mutex);
 
   args = args_;
 
@@ -124,12 +117,12 @@ int phy::init(const phy_args_t& args_)
   logger_phy.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   if (!check_args(args)) {
-    return false;
+    return SRSRAN_ERROR;
   }
 
   is_configured = false;
   start();
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 // Initializes PHY in a thread
@@ -159,7 +152,7 @@ void phy::wait_initialize()
   }
 }
 
-bool phy::is_initiated()
+bool phy::is_initialized()
 {
   return is_configured;
 }
@@ -448,7 +441,7 @@ void phy::start_plot()
 
 bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 {
-  if (!is_initiated()) {
+  if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
   }
@@ -484,7 +477,7 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 
 bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
-  if (!is_initiated()) {
+  if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
   }
@@ -631,12 +624,12 @@ int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran
   return SRSRAN_SUCCESS;
 }
 
-int phy::set_ul_grant(uint32_t                                       rar_slot_idx,
-                      std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                      uint16_t                                       rnti,
-                      srsran_rnti_type_t                             rnti_type)
+int phy::set_rar_grant(uint32_t                                       rar_slot_idx,
+                       std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                       uint16_t                                       rnti,
+                       srsran_rnti_type_t                             rnti_type)
 {
-  return nr_workers.set_ul_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
+  return nr_workers.set_rar_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
 }
 
 void phy::send_prach(const uint32_t prach_occasion,
@@ -645,11 +638,6 @@ void phy::send_prach(const uint32_t prach_occasion,
                      const float    ta_base_sec)
 {
   nr_workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
-}
-
-int phy::tx_request(const phy_interface_mac_nr::tx_request_t& request)
-{
-  return 0;
 }
 
 void phy::set_earfcn(std::vector<uint32_t> earfcns)

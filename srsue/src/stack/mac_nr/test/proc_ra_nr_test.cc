@@ -29,14 +29,6 @@ public:
     preamble_index                 = preamble_index_;
     preamble_received_target_power = preamble_received_target_power_;
   }
-  int tx_request(const tx_request_t& request) override { return 0; }
-  int set_ul_grant(uint32_t rar_slot_idx,
-                   std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS>,
-                   uint16_t           rnti,
-                   srsran_rnti_type_t rnti_type) override
-  {
-    return 0;
-  }
 
   void get_last_send_prach(uint32_t* prach_occasion_, uint32_t* preamble_index_, int* preamble_received_target_power_)
   {
@@ -46,6 +38,14 @@ public:
   }
   bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
   void clear_pending_grants() override {}
+
+  int set_rar_grant(uint32_t                                       rar_slot_idx,
+                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                    uint16_t                                       rnti,
+                    srsran_rnti_type_t                             rnti_type) override
+  {
+    return -1;
+  }
 
 private:
   uint32_t prach_occasion                 = 0;

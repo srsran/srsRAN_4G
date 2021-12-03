@@ -71,3 +71,14 @@ target_link_libraries(nr_cell_search_rf
         srsran_radio
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
+
+# RF based Usage example: nr_sa_cell_search_test --phy.log.level=info --stack.log.level=info --duration=10000 --freq_dl=3.67536e9 --rf.freq_offset=10e3 --rf.rx_gain=90
+add_executable(nr_sa_cell_search_test nr_sa_cell_search_test.cc)
+target_link_libraries(nr_sa_cell_search_test
+        srsue_phy
+        srsran_common
+        srsran_phy
+        srsran_radio
+        rrc_nr_asn1
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})

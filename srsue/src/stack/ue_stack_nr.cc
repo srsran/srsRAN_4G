@@ -185,7 +185,7 @@ void ue_stack_nr::out_of_sync()
   // pending_tasks.push(sync_task_queue, task_t{[this](task_t*) { rrc.out_of_sync(); }});
 }
 
-void ue_stack_nr::run_tti(uint32_t tti)
+void ue_stack_nr::run_tti(uint32_t tti, uint32_t tti_jump)
 {
   sync_task_queue.push([this, tti]() { run_tti_impl(tti); });
 }
