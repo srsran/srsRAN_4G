@@ -218,6 +218,9 @@ int ue_stack_lte::init(const stack_args_t& args_)
   rrc_nr.init(
       phy_nr, &mac_nr, &rlc_nr, &pdcp_nr, gw, &rrc, usim.get(), task_sched.get_timer_handler(), this, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
+
+  args.nas_5g.ia5g = "0,1,2,3";
+  args.nas_5g.ea5g = "0,1,2,3";
   nas_5g.init(usim.get(), &rrc_nr, gw, args.nas_5g);
 
   running = true;
