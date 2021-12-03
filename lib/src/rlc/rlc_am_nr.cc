@@ -595,12 +595,6 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 }
 
-bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
-{
-  return (rx_mod_base_nr(sn) >= rx_mod_base_nr(st.rx_next)) &&
-         (rx_mod_base_nr(sn) < rx_mod_base_nr(st.rx_next + RLC_AM_NR_WINDOW_SIZE));
-}
-
 /*
  * Status PDU
  */
@@ -713,6 +707,20 @@ void rlc_am_nr_rx::write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu
 }
 
 /*
+ * Window Helpers
+ */
+uint32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
+{
+  return (sn - st.rx_next) % mod_nr;
+}
+
+bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
+{
+  // RX_Next <= SN < RX_Next + AM_Window_Size
+  return rx_mod_base_nr(sn) < RLC_AM_NR_WINDOW_SIZE;
+}
+
+/*
  * Metrics
  */
 uint32_t rlc_am_nr_rx::get_sdu_rx_latency_ms()
@@ -726,7 +734,7 @@ uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
 }
 
 /*
- * Helpers
+ * Debug Helpers
  */
 void rlc_am_nr_rx::debug_state()
 {

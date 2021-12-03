@@ -198,8 +198,8 @@ private:
   rlc_am_nr_tx*     tx     = nullptr;
   byte_buffer_pool* pool   = nullptr;
 
-  uint32_t       mod_nr = 4096;
-  inline int32_t rx_mod_base_nr(uint32_t sn) { return ((int32_t)sn - (int32_t)st.rx_next) % mod_nr; }
+  uint32_t mod_nr = 4096;
+  uint32_t rx_mod_base_nr(uint32_t sn) const;
 
   // RX Window
   rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_WINDOW_SIZE> rx_window;
