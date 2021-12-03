@@ -393,23 +393,28 @@ void rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
 bool rlc_am_lte_tx::poll_required()
 {
   if (cfg.poll_pdu > 0 && pdu_without_poll > static_cast<uint32_t>(cfg.poll_pdu)) {
+    logger->debug("Poll required. Cause: PDU_WITHOUT_POLL > pollPdu.");
     return true;
   }
 
   if (cfg.poll_byte > 0 && byte_without_poll > static_cast<uint32_t>(cfg.poll_byte)) {
+    logger->debug("Poll required. Cause: BYTE_WITHOUT_POLL > pollByte.");
     return true;
   }
 
   if (poll_retx_timer.is_valid() && poll_retx_timer.is_expired()) {
     // re-arming of timer is handled by caller
+    logger->debug("Poll required. Cause: t-PollRetransmission expired.");
     return true;
   }
 
   if (tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+    logger->debug("Poll required. Cause: TX window full.");
     return true;
   }
 
   if (tx_sdu_queue.size() == 0 && retx_queue.empty()) {
+    logger->debug("Poll required. Cause: Empty TX and ReTX queues.");
     return true;
   }
 
@@ -505,6 +510,7 @@ int rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
     byte_without_poll = 0;
     if (poll_retx_timer.is_valid()) {
       // re-arm timer (will be stopped when status PDU is received)
+      logger->debug("%s re-arming retx timer", RB_NAME);
       poll_retx_timer.run();
     }
   }
