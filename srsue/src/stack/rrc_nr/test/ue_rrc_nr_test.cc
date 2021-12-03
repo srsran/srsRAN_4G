@@ -22,7 +22,11 @@ using namespace srsue;
 
 class dummy_phy : public phy_interface_rrc_nr
 {
-  bool set_config(const srsran::phy_cfg_nr_t& cfg) { return true; }
+  bool           set_config(const srsran::phy_cfg_nr_t& cfg) override { return true; }
+  phy_nr_state_t get_state() override { return PHY_NR_STATE_IDLE; };
+  void           reset_nr() override{};
+  bool           start_cell_search(const cell_search_args_t& req) override { return false; };
+  bool           start_cell_select(const cell_select_args_t& req) override { return false; };
 };
 
 class dummy_mac : public mac_interface_rrc_nr
@@ -58,7 +62,15 @@ class dummy_rlc : public rlc_interface_rrc
   bool has_bearer(uint32_t lcid) { return true; }
   bool has_data(const uint32_t lcid) { return true; }
   bool is_suspended(const uint32_t lcid) { return true; }
-  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
+  {
+    last_lcid = lcid;
+    last_sdu  = std::move(sdu);
+  }
+
+public:
+  uint32_t                     last_lcid = 99;
+  srsran::unique_byte_buffer_t last_sdu;
 };
 
 class dummy_pdcp : public pdcp_interface_rrc
@@ -299,5 +311,6 @@ int main(int argc, char** argv)
   TESTASSERT(rrc_nr_reconfig_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_nr_conn_setup_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_write_pdu_bcch_dlsch_test() == SRSRAN_SUCCESS);
+
   return SRSRAN_SUCCESS;
 }

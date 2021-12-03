@@ -359,7 +359,7 @@ int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::u
   phy_cfg.prach.is_nr            = true;
   phy_cfg.prach.freq_offset      = 1;
 
-  srsran::rach_nr_cfg_t rach_cfg        = {};
+  srsran::rach_cfg_nr_t rach_cfg        = {};
   rach_cfg.prach_ConfigurationIndex     = 0;
   rach_cfg.preambleTransMax             = 7;
   rach_cfg.ra_responseWindow            = 10;
