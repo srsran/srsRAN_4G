@@ -47,12 +47,12 @@ struct bwp_slot_grid {
   uint32_t            slot_idx = 0;
   const bwp_params_t* cfg      = nullptr;
 
-  bwp_rb_bitmap   dl_prbs;
-  bwp_rb_bitmap   ul_prbs;
-  dl_sched_res_t  dl;
-  ul_sched_t      ul;
-  harq_ack_list_t pending_acks;
-  pdcch_scheduler pdcch_sched; /// slot PDCCH resource scheduler
+  bwp_rb_bitmap       dl_prbs;
+  bwp_rb_bitmap       ul_prbs;
+  dl_sched_res_t      dl;
+  ul_sched_t          ul;
+  harq_ack_list_t     pending_acks;
+  bwp_pdcch_allocator pdcch_sched; /// slot PDCCH resource allocator
 
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 

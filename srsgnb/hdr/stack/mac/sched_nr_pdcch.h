@@ -94,14 +94,20 @@ private:
   bool                         get_next_dfs();
 };
 
-class pdcch_scheduler
+/**
+ * Class to handle the allocation of REs for a BWP PDCCH in a specific slot
+ */
+class bwp_pdcch_allocator
 {
 public:
-  pdcch_scheduler(const bwp_params_t& bwp_cfg_,
-                  uint32_t            slot_idx,
-                  pdcch_dl_list_t&    pdcch_dl_list,
-                  pdcch_ul_list_t&    pdcch_ul_list);
+  bwp_pdcch_allocator(const bwp_params_t& bwp_cfg_,
+                      uint32_t            slot_idx,
+                      pdcch_dl_list_t&    pdcch_dl_list,
+                      pdcch_ul_list_t&    pdcch_ul_list);
 
+  /**
+   * Clear current slot allocations
+   */
   void reset();
 
   /**
@@ -133,8 +139,7 @@ public:
   void rem_last_pdcch(uint32_t ss_id);
 
 private:
-  const static size_t MAX_CORESET_PER_BWP = 3; /// limit set in TS 38.331, ControlResourceSetId
-  using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
+  using slot_coreset_list = srsran::optional_vector<coreset_region>;
 
   bool check_args_valid(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user, bool is_dl) const;
 

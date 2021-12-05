@@ -192,25 +192,25 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
   return {};
 }
 
-pdcch_scheduler::pdcch_scheduler(const bwp_params_t& bwp_cfg_,
-                                 uint32_t            slot_idx_,
-                                 pdcch_dl_list_t&    dl_pdcchs,
-                                 pdcch_ul_list_t&    ul_pdcchs) :
+bwp_pdcch_allocator::bwp_pdcch_allocator(const bwp_params_t& bwp_cfg_,
+                                         uint32_t            slot_idx_,
+                                         pdcch_dl_list_t&    dl_pdcchs,
+                                         pdcch_ul_list_t&    ul_pdcchs) :
   bwp_cfg(bwp_cfg_), pdcch_dl_list(dl_pdcchs), pdcch_ul_list(ul_pdcchs), slot_idx(slot_idx_), logger(bwp_cfg_.logger)
 {
   for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
     if (bwp_cfg.cfg.pdcch.coreset_present[cs_idx]) {
       uint32_t cs_id = bwp_cfg.cfg.pdcch.coreset[cs_idx].id;
-      coresets[cs_id].emplace(bwp_cfg, cs_id, slot_idx, pdcch_dl_list, pdcch_ul_list);
+      coresets.emplace(cs_id, bwp_cfg, cs_id, slot_idx, pdcch_dl_list, pdcch_ul_list);
     }
   }
 }
 
 /// Helper function to verify valid inputs
-bool pdcch_scheduler::check_args_valid(uint32_t                   ss_id,
-                                       uint32_t                   aggr_idx,
-                                       const ue_carrier_params_t* user,
-                                       bool                       is_dl) const
+bool bwp_pdcch_allocator::check_args_valid(uint32_t                   ss_id,
+                                           uint32_t                   aggr_idx,
+                                           const ue_carrier_params_t* user,
+                                           bool                       is_dl) const
 {
   srsran_assert(ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, "Invalid SearchSpace#%d", ss_id);
   srsran_assert(
@@ -248,10 +248,10 @@ bool pdcch_scheduler::check_args_valid(uint32_t                   ss_id,
   return true;
 }
 
-pdcch_dl_t* pdcch_scheduler::alloc_dl_pdcch(pdcch_grant_type_t         alloc_type,
-                                            uint32_t                   ss_id,
-                                            uint32_t                   aggr_idx,
-                                            const ue_carrier_params_t* user)
+pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch(pdcch_grant_type_t         alloc_type,
+                                                uint32_t                   ss_id,
+                                                uint32_t                   aggr_idx,
+                                                const ue_carrier_params_t* user)
 {
   if (not check_args_valid(ss_id, aggr_idx, user, true)) {
     return nullptr;
@@ -263,38 +263,38 @@ pdcch_dl_t* pdcch_scheduler::alloc_dl_pdcch(pdcch_grant_type_t         alloc_typ
                   "PDCCH grant type does not match search space");
   }
 
-  if (coresets[ss.coreset_id]->alloc_pdcch(alloc_type, aggr_idx, ss_id, user)) {
+  if (coresets[ss.coreset_id].alloc_pdcch(alloc_type, aggr_idx, ss_id, user)) {
     return &pdcch_dl_list.back();
   }
   return nullptr;
 }
 
-pdcch_ul_t* pdcch_scheduler::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user)
+pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user)
 {
   if (not check_args_valid(ss_id, aggr_idx, user, false)) {
     return nullptr;
   }
   const srsran_search_space_t& ss = *user->get_ss(ss_id);
 
-  if (coresets[ss.coreset_id]->alloc_pdcch(pdcch_grant_type_t::ul_data, aggr_idx, ss_id, user)) {
+  if (coresets[ss.coreset_id].alloc_pdcch(pdcch_grant_type_t::ul_data, aggr_idx, ss_id, user)) {
     return &pdcch_ul_list.back();
   }
   return nullptr;
 }
 
-void pdcch_scheduler::rem_last_pdcch(uint32_t ss_id)
+void bwp_pdcch_allocator::rem_last_pdcch(uint32_t ss_id)
 {
   const srsran_search_space_t& ss = bwp_cfg.cfg.pdcch.search_space[ss_id];
 
   uint32_t coreset_id = ss.coreset_id;
-  coresets[coreset_id]->rem_last_pdcch();
+  coresets[coreset_id].rem_last_pdcch();
 }
 
-void pdcch_scheduler::reset()
+void bwp_pdcch_allocator::reset()
 {
   for (uint32_t i = 0; i < coresets.size(); ++i) {
-    if (coresets[i].has_value()) {
-      coresets[i]->reset();
+    if (coresets.contains(i)) {
+      coresets[i].reset();
     }
   }
 }
