@@ -28,9 +28,6 @@ using dl_sched_rar_info_t = sched_nr_interface::rar_info_t;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const static size_t MAX_CORESET_PER_BWP = 3;
-using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
-
 using pdsch_list_t     = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 using sched_rar_list_t = sched_nr_interface::sched_rar_list_t;
 using pucch_list_t     = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
@@ -52,7 +49,7 @@ struct bwp_slot_grid {
   dl_sched_res_t      dl;
   ul_sched_t          ul;
   harq_ack_list_t     pending_acks;
-  bwp_pdcch_allocator pdcch_sched; /// slot PDCCH resource allocator
+  bwp_pdcch_allocator pdcchs; /// slot PDCCH resource allocator
 
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 

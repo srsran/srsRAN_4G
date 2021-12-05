@@ -20,10 +20,7 @@
 
 namespace srsenb {
 
-const static size_t SCHED_NR_MAX_USERS     = SRSENB_MAX_UES;
-const static size_t SCHED_NR_NOF_SUBFRAMES = 10;
-const static size_t SCHED_NR_NOF_HARQS     = 16;
-static const size_t MAX_NOF_AGGR_LEVELS    = 5;
+static const size_t MAX_NOF_AGGR_LEVELS = 5;
 
 namespace sched_nr_impl {
 

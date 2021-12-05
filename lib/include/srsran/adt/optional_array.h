@@ -32,7 +32,8 @@ protected:
   template <typename Obj>
   class iterator_impl
   {
-    using It = iterator_impl<Obj>;
+    using It       = iterator_impl<Obj>;
+    using parent_t = typename std::conditional<std::is_const<Obj>::value, const base_t, base_t>::type;
 
   public:
     using iterator_category = std::forward_iterator_tag;
@@ -42,7 +43,7 @@ protected:
     using reference         = Obj&;
 
     iterator_impl() = default;
-    iterator_impl(base_t* parent_, size_t idx_) : parent(parent_), idx(idx_)
+    iterator_impl(parent_t* parent_, size_t idx_) : parent(parent_), idx(idx_)
     {
       if (idx < parent->vec.size() and not parent->contains(idx)) {
         ++(*this);
@@ -71,8 +72,8 @@ protected:
   private:
     friend base_t;
 
-    base_t* parent = nullptr;
-    size_t  idx    = std::numeric_limits<size_t>::max();
+    parent_t* parent = nullptr;
+    size_t    idx    = std::numeric_limits<size_t>::max();
   };
 
   size_t nof_elems = 0;

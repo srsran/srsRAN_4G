@@ -80,13 +80,13 @@ bwp_slot_grid::bwp_slot_grid(const bwp_params_t& bwp_cfg_, uint32_t slot_idx_) :
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
   cfg(&bwp_cfg_),
-  pdcch_sched(bwp_cfg_, slot_idx_, dl.phy.pdcch_dl, dl.phy.pdcch_ul),
+  pdcchs(bwp_cfg_, slot_idx_, dl.phy.pdcch_dl, dl.phy.pdcch_ul),
   rar_softbuffer(harq_softbuffer_pool::get_instance().get_tx(bwp_cfg_.cfg.rb_width))
 {}
 
 void bwp_slot_grid::reset()
 {
-  pdcch_sched.reset();
+  pdcchs.reset();
   dl_prbs.reset();
   ul_prbs.reset();
   dl.phy.ssb.clear();
@@ -105,7 +105,7 @@ void bwp_slot_grid::reset()
 bwp_res_grid::bwp_res_grid(const bwp_params_t& bwp_cfg_) : cfg(&bwp_cfg_)
 {
   for (uint32_t sl = 0; sl < slots.capacity(); ++sl) {
-    slots.emplace_back(*cfg, sl % static_cast<uint32_t>(SRSRAN_NSLOTS_PER_FRAME_NR(0u)));
+    slots.emplace_back(*cfg, sl % static_cast<uint32_t>(SRSRAN_NSLOTS_PER_FRAME_NR(bwp_cfg_.cell_cfg.carrier.scs)));
   }
 }
 
@@ -131,7 +131,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   }
 
   const uint32_t ss_id = 0;
-  pdcch_dl_t*    pdcch = bwp_pdcch_slot.pdcch_sched.alloc_dl_pdcch(pdcch_grant_type_t::sib, ss_id, aggr_idx);
+  pdcch_dl_t*    pdcch = bwp_pdcch_slot.pdcchs.alloc_dl_pdcch(srsran_rnti_type_si, ss_id, aggr_idx);
   if (pdcch == nullptr) {
     logger.warning("SCHED: Cannot allocate SIB1 due to lack of PDCCH space.");
     return alloc_result::no_cch_space;
@@ -143,7 +143,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
   if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.pdcch_sched.rem_last_pdcch(ss_id);
+    bwp_pdcch_slot.pdcchs.rem_last_pdcch(ss_id);
     return alloc_result::invalid_coderate;
   }
 
@@ -156,7 +156,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
       &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch->dci, &pdsch.sch, &pdsch.sch.grant);
   if (code != SRSRAN_SUCCESS) {
     logger.warning("Error generating SIB PDSCH grant.");
-    bwp_pdcch_slot.pdcch_sched.rem_last_pdcch(ss_id);
+    bwp_pdcch_slot.pdcchs.rem_last_pdcch(ss_id);
     bwp_pdcch_slot.dl.phy.pdsch.pop_back();
     return alloc_result::other_cause;
   }
@@ -222,7 +222,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Find PDCCH position
   const uint32_t coreset_id      = cfg.cfg.pdcch.ra_search_space.coreset_id;
   const uint32_t search_space_id = cfg.cfg.pdcch.ra_search_space.id;
-  pdcch_dl_t*    pdcch = bwp_pdcch_slot.pdcch_sched.alloc_dl_pdcch(pdcch_grant_type_t::rar, search_space_id, aggr_idx);
+  pdcch_dl_t*    pdcch           = bwp_pdcch_slot.pdcchs.alloc_dl_pdcch(srsran_rnti_type_ra, search_space_id, aggr_idx);
   if (pdcch == nullptr) {
     // Could not find space in PDCCH
     logger.debug("SCHED: No space in PDCCH for DL tx.");
@@ -234,7 +234,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Generate DCI for RAR with given RA-RNTI
   if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.pdcch_sched.rem_last_pdcch(search_space_id);
+    bwp_pdcch_slot.pdcchs.rem_last_pdcch(search_space_id);
     return alloc_result::invalid_coderate;
   }
   auto& phy_cfg  = slot_ues[pending_rachs[0].temp_crnti]->phy();
@@ -325,8 +325,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   const srsran_search_space_t& ss = *ss_candidates[0];
 
   // Find space and allocate PDCCH
-  pdcch_dl_t* pdcch =
-      bwp_pdcch_slot.pdcch_sched.alloc_dl_pdcch(pdcch_grant_type_t::dl_data, ss.id, aggr_idx, &ue.cfg());
+  pdcch_dl_t* pdcch = bwp_pdcch_slot.pdcchs.alloc_dl_pdcch(rnti_type, ss.id, aggr_idx, &ue.cfg());
   if (pdcch == nullptr) {
     // Could not find space in PDCCH
     logger.debug("Could not find PDCCH space for rnti=0x%x PDSCH allocation", ue->rnti);
@@ -433,7 +432,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
   }
   const srsran_search_space_t& ss = *ss_candidates[0];
 
-  pdcch_ul_t* pdcch = bwp_pdcch_slot.pdcch_sched.alloc_ul_pdcch(ss.id, aggr_idx, &ue.cfg());
+  pdcch_ul_t* pdcch = bwp_pdcch_slot.pdcchs.alloc_ul_pdcch(ss.id, aggr_idx, &ue.cfg());
   if (pdcch == nullptr) {
     // Could not find space in PDCCH
     logger.debug("Could not find PDCCH space for rnti=0x%x PUSCH allocation", ue->rnti);

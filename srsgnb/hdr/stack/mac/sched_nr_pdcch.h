@@ -25,8 +25,6 @@ namespace sched_nr_impl {
 
 using coreset_bitmap = srsran::bounded_bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, true>;
 
-enum class pdcch_grant_type_t { sib, rar, dl_data, ul_data };
-
 class coreset_region
 {
 public:
@@ -37,17 +35,12 @@ public:
                  pdcch_ul_list_t&    pdcch_ul_list);
   void reset();
 
-  /**
-   * Allocates DCI space in PDCCH, avoiding in the process collisions with other users
-   * @param pdcch_grant_type_t allocation type (e.g. DL data, UL data, SIB)
-   * @param aggr_idx Aggregation level index (0..4)
-   * @param user UE object or null in case of broadcast/RAR/paging allocation
-   * @return if the allocation was successful
-   */
-  bool alloc_pdcch(pdcch_grant_type_t         alloc_type,
-                   uint32_t                   aggr_idx,
-                   uint32_t                   search_space_id,
-                   const ue_carrier_params_t* user = nullptr);
+  pdcch_dl_t* alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
+                             uint32_t                   aggr_idx,
+                             uint32_t                   search_space_id,
+                             const ue_carrier_params_t* user = nullptr);
+
+  pdcch_ul_t* alloc_ul_pdcch(uint32_t aggr_idx, uint32_t search_space_id, const ue_carrier_params_t* user);
 
   void rem_last_pdcch();
 
@@ -57,6 +50,12 @@ public:
   size_t   nof_allocs() const { return dfs_tree.size(); }
 
 private:
+  bool alloc_pdcch_common(srsran_rnti_type_t         rnti_type,
+                          bool                       is_dl,
+                          uint32_t                   aggr_idx,
+                          uint32_t                   search_space_id,
+                          const ue_carrier_params_t* user = nullptr);
+
   const srsran_coreset_t* coreset_cfg;
   uint32_t                coreset_id;
   uint32_t                slot_idx;
@@ -70,7 +69,8 @@ private:
     uint32_t                   aggr_idx;
     uint32_t                   ss_id;
     uint32_t                   idx;
-    pdcch_grant_type_t         alloc_type;
+    srsran_rnti_type_t         rnti_type;
+    bool                       is_dl;
     const ue_carrier_params_t* ue;
   };
   srsran::bounded_vector<alloc_record, 2 * MAX_GRANTS> dci_list;
@@ -112,13 +112,13 @@ public:
 
   /**
    * Allocates RE space for DL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
-   * @param pdcch_grant_type_t allocation type (e.g. DL data, UL data, SI, RAR)
+   * @param rnti_type type of RNTI (e.g. SI, RA, C, TC)
    * @param ss_id Search space ID
    * @param aggr_idx Aggregation level index (0..4)
    * @param user UE object or null in case of broadcast/RAR/paging allocation
    * @return pdcch object if the allocation was successful
    */
-  pdcch_dl_t* alloc_dl_pdcch(pdcch_grant_type_t         alloc_type,
+  pdcch_dl_t* alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
                              uint32_t                   ss_id,
                              uint32_t                   aggr_idx,
                              const ue_carrier_params_t* user = nullptr);
@@ -138,10 +138,17 @@ public:
    */
   void rem_last_pdcch(uint32_t ss_id);
 
-private:
-  using slot_coreset_list = srsran::optional_vector<coreset_region>;
+  /// Returns the number of PDCCH allocations made in the slot
+  uint32_t nof_allocations() const;
 
-  bool check_args_valid(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user, bool is_dl) const;
+private:
+  using slot_coreset_list = srsran::optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>;
+
+  bool check_args_valid(srsran_rnti_type_t         rnti_type,
+                        uint32_t                   ss_id,
+                        uint32_t                   aggr_idx,
+                        const ue_carrier_params_t* user,
+                        bool                       is_dl) const;
 
   // args
   const bwp_params_t&   bwp_cfg;
