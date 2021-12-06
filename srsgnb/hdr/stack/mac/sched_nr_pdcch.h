@@ -45,6 +45,8 @@ public:
   uint32_t nof_cces() const { return nof_freq_res * get_td_symbols(); }
   size_t   nof_allocs() const { return dfs_tree.size(); }
 
+  void print_allocations(fmt::memory_buffer& fmtbuf) const;
+
 private:
   const srsran_coreset_t* coreset_cfg;
   uint32_t                coreset_id;
@@ -58,9 +60,7 @@ private:
   struct alloc_record {
     uint32_t                   aggr_idx;
     uint32_t                   ss_id;
-    uint32_t                   idx;
     srsran_dci_ctx_t*          dci;
-    srsran_rnti_type_t         rnti_type;
     bool                       is_dl;
     const ue_carrier_params_t* ue;
   };
@@ -140,15 +140,18 @@ public:
   pdcch_ul_t* alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user);
 
   /**
-   * Cancel and remove last PDCCH allocation
+   * Cancel and remove last PDCCH allocation. It should only be called once after each alloc_dl_pdcch/alloc_ul_pdcch
    */
-  void rem_last_pdcch(srsran_dci_ctx_t& dci_ctx_to_rem);
+  void cancel_last_pdcch();
 
   /// Returns the number of PDCCH allocations made in the slot
   uint32_t nof_allocations() const;
 
   /// Number of CCEs in given coreset
   uint32_t nof_cces(uint32_t coreset_id) const;
+
+  void        print_allocations(fmt::memory_buffer& fmtbuf) const;
+  std::string print_allocations() const;
 
 private:
   using slot_coreset_list = srsran::optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>;
@@ -182,9 +185,10 @@ private:
   srslog::basic_logger& logger;
   const uint32_t        slot_idx;
 
-  pdcch_dl_list_t&  pdcch_dl_list;
-  pdcch_ul_list_t&  pdcch_ul_list;
-  slot_coreset_list coresets;
+  pdcch_dl_list_t&        pdcch_dl_list;
+  pdcch_ul_list_t&        pdcch_ul_list;
+  slot_coreset_list       coresets;
+  const srsran_dci_ctx_t* pending_dci = nullptr; /// Saves last PDCCH allocation, in case it needs to be aborted
 };
 
 } // namespace sched_nr_impl

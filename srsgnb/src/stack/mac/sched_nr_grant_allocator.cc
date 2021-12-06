@@ -143,7 +143,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
   if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.pdcchs.rem_last_pdcch(pdcch->dci.ctx);
+    bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
     return alloc_result::invalid_coderate;
   }
 
@@ -156,7 +156,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
       &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch->dci, &pdsch.sch, &pdsch.sch.grant);
   if (code != SRSRAN_SUCCESS) {
     logger.warning("Error generating SIB PDSCH grant.");
-    bwp_pdcch_slot.pdcchs.rem_last_pdcch(pdcch->dci.ctx);
+    bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
     bwp_pdcch_slot.dl.phy.pdsch.pop_back();
     return alloc_result::other_cause;
   }
@@ -232,7 +232,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   // Generate DCI for RAR with given RA-RNTI
   if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
-    bwp_pdcch_slot.pdcchs.rem_last_pdcch(pdcch->dci.ctx);
+    bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
     return alloc_result::invalid_coderate;
   }
   auto& phy_cfg  = slot_ues[pending_rachs[0].temp_crnti]->phy();

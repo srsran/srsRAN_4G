@@ -68,6 +68,8 @@ void test_coreset0_cfg()
   TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
   TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
 
+  srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
+
   // Slot with RAR
   pdcch_sched.reset();
 
@@ -84,6 +86,8 @@ void test_coreset0_cfg()
   TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
   TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
 
+  srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
+
   // Slot with DL PDSCH
   pdcch_sched.reset();
 
@@ -99,6 +103,8 @@ void test_coreset0_cfg()
   // No space for 2nd PDCCH allocation
   TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
 
+  srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
+
   // Slot with UL PDSCH
   pdcch_sched.reset();
 
@@ -113,6 +119,8 @@ void test_coreset0_cfg()
 
   // No space for 2nd PDCCH allocation
   TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
+
+  srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
 }
 
 /**
@@ -201,6 +209,8 @@ void test_coreset2_cfg()
   TESTASSERT_EQ(2, dl_pdcchs.size());
   TESTASSERT_EQ(1, ul_pdcchs.size());
   test_pdcch_collisions(bwp_params.cfg.pdcch, dl_pdcchs, ul_pdcchs);
+
+  srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
 
   // Verify all coresets are correctly cleaned up
   pdcch_sched.reset();

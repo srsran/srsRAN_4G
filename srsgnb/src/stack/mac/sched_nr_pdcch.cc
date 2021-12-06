@@ -74,12 +74,12 @@ bool coreset_region::alloc_pdcch(srsran_rnti_type_t         rnti_type,
   saved_dfs_tree.clear();
 
   alloc_record record;
-  record.dci       = &dci;
-  record.ue        = user;
-  record.aggr_idx  = aggr_idx;
-  record.ss_id     = search_space_id;
-  record.is_dl     = is_dl;
-  record.rnti_type = rnti_type;
+  record.dci            = &dci;
+  record.ue             = user;
+  record.aggr_idx       = aggr_idx;
+  record.ss_id          = search_space_id;
+  record.is_dl          = is_dl;
+  record.dci->rnti_type = rnti_type;
 
   // Try to allocate grant. If it fails, attempt the same grant, but using a different permutation of past grant DCI
   // positions
@@ -171,7 +171,7 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
 
 srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_record& record) const
 {
-  switch (record.rnti_type) {
+  switch (record.dci->rnti_type) {
     case srsran_rnti_type_ra:
       return rar_cce_list[slot_idx][record.aggr_idx];
     case srsran_rnti_type_si:
@@ -182,11 +182,28 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
     case srsran_rnti_type_sp_csi:
       return record.ue->cce_pos_list(record.ss_id, slot_idx, record.aggr_idx);
     default:
-      srsran_terminate("Invalid RNTI type=%d", record.rnti_type);
+      srsran_terminate("Invalid RNTI type=%s", srsran_rnti_type_str(record.dci->rnti_type));
       break;
   }
   return {};
 }
+
+void coreset_region::print_allocations(fmt::memory_buffer& fmtbuf) const
+{
+  if (not dci_list.empty()) {
+    fmt::format_to(fmtbuf, "CORESET#{}:\n", coreset_id);
+  }
+  for (const alloc_record& dci : dci_list) {
+    fmt::format_to(fmtbuf,
+                   "  {}-rnti=0x{:x}: ({}, {})\n",
+                   srsran_rnti_type_str_short(dci.dci->rnti_type),
+                   dci.dci->rnti,
+                   dci.dci->location.ncce,
+                   dci.dci->location.L);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bwp_pdcch_allocator::bwp_pdcch_allocator(const bwp_params_t& bwp_cfg_,
                                          uint32_t            slot_idx_,
@@ -272,7 +289,12 @@ pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_type_t       
     return nullptr;
   }
 
+  // Fill DCI context information
   fill_dci_ctx_common(pdcch_dl_list.back().dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
+
+  // register last PDCCH coreset, in case it needs to be aborted
+  pending_dci = &pdcch_dl_list.back().dci.ctx;
+
   return &pdcch_dl_list.back();
 }
 
@@ -300,27 +322,35 @@ pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_id
     return nullptr;
   }
 
+  // Fill DCI context information
   fill_dci_ctx_common(pdcch_ul_list.back().dci.ctx, srsran_rnti_type_c, user.rnti, ss, dci_fmt, &user);
+
+  // register last PDCCH coreset, in case it needs to be aborted
+  pending_dci = &pdcch_ul_list.back().dci.ctx;
+
   return &pdcch_ul_list.back();
 }
 
-void bwp_pdcch_allocator::rem_last_pdcch(srsran_dci_ctx_t& dci_ctx_to_rem)
+void bwp_pdcch_allocator::cancel_last_pdcch()
 {
-  uint32_t cs_id = dci_ctx_to_rem.coreset_id;
+  srsran_assert(pending_dci != nullptr, "Trying to abort PDCCH allocation that does not exist");
+  uint32_t cs_id = pending_dci->coreset_id;
 
-  if (&pdcch_dl_list.back().dci.ctx == &dci_ctx_to_rem) {
+  if (&pdcch_dl_list.back().dci.ctx == pending_dci) {
     pdcch_dl_list.pop_back();
-  } else if (&pdcch_ul_list.back().dci.ctx == &dci_ctx_to_rem) {
+  } else if (&pdcch_ul_list.back().dci.ctx == pending_dci) {
     pdcch_ul_list.pop_back();
   } else {
     logger.error("Invalid DCI context provided to be removed");
     return;
   }
   coresets[cs_id].rem_last_pdcch();
+  pending_dci = nullptr;
 }
 
 void bwp_pdcch_allocator::reset()
 {
+  pending_dci = nullptr;
   pdcch_dl_list.clear();
   pdcch_ul_list.clear();
   for (coreset_region& coreset : coresets) {
@@ -404,6 +434,22 @@ bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
 
   srsran_sanity_check(pdcch_dl_list.size() + pdcch_ul_list.size() == nof_allocations(), "Invalid PDCCH state");
   return true;
+}
+
+void bwp_pdcch_allocator::print_allocations(fmt::memory_buffer& fmtbuf) const
+{
+  fmt::format_to(
+      fmtbuf, "PDCCH allocations ({} active coresets):{}\n", coresets.size(), nof_allocations() == 0 ? " None" : "");
+  for (const coreset_region& cs : coresets) {
+    cs.print_allocations(fmtbuf);
+  }
+}
+
+std::string bwp_pdcch_allocator::print_allocations() const
+{
+  fmt::memory_buffer fmtbuf;
+  print_allocations(fmtbuf);
+  return fmt::to_string(fmtbuf);
 }
 
 } // namespace sched_nr_impl
