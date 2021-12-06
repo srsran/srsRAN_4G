@@ -16,6 +16,29 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
+template <typename... Args>
+void log_pdcch_alloc_failure(srslog::log_channel&       log_ch,
+                             srsran_rnti_type_t         rnti_type,
+                             uint32_t                   ss_id,
+                             const ue_carrier_params_t* ue,
+                             const char*                cause_fmt,
+                             Args&&... args)
+{
+  if (not log_ch.enabled()) {
+    return;
+  }
+
+  // Log PDCCH allocation failure
+  fmt::memory_buffer fmtbuf;
+  fmt::format_to(fmtbuf, "SCHED: Failure to allocate PDCCH for {}-rnti", srsran_rnti_type_str_short(rnti_type));
+  if (rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_tc) {
+    fmt::format_to(fmtbuf, "=0x{:x}", ue->rnti);
+  }
+  fmt::format_to(fmtbuf, ", ss_id={}. Cause:", ss_id);
+  fmt::format_to(fmtbuf, cause_fmt, std::forward<Args>(args)...);
+  log_ch("%s", srsran::to_c_str(fmtbuf));
+}
+
 coreset_region::coreset_region(const bwp_params_t& bwp_cfg_,
                                uint32_t            coreset_id_,
                                uint32_t            slot_idx_,
@@ -240,27 +263,25 @@ bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
 
   // Cell Configuration checks
   if (not bwp_cfg.slots[slot_idx].is_dl) {
-    logger.warning("SCHED: Failure to allocate PDCCH. Cause: slot DL is disabled.");
+    log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, user, "DL is disabled for slot={}", slot_idx);
     return false;
   }
 
   // Coreset-specific checks
   const srsran_search_space_t* ss = (user == nullptr) ? bwp_cfg.get_ss(ss_id) : user->get_ss(ss_id);
   if (ss == nullptr) {
-    logger.error("Failure to allocate PDCCH. Cause: SearchSpace#%d has not been configured in the scheduler", ss_id);
+    log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, user, "SearchSpace has not been configured");
     return false;
   }
   if (ss->nof_candidates[aggr_idx] == 0) {
-    logger.warning("Chosen PDCCH doesn't have any valid candidates");
+    log_pdcch_alloc_failure(logger.warning, rnti_type, ss_id, user, "Chosen PDCCH doesn't have valid candidates");
     return false;
   }
 
   if (is_dl) {
     if (pdcch_dl_list.full()) {
-      logger.warning("SCHED: Maximum number of DL PDCCH allocations=%zd was reached for BWP#%d, CORESET#%d",
-                     pdcch_dl_list.size(),
-                     bwp_cfg.bwp_id,
-                     bwp_cfg.cfg.pdcch.search_space[ss_id].coreset_id);
+      log_pdcch_alloc_failure(
+          logger.warning, rnti_type, ss_id, user, "Maximum number of allocations={} reached", pdcch_dl_list.size());
       return false;
     }
     if (rnti_type == srsran_rnti_type_si or rnti_type == srsran_rnti_type_ra or rnti_type == srsran_rnti_type_p) {
@@ -273,9 +294,8 @@ bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
       srsran_assert(user != nullptr, "UE object must be provided for UE-specific PDCCH allocations");
     }
   } else if (pdcch_ul_list.full()) {
-    logger.warning("SCHED: Maximum number of UL PDCCH allocations=%zd was reached for BWP#%d",
-                   pdcch_ul_list.size(),
-                   bwp_cfg.bwp_id);
+    log_pdcch_alloc_failure(
+        logger.warning, rnti_type, ss_id, user, "Maximum number of UL allocations={} reached", pdcch_ul_list.size());
     return false;
   }
 
@@ -298,11 +318,7 @@ pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch(srsran_rnti_type_t         rnti_
   if (pdcch == nullptr) {
     // Log PDCCH allocation failure
     srslog::log_channel& ch = user == nullptr ? logger.warning : logger.debug;
-    fmt::memory_buffer   fmtbuf;
-    if (user != nullptr) {
-      fmt::format_to(fmtbuf, "=0x{:x}", user->rnti);
-    }
-    ch("Failed to allocate PDCCH for %s-rnti%s", srsran_rnti_type_str_short(rnti_type), srsran::to_c_str(fmtbuf));
+    log_pdcch_alloc_failure(ch, rnti_type, ss_id, user, "Failure to find available PDCCH position");
   }
   return pdcch;
 }
@@ -318,8 +334,7 @@ pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_id
 
   if (pdcch == nullptr) {
     // Log PDCCH allocation failure
-    logger.debug(
-        "Failed to allocate PDCCH for %s-rnti=0x%x", srsran_rnti_type_str_short(srsran_rnti_type_c), user->rnti);
+    log_pdcch_alloc_failure(logger.debug, srsran_rnti_type_c, ss_id, user, "Failure to find available PDCCH position");
   }
 
   return pdcch;
