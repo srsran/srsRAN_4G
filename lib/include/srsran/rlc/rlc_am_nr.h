@@ -100,12 +100,14 @@ public:
 
   void stop() final;
 
+  bool inside_tx_window(uint32_t sn);
+
 private:
   rlc_am*       parent = nullptr;
   rlc_am_nr_rx* rx     = nullptr;
 
-  uint32_t       mod_nr = 4096;
-  inline int32_t tx_mod_base_nr(uint32_t sn) { return ((int32_t)sn - (int32_t)st.tx_next_ack) % mod_nr; }
+  uint32_t        mod_nr = 4096;
+  inline uint32_t tx_mod_base_nr(uint32_t sn) const;
 
   /****************************************************************************
    * Configurable parameters

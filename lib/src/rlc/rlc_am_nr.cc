@@ -381,6 +381,11 @@ uint8_t rlc_am_nr_tx::get_pdu_poll()
   return poll;
 }
 
+bool rlc_am_nr_tx::do_status()
+{
+  return rx->get_do_status();
+}
+
 void rlc_am_nr_tx::reestablish()
 {
   stop();
@@ -395,12 +400,20 @@ bool rlc_am_nr_tx::sdu_queue_is_full()
 
 void rlc_am_nr_tx::empty_queue() {}
 
-bool rlc_am_nr_tx::do_status()
+void rlc_am_nr_tx::stop() {}
+/*
+ * Window helpers
+ */
+uint32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
 {
-  return rx->get_do_status();
+  return (sn - st.tx_next_ack) % mod_nr;
 }
 
-void rlc_am_nr_tx::stop() {}
+bool rlc_am_nr_tx::inside_tx_window(uint32_t sn)
+{
+  // TX_Next_Ack <= SN < TX_Next_Ack + AM_Window_Size
+  return tx_mod_base_nr(sn) < RLC_AM_NR_WINDOW_SIZE;
+}
 
 /****************************************************************************
  * Rx subclass implementation

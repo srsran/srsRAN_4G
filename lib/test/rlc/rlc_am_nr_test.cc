@@ -82,6 +82,10 @@ int window_checker_test()
     TESTASSERT_EQ(true, rx->inside_rx_window(sn_inside_above));
     TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_below));
     TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_above));
+    TESTASSERT_EQ(true, tx->inside_tx_window(sn_inside_below));
+    TESTASSERT_EQ(true, tx->inside_tx_window(sn_inside_above));
+    TESTASSERT_EQ(false, tx->inside_tx_window(sn_outside_below));
+    TESTASSERT_EQ(false, tx->inside_tx_window(sn_outside_above));
   }
 
   rlc_am_nr_rx_state_t rx_st = {};
@@ -102,6 +106,10 @@ int window_checker_test()
     TESTASSERT_EQ(true, rx->inside_rx_window(sn_inside_above));
     TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_below));
     TESTASSERT_EQ(false, rx->inside_rx_window(sn_outside_above));
+    TESTASSERT_EQ(true, tx->inside_tx_window(sn_inside_below));
+    TESTASSERT_EQ(true, tx->inside_tx_window(sn_inside_above));
+    TESTASSERT_EQ(false, tx->inside_tx_window(sn_outside_below));
+    TESTASSERT_EQ(false, tx->inside_tx_window(sn_outside_above));
   }
   return SRSRAN_SUCCESS;
 }
