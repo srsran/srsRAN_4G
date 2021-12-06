@@ -28,19 +28,15 @@ using coreset_bitmap = srsran::bounded_bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZ
 class coreset_region
 {
 public:
-  coreset_region(const bwp_params_t& bwp_cfg_,
-                 uint32_t            coreset_id_,
-                 uint32_t            slot_idx,
-                 pdcch_dl_list_t&    pdcch_dl_list,
-                 pdcch_ul_list_t&    pdcch_ul_list);
+  coreset_region(const bwp_params_t& bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx);
   void reset();
 
-  pdcch_dl_t* alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
-                             uint32_t                   aggr_idx,
-                             uint32_t                   search_space_id,
-                             const ue_carrier_params_t* user = nullptr);
-
-  pdcch_ul_t* alloc_ul_pdcch(uint32_t aggr_idx, uint32_t search_space_id, const ue_carrier_params_t* user);
+  bool alloc_pdcch(srsran_rnti_type_t         rnti_type,
+                   bool                       is_dl,
+                   uint32_t                   aggr_idx,
+                   uint32_t                   search_space_id,
+                   const ue_carrier_params_t* user,
+                   srsran_dci_ctx_t&          dci);
 
   void rem_last_pdcch();
 
@@ -50,12 +46,6 @@ public:
   size_t   nof_allocs() const { return dfs_tree.size(); }
 
 private:
-  bool alloc_pdcch_common(srsran_rnti_type_t         rnti_type,
-                          bool                       is_dl,
-                          uint32_t                   aggr_idx,
-                          uint32_t                   search_space_id,
-                          const ue_carrier_params_t* user = nullptr);
-
   const srsran_coreset_t* coreset_cfg;
   uint32_t                coreset_id;
   uint32_t                slot_idx;
@@ -69,13 +59,12 @@ private:
     uint32_t                   aggr_idx;
     uint32_t                   ss_id;
     uint32_t                   idx;
+    srsran_dci_ctx_t*          dci;
     srsran_rnti_type_t         rnti_type;
     bool                       is_dl;
     const ue_carrier_params_t* ue;
   };
   srsran::bounded_vector<alloc_record, 2 * MAX_GRANTS> dci_list;
-  pdcch_dl_list_t&                                     pdcch_dl_list;
-  pdcch_ul_list_t&                                     pdcch_ul_list;
 
   // DFS decision tree of PDCCH grants
   struct tree_node {
@@ -111,44 +100,82 @@ public:
   void reset();
 
   /**
-   * Allocates RE space for DL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
-   * @param rnti_type type of RNTI (e.g. SI, RA, C, TC)
-   * @param ss_id Search space ID
+   * Allocates RE space for RAR DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * Fills DCI context with RAR PDCCH allocation information
+   * @param ra_rnti RA-RNTI of RAR allocation
    * @param aggr_idx Aggregation level index (0..4)
-   * @param user UE object or null in case of broadcast/RAR/paging allocation
-   * @return pdcch object if the allocation was successful
+   * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
    */
-  pdcch_dl_t* alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
-                             uint32_t                   ss_id,
-                             uint32_t                   aggr_idx,
-                             const ue_carrier_params_t* user = nullptr);
+  pdcch_dl_t* alloc_rar_pdcch(uint16_t ra_rnti, uint32_t aggr_idx);
 
   /**
-   * Allocates RE space for UL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * Allocates RE space for SI DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * Fills DCI context with SI PDCCH allocation information
+   * @param ss_id Search space ID
+   * @param aggr_idx Aggregation level index (0..4)
+   * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
+   */
+  pdcch_dl_t* alloc_si_pdcch(uint32_t ss_id, uint32_t aggr_idx);
+
+  /**
+   * Allocates RE space for UE DL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * Fills DCI context with PDCCH allocation information
+   * @param rnti_type type of UE RNTI (e.g. C, TC)
    * @param ss_id Search space ID
    * @param aggr_idx Aggregation level index (0..4)
    * @param user UE object parameters
-   * @return pdcch object if the allocation was successful
+   * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
    */
-  pdcch_ul_t* alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user);
+  pdcch_dl_t*
+  alloc_dl_pdcch(srsran_rnti_type_t rnti_type, uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user);
+
+  /**
+   * Allocates RE space for UL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * Fills DCI context with PDCCH allocation information
+   * @param ss_id Search space ID
+   * @param aggr_idx Aggregation level index (0..4)
+   * @param user UE object parameters
+   * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
+   */
+  pdcch_ul_t* alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user);
 
   /**
    * Cancel and remove last PDCCH allocation
-   * @param ss_id Search space ID
    */
-  void rem_last_pdcch(uint32_t ss_id);
+  void rem_last_pdcch(srsran_dci_ctx_t& dci_ctx_to_rem);
 
   /// Returns the number of PDCCH allocations made in the slot
   uint32_t nof_allocations() const;
 
+  /// Number of CCEs in given coreset
+  uint32_t nof_cces(uint32_t coreset_id) const;
+
 private:
   using slot_coreset_list = srsran::optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>;
 
+  pdcch_dl_t* alloc_dl_pdcch_common(srsran_rnti_type_t         rnti_type,
+                                    uint16_t                   rnti,
+                                    uint32_t                   ss_id,
+                                    uint32_t                   aggr_idx,
+                                    srsran_dci_format_nr_t     dci_fmt,
+                                    const ue_carrier_params_t* user = nullptr);
+
+  /// Helper function to verify valid inputs
   bool check_args_valid(srsran_rnti_type_t         rnti_type,
+                        uint16_t                   rnti,
                         uint32_t                   ss_id,
                         uint32_t                   aggr_idx,
+                        srsran_dci_format_nr_t     dci_fmt,
                         const ue_carrier_params_t* user,
                         bool                       is_dl) const;
+
+  /// Fill DCI context of allocated PDCCH
+  void fill_dci_ctx_common(srsran_dci_ctx_t&            dci,
+                           srsran_rnti_type_t           rnti_type,
+                           uint16_t                     rnti,
+                           const srsran_search_space_t& ss,
+                           srsran_dci_format_nr_t       dci_fmt,
+                           const ue_carrier_params_t*   ue);
 
   // args
   const bwp_params_t&   bwp_cfg;

@@ -26,6 +26,10 @@ target_link_libraries(sched_nr_prb_test
         ${Boost_LIBRARIES})
 add_nr_test(sched_nr_prb_test sched_nr_prb_test)
 
+add_executable(sched_nr_pdcch_test sched_nr_pdcch_test.cc)
+target_link_libraries(sched_nr_pdcch_test srsgnb_mac sched_nr_test_suite srsran_common)
+add_nr_test(sched_nr_pdcch_test sched_nr_pdcch_test)
+
 add_executable(sched_nr_rar_test sched_nr_rar_test.cc)
 target_link_libraries(sched_nr_rar_test srsgnb_mac sched_nr_test_suite srsran_common)
 add_nr_test(sched_nr_rar_test sched_nr_rar_test)

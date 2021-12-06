@@ -11,17 +11,18 @@
  */
 
 #include "srsgnb/hdr/stack/mac/sched_nr_pdcch.h"
+#include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsran/common/string_helpers.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
 
 template <typename... Args>
-void log_pdcch_alloc_failure(srslog::log_channel&       log_ch,
-                             srsran_rnti_type_t         rnti_type,
-                             uint32_t                   ss_id,
-                             const ue_carrier_params_t* ue,
-                             const char*                cause_fmt,
+void log_pdcch_alloc_failure(srslog::log_channel& log_ch,
+                             srsran_rnti_type_t   rnti_type,
+                             uint32_t             ss_id,
+                             uint16_t             rnti,
+                             const char*          cause_fmt,
                              Args&&... args)
 {
   if (not log_ch.enabled()) {
@@ -30,25 +31,19 @@ void log_pdcch_alloc_failure(srslog::log_channel&       log_ch,
 
   // Log PDCCH allocation failure
   fmt::memory_buffer fmtbuf;
-  fmt::format_to(fmtbuf, "SCHED: Failure to allocate PDCCH for {}-rnti", srsran_rnti_type_str_short(rnti_type));
-  if (rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_tc) {
-    fmt::format_to(fmtbuf, "=0x{:x}", ue->rnti);
-  }
-  fmt::format_to(fmtbuf, ", ss_id={}. Cause:", ss_id);
+  fmt::format_to(fmtbuf,
+                 "SCHED: Failure to allocate PDCCH for {}-rnti=0x{:x}, SS#{}. Cause: ",
+                 srsran_rnti_type_str_short(rnti_type),
+                 rnti,
+                 ss_id);
   fmt::format_to(fmtbuf, cause_fmt, std::forward<Args>(args)...);
   log_ch("%s", srsran::to_c_str(fmtbuf));
 }
 
-coreset_region::coreset_region(const bwp_params_t& bwp_cfg_,
-                               uint32_t            coreset_id_,
-                               uint32_t            slot_idx_,
-                               pdcch_dl_list_t&    dl_list_,
-                               pdcch_ul_list_t&    ul_list_) :
+coreset_region::coreset_region(const bwp_params_t& bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_) :
   coreset_cfg(&bwp_cfg_.cfg.pdcch.coreset[coreset_id_]),
   coreset_id(coreset_id_),
   slot_idx(slot_idx_),
-  pdcch_dl_list(dl_list_),
-  pdcch_ul_list(ul_list_),
   rar_cce_list(bwp_cfg_.rar_cce_list),
   common_cce_list(bwp_cfg_.common_cce_list)
 {
@@ -67,56 +62,24 @@ void coreset_region::reset()
   dfs_tree.clear();
   saved_dfs_tree.clear();
   dci_list.clear();
-  pdcch_dl_list.clear();
-  pdcch_ul_list.clear();
 }
 
-pdcch_dl_t* coreset_region::alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
-                                           uint32_t                   aggr_idx,
-                                           uint32_t                   search_space_id,
-                                           const ue_carrier_params_t* user)
-{
-  // Add new DL PDCCH to sched result
-  pdcch_dl_list.emplace_back();
-
-  if (alloc_pdcch_common(rnti_type, true, aggr_idx, search_space_id, user)) {
-    return &pdcch_dl_list.back();
-  }
-
-  // Remove failed PDCCH allocation
-  pdcch_dl_list.pop_back();
-  return nullptr;
-}
-
-pdcch_ul_t* coreset_region::alloc_ul_pdcch(uint32_t aggr_idx, uint32_t search_space_id, const ue_carrier_params_t* user)
-{
-  // Add new UL PDCCH to sched result
-  pdcch_ul_list.emplace_back();
-
-  if (alloc_pdcch_common(srsran_rnti_type_c, false, aggr_idx, search_space_id, user)) {
-    return &pdcch_ul_list.back();
-  }
-
-  // Remove failed PDCCH allocation
-  pdcch_ul_list.pop_back();
-  return nullptr;
-}
-
-bool coreset_region::alloc_pdcch_common(srsran_rnti_type_t         rnti_type,
-                                        bool                       is_dl,
-                                        uint32_t                   aggr_idx,
-                                        uint32_t                   search_space_id,
-                                        const ue_carrier_params_t* user)
+bool coreset_region::alloc_pdcch(srsran_rnti_type_t         rnti_type,
+                                 bool                       is_dl,
+                                 uint32_t                   aggr_idx,
+                                 uint32_t                   search_space_id,
+                                 const ue_carrier_params_t* user,
+                                 srsran_dci_ctx_t&          dci)
 {
   saved_dfs_tree.clear();
 
   alloc_record record;
+  record.dci       = &dci;
   record.ue        = user;
   record.aggr_idx  = aggr_idx;
   record.ss_id     = search_space_id;
   record.is_dl     = is_dl;
   record.rnti_type = rnti_type;
-  record.idx       = record.is_dl ? pdcch_dl_list.size() - 1 : pdcch_ul_list.size() - 1;
 
   // Try to allocate grant. If it fails, attempt the same grant, but using a different permutation of past grant DCI
   // positions
@@ -143,11 +106,6 @@ void coreset_region::rem_last_pdcch()
 
   // Remove DCI record
   dfs_tree.pop_back();
-  if (not dci_list.back().is_dl) {
-    pdcch_ul_list.pop_back();
-  } else {
-    pdcch_dl_list.pop_back();
-  }
   dci_list.pop_back();
 }
 
@@ -204,13 +162,7 @@ bool coreset_region::alloc_dfs_node(const alloc_record& record, uint32_t start_d
     // Allocation successful
     node.total_mask |= node.current_mask;
     alloc_dfs.push_back(node);
-    if (not record.is_dl) {
-      pdcch_ul_t& pdcch_ul      = pdcch_ul_list[record.idx];
-      pdcch_ul.dci.ctx.location = node.dci_pos;
-    } else {
-      pdcch_dl_t& pdcch_dl      = pdcch_dl_list[record.idx];
-      pdcch_dl.dci.ctx.location = node.dci_pos;
-    }
+    record.dci->location = node.dci_pos;
     return true;
   }
 
@@ -245,111 +197,132 @@ bwp_pdcch_allocator::bwp_pdcch_allocator(const bwp_params_t& bwp_cfg_,
   for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
     if (bwp_cfg.cfg.pdcch.coreset_present[cs_idx]) {
       uint32_t cs_id = bwp_cfg.cfg.pdcch.coreset[cs_idx].id;
-      coresets.emplace(cs_id, bwp_cfg, cs_id, slot_idx, pdcch_dl_list, pdcch_ul_list);
+      coresets.emplace(cs_id, bwp_cfg, cs_id, slot_idx);
     }
   }
 }
 
-/// Helper function to verify valid inputs
-bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
-                                           uint32_t                   ss_id,
-                                           uint32_t                   aggr_idx,
-                                           const ue_carrier_params_t* user,
-                                           bool                       is_dl) const
+void bwp_pdcch_allocator::fill_dci_ctx_common(srsran_dci_ctx_t&            dci,
+                                              srsran_rnti_type_t           rnti_type,
+                                              uint16_t                     rnti,
+                                              const srsran_search_space_t& ss,
+                                              srsran_dci_format_nr_t       dci_fmt,
+                                              const ue_carrier_params_t*   ue)
 {
-  srsran_assert(ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, "Invalid SearchSpace#%d", ss_id);
-  srsran_assert(
-      aggr_idx < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR, "Invalid aggregation level index=%d", aggr_idx);
+  dci.ss_type    = ss.type;
+  dci.coreset_id = ss.coreset_id;
+  const srsran_coreset_t* coreset =
+      ue == nullptr ? &bwp_cfg.cfg.pdcch.coreset[ss.coreset_id] : &ue->phy().pdcch.coreset[ss.coreset_id];
+  dci.coreset_start_rb = srsran_coreset_start_rb(coreset);
+  dci.rnti_type        = rnti_type;
+  dci.rnti             = rnti;
+  dci.format           = dci_fmt;
+}
 
-  // Cell Configuration checks
-  if (not bwp_cfg.slots[slot_idx].is_dl) {
-    log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, user, "DL is disabled for slot={}", slot_idx);
-    return false;
-  }
+pdcch_dl_t* bwp_pdcch_allocator::alloc_rar_pdcch(uint16_t ra_rnti, uint32_t aggr_idx)
+{
+  srsran_assert(bwp_cfg.cfg.pdcch.ra_search_space_present, "Allocating RAR PDCCH in BWP without RA SearchSpace");
+  return alloc_dl_pdcch_common(
+      srsran_rnti_type_ra, ra_rnti, bwp_cfg.cfg.pdcch.ra_search_space.id, aggr_idx, srsran_dci_format_nr_1_0, nullptr);
+}
 
-  // Coreset-specific checks
-  const srsran_search_space_t* ss = (user == nullptr) ? bwp_cfg.get_ss(ss_id) : user->get_ss(ss_id);
-  if (ss == nullptr) {
-    log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, user, "SearchSpace has not been configured");
-    return false;
-  }
-  if (ss->nof_candidates[aggr_idx] == 0) {
-    log_pdcch_alloc_failure(logger.warning, rnti_type, ss_id, user, "Chosen PDCCH doesn't have valid candidates");
-    return false;
-  }
-
-  if (is_dl) {
-    if (pdcch_dl_list.full()) {
-      log_pdcch_alloc_failure(
-          logger.warning, rnti_type, ss_id, user, "Maximum number of allocations={} reached", pdcch_dl_list.size());
-      return false;
-    }
-    if (rnti_type == srsran_rnti_type_si or rnti_type == srsran_rnti_type_ra or rnti_type == srsran_rnti_type_p) {
-      srsran_assert(user == nullptr, "No UE should be provided in case of non-UE PDCCH allocation");
-      if (rnti_type == srsran_rnti_type_ra) {
-        srsran_assert(ss_id == bwp_cfg.cfg.pdcch.ra_search_space.id and bwp_cfg.cfg.pdcch.ra_search_space_present,
-                      "PDCCH grant type does not match search space");
-      }
-    } else {
-      srsran_assert(user != nullptr, "UE object must be provided for UE-specific PDCCH allocations");
-    }
-  } else if (pdcch_ul_list.full()) {
-    log_pdcch_alloc_failure(
-        logger.warning, rnti_type, ss_id, user, "Maximum number of UL allocations={} reached", pdcch_ul_list.size());
-    return false;
-  }
-
-  srsran_sanity_check(pdcch_dl_list.size() + pdcch_ul_list.size() == nof_allocations(), "Invalid PDCCH state");
-  return true;
+pdcch_dl_t* bwp_pdcch_allocator::alloc_si_pdcch(uint32_t ss_id, uint32_t aggr_idx)
+{
+  return alloc_dl_pdcch_common(srsran_rnti_type_si, SRSRAN_SIRNTI, ss_id, aggr_idx, srsran_dci_format_nr_1_0, nullptr);
 }
 
 pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
                                                 uint32_t                   ss_id,
                                                 uint32_t                   aggr_idx,
-                                                const ue_carrier_params_t* user)
+                                                const ue_carrier_params_t& user)
 {
-  if (not check_args_valid(rnti_type, ss_id, aggr_idx, user, true)) {
+  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: make it configurable
+  srsran_assert(rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_tc,
+                "Invalid RNTI type=%s for UE-specific PDCCH",
+                srsran_rnti_type_str_short(rnti_type));
+  return alloc_dl_pdcch_common(rnti_type, user.rnti, ss_id, aggr_idx, dci_fmt, &user);
+}
+
+pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_type_t         rnti_type,
+                                                       uint16_t                   rnti,
+                                                       uint32_t                   ss_id,
+                                                       uint32_t                   aggr_idx,
+                                                       srsran_dci_format_nr_t     dci_fmt,
+                                                       const ue_carrier_params_t* user)
+{
+  if (not check_args_valid(rnti_type, rnti, ss_id, aggr_idx, dci_fmt, user, true)) {
     return nullptr;
   }
   const srsran_search_space_t& ss = (user == nullptr) ? *bwp_cfg.get_ss(ss_id) : *user->get_ss(ss_id);
 
-  pdcch_dl_t* pdcch = coresets[ss.coreset_id].alloc_dl_pdcch(rnti_type, aggr_idx, ss_id, user);
+  // Add new DL PDCCH to sched result
+  pdcch_dl_list.emplace_back();
 
-  if (pdcch == nullptr) {
+  bool success =
+      coresets[ss.coreset_id].alloc_pdcch(rnti_type, true, aggr_idx, ss_id, user, pdcch_dl_list.back().dci.ctx);
+
+  if (not success) {
+    // Remove failed PDCCH allocation
+    pdcch_dl_list.pop_back();
+
     // Log PDCCH allocation failure
     srslog::log_channel& ch = user == nullptr ? logger.warning : logger.debug;
-    log_pdcch_alloc_failure(ch, rnti_type, ss_id, user, "Failure to find available PDCCH position");
-  }
-  return pdcch;
-}
+    log_pdcch_alloc_failure(ch, rnti_type, ss_id, rnti, "No available PDCCH position");
 
-pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t* user)
-{
-  if (not check_args_valid(srsran_rnti_type_c, ss_id, aggr_idx, user, false)) {
     return nullptr;
   }
-  const srsran_search_space_t& ss = *user->get_ss(ss_id);
 
-  pdcch_ul_t* pdcch = coresets[ss.coreset_id].alloc_ul_pdcch(aggr_idx, ss_id, user);
-
-  if (pdcch == nullptr) {
-    // Log PDCCH allocation failure
-    log_pdcch_alloc_failure(logger.debug, srsran_rnti_type_c, ss_id, user, "Failure to find available PDCCH position");
-  }
-
-  return pdcch;
+  fill_dci_ctx_common(pdcch_dl_list.back().dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
+  return &pdcch_dl_list.back();
 }
 
-void bwp_pdcch_allocator::rem_last_pdcch(uint32_t ss_id)
+pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user)
 {
-  const srsran_search_space_t& ss = bwp_cfg.cfg.pdcch.search_space[ss_id];
+  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_0_0; // TODO: make it configurable
+  if (not check_args_valid(srsran_rnti_type_c, user.rnti, ss_id, aggr_idx, dci_fmt, &user, false)) {
+    return nullptr;
+  }
+  const srsran_search_space_t& ss = *user.get_ss(ss_id);
 
-  uint32_t coreset_id = ss.coreset_id;
-  coresets[coreset_id].rem_last_pdcch();
+  // Add new UL PDCCH to sched result
+  pdcch_ul_list.emplace_back();
+
+  bool success = coresets[ss.coreset_id].alloc_pdcch(
+      srsran_rnti_type_c, false, aggr_idx, ss_id, &user, pdcch_ul_list.back().dci.ctx);
+
+  if (not success) {
+    // Remove failed PDCCH allocation
+    pdcch_ul_list.pop_back();
+
+    // Log PDCCH allocation failure
+    log_pdcch_alloc_failure(logger.debug, srsran_rnti_type_c, ss_id, user.rnti, "No available PDCCH position");
+
+    return nullptr;
+  }
+
+  fill_dci_ctx_common(pdcch_ul_list.back().dci.ctx, srsran_rnti_type_c, user.rnti, ss, dci_fmt, &user);
+  return &pdcch_ul_list.back();
+}
+
+void bwp_pdcch_allocator::rem_last_pdcch(srsran_dci_ctx_t& dci_ctx_to_rem)
+{
+  uint32_t cs_id = dci_ctx_to_rem.coreset_id;
+
+  if (&pdcch_dl_list.back().dci.ctx == &dci_ctx_to_rem) {
+    pdcch_dl_list.pop_back();
+  } else if (&pdcch_ul_list.back().dci.ctx == &dci_ctx_to_rem) {
+    pdcch_ul_list.pop_back();
+  } else {
+    logger.error("Invalid DCI context provided to be removed");
+    return;
+  }
+  coresets[cs_id].rem_last_pdcch();
 }
 
 void bwp_pdcch_allocator::reset()
 {
+  pdcch_dl_list.clear();
+  pdcch_ul_list.clear();
   for (coreset_region& coreset : coresets) {
     coreset.reset();
   }
@@ -362,6 +335,75 @@ uint32_t bwp_pdcch_allocator::nof_allocations() const
     count += coreset.nof_allocs();
   }
   return count;
+}
+
+uint32_t bwp_pdcch_allocator::nof_cces(uint32_t coreset_id) const
+{
+  return coresets[coreset_id].nof_cces();
+}
+
+bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
+                                           uint16_t                   rnti,
+                                           uint32_t                   ss_id,
+                                           uint32_t                   aggr_idx,
+                                           srsran_dci_format_nr_t     dci_fmt,
+                                           const ue_carrier_params_t* user,
+                                           bool                       is_dl) const
+{
+  srsran_assert(ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, "Invalid SearchSpace#%d", ss_id);
+  srsran_assert(
+      aggr_idx < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR, "Invalid aggregation level index=%d", aggr_idx);
+
+  // DL must be active in given slot
+  if (not bwp_cfg.slots[slot_idx].is_dl) {
+    log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, rnti, "DL is disabled for slot={}", slot_idx);
+    return false;
+  }
+
+  // Verify SearchSpace validity
+  const srsran_search_space_t* ss = (user == nullptr) ? bwp_cfg.get_ss(ss_id) : user->get_ss(ss_id);
+  if (ss == nullptr) {
+    // Couldn't find SearchSpace
+    log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, rnti, "SearchSpace has not been configured");
+    return false;
+  }
+  if (ss->nof_candidates[aggr_idx] == 0) {
+    // No valid DCI position candidates given aggregation level
+    log_pdcch_alloc_failure(
+        logger.warning, rnti_type, ss_id, rnti, "Chosen SearchSpace doesn't have CCE candidates for L={}", aggr_idx);
+    return false;
+  }
+  if (not is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
+    // RNTI type doesnt match SearchSpace type
+    log_pdcch_alloc_failure(
+        logger.warning, rnti_type, ss_id, rnti, "Chosen SearchSpace type={} does not match rnti_type.", ss->type);
+    return false;
+  }
+  auto dci_fmt_equal = [dci_fmt](srsran_dci_format_nr_t f) { return f == dci_fmt; };
+  if (std::none_of(&ss->formats[0], &ss->formats[ss->nof_formats], dci_fmt_equal)) {
+    log_pdcch_alloc_failure(logger.warning,
+                            rnti_type,
+                            ss_id,
+                            rnti,
+                            "Chosen SearchSpace does not support chosen dci format={}",
+                            srsran_dci_format_nr_string(dci_fmt));
+    return false;
+  }
+
+  if (is_dl) {
+    if (pdcch_dl_list.full()) {
+      log_pdcch_alloc_failure(
+          logger.warning, rnti_type, ss_id, rnti, "Maximum number of allocations={} reached", pdcch_dl_list.size());
+      return false;
+    }
+  } else if (pdcch_ul_list.full()) {
+    log_pdcch_alloc_failure(
+        logger.warning, rnti_type, ss_id, rnti, "Maximum number of UL allocations={} reached", pdcch_ul_list.size());
+    return false;
+  }
+
+  srsran_sanity_check(pdcch_dl_list.size() + pdcch_ul_list.size() == nof_allocations(), "Invalid PDCCH state");
+  return true;
 }
 
 } // namespace sched_nr_impl

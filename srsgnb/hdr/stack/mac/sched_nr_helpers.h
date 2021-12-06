@@ -24,6 +24,30 @@ class slot_ue;
 class ul_harq_proc;
 struct bwp_res_grid;
 
+/// Helper function to verify if RNTI type can be placed in specified search space
+/// Based on 38.213, Section 10.1
+inline bool is_rnti_type_valid_in_search_space(srsran_rnti_type_t rnti_type, srsran_search_space_type_t ss_type)
+{
+  switch (ss_type) {
+    case srsran_search_space_type_common_0:  // fall-through
+    case srsran_search_space_type_common_0A: // Other SIBs
+      return rnti_type == srsran_rnti_type_si;
+    case srsran_search_space_type_common_1:
+      return rnti_type == srsran_rnti_type_ra or rnti_type == srsran_rnti_type_tc or
+             /* in case of Pcell -> */ rnti_type == srsran_rnti_type_c;
+    case srsran_search_space_type_common_2:
+      return rnti_type == srsran_rnti_type_p;
+    case srsran_search_space_type_common_3:
+      return rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_ra; // TODO: Fix
+    case srsran_search_space_type_ue:
+      return rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_cs or
+             rnti_type == srsran_rnti_type_sp_csi;
+    default:
+      break;
+  }
+  return false;
+}
+
 /// In case of Common SearchSpace, not all PRBs might be available
 void reduce_to_dl_coreset_bw(const bwp_params_t&    bwp_cfg,
                              uint32_t               ss_id,

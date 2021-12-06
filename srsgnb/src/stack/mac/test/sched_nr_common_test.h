@@ -18,6 +18,14 @@
 
 namespace srsenb {
 
+/// Test DCI context consistency
+void test_dci_ctx_consistency(const srsran_pdcch_cfg_nr_t& pdcch_cfg, const srsran_dci_ctx_t& dci);
+
+/// Test PDCCH collisions
+void test_pdcch_collisions(const srsran_pdcch_cfg_nr_t&                  pdcch_cfg,
+                           srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcchs,
+                           srsran::const_span<sched_nr_impl::pdcch_ul_t> ul_pddchs);
+
 void test_dl_pdcch_consistency(const sched_nr_interface::cell_cfg_t&         cell_cfg,
                                srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcch);
 void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> dl_pdcch);
