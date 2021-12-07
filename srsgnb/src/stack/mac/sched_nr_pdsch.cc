@@ -91,19 +91,22 @@ alloc_result pdsch_allocator::is_grant_valid(uint32_t               ss_id,
   return alloc_result::success;
 }
 
-srsran::expected<pdsch_t*, alloc_result>
-pdsch_allocator::alloc_pdsch(const srsran_dci_ctx_t& dci_ctx, uint32_t ss_id, const prb_grant& grant, pdcch_dl_t& pdcch)
+srsran::expected<pdsch_t*, alloc_result> pdsch_allocator::alloc_pdsch(const srsran_dci_ctx_t& dci_ctx,
+                                                                      uint32_t                ss_id,
+                                                                      const prb_grant&        grant,
+                                                                      srsran_dci_dl_nr_t&     dci)
 {
   alloc_result code = is_grant_valid(ss_id, dci_ctx.format, grant);
   if (code != alloc_result::success) {
     return code;
   }
 
-  return {&alloc_pdsch_unchecked(dci_ctx, grant, pdcch)};
+  return {&alloc_pdsch_unchecked(dci_ctx, grant, dci)};
 }
 
-pdsch_t&
-pdsch_allocator::alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx, const prb_grant& grant, pdcch_dl_t& pdcch)
+pdsch_t& pdsch_allocator::alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx,
+                                                const prb_grant&        grant,
+                                                srsran_dci_dl_nr_t&     out_dci)
 {
   // Create new PDSCH entry in output PDSCH list
   pdschs.emplace_back();
@@ -113,9 +116,9 @@ pdsch_allocator::alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx, const pr
   dl_prbs |= grant;
 
   // Fill DCI with PDSCH freq/time allocation information
-  pdcch.dci.time_domain_assigment = 0;
+  out_dci.time_domain_assigment = 0;
   if (grant.is_alloc_type0()) {
-    pdcch.dci.freq_domain_assigment = grant.rbgs().to_uint64();
+    out_dci.freq_domain_assigment = grant.rbgs().to_uint64();
   } else {
     uint32_t rb_start = grant.prbs().start(), nof_prb = bwp_cfg.nof_prb();
     if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_ctx.ss_type)) {
@@ -127,7 +130,7 @@ pdsch_allocator::alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx, const pr
       }
     }
     srsran_sanity_check(rb_start + grant.prbs().length() <= nof_prb, "Invalid PRB grant");
-    pdcch.dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, rb_start, grant.prbs().length());
+    out_dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, rb_start, grant.prbs().length());
   }
 
   return pdsch;

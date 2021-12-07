@@ -12,7 +12,6 @@
 
 #include "sched_nr_cfg_generators.h"
 #include "sched_nr_common_test.h"
-#include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_interface_utils.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_pdcch.h"
 #include "srsran/common/test_common.h"

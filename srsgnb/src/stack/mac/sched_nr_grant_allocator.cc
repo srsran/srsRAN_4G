@@ -138,16 +138,16 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
     logger.warning("SCHED: Cannot allocate SIB1 due to lack of PDCCH space.");
     return pdcch_result.error();
   }
-  pdcch_dl_t* pdcch = pdcch_result.value();
+  pdcch_dl_t pdcch = *pdcch_result.value();
 
   // SI allocation successful.
 
   // Allocate PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch->dci.ctx, prbs, *pdcch);
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, prbs, pdcch.dci);
 
   // Generate DCI for SIB
-  pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
-  if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch->dci)) {
+  pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
+  if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch.dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
     return alloc_result::invalid_coderate;
@@ -157,7 +157,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
   int code     = srsran_ra_dl_dci_to_grant_nr(
-      &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch->dci, &pdsch.sch, &pdsch.sch.grant);
+      &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
   if (code != SRSRAN_SUCCESS) {
     logger.warning("Error generating SIB PDSCH grant.");
     bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
@@ -239,7 +239,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   pdcch->dci_cfg      = phy_cfg.get_dci_cfg();
 
   // Allocate PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch->dci.ctx, interv, *pdcch);
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch->dci.ctx, interv, pdcch->dci);
 
   // Generate DCI for RAR with given RA-RNTI
   if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch->dci)) {
@@ -345,7 +345,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   pdcch_dl_t& pdcch = *pdcch_result.value();
 
   // Allocate PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, dl_grant, pdcch);
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, dl_grant, pdcch.dci);
 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();

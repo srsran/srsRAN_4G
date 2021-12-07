@@ -20,18 +20,20 @@ namespace srsenb {
 
 namespace sched_nr_impl {
 
+using pdsch_alloc_result = srsran::expected<pdsch_t*, alloc_result>;
+
 class pdsch_allocator
 {
 public:
   pdsch_allocator(const bwp_params_t& cfg_, uint32_t sl_index, pdsch_list_t& pdsch_lst);
 
   /// Get available RBGs for allocation
-  rbg_bitmap available_rbgs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  rbg_bitmap occupied_rbgs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
   {
     return (dl_prbs | bwp_cfg.coreset_prb_limits(ss_id, dci_fmt)).rbgs();
   }
   /// Get available PRBs for allocation
-  prb_bitmap available_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  prb_bitmap occupied_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
   {
     return (dl_prbs | bwp_cfg.coreset_prb_limits(ss_id, dci_fmt)).prbs();
   }
@@ -48,19 +50,19 @@ public:
    * @param dci_ctx[in] PDCCH DL DCI context information
    * @param ss_id[in]  SearchSpaceId used for allocation
    * @param grant[in]  PRBs used for the grant
-   * @param pdcch[out] PDCCH where frequency_assignment and time_assignment get stored.
+   * @param pdcch[out] DCI where frequency_assignment and time_assignment get stored.
    * @return pdsch_t object pointer in case of success. alloc_result error code in case of failure
    */
-  srsran::expected<pdsch_t*, alloc_result>
-  alloc_pdsch(const srsran_dci_ctx_t& dci_ctx, uint32_t ss_id, const prb_grant& grant, pdcch_dl_t& pdcch);
+  pdsch_alloc_result
+  alloc_pdsch(const srsran_dci_ctx_t& dci_ctx, uint32_t ss_id, const prb_grant& grant, srsran_dci_dl_nr_t& dci);
 
   /**
    * @brief Allocates PDSCH grant without verifying for collisions. Useful to avoid redundant is_grant_valid(...) calls
    * @param dci_ctx[in] PDCCH DL DCI context information
    * @param grant[in]  PRBs used for the grant
-   * @param pdcch[out] PDCCH where frequency and time assignment get stored.
+   * @param pdcch[out] DCI where frequency and time assignment get stored.
    */
-  pdsch_t& alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx, const prb_grant& grant, pdcch_dl_t& pdcch);
+  pdsch_t& alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx, const prb_grant& grant, srsran_dci_dl_nr_t& dci);
 
   void cancel_last_pdsch();
 

@@ -126,6 +126,7 @@ inline sched_nr_interface::cell_cfg_t get_default_sa_cell_cfg_common()
   sched_nr_interface::cell_cfg_t cell_cfg                  = get_default_cell_cfg();
   cell_cfg.bwps[0].pdcch.coreset_present[0]                = true;
   cell_cfg.bwps[0].pdcch.coreset[0]                        = get_default_coreset0(52);
+  cell_cfg.bwps[0].pdcch.coreset[0].offset_rb              = 1;
   cell_cfg.bwps[0].pdcch.search_space_present[0]           = true;
   cell_cfg.bwps[0].pdcch.search_space[0]                   = get_default_search_space0();
   cell_cfg.bwps[0].pdcch.coreset_present[1]                = false;

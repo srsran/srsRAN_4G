@@ -152,7 +152,7 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
   const uint32_t si_aggr_level = 2;
   const uint32_t ss_id         = 0;
   slot_point     sl_pdcch      = bwp_alloc.get_pdcch_tti();
-  prb_bitmap     prbs          = bwp_alloc.res_grid()[sl_pdcch].pdschs.available_prbs(ss_id, srsran_dci_format_nr_1_0);
+  prb_bitmap     prbs          = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);
 
   // Update SI windows
   uint32_t N = bwp_cfg->slots.size();

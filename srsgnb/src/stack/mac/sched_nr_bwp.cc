@@ -25,7 +25,7 @@ alloc_result
 ra_sched::allocate_pending_rar(bwp_slot_allocator& slot_grid, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
 {
   const uint32_t rar_aggr_level = 2;
-  prb_bitmap     prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].pdschs.available_prbs(
+  prb_bitmap     prbs           = slot_grid.res_grid()[slot_grid.get_pdcch_tti()].pdschs.occupied_prbs(
       bwp_cfg->cfg.pdcch.ra_search_space.id, srsran_dci_format_nr_1_0);
 
   alloc_result                            ret = alloc_result::other_cause;
