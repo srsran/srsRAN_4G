@@ -41,10 +41,12 @@ void test_coreset0_cfg()
   uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts without UE-specific PDCCH
   ue_carrier_params_t ue_cc{0x46, bwp_params, uecfg};
 
-  pdcch_dl_list_t dl_pdcchs;
-  pdcch_ul_list_t ul_pdcchs;
-  pdcch_dl_t*     dl_pdcch = nullptr;
-  pdcch_ul_t*     ul_pdcch = nullptr;
+  pdcch_dl_list_t       dl_pdcchs;
+  pdcch_ul_list_t       ul_pdcchs;
+  pdcch_dl_alloc_result dl_pdcch_result;
+  pdcch_ul_alloc_result ul_pdcch_result;
+  pdcch_dl_t*           dl_pdcch = nullptr;
+  pdcch_ul_t*           ul_pdcch = nullptr;
 
   bwp_pdcch_allocator pdcch_sched(bwp_params, 0, dl_pdcchs, ul_pdcchs);
   for (const srsran_coreset_t& cs : view_active_coresets(cell_cfg.bwps[0].pdcch)) {
@@ -56,17 +58,18 @@ void test_coreset0_cfg()
   TESTASSERT_EQ(0, pdcch_sched.nof_allocations());
 
   // SIB1 allocation should be successful
-  dl_pdcch = pdcch_sched.alloc_si_pdcch(0, aggr_idx);
-  TESTASSERT(dl_pdcch != nullptr);
+  dl_pdcch_result = pdcch_sched.alloc_si_pdcch(0, aggr_idx);
+  TESTASSERT(dl_pdcch_result.has_value());
+  dl_pdcch = dl_pdcch_result.value();
   TESTASSERT_EQ(1, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_si, dl_pdcch->dci.ctx.rnti_type);
   TESTASSERT_EQ(0, dl_pdcch->dci.ctx.coreset_id);
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, dl_pdcch->dci.ctx);
 
   // No space for RAR, UE PDSCH/PUSCH
-  TESTASSERT(pdcch_sched.alloc_rar_pdcch(0x2, aggr_idx) == nullptr);
-  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
-  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
+  TESTASSERT(pdcch_sched.alloc_rar_pdcch(0x2, aggr_idx).error() == alloc_result::no_cch_space);
+  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
+  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
 
   srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
 
@@ -74,8 +77,9 @@ void test_coreset0_cfg()
   pdcch_sched.reset();
 
   // RAR allocation should be successful
-  dl_pdcch = pdcch_sched.alloc_rar_pdcch(0x2, aggr_idx);
-  TESTASSERT(dl_pdcch != nullptr);
+  dl_pdcch_result = pdcch_sched.alloc_rar_pdcch(0x2, aggr_idx);
+  TESTASSERT(dl_pdcch_result.has_value());
+  dl_pdcch = dl_pdcch_result.value();
   TESTASSERT_EQ(1, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_ra, dl_pdcch->dci.ctx.rnti_type);
   TESTASSERT_EQ(0, dl_pdcch->dci.ctx.coreset_id);
@@ -83,8 +87,8 @@ void test_coreset0_cfg()
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, dl_pdcch->dci.ctx);
 
   // No space for RAR, UE PDSCH/PUSCH
-  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
-  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
+  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
+  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
 
   srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
 
@@ -92,8 +96,9 @@ void test_coreset0_cfg()
   pdcch_sched.reset();
 
   // 1st PDCCH allocation for DL should be successful
-  dl_pdcch = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc);
-  TESTASSERT(dl_pdcch != nullptr);
+  dl_pdcch_result = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc);
+  TESTASSERT(dl_pdcch_result.has_value());
+  dl_pdcch = dl_pdcch_result.value();
   TESTASSERT_EQ(1, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_c, dl_pdcch->dci.ctx.rnti_type);
   TESTASSERT_EQ(0u, dl_pdcch->dci.ctx.coreset_id);
@@ -101,7 +106,7 @@ void test_coreset0_cfg()
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, dl_pdcch->dci.ctx);
 
   // No space for 2nd PDCCH allocation
-  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
+  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
 
   srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
 
@@ -109,8 +114,9 @@ void test_coreset0_cfg()
   pdcch_sched.reset();
 
   // 1st PDCCH allocation for UL should be successful
-  ul_pdcch = pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc);
-  TESTASSERT(ul_pdcch != nullptr);
+  ul_pdcch_result = pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc);
+  TESTASSERT(ul_pdcch_result.has_value());
+  ul_pdcch = ul_pdcch_result.value();
   TESTASSERT_EQ(1, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_c, ul_pdcch->dci.ctx.rnti_type);
   TESTASSERT_EQ(0u, ul_pdcch->dci.ctx.coreset_id);
@@ -118,7 +124,7 @@ void test_coreset0_cfg()
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, ul_pdcch->dci.ctx);
 
   // No space for 2nd PDCCH allocation
-  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
+  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
 
   srslog::fetch_basic_logger("TEST").info("%s", pdcch_sched.print_allocations());
 }
@@ -164,7 +170,7 @@ void test_coreset2_cfg()
   TESTASSERT_EQ(0, pdcch_sched.nof_allocations());
 
   // SIB1 allocation should be successful
-  dl_pdcch = pdcch_sched.alloc_si_pdcch(0, aggr_idx);
+  dl_pdcch = pdcch_sched.alloc_si_pdcch(0, aggr_idx).value();
   TESTASSERT(dl_pdcch != nullptr);
   TESTASSERT_EQ(1, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_si, dl_pdcch->dci.ctx.rnti_type);
@@ -174,12 +180,12 @@ void test_coreset2_cfg()
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, dl_pdcch->dci.ctx);
 
   // No space for RAR or PDSCH in SS#1
-  TESTASSERT(pdcch_sched.alloc_rar_pdcch(0x2, aggr_idx) == nullptr);
-  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc) == nullptr);
-  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc) == nullptr);
+  TESTASSERT(pdcch_sched.alloc_rar_pdcch(0x2, aggr_idx).error() == alloc_result::no_cch_space);
+  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
+  TESTASSERT(pdcch_sched.alloc_ul_pdcch(1, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
 
   // there is space for UE DL PDCCH in SS#2
-  dl_pdcch = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 2, aggr_idx, ue_cc);
+  dl_pdcch = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 2, aggr_idx, ue_cc).value();
   TESTASSERT(dl_pdcch != nullptr);
   TESTASSERT_EQ(2, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_c, dl_pdcch->dci.ctx.rnti_type);
@@ -190,7 +196,7 @@ void test_coreset2_cfg()
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, dl_pdcch->dci.ctx);
 
   // there is space for UE UL PDCCH in SS#2
-  ul_pdcch = pdcch_sched.alloc_ul_pdcch(2, aggr_idx, ue_cc);
+  ul_pdcch = pdcch_sched.alloc_ul_pdcch(2, aggr_idx, ue_cc).value();
   TESTASSERT(ul_pdcch != nullptr);
   TESTASSERT_EQ(3, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(srsran_rnti_type_c, ul_pdcch->dci.ctx.rnti_type);
@@ -202,7 +208,7 @@ void test_coreset2_cfg()
   test_dci_ctx_consistency(bwp_params.cfg.pdcch, ul_pdcch->dci.ctx);
 
   // No space for 3rd PDCCH allocation in SS#2
-  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 2, aggr_idx, ue_cc) == nullptr);
+  TESTASSERT(pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 2, aggr_idx, ue_cc).error() == alloc_result::no_cch_space);
 
   // Verify there are no PDCCH collisions
   TESTASSERT_EQ(3, pdcch_sched.nof_allocations());
@@ -217,6 +223,71 @@ void test_coreset2_cfg()
   TESTASSERT_EQ(0, pdcch_sched.nof_allocations());
   TESTASSERT_EQ(0, dl_pdcchs.size());
   TESTASSERT_EQ(0, ul_pdcchs.size());
+}
+
+void test_invalid_params()
+{
+  const uint32_t aggr_idx = 2;
+
+  srsran::test_delimit_logger delimiter{"Test PDCCH Allocation with Invalid Arguments"};
+
+  sched_nr_impl::cell_cfg_t cell_cfg                 = get_default_sa_cell_cfg_common();
+  cell_cfg.bwps[0].pdcch.search_space_present[2]     = true;
+  cell_cfg.bwps[0].pdcch.search_space[2]             = get_default_ue_specific_search_space(2, 2);
+  cell_cfg.bwps[0].pdcch.coreset_present[2]          = true;
+  cell_cfg.bwps[0].pdcch.coreset[2]                  = get_default_ue_specific_coreset(2, cell_cfg.carrier.pci);
+  cell_cfg.bwps[0].pdcch.search_space_present[3]     = true;
+  cell_cfg.bwps[0].pdcch.search_space[3]             = get_default_ue_specific_search_space(3, 2);
+  cell_cfg.bwps[0].pdcch.search_space[3].nof_formats = 1; // only DL
+  cell_cfg.bwps[0].pdcch.search_space[3].formats[0]  = srsran_dci_format_nr_1_0;
+  sched_nr_interface::sched_args_t sched_args;
+  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
+
+  // UE config
+  ue_cfg_t uecfg      = get_rach_ue_cfg(0);
+  uecfg.phy_cfg       = get_common_ue_phy_cfg(cell_cfg);
+  uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
+  ue_carrier_params_t ue_cc{0x46, bwp_params, uecfg};
+
+  pdcch_dl_list_t       dl_pdcchs;
+  pdcch_ul_list_t       ul_pdcchs;
+  pdcch_dl_alloc_result dl_res;
+  pdcch_ul_alloc_result ul_res;
+
+  bwp_pdcch_allocator pdcch_sched(bwp_params, 0, dl_pdcchs, ul_pdcchs);
+
+  // Slot with SIB1 + DL PDCCH and UL PDCCH
+  TESTASSERT_EQ(0, pdcch_sched.nof_allocations());
+
+  // Pass UE search space for SI alloc
+  dl_res = pdcch_sched.alloc_si_pdcch(2, aggr_idx);
+  TESTASSERT(dl_res.is_error() and dl_res.error() == alloc_result::invalid_grant_params);
+
+  // Pass aggregation index for which there are no candidates
+  dl_res = pdcch_sched.alloc_si_pdcch(2, 4);
+  TESTASSERT(dl_res.is_error() and dl_res.error() == alloc_result::invalid_grant_params);
+
+  // SearchSpace must exist
+  dl_res = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 4, aggr_idx, ue_cc);
+  TESTASSERT(dl_res.is_error() and dl_res.error() == alloc_result::invalid_grant_params);
+
+  // TC-RNTI cannot be allocated in Common SearchSpace Type1
+  dl_res = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_tc, 2, aggr_idx, ue_cc);
+  TESTASSERT(dl_res.is_error() and dl_res.error() == alloc_result::invalid_grant_params);
+
+  // C-RNTI cannot be allocated in Common SearchSpace Type0
+  dl_res = pdcch_sched.alloc_dl_pdcch(srsran_rnti_type_c, 0, aggr_idx, ue_cc);
+  TESTASSERT(dl_res.is_error() and dl_res.error() == alloc_result::invalid_grant_params);
+
+  // UL allocation cannot be made in SearchSpace without DCI format 0_0
+  ul_res = pdcch_sched.alloc_ul_pdcch(3, aggr_idx, ue_cc);
+  TESTASSERT(ul_res.is_error() and ul_res.error() == alloc_result::invalid_grant_params);
+
+  // Success case
+  TESTASSERT(pdcch_sched.nof_allocations() == 0);
+  ul_res = pdcch_sched.alloc_ul_pdcch(2, aggr_idx, ue_cc);
+  TESTASSERT(ul_res.has_value() and ul_res.value()->dci.ctx.format == srsran_dci_format_nr_0_0);
+  TESTASSERT(pdcch_sched.nof_allocations() == 1);
 }
 
 } // namespace srsenb
@@ -235,4 +306,5 @@ int main()
 
   srsenb::test_coreset0_cfg();
   srsenb::test_coreset2_cfg();
+  srsenb::test_invalid_params();
 }

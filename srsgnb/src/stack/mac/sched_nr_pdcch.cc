@@ -191,7 +191,7 @@ srsran::span<const uint32_t> coreset_region::get_cce_loc_table(const alloc_recor
 void coreset_region::print_allocations(fmt::memory_buffer& fmtbuf) const
 {
   if (not dci_list.empty()) {
-    fmt::format_to(fmtbuf, "CORESET#{}:\n", coreset_id);
+    fmt::format_to(fmtbuf, "CORESET#{} (#CCEs={}):\n", coreset_id, nof_cces());
   }
   for (const alloc_record& dci : dci_list) {
     fmt::format_to(fmtbuf,
@@ -236,22 +236,22 @@ void bwp_pdcch_allocator::fill_dci_ctx_common(srsran_dci_ctx_t&            dci,
   dci.format           = dci_fmt;
 }
 
-pdcch_dl_t* bwp_pdcch_allocator::alloc_rar_pdcch(uint16_t ra_rnti, uint32_t aggr_idx)
+pdcch_dl_alloc_result bwp_pdcch_allocator::alloc_rar_pdcch(uint16_t ra_rnti, uint32_t aggr_idx)
 {
   srsran_assert(bwp_cfg.cfg.pdcch.ra_search_space_present, "Allocating RAR PDCCH in BWP without RA SearchSpace");
   return alloc_dl_pdcch_common(
       srsran_rnti_type_ra, ra_rnti, bwp_cfg.cfg.pdcch.ra_search_space.id, aggr_idx, srsran_dci_format_nr_1_0, nullptr);
 }
 
-pdcch_dl_t* bwp_pdcch_allocator::alloc_si_pdcch(uint32_t ss_id, uint32_t aggr_idx)
+pdcch_dl_alloc_result bwp_pdcch_allocator::alloc_si_pdcch(uint32_t ss_id, uint32_t aggr_idx)
 {
   return alloc_dl_pdcch_common(srsran_rnti_type_si, SRSRAN_SIRNTI, ss_id, aggr_idx, srsran_dci_format_nr_1_0, nullptr);
 }
 
-pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
-                                                uint32_t                   ss_id,
-                                                uint32_t                   aggr_idx,
-                                                const ue_carrier_params_t& user)
+pdcch_dl_alloc_result bwp_pdcch_allocator::alloc_dl_pdcch(srsran_rnti_type_t         rnti_type,
+                                                          uint32_t                   ss_id,
+                                                          uint32_t                   aggr_idx,
+                                                          const ue_carrier_params_t& user)
 {
   static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: make it configurable
   srsran_assert(rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_tc,
@@ -260,15 +260,16 @@ pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch(srsran_rnti_type_t         rnti_
   return alloc_dl_pdcch_common(rnti_type, user.rnti, ss_id, aggr_idx, dci_fmt, &user);
 }
 
-pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_type_t         rnti_type,
-                                                       uint16_t                   rnti,
-                                                       uint32_t                   ss_id,
-                                                       uint32_t                   aggr_idx,
-                                                       srsran_dci_format_nr_t     dci_fmt,
-                                                       const ue_carrier_params_t* user)
+pdcch_dl_alloc_result bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_type_t         rnti_type,
+                                                                 uint16_t                   rnti,
+                                                                 uint32_t                   ss_id,
+                                                                 uint32_t                   aggr_idx,
+                                                                 srsran_dci_format_nr_t     dci_fmt,
+                                                                 const ue_carrier_params_t* user)
 {
-  if (not check_args_valid(rnti_type, rnti, ss_id, aggr_idx, dci_fmt, user, true)) {
-    return nullptr;
+  alloc_result r = check_args_valid(rnti_type, rnti, ss_id, aggr_idx, dci_fmt, user, true);
+  if (r != alloc_result::success) {
+    return {r};
   }
   const srsran_search_space_t& ss = (user == nullptr) ? *bwp_cfg.get_ss(ss_id) : *user->get_ss(ss_id);
 
@@ -286,7 +287,7 @@ pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_type_t       
     srslog::log_channel& ch = user == nullptr ? logger.warning : logger.debug;
     log_pdcch_alloc_failure(ch, rnti_type, ss_id, rnti, "No available PDCCH position");
 
-    return nullptr;
+    return {alloc_result::no_cch_space};
   }
 
   // Fill DCI context information
@@ -295,14 +296,16 @@ pdcch_dl_t* bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_type_t       
   // register last PDCCH coreset, in case it needs to be aborted
   pending_dci = &pdcch_dl_list.back().dci.ctx;
 
-  return &pdcch_dl_list.back();
+  return {&pdcch_dl_list.back()};
 }
 
-pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user)
+pdcch_ul_alloc_result
+bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user)
 {
   static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_0_0; // TODO: make it configurable
-  if (not check_args_valid(srsran_rnti_type_c, user.rnti, ss_id, aggr_idx, dci_fmt, &user, false)) {
-    return nullptr;
+  alloc_result r = check_args_valid(srsran_rnti_type_c, user.rnti, ss_id, aggr_idx, dci_fmt, &user, false);
+  if (r != alloc_result::success) {
+    return {r};
   }
   const srsran_search_space_t& ss = *user.get_ss(ss_id);
 
@@ -319,7 +322,7 @@ pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_id
     // Log PDCCH allocation failure
     log_pdcch_alloc_failure(logger.debug, srsran_rnti_type_c, ss_id, user.rnti, "No available PDCCH position");
 
-    return nullptr;
+    return {alloc_result::no_cch_space};
   }
 
   // Fill DCI context information
@@ -328,7 +331,7 @@ pdcch_ul_t* bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_id
   // register last PDCCH coreset, in case it needs to be aborted
   pending_dci = &pdcch_ul_list.back().dci.ctx;
 
-  return &pdcch_ul_list.back();
+  return {&pdcch_ul_list.back()};
 }
 
 void bwp_pdcch_allocator::cancel_last_pdcch()
@@ -372,13 +375,13 @@ uint32_t bwp_pdcch_allocator::nof_cces(uint32_t coreset_id) const
   return coresets[coreset_id].nof_cces();
 }
 
-bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
-                                           uint16_t                   rnti,
-                                           uint32_t                   ss_id,
-                                           uint32_t                   aggr_idx,
-                                           srsran_dci_format_nr_t     dci_fmt,
-                                           const ue_carrier_params_t* user,
-                                           bool                       is_dl) const
+alloc_result bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
+                                                   uint16_t                   rnti,
+                                                   uint32_t                   ss_id,
+                                                   uint32_t                   aggr_idx,
+                                                   srsran_dci_format_nr_t     dci_fmt,
+                                                   const ue_carrier_params_t* user,
+                                                   bool                       is_dl) const
 {
   srsran_assert(ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, "Invalid SearchSpace#%d", ss_id);
   srsran_assert(
@@ -387,7 +390,7 @@ bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
   // DL must be active in given slot
   if (not bwp_cfg.slots[slot_idx].is_dl) {
     log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, rnti, "DL is disabled for slot={}", slot_idx);
-    return false;
+    return alloc_result::no_cch_space;
   }
 
   // Verify SearchSpace validity
@@ -395,19 +398,23 @@ bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
   if (ss == nullptr) {
     // Couldn't find SearchSpace
     log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, rnti, "SearchSpace has not been configured");
-    return false;
+    return alloc_result::invalid_grant_params;
   }
   if (ss->nof_candidates[aggr_idx] == 0) {
     // No valid DCI position candidates given aggregation level
     log_pdcch_alloc_failure(
         logger.warning, rnti_type, ss_id, rnti, "Chosen SearchSpace doesn't have CCE candidates for L={}", aggr_idx);
-    return false;
+    return alloc_result::invalid_grant_params;
   }
   if (not is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
     // RNTI type doesnt match SearchSpace type
-    log_pdcch_alloc_failure(
-        logger.warning, rnti_type, ss_id, rnti, "Chosen SearchSpace type={} does not match rnti_type.", ss->type);
-    return false;
+    log_pdcch_alloc_failure(logger.warning,
+                            rnti_type,
+                            ss_id,
+                            rnti,
+                            "Chosen SearchSpace type \"{}\" does not match rnti_type.",
+                            srsran_ss_type_str(ss->type));
+    return alloc_result::invalid_grant_params;
   }
   auto dci_fmt_equal = [dci_fmt](srsran_dci_format_nr_t f) { return f == dci_fmt; };
   if (std::none_of(&ss->formats[0], &ss->formats[ss->nof_formats], dci_fmt_equal)) {
@@ -417,29 +424,29 @@ bool bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rnti_type,
                             rnti,
                             "Chosen SearchSpace does not support chosen dci format={}",
                             srsran_dci_format_nr_string(dci_fmt));
-    return false;
+    return alloc_result::invalid_grant_params;
   }
 
   if (is_dl) {
     if (pdcch_dl_list.full()) {
       log_pdcch_alloc_failure(
           logger.warning, rnti_type, ss_id, rnti, "Maximum number of allocations={} reached", pdcch_dl_list.size());
-      return false;
+      return alloc_result::no_cch_space;
     }
   } else if (pdcch_ul_list.full()) {
     log_pdcch_alloc_failure(
         logger.warning, rnti_type, ss_id, rnti, "Maximum number of UL allocations={} reached", pdcch_ul_list.size());
-    return false;
+    return alloc_result::no_cch_space;
   }
 
   srsran_sanity_check(pdcch_dl_list.size() + pdcch_ul_list.size() == nof_allocations(), "Invalid PDCCH state");
-  return true;
+  return alloc_result::success;
 }
 
 void bwp_pdcch_allocator::print_allocations(fmt::memory_buffer& fmtbuf) const
 {
   fmt::format_to(
-      fmtbuf, "PDCCH allocations ({} active coresets):{}\n", coresets.size(), nof_allocations() == 0 ? " None" : "");
+      fmtbuf, "PDCCH allocations: ({} active coresets):{}\n", coresets.size(), nof_allocations() == 0 ? " None" : "");
   for (const coreset_region& cs : coresets) {
     cs.print_allocations(fmtbuf);
   }

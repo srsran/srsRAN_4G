@@ -13,6 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_PDCCH_H
 #define SRSRAN_SCHED_NR_PDCCH_H
 
+#include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_cfg.h"
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
@@ -83,6 +84,9 @@ private:
   bool                         get_next_dfs();
 };
 
+using pdcch_dl_alloc_result = srsran::expected<pdcch_dl_t*, alloc_result>;
+using pdcch_ul_alloc_result = srsran::expected<pdcch_ul_t*, alloc_result>;
+
 /**
  * Class to handle the allocation of REs for a BWP PDCCH in a specific slot
  */
@@ -106,7 +110,7 @@ public:
    * @param aggr_idx Aggregation level index (0..4)
    * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
    */
-  pdcch_dl_t* alloc_rar_pdcch(uint16_t ra_rnti, uint32_t aggr_idx);
+  pdcch_dl_alloc_result alloc_rar_pdcch(uint16_t ra_rnti, uint32_t aggr_idx);
 
   /**
    * Allocates RE space for SI DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
@@ -115,7 +119,7 @@ public:
    * @param aggr_idx Aggregation level index (0..4)
    * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
    */
-  pdcch_dl_t* alloc_si_pdcch(uint32_t ss_id, uint32_t aggr_idx);
+  pdcch_dl_alloc_result alloc_si_pdcch(uint32_t ss_id, uint32_t aggr_idx);
 
   /**
    * Allocates RE space for UE DL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
@@ -126,18 +130,18 @@ public:
    * @param user UE object parameters
    * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
    */
-  pdcch_dl_t*
+  pdcch_dl_alloc_result
   alloc_dl_pdcch(srsran_rnti_type_t rnti_type, uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user);
 
   /**
-   * Allocates RE space for UL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
+   * @brief Allocates RE space for UL DCI in PDCCH, avoiding in the process collisions with other PDCCH allocations
    * Fills DCI context with PDCCH allocation information
    * @param ss_id Search space ID
    * @param aggr_idx Aggregation level index (0..4)
    * @param user UE object parameters
    * @return PDCCH object with dci context filled if the allocation was successful. nullptr otherwise
    */
-  pdcch_ul_t* alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user);
+  pdcch_ul_alloc_result alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_carrier_params_t& user);
 
   /**
    * Cancel and remove last PDCCH allocation. It should only be called once after each alloc_dl_pdcch/alloc_ul_pdcch
@@ -156,21 +160,21 @@ public:
 private:
   using slot_coreset_list = srsran::optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>;
 
-  pdcch_dl_t* alloc_dl_pdcch_common(srsran_rnti_type_t         rnti_type,
-                                    uint16_t                   rnti,
-                                    uint32_t                   ss_id,
-                                    uint32_t                   aggr_idx,
-                                    srsran_dci_format_nr_t     dci_fmt,
-                                    const ue_carrier_params_t* user = nullptr);
+  pdcch_dl_alloc_result alloc_dl_pdcch_common(srsran_rnti_type_t         rnti_type,
+                                              uint16_t                   rnti,
+                                              uint32_t                   ss_id,
+                                              uint32_t                   aggr_idx,
+                                              srsran_dci_format_nr_t     dci_fmt,
+                                              const ue_carrier_params_t* user = nullptr);
 
   /// Helper function to verify valid inputs
-  bool check_args_valid(srsran_rnti_type_t         rnti_type,
-                        uint16_t                   rnti,
-                        uint32_t                   ss_id,
-                        uint32_t                   aggr_idx,
-                        srsran_dci_format_nr_t     dci_fmt,
-                        const ue_carrier_params_t* user,
-                        bool                       is_dl) const;
+  alloc_result check_args_valid(srsran_rnti_type_t         rnti_type,
+                                uint16_t                   rnti,
+                                uint32_t                   ss_id,
+                                uint32_t                   aggr_idx,
+                                srsran_dci_format_nr_t     dci_fmt,
+                                const ue_carrier_params_t* user,
+                                bool                       is_dl) const;
 
   /// Fill DCI context of allocated PDCCH
   void fill_dci_ctx_common(srsran_dci_ctx_t&            dci,
