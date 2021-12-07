@@ -76,24 +76,21 @@ candidate_ss_list_t find_ss(const srsran_pdcch_cfg_nr_t&               pdcch,
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bwp_slot_grid::bwp_slot_grid(const bwp_params_t& bwp_cfg_, uint32_t slot_idx_) :
-  dl_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   ul_prbs(bwp_cfg_.cfg.rb_width, bwp_cfg_.cfg.start_rb, bwp_cfg_.cfg.pdsch.rbg_size_cfg_1),
   slot_idx(slot_idx_),
   cfg(&bwp_cfg_),
   pdcchs(bwp_cfg_, slot_idx_, dl.phy.pdcch_dl, dl.phy.pdcch_ul),
+  pdschs(bwp_cfg_, slot_idx_, dl.phy.pdsch),
   rar_softbuffer(harq_softbuffer_pool::get_instance().get_tx(bwp_cfg_.cfg.rb_width))
 {}
 
 void bwp_slot_grid::reset()
 {
   pdcchs.reset();
-  dl_prbs.reset();
+  pdschs.reset();
   ul_prbs.reset();
   dl.phy.ssb.clear();
   dl.phy.nzp_csi_rs.clear();
-  dl.phy.pdcch_dl.clear();
-  dl.phy.pdcch_ul.clear();
-  dl.phy.pdsch.clear();
   dl.data.clear();
   dl.rar.clear();
   dl.sib_idxs.clear();
@@ -121,25 +118,33 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
                                           const prb_interval& prbs,
                                           tx_harq_softbuffer& softbuffer)
 {
+  static const uint32_t               ss_id   = 0;
+  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
+
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
   alloc_result   ret            = verify_pdsch_space(bwp_pdcch_slot, bwp_pdcch_slot);
   if (ret != alloc_result::success) {
     return ret;
   }
-  if (bwp_pdcch_slot.dl_prbs.collides(prbs)) {
-    return alloc_result::sch_collision;
+
+  // Verify there is space in PDSCH
+  ret = bwp_pdcch_slot.pdschs.is_grant_valid(ss_id, dci_fmt, prbs);
+  if (ret != alloc_result::success) {
+    return ret;
   }
 
-  const uint32_t ss_id        = 0;
-  auto           pdcch_result = bwp_pdcch_slot.pdcchs.alloc_si_pdcch(ss_id, aggr_idx);
+  auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_si_pdcch(ss_id, aggr_idx);
   if (pdcch_result.is_error()) {
     logger.warning("SCHED: Cannot allocate SIB1 due to lack of PDCCH space.");
     return pdcch_result.error();
   }
   pdcch_dl_t* pdcch = pdcch_result.value();
 
-  // RAR allocation successful.
-  bwp_pdcch_slot.dl_prbs |= prbs;
+  // SI allocation successful.
+
+  // Allocate PDSCH
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch->dci.ctx, prbs, *pdcch);
+
   // Generate DCI for SIB
   pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
   if (not fill_dci_sib(prbs, si_idx, si_ntx, *bwp_grid.cfg, pdcch->dci)) {
@@ -149,8 +154,6 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   }
 
   // Generate PDSCH
-  bwp_pdcch_slot.dl.phy.pdsch.emplace_back();
-  pdsch_t&          pdsch = bwp_pdcch_slot.dl.phy.pdsch.back();
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
   int code     = srsran_ra_dl_dci_to_grant_nr(
@@ -174,12 +177,21 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
                                                     prb_interval                            interv,
                                                     srsran::const_span<dl_sched_rar_info_t> pending_rachs)
 {
-  static const uint32_t msg3_nof_prbs = 3, m = 0;
+  static const uint32_t               msg3_nof_prbs = 3, m = 0;
+  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
 
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
   slot_point     msg3_slot      = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
   bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_slot];
-  alloc_result   ret            = verify_pusch_space(bwp_msg3_slot);
+
+  // Verify there is space in PDSCH
+  alloc_result ret = bwp_pdcch_slot.pdschs.is_grant_valid(cfg.cfg.pdcch.ra_search_space.id, dci_fmt, interv);
+  if (ret != alloc_result::success) {
+    return ret;
+  }
+
+  // Verify there is space in PUSCH
+  ret = verify_pusch_space(bwp_msg3_slot);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -205,12 +217,6 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     }
   }
 
-  // Check DL RB collision
-  if (bwp_pdcch_slot.dl_prbs.collides(interv)) {
-    logger.debug("SCHED: Provided RBG mask collides with allocation previously made.");
-    return alloc_result::sch_collision;
-  }
-
   // Check Msg3 RB collision
   uint32_t     total_ul_nof_prbs = msg3_nof_prbs * pending_rachs.size();
   uint32_t     total_ul_nof_rbgs = srsran::ceil_div(total_ul_nof_prbs, get_P(bwp_grid.nof_prbs(), false));
@@ -224,25 +230,25 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_rar_pdcch(ra_rnti, aggr_idx);
   if (pdcch_result.is_error()) {
     // Could not find space in PDCCH
-    logger.debug("SCHED: No space in PDCCH for DL tx.");
     return pdcch_result.error();
   }
-  pdcch_dl_t* pdcch = pdcch_result.value();
 
   // RAR allocation successful.
-  bwp_pdcch_slot.dl_prbs |= interv;
+  pdcch_dl_t* pdcch   = pdcch_result.value();
+  auto&       phy_cfg = slot_ues[pending_rachs[0].temp_crnti]->phy();
+  pdcch->dci_cfg      = phy_cfg.get_dci_cfg();
+
+  // Allocate PDSCH
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch->dci.ctx, interv, *pdcch);
+
   // Generate DCI for RAR with given RA-RNTI
   if (not fill_dci_rar(interv, ra_rnti, *bwp_grid.cfg, pdcch->dci)) {
     // Cancel on-going PDCCH allocation
     bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
     return alloc_result::invalid_coderate;
   }
-  auto& phy_cfg  = slot_ues[pending_rachs[0].temp_crnti]->phy();
-  pdcch->dci_cfg = phy_cfg.get_dci_cfg();
   // Generate RAR PDSCH
   // TODO: Properly fill Msg3 grants
-  bwp_pdcch_slot.dl.phy.pdsch.emplace_back();
-  pdsch_t&          pdsch = bwp_pdcch_slot.dl.phy.pdsch.back();
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
   bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch->dci, pdsch.sch);
@@ -287,30 +293,12 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
 alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
 {
   static const uint32_t                              aggr_idx = 2;
-  static const std::array<srsran_dci_format_nr_t, 2> dci_fmt_list{srsran_dci_format_nr_1_1, srsran_dci_format_nr_1_0};
+  static const srsran_dci_format_nr_t                dci_fmt  = srsran_dci_format_nr_1_0;
+  static const std::array<srsran_dci_format_nr_t, 1> dci_fmt_list{srsran_dci_format_nr_1_0};
 
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
   bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot]; // UCI : UL control info
-  alloc_result   result         = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot, &bwp_uci_slot);
-  if (result != alloc_result::success) {
-    return result;
-  }
-  result = verify_ue_cfg(ue.cfg(), ue.h_dl);
-  if (result != alloc_result::success) {
-    return result;
-  }
-  if (not bwp_pdsch_slot.dl.phy.ssb.empty()) {
-    // TODO: support concurrent PDSCH and SSB
-    logger.debug("SCHED: skipping PDSCH allocation. Cause: concurrent PDSCH and SSB not yet supported");
-    return alloc_result::no_sch_space;
-  }
-  if (bwp_pdsch_slot.dl_prbs.collides(dl_grant)) {
-    return alloc_result::sch_collision;
-  }
-
-  // Find space in PUCCH
-  // TODO
 
   // Choose SearchSpace + DCI format
   srsran_rnti_type_t rnti_type = srsran_rnti_type_c;
@@ -323,55 +311,75 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   }
   const srsran_search_space_t& ss = *ss_candidates[0];
 
+  // Verify there is space in PDSCH
+  alloc_result ret = bwp_pdcch_slot.pdschs.is_grant_valid(ss.id, dci_fmt, dl_grant);
+  if (ret != alloc_result::success) {
+    return ret;
+  }
+
+  alloc_result result = verify_pdsch_space(bwp_pdsch_slot, bwp_pdcch_slot, &bwp_uci_slot);
+  if (result != alloc_result::success) {
+    return result;
+  }
+  result = verify_ue_cfg(ue.cfg(), ue.h_dl);
+  if (result != alloc_result::success) {
+    return result;
+  }
+  if (not bwp_pdsch_slot.dl.phy.ssb.empty()) {
+    // TODO: support concurrent PDSCH and SSB
+    logger.debug("SCHED: skipping PDSCH allocation. Cause: concurrent PDSCH and SSB not yet supported");
+    return alloc_result::no_sch_space;
+  }
+
+  // Find space in PUCCH
+  // TODO
+
   // Find space and allocate PDCCH
   auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_dl_pdcch(rnti_type, ss.id, aggr_idx, ue.cfg());
   if (pdcch_result.is_error()) {
     // Could not find space in PDCCH
     return pdcch_result.error();
   }
-  pdcch_dl_t* pdcch = pdcch_result.value();
 
-  // Update PRB grant based on the start and end of CORESET RBs
-  reduce_to_dl_coreset_bw(cfg, ss.id, srsran_dci_format_nr_1_0, dl_grant);
+  // DL allocation successful.
+  pdcch_dl_t& pdcch = *pdcch_result.value();
+
+  // Allocate PDSCH
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, dl_grant, pdcch);
 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();
   if (ue.h_dl->empty()) {
-    bool ret = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4);
-    srsran_assert(ret, "Failed to allocate DL HARQ");
+    bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4);
+    srsran_assert(success, "Failed to allocate DL HARQ");
   } else {
-    bool ret = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant);
-    mcs      = ue.h_dl->mcs();
-    srsran_assert(ret, "Failed to allocate DL HARQ retx");
+    bool success = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant);
+    mcs          = ue.h_dl->mcs();
+    srsran_assert(success, "Failed to allocate DL HARQ retx");
   }
-
-  // Allocation Successful
 
   const static float max_R = 0.93;
   while (true) {
     // Generate PDCCH
-    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch->dci.ctx.location, pdcch->dci);
-    pdcch->dci.pucch_resource = 0;
-    pdcch->dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
-                                   bwp_uci_slot.pending_acks.end(),
-                                   [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
-    pdcch->dci.dai %= 4;
-    pdcch->dci_cfg = ue->phy().get_dci_cfg();
+    fill_dl_dci_ue_fields(ue, *bwp_grid.cfg, ss.id, pdcch.dci.ctx.location, pdcch.dci);
+    pdcch.dci.pucch_resource = 0;
+    pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
+                                  bwp_uci_slot.pending_acks.end(),
+                                  [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
+    pdcch.dci.dai %= 4;
+    pdcch.dci_cfg = ue->phy().get_dci_cfg();
 
     // Generate PUCCH
     bwp_uci_slot.pending_acks.emplace_back();
     bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();
-    srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch->dci, bwp_uci_slot.pending_acks.back().res),
+    srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
                   "Error getting ack resource");
 
     // Generate PDSCH
-    bwp_pdsch_slot.dl_prbs |= dl_grant;
-    bwp_pdsch_slot.dl.phy.pdsch.emplace_back();
-    pdsch_t&          pdsch = bwp_pdsch_slot.dl.phy.pdsch.back();
     srsran_slot_cfg_t slot_cfg;
     slot_cfg.idx = ue.pdsch_slot.to_uint();
-    bool ret     = ue->phy().get_pdsch_cfg(slot_cfg, pdcch->dci, pdsch.sch);
-    srsran_assert(ret, "Error converting DCI to grant");
+    bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+    srsran_assert(success, "Error converting DCI to grant");
 
     pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
     pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
@@ -386,7 +394,6 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
     // Decrease MCS if first tx and rate is too high
     mcs--;
     ue.h_dl->set_mcs(mcs);
-    bwp_pdsch_slot.dl.phy.pdsch.pop_back();
     bwp_uci_slot.pending_acks.pop_back();
   }
   if (mcs == 0) {

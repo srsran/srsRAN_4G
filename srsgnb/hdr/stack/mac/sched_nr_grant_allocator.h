@@ -17,6 +17,7 @@
 #include "sched_nr_helpers.h"
 #include "sched_nr_interface.h"
 #include "sched_nr_pdcch.h"
+#include "sched_nr_pdsch.h"
 #include "sched_nr_ue.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
 
@@ -44,24 +45,20 @@ struct bwp_slot_grid {
   uint32_t            slot_idx = 0;
   const bwp_params_t* cfg      = nullptr;
 
-  bwp_rb_bitmap       dl_prbs;
   bwp_rb_bitmap       ul_prbs;
   dl_sched_res_t      dl;
   ul_sched_t          ul;
   harq_ack_list_t     pending_acks;
   bwp_pdcch_allocator pdcchs; /// slot PDCCH resource allocator
+  pdsch_allocator     pdschs; /// slot PDSCH resource allocator
 
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
   explicit bwp_slot_grid(const bwp_params_t& bwp_params, uint32_t slot_idx_);
   void reset();
 
-  bool       is_dl() const { return cfg->slots[slot_idx].is_dl; }
-  bool       is_ul() const { return cfg->slots[slot_idx].is_ul; }
-  prb_bitmap used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
-  {
-    return dl_prbs.prbs() | cfg->used_prbs(ss_id, dci_fmt);
-  }
+  bool is_dl() const { return cfg->slots[slot_idx].is_dl; }
+  bool is_ul() const { return cfg->slots[slot_idx].is_ul; }
 };
 
 struct bwp_res_grid {

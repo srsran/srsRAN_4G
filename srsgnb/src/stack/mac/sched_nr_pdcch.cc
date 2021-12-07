@@ -40,6 +40,23 @@ void log_pdcch_alloc_failure(srslog::log_channel& log_ch,
   log_ch("%s", srsran::to_c_str(fmtbuf));
 }
 
+void fill_dci_from_cfg(const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
+{
+  dci.bwp_id      = bwp_cfg.bwp_id;
+  dci.cc_id       = bwp_cfg.cc;
+  dci.tpc         = 1;
+  dci.coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? bwp_cfg.coreset_bw(0) : 0;
+}
+
+void fill_dci_from_cfg(const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci)
+{
+  dci.bwp_id = bwp_cfg.bwp_id;
+  dci.cc_id  = bwp_cfg.cc;
+  dci.tpc    = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 coreset_region::coreset_region(const bwp_params_t& bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_) :
   coreset_cfg(&bwp_cfg_.cfg.pdcch.coreset[coreset_id_]),
   coreset_id(coreset_id_),
@@ -226,6 +243,7 @@ void bwp_pdcch_allocator::fill_dci_ctx_common(srsran_dci_ctx_t&            dci,
                                               srsran_dci_format_nr_t       dci_fmt,
                                               const ue_carrier_params_t*   ue)
 {
+  // Note: Location is filled by coreset_region class.
   dci.ss_type    = ss.type;
   dci.coreset_id = ss.coreset_id;
   const srsran_coreset_t* coreset =
@@ -271,7 +289,10 @@ pdcch_dl_alloc_result bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_typ
   if (r != alloc_result::success) {
     return {r};
   }
-  const srsran_search_space_t& ss = (user == nullptr) ? *bwp_cfg.get_ss(ss_id) : *user->get_ss(ss_id);
+  const srsran_search_space_t& ss =
+      (user == nullptr)
+          ? (rnti_type == srsran_rnti_type_ra ? bwp_cfg.cfg.pdcch.ra_search_space : *bwp_cfg.get_ss(ss_id))
+          : *user->get_ss(ss_id);
 
   // Add new DL PDCCH to sched result
   pdcch_dl_list.emplace_back();
@@ -290,13 +311,19 @@ pdcch_dl_alloc_result bwp_pdcch_allocator::alloc_dl_pdcch_common(srsran_rnti_typ
     return {alloc_result::no_cch_space};
   }
 
+  // PDCCH allocation was successful
+  pdcch_dl_t& pdcch = pdcch_dl_list.back();
+
+  // Fill DCI with semi-static config
+  fill_dci_from_cfg(bwp_cfg, pdcch.dci);
+
   // Fill DCI context information
-  fill_dci_ctx_common(pdcch_dl_list.back().dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
+  fill_dci_ctx_common(pdcch.dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
 
   // register last PDCCH coreset, in case it needs to be aborted
-  pending_dci = &pdcch_dl_list.back().dci.ctx;
+  pending_dci = &pdcch.dci.ctx;
 
-  return {&pdcch_dl_list.back()};
+  return {&pdcch};
 }
 
 pdcch_ul_alloc_result
@@ -325,13 +352,19 @@ bwp_pdcch_allocator::alloc_ul_pdcch(uint32_t ss_id, uint32_t aggr_idx, const ue_
     return {alloc_result::no_cch_space};
   }
 
+  // PDCCH allocation was successful
+  pdcch_ul_t& pdcch = pdcch_ul_list.back();
+
+  // Fill DCI with semi-static config
+  fill_dci_from_cfg(bwp_cfg, pdcch.dci);
+
   // Fill DCI context information
-  fill_dci_ctx_common(pdcch_ul_list.back().dci.ctx, srsran_rnti_type_c, user.rnti, ss, dci_fmt, &user);
+  fill_dci_ctx_common(pdcch.dci.ctx, srsran_rnti_type_c, user.rnti, ss, dci_fmt, &user);
 
   // register last PDCCH coreset, in case it needs to be aborted
-  pending_dci = &pdcch_ul_list.back().dci.ctx;
+  pending_dci = &pdcch.dci.ctx;
 
-  return {&pdcch_ul_list.back()};
+  return {&pdcch};
 }
 
 void bwp_pdcch_allocator::cancel_last_pdcch()
@@ -394,7 +427,10 @@ alloc_result bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rn
   }
 
   // Verify SearchSpace validity
-  const srsran_search_space_t* ss = (user == nullptr) ? bwp_cfg.get_ss(ss_id) : user->get_ss(ss_id);
+  const srsran_search_space_t* ss =
+      (user == nullptr)
+          ? (rnti_type == srsran_rnti_type_ra ? &bwp_cfg.cfg.pdcch.ra_search_space : bwp_cfg.get_ss(ss_id))
+          : user->get_ss(ss_id);
   if (ss == nullptr) {
     // Couldn't find SearchSpace
     log_pdcch_alloc_failure(logger.error, rnti_type, ss_id, rnti, "SearchSpace has not been configured");

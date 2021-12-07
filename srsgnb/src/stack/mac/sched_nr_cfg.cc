@@ -44,14 +44,22 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   cc(cc_),
   bwp_id(bwp_id_),
   cfg(cell.bwps[bwp_id_]),
-  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name))
+  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name)),
+  cached_empty_prb_mask(cell.bwps[bwp_id_].rb_width,
+                        cell.bwps[bwp_id_].start_rb,
+                        cell.bwps[bwp_id_].pdsch.rbg_size_cfg_1)
 {
   srsran_assert(cfg.pdcch.ra_search_space_present, "BWPs without RA search space not supported");
   const uint32_t ra_coreset_id = cfg.pdcch.ra_search_space.coreset_id;
 
   P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
   N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
-  cached_empty_prb_mask.resize(cfg.rb_width);
+
+  for (const srsran_coreset_t& cs : view_active_coresets(cfg.pdcch)) {
+    coresets.emplace(cs.id);
+    auto& cached_coreset = coresets[cs.id];
+    cached_coreset.bw    = srsran_coreset_get_bw(&cs);
+  }
 
   // Derive params of individual slots
   uint32_t nof_slots = SRSRAN_NSLOTS_PER_FRAME_NR(cfg.numerology_idx);
@@ -112,10 +120,10 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
     if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type)) {
       used_common_prb_masks.emplace(ss_id, cached_empty_prb_mask);
       uint32_t coreset_start = srsran_coreset_start_rb(&cfg.pdcch.coreset[ss.coreset_id]);
-      used_common_prb_masks[ss_id].fill(0, coreset_start, true);
+      used_common_prb_masks[ss_id] |= prb_interval(0, coreset_start);
       if (ss.coreset_id == 0) {
         uint32_t coreset0_bw = srsran_coreset_get_bw(&cfg.pdcch.coreset[0]);
-        used_common_prb_masks[ss_id].fill(coreset_start + coreset0_bw, cfg.rb_width, true);
+        used_common_prb_masks[ss_id] |= prb_interval(coreset_start + coreset0_bw, cfg.rb_width);
       }
     }
   }

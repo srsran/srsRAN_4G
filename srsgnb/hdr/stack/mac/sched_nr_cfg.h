@@ -33,6 +33,7 @@ using pusch_t            = mac_interface_phy_nr::pusch_t;
 using pucch_t            = mac_interface_phy_nr::pucch_t;
 using pdcch_dl_list_t    = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
 using pdcch_ul_list_t    = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+using pdsch_list_t       = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 using pucch_list_t       = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
 using pusch_list_t       = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
 using nzp_csi_rs_list    = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, mac_interface_phy_nr::MAX_NZP_CSI_RS>;
@@ -93,12 +94,12 @@ struct bwp_params_t {
 
   bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 
-  const prb_bitmap& used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  uint32_t coreset_bw(uint32_t cs_id) const { return coresets[cs_id].bw; }
+
+  const bwp_rb_bitmap& coreset_prb_limits(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
   {
-    if (used_common_prb_masks.contains(ss_id)) {
-      if (dci_fmt == srsran_dci_format_nr_1_0) {
-        return used_common_prb_masks[ss_id];
-      }
+    if (used_common_prb_masks.contains(ss_id) and dci_fmt == srsran_dci_format_nr_1_0) {
+      return used_common_prb_masks[ss_id];
     }
     return cached_empty_prb_mask;
   }
@@ -109,8 +110,12 @@ struct bwp_params_t {
   }
 
 private:
-  prb_bitmap                          cached_empty_prb_mask;
-  srsran::optional_vector<prb_bitmap> used_common_prb_masks;
+  bwp_rb_bitmap                          cached_empty_prb_mask;
+  srsran::optional_vector<bwp_rb_bitmap> used_common_prb_masks;
+  struct coreset_cached_params {
+    uint32_t bw = 0;
+  };
+  srsran::optional_vector<coreset_cached_params> coresets;
 };
 
 /// Structure packing a single cell config params, and sched args

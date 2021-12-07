@@ -38,7 +38,7 @@ inline bool is_rnti_type_valid_in_search_space(srsran_rnti_type_t rnti_type, srs
     case srsran_search_space_type_common_2:
       return rnti_type == srsran_rnti_type_p;
     case srsran_search_space_type_common_3:
-      return rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_ra; // TODO: Fix
+      return rnti_type == srsran_rnti_type_c; // TODO: Fix
     case srsran_search_space_type_ue:
       return rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_cs or
              rnti_type == srsran_rnti_type_sp_csi;
