@@ -693,6 +693,7 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
 
   // Not all CB are decoded, skip TB union and CRC check
   if (cb_ok != cfg.C) {
+    res->crc = false;
     return SRSRAN_SUCCESS;
   }
 
