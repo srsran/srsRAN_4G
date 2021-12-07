@@ -626,6 +626,7 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   uint32_t N_re_rvd = srsran_re_pattern_list_count(&pdsch_cfg->rvd_re, grant->S, grant->S + grant->L, grant->prb_idx);
 
   // Steps 2,3,4
+  tb->mcs      = mcs_idx;
   tb->tbs      = (int)srsran_ra_nr_tbs(N_re, S, R, Qm, tb->N_L);
   tb->R        = R;
   tb->mod      = m;
