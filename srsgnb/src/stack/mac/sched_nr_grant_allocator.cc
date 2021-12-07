@@ -311,8 +311,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, prb_grant dl_grant)
   // TODO
 
   // Choose SearchSpace + DCI format
-  srsran_rnti_type_t rnti_type =
-      ue->ue_cfg().ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE ? srsran_rnti_type_tc : srsran_rnti_type_c;
+  srsran_rnti_type_t rnti_type = srsran_rnti_type_c;
   // Choose the ss_id the highest number of candidates
   candidate_ss_list_t ss_candidates = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
   if (ss_candidates.empty()) {
@@ -420,8 +419,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, prb_grant ul_grant)
   }
 
   // Choose SearchSpace + DCI format
-  srsran_rnti_type_t rnti_type =
-      ue->ue_cfg().ue_bearers[1].direction == mac_lc_ch_cfg_t::IDLE ? srsran_rnti_type_tc : srsran_rnti_type_c;
+  srsran_rnti_type_t  rnti_type     = srsran_rnti_type_c;
   candidate_ss_list_t ss_candidates = find_ss(ue->phy().pdcch, aggr_idx, rnti_type, dci_fmt_list);
   if (ss_candidates.empty()) {
     // Could not find space in PDCCH
