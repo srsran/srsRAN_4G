@@ -1705,7 +1705,9 @@ void rrc_nr::protocol_failure() {}
 // MAC interface
 void rrc_nr::ra_completed()
 {
-  logger.info("RA completed");
+  logger.info("RA completed. Applying remaining CSI configuration.");
+  phy->set_config(phy_cfg);
+  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
 }
 
 void rrc_nr::ra_problem()
