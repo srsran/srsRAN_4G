@@ -222,16 +222,16 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, interv, pdcch.dci);
 
   // Generate DCI for RAR with given RA-RNTI
-  auto& phy_cfg = slot_ues[pending_rachs[0].temp_crnti]->phy();
-  pdcch.dci_cfg = phy_cfg.get_dci_cfg();
+  pdcch.dci_cfg = slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
   pdcch.dci.mcs = 5;
 
   // Generate RAR PDSCH
   // TODO: Properly fill Msg3 grants
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
-  bool success = phy_cfg.get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
-  srsran_assert(success, "Error converting DCI to grant");
+  int code     = srsran_ra_dl_dci_to_grant_nr(
+      &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
+  srsran_assert(code == SRSRAN_SUCCESS, "Error converting DCI to grant");
   pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();
 
   // Generate Msg3 grants in PUSCH
@@ -249,8 +249,8 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     rar_grant.data  = grant;
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
     last_msg3 += msg3_nof_prbs;
-    ue.h_ul = ue.find_empty_ul_harq();
-    success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx);
+    ue.h_ul      = ue.find_empty_ul_harq();
+    bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx);
     srsran_assert(success, "Failed to allocate Msg3");
     fill_dci_msg3(ue, *bwp_grid.cfg, rar_grant.msg3_dci);
 
@@ -331,7 +331,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
                                   bwp_uci_slot.pending_acks.end(),
                                   [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
     pdcch.dci.dai %= 4;
-    pdcch.dci_cfg = ue->phy().get_dci_cfg();
+    pdcch.dci_cfg = ue->get_dci_cfg();
 
     // Generate PUCCH
     bwp_uci_slot.pending_acks.emplace_back();
@@ -423,7 +423,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_gr
 
   // Generate PDCCH content
   fill_ul_dci_ue_fields(ue, pdcch.dci);
-  pdcch.dci_cfg = ue->phy().get_dci_cfg();
+  pdcch.dci_cfg = ue->get_dci_cfg();
 
   // Generate PUSCH content
   srsran_slot_cfg_t slot_cfg;

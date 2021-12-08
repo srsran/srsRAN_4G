@@ -17,7 +17,6 @@
 namespace srsran {
 
 srsran_dci_cfg_nr_t phy_cfg_nr_t::get_dci_cfg() const
-
 {
   srsran_dci_cfg_nr_t dci_cfg = {};
 

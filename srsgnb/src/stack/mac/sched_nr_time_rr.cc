@@ -47,7 +47,7 @@ void sched_nr_time_rr::sched_dl_users(slot_ue_map_t& ue_db, bwp_slot_allocator& 
   // Start with retxs
   auto retx_ue_function = [&slot_alloc](slot_ue& ue) {
     if (ue.h_dl != nullptr and ue.h_dl->has_pending_retx(slot_alloc.get_tti_rx())) {
-      alloc_result res = slot_alloc.alloc_pdsch(ue, ue.find_ss_id(srsran_dci_format_nr_1_0), ue.h_dl->prbs());
+      alloc_result res = slot_alloc.alloc_pdsch(ue, ue->find_ss_id(srsran_dci_format_nr_1_0), ue.h_dl->prbs());
       if (res == alloc_result::success) {
         return true;
       }
@@ -61,7 +61,7 @@ void sched_nr_time_rr::sched_dl_users(slot_ue_map_t& ue_db, bwp_slot_allocator& 
   // Move on to new txs
   auto newtx_ue_function = [&slot_alloc](slot_ue& ue) {
     if (ue.dl_bytes > 0 and ue.h_dl != nullptr and ue.h_dl->empty()) {
-      int ss_id = ue.find_ss_id(srsran_dci_format_nr_1_0);
+      int ss_id = ue->find_ss_id(srsran_dci_format_nr_1_0);
       if (ss_id < 0) {
         return false;
       }

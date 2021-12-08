@@ -148,7 +148,7 @@ sched_params_t::sched_params_t(const sched_args_t& sched_cfg_) : sched_cfg(sched
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp_cfg_, const ue_cfg_t& uecfg_) :
-  rnti(rnti_), cc(bwp_cfg_.cc), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
+  rnti(rnti_), cc(bwp_cfg_.cc), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_), cached_dci_cfg(uecfg_.phy_cfg.get_dci_cfg())
 {
   std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
   const auto& pdcch        = phy().pdcch;
@@ -163,6 +163,30 @@ ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp
     get_dci_locs(coreset_view[ss.coreset_id], ss, rnti, cce_positions_list.back());
     ss_id_to_cce_idx[ss.id] = cce_positions_list.size() - 1;
   }
+}
+
+int ue_carrier_params_t::find_ss_id(srsran_dci_format_nr_t dci_fmt) const
+{
+  static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
+  static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
+
+  auto active_ss_lst = view_active_search_spaces(phy().pdcch);
+
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    // Prioritize UE-dedicated SearchSpaces
+    if (ss.type == srsran_search_space_type_ue and ss.nof_candidates[aggr_idx] > 0 and
+        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
+      return ss.id;
+    }
+  }
+  // Search Common SearchSpaces
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) and ss.nof_candidates[aggr_idx] > 0 and
+        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
+      return ss.id;
+    }
+  }
+  return -1;
 }
 
 } // namespace sched_nr_impl

@@ -171,8 +171,6 @@ public:
   dl_harq_proc* find_empty_dl_harq() { return ue->harq_ent.find_empty_dl_harq(); }
   ul_harq_proc* find_empty_ul_harq() { return ue->harq_ent.find_empty_ul_harq(); }
 
-  int find_ss_id(srsran_dci_format_nr_t dci_fmt) const;
-
   void build_pdu(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
   {
     ue->pdu_builder.alloc_subpdus(rem_bytes, pdu);

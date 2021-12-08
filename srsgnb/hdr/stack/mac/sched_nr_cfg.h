@@ -188,15 +188,18 @@ public:
   int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
   int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
 
-  srsran::bounded_vector<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE>
-  find_ss_candidates(uint32_t aggr_idx, srsran::const_span<srsran_dci_format_nr_t> supported_dci_fmts) const;
+  const srsran_dci_cfg_nr_t& get_dci_cfg() const { return cached_dci_cfg; }
+
+  int find_ss_id(srsran_dci_format_nr_t dci_fmt) const;
 
 private:
   const ue_cfg_t*     cfg_    = nullptr;
   const bwp_params_t* bwp_cfg = nullptr;
 
+  // derived
   std::vector<bwp_cce_pos_list>                              cce_positions_list;
   std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;
+  srsran_dci_cfg_nr_t                                        cached_dci_cfg;
 };
 
 } // namespace sched_nr_impl
