@@ -12,7 +12,7 @@
 
 #include "sched_nr_cfg_generators.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_interface_utils.h"
-#include "srsgnb/hdr/stack/mac/sched_nr_pdsch.h"
+#include "srsgnb/hdr/stack/mac/sched_nr_sch.h"
 #include "srsran/common/test_common.h"
 extern "C" {
 #include "srsran/phy/common/sliv.h"
@@ -80,7 +80,7 @@ void test_dci_freq_assignment(const bwp_params_t& bwp_params, prb_interval grant
   TESTASSERT(allocated_prbs == grant);
 }
 
-void test_si_sched()
+void test_si()
 {
   srsran::test_delimit_logger delimiter{"Test PDSCH SI Allocation"};
 
@@ -139,7 +139,7 @@ void test_si_sched()
   }
 }
 
-void test_rar_sched()
+void test_rar()
 {
   srsran::test_delimit_logger delimiter{"Test PDSCH RAR Allocation"};
   static const uint32_t       ss_id = 1;
@@ -197,7 +197,7 @@ void test_rar_sched()
   }
 }
 
-void test_ue_sched()
+void test_ue_pdsch()
 {
   srsran::test_delimit_logger delimiter{"Test PDSCH UE Allocation"};
 
@@ -266,7 +266,7 @@ void test_ue_sched()
   }
 }
 
-void test_multi_sched()
+void test_multi_pdsch()
 {
   srsran::test_delimit_logger delimiter{"Test Multiple PDSCH Allocations"};
 
@@ -354,6 +354,62 @@ void test_multi_sched()
   TESTASSERT_EQ(0, pdsch_sched.occupied_prbs(2, srsran_dci_format_nr_1_0).count());
 }
 
+void test_multi_pusch()
+{
+  srsran::test_delimit_logger delimiter{"Test Multiple PUSCH Allocations"};
+
+  // Create Cell and UE configs
+  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
+  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
+  sched_nr_interface::sched_args_t sched_args;
+  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
+  ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
+  ue_carrier_params_t              ue_cc2{0x4602, bwp_params, uecfg};
+
+  pusch_list_t       puschs;
+  pusch_alloc_result alloc_res;
+
+  pusch_allocator pusch_sched(bwp_params, 0, puschs);
+
+  pdcch_ul_t pdcch_ue1, pdcch_ue2;
+  pdcch_ue1.dci.ctx = generate_dci_ctx(bwp_params.cfg.pdcch, 1, srsran_rnti_type_c, 0x4601);
+  pdcch_ue2.dci.ctx = generate_dci_ctx(bwp_params.cfg.pdcch, 2, srsran_rnti_type_c, 0x4602);
+
+  // Allocate UE in common SearchSpace
+  uint32_t     ss_id         = 1;
+  pdcch_ul_t*  pdcch         = &pdcch_ue1;
+  prb_bitmap   used_prbs     = pusch_sched.occupied_prbs();
+  uint32_t     ue_grant_size = 10;
+  prb_interval ue_grant      = find_empty_interval_of_length(used_prbs, ue_grant_size);
+  TESTASSERT_EQ(alloc_result::success, pusch_sched.is_grant_valid(srsran_search_space_type_common_1, ue_grant));
+  alloc_res = pusch_sched.alloc_pusch(pdcch->dci.ctx, ue_grant, pdcch->dci);
+  TESTASSERT(alloc_res.has_value());
+  prb_bitmap used_prbs_ue1 = pusch_sched.occupied_prbs();
+  TESTASSERT_EQ(used_prbs_ue1.count(), used_prbs.count() + ue_grant.length());
+  TESTASSERT_EQ(alloc_result::sch_collision,
+                pusch_sched.is_grant_valid(srsran_search_space_type_common_1, ue_grant, false));
+
+  prb_bitmap last_prb_bitmap(used_prbs.size());
+  last_prb_bitmap.fill(ue_grant.start(), ue_grant.stop());
+  fmt::print("C-RNTI allocated in Common SearchSpace. Occupied PRBs:\n{:b} -> {:b}\n", last_prb_bitmap, used_prbs_ue1);
+
+  // Allocate UE in dedicated SearchSpace
+  ss_id                  = 2;
+  pdcch                  = &pdcch_ue2;
+  used_prbs              = pusch_sched.occupied_prbs();
+  prb_interval ue2_grant = find_empty_interval_of_length(used_prbs, used_prbs.size());
+  TESTASSERT_EQ(alloc_result::success, pusch_sched.is_grant_valid(srsran_search_space_type_ue, ue2_grant));
+  alloc_res = pusch_sched.alloc_pusch(pdcch->dci.ctx, ue2_grant, pdcch->dci);
+  TESTASSERT(alloc_res.has_value());
+  prb_bitmap used_prbs_ue2 = pusch_sched.occupied_prbs();
+  TESTASSERT_EQ(used_prbs_ue2.count(), used_prbs.count() + ue2_grant.length());
+  TESTASSERT_EQ(alloc_result::sch_collision, pusch_sched.is_grant_valid(srsran_search_space_type_ue, ue2_grant, false));
+
+  last_prb_bitmap.reset();
+  last_prb_bitmap.fill(ue2_grant.start(), ue2_grant.stop());
+  fmt::print("C-RNTI allocated in Common SearchSpace. Occupied PRBs:\n{:b} -> {:b}\n", last_prb_bitmap, used_prbs_ue2);
+}
+
 } // namespace srsenb
 
 int main()
@@ -368,8 +424,9 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  srsenb::test_si_sched();
-  srsenb::test_rar_sched();
-  srsenb::test_ue_sched();
-  srsenb::test_multi_sched();
+  srsenb::test_si();
+  srsenb::test_rar();
+  srsenb::test_ue_pdsch();
+  srsenb::test_multi_pdsch();
+  srsenb::test_multi_pusch();
 }

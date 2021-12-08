@@ -188,6 +188,9 @@ public:
   int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
   int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
 
+  srsran::bounded_vector<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE>
+  find_ss_candidates(uint32_t aggr_idx, srsran::const_span<srsran_dci_format_nr_t> supported_dci_fmts) const;
+
 private:
   const ue_cfg_t*     cfg_    = nullptr;
   const bwp_params_t* bwp_cfg = nullptr;

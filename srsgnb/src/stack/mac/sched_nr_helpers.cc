@@ -21,41 +21,6 @@ namespace sched_nr_impl {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void reduce_to_dl_coreset_bw(const bwp_params_t&    bwp_cfg,
-                             uint32_t               ss_id,
-                             srsran_dci_format_nr_t dci_fmt,
-                             prb_grant&             grant)
-{
-  const srsran_search_space_t& ss =
-      dci_fmt == srsran_dci_format_nr_rar ? bwp_cfg.cfg.pdcch.ra_search_space : bwp_cfg.cfg.pdcch.search_space[ss_id];
-  if (not SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type)) {
-    return;
-  }
-  uint32_t rb_start = 0, nof_prbs = bwp_cfg.nof_prb();
-  if (dci_fmt == srsran_dci_format_nr_1_0) {
-    rb_start = srsran_coreset_start_rb(&bwp_cfg.cfg.pdcch.coreset[ss.coreset_id]);
-  }
-  if (ss.coreset_id == 0) {
-    nof_prbs = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]);
-  }
-  grant &= prb_interval{rb_start, rb_start + nof_prbs};
-}
-
-void fill_dci_common(const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
-{
-  dci.bwp_id      = bwp_cfg.bwp_id;
-  dci.cc_id       = bwp_cfg.cc;
-  dci.tpc         = 1;
-  dci.coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]) : 0;
-}
-
-void fill_dci_common(const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci)
-{
-  dci.bwp_id = bwp_cfg.bwp_id;
-  dci.cc_id  = bwp_cfg.cc;
-  dci.tpc    = 1;
-}
-
 template <typename DciDlOrUl>
 void fill_dci_harq(const slot_ue& ue, DciDlOrUl& dci)
 {
@@ -68,25 +33,6 @@ void fill_dci_harq(const slot_ue& ue, DciDlOrUl& dci)
   dci.ndi = h->ndi();
   dci.mcs = h->mcs();
   dci.rv  = rv_idx[h->nof_retx() % 4];
-}
-
-void fill_dci_grant(const bwp_params_t& bwp_cfg, const prb_grant& grant, srsran_dci_ul_nr_t& dci)
-{
-  dci.time_domain_assigment = 0;
-  if (grant.is_alloc_type0()) {
-    dci.freq_domain_assigment = grant.rbgs().to_uint64();
-  } else {
-    uint32_t nof_prb          = bwp_cfg.nof_prb();
-    dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, grant.prbs().start(), grant.prbs().length());
-  }
-}
-
-bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
-{
-  dci.mcs = 5;
-  // TODO: Fill
-
-  return true;
 }
 
 bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
@@ -103,18 +49,17 @@ bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul
   }
 
   // Fill DCI content
-  fill_dci_common(bwp_cfg, msg3_dci);
+  fill_dci_from_cfg(bwp_cfg, msg3_dci);
+  msg3_dci.time_domain_assigment = 0;
+  uint32_t nof_prb               = bwp_cfg.nof_prb();
+  msg3_dci.freq_domain_assigment =
+      srsran_ra_nr_type1_riv(nof_prb, ue.h_ul->prbs().prbs().start(), ue.h_ul->prbs().prbs().length());
   fill_dci_harq(ue, msg3_dci);
-  fill_dci_grant(bwp_cfg, ue.h_ul->prbs(), msg3_dci);
 
   return true;
 }
 
-void fill_dl_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params_t&   bwp_cfg,
-                           uint32_t              ss_id,
-                           srsran_dci_location_t dci_pos,
-                           srsran_dci_dl_nr_t&   dci)
+void fill_dl_dci_ue_fields(const slot_ue& ue, srsran_dci_dl_nr_t& dci)
 {
   fill_dci_harq(ue, dci);
   if (dci.ctx.format == srsran_dci_format_nr_1_0) {
@@ -124,18 +69,9 @@ void fill_dl_dci_ue_fields(const slot_ue&        ue,
   }
 }
 
-void fill_ul_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params_t&   bwp_cfg,
-                           uint32_t              ss_id,
-                           srsran_dci_location_t dci_pos,
-                           srsran_dci_ul_nr_t&   dci)
+void fill_ul_dci_ue_fields(const slot_ue& ue, srsran_dci_ul_nr_t& dci)
 {
-  bool ret = ue->phy().get_dci_ctx_pusch_rnti_c(ss_id, dci_pos, ue->rnti, dci.ctx);
-  srsran_assert(ret, "Invalid DL DCI format");
-
-  fill_dci_common(bwp_cfg, dci);
   fill_dci_harq(ue, dci);
-  fill_dci_grant(bwp_cfg, ue.h_ul->prbs(), dci);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

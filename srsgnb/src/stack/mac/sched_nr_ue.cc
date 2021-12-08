@@ -11,7 +11,7 @@
  */
 
 #include "srsgnb/hdr/stack/mac/sched_nr_ue.h"
-#include "srsgnb/hdr/stack/mac/sched_nr_pdcch.h"
+#include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
 
@@ -81,6 +81,30 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes
       h_ul = ue->harq_ent.find_empty_ul_harq();
     }
   }
+}
+
+int slot_ue::find_ss_id(srsran_dci_format_nr_t dci_fmt) const
+{
+  static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
+  static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
+
+  auto active_ss_lst = view_active_search_spaces(cfg().phy().pdcch);
+
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    // Prioritize UE-dedicated SearchSpaces
+    if (ss.type == srsran_search_space_type_ue and ss.nof_candidates[aggr_idx] > 0 and
+        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
+      return ss.id;
+    }
+  }
+  // Search Common SearchSpaces
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) and ss.nof_candidates[aggr_idx] > 0 and
+        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
+      return ss.id;
+    }
+  }
+  return -1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

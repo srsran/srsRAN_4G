@@ -123,15 +123,17 @@ inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
 
 inline sched_nr_interface::cell_cfg_t get_default_sa_cell_cfg_common()
 {
-  sched_nr_interface::cell_cfg_t cell_cfg                  = get_default_cell_cfg();
-  cell_cfg.bwps[0].pdcch.coreset_present[0]                = true;
-  cell_cfg.bwps[0].pdcch.coreset[0]                        = get_default_coreset0(52);
-  cell_cfg.bwps[0].pdcch.coreset[0].offset_rb              = 1;
-  cell_cfg.bwps[0].pdcch.search_space_present[0]           = true;
-  cell_cfg.bwps[0].pdcch.search_space[0]                   = get_default_search_space0();
-  cell_cfg.bwps[0].pdcch.coreset_present[1]                = false;
-  cell_cfg.bwps[0].pdcch.search_space[1].coreset_id        = 0;
-  cell_cfg.bwps[0].pdcch.search_space[1].type              = srsran_search_space_type_common_1;
+  srsran::phy_cfg_nr_default_t::reference_cfg_t ref;
+  ref.duplex                                        = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
+  sched_nr_interface::cell_cfg_t cell_cfg           = get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref});
+  cell_cfg.bwps[0].pdcch.coreset_present[0]         = true;
+  cell_cfg.bwps[0].pdcch.coreset[0]                 = get_default_coreset0(52);
+  cell_cfg.bwps[0].pdcch.coreset[0].offset_rb       = 1;
+  cell_cfg.bwps[0].pdcch.search_space_present[0]    = true;
+  cell_cfg.bwps[0].pdcch.search_space[0]            = get_default_search_space0();
+  cell_cfg.bwps[0].pdcch.coreset_present[1]         = false;
+  cell_cfg.bwps[0].pdcch.search_space[1].coreset_id = 0;
+  cell_cfg.bwps[0].pdcch.search_space[1].type       = srsran_search_space_type_common_1;
   cell_cfg.bwps[0].pdcch.search_space[1].nof_candidates[2] = 1;
   cell_cfg.bwps[0].pdcch.search_space[1].nof_formats       = 2;
   cell_cfg.bwps[0].pdcch.search_space[1].formats[0]        = srsran_dci_format_nr_1_0;

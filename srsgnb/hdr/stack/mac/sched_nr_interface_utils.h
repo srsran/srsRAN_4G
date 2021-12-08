@@ -31,6 +31,12 @@ view_active_search_spaces(const srsran_pdcch_cfg_nr_t& pdcch)
   return srsran::split_optional_span<const srsran_search_space_t>{pdcch.search_space, pdcch.search_space_present};
 }
 
+inline bool contains_dci_format(const srsran_search_space_t& ss, srsran_dci_format_nr_t dci_fmt)
+{
+  auto is_dci_fmt = [dci_fmt](const srsran_dci_format_nr_t& f) { return f == dci_fmt; };
+  return std::any_of(&ss.formats[0], &ss.formats[ss.nof_formats], is_dci_fmt);
+}
+
 //////////////////////////////////// CORESET Helpers ////////////////////////////////////////////
 
 /// Get a range of active coresets in a PDCCH configuration

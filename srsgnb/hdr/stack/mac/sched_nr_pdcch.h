@@ -24,6 +24,10 @@ namespace srsenb {
 
 namespace sched_nr_impl {
 
+/// Helper function to fill DCI with BWP params
+void fill_dci_from_cfg(const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci);
+void fill_dci_from_cfg(const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci);
+
 using coreset_bitmap = srsran::bounded_bitset<SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, true>;
 
 class coreset_region

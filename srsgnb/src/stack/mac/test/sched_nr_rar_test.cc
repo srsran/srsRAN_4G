@@ -104,7 +104,7 @@ void test_single_prach()
     result                  = run_slot();
     if (bwpparams.slots[current_slot.slot_idx()].is_dl and
         bwpparams.slots[(current_slot + bwpparams.pusch_ra_list[0].msg3_delay).slot_idx()].is_ul) {
-      TESTASSERT_EQ(result->dl.phy.pdcch_dl.size(), 1);
+      TESTASSERT_EQ(1, result->dl.phy.pdcch_dl.size());
       const auto& pdcch = result->dl.phy.pdcch_dl[0];
       TESTASSERT_EQ(pdcch.dci.ctx.rnti, ra_rnti);
       TESTASSERT_EQ(pdcch.dci.ctx.rnti_type, srsran_rnti_type_ra);

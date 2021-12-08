@@ -48,35 +48,13 @@ inline bool is_rnti_type_valid_in_search_space(srsran_rnti_type_t rnti_type, srs
   return false;
 }
 
-/// In case of Common SearchSpace, not all PRBs might be available
-void reduce_to_dl_coreset_bw(const bwp_params_t&    bwp_cfg,
-                             uint32_t               ss_id,
-                             srsran_dci_format_nr_t dci_fmt,
-                             prb_grant&             grant);
-
-bool fill_dci_sib(prb_interval        interv,
-                  uint32_t            sib_idx,
-                  uint32_t            si_ntx,
-                  const bwp_params_t& bwp_cfg,
-                  srsran_dci_dl_nr_t& dci);
-
-bool fill_dci_rar(prb_interval interv, uint16_t ra_rnti, const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci);
-
 bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci);
 
 /// Generate PDCCH DL DCI fields
-void fill_dl_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params_t&   bwp_cfg,
-                           uint32_t              ss_id,
-                           srsran_dci_location_t dci_pos,
-                           srsran_dci_dl_nr_t&   dci);
+void fill_dl_dci_ue_fields(const slot_ue& ue, srsran_dci_dl_nr_t& dci);
 
 /// Generate PDCCH UL DCI fields
-void fill_ul_dci_ue_fields(const slot_ue&        ue,
-                           const bwp_params_t&   bwp_cfg,
-                           uint32_t              ss_id,
-                           srsran_dci_location_t dci_pos,
-                           srsran_dci_ul_nr_t&   dci);
+void fill_ul_dci_ue_fields(const slot_ue& ue, srsran_dci_ul_nr_t& dci);
 
 /// Log UE state for slot being scheduled
 void log_sched_slot_ues(srslog::basic_logger& logger,
