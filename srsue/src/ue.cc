@@ -133,9 +133,11 @@ int ue::init(const all_args_t& args_)
       srsran::console("Error initializing PHY.\n");
       ret = SRSRAN_ERROR;
     }
-    if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
-      srsran::console("Error initializing NR PHY.\n");
-      ret = SRSRAN_ERROR;
+    if (args.phy.nof_nr_carriers > 0) {
+      if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
+        srsran::console("Error initializing NR PHY.\n");
+        ret = SRSRAN_ERROR;
+      }
     }
     if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
       srsran::console("Error initializing stack.\n");
