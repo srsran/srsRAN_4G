@@ -556,17 +556,7 @@ int rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_r
   new_header.lsf  = 0;
   new_header.so   = retx.so_start;
   new_header.N_li = 0;
-  new_header.p    = 0;
-  if (poll_required()) {
-    logger->debug("%s setting poll bit to request status", RB_NAME);
-    new_header.p = 1;
-    // vt_s won't change for reTx, so don't update poll_sn
-    pdu_without_poll  = 0;
-    byte_without_poll = 0;
-    if (poll_retx_timer.is_valid()) {
-      poll_retx_timer.run();
-    }
-  }
+  new_header.p    = 0; // Poll Requriments are done later after updating RETX queue
 
   uint32_t head_len  = 0;
   uint32_t pdu_space = 0;
@@ -670,6 +660,18 @@ int rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_r
   } else {
     retx_queue.front().is_segment = true;
     retx_queue.front().so_start   = retx.so_end;
+  }
+
+  // Check POLL requeriments for segment
+  if (poll_required()) {
+    logger->debug("%s setting poll bit to request status", RB_NAME);
+    new_header.p = 1;
+    // vt_s won't change for reTx, so don't update poll_sn
+    pdu_without_poll  = 0;
+    byte_without_poll = 0;
+    if (poll_retx_timer.is_valid()) {
+      poll_retx_timer.run();
+    }
   }
 
   // Write header and pdu
