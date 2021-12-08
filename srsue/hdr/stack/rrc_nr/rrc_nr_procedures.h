@@ -77,6 +77,26 @@ private:
   srsran::proc_future_t<void> serv_cfg_fut;
 };
 
+class rrc_nr::connection_setup_proc
+{
+public:
+  explicit connection_setup_proc(rrc_nr& parent_);
+  srsran::proc_outcome_t init(const asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg_,
+                              const asn1::rrc_nr::cell_group_cfg_s   cell_group_,
+                              srsran::unique_byte_buffer_t           dedicated_info_nas_);
+  srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
+  static const char*     name() { return "Connection Setup"; }
+  srsran::proc_outcome_t react(const bool& config_complete);
+  void                   then(const srsran::proc_state_t& result);
+
+private:
+  // const
+  rrc_nr&               rrc_handle;
+  srslog::basic_logger& logger;
+  // args
+  srsran::unique_byte_buffer_t dedicated_info_nas;
+};
+
 class rrc_nr::connection_reconf_no_ho_proc
 {
 public:

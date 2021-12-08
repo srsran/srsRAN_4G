@@ -136,12 +136,17 @@ public:
 private:
   // parsers
   void decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
+  void decode_dl_ccch(srsran::unique_byte_buffer_t pdu);
   // senders
   void send_setup_request(srsran::nr_establishment_cause_t cause);
+  void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
+  void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);
+
   // helpers
-  void handle_sib1(const asn1::rrc_nr::sib1_s sib1);
+  void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
+  bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
@@ -185,6 +190,8 @@ private:
   };
   const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
   rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
+
+  uint8_t transaction_id = 0;
 
   // Stores the state of the PHY configuration setting
   enum {
@@ -234,10 +241,12 @@ private:
   // RRC procedures
   enum class cell_search_result_t { changed_cell, same_cell, no_cell };
   class cell_selection_proc;
+  class connection_setup_proc;
   class connection_reconf_no_ho_proc;
   class setup_request_proc;
 
   srsran::proc_t<cell_selection_proc, cell_search_result_t> cell_selector;
+  srsran::proc_t<connection_setup_proc>                     conn_setup_proc;
   srsran::proc_t<connection_reconf_no_ho_proc>              conn_recfg_proc;
   srsran::proc_t<setup_request_proc>                        setup_req_proc;
 

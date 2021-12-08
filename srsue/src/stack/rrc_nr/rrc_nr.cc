@@ -31,6 +31,7 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC-NR")),
   task_sched(task_sched_),
   conn_recfg_proc(*this),
+  conn_setup_proc(*this),
   setup_req_proc(*this),
   cell_selector(*this),
   meas_cells(task_sched_)
@@ -209,7 +210,66 @@ void rrc_nr::run_tti(uint32_t tti) {}
 void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
   printf("RRC received PDU\n");
+  logger.debug("RX PDU, LCID: %d", lcid);
+  switch (static_cast<nr_srb>(lcid)) {
+    case nr_srb::srb0:
+      decode_dl_ccch(std::move(pdu));
+      break;
+    // case nr_srb::srb1:
+    // case nr_srb::srb2:
+    //   decode_dl_dcch(lcid, std::move(pdu));
+    //   break;
+    default:
+      logger.error("RX PDU with invalid bearer id: %d", lcid);
+      break;
+  }
 }
+
+void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
+{
+  asn1::cbit_ref              bref(pdu->msg, pdu->N_bytes);
+  asn1::rrc_nr::dl_ccch_msg_s dl_ccch_msg;
+  if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+      dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
+    logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack DL-CCCH message (%d B)", pdu->N_bytes);
+    return;
+  }
+  log_rrc_message(
+      get_rb_name(srb_to_lcid(nr_srb::srb0)), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+
+  dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
+  switch (dl_ccch_msg.msg.c1().type().value) {
+    // case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
+    //   // 5.3.3.8
+    //   rrc_conn_reject_r8_ies_s* reject_r8 = &c1->rrc_reject().crit_exts.c1().rrc_conn_reject_r8();
+    //   logger.info("Received ConnectionReject. Wait time: %d", reject_r8->wait_time);
+    //   srsran::console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
+
+    //   t300.stop();
+
+    //   if (reject_r8->wait_time) {
+    //     nas->set_barring(srsran::barring_t::all);
+    //     t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
+    //     t302.run();
+    //   } else {
+    //     // Perform the actions upon expiry of T302 if wait time is zero
+    //     nas->set_barring(srsran::barring_t::none);
+    //     start_go_idle();
+    //   }
+    // } break;
+    case dl_ccch_msg_type_c::c1_c_::types::rrc_setup: {
+      transaction_id             = c1->rrc_setup().rrc_transaction_id;
+      rrc_setup_s rrc_setup_copy = c1->rrc_setup();
+      task_sched.defer_task([this, rrc_setup_copy]() { handle_rrc_setup(rrc_setup_copy); });
+      break;
+    }
+
+    default:
+      logger.error("The provided DL-CCCH message type is not recognized");
+      break;
+  }
+}
+
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
 {
@@ -499,6 +559,51 @@ void rrc_nr::send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg)
   log_rrc_message(get_rb_name(lcid), Tx, pdu.get(), msg, msg.msg.c1().type().to_string());
 
   rlc->write_sdu(lcid, std::move(pdu));
+}
+
+void rrc_nr::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
+{
+  // Reset and reuse sdu buffer if provided
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  msg.pack(bref);
+  bref.align_bytes_zero();
+  pdu->N_bytes = (uint32_t)bref.distance_bytes(pdu->msg);
+  pdu->set_timestamp();
+
+  if (msg.msg.type() == ul_dcch_msg_type_c::types_opts::options::c1) {
+    log_rrc_message(get_rb_name(lcid), Tx, pdu.get(), msg, msg.msg.c1().type().to_string());
+  }
+
+  pdcp->write_sdu(lcid, std::move(pdu));
+}
+
+void rrc_nr::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
+{
+  logger.debug("Preparing RRC Connection Setup Complete");
+
+  // Prepare ConnectionSetupComplete packet
+  asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+  rrc_setup_complete_ies_s*   rrc_setup_complete =
+      &ul_dcch_msg.msg.set_c1().set_rrc_setup_complete().crit_exts.set_rrc_setup_complete();
+
+  ul_dcch_msg.msg.c1().rrc_setup_complete().rrc_transaction_id = transaction_id;
+
+  rrc_setup_complete->sel_plmn_id                      = 1;
+  rrc_setup_complete->registered_amf_present           = false;
+  rrc_setup_complete->guami_type_present               = false;
+  rrc_setup_complete->s_nssai_list_present             = false;
+  rrc_setup_complete->ng_minus5_g_s_tmsi_value_present = false;
+
+  rrc_setup_complete->ded_nas_msg.resize(nas_msg->N_bytes);
+  memcpy(rrc_setup_complete->ded_nas_msg.data(), nas_msg->msg, nas_msg->N_bytes);
+
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
 // EUTRA-RRC interface
@@ -1504,7 +1609,6 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     }
   } else {
     logger.warning("Reconfig with with sync not present");
-    return false;
   }
 
   // Dedicated config
@@ -1597,7 +1701,6 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
     } else {
       logger.warning("Option pdsch_serving_cell_cfg not present");
-      return false;
     }
 
     if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present) {
@@ -1611,7 +1714,6 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
     } else {
       logger.warning("Option csi_meas_cfg in spCellConfigDedicated not present");
-      return false;
     }
 
   } else {
@@ -1801,6 +1903,37 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
       return false;
     }
   }
+  return true;
+}
+
+bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
+{
+  // Unpack masterCellGroup into container
+  asn1::cbit_ref bref_cg(setup.crit_exts.rrc_setup().master_cell_group.data(),
+                         setup.crit_exts.rrc_setup().master_cell_group.size());
+
+  asn1::rrc_nr::cell_group_cfg_s cell_group;
+  if (cell_group.unpack(bref_cg) != asn1::SRSASN_SUCCESS) {
+    logger.error("Could not unpack master cell group config.");
+    return false;
+  }
+  asn1::json_writer js;
+  cell_group.to_json(js);
+  logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+
+  // Must enter CONNECT before stopping T300
+  state = RRC_NR_STATE_CONNECTED;
+  // t300.stop();
+  // t302.stop();
+  srsran::console("RRC Connected\n");
+
+  // defer transmission of Setup Complete until PHY reconfiguration has been completed
+  if (not conn_setup_proc.launch(
+          setup.crit_exts.rrc_setup().radio_bearer_cfg, cell_group, std::move(dedicated_info_nas))) {
+    logger.error("Failed to initiate connection setup procedure");
+    return false;
+  }
+  callback_list.add_proc(conn_setup_proc);
   return true;
 }
 

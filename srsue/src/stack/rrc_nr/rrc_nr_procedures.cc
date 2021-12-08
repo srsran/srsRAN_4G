@@ -283,6 +283,60 @@ srsran::proc_outcome_t rrc_nr::setup_request_proc::react(const cell_selection_pr
   }
 }
 
+/******************************************
+ *  Connection Setup Procedure
+ *****************************************/
+
+// Simple procedure mainly do defer the transmission of the SetupComplete until all PHY reconfiguration are done
+rrc_nr::connection_setup_proc::connection_setup_proc(srsue::rrc_nr& parent_) :
+  rrc_handle(parent_), logger(srslog::fetch_basic_logger("RRC"))
+{}
+
+srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg_,
+                                                           const asn1::rrc_nr::cell_group_cfg_s   cell_group_,
+                                                           srsran::unique_byte_buffer_t           dedicated_info_nas_)
+{
+  Info("Starting...");
+
+  // if (dedicated_info_nas_.get() == nullptr) {
+  //   logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
+  //   return proc_outcome_t::error;
+  // }
+
+  dedicated_info_nas = std::move(dedicated_info_nas_);
+
+  // Apply the Radio Bearer configuration
+  if (!rrc_handle.apply_radio_bearer_cfg(radio_bearer_cfg_)) {
+    return proc_outcome_t::error;
+  }
+
+  // Apply the Cell Group configuration
+  if (!rrc_handle.apply_cell_group_cfg(cell_group_)) {
+    return proc_outcome_t::error;
+  }
+
+  return proc_outcome_t::yield;
+}
+
+srsran::proc_outcome_t rrc_nr::connection_setup_proc::react(const bool& config_complete)
+{
+  if (not config_complete) {
+    logger.error("Connection Setup Failed");
+    return proc_outcome_t::error;
+  }
+
+  rrc_handle.send_con_setup_complete(std::move(dedicated_info_nas));
+  return proc_outcome_t::success;
+}
+
+void rrc_nr::connection_setup_proc::then(const srsran::proc_state_t& result)
+{
+  if (result.is_success()) {
+    logger.info("Finished %s successfully", name());
+    return;
+  }
+}
+
 /**************************************
  *       Basic Cell Selection Procedure
  *************************************/
