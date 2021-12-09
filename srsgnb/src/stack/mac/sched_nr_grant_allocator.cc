@@ -326,8 +326,20 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   // Allocate PDSCH
   pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_ue_pdsch_unchecked(ss_id, dci_fmt, dl_grant, ue.cfg(), pdcch.dci);
 
+  // Initialize MCS based on CQI
+  int mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ 10,
+                                    /* cqi_table_idx */ SRSRAN_CSI_CQI_TABLE_1,
+                                    /* mcs_table */ ue->phy().get_mcs_table(),
+                                    /* dci_format */ pdcch->dci.ctx.format,
+                                    /* search_space_type*/ ss.type,
+                                    /* rnti_type */ rnti_type);
+
+  // This is only to handle the case that the MCS return is -1. It should not happen unless CQI is 0 ir invalid
+  if (mcs == -1) {
+    mcs = ue->fixed_pdsch_mcs();
+  }
+
   // Allocate HARQ
-  int mcs = ue->fixed_pdsch_mcs();
   if (ue.h_dl->empty()) {
     bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4, pdcch.dci);
     srsran_assert(success, "Failed to allocate DL HARQ");
