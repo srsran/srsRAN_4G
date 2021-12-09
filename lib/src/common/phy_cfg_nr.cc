@@ -367,4 +367,9 @@ srsran_ssb_cfg_t phy_cfg_nr_t::get_ssb_cfg() const
   return ssb_cfg;
 }
 
+srsran_mcs_table_t phy_cfg_nr_t::get_mcs_table() const
+{
+  return pdsch.mcs_table;
+}
+
 } // namespace srsran

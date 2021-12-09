@@ -150,4 +150,10 @@ SRSRAN_API int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carri
  */
 SRSRAN_API uint32_t srsran_ra_nr_type1_riv(uint32_t N_rb, uint32_t start_rb, uint32_t length_rb);
 
+SRSRAN_API int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
+                                       srsran_csi_cqi_table_t     cqi_table_idx,
+                                       srsran_mcs_table_t         mcs_table,
+                                       srsran_dci_format_nr_t     dci_format,
+                                       srsran_search_space_type_t search_space_type,
+                                       srsran_rnti_type_t         rnti_type);
 #endif // SRSRAN_RA_NR_H

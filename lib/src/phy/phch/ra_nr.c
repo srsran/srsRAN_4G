@@ -30,6 +30,7 @@ typedef struct {
 #define RA_NR_MCS_SIZE_TABLE2 28
 #define RA_NR_MCS_SIZE_TABLE3 29
 #define RA_NR_TBS_SIZE_TABLE 93
+#define RA_NR_CQI_SIZE_TABLE 16
 #define RA_NR_BETA_OFFSET_HARQACK_SIZE 32
 #define RA_NR_BETA_OFFSET_CSI_SIZE 32
 
@@ -132,6 +133,46 @@ static const float ra_nr_beta_offset_csi_table[RA_NR_BETA_OFFSET_CSI_SIZE] = {
     NAN,    NAN,    NAN,    NAN,    NAN,     NAN,     NAN,     NAN,     NAN,    NAN};
 
 typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
+
+/**
+ * These tables map the CQI into the MCS, based on the spectral efficiency.
+ * The mapping works as follows:
+ * - select spectral efficiency from the CQI from tables Table 5.2.2.1-2, Table 5.2.2.1-3, Table 5.2.2.1-4,
+ *   TS 38.214 V15.14.0
+ * - select MCS corresponding to same spectral efficiency from Table 5.1.3.1-1, Table 5.1.3.1-2, Table 5.1.3.1-3,
+ *   TS 38.214 V15.14.0
+ * The indices C_M (e.g, 1_1, 1_3, 3_2, etc.) refer to the CQI and MCS table, respectively.
+ * C = 1 -> Table 5.2.2.1-2; C = 2 -> Table 5.2.2.1-3, C = 2 -> Table 5.2.2.1-4
+ * M = 1 -> Table 5.1.3.1-1; M = 2 -> Table 5.1.3.1-2; M = 3 -> Table 5.1.3.1-3
+ */
+
+#if 0
+typedef const int nr_cqi_to_mcs_table[RA_NR_CQI_SIZE_TABLE];
+
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_1_1 = {-1, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24, 26, 28};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_2_1 = {-1, 0, 2, 6, 11, 13, 15, 18, 20, 22, 24, 26, 28, 28, 28, 28};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_3_1 = {-1, 0, 0, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_1_2 = {-1, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_2_2 = {-1, 0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_3_2 = {-1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_1_3 = {-1, 4, 8, 12, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_2_3 = {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28};
+static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_3_3 = {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28};
+#endif
+
+static int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_SIZE_TABLE] = {
+    /* ROW 1 - CQI Table 1 */
+    {/* MCS Table 1 */ {-1, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24, 26, 28},
+     /* MCS Table 2 */ {-1, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21},
+     /* MCS Table 3 */ {-1, 4, 8, 12, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28}},
+    /* ROW 2 - CQI Table 2 */
+    {/* MCS Table 1 */ {-1, 0, 2, 6, 11, 13, 15, 18, 20, 22, 24, 26, 28, 28, 28, 28},
+     /* MCS Table 2 */ {-1, 0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27},
+     /* MCS Table 3 */ {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28}},
+    /* ROW 1 - CQI Table 3 */
+    {/* MCS Table 1 */ {-1, 0, 0, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24},
+     /* MCS Table 2 */ {-1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17},
+     /* MCS Table 3 */ {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28}}};
 
 static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t         mcs_table,
                                                           srsran_dci_format_nr_t     dci_format,
@@ -1083,4 +1124,34 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
   }
 
   return SRSRAN_SUCCESS;
+}
+
+int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
+                            srsran_csi_cqi_table_t     cqi_table_idx,
+                            srsran_mcs_table_t         mcs_table,
+                            srsran_dci_format_nr_t     dci_format,
+                            srsran_search_space_type_t search_space_type,
+                            srsran_rnti_type_t         rnti_type)
+{
+  if (cqi >= RA_NR_CQI_SIZE_TABLE) {
+    ERROR("Invalid CQI (%u)", cqi);
+    return -1;
+  }
+
+  typedef enum { table_1 = 0, table_2, table_3, table_N } mcs_table_t;
+
+  // The following logic to select the MCS table is the same as in the function ra_nr_select_table_pdsch() in this same
+  // file
+  mcs_table_t mcs_table_idx;
+  if (mcs_table == srsran_mcs_table_256qam && dci_format == srsran_dci_format_nr_1_1 &&
+      rnti_type == srsran_rnti_type_c) {
+    mcs_table_idx = table_2;
+  } else if (mcs_table == srsran_mcs_table_qam64LowSE && search_space_type == srsran_search_space_type_ue &&
+             rnti_type == srsran_rnti_type_c) {
+    mcs_table_idx = table_3;
+  } else {
+    mcs_table_idx = table_1;
+  }
+
+  return ra_nr_cqi_to_mcs_table[cqi_table_idx][mcs_table_idx][cqi];
 }
