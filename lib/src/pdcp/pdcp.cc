@@ -111,7 +111,12 @@ int pdcp::add_bearer(uint32_t lcid, const pdcp_config_t& cfg)
   if (cfg.rat == srsran::srsran_rat_t::lte) {
     entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
   } else if (cfg.rat == srsran::srsran_rat_t::nr) {
+#ifdef USE_PDCP_NR
+#pragma message "Compiling with PDCP NR entity"
+    entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_sched, logger, lcid});
+#else
     entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid});
+#endif
   }
 
   if (not entity->configure(cfg)) {
