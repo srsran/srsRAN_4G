@@ -42,8 +42,8 @@ public:
       bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
 
       if (is_dl_slot) {
-        if (cc_out.res.dl->phy.ssb.empty()) {
-          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.res.dl->phy.pdcch_dl.size() == 1);
+        if (cc_out.res.dl->phy.ssb.empty() and not slot_ctxt.ue_db.empty()) {
+          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.res.dl->phy.pdcch_dl.size() >= 1);
         } else {
           TESTASSERT(cc_out.res.dl->phy.pdcch_dl.size() == 0);
         }
