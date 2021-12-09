@@ -214,9 +214,11 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  uint32_t n_blocks = 0;
-  uint32_t n_errors = 0;
-  float    evm      = 0;
+  uint32_t n_blocks      = 0;
+  uint32_t n_errors      = 0;
+  uint32_t crc_false_pos = 0;
+  uint32_t crc_false_neg = 0;
+  float    evm           = 0;
   for (; n_blocks < 2000000 && n_errors < 100; n_blocks++) {
     // Generate SCH payload
     for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
@@ -324,9 +326,15 @@ int main(int argc, char** argv)
 
     if (full_check) {
       // Validate by comparing payload (recall, payload is represented in bytes)
-      if ((memcmp(data_rx.tb[0].payload, data_tx.payload[0], pusch_cfg.grant.tb[0].tbs * sizeof(uint8_t) / 8) == 0) !=
-          data_rx.tb[0].crc) {
-        printf("\nWarning! Bit comparison and CRC do not match!\n");
+      if ((memcmp(data_rx.tb[0].payload, data_tx.payload[0], pusch_cfg.grant.tb[0].tbs * sizeof(uint8_t) / 8) == 0) &&
+          !data_rx.tb[0].crc) {
+        printf("\nWARNING! Codeword OK but CRC KO!\n");
+        crc_false_pos++;
+      } else if ((memcmp(data_rx.tb[0].payload, data_tx.payload[0], pusch_cfg.grant.tb[0].tbs * sizeof(uint8_t) / 8) !=
+                  0) &&
+                 data_rx.tb[0].crc) {
+        printf("\nWarning! Codeword KO but CRC OK!\n");
+        crc_false_neg++;
       }
     }
   }
@@ -345,6 +353,19 @@ int main(int argc, char** argv)
          pusch_cfg.grant.tb[0].tbs / 1e3,
          (n_blocks - n_errors) / 1e3 * pusch_cfg.grant.tb[0].tbs / n_blocks,
          100.0F * (n_blocks - n_errors) / n_blocks);
+
+  if (full_check) {
+    uint32_t true_errors = n_errors + crc_false_neg - crc_false_pos;
+    printf("CRC: missed detection/Type I err. %.2f%% (%d out of %d)",
+           100.0F * crc_false_neg / true_errors,
+           crc_false_neg,
+           true_errors);
+    printf(" -- false alarm %.2f%% (%d out of %d)", 100.0F * crc_false_pos / n_errors, crc_false_pos, n_errors);
+    printf(" -- Type II err. %.2f%% (%d out of %d)\n",
+           100.0F * crc_false_pos / (n_blocks - true_errors),
+           crc_false_pos,
+           n_blocks - true_errors);
+  }
 
   ret = SRSRAN_SUCCESS;
 
