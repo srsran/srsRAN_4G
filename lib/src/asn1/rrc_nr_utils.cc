@@ -236,14 +236,119 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
     }
   }
 
-  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::ms500;
+  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::infinity;
   if (pdcp_cfg.t_reordering_present) {
     switch (pdcp_cfg.t_reordering.to_number()) {
       case 0:
         t_reordering = pdcp_t_reordering_t::ms0;
         break;
-      default:
+      case 1:
+        t_reordering = pdcp_t_reordering_t::ms1;
+        break;
+      case 2:
+        t_reordering = pdcp_t_reordering_t::ms2;
+        break;
+      case 4:
+        t_reordering = pdcp_t_reordering_t::ms4;
+        break;
+      case 5:
+        t_reordering = pdcp_t_reordering_t::ms5;
+        break;
+      case 8:
+        t_reordering = pdcp_t_reordering_t::ms8;
+        break;
+      case 10:
+        t_reordering = pdcp_t_reordering_t::ms10;
+        break;
+      case 15:
+        t_reordering = pdcp_t_reordering_t::ms15;
+        break;
+      case 20:
+        t_reordering = pdcp_t_reordering_t::ms20;
+        break;
+      case 30:
+        t_reordering = pdcp_t_reordering_t::ms30;
+        break;
+      case 40:
+        t_reordering = pdcp_t_reordering_t::ms40;
+        break;
+      case 50:
+        t_reordering = pdcp_t_reordering_t::ms50;
+        break;
+      case 60:
+        t_reordering = pdcp_t_reordering_t::ms60;
+        break;
+      case 80:
+        t_reordering = pdcp_t_reordering_t::ms80;
+        break;
+      case 100:
+        t_reordering = pdcp_t_reordering_t::ms100;
+        break;
+      case 120:
+        t_reordering = pdcp_t_reordering_t::ms120;
+        break;
+      case 140:
+        t_reordering = pdcp_t_reordering_t::ms140;
+        break;
+      case 160:
+        t_reordering = pdcp_t_reordering_t::ms160;
+        break;
+      case 180:
+        t_reordering = pdcp_t_reordering_t::ms180;
+        break;
+      case 200:
+        t_reordering = pdcp_t_reordering_t::ms200;
+        break;
+      case 220:
+        t_reordering = pdcp_t_reordering_t::ms220;
+        break;
+      case 240:
+        t_reordering = pdcp_t_reordering_t::ms240;
+        break;
+      case 260:
+        t_reordering = pdcp_t_reordering_t::ms260;
+        break;
+      case 280:
+        t_reordering = pdcp_t_reordering_t::ms280;
+        break;
+      case 300:
+        t_reordering = pdcp_t_reordering_t::ms300;
+        break;
+      case 500:
         t_reordering = pdcp_t_reordering_t::ms500;
+        break;
+      case 750:
+        t_reordering = pdcp_t_reordering_t::ms750;
+        break;
+      case 1000:
+        t_reordering = pdcp_t_reordering_t::ms1000;
+        break;
+      case 1250:
+        t_reordering = pdcp_t_reordering_t::ms1250;
+        break;
+      case 1500:
+        t_reordering = pdcp_t_reordering_t::ms1500;
+        break;
+      case 1750:
+        t_reordering = pdcp_t_reordering_t::ms1750;
+        break;
+      case 2000:
+        t_reordering = pdcp_t_reordering_t::ms2000;
+        break;
+      case 2250:
+        t_reordering = pdcp_t_reordering_t::ms2250;
+        break;
+      case 2500:
+        t_reordering = pdcp_t_reordering_t::ms2500;
+        break;
+      case 2750:
+        t_reordering = pdcp_t_reordering_t::ms2750;
+        break;
+      case 3000:
+        t_reordering = pdcp_t_reordering_t::ms3000;
+        break;
+      default:
+        t_reordering = pdcp_t_reordering_t::ms50;
     }
   }
 
@@ -1148,7 +1253,7 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
                                  srsran_csi_rs_zp_resource_t*         out_zp_csi_rs_resource)
 {
   srsran_csi_rs_zp_resource_t zp_csi_rs_resource = {};
-  zp_csi_rs_resource.id = zp_csi_rs_res.zp_csi_rs_res_id;
+  zp_csi_rs_resource.id                          = zp_csi_rs_res.zp_csi_rs_res_id;
   switch (zp_csi_rs_res.res_map.freq_domain_alloc.type()) {
     case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
       zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
@@ -1313,7 +1418,7 @@ bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& asn1_nzp
                                   srsran_csi_rs_nzp_resource_t*         out_csi_rs_nzp_resource)
 {
   srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource = {};
-  csi_rs_nzp_resource.id = asn1_nzp_csi_rs_res.nzp_csi_rs_res_id;
+  csi_rs_nzp_resource.id                           = asn1_nzp_csi_rs_res.nzp_csi_rs_res_id;
   switch (asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.type()) {
     case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
       csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;

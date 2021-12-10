@@ -775,12 +775,12 @@ int rrc_nr::ue::add_drb(uint32_t five_qi)
   radio_bearer_cfg_pack.drb_to_add_mod_list.resize(1);
 
   // configure fixed DRB1
-  auto& drb_item                                = radio_bearer_cfg_pack.drb_to_add_mod_list[0];
-  drb_item.drb_id                               = 1;
-  drb_item.cn_assoc_present                     = true;
-  drb_item.cn_assoc.set_eps_bearer_id()         = 5;
-  drb_item.pdcp_cfg_present                     = true;
-  drb_item.pdcp_cfg                             = parent->cfg.five_qi_cfg[five_qi].pdcp_cfg;
+  auto& drb_item                        = radio_bearer_cfg_pack.drb_to_add_mod_list[0];
+  drb_item.drb_id                       = 1;
+  drb_item.cn_assoc_present             = true;
+  drb_item.cn_assoc.set_eps_bearer_id() = 5;
+  drb_item.pdcp_cfg_present             = true;
+  drb_item.pdcp_cfg                     = parent->cfg.five_qi_cfg[five_qi].pdcp_cfg;
 
   // Add DRB1 to PDCP
   srsran::pdcp_config_t pdcp_cnfg = srsran::make_drb_pdcp_config_t(drb_item.drb_id, false, drb_item.pdcp_cfg);
