@@ -57,8 +57,20 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
 
   for (const srsran_coreset_t& cs : view_active_coresets(cfg.pdcch)) {
     coresets.emplace(cs.id);
-    auto& cached_coreset = coresets[cs.id];
-    cached_coreset.bw    = srsran_coreset_get_bw(&cs);
+    uint32_t rb_start                         = srsran_coreset_start_rb(&cs);
+    coresets[cs.id].prb_limits                = prb_interval{rb_start, rb_start + srsran_coreset_get_bw(&cs)};
+    coresets[cs.id].usable_common_ss_prb_mask = cached_empty_prb_mask;
+
+    // TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
+    coresets[cs.id].usable_common_ss_prb_mask |= prb_interval(0, rb_start);
+    coresets[cs.id].dci_1_0_prb_limits = prb_interval{rb_start, cfg.rb_width};
+
+    // TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
+    // RA type 1 allocs shall be within the CORESET#0 region
+    if (cfg.pdcch.coreset_present[0]) {
+      coresets[cs.id].dci_1_0_prb_limits = coresets[cs.id].prb_limits;
+      coresets[cs.id].usable_common_ss_prb_mask |= prb_interval(coresets[cs.id].prb_limits.stop(), cfg.rb_width);
+    }
   }
 
   // Derive params of individual slots
@@ -114,16 +126,6 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
             &coreset, &ss, SRSRAN_SIRNTI, agg_idx, sl, ss_cce_list[sl][agg_idx].data());
         srsran_assert(n >= 0, "Failed to configure DCI locations of search space id=%d", ss_id);
         ss_cce_list[sl][agg_idx].resize(n);
-      }
-    }
-
-    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type)) {
-      used_common_prb_masks.emplace(ss_id, cached_empty_prb_mask);
-      uint32_t coreset_start = srsran_coreset_start_rb(&cfg.pdcch.coreset[ss.coreset_id]);
-      used_common_prb_masks[ss_id] |= prb_interval(0, coreset_start);
-      if (ss.coreset_id == 0) {
-        uint32_t coreset0_bw = srsran_coreset_get_bw(&cfg.pdcch.coreset[0]);
-        used_common_prb_masks[ss_id] |= prb_interval(coreset_start + coreset0_bw, cfg.rb_width);
       }
     }
   }

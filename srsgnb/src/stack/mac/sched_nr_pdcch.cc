@@ -45,7 +45,7 @@ void fill_dci_from_cfg(const bwp_params_t& bwp_cfg, srsran_dci_dl_nr_t& dci)
   dci.bwp_id      = bwp_cfg.bwp_id;
   dci.cc_id       = bwp_cfg.cc;
   dci.tpc         = 1;
-  dci.coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? bwp_cfg.coreset_bw(0) : 0;
+  dci.coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? bwp_cfg.coreset_prb_range(0).length() : 0;
 }
 
 void fill_dci_from_cfg(const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci)

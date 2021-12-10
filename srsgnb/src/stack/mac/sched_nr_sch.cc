@@ -17,7 +17,7 @@ namespace srsenb {
 namespace sched_nr_impl {
 
 template <typename... Args>
-void log_alloc_failure(srslog::log_channel& log_ch, uint32_t ss_id, const char* cause_fmt, Args&&... args)
+void log_alloc_failure(srslog::log_channel& log_ch, const char* cause_fmt, Args&&... args)
 {
   if (not log_ch.enabled()) {
     return;
@@ -25,7 +25,7 @@ void log_alloc_failure(srslog::log_channel& log_ch, uint32_t ss_id, const char* 
 
   // Log allocation failure
   fmt::memory_buffer fmtbuf;
-  fmt::format_to(fmtbuf, "SCHED: Failure to allocate PDSCH in SS#{}. Cause: ", ss_id);
+  fmt::format_to(fmtbuf, "SCHED: Failure to allocate PDSCH. Cause: ");
   fmt::format_to(fmtbuf, cause_fmt, std::forward<Args>(args)...);
   log_ch("%s", srsran::to_c_str(fmtbuf));
 }
@@ -43,70 +43,168 @@ void pdsch_allocator::reset()
   dl_prbs.reset();
 }
 
-alloc_result pdsch_allocator::is_grant_valid(uint32_t               ss_id,
-                                             srsran_dci_format_nr_t dci_fmt,
-                                             const prb_grant&       grant,
-                                             ue_carrier_params_t*   ue) const
+alloc_result pdsch_allocator::is_grant_valid_common(srsran_search_space_type_t ss_type,
+                                                    srsran_dci_format_nr_t     dci_fmt,
+                                                    uint32_t                   coreset_id,
+                                                    const prb_grant&           grant) const
 {
   // DL must be active in given slot
   if (not bwp_cfg.slots[slot_idx].is_dl) {
-    log_alloc_failure(bwp_cfg.logger.error, ss_id, "DL is disabled for slot={}", slot_idx);
+    log_alloc_failure(bwp_cfg.logger.error, "DL is disabled for slot={}", slot_idx);
     return alloc_result::no_sch_space;
   }
 
   // No space in Scheduler PDSCH output list
   if (pdschs.full()) {
-    log_alloc_failure(bwp_cfg.logger.warning, ss_id, "Maximum number of PDSCHs={} reached.", pdschs.size());
+    log_alloc_failure(bwp_cfg.logger.warning, "Maximum number of PDSCHs={} reached.", pdschs.size());
     return alloc_result::no_sch_space;
   }
 
-  // Verify SearchSpace validity
-  const srsran_search_space_t* ss = (ue == nullptr) ? bwp_cfg.get_ss(ss_id) : ue->get_ss(ss_id);
-  if (ss == nullptr) {
-    // Couldn't find SearchSpace
-    log_alloc_failure(bwp_cfg.logger.error, ss_id, "SearchSpace has not been configured.");
+  // TS 38.214, 5.1.2.2 - "The UE shall assume that when the scheduling grant is received with DCI format 1_0, then
+  //                       downlink resource allocation type 1 is used."
+  if (dci_fmt == srsran_dci_format_nr_1_0 and not grant.is_alloc_type1()) {
+    log_alloc_failure(bwp_cfg.logger.warning, "DL Resource Allocation type 1 must be used in case of DCI format 1_0.");
     return alloc_result::invalid_grant_params;
   }
 
-  if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss->type)) {
-    // In case of common SearchSpaces, the PRBs must be contiguous
-    if (grant.is_alloc_type0()) {
-      log_alloc_failure(bwp_cfg.logger.warning, ss_id, "AllocType0 not allowed in common SearchSpace.");
-      return alloc_result::invalid_grant_params;
-    }
-
+  // TS 38.214 - 5.1.2.2 - For DCI format 1_0 and Common Search Space, the list of available PRBs is limited by the
+  //                       rb_start and bandwidth of the coreset
+  if (dci_fmt == srsran_dci_format_nr_1_0 and SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)) {
     // Grant PRBs do not collide with CORESET PRB limits (in case of common SearchSpace)
-    if (bwp_cfg.coreset_prb_limits(ss_id, dci_fmt).collides(grant)) {
-      bwp_cfg.logger.debug("SCHED: Provided RBG mask falls outside common CORESET PRB boundaries.");
+    if (bwp_cfg.dci_fmt_1_0_excluded_prbs(coreset_id).collides(grant)) {
+      log_alloc_failure(
+          bwp_cfg.logger.debug, "Provided PRB grant={:x} falls outside common CORESET PRB boundaries.", grant);
       return alloc_result::sch_collision;
     }
   }
 
   // Grant PRBs do not collide with previous PDSCH allocations
   if (dl_prbs.collides(grant)) {
-    bwp_cfg.logger.debug("SCHED: Provided RBG mask collides with allocation previously made.");
+    log_alloc_failure(
+        bwp_cfg.logger.debug, "Provided PRB grant={:x} collides with allocations previously made.", grant);
     return alloc_result::sch_collision;
   }
 
   return alloc_result::success;
 }
 
-srsran::expected<pdsch_t*, alloc_result> pdsch_allocator::alloc_pdsch(const srsran_dci_ctx_t& dci_ctx,
-                                                                      uint32_t                ss_id,
-                                                                      const prb_grant&        grant,
-                                                                      srsran_dci_dl_nr_t&     dci)
+alloc_result pdsch_allocator::is_si_grant_valid(uint32_t ss_id, const prb_grant& grant) const
 {
-  alloc_result code = is_grant_valid(ss_id, dci_ctx.format, grant);
+  // Verify SearchSpace validity
+  const srsran_search_space_t* ss = bwp_cfg.get_ss(ss_id);
+  if (ss == nullptr) {
+    // Couldn't find SearchSpace
+    log_alloc_failure(bwp_cfg.logger.error, "SearchSpace has not been configured.");
+    return alloc_result::invalid_grant_params;
+  }
+  return is_grant_valid_common(ss->type, srsran_dci_format_nr_1_0, ss->coreset_id, grant);
+}
+
+alloc_result pdsch_allocator::is_rar_grant_valid(const prb_grant& grant) const
+{
+  srsran_sanity_check(bwp_cfg.cfg.pdcch.ra_search_space_present,
+                      "Attempting RAR allocation in BWP with no raSearchSpace");
+  return is_grant_valid_common(bwp_cfg.cfg.pdcch.ra_search_space.type,
+                               srsran_dci_format_nr_1_0,
+                               bwp_cfg.cfg.pdcch.ra_search_space.coreset_id,
+                               grant);
+}
+
+alloc_result pdsch_allocator::is_ue_grant_valid(const ue_carrier_params_t& ue,
+                                                uint32_t                   ss_id,
+                                                srsran_dci_format_nr_t     dci_fmt,
+                                                const prb_grant&           grant) const
+{
+  const srsran_search_space_t* ss = ue.get_ss(ss_id);
+  if (ss == nullptr) {
+    // Couldn't find SearchSpace
+    log_alloc_failure(bwp_cfg.logger.error, "rnti=0x%x,SearchSpaceId={} has not been configured.", ue.rnti, ss_id);
+    return alloc_result::invalid_grant_params;
+  }
+  alloc_result alloc_result = is_grant_valid_common(ss->type, dci_fmt, ss->coreset_id, grant);
+  if (alloc_result != alloc_result::success) {
+    return alloc_result;
+  }
+
+  // TS 38.214, 5.1.2.2 - "the UE shall use the downlink frequency resource allocation type as defined by the higher
+  //                       layer parameter resourceAllocation"
+  if (ue.phy().pdsch.alloc != srsran_resource_alloc_dynamic) {
+    if ((ue.phy().pdsch.alloc == srsran_resource_alloc_type0) != grant.is_alloc_type0()) {
+      log_alloc_failure(bwp_cfg.logger.warning,
+                        "UE rnti=0x{:x} PDSCH RA configuration type {} doesn't match grant type",
+                        ue.rnti,
+                        grant.is_alloc_type0() ? 0 : 1);
+      return alloc_result::invalid_grant_params;
+    }
+  }
+
+  return alloc_result::success;
+}
+
+pdsch_alloc_result pdsch_allocator::alloc_si_pdsch(uint32_t ss_id, const prb_grant& grant, srsran_dci_dl_nr_t& dci)
+{
+  alloc_result code = is_si_grant_valid(ss_id, grant);
   if (code != alloc_result::success) {
     return code;
   }
-
-  return {&alloc_pdsch_unchecked(dci_ctx, grant, dci)};
+  return {&alloc_si_pdsch_unchecked(ss_id, grant, dci)};
 }
 
-pdsch_t& pdsch_allocator::alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx,
-                                                const prb_grant&        grant,
-                                                srsran_dci_dl_nr_t&     out_dci)
+pdsch_t& pdsch_allocator::alloc_si_pdsch_unchecked(uint32_t ss_id, const prb_grant& grant, srsran_dci_dl_nr_t& dci)
+{
+  // Verify SearchSpace validity
+  const srsran_search_space_t* ss = bwp_cfg.get_ss(ss_id);
+  srsran_sanity_check(ss != nullptr, "SearchSpace has not been configured");
+  return alloc_pdsch_unchecked(ss->coreset_id, ss->type, srsran_dci_format_nr_1_0, grant, dci);
+}
+
+pdsch_alloc_result pdsch_allocator::alloc_rar_pdsch(const prb_grant& grant, srsran_dci_dl_nr_t& dci)
+{
+  alloc_result code = is_rar_grant_valid(grant);
+  if (code != alloc_result::success) {
+    return code;
+  }
+  return {&alloc_rar_pdsch_unchecked(grant, dci)};
+}
+
+pdsch_t& pdsch_allocator::alloc_rar_pdsch_unchecked(const prb_grant& grant, srsran_dci_dl_nr_t& dci)
+{
+  // TS 38.213, 8.2 - "In response to a PRACH transmission, a UE attempts to detect a DCI format 1_0"
+  const static srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
+
+  return alloc_pdsch_unchecked(
+      bwp_cfg.cfg.pdcch.ra_search_space.coreset_id, bwp_cfg.cfg.pdcch.ra_search_space.type, dci_fmt, grant, dci);
+}
+
+pdsch_alloc_result pdsch_allocator::alloc_ue_pdsch(uint32_t                   ss_id,
+                                                   srsran_dci_format_nr_t     dci_fmt,
+                                                   const prb_grant&           grant,
+                                                   const ue_carrier_params_t& ue,
+                                                   srsran_dci_dl_nr_t&        dci)
+{
+  alloc_result code = is_ue_grant_valid(ue, ss_id, dci_fmt, grant);
+  if (code != alloc_result::success) {
+    return code;
+  }
+  return {&alloc_ue_pdsch_unchecked(ss_id, dci_fmt, grant, ue, dci)};
+}
+
+pdsch_t& pdsch_allocator::alloc_ue_pdsch_unchecked(uint32_t                   ss_id,
+                                                   srsran_dci_format_nr_t     dci_fmt,
+                                                   const prb_grant&           grant,
+                                                   const ue_carrier_params_t& ue,
+                                                   srsran_dci_dl_nr_t&        dci)
+{
+  const srsran_search_space_t* ss = ue.get_ss(ss_id);
+  srsran_sanity_check(ss != nullptr, "SearchSpace has not been configured");
+  return alloc_pdsch_unchecked(ss->coreset_id, ss->type, dci_fmt, grant, dci);
+}
+
+pdsch_t& pdsch_allocator::alloc_pdsch_unchecked(uint32_t                   coreset_id,
+                                                srsran_search_space_type_t ss_type,
+                                                srsran_dci_format_nr_t     dci_fmt,
+                                                const prb_grant&           grant,
+                                                srsran_dci_dl_nr_t&        out_dci)
 {
   // Create new PDSCH entry in output PDSCH list
   pdschs.emplace_back();
@@ -121,12 +219,14 @@ pdsch_t& pdsch_allocator::alloc_pdsch_unchecked(const srsran_dci_ctx_t& dci_ctx,
     out_dci.freq_domain_assigment = grant.rbgs().to_uint64();
   } else {
     uint32_t rb_start = grant.prbs().start(), nof_prb = bwp_cfg.nof_prb();
-    if (SRSRAN_SEARCH_SPACE_IS_COMMON(dci_ctx.ss_type)) {
-      if (dci_ctx.format == srsran_dci_format_nr_1_0) {
-        rb_start -= dci_ctx.coreset_start_rb;
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)) {
+      prb_interval lims = bwp_cfg.coreset_prb_range(coreset_id);
+      if (dci_fmt == srsran_dci_format_nr_1_0) {
+        srsran_sanity_check(rb_start >= lims.start(), "Invalid PRB grant");
+        rb_start -= lims.start();
       }
-      if (dci_ctx.coreset_id == 0) {
-        nof_prb = bwp_cfg.coreset_bw(0);
+      if (coreset_id == 0) {
+        nof_prb = lims.length();
       }
     }
     srsran_sanity_check(rb_start + grant.prbs().length() <= nof_prb, "Invalid PRB grant");
@@ -140,6 +240,7 @@ void pdsch_allocator::cancel_last_pdsch()
 {
   srsran_assert(not pdschs.empty(), "Trying to abort PDSCH allocation that does not exist");
   pdschs.pop_back();
+  // TODO: clear bitmap allocated RBs
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -220,9 +321,9 @@ pusch_allocator::is_grant_valid(srsran_search_space_type_t ss_type, const prb_gr
 }
 
 pusch_alloc_result
-pusch_allocator::alloc_pusch(const srsran_dci_ctx_t& dci_ctx, const prb_grant& grant, srsran_dci_ul_nr_t& dci)
+pusch_allocator::alloc_pusch(const srsran_search_space_type_t ss_type, const prb_grant& grant, srsran_dci_ul_nr_t& dci)
 {
-  alloc_result code = is_grant_valid(dci_ctx.ss_type, grant);
+  alloc_result code = is_grant_valid(ss_type, grant);
   if (code != alloc_result::success) {
     return code;
   }

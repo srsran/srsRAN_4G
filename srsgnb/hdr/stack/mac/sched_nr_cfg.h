@@ -94,15 +94,9 @@ struct bwp_params_t {
 
   bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 
-  uint32_t coreset_bw(uint32_t cs_id) const { return coresets[cs_id].bw; }
-
-  const bwp_rb_bitmap& coreset_prb_limits(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
-  {
-    if (used_common_prb_masks.contains(ss_id) and dci_fmt == srsran_dci_format_nr_1_0) {
-      return used_common_prb_masks[ss_id];
-    }
-    return cached_empty_prb_mask;
-  }
+  prb_interval  coreset_prb_range(uint32_t cs_id) const { return coresets[cs_id].prb_limits; }
+  prb_interval  dci_fmt_1_0_prb_lims(uint32_t cs_id) const { return coresets[cs_id].dci_1_0_prb_limits; }
+  bwp_rb_bitmap dci_fmt_1_0_excluded_prbs(uint32_t cs_id) const { return coresets[cs_id].usable_common_ss_prb_mask; }
 
   const srsran_search_space_t* get_ss(uint32_t ss_id) const
   {
@@ -110,10 +104,11 @@ struct bwp_params_t {
   }
 
 private:
-  bwp_rb_bitmap                          cached_empty_prb_mask;
-  srsran::optional_vector<bwp_rb_bitmap> used_common_prb_masks;
+  bwp_rb_bitmap cached_empty_prb_mask;
   struct coreset_cached_params {
-    uint32_t bw = 0;
+    prb_interval  prb_limits;
+    prb_interval  dci_1_0_prb_limits; /// See TS 38.214, section 5.1.2.2
+    bwp_rb_bitmap usable_common_ss_prb_mask;
   };
   srsran::optional_vector<coreset_cached_params> coresets;
 };

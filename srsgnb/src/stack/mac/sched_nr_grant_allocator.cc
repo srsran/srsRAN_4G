@@ -123,7 +123,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   bwp_slot_grid& bwp_pdcch_slot = bwp_grid[pdcch_slot];
 
   // Verify there is space in PDSCH
-  alloc_result ret = bwp_pdcch_slot.pdschs.is_grant_valid(ss_id, dci_fmt, prbs);
+  alloc_result ret = bwp_pdcch_slot.pdschs.is_si_grant_valid(ss_id, prbs);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -137,7 +137,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   pdcch_dl_t& pdcch = *pdcch_result.value();
 
   // Allocate PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, prbs, pdcch.dci);
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_si_pdsch_unchecked(ss_id, prbs, pdcch.dci);
 
   // Generate DCI for SIB
   pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
@@ -177,7 +177,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_slot];
 
   // Verify there is space in PDSCH
-  alloc_result ret = bwp_pdcch_slot.pdschs.is_grant_valid(cfg.cfg.pdcch.ra_search_space.id, dci_fmt, interv);
+  alloc_result ret = bwp_pdcch_slot.pdschs.is_rar_grant_valid(interv);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -219,7 +219,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   pdcch_dl_t& pdcch = *pdcch_result.value();
 
   // Allocate PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, interv, pdcch.dci);
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_rar_pdsch_unchecked(interv, pdcch.dci);
 
   // Generate DCI for RAR with given RA-RNTI
   pdcch.dci_cfg = slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
@@ -278,7 +278,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   bwp_slot_grid& bwp_uci_slot   = bwp_grid[ue.uci_slot]; // UCI : UL control info
 
   // Verify there is space in PDSCH
-  alloc_result ret = bwp_pdcch_slot.pdschs.is_grant_valid(ss_id, dci_fmt, dl_grant);
+  alloc_result ret = bwp_pdcch_slot.pdschs.is_ue_grant_valid(ue.cfg(), ss_id, dci_fmt, dl_grant);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -309,7 +309,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   pdcch_dl_t& pdcch = *pdcch_result.value();
 
   // Allocate PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_pdsch_unchecked(pdcch.dci.ctx, dl_grant, pdcch.dci);
+  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_ue_pdsch_unchecked(ss_id, dci_fmt, dl_grant, ue.cfg(), pdcch.dci);
 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();
@@ -470,9 +470,7 @@ prb_grant find_optimal_dl_grant(bwp_slot_allocator& slot_alloc, const slot_ue& u
 {
   static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: Support more DCI formats
 
-  const bwp_slot_grid& sl_grid = slot_alloc.res_grid()[ue.pdsch_slot];
-
-  prb_bitmap used_prb_mask = sl_grid.pdschs.occupied_prbs(ss_id, dci_fmt);
+  prb_bitmap used_prb_mask = slot_alloc.occupied_dl_prbs(ue.pdsch_slot, ss_id, dci_fmt);
 
   prb_interval prb_interv = find_empty_interval_of_length(used_prb_mask, used_prb_mask.size(), 0);
 
