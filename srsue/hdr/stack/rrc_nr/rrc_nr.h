@@ -118,13 +118,7 @@ public:
   int  get_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
   void phy_meas_stop();
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15);
-  bool rrc_reconfiguration(bool                endc_release_and_add_r15,
-                           bool                nr_secondary_cell_group_cfg_r15_present,
-                           asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                           bool                sk_counter_r15_present,
-                           uint32_t            sk_counter_r15,
-                           bool                nr_radio_bearer_cfg1_r15_present,
-                           asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
+  bool rrc_reconfiguration(bool endc_release_and_add_r15, const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf);
   void rrc_release();
   bool configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
@@ -137,6 +131,7 @@ private:
   // parsers
   void decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
   void decode_dl_ccch(srsran::unique_byte_buffer_t pdu);
+  void decode_dl_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   // senders
   void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);

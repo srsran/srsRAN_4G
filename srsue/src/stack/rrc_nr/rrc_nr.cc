@@ -215,10 +215,10 @@ void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     case nr_srb::srb0:
       decode_dl_ccch(std::move(pdu));
       break;
-    // case nr_srb::srb1:
-    // case nr_srb::srb2:
-    //   decode_dl_dcch(lcid, std::move(pdu));
-    //   break;
+    case nr_srb::srb1:
+    case nr_srb::srb2:
+      decode_dl_dcch(lcid, std::move(pdu));
+      break;
     default:
       logger.error("RX PDU with invalid bearer id: %d", lcid);
       break;
@@ -270,6 +270,18 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
   }
 }
 
+void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
+{
+  asn1::cbit_ref              bref(pdu->msg, pdu->N_bytes);
+  asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
+  if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+      dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1) {
+    logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack DL-DCCH message (%d B)", pdu->N_bytes);
+    return;
+  }
+  log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
+}
+
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
 void rrc_nr::write_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
 {
@@ -298,7 +310,7 @@ void rrc_nr::decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
   }
 }
 
-void rrc_nr::handle_sib1(const sib1_s sib1)
+void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
   logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
 
@@ -736,22 +748,9 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
   return SRSRAN_SUCCESS;
 }
 
-bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
-                                 bool                nr_secondary_cell_group_cfg_r15_present,
-                                 asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                                 bool                sk_counter_r15_present,
-                                 uint32_t            sk_counter_r15,
-                                 bool                nr_radio_bearer_cfg1_r15_present,
-                                 asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
+bool rrc_nr::rrc_reconfiguration(bool endc_release_and_add_r15, const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf)
 {
-  if (not conn_recfg_proc.launch(reconf_initiator_t::mcg_srb1,
-                                 endc_release_and_add_r15,
-                                 nr_secondary_cell_group_cfg_r15_present,
-                                 nr_secondary_cell_group_cfg_r15,
-                                 sk_counter_r15_present,
-                                 sk_counter_r15,
-                                 nr_radio_bearer_cfg1_r15_present,
-                                 nr_radio_bearer_cfg1_r15)) {
+  if (not conn_recfg_proc.launch(reconf_initiator_t::mcg_srb1, endc_release_and_add_r15, rrc_nr_reconf)) {
     logger.error("Unable to launch NR RRC reconfiguration procedure");
     return false;
   } else {

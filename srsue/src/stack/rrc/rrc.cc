@@ -779,13 +779,10 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool*
     return true;
   }
 
-  bool                endc_release_and_add_r15                = false;
-  bool                nr_secondary_cell_group_cfg_r15_present = false;
-  asn1::dyn_octstring nr_secondary_cell_group_cfg_r15;
-  bool                sk_counter_r15_present           = false;
-  uint32_t            sk_counter_r15                   = 0;
-  bool                nr_radio_bearer_cfg1_r15_present = false;
-  asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
+  bool endc_release_and_add_r15 = false;
+
+  asn1::rrc_nr::rrc_recfg_s rrc_nr_reconf = {};
+  rrc_nr_reconf.crit_exts.set_rrc_recfg();
 
   switch (rrc_conn_recfg_v1510_ies->nr_cfg_r15.type()) {
     case setup_opts::options::release:
@@ -794,8 +791,29 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool*
     case setup_opts::options::setup:
       endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
       if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present) {
-        nr_secondary_cell_group_cfg_r15_present = true;
-        nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+        asn1::cbit_ref bref0(rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15.data(),
+                             rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15.size());
+
+        asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
+        if (secondary_cell_group_r15.unpack(bref0) != SRSASN_SUCCESS) {
+          logger.error("Could not unpack secondary cell group r15.");
+          return false;
+        }
+
+        if (secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present) {
+          asn1::cbit_ref bref1(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                               secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size());
+
+          asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
+          if (cell_group_cfg.unpack(bref1) != SRSASN_SUCCESS) {
+            logger.error("Could not unpack secondary cell group config.");
+            return false;
+          }
+
+          rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
+          rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
+              secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group;
+        }
       }
       break;
     default:
@@ -803,22 +821,29 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool*
       break;
   }
   if (rrc_conn_recfg_v1510_ies->sk_counter_r15_present) {
-    sk_counter_r15_present = true;
-    sk_counter_r15         = rrc_conn_recfg_v1510_ies->sk_counter_r15;
+    rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext_present                                      = true;
+    rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext_present                         = true;
+    rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext_present            = true;
+    rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter_present = true;
+    rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter =
+        rrc_conn_recfg_v1510_ies->sk_counter_r15;
   }
 
   if (rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15_present) {
-    nr_radio_bearer_cfg1_r15_present = true;
-    nr_radio_bearer_cfg1_r15         = rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15;
+    rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present = true;
+    asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_conf           = {};
+    asn1::cbit_ref                   bref(rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15.data(),
+                        rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15.size());
+    if (radio_bearer_conf.unpack(bref) != SRSASN_SUCCESS) {
+      logger.error("Could not unpack radio bearer config.");
+      return false;
+    }
+
+    rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg = radio_bearer_conf;
   }
   *has_5g_nr_reconfig = true;
-  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
-                                     nr_secondary_cell_group_cfg_r15_present,
-                                     nr_secondary_cell_group_cfg_r15,
-                                     sk_counter_r15_present,
-                                     sk_counter_r15,
-                                     nr_radio_bearer_cfg1_r15_present,
-                                     nr_radio_bearer_cfg1_r15);
+
+  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15, rrc_nr_reconf);
 }
 /*******************************************************************************
  *

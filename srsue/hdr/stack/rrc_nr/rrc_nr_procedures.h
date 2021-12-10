@@ -101,14 +101,9 @@ class rrc_nr::connection_reconf_no_ho_proc
 {
 public:
   explicit connection_reconf_no_ho_proc(rrc_nr& parent_);
-  srsran::proc_outcome_t init(const reconf_initiator_t  initiator_,
-                              const bool                endc_release_and_add_r15,
-                              const bool                nr_secondary_cell_group_cfg_r15_present,
-                              const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                              const bool                sk_counter_r15_present,
-                              const uint32_t            sk_counter_r15,
-                              const bool                nr_radio_bearer_cfg1_r15_present,
-                              const asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
+  srsran::proc_outcome_t init(const reconf_initiator_t         initiator_,
+                              const bool                       endc_release_and_add_r15,
+                              const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf);
   srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
   static const char*     name() { return "NR Connection Reconfiguration"; }
   srsran::proc_outcome_t react(const bool& config_complete);

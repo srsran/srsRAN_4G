@@ -27,61 +27,38 @@ namespace srsue {
 rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr& parent_) : rrc_handle(parent_), initiator(nr)
 {}
 
-proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator_t initiator_,
-                                                          const bool               endc_release_and_add_r15,
-                                                          const bool nr_secondary_cell_group_cfg_r15_present,
-                                                          const asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                                                          const bool                sk_counter_r15_present,
-                                                          const uint32_t            sk_counter_r15,
-                                                          const bool                nr_radio_bearer_cfg1_r15_present,
-                                                          const asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
+proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator_t         initiator_,
+                                                          const bool                       endc_release_and_add_r15,
+                                                          const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf)
 {
   Info("Starting...");
   initiator = initiator_;
 
-  rrc_recfg_s        rrc_recfg;
-  cell_group_cfg_s   cell_group_cfg;
-  radio_bearer_cfg_s radio_bearer_cfg;
-  asn1::SRSASN_CODE  err;
-
-  if (nr_secondary_cell_group_cfg_r15_present) {
-    cbit_ref bref(nr_secondary_cell_group_cfg_r15.data(), nr_secondary_cell_group_cfg_r15.size());
-    err = rrc_recfg.unpack(bref);
-    if (err != asn1::SRSASN_SUCCESS) {
-      Error("Could not unpack NR reconfiguration message.");
-      return proc_outcome_t::error;
-    }
-
 #if 0
-    rrc_ptr->log_rrc_message(
-        "RRC NR Reconfiguration", Rx, nr_secondary_cell_group_cfg_r15, rrc_recfg, "NR Secondary Cell Group Cfg R15");
+  asn1::json_writer js;
+  rrc_nr_reconf.to_json(js);
+  Debug("RRC NR Reconfiguration: %s", js.to_string().c_str());
 #endif
 
-    if (rrc_recfg.crit_exts.type() != asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present) {
+    if (rrc_nr_reconf.crit_exts.type() != asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
       Error("Reconfiguration does not contain Secondary Cell Group Config");
       return proc_outcome_t::error;
     }
 
-    if (not rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present) {
-      Error("Reconfiguration does not contain Secondary Cell Group Config");
-      return proc_outcome_t::error;
-    }
+    cbit_ref bref0(rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group.size());
 
-    cbit_ref bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
-                   rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
-
-    err = cell_group_cfg.unpack(bref0);
-    if (err != asn1::SRSASN_SUCCESS) {
-      Error("Could not unpack cell group message message.");
+    cell_group_cfg_s cell_group_cfg;
+    if (cell_group_cfg.unpack(bref0) != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack secondary cell group config.");
       return proc_outcome_t::error;
     }
 
 #if 0
-    rrc_ptr->log_rrc_message("RRC NR Reconfiguration",
-                             Rx,
-                             rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
-                             cell_group_cfg,
-                             "Secondary Cell Group Config");
+    asn1::json_writer js1;
+    cell_group_cfg.to_json(js1);
+    Debug("Secondary Cell Group: %s", js1.to_string().c_str());
 #endif
 
     Info("Applying Cell Group Cfg");
@@ -90,29 +67,17 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if (sk_counter_r15_present) {
-    Info("Applying Cell Group Cfg");
-    if (!rrc_handle.configure_sk_counter((uint16_t)sk_counter_r15)) {
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter_present) {
+    Info("Applying sk counter");
+    if (!rrc_handle.configure_sk_counter(
+            (uint16_t)rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter)) {
       return proc_outcome_t::error;
     }
   }
 
-  if (nr_radio_bearer_cfg1_r15_present) {
-    cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
-
-    err = radio_bearer_cfg.unpack(bref1);
-    if (err != asn1::SRSASN_SUCCESS) {
-      Error("Could not unpack radio bearer config.");
-      return proc_outcome_t::error;
-    }
-
-#if 0
-    rrc_ptr->log_rrc_message(
-        "RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
-#endif
-
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present) {
     Info("Applying Radio Bearer Cfg");
-    if (!rrc_handle.apply_radio_bearer_cfg(radio_bearer_cfg)) {
+    if (!rrc_handle.apply_radio_bearer_cfg(rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg)) {
       return proc_outcome_t::error;
     }
   }
