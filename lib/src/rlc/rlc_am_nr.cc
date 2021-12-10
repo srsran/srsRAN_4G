@@ -134,7 +134,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (tx_sdu != nullptr) {
     Debug("read RLC SDU - %d bytes", tx_sdu->N_bytes);
   } else {
-    Info("no SDUs left in the tx queue.");
+    Debug("no SDUs left in the tx queue.");
     return 0;
   }
 
@@ -794,11 +794,11 @@ int rlc_am_nr_rx::handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header,
 
   // Log SDU segment reception
   if (header.si == rlc_nr_si_field_t::first_segment) { // Check whether it's a full SDU
-    Info("Initial segment PDU. SN=%d.", header.sn);
+    Debug("Initial segment PDU. SN=%d.", header.sn);
   } else if (header.si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
-    Info("Middle segment PDU. SN=%d.", header.sn);
+    Debug("Middle segment PDU. SN=%d.", header.sn);
   } else if (header.si == rlc_nr_si_field_t::last_segment) {
-    Info("Final segment PDU. SN=%d.", header.sn);
+    Debug("Final segment PDU. SN=%d.", header.sn);
   }
 
   // Add a new SDU to the RX window if necessary
