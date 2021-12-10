@@ -16,6 +16,7 @@
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsran/interfaces/ue_usim_interfaces.h"
+#include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 
 using namespace srsue;
@@ -159,7 +160,7 @@ int rrc_nr_cap_request_test()
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr_reconfig_test()
+int rrc_nsa_reconfig_tdd_test()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
@@ -188,36 +189,190 @@ int rrc_nr_reconfig_test()
                          &dummy_stack,
                          rrc_nr_args) == SRSRAN_SUCCESS);
 
-  uint8_t nr_secondary_cell_group_cfg_r15_bytes[] = {
-      0x08, 0x81, 0x19, 0x5c, 0x40, 0xb1, 0x42, 0x7e, 0x08, 0x30, 0xf3, 0x20, 0x3e, 0x00, 0x80, 0x34, 0x1e, 0x00, 0x80,
-      0x02, 0xe8, 0x5b, 0x98, 0xc0, 0x06, 0x93, 0x5a, 0x40, 0x04, 0xd2, 0x6b, 0x00, 0x00, 0x00, 0x00, 0xcd, 0x8d, 0xb2,
-      0x45, 0xe2, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x1b, 0x82, 0x21, 0x00, 0x00, 0x44, 0x04, 0x00, 0xd0,
-      0x1a, 0xe2, 0x00, 0x00, 0x01, 0x98, 0x71, 0xb6, 0x48, 0x95, 0x00, 0x20, 0x07, 0xb7, 0x25, 0x58, 0xf0, 0x00, 0x00,
-      0x13, 0x8c, 0x21, 0xb8, 0x83, 0x69, 0x92, 0xa0, 0xb8, 0x75, 0x01, 0x08, 0x1c, 0x0c, 0x00, 0x30, 0x78, 0x00, 0x03,
-      0x49, 0xa9, 0xe0, 0x07, 0xb7, 0x25, 0x58, 0x00, 0x25, 0x06, 0xa0, 0x00, 0x80, 0xe0, 0x12, 0xd8, 0x0c, 0x88, 0x03,
-      0x70, 0x84, 0x20, 0x00, 0x11, 0x11, 0x6d, 0x00, 0x00, 0x00, 0x12, 0x08, 0x00, 0x00, 0x83, 0xa6, 0x02, 0x66, 0xaa,
-      0xe9, 0x28, 0x38, 0x00, 0x20, 0x81, 0x84, 0x0a, 0x18, 0x39, 0x38, 0x81, 0x22, 0x85, 0x8c, 0x1a, 0x38, 0x78, 0xfc,
-      0x00, 0x00, 0x66, 0x02, 0x18, 0x10, 0x00, 0xcc, 0x04, 0xb0, 0x40, 0x01, 0x98, 0x0a, 0x60, 0xc0, 0x03, 0x30, 0x16,
-      0xc2, 0x00, 0x06, 0x60, 0x31, 0x85, 0x00, 0x0c, 0xc0, 0x6b, 0x0c, 0x00, 0x19, 0x80, 0xe6, 0x1c, 0x00, 0x33, 0x21,
-      0x40, 0x31, 0x00, 0x01, 0x72, 0x58, 0x62, 0x40, 0x02, 0xe4, 0xb2, 0xc5, 0x00, 0x05, 0xc9, 0x69, 0x8b, 0x00, 0x0b,
-      0x92, 0xdb, 0x18, 0x00, 0x17, 0x25, 0xc6, 0x34, 0x00, 0x2e, 0x4b, 0xac, 0x70, 0x00, 0x5c, 0x97, 0x98, 0xf0, 0x00,
-      0xcd, 0x85, 0x07, 0x95, 0xe5, 0x79, 0x43, 0x01, 0xe4, 0x07, 0x23, 0x45, 0x67, 0x89, 0x7d, 0x42, 0x10, 0x84, 0x00,
-      0x0c, 0xd0, 0x1a, 0x41, 0x07, 0x82, 0xb8, 0x03, 0x04, 0x28, 0x01, 0x63, 0xff, 0x4a, 0x52, 0x63, 0x18, 0xdc, 0xa0,
-      0x50, 0x00, 0x08, 0x72, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x12, 0x00, 0x00, 0x00, 0x04, 0x8a, 0x80};
+  uint8_t msg[] = {
+      0x20, 0x12, 0xaa, 0x00, 0x02, 0x00, 0x80, 0x23, 0x00, 0x01, 0xfb, 0x54, 0x94, 0x10, 0x43, 0xc6, 0x40, 0x62, 0x04,
+      0x40, 0x60, 0xae, 0x20, 0x58, 0xe0, 0x3e, 0xa4, 0x1d, 0x02, 0x60, 0x19, 0x00, 0x82, 0x28, 0x01, 0x64, 0x29, 0xdc,
+      0x6f, 0xa3, 0x49, 0xad, 0x40, 0x02, 0x69, 0x35, 0x89, 0x00, 0x00, 0x00, 0x66, 0xc6, 0xd9, 0x22, 0x51, 0x00, 0xff,
+      0x80, 0x00, 0x00, 0x00, 0x00, 0x8d, 0xc1, 0x10, 0x80, 0x01, 0x24, 0x42, 0x00, 0x68, 0x0a, 0x36, 0x00, 0x9a, 0x4d,
+      0x62, 0x40, 0x00, 0x00, 0x19, 0xb8, 0xdb, 0x24, 0x48, 0x01, 0x00, 0x04, 0x17, 0x12, 0x8c, 0x78, 0x01, 0x25, 0x18,
+      0x83, 0x70, 0xc6, 0xe3, 0xa2, 0x47, 0x01, 0x80, 0x22, 0x07, 0x03, 0x00, 0x10, 0x1e, 0x23, 0x00, 0xd2, 0x4b, 0x81,
+      0xb5, 0x00, 0x02, 0xff, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0xe1, 0x10, 0x40, 0x00, 0x92, 0x22, 0x4a, 0x00, 0x00,
+      0x90, 0x40, 0x00, 0x04, 0x0d, 0x3a, 0x00, 0x08, 0x02, 0x91, 0x8a, 0x92, 0x42, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x4e, 0x04, 0x08, 0x10, 0x20, 0x40, 0x81, 0x02, 0x08, 0x00, 0x00, 0x21, 0x40, 0x00, 0x23, 0x34, 0x1c,
+      0x01, 0x0c, 0xc8, 0x50, 0x09, 0x08, 0x60, 0x51, 0x00, 0xab, 0x2a, 0x22, 0x24, 0x40, 0x02, 0x90, 0x5f, 0xfd, 0x29,
+      0x49, 0x8c, 0x63, 0x62, 0x45, 0x6a, 0x00, 0x00, 0x01, 0x80, 0x0c, 0x00, 0x04, 0x10, 0x00, 0x71, 0x00, 0x04, 0x80,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x8a, 0x04, 0x94, 0x0b, 0xc3, 0xe0, 0x06, 0x80, 0x40, 0x00};
 
-  asn1::dyn_octstring nr_secondary_cell_group_cfg_r15;
-  nr_secondary_cell_group_cfg_r15.resize(sizeof(nr_secondary_cell_group_cfg_r15_bytes));
-  memcpy(nr_secondary_cell_group_cfg_r15.data(),
-         nr_secondary_cell_group_cfg_r15_bytes,
-         sizeof(nr_secondary_cell_group_cfg_r15_bytes));
+  asn1::cbit_ref           bref(msg, sizeof(msg));
+  asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
 
-  asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
-  rrc_nr.rrc_reconfiguration(true, true, nr_secondary_cell_group_cfg_r15, false, 0, false, nr_radio_bearer_cfg1_r15);
+  TESTASSERT(dl_dcch_msg.unpack(bref) == asn1::SRSASN_SUCCESS);
+  TESTASSERT(dl_dcch_msg.msg.type().value == dl_dcch_msg_type_c::types_opts::c1);
+
+  dl_dcch_msg_type_c::c1_c_* c1       = &dl_dcch_msg.msg.c1();
+  rrc_conn_recfg_r8_ies_s    rx_recfg = c1->rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+
+  const asn1::rrc::rrc_conn_recfg_v1510_ies_s rrc_conn_recfg_v1510_ies =
+      rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+
+  bool endc_release_and_add_r15 = false;
+
+  asn1::rrc_nr::rrc_recfg_s rrc_nr_reconf = {};
+  rrc_nr_reconf.crit_exts.set_rrc_recfg();
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.nr_cfg_r15.type() == setup_opts::options::setup);
+
+  endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().endc_release_and_add_r15;
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present);
+
+  asn1::cbit_ref bref0(rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15.data(),
+                       rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15.size());
+
+  asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
+  TESTASSERT(secondary_cell_group_r15.unpack(bref0) == asn1::SRSASN_SUCCESS);
+
+  TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present);
+  asn1::cbit_ref bref1(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                       secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size());
+
+  asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
+  cell_group_cfg.unpack(bref1);
+
+  rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
+      secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group;
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.sk_counter_r15_present);
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext_present                                      = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext_present                         = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext_present            = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter_present = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter =
+      rrc_conn_recfg_v1510_ies.sk_counter_r15;
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.nr_radio_bearer_cfg1_r15_present);
+  rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present = true;
+  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_conf           = {};
+  asn1::cbit_ref                   bref2(rrc_conn_recfg_v1510_ies.nr_radio_bearer_cfg1_r15.data(),
+                       rrc_conn_recfg_v1510_ies.nr_radio_bearer_cfg1_r15.size());
+  TESTASSERT(radio_bearer_conf.unpack(bref2) == asn1::SRSASN_SUCCESS);
+
+  rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg = radio_bearer_conf;
+
+  rrc_nr.rrc_reconfiguration(endc_release_and_add_r15, rrc_nr_reconf);
+
   task_sched.run_pending_tasks();
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr_conn_setup_test()
+int rrc_nsa_reconfig_fdd_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(-1);
+  srsran::task_scheduler    task_sched{512, 100};
+  srsran::task_sched_handle task_sched_handle(&task_sched);
+  rrc_nr                    rrc_nr(task_sched_handle);
+
+  dummy_phy     dummy_phy;
+  dummy_mac     dummy_mac;
+  dummy_rlc     dummy_rlc;
+  dummy_pdcp    dummy_pdcp;
+  dummy_gw      dummy_gw;
+  dummy_eutra   dummy_eutra;
+  dummy_sim     dummy_sim;
+  dummy_stack   dummy_stack;
+  rrc_nr_args_t rrc_nr_args;
+  TESTASSERT(rrc_nr.init(&dummy_phy,
+                         &dummy_mac,
+                         &dummy_rlc,
+                         &dummy_pdcp,
+                         &dummy_gw,
+                         &dummy_eutra,
+                         &dummy_sim,
+                         task_sched.get_timer_handler(),
+                         &dummy_stack,
+                         rrc_nr_args) == SRSRAN_SUCCESS);
+
+  uint8_t msg[] = {
+      0x20, 0x12, 0xaa, 0x00, 0x02, 0x00, 0x80, 0x23, 0x00, 0x01, 0xfb, 0x54, 0x94, 0x10, 0x43, 0xc6, 0x40, 0x62, 0x04,
+      0x40, 0x60, 0xae, 0x20, 0x58, 0xe0, 0x3e, 0xa4, 0x1d, 0x02, 0x60, 0x19, 0x00, 0x82, 0x28, 0x01, 0x64, 0x29, 0xdc,
+      0x6f, 0xa3, 0x49, 0xad, 0x40, 0x02, 0x69, 0x35, 0x89, 0x00, 0x00, 0x00, 0x66, 0xc6, 0xd9, 0x22, 0x51, 0x00, 0xff,
+      0x80, 0x00, 0x00, 0x00, 0x00, 0x8d, 0xc1, 0x10, 0x80, 0x01, 0x24, 0x42, 0x00, 0x68, 0x0a, 0x36, 0x00, 0x9a, 0x4d,
+      0x62, 0x40, 0x00, 0x00, 0x19, 0xb8, 0xdb, 0x24, 0x48, 0x01, 0x00, 0x04, 0x17, 0x12, 0x8c, 0x78, 0x01, 0x25, 0x18,
+      0x83, 0x70, 0xc6, 0xe3, 0xa2, 0x47, 0x01, 0x80, 0x22, 0x07, 0x03, 0x00, 0x10, 0x1e, 0x23, 0x00, 0xd2, 0x4b, 0x81,
+      0xb5, 0x00, 0x02, 0xff, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06, 0xe1, 0x10, 0x40, 0x00, 0x92, 0x22, 0x4a, 0x00, 0x00,
+      0x90, 0x40, 0x00, 0x04, 0x0d, 0x3a, 0x00, 0x08, 0x02, 0x91, 0x8a, 0x92, 0x42, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x4e, 0x04, 0x08, 0x10, 0x20, 0x40, 0x81, 0x02, 0x08, 0x00, 0x00, 0x21, 0x40, 0x00, 0x23, 0x34, 0x1c,
+      0x01, 0x0c, 0xc8, 0x50, 0x09, 0x08, 0x60, 0x51, 0x00, 0xab, 0x2a, 0x22, 0x24, 0x40, 0x02, 0x90, 0x5f, 0xfd, 0x29,
+      0x49, 0x8c, 0x63, 0x62, 0x45, 0x6a, 0x00, 0x00, 0x01, 0x80, 0x0c, 0x00, 0x04, 0x10, 0x00, 0x71, 0x00, 0x04, 0x80,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x8a, 0x04, 0x94, 0x0b, 0xc3, 0xe0, 0x06, 0x80, 0x40, 0x00};
+
+  asn1::cbit_ref           bref(msg, sizeof(msg));
+  asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
+
+  TESTASSERT(dl_dcch_msg.unpack(bref) == asn1::SRSASN_SUCCESS);
+  TESTASSERT(dl_dcch_msg.msg.type().value == dl_dcch_msg_type_c::types_opts::c1);
+
+  dl_dcch_msg_type_c::c1_c_* c1       = &dl_dcch_msg.msg.c1();
+  rrc_conn_recfg_r8_ies_s    rx_recfg = c1->rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+
+  const asn1::rrc::rrc_conn_recfg_v1510_ies_s rrc_conn_recfg_v1510_ies =
+      rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+
+  bool endc_release_and_add_r15 = false;
+
+  asn1::rrc_nr::rrc_recfg_s rrc_nr_reconf = {};
+  rrc_nr_reconf.crit_exts.set_rrc_recfg();
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.nr_cfg_r15.type() == setup_opts::options::setup);
+
+  endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().endc_release_and_add_r15;
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present);
+
+  asn1::cbit_ref bref0(rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15.data(),
+                       rrc_conn_recfg_v1510_ies.nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15.size());
+
+  asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
+  TESTASSERT(secondary_cell_group_r15.unpack(bref0) == asn1::SRSASN_SUCCESS);
+
+  TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present);
+  asn1::cbit_ref bref1(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                       secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size());
+
+  asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
+  TESTASSERT(cell_group_cfg.unpack(bref1) == asn1::SRSASN_SUCCESS);
+
+  rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
+      secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group;
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.sk_counter_r15_present);
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext_present                                      = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext_present                         = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext_present            = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter_present = true;
+  rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter =
+      rrc_conn_recfg_v1510_ies.sk_counter_r15;
+
+  TESTASSERT(rrc_conn_recfg_v1510_ies.nr_radio_bearer_cfg1_r15_present);
+  rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present = true;
+  asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_conf           = {};
+  asn1::cbit_ref                   bref2(rrc_conn_recfg_v1510_ies.nr_radio_bearer_cfg1_r15.data(),
+                       rrc_conn_recfg_v1510_ies.nr_radio_bearer_cfg1_r15.size());
+  TESTASSERT(radio_bearer_conf.unpack(bref2) == asn1::SRSASN_SUCCESS);
+
+  rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg = radio_bearer_conf;
+
+  rrc_nr.rrc_reconfiguration(endc_release_and_add_r15, rrc_nr_reconf);
+
+  task_sched.run_pending_tasks();
+  return SRSRAN_SUCCESS;
+}
+
+int rrc_nr_setup_request_test()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
@@ -258,7 +413,7 @@ int rrc_nr_conn_setup_test()
   return SRSRAN_SUCCESS;
 }
 
-int rrc_write_pdu_bcch_dlsch_test()
+int rrc_nr_sib1_decoding_test()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
@@ -303,7 +458,7 @@ int rrc_write_pdu_bcch_dlsch_test()
   return SRSRAN_SUCCESS;
 }
 
-int rrc_write_pdu_test()
+int rrc_nr_setup_test()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
   logger.set_level(srslog::basic_levels::debug);
@@ -359,10 +514,11 @@ int main(int argc, char** argv)
   srslog::init();
 
   TESTASSERT(rrc_nr_cap_request_test() == SRSRAN_SUCCESS);
-  TESTASSERT(rrc_nr_reconfig_test() == SRSRAN_SUCCESS);
-  TESTASSERT(rrc_nr_conn_setup_test() == SRSRAN_SUCCESS);
-  TESTASSERT(rrc_write_pdu_bcch_dlsch_test() == SRSRAN_SUCCESS);
-  TESTASSERT(rrc_write_pdu_test() == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_nsa_reconfig_tdd_test() == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_nsa_reconfig_fdd_test() == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_nr_setup_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_nr_sib1_decoding_test() == SRSRAN_SUCCESS);
+  TESTASSERT(rrc_nr_setup_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }
