@@ -155,7 +155,7 @@ SRSRAN_API uint32_t srsran_ra_nr_type1_riv(uint32_t N_rb, uint32_t start_rb, uin
  *
  * Mapping is performed as: return the MCS that has the closest spectral efficiency to that of the CQI
  * @param cqi CQI value
- * @param srsran_csi_cqi_table_t CQI table index
+ * @param cqi_table_idx CQI table index
  * @param mcs_table MCS table parameter
  * @param dci_format DCI format
  * @param search_space_type Seach Space type

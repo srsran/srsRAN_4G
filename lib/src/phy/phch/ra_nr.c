@@ -30,7 +30,7 @@ typedef struct {
 #define RA_NR_MCS_SIZE_TABLE2 28
 #define RA_NR_MCS_SIZE_TABLE3 29
 #define RA_NR_TBS_SIZE_TABLE 93
-#define RA_NR_CQI_SIZE_TABLE 16
+#define RA_NR_CQI_TABLE_SIZE 16
 #define RA_NR_BETA_OFFSET_HARQACK_SIZE 32
 #define RA_NR_BETA_OFFSET_CSI_SIZE 32
 
@@ -148,7 +148,7 @@ typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
  * CQI_table_idx: 1 -> Table 5.1.3.1-1; 2 -> Table 5.1.3.1-2; 3 -> Table 5.1.3.1-3
  */
 
-static int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_SIZE_TABLE] = {
+static int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_TABLE_SIZE] = {
     /* ROW 1 - CQI Table 1 */
     {/* MCS Table 1 */ {-1, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24, 26, 28},
      /* MCS Table 2 */ {-1, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21},
@@ -1121,7 +1121,7 @@ int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
                             srsran_search_space_type_t search_space_type,
                             srsran_rnti_type_t         rnti_type)
 {
-  if (cqi >= RA_NR_CQI_SIZE_TABLE) {
+  if (cqi >= RA_NR_CQI_TABLE_SIZE) {
     ERROR("Invalid CQI (%u)", cqi);
     return -1;
   }
