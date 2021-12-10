@@ -38,12 +38,12 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
   cfg = cfg_.am_nr;
 
   if (cfg.tx_sn_field_length != rlc_am_nr_sn_size_t::size12bits) {
-    logger->warning("RLC AM NR only supporst 12 bit SN length.");
+    logger->warning("RLC AM NR only supports 12 bit SN length.");
     return false;
   }
 
   if (cfg_.tx_queue_length > max_tx_queue_size) {
-    logger->error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
+    logger->error("Configuring tx queue length of %d PDUs too big. Maximum value is %d.",
                   cfg_.tx_queue_length,
                   max_tx_queue_size);
     return false;
@@ -87,9 +87,9 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     return tx_pdu->N_bytes;
   }
 
-  // RETX if required
+  // Retransmit if required
   if (not retx_queue.empty()) {
-    logger->info("Retx required. Retx queue size: %d", retx_queue.size());
+    logger->info("Retransmission required. Retransmission queue size: %d", retx_queue.size());
     unique_byte_buffer_t tx_pdu = srsran::make_byte_buffer();
     if (tx_pdu == nullptr) {
       logger->error("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -106,14 +106,15 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (current_sdu.rlc_sn != INVALID_RLC_SN) {
     if (not tx_window.has_sn(current_sdu.rlc_sn)) {
       current_sdu.rlc_sn = INVALID_RLC_SN;
-      logger->error("SDU currently being segmented does not exist in tx_window. Aborting segmenttion SN=%d",
+      logger->error("%s SDU currently being segmented does not exist in tx_window. Aborting segmentation SN=%d",
+                    rb_name,
                     current_sdu.rlc_sn);
       return 0;
     }
     return build_continuation_sdu_segment(tx_window[current_sdu.rlc_sn], payload, nof_bytes);
   }
 
-  // Check wether there is something to TX
+  // Check whether there is something to TX
   if (tx_sdu_queue.is_empty()) {
     logger->info("No data available to be sent");
     return 0;
@@ -182,7 +183,7 @@ int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
                                         uint8_t*             payload,
                                         uint32_t             nof_bytes)
 {
-  logger->info("Creating new SDU segment. Tx SDU (%d B),,nof_bytes=%d B ", tx_sdu->N_bytes, nof_bytes);
+  logger->info("Creating new SDU segment. Tx SDU (%d B), nof_bytes=%d B ", tx_sdu->N_bytes, nof_bytes);
 
   // Sanity check: can this SDU be sent this in a single PDU?
   if ((tx_sdu->N_bytes + 2) < nof_bytes) {
@@ -264,12 +265,12 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
   std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator it = tx_pdu.segment_list.end();
   --it;
   uint32_t last_byte = it->so + it->payload_len;
-  logger->debug("Continuing SDU segment. SN=%d, last byte transmited %d", tx_pdu.rlc_sn, last_byte);
+  logger->debug("Continuing SDU segment. SN=%d, last byte transmitted %d", tx_pdu.rlc_sn, last_byte);
 
   // Sanity check: last byte must be smaller than SDU
   if (current_sdu.buf->N_bytes < last_byte) {
     logger->error(
-        "Last byte transmited larger than SDU len. SDU len=%d B, last_byte=%d B", tx_pdu.buf->N_bytes, last_byte);
+        "Last byte transmitted larger than SDU len. SDU len=%d B, last_byte=%d B", tx_pdu.buf->N_bytes, last_byte);
     return 0;
   }
 
@@ -344,7 +345,7 @@ int rlc_am_nr_tx::build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_byte
 
   // Sanity check - drop any retx SNs not present in tx_window
   while (not tx_window.has_sn(retx.sn)) {
-    logger->warning("%s SN=%d not in Tx window. Ignoring retx.", parent->rb_name, retx.sn);
+    logger->warning("%s SN=%d not in tx window. Ignoring retx.", parent->rb_name, retx.sn);
     retx_queue.pop();
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
@@ -378,7 +379,7 @@ int rlc_am_nr_tx::build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_byte
                tx_window[retx.sn].buf->N_bytes,
                tx_window[retx.sn].retx_count + 1,
                cfg.max_retx_thresh);
-  logger->info(tx_pdu->msg, tx_pdu->N_bytes, "%s ReTx PDU SN=%d (%d B)", parent->rb_name, retx.sn, tx_pdu->N_bytes);
+  logger->info(tx_pdu->msg, tx_pdu->N_bytes, "%s retx PDU SN=%d (%d B)", parent->rb_name, retx.sn, tx_pdu->N_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger->debug, new_header);
 
   // debug_state();
@@ -391,11 +392,11 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
   rlc_am_nr_status_pdu_t tx_status;
   int                    pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
-    logger->debug("%s Deferred Status PDU. Cause: Failed to acquire Rx lock", rb_name);
+    logger->debug("%s Deferred Status PDU. Cause: Failed to acquire rx lock", rb_name);
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
-    logger->debug("Generated Status PDU. Bytes:%d", pdu_len);
-    log_rlc_am_nr_status_pdu_to_string(logger->info, "%s Tx status PDU - %s", &tx_status, rb_name);
+    logger->debug("Generated status PDU. Bytes:%d", pdu_len);
+    log_rlc_am_nr_status_pdu_to_string(logger->info, "%s tx status PDU - %s", &tx_status, rb_name);
     pdu_len = rlc_am_nr_write_status_pdu(tx_status, rlc_am_nr_sn_size_t::size12bits, payload);
   } else {
     logger->info("%s Cannot tx status PDU - %d bytes available, %d bytes required", rb_name, nof_bytes, pdu_len);
@@ -427,7 +428,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                          ? status.ack_sn
                          : status.nacks[0].nack_sn - 1; // Stop processing ACKs at the first NACK, if it exists.
   if (stop_sn > st.tx_next) {
-    logger->error("Rx'ed ACK or NACK larger than TX_NEXT. Ignoring status report");
+    logger->error("Received ACK or NACK larger than TX_NEXT. Ignoring status report");
     return;
   }
   for (uint32_t sn = st.tx_next_ack; sn < stop_sn; sn++) {
@@ -529,7 +530,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   logger->debug("%s Total buffer state - %d SDUs (%d B)", rb_name, n_sdus, n_bytes_new + n_bytes_prio);
 
   if (bsr_callback) {
-    logger->debug("%s Calling BSR callback - %d new_tx, %d prio bytes", parent->rb_name, n_bytes_new, n_bytes_prio);
+    logger->debug("%s Calling BSR callback - %d new_tx, %d priority bytes", parent->rb_name, n_bytes_new, n_bytes_prio);
     bsr_callback(parent->lcid, n_bytes_new, n_bytes_prio);
   }
 }
@@ -629,7 +630,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   logger->info(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)", parent->rb_name, header.sn, nof_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger->debug, header);
 
-  // Check wether SDU is within Rx Window
+  // Check whether SDU is within Rx Window
   if (!inside_rx_window(header.sn)) {
     logger->info("%s SN=%d outside rx window [%d:%d] - discarding",
                  parent->rb_name,
@@ -874,7 +875,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   }
 
   if (max_len != UINT32_MAX) {
-    // UINT32_MAX is used just to querry the status PDU length
+    // UINT32_MAX is used just to query the status PDU length
     if (status_prohibit_timer.is_valid()) {
       status_prohibit_timer.run();
     }
@@ -884,7 +885,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 
 uint32_t rlc_am_nr_rx::get_status_pdu_length()
 {
-  rlc_am_nr_status_pdu_t tmp_status; // length for no NACKs
+  rlc_am_nr_status_pdu_t tmp_status;
   return get_status_pdu(&tmp_status, UINT32_MAX);
 }
 

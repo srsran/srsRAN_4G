@@ -60,10 +60,10 @@ rlc_am::rlc_am(srsran_rat_t               rat,
 }
 bool rlc_am::configure(const rlc_config_t& cfg_)
 {
-  // determine bearer name and configure Rx/Tx objects
+  // determine bearer name and configure rx/tx objects
   rb_name = rrc->get_rb_name(lcid);
 
-  // store config
+  // store configuration
   cfg = cfg_;
 
   if (not rx_base->configure(cfg)) {
@@ -198,7 +198,7 @@ void rlc_am::set_bsr_callback(bsr_callback_t callback)
 /*******************************************************
  *     RLC AM TX entity
  *     This class is used for common code between the
- *     LTE and NR TX entitites
+ *     LTE and NR TX entities
  *******************************************************/
 int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
 {
@@ -244,7 +244,7 @@ void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
 /*******************************************************
  *     RLC AM RX entity
  *     This class is used for common code between the
- *     LTE and NR TX entitites
+ *     LTE and NR TX entities
  *******************************************************/
 void rlc_am::rlc_am_base_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {

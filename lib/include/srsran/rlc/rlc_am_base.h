@@ -121,7 +121,7 @@ protected:
   /*******************************************************
    *     RLC AM TX entity
    *     This class is used for common code between the
-   *     LTE and NR TX entitites
+   *     LTE and NR TX entities
    *******************************************************/
 public:
   class rlc_am_base_tx
@@ -163,7 +163,7 @@ public:
   /*******************************************************
    *     RLC AM RX entity
    *     This class is used for common code between the
-   *     LTE and NR RX entitites
+   *     LTE and NR RX entities
    *******************************************************/
   class rlc_am_base_rx
   {

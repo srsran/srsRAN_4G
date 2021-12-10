@@ -37,7 +37,7 @@ class rlc_am_nr_rx;
 
 /****************************************************************************
  * Tx state variables
- * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
  ***************************************************************************/
 struct rlc_am_nr_tx_state_t {
   /*
@@ -104,8 +104,6 @@ public:
   void empty_queue() final;
 
   // Data PDU helpers
-  // using rlc_amd_tx_pdu_nr_test = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
-
   int build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
                             rlc_amd_tx_pdu_nr&   tx_pdu,
                             uint8_t*             payload,
@@ -138,20 +136,20 @@ private:
 
   /****************************************************************************
    * Configurable parameters
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * Tx state variables
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_tx_state_t                             st = {};
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
 
   // Queues and buffers
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
-  rlc_amd_tx_sdu_nr_t                current_sdu; // Currently SDU beind segmented
+  rlc_amd_tx_sdu_nr_t                current_sdu; // SDU currently being segmented
 
 public:
   // Getters/Setters
@@ -161,8 +159,8 @@ public:
 };
 
 /****************************************************************************
- * RX State Variables
- * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+ * State Variables
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
  ***************************************************************************/
 struct rlc_am_nr_rx_state_t {
   /*
@@ -241,20 +239,20 @@ private:
 
   /****************************************************************************
    * Rx timers
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.3
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
    ***************************************************************************/
   srsran::timer_handler::unique_timer status_prohibit_timer;
   srsran::timer_handler::unique_timer reassembly_timer;
 
   /****************************************************************************
    * Configurable parameters
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * Tx state variables
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_rx_state_t st = {};
 
