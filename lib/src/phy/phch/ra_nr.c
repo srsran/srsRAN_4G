@@ -135,41 +135,29 @@ static const float ra_nr_beta_offset_csi_table[RA_NR_BETA_OFFSET_CSI_SIZE] = {
 typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
 
 /**
- * These tables map the CQI into the MCS, based on the spectral efficiency.
+ * The table below performs the mapping of the CQI into the closest MCS, based on the corresponding spectral efficiency.
  * The mapping works as follows:
- * - select spectral efficiency from the CQI from tables Table 5.2.2.1-2, Table 5.2.2.1-3, Table 5.2.2.1-4,
+ * - select spectral efficiency from the CQI from tables Table 5.2.2.1-2, Table 5.2.2.1-3, or Table 5.2.2.1-4,
  *   TS 38.214 V15.14.0
- * - select MCS corresponding to same spectral efficiency from Table 5.1.3.1-1, Table 5.1.3.1-2, Table 5.1.3.1-3,
+ * - select MCS corresponding to same spectral efficiency from Table 5.1.3.1-1, Table 5.1.3.1-2, or Table 5.1.3.1-3,
  *   TS 38.214 V15.14.0
- * The indices C_M (e.g, 1_1, 1_3, 3_2, etc.) refer to the CQI and MCS table, respectively.
- * C = 1 -> Table 5.2.2.1-2; C = 2 -> Table 5.2.2.1-3, C = 2 -> Table 5.2.2.1-4
- * M = 1 -> Table 5.1.3.1-1; M = 2 -> Table 5.1.3.1-2; M = 3 -> Table 5.1.3.1-3
+ *
+ * The array ra_nr_cqi_to_mcs_table[CQI_table_idx][MCS_table_idx][CQI] contains the MCS corresponding to CQI, based on
+ * the given CQI_table_idx and MCS_table_idx tables
+ * CQI_table_idx: 1 -> Table 5.2.2.1-2; 2 -> Table 5.2.2.1-3, 3 -> Table 5.2.2.1-4
+ * CQI_table_idx: 1 -> Table 5.1.3.1-1; 2 -> Table 5.1.3.1-2; 3 -> Table 5.1.3.1-3
  */
-
-#if 0
-typedef const int nr_cqi_to_mcs_table[RA_NR_CQI_SIZE_TABLE];
-
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_1_1 = {-1, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24, 26, 28};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_2_1 = {-1, 0, 2, 6, 11, 13, 15, 18, 20, 22, 24, 26, 28, 28, 28, 28};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_3_1 = {-1, 0, 0, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_1_2 = {-1, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_2_2 = {-1, 0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_3_2 = {-1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_1_3 = {-1, 4, 8, 12, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_2_3 = {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28};
-static nr_cqi_to_mcs_table ra_nr_cqi_to_mcs_table_3_3 = {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28};
-#endif
 
 static int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_SIZE_TABLE] = {
     /* ROW 1 - CQI Table 1 */
     {/* MCS Table 1 */ {-1, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24, 26, 28},
      /* MCS Table 2 */ {-1, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21},
-     /* MCS Table 3 */ {-1, 4, 8, 12, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28}},
+     /* MCS Table 3 */ {-1, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 28, 28}},
     /* ROW 2 - CQI Table 2 */
     {/* MCS Table 1 */ {-1, 0, 2, 6, 11, 13, 15, 18, 20, 22, 24, 26, 28, 28, 28, 28},
      /* MCS Table 2 */ {-1, 0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27},
-     /* MCS Table 3 */ {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28}},
-    /* ROW 1 - CQI Table 3 */
+     /* MCS Table 3 */ {-1, 4, 8, 12, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28}},
+    /* ROW 3 - CQI Table 3 */
     {/* MCS Table 1 */ {-1, 0, 0, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24},
      /* MCS Table 2 */ {-1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17},
      /* MCS Table 3 */ {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28}}};
