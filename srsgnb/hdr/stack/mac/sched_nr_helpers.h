@@ -48,14 +48,6 @@ inline bool is_rnti_type_valid_in_search_space(srsran_rnti_type_t rnti_type, srs
   return false;
 }
 
-bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& dci);
-
-/// Generate PDCCH DL DCI fields
-void fill_dl_dci_ue_fields(const slot_ue& ue, srsran_dci_dl_nr_t& dci);
-
-/// Generate PDCCH UL DCI fields
-void fill_ul_dci_ue_fields(const slot_ue& ue, srsran_dci_ul_nr_t& dci);
-
 /// Log UE state for slot being scheduled
 void log_sched_slot_ues(srslog::basic_logger& logger,
                         slot_point            pdcch_slot,

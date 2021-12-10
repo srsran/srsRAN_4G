@@ -19,61 +19,6 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <typename DciDlOrUl>
-void fill_dci_harq(const slot_ue& ue, DciDlOrUl& dci)
-{
-  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
-
-  harq_proc* h = std::is_same<DciDlOrUl, srsran_dci_dl_nr_t>::value ? static_cast<harq_proc*>(ue.h_dl)
-                                                                    : static_cast<harq_proc*>(ue.h_ul);
-
-  dci.pid = h->pid;
-  dci.ndi = h->ndi();
-  dci.mcs = h->mcs();
-  dci.rv  = rv_idx[h->nof_retx() % 4];
-}
-
-bool fill_dci_msg3(const slot_ue& ue, const bwp_params_t& bwp_cfg, srsran_dci_ul_nr_t& msg3_dci)
-{
-  // Fill DCI context
-  msg3_dci.ctx.coreset_id = ue->phy().pdcch.ra_search_space.coreset_id;
-  msg3_dci.ctx.rnti_type  = srsran_rnti_type_tc;
-  msg3_dci.ctx.rnti       = ue->rnti;
-  msg3_dci.ctx.ss_type    = srsran_search_space_type_rar;
-  if (ue.h_ul->nof_retx() == 0) {
-    msg3_dci.ctx.format = srsran_dci_format_nr_rar;
-  } else {
-    msg3_dci.ctx.format = srsran_dci_format_nr_0_0;
-  }
-
-  // Fill DCI content
-  fill_dci_from_cfg(bwp_cfg, msg3_dci);
-  msg3_dci.time_domain_assigment = 0;
-  uint32_t nof_prb               = bwp_cfg.nof_prb();
-  msg3_dci.freq_domain_assigment =
-      srsran_ra_nr_type1_riv(nof_prb, ue.h_ul->prbs().prbs().start(), ue.h_ul->prbs().prbs().length());
-  fill_dci_harq(ue, msg3_dci);
-
-  return true;
-}
-
-void fill_dl_dci_ue_fields(const slot_ue& ue, srsran_dci_dl_nr_t& dci)
-{
-  fill_dci_harq(ue, dci);
-  if (dci.ctx.format == srsran_dci_format_nr_1_0) {
-    dci.harq_feedback = (ue.uci_slot - ue.pdsch_slot) - 1;
-  } else {
-    dci.harq_feedback = ue.pdsch_slot.slot_idx();
-  }
-}
-
-void fill_ul_dci_ue_fields(const slot_ue& ue, srsran_dci_ul_nr_t& dci)
-{
-  fill_dci_harq(ue, dci);
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uint32_t cc, const slot_ue_map_t& slot_ues)

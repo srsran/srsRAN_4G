@@ -48,8 +48,6 @@ public:
 
   bool clear_if_maxretx(slot_point slot_rx);
   void reset();
-  bool new_tx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, uint32_t mcs, uint32_t max_retx);
-  bool new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant);
   bool new_retx(slot_point slot_tx, slot_point slot_ack);
 
   // NOTE: Has to be used before first tx is dispatched
@@ -58,7 +56,10 @@ public:
 
   const uint32_t pid;
 
-private:
+protected:
+  bool new_tx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, uint32_t mcs, uint32_t max_retx);
+  bool new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant);
+
   struct tb_t {
     bool     active    = false;
     bool     ack_state = false;
@@ -83,9 +84,18 @@ public:
   tx_harq_softbuffer&           get_softbuffer() { return *softbuffer; }
   srsran::unique_byte_buffer_t* get_tx_pdu() { return &pdu; }
 
-  bool new_tx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, uint32_t mcs, uint32_t max_retx);
+  bool new_tx(slot_point          slot_tx,
+              slot_point          slot_ack,
+              const prb_grant&    grant,
+              uint32_t            mcs,
+              uint32_t            max_retx,
+              srsran_dci_dl_nr_t& dci);
+
+  bool new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, srsran_dci_dl_nr_t& dci);
 
 private:
+  void fill_dci(srsran_dci_dl_nr_t& dci);
+
   srsran::unique_pool_ptr<tx_harq_softbuffer> softbuffer;
   srsran::unique_byte_buffer_t                pdu;
 };
@@ -97,6 +107,10 @@ public:
     harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_rx(nprb))
   {}
 
+  bool new_tx(slot_point slot_tx, const prb_grant& grant, uint32_t mcs, uint32_t max_retx, srsran_dci_ul_nr_t& dci);
+
+  bool new_retx(slot_point slot_tx, const prb_grant& grant, srsran_dci_ul_nr_t& dci);
+
   rx_harq_softbuffer& get_softbuffer() { return *softbuffer; }
 
   bool set_tbs(uint32_t tbs)
@@ -106,6 +120,8 @@ public:
   }
 
 private:
+  void fill_dci(srsran_dci_ul_nr_t& dci);
+
   srsran::unique_pool_ptr<rx_harq_softbuffer> softbuffer;
 };
 

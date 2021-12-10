@@ -136,7 +136,7 @@ alloc_result bwp_slot_allocator::alloc_si(uint32_t            aggr_idx,
   }
   pdcch_dl_t& pdcch = *pdcch_result.value();
 
-  // Allocate PDSCH
+  // Allocate PDSCH (no need to verify again if there is space in PDSCH)
   pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_si_pdsch_unchecked(ss_id, prbs, pdcch.dci);
 
   // Generate DCI for SIB
@@ -176,7 +176,7 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
   slot_point     msg3_slot      = pdcch_slot + cfg.pusch_ra_list[m].msg3_delay;
   bwp_slot_grid& bwp_msg3_slot  = bwp_grid[msg3_slot];
 
-  // Verify there is space in PDSCH
+  // Verify there is space in PDSCH for RAR
   alloc_result ret = bwp_pdcch_slot.pdschs.is_rar_grant_valid(interv);
   if (ret != alloc_result::success) {
     return ret;
@@ -210,22 +210,20 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     return alloc_result::sch_collision;
   }
 
-  // Allocate PDCCH position
+  // Allocate PDCCH position for RAR
   auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_rar_pdcch(ra_rnti, aggr_idx);
   if (pdcch_result.is_error()) {
     // Could not find space in PDCCH
     return pdcch_result.error();
   }
   pdcch_dl_t& pdcch = *pdcch_result.value();
+  pdcch.dci_cfg     = slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
+  pdcch.dci.mcs     = 5;
 
-  // Allocate PDSCH
+  // Allocate RAR PDSCH
   pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_rar_pdsch_unchecked(interv, pdcch.dci);
 
-  // Generate DCI for RAR with given RA-RNTI
-  pdcch.dci_cfg = slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
-  pdcch.dci.mcs = 5;
-
-  // Generate RAR PDSCH
+  // Fill RAR PDSCH content
   // TODO: Properly fill Msg3 grants
   srsran_slot_cfg_t slot_cfg;
   slot_cfg.idx = pdcch_slot.to_uint();
@@ -247,16 +245,27 @@ alloc_result bwp_slot_allocator::alloc_rar_and_msg3(uint16_t                    
     rar_out.grants.emplace_back();
     auto& rar_grant = rar_out.grants.back();
     rar_grant.data  = grant;
+    fill_dci_from_cfg(cfg, rar_grant.msg3_dci);
+    // Fill Msg3 DCI context
+    rar_grant.msg3_dci.ctx.coreset_id = pdcch.dci.ctx.coreset_id;
+    rar_grant.msg3_dci.ctx.rnti_type  = srsran_rnti_type_tc;
+    rar_grant.msg3_dci.ctx.rnti       = ue->rnti;
+    rar_grant.msg3_dci.ctx.ss_type    = srsran_search_space_type_rar;
+    rar_grant.msg3_dci.ctx.format     = srsran_dci_format_nr_rar;
+
+    // Allocate Msg3 PUSCH allocation
     prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
     last_msg3 += msg3_nof_prbs;
-    ue.h_ul      = ue.find_empty_ul_harq();
-    bool success = ue.h_ul->new_tx(msg3_slot, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx);
-    srsran_assert(success, "Failed to allocate Msg3");
-    fill_dci_msg3(ue, *bwp_grid.cfg, rar_grant.msg3_dci);
-
-    // Generate PUSCH
     pusch_t& pusch = bwp_msg3_slot.puschs.alloc_pusch_unchecked(msg3_interv, rar_grant.msg3_dci);
-    success        = ue->phy().get_pusch_cfg(slot_cfg, rar_grant.msg3_dci, pusch.sch);
+
+    // Allocate UL HARQ
+    ue.h_ul = ue.find_empty_ul_harq();
+    srsran_sanity_check(ue.h_ul != nullptr, "Failed to allocate Msg3");
+    bool success = ue.h_ul->new_tx(msg3_slot, msg3_interv, mcs, max_harq_msg3_retx, rar_grant.msg3_dci);
+    srsran_sanity_check(success, "Failed to allocate Msg3");
+
+    // Generate PUSCH content
+    success = ue->phy().get_pusch_cfg(slot_cfg, rar_grant.msg3_dci, pusch.sch);
     srsran_assert(success, "Error converting DCI to PUSCH grant");
     pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
     ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);
@@ -287,8 +296,8 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   if (result != alloc_result::success) {
     return result;
   }
-  result = verify_ue_cfg(ue.cfg(), ue.h_dl);
-  if (result != alloc_result::success) {
+  if (ue.h_dl == nullptr) {
+    logger.warning("SCHED: Trying to allocate rnti=0x%x with no available DL HARQs", ue->rnti);
     return result;
   }
   if (not bwp_pdsch_slot.dl.phy.ssb.empty()) {
@@ -297,7 +306,7 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
     return alloc_result::no_sch_space;
   }
 
-  // Find space in PUCCH
+  // Check space in PUCCH/PUSCH for UCI
   // TODO
 
   // Find space and allocate PDCCH
@@ -306,7 +315,13 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
     // Could not find space in PDCCH
     return pdcch_result.error();
   }
-  pdcch_dl_t& pdcch = *pdcch_result.value();
+  pdcch_dl_t& pdcch        = *pdcch_result.value();
+  pdcch.dci_cfg            = ue->get_dci_cfg();
+  pdcch.dci.pucch_resource = 0;
+  pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
+                                bwp_uci_slot.pending_acks.end(),
+                                [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
+  pdcch.dci.dai %= 4;
 
   // Allocate PDSCH
   pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_ue_pdsch_unchecked(ss_id, dci_fmt, dl_grant, ue.cfg(), pdcch.dci);
@@ -314,42 +329,22 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();
   if (ue.h_dl->empty()) {
-    bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4);
+    bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4, pdcch.dci);
     srsran_assert(success, "Failed to allocate DL HARQ");
   } else {
-    bool success = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant);
+    bool success = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant, pdcch.dci);
     mcs          = ue.h_dl->mcs();
     srsran_assert(success, "Failed to allocate DL HARQ retx");
   }
 
-  const static float max_R = 0.93;
+  srsran_slot_cfg_t slot_cfg;
+  slot_cfg.idx             = ue.pdsch_slot.to_uint();
+  const static float max_R = 0.95;
   while (true) {
-    // Generate PDCCH
-    fill_dl_dci_ue_fields(ue, pdcch.dci);
-    pdcch.dci.pucch_resource = 0;
-    pdcch.dci.dai            = std::count_if(bwp_uci_slot.pending_acks.begin(),
-                                  bwp_uci_slot.pending_acks.end(),
-                                  [&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
-    pdcch.dci.dai %= 4;
-    pdcch.dci_cfg = ue->get_dci_cfg();
-
-    // Generate PUCCH
-    bwp_uci_slot.pending_acks.emplace_back();
-    bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();
-    srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
-                  "Error getting ack resource");
-
     // Generate PDSCH
-    srsran_slot_cfg_t slot_cfg;
-    slot_cfg.idx = ue.pdsch_slot.to_uint();
     bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
     srsran_assert(success, "Error converting DCI to grant");
-
-    pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
-    pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
-    if (ue.h_dl->nof_retx() == 0) {
-      ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // update HARQ with correct TBS
-    } else {
+    if (ue.h_dl->nof_retx() != 0) {
       srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
     }
     if (ue.h_dl->nof_retx() > 0 or bwp_pdsch_slot.dl.phy.pdsch.back().sch.grant.tb[0].R_prime < max_R or mcs <= 0) {
@@ -358,15 +353,23 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
     // Decrease MCS if first tx and rate is too high
     mcs--;
     ue.h_dl->set_mcs(mcs);
-    bwp_uci_slot.pending_acks.pop_back();
   }
   if (mcs == 0) {
-    logger.warning("Couldn't find mcs that leads to R<0.9");
+    logger.warning("Couldn't find mcs that leads to R<0.95");
   }
+  ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS
+  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
+  pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
 
   // Select scheduled LCIDs and update UE buffer state
   bwp_pdsch_slot.dl.data.emplace_back();
   ue.build_pdu(ue.h_dl->tbs(), bwp_pdsch_slot.dl.data.back());
+
+  // Generate PUCCH
+  bwp_uci_slot.pending_acks.emplace_back();
+  bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();
+  srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
+                "Error getting ack resource");
 
   return alloc_result::success;
 }
@@ -380,9 +383,9 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_gr
   auto& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
   auto& bwp_pusch_slot = bwp_grid[ue.pusch_slot];
 
-  alloc_result ret = verify_ue_cfg(ue.cfg(), ue.h_ul);
-  if (ret != alloc_result::success) {
-    return ret;
+  if (ue.h_ul == nullptr) {
+    logger.warning("SCHED: Trying to allocate rnti=0x%x with no available UL HARQs", ue->rnti);
+    return alloc_result::no_rnti_opportunity;
   }
 
   // Choose SearchSpace + DCI format
@@ -395,7 +398,7 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_gr
   const srsran_search_space_t& ss = *ss_candidates[0];
 
   // Verify if PUSCH allocation is valid
-  ret = bwp_pusch_slot.puschs.is_grant_valid(ss.type, ul_grant);
+  alloc_result ret = bwp_pusch_slot.puschs.is_grant_valid(ss.type, ul_grant);
   if (ret != alloc_result::success) {
     return ret;
   }
@@ -408,22 +411,19 @@ alloc_result bwp_slot_allocator::alloc_pusch(slot_ue& ue, const prb_grant& ul_gr
 
   // Allocation Successful
   pdcch_ul_t& pdcch = *pdcch_result.value();
+  pdcch.dci_cfg     = ue->get_dci_cfg();
 
   // Allocate PUSCH
   pusch_t& pusch = bwp_pusch_slot.puschs.alloc_pusch_unchecked(ul_grant, pdcch.dci);
 
   if (ue.h_ul->empty()) {
     int  mcs     = ue->fixed_pusch_mcs();
-    bool success = ue.h_ul->new_tx(ue.pusch_slot, ue.pusch_slot, ul_grant, mcs, ue->ue_cfg().maxharq_tx);
+    bool success = ue.h_ul->new_tx(ue.pusch_slot, ul_grant, mcs, ue->ue_cfg().maxharq_tx, pdcch.dci);
     srsran_assert(success, "Failed to allocate UL HARQ");
   } else {
-    bool success = ue.h_ul->new_retx(ue.pusch_slot, ue.pusch_slot, ul_grant);
+    bool success = ue.h_ul->new_retx(ue.pusch_slot, ul_grant, pdcch.dci);
     srsran_assert(success, "Failed to allocate UL HARQ retx");
   }
-
-  // Generate PDCCH content
-  fill_ul_dci_ue_fields(ue, pdcch.dci);
-  pdcch.dci_cfg = ue->get_dci_cfg();
 
   // Generate PUSCH content
   srsran_slot_cfg_t slot_cfg;
@@ -446,20 +446,6 @@ alloc_result bwp_slot_allocator::verify_uci_space(const bwp_slot_grid& uci_grid)
   if (uci_grid.pending_acks.full()) {
     logger.warning("SCHED: No space for ACK.");
     return alloc_result::no_grant_space;
-  }
-  return alloc_result::success;
-}
-
-alloc_result bwp_slot_allocator::verify_ue_cfg(const ue_carrier_params_t& ue_cfg, harq_proc* harq) const
-{
-  if (ue_cfg.active_bwp().bwp_id != cfg.bwp_id) {
-    logger.warning(
-        "SCHED: Trying to allocate rnti=0x%x in inactive BWP id=%d", ue_cfg.rnti, ue_cfg.active_bwp().bwp_id);
-    return alloc_result::no_rnti_opportunity;
-  }
-  if (harq == nullptr) {
-    logger.warning("SCHED: Trying to allocate rnti=0x%x with no available HARQs", ue_cfg.rnti);
-    return alloc_result::no_rnti_opportunity;
   }
   return alloc_result::success;
 }

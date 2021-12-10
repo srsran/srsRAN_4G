@@ -475,6 +475,18 @@ alloc_result bwp_pdcch_allocator::check_args_valid(srsran_rnti_type_t         rn
     return alloc_result::no_cch_space;
   }
 
+  if (user != nullptr) {
+    if (user->active_bwp().bwp_id != bwp_cfg.bwp_id) {
+      log_pdcch_alloc_failure(logger.warning,
+                              rnti_type,
+                              ss_id,
+                              rnti,
+                              "Trying to allocate BWP#{} which is inactive for the UE.",
+                              user->active_bwp().bwp_id);
+      return alloc_result::no_rnti_opportunity;
+    }
+  }
+
   srsran_sanity_check(pdcch_dl_list.size() + pdcch_ul_list.size() == nof_allocations(), "Invalid PDCCH state");
   return alloc_result::success;
 }

@@ -116,7 +116,6 @@ public:
 
 private:
   alloc_result verify_uci_space(const bwp_slot_grid& uci_grid) const;
-  alloc_result verify_ue_cfg(const ue_carrier_params_t& ue_cfg, harq_proc* harq) const;
 
   bwp_res_grid& bwp_grid;
 
