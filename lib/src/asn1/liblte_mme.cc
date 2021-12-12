@@ -9018,12 +9018,27 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_deactivate_eps_bearer_context_accept_msg(
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_request_msg(
     LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* deact_eps_bearer_context_req,
+    uint8                                                        sec_hdr_type,
+    uint32                                                       count,
     LIBLTE_BYTE_MSG_STRUCT*                                      msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
   if (deact_eps_bearer_context_req != NULL && msg != NULL) {
+    if (LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type) {
+      // Protocol Discriminator and Security Header Type
+      *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+      msg_ptr++;
+
+      // MAC will be filled in later
+      msg_ptr += 4;
+
+      // Sequence Number
+      *msg_ptr = count & 0xFF;
+      msg_ptr++;
+    }
+    
     // Protocol Discriminator and EPS Bearer ID
     *msg_ptr = (deact_eps_bearer_context_req->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
     msg_ptr++;
