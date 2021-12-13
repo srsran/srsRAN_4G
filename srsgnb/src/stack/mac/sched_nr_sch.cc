@@ -121,9 +121,9 @@ alloc_result pdsch_allocator::is_ue_grant_valid(const ue_carrier_params_t& ue,
     log_alloc_failure(bwp_cfg.logger.error, "rnti=0x%x,SearchSpaceId={} has not been configured.", ue.rnti, ss_id);
     return alloc_result::invalid_grant_params;
   }
-  alloc_result alloc_result = is_grant_valid_common(ss->type, dci_fmt, ss->coreset_id, grant);
-  if (alloc_result != alloc_result::success) {
-    return alloc_result;
+  alloc_result ret = is_grant_valid_common(ss->type, dci_fmt, ss->coreset_id, grant);
+  if (ret != alloc_result::success) {
+    return ret;
   }
 
   // TS 38.214, 5.1.2.2 - "the UE shall use the downlink frequency resource allocation type as defined by the higher

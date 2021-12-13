@@ -34,7 +34,14 @@ void log_sched_slot_ues(srslog::basic_logger& logger, slot_point pdcch_slot, uin
   for (const auto& ue_pair : slot_ues) {
     auto& ue = ue_pair->second;
 
-    fmt::format_to(fmtbuf, "{}{{rnti=0x{:x}, dl_bs={}, ul_bs={}}}", use_comma, ue->rnti, ue.dl_bytes, ue.ul_bytes);
+    fmt::format_to(fmtbuf, "{}{{rnti=0x{:x}", use_comma, ue->rnti);
+    if (ue.dl_active) {
+      fmt::format_to(fmtbuf, ", dl_bs={}", ue.dl_bytes);
+    }
+    if (ue.ul_active) {
+      fmt::format_to(fmtbuf, ", ul_bs={}", ue.ul_bytes);
+    }
+    fmt::format_to(fmtbuf, "}}");
     use_comma = ", ";
   }
 

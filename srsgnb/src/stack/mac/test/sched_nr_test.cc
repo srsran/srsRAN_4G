@@ -130,7 +130,7 @@ void test_sched_nr_data()
 {
   uint32_t max_nof_ttis = 1000, nof_sectors = 1;
   uint16_t rnti               = 0x4601;
-  uint32_t nof_dl_bytes_to_tx = 1e6;
+  uint32_t nof_dl_bytes_to_tx = 2e6;
 
   sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer                                = false;

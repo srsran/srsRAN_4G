@@ -6,6 +6,8 @@
 # the distribution.
 #
 
+set_directory_properties(PROPERTIES LABELS "sched;nr")
+
 add_library(sched_nr_test_suite sched_nr_common_test.cc sched_nr_ue_ded_test_suite.cc sched_nr_sim_ue.cc)
 target_link_libraries(sched_nr_test_suite srsgnb_mac srsran_common)
 

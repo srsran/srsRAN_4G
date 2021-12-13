@@ -65,10 +65,12 @@ public:
     uint32_t           cc     = SRSRAN_MAX_CARRIERS;
     ue_buffer_manager* parent = nullptr;
   };
+};
 
-private:
-  /// Update of buffers is mutexed when carrier aggreg. is in place
-  std::mutex mutex;
+/// Class containing context of UE that is common to all carriers
+struct ue_context_common {
+  uint32_t pending_dl_bytes = 0;
+  uint32_t pending_ul_bytes = 0;
 };
 
 class slot_ue;
@@ -79,6 +81,7 @@ public:
   ue_carrier(uint16_t                              rnti,
              const ue_cfg_t&                       cfg,
              const cell_params_t&                  cell_params_,
+             const ue_context_common&              ctxt,
              const ue_buffer_manager::pdu_builder& pdu_builder_);
 
   void                       set_cfg(const ue_cfg_t& ue_cfg);
@@ -101,6 +104,9 @@ public:
 
   // metrics
   mac_ue_metrics_t metrics = {};
+
+  // common context
+  const ue_context_common& common_ctxt;
 
 private:
   friend class slot_ue;
@@ -127,7 +133,7 @@ public:
 
   /// UE state feedback
   void ul_bsr(uint32_t lcg, uint32_t bsr_val) { buffers.ul_bsr(lcg, bsr_val); }
-  void ul_sr_info() { last_sr_slot = last_pdcch_slot - TX_ENB_DELAY; }
+  void ul_sr_info() { last_sr_slot = last_tx_slot - TX_ENB_DELAY; }
 
   bool has_ca() const
   {
@@ -146,9 +152,9 @@ private:
 
   ue_cfg_t ue_cfg;
 
-  slot_point last_pdcch_slot;
-  slot_point last_sr_slot;
-  int        ul_pending_bytes = 0, dl_pending_bytes = 0;
+  slot_point        last_tx_slot;
+  slot_point        last_sr_slot;
+  ue_context_common common_ctxt;
 
   ue_buffer_manager buffers;
 };
@@ -157,24 +163,28 @@ class slot_ue
 {
 public:
   slot_ue() = default;
-  explicit slot_ue(ue_carrier& ue, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes);
+  explicit slot_ue(ue_carrier& ue, slot_point slot_tx_);
   slot_ue(slot_ue&&) noexcept = default;
   slot_ue& operator=(slot_ue&&) noexcept = default;
   bool     empty() const { return ue == nullptr; }
   void     release() { ue = nullptr; }
 
   const ue_carrier_params_t& cfg() const { return ue->bwp_cfg; }
-  const ue_carrier_params_t& operator*() const { return ue->bwp_cfg; }
   const ue_carrier_params_t* operator->() const { return &ue->bwp_cfg; }
 
-  // mutable interface to ue_carrier state
+  /// Find available HARQs
   dl_harq_proc* find_empty_dl_harq() { return ue->harq_ent.find_empty_dl_harq(); }
   ul_harq_proc* find_empty_ul_harq() { return ue->harq_ent.find_empty_ul_harq(); }
 
+  /// Build PDU with MAC CEs and MAC SDUs
   void build_pdu(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
   {
     ue->pdu_builder.alloc_subpdus(rem_bytes, pdu);
   }
+
+  /// Channel Information Getters
+  uint32_t dl_cqi() const { return ue->dl_cqi; }
+  uint32_t ul_cqi() const { return ue->ul_cqi; }
 
   // UE parameters common to all sectors
   uint32_t dl_bytes = 0, ul_bytes = 0;
