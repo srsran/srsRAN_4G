@@ -347,16 +347,17 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
     if (ue.h_dl->nof_retx() != 0) {
       srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
     }
-    if (ue.h_dl->nof_retx() > 0 or bwp_pdsch_slot.dl.phy.pdsch.back().sch.grant.tb[0].R_prime < max_R or mcs <= 0) {
+    if (ue.h_dl->nof_retx() > 0 or pdsch.sch.grant.tb[0].R_prime < max_R or mcs <= 0) {
       break;
     }
     // Decrease MCS if first tx and rate is too high
     mcs--;
-    ue.h_dl->set_mcs(mcs);
+    pdcch.dci.mcs = mcs;
   }
   if (mcs == 0) {
     logger.warning("Couldn't find mcs that leads to R<0.95");
   }
+  ue.h_dl->set_mcs(mcs);
   ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS
   pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
   pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
