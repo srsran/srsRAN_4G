@@ -142,6 +142,7 @@ private:
   // helpers
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
+  void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {

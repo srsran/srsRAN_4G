@@ -280,6 +280,20 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
   log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
+
+  dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
+  switch (dl_dcch_msg.msg.c1().type().value) {
+    // TODO: ADD missing cases
+    case dl_dcch_msg_type_c::c1_c_::types::rrc_recfg: {
+      transaction_id    = c1->rrc_recfg().rrc_transaction_id;
+      rrc_recfg_s recfg = c1->rrc_recfg();
+      task_sched.defer_task([this, recfg]() { handle_rrc_reconfig(recfg); });
+      break;
+    }
+    default:
+      logger.error("The provided DL-CCCH message type is not recognized or supported");
+      break;
+  }
 }
 
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
@@ -815,8 +829,8 @@ int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 
 void rrc_nr::phy_meas_stop()
 {
-  // possbile race condition for sim_measurement timer, which might be set at the same moment as stopped => fix with
-  // phy integration
+  // possbile race condition for sim_measurement timer, which might be set at the same moment as stopped => fix
+  // with phy integration
   logger.debug("Stopping simulated measurements");
   sim_measurement_timer.stop();
 }
@@ -1934,6 +1948,15 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   }
   callback_list.add_proc(conn_setup_proc);
   return true;
+}
+
+void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
+{
+  if (not conn_recfg_proc.launch(nr, false, reconfig)) {
+    logger.error("Unable to launch connection reconfiguration procedure");
+    return;
+  }
+  callback_list.add_proc(conn_recfg_proc);
 }
 
 // RLC interface

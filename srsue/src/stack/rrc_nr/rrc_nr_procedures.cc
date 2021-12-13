@@ -42,41 +42,80 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
 
   if (rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present) {
     if (rrc_nr_reconf.crit_exts.type() != asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
-      Error("Reconfiguration does not contain Secondary Cell Group Config");
+      Error("Reconfiguration does not contain Secondary Cell Group Config.");
       return proc_outcome_t::error;
     }
 
     cbit_ref bref0(rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group.data(),
                    rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group.size());
 
-    cell_group_cfg_s cell_group_cfg;
-    if (cell_group_cfg.unpack(bref0) != asn1::SRSASN_SUCCESS) {
-      Error("Could not unpack secondary cell group config.");
+    cell_group_cfg_s secondary_cell_group_cfg;
+    if (secondary_cell_group_cfg.unpack(bref0) != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack Secondary Cell Group Config.");
       return proc_outcome_t::error;
     }
 
 #if 0
     asn1::json_writer js1;
-    cell_group_cfg.to_json(js1);
+    secondary_cell_group_cfg.to_json(js1);
     Debug("Secondary Cell Group: %s", js1.to_string().c_str());
 #endif
 
-    Info("Applying Cell Group Cfg");
-    if (!rrc_handle.apply_cell_group_cfg(cell_group_cfg)) {
+    Info("Applying Secondary Cell Group Cfg.");
+    if (!rrc_handle.apply_cell_group_cfg(secondary_cell_group_cfg)) {
       return proc_outcome_t::error;
     }
   }
 
   if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter_present) {
-    Info("Applying sk counter");
+    Info("Applying SK Counter");
     if (!rrc_handle.configure_sk_counter(
             (uint16_t)rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.non_crit_ext.non_crit_ext.sk_counter)) {
       return proc_outcome_t::error;
     }
   }
 
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group_present) {
+    cbit_ref bref1(rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group.data(),
+                   rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group.size());
+
+    cell_group_cfg_s master_cell_group_cfg;
+    if (master_cell_group_cfg.unpack(bref1) != asn1::SRSASN_SUCCESS) {
+      Error("Could not unpack Master Cell Group Config.");
+      return proc_outcome_t::error;
+    }
+
+#if 0
+    asn1::json_writer js2;
+    master_cell_group_cfg.to_json(js2);
+    Debug("Master Cell Group: %s", js2.to_string().c_str());
+#endif
+
+    Info("Applying Master Cell Group Cfg.");
+    if (!rrc_handle.apply_cell_group_cfg(master_cell_group_cfg)) {
+      return proc_outcome_t::error;
+    }
+  }
+
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list_present) {
+    srsran::unique_byte_buffer_t nas_sdu;
+    for (uint32_t i = 0; i < rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size(); ++i) {
+      nas_sdu = srsran::make_byte_buffer();
+      if (nas_sdu != nullptr) {
+        memcpy(nas_sdu->msg,
+               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].data(),
+               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size());
+        nas_sdu->N_bytes = rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size();
+        rrc_handle.write_sdu(std::move(nas_sdu));
+      } else {
+        rrc_handle.logger.error("Couldn't allocate SDU in %s.", __FUNCTION__);
+        return proc_outcome_t::error;
+      }
+    }
+  }
+
   if (rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present) {
-    Info("Applying Radio Bearer Cfg");
+    Info("Applying Radio Bearer Cfg.");
     if (!rrc_handle.apply_radio_bearer_cfg(rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg)) {
       return proc_outcome_t::error;
     }
