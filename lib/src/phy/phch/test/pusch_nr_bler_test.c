@@ -1,10 +1,30 @@
 /**
+ * \file pusch_nr_bler_test.c
+ * \brief BLER and throughput test for PUSCH NR.
  *
- * \section COPYRIGHT
+ * This program simulates several PUSCH transmissions in order to estimate its performance in terms of the receiver BLER
+ * and throughput (expressed as a percentage of the transmitted one). Specifically, the simulation runs until 100
+ * transmissions fail (or after 2,000,000 transmitted transport blocks). Failures are detected by CRC verification.
  *
- * Copyright 2013-2021 Software Radio Systems Limited
+ * The simulation setup can be controlled by means of the following arguments.
+ *  - <tt>-p num</tt>: sets the number of granted PUSCH PRBs to \c num.
+ *  - <tt>-T tab</tt>: sets the modulation and coding scheme table (valid options: \c 64qam, \c 256qam, \c 64qamLowSE).
+ *  - <tt>-m mcs</tt>: sets the modulation and coding scheme index to \c mcs.
+ *  - <tt>-L num</tt>: sets the number of transmission layers to \c num.
+ *  - <tt>-A num</tt>: sets the number of HARQ-ACK bits to \c num.
+ *  - <tt>-C num</tt>: sets the number of CSI bits to \c num.
+ *  - <tt>-s val</tt>: sets the nominal SNR to \c val (in dB).
+ *  - <tt>-f </tt>: activates full BLER simulations (Tx--Rx comparison as opposed to CRC-verification only).
+ *  - <tt>-v </tt>: activates verbose output.
  *
- * By using this file, you agree to the terms and conditions set
+ * Example:
+ * \code{.cpp}
+ * pusch_nr_bler_test -p 52 -m 2 -T 64qam -s -1.8 -f
+ * \endcode
+ *
+ * \copyright Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * \copyright By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
@@ -31,7 +51,7 @@ static bool                full_check   = false;
 
 void usage(char* prog)
 {
-  printf("Usage: %s [pmTLACsv] \n", prog);
+  printf("Usage: %s [pmTLACsfv] \n", prog);
   printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
