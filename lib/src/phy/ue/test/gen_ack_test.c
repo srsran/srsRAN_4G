@@ -38,7 +38,7 @@ int fdd_tests(uint32_t max_cc)
   ue_dl.cell.frame_type = SRSRAN_FDD;
 
   for (uint32_t nof_cc = 1; nof_cc <= max_cc; nof_cc++) {
-    for (uint32_t nof_tb = 1; nof_tb <= SRSRAN_MAX_CODEWORDS; nof_tb++) {
+    for (uint8_t nof_tb = 1; nof_tb <= SRSRAN_MAX_CODEWORDS; nof_tb++) {
       for (uint32_t nof_active_cc = 1; nof_active_cc <= nof_cc; nof_active_cc++) {
         for (uint32_t nof_active_tb = 1; nof_active_tb <= nof_tb; nof_active_tb++) {
           srsran_pdsch_ack_t ack_info = {};
@@ -53,7 +53,7 @@ int fdd_tests(uint32_t max_cc)
             ack_info.cc[cc_idx].m[0].present        = cc_idx < nof_active_cc;
             ack_info.cc[cc_idx].m[0].resource.n_cce = cc_idx + 1;
             if (ack_info.cc[cc_idx].m[0].present) {
-              for (uint32_t j = 0; j < nof_tb; j++) {
+              for (uint8_t j = 0; j < nof_tb; j++) {
                 ack_info.cc[cc_idx].m[0].value[j] = j < nof_active_tb ? 1 : 2;
               }
             } else {
