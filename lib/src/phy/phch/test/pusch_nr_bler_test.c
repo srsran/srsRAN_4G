@@ -329,7 +329,7 @@ int main(int argc, char** argv)
 
     if (srsran_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols_rx, &data_rx) <
         SRSRAN_SUCCESS) {
-      ERROR("Error encoding");
+      ERROR("Error decoding");
       goto clean_exit;
     }
 
