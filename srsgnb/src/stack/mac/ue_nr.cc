@@ -49,7 +49,7 @@ void ue_nr::reset()
   nof_failures = 0;
 }
 
-void ue_nr::ue_cfg(const sched_interface::ue_cfg_t& ue_cfg)
+void ue_nr::ue_cfg(const sched_nr_interface::ue_cfg_t& ue_cfg)
 {
   // nop
 }

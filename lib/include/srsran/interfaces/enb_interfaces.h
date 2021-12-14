@@ -14,8 +14,6 @@
 #include "srsran/common/interfaces_common.h"
 #include "srsran/srsran.h"
 
-#include "srsran/interfaces/enb_rrc_interfaces.h"
-
 #ifndef SRSRAN_ENB_INTERFACES_H
 #define SRSRAN_ENB_INTERFACES_H
 

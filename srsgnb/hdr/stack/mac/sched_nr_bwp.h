@@ -41,10 +41,10 @@ public:
 
 private:
   struct pending_rar_t {
-    uint16_t                                                                   ra_rnti = 0;
-    slot_point                                                                 prach_slot;
-    slot_interval                                                              rar_win;
-    srsran::bounded_vector<dl_sched_rar_info_t, sched_interface::MAX_RAR_LIST> msg3_grant;
+    uint16_t                                                ra_rnti = 0;
+    slot_point                                              prach_slot;
+    slot_interval                                           rar_win;
+    srsran::bounded_vector<dl_sched_rar_info_t, MAX_GRANTS> msg3_grant;
   };
 
   alloc_result

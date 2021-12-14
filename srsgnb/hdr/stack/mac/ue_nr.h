@@ -42,7 +42,7 @@ public:
 
   virtual ~ue_nr();
   void reset();
-  void ue_cfg(const sched_interface::ue_cfg_t& ue_cfg);
+  void ue_cfg(const sched_nr_interface::ue_cfg_t& ue_cfg);
 
   void     set_tti(uint32_t tti);
   uint16_t get_rnti() const { return rnti; }

@@ -19,7 +19,7 @@
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_mac.h"
 
 namespace srsenb {
 

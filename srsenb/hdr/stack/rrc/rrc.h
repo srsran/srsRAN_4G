@@ -25,7 +25,10 @@
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/timeout.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_mac.h"
+#include "srsran/interfaces/enb_rrc_interface_pdcp.h"
+#include "srsran/interfaces/enb_rrc_interface_rlc.h"
+#include "srsran/interfaces/enb_rrc_interface_s1ap.h"
 #include "srsran/interfaces/enb_x2_interfaces.h"
 #include "srsran/srslog/srslog.h"
 #include <map>
@@ -39,14 +42,6 @@ class mac_interface_rrc;
 class phy_interface_rrc_lte;
 
 class paging_manager;
-
-static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "WAIT FOR CON SETUP COMPLETE",
-                                                            "WAIT FOR SECURITY MODE COMPLETE",
-                                                            "WAIT FOR UE CAPABILITIY INFORMATION",
-                                                            "WAIT FOR CON RECONF COMPLETE",
-                                                            "RRC CONNECTED",
-                                                            "RELEASE REQUEST"};
 
 class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_mac,

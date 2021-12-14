@@ -13,6 +13,7 @@
 #ifndef SRSRAN_SCHED_NR_INTERFACE_H
 #define SRSRAN_SCHED_NR_INTERFACE_H
 
+#include "srsenb/hdr/stack/mac/common/sched_config.h"
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/optional.h"
