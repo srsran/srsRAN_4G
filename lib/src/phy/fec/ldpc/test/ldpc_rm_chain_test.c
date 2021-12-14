@@ -409,6 +409,7 @@ int main(int argc, char** argv)
   int    n_error_words_avx512_flood    = 0;
 #endif // LV_HAVE_AVX512
 
+  float noise_var     = srsran_convert_dB_to_power(-snr);
   float noise_std_dev = srsran_convert_dB_to_amplitude(-snr);
 
   int16_t inf15  = (1U << 14U) - 1;
@@ -478,12 +479,12 @@ int main(int argc, char** argv)
     }
 
     // Apply AWGN
-    srsran_ch_awgn_f(rm_symbols, rm_symbols, noise_std_dev, batch_size * rm_length);
+    srsran_ch_awgn_f(rm_symbols, rm_symbols, noise_var, batch_size * rm_length);
 
     // Convert symbols into LLRs
     for (i = 0; i < batch_size; i++) {
       for (j = 0; j < rm_length; j++) {
-        rm_symbols[i * rm_length + j] = rm_symbols[i * rm_length + j] * 2 / (noise_std_dev * noise_std_dev);
+        rm_symbols[i * rm_length + j] = rm_symbols[i * rm_length + j] * 2 / noise_var;
       }
     }
 

@@ -169,7 +169,7 @@ int main(int argc, char** argv)
 
       if (have_channel) {
         // Add noise
-        float std_dev = srsran_convert_dB_to_amplitude(-(snr_db + 3.0f)) * 0.1f;
+        float std_dev = srsran_convert_dB_to_power(-(snr_db + 20.0f));
         srsran_ch_awgn_c(est.pilot_recv_signal, est.pilot_recv_signal, std_dev, SRSRAN_REFSIGNAL_MAX_NUM_SF(1));
       }
 

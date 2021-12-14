@@ -683,10 +683,9 @@ int main(int argc, char** argv)
         // find the noise spectral density
         float snr_lin = srsran_convert_dB_to_power(file_snr);
         float n0      = abs_avg / snr_lin;
-        float nstd    = sqrtf(n0 / 2);
 
         // add some noise to the signal
-        srsran_ch_awgn_c(output_buffer, output_buffer, nstd, sf_n_samples);
+        srsran_ch_awgn_c(output_buffer, output_buffer, n0, sf_n_samples);
       }
 
       /* send to file or usrp */

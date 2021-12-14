@@ -314,6 +314,7 @@ int main(int argc, char** argv)
   int    n_error_words_avx512_flood    = 0;
 #endif // lV_HAVE_AVX512
 
+  float noise_var     = srsran_convert_dB_to_power(-snr);
   float noise_std_dev = srsran_convert_dB_to_amplitude(-snr);
 
   int16_t inf15  = (1U << 14U) - 1;
@@ -371,12 +372,12 @@ int main(int argc, char** argv)
     }
 
     // Apply AWGN
-    srsran_ch_awgn_f(symbols_rm, symbols_rm, noise_std_dev, batch_size * (rm_length + F));
+    srsran_ch_awgn_f(symbols_rm, symbols_rm, noise_var, batch_size * (rm_length + F));
 
     // Convert symbols into LLRs
     for (i = 0; i < batch_size; i++) {
       for (j = 0; j < rm_length + F; j++) { //+F because we have already considered fillerbits when modulating.
-        symbols[i * finalN + j] = symbols_rm[i * (rm_length + F) + j] * 2 / (noise_std_dev * noise_std_dev);
+        symbols[i * finalN + j] = symbols_rm[i * (rm_length + F) + j] * 2 / noise_var;
       }
       // the rest of symbols are undetermined, set LLR to 0
       for (; j < finalN; j++) {

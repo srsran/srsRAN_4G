@@ -213,8 +213,8 @@ int main(int argc, char** argv)
 
       // add some noise to the signal
       if (snr != -1.0) {
-        float nstd = powf(10.0f, -snr / 20.0f);
-        srsran_ch_awgn_c(buff_ptrs[0], buff_ptrs[0], nstd, nread);
+        float var = powf(10.0f, -snr / 10.0f);
+        srsran_ch_awgn_c(buff_ptrs[0], buff_ptrs[0], var, nread);
       }
 
       // try to decode

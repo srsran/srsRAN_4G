@@ -1,22 +1,14 @@
 /**
+ *  \file ch_awgn.h
+ *  \brief Additive white Gaussian noise channel object
  *
- * \section COPYRIGHT
+ * \copyright Copyright 2013-2021 Software Radio Systems Limited
  *
- * Copyright 2013-2021 Software Radio Systems Limited
- *
- * By using this file, you agree to the terms and conditions set
+ * \copyright By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
  * the distribution.
  *
  */
-
-/**********************************************************************************************
- *  File:         ch_awgn.h
- *
- *  Description:  Additive white gaussian noise channel object
- *
- *  Reference:
- *********************************************************************************************/
 
 #include "srsran/config.h"
 #include <stdint.h>
@@ -29,7 +21,7 @@ extern "C" {
 #endif
 
 /**
- * The srsRAN channel AWGN implements an efficient Box-Muller Method accelerated with SIMD.
+ * \brief srsRAN channel AWGN implements an efficient Box-Muller Method accelerated with SIMD.
  */
 typedef struct {
   float*   table_cos;
@@ -39,7 +31,7 @@ typedef struct {
 } srsran_channel_awgn_t;
 
 /**
- * Initialization function of the channel AWGN object
+ * \brief function of the channel AWGN object
  *
  * @param q AWGN channel object
  * @param seed random generator seed
@@ -47,7 +39,7 @@ typedef struct {
 SRSRAN_API int srsran_channel_awgn_init(srsran_channel_awgn_t* q, uint32_t seed);
 
 /**
- * Sets the noise level N0 in decibels full scale (dBfs)
+ * \brief the noise level N0 in decibels full scale (dBfs)
  *
  * @param q AWGN channel object
  * @param n0_dBfs noise level
@@ -55,7 +47,7 @@ SRSRAN_API int srsran_channel_awgn_init(srsran_channel_awgn_t* q, uint32_t seed)
 SRSRAN_API int srsran_channel_awgn_set_n0(srsran_channel_awgn_t* q, float n0_dBfs);
 
 /**
- * Runs the complex AWGN channel
+ * \brief the complex AWGN channel
  *
  * @param q AWGN channel object
  * @param in complex input array
@@ -65,7 +57,7 @@ SRSRAN_API int srsran_channel_awgn_set_n0(srsran_channel_awgn_t* q, float n0_dBf
 SRSRAN_API void srsran_channel_awgn_run_c(srsran_channel_awgn_t* q, const cf_t* in, cf_t* out, uint32_t length);
 
 /**
- * Runs the real AWGN channel
+ * \brief the real AWGN channel
  *
  * @param q AWGN channel object
  * @param in real input array
@@ -75,15 +67,31 @@ SRSRAN_API void srsran_channel_awgn_run_c(srsran_channel_awgn_t* q, const cf_t* 
 SRSRAN_API void srsran_channel_awgn_run_f(srsran_channel_awgn_t* q, const float* in, float* out, uint32_t length);
 
 /**
- * Free AWGN channel generator data
+ * \brief AWGN channel generator data
  *
  * @param q AWGN channel object
  */
 SRSRAN_API void srsran_channel_awgn_free(srsran_channel_awgn_t* q);
 
+/**
+ * \brief signal \p input with AWGN to obtain signal \p output (complex case).
+ *
+ * @param[in] input Input signal
+ * @param[out] output Output signal
+ * @param[in] variance Noise variance
+ * @param[in] len Number of samples
+ */
 SRSRAN_API void srsran_ch_awgn_c(const cf_t* input, cf_t* output, float variance, uint32_t len);
 
-SRSRAN_API void srsran_ch_awgn_f(const float* x, float* y, float variance, uint32_t len);
+/**
+ * \brief Perturb signal \p input with AWGN to obtain signal \p output (real case).
+ *
+ * @param[in] input Input signal
+ * @param[out] output Output signal
+ * @param[in] variance Noise variance
+ * @param[in] len Number of samples
+ */
+SRSRAN_API void srsran_ch_awgn_f(const float* input, float* output, float variance, uint32_t len);
 
 SRSRAN_API float srsran_ch_awgn_get_variance(float ebno_db, float rate);
 
