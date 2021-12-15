@@ -1,4 +1,13 @@
 /**
+ * \copyright Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * \copyright By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+
+/**
  * \file pusch_nr_bler_test.c
  * \brief BLER and throughput test for PUSCH NR.
  *
@@ -21,12 +30,6 @@
  * \code{.cpp}
  * pusch_nr_bler_test -p 52 -m 2 -T 64qam -s -1.8 -f
  * \endcode
- *
- * \copyright Copyright 2013-2021 Software Radio Systems Limited
- *
- * \copyright By using this file, you agree to the terms and conditions set
- * forth in the LICENSE file which can be found at the top level of
- * the distribution.
  *
  */
 
