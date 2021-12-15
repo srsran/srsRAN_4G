@@ -88,7 +88,7 @@ int ue::init(const all_args_t& args_)
     // SA mode
     std::unique_ptr<srsue::phy_nr_sa> nr_phy = std::unique_ptr<srsue::phy_nr_sa>(new srsue::phy_nr_sa("PHY-SA"));
     if (!nr_phy) {
-      srsran::console("Error creating LTE PHY instance.\n");
+      srsran::console("Error creating NR PHY instance.\n");
       return SRSRAN_ERROR;
     }
 
@@ -104,7 +104,7 @@ int ue::init(const all_args_t& args_)
 
     std::unique_ptr<srsue::dummy_phy> dummy_lte_phy = std::unique_ptr<srsue::dummy_phy>(new srsue::dummy_phy);
     if (!dummy_lte_phy) {
-      srsran::console("Error creating LTE PHY instance.\n");
+      srsran::console("Error creating dummy LTE PHY instance.\n");
       return SRSRAN_ERROR;
     }
 

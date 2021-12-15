@@ -267,7 +267,7 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    stack_logger.info("Triggering NAS switch on\n");
+    stack_logger.info("Triggering NAS switch on");
     if (!ue_task_queue.try_push([this]() {
           if (args.attach_on_nr) {
             nas_5g.switch_on();
