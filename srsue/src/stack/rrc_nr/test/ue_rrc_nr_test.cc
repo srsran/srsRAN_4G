@@ -231,13 +231,7 @@ int rrc_nsa_reconfig_tdd_test()
 
   asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
   TESTASSERT(secondary_cell_group_r15.unpack(bref0) == asn1::SRSASN_SUCCESS);
-
   TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present);
-  asn1::cbit_ref bref1(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.data(),
-                       secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size());
-
-  asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
-  cell_group_cfg.unpack(bref1);
 
   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
@@ -337,13 +331,7 @@ int rrc_nsa_reconfig_fdd_test()
 
   asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
   TESTASSERT(secondary_cell_group_r15.unpack(bref0) == asn1::SRSASN_SUCCESS);
-
   TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present);
-  asn1::cbit_ref bref1(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.data(),
-                       secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size());
-
-  asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
-  TESTASSERT(cell_group_cfg.unpack(bref1) == asn1::SRSASN_SUCCESS);
 
   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
