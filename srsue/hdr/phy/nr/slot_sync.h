@@ -39,8 +39,13 @@ public:
 
   bool init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
 
+  int set_sync_cfg(const srsran_ue_sync_nr_cfg_t& cfg);
+
   int  recv_callback(srsran::rf_buffer_t& rf_buffer, srsran_timestamp_t* timestamp);
+  bool run_sfn_sync();
   void run_stack_tti();
+
+  srsran_slot_cfg_t get_slot_cfg();
 
 private:
   const static int MIN_TTI_JUMP         = 1;    ///< Time gap reported to stack after receiving subframe
@@ -54,7 +59,8 @@ private:
   srsran_timestamp_t           stack_tti_ts_new    = {};
   srsran_timestamp_t           stack_tti_ts        = {};
   bool                         forced_rx_time_init = true; // Rx time sync after first receive from radio
-  uint32_t                     tti                 = 0;
+  srsran::rf_buffer_t          sfn_sync_buff       = {};
+  srsran_slot_cfg_t            slot_cfg            = {};
 };
 } // namespace nr
 } // namespace srsue

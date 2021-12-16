@@ -213,12 +213,13 @@ private:
 
 public:
   struct args_t {
-    srsue::phy_args_nr_t     phy;
-    ue_dummy_stack::args_t   stack;
+    srsue::phy_args_nr_t   phy;
+    ue_dummy_stack::args_t stack;
   };
   dummy_ue(const args_t& args, srsran::radio_interface_phy* radio) : stack(args.stack, phy), phy("PHY")
   {
-    srsran_assert(phy.init(args.phy, &stack, radio), "Failed to initialise PHY");
+    srsran_assert(phy.init(args.phy, &stack, radio) == SRSRAN_SUCCESS, "Failed to initialise PHY");
+    phy.wait_initialize();
   }
 
   bool start_cell_search(const srsue::phy_interface_stack_nr::cell_search_args_t& args)
@@ -275,13 +276,13 @@ int main(int argc, char** argv)
     srsran::rf_args_t rf_args = {};
     rf_args.type              = "multi";
     rf_args.log_level         = args.rf_log_level;
-    rf_args.srate_hz          = args.srate_hz;
-    rf_args.rx_gain           = args.rf_rx_gain_dB;
-    rf_args.nof_carriers      = 1;
-    rf_args.nof_antennas      = 1;
-    rf_args.device_args       = args.rf_device_args;
-    rf_args.device_name       = args.rf_device_name;
-    rf_args.freq_offset       = args.rf_freq_offset_Hz;
+    //    rf_args.srate_hz          = args.srate_hz;
+    rf_args.rx_gain      = args.rf_rx_gain_dB;
+    rf_args.nof_carriers = 1;
+    rf_args.nof_antennas = 1;
+    rf_args.device_args  = args.rf_device_args;
+    rf_args.device_name  = args.rf_device_name;
+    rf_args.freq_offset  = args.rf_freq_offset_Hz;
 
     // Instantiate
     std::shared_ptr<srsran::radio> r = std::make_shared<srsran::radio>();
@@ -301,23 +302,68 @@ int main(int argc, char** argv)
   }
 
   // Create dummy UE
-  dummy_ue::args_t ue_args = {};
+  dummy_ue::args_t ue_args  = {};
   ue_args.phy.log.phy_level = args.phy_log_level;
-  ue_args.stack.log_level  = args.stack_log_level;
+  ue_args.stack.log_level   = args.stack_log_level;
   dummy_ue ue(ue_args, radio.get());
 
-  // Transition PHY to cell search
-  srsue::phy_nr_sa::cell_search_args_t cell_search_req = {};
-  cell_search_req.srate_hz                             = args.srate_hz;
-  cell_search_req.center_freq_hz                       = args.base_carrier.dl_center_frequency_hz;
-  cell_search_req.ssb_freq_hz                          = args.base_carrier.ssb_center_freq_hz;
-  cell_search_req.ssb_scs                              = args.ssb_scs;
-  cell_search_req.ssb_pattern                          = args.ssb_pattern;
-  cell_search_req.duplex_mode                          = args.duplex_mode;
-  srsran_assert(ue.start_cell_search(cell_search_req), "Failed cell search start");
+  // Base cell search arguments
+  srsue::phy_nr_sa::cell_search_args_t cs_args = {};
+  cs_args.srate_hz                             = args.srate_hz;
+  cs_args.center_freq_hz                       = args.base_carrier.dl_center_frequency_hz;
+  cs_args.ssb_scs                              = args.ssb_scs;
+  cs_args.ssb_pattern                          = args.ssb_pattern;
+  cs_args.duplex_mode                          = args.duplex_mode;
 
-  for (uint32_t i = 0; i < args.duration_ms; i++) {
-    ue.run_tti();
+  std::vector<srsue::phy_nr_sa::cell_search_args_t> v_cs_args = {};
+  /*if (std::isnormal(args.base_carrier.ssb_center_freq_hz)) {
+    cs_args.ssb_freq_hz = args.base_carrier.ssb_center_freq_hz;
+    v_cs_args.push_back(cs_args);
+  } else*/
+  {
+    srsran::srsran_band_helper bands;
+
+    // Deduce band number
+    uint16_t band = bands.get_band_from_dl_freq_Hz(args.base_carrier.dl_center_frequency_hz);
+    srsran_assert(band != UINT16_MAX, "Invalid band");
+
+    // Get sync raster
+    srsran::srsran_band_helper::sync_raster_t ss = bands.get_sync_raster(band, args.ssb_scs);
+    srsran_assert(ss.valid(), "Invalid synchronization raster");
+
+    // Calculate SSB center frequency boundaries
+    double ssb_bw_hz              = SRSRAN_SSB_BW_SUBC * bands.get_ssb_scs(band);
+    double ssb_center_freq_min_hz = args.base_carrier.dl_center_frequency_hz - (args.srate_hz * 0.7 - ssb_bw_hz) / 2.0;
+    double ssb_center_freq_max_hz = args.base_carrier.dl_center_frequency_hz + (args.srate_hz * 0.7 - ssb_bw_hz) / 2.0;
+    uint32_t ssb_scs_hz           = SRSRAN_SUBC_SPACING_NR(args.ssb_scs);
+
+    // Iterate every possible synchronization raster
+    while (not ss.end()) {
+      // Get SSB center frequency
+      double abs_freq_ssb_hz = ss.get_frequency();
+
+      uint32_t offset = (uint32_t)std::abs(std::round(abs_freq_ssb_hz - args.base_carrier.dl_center_frequency_hz));
+
+      // Use frequency if it is within the range
+      if ((abs_freq_ssb_hz > ssb_center_freq_min_hz) and (abs_freq_ssb_hz < ssb_center_freq_max_hz) and
+          (offset % ssb_scs_hz == 0)) {
+        cs_args.ssb_freq_hz = abs_freq_ssb_hz;
+        v_cs_args.push_back(cs_args);
+      }
+
+      // Next frequency
+      ss.next();
+    }
+  }
+
+  // For each SSB center frequency...
+  for (const srsue::phy_nr_sa::cell_search_args_t& cs_args_ : v_cs_args) {
+    // Transition PHY to cell search
+    srsran_assert(ue.start_cell_search(cs_args_), "Failed cell search start");
+
+    for (uint32_t i = 0; i < args.duration_ms; i++) {
+      ue.run_tti();
+    }
   }
 
   // Tear down UE

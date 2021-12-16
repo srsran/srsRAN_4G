@@ -157,6 +157,15 @@ bool sync_sa::cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& re
   logger.info("Tuning Tx channel %d to %.2f MHz", 0, req.carrier.ul_center_frequency_hz / 1e6);
   radio->set_tx_freq(0, req.carrier.ul_center_frequency_hz);
 
+  // Configure cell
+  srsran_ue_sync_nr_cfg_t cfg = {};
+  cfg.N_id                    = req.carrier.pci;
+  cfg.ssb                     = req.ssb_cfg;
+  if (slot_synchronizer.set_sync_cfg(cfg)) {
+    logger.error("Cell Search: Failed setting slot synchronizer configuration");
+    return false;
+  }
+
   // SFN synchronization
   phy_state.run_sfn_sync();
   if (phy_state.is_camping()) {
@@ -176,7 +185,7 @@ sync_state::state_t sync_sa::get_state()
 
 void sync_sa::run_state_idle()
 {
-#define test 0
+#define test 1
   if (radio->is_init() && test) {
     logger.debug("Discarding samples and sending tx_end");
     srsran::rf_buffer_t rf_buffer = {};
@@ -197,30 +206,60 @@ void sync_sa::run_state_cell_search()
   // Receive samples
   srsran::rf_buffer_t rf_buffer = {};
   rf_buffer.set_nof_samples(slot_sz);
-  rf_buffer.set(0, rx_buffer);
+  rf_buffer.set(0, rx_buffer + slot_sz);
   if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
     logger.error("SYNC: receiving from radio\n");
   }
 
   // Run Searcher
-  cs_ret = searcher.run_slot(rx_buffer, slot_sz);
+  cs_ret = searcher.run_slot(rx_buffer, 2 * slot_sz);
   if (cs_ret.result < 0) {
     logger.error("Failed to run searcher. Transitioning to IDLE...");
   }
 
+  srsran_vec_cf_copy(rx_buffer, rx_buffer + slot_sz, slot_sz);
+
   cell_search_nof_trials++;
 
+  if (cs_ret.result == cell_search::ret_t::CELL_FOUND) {
+    logger.error("CELL FOUND!");
+
+    rrc_interface_phy_nr::cell_search_result_t result = {};
+    result.cell_found                                 = true;
+    result.pci                                        = cs_ret.ssb_res.N_id;
+    result.pbch_msg                                   = cs_ret.ssb_res.pbch_msg;
+    result.measurements                               = cs_ret.ssb_res.measurements;
+    stack->cell_search_found_cell(result);
+  }
+
   // Leave CELL_SEARCH state if error or success and transition to IDLE
-  if (cs_ret.result || cell_search_nof_trials >= cell_search_max_trials) {
+  if (/*cs_ret.result || */ cell_search_nof_trials >= cell_search_max_trials) {
     phy_state.state_exit();
   }
 }
 
-void sync_sa::run_state_cell_select()
+void sync_sa::run_state_sfn_sync()
 {
-  // TODO
-  tti = 10240 - 4;
-  phy_state.state_exit();
+  // Run SFN synchronization
+  if (slot_synchronizer.run_sfn_sync()) {
+    tti = slot_synchronizer.get_slot_cfg().idx;
+
+    logger.info("SYNC: SFN synchronised successfully (SFN=%d). Transitioning to IDLE...",
+                tti / SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz));
+
+    phy_state.state_exit();
+    return;
+  }
+
+  // If not synchonized, increment number of trials
+  sfn_sync_nof_trials++;
+
+  // Abort SFN synchronization if the maximum number of trials is reached
+  if (sfn_sync_nof_trials >= sfn_sync_max_trials) {
+    logger.info("SYNC: The SFN sync reached the maximum number of trials (%d). Transitioning to IDLE...",
+                sfn_sync_nof_trials);
+    phy_state.state_exit(false);
+  }
 }
 
 void sync_sa::run_state_cell_camping()
@@ -271,7 +310,7 @@ void sync_sa::run_thread()
         run_state_cell_search();
         break;
       case sync_state::SFN_SYNC:
-        run_state_cell_select();
+        run_state_sfn_sync();
         break;
       case sync_state::CAMPING:
         run_state_cell_camping();

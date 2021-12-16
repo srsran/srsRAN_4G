@@ -175,7 +175,7 @@ static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
       return SRSRAN_ERROR;
     }
 
-    // If the PBCH message was NOT decoded, transition to track
+    // If the PBCH message was NOT decoded, transition to find
     if (!pbch_msg.crc) {
       q->state = SRSRAN_UE_SYNC_NR_STATE_FIND;
       return SRSRAN_SUCCESS;

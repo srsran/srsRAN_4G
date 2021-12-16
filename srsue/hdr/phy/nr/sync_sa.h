@@ -67,9 +67,9 @@ public:
   sync_sa(srslog::basic_logger& logger, worker_pool& workers_);
   ~sync_sa();
 
-  bool init(const args_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
+  bool                init(const args_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
   bool                reset();
-  void stop();
+  void                stop();
   sync_state::state_t get_state();
 
   // The following methods control the SYNC state machine
@@ -82,7 +82,7 @@ public:
 private:
   stack_interface_phy_nr*      stack = nullptr; ///< Stand-Alone RRC interface
   srsran::radio_interface_phy* radio = nullptr; ///< Radio object
-  srslog::basic_logger&        logger; ///< General PHY logger
+  srslog::basic_logger&        logger;          ///< General PHY logger
   worker_pool&                 workers;
 
   // FSM that manages RRC commands for cell search/select/sync procedures
@@ -99,6 +99,8 @@ private:
   bool                         is_pending_tx_end      = false;
   uint32_t                     cell_search_nof_trials = 0;
   const static uint32_t        cell_search_max_trials = 100;
+  uint32_t                     sfn_sync_nof_trials    = 0;
+  const static uint32_t        sfn_sync_max_trials    = 100;
 
   cell_search::ret_t cs_ret;
   cell_search        searcher;
@@ -108,7 +110,7 @@ private:
   bool wait_idle();
   void run_state_idle();
   void run_state_cell_search();
-  void run_state_cell_select();
+  void run_state_sfn_sync();
   void run_state_cell_camping();
 
   int  radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time);
