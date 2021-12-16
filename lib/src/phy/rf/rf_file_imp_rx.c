@@ -94,5 +94,5 @@ void rf_file_rx_close(rf_file_rx_t* q)
     free(q->temp_buffer_convert);
   }
 
-  q->file = NULL;
+  // not touching q->file as we don't know if we need to close it ourselves
 }

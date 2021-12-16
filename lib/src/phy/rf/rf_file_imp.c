@@ -351,11 +351,13 @@ int rf_file_close(void* h)
 
   rf_file_info(handler->id, "Closing ...\n");
 
+  // close receiver+transmitter and release related resources (except for the file handles)
   for (int i = 0; i < handler->nof_channels; i++) {
     rf_file_tx_close(&handler->transmitter[i]);
     rf_file_rx_close(&handler->receiver[i]);
   }
 
+  // release other resources
   for (uint32_t i = 0; i < handler->nof_channels; i++) {
     if (handler->buffer_decimation[i]) {
       free(handler->buffer_decimation[i]);
@@ -371,6 +373,7 @@ int rf_file_close(void* h)
   pthread_mutex_destroy(&handler->decim_mutex);
   pthread_mutex_destroy(&handler->rx_gain_mutex);
 
+  // now close the files if we opened them ourselves
   if (handler->close_files) {
     for (int i = 0; i < handler->nof_channels; i++) {
       if (handler->receiver[i].file != NULL) {
