@@ -554,6 +554,9 @@ void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_spa
     case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_reest_complete:
       u.handle_rrc_reestablishment_complete(ul_dcch_msg.msg.c1().rrc_reest_complete());
       break;
+    case ul_dcch_msg_type_c::c1_c_::types_opts::ue_cap_info:
+      u.handle_ue_capability_information(ul_dcch_msg.msg.c1().ue_cap_info());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user

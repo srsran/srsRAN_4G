@@ -1116,8 +1116,8 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   // finally, also enable ciphering on SRB1
   update_as_security(srb_to_lcid(srsran::nr_srb::srb1), false, true);
 
+  send_ue_capability_enquiry();
   send_rrc_reconfiguration();
-  // Note: Skip UE capabilities
 
   // Send RRCReconfiguration if necessary
   if (not nas_pdu_queue.empty()) {
@@ -1187,6 +1187,49 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
     parent->ngap->user_release_request(rnti, asn1::ngap::cause_radio_network_opts::radio_res_not_available);
   }
+}
+
+void rrc_nr::ue::send_ue_capability_enquiry()
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_ue_cap_enquiry().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  ue_cap_enquiry_ies_s& ies = dl_dcch_msg.msg.c1().ue_cap_enquiry().crit_exts.set_ue_cap_enquiry();
+
+  // ue-CapabilityRAT-RequestList
+  ue_cap_rat_request_s cap_rat_request;
+  cap_rat_request.rat_type.value           = rat_type_opts::nr;
+  cap_rat_request.cap_request_filt_present = true;
+
+  // capabilityRequestFilter
+  ue_cap_request_filt_nr_s request_filter;
+
+  // frequencyBandListFilter
+  request_filter.freq_band_list_filt_present = true;
+  freq_band_info_c     freq_band_info;
+  freq_band_info_nr_s& freq_band_info_nr = freq_band_info.set_band_info_nr();
+
+  // Iterate through cell list and assign bandInformationNR items
+  for (auto& iter : parent->cfg.cell_list) {
+    freq_band_info_nr.band_nr = iter.band;
+    request_filter.freq_band_list_filt.push_back(freq_band_info);
+  }
+
+  // Pack capabilityRequestFilter
+  cap_rat_request.cap_request_filt.resize(128);
+  asn1::bit_ref bref_pack(cap_rat_request.cap_request_filt.data(), cap_rat_request.cap_request_filt.size());
+  if (request_filter.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
+    logger.error("Failed to pack capabilityRequestFilter in UE Capability Enquiry");
+  }
+  cap_rat_request.cap_request_filt.resize(bref_pack.distance_bytes());
+
+  ies.ue_cap_rat_request_list.push_back(cap_rat_request);
+
+  send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+}
+
+void rrc_nr::ue::handle_ue_capability_information(const asn1::rrc_nr::ue_cap_info_s& msg)
+{
+  logger.info("UECapabilityInformation transaction ID: %d", msg.rrc_transaction_id);
 }
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)

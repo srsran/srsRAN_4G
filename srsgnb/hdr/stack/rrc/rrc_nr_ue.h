@@ -69,6 +69,9 @@ public:
   void handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_reest_request_s& msg);
   void handle_rrc_reestablishment_complete(const asn1::rrc_nr::rrc_reest_complete_s& msg);
 
+  /* TS 38.331 - 5.6.1 UE capability transfer */
+  void handle_ue_capability_information(const asn1::rrc_nr::ue_cap_info_s& msg);
+
   /** TS 38.331 - 5.3.8 Connection Release */
   void send_rrc_release();
 
@@ -86,6 +89,9 @@ public:
 
   /* TS 38.331 - 5.3.5 RRC reconfiguration */
   void send_rrc_reconfiguration();
+
+  /* TS 38.331 - 5.6.1 UE capability transfer */
+  void send_ue_capability_enquiry();
 
 private:
   int send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
