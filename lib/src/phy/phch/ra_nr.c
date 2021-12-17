@@ -19,6 +19,7 @@
 #include "srsran/phy/phch/ra_ul_nr.h"
 #include "srsran/phy/phch/uci_nr.h"
 #include "srsran/phy/utils/debug.h"
+#include <math.h> /* floor */
 
 typedef struct {
   srsran_mod_t modulation;
@@ -145,7 +146,7 @@ typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
  * The array ra_nr_cqi_to_mcs_table[CQI_table_idx][MCS_table_idx][CQI] contains the MCS corresponding to CQI, based on
  * the given CQI_table_idx and MCS_table_idx tables
  * CQI_table_idx: 1 -> Table 5.2.2.1-2; 2 -> Table 5.2.2.1-3, 3 -> Table 5.2.2.1-4
- * CQI_table_idx: 1 -> Table 5.1.3.1-1; 2 -> Table 5.1.3.1-2; 3 -> Table 5.1.3.1-3
+ * MCS_table_idx: 1 -> Table 5.1.3.1-1; 2 -> Table 5.1.3.1-2; 3 -> Table 5.1.3.1-3
  */
 
 static int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_TABLE_SIZE] = {
@@ -161,6 +162,65 @@ static int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_TABLE_SIZE] = {
     {/* MCS Table 1 */ {-1, 0, 0, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24},
      /* MCS Table 2 */ {-1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17},
      /* MCS Table 3 */ {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28}}};
+
+/**
+ * The CQI to Spectral efficiency table.
+ * The array ra_nr_cqi_to_se_table[CQI_table_idx][CQI] contains the Spectracl Efficiency corresponding to CQI, based on
+ * the given CQI_table_idx:
+ * CQI_table_idx: 1 -> Table 5.2.2.1-2; 2 -> Table 5.2.2.1-3, 3 -> Table 5.2.2.1-4
+ */
+static const double ra_nr_cqi_to_se_table[3][RA_NR_CQI_TABLE_SIZE] = {
+    /* ROW 1 - CQI Table 1 */
+    {-1,
+     0.1523,
+     0.2344,
+     0.3770,
+     0.6016,
+     0.8770,
+     1.1758,
+     1.4766,
+     1.9141,
+     2.4063,
+     2.7305,
+     3.3223,
+     3.9023,
+     4.5234,
+     5.1152,
+     5.5547},
+    /* ROW 2 - CQI Table 2 */
+    {-1,
+     0.1523,
+     0.3770,
+     0.8770,
+     1.4766,
+     1.9141,
+     2.4063,
+     2.7305,
+     3.3223,
+     3.9023,
+     4.5234,
+     5.1152,
+     5.5547,
+     6.2266,
+     6.9141,
+     7.4063},
+    /* ROW 3 - CQI Table 3 */
+    {-1,
+     0.0586,
+     0.0977,
+     0.1523,
+     0.2344,
+     0.3770,
+     0.6016,
+     0.8770,
+     1.1758,
+     1.4766,
+     1.9141,
+     2.4063,
+     2.7305,
+     3.3223,
+     3.9023,
+     4.5234}};
 
 static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t         mcs_table,
                                                           srsran_dci_format_nr_t     dci_format,
@@ -1126,20 +1186,136 @@ int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
     return -1;
   }
 
-  typedef enum { table_1 = 0, table_2, table_3, table_N } mcs_table_t;
-
-  // The following logic to select the MCS table is the same as in the function ra_nr_select_table_pdsch() in this same
-  // file
-  mcs_table_t mcs_table_idx;
-  if (mcs_table == srsran_mcs_table_256qam && dci_format == srsran_dci_format_nr_1_1 &&
-      rnti_type == srsran_rnti_type_c) {
-    mcs_table_idx = table_2;
-  } else if (mcs_table == srsran_mcs_table_qam64LowSE && search_space_type == srsran_search_space_type_ue &&
-             rnti_type == srsran_rnti_type_c) {
-    mcs_table_idx = table_3;
-  } else {
-    mcs_table_idx = table_1;
-  }
+  ra_nr_table_t mcs_table_idx = ra_nr_select_table_pdsch(mcs_table, dci_format, search_space_type, rnti_type);
 
   return ra_nr_cqi_to_mcs_table[cqi_table_idx][mcs_table_idx][cqi];
+}
+
+double srsran_ra_nr_cqi_to_se(uint8_t cqi, srsran_csi_cqi_table_t cqi_table_idx)
+{
+  if (cqi >= RA_NR_CQI_TABLE_SIZE) {
+    ERROR("Invalid CQI (%u)", cqi);
+    return -1;
+  }
+
+  return ra_nr_cqi_to_se_table[cqi_table_idx][cqi];
+}
+
+static inline int srsran_ra_nr_mcs_bin_search(double se, size_t mcs_table_size, const mcs_entry_t* mcs_se_table)
+{
+  if (mcs_se_table == NULL) {
+    ERROR("Missing MCS table pointer");
+    return -1;
+  }
+
+  if (se < mcs_se_table[0].S) {
+    return 0;
+  } else if (se > mcs_se_table[mcs_table_size - 1].S) {
+    return mcs_table_size - 1;
+  }
+
+  size_t lb = 0;
+  size_t ub = mcs_table_size - 1;
+  while (ub > lb + 1) {
+    size_t mid_point = (size_t)floor(((double)(lb + ub)) / 2);
+    // break out of loop is there is an exact match
+    if (mcs_se_table[mid_point].S == se) {
+      ub = mid_point;
+      break;
+    }
+    // restrict the search to the left half of the vector
+    else if (se < mcs_se_table[mid_point].S) {
+      ub = mid_point;
+    }
+    // restrict the search to the right half of the vector
+    else { /* se > mcs_se_table[mid_point].S ) */
+      lb = mid_point;
+    }
+  }
+
+  return (int)ub;
+}
+
+int srsran_ra_nr_se_to_mcs(double                     se_target,
+                           srsran_mcs_table_t         mcs_table,
+                           srsran_dci_format_nr_t     dci_format,
+                           srsran_search_space_type_t search_space_type,
+                           srsran_rnti_type_t         rnti_type)
+{
+  // Get MCS table index to be used
+  ra_nr_table_t mcs_table_idx = ra_nr_select_table_pdsch(mcs_table, dci_format, search_space_type, rnti_type);
+
+  // Get MCS table and size based on mcs_table_idx
+  const mcs_entry_t* mcs_se_table;
+  size_t             mcs_table_size;
+  switch (mcs_table_idx) {
+    case ra_nr_table_1:
+      mcs_se_table   = ra_nr_table1;
+      mcs_table_size = RA_NR_MCS_SIZE_TABLE1;
+      break;
+    case ra_nr_table_2:
+      mcs_se_table   = ra_nr_table2;
+      mcs_table_size = RA_NR_MCS_SIZE_TABLE2;
+      break;
+    case ra_nr_table_3:
+      mcs_se_table   = ra_nr_table3;
+      mcs_table_size = RA_NR_MCS_SIZE_TABLE3;
+      break;
+    default:
+      ERROR("Invalid MCS table index (%u)", mcs_table_idx);
+      return -1;
+  }
+
+  // if SE is lower than min possible value, return min MCS
+  if (se_target <= mcs_se_table[0].S) {
+    return 0;
+  }
+  // if SE is greater than max possible value, return max MCS
+  else if (se_target >= mcs_se_table[mcs_table_size - 1].S) {
+    return mcs_table_size - 1;
+  }
+
+  // handle monotonicity oddity between MCS 16 and 17 for MCS table 1
+  if (mcs_table_idx == ra_nr_table_1) {
+    if (se_target == mcs_se_table[17].S) {
+      return 17;
+    } else if (se_target <= mcs_se_table[16].S && se_target > mcs_se_table[17].S) {
+      return 16;
+    }
+  }
+
+  /* In the following, we search for the greatest MCS value such that MCS(SE) <= target SE, where the target SE is the
+   * value provided as an input argument. The MCS is the vector index, the content of the vector is the SE.
+   * The search is performed by means of a binary-search like algorithm. At each iteration, we look for the SE in the
+   * left or right half of the vector, depending on the target SE.
+   * We stop when the lower-bound (lb) and upper-bound (ub) are two consecutive MCS values and we return the
+   * lower-bound, which approximates the greatest MCS value such that MCS(SE) <= target SE
+   * */
+  size_t lb = 0;                  // lower-bound of MCS-to-SE vector where to perform binary search
+  size_t ub = mcs_table_size - 1; // upper-bound of MCS-to-SE vector where to perform binary search
+  while (ub > lb + 1) {
+    size_t mid_point = (size_t)floor(((double)(lb + ub)) / 2);
+    // break out of loop is there is an exact match
+    if (mcs_se_table[mid_point].S == se_target) {
+      return (int)mid_point;
+    }
+    // restrict the search to the left half of the vector
+    else if (se_target < mcs_se_table[mid_point].S) {
+      ub = mid_point;
+      // handle monotonicity oddity between MCS 16 and 17 for MCS table 1
+      if (mcs_table_idx == ra_nr_table_1 && ub == 17) {
+        ub = 16;
+      }
+    }
+    // restrict the search to the right half of the vector
+    else { /* se_target > mcs_se_table[mid_point].S ) */
+      lb = mid_point;
+      // handle monotonicity oddity between MCS 16 and 17 for MCS table 1
+      if (mcs_table_idx == ra_nr_table_1 && lb == 16) {
+        lb = 17;
+      }
+    }
+  }
+
+  return (int)lb;
 }

@@ -49,6 +49,7 @@ public:
   void ul_sr_info(uint16_t rnti) override;
   void ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) override;
   void dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx);
+  void dl_cqi_info(uint16_t rnti, uint32_t cc, uint32_t cqi_value);
 
   /// Called once per slot in a non-concurrent fashion
   void      slot_indication(slot_point slot_tx) override;

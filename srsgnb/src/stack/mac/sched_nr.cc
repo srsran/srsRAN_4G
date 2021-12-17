@@ -480,6 +480,15 @@ void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uin
       });
 }
 
+void sched_nr::dl_cqi_info(uint16_t rnti, uint32_t cc, uint32_t cqi_value)
+{
+  auto callback = [cqi_value](ue_carrier& ue_cc, event_manager::logger& ev_logger) {
+    ue_cc.dl_cqi = cqi_value;
+    ev_logger.push("0x{:x}: dl_cqi_info(cqi={})", ue_cc.rnti, ue_cc.dl_cqi);
+  };
+  pending_events->enqueue_ue_cc_feedback("dl_cqi_info", rnti, cc, callback);
+}
+
 #define VERIFY_INPUT(cond, msg, ...)                                                                                   \
   do {                                                                                                                 \
     if (not(cond)) {                                                                                                   \

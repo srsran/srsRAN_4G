@@ -168,4 +168,32 @@ SRSRAN_API int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
                                        srsran_dci_format_nr_t     dci_format,
                                        srsran_search_space_type_t search_space_type,
                                        srsran_rnti_type_t         rnti_type);
+
+/**
+ * @brief Returns the Spectral Efficiency corresponding to CQI
+ *
+ * Mapping is performed as: return the MCS that has the closest spectral efficiency to that of the CQI
+ * @param cqi CQI value
+ * @param cqi_table_idx CQI table index
+ * @return The Spectral Efficiency
+ */
+SRSRAN_API double srsran_ra_nr_cqi_to_se(uint8_t cqi, srsran_csi_cqi_table_t cqi_table_idx);
+
+/**
+ * @brief Returns the MCS corresponding to Spectral Efficiency
+ *
+ * Mapping is performed as: return the greatest MCS with an SE lower than or equal to target SE
+ * @param se_target Target Spectral efficiency to be mapped into MCS
+ * @param mcs_table MCS table parameter
+ * @param dci_format DCI format
+ * @param search_space_type Seach Space type
+ * @param rnti_type RNTI type
+ * @return The MCS index
+ */
+SRSRAN_API int srsran_ra_nr_se_to_mcs(double                     se_target,
+                                      srsran_mcs_table_t         mcs_table,
+                                      srsran_dci_format_nr_t     dci_format,
+                                      srsran_search_space_type_t search_space_type,
+                                      srsran_rnti_type_t         rnti_type);
+
 #endif // SRSRAN_RA_NR_H

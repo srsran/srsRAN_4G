@@ -40,9 +40,9 @@ add_executable(sched_nr_rar_test sched_nr_rar_test.cc)
 target_link_libraries(sched_nr_rar_test srsgnb_mac sched_nr_test_suite srsran_common)
 add_nr_test(sched_nr_rar_test sched_nr_rar_test)
 
-add_executable(sched_nr_utilities_tests sched_nr_utilities_tests.cc)
-target_link_libraries(sched_nr_utilities_tests srsgnb_mac srsran_common srsran_phch)
-add_nr_test(sched_nr_utilities_tests sched_nr_utilities_tests)
+add_executable(sched_nr_dci_utilities_tests sched_nr_dci_utilities_tests.cc)
+target_link_libraries(sched_nr_dci_utilities_tests srsgnb_mac srsran_common srsran_phch)
+add_nr_test(sched_nr_dci_utilities_tests sched_nr_dci_utilities_tests)
 
 add_executable(sched_nr_test sched_nr_test.cc)
 target_link_libraries(sched_nr_test
