@@ -425,8 +425,7 @@ bool apply_meascfg_updates(meas_cfg_s&             meascfg,
       for (auto it = current_meascfg.meas_id_to_add_mod_list.begin();
            it != current_meascfg.meas_id_to_add_mod_list.end();) {
         if (it->meas_obj_id == found_src_obj->meas_obj_id) {
-          auto rit = it++;
-          current_meascfg.meas_id_to_add_mod_list.erase(rit);
+          it = current_meascfg.meas_id_to_add_mod_list.erase(it);
         } else {
           ++it;
         }
