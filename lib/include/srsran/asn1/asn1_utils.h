@@ -286,7 +286,8 @@ public:
   using iterator       = T*;
   using const_iterator = const T*;
 
-  explicit bounded_array(uint32_t size_ = 0) : data_(), current_size(size_) {}
+  bounded_array() : data_(), current_size(0) {}
+  explicit bounded_array(uint32_t size_) : data_(), current_size(size_) {}
   static uint32_t capacity() { return MAX_N; }
   uint32_t        size() const { return current_size; }
   T&              operator[](uint32_t idx) { return data_[idx]; }
@@ -858,7 +859,8 @@ public:
   static const uint32_t lb = LB, ub = UB;
   static const bool     has_ext = ext, is_aligned = aligned;
 
-  explicit bitstring(uint32_t siz_ = lb) { resize(siz_); }
+  bitstring() { resize(lb); }
+  explicit bitstring(uint32_t siz_) { resize(siz_); }
   explicit bitstring(const std::string& s)
   {
     resize(s.size());

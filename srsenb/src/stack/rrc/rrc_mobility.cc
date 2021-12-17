@@ -316,8 +316,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     capitem.ue_category                                       = 4;
     capitem.pdcp_params.max_num_rohc_context_sessions_present = true;
     capitem.pdcp_params.max_num_rohc_context_sessions = asn1::rrc::pdcp_params_s::max_num_rohc_context_sessions_e_::cs2;
-    bzero(&capitem.pdcp_params.supported_rohc_profiles,
-          sizeof(asn1::rrc::rohc_profile_support_list_r15_s)); // TODO: why is it r15?
+    capitem.pdcp_params.supported_rohc_profiles       = {};
     capitem.phy_layer_params.ue_specific_ref_sigs_supported = false;
     capitem.phy_layer_params.ue_tx_ant_sel_supported        = false;
     capitem.rf_params.supported_band_list_eutra.resize(1);

@@ -331,7 +331,7 @@ void ue::start_plot()
 
 bool ue::get_metrics(ue_metrics_t* m)
 {
-  bzero(m, sizeof(ue_metrics_t));
+  *m = {};
   phy->get_metrics(srsran::srsran_rat_t::lte, &m->phy);
   phy->get_metrics(srsran::srsran_rat_t::nr, &m->phy_nr);
   radio->get_metrics(&m->rf);
