@@ -27,7 +27,7 @@
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_s1ap.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 namespace srsenb {

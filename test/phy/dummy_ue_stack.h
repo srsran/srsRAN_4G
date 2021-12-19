@@ -22,7 +22,10 @@
 #ifndef SRSRAN_DUMMY_UE_STACK_H
 #define SRSRAN_DUMMY_UE_STACK_H
 
-#include <srsran/interfaces/ue_nr_interfaces.h>
+#include "dummy_rx_harq_proc.h"
+#include "dummy_tx_harq_proc.h"
+#include "srsran/asn1/rrc_nr.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 
 class ue_dummy_stack : public srsue::stack_interface_phy_nr
 {
@@ -37,6 +40,7 @@ public:
   };
 
 private:
+  srslog::basic_logger&          logger = srslog::fetch_basic_logger("UE-STCK");
   std::mutex                     rnti_mutex;
   srsran_random_t                random_gen     = srsran_random_init(0x1323);
   srsran_rnti_type_t             dl_rnti_type   = srsran_rnti_type_c;
@@ -55,20 +59,29 @@ private:
 
 public:
   struct args_t {
-    uint16_t rnti         = 0x1234; ///< C-RNTI for PUSCH and PDSCH transmissions
-    uint32_t sr_period    = 0;      ///< Indicates positive SR period in number of opportunities. Set to 0 to disable.
-    uint32_t prach_period = 0;      ///< Requests PHY to transmit PRACH periodically in frames. Set to 0 to disable.
+    uint16_t    rnti         = 0x1234; ///< C-RNTI for PUSCH and PDSCH transmissions
+    uint32_t    sr_period    = 0; ///< Indicates positive SR period in number of opportunities. Set to 0 to disable.
+    uint32_t    prach_period = 0; ///< Requests PHY to transmit PRACH periodically in frames. Set to 0 to disable.
+    std::string log_level    = "warning";
   };
   ue_dummy_stack(const args_t& args, srsue::phy_interface_stack_nr& phy_) :
     rnti(args.rnti), sr_period(args.sr_period), prach_period(args.prach_period), phy(phy_)
   {
+    logger.set_level(srslog::str_to_basic_level(args.log_level));
     valid = true;
   }
   ~ue_dummy_stack() { srsran_random_free(random_gen); }
+
+  virtual void wait_tti()
+  {
+    // Do nothing
+  }
   void in_sync() override {}
   void out_of_sync() override {}
-  void run_tti(const uint32_t tti) override
+  void run_tti(const uint32_t tti, const uint32_t tti_jump) override
   {
+    wait_tti();
+
     // Run PRACH
     if (prach_period != 0) {
       uint32_t slot_idx = tti % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz);
@@ -80,7 +93,6 @@ public:
       }
     }
   }
-  int          sf_indication(const uint32_t tti) override { return 0; }
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override
   {
     std::unique_lock<std::mutex> lock(rnti_mutex);
@@ -133,9 +145,37 @@ public:
 
   metrics_t get_metrics() { return metrics; }
 
-  void set_phy_config_complete(bool status) override
-  {
+  void set_phy_config_complete(bool status) override {}
 
+  void cell_search_found_cell(const cell_search_result_t& result) override
+  {
+    if (result.cell_found) {
+      // Unpack MIB with ASN1
+      asn1::rrc_nr::mib_s mib_asn1;
+      asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
+      mib_asn1.unpack(cbit);
+
+      // Convert MIB to JSON
+      asn1::json_writer json;
+      mib_asn1.to_json(json);
+
+      // Unpack MIB with C lib
+      srsran_mib_nr_t mib_c = {};
+      srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib_c);
+
+      // Convert MIB from C lib to info
+      std::array<char, 512> mib_info = {};
+      srsran_pbch_msg_nr_mib_info(&mib_c, mib_info.data(), (uint32_t)mib_info.size());
+
+      // Convert CSI to string
+      std::array<char, 512> csi_info = {};
+      srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
+
+      logger.info(
+          "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
+    } else {
+      logger.info("Cell not found\n");
+    }
   }
 };
 

@@ -207,6 +207,23 @@ public:
 
   uint32_t prb_to_rbg_idx(uint32_t prb_idx) const;
 
+  bwp_rb_bitmap& operator|=(const bwp_rb_bitmap& other)
+  {
+    prbs_ |= other.prbs_;
+    rbgs_ |= other.rbgs_;
+    return *this;
+  }
+  bwp_rb_bitmap& operator|=(const rbg_bitmap& other)
+  {
+    add(other);
+    return *this;
+  }
+  bwp_rb_bitmap& operator|=(const prb_bitmap& other)
+  {
+    add(other);
+    return *this;
+  }
+
 private:
   prb_bitmap prbs_;
   rbg_bitmap rbgs_;
@@ -218,6 +235,12 @@ private:
   void add_prbs_to_rbgs(const prb_interval& grant);
   void add_rbgs_to_prbs(const rbg_bitmap& grant);
 };
+
+template <typename Other>
+bwp_rb_bitmap operator|(const bwp_rb_bitmap& lhs, const Other& rhs)
+{
+  return bwp_rb_bitmap(lhs) |= rhs;
+}
 
 inline prb_interval
 find_next_empty_interval(const prb_bitmap& mask, size_t start_prb_idx = 0, size_t last_prb_idx = SRSRAN_MAX_PRB_NR)

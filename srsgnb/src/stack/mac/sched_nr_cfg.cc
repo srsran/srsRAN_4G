@@ -53,14 +53,34 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   cc(cc_),
   bwp_id(bwp_id_),
   cfg(cell.bwps[bwp_id_]),
-  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name))
+  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name)),
+  cached_empty_prb_mask(cell.bwps[bwp_id_].rb_width,
+                        cell.bwps[bwp_id_].start_rb,
+                        cell.bwps[bwp_id_].pdsch.rbg_size_cfg_1)
 {
   srsran_assert(cfg.pdcch.ra_search_space_present, "BWPs without RA search space not supported");
   const uint32_t ra_coreset_id = cfg.pdcch.ra_search_space.coreset_id;
 
   P     = get_P(cfg.rb_width, cfg.pdsch.rbg_size_cfg_1);
   N_rbg = get_nof_rbgs(cfg.rb_width, cfg.start_rb, cfg.pdsch.rbg_size_cfg_1);
-  cached_empty_prb_mask.resize(cfg.rb_width);
+
+  for (const srsran_coreset_t& cs : view_active_coresets(cfg.pdcch)) {
+    coresets.emplace(cs.id);
+    uint32_t rb_start                         = srsran_coreset_start_rb(&cs);
+    coresets[cs.id].prb_limits                = prb_interval{rb_start, rb_start + srsran_coreset_get_bw(&cs)};
+    coresets[cs.id].usable_common_ss_prb_mask = cached_empty_prb_mask;
+
+    // TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
+    coresets[cs.id].usable_common_ss_prb_mask |= prb_interval(0, rb_start);
+    coresets[cs.id].dci_1_0_prb_limits = prb_interval{rb_start, cfg.rb_width};
+
+    // TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
+    // RA type 1 allocs shall be within the CORESET#0 region
+    if (cfg.pdcch.coreset_present[0]) {
+      coresets[cs.id].dci_1_0_prb_limits = coresets[cs.id].prb_limits;
+      coresets[cs.id].usable_common_ss_prb_mask |= prb_interval(coresets[cs.id].prb_limits.stop(), cfg.rb_width);
+    }
+  }
 
   // Derive params of individual slots
   uint32_t nof_slots = SRSRAN_NSLOTS_PER_FRAME_NR(cfg.numerology_idx);
@@ -117,16 +137,6 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
         ss_cce_list[sl][agg_idx].resize(n);
       }
     }
-
-    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type)) {
-      used_common_prb_masks.emplace(ss_id, cached_empty_prb_mask);
-      uint32_t coreset_start = srsran_coreset_start_rb(&cfg.pdcch.coreset[ss.coreset_id]);
-      used_common_prb_masks[ss_id].fill(0, coreset_start, true);
-      if (ss.coreset_id == 0) {
-        uint32_t coreset0_bw = srsran_coreset_get_bw(&cfg.pdcch.coreset[0]);
-        used_common_prb_masks[ss_id].fill(coreset_start + coreset0_bw, cfg.rb_width, true);
-      }
-    }
   }
 }
 
@@ -149,7 +159,7 @@ sched_params_t::sched_params_t(const sched_args_t& sched_cfg_) : sched_cfg(sched
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp_cfg_, const ue_cfg_t& uecfg_) :
-  rnti(rnti_), cc(bwp_cfg_.cc), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_)
+  rnti(rnti_), cc(bwp_cfg_.cc), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_), cached_dci_cfg(uecfg_.phy_cfg.get_dci_cfg())
 {
   std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
   const auto& pdcch        = phy().pdcch;
@@ -164,6 +174,30 @@ ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp
     get_dci_locs(coreset_view[ss.coreset_id], ss, rnti, cce_positions_list.back());
     ss_id_to_cce_idx[ss.id] = cce_positions_list.size() - 1;
   }
+}
+
+int ue_carrier_params_t::find_ss_id(srsran_dci_format_nr_t dci_fmt) const
+{
+  static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
+  static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
+
+  auto active_ss_lst = view_active_search_spaces(phy().pdcch);
+
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    // Prioritize UE-dedicated SearchSpaces
+    if (ss.type == srsran_search_space_type_ue and ss.nof_candidates[aggr_idx] > 0 and
+        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
+      return ss.id;
+    }
+  }
+  // Search Common SearchSpaces
+  for (const srsran_search_space_t& ss : active_ss_lst) {
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) and ss.nof_candidates[aggr_idx] > 0 and
+        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
+      return ss.id;
+    }
+  }
+  return -1;
 }
 
 } // namespace sched_nr_impl

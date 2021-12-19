@@ -21,9 +21,76 @@
 
 #include "sched_nr_common_test.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_cfg.h"
+#include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsran/support/srsran_test.h"
 
 namespace srsenb {
+
+using namespace sched_nr_impl;
+
+void test_dci_ctx_consistency(const srsran_pdcch_cfg_nr_t& pdcch_cfg, const srsran_dci_ctx_t& dci_ctx)
+{
+  TESTASSERT(dci_ctx.coreset_id < SRSRAN_UE_DL_NR_MAX_NOF_CORESET);
+  TESTASSERT(pdcch_cfg.coreset_present[dci_ctx.coreset_id]);
+  const srsran_coreset_t& coreset = pdcch_cfg.coreset[dci_ctx.coreset_id];
+
+  // DCI location
+  TESTASSERT(dci_ctx.location.L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR);
+  TESTASSERT(dci_ctx.location.ncce + (1U << dci_ctx.location.L) <= coreset_nof_cces(coreset));
+  // RNTI type, SearchSpace type, DCI format
+  TESTASSERT(sched_nr_impl::is_rnti_type_valid_in_search_space(dci_ctx.rnti_type, dci_ctx.ss_type));
+  switch (dci_ctx.rnti_type) {
+    case srsran_rnti_type_si:
+      TESTASSERT_EQ(srsran_dci_format_nr_1_0, dci_ctx.format);
+      TESTASSERT_EQ(srsran_search_space_type_common_0, dci_ctx.ss_type);
+      TESTASSERT_EQ(SRSRAN_SIRNTI, dci_ctx.rnti);
+      break;
+    case srsran_rnti_type_ra:
+      TESTASSERT_EQ(dci_ctx.format, srsran_dci_format_nr_1_0);
+      TESTASSERT_EQ(dci_ctx.ss_type, srsran_search_space_type_common_1);
+      TESTASSERT(pdcch_cfg.ra_search_space_present);
+      TESTASSERT_EQ(pdcch_cfg.ra_search_space.coreset_id, dci_ctx.coreset_id);
+      TESTASSERT(pdcch_cfg.ra_search_space.nof_candidates[dci_ctx.location.L] > 0);
+      break;
+    case srsran_rnti_type_tc:
+      TESTASSERT_EQ(srsran_dci_format_nr_1_0, dci_ctx.format);
+      TESTASSERT_EQ(srsran_search_space_type_common_1, dci_ctx.ss_type);
+      break;
+    case srsran_rnti_type_c:
+      TESTASSERT(dci_ctx.format == srsran_dci_format_nr_1_0 or dci_ctx.format == srsran_dci_format_nr_1_1 or
+                 dci_ctx.format == srsran_dci_format_nr_0_0 or dci_ctx.format == srsran_dci_format_nr_0_1);
+      break;
+    default:
+      srsran_terminate("rnti type=%d not supported", dci_ctx.rnti_type);
+  }
+  // CORESET position
+  TESTASSERT_EQ(srsran_coreset_start_rb(&coreset), dci_ctx.coreset_start_rb);
+}
+
+void test_pdcch_collisions(const srsran_pdcch_cfg_nr_t&   pdcch_cfg,
+                           srsran::const_span<pdcch_dl_t> dl_pdcchs,
+                           srsran::const_span<pdcch_ul_t> ul_pdcchs)
+{
+  srsran::optional_vector<coreset_bitmap> coreset_bitmaps;
+  for (const srsran_coreset_t& coreset : view_active_coresets(pdcch_cfg)) {
+    coreset_bitmaps.emplace(coreset.id, coreset_bitmap(coreset_nof_cces(coreset)));
+  }
+
+  for (const pdcch_dl_t& pdcch : dl_pdcchs) {
+    coreset_bitmap& total_bitmap = coreset_bitmaps[pdcch.dci.ctx.coreset_id];
+    coreset_bitmap  alloc(total_bitmap.size());
+    alloc.fill(pdcch.dci.ctx.location.ncce, pdcch.dci.ctx.location.ncce + (1U << pdcch.dci.ctx.location.L));
+    TESTASSERT((alloc & total_bitmap).none());
+    total_bitmap |= alloc;
+  }
+  for (const pdcch_ul_t& pdcch : ul_pdcchs) {
+    coreset_bitmap& total_bitmap = coreset_bitmaps[pdcch.dci.ctx.coreset_id];
+    coreset_bitmap  alloc(total_bitmap.size());
+    alloc.fill(pdcch.dci.ctx.location.ncce, pdcch.dci.ctx.location.ncce + (1U << pdcch.dci.ctx.location.L));
+    TESTASSERT((alloc & total_bitmap).none());
+    total_bitmap |= alloc;
+  }
+}
 
 void test_dl_pdcch_consistency(const sched_nr_interface::cell_cfg_t&         cell_cfg,
                                srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcchs)
@@ -31,19 +98,19 @@ void test_dl_pdcch_consistency(const sched_nr_interface::cell_cfg_t&         cel
   for (const auto& pdcch : dl_pdcchs) {
     TESTASSERT(pdcch.dci.bwp_id < cell_cfg.bwps.size());
     const srsran_pdcch_cfg_nr_t& pdcch_cfg = cell_cfg.bwps[pdcch.dci.bwp_id].pdcch;
-    TESTASSERT(pdcch_cfg.coreset_present[pdcch.dci.ctx.coreset_id]);
+    test_dci_ctx_consistency(pdcch_cfg, pdcch.dci.ctx);
 
-    if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
-      TESTASSERT_EQ(pdcch.dci.ctx.format, srsran_dci_format_nr_1_0);
-      TESTASSERT_EQ(pdcch.dci.ctx.ss_type, srsran_search_space_type_common_1);
-      TESTASSERT(pdcch.dci.ctx.location.L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR);
+    const srsran_coreset_t& coreset = pdcch_cfg.coreset[pdcch.dci.ctx.coreset_id];
+    if (pdcch.dci.ctx.coreset_id == 0) {
+      TESTASSERT_EQ(srsran_coreset_get_bw(&pdcch_cfg.coreset[0]), pdcch.dci.coreset0_bw);
+    }
 
-      // check consistency with cell_cfg
-      TESTASSERT(pdcch_cfg.ra_search_space_present);
-      TESTASSERT_EQ(pdcch_cfg.ra_search_space.coreset_id, pdcch.dci.ctx.coreset_id);
-      TESTASSERT(pdcch_cfg.ra_search_space.nof_candidates[pdcch.dci.ctx.location.L] > 0);
-    } else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
-      TESTASSERT(pdcch.dci.ctx.format == srsran_dci_format_nr_1_0 or pdcch.dci.ctx.format == srsran_dci_format_nr_1_1);
+    switch (pdcch.dci.ctx.rnti_type) {
+      case srsran_rnti_type_si:
+        TESTASSERT(pdcch.dci.sii != 0 or pdcch.dci.ctx.coreset_id == 0); // sii=0 must go in CORESET#0
+        break;
+      default:
+        break;
     }
   }
 }

@@ -153,7 +153,7 @@ SRSASN_CODE bit_ref::pack(uint64_t val, uint32_t n_bits)
   uint64_t mask;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("pack: Buffer size limit was achieved");
       return SRSASN_ERROR_ENCODE_FAIL;
     }
     mask             = ((1ul << n_bits) - 1ul);
@@ -185,7 +185,7 @@ SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_pt
   val = 0;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("unpack_bits: Buffer size limit was achieved");
       return SRSASN_ERROR_DECODE_FAIL;
     }
     if ((uint32_t)(8 - offset) > n_bits) {
@@ -205,35 +205,35 @@ SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_pt
 }
 
 template SRSASN_CODE
-                     unpack_bits<bool, uint8_t*>(bool& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+unpack_bits<bool, uint8_t*>(bool& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<bool, const uint8_t*>(bool&           val,
                                                        const uint8_t*& ptr,
                                                        uint8_t&        offset,
                                                        const uint8_t*  max_ptr,
                                                        uint32_t        n_bits);
 template SRSASN_CODE
-                     unpack_bits<uint8_t, uint8_t*>(uint8_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+unpack_bits<uint8_t, uint8_t*>(uint8_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint8_t, const uint8_t*>(uint8_t&        val,
                                                           const uint8_t*& ptr,
                                                           uint8_t&        offset,
                                                           const uint8_t*  max_ptr,
                                                           uint32_t        n_bits);
 template SRSASN_CODE
-                     unpack_bits<uint16_t, uint8_t*>(uint16_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+unpack_bits<uint16_t, uint8_t*>(uint16_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint16_t, const uint8_t*>(uint16_t&       val,
                                                            const uint8_t*& ptr,
                                                            uint8_t&        offset,
                                                            const uint8_t*  max_ptr,
                                                            uint32_t        n_bits);
 template SRSASN_CODE
-                     unpack_bits<uint32_t, uint8_t*>(uint32_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+unpack_bits<uint32_t, uint8_t*>(uint32_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint32_t, const uint8_t*>(uint32_t&       val,
                                                            const uint8_t*& ptr,
                                                            uint8_t&        offset,
                                                            const uint8_t*  max_ptr,
                                                            uint32_t        n_bits);
 template SRSASN_CODE
-                     unpack_bits<uint64_t, uint8_t*>(uint64_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+unpack_bits<uint64_t, uint8_t*>(uint64_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint64_t, const uint8_t*>(uint64_t&       val,
                                                            const uint8_t*& ptr,
                                                            uint8_t&        offset,
@@ -249,7 +249,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
   if (offset == 0) {
     // Aligned case
     if (ptr + n_bytes > max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("unpack_bytes (aligned): Buffer size limit was achieved");
       return SRSASN_ERROR_DECODE_FAIL;
     }
     memcpy(buf, ptr, n_bytes);
@@ -257,7 +257,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
   } else {
     // Unaligned case
     if (ptr + n_bytes >= max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("unpack_bytes (unaligned): Buffer size limit was achieved");
       return SRSASN_ERROR_DECODE_FAIL;
     }
     for (uint32_t i = 0; i < n_bytes; ++i) {
@@ -273,7 +273,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::align_bytes()
   if (offset == 0)
     return SRSASN_SUCCESS;
   if (ptr >= max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("align_bytes: Buffer size limit was achieved");
     return SRSASN_ERROR_DECODE_FAIL;
   }
   offset = 0;
@@ -289,7 +289,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::advance_bits(uint32_t n_bits)
   uint32_t bytes_offset   = floorf((offset + n_bits) / 8.0f);
 
   if (ptr + bytes_required > max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("advance_bytes: Buffer size limit was achieved");
     return SRSASN_ERROR_DECODE_FAIL;
   }
   ptr += bytes_offset;
@@ -315,7 +315,7 @@ SRSASN_CODE bit_ref::pack_bytes(const uint8_t* buf, uint32_t n_bytes)
     return SRSASN_SUCCESS;
   }
   if (ptr + n_bytes >= max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("pack_bytes: Buffer size limit was achieved");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   if (offset == 0) {
@@ -335,7 +335,7 @@ SRSASN_CODE bit_ref::align_bytes_zero()
   if (offset == 0)
     return SRSASN_SUCCESS;
   if (ptr >= max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("align_bytes_zero: Buffer size limit was achieved");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   auto mask = static_cast<uint8_t>(256u - (1u << (8u - offset)));
@@ -849,7 +849,7 @@ pack_integer<uint16_t>(bit_ref& bref, uint16_t n, uint16_t lb, uint16_t ub, bool
 template SRSASN_CODE
 pack_integer<uint32_t>(bit_ref& bref, uint32_t n, uint32_t lb, uint32_t ub, bool has_ext, bool aligned);
 template SRSASN_CODE
-                     pack_integer<uint64_t>(bit_ref& bref, uint64_t n, uint64_t lb, uint64_t ub, bool has_ext, bool aligned);
+pack_integer<uint64_t>(bit_ref& bref, uint64_t n, uint64_t lb, uint64_t ub, bool has_ext, bool aligned);
 template SRSASN_CODE pack_integer<int8_t>(bit_ref& bref, int8_t n, int8_t lb, int8_t ub, bool has_ext, bool aligned);
 template SRSASN_CODE
 pack_integer<int16_t>(bit_ref& bref, int16_t n, int16_t lb, int16_t ub, bool has_ext, bool aligned);

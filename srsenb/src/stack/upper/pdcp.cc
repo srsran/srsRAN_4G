@@ -23,7 +23,7 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/enb_gtpu_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_pdcp.h"
 
 namespace srsenb {
 

@@ -65,6 +65,15 @@
  */
 #define srsran_assert(condition, fmt, ...) srsran_assert_ifdef(ASSERTS_ENABLED, condition, fmt, ##__VA_ARGS__)
 
+/**
+ * Specialization of "srsran_assert_ifdef" for the SANITY_CHECKS_ENABLED flag
+ */
+#ifndef NDEBUG
+#define SANITY_CHECKS_ENABLED
+#endif
+#define srsran_sanity_check(condition, fmt, ...)                                                                       \
+  srsran_assert_ifdef(SANITY_CHECKS_ENABLED, condition, fmt, ##__VA_ARGS__)
+
 #ifdef STOP_ON_WARNING
 
 #define srsran_expect(condition, fmt, ...) srsran_assert(condition, fmt, ##__VA_ARGS__)

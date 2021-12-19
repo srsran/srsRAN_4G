@@ -330,6 +330,11 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, t
 
     dl_harq.at(cc_idx)->tb_decoded(grant, std::move(result));
   }
+
+  // If proc ra is in contention resolution (RA connection request procedure)
+  if (proc_ra.is_contention_resolution() && grant.rnti == get_temp_crnti()) {
+    proc_ra.received_contention_resolution(contention_res_successful);
+  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
@@ -347,7 +352,7 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   // Clear UL action
   *action = {};
 
-  // if proc ra is in contention resolution and c_rnti == grant.c_rnti resolve contention resolution
+  // if proc ra is in contention resolution and c_rnti == grant.c_rnti (RA connection resume procedure)
   if (proc_ra.is_contention_resolution() && grant.rnti == get_crnti()) {
     proc_ra.pdcch_to_crnti();
   }
@@ -441,7 +446,7 @@ int mac_nr::set_config(const srsran::sr_cfg_nr_t& sr_cfg)
   return proc_sr.set_config(sr_cfg);
 }
 
-void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)
+void mac_nr::set_config(const srsran::rach_cfg_nr_t& rach_cfg)
 {
   proc_ra.set_config(rach_cfg);
 }
@@ -534,9 +539,10 @@ void mac_nr::process_pdus()
   demux.process_pdus();
 }
 
-uint64_t mac_nr::get_contention_id()
+bool mac_nr::received_contention_id(uint64_t rx_contention_id)
 {
-  return 0xdeadbeef; // TODO when rebased on PR
+  contention_res_successful = rntis.get_contention_id() == rx_contention_id;
+  return contention_res_successful;
 }
 
 // TODO same function as for mac_eutra

@@ -40,6 +40,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
     target_link_libraries(nr_phy_test
             srsue_phy
             srsran_common
+            rrc_nr_asn1
             srsran_phy
             srsran_radio
             srsenb_phy

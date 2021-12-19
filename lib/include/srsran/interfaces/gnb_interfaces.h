@@ -28,9 +28,9 @@
 #include "srsran/common/security.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
-#include "srsran/interfaces/rrc_interface_types.h"
 // EUTRA interfaces that are used unmodified
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_pdcp.h"
+#include "srsran/interfaces/enb_rrc_interface_rlc.h"
 
 namespace srsenb {
 
@@ -305,7 +305,7 @@ public:
   virtual void        rach_detected(const rach_info_t& rach_info)                                   = 0;
 };
 
-class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr
+class stack_interface_phy_nr : public mac_interface_phy_nr
 {};
 
 } // namespace srsenb

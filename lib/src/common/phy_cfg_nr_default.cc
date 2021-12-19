@@ -181,6 +181,9 @@ void phy_cfg_nr_default_t::make_pdsch_default(srsran_sch_hl_cfg_nr_t& pdsch)
   pdsch.common_time_ra[0].sliv = srsran_ra_type2_to_riv(SRSRAN_NSYMB_PER_SLOT_NR - 1, 1, SRSRAN_NSYMB_PER_SLOT_NR);
   pdsch.nof_common_time_ra     = 1;
 
+  // Set contiguous PRBs as default
+  pdsch.alloc = srsran_resource_alloc_type1;
+
   // Setup PDSCH DMRS type A position
   pdsch.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
 }

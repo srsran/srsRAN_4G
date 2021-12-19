@@ -26,6 +26,7 @@
 #include "sched_nr_helpers.h"
 #include "sched_nr_interface.h"
 #include "sched_nr_pdcch.h"
+#include "sched_nr_sch.h"
 #include "sched_nr_ue.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
 
@@ -36,9 +37,6 @@ namespace sched_nr_impl {
 using dl_sched_rar_info_t = sched_nr_interface::rar_info_t;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-const static size_t MAX_CORESET_PER_BWP = 3;
-using slot_coreset_list                 = std::array<srsran::optional<coreset_region>, MAX_CORESET_PER_BWP>;
 
 using pdsch_list_t     = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 using sched_rar_list_t = sched_nr_interface::sched_rar_list_t;
@@ -56,26 +54,20 @@ struct bwp_slot_grid {
   uint32_t            slot_idx = 0;
   const bwp_params_t* cfg      = nullptr;
 
-  bwp_rb_bitmap     dl_prbs;
-  bwp_rb_bitmap     ul_prbs;
-  dl_sched_res_t    dl;
-  ul_sched_t        ul;
-  slot_coreset_list coresets;
-  harq_ack_list_t   pending_acks;
+  dl_sched_res_t      dl;
+  ul_sched_t          ul;
+  harq_ack_list_t     pending_acks;
+  bwp_pdcch_allocator pdcchs; /// slot PDCCH resource allocator
+  pdsch_allocator     pdschs; /// slot PDSCH resource allocator
+  pusch_allocator     puschs; /// slot PUSCH resource allocator
 
   srsran::unique_pool_ptr<tx_harq_softbuffer> rar_softbuffer;
 
-  bwp_slot_grid() = default;
   explicit bwp_slot_grid(const bwp_params_t& bwp_params, uint32_t slot_idx_);
   void reset();
 
   bool is_dl() const { return cfg->slots[slot_idx].is_dl; }
   bool is_ul() const { return cfg->slots[slot_idx].is_ul; }
-
-  prb_bitmap used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
-  {
-    return dl_prbs.prbs() | cfg->used_prbs(ss_id, dci_fmt);
-  }
 };
 
 struct bwp_res_grid {
@@ -113,8 +105,8 @@ public:
                                   uint32_t                                aggr_idx,
                                   prb_interval                            interv,
                                   srsran::const_span<dl_sched_rar_info_t> pending_rars);
-  alloc_result alloc_pdsch(slot_ue& ue, prb_grant dl_grant);
-  alloc_result alloc_pusch(slot_ue& ue, prb_grant dl_mask);
+  alloc_result alloc_pdsch(slot_ue& ue, uint32_t ss_id, const prb_grant& dl_grant);
+  alloc_result alloc_pusch(slot_ue& ue, const prb_grant& grant);
 
   slot_point           get_pdcch_tti() const { return pdcch_slot; }
   slot_point           get_tti_rx() const { return pdcch_slot - TX_ENB_DELAY; }
@@ -122,20 +114,25 @@ public:
   const bwp_slot_grid& tx_slot_grid() const { return bwp_grid[pdcch_slot]; }
   bwp_slot_grid&       tx_slot_grid() { return bwp_grid[pdcch_slot]; }
 
+  prb_bitmap occupied_dl_prbs(slot_point sl_tx, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  {
+    return bwp_grid[sl_tx].pdschs.occupied_prbs(ss_id, dci_fmt);
+  }
+  const prb_bitmap& occupied_ul_prbs(slot_point sl_tx) const { return bwp_grid[sl_tx].puschs.occupied_prbs(); }
+
   srslog::basic_logger& logger;
   const bwp_params_t&   cfg;
 
 private:
-  alloc_result
-               verify_pdsch_space(bwp_slot_grid& pdsch_grid, bwp_slot_grid& pdcch_grid, bwp_slot_grid* uci_grid = nullptr) const;
-  alloc_result verify_pusch_space(bwp_slot_grid& pusch_grid, bwp_slot_grid* pdcch_grid = nullptr) const;
-  alloc_result verify_ue_cfg(const ue_carrier_params_t& ue_cfg, harq_proc* harq) const;
+  alloc_result verify_uci_space(const bwp_slot_grid& uci_grid) const;
 
   bwp_res_grid& bwp_grid;
 
   slot_point     pdcch_slot;
   slot_ue_map_t& slot_ues;
 };
+
+prb_grant find_optimal_dl_grant(bwp_slot_allocator& slot_alloc, const slot_ue& ue, uint32_t ss_id);
 
 } // namespace sched_nr_impl
 } // namespace srsenb

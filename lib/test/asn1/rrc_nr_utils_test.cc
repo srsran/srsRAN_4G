@@ -67,13 +67,14 @@ int test_mac_rach_common_config()
   rach_common_config_asn1.to_json(jw);
   srslog::fetch_basic_logger("RRC").info("MAC NR RACH Common config: \n %s", jw.to_string().c_str());
 
-  rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(rach_common_config_asn1);
-  TESTASSERT(rach_nr_cfg.ra_responseWindow == 10);
-  TESTASSERT(rach_nr_cfg.ra_ContentionResolutionTimer == 64);
-  TESTASSERT(rach_nr_cfg.prach_ConfigurationIndex == 160);
-  TESTASSERT(rach_nr_cfg.PreambleReceivedTargetPower == -110);
-  TESTASSERT(rach_nr_cfg.preambleTransMax == 7);
-  TESTASSERT(rach_nr_cfg.powerRampingStep == 4);
+  rach_cfg_nr_t rach_cfg_nr = {};
+  make_mac_rach_cfg(rach_common_config_asn1, &rach_cfg_nr);
+  TESTASSERT(rach_cfg_nr.ra_responseWindow == 10);
+  TESTASSERT(rach_cfg_nr.ra_ContentionResolutionTimer == 64);
+  TESTASSERT(rach_cfg_nr.prach_ConfigurationIndex == 160);
+  TESTASSERT(rach_cfg_nr.PreambleReceivedTargetPower == -110);
+  TESTASSERT(rach_cfg_nr.preambleTransMax == 7);
+  TESTASSERT(rach_cfg_nr.powerRampingStep == 4);
   return SRSRAN_SUCCESS;
 }
 
@@ -677,6 +678,182 @@ int make_phy_nzp_csi_rs_resource_test()
   return SRSRAN_SUCCESS;
 }
 
+int fill_phy_pdsch_cfg_common_test()
+{
+  // "pdsch-ConfigCommon":
+  //     "setup":
+  //         "pdsch-TimeDomainAllocationList": [
+  //             "mappingType": "typeA",
+  //             "startSymbolAndLength": 40
+  //         ]
+
+  asn1::rrc_nr::pdsch_cfg_common_s pdsch_cfg     = {};
+  pdsch_cfg.pdsch_time_domain_alloc_list_present = true;
+  pdsch_cfg.pdsch_time_domain_alloc_list.resize(1);
+  pdsch_cfg.pdsch_time_domain_alloc_list[0].map_type =
+      asn1::rrc_nr::pdsch_time_domain_res_alloc_s::map_type_opts::options::type_a;
+  pdsch_cfg.pdsch_time_domain_alloc_list[0].k0_present           = false;
+  pdsch_cfg.pdsch_time_domain_alloc_list[0].start_symbol_and_len = 40;
+
+  srsran_sch_hl_cfg_nr_t pdsch;
+  fill_phy_pdsch_cfg_common(pdsch_cfg, &pdsch);
+
+  TESTASSERT(pdsch.nof_common_time_ra == 1);
+  TESTASSERT(pdsch.common_time_ra[0].k == 0);
+  TESTASSERT(pdsch.common_time_ra[0].mapping_type == srsran_sch_mapping_type_A);
+  TESTASSERT(pdsch.common_time_ra[0].sliv == 40);
+
+  return SRSRAN_SUCCESS;
+}
+
+int fill_phy_pucch_cfg_common_test()
+{
+  // "pucch-ConfigCommon":
+  //     "setup":
+  //         "pucch-ResourceCommon": 11,
+  //         "pucch-GroupHopping": "neither",
+  //         "p0-nominal": -90
+
+  asn1::rrc_nr::pucch_cfg_common_s pucch_cfg = {};
+  pucch_cfg.pucch_res_common_present         = true;
+  pucch_cfg.pucch_res_common                 = 11;
+  pucch_cfg.hop_id_present                   = false;
+  pucch_cfg.p0_nominal_present               = true;
+  pucch_cfg.p0_nominal                       = -90;
+  pucch_cfg.pucch_group_hop                  = pucch_cfg_common_s::pucch_group_hop_opts::neither;
+
+  srsran_pucch_nr_common_cfg_t pucch = {};
+  fill_phy_pucch_cfg_common(pucch_cfg, &pucch);
+
+  TESTASSERT(pucch.resource_common == 11);
+  TESTASSERT(pucch.p0_nominal == -90);
+  TESTASSERT(pucch.group_hopping == SRSRAN_PUCCH_NR_GROUP_HOPPING_NEITHER);
+
+  return SRSRAN_SUCCESS;
+}
+
+int fill_phy_pusch_cfg_common_test()
+{
+  // "pusch-ConfigCommon":
+  //     "setup": {
+  //         "pusch-TimeDomainAllocationList": [
+  //             "k2": 4,
+  //             "mappingType": "typeA",
+  //             "startSymbolAndLength": 27
+  //         ],
+  //         "p0-NominalWithGrant": -76
+
+  asn1::rrc_nr::pusch_cfg_common_s pusch_cfg     = {};
+  pusch_cfg.pusch_time_domain_alloc_list_present = true;
+  pusch_cfg.pusch_time_domain_alloc_list.resize(1);
+  pusch_cfg.pusch_time_domain_alloc_list[0].map_type =
+      asn1::rrc_nr::pusch_time_domain_res_alloc_s::map_type_opts::options::type_a;
+  pusch_cfg.pusch_time_domain_alloc_list[0].k2_present           = true;
+  pusch_cfg.pusch_time_domain_alloc_list[0].k2                   = 4;
+  pusch_cfg.pusch_time_domain_alloc_list[0].start_symbol_and_len = 27;
+  pusch_cfg.p0_nominal_with_grant_present                        = true;
+  pusch_cfg.p0_nominal_with_grant                                = -76;
+
+  srsran_sch_hl_cfg_nr_t pusch;
+  fill_phy_pusch_cfg_common(pusch_cfg, &pusch);
+
+  TESTASSERT(pusch.nof_common_time_ra == 1);
+  TESTASSERT(pusch.common_time_ra[0].k == 4);
+  TESTASSERT(pusch.common_time_ra[0].mapping_type == srsran_sch_mapping_type_A);
+  TESTASSERT(pusch.common_time_ra[0].sliv == 27);
+
+  return SRSRAN_SUCCESS;
+}
+
+int fill_phy_carrier_cfg_test()
+{
+  // "frequencyInfoDL":
+  //     "frequencyBandList": [
+  //         "freqBandIndicatorNR": 3
+  //     ],
+  //     "offsetToPointA": 13,
+  //     "scs-SpecificCarrierList": [
+  //         "offsetToCarrier": 0,
+  //         "subcarrierSpacing": "kHz15",
+  //         "carrierBandwidth": 52
+  //     ]
+  //
+  // ...
+  //
+  // "frequencyInfoUL":
+  //     "frequencyBandList": [
+  //         "freqBandIndicatorNR": 3
+  //     ],
+  //     "absoluteFrequencyPointA": 348564,
+  //     "scs-SpecificCarrierList": [
+  //         "offsetToCarrier": 0,
+  //         "subcarrierSpacing": "kHz15",
+  //         "carrierBandwidth": 52
+  //     ],
+  //     "p-Max": 10
+
+  asn1::rrc_nr::serving_cell_cfg_common_sib_s serv_cell_cfg = {};
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.freq_band_list.resize(1);
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = 3;
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.offset_to_point_a                          = 13;
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list.resize(1);
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = 0;
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
+      asn1::rrc_nr::subcarrier_spacing_opts::options::khz15;
+  serv_cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = 52;
+
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list_present = true;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list.resize(1);
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list[0].freq_band_ind_nr         = 3;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.absolute_freq_point_a_present              = true;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.absolute_freq_point_a                      = 348564;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.scs_specific_carrier_list.resize(1);
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = 0;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing =
+      asn1::rrc_nr::subcarrier_spacing_opts::options::khz15;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.scs_specific_carrier_list[0].carrier_bw = 52;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.p_max_present                           = true;
+  serv_cell_cfg.ul_cfg_common.freq_info_ul.p_max                                   = 10;
+
+  srsran_carrier_nr_t carrier_nr = {};
+  fill_phy_carrier_cfg(serv_cell_cfg, &carrier_nr);
+
+  TESTASSERT(carrier_nr.offset_to_carrier == 0);
+  TESTASSERT(carrier_nr.scs == srsran_subcarrier_spacing_15kHz);
+  TESTASSERT(carrier_nr.nof_prb == 52);
+  TESTASSERT(carrier_nr.ul_center_frequency_hz == 1747.5e6);
+
+  return SRSRAN_SUCCESS;
+}
+
+int fill_phy_ssb_cfg_test()
+{
+  // "ssb-PositionsInBurst":
+  //     "inOneGroup": "10000000"
+  // "ssb-PeriodicityServingCell": "ms20",
+
+  asn1::rrc_nr::serving_cell_cfg_common_sib_s serv_cell_cfg = {};
+  serv_cell_cfg.ssb_periodicity_serving_cell =
+      asn1::rrc_nr::serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::options::ms20;
+  serv_cell_cfg.ssb_positions_in_burst.group_presence_present = false;
+  serv_cell_cfg.ssb_positions_in_burst.in_one_group.from_number(128);
+
+  phy_cfg_nr_t::ssb_cfg_t ssb = {};
+  fill_phy_ssb_cfg(serv_cell_cfg, &ssb);
+
+  TESTASSERT(ssb.periodicity_ms == 20);
+
+  uint64_t position_in_burst = 0;
+  for (uint64_t i = 0; i < 8; i++) {
+    position_in_burst = position_in_burst << 1 | ssb.position_in_burst[i];
+  }
+  TESTASSERT(position_in_burst == 128);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
@@ -705,6 +882,11 @@ int main()
   TESTASSERT(make_phy_pusch_scaling_test() == SRSRAN_SUCCESS);
   TESTASSERT(make_phy_zp_csi_rs_resource_test() == SRSRAN_SUCCESS);
   TESTASSERT(make_phy_nzp_csi_rs_resource_test() == SRSRAN_SUCCESS);
+  TESTASSERT(fill_phy_pdsch_cfg_common_test() == SRSRAN_SUCCESS);
+  TESTASSERT(fill_phy_pucch_cfg_common_test() == SRSRAN_SUCCESS);
+  TESTASSERT(fill_phy_pusch_cfg_common_test() == SRSRAN_SUCCESS);
+  TESTASSERT(fill_phy_carrier_cfg_test() == SRSRAN_SUCCESS);
+  TESTASSERT(fill_phy_ssb_cfg_test() == SRSRAN_SUCCESS);
   srslog::flush();
 
   printf("Success\n");

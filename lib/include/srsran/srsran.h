@@ -122,6 +122,7 @@ extern "C" {
 #include "srsran/phy/ue/ue_dl_nr.h"
 #include "srsran/phy/ue/ue_mib.h"
 #include "srsran/phy/ue/ue_sync.h"
+#include "srsran/phy/ue/ue_sync_nr.h"
 #include "srsran/phy/ue/ue_ul.h"
 #include "srsran/phy/ue/ue_ul_nr.h"
 

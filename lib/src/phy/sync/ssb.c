@@ -1130,10 +1130,17 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
     return SRSRAN_ERROR;
   }
 
+  srsran_csi_trs_measurements_t measurements = {};
+  if (ssb_measure(q, ssb_grid, N_id, &measurements) < SRSRAN_SUCCESS) {
+    ERROR("Error measuring");
+    return SRSRAN_ERROR;
+  }
+
   // Save result
-  res->N_id     = N_id;
-  res->t_offset = t_offset;
-  res->pbch_msg = pbch_msg;
+  res->N_id         = N_id;
+  res->t_offset     = t_offset;
+  res->pbch_msg     = pbch_msg;
+  res->measurements = measurements;
 
   return SRSRAN_SUCCESS;
 }

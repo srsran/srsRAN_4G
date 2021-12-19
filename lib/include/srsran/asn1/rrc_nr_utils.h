@@ -64,9 +64,13 @@ struct nzp_csi_rs_res_s;
 struct pdsch_serving_cell_cfg_s;
 struct freq_info_dl_s;
 struct serving_cell_cfg_common_s;
+struct serving_cell_cfg_common_sib_s;
 struct serving_cell_cfg_s;
 struct pdcch_cfg_common_s;
 struct pdcch_cfg_s;
+struct pdsch_cfg_common_s;
+struct pucch_cfg_common_s;
+struct pusch_cfg_common_s;
 struct mib_s;
 
 struct srb_to_add_mod_s;
@@ -133,17 +137,23 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
 bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl);
 bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell,
                                     srsran_duplex_config_nr_t*                     duplex_cfg);
-bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
+void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
 bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
+bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch);
+void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch);
+bool fill_phy_pusch_cfg_common(const asn1::rrc_nr::pusch_cfg_common_s& pusch_cfg, srsran_sch_hl_cfg_nr_t* pusch);
+void fill_phy_carrier_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                          srsran_carrier_nr_t*                               carrier_nr);
+void fill_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg, phy_cfg_nr_t::ssb_cfg_t* ssb);
 
 /***************************
  *      MAC Config
  **************************/
 logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const asn1::rrc_nr::lc_ch_cfg_s& asn1_type);
-rach_nr_cfg_t            make_mac_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type);
-bool                     make_mac_phr_cfg_t(const asn1::rrc_nr::phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr);
-bool                     make_mac_dl_harq_cfg_nr_t(const asn1::rrc_nr::pdsch_serving_cell_cfg_s& asn1_type,
-                                                   dl_harq_cfg_nr_t*                             out_dl_harq_cfg_nr);
+void make_mac_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type, rach_cfg_nr_t* rach_cfg_nr);
+bool make_mac_phr_cfg_t(const asn1::rrc_nr::phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr);
+bool make_mac_dl_harq_cfg_nr_t(const asn1::rrc_nr::pdsch_serving_cell_cfg_s& asn1_type,
+                               dl_harq_cfg_nr_t*                             out_dl_harq_cfg_nr);
 /***************************
  *      RLC Config
  **************************/

@@ -111,32 +111,6 @@ void sched_dl_signalling(bwp_slot_allocator& bwp_alloc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool fill_dci_sib(prb_interval        interv,
-                  uint32_t            sib_id,
-                  uint32_t            si_ntx,
-                  const bwp_params_t& bwp_cfg,
-                  srsran_dci_dl_nr_t& dci)
-{
-  dci.mcs                   = 5;
-  dci.ctx.format            = srsran_dci_format_nr_1_0;
-  dci.ctx.ss_type           = srsran_search_space_type_common_0;
-  dci.ctx.rnti_type         = srsran_rnti_type_si;
-  dci.ctx.rnti              = SRSRAN_SIRNTI;
-  dci.ctx.coreset_id        = 0;
-  dci.ctx.coreset_start_rb  = bwp_cfg.cfg.pdcch.coreset[0].offset_rb;
-  dci.coreset0_bw           = srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]);
-  dci.freq_domain_assigment =
-      srsran_ra_nr_type1_riv(srsran_coreset_get_bw(&bwp_cfg.cfg.pdcch.coreset[0]), interv.start(), interv.length());
-  dci.time_domain_assigment = 0;
-  dci.tpc                   = 1;
-  dci.bwp_id                = bwp_cfg.bwp_id;
-  dci.cc_id                 = bwp_cfg.cc;
-  dci.rv                    = 0;
-  dci.sii                   = sib_id == 0 ? 0 : 1;
-
-  return true;
-}
-
 si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
   bwp_cfg(&bwp_cfg_), logger(srslog::fetch_basic_logger(bwp_cfg_.sched_cfg.logger_name))
 {
@@ -158,9 +132,10 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
     // TODO: provide proper config
     return;
   }
-  const uint32_t    si_aggr_level = 2;
-  slot_point        sl_pdcch      = bwp_alloc.get_pdcch_tti();
-  const prb_bitmap& prbs          = bwp_alloc.res_grid()[sl_pdcch].dl_prbs.prbs();
+  const uint32_t si_aggr_level = 2;
+  const uint32_t ss_id         = 0;
+  slot_point     sl_pdcch      = bwp_alloc.get_pdcch_tti();
+  prb_bitmap     prbs          = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);
 
   // Update SI windows
   uint32_t N = bwp_cfg->slots.size();

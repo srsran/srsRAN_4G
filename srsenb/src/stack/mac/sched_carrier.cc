@@ -25,7 +25,7 @@
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_mac.h"
 
 namespace srsenb {
 

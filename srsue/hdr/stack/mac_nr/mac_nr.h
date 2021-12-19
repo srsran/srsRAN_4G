@@ -87,7 +87,7 @@ public:
   int  setup_lcid(const srsran::logical_channel_config_t& config);
   int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg);
   int  set_config(const srsran::sr_cfg_nr_t& sr_cfg);
-  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
+  void set_config(const srsran::rach_cfg_nr_t& rach_cfg_nr);
   int  set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg);
   void set_contention_id(const uint64_t ue_identity);
   bool set_crnti(const uint16_t crnti);
@@ -97,7 +97,7 @@ public:
   void start_ra_procedure();
 
   /// Interface for internal procedures (RA, MUX, HARQ)
-  uint64_t get_contention_id();
+  bool     received_contention_id(uint64_t rx_contention_id);
   uint16_t get_crnti();
   uint16_t get_temp_crnti();
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
@@ -159,6 +159,7 @@ private:
   std::atomic<bool> started = {false};
 
   ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
+  bool    contention_res_successful;
 
   std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
 

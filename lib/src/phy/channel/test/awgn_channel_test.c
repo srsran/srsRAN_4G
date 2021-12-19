@@ -286,6 +286,9 @@ clean_exit:
   if (output_buffer) {
     free(output_buffer);
   }
+  if (help_buffer) {
+    free(help_buffer);
+  }
 
 #ifdef ENABLE_GUI
   if (fft_out) {

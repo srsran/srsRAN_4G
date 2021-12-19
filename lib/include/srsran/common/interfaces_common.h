@@ -67,14 +67,6 @@ struct rf_args_t {
   std::array<rf_args_band_t, SRSRAN_MAX_CARRIERS> ch_tx_bands;
 };
 
-struct vnf_args_t {
-  std::string type;
-  std::string bind_addr;
-  uint16_t    bind_port;
-  std::string log_level;
-  int         log_hex_limit;
-};
-
 class srsran_gw_config_t
 {
 public:
@@ -89,8 +81,6 @@ public:
   virtual uint32_t read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) = 0;
 };
 
-class stack_interface_phy_nr
-{};
 
 } // namespace srsran
 

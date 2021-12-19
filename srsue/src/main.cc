@@ -133,7 +133,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     
     ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("78"),  "Supported NR bands")
     ("rat.nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(0),                   "Number of NR carriers")
-    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(106),                  "Maximum NR carrier bandwidth in PRB")
+    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(52),                  "Maximum NR carrier bandwidth in PRB")
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000),                       "Hex value of the featureGroupIndicators field in the"
                                                                                                                                  "UECapabilityInformation message. Default 0xe6041000")
@@ -477,10 +477,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
         "Calculate TTI execution statistics")
 
-    // NR params
-    ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("ue"), "VNF instance type [gnb,ue]")
-    ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface")
-    ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3334), "Bind port")
     ;
 
   // Positional options - config file location

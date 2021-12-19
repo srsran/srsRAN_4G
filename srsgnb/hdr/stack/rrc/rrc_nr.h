@@ -35,7 +35,6 @@
 #include "srsran/common/timeout.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
 #include "srsran/interfaces/enb_x2_interfaces.h"
 #include "srsran/interfaces/gnb_interfaces.h"
 #include "srsran/interfaces/gnb_mac_interfaces.h"

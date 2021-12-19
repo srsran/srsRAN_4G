@@ -29,10 +29,7 @@
 
 namespace srsenb {
 
-const static size_t SCHED_NR_MAX_USERS     = SRSENB_MAX_UES;
-const static size_t SCHED_NR_NOF_SUBFRAMES = 10;
-const static size_t SCHED_NR_NOF_HARQS     = 16;
-static const size_t MAX_NOF_AGGR_LEVELS    = 5;
+static const size_t MAX_NOF_AGGR_LEVELS = 5;
 
 namespace sched_nr_impl {
 
@@ -45,6 +42,7 @@ using pusch_t            = mac_interface_phy_nr::pusch_t;
 using pucch_t            = mac_interface_phy_nr::pucch_t;
 using pdcch_dl_list_t    = srsran::bounded_vector<pdcch_dl_t, MAX_GRANTS>;
 using pdcch_ul_list_t    = srsran::bounded_vector<pdcch_ul_t, MAX_GRANTS>;
+using pdsch_list_t       = srsran::bounded_vector<pdsch_t, MAX_GRANTS>;
 using pucch_list_t       = srsran::bounded_vector<pucch_t, MAX_GRANTS>;
 using pusch_list_t       = srsran::bounded_vector<pusch_t, MAX_GRANTS>;
 using nzp_csi_rs_list    = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, mac_interface_phy_nr::MAX_NZP_CSI_RS>;
@@ -105,19 +103,23 @@ struct bwp_params_t {
 
   bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
 
-  const prb_bitmap& used_prbs(uint32_t ss_id, srsran_dci_format_nr_t dci_fmt) const
+  prb_interval  coreset_prb_range(uint32_t cs_id) const { return coresets[cs_id].prb_limits; }
+  prb_interval  dci_fmt_1_0_prb_lims(uint32_t cs_id) const { return coresets[cs_id].dci_1_0_prb_limits; }
+  bwp_rb_bitmap dci_fmt_1_0_excluded_prbs(uint32_t cs_id) const { return coresets[cs_id].usable_common_ss_prb_mask; }
+
+  const srsran_search_space_t* get_ss(uint32_t ss_id) const
   {
-    if (used_common_prb_masks.contains(ss_id)) {
-      if (dci_fmt == srsran_dci_format_nr_1_0) {
-        return used_common_prb_masks[ss_id];
-      }
-    }
-    return cached_empty_prb_mask;
+    return cfg.pdcch.search_space_present[ss_id] ? &cfg.pdcch.search_space[ss_id] : nullptr;
   }
 
 private:
-  prb_bitmap                          cached_empty_prb_mask;
-  srsran::optional_vector<prb_bitmap> used_common_prb_masks;
+  bwp_rb_bitmap cached_empty_prb_mask;
+  struct coreset_cached_params {
+    prb_interval  prb_limits;
+    prb_interval  dci_1_0_prb_limits; /// See TS 38.214, section 5.1.2.2
+    bwp_rb_bitmap usable_common_ss_prb_mask;
+  };
+  srsran::optional_vector<coreset_cached_params> coresets;
 };
 
 /// Structure packing a single cell config params, and sched args
@@ -157,6 +159,16 @@ public:
   const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
   const bwp_params_t&         active_bwp() const { return *bwp_cfg; }
 
+  /// Get SearchSpace based on SearchSpaceId
+  const srsran_search_space_t* get_ss(uint32_t ss_id) const
+  {
+    if (phy().pdcch.search_space_present[ss_id]) {
+      // UE-dedicated SearchSpace
+      return &bwp_cfg->cfg.pdcch.search_space[ss_id];
+    }
+    return nullptr;
+  }
+
   srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
   {
     if (cce_positions_list.size() > ss_id_to_cce_idx[search_id]) {
@@ -180,12 +192,18 @@ public:
   int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
   int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
 
+  const srsran_dci_cfg_nr_t& get_dci_cfg() const { return cached_dci_cfg; }
+
+  int find_ss_id(srsran_dci_format_nr_t dci_fmt) const;
+
 private:
   const ue_cfg_t*     cfg_    = nullptr;
   const bwp_params_t* bwp_cfg = nullptr;
 
+  // derived
   std::vector<bwp_cce_pos_list>                              cce_positions_list;
   std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;
+  srsran_dci_cfg_nr_t                                        cached_dci_cfg;
 };
 
 } // namespace sched_nr_impl

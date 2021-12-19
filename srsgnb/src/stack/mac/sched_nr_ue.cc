@@ -20,7 +20,7 @@
  */
 
 #include "srsgnb/hdr/stack/mac/sched_nr_ue.h"
-#include "srsgnb/hdr/stack/mac/sched_nr_pdcch.h"
+#include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
 
@@ -62,8 +62,7 @@ void ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes, uint32_t ul_pending_bytes) :
-  ue(&ue_), pdcch_slot(slot_tx_)
+slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_) : ue(&ue_), pdcch_slot(slot_tx_)
 {
   const uint32_t k0 = 0;
   pdsch_slot        = pdcch_slot + k0;
@@ -74,17 +73,17 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes
 
   const srsran_duplex_config_nr_t& tdd_cfg = ue->cell_params.cfg.duplex;
 
-  dl_active = srsran_duplex_nr_is_dl(&tdd_cfg, 0, pdsch_slot.slot_idx());
+  dl_active = ue->cell_params.bwps[0].slots[pdsch_slot.slot_idx()].is_dl;
   if (dl_active) {
-    dl_bytes = dl_pending_bytes;
+    dl_bytes = ue->common_ctxt.pending_dl_bytes;
     h_dl     = ue->harq_ent.find_pending_dl_retx();
     if (h_dl == nullptr) {
       h_dl = ue->harq_ent.find_empty_dl_harq();
     }
   }
-  ul_active = srsran_duplex_nr_is_ul(&tdd_cfg, 0, pusch_slot.slot_idx());
+  ul_active = ue->cell_params.bwps[0].slots[pusch_slot.slot_idx()].is_ul;
   if (ul_active) {
-    ul_bytes = ul_pending_bytes;
+    ul_bytes = ue->common_ctxt.pending_ul_bytes;
     h_ul     = ue->harq_ent.find_pending_ul_retx();
     if (h_ul == nullptr) {
       h_ul = ue->harq_ent.find_empty_ul_harq();
@@ -97,6 +96,7 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_, uint32_t dl_pending_bytes
 ue_carrier::ue_carrier(uint16_t                              rnti_,
                        const ue_cfg_t&                       uecfg_,
                        const cell_params_t&                  cell_params_,
+                       const ue_context_common&              ctxt,
                        const ue_buffer_manager::pdu_builder& pdu_builder_) :
   rnti(rnti_),
   cc(cell_params_.cc),
@@ -104,6 +104,7 @@ ue_carrier::ue_carrier(uint16_t                              rnti_,
   bwp_cfg(rnti_, cell_params_.bwps[0], uecfg_),
   cell_params(cell_params_),
   pdu_builder(pdu_builder_),
+  common_ctxt(ctxt),
   harq_ent(rnti_, cell_params_.nof_prb(), SCHED_NR_MAX_HARQ, cell_params_.bwps[0].logger)
 {}
 
@@ -151,8 +152,11 @@ void ue::set_cfg(const ue_cfg_t& cfg)
   for (auto& ue_cc_cfg : cfg.carriers) {
     if (ue_cc_cfg.active) {
       if (carriers[ue_cc_cfg.cc] == nullptr) {
-        carriers[ue_cc_cfg.cc].reset(new ue_carrier(
-            rnti, ue_cfg, sched_cfg.cells[ue_cc_cfg.cc], ue_buffer_manager::pdu_builder{ue_cc_cfg.cc, buffers}));
+        carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti,
+                                                    ue_cfg,
+                                                    sched_cfg.cells[ue_cc_cfg.cc],
+                                                    common_ctxt,
+                                                    ue_buffer_manager::pdu_builder{ue_cc_cfg.cc, buffers}));
       } else {
         carriers[ue_cc_cfg.cc]->set_cfg(ue_cfg);
       }
@@ -184,7 +188,7 @@ void ue::rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t priotx)
 
 void ue::new_slot(slot_point pdcch_slot)
 {
-  last_pdcch_slot = pdcch_slot;
+  last_tx_slot = pdcch_slot;
 
   for (std::unique_ptr<ue_carrier>& cc : carriers) {
     if (cc != nullptr) {
@@ -194,18 +198,18 @@ void ue::new_slot(slot_point pdcch_slot)
 
   // Compute pending DL/UL bytes for {rnti, pdcch_slot}
   if (sched_cfg.sched_cfg.auto_refill_buffer) {
-    dl_pending_bytes = 1000000;
-    ul_pending_bytes = 1000000;
+    common_ctxt.pending_dl_bytes = 1000000;
+    common_ctxt.pending_ul_bytes = 1000000;
   } else {
-    dl_pending_bytes = buffers.get_dl_tx_total();
-    ul_pending_bytes = buffers.get_bsr();
+    common_ctxt.pending_dl_bytes = buffers.get_dl_tx_total();
+    common_ctxt.pending_ul_bytes = buffers.get_bsr();
     for (auto& ue_cc_cfg : ue_cfg.carriers) {
       auto& cc = carriers[ue_cc_cfg.cc];
       if (cc != nullptr) {
         // Discount UL HARQ pending bytes to BSR
         for (uint32_t pid = 0; pid < cc->harq_ent.nof_ul_harqs(); ++pid) {
           if (not cc->harq_ent.ul_harq(pid).empty()) {
-            ul_pending_bytes -= cc->harq_ent.ul_harq(pid).tbs();
+            common_ctxt.pending_ul_bytes -= std::min(cc->harq_ent.ul_harq(pid).tbs(), common_ctxt.pending_ul_bytes);
             if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {
               last_sr_slot.clear();
             }
@@ -213,10 +217,9 @@ void ue::new_slot(slot_point pdcch_slot)
         }
       }
     }
-    ul_pending_bytes = std::max(0, ul_pending_bytes);
-    if (ul_pending_bytes == 0 and last_sr_slot.valid()) {
+    if (common_ctxt.pending_ul_bytes == 0 and last_sr_slot.valid()) {
       // If unanswered SR is pending
-      ul_pending_bytes = 512;
+      common_ctxt.pending_ul_bytes = 512;
     }
   }
 }
@@ -224,7 +227,7 @@ void ue::new_slot(slot_point pdcch_slot)
 slot_ue ue::make_slot_ue(slot_point pdcch_slot, uint32_t cc)
 {
   srsran_assert(carriers[cc] != nullptr, "make_slot_ue() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
-  return slot_ue(*carriers[cc], pdcch_slot, dl_pending_bytes, ul_pending_bytes);
+  return slot_ue(*carriers[cc], pdcch_slot);
 }
 
 } // namespace sched_nr_impl

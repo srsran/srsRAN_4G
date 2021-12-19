@@ -25,6 +25,7 @@
 #include "phy_interface_types.h"
 #include "rrc_interface_types.h"
 #include "srsran/asn1/asn1_utils.h"
+#include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/byte_buffer.h"
 #include "srsran/common/tti_point.h"
 
@@ -108,19 +109,13 @@ public:
 class rrc_nr_interface_rrc
 {
 public:
-  virtual int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps)   = 0;
-  virtual int  get_nr_capabilities(srsran::byte_buffer_t* nr_cap)                = 0;
-  virtual void phy_set_cells_to_meas(uint32_t carrier_freq_r15)                  = 0;
-  virtual void phy_meas_stop()                                                   = 0;
-  virtual bool rrc_reconfiguration(bool                endc_release_and_add_r15,
-                                   bool                nr_secondary_cell_group_cfg_r15_present,
-                                   asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                                   bool                sk_counter_r15_present,
-                                   uint32_t            sk_counter_r15,
-                                   bool                nr_radio_bearer_cfg1_r15_present,
-                                   asn1::dyn_octstring nr_radio_bearer_cfg1_r15) = 0;
-  virtual void rrc_release()                                                     = 0;
-  virtual bool is_config_pending()                                               = 0;
+  virtual int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps)                                    = 0;
+  virtual int  get_nr_capabilities(srsran::byte_buffer_t* nr_cap)                                                 = 0;
+  virtual void phy_set_cells_to_meas(uint32_t carrier_freq_r15)                                                   = 0;
+  virtual void phy_meas_stop()                                                                                    = 0;
+  virtual bool rrc_reconfiguration(bool endc_release_and_add_r15, const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf) = 0;
+  virtual void rrc_release()                                                                                      = 0;
+  virtual bool is_config_pending()                                                                                = 0;
 };
 
 class rrc_nr_interface_nas_5g

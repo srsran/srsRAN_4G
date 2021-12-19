@@ -23,7 +23,7 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_rlc.h"
 
 namespace srsenb {
 

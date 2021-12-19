@@ -25,7 +25,7 @@
 #include "sched_sim_ue.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_mac.h"
 #include "srsran/srslog/srslog.h"
 #include <random>
 

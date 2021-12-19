@@ -24,7 +24,9 @@
 
 #include "phy_metrics.h"
 #include "srsran/adt/circular_array.h"
+#include "srsran/common/block_queue.h"
 #include "srsran/common/gen_mch_tables.h"
+#include "srsran/common/threads.h"
 #include "srsran/common/tti_sempahore.h"
 #include "srsran/interfaces/phy_common_interface.h"
 #include "srsran/interfaces/phy_interface_types.h"
@@ -53,6 +55,37 @@ public:
   virtual void out_of_sync() = 0;
 
   virtual void set_cfo(float cfo) = 0;
+};
+
+class phy_cmd_proc : public srsran::thread
+{
+public:
+  phy_cmd_proc() : thread("PHY_CMD") { start(); }
+
+  ~phy_cmd_proc() { stop(); }
+
+  void add_cmd(std::function<void(void)> cmd) { cmd_queue.push(cmd); }
+
+  void stop()
+  {
+    if (running) {
+      add_cmd([this]() { running = false; });
+      wait_thread_finish();
+    }
+  }
+
+private:
+  void run_thread()
+  {
+    std::function<void(void)> cmd;
+    while (running) {
+      cmd = cmd_queue.wait_pop();
+      cmd();
+    }
+  }
+  bool running = true;
+  // Queue for commands
+  srsran::block_queue<std::function<void(void)> > cmd_queue;
 };
 
 /* Subclass that manages variables common to all workers */

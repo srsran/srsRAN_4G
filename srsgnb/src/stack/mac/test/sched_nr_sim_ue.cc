@@ -87,7 +87,11 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
       h.ndi           = data.dci.ndi;
       h.first_slot_tx = cc_out.slot;
       h.dci_loc       = data.dci.ctx.location;
-      h.tbs           = 100; // TODO
+      for (const sched_nr_impl::pdsch_t& pdsch : cc_out.dl->phy.pdsch) {
+        if (pdsch.sch.grant.rnti == data.dci.ctx.rnti) {
+          h.tbs = pdsch.sch.grant.tb[0].tbs / 8u;
+        }
+      }
     } else {
       // it is retx
       h.nof_retxs++;
@@ -238,6 +242,12 @@ void sched_nr_base_tester::user_cfg(uint16_t rnti, const sched_nr_interface::ue_
   sched_ptr->ue_cfg(rnti, ue_cfg_);
 }
 
+void sched_nr_base_tester::add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes)
+{
+  TESTASSERT(ue_db.count(rnti) > 0);
+  dl_buffer_state_diff(rnti, lcid, pdu_size_bytes);
+}
+
 void sched_nr_base_tester::run_slot(slot_point slot_tx)
 {
   srsran_assert(not stopped.load(std::memory_order_relaxed), "Running scheduler when it has already been stopped");
@@ -322,6 +332,83 @@ void sched_nr_base_tester::process_results()
     for (auto& u : ue_db) {
       u.second.update(cc_out);
     }
+
+    // Update scheduler buffers
+    update_sched_buffer_state(cc_out);
+  }
+}
+
+void sched_nr_base_tester::dl_buffer_state_diff(uint16_t rnti, uint32_t lcid, int newtx)
+{
+  auto& lch       = gnb_ue_db[rnti].logical_channels[lcid];
+  lch.rlc_unacked = std::max(0, (int)lch.rlc_unacked + newtx);
+  update_sched_buffer_state(rnti);
+  logger.debug("STATUS: rnti=0x%x, lcid=%d DL buffer state is (unacked=%d, newtx=%d)",
+               rnti,
+               lcid,
+               lch.rlc_unacked,
+               lch.rlc_newtx);
+}
+
+void sched_nr_base_tester::dl_buffer_state_diff(uint16_t rnti, int diff_bs)
+{
+  if (diff_bs == 0) {
+    return;
+  }
+  if (diff_bs > 0) {
+    const auto& ue_bearers = ue_db.at(rnti).get_ctxt().ue_cfg.ue_bearers;
+    for (int i = ue_bearers.size() - 1; i >= 0; --i) {
+      if (ue_bearers[i].is_dl()) {
+        dl_buffer_state_diff(rnti, i, diff_bs);
+        return;
+      }
+    }
+    srsran_terminate("Updating UE RLC buffer state but no bearers are active");
+  }
+  for (auto& lch : gnb_ue_db[rnti].logical_channels) {
+    if (not ue_db.at(rnti).get_ctxt().ue_cfg.ue_bearers[lch.first].is_dl()) {
+      continue;
+    }
+    int max_diff = -std::min((int)lch.second.rlc_unacked, -diff_bs);
+    if (max_diff != 0) {
+      dl_buffer_state_diff(rnti, lch.first, max_diff);
+      diff_bs -= max_diff;
+    }
+  }
+}
+
+void sched_nr_base_tester::update_sched_buffer_state(uint16_t rnti)
+{
+  auto& u = ue_db.at(rnti);
+  for (auto& lch : gnb_ue_db[rnti].logical_channels) {
+    int newtx = lch.second.rlc_unacked;
+    for (auto& cc : u.get_ctxt().cc_list) {
+      if (newtx <= 0) {
+        break;
+      }
+      for (auto& dl_h : cc.dl_harqs) {
+        int tbs = dl_h.active ? dl_h.tbs : 0;
+        newtx   = std::max(0, newtx - tbs);
+      }
+    }
+    if (newtx != (int)lch.second.rlc_newtx) {
+      sched_ptr->dl_buffer_state(rnti, lch.first, newtx, 0);
+      lch.second.rlc_newtx = newtx;
+      logger.debug("STATUS: rnti=0x%x, lcid=%d DL buffer state is (unacked=%d, newtx=%d)",
+                   rnti,
+                   lch.first,
+                   lch.second.rlc_unacked,
+                   lch.second.rlc_newtx);
+    }
+  }
+}
+
+void sched_nr_base_tester::update_sched_buffer_state(const sched_nr_cc_result_view& cc_out)
+{
+  for (auto& dl : cc_out.dl->phy.pdcch_dl) {
+    if (dl.dci.ctx.rnti_type == srsran_rnti_type_c or dl.dci.ctx.rnti_type == srsran_rnti_type_tc) {
+      update_sched_buffer_state(dl.dci.ctx.rnti);
+    }
   }
 }
 
@@ -368,8 +455,13 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
       auto& h = ue_ctxt.cc_list[enb_cc_idx].dl_harqs[ack.pid];
 
       if (ack.ack) {
-        logger.info(
-            "DL ACK rnti=0x%x slot_dl_tx=%u cc=%d pid=%d", ue_ctxt.rnti, h.last_slot_tx.to_uint(), enb_cc_idx, ack.pid);
+        logger.info("EVENT: DL ACK rnti=0x%x slot_dl_tx=%u cc=%d pid=%d, tbs=%d",
+                    ue_ctxt.rnti,
+                    h.last_slot_tx.to_uint(),
+                    enb_cc_idx,
+                    ack.pid,
+                    h.tbs);
+        dl_buffer_state_diff(ue_ctxt.rnti, -(int)h.tbs);
       }
 
       // update scheduler
@@ -394,7 +486,7 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
 
       if (h.is_msg3) {
         logger.info("STATUS: rnti=0x%x received Msg3", ue_ctxt.rnti);
-        sched_ptr->dl_buffer_state(ue_ctxt.rnti, 0, 150, 0); // Schedule RRC setup
+        dl_buffer_state_diff(ue_ctxt.rnti, 0, 150); // Schedule RRC setup
       }
     }
   }

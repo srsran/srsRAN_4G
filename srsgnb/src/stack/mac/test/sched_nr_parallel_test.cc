@@ -51,8 +51,8 @@ public:
       bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
 
       if (is_dl_slot) {
-        if (cc_out.res.dl->phy.ssb.empty()) {
-          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.res.dl->phy.pdcch_dl.size() == 1);
+        if (cc_out.res.dl->phy.ssb.empty() and not slot_ctxt.ue_db.empty()) {
+          TESTASSERT(slot_ctxt.ue_db.empty() or cc_out.res.dl->phy.pdcch_dl.size() >= 1);
         } else {
           TESTASSERT(cc_out.res.dl->phy.pdcch_dl.size() == 0);
         }
@@ -95,6 +95,7 @@ void run_sched_nr_test(uint32_t nof_workers)
     slot_point slot_tx = slot_rx + TX_ENB_DELAY;
     if (slot_rx.to_uint() == 9) {
       sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
+      uecfg.ue_bearers[1].direction      = mac_lc_ch_cfg_t::BOTH;
       tester.add_user(rnti, uecfg, slot_rx, 0);
     }
     tester.run_slot(slot_tx);

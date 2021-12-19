@@ -107,6 +107,7 @@ public:
   static const uint8_t                           ue_con_res_id_len = 6;
   typedef std::array<uint8_t, ue_con_res_id_len> ue_con_res_id_t;
   ue_con_res_id_t                                get_ue_con_res_id_ce();
+  uint64_t                                       get_ue_con_res_id_ce_packed();
 
   // setters
   void set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);

@@ -41,7 +41,7 @@ public:
   ~proc_ra_nr(){};
 
   void init(phy_interface_mac_nr* phy_h_, srsran::ext_task_sched_handle* task_sched_);
-  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
+  void set_config(const srsran::rach_cfg_nr_t& rach_cfg_nr);
   bool is_contention_resolution();
 
   bool     is_rar_opportunity(uint32_t tti);
@@ -49,6 +49,7 @@ public:
   uint16_t get_rar_rnti();
   bool     has_temp_crnti();
   uint16_t get_temp_crnti();
+  void     received_contention_resolution(bool is_successful);
 
   // PHY interfaces
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id);
@@ -73,9 +74,10 @@ private:
   int        ra_window_length = -1, ra_window_start = -1;
   uint16_t   rar_rnti   = SRSRAN_INVALID_RNTI;
   uint16_t   temp_crnti = SRSRAN_INVALID_RNTI;
+  uint16_t   transmitted_crnti = SRSRAN_INVALID_RNTI;
   std::mutex mutex;
 
-  srsran::rach_nr_cfg_t rach_cfg   = {};
+  srsran::rach_cfg_nr_t rach_cfg   = {};
   bool                  configured = false;
 
   enum ra_state_t {
@@ -119,8 +121,7 @@ private:
   void ra_resource_selection();
   void ra_preamble_transmission();
   void ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb);
-  void ra_contention_resolution();
-  void ra_contention_resolution(uint64_t rx_contention_id);
+  void ra_contention_resolution(bool received_con_res_matches_ue_id);
   void ra_completion();
   void ra_error();
 };

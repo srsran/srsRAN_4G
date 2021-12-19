@@ -23,6 +23,13 @@
 
 namespace srsenb {
 
+uint32_t coreset_nof_cces(const srsran_coreset_t& coreset)
+{
+  const bool* res_active   = &coreset.freq_resources[0];
+  uint32_t    nof_freq_res = std::count(res_active, res_active + SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, true);
+  return nof_freq_res * coreset.duration;
+}
+
 srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_interface::cell_cfg_t& cfg)
 {
   srsran::phy_cfg_nr_t ue_phy_cfg;

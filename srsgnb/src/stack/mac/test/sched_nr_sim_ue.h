@@ -138,6 +138,8 @@ public:
 
   void user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_);
 
+  void add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes);
+
   srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() { return cell_params; }
 
   // configurable by simulator concrete implementation
@@ -149,6 +151,11 @@ public:
 protected:
   void              generate_cc_result(uint32_t cc);
   sim_nr_enb_ctxt_t get_enb_ctxt() const;
+
+  void dl_buffer_state_diff(uint16_t rnti, uint32_t lcid, int newtx);
+  void dl_buffer_state_diff(uint16_t rnti, int newtx);
+  void update_sched_buffer_state(uint16_t rnti);
+  void update_sched_buffer_state(const sched_nr_cc_result_view& cc_out);
 
   int set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events);
   int apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events);
@@ -164,7 +171,18 @@ protected:
 
   std::vector<std::unique_ptr<srsran::task_worker> > cc_workers;
 
+  // UE context from the UE's point-of-view
   std::map<uint16_t, sched_nr_ue_sim> ue_db;
+
+  // gNB point-of-view of UE state
+  struct gnb_ue_ctxt {
+    struct channel_ctxt {
+      uint32_t rlc_unacked = 0;
+      uint32_t rlc_newtx   = 0;
+    };
+    std::map<uint32_t, channel_ctxt> logical_channels;
+  };
+  std::map<uint16_t, gnb_ue_ctxt> gnb_ue_db;
 
   // slot-specific
   slot_point                            current_slot_tx;

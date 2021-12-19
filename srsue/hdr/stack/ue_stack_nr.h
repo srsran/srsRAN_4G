@@ -81,17 +81,15 @@ public:
   // RRC interface for PHY
   void in_sync() final;
   void out_of_sync() final;
-  void run_tti(const uint32_t tti) final;
-  void set_phy_config_complete(bool status) override;
+  void set_phy_config_complete(bool status) final;
+  void cell_search_found_cell(const cell_search_result_t& result) final;
+
+  void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
   // MAC interface for PHY
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) final { return mac->get_dl_sched_rnti_nr(tti); }
   sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) final { return mac->get_ul_sched_rnti_nr(tti); }
-  int          sf_indication(const uint32_t tti) final
-  {
-    run_tti(tti);
-    return SRSRAN_SUCCESS;
-  }
+
   void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result) final
   {
     mac->tb_decoded(cc_idx, grant, std::move(result));

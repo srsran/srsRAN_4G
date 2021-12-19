@@ -124,14 +124,76 @@ dl_harq_proc::dl_harq_proc(uint32_t id_, uint32_t nprb) :
   harq_proc(id_), softbuffer(harq_softbuffer_pool::get_instance().get_tx(nprb)), pdu(srsran::make_byte_buffer())
 {}
 
-bool dl_harq_proc::new_tx(slot_point       slot_tx,
-                          slot_point       slot_ack,
-                          const prb_grant& grant,
-                          uint32_t         mcs,
-                          uint32_t         max_retx)
+void dl_harq_proc::fill_dci(srsran_dci_dl_nr_t& dci)
 {
-  if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs, max_retx)) {
+  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+  dci.pid = pid;
+  dci.ndi = ndi();
+  dci.mcs = mcs();
+  dci.rv  = rv_idx[nof_retx() % 4];
+  if (dci.ctx.format == srsran_dci_format_nr_1_0) {
+    dci.harq_feedback = (slot_ack - slot_tx) - 1;
+  } else {
+    dci.harq_feedback = slot_tx.to_uint();
+  }
+}
+
+bool dl_harq_proc::new_tx(slot_point          slot_tx,
+                          slot_point          slot_ack,
+                          const prb_grant&    grant,
+                          uint32_t            mcs_,
+                          uint32_t            max_retx,
+                          srsran_dci_dl_nr_t& dci)
+{
+  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+  if (harq_proc::new_tx(slot_tx, slot_ack, grant, mcs_, max_retx)) {
     pdu->clear();
+    fill_dci(dci);
+    return true;
+  }
+  return false;
+}
+
+bool dl_harq_proc::new_retx(slot_point slot_tx, slot_point slot_ack, const prb_grant& grant, srsran_dci_dl_nr_t& dci)
+{
+  if (harq_proc::new_retx(slot_tx, slot_ack, grant)) {
+    fill_dci(dci);
+    return true;
+  }
+  return false;
+}
+
+void ul_harq_proc::fill_dci(srsran_dci_ul_nr_t& dci)
+{
+  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+  dci.pid = pid;
+  dci.ndi = ndi();
+  dci.mcs = mcs();
+  dci.rv  = rv_idx[nof_retx() % 4];
+}
+
+bool ul_harq_proc::new_tx(slot_point          slot_tx,
+                          const prb_grant&    grant,
+                          uint32_t            mcs_,
+                          uint32_t            max_retx,
+                          srsran_dci_ul_nr_t& dci)
+{
+  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+  if (harq_proc::new_tx(slot_tx, slot_tx, grant, mcs_, max_retx)) {
+    fill_dci(dci);
+    return true;
+  }
+  return false;
+}
+
+bool ul_harq_proc::new_retx(slot_point slot_tx, const prb_grant& grant, srsran_dci_ul_nr_t& dci)
+{
+  if (harq_proc::new_retx(slot_tx, slot_tx, grant)) {
+    fill_dci(dci);
     return true;
   }
   return false;

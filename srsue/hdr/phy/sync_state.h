@@ -22,6 +22,9 @@
 #ifndef SRSUE_SYNC_STATE_H
 #define SRSUE_SYNC_STATE_H
 
+#include <condition_variable>
+#include <mutex>
+
 namespace srsue {
 
 class sync_state
@@ -65,6 +68,12 @@ public:
   {
     std::lock_guard<std::mutex> lock(mutex);
     next_state = SFN_SYNC;
+  }
+
+  state_t get_state()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return cur_state;
   }
 
   /* Functions to be called from outside the STM thread to instruct the STM to switch state.

@@ -23,6 +23,7 @@
 #define SRSRAN_TEST_BENCH_H
 
 #include "dummy_phy_common.h"
+#include "dummy_ue_phy.h"
 #include "srsenb/hdr/phy/nr/worker_pool.h"
 #include "srsue/hdr/phy/nr/worker_pool.h"
 
@@ -39,7 +40,7 @@ private:
   srsenb::nr::worker_pool gnb_phy;
   phy_common              gnb_phy_com;
   ue_dummy_stack          ue_stack;
-  srsue::nr::worker_pool  ue_phy;
+  ue_dummy_phy            ue_phy;
   phy_common              ue_phy_com;
   bool                    initialised = false;
   uint32_t                sf_sz       = 0;
@@ -79,7 +80,7 @@ public:
     gnb_stack(args.gnb_stack),
     gnb_phy(gnb_phy_com, gnb_stack, srslog::get_default_sink(), args.gnb_phy.nof_phy_threads),
     ue_stack(args.ue_stack, ue_phy),
-    ue_phy(args.ue_phy.nof_phy_threads),
+    ue_phy("PHY", args.ue_phy.nof_phy_threads),
 
     ue_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
                srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
@@ -207,7 +208,7 @@ public:
     ue_worker->set_context(ue_context);
 
     // Run UE stack
-    ue_stack.run_tti(slot_idx);
+    ue_stack.run_tti(slot_idx, 1);
 
     // Start UE work
     ue_phy_com.push_semaphore(ue_worker);

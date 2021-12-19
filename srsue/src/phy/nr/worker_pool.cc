@@ -24,7 +24,7 @@
 namespace srsue {
 namespace nr {
 
-worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers), logger(srslog::fetch_basic_logger("PHY-NR")) {}
+worker_pool::worker_pool(srslog::basic_logger& logger_, uint32_t max_workers) : pool(max_workers), logger(logger_) {}
 
 bool worker_pool::init(const phy_args_nr_t&          args,
                        srsran::phy_common_interface& common,
@@ -167,10 +167,10 @@ void worker_pool::send_prach(const uint32_t prach_occasion,
 }
 
 // called from Stack thread when processing RAR PDU
-int worker_pool::set_ul_grant(uint32_t                                       rar_slot_idx,
-                              std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                              uint16_t                                       rnti,
-                              srsran_rnti_type_t                             rnti_type)
+int worker_pool::set_rar_grant(uint32_t                                       rar_slot_idx,
+                               std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                               uint16_t                                       rnti,
+                               srsran_rnti_type_t                             rnti_type)
 {
   // Copy DCI bits and setup DCI context
   srsran_dci_msg_nr_t dci_msg = {};
@@ -301,11 +301,6 @@ void worker_pool::clear_pending_grants()
 void worker_pool::get_metrics(phy_metrics_t& m)
 {
   phy_state.get_metrics(m);
-}
-
-int worker_pool::tx_request(const phy_interface_mac_nr::tx_request_t& request)
-{
-  return 0;
 }
 
 } // namespace nr

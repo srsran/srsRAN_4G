@@ -25,7 +25,7 @@
 #include "srsran/common/enb_events.h"
 #include "srsran/common/int_helpers.h"
 #include "srsran/common/standard_streams.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_s1ap.h"
 
 #include <arpa/inet.h> //for inet_ntop()
 #include <inttypes.h>
