@@ -25,7 +25,24 @@ public:
     uint32_t count;
   };
 
+  struct cell_search_metrics_t {
+    float    epre_db_avg = 0.0f;
+    float    epre_db_min = +INFINITY;
+    float    epre_db_max = -INFINITY;
+    float    rsrp_db_avg = 0.0f;
+    float    rsrp_db_min = +INFINITY;
+    float    rsrp_db_max = -INFINITY;
+    float    snr_db_avg  = 0.0f;
+    float    snr_db_min  = +INFINITY;
+    float    snr_db_max  = -INFINITY;
+    float    cfo_hz_avg  = 0.0f;
+    float    cfo_hz_min  = +INFINITY;
+    float    cfo_hz_max  = -INFINITY;
+    uint32_t count       = 0;
+  };
+
   struct metrics_t {
+    std::map<uint32_t, std::map<uint32_t, cell_search_metrics_t> > cell_search;
     std::map<uint32_t, prach_metrics_t> prach    = {}; ///< PRACH metrics indexed with premable index
     uint32_t                            sr_count = 0;  ///< Counts number of transmitted SR
   };
@@ -47,6 +64,8 @@ private:
 
   dummy_tx_harq_entity tx_harq_proc;
   dummy_rx_harq_entity rx_harq_proc;
+
+  std::atomic<bool> cell_search_finished = {false};
 
 public:
   struct args_t {
@@ -134,39 +153,71 @@ public:
   }
   bool is_valid() const { return valid; }
 
-  metrics_t get_metrics() { return metrics; }
+  const metrics_t& get_metrics() const { return metrics; }
 
   void set_phy_config_complete(bool status) override {}
 
+  bool get_cell_search_finished()
+  {
+    bool ret = cell_search_finished;
+
+    cell_search_finished = false;
+
+    return ret;
+  }
+
   void cell_search_found_cell(const cell_search_result_t& result) override
   {
-    if (result.cell_found) {
-      // Unpack MIB with ASN1
-      asn1::rrc_nr::mib_s mib_asn1;
-      asn1::cbit_ref      cbit(result.pbch_msg.payload, SRSRAN_PBCH_MSG_NR_SZ);
-      mib_asn1.unpack(cbit);
+    // Flag as cell search is done
+    cell_search_finished = true;
 
-      // Convert MIB to JSON
-      asn1::json_writer json;
-      mib_asn1.to_json(json);
-
-      // Unpack MIB with C lib
-      srsran_mib_nr_t mib_c = {};
-      srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib_c);
-
-      // Convert MIB from C lib to info
-      std::array<char, 512> mib_info = {};
-      srsran_pbch_msg_nr_mib_info(&mib_c, mib_info.data(), (uint32_t)mib_info.size());
-
-      // Convert CSI to string
-      std::array<char, 512> csi_info = {};
-      srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
-
-      logger.info(
-          "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
-    } else {
-      logger.info("Cell not found\n");
+    if (not result.cell_found) {
+      logger.info("Cell search finished without detecting any cell");
+      return;
     }
+
+    // Pack PBCH message bits
+    std::array<uint8_t, SRSRAN_PBCH_MSG_NR_SZ> bit_pack_pbch_msg = {};
+    asn1::cbit_ref                             cbit(bit_pack_pbch_msg.data(), bit_pack_pbch_msg.size());
+    srsran_bit_pack_vector((uint8_t*)result.pbch_msg.payload, bit_pack_pbch_msg.data(), SRSRAN_PBCH_MSG_NR_SZ);
+
+    // Unpack MIB with ASN1
+    asn1::rrc_nr::bcch_bch_msg_s bcch;
+    bcch.unpack(cbit);
+
+    // Convert MIB to JSON
+    asn1::json_writer json;
+    bcch.to_json(json);
+
+    // Unpack MIB with C lib
+    srsran_mib_nr_t mib_c = {};
+    srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib_c);
+
+    // Convert MIB from C lib to info
+    std::array<char, 512> mib_info = {};
+    srsran_pbch_msg_nr_mib_info(&mib_c, mib_info.data(), (uint32_t)mib_info.size());
+
+    // Convert CSI to string
+    std::array<char, 512> csi_info = {};
+    srsran_csi_meas_info_short(&result.measurements, csi_info.data(), (uint32_t)csi_info.size());
+
+    logger.info(
+        "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
+
+    cell_search_metrics_t& m = metrics.cell_search[result.pci][result.pbch_msg.ssb_idx];
+    m.epre_db_min            = SRSRAN_MIN(m.epre_db_min, result.measurements.epre_dB);
+    m.epre_db_max            = SRSRAN_MAX(m.epre_db_max, result.measurements.epre_dB);
+    m.epre_db_avg            = SRSRAN_VEC_SAFE_CMA(result.measurements.epre_dB, m.epre_db_avg, m.count);
+    m.rsrp_db_min            = SRSRAN_MIN(m.rsrp_db_min, result.measurements.rsrp_dB);
+    m.rsrp_db_max            = SRSRAN_MAX(m.rsrp_db_max, result.measurements.rsrp_dB);
+    m.rsrp_db_avg            = SRSRAN_VEC_SAFE_CMA(result.measurements.rsrp_dB, m.rsrp_db_avg, m.count);
+    m.snr_db_min             = SRSRAN_MIN(m.snr_db_min, result.measurements.snr_dB);
+    m.snr_db_max             = SRSRAN_MAX(m.snr_db_max, result.measurements.snr_dB);
+    m.snr_db_avg             = SRSRAN_VEC_SAFE_CMA(result.measurements.snr_dB, m.snr_db_avg, m.count);
+    m.cfo_hz_min             = SRSRAN_MIN(m.cfo_hz_min, result.measurements.cfo_hz);
+    m.cfo_hz_max             = SRSRAN_MAX(m.cfo_hz_max, result.measurements.cfo_hz);
+    m.cfo_hz_avg             = SRSRAN_VEC_SAFE_CMA(result.measurements.cfo_hz, m.cfo_hz_avg, m.count);
+    m.count++;
   }
 };
 

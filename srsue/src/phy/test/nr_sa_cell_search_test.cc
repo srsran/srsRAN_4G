@@ -11,7 +11,6 @@
  */
 
 #include "gnb_rf_emulator.h"
-#include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/common/crash_handler.h"
 #include "srsran/common/string_helpers.h"
@@ -46,8 +45,7 @@ public:
     pending_tti_cvar.notify_all();
   }
 
-  uint32_t count = 0;
-  void     tick()
+  void tick()
   {
     // Wait for TTI to get processed
     std::unique_lock<std::mutex> lock(pending_tti_mutex);
@@ -79,7 +77,9 @@ struct args_t {
   std::string                 stack_log_level = "warning";
 
   // Simulation parameters
-  uint32_t           sim_ssb_periodicity_ms = 10;
+  uint32_t           sim_ssb_periodicity_ms   = 10;
+  float              sim_channel_hst_fd_hz    = 0.0f;
+  float              sim_channel_hst_period_s = 7.2f;
   std::set<uint32_t> sim_cell_pci;
 
   // RF parameters
@@ -152,34 +152,36 @@ int parse_args(int argc, char** argv, args_t& args)
   bpo::options_description simulation("Mode 2: Simulation options (enabled if simulation_cell_list is not empty)");
 
   // clang-format off
-  over_the_air.add_options()
-      ("rf.device_name", bpo::value<std::string>(&args.rf_device_name)->default_value(args.rf_device_name), "RF Device Name")
-      ("rf.device_args", bpo::value<std::string>(&args.rf_device_args)->default_value(args.rf_device_args), "RF Device arguments")
-      ("rf.log_level",   bpo::value<std::string>(&args.rf_log_level)->default_value(args.rf_log_level),     "RF Log level (none, warning, info, debug)")
-      ("rf.rx_gain",     bpo::value<float>(&args.rf_rx_gain_dB)->default_value(args.rf_rx_gain_dB),                           "RF Receiver gain in dB")
-      ("rf.freq_offset",     bpo::value<float>(&args.rf_freq_offset_Hz)->default_value(args.rf_freq_offset_Hz),                           "RF Frequency offset")
-      ;
+ over_the_air.add_options()
+     ("rf.device_name", bpo::value<std::string>(&args.rf_device_name)->default_value(args.rf_device_name), "RF Device Name")
+     ("rf.device_args", bpo::value<std::string>(&args.rf_device_args)->default_value(args.rf_device_args), "RF Device arguments")
+     ("rf.log_level",   bpo::value<std::string>(&args.rf_log_level)->default_value(args.rf_log_level),     "RF Log level (none, warning, info, debug)")
+     ("rf.rx_gain",     bpo::value<float>(&args.rf_rx_gain_dB)->default_value(args.rf_rx_gain_dB),                           "RF Receiver gain in dB")
+     ("rf.freq_offset",     bpo::value<float>(&args.rf_freq_offset_Hz)->default_value(args.rf_freq_offset_Hz),                           "RF Frequency offset")
+     ;
 
-  simulation.add_options()
-      ("sim.pci_list", bpo::value<std::string>(&simulation_cell_list)->default_value(simulation_cell_list), "Comma separated PCI cell list to simulate")
-      ("sim.bw", bpo::value<uint32_t>(&args.base_carrier.nof_prb)->default_value(args.base_carrier.nof_prb), "Carrier bandwidth in RB")
-      ("sim.ssb_period",           bpo::value<uint32_t>(&args.sim_ssb_periodicity_ms)->default_value(args.sim_ssb_periodicity_ms),        "SSB period in ms")
-      ;
+ simulation.add_options()
+     ("sim.pci_list", bpo::value<std::string>(&simulation_cell_list)->default_value(simulation_cell_list), "Comma separated PCI cell list to simulate")
+     ("sim.bw", bpo::value<uint32_t>(&args.base_carrier.nof_prb)->default_value(args.base_carrier.nof_prb), "Carrier bandwidth in RB")
+     ("sim.ssb_period",           bpo::value<uint32_t>(&args.sim_ssb_periodicity_ms)->default_value(args.sim_ssb_periodicity_ms),        "SSB period in ms")
+     ("sim.channel.hst.fd",           bpo::value<float>(&args.sim_channel_hst_fd_hz)->default_value(args.sim_channel_hst_fd_hz),        "Channel emulator HST maximum frequency")
+     ("sim.channel.hst.period",           bpo::value<float>(&args.sim_channel_hst_period_s)->default_value(args.sim_channel_hst_period_s),        "Channel emulator HST period")
+     ;
 
-  phy.add_options()
-      ("phy.srate", bpo::value<double>(&args.srate_hz)->default_value(args.srate_hz), "Sampling Rate in Hz")
-      ("phy.log.level", bpo::value<std::string>(&args.phy_log_level)->default_value(args.phy_log_level), "Physical layer logging level")
-      ;
+ phy.add_options()
+     ("phy.srate", bpo::value<double>(&args.srate_hz)->default_value(args.srate_hz), "Sampling Rate in Hz")
+     ("phy.log.level", bpo::value<std::string>(&args.phy_log_level)->default_value(args.phy_log_level), "Physical layer logging level")
+     ;
 
-  stack.add_options()
-      ("stack.log.level", bpo::value<std::string>(&args.stack_log_level)->default_value(args.stack_log_level), "Stack logging level")
-      ;
+ stack.add_options()
+     ("stack.log.level", bpo::value<std::string>(&args.stack_log_level)->default_value(args.stack_log_level), "Stack logging level")
+     ;
 
-  options.add(over_the_air).add(simulation).add(phy).add(stack).add_options()
-      ("help,h",        "Show this message")
-      ("duration",      bpo::value<uint32_t>(&args.duration_ms)->default_value(args.duration_ms),     "Duration of the test in milli-seconds")
-      ("freq_dl", bpo::value<double>(&args.base_carrier.dl_center_frequency_hz)->default_value(args.base_carrier.dl_center_frequency_hz), "Carrier center frequency in Hz")
-      ;
+ options.add(over_the_air).add(simulation).add(phy).add(stack).add_options()
+     ("help,h",        "Show this message")
+     ("duration",      bpo::value<uint32_t>(&args.duration_ms)->default_value(args.duration_ms),     "Duration of the test in milli-seconds")
+     ("freq_dl", bpo::value<double>(&args.base_carrier.dl_center_frequency_hz)->default_value(args.base_carrier.dl_center_frequency_hz), "Carrier center frequency in Hz")
+     ;
   // clang-format on
 
   bpo::variables_map vm;
@@ -223,6 +225,8 @@ public:
     phy.wait_initialize();
   }
 
+  bool cell_search_read_and_clear() { return stack.get_cell_search_finished(); }
+
   bool start_cell_search(const srsue::phy_interface_stack_nr::cell_search_args_t& args)
   {
     return phy.start_cell_search(args);
@@ -243,6 +247,8 @@ public:
     // Stop PHY
     phy.stop();
   }
+
+  const ue_dummy_stack::metrics_t& get_metrics() const { return stack.get_metrics(); }
 };
 
 int main(int argc, char** argv)
@@ -270,6 +276,8 @@ int main(int argc, char** argv)
     gnb_args.ssb_scs                 = args.ssb_scs;
     gnb_args.duplex_mode             = args.duplex_mode;
     gnb_args.pci_list                = args.sim_cell_pci;
+    gnb_args.channel_hst_fd_hz       = args.sim_channel_hst_fd_hz;
+    gnb_args.channel_hst_period_s    = args.sim_channel_hst_period_s;
 
     radio = std::make_shared<gnb_rf_emulator>(gnb_args);
   } else {
@@ -277,13 +285,13 @@ int main(int argc, char** argv)
     srsran::rf_args_t rf_args = {};
     rf_args.type              = "multi";
     rf_args.log_level         = args.rf_log_level;
-    //    rf_args.srate_hz          = args.srate_hz;
-    rf_args.rx_gain      = args.rf_rx_gain_dB;
-    rf_args.nof_carriers = 1;
-    rf_args.nof_antennas = 1;
-    rf_args.device_args  = args.rf_device_args;
-    rf_args.device_name  = args.rf_device_name;
-    rf_args.freq_offset  = args.rf_freq_offset_Hz;
+    rf_args.srate_hz          = args.srate_hz;
+    rf_args.rx_gain           = args.rf_rx_gain_dB;
+    rf_args.nof_carriers      = 1;
+    rf_args.nof_antennas      = 1;
+    rf_args.device_args       = args.rf_device_args;
+    rf_args.device_name       = args.rf_device_name;
+    rf_args.freq_offset       = args.rf_freq_offset_Hz;
 
     // Instantiate
     std::shared_ptr<srsran::radio> r = std::make_shared<srsran::radio>();
@@ -362,7 +370,8 @@ int main(int argc, char** argv)
     // Transition PHY to cell search
     srsran_assert(ue.start_cell_search(cs_args_), "Failed cell search start");
 
-    for (uint32_t i = 0; i < args.duration_ms; i++) {
+    // Run slot until the PHY reported to the stack
+    while (not ue.cell_search_read_and_clear()) {
       ue.run_tti();
     }
   }
@@ -372,6 +381,39 @@ int main(int argc, char** argv)
 
   // Stop Radio
   radio->reset();
+
+  const ue_dummy_stack::metrics_t& metrics = ue.get_metrics();
+  printf("| %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s |\n",
+         "PCI",
+         "SSB",
+         "Count",
+         "RSRP min",
+         "RSRP avg",
+         "RSRP max",
+         "SNR min",
+         "SNR avg",
+         "SNR max",
+         "CFO min",
+         "CFO avg",
+         "CFO max");
+  for (auto& pci : metrics.cell_search) {
+    for (auto& ssb : pci.second) {
+      printf("| %10d | %10d | %10d | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | "
+             "%+10.1f |\n",
+             pci.first,
+             ssb.first,
+             (uint32_t)ssb.second.count,
+             ssb.second.rsrp_db_min,
+             ssb.second.rsrp_db_avg,
+             ssb.second.rsrp_db_max,
+             ssb.second.snr_db_min,
+             ssb.second.snr_db_avg,
+             ssb.second.snr_db_max,
+             ssb.second.cfo_hz_min,
+             ssb.second.cfo_hz_avg,
+             ssb.second.cfo_hz_max);
+    }
+  }
 
   // Erase radio
   radio = nullptr;

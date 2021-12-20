@@ -64,6 +64,8 @@ public:
     uint32_t                    ssb_periodicity_ms;
     srsran_duplex_mode_t        duplex_mode;
     std::set<uint32_t>          pci_list;
+    float                       channel_hst_fd_hz    = 0.0f;
+    float                       channel_hst_period_s = 7.2f;
   };
 
   gnb_rf_emulator(const args_t& args)
@@ -82,6 +84,11 @@ public:
       gnb_args.ssb_pattern          = args.ssb_pattern;
       gnb_args.ssb_periodicity_ms   = args.ssb_periodicity_ms;
       gnb_args.duplex_mode          = args.duplex_mode;
+
+      gnb_args.channel.hst_enable = std::isnormal(args.channel_hst_fd_hz) and std::isnormal(args.channel_hst_period_s);
+      gnb_args.channel.hst_fd_hz  = args.channel_hst_fd_hz;
+      gnb_args.channel.hst_period_s = args.channel_hst_period_s;
+      gnb_args.channel.enable       = gnb_args.channel.hst_enable;
 
       gnb_vector.emplace_back(std::make_shared<gnb_emulator>(gnb_args));
     }
