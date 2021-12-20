@@ -615,7 +615,11 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   return SRSRAN_SUCCESS;
 }
 
-static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, uint32_t t_offset, cf_t ssb_grid[SRSRAN_SSB_NOF_RE])
+static int ssb_demodulate(srsran_ssb_t* q,
+                          const cf_t*   in,
+                          uint32_t      t_offset,
+                          float         coarse_cfo_hz,
+                          cf_t          ssb_grid[SRSRAN_SSB_NOF_RE])
 {
   const cf_t* in_ptr = &in[t_offset];
   for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
@@ -623,11 +627,16 @@ static int ssb_demodulate(srsran_ssb_t* q, const cf_t* in, uint32_t t_offset, cf
     in_ptr += SRSRAN_FLOOR(q->cp_sz, 2);
 
     // Copy FFT window in temporal time domain buffer
-    srsran_vec_cf_copy(q->tmp_time, in_ptr, q->symbol_sz);
+    if (isnormal(coarse_cfo_hz)) {
+      srsran_vec_apply_cfo(in_ptr, (float)(-coarse_cfo_hz / q->cfg.srate_hz), q->tmp_time, q->symbol_sz);
+    } else {
+      srsran_vec_cf_copy(q->tmp_time, in_ptr, q->symbol_sz);
+    }
     in_ptr += q->symbol_sz + SRSRAN_CEIL(q->cp_sz, 2);
 
     // Phase compensation
-    cf_t phase_compensation = (cf_t)cexp(-I * 2.0 * M_PI * q->cfg.center_freq_hz * (double)t_offset / q->cfg.srate_hz);
+    cf_t phase_compensation =
+        (cf_t)cexp(-I * 2.0 * M_PI * (q->cfg.center_freq_hz - coarse_cfo_hz) * (double)t_offset / q->cfg.srate_hz);
     t_offset += q->symbol_sz + q->cp_sz;
 
     // Convert to frequency domain
@@ -750,18 +759,60 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   return SRSRAN_SUCCESS;
 }
 
-static int
-ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* found_N_id_2, uint32_t* found_delay)
+static void ssb_vec_prod_conj_circ_shift(const cf_t* a, const cf_t* b, cf_t* c, uint32_t n, int shift)
+{
+  uint32_t offset = (uint32_t)abs(shift);
+
+  // Avoid negative number of samples
+  if (offset > n) {
+    srsran_vec_cf_zero(c, n);
+    return;
+  }
+
+  // Shift is negative
+  if (shift < 0) {
+    srsran_vec_prod_conj_ccc(&a[offset], &b[0], &c[0], n - offset);
+    srsran_vec_prod_conj_ccc(&a[0], &b[n - offset], &c[n - offset], offset);
+    return;
+  }
+
+  // Shift is positive
+  if (shift > 0) {
+    srsran_vec_prod_conj_ccc(&a[0], &b[offset], &c[0], n - offset);
+    srsran_vec_prod_conj_ccc(&a[n - offset], &b[0], &c[n - offset], offset);
+    return;
+  }
+
+  // Shift is zero
+  srsran_vec_prod_conj_ccc(a, b, c, n);
+}
+
+static int ssb_pss_search(srsran_ssb_t* q,
+                          const cf_t*   in,
+                          uint32_t      nof_samples,
+                          uint32_t*     found_N_id_2,
+                          uint32_t*     found_delay,
+                          float*        coarse_cfo_hz)
 {
   // verify it is initialised
   if (q->corr_sz == 0) {
     return SRSRAN_ERROR;
   }
 
+  // Calculate correlation CFO coarse precision
+  double coarse_cfo_ref_hz = (q->cfg.srate_hz / q->corr_sz);
+
+  // Calculate shift integer range to detect the signal with a maximum CFO equal to the SSB subcarrier spacing
+  int shift_range = (int)ceil(SRSRAN_SUBC_SPACING_NR(q->cfg.scs) / coarse_cfo_ref_hz);
+
+  // Calculate the coarse shift increment for half of the subcarrier spacing
+  int shift_coarse_inc = shift_range / 2;
+
   // Correlation best sequence
   float    best_corr   = 0;
   uint32_t best_delay  = 0;
   uint32_t best_N_id_2 = 0;
+  int      best_shift  = 0;
 
   // Delay in correlation window
   uint32_t t_offset = 0;
@@ -787,29 +838,33 @@ ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* 
 
     // Try each N_id_2 sequence
     for (uint32_t N_id_2 = 0; N_id_2 < SRSRAN_NOF_NID_2_NR; N_id_2++) {
-      // Actual correlation in frequency domain
-      srsran_vec_prod_conj_ccc(q->tmp_freq, q->pss_seq[N_id_2], q->tmp_corr, q->corr_sz);
+      // Steer coarse frequency offset
+      for (int shift = -shift_range; shift <= shift_range; shift += shift_coarse_inc) {
+        // Actual correlation in frequency domain
+        ssb_vec_prod_conj_circ_shift(q->tmp_freq, q->pss_seq[N_id_2], q->tmp_corr, q->corr_sz, shift);
 
-      // Convert to time domain
-      srsran_dft_run_guru_c(&q->ifft_corr);
+        // Convert to time domain
+        srsran_dft_run_guru_c(&q->ifft_corr);
 
-      // Find maximum
-      uint32_t peak_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
+        // Find maximum
+        uint32_t peak_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
 
-      // Average power, skip window if value is invalid (0.0, nan or inf)
-      float avg_pwr_corr = srsran_vec_avg_power_cf(&q->tmp_time[peak_idx], q->symbol_sz);
-      if (!isnormal(avg_pwr_corr)) {
-        continue;
-      }
+        // Average power, skip window if value is invalid (0.0, nan or inf)
+        float avg_pwr_corr = srsran_vec_avg_power_cf(&q->tmp_time[peak_idx], q->symbol_sz);
+        if (!isnormal(avg_pwr_corr)) {
+          continue;
+        }
 
-      // Normalise correlation
-      float corr = SRSRAN_CSQABS(q->tmp_time[peak_idx]) / avg_pwr_corr / sqrtf(SRSRAN_PSS_NR_LEN);
+        // Normalise correlation
+        float corr = SRSRAN_CSQABS(q->tmp_time[peak_idx]) / avg_pwr_corr / sqrtf(SRSRAN_PSS_NR_LEN);
 
-      // Update if the correlation is better than the current best
-      if (best_corr < corr) {
-        best_corr   = corr;
-        best_delay  = peak_idx + t_offset;
-        best_N_id_2 = N_id_2;
+        // Update if the correlation is better than the current best
+        if (best_corr < corr) {
+          best_corr   = corr;
+          best_delay  = peak_idx + t_offset;
+          best_N_id_2 = N_id_2;
+          best_shift  = shift;
+        }
       }
     }
 
@@ -817,9 +872,36 @@ ssb_pss_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, uint32_t* 
     t_offset += q->corr_window;
   }
 
+  // From the best sequence correlate in frequency domain
+  {
+    // Reset best correlation
+    best_corr = 0.0f;
+
+    // Copy the amount of samples
+    srsran_vec_cf_copy(q->tmp_time, &in[best_delay], q->corr_sz);
+
+    // Convert to frequency domain
+    srsran_dft_run_guru_c(&q->fft_corr);
+
+    for (int shift = -shift_range; shift <= shift_range; shift++) {
+      // Actual correlation in frequency domain
+      ssb_vec_prod_conj_circ_shift(q->tmp_freq, q->pss_seq[best_N_id_2], q->tmp_corr, q->corr_sz, shift);
+
+      // Calculate correlation assuming the peak is in the first sample
+      float corr = SRSRAN_CSQABS(srsran_vec_acc_cc(q->tmp_corr, q->corr_sz));
+
+      // Update if the correlation is better than the current best
+      if (best_corr < corr) {
+        best_corr  = corr;
+        best_shift = shift;
+      }
+    }
+  }
+
   // Save findings
-  *found_delay  = best_delay;
-  *found_N_id_2 = best_N_id_2;
+  *found_delay   = best_delay;
+  *found_N_id_2  = best_N_id_2;
+  *coarse_cfo_hz = -(float)best_shift * coarse_cfo_ref_hz;
 
   return SRSRAN_SUCCESS;
 }
@@ -848,9 +930,10 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
   nof_samples -= (q->symbol_sz + q->cp_sz) * SRSRAN_SSB_DURATION_NSYMB;
 
   // Search for PSS in time domain
-  uint32_t N_id_2   = 0;
-  uint32_t t_offset = 0;
-  if (ssb_pss_search(q, in, nof_samples, &N_id_2, &t_offset) < SRSRAN_SUCCESS) {
+  uint32_t N_id_2        = 0;
+  uint32_t t_offset      = 0;
+  float    coarse_cfo_hz = 0.0f;
+  if (ssb_pss_search(q, in, nof_samples, &N_id_2, &t_offset, &coarse_cfo_hz) < SRSRAN_SUCCESS) {
     ERROR("Error searching for N_id_2");
     return SRSRAN_ERROR;
   }
@@ -864,7 +947,7 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, in, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, in, t_offset, coarse_cfo_hz, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
@@ -888,6 +971,7 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
 
   // Add delay to measure
   meas->delay_us += (float)(1e6 * t_offset / q->cfg.srate_hz);
+  meas->cfo_hz -= coarse_cfo_hz;
 
   return SRSRAN_SUCCESS;
 }
@@ -916,7 +1000,7 @@ int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, in, (uint32_t)t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, in, (uint32_t)t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
@@ -1045,7 +1129,7 @@ int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, in, (uint32_t)t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, in, (uint32_t)t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
@@ -1074,9 +1158,10 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
   }
 
   // Search for PSS in time domain
-  uint32_t N_id_2   = 0;
-  uint32_t t_offset = 0;
-  if (ssb_pss_search(q, in, nof_samples, &N_id_2, &t_offset) < SRSRAN_SUCCESS) {
+  uint32_t N_id_2        = 0;
+  uint32_t t_offset      = 0;
+  float    coarse_cfo_hz = 0.0f;
+  if (ssb_pss_search(q, in, nof_samples, &N_id_2, &t_offset, &coarse_cfo_hz) < SRSRAN_SUCCESS) {
     ERROR("Error searching for N_id_2");
     return SRSRAN_ERROR;
   }
@@ -1090,7 +1175,7 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, in, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, in, t_offset, coarse_cfo_hz, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
@@ -1132,6 +1217,7 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
   res->t_offset     = t_offset;
   res->pbch_msg     = pbch_msg;
   res->measurements = measurements;
+  res->measurements.cfo_hz += coarse_cfo_hz;
 
   return SRSRAN_SUCCESS;
 }
@@ -1241,7 +1327,7 @@ int srsran_ssb_find(srsran_ssb_t*                  q,
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, q->sf_buffer, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, q->sf_buffer, t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
@@ -1301,7 +1387,7 @@ int srsran_ssb_track(srsran_ssb_t*                  q,
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, sf_buffer, t_offset, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, sf_buffer, t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
