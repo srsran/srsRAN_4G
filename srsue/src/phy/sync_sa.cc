@@ -185,20 +185,18 @@ sync_state::state_t sync_sa::get_state()
 
 void sync_sa::run_state_idle()
 {
-#define test 1
-  if (radio->is_init() && test) {
-    logger.debug("Discarding samples and sending tx_end");
-    srsran::rf_buffer_t rf_buffer = {};
-    rf_buffer.set_nof_samples(slot_sz);
-    rf_buffer.set(0, rx_buffer);
-    if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
-      logger.error("SYNC: receiving from radio\n");
-    }
-    radio->tx_end();
-  } else {
-    logger.debug("Sleeping 1 s");
-    sleep(1);
+  if (not radio->is_init()) {
+    return;
   }
+
+  logger.debug("Discarding samples and sending tx_end");
+  srsran::rf_buffer_t rf_buffer = {};
+  rf_buffer.set_nof_samples(slot_sz);
+  rf_buffer.set(0, rx_buffer);
+  if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
+    logger.error("SYNC: receiving from radio\n");
+  }
+  radio->tx_end();
 }
 
 void sync_sa::run_state_cell_search()
@@ -221,19 +219,8 @@ void sync_sa::run_state_cell_search()
 
   cell_search_nof_trials++;
 
-  if (cs_ret.result == cell_search::ret_t::CELL_FOUND) {
-    logger.error("CELL FOUND!");
-
-    rrc_interface_phy_nr::cell_search_result_t result = {};
-    result.cell_found                                 = true;
-    result.pci                                        = cs_ret.ssb_res.N_id;
-    result.pbch_msg                                   = cs_ret.ssb_res.pbch_msg;
-    result.measurements                               = cs_ret.ssb_res.measurements;
-    stack->cell_search_found_cell(result);
-  }
-
   // Leave CELL_SEARCH state if error or success and transition to IDLE
-  if (/*cs_ret.result || */ cell_search_nof_trials >= cell_search_max_trials) {
+  if (cs_ret.result == cell_search::ret_t::CELL_FOUND || cell_search_nof_trials >= cell_search_max_trials) {
     phy_state.state_exit();
   }
 }

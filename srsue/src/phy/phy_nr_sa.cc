@@ -146,6 +146,8 @@ phy_interface_rrc_nr::phy_nr_state_t phy_nr_sa::get_state()
 void phy_nr_sa::reset_nr()
 {
   sync.reset();
+
+  sync.cell_go_idle();
 }
 
 // This function executes one part of the procedure immediately and returns to continue in the background.
@@ -157,10 +159,10 @@ bool phy_nr_sa::start_cell_search(const cell_search_args_t& req)
 {
   // TODO: verify arguments are valid before starting procedure
 
-  logger.info("Cell Search: Going to IDLE");
-  sync.cell_go_idle();
-
   cmd_worker_cell.add_cmd([this, req]() {
+    logger.info("Cell Search: Going to IDLE");
+    sync.cell_go_idle();
+
     // Prepare cell search configuration from the request
     nr::cell_search::cfg_t cfg = {};
     cfg.srate_hz               = req.srate_hz;

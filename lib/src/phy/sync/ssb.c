@@ -420,12 +420,6 @@ int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg)
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  printf("-- srate=%.2fMHz; center_freq=%.2fMHz; ssb_freq=%.2fMHz; scs=%s;\n",
-         cfg->srate_hz / 1e6,
-         cfg->center_freq_hz / 1e6,
-         cfg->ssb_freq_hz / 1e6,
-         srsran_subcarrier_spacing_to_str(cfg->scs));
-
   // Calculate subcarrier spacing in Hz
   q->scs_hz = (float)SRSRAN_SUBC_SPACING_NR(cfg->scs);
 
@@ -1131,14 +1125,6 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
   if (ssb_measure(q, ssb_grid, N_id, &measurements) < SRSRAN_SUCCESS) {
     ERROR("Error measuring");
     return SRSRAN_ERROR;
-  }
-
-  if (fabs(q->cfg.ssb_freq_hz - 1842.05e6) < 1e6) {
-    printf("-- freq=%.3f; N_id=%d; EPRE=%+.2f; RSRP=%+.2f;\n",
-           q->cfg.ssb_freq_hz,
-           N_id,
-           measurements.epre_dB,
-           measurements.rsrp_dB);
   }
 
   // Save result

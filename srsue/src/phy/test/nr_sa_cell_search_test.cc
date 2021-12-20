@@ -38,7 +38,7 @@ public:
     // Wait for tick
     std::unique_lock<std::mutex> lock(pending_tti_mutex);
     while (not pending_tti and running) {
-      pending_tti_cvar.wait(lock);
+      pending_tti_cvar.wait_for(lock, std::chrono::milliseconds(1));
     }
 
     // Let the tick proceed
@@ -46,12 +46,13 @@ public:
     pending_tti_cvar.notify_all();
   }
 
-  void tick()
+  uint32_t count = 0;
+  void     tick()
   {
     // Wait for TTI to get processed
     std::unique_lock<std::mutex> lock(pending_tti_mutex);
-    while (pending_tti) {
-      pending_tti_cvar.wait(lock);
+    while (pending_tti and running) {
+      pending_tti_cvar.wait_for(lock, std::chrono::milliseconds(1));
     }
 
     // Let the TTI proceed
