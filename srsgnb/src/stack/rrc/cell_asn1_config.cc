@@ -137,15 +137,27 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
   csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
   csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
   csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 1; // was 17 in orig PCAP
+  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res =
+      17; // was 17 in orig PCAP, but code for NSA it was set to 1
   csi_report.report_quant.set_cri_ri_pmi_cqi();
   // Report freq config (optional)
   csi_report.report_freq_cfg_present                = true;
   csi_report.report_freq_cfg.cqi_format_ind_present = true;
-  csi_report.report_freq_cfg.cqi_format_ind = csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
-  csi_report.time_restrict_for_ch_meass     = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
-  csi_report.time_restrict_for_interference_meass =
+  csi_report.report_freq_cfg.cqi_format_ind.value =
+      csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+  csi_report.report_freq_cfg.pmi_format_ind_present = true;
+  csi_report.report_freq_cfg.pmi_format_ind.value =
+      csi_report_cfg_s::report_freq_cfg_s_::pmi_format_ind_opts::wideband_pmi;
+  csi_report.time_restrict_for_ch_meass.value = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+  csi_report.time_restrict_for_interference_meass.value =
       asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
+  csi_report.codebook_cfg_present = true;
+  auto& type1                     = csi_report.codebook_cfg.codebook_type.set_type1();
+  type1.sub_type.set_type_i_single_panel();
+  type1.sub_type.type_i_single_panel().nr_of_ant_ports.set_two();
+  type1.sub_type.type_i_single_panel().nr_of_ant_ports.two().two_tx_codebook_subset_restrict.from_number(0b111111);
+  type1.sub_type.type_i_single_panel().type_i_single_panel_ri_restrict.from_number(0x03);
+  type1.codebook_mode = 1;
   csi_report.group_based_beam_report.set_disabled();
   // Skip CQI table (optional)
   csi_report.cqi_table_present = true;
@@ -153,7 +165,7 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
   csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
 
   if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 5;
+    csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 9;
   } else {
     csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
   }
@@ -170,16 +182,17 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     auto& nzp_csi_res = csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list;
     // item 0
     nzp_csi_res[0].nzp_csi_rs_res_id = 0;
-    nzp_csi_res[0].res_map.freq_domain_alloc.set_row2();
-    nzp_csi_res[0].res_map.freq_domain_alloc.row2().from_number(0b100000000000);
-    nzp_csi_res[0].res_map.nrof_ports                       = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
+    nzp_csi_res[0].res_map.freq_domain_alloc.set_other();
+    nzp_csi_res[0].res_map.freq_domain_alloc.other().from_number(0b100000);
+    nzp_csi_res[0].res_map.nrof_ports.value                 = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p2;
     nzp_csi_res[0].res_map.first_ofdm_symbol_in_time_domain = 4;
-    nzp_csi_res[0].res_map.cdm_type                         = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
+    nzp_csi_res[0].res_map.cdm_type.value                   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::fd_cdm2;
     nzp_csi_res[0].res_map.density.set_one();
-    nzp_csi_res[0].res_map.freq_band.start_rb = 0;
-    nzp_csi_res[0].res_map.freq_band.nrof_rbs = 52;
-    nzp_csi_res[0].pwr_ctrl_offset            = 0;
-    // Skip pwr_ctrl_offset_ss_present
+    nzp_csi_res[0].res_map.freq_band.start_rb     = 0;
+    nzp_csi_res[0].res_map.freq_band.nrof_rbs     = 52;
+    nzp_csi_res[0].pwr_ctrl_offset                = 0;
+    nzp_csi_res[0].pwr_ctrl_offset_ss_present     = true;
+    nzp_csi_res[0].pwr_ctrl_offset_ss.value       = asn1::rrc_nr::nzp_csi_rs_res_s::pwr_ctrl_offset_ss_opts::db0;
     nzp_csi_res[0].scrambling_id                  = cfg.cell_list[0].phy_cell.cell_id;
     nzp_csi_res[0].periodicity_and_offset_present = true;
     nzp_csi_res[0].periodicity_and_offset.set_slots80();
@@ -192,7 +205,8 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     nzp_csi_res[1].nzp_csi_rs_res_id = 1;
     nzp_csi_res[1].res_map.freq_domain_alloc.set_row1();
     nzp_csi_res[1].res_map.freq_domain_alloc.row1().from_number(0b0001);
-    nzp_csi_res[1].res_map.first_ofdm_symbol_in_time_domain = 4;
+    nzp_csi_res[1].res_map.nrof_ports.value = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
+    nzp_csi_res[1].res_map.cdm_type.value   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
     nzp_csi_res[1].res_map.density.set_three();
     nzp_csi_res[1].periodicity_and_offset.set_slots40();
     nzp_csi_res[1].periodicity_and_offset.slots40() = 11;
@@ -200,8 +214,6 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     nzp_csi_res[2]                                          = nzp_csi_res[1];
     nzp_csi_res[2].nzp_csi_rs_res_id                        = 2;
     nzp_csi_res[2].res_map.first_ofdm_symbol_in_time_domain = 8;
-    nzp_csi_res[2].periodicity_and_offset.set_slots40();
-    nzp_csi_res[2].periodicity_and_offset.slots40() = 11;
     // item 3
     nzp_csi_res[3]                                          = nzp_csi_res[1];
     nzp_csi_res[3].nzp_csi_rs_res_id                        = 3;
@@ -220,9 +232,9 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     nzp_csi_res[0].nzp_csi_rs_res_id = 0;
     nzp_csi_res[0].res_map.freq_domain_alloc.set_row2();
     nzp_csi_res[0].res_map.freq_domain_alloc.row2().from_number(0b100000000000);
-    nzp_csi_res[0].res_map.nrof_ports                       = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
+    nzp_csi_res[0].res_map.nrof_ports.value                 = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
     nzp_csi_res[0].res_map.first_ofdm_symbol_in_time_domain = 4;
-    nzp_csi_res[0].res_map.cdm_type                         = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
+    nzp_csi_res[0].res_map.cdm_type.value                   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
     nzp_csi_res[0].res_map.density.set_one();
     nzp_csi_res[0].res_map.freq_band.start_rb = 0;
     nzp_csi_res[0].res_map.freq_band.nrof_rbs = 52;
@@ -251,6 +263,7 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     nzp_csi_res_set[1].nzp_csi_rs_res[1] = 2;
     nzp_csi_res_set[1].nzp_csi_rs_res[2] = 3;
     nzp_csi_res_set[1].nzp_csi_rs_res[3] = 4;
+    nzp_csi_res_set[1].trs_info_present  = true;
     //    // Skip TRS info
   } else {
     csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.resize(1);
@@ -291,6 +304,40 @@ void fill_csi_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
   }
 }
 
+void fill_csi_im_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
+{
+  if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+    // csi-IM-ResourceToAddModList
+    csi_meas_cfg.csi_im_res_to_add_mod_list_present = true;
+    csi_meas_cfg.csi_im_res_to_add_mod_list.resize(1);
+
+    auto& csi_im_res                           = csi_meas_cfg.csi_im_res_to_add_mod_list[0];
+    csi_im_res.csi_im_res_id                   = 0;
+    csi_im_res.csi_im_res_elem_pattern_present = true;
+    // csi-im-resource pattern1
+    auto& csi_res_pattern1 = csi_im_res.csi_im_res_elem_pattern.set_pattern1();
+    csi_res_pattern1.subcarrier_location_p1.value =
+        csi_im_res_s::csi_im_res_elem_pattern_c_::pattern1_s_::subcarrier_location_p1_opts::s8;
+    csi_res_pattern1.symbol_location_p1 = 8;
+    // csi-im-resource freqBand
+    csi_im_res.freq_band_present  = true;
+    csi_im_res.freq_band.start_rb = 0;
+    csi_im_res.freq_band.nrof_rbs = 52;
+    // csi-im-resource periodicity_and_offset
+    csi_im_res.periodicity_and_offset_present = true;
+    csi_im_res.periodicity_and_offset.set_slots80();
+    csi_im_res.periodicity_and_offset.slots80() = 1;
+
+    // csi-IM-ResourceSetToAddModList
+    csi_meas_cfg.csi_im_res_set_to_add_mod_list_present = true;
+    csi_meas_cfg.csi_im_res_set_to_add_mod_list.resize(1);
+
+    auto& csi_im_res_set             = csi_meas_cfg.csi_im_res_set_to_add_mod_list[0];
+    csi_im_res_set.csi_im_res_set_id = 0;
+    csi_im_res_set.csi_im_res.push_back(0);
+  }
+}
+
 /// Fill CSI-MeasConfig with gNB config
 int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -307,10 +354,10 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   fill_nzp_csi_rs_from_enb_cfg(cfg, csi_meas_cfg);
 
   // CSI IM config
-  // TODO: add csi im config
+  fill_csi_im_resource_cfg_to_add(cfg, csi_meas_cfg);
 
-  // CSI resource config
-  // TODO: add csi resource config
+  // CSI report config
+  fill_csi_report_from_enb_cfg(cfg, csi_meas_cfg);
 
   return SRSRAN_SUCCESS;
 }
@@ -887,8 +934,10 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   // spCellConfig -- Need M
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
-  out.sp_cell_cfg.recfg_with_sync_present              = false;
-  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false; // Note: not supported
+  out.sp_cell_cfg.recfg_with_sync_present = false;
+
+  /* Check if setting true is enough */
+  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true; // Note: not supported
 
   return SRSRAN_SUCCESS;
 }

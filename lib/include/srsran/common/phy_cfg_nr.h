@@ -160,8 +160,6 @@ struct phy_cfg_nr_t {
    * @return valid SSB configuration
    */
   srsran_ssb_cfg_t get_ssb_cfg() const;
-
-  srsran_mcs_table_t get_mcs_table() const;
 };
 
 } // namespace srsran

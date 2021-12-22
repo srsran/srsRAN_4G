@@ -1311,6 +1311,9 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
   }
 
   parent->mac->ue_cfg(rnti, uecfg);
+
+  srsran::make_csi_cfg_from_serv_cell(cell_group_config.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
+
   return SRSRAN_SUCCESS;
 }
 
