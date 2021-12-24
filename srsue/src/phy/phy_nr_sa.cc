@@ -95,7 +95,7 @@ int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, 
 void phy_nr_sa::init_background()
 {
   nr::sync_sa::args_t sync_args = {};
-  sync_args.srate_hz            = srsran_sampling_freq_hz(args.max_nof_prb);
+  sync_args.srate_hz            = args.srate_hz;
   if (not sync.init(sync_args, stack, radio)) {
     logger.error("Error initialising SYNC");
     return;
@@ -165,7 +165,7 @@ bool phy_nr_sa::start_cell_search(const cell_search_args_t& req)
 
     // Prepare cell search configuration from the request
     nr::cell_search::cfg_t cfg = {};
-    cfg.srate_hz               = req.srate_hz;
+    cfg.srate_hz               = args.srate_hz;
     cfg.center_freq_hz         = req.center_freq_hz;
     cfg.ssb_freq_hz            = req.ssb_freq_hz;
     cfg.ssb_scs                = req.ssb_scs;
@@ -204,7 +204,6 @@ bool phy_nr_sa::start_cell_select(const cell_select_args_t& req)
   selected_cell = req.carrier;
 
   cmd_worker_cell.add_cmd([this, req]() {
-
     // Request cell search to lower synchronization instance.
     sync.cell_select_run(req);
   });
@@ -245,7 +244,6 @@ bool phy_nr_sa::set_config(const srsran::phy_cfg_nr_t& cfg)
 
   // Setup carrier configuration asynchronously
   cmd_worker.add_cmd([this]() {
-
     // Set UE configuration
     bool ret = workers.set_config(config_nr);
 

@@ -26,6 +26,10 @@ public:
   };
 
   struct cell_search_metrics_t {
+    // Last cell search result for the PCI and SSB candidate
+    srsue::stack_interface_phy_nr::cell_search_result_t last_result;
+
+    // Signal Measurements
     float    epre_db_avg = 0.0f;
     float    epre_db_min = +INFINITY;
     float    epre_db_max = -INFINITY;
@@ -154,6 +158,12 @@ public:
   bool is_valid() const { return valid; }
 
   const metrics_t& get_metrics() const { return metrics; }
+  void             reset_metrics()
+  {
+    metrics.cell_search.clear();
+    metrics.prach.clear();
+    metrics.sr_count = 0;
+  }
 
   void set_phy_config_complete(bool status) override {}
 
@@ -168,11 +178,12 @@ public:
 
   void cell_search_found_cell(const cell_search_result_t& result) override
   {
-    // Flag as cell search is done
-    cell_search_finished = true;
-
     if (not result.cell_found) {
       logger.info("Cell search finished without detecting any cell");
+
+      // Flag as cell search is done
+      cell_search_finished = true;
+
       return;
     }
 
@@ -205,6 +216,7 @@ public:
         "Cell found pci=%d %s %s ASN1: %s", result.pci, mib_info.data(), csi_info.data(), json.to_string().c_str());
 
     cell_search_metrics_t& m = metrics.cell_search[result.pci][result.pbch_msg.ssb_idx];
+    m.last_result            = result;
     m.epre_db_min            = SRSRAN_MIN(m.epre_db_min, result.measurements.epre_dB);
     m.epre_db_max            = SRSRAN_MAX(m.epre_db_max, result.measurements.epre_dB);
     m.epre_db_avg            = SRSRAN_VEC_SAFE_CMA(result.measurements.epre_dB, m.epre_db_avg, m.count);
@@ -218,6 +230,9 @@ public:
     m.cfo_hz_max             = SRSRAN_MAX(m.cfo_hz_max, result.measurements.cfo_hz);
     m.cfo_hz_avg             = SRSRAN_VEC_SAFE_CMA(result.measurements.cfo_hz, m.cfo_hz_avg, m.count);
     m.count++;
+
+    // Flag as cell search is done
+    cell_search_finished = true;
   }
 };
 

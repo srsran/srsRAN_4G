@@ -232,6 +232,11 @@ public:
     return phy.start_cell_search(args);
   }
 
+  bool start_cell_select(const srsue::phy_interface_stack_nr::cell_select_args_t& args)
+  {
+    return phy.start_cell_select(args);
+  }
+
   void run_tti() { stack.tick(); }
   void stop()
   {
@@ -249,7 +254,139 @@ public:
   }
 
   const ue_dummy_stack::metrics_t& get_metrics() const { return stack.get_metrics(); }
+  void                             reset_metrics() { stack.reset_metrics(); }
 };
+
+struct cell_search_result_t {
+  bool                        found           = false;
+  double                      ssb_abs_freq_hz = 0.0f;
+  srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_15kHz;
+  srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
+  srsran_duplex_mode_t        duplex_mode     = SRSRAN_DUPLEX_MODE_FDD;
+  srsran_mib_nr_t             mib             = {};
+  uint32_t                    pci             = 0;
+};
+
+/*
+ * The following function searches for cells in all possible SSB absolute frequencies within the baseband range. It
+ * returns the first found cell.
+ */
+static cell_search_result_t cell_search(const args_t& args, dummy_ue& ue)
+{
+  cell_search_result_t ret = {};
+
+  // Base cell search arguments
+  srsue::phy_nr_sa::cell_search_args_t cs_args = {};
+  cs_args.center_freq_hz                       = args.base_carrier.dl_center_frequency_hz;
+  cs_args.ssb_scs                              = args.ssb_scs;
+  cs_args.ssb_pattern                          = args.ssb_pattern;
+  cs_args.duplex_mode                          = args.duplex_mode;
+
+  // Deduce band number
+  srsran::srsran_band_helper bands;
+  uint16_t                   band = bands.get_band_from_dl_freq_Hz(args.base_carrier.dl_center_frequency_hz);
+  srsran_assert(band != UINT16_MAX, "Invalid band");
+
+  // Calculate SSB center frequency boundaries
+  double   ssb_bw_hz              = SRSRAN_SSB_BW_SUBC * bands.get_ssb_scs(band);
+  double   ssb_center_freq_min_hz = args.base_carrier.dl_center_frequency_hz - (args.srate_hz * 0.7 - ssb_bw_hz) / 2.0;
+  double   ssb_center_freq_max_hz = args.base_carrier.dl_center_frequency_hz + (args.srate_hz * 0.7 - ssb_bw_hz) / 2.0;
+  uint32_t ssb_scs_hz             = SRSRAN_SUBC_SPACING_NR(args.ssb_scs);
+
+  // Get sync raster
+  srsran::srsran_band_helper::sync_raster_t ss = bands.get_sync_raster(band, args.ssb_scs);
+  srsran_assert(ss.valid(), "Invalid synchronization raster");
+
+  // Iterate every possible frequency in the synchronization raster
+  while (not ss.end()) {
+    // Get SSB center frequency
+    cs_args.ssb_freq_hz = ss.get_frequency();
+
+    // Advance SSB frequency raster
+    ss.next();
+
+    // Calculate frequency offset between the base-band center frequency and the SSB absolute frequency
+    uint32_t offset_hz = (uint32_t)std::abs(std::round(cs_args.ssb_freq_hz - args.base_carrier.dl_center_frequency_hz));
+
+    // The SSB absolute frequency is invalid if it is outside the range and the offset is NOT multiple of the subcarrier
+    // spacing
+    if ((cs_args.ssb_freq_hz < ssb_center_freq_min_hz) or (cs_args.ssb_freq_hz > ssb_center_freq_max_hz) or
+        (offset_hz % ssb_scs_hz != 0)) {
+      // Skip this frequency
+      continue;
+    }
+
+    // Transition PHY to cell search
+    srsran_assert(ue.start_cell_search(cs_args), "Failed cell search start");
+
+    // Run slot until the PHY reported to the stack
+    while (not ue.cell_search_read_and_clear()) {
+      ue.run_tti();
+    }
+
+    const ue_dummy_stack::metrics_t& metrics = ue.get_metrics();
+
+    // Skip printing cell search findings if no SSB is found
+    if (metrics.cell_search.empty()) {
+      continue;
+    }
+
+    // Print found cells
+    printf("Cells found at SSB center frequency %.2f MHz:\n", cs_args.ssb_freq_hz / 1e6);
+    printf("| %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s |\n",
+           "PCI",
+           "SSB",
+           "Count",
+           "RSRP min",
+           "RSRP avg",
+           "RSRP max",
+           "SNR min",
+           "SNR avg",
+           "SNR max",
+           "CFO min",
+           "CFO avg",
+           "CFO max");
+
+    // For each found PCI...
+    for (auto& pci : metrics.cell_search) {
+      // For each found beam...
+      for (auto& ssb : pci.second) {
+        // Print stats
+        printf("| %10d | %10d | %10d | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | "
+               "%+10.1f |\n",
+               pci.first,
+               ssb.first,
+               (uint32_t)ssb.second.count,
+               ssb.second.rsrp_db_min,
+               ssb.second.rsrp_db_avg,
+               ssb.second.rsrp_db_max,
+               ssb.second.snr_db_min,
+               ssb.second.snr_db_avg,
+               ssb.second.snr_db_max,
+               ssb.second.cfo_hz_min,
+               ssb.second.cfo_hz_avg,
+               ssb.second.cfo_hz_max);
+
+        // If this is the first found cell, then set return value
+        if (not ret.found) {
+          ret.found           = true;
+          ret.ssb_abs_freq_hz = cs_args.ssb_freq_hz;
+          ret.ssb_scs         = cs_args.ssb_scs;
+          ret.ssb_pattern     = cs_args.ssb_pattern;
+          ret.duplex_mode     = cs_args.duplex_mode;
+          ret.pci             = pci.first;
+          srsran_assert(srsran_pbch_msg_nr_mib_unpack(&ssb.second.last_result.pbch_msg, &ret.mib) == SRSRAN_SUCCESS,
+                        "Error unpacking MIB");
+        }
+      }
+    }
+
+    // Reset stack metrics
+    ue.reset_metrics();
+  }
+
+  return ret;
+}
 
 int main(int argc, char** argv)
 {
@@ -312,66 +449,30 @@ int main(int argc, char** argv)
 
   // Create dummy UE
   dummy_ue::args_t ue_args  = {};
+  ue_args.phy.srate_hz      = args.srate_hz;
   ue_args.phy.log.phy_level = args.phy_log_level;
   ue_args.stack.log_level   = args.stack_log_level;
   dummy_ue ue(ue_args, radio.get());
 
-  // Base cell search arguments
-  srsue::phy_nr_sa::cell_search_args_t cs_args = {};
-  cs_args.srate_hz                             = args.srate_hz;
-  cs_args.center_freq_hz                       = args.base_carrier.dl_center_frequency_hz;
-  cs_args.ssb_scs                              = args.ssb_scs;
-  cs_args.ssb_pattern                          = args.ssb_pattern;
-  cs_args.duplex_mode                          = args.duplex_mode;
+  // Perform cell search
+  cell_search_result_t found_cell = cell_search(args, ue);
 
-  std::vector<srsue::phy_nr_sa::cell_search_args_t> v_cs_args = {};
-  /*if (std::isnormal(args.base_carrier.ssb_center_freq_hz)) {
-    cs_args.ssb_freq_hz = args.base_carrier.ssb_center_freq_hz;
-    v_cs_args.push_back(cs_args);
-  } else*/
-  {
-    srsran::srsran_band_helper bands;
+  // Perform cell select
+  if (found_cell.found) {
+    srsue::phy_interface_stack_nr::cell_select_args_t cs_args = {};
+    cs_args.ssb_cfg.srate_hz                                  = args.srate_hz;
+    cs_args.ssb_cfg.center_freq_hz                            = args.base_carrier.dl_center_frequency_hz;
+    cs_args.ssb_cfg.ssb_freq_hz                               = found_cell.ssb_abs_freq_hz;
+    cs_args.ssb_cfg.scs                                       = found_cell.ssb_scs;
+    cs_args.ssb_cfg.pattern                                   = found_cell.ssb_pattern;
+    cs_args.ssb_cfg.duplex_mode                               = found_cell.duplex_mode;
+    cs_args.ssb_cfg.periodicity_ms                            = 10;
+    cs_args.carrier                                           = args.base_carrier;
+    cs_args.carrier.pci                                       = found_cell.pci;
 
-    // Deduce band number
-    uint16_t band = bands.get_band_from_dl_freq_Hz(args.base_carrier.dl_center_frequency_hz);
-    srsran_assert(band != UINT16_MAX, "Invalid band");
+    srsran_assert(ue.start_cell_select(cs_args), "Failed to start cell selection\n");
 
-    // Get sync raster
-    srsran::srsran_band_helper::sync_raster_t ss = bands.get_sync_raster(band, args.ssb_scs);
-    srsran_assert(ss.valid(), "Invalid synchronization raster");
-
-    // Calculate SSB center frequency boundaries
-    double ssb_bw_hz              = SRSRAN_SSB_BW_SUBC * bands.get_ssb_scs(band);
-    double ssb_center_freq_min_hz = args.base_carrier.dl_center_frequency_hz - (args.srate_hz * 0.7 - ssb_bw_hz) / 2.0;
-    double ssb_center_freq_max_hz = args.base_carrier.dl_center_frequency_hz + (args.srate_hz * 0.7 - ssb_bw_hz) / 2.0;
-    uint32_t ssb_scs_hz           = SRSRAN_SUBC_SPACING_NR(args.ssb_scs);
-
-    // Iterate every possible synchronization raster
-    while (not ss.end()) {
-      // Get SSB center frequency
-      double abs_freq_ssb_hz = ss.get_frequency();
-
-      uint32_t offset = (uint32_t)std::abs(std::round(abs_freq_ssb_hz - args.base_carrier.dl_center_frequency_hz));
-
-      // Use frequency if it is within the range
-      if ((abs_freq_ssb_hz > ssb_center_freq_min_hz) and (abs_freq_ssb_hz < ssb_center_freq_max_hz) and
-          (offset % ssb_scs_hz == 0)) {
-        cs_args.ssb_freq_hz = abs_freq_ssb_hz;
-        v_cs_args.push_back(cs_args);
-      }
-
-      // Next frequency
-      ss.next();
-    }
-  }
-
-  // For each SSB center frequency...
-  for (const srsue::phy_nr_sa::cell_search_args_t& cs_args_ : v_cs_args) {
-    // Transition PHY to cell search
-    srsran_assert(ue.start_cell_search(cs_args_), "Failed cell search start");
-
-    // Run slot until the PHY reported to the stack
-    while (not ue.cell_search_read_and_clear()) {
+    for (uint32_t i = 0; i < 1000; i++) {
       ue.run_tti();
     }
   }
@@ -379,44 +480,12 @@ int main(int argc, char** argv)
   // Tear down UE
   ue.stop();
 
-  // Stop Radio
-  radio->reset();
-
-  const ue_dummy_stack::metrics_t& metrics = ue.get_metrics();
-  printf("| %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s |\n",
-         "PCI",
-         "SSB",
-         "Count",
-         "RSRP min",
-         "RSRP avg",
-         "RSRP max",
-         "SNR min",
-         "SNR avg",
-         "SNR max",
-         "CFO min",
-         "CFO avg",
-         "CFO max");
-  for (auto& pci : metrics.cell_search) {
-    for (auto& ssb : pci.second) {
-      printf("| %10d | %10d | %10d | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | %+10.1f | "
-             "%+10.1f |\n",
-             pci.first,
-             ssb.first,
-             (uint32_t)ssb.second.count,
-             ssb.second.rsrp_db_min,
-             ssb.second.rsrp_db_avg,
-             ssb.second.rsrp_db_max,
-             ssb.second.snr_db_min,
-             ssb.second.snr_db_avg,
-             ssb.second.snr_db_max,
-             ssb.second.cfo_hz_min,
-             ssb.second.cfo_hz_avg,
-             ssb.second.cfo_hz_max);
-    }
+  for (uint32_t i = 0; i < 1000; i++) {
+    ue.run_tti();
   }
 
-  // Erase radio
-  radio = nullptr;
+  // Stop Radio
+  radio->reset();
 
   return 0;
 }

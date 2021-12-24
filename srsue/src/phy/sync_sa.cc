@@ -210,7 +210,7 @@ void sync_sa::run_state_cell_search()
   }
 
   // Run Searcher
-  cs_ret = searcher.run_slot(rx_buffer, 2 * slot_sz);
+  cs_ret = searcher.run_slot(rx_buffer, slot_sz);
   if (cs_ret.result < 0) {
     logger.error("Failed to run searcher. Transitioning to IDLE...");
   }

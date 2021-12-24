@@ -33,9 +33,9 @@ public:
    * @brief Describes a cell search result
    */
   struct cell_search_result_t {
-    bool                          cell_found = false;
-    uint32_t                      pci        = 0;    ///< Physical Cell Identifier
-    srsran_pbch_msg_nr_t          pbch_msg;          ///< Packed PBCH message for the upper layers
+    bool                          cell_found   = false;
+    uint32_t                      pci          = 0;  ///< Physical Cell Identifier
+    srsran_pbch_msg_nr_t          pbch_msg     = {}; ///< Packed PBCH message for the upper layers
     srsran_csi_trs_measurements_t measurements = {}; ///< Measurements from SSB block
   };
 
@@ -185,6 +185,7 @@ struct phy_args_nr_t {
   uint32_t               rf_channel_offset  = 0; ///< Specifies the RF channel the NR carrier shall fill
   uint32_t               nof_carriers       = 1;
   uint32_t               max_nof_prb        = 106;
+  double                 srate_hz           = 23.04e6;
   uint32_t               nof_phy_threads    = 3;
   uint32_t               worker_cpu_mask    = 0;
   srsran::phy_log_args_t log                = {};
@@ -277,7 +278,6 @@ public:
    * @brief Describes cell search arguments
    */
   struct cell_search_args_t {
-    double                      srate_hz;
     double                      center_freq_hz;
     double                      ssb_freq_hz;
     srsran_subcarrier_spacing_t ssb_scs;
