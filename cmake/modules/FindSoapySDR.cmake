@@ -25,7 +25,6 @@ if(NOT SOAPYSDR_FOUND)
   find_path(SOAPYSDR_INCLUDE_DIRS 
     NAMES Device.h
     HINTS $ENV{SOAPY_DIR}/include
-          $ENV{SOAPY_DIR}/include/SoapySDR
     PATHS ${SOAPYSDR_PKG_INCLUDE_DIRS}
           /usr/include/SoapySDR
           /usr/local/include/SoapySDR

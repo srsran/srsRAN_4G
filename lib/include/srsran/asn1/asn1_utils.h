@@ -263,7 +263,7 @@ public:
     std::copy(it + 1, end(), it);
     size_--;
 
-    return it + 1;
+    return it;
   }
   bool operator==(const dyn_array<T>& other) const
   {
