@@ -1744,12 +1744,6 @@ srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // perform the measurement related actions as specified in 5.5.6.1;
   rrc_ptr->measurements->ho_reest_actions(ho_src_cell.earfcn, target_earfcn);
 
-  // if the RRCConnectionReconfiguration message includes the measConfig:
-  if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.earfcn)) {
-    Error("Parsing measurementConfig. TODO: Send ReconfigurationReject");
-    return proc_outcome_t::yield; // wait for t304 expiry
-  }
-
   // Note: We delay the enqueuing of RRC Reconf Complete message to avoid that the message goes in an UL grant
   //       directed at the old RNTI.
   rrc_ptr->task_sched.defer_callback(4, [this]() {
@@ -1784,6 +1778,12 @@ srsran::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 {
   if (ev.success) {
     Info("Random Access completed. Applying final configuration and finishing procedure");
+
+    // if the RRCConnectionReconfiguration message includes the measConfig:
+    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.earfcn)) {
+      Error("Parsing measurementConfig. TODO: Send ReconfigurationReject");
+      return proc_outcome_t::yield; // wait for t304 expiry
+    }
 
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();

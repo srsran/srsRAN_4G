@@ -330,7 +330,7 @@ int srsran_sync_set_N_id_1(srsran_sync_t* q, uint32_t N_id_1)
     generate_freq_sss(q, N_id_1);
     return SRSRAN_SUCCESS;
   } else {
-    ERROR("Invalid N_id_2=%d", N_id_1);
+    ERROR("Invalid N_id_1=%d", N_id_1);
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 }

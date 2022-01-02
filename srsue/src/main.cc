@@ -418,6 +418,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<int>(&args->phy.force_N_id_2)->default_value(-1),
      "Force using a specific PSS (set to -1 to allow all PSSs).")
 
+    ("phy.force_N_id_1",
+     bpo::value<int>(&args->phy.force_N_id_1)->default_value(-1),
+     "Force using a specific SSS (set to -1 to allow all SSSs).")
+
     // PHY NR args
     ("phy.nr.store_pdsch_ko",
       bpo::value<bool>(&args->phy.nr_store_pdsch_ko)->default_value(false),

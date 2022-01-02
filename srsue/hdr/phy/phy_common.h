@@ -333,7 +333,9 @@ private:
   std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrp_neigh  = {};
 
   static constexpr uint32_t pcell_report_period = 20;
-  uint32_t                  rssi_read_cnt       = 0;
+
+  static constexpr uint32_t update_rxgain_period = 10;
+  uint32_t                  update_rxgain_cnt    = 0;
 
   rsrp_insync_itf* insync_itf = nullptr;
 

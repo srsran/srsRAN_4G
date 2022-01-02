@@ -203,6 +203,13 @@ static int work_ue_dl(srsran_ue_dl_nr_t* ue_dl, srsran_slot_cfg_t* slot)
 
   // Convert DCI to PDSCH transmission
   srsran_sch_cfg_nr_t pdsch_cfg = {};
+  if (rnti_type == srsran_rnti_type_ra) {
+    pdsch_hl_cfg.common_time_ra[0].k            = 0;
+    pdsch_hl_cfg.common_time_ra[0].mapping_type = srsran_sch_mapping_type_A;
+    pdsch_hl_cfg.common_time_ra[0].sliv =
+        srsran_ra_type2_to_riv(SRSRAN_NSYMB_PER_SLOT_NR - 1, 1, SRSRAN_NSYMB_PER_SLOT_NR);
+    pdsch_hl_cfg.nof_common_time_ra = 1;
+  }
   if (srsran_ra_dl_dci_to_grant_nr(&carrier, slot, &pdsch_hl_cfg, &dci_dl_rx, &pdsch_cfg, &pdsch_cfg.grant) <
       SRSRAN_SUCCESS) {
     ERROR("Error decoding PDSCH search");
@@ -323,7 +330,7 @@ int main(int argc, char** argv)
   srsran_coreset_t* coreset = NULL;
 
   // Configure CORESET
-  if (rnti_type == srsran_rnti_type_si) {
+  if (rnti_type == srsran_rnti_type_si || rnti_type == srsran_rnti_type_ra) {
     // configure to use coreset0
     coreset                      = &pdcch_cfg.coreset[0];
     pdcch_cfg.coreset_present[0] = true;
@@ -355,7 +362,7 @@ int main(int argc, char** argv)
     pdsch_hl_cfg.typeA_pos = srsran_dmrs_sch_typeA_pos_2;
 
     // set coreset0 bandwidth
-    dci_cfg.coreset0_bw = srsran_coreset_get_bw(coreset);    
+    dci_cfg.coreset0_bw = srsran_coreset_get_bw(coreset);
   } else {
     // configure to use coreset1
     coreset                      = &pdcch_cfg.coreset[1];
@@ -377,7 +384,7 @@ int main(int argc, char** argv)
   srsran_search_space_t* search_space = &pdcch_cfg.search_space[0];
   pdcch_cfg.search_space_present[0]   = true;
   search_space->id                    = 0;
-  search_space->coreset_id            = (rnti_type == srsran_rnti_type_si) ? 0 : 1;
+  search_space->coreset_id            = (rnti_type == srsran_rnti_type_si || rnti_type == srsran_rnti_type_ra) ? 0 : 1;
   search_space->type                  = ss_type;
   search_space->formats[0]            = srsran_dci_format_nr_0_0;
   search_space->formats[1]            = srsran_dci_format_nr_1_0;

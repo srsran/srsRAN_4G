@@ -66,7 +66,18 @@ FIND_LIBRARY(
         /usr/local/lib32
 )
 
-set(SKIQ_LIBRARIES ${SKIQ_LIBRARY} ${SKIQ_LIBRARY_GLIB} ${SKIQ_LIBRARY_USB})
+FIND_LIBRARY(
+        SKIQ_LIBRARY_TIRPC
+        NAMES libtirpc.so.3
+        PATHS /usr/local/lib
+        /usr/lib64
+        /usr/lib/epiq
+        /usr/lib/x86_64-linux-gnu
+        /usr/local/lib64
+        /usr/local/lib32
+)
+
+set(SKIQ_LIBRARIES ${SKIQ_LIBRARY} ${SKIQ_LIBRARY_GLIB} ${SKIQ_LIBRARY_USB} ${SKIQ_LIBRARY_TIRPC})
 
 message(STATUS "SKIQ LIBRARIES " ${SKIQ_LIBRARIES})
 message(STATUS "SKIQ INCLUDE DIRS " ${SKIQ_INCLUDE_DIRS})

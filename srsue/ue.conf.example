@@ -343,6 +343,9 @@ enable = false
 # nof_in_sync_events:     Number of PHY in-sync events before sending an in-sync event to RRC
 # nof_out_of_sync_events: Number of PHY out-sync events before sending an out-sync event to RRC
 #
+# force_N_id_2: Force using a specific PSS (set to -1 to allow all PSSs).
+# force_N_id_1: Force using a specific SSS (set to -1 to allow all SSSs).
+#
 #####################################################################
 [phy]
 #rx_gain_offset      = 62
@@ -373,6 +376,9 @@ enable = false
 #in_sync_snr_db_th      = 3.0
 #nof_in_sync_events     = 10
 #nof_out_of_sync_events = 20
+
+#force_N_id_2           = 1
+#force_N_id_1           = 10
 
 #####################################################################
 # PHY NR specific configuration options
