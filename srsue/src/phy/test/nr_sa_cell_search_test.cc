@@ -20,51 +20,6 @@
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 
-class throttled_dummy_stack : public ue_dummy_stack
-{
-private:
-  bool                    pending_tti = false;
-  std::mutex              pending_tti_mutex;
-  std::condition_variable pending_tti_cvar;
-  std::atomic<bool>       running = {true};
-
-public:
-  throttled_dummy_stack(const ue_dummy_stack::args_t& args, srsue::phy_interface_stack_nr& phy) :
-    ue_dummy_stack(args, phy)
-  {}
-  void wait_tti() override
-  {
-    // Wait for tick
-    std::unique_lock<std::mutex> lock(pending_tti_mutex);
-    while (not pending_tti and running) {
-      pending_tti_cvar.wait_for(lock, std::chrono::milliseconds(1));
-    }
-
-    // Let the tick proceed
-    pending_tti = false;
-    pending_tti_cvar.notify_all();
-  }
-
-  void tick()
-  {
-    // Wait for TTI to get processed
-    std::unique_lock<std::mutex> lock(pending_tti_mutex);
-    while (pending_tti and running) {
-      pending_tti_cvar.wait_for(lock, std::chrono::milliseconds(1));
-    }
-
-    // Let the TTI proceed
-    pending_tti = true;
-    pending_tti_cvar.notify_all();
-  }
-
-  void stop()
-  {
-    running = false;
-    pending_tti_cvar.notify_all();
-  }
-};
-
 struct args_t {
   // Generic parameters
   double                      srate_hz        = 11.52e6;
@@ -211,8 +166,8 @@ int parse_args(int argc, char** argv, args_t& args)
 class dummy_ue
 {
 private:
-  throttled_dummy_stack stack;
-  srsue::phy_nr_sa      phy;
+  ue_dummy_stack   stack;
+  srsue::phy_nr_sa phy;
 
 public:
   struct args_t {

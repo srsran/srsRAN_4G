@@ -167,7 +167,9 @@ static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
   // Check if the SSB selected candidate index shall be received in this subframe
   bool is_ssb_opportunity = (q->sf_idx == srsran_ssb_candidate_sf_idx(&q->ssb, q->ssb_idx, half_frame > 0));
 
-  // If
+  // TODO: it assumes SSB opportunity is every 10 ms, use real SSB SF candidate
+  is_ssb_opportunity = (q->sf_idx % SRSRAN_NOF_SF_X_FRAME == 0);
+
   if (is_ssb_opportunity) {
     // Measure PSS/SSS and decode PBCH
     if (srsran_ssb_track(&q->ssb, buffer, q->N_id, q->ssb_idx, half_frame, &measurements, &pbch_msg) < SRSRAN_SUCCESS) {

@@ -43,14 +43,14 @@ public:
 
   int  recv_callback(srsran::rf_buffer_t& rf_buffer, srsran_timestamp_t* timestamp);
   bool run_sfn_sync();
+  bool run_camping(srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& timestamp);
   void run_stack_tti();
 
   srsran_slot_cfg_t get_slot_cfg();
 
 private:
-  const static int MIN_TTI_JUMP         = 1;    ///< Time gap reported to stack after receiving subframe
-  const static int MAX_TTI_JUMP         = 1000; ///< Maximum time gap tolerance in RF stream metadata
-  enum { SEARCHING = 0, CAMPING } state = SEARCHING;
+  const static int             MIN_TTI_JUMP = 1;    ///< Time gap reported to stack after receiving subframe
+  const static int             MAX_TTI_JUMP = 1000; ///< Maximum time gap tolerance in RF stream metadata
   srslog::basic_logger&        logger;
   stack_interface_phy_nr*      stack = nullptr;
   srsran::radio_interface_phy* radio = nullptr;

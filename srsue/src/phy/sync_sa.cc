@@ -23,9 +23,10 @@ sync_sa::~sync_sa() {}
 
 bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
-  stack   = stack_;
-  radio   = radio_;
-  slot_sz = (uint32_t)(args.srate_hz / 1000.0f);
+  stack    = stack_;
+  radio    = radio_;
+  srate_hz = args.srate_hz;
+  slot_sz  = (uint32_t)(args.srate_hz / 1000.0f);
 
   // Initialise cell search internal object
   if (not searcher.init(args.get_cell_search())) {
@@ -139,14 +140,14 @@ cell_search::ret_t sync_sa::cell_search_run(const cell_search::cfg_t& cfg)
   return cs_ret;
 }
 
-bool sync_sa::cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req)
+rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
   // Wait the FSM to transition to IDLE
   if (!wait_idle()) {
     logger.error("Cell Search: SYNC thread didn't transition to IDLE after 100 ms\n");
-    return false;
+    return {};
   }
 
   rrc_proc_state = PROC_SELECT_RUNNING;
@@ -161,21 +162,26 @@ bool sync_sa::cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& re
   srsran_ue_sync_nr_cfg_t cfg = {};
   cfg.N_id                    = req.carrier.pci;
   cfg.ssb                     = req.ssb_cfg;
+  cfg.ssb.srate_hz            = srate_hz;
   if (slot_synchronizer.set_sync_cfg(cfg)) {
     logger.error("Cell Search: Failed setting slot synchronizer configuration");
-    return false;
+    return {};
   }
 
   // SFN synchronization
   phy_state.run_sfn_sync();
-  if (phy_state.is_camping()) {
+
+  // Determine if the procedure was successful if it is camping
+  rrc_interface_phy_nr::cell_select_result_t result = {};
+  result.successful                                 = phy_state.is_camping();
+  if (result.successful) {
     logger.info("Cell Select: SFN synchronized. CAMPING...");
   } else {
     logger.info("Cell Select: Could not synchronize SFN");
   }
 
   rrc_proc_state = PROC_IDLE;
-  return true;
+  return result;
 }
 
 sync_state::state_t sync_sa::get_state()
@@ -234,7 +240,7 @@ void sync_sa::run_state_sfn_sync()
     logger.info("SYNC: SFN synchronised successfully (SFN=%d). Transitioning to IDLE...",
                 tti / SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz));
 
-    phy_state.state_exit();
+    phy_state.state_exit(true);
     return;
   }
 
@@ -262,8 +268,8 @@ void sync_sa::run_state_cell_camping()
   srsran::rf_buffer_t rf_buffer = {};
   rf_buffer.set_nof_samples(slot_sz);
   rf_buffer.set(0, nr_worker->get_buffer(0, 0));
-  if (not slot_synchronizer.recv_callback(rf_buffer, last_rx_time.get_ptr(0))) {
-    logger.error("SYNC: receiving from radio\n");
+  if (not slot_synchronizer.run_camping(rf_buffer, last_rx_time)) {
+    logger.error("SYNC: detected out-of-sync... unhandled outcome...");
   }
 
   srsran::phy_common_interface::worker_context_t context;
@@ -303,12 +309,6 @@ void sync_sa::run_thread()
         run_state_cell_camping();
         break;
     }
-      // Advance stack TTI
-#ifdef useradio
-    slot_synchronizer.run_stack_tti();
-#else
-    stack->run_tti(tti, 1);
-#endif
   }
 }
 void sync_sa::worker_end(const srsran::phy_common_interface::worker_context_t& w_ctx,

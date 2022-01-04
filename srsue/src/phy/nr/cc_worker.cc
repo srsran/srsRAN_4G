@@ -45,6 +45,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_sta
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_measure    = true;
   ssb_args.enable_decode     = true;
+  ssb_args.enable_search     = true;
   if (srsran_ssb_init(&ssb, &ssb_args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating SSB");
     return;
@@ -158,7 +159,7 @@ void cc_worker::decode_pdcch_dl()
 
     if (logger.debug.enabled()) {
       // log coreset info
-      srsran_coreset_t* coreset = &ue_dl.cfg.coreset[dci_rx[i].ctx.coreset_id];
+      srsran_coreset_t*     coreset = &ue_dl.cfg.coreset[dci_rx[i].ctx.coreset_id];
       std::array<char, 512> coreset_str;
       srsran_coreset_to_str(coreset, coreset_str.data(), coreset_str.size());
       logger.info("PDCCH: coreset=%d, %s", cc_idx, coreset_str.data());
@@ -349,6 +350,16 @@ bool cc_worker::decode_pdsch_dl()
 
 bool cc_worker::measure_csi()
 {
+  srsran_ssb_search_res_t search_res = {};
+  if (srsran_ssb_search(&ssb, rx_buffer[0], cfg.carrier.pci, &search_res) < SRSRAN_SUCCESS) {
+    logger.error("Error measuring SSB");
+    return false;
+  }
+
+  if (search_res.pbch_msg.crc) {
+    logger.error("Error measuring SSB");
+  }
+
   // Measure SSB CSI
   if (srsran_ssb_send(&ssb, dl_slot_cfg.idx)) {
     srsran_csi_trs_measurements_t meas = {};

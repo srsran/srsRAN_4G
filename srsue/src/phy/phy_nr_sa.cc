@@ -96,11 +96,12 @@ void phy_nr_sa::init_background()
 {
   nr::sync_sa::args_t sync_args = {};
   sync_args.srate_hz            = args.srate_hz;
+  sync_args.thread_priority     = args.slot_recv_thread_prio;
   if (not sync.init(sync_args, stack, radio)) {
     logger.error("Error initialising SYNC");
     return;
   }
-  workers.init(args, sync, stack, WORKERS_THREAD_PRIO);
+  workers.init(args, sync, stack);
 
   is_configured = true;
 }
@@ -204,8 +205,8 @@ bool phy_nr_sa::start_cell_select(const cell_select_args_t& req)
   selected_cell = req.carrier;
 
   cmd_worker_cell.add_cmd([this, req]() {
-    // Request cell search to lower synchronization instance.
-    sync.cell_select_run(req);
+    // Request cell search to lower synchronization instance and push the result directly to the stack
+    stack->cell_select_completed(sync.cell_select_run(req));
   });
 
   return true;

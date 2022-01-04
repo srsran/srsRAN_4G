@@ -727,18 +727,25 @@ ssb_measure(srsran_ssb_t* q, const cf_t ssb_grid[SRSRAN_SSB_NOF_RE], uint32_t N_
   float rsrp_sss = SRSRAN_CSQABS(corr_sss);
   float rsrp     = (rsrp_pss + rsrp_sss) / 2.0f;
 
-  // avoid taking log of 0 (NaN)
-  if (rsrp == 0.0) {
-    rsrp = 1.0;
+  // Avoid taking log of 0 or another abnormal value
+  if (!isnormal(rsrp)) {
+    rsrp = 1e-9f;
   }
 
-  // Compute Noise
-  float n0_pss = 1e-9; // Almost 0
-  float n0_sss = 1e-9; // Almost 0
-  if (epre_pss > rsrp_pss) {
+  // Estimate Noise:
+  // - Infinite (1e9), if the EPRE or RSRP is zero
+  // - EPRE-RSRP if EPRE > RSRP
+  // - zero (1e-9), otherwise
+  float n0_pss = 1e-9f;
+  if (!isnormal(epre_pss) || !isnormal(rsrp_pss)) {
+    n0_pss = 1e9f;
+  } else if (epre_pss > rsrp_pss) {
     n0_pss = epre - rsrp_pss;
   }
-  if (epre_sss > rsrp_sss) {
+  float n0_sss = 1e-9f;
+  if (!isnormal(epre_sss) || !isnormal(rsrp_sss)) {
+    n0_sss = 1e9f;
+  } else if (epre_sss > rsrp_sss) {
     n0_sss = epre - rsrp_sss;
   }
   float n0 = (n0_pss + n0_sss) / 2.0f;
@@ -1267,6 +1274,8 @@ static int ssb_pss_find(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, u
     // Average power, skip window if value is invalid (0.0, nan or inf)
     float avg_pwr_corr = srsran_vec_avg_power_cf(&q->tmp_time[peak_idx], q->symbol_sz);
     if (!isnormal(avg_pwr_corr)) {
+      // Advance time
+      t_offset += q->corr_window;
       continue;
     }
 

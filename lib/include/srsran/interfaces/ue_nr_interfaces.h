@@ -44,6 +44,19 @@ public:
    * @param result Cell search result completion
    */
   virtual void cell_search_found_cell(const cell_search_result_t& result) = 0;
+
+  /**
+   * @brief Describes a cell select result
+   */
+  struct cell_select_result_t {
+    bool successful = false; ///< Cell was found and physical layer is synchronised
+  };
+
+  /**
+   * @brief Informs RRC about cell select process completion
+   * @param result Cell select result completion
+   */
+  virtual void cell_select_completed(const cell_select_result_t& result) = 0;
 };
 
 class mac_interface_phy_nr
@@ -182,23 +195,25 @@ public:
 };
 
 struct phy_args_nr_t {
-  uint32_t               rf_channel_offset  = 0; ///< Specifies the RF channel the NR carrier shall fill
-  uint32_t               nof_carriers       = 1;
-  uint32_t               max_nof_prb        = 106;
-  double                 srate_hz           = 23.04e6;
-  uint32_t               nof_phy_threads    = 3;
-  uint32_t               worker_cpu_mask    = 0;
-  srsran::phy_log_args_t log                = {};
-  srsran_ue_dl_nr_args_t dl                 = {};
-  srsran_ue_ul_nr_args_t ul                 = {};
-  std::set<uint32_t>     fixed_sr           = {1};
-  uint32_t               fix_wideband_cqi   = 15; ///< Set to a non-zero value for fixing the wide-band CQI report
-  bool                   store_pdsch_ko     = false;
-  float                  trs_epre_ema_alpha = 0.1f; ///< EPRE measurement exponential average alpha
-  float                  trs_rsrp_ema_alpha = 0.1f; ///< RSRP measurement exponential average alpha
-  float                  trs_sinr_ema_alpha = 0.1f; ///< SINR measurement exponential average alpha
-  float                  trs_cfo_ema_alpha  = 0.1f; ///< RSRP measurement exponential average alpha
-  bool                   enable_worker_cfo  = true; ///< Enable/Disable open loop CFO correction at the workers
+  uint32_t               rf_channel_offset     = 0; ///< Specifies the RF channel the NR carrier shall fill
+  uint32_t               nof_carriers          = 1;
+  uint32_t               max_nof_prb           = 106;
+  double                 srate_hz              = 23.04e6;
+  uint32_t               nof_phy_threads       = 3;
+  uint32_t               worker_cpu_mask       = 0;
+  int                    slot_recv_thread_prio = 0; /// Specifies the slot receive thread priority, RT by default
+  int                    workers_thread_prio   = 2; /// Specifies the workers thread priority, RT by default
+  srsran::phy_log_args_t log                   = {};
+  srsran_ue_dl_nr_args_t dl                    = {};
+  srsran_ue_ul_nr_args_t ul                    = {};
+  std::set<uint32_t>     fixed_sr              = {1};
+  uint32_t               fix_wideband_cqi      = 15; ///< Set to a non-zero value for fixing the wide-band CQI report
+  bool                   store_pdsch_ko        = false;
+  float                  trs_epre_ema_alpha    = 0.1f; ///< EPRE measurement exponential average alpha
+  float                  trs_rsrp_ema_alpha    = 0.1f; ///< RSRP measurement exponential average alpha
+  float                  trs_sinr_ema_alpha    = 0.1f; ///< SINR measurement exponential average alpha
+  float                  trs_cfo_ema_alpha     = 0.1f; ///< RSRP measurement exponential average alpha
+  bool                   enable_worker_cfo     = true; ///< Enable/Disable open loop CFO correction at the workers
 
   phy_args_nr_t()
   {

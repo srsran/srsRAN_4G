@@ -73,9 +73,9 @@ public:
   sync_state::state_t get_state();
 
   // The following methods control the SYNC state machine
-  void               cell_go_idle();
-  cell_search::ret_t cell_search_run(const cell_search::cfg_t& cfg);
-  bool               cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req);
+  void                                       cell_go_idle();
+  cell_search::ret_t                         cell_search_run(const cell_search::cfg_t& cfg);
+  rrc_interface_phy_nr::cell_select_result_t cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req);
 
   void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
@@ -92,6 +92,7 @@ private:
 
   std::atomic<bool>            running   = {false};
   cf_t*                        rx_buffer = nullptr;
+  double                       srate_hz  = 0; ///< Sampling rate in Hz
   uint32_t                     slot_sz   = 0; ///< Subframe size (1-ms)
   uint32_t                     tti       = 0;
   srsran::tti_semaphore<void*> tti_semaphore;

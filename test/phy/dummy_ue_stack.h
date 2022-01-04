@@ -66,10 +66,18 @@ private:
   metrics_t                      metrics        = {};
   srsue::phy_interface_stack_nr& phy;
 
+  // Attributes for throttling PHY and avoiding PHY free-running
+  bool                    pending_tti = false;
+  std::mutex              pending_tti_mutex;
+  std::condition_variable pending_tti_cvar;
+  std::atomic<bool>       running = {true};
+
   dummy_tx_harq_entity tx_harq_proc;
   dummy_rx_harq_entity rx_harq_proc;
 
-  std::atomic<bool> cell_search_finished = {false};
+  std::atomic<bool>    cell_search_finished = {false};
+  std::atomic<bool>    cell_select_finished = {false};
+  cell_select_result_t cell_select_result   = {};
 
 public:
   struct args_t {
@@ -86,15 +94,19 @@ public:
   }
   ~ue_dummy_stack() { srsran_random_free(random_gen); }
 
-  virtual void wait_tti()
-  {
-    // Do nothing
-  }
   void in_sync() override {}
   void out_of_sync() override {}
   void run_tti(const uint32_t tti, const uint32_t tti_jump) override
   {
-    wait_tti();
+    // Wait for tick from test bench
+    std::unique_lock<std::mutex> lock(pending_tti_mutex);
+    while (not pending_tti and running) {
+      pending_tti_cvar.wait_for(lock, std::chrono::milliseconds(1));
+    }
+
+    // Let the tick proceed
+    pending_tti = false;
+    pending_tti_cvar.notify_all();
 
     // Run PRACH
     if (prach_period != 0) {
@@ -106,6 +118,24 @@ public:
         prach_pending = true;
       }
     }
+  }
+  void tick()
+  {
+    // Wait for TTI to get processed
+    std::unique_lock<std::mutex> lock(pending_tti_mutex);
+    while (pending_tti and running) {
+      pending_tti_cvar.wait_for(lock, std::chrono::milliseconds(1));
+    }
+
+    // Let the TTI proceed
+    pending_tti = true;
+    pending_tti_cvar.notify_all();
+  }
+
+  void stop()
+  {
+    running = false;
+    pending_tti_cvar.notify_all();
   }
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) override
   {
@@ -233,6 +263,23 @@ public:
 
     // Flag as cell search is done
     cell_search_finished = true;
+  }
+
+  bool get_cell_select_finished()
+  {
+    bool ret = cell_select_finished;
+
+    cell_select_finished = false;
+
+    return ret;
+  }
+
+  cell_select_result_t get_cell_select_result() { return cell_select_result; }
+
+  void cell_select_completed(const cell_select_result_t& result) override
+  {
+    cell_select_result   = result;
+    cell_select_finished = true;
   }
 };
 

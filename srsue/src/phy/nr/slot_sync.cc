@@ -90,10 +90,8 @@ int slot_sync::recv_callback(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_t
   stack_tti_ts_new = rf_timestamp.get(0);
 
   // Run stack if the sync state is not in camping
-  if (state == SEARCHING) {
-    logger.debug("run_stack_tti: from recv");
-    run_stack_tti();
-  }
+  logger.debug("run_stack_tti: from recv");
+  run_stack_tti();
 
   logger.debug("SYNC:  received %d samples from radio", data.get_nof_samples());
 
@@ -109,8 +107,26 @@ bool slot_sync::run_sfn_sync()
   }
 
   if (outcome.in_sync) {
-    slot_cfg.idx = outcome.sfn * SRSRAN_NSLOTS_PER_SF_NR(srsran_subcarrier_spacing_15kHz) + outcome.sf_idx;
+    slot_cfg.idx = outcome.sfn * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) + outcome.sf_idx;
   }
+
+  return outcome.in_sync;
+}
+
+bool slot_sync::run_camping(srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& timestamp)
+{
+  srsran_ue_sync_nr_outcome_t outcome = {};
+  if (srsran_ue_sync_nr_zerocopy(&ue_sync_nr, buffer.to_cf_t(), &outcome) < SRSRAN_SUCCESS) {
+    logger.error("SYNC: error in zerocopy");
+    return false;
+  }
+
+  if (outcome.in_sync) {
+    slot_cfg.idx = outcome.sfn * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) + outcome.sf_idx;
+  }
+
+  // Set RF timestamp
+  *timestamp.get_ptr(0) = outcome.timestamp;
 
   return outcome.in_sync;
 }

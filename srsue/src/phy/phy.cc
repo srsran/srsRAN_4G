@@ -323,7 +323,6 @@ bool phy::cell_select(phy_cell_t cell)
 
       // Indicate workers that cell selection has finished
       common.cell_is_selecting = false;
-
     });
     return true;
   } else {
@@ -620,7 +619,7 @@ void phy::set_mch_period_stop(uint32_t stop)
 int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
   stack_nr = stack_;
-  if (!nr_workers.init(args_, common, stack_, WORKERS_THREAD_PRIO)) {
+  if (!nr_workers.init(args_, common, stack_)) {
     return SRSRAN_ERROR;
   }
 
