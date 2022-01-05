@@ -48,27 +48,27 @@ public:
   void stop();
 
   // RRC NR interface
-  void initial_ue(uint16_t                                rnti,
-                  uint32_t                                gnb_cc_idx,
-                  asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::const_byte_span                 pdu) override;
-  void initial_ue(uint16_t                                rnti,
-                  uint32_t                                gnb_cc_idx,
-                  asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::const_byte_span                 pdu,
-                  uint32_t                                s_tmsi) override;
+  void initial_ue(uint16_t                             rnti,
+                  uint32_t                             gnb_cc_idx,
+                  asn1::ngap::rrcestablishment_cause_e cause,
+                  srsran::const_byte_span              pdu) override;
+  void initial_ue(uint16_t                             rnti,
+                  uint32_t                             gnb_cc_idx,
+                  asn1::ngap::rrcestablishment_cause_e cause,
+                  srsran::const_byte_span              pdu,
+                  uint32_t                             s_tmsi) override;
 
   void write_pdu(uint16_t rnti, srsran::const_byte_span pdu) override;
   bool user_exists(uint16_t rnti) override { return true; };
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) override {}
 
   // TS 38.413 - Section 8.3.2 - UE Context Release Request
-  void user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) override;
+  void user_release_request(uint16_t rnti, asn1::ngap::cause_radio_network_e cause_radio) override;
 
   bool is_amf_connected() override;
-  bool send_error_indication(const asn1::ngap_nr::cause_c& cause,
-                             srsran::optional<uint32_t>    ran_ue_ngap_id = {},
-                             srsran::optional<uint32_t>    amf_ue_ngap_id = {});
+  bool send_error_indication(const asn1::ngap::cause_c& cause,
+                             srsran::optional<uint32_t> ran_ue_ngap_id = {},
+                             srsran::optional<uint32_t> amf_ue_ngap_id = {});
   void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome) override;
   bool send_pdu_session_resource_setup_response();
 
@@ -83,7 +83,7 @@ public:
 
   // Logging
   typedef enum { Rx = 0, Tx } direction_t;
-  void log_ngap_message(const asn1::ngap_nr::ngap_pdu_c& msg, const direction_t dir, srsran::const_byte_span pdu);
+  void log_ngap_message(const asn1::ngap::ngap_pdu_c& msg, const direction_t dir, srsran::const_byte_span pdu);
 
 private:
   static const int AMF_PORT        = 38412;
@@ -111,33 +111,33 @@ private:
   srsran::unique_timer  amf_connect_timer, ngsetup_timeout;
 
   // Protocol IEs sent with every UL NGAP message
-  asn1::ngap_nr::tai_s    tai;
-  asn1::ngap_nr::nr_cgi_s nr_cgi;
+  asn1::ngap::tai_s    tai;
+  asn1::ngap::nr_cgi_s nr_cgi;
 
-  asn1::ngap_nr::ng_setup_resp_s ngsetupresponse;
+  asn1::ngap::ng_setup_resp_s ngsetupresponse;
 
   int  build_tai_cgi();
   bool connect_amf();
   bool setup_ng();
-  bool sctp_send_ngap_pdu(const asn1::ngap_nr::ngap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
+  bool sctp_send_ngap_pdu(const asn1::ngap::ngap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
 
   bool handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu);
-  bool handle_successful_outcome(const asn1::ngap_nr::successful_outcome_s& msg);
-  bool handle_unsuccessful_outcome(const asn1::ngap_nr::unsuccessful_outcome_s& msg);
-  bool handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg);
+  bool handle_successful_outcome(const asn1::ngap::successful_outcome_s& msg);
+  bool handle_unsuccessful_outcome(const asn1::ngap::unsuccessful_outcome_s& msg);
+  bool handle_initiating_message(const asn1::ngap::init_msg_s& msg);
 
   // TS 38.413 - Section 8.6.2 - Downlink NAS Transport
-  bool handle_dl_nas_transport(const asn1::ngap_nr::dl_nas_transport_s& msg);
+  bool handle_dl_nas_transport(const asn1::ngap::dl_nas_transport_s& msg);
   // TS 38.413 - Section 9.2.6.2 - NG Setup Response
-  bool handle_ng_setup_response(const asn1::ngap_nr::ng_setup_resp_s& msg);
+  bool handle_ng_setup_response(const asn1::ngap::ng_setup_resp_s& msg);
   // TS 38.413 - Section 9.2.6.3 - NG Setup Failure
-  bool handle_ng_setup_failure(const asn1::ngap_nr::ng_setup_fail_s& msg);
+  bool handle_ng_setup_failure(const asn1::ngap::ng_setup_fail_s& msg);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
-  bool handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  bool handle_ue_context_release_cmd(const asn1::ngap::ue_context_release_cmd_s& msg);
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
-  bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
+  bool handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
-  bool handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+  bool handle_ue_pdu_session_res_setup_request(const asn1::ngap::pdu_session_res_setup_request_s& msg);
 
   // PCAP
   srsran::ngap_pcap* pcap = nullptr;
@@ -192,8 +192,8 @@ private:
 
   srsran::proc_t<ng_setup_proc_t> ngsetup_proc;
 
-  std::string get_cause(const asn1::ngap_nr::cause_c& c);
-  void        log_ngap_msg(const asn1::ngap_nr::ngap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx);
+  std::string get_cause(const asn1::ngap::cause_c& c);
+  void        log_ngap_msg(const asn1::ngap::ngap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx);
 };
 
 } // namespace srsenb

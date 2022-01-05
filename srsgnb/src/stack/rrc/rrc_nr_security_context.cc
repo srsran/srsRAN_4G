@@ -26,7 +26,7 @@ asn1::rrc_nr::security_algorithm_cfg_s nr_security_context::get_security_algorit
   return ret;
 }
 
-bool nr_security_context::set_security_capabilities(const asn1::ngap_nr::ue_security_cap_s& caps)
+bool nr_security_context::set_security_capabilities(const asn1::ngap::ue_security_cap_s& caps)
 {
   security_capabilities = caps;
 

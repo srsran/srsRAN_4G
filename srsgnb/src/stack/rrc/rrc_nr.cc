@@ -579,15 +579,15 @@ int rrc_nr::ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<2
   u.set_security_key(key);
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+int rrc_nr::ue_set_bitrates(uint16_t rnti, const asn1::ngap::ue_aggregate_maximum_bit_rate_s& rates)
 {
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+int rrc_nr::set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap::ue_aggregate_maximum_bit_rate_s& rates)
 {
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
+int rrc_nr::ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap::ue_security_cap_s& caps)
 {
   logger.debug("Setting securtiy capabilites for rnti=0x%x", rnti);
   auto ue_it = users.find(rnti);

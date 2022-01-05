@@ -94,8 +94,8 @@ public:
 
   // Interfaces for NGAP
   int  ue_set_security_cfg_key(uint16_t rnti, const asn1::fixed_bitstring<256, false, true>& key) final;
-  int  ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates) final;
-  int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps) final;
+  int  ue_set_bitrates(uint16_t rnti, const asn1::ngap::ue_aggregate_maximum_bit_rate_s& rates) final;
+  int  ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap::ue_security_cap_s& caps) final;
   int  start_security_mode_procedure(uint16_t rnti, srsran::unique_byte_buffer_t nas_pdu) final;
   int  establish_rrc_bearer(uint16_t                rnti,
                             uint16_t                pdu_session_id,
@@ -104,7 +104,7 @@ public:
   int  release_bearers(uint16_t rnti) final;
   void release_user(uint16_t rnti) final;
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) final;
-  int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates) final;
+  int  set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap::ue_aggregate_maximum_bit_rate_s& rates) final;
   int  allocate_lcid(uint16_t rnti) final;
 
   // logging

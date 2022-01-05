@@ -30,16 +30,16 @@ public:
               srslog::basic_logger&  logger_);
   virtual ~ue();
   // TS 38.413 - Section 9.2.5.1 - Initial UE Message
-  bool send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e cause,
-                               srsran::const_byte_span                 pdu,
-                               bool                                    has_tmsi,
-                               uint32_t                                s_tmsi = 0);
+  bool send_initial_ue_message(asn1::ngap::rrcestablishment_cause_e cause,
+                               srsran::const_byte_span              pdu,
+                               bool                                 has_tmsi,
+                               uint32_t                             s_tmsi = 0);
   // TS 38.413 - Section 9.2.5.3 - Uplink NAS Transport
   bool send_ul_nas_transport(srsran::const_byte_span pdu);
   // TS 38.413 - Section 9.2.2.2 - Initial Context Setup Response
   bool send_initial_ctxt_setup_response();
   // TS 38.413 - Section 9.2.2.3 - Initial Context Setup Failure
-  bool send_initial_ctxt_setup_failure(asn1::ngap_nr::cause_c cause);
+  bool send_initial_ctxt_setup_failure(asn1::ngap::cause_c cause);
   // TS 38.413 - Section 9.2.1.2 - PDU Session Resource Setup Response
   bool send_pdu_session_resource_setup_response(uint16_t                                    pdu_session_id,
                                                 uint32_t                                    teid_in,
@@ -47,13 +47,13 @@ public:
   // TS 38.413 - Section 9.2.1.2 - UE Context Release Complete
   bool send_ue_ctxt_release_complete();
   // TS 38.413 - Section 9.2.2.1 - Initial Context Setup Request
-  bool handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg);
+  bool handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.2.4 - UE Context Release Request
-  bool send_ue_context_release_request(asn1::ngap_nr::cause_c cause);
+  bool send_ue_context_release_request(asn1::ngap::cause_c cause);
   // TS 38.413 - Section 9.2.2.5 - UE Context Release Command
-  bool handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  bool handle_ue_context_release_cmd(const asn1::ngap::ue_context_release_cmd_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
-  bool handle_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+  bool handle_pdu_session_res_setup_request(const asn1::ngap::pdu_session_res_setup_request_s& msg);
 
   /// Checks if a UE Context Release Request was already sent
   bool was_ue_context_release_requested() const { return release_requested; }

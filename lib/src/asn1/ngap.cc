@@ -14,7 +14,7 @@
 #include <sstream>
 
 using namespace asn1;
-using namespace asn1::ngap_nr;
+using namespace asn1::ngap;
 
 /*******************************************************************************
  *                                Struct Methods
@@ -1305,7 +1305,7 @@ void protocol_ie_container_item_s<valueT_>::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<amf_cfg_upd_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<amf_cfg_upd_ies_o>;
 
 amf_cfg_upd_ies_container::amf_cfg_upd_ies_container() :
   amf_name(1, crit_e::reject),
@@ -2207,7 +2207,7 @@ const char* amf_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "amf_cfg_upd_ack_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<amf_cfg_upd_ack_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<amf_cfg_upd_ack_ies_o>;
 
 amf_cfg_upd_ack_ies_container::amf_cfg_upd_ack_ies_container() :
   amf_tnlassoc_setup_list(5, crit_e::ignore),
@@ -2557,7 +2557,7 @@ const char* amf_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "amf_cfg_upd_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<amf_cfg_upd_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<amf_cfg_upd_fail_ies_o>;
 
 amf_cfg_upd_fail_ies_container::amf_cfg_upd_fail_ies_container() :
   cause(15, crit_e::ignore), time_to_wait(107, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -6936,7 +6936,7 @@ const char* cell_traffic_trace_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 5, value, "cell_traffic_trace_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<cell_traffic_trace_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<cell_traffic_trace_ies_o>;
 
 cell_traffic_trace_ies_container::cell_traffic_trace_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -8473,7 +8473,7 @@ const char* deactiv_trace_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "deactiv_trace_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<deactiv_trace_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<deactiv_trace_ies_o>;
 
 deactiv_trace_ies_container::deactiv_trace_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), ngran_trace_id(44, crit_e::ignore)
@@ -9373,7 +9373,7 @@ const char* dl_nas_transport_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 9, value, "dl_nas_transport_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<dl_nas_transport_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<dl_nas_transport_ies_o>;
 
 dl_nas_transport_ies_container::dl_nas_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -9758,7 +9758,7 @@ const char* dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_
   return convert_enum_idx(options, 2, value, "dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o>;
 
 dl_non_ueassociated_nrp_pa_transport_ies_container::dl_non_ueassociated_nrp_pa_transport_ies_container() :
   routing_id(89, crit_e::reject), nrp_pa_pdu(46, crit_e::reject)
@@ -10504,7 +10504,7 @@ const char* dl_ran_cfg_transfer_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 2, value, "dl_ran_cfg_transfer_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<dl_ran_cfg_transfer_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<dl_ran_cfg_transfer_ies_o>;
 
 dl_ran_cfg_transfer_ies_container::dl_ran_cfg_transfer_ies_container() :
   son_cfg_transfer_dl(98, crit_e::ignore), endc_son_cfg_transfer_dl(157, crit_e::ignore)
@@ -10864,7 +10864,7 @@ const char* dl_ran_status_transfer_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "dl_ran_status_transfer_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<dl_ran_status_transfer_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<dl_ran_status_transfer_ies_o>;
 
 dl_ran_status_transfer_ies_container::dl_ran_status_transfer_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -11226,7 +11226,7 @@ const char* dl_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_stri
   return convert_enum_idx(options, 4, value, "dl_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o>;
 
 dl_ueassociated_nrp_pa_transport_ies_container::dl_ueassociated_nrp_pa_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -11891,7 +11891,7 @@ const char* error_ind_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 4, value, "error_ind_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<error_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<error_ind_ies_o>;
 
 error_ind_ies_container::error_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -12365,7 +12365,7 @@ const char* ho_cancel_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "ho_cancel_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_cancel_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_cancel_ies_o>;
 
 ho_cancel_ies_container::ho_cancel_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), cause(15, crit_e::ignore)
@@ -12686,7 +12686,7 @@ const char* ho_cancel_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "ho_cancel_ack_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_cancel_ack_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_cancel_ack_ies_o>;
 
 ho_cancel_ack_ies_container::ho_cancel_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore), ran_ue_ngap_id(85, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -13298,7 +13298,7 @@ const char* ho_cmd_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 8, value, "ho_cmd_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_cmd_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_cmd_ies_o>;
 
 ho_cmd_ies_container::ho_cmd_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -13952,7 +13952,7 @@ uint8_t ho_fail_ies_o::value_c::types_opts::to_number() const
   return map_enum_number(options, 1, value, "ho_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_fail_ies_o>;
 
 ho_fail_ies_container::ho_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore), cause(15, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -14620,7 +14620,7 @@ const char* ho_notify_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "ho_notify_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_notify_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_notify_ies_o>;
 
 ho_notify_ies_container::ho_notify_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), user_location_info(121, crit_e::ignore)
@@ -14981,7 +14981,7 @@ const char* ho_prep_fail_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 4, value, "ho_prep_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_prep_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_prep_fail_ies_o>;
 
 ho_prep_fail_ies_container::ho_prep_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -16289,7 +16289,7 @@ uint8_t ho_request_ies_o::value_c::types_opts::to_number() const
   return 0;
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_request_ies_o>;
 
 ho_request_ies_container::ho_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -17024,7 +17024,7 @@ const char* ho_request_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 6, value, "ho_request_ack_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_request_ack_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_request_ack_ies_o>;
 
 ho_request_ack_ies_container::ho_request_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -18086,7 +18086,7 @@ const char* ho_required_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 8, value, "ho_required_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ho_required_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ho_required_ies_o>;
 
 ho_required_ies_container::ho_required_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -18802,7 +18802,7 @@ const char* init_context_setup_fail_ies_o::value_c::types_opts::to_string() cons
   return convert_enum_idx(options, 5, value, "init_context_setup_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<init_context_setup_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<init_context_setup_fail_ies_o>;
 
 init_context_setup_fail_ies_container::init_context_setup_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -19938,7 +19938,7 @@ const char* init_context_setup_request_ies_o::value_c::types_opts::to_string() c
   return convert_enum_idx(options, 20, value, "init_context_setup_request_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<init_context_setup_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<init_context_setup_request_ies_o>;
 
 init_context_setup_request_ies_container::init_context_setup_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -20671,7 +20671,7 @@ const char* init_context_setup_resp_ies_o::value_c::types_opts::to_string() cons
   return convert_enum_idx(options, 5, value, "init_context_setup_resp_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<init_context_setup_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<init_context_setup_resp_ies_o>;
 
 init_context_setup_resp_ies_container::init_context_setup_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -21256,7 +21256,7 @@ uint8_t init_ue_msg_ies_o::value_c::types_opts::to_number() const
   return map_enum_number(options, 1, value, "init_ue_msg_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<init_ue_msg_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<init_ue_msg_ies_o>;
 
 init_ue_msg_ies_container::init_ue_msg_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -38790,7 +38790,7 @@ const char* write_replace_warning_resp_ies_o::value_c::types_opts::to_string() c
   return convert_enum_idx(options, 4, value, "write_replace_warning_resp_ies_o::value_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<location_report_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<location_report_ies_o>;
 
 location_report_ies_container::location_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -38924,7 +38924,7 @@ void location_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<location_report_ctrl_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<location_report_ctrl_ies_o>;
 
 location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -39018,7 +39018,7 @@ void location_report_ctrl_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<location_report_fail_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<location_report_fail_ind_ies_o>;
 
 location_report_fail_ind_ies_container::location_report_fail_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), cause(15, crit_e::ignore)
@@ -39110,7 +39110,7 @@ void location_report_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
 
 nas_non_delivery_ind_ies_container::nas_non_delivery_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -39214,7 +39214,7 @@ void nas_non_delivery_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ng_reset_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ng_reset_ies_o>;
 
 ng_reset_ies_container::ng_reset_ies_container() : cause(15, crit_e::ignore), reset_type(88, crit_e::reject) {}
 SRSASN_CODE ng_reset_ies_container::pack(bit_ref& bref) const
@@ -39295,7 +39295,7 @@ void ng_reset_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ng_reset_ack_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ng_reset_ack_ies_o>;
 
 ng_reset_ack_ies_container::ng_reset_ack_ies_container() :
   ue_associated_lc_ng_conn_list(111, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -39382,7 +39382,7 @@ void ng_reset_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ng_setup_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ng_setup_fail_ies_o>;
 
 ng_setup_fail_ies_container::ng_setup_fail_ies_container() :
   cause(15, crit_e::ignore), time_to_wait(107, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -39484,7 +39484,7 @@ void ng_setup_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ng_setup_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ng_setup_request_ies_o>;
 
 ng_setup_request_ies_container::ng_setup_request_ies_container() :
   global_ran_node_id(27, crit_e::reject),
@@ -39608,7 +39608,7 @@ void ng_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ng_setup_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ng_setup_resp_ies_o>;
 
 ng_setup_resp_ies_container::ng_setup_resp_ies_container() :
   amf_name(1, crit_e::reject),
@@ -39742,7 +39742,7 @@ void ng_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<overload_start_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<overload_start_ies_o>;
 
 overload_start_ies_container::overload_start_ies_container() :
   amf_overload_resp(2, crit_e::reject),
@@ -39890,7 +39890,7 @@ void overload_stop_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o>;
 
 pdu_session_res_modify_confirm_ies_container::pdu_session_res_modify_confirm_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -40014,7 +40014,7 @@ void pdu_session_res_modify_confirm_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_ind_ies_o>;
 
 pdu_session_res_modify_ind_ies_container::pdu_session_res_modify_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40108,7 +40108,7 @@ void pdu_session_res_modify_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_request_ies_o>;
 
 pdu_session_res_modify_request_ies_container::pdu_session_res_modify_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40217,7 +40217,7 @@ void pdu_session_res_modify_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_resp_ies_o>;
 
 pdu_session_res_modify_resp_ies_container::pdu_session_res_modify_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -40361,7 +40361,7 @@ void pdu_session_res_modify_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_notify_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_notify_ies_o>;
 
 pdu_session_res_notify_ies_container::pdu_session_res_notify_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40490,7 +40490,7 @@ void pdu_session_res_notify_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_release_cmd_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_release_cmd_ies_o>;
 
 pdu_session_res_release_cmd_ies_container::pdu_session_res_release_cmd_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40614,7 +40614,7 @@ void pdu_session_res_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_release_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_release_resp_ies_o>;
 
 pdu_session_res_release_resp_ies_container::pdu_session_res_release_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -40738,7 +40738,7 @@ void pdu_session_res_release_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_setup_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_setup_request_ies_o>;
 
 pdu_session_res_setup_request_ies_container::pdu_session_res_setup_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40877,7 +40877,7 @@ void pdu_session_res_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_setup_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_setup_resp_ies_o>;
 
 pdu_session_res_setup_resp_ies_container::pdu_session_res_setup_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -41006,7 +41006,7 @@ void pdu_session_res_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pws_cancel_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pws_cancel_request_ies_o>;
 
 pws_cancel_request_ies_container::pws_cancel_request_ies_container() :
   msg_id(35, crit_e::reject),
@@ -41120,7 +41120,7 @@ void pws_cancel_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pws_cancel_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pws_cancel_resp_ies_o>;
 
 pws_cancel_resp_ies_container::pws_cancel_resp_ies_container() :
   msg_id(35, crit_e::reject),
@@ -41234,7 +41234,7 @@ void pws_cancel_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pws_fail_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pws_fail_ind_ies_o>;
 
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
   pws_failed_cell_id_list(81, crit_e::reject), global_ran_node_id(27, crit_e::reject)
@@ -41317,7 +41317,7 @@ void pws_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pws_restart_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pws_restart_ind_ies_o>;
 
 pws_restart_ind_ies_container::pws_restart_ind_ies_container() :
   cell_id_list_for_restart(16, crit_e::reject),
@@ -41426,7 +41426,7 @@ void pws_restart_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<paging_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<paging_ies_o>;
 
 paging_ies_container::paging_ies_container() :
   ue_paging_id(115, crit_e::ignore),
@@ -41585,7 +41585,7 @@ void paging_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<path_switch_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<path_switch_request_ies_o>;
 
 path_switch_request_ies_container::path_switch_request_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -41714,7 +41714,7 @@ void path_switch_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<path_switch_request_ack_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<path_switch_request_ack_ies_o>;
 
 path_switch_request_ack_ies_container::path_switch_request_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -41933,7 +41933,7 @@ void path_switch_request_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<path_switch_request_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<path_switch_request_fail_ies_o>;
 
 path_switch_request_fail_ies_container::path_switch_request_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -42132,7 +42132,7 @@ void private_msg_s::to_json(json_writer& j) const
   j.end_array();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ran_cfg_upd_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ran_cfg_upd_ies_o>;
 
 ran_cfg_upd_ies_container::ran_cfg_upd_ies_container() :
   ran_node_name(82, crit_e::ignore),
@@ -42272,7 +42272,7 @@ void ran_cfg_upd_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ran_cfg_upd_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ran_cfg_upd_fail_ies_o>;
 
 ran_cfg_upd_fail_ies_container::ran_cfg_upd_fail_ies_container() :
   cause(15, crit_e::ignore), time_to_wait(107, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -42374,7 +42374,7 @@ void ran_cfg_upd_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<rrc_inactive_transition_report_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<rrc_inactive_transition_report_ies_o>;
 
 rrc_inactive_transition_report_ies_container::rrc_inactive_transition_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -42478,7 +42478,7 @@ void rrc_inactive_transition_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<reroute_nas_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<reroute_nas_request_ies_o>;
 
 reroute_nas_request_ies_container::reroute_nas_request_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -42602,7 +42602,7 @@ void reroute_nas_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
 
 secondary_rat_data_usage_report_ies_container::secondary_rat_data_usage_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -42711,7 +42711,7 @@ void secondary_rat_data_usage_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<trace_fail_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<trace_fail_ind_ies_o>;
 
 trace_fail_ind_ies_container::trace_fail_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -42815,7 +42815,7 @@ void trace_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<trace_start_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<trace_start_ies_o>;
 
 trace_start_ies_container::trace_start_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), trace_activation(108, crit_e::ignore)
@@ -42907,7 +42907,7 @@ void trace_start_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
 
 ue_context_mod_fail_ies_container::ue_context_mod_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43016,7 +43016,7 @@ void ue_context_mod_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_mod_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_context_mod_request_ies_o>;
 
 ue_context_mod_request_ies_container::ue_context_mod_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43235,7 +43235,7 @@ void ue_context_mod_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
 
 ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43364,7 +43364,7 @@ void ue_context_mod_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
   ue_ngap_ids(114, crit_e::reject), cause(15, crit_e::ignore)
@@ -43447,7 +43447,7 @@ void ue_context_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_release_complete_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_context_release_complete_ies_o>;
 
 ue_context_release_complete_ies_container::ue_context_release_complete_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43592,7 +43592,7 @@ void ue_context_release_complete_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_release_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_context_release_request_ies_o>;
 
 ue_context_release_request_ies_container::ue_context_release_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43701,7 +43701,7 @@ void ue_context_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_radio_cap_check_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_radio_cap_check_request_ies_o>;
 
 ue_radio_cap_check_request_ies_container::ue_radio_cap_check_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), ue_radio_cap(117, crit_e::ignore)
@@ -43798,7 +43798,7 @@ void ue_radio_cap_check_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_radio_cap_check_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_radio_cap_check_resp_ies_o>;
 
 ue_radio_cap_check_resp_ies_container::ue_radio_cap_check_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43907,7 +43907,7 @@ void ue_radio_cap_check_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ue_radio_cap_info_ind_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ue_radio_cap_info_ind_ies_o>;
 
 ue_radio_cap_info_ind_ies_container::ue_radio_cap_info_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44016,7 +44016,7 @@ void ue_radio_cap_info_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<uetnla_binding_release_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<uetnla_binding_release_request_ies_o>;
 
 uetnla_binding_release_request_ies_container::uetnla_binding_release_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject)
@@ -44099,7 +44099,7 @@ void uetnla_binding_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ul_nas_transport_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ul_nas_transport_ies_o>;
 
 ul_nas_transport_ies_container::ul_nas_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44203,7 +44203,7 @@ void ul_nas_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o>;
 
 ul_non_ueassociated_nrp_pa_transport_ies_container::ul_non_ueassociated_nrp_pa_transport_ies_container() :
   routing_id(89, crit_e::reject), nrp_pa_pdu(46, crit_e::reject)
@@ -44286,7 +44286,7 @@ void ul_non_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ul_ran_cfg_transfer_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ul_ran_cfg_transfer_ies_o>;
 
 ul_ran_cfg_transfer_ies_container::ul_ran_cfg_transfer_ies_container() :
   son_cfg_transfer_ul(99, crit_e::ignore), endc_son_cfg_transfer_ul(158, crit_e::ignore)
@@ -44373,7 +44373,7 @@ void ul_ran_cfg_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ul_ran_status_transfer_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ul_ran_status_transfer_ies_o>;
 
 ul_ran_status_transfer_ies_container::ul_ran_status_transfer_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44467,7 +44467,7 @@ void ul_ran_status_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o>;
 
 ul_ueassociated_nrp_pa_transport_ies_container::ul_ueassociated_nrp_pa_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44571,7 +44571,7 @@ void ul_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<write_replace_warning_request_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<write_replace_warning_request_ies_o>;
 
 write_replace_warning_request_ies_container::write_replace_warning_request_ies_container() :
   msg_id(35, crit_e::reject),
@@ -44780,7 +44780,7 @@ void write_replace_warning_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
 
 write_replace_warning_resp_ies_container::write_replace_warning_resp_ies_container() :
   msg_id(35, crit_e::reject),
@@ -49519,7 +49519,7 @@ const char* pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::types_opts::to
   return convert_enum_idx(options, 2, value, "pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::types");
 }
 
-template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o>;
+template struct asn1::ngap::protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o>;
 
 pdu_session_res_modify_ind_transfer_ext_ies_container::pdu_session_res_modify_ind_transfer_ext_ies_container() :
   secondary_ratusage_info(144, crit_e::ignore), security_result(156, crit_e::ignore)
@@ -50448,7 +50448,7 @@ uint8_t pdu_session_res_modify_request_transfer_ies_o::value_c::types_opts::to_n
   return 0;
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o>;
 
 pdu_session_res_modify_request_transfer_ies_container::pdu_session_res_modify_request_transfer_ies_container() :
   pdu_session_aggregate_maximum_bit_rate(130, crit_e::reject),
@@ -51898,7 +51898,7 @@ uint8_t pdu_session_res_setup_request_transfer_ies_o::value_c::types_opts::to_nu
   return 0;
 }
 
-template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o>;
+template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o>;
 
 pdu_session_res_setup_request_transfer_ies_container::pdu_session_res_setup_request_transfer_ies_container() :
   pdu_session_aggregate_maximum_bit_rate(130, crit_e::reject),

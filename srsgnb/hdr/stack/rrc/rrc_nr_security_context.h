@@ -46,7 +46,7 @@ public:
     return *this;
   }
 
-  bool set_security_capabilities(const asn1::ngap_nr::ue_security_cap_s& caps);
+  bool set_security_capabilities(const asn1::ngap::ue_security_cap_s& caps);
   void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
   void set_ncc(uint8_t ncc_) { ncc = ncc_; }
 
@@ -60,13 +60,13 @@ public:
 private:
   void generate_as_keys();
 
-  srslog::basic_logger&            logger;
-  const srsenb::rrc_nr_cfg_t&      cfg;
-  bool                             k_gnb_present         = false;
-  asn1::ngap_nr::ue_security_cap_s security_capabilities = {};
-  uint8_t                          k_gnb[32]             = {}; // Provided by MME
-  srsran::nr_as_security_config_t  sec_cfg               = {};
-  uint8_t                          ncc                   = 0;
+  srslog::basic_logger&           logger;
+  const srsenb::rrc_nr_cfg_t&     cfg;
+  bool                            k_gnb_present         = false;
+  asn1::ngap::ue_security_cap_s   security_capabilities = {};
+  uint8_t                         k_gnb[32]             = {}; // Provided by MME
+  srsran::nr_as_security_config_t sec_cfg               = {};
+  uint8_t                         ncc                   = 0;
 };
 } // namespace srsgnb
 #endif

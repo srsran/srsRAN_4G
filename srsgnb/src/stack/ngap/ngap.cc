@@ -28,7 +28,7 @@ using srsran::uint32_to_uint8;
     }                                                                                                                  \
   } while (0)
 
-using namespace asn1::ngap_nr;
+using namespace asn1::ngap;
 
 namespace srsenb {
 /*********************************************************
@@ -211,10 +211,10 @@ int ngap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void ngap::initial_ue(uint16_t                                rnti,
-                      uint32_t                                gnb_cc_idx,
-                      asn1::ngap_nr::rrcestablishment_cause_e cause,
-                      srsran::const_byte_span                 pdu)
+void ngap::initial_ue(uint16_t                             rnti,
+                      uint32_t                             gnb_cc_idx,
+                      asn1::ngap::rrcestablishment_cause_e cause,
+                      srsran::const_byte_span              pdu)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this, rrc, gtpu, logger}};
   ue_ptr->ctxt.rnti       = rnti;
@@ -227,11 +227,11 @@ void ngap::initial_ue(uint16_t                                rnti,
   u->send_initial_ue_message(cause, pdu, false);
 }
 
-void ngap::initial_ue(uint16_t                                rnti,
-                      uint32_t                                gnb_cc_idx,
-                      asn1::ngap_nr::rrcestablishment_cause_e cause,
-                      srsran::const_byte_span                 pdu,
-                      uint32_t                                s_tmsi)
+void ngap::initial_ue(uint16_t                             rnti,
+                      uint32_t                             gnb_cc_idx,
+                      asn1::ngap::rrcestablishment_cause_e cause,
+                      srsran::const_byte_span              pdu,
+                      uint32_t                             s_tmsi)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this, rrc, gtpu, logger}};
   ue_ptr->ctxt.rnti       = rnti;
@@ -265,7 +265,7 @@ void ngap::write_pdu(uint16_t rnti, srsran::const_byte_span pdu)
   u->send_ul_nas_transport(pdu);
 }
 
-void ngap::user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio)
+void ngap::user_release_request(uint16_t rnti, asn1::ngap::cause_radio_network_e cause_radio)
 {
   ue* u = users.find_ue_rnti(rnti);
   if (u == nullptr) {
@@ -424,7 +424,7 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
   return true;
 }
 
-bool ngap::handle_initiating_message(const asn1::ngap_nr::init_msg_s& msg)
+bool ngap::handle_initiating_message(const asn1::ngap::init_msg_s& msg)
 {
   switch (msg.value.type().value) {
     case ngap_elem_procs_o::init_msg_c::types_opts::dl_nas_transport:
@@ -452,7 +452,7 @@ bool ngap::handle_successful_outcome(const successful_outcome_s& msg)
   return true;
 }
 
-bool ngap::handle_unsuccessful_outcome(const asn1::ngap_nr::unsuccessful_outcome_s& msg)
+bool ngap::handle_unsuccessful_outcome(const asn1::ngap::unsuccessful_outcome_s& msg)
 {
   switch (msg.value.type().value) {
     case ngap_elem_procs_o::unsuccessful_outcome_c::types_opts::ng_setup_fail:
@@ -463,7 +463,7 @@ bool ngap::handle_unsuccessful_outcome(const asn1::ngap_nr::unsuccessful_outcome
   return true;
 }
 
-bool ngap::handle_ng_setup_response(const asn1::ngap_nr::ng_setup_resp_s& msg)
+bool ngap::handle_ng_setup_response(const asn1::ngap::ng_setup_resp_s& msg)
 {
   ngsetupresponse = msg;
   amf_connected   = true;
@@ -475,7 +475,7 @@ bool ngap::handle_ng_setup_response(const asn1::ngap_nr::ng_setup_resp_s& msg)
   return true;
 }
 
-bool ngap::handle_ng_setup_failure(const asn1::ngap_nr::ng_setup_fail_s& msg)
+bool ngap::handle_ng_setup_failure(const asn1::ngap::ng_setup_fail_s& msg)
 {
   std::string cause = get_cause(msg.protocol_ies.cause.value);
   logger.error("NG Setup Failure. Cause: %s", cause.c_str());
@@ -483,7 +483,7 @@ bool ngap::handle_ng_setup_failure(const asn1::ngap_nr::ng_setup_fail_s& msg)
   return true;
 }
 
-bool ngap::handle_dl_nas_transport(const asn1::ngap_nr::dl_nas_transport_s& msg)
+bool ngap::handle_dl_nas_transport(const asn1::ngap::dl_nas_transport_s& msg)
 {
   if (msg.ext) {
     logger.warning("Not handling NGAP message extension");
@@ -533,7 +533,7 @@ bool ngap::handle_dl_nas_transport(const asn1::ngap_nr::dl_nas_transport_s& msg)
   return true;
 }
 
-bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg)
+bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setup_request_s& msg)
 {
   ue* u =
       handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
@@ -547,9 +547,9 @@ bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_s
   return true;
 }
 
-bool ngap::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+bool ngap::handle_ue_context_release_cmd(const asn1::ngap::ue_context_release_cmd_s& msg)
 {
-  const asn1::ngap_nr::ue_ngap_id_pair_s& ue_ngap_id_pair = msg.protocol_ies.ue_ngap_ids.value.ue_ngap_id_pair();
+  const asn1::ngap::ue_ngap_id_pair_s& ue_ngap_id_pair = msg.protocol_ies.ue_ngap_ids.value.ue_ngap_id_pair();
 
   ue* u = handle_ngapmsg_ue_id(ue_ngap_id_pair.ran_ue_ngap_id, ue_ngap_id_pair.amf_ue_ngap_id);
   if (u == nullptr) {
@@ -560,7 +560,7 @@ bool ngap::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release
   return u->handle_ue_context_release_cmd(msg);
 }
 
-bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap::pdu_session_res_setup_request_s& msg)
 {
   ue* u =
       handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
@@ -581,9 +581,9 @@ bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_sess
 /* NGAP message senders
 ********************************************************************************/
 
-bool ngap::send_error_indication(const asn1::ngap_nr::cause_c& cause,
-                                 srsran::optional<uint32_t>    ran_ue_ngap_id,
-                                 srsran::optional<uint32_t>    amf_ue_ngap_id)
+bool ngap::send_error_indication(const asn1::ngap::cause_c& cause,
+                                 srsran::optional<uint32_t> ran_ue_ngap_id,
+                                 srsran::optional<uint32_t> amf_ue_ngap_id)
 {
   if (amf_connected == false) {
     logger.warning("AMF not connected.");
@@ -591,7 +591,7 @@ bool ngap::send_error_indication(const asn1::ngap_nr::cause_c& cause,
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_ERROR_IND);
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_ERROR_IND);
   auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
 
   uint16_t rnti                    = SRSRAN_INVALID_RNTI;
@@ -655,7 +655,7 @@ bool ngap::setup_ng()
   plmn = htonl(plmn);
 
   ngap_pdu_c pdu;
-  pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_NG_SETUP);
+  pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_NG_SETUP);
   ng_setup_request_ies_container& container     = pdu.init_msg().value.ng_setup_request().protocol_ies;
   global_gnb_id_s&                global_gnb_id = container.global_ran_node_id.value.set_global_gnb_id();
   global_gnb_id.plmn_id                         = tai.plmn_id;
@@ -687,7 +687,7 @@ bool ngap::setup_ng()
   container.supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list.resize(1);
   container.supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list[0].s_nssai.sst.from_number(1);
 
-  container.default_paging_drx.value.value = asn1::ngap_nr::paging_drx_opts::v256; // Todo: add to args, config file
+  container.default_paging_drx.value.value = asn1::ngap::paging_drx_opts::v256; // Todo: add to args, config file
 
   return sctp_send_ngap_pdu(pdu, 0, "ngSetupRequest");
 }
@@ -696,7 +696,7 @@ bool ngap::setup_ng()
 /* General helpers
 ********************************************************************************/
 
-bool ngap::sctp_send_ngap_pdu(const asn1::ngap_nr::ngap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
+bool ngap::sctp_send_ngap_pdu(const asn1::ngap::ngap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
 {
   if (not amf_connected and rnti != SRSRAN_INVALID_RNTI) {
     logger.error("Aborting %s for rnti=0x%x. Cause: AMF is not connected.", procedure_name, rnti);

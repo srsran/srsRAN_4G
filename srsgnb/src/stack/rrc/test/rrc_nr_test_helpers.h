@@ -52,11 +52,11 @@ public:
 class ngap_rrc_tester : public ngap_dummy
 {
 public:
-  void initial_ue(uint16_t                                rnti,
-                  uint32_t                                gnb_cc_idx,
-                  asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::const_byte_span                 pdu,
-                  uint32_t                                s_tmsi)
+  void initial_ue(uint16_t                             rnti,
+                  uint32_t                             gnb_cc_idx,
+                  asn1::ngap::rrcestablishment_cause_e cause,
+                  srsran::const_byte_span              pdu,
+                  uint32_t                             s_tmsi)
   {
     last_sdu_rnti = rnti;
     last_pdu.resize(pdu.size());
