@@ -89,7 +89,7 @@ private:
   srslog::basic_logger&           sched_logger;
   bool                            autofill_sch_bsr  = false;
   bool                            wait_preamble     = false;
-  bool                            enable_user_sched = false;
+  std::atomic<bool>               enable_user_sched = {false};
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
