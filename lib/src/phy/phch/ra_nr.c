@@ -1201,41 +1201,6 @@ double srsran_ra_nr_cqi_to_se(uint8_t cqi, srsran_csi_cqi_table_t cqi_table_idx)
   return ra_nr_cqi_to_se_table[cqi_table_idx][cqi];
 }
 
-static inline int srsran_ra_nr_mcs_bin_search(double se, size_t mcs_table_size, const mcs_entry_t* mcs_se_table)
-{
-  if (mcs_se_table == NULL) {
-    ERROR("Missing MCS table pointer");
-    return -1;
-  }
-
-  if (se < mcs_se_table[0].S) {
-    return 0;
-  } else if (se > mcs_se_table[mcs_table_size - 1].S) {
-    return mcs_table_size - 1;
-  }
-
-  size_t lb = 0;
-  size_t ub = mcs_table_size - 1;
-  while (ub > lb + 1) {
-    size_t mid_point = (size_t)floor(((double)(lb + ub)) / 2);
-    // break out of loop is there is an exact match
-    if (mcs_se_table[mid_point].S == se) {
-      ub = mid_point;
-      break;
-    }
-    // restrict the search to the left half of the vector
-    else if (se < mcs_se_table[mid_point].S) {
-      ub = mid_point;
-    }
-    // restrict the search to the right half of the vector
-    else { /* se > mcs_se_table[mid_point].S ) */
-      lb = mid_point;
-    }
-  }
-
-  return (int)ub;
-}
-
 int srsran_ra_nr_se_to_mcs(double                     se_target,
                            srsran_mcs_table_t         mcs_table,
                            srsran_dci_format_nr_t     dci_format,
