@@ -154,6 +154,9 @@ SRSRAN_API uint32_t srsran_ra_nr_type1_riv(uint32_t N_rb, uint32_t start_rb, uin
  * @brief Returns the MCS corresponding to CQI
  *
  * Mapping is performed as: return the MCS that has the closest spectral efficiency to that of the CQI
+ *
+ * @remark Implements mapping based on TS 38.214, MCS Tables 5.1.3.1-1, 5.1.3.1-2, 5.1.3.1-3 and CQI Tables 5.2.2.1-2,
+ * Table 5.2.2.1-3, 5.2.2.1-4
  * @param cqi CQI value
  * @param cqi_table_idx CQI table index
  * @param mcs_table MCS table parameter
@@ -173,6 +176,8 @@ SRSRAN_API int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
  * @brief Returns the Spectral Efficiency corresponding to CQI
  *
  * Mapping is performed as: return the MCS that has the closest spectral efficiency to that of the CQI
+ *
+ * @remark Implements mapping based on TS 38.214, CQI Tables 5.2.2.1-2, Table 5.2.2.1-3, 5.2.2.1-4
  * @param cqi CQI value
  * @param cqi_table_idx CQI table index
  * @return The Spectral Efficiency
@@ -183,6 +188,8 @@ SRSRAN_API double srsran_ra_nr_cqi_to_se(uint8_t cqi, srsran_csi_cqi_table_t cqi
  * @brief Returns the MCS corresponding to Spectral Efficiency
  *
  * Mapping is performed as: return the greatest MCS with an SE lower than or equal to target SE
+ *
+ * @remark Implements mapping based on TS 38.214, MCS Tables 5.1.3.1-1, 5.1.3.1-2, 5.1.3.1-3
  * @param se_target Target Spectral efficiency to be mapped into MCS
  * @param mcs_table MCS table parameter
  * @param dci_format DCI format
