@@ -936,12 +936,6 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
   out.sp_cell_cfg.recfg_with_sync_present = false;
 
-  /* Check if setting true is enough */
-  if (cfg.is_standalone) {
-    out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = true; // Note: not supported
-  } else {
-    out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false; // Note: not supported in NSA
-  }
 
   return SRSRAN_SUCCESS;
 }
