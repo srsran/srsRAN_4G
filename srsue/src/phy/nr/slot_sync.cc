@@ -27,8 +27,12 @@ static int slot_sync_recv_callback(void* ptr, cf_t** buffer, uint32_t nsamples, 
   if (ptr == nullptr) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
-  slot_sync*          sync = (slot_sync*)ptr;
-  srsran::rf_buffer_t rf_buffer(buffer, nsamples);
+  slot_sync* sync = (slot_sync*)ptr;
+
+  cf_t* buffer_ptr[SRSRAN_MAX_CHANNELS] = {};
+  buffer_ptr[0]                         = buffer[0];
+
+  srsran::rf_buffer_t rf_buffer(buffer_ptr, nsamples);
 
   return sync->recv_callback(rf_buffer, ts);
 }

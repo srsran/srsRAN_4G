@@ -128,6 +128,9 @@ public:
       return;
     }
 
+    // Wait for UE to notify stack that the configuration is completed
+    ue_stack.wait_phy_config_complete();
+
     // Make sure PHY log is not set by UE or gNb PHY
     set_handler_enabled(false);
     if (args.phy_lib_log_level == "info") {

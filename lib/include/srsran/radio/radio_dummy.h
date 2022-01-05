@@ -107,7 +107,7 @@ private:
     }
   }
 
-  void advance_tx_timestamp(uint64_t ts)
+  void advance_tx_timestamp(uint64_t ts, bool round_sf = false)
   {
     std::lock_guard<std::mutex> lock(tx_mutex);
 
@@ -116,8 +116,14 @@ private:
       return;
     }
 
-    // Calculate transmission gap in samples
+    // Calculate transmission gap
     uint32_t tx_gap = (uint32_t)(ts - tx_timestamp);
+
+    // Round gap to subframe size
+    if (round_sf) {
+      uint64_t sf_sz = (uint64_t)(srate_hz / 1e3);
+      tx_gap         = sf_sz * SRSRAN_CEIL(tx_gap, sf_sz);
+    }
 
     // Skip zeros if there is no gap
     if (tx_gap == 0) {
@@ -128,7 +134,7 @@ private:
     write_zeros_ring_buffers(tx_ring_buffers, tx_gap);
 
     // Update new transmit timestamp
-    tx_timestamp = ts;
+    tx_timestamp += tx_gap;
   }
 
 public:
@@ -137,6 +143,9 @@ public:
   ~radio_dummy()
   {
     for (auto& rb : rx_ring_buffers) {
+      srsran_ringbuffer_free(&rb);
+    }
+    for (auto& rb : tx_ring_buffers) {
       srsran_ringbuffer_free(&rb);
     }
     if (temp_buffer) {
@@ -208,7 +217,7 @@ public:
 
     // Check if the transmission is in the past
     if (tx_time_n < tx_timestamp) {
-      logger.error("Error transmission in the past");
+      logger.error("Error transmission in the past for %d samples", (int)(tx_timestamp - tx_time_n));
       return false;
     }
 
@@ -231,7 +240,7 @@ public:
   bool rx_now(srsran::rf_buffer_interface& buffer, srsran::rf_timestamp_interface& rxd_time) override
   {
     // Advance Tx buffer
-    advance_tx_timestamp(rx_timestamp + buffer.get_nof_samples());
+    advance_tx_timestamp(rx_timestamp + buffer.get_nof_samples(), true);
 
     // Read samples
     read_ring_buffers(rx_ring_buffers, buffer.to_cf_t(), buffer.get_nof_samples());

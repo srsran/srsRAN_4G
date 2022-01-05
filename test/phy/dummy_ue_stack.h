@@ -66,6 +66,11 @@ private:
   metrics_t                      metrics        = {};
   srsue::phy_interface_stack_nr& phy;
 
+  // Atributes to flag configuration PHy complete
+  bool                    configuration_complete = false;
+  std::mutex              configuration_complete_mutex;
+  std::condition_variable configuration_complete_cvar;
+
   // Attributes for throttling PHY and avoiding PHY free-running
   bool                    pending_tti = false;
   std::mutex              pending_tti_mutex;
@@ -195,7 +200,21 @@ public:
     metrics.sr_count = 0;
   }
 
-  void set_phy_config_complete(bool status) override {}
+  void set_phy_config_complete(bool status) override
+  {
+    std::unique_lock<std::mutex> lock(configuration_complete_mutex);
+    configuration_complete = true;
+    configuration_complete_cvar.notify_all();
+  }
+
+  void wait_phy_config_complete()
+  {
+    std::unique_lock<std::mutex> lock(configuration_complete_mutex);
+    while (not configuration_complete) {
+      configuration_complete_cvar.wait(lock);
+    }
+    configuration_complete = false;
+  }
 
   bool get_cell_search_finished()
   {

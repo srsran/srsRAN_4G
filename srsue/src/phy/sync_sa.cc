@@ -19,7 +19,12 @@ sync_sa::sync_sa(srslog::basic_logger& logger_, worker_pool& workers_) :
   logger(logger_), workers(workers_), slot_synchronizer(logger_), searcher(logger_), srsran::thread("SYNC")
 {}
 
-sync_sa::~sync_sa() {}
+sync_sa::~sync_sa()
+{
+  if (rx_buffer != nullptr) {
+    free(rx_buffer);
+  }
+}
 
 bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {

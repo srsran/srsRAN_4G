@@ -513,6 +513,25 @@ public:
       return nullptr;
     }
 
+    // Schedule SSB before UL
+    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
+      if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
+        srsran_mib_nr_t mib = {};
+        mib.ssb_idx         = ssb_idx;
+        mib.sfn             = slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs);
+        mib.hrf             = (slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs)) >=
+                  SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs) / 2;
+
+        mac_interface_phy_nr::ssb_t ssb = {};
+        if (srsran_pbch_msg_nr_mib_pack(&mib, &ssb.pbch_msg) < SRSRAN_SUCCESS) {
+          logger.error("Error Packing MIB in slot %d", slot_cfg.idx);
+          continue;
+        }
+        ssb.pbch_msg.ssb_idx = (uint32_t)ssb_idx;
+        dl_sched.ssb.push_back(ssb);
+      }
+    }
+
     // Check if the UL slot is valid, if not skip UL scheduling
     if (not srsran_duplex_nr_is_ul(&phy_cfg.duplex, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
       return &dl_sched;
@@ -534,25 +553,6 @@ public:
         if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
           dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
         }
-      }
-    }
-
-    // Schedule SSB
-    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
-      if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
-        srsran_mib_nr_t mib = {};
-        mib.ssb_idx         = ssb_idx;
-        mib.sfn             = slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs);
-        mib.hrf             = (slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs)) >=
-                  SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs) / 2;
-
-        mac_interface_phy_nr::ssb_t ssb = {};
-        if (srsran_pbch_msg_nr_mib_pack(&mib, &ssb.pbch_msg) < SRSRAN_SUCCESS) {
-          logger.error("Error Packing MIB in slot %d", slot_cfg.idx);
-          continue;
-        }
-        ssb.pbch_msg.ssb_idx = (uint32_t)ssb_idx;
-        dl_sched.ssb.push_back(ssb);
       }
     }
 
