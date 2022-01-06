@@ -180,7 +180,7 @@ int test_ho_request()
   TESTASSERT(pdu.init_msg().crit.value == crit_opts::reject);
   auto& horeq = pdu.init_msg().value.ho_request().protocol_ies;
 
-  auto& erab_item = horeq.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
+  auto& erab_item = horeq.erab_to_be_setup_list_ho_req.value[0]->erab_to_be_setup_item_ho_req();
   TESTASSERT(erab_item.erab_id == 5);
   TESTASSERT(erab_item.gtp_teid.to_string() == "b7361c56");
 
@@ -202,7 +202,7 @@ int test_enb_status_transfer()
       enb_status_transfer.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list[0];
 
   TESTASSERT(bearer.load_info_obj(ASN1_S1AP_ID_BEARERS_SUBJECT_TO_STATUS_TRANSFER_ITEM));
-  auto& bearer_item = bearer.value.bearers_subject_to_status_transfer_item();
+  auto& bearer_item = bearer->bearers_subject_to_status_transfer_item();
 
   bearer_item.erab_id                = 5;
   bearer_item.dl_coun_tvalue.pdcp_sn = 5;
@@ -225,7 +225,7 @@ int test_enb_status_transfer()
       pdu2.init_msg()
           .value.enb_status_transfer()
           .protocol_ies.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list[0];
-  auto& bearer_item2 = bearer2.value.bearers_subject_to_status_transfer_item();
+  auto& bearer_item2 = bearer2->bearers_subject_to_status_transfer_item();
   TESTASSERT(bearer_item2.dl_coun_tvalue.hfn == bearer_item.dl_coun_tvalue.hfn);
   TESTASSERT(bearer_item2.dl_coun_tvalue.hfn == 0);
 
@@ -275,7 +275,7 @@ int test_initial_ctxt_setup_response()
   // Fill in the GTP bind address for all bearers
   for (uint32_t i = 0; i < container.erab_setup_list_ctxt_su_res.value.size(); ++i) {
     container.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    auto& item   = container.erab_setup_list_ctxt_su_res.value[i]->erab_setup_item_ctxt_su_res();
     item.erab_id = 1;
     // uint32_to_uint8(teid_in, item.gtp_teid.data());
     item.transport_layer_address.resize(32);

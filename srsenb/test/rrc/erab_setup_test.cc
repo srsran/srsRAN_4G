@@ -94,7 +94,7 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
     rrc.set_aggregate_max_bitrate(rnti, setupmsg.ueaggregate_maximum_bitrate.value);
   }
   for (const auto& item : setupmsg.erab_to_be_setup_list_bearer_su_req.value) {
-    const auto&         erab = item.value.erab_to_be_setup_item_bearer_su_req();
+    const auto&         erab = item->erab_to_be_setup_item_bearer_su_req();
     asn1::s1ap::cause_c cause;
     int                 ret = rrc.setup_erab(rnti,
                              erab.erab_id,

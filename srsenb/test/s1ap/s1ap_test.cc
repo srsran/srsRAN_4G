@@ -241,7 +241,7 @@ void test_s1ap_erab_setup(test_event event)
   auto& erab_list                = protocols.erab_to_be_modified_list_bearer_mod_req.value;
   erab_list.resize(2);
   erab_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_TO_BE_MODIFIED_ITEM_BEARER_MOD_REQ);
-  auto* erab_ptr                      = &erab_list[0].value.erab_to_be_modified_item_bearer_mod_req();
+  auto* erab_ptr                      = &erab_list[0]->erab_to_be_modified_item_bearer_mod_req();
   erab_ptr->erab_id                   = 5;
   erab_ptr->erab_level_qos_params.qci = 9;
   erab_ptr->erab_level_qos_params.alloc_retention_prio.prio_level = 15;
@@ -252,7 +252,7 @@ void test_s1ap_erab_setup(test_event event)
   erab_ptr->nas_pdu.resize(1);
   erab_ptr->nas_pdu[0] = 0;
   erab_list[1]         = erab_list[0];
-  erab_ptr             = &erab_list[1].value.erab_to_be_modified_item_bearer_mod_req();
+  erab_ptr             = &erab_list[1]->erab_to_be_modified_item_bearer_mod_req();
   erab_ptr->erab_id    = event == test_event::repeated_erabid_mod ? 5 : 6;
   if (event == test_event::wrong_erabid_mod) {
     rrc.next_erabs_failed_to_modify.push_back(6);
@@ -286,11 +286,10 @@ void test_s1ap_erab_setup(test_event event)
   if (event == test_event::wrong_erabid_mod) {
     TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
     TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 1);
-    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value[0].value.erab_modify_item_bearer_mod_res().erab_id ==
-               5);
+    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value[0]->erab_modify_item_bearer_mod_res().erab_id == 5);
     TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
     TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
-    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0].value.erab_item();
+    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0]->erab_item();
     TESTASSERT(erab_item.erab_id == 6);
     TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
     TESTASSERT(erab_item.cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::unknown_erab_id);
@@ -300,7 +299,7 @@ void test_s1ap_erab_setup(test_event event)
     TESTASSERT(not protocol_ies.erab_modify_list_bearer_mod_res_present);
     TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
     TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
-    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0].value.erab_item();
+    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0]->erab_item();
     TESTASSERT(erab_item.erab_id == 5);
     TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
     TESTASSERT(erab_item.cause.radio_network().value ==
@@ -311,7 +310,7 @@ void test_s1ap_erab_setup(test_event event)
   TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
   TESTASSERT(not protocol_ies.erab_failed_to_modify_list_present);
   TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 2);
-  auto& erab_item = protocol_ies.erab_modify_list_bearer_mod_res.value[0].value.erab_modify_item_bearer_mod_res();
+  auto& erab_item = protocol_ies.erab_modify_list_bearer_mod_res.value[0]->erab_modify_item_bearer_mod_res();
   TESTASSERT(erab_item.erab_id == 5);
 }
 

@@ -64,10 +64,10 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
   paging.tai_list.value[0].load_info_obj(ASN1_S1AP_ID_TAI_ITEM);
 
   uint32_t plmn = m_s1ap->get_plmn();
-  paging.tai_list.value[0].value.tai_item().tai.plm_nid.from_number(plmn);
+  paging.tai_list.value[0]->tai_item().tai.plm_nid.from_number(plmn);
 
   uint16_t tac = m_s1ap->m_s1ap_args.tac;
-  paging.tai_list.value[0].value.tai_item().tai.tac.from_number(tac);
+  paging.tai_list.value[0]->tai_item().tai.tac.from_number(tac);
 
   // Start T3413
   if (!nas_ctx->start_timer(T_3413)) {

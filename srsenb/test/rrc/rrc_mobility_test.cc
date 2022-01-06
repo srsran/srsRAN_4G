@@ -273,7 +273,7 @@ int test_s1ap_tenb_mobility(test_event test_params)
   /* TeNB receives S1AP Handover Request */
   asn1::s1ap::ho_request_s ho_req;
   ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value.resize(1);
-  auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
+  auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0]->erab_to_be_setup_item_ho_req();
   erab.erab_id = 5;
   erab.erab_level_qos_params.qci = 9;
   if (test_params == test_event::unknown_qci) {
@@ -288,9 +288,9 @@ int test_s1ap_tenb_mobility(test_event test_params)
   container.erab_info_list_present = true;
   container.erab_info_list.resize(1);
   container.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
-  container.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
-  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
-  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
+  container.erab_info_list[0]->erab_info_list_item().erab_id               = 5;
+  container.erab_info_list[0]->erab_info_list_item().dl_forwarding_present = true;
+  container.erab_info_list[0]->erab_info_list_item().dl_forwarding.value =
       asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   uint8_t ho_prep_container[] = {
       0x0a, 0x10, 0x0b, 0x81, 0x80, 0x00, 0x01, 0x80, 0x00, 0xf3, 0x02, 0x08, 0x00, 0x00, 0x15, 0x80, 0x00, 0x14,
@@ -360,11 +360,11 @@ int test_s1ap_tenb_mobility(test_event test_params)
   // Receives MMEStatusTransfer
   asn1::s1ap::bearers_subject_to_status_transfer_list_l bearers;
   bearers.resize(1);
-  bearers[0].value.bearers_subject_to_status_transfer_item().erab_id                = 5;
-  bearers[0].value.bearers_subject_to_status_transfer_item().dl_coun_tvalue.pdcp_sn = 100;
-  bearers[0].value.bearers_subject_to_status_transfer_item().dl_coun_tvalue.hfn     = 3;
-  bearers[0].value.bearers_subject_to_status_transfer_item().ul_coun_tvalue.pdcp_sn = 120;
-  bearers[0].value.bearers_subject_to_status_transfer_item().ul_coun_tvalue.hfn     = 4;
+  bearers[0]->bearers_subject_to_status_transfer_item().erab_id                = 5;
+  bearers[0]->bearers_subject_to_status_transfer_item().dl_coun_tvalue.pdcp_sn = 100;
+  bearers[0]->bearers_subject_to_status_transfer_item().dl_coun_tvalue.hfn     = 3;
+  bearers[0]->bearers_subject_to_status_transfer_item().ul_coun_tvalue.pdcp_sn = 120;
+  bearers[0]->bearers_subject_to_status_transfer_item().ul_coun_tvalue.hfn     = 4;
   tester.rrc.set_erab_status(0x46, bearers);
   TESTASSERT(tester.pdcp.bearers.count(0x46));
   TESTASSERT(tester.pdcp.bearers[0x46].count(3));

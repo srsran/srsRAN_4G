@@ -91,7 +91,7 @@ bool s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas* nas_ctx, uint1
 
   // Setup eRAB context
   asn1::s1ap::erab_to_be_setup_item_ctxt_su_req_s& erab_ctx_req =
-      in_ctx_req.erab_to_be_setup_list_ctxt_su_req.value[0].value.erab_to_be_setup_item_ctxt_su_req();
+      in_ctx_req.erab_to_be_setup_list_ctxt_su_req.value[0]->erab_to_be_setup_item_ctxt_su_req();
   erab_ctx_req.erab_id = esm_ctx->erab_id;
 
   // Setup E-RAB QoS parameters
@@ -189,9 +189,8 @@ bool s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(
   for (const asn1::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>& ie_container :
        in_ctxt_resp.protocol_ies.erab_setup_list_ctxt_su_res.value) {
     // Get E-RAB setup context item and E-RAB Id
-    const asn1::s1ap::erab_setup_item_ctxt_su_res_s& erab_setup_item_ctxt =
-        ie_container.value.erab_setup_item_ctxt_su_res();
-    uint8_t erab_id = erab_setup_item_ctxt.erab_id;
+    const asn1::s1ap::erab_setup_item_ctxt_su_res_s& erab_setup_item_ctxt = ie_container->erab_setup_item_ctxt_su_res();
+    uint8_t                                          erab_id              = erab_setup_item_ctxt.erab_id;
 
     // Make sure we requested the context setup
     esm_ctx_t* esm_ctx = &nas_ctx->m_esm_ctx[erab_id];

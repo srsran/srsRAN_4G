@@ -436,7 +436,7 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(rrc::ho_prep_result  
   // Check if any E-RAB that was not admitted. Cancel Handover, in such case.
   if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
     get_logger().warning("E-RAB id=%d was not admitted in target eNB. Cancelling handover...",
-                         msg.protocol_ies.erab_to_release_list_ho_cmd.value[0].value.erab_item().erab_id);
+                         msg.protocol_ies.erab_to_release_list_ho_cmd.value[0]->erab_item().erab_id);
     asn1::s1ap::cause_c cause;
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
     trigger(ho_cancel_ev{cause});
@@ -626,7 +626,7 @@ rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1
     const auto& fwd_erab_list = s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list.value;
     const auto& erab_list     = rrc_ue->bearer_list.get_erabs();
     for (const auto& e : fwd_erab_list) {
-      const auto& fwd_erab = e.value.erab_data_forwarding_item();
+      const auto& fwd_erab = e->erab_data_forwarding_item();
       auto        it       = erab_list.find(fwd_erab.erab_id);
       if (it == erab_list.end()) {
         Warning("E-RAB id=%d subject to forwarding not found\n", fwd_erab.erab_id);
@@ -867,12 +867,12 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
           std::find_if(lst.begin(),
                        lst.end(),
                        [&erab](const asn1::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
-                         return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
+                         return fwd_erab->erab_info_list_item().erab_id == erab.second.id;
                        });
       if (it == lst.end()) {
         continue;
       }
-      const auto& fwd_erab = it->value.erab_info_list_item();
+      const auto& fwd_erab = (*it)->erab_info_list_item();
 
       if (fwd_erab.dl_forwarding_present and
           fwd_erab.dl_forwarding.value == asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed) {
@@ -936,7 +936,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
 
   // Establish ERABs/DRBs
   for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
-    const auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
+    const auto& erab = erab_item->erab_to_be_setup_item_ho_req();
     if (erab.ext) {
       get_logger().warning("Not handling E-RABToBeSetupList extensions");
     }
@@ -1038,7 +1038,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
 
   // Set DRBs SNs
   for (const auto& erab : erabs) {
-    const auto& erab_item = erab.value.bearers_subject_to_status_transfer_item();
+    const auto& erab_item = erab->bearers_subject_to_status_transfer_item();
     auto        erab_it   = rrc_ue->bearer_list.get_erabs().find(erab_item.erab_id);
     if (erab_it == rrc_ue->bearer_list.get_erabs().end()) {
       logger.warning("The E-RAB Id=%d is not recognized", erab_item.erab_id);

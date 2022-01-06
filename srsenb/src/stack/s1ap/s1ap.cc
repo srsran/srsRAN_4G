@@ -108,7 +108,7 @@ void fill_erab_failed_setup_list(OutList& output_list, const s1ap::erab_item_lis
   output_list.resize(input_list.size());
   for (size_t i = 0; i < input_list.size(); ++i) {
     output_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-    output_list[i].value.erab_item() = input_list[i];
+    output_list[i]->erab_item() = input_list[i];
   }
 }
 
@@ -790,7 +790,7 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
   add_repeated_erab_ids(prot_ies.erab_to_be_setup_list_ctxt_su_req.value, failed_cfg_erabs);
 
   for (const auto& item : msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value) {
-    const auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    const auto& erab = item->erab_to_be_setup_item_ctxt_su_req();
     if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
       // E-RAB is duplicate
       continue;
@@ -869,7 +869,7 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
   add_repeated_erab_ids(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value, failed_cfg_erabs);
 
   for (const auto& item : msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value) {
-    const auto& erab = item.value.erab_to_be_setup_item_bearer_su_req();
+    const auto& erab = item->erab_to_be_setup_item_bearer_su_req();
     if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
       // E-RAB is duplicate
       continue;
@@ -929,7 +929,7 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
   add_repeated_erab_ids(msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value, failed_cfg_erabs);
 
   for (const auto& item : msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value) {
-    const auto& erab = item.value.erab_to_be_modified_item_bearer_mod_req();
+    const auto& erab = item->erab_to_be_modified_item_bearer_mod_req();
     if (contains_erab_id(failed_cfg_erabs, erab.erab_id)) {
       // E-RAB is duplicate
       continue;
@@ -985,7 +985,7 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
            }));
   };
   for (const auto& item : msg.protocol_ies.erab_to_be_released_list.value) {
-    const auto& erab = item.value.erab_item();
+    const auto& erab = item->erab_item();
 
     if (is_repeated_erab_id(erab.erab_id)) {
       // TS 36.413, 8.2.3.3 - ignore the duplication of E-RAB ID IEs
@@ -1243,7 +1243,7 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
   container.erab_admitted_list.value.resize(admitted_bearers.size());
   for (size_t i = 0; i < admitted_bearers.size(); ++i) {
     container.erab_admitted_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
-    auto& c = container.erab_admitted_list.value[i].value.erab_admitted_item();
+    auto& c = container.erab_admitted_list.value[i]->erab_admitted_item();
     c       = admitted_bearers[i];
     if (!args.gtp_advertise_addr.empty()) {
       c.transport_layer_address = addr_to_asn1(args.gtp_advertise_addr.c_str());
@@ -1269,7 +1269,7 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
     for (size_t i = 0; i < not_admitted_bearers.size(); ++i) {
       container.erab_failed_to_setup_list_ho_req_ack.value[i].load_info_obj(
           ASN1_S1AP_ID_ERAB_FAILEDTO_SETUP_ITEM_HO_REQ_ACK);
-      auto& erab = container.erab_failed_to_setup_list_ho_req_ack.value[i].value.erab_failedto_setup_item_ho_req_ack();
+      auto& erab   = container.erab_failed_to_setup_list_ho_req_ack.value[i]->erab_failedto_setup_item_ho_req_ack();
       erab.erab_id = not_admitted_bearers[i].erab_id;
       erab.cause   = not_admitted_bearers[i].cause;
     }
@@ -1586,7 +1586,7 @@ void s1ap::ue::ue_ctxt_setup_complete()
   container.erab_setup_list_ctxt_su_res.value.resize(updated_erabs.size());
   for (size_t i = 0; i < updated_erabs.size(); ++i) {
     container.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    auto& item   = container.erab_setup_list_ctxt_su_res.value[i]->erab_setup_item_ctxt_su_res();
     item.erab_id = updated_erabs[i];
     get_erab_addr(item.erab_id, item.transport_layer_address, item.gtp_teid);
   }
@@ -1618,7 +1618,7 @@ bool s1ap::ue::send_erab_setup_response(const erab_id_list& erabs_setup, const e
     res.protocol_ies.erab_setup_list_bearer_su_res.value.resize(erabs_setup.size());
     for (size_t i = 0; i < erabs_setup.size(); ++i) {
       res.protocol_ies.erab_setup_list_bearer_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
-      auto& item   = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
+      auto& item   = res.protocol_ies.erab_setup_list_bearer_su_res.value[i]->erab_setup_item_bearer_su_res();
       item.erab_id = erabs_setup[i];
       get_erab_addr(item.erab_id, item.transport_layer_address, item.gtp_teid);
     }
@@ -1683,7 +1683,7 @@ bool s1ap::ue::send_erab_release_response(const erab_id_list& erabs_released, co
     for (size_t i = 0; i < erabs_released.size(); ++i) {
       container.erab_release_list_bearer_rel_comp.value[i].load_info_obj(
           ASN1_S1AP_ID_ERAB_RELEASE_ITEM_BEARER_REL_COMP);
-      container.erab_release_list_bearer_rel_comp.value[i].value.erab_release_item_bearer_rel_comp().erab_id =
+      container.erab_release_list_bearer_rel_comp.value[i]->erab_release_item_bearer_rel_comp().erab_id =
           erabs_released[i];
     }
   }
@@ -1712,8 +1712,7 @@ bool s1ap::ue::send_erab_modify_response(const erab_id_list& erabs_modified, con
     container.erab_modify_list_bearer_mod_res.value.resize(erabs_modified.size());
     for (uint32_t i = 0; i < container.erab_modify_list_bearer_mod_res.value.size(); i++) {
       container.erab_modify_list_bearer_mod_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY_ITEM_BEARER_MOD_RES);
-      container.erab_modify_list_bearer_mod_res.value[i].value.erab_modify_item_bearer_mod_res().erab_id =
-          erabs_modified[i];
+      container.erab_modify_list_bearer_mod_res.value[i]->erab_modify_item_bearer_mod_res().erab_id = erabs_modified[i];
     }
   }
 
@@ -1744,7 +1743,7 @@ bool s1ap::ue::send_erab_release_indication(const std::vector<uint16_t>& erabs_s
   container.erab_released_list.value.resize(erabs_successfully_released.size());
   for (size_t i = 0; i < container.erab_released_list.value.size(); ++i) {
     container.erab_released_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-    container.erab_released_list.value[i].value.erab_item().erab_id = erabs_successfully_released[i];
+    container.erab_released_list.value[i]->erab_item().erab_id = erabs_successfully_released[i];
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseIndication");
@@ -2149,9 +2148,9 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   transparent_cntr.erab_info_list.resize(fwd_erabs.size());
   for (uint32_t i = 0; i < fwd_erabs.size(); ++i) {
     transparent_cntr.erab_info_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
-    transparent_cntr.erab_info_list[i].value.erab_info_list_item().erab_id               = fwd_erabs[i];
-    transparent_cntr.erab_info_list[i].value.erab_info_list_item().dl_forwarding_present = true;
-    transparent_cntr.erab_info_list[i].value.erab_info_list_item().dl_forwarding.value =
+    transparent_cntr.erab_info_list[i]->erab_info_list_item().erab_id               = fwd_erabs[i];
+    transparent_cntr.erab_info_list[i]->erab_info_list_item().dl_forwarding_present = true;
+    transparent_cntr.erab_info_list[i]->erab_info_list_item().dl_forwarding.value =
         dl_forwarding_opts::dl_forwarding_proposed;
   }
   // - set target cell ID
@@ -2212,7 +2211,7 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
   list.resize(bearer_status_list.size());
   for (uint32_t i = 0; i < list.size(); ++i) {
     list[i].load_info_obj(ASN1_S1AP_ID_BEARERS_SUBJECT_TO_STATUS_TRANSFER_ITEM);
-    auto&               asn1bearer = list[i].value.bearers_subject_to_status_transfer_item();
+    auto&               asn1bearer = list[i]->bearers_subject_to_status_transfer_item();
     bearer_status_info& item       = bearer_status_list[i];
 
     asn1bearer.erab_id                = item.erab_id;

@@ -130,7 +130,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srsran::timer_handler& timers, u
   rrc.setup_ue_ctxt(rnti, s1ap_pdu.init_msg().value.init_context_setup_request());
   for (auto& item :
        s1ap_pdu.init_msg().value.init_context_setup_request().protocol_ies.erab_to_be_setup_list_ctxt_su_req.value) {
-    const auto&         erab = item.value.erab_to_be_setup_item_ctxt_su_req();
+    const auto&         erab = item->erab_to_be_setup_item_ctxt_su_req();
     asn1::s1ap::cause_c cause;
     TESTASSERT(rrc.setup_erab(rnti,
                               erab.erab_id,
