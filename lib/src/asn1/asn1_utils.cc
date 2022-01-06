@@ -1412,10 +1412,15 @@ SRSASN_CODE ext_groups_unpacker_guard::unpack(cbit_ref& bref)
      Open Field
 *********************/
 
-varlength_field_pack_guard::varlength_field_pack_guard(bit_ref& bref, bool align_)
+varlength_field_pack_guard::varlength_field_pack_guard(bit_ref& bref, bool align_) :
+  buffer_ptr(srsran::make_buffer_pool_obj<byte_array_t>())
 {
+  if (buffer_ptr == nullptr) {
+    // failed to allocate from global byte buffer pool. Fallback to malloc
+    buffer_ptr = std::unique_ptr<byte_array_t>(new byte_array_t());
+  }
   brefstart    = bref;
-  bref         = bit_ref(&buffer[0], sizeof(buffer));
+  bref         = bit_ref(buffer_ptr->data(), buffer_ptr->size());
   bref_tracker = &bref;
   align        = align_;
 }
@@ -1423,16 +1428,15 @@ varlength_field_pack_guard::varlength_field_pack_guard(bit_ref& bref, bool align
 varlength_field_pack_guard::~varlength_field_pack_guard()
 {
   // fill the spare bits
-  const bit_ref bref0    = bit_ref(&buffer[0], sizeof(buffer));
-  uint32_t      leftover = 7 - ((bref_tracker->distance(bref0) - (uint32_t)1) % (uint32_t)8);
+  uint32_t leftover = 7 - ((bref_tracker->distance() - (uint32_t)1) % (uint32_t)8);
   bref_tracker->pack(0, leftover);
 
   // check how many bytes were written in total
-  uint32_t nof_bytes = bref_tracker->distance(bref0) / (uint32_t)8;
-  if (nof_bytes > sizeof(buffer)) {
+  uint32_t nof_bytes = bref_tracker->distance() / (uint32_t)8;
+  if (nof_bytes > buffer_ptr->size()) {
     log_error("The packed variable sized field is too long for the reserved buffer (%zd > %zd)",
               (size_t)nof_bytes,
-              sizeof(buffer));
+              buffer_ptr->size());
   }
 
   // go back in time to pack length
@@ -1440,7 +1444,7 @@ varlength_field_pack_guard::~varlength_field_pack_guard()
 
   // pack encoded bytes
   for (uint32_t i = 0; i < nof_bytes; ++i) {
-    brefstart.pack(buffer[i], 8);
+    brefstart.pack((*buffer_ptr)[i], 8);
   }
   *bref_tracker = brefstart;
 }

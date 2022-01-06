@@ -13,6 +13,7 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
+#include "srsran/common/buffer_pool.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/support/srsran_assert.h"
 #include <algorithm>
@@ -21,7 +22,6 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -1320,11 +1320,13 @@ public:
   ~varlength_field_pack_guard();
 
 private:
-  bit_ref brefstart;
-  //  bit_ref  bref0;
-  bit_ref* bref_tracker;
-  uint8_t  buffer[4096];
-  bool     align;
+  using byte_array_t   = std::array<uint8_t, srsran::byte_buffer_pool::BLOCK_SIZE>;
+  using byte_array_ptr = srsran::any_pool_ptr<byte_array_t>;
+
+  bit_ref        brefstart;
+  bit_ref*       bref_tracker;
+  byte_array_ptr buffer_ptr;
+  bool           align;
 };
 
 class varlength_field_unpack_guard
