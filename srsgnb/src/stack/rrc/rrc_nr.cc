@@ -483,6 +483,9 @@ void rrc_nr::handle_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu)
     case ul_ccch_msg_type_c::c1_c_::types_opts::rrc_setup_request:
       handle_rrc_setup_request(rnti, ul_ccch_msg.msg.c1().rrc_setup_request());
       break;
+    case ul_ccch_msg_type_c::c1_c_::types_opts::rrc_reest_request:
+      handle_rrc_reest_request(rnti, ul_ccch_msg.msg.c1().rrc_reest_request());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type");
       // TODO Remove user
@@ -546,6 +549,19 @@ void rrc_nr::handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_set
   }
   ue& u = *ue_it->second;
   u.handle_rrc_setup_request(msg);
+}
+
+void rrc_nr::handle_rrc_reest_request(uint16_t rnti, const asn1::rrc_nr::rrc_reest_request_s& msg)
+{
+  auto ue_it = users.find(rnti);
+
+  // TODO: Defer creation of ue to this point
+  if (ue_it == users.end()) {
+    logger.error("%s received for inexistent rnti=0x%x", "UL-CCCH", rnti);
+    return;
+  }
+  ue& u = *ue_it->second;
+  u.handle_rrc_reest_request(msg);
 }
 
 /*******************************************************************************

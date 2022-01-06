@@ -15,6 +15,7 @@
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/bearer_manager.h"
+#include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 
 using namespace asn1::rrc_nr;
@@ -883,6 +884,129 @@ void rrc_nr::ue::handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_
   set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
+void rrc_nr::ue::handle_rrc_reest_request(const asn1::rrc_nr::rrc_reest_request_s& msg)
+{
+  uint32_t old_rnti = msg.rrc_reest_request.ue_id.c_rnti;
+  uint16_t pci      = msg.rrc_reest_request.ue_id.pci;
+
+  // Log event
+  parent->logger.debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s",
+                       old_rnti,
+                       pci,
+                       (uint32_t)msg.rrc_reest_request.ue_id.short_mac_i.to_number(),
+                       msg.rrc_reest_request.reest_cause.to_string());
+
+  // Check AMF connection
+  const uint8_t max_wait_time_secs = 16;
+  if (not parent->ngap->is_amf_connected()) {
+    logger.error("AMF not connected. Sending Connection Reject.");
+    send_rrc_reject(max_wait_time_secs);
+    return;
+  }
+
+  // Allocate PUCCH resources and reject if not available
+  if (not init_pucch()) {
+    logger.warning("Could not allocate PUCCH resources for rnti=0x%x. Sending RRC Reject.", rnti);
+    send_rrc_reject(max_wait_time_secs);
+    return;
+  }
+
+  if (not is_idle()) {
+    // The created RNTI has to receive ReestablishmentRequest as first message
+    parent->logger.error(
+        "Could not reestablish connection for rnti=0x%x. Cause: old rnti=0x%x is not in RRC_IDLE.", rnti, old_rnti);
+    send_rrc_reject(max_wait_time_secs);
+    return;
+  }
+
+  auto old_ue_it = parent->users.find(old_rnti);
+
+  // Fallback to connection establishment for unrecognized rntis, and PCIs that do not belong to eNB
+  if (old_ue_it == parent->users.end()) {
+    parent->logger.info(
+        "Fallback to connection establishment for rnti=0x%x. Cause: no rnti=0x%x context available", rnti, old_rnti);
+    srsran::console("Fallback to connection establishment for rnti=0x%x. Cause: no context available\n", rnti);
+
+    // send RRC Setup
+    send_rrc_setup();
+    set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+
+    return;
+  }
+
+  // Reestablishment procedure going forward
+  parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment.", old_rnti);
+  srsran::console("User 0x%x requesting RRC Reestablishment as 0x%x. Cause: %s\n",
+                  rnti,
+                  old_rnti,
+                  msg.rrc_reest_request.reest_cause.to_string());
+
+  ue* old_ue = old_ue_it->second.get();
+
+  // Recover security setup
+  sec_ctx          = old_ue->sec_ctx;
+  auto& pscell_cfg = parent->cfg.cell_list.at(UE_PSCELL_CC_IDX);
+  sec_ctx.regenerate_keys_handover(pscell_cfg.phy_cell.carrier.pci, pscell_cfg.dl_arfcn);
+
+  // For the reestablishment, only add SRB1 to new UE context
+  next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
+  next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
+  srb_to_add_mod_s& srb1 = next_radio_bearer_cfg.srb_to_add_mod_list[0];
+  srb1.srb_id            = 1;
+
+  asn1::rrc_nr::radio_bearer_cfg_s dummy_radio_bearer_cfg; // just to compute difference, it's never sent to UE
+  compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, dummy_radio_bearer_cfg);
+
+  // - Setup masterCellGroup
+  // - Derive master cell group config bearers
+  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, dummy_radio_bearer_cfg, next_cell_group_cfg);
+
+  // send RRC Reestablishment message and restore bearer configuration
+  send_connection_reest(old_ue->sec_ctx.get_ncc());
+
+  // recover all previously created bearers from old UE object for (later) reconfiguration
+  next_radio_bearer_cfg = old_ue->radio_bearer_cfg;
+  next_cell_group_cfg   = old_ue->cell_group_cfg;
+
+  // Recover GTP-U tunnels and NGAP context
+  // parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
+  parent->ngap->user_mod(old_rnti, rnti);
+
+  // Reestablish E-RABs of old rnti later, during ConnectionReconfiguration
+  // bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
+
+  // remove old RNTI
+  // old_ue->mac_ctrl.set_drb_activation(false);
+  // parent->rem_user_thread(old_rnti);
+
+  // state = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
+  set_activity_timeout(MSG5_RX_TIMEOUT);
+}
+
+void rrc_nr::ue::send_connection_reest(uint8_t ncc)
+{
+  dl_dcch_msg_s    msg;
+  rrc_reest_ies_s& reest = msg.msg.set_c1().set_rrc_reest().crit_exts.set_rrc_reest();
+
+  msg.msg.c1().rrc_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+
+  // set NCC
+  reest.next_hop_chaining_count = ncc;
+
+  // add PDCP bearers
+  update_pdcp_bearers(next_radio_bearer_cfg, next_cell_group_cfg);
+
+  // add RLC bearers
+  update_rlc_bearers(next_cell_group_cfg);
+
+  // add MAC bearers
+  update_mac(next_cell_group_cfg, false);
+
+  if (send_dl_dcch(srsran::nr_srb::srb1, msg) != SRSRAN_SUCCESS) {
+    // TODO: Handle
+  }
+}
+
 /// TS 38.331, RRCReject message
 void rrc_nr::ue::send_rrc_reject(uint8_t reject_wait_time_secs)
 {
@@ -913,7 +1037,6 @@ void rrc_nr::ue::send_rrc_setup()
   srb1.srb_id            = 1;
 
   // Generate RRC setup message
-
   dl_ccch_msg_s msg;
   rrc_setup_s&  setup        = msg.msg.set_c1().set_rrc_setup();
   setup.rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
@@ -1208,6 +1331,22 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
       return SRSRAN_ERROR;
     }
     parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+
+    // enable security config
+    if (sec_ctx.is_as_sec_cfg_valid()) {
+      srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
+      srsran::as_security_config_t    pdcp_cnfg = {};
+      pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
+      pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
+      pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
+      pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
+      pdcp_cnfg.integ_algo                      = (srsran::INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
+      pdcp_cnfg.cipher_algo                     = (srsran::CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
+
+      // Setup SRB1 security/integrity. Encryption is set on completion
+      parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
+      parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+    }
   }
 
   // Add DRBs

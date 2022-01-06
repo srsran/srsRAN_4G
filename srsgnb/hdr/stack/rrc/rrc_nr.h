@@ -160,6 +160,9 @@ private:
   // TS 38.331, 5.3.3 - RRC connection establishment
   void handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_setup_request_s& msg);
 
+  // TS 38.331, 5.3.7 RRC connection reestablishment
+  void handle_rrc_reest_request(uint16_t rnti, const asn1::rrc_nr::rrc_reest_request_s& msg);
+
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
   int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
 
