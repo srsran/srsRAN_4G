@@ -1445,6 +1445,82 @@ int test_pack_unpack_consistency(const Msg& msg)
   return SRSASN_SUCCESS;
 }
 
+/************************
+   General Layer Types
+************************/
+
+/// Enumerated used in RRC and RRC NR that distinguishes Release and Setup modes
+struct setup_release_opts {
+  enum options { release, setup, nulltype } value;
+
+  const char* to_string() const
+  {
+    static const char* options[] = {"release", "setup"};
+    return convert_enum_idx(options, 2, value, "setup_release_c::types");
+  }
+};
+using setup_release_e = enumerated<setup_release_opts>;
+
+// Criticality ::= ENUMERATED
+struct crit_opts {
+  enum options { reject, ignore, notify, nulltype } value;
+  const char* to_string() const
+  {
+    static const char* options[] = {"reject", "ignore", "notify"};
+    return convert_enum_idx(options, 3, value, "crit_e");
+  }
+};
+typedef enumerated<crit_opts> crit_e;
+
+// ProtocolIE-SingleContainer{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{LAYER-PROTOCOL-IES}}
+template <class ies_set_paramT_>
+struct protocol_ie_single_container_s {
+  using value_type = typename ies_set_paramT_::value_c;
+  value_type value;
+
+  uint32_t          id() const { return id_; }
+  crit_e            crit() const { return ies_set_paramT_::get_crit(id_); }
+  value_type*       operator->() { return &value; }
+  const value_type* operator->() const { return &value; }
+  value_type&       operator*() { return value; }
+  const value_type& operator*() const { return value; }
+
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    HANDLE_CODE(pack_integer(bref, id_, (uint32_t)0u, (uint32_t)65535u, false, true));
+    HANDLE_CODE(ies_set_paramT_::get_crit(id_).pack(bref));
+    HANDLE_CODE(value.pack(bref));
+    return SRSASN_SUCCESS;
+  }
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    HANDLE_CODE(unpack_integer(id_, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
+    HANDLE_CODE(crit().unpack(bref));
+    value = ies_set_paramT_::get_value(id_);
+    HANDLE_CODE(value.unpack(bref));
+    return SRSASN_SUCCESS;
+  }
+  void to_json(json_writer& j) const
+  {
+    j.start_obj();
+    j.write_int("id", id_);
+    j.write_str("criticality", crit().to_string());
+    j.end_obj();
+  }
+  bool load_info_obj(const uint32_t& id_val)
+  {
+    if (not ies_set_paramT_::is_id_valid(id_val)) {
+      return false;
+    }
+    id_   = id_val;
+    value = ies_set_paramT_::get_value(id_);
+    return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
+  }
+
+private:
+  uint32_t id_ = 0;
+};
+
 } // namespace asn1
 
 #endif // SRSASN_COMMON_UTILS_H

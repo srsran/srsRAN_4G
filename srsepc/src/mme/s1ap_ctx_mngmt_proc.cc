@@ -186,7 +186,7 @@ bool s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(
   srsran::console("Received Initial Context Setup Response\n");
 
   // Setup E-RABs
-  for (const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>& ie_container :
+  for (const asn1::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>& ie_container :
        in_ctxt_resp.protocol_ies.erab_setup_list_ctxt_su_res.value) {
     // Get E-RAB setup context item and E-RAB Id
     const asn1::s1ap::erab_setup_item_ctxt_su_res_s& erab_setup_item_ctxt =

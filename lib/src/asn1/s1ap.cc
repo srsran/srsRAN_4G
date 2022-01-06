@@ -20,13 +20,6 @@ using namespace asn1::s1ap;
  *                                Struct Methods
  ******************************************************************************/
 
-// Criticality ::= ENUMERATED
-const char* crit_opts::to_string() const
-{
-  static const char* options[] = {"reject", "ignore", "notify"};
-  return convert_enum_idx(options, 3, value, "crit_e");
-}
-
 // Presence ::= ENUMERATED
 const char* presence_opts::to_string() const
 {
@@ -211,48 +204,6 @@ bool protocol_ie_field_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
   value = ies_set_paramT_::get_value(id);
   return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
-
-// ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-SRSASN_CODE protocol_ie_single_container_s<ies_set_paramT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
-  HANDLE_CODE(crit.pack(bref));
-  HANDLE_CODE(value.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ies_set_paramT_>
-SRSASN_CODE protocol_ie_single_container_s<ies_set_paramT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  value = ies_set_paramT_::get_value(id);
-  HANDLE_CODE(value.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ies_set_paramT_>
-void protocol_ie_single_container_s<ies_set_paramT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
-}
-template <class ies_set_paramT_>
-bool protocol_ie_single_container_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
-{
-  if (not ies_set_paramT_::is_id_valid(id_)) {
-    return false;
-  }
-  id    = id_;
-  crit  = ies_set_paramT_::get_crit(id);
-  value = ies_set_paramT_::get_value(id);
-  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
-}
-template bool protocol_ie_single_container_s<erab_admitted_item_ies_o>::load_info_obj(const uint32_t& id_);
 
 // ProtocolIE-FieldPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES-PAIR}}
 template <class ies_set_paramT_>
@@ -1484,7 +1435,7 @@ const char* recommended_cell_item_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "recommended_cell_item_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<recommended_cell_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<recommended_cell_item_ies_o>;
 
 // NextPagingAreaScope ::= ENUMERATED
 const char* next_paging_area_scope_opts::to_string() const
@@ -2418,7 +2369,7 @@ const char* bearers_subject_to_status_transfer_item_ies_o::value_c::types_opts::
   return convert_enum_idx(options, 1, value, "bearers_subject_to_status_transfer_item_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<bearers_subject_to_status_transfer_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<bearers_subject_to_status_transfer_item_ies_o>;
 
 // BluetoothMeasConfig ::= ENUMERATED
 const char* bluetooth_meas_cfg_opts::to_string() const
@@ -11252,7 +11203,7 @@ const char* erab_info_list_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "erab_info_list_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_info_list_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_info_list_ies_o>;
 
 // E-RABItem ::= SEQUENCE
 SRSASN_CODE erab_item_s::pack(bit_ref& bref) const
@@ -11356,7 +11307,7 @@ const char* erab_item_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "erab_item_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_item_ies_o>;
 
 // E-RABModifyItemBearerModConf ::= SEQUENCE
 SRSASN_CODE erab_modify_item_bearer_mod_conf_s::pack(bit_ref& bref) const
@@ -11456,7 +11407,7 @@ const char* erab_modify_item_bearer_mod_conf_ies_o::value_c::types_opts::to_stri
   return convert_enum_idx(options, 1, value, "erab_modify_item_bearer_mod_conf_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_modify_item_bearer_mod_conf_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_modify_item_bearer_mod_conf_ies_o>;
 
 // E-RABModificationConfirmIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_mod_confirm_ies_o::idx_to_id(uint32_t idx)
@@ -12120,7 +12071,7 @@ const char* erabusage_report_item_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "erabusage_report_item_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erabusage_report_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erabusage_report_item_ies_o>;
 
 // NR-CGI ::= SEQUENCE
 SRSASN_CODE nr_cgi_s::pack(bit_ref& bref) const
@@ -12586,7 +12537,7 @@ const char* user_location_info_ext_ies_o::ext_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "user_location_info_ext_ies_o::ext_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<secondary_rat_data_usage_report_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<secondary_rat_data_usage_report_item_ies_o>;
 
 // TunnelInformation ::= SEQUENCE
 SRSASN_CODE tunnel_info_s::pack(bit_ref& bref) const
@@ -13382,7 +13333,7 @@ const char* erab_modify_item_bearer_mod_res_ies_o::value_c::types_opts::to_strin
   return convert_enum_idx(options, 1, value, "erab_modify_item_bearer_mod_res_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_modify_item_bearer_mod_res_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_modify_item_bearer_mod_res_ies_o>;
 
 // TransportInformation ::= SEQUENCE
 SRSASN_CODE transport_info_s::pack(bit_ref& bref) const
@@ -13755,7 +13706,7 @@ const char* ue_aggregate_maximum_bitrates_ext_ies_o::ext_c::types_opts::to_strin
   return convert_enum_idx(options, 2, value, "ue_aggregate_maximum_bitrates_ext_ies_o::ext_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_modified_item_bearer_mod_req_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_to_be_modified_item_bearer_mod_req_ies_o>;
 
 // SecondaryRATDataUsageRequest ::= ENUMERATED
 const char* secondary_rat_data_usage_request_opts::to_string() const
@@ -14666,7 +14617,6 @@ const char* erab_modify_resp_ies_o::value_c::types_opts::to_string() const
 }
 
 template struct asn1::s1ap::protocol_ie_field_s<erab_modify_resp_ies_o>;
-template struct asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_failedto_setup_item_ho_req_ack_ies_o>;
 
 erab_modify_resp_ies_container::erab_modify_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -15786,7 +15736,7 @@ const char* erab_release_item_bearer_rel_comp_ies_o::value_c::types_opts::to_str
   return convert_enum_idx(options, 1, value, "erab_release_item_bearer_rel_comp_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_release_item_bearer_rel_comp_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_release_item_bearer_rel_comp_ies_o>;
 
 // E-RABReleaseResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_release_resp_ies_o::idx_to_id(uint32_t idx)
@@ -16557,9 +16507,9 @@ const char* erab_setup_item_ctxt_su_res_ies_o::value_c::types_opts::to_string() 
   return convert_enum_idx(options, 1, value, "erab_setup_item_ctxt_su_res_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_setup_item_bearer_su_res_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_setup_item_bearer_su_res_ies_o>;
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_setup_item_ctxt_su_res_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_setup_item_ctxt_su_res_ies_o>;
 
 // BearerType ::= ENUMERATED
 const char* bearer_type_opts::to_string() const
@@ -16993,7 +16943,7 @@ const char* erab_to_be_setup_item_bearer_su_req_ies_o::value_c::types_opts::to_s
   return convert_enum_idx(options, 1, value, "erab_to_be_setup_item_bearer_su_req_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_setup_item_bearer_su_req_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_to_be_setup_item_bearer_su_req_ies_o>;
 
 // E-RABSetupRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_setup_request_ies_o::idx_to_id(uint32_t idx)
@@ -18611,7 +18561,7 @@ const char* erab_to_be_setup_item_ho_req_ies_o::value_c::types_opts::to_string()
   return convert_enum_idx(options, 1, value, "erab_to_be_setup_item_ho_req_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o>;
+template struct asn1::protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o>;
 
 // E-RABToBeSwitchedDLItem ::= SEQUENCE
 SRSASN_CODE erab_to_be_switched_dl_item_s::pack(bit_ref& bref) const
@@ -19872,7 +19822,7 @@ void en_dc_transfer_type_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<son_info_ext_ie_o>;
+template struct asn1::protocol_ie_single_container_s<son_info_ext_ie_o>;
 
 // SONInformationReply ::= SEQUENCE
 SRSASN_CODE son_info_reply_s::pack(bit_ref& bref) const
@@ -28615,7 +28565,7 @@ void logged_mdt_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<mdt_mode_ext_ie_o>;
+template struct asn1::protocol_ie_single_container_s<mdt_mode_ext_ie_o>;
 
 // ServiceType ::= ENUMERATED
 const char* service_type_opts::to_string() const
@@ -33669,7 +33619,7 @@ const char* recommended_enb_item_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "recommended_enb_item_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<recommended_enb_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<recommended_enb_item_ies_o>;
 
 // RecommendedENBsForPaging ::= SEQUENCE
 SRSASN_CODE recommended_enbs_for_paging_s::pack(bit_ref& bref) const
@@ -38373,7 +38323,7 @@ uint8_t ue_associated_lc_s1_conn_item_res_ack_o::value_c::types_opts::to_number(
   return map_enum_number(options, 1, value, "ue_associated_lc_s1_conn_item_res_ack_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_o>;
+template struct asn1::protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_o>;
 
 // CNDomain ::= ENUMERATED
 const char* cn_domain_opts::to_string() const
@@ -38710,7 +38660,7 @@ const char* srvcc_operation_not_possible_opts::to_string() const
   return convert_enum_idx(options, 1, value, "srvcc_operation_not_possible_e");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<tai_item_ies_o>;
+template struct asn1::protocol_ie_single_container_s<tai_item_ies_o>;
 
 // UE-RetentionInformation ::= ENUMERATED
 const char* ue_retention_info_opts::to_string() const
@@ -38850,7 +38800,7 @@ const char* ue_s1ap_ids_c::types_opts::to_string() const
   return convert_enum_idx(options, 2, value, "ue_s1ap_ids_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_ack_o>;
+template struct asn1::protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_ack_o>;
 
 // UEPagingID ::= CHOICE
 void ue_paging_id_c::destroy_()

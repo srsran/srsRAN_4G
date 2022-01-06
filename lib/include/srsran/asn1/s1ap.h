@@ -428,14 +428,6 @@ namespace s1ap {
  *                              Struct Definitions
  ******************************************************************************/
 
-// Criticality ::= ENUMERATED
-struct crit_opts {
-  enum options { reject, ignore, notify, nulltype } value;
-
-  const char* to_string() const;
-};
-typedef enumerated<crit_opts> crit_e;
-
 // Presence ::= ENUMERATED
 struct presence_opts {
   enum options { optional, conditional, mandatory, nulltype } value;
@@ -529,19 +521,6 @@ struct protocol_ie_field_s {
 // ProtocolIE-Container{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
 template <class ies_set_paramT_>
 using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<ies_set_paramT_>, 0, 65535, true>;
-
-// ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_single_container_s {
-  uint32_t                          id = 0;
-  crit_e                            crit;
-  typename ies_set_paramT_::value_c value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
 
 // ProtocolIE-FieldPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES-PAIR}}
 template <class ies_set_paramT_>
@@ -18227,5 +18206,26 @@ struct targetenb_to_sourceenb_transparent_container_s {
 
 } // namespace s1ap
 } // namespace asn1
+
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::recommended_cell_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::bearers_subject_to_status_transfer_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_modify_item_bearer_mod_conf_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erabusage_report_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::secondary_rat_data_usage_report_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_modify_item_bearer_mod_res_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_release_item_bearer_rel_comp_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_bearer_su_res_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_to_be_setup_item_bearer_su_req_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_to_be_setup_item_ctxt_su_req_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::son_info_ext_ie_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::mdt_mode_ext_ie_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::recommended_enb_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::ue_associated_lc_s1_conn_item_res_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::tai_item_ies_o>;
+extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::ue_associated_lc_s1_conn_item_res_ack_o>;
 
 #endif // SRSASN1_S1AP_H

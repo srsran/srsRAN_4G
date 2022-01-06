@@ -20,13 +20,6 @@ using namespace asn1::ngap;
  *                                Struct Methods
  ******************************************************************************/
 
-// Criticality ::= ENUMERATED
-const char* crit_opts::to_string() const
-{
-  static const char* options[] = {"reject", "ignore", "notify"};
-  return convert_enum_idx(options, 3, value, "crit_e");
-}
-
 // Presence ::= ENUMERATED
 const char* presence_opts::to_string() const
 {
@@ -160,47 +153,6 @@ bool protocol_ext_field_s<ext_set_paramT_>::load_info_obj(const uint32_t& id_)
   crit      = ext_set_paramT_::get_crit(id);
   ext_value = ext_set_paramT_::get_ext(id);
   return ext_value.type().value != ext_set_paramT_::ext_c::types_opts::nulltype;
-}
-
-// ProtocolIE-SingleContainer{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-SRSASN_CODE protocol_ie_single_container_s<ies_set_paramT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
-  HANDLE_CODE(crit.pack(bref));
-  HANDLE_CODE(value.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ies_set_paramT_>
-SRSASN_CODE protocol_ie_single_container_s<ies_set_paramT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  value = ies_set_paramT_::get_value(id);
-  HANDLE_CODE(value.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ies_set_paramT_>
-void protocol_ie_single_container_s<ies_set_paramT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
-}
-template <class ies_set_paramT_>
-bool protocol_ie_single_container_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
-{
-  if (not ies_set_paramT_::is_id_valid(id_)) {
-    return false;
-  }
-  id    = id_;
-  crit  = ies_set_paramT_::get_crit(id);
-  value = ies_set_paramT_::get_value(id);
-  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
 
 uint32_t ngap_protocol_ext_empty_o::idx_to_id(uint32_t idx)

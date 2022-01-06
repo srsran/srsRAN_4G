@@ -291,14 +291,6 @@ namespace ngap {
  *                              Struct Definitions
  ******************************************************************************/
 
-// Criticality ::= ENUMERATED
-struct crit_opts {
-  enum options { reject, ignore, notify, nulltype } value;
-
-  const char* to_string() const;
-};
-typedef enumerated<crit_opts> crit_e;
-
 // Presence ::= ENUMERATED
 struct presence_opts {
   enum options { optional, conditional, mandatory, nulltype } value;
@@ -353,19 +345,6 @@ struct protocol_ext_field_s {
   uint32_t                        id = 0;
   crit_e                          crit;
   typename ext_set_paramT_::ext_c ext_value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
-// ProtocolIE-SingleContainer{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_single_container_s {
-  uint32_t                          id = 0;
-  crit_e                            crit;
-  typename ies_set_paramT_::value_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);

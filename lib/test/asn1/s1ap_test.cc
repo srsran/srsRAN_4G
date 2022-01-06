@@ -255,7 +255,7 @@ int test_load_info_obj()
   container.erab_failed_to_setup_list_ctxt_su_res.value.resize(1);
   container.erab_failed_to_setup_list_ctxt_su_res.value[0].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
 
-  TESTASSERT(container.erab_failed_to_setup_list_ctxt_su_res.value[0].id == ASN1_S1AP_ID_ERAB_ITEM);
+  TESTASSERT_EQ(ASN1_S1AP_ID_ERAB_ITEM, container.erab_failed_to_setup_list_ctxt_su_res.value[0].id());
 
   return SRSRAN_SUCCESS;
 }

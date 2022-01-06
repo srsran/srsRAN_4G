@@ -863,12 +863,12 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     // Establish GTPU Forwarding Paths
     if (ho_req.transparent_container->erab_info_list_present) {
       const auto& lst = ho_req.transparent_container->erab_info_list;
-      const auto* it  = std::find_if(
-          lst.begin(),
-          lst.end(),
-          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
-            return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
-          });
+      const auto* it =
+          std::find_if(lst.begin(),
+                       lst.end(),
+                       [&erab](const asn1::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+                         return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
+                       });
       if (it == lst.end()) {
         continue;
       }
