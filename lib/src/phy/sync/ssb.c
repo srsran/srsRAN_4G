@@ -884,8 +884,21 @@ static int ssb_pss_search(srsran_ssb_t* q,
     // Reset best correlation
     best_corr = 0.0f;
 
+    // Number of samples taken in this iteration
+    uint32_t n = q->corr_sz;
+
+    // Detect if the correlation input exceeds the input length, take the maximum amount of samples
+    if (best_delay + q->corr_sz > nof_samples) {
+      n = nof_samples - best_delay;
+    }
+
     // Copy the amount of samples
-    srsran_vec_cf_copy(q->tmp_time, &in[best_delay], q->corr_sz);
+    srsran_vec_cf_copy(q->tmp_time, &in[best_delay], n);
+
+    // Append zeros if there is space left
+    if (n < q->corr_sz) {
+      srsran_vec_cf_zero(&q->tmp_time[n], q->corr_sz - n);
+    }
 
     // Convert to frequency domain
     srsran_dft_run_guru_c(&q->fft_corr);
