@@ -571,42 +571,41 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
   }
 
   if (srsran_csi_hl_report_cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
-    srsran_csi_hl_report_cfg.periodic.period =
-        csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_number();
-    switch (csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type()) {
+    const auto& csi_periodic                 = csi_report_cfg.report_cfg_type.periodic();
+    srsran_csi_hl_report_cfg.periodic.period = csi_periodic.report_slot_cfg.type().to_number();
+    switch (csi_periodic.report_slot_cfg.type()) {
       case csi_report_periodicity_and_offset_c::types_opts::slots4:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots4();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots4();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots5:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots5();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots5();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots8:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots8();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots8();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots10:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots10();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots10();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots16:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots16();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots16();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots20:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots20();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots20();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots40:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots40();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots40();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots80:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots80();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots80();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots160:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots160();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots160();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots320:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots320();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots320();
         break;
       default:
-        asn1::log_warning("Invalid option for report_slot_cfg %s",
-                          csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_string());
+        asn1::log_warning("Invalid option for report_slot_cfg %s", csi_periodic.report_slot_cfg.type().to_string());
         return false;
     }
   }
@@ -690,6 +689,7 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
       asn1::log_warning("Invalid option for cqi_table %s", csi_report_cfg.cqi_table.to_string());
       return false;
   }
+
   *in_srsran_csi_hl_report_cfg = srsran_csi_hl_report_cfg;
   return true;
 }
@@ -1632,10 +1632,28 @@ bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_ce
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure CSI-Report
-    for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
-      const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
-      if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
-        return false;
+    if (setup.csi_report_cfg_to_add_mod_list_present) {
+      for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
+        const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
+        if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+          return false;
+        }
+        if (csi_rep.report_cfg_type.type().value == csi_report_cfg_s::report_cfg_type_c_::types_opts::periodic) {
+          const auto&                 pucch_setup = serv_cell.ul_cfg.init_ul_bwp.pucch_cfg.setup();
+          srsran_pucch_nr_resource_t& resource    = csi_hl->reports[i].periodic.resource;
+          uint32_t    pucch_resource_id           = csi_rep.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res;
+          const auto& asn1_resource               = pucch_setup.res_to_add_mod_list[pucch_resource_id];
+          uint32_t    format2_rate                = 0;
+          if (pucch_setup.format2_present and
+              pucch_setup.format2.type().value ==
+                  asn1::rrc_nr::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+              pucch_setup.format2.setup().max_code_rate_present) {
+            format2_rate = pucch_setup.format2.setup().max_code_rate.to_number();
+          }
+          if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
+            return false;
+          }
+        }
       }
     }
   }

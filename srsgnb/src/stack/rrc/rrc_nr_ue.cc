@@ -1481,9 +1481,11 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
     }
   }
 
+
   uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
   uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
   uecfg.phy_cell_group_cfg.reset(new phys_cell_group_cfg_s{cell_group_cfg.phys_cell_group_cfg});
+  srsran::make_csi_cfg_from_serv_cell(cell_group_config.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
   parent->mac->ue_cfg(rnti, uecfg);
 
   return SRSRAN_SUCCESS;
