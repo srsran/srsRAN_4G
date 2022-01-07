@@ -202,4 +202,9 @@ void ue_stack_nr::set_phy_config_complete(bool status)
   sync_task_queue.push([this, status]() { rrc->set_phy_config_complete(status); });
 }
 
+void ue_stack_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  sync_task_queue.push([this, result]() { rrc->cell_select_completed(result); });
+}
+
 } // namespace srsue

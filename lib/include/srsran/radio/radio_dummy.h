@@ -32,15 +32,10 @@
 namespace srsran {
 
 /**
- * Implementation of the radio interface for the PHY
+ * Implementation of radio dummy for the PHY testing
  *
- * It uses the rf C library object to access the underlying radio. This implementation uses a flat array to
- * transmit/receive samples for all RF channels. The N carriers and P antennas are mapped into M=NP RF channels (M <=
- * SRSRAN_MAX_CHANNELS). Note that all carriers must have the same number of antennas.
- *
- * The underlying radio receives and transmits M RF channels synchronously from possibly multiple radios using the same
- * rf driver object. In the current implementation, the mapping between N carriers and P antennas is sequentially, eg:
- * [carrier_0_port_0, carrier_0_port_1, carrier_1_port_0, carrier_1_port_1, ..., carrier_N_port_N]
+ * It uses ringbuffers from srsRAN library to emulate baseband transmission and reception. The current implementation
+ * does not support dynamic sampling rates, gains and frequencies.
  */
 class radio_dummy : public srsran::radio_base, public srsran::radio_interface_phy
 {

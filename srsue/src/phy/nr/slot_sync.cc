@@ -104,27 +104,32 @@ int slot_sync::recv_callback(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_t
 
 bool slot_sync::run_sfn_sync()
 {
+  // Run UE SYNC process using the temporal SFN process buffer
   srsran_ue_sync_nr_outcome_t outcome = {};
   if (srsran_ue_sync_nr_zerocopy(&ue_sync_nr, sfn_sync_buff.to_cf_t(), &outcome) < SRSRAN_SUCCESS) {
     logger.error("SYNC: error in zerocopy");
     return false;
   }
 
+  // If in sync, update slot index
   if (outcome.in_sync) {
     slot_cfg.idx = outcome.sfn * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) + outcome.sf_idx;
   }
 
+  // Return true if the PHY in-sync
   return outcome.in_sync;
 }
 
 bool slot_sync::run_camping(srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t& timestamp)
 {
+  // Run UE SYNC process using an external baseband buffer
   srsran_ue_sync_nr_outcome_t outcome = {};
   if (srsran_ue_sync_nr_zerocopy(&ue_sync_nr, buffer.to_cf_t(), &outcome) < SRSRAN_SUCCESS) {
     logger.error("SYNC: error in zerocopy");
     return false;
   }
 
+  // If in sync, update slot index
   if (outcome.in_sync) {
     slot_cfg.idx = outcome.sfn * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) + outcome.sf_idx;
   }
@@ -132,6 +137,7 @@ bool slot_sync::run_camping(srsran::rf_buffer_t& buffer, srsran::rf_timestamp_t&
   // Set RF timestamp
   *timestamp.get_ptr(0) = outcome.timestamp;
 
+  // Return true if the PHY in-sync
   return outcome.in_sync;
 }
 

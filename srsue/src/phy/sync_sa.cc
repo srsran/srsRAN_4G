@@ -149,10 +149,16 @@ rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_in
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
+  // By default, the result is set to error
+  rrc_interface_phy_nr::cell_select_result_t result = {};
+  result.status                                     = rrc_interface_phy_nr::cell_select_result_t::ERROR;
+
   // Wait the FSM to transition to IDLE
   if (!wait_idle()) {
     logger.error("Cell Search: SYNC thread didn't transition to IDLE after 100 ms\n");
-    return {};
+
+    // Return default result with error status
+    return result;
   }
 
   rrc_proc_state = PROC_SELECT_RUNNING;
@@ -170,19 +176,21 @@ rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_in
   cfg.ssb.srate_hz            = srate_hz;
   if (slot_synchronizer.set_sync_cfg(cfg)) {
     logger.error("Cell Search: Failed setting slot synchronizer configuration");
-    return {};
+
+    // Return default result with error status
+    return result;
   }
 
   // SFN synchronization
   phy_state.run_sfn_sync();
 
-  // Determine if the procedure was successful if it is camping
-  rrc_interface_phy_nr::cell_select_result_t result = {};
-  result.successful                                 = phy_state.is_camping();
-  if (result.successful) {
+  // Determine if the procedure was successful if the current state is camping, otherwise it is unsuccessful
+  if (phy_state.is_camping()) {
     logger.info("Cell Select: SFN synchronized. CAMPING...");
+    result.status = rrc_interface_phy_nr::cell_select_result_t::SUCCESFUL;
   } else {
     logger.info("Cell Select: Could not synchronize SFN");
+    result.status = rrc_interface_phy_nr::cell_select_result_t::UNSUCCESFUL;
   }
 
   rrc_proc_state = PROC_IDLE;
@@ -278,7 +286,7 @@ void sync_sa::run_state_cell_camping()
   }
 
   srsran::phy_common_interface::worker_context_t context;
-  context.sf_idx     = tti;
+  context.sf_idx     = slot_synchronizer.get_slot_cfg().idx;
   context.worker_ptr = nr_worker;
   context.last       = true; // Set last if standalone
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);

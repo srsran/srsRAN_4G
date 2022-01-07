@@ -49,7 +49,11 @@ public:
    * @brief Describes a cell select result
    */
   struct cell_select_result_t {
-    bool successful = false; ///< Cell was found and physical layer is synchronised
+    enum {
+      ERROR = 0,   ///< The cell selection procedure failed due a to an invalid configuration
+      UNSUCCESFUL, ///< The cell selection failed to find and synchronise the SSB
+      SUCCESFUL,   ///< The cell selection was succesful, resulting in a camping state
+    } status;
   };
 
   /**

@@ -111,6 +111,7 @@ public:
   void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final {}
   void              remove_eps_bearer(uint8_t eps_bearer_id) final {}
   void              reset_eps_bearers() final {}
+  void              cell_select_completed(const cell_select_result_t& result) override;
 
 private:
   void run_thread() final;
