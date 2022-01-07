@@ -593,7 +593,7 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
   out.zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset_present = true;
   out.zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset.set_slots80() = 1;
 
-  out.p_zp_csi_rs_res_set_present = false; // TEMP
+  out.p_zp_csi_rs_res_set_present = true; // TEMP
   out.p_zp_csi_rs_res_set.set_setup();
   out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_set_id = 0;
   out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.resize(1);
