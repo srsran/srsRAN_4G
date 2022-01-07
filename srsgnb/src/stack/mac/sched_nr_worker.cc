@@ -36,12 +36,18 @@ void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
 
 /// Called within a locked context, to generate {slot, cc} scheduling decision
 
-dl_sched_res_t* cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db)
+dl_sched_res_t* cc_worker::run_slot(slot_point tx_sl, ue_map_t& ue_db)
 {
   // Reset old sched outputs
-  slot_point old_slot = pdcch_slot - TX_ENB_DELAY - 1;
-  for (bwp_manager& bwp : bwps) {
-    bwp.grid[old_slot].reset();
+  if (not last_tx_sl.valid()) {
+    last_tx_sl = tx_sl;
+  }
+  while (last_tx_sl != tx_sl) {
+    last_tx_sl++;
+    slot_point old_slot = last_tx_sl - TX_ENB_DELAY - 1;
+    for (bwp_manager& bwp : bwps) {
+      bwp.grid[old_slot].reset();
+    }
   }
 
   // Reserve UEs for this worker slot (select candidate UEs)
@@ -53,7 +59,7 @@ dl_sched_res_t* cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db)
     }
 
     // info for a given UE on a slot to be process
-    slot_ues.insert(rnti, u.make_slot_ue(pdcch_slot, cfg.cc));
+    slot_ues.insert(rnti, u.make_slot_ue(tx_sl, cfg.cc));
     if (slot_ues[rnti].empty()) {
       // Failed to generate slot UE because UE has no conditions for DL/UL tx
       slot_ues.erase(rnti);
@@ -63,10 +69,10 @@ dl_sched_res_t* cc_worker::run_slot(slot_point pdcch_slot, ue_map_t& ue_db)
   }
 
   // Create an BWP allocator object that will passed along to RA, SI, Data schedulers
-  bwp_slot_allocator bwp_alloc{bwps[0].grid, pdcch_slot, slot_ues};
+  bwp_slot_allocator bwp_alloc{bwps[0].grid, tx_sl, slot_ues};
 
   // Log UEs state for slot
-  log_sched_slot_ues(logger, pdcch_slot, cfg.cc, slot_ues);
+  log_sched_slot_ues(logger, tx_sl, cfg.cc, slot_ues);
 
   // Allocate cell DL signalling
   sched_dl_signalling(bwp_alloc);
