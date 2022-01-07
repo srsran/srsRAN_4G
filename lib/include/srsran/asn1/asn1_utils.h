@@ -16,14 +16,11 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/srslog/srslog.h"
 #include "srsran/support/srsran_assert.h"
-#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <limits>
 #include <string>
-#include <vector>
 
 namespace asn1 {
 
@@ -1472,32 +1469,33 @@ struct crit_opts {
 };
 typedef enumerated<crit_opts> crit_e;
 
-// ProtocolIE-SingleContainer{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{LAYER-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_single_container_s {
-  using value_type = typename ies_set_paramT_::value_c;
+template <class ObjSet, class ValueType, ValueType (*Getter)(const uint32_t&)>
+struct base_protocol_ie_field {
+  using value_type = ValueType;
 
-  uint32_t          id() const { return ies_set_paramT_::idx_to_id(value.type().value); }
-  crit_e            crit() const { return ies_set_paramT_::get_crit(id()); }
-  value_type*       operator->() { return &value; }
-  const value_type* operator->() const { return &value; }
-  value_type&       operator*() { return value; }
-  const value_type& operator*() const { return value; }
+  uint32_t          id() const { return ObjSet::idx_to_id(value().type().value); }
+  crit_e            crit() const { return ObjSet::get_crit(id()); }
+  value_type&       value() { return value_; }
+  const value_type& value() const { return value_; }
+  value_type*       operator->() { return &value(); }
+  const value_type* operator->() const { return &value(); }
+  value_type&       operator*() { return value(); }
+  const value_type& operator*() const { return value(); }
 
   SRSASN_CODE pack(bit_ref& bref) const
   {
     HANDLE_CODE(pack_integer(bref, id(), (uint32_t)0u, (uint32_t)65535u, false, true));
     HANDLE_CODE(crit().pack(bref));
-    HANDLE_CODE(value.pack(bref));
+    HANDLE_CODE(value().pack(bref));
     return SRSASN_SUCCESS;
   }
   SRSASN_CODE unpack(cbit_ref& bref)
   {
     uint32_t id_val;
     HANDLE_CODE(unpack_integer(id_val, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
+    value_ = (*Getter)(id_val);
     HANDLE_CODE(crit().unpack(bref));
-    value = ies_set_paramT_::get_value(id_val);
-    HANDLE_CODE(value.unpack(bref));
+    HANDLE_CODE(value_.unpack(bref));
     return SRSASN_SUCCESS;
   }
   void to_json(json_writer& j) const
@@ -1505,20 +1503,113 @@ struct protocol_ie_single_container_s {
     j.start_obj();
     j.write_int("id", id());
     j.write_str("criticality", crit().to_string());
+    //    j.write_str("value");
+    //    to_json(j, value());
     j.end_obj();
   }
-  bool load_info_obj(const uint32_t& id_val)
+  bool load_info_obj(const uint32_t& id_)
   {
-    if (not ies_set_paramT_::is_id_valid(id_val)) {
+    if (not ObjSet::is_id_valid(id_)) {
       return false;
     }
-    value = ies_set_paramT_::get_value(id_val);
-    return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
+    value_ = ObjSet::get_value(id_);
+    return value_.type().value != ObjSet::value_c::types_opts::nulltype;
   }
 
 private:
-  value_type value;
+  value_type value_;
 };
+
+// ProtocolIE-Field{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{IEsSetParam}}
+template <class ies_set_paramT_>
+struct protocol_ie_field_s
+  : public base_protocol_ie_field<ies_set_paramT_, typename ies_set_paramT_::value_c, &ies_set_paramT_::get_value> {};
+
+// ProtocolIE-SingleContainer{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{IEsSetParam}}
+template <class ies_set_paramT_>
+struct protocol_ie_single_container_s : public protocol_ie_field_s<ies_set_paramT_> {};
+
+// ProtocolExtensionField{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-EXTENSION}}
+template <class ext_set_paramT_>
+struct protocol_ext_field_s
+  : public base_protocol_ie_field<ext_set_paramT_, typename ext_set_paramT_::ext_c, &ext_set_paramT_::get_ext> {};
+
+template <class Derived>
+struct base_protocol_ie_container_item_s {
+  base_protocol_ie_container_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_) {}
+
+  uint32_t id = 0;
+  crit_e   crit;
+
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
+    HANDLE_CODE(crit.pack(bref));
+    {
+      varlength_field_pack_guard varlen_scope(bref, true);
+      HANDLE_CODE((*derived())->pack(bref));
+    }
+    return SRSASN_SUCCESS;
+  }
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
+    HANDLE_CODE(crit.unpack(bref));
+    {
+      varlength_field_unpack_guard varlen_scope(bref, true);
+      HANDLE_CODE((*derived())->unpack(bref));
+    }
+    return SRSASN_SUCCESS;
+  }
+  void to_json(json_writer& j) const
+  {
+    j.start_obj();
+    j.write_int("id", id);
+    j.write_str("criticality", crit.to_string());
+    j.end_obj();
+  }
+
+private:
+  Derived*       derived() { return static_cast<Derived*>(this); }
+  const Derived* derived() const { return static_cast<const Derived*>(this); }
+};
+
+template <typename T>
+struct protocol_ie_container_item_s : public base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> > {
+  using base_type  = base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> >;
+  using value_type = T;
+
+  value_type value;
+
+  using base_type::base_type;
+  value_type*       operator->() { return &value; }
+  const value_type* operator->() const { return &value; }
+  value_type&       operator*() { return value; }
+  const value_type& operator*() const { return value; }
+};
+
+template <typename T>
+struct protocol_ext_container_item_s : public base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> > {
+  using base_type  = base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> >;
+  using value_type = T;
+
+  value_type ext;
+
+  using base_type::base_type;
+  value_type*       operator->() { return &ext; }
+  const value_type* operator->() const { return &ext; }
+  value_type&       operator*() { return ext; }
+  const value_type& operator*() const { return ext; }
+};
+
+// ProtocolIE-Container{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
+template <class IEsSetParam>
+using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<IEsSetParam>, 0, 65535, true>;
+
+// ProtocolExtensionContainer{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
+// ProtocolExtensionField
+template <class ExtensionSetParam>
+using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ExtensionSetParam>, 1, 65535, true>;
 
 } // namespace asn1
 

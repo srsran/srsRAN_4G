@@ -299,19 +299,6 @@ struct presence_opts {
 };
 typedef enumerated<presence_opts> presence_e;
 
-// ProtocolIE-Field{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_field_s {
-  uint32_t                          id = 0;
-  crit_e                            crit;
-  typename ies_set_paramT_::value_c value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
 struct ngap_protocol_ies_empty_o {
   // Value ::= OPEN TYPE
   struct value_c {
@@ -338,19 +325,6 @@ struct ngap_protocol_ies_empty_o {
 };
 // CPTransportLayerInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 using cp_transport_layer_info_ext_ies_o = ngap_protocol_ies_empty_o;
-
-// ProtocolExtensionField{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-EXTENSION}}
-template <class ext_set_paramT_>
-struct protocol_ext_field_s {
-  uint32_t                        id = 0;
-  crit_e                          crit;
-  typename ext_set_paramT_::ext_c ext_value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
 
 struct ngap_protocol_ext_empty_o {
   // Extension ::= OPEN TYPE
@@ -429,24 +403,6 @@ private:
       c;
 
   void destroy_();
-};
-
-// ProtocolExtensionContainer{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
-// ProtocolExtensionField
-template <class ext_set_paramT_>
-using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ext_set_paramT_>, 1, 65535, true>;
-
-template <class extT_>
-struct protocol_ext_container_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  extT_    ext;
-
-  // sequence methods
-  protocol_ext_container_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
 };
 
 struct protocol_ext_container_empty_l {
@@ -737,23 +693,6 @@ struct amf_cfg_upd_ies_o {
   static crit_e     get_crit(const uint32_t& id);
   static value_c    get_value(const uint32_t& id);
   static presence_e get_presence(const uint32_t& id);
-};
-
-// ProtocolIE-Container{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
-template <class ies_set_paramT_>
-using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<ies_set_paramT_>, 0, 65535, true>;
-
-template <class valueT_>
-struct protocol_ie_container_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  valueT_  value;
-
-  // sequence methods
-  protocol_ie_container_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
 };
 
 struct amf_cfg_upd_ies_container {
@@ -14974,5 +14913,84 @@ struct target_ngran_node_to_source_ngran_node_transparent_container_s {
 
 } // namespace ngap
 } // namespace asn1
+
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::amf_cfg_upd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::amf_cfg_upd_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::amf_cfg_upd_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::cell_traffic_trace_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::deactiv_trace_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_nas_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_non_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_ran_cfg_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_ran_status_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::error_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_cancel_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_cancel_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_notify_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_prep_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_request_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_required_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_context_setup_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_context_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_context_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_ue_msg_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::location_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::location_report_ctrl_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::location_report_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::nas_non_delivery_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_reset_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_reset_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_setup_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::overload_start_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_confirm_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_notify_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_release_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_release_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_cancel_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_cancel_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_restart_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::paging_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::path_switch_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::path_switch_request_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::path_switch_request_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ran_cfg_upd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ran_cfg_upd_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::rrc_inactive_transition_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::reroute_nas_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::secondary_rat_data_usage_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::trace_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::trace_start_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_mod_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_mod_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_mod_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_release_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_release_complete_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_release_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_radio_cap_check_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_radio_cap_check_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_radio_cap_info_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::uetnla_binding_release_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_nas_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_non_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_ran_cfg_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_ran_status_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::write_replace_warning_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::write_replace_warning_resp_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::ngap::pdu_session_res_modify_ind_transfer_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_request_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_setup_request_transfer_ies_o>;
 
 #endif // SRSASN1_NGAP_H

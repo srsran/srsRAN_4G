@@ -27,47 +27,6 @@ const char* presence_opts::to_string() const
   return convert_enum_idx(options, 3, value, "presence_e");
 }
 
-// ProtocolIE-Field{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-SRSASN_CODE protocol_ie_field_s<ies_set_paramT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
-  HANDLE_CODE(crit.pack(bref));
-  HANDLE_CODE(value.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ies_set_paramT_>
-SRSASN_CODE protocol_ie_field_s<ies_set_paramT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  value = ies_set_paramT_::get_value(id);
-  HANDLE_CODE(value.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ies_set_paramT_>
-void protocol_ie_field_s<ies_set_paramT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
-}
-template <class ies_set_paramT_>
-bool protocol_ie_field_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
-{
-  if (not ies_set_paramT_::is_id_valid(id_)) {
-    return false;
-  }
-  id    = id_;
-  crit  = ies_set_paramT_::get_crit(id);
-  value = ies_set_paramT_::get_value(id);
-  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
-}
-
 uint32_t ngap_protocol_ies_empty_o::idx_to_id(uint32_t idx)
 {
   asn1::log_error("object set is empty\n");
@@ -112,47 +71,6 @@ const char* ngap_protocol_ies_empty_o::value_c::types_opts::to_string() const
 {
   static const char* options[] = {};
   return convert_enum_idx(options, 0, value, "ngap_protocol_ies_empty_o::value_c::types");
-}
-
-// ProtocolExtensionField{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-EXTENSION}}
-template <class ext_set_paramT_>
-SRSASN_CODE protocol_ext_field_s<ext_set_paramT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  warn_assert(crit != ext_set_paramT_::get_crit(id), __func__, __LINE__);
-  HANDLE_CODE(crit.pack(bref));
-  HANDLE_CODE(ext_value.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ext_set_paramT_>
-SRSASN_CODE protocol_ext_field_s<ext_set_paramT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  ext_value = ext_set_paramT_::get_ext(id);
-  HANDLE_CODE(ext_value.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-template <class ext_set_paramT_>
-void protocol_ext_field_s<ext_set_paramT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
-}
-template <class ext_set_paramT_>
-bool protocol_ext_field_s<ext_set_paramT_>::load_info_obj(const uint32_t& id_)
-{
-  if (not ext_set_paramT_::is_id_valid(id_)) {
-    return false;
-  }
-  id        = id_;
-  crit      = ext_set_paramT_::get_crit(id);
-  ext_value = ext_set_paramT_::get_ext(id);
-  return ext_value.type().value != ext_set_paramT_::ext_c::types_opts::nulltype;
 }
 
 uint32_t ngap_protocol_ext_empty_o::idx_to_id(uint32_t idx)
@@ -334,41 +252,6 @@ const char* cp_transport_layer_info_c::types_opts::to_string() const
 {
   static const char* options[] = {"endpointIPAddress", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "cp_transport_layer_info_c::types");
-}
-
-template <class extT_>
-protocol_ext_container_item_s<extT_>::protocol_ext_container_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_)
-
-{}
-template <class extT_>
-SRSASN_CODE protocol_ext_container_item_s<extT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.pack(bref));
-  {
-    varlength_field_pack_guard varlen_scope(bref, true);
-    HANDLE_CODE(ext.pack(bref));
-  }
-  return SRSASN_SUCCESS;
-}
-template <class extT_>
-SRSASN_CODE protocol_ext_container_item_s<extT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  {
-    varlength_field_unpack_guard varlen_scope(bref, true);
-    HANDLE_CODE(ext.unpack(bref));
-  }
-  return SRSASN_SUCCESS;
-}
-template <class extT_>
-void protocol_ext_container_item_s<extT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
 }
 
 SRSASN_CODE protocol_ext_container_empty_l::pack(bit_ref& bref) const
@@ -1222,42 +1105,7 @@ uint8_t amf_cfg_upd_ies_o::value_c::types_opts::to_number() const
   return 0;
 }
 
-template <class valueT_>
-protocol_ie_container_item_s<valueT_>::protocol_ie_container_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_)
-
-{}
-template <class valueT_>
-SRSASN_CODE protocol_ie_container_item_s<valueT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.pack(bref));
-  {
-    varlength_field_pack_guard varlen_scope(bref, true);
-    HANDLE_CODE(value.pack(bref));
-  }
-  return SRSASN_SUCCESS;
-}
-template <class valueT_>
-SRSASN_CODE protocol_ie_container_item_s<valueT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  {
-    varlength_field_unpack_guard varlen_scope(bref, true);
-    HANDLE_CODE(value.unpack(bref));
-  }
-  return SRSASN_SUCCESS;
-}
-template <class valueT_>
-void protocol_ie_container_item_s<valueT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
-}
-
-template struct asn1::ngap::protocol_ie_field_s<amf_cfg_upd_ies_o>;
+template struct asn1::protocol_ie_field_s<amf_cfg_upd_ies_o>;
 
 amf_cfg_upd_ies_container::amf_cfg_upd_ies_container() :
   amf_name(1, crit_e::reject),
@@ -1312,51 +1160,51 @@ SRSASN_CODE amf_cfg_upd_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<amf_cfg_upd_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 1:
         amf_name_present = true;
-        amf_name.id      = c.id;
-        amf_name.crit    = c.crit;
-        amf_name.value   = c.value.amf_name();
+        amf_name.id      = c.id();
+        amf_name.crit    = c.crit();
+        amf_name.value   = c.value().amf_name();
         break;
       case 96:
         served_guami_list_present = true;
-        served_guami_list.id      = c.id;
-        served_guami_list.crit    = c.crit;
-        served_guami_list.value   = c.value.served_guami_list();
+        served_guami_list.id      = c.id();
+        served_guami_list.crit    = c.crit();
+        served_guami_list.value   = c.value().served_guami_list();
         break;
       case 86:
         relative_amf_capacity_present = true;
-        relative_amf_capacity.id      = c.id;
-        relative_amf_capacity.crit    = c.crit;
-        relative_amf_capacity.value   = c.value.relative_amf_capacity();
+        relative_amf_capacity.id      = c.id();
+        relative_amf_capacity.crit    = c.crit();
+        relative_amf_capacity.value   = c.value().relative_amf_capacity();
         break;
       case 80:
         plmn_support_list_present = true;
-        plmn_support_list.id      = c.id;
-        plmn_support_list.crit    = c.crit;
-        plmn_support_list.value   = c.value.plmn_support_list();
+        plmn_support_list.id      = c.id();
+        plmn_support_list.crit    = c.crit();
+        plmn_support_list.value   = c.value().plmn_support_list();
         break;
       case 6:
         amf_tnlassoc_to_add_list_present = true;
-        amf_tnlassoc_to_add_list.id      = c.id;
-        amf_tnlassoc_to_add_list.crit    = c.crit;
-        amf_tnlassoc_to_add_list.value   = c.value.amf_tnlassoc_to_add_list();
+        amf_tnlassoc_to_add_list.id      = c.id();
+        amf_tnlassoc_to_add_list.crit    = c.crit();
+        amf_tnlassoc_to_add_list.value   = c.value().amf_tnlassoc_to_add_list();
         break;
       case 7:
         amf_tnlassoc_to_rem_list_present = true;
-        amf_tnlassoc_to_rem_list.id      = c.id;
-        amf_tnlassoc_to_rem_list.crit    = c.crit;
-        amf_tnlassoc_to_rem_list.value   = c.value.amf_tnlassoc_to_rem_list();
+        amf_tnlassoc_to_rem_list.id      = c.id();
+        amf_tnlassoc_to_rem_list.crit    = c.crit();
+        amf_tnlassoc_to_rem_list.value   = c.value().amf_tnlassoc_to_rem_list();
         break;
       case 8:
         amf_tnlassoc_to_upd_list_present = true;
-        amf_tnlassoc_to_upd_list.id      = c.id;
-        amf_tnlassoc_to_upd_list.crit    = c.crit;
-        amf_tnlassoc_to_upd_list.value   = c.value.amf_tnlassoc_to_upd_list();
+        amf_tnlassoc_to_upd_list.id      = c.id();
+        amf_tnlassoc_to_upd_list.crit    = c.crit();
+        amf_tnlassoc_to_upd_list.value   = c.value().amf_tnlassoc_to_upd_list();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -2159,7 +2007,7 @@ const char* amf_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "amf_cfg_upd_ack_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<amf_cfg_upd_ack_ies_o>;
+template struct asn1::protocol_ie_field_s<amf_cfg_upd_ack_ies_o>;
 
 amf_cfg_upd_ack_ies_container::amf_cfg_upd_ack_ies_container() :
   amf_tnlassoc_setup_list(5, crit_e::ignore),
@@ -2194,27 +2042,27 @@ SRSASN_CODE amf_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<amf_cfg_upd_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 5:
         amf_tnlassoc_setup_list_present = true;
-        amf_tnlassoc_setup_list.id      = c.id;
-        amf_tnlassoc_setup_list.crit    = c.crit;
-        amf_tnlassoc_setup_list.value   = c.value.amf_tnlassoc_setup_list();
+        amf_tnlassoc_setup_list.id      = c.id();
+        amf_tnlassoc_setup_list.crit    = c.crit();
+        amf_tnlassoc_setup_list.value   = c.value().amf_tnlassoc_setup_list();
         break;
       case 4:
         amf_tnlassoc_failed_to_setup_list_present = true;
-        amf_tnlassoc_failed_to_setup_list.id      = c.id;
-        amf_tnlassoc_failed_to_setup_list.crit    = c.crit;
-        amf_tnlassoc_failed_to_setup_list.value   = c.value.amf_tnlassoc_failed_to_setup_list();
+        amf_tnlassoc_failed_to_setup_list.id      = c.id();
+        amf_tnlassoc_failed_to_setup_list.crit    = c.crit();
+        amf_tnlassoc_failed_to_setup_list.value   = c.value().amf_tnlassoc_failed_to_setup_list();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -2509,7 +2357,7 @@ const char* amf_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "amf_cfg_upd_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<amf_cfg_upd_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<amf_cfg_upd_fail_ies_o>;
 
 amf_cfg_upd_fail_ies_container::amf_cfg_upd_fail_ies_container() :
   cause(15, crit_e::ignore), time_to_wait(107, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -2541,27 +2389,27 @@ SRSASN_CODE amf_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<amf_cfg_upd_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 107:
         time_to_wait_present = true;
-        time_to_wait.id      = c.id;
-        time_to_wait.crit    = c.crit;
-        time_to_wait.value   = c.value.time_to_wait();
+        time_to_wait.id      = c.id();
+        time_to_wait.crit    = c.crit();
+        time_to_wait.value   = c.value().time_to_wait();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -6888,7 +6736,7 @@ const char* cell_traffic_trace_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 5, value, "cell_traffic_trace_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<cell_traffic_trace_ies_o>;
+template struct asn1::protocol_ie_field_s<cell_traffic_trace_ies_o>;
 
 cell_traffic_trace_ies_container::cell_traffic_trace_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -6920,39 +6768,39 @@ SRSASN_CODE cell_traffic_trace_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<cell_traffic_trace_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 44:
         nof_mandatory_ies--;
-        ngran_trace_id.id    = c.id;
-        ngran_trace_id.crit  = c.crit;
-        ngran_trace_id.value = c.value.ngran_trace_id();
+        ngran_trace_id.id    = c.id();
+        ngran_trace_id.crit  = c.crit();
+        ngran_trace_id.value = c.value().ngran_trace_id();
         break;
       case 43:
         nof_mandatory_ies--;
-        ngran_cgi.id    = c.id;
-        ngran_cgi.crit  = c.crit;
-        ngran_cgi.value = c.value.ngran_cgi();
+        ngran_cgi.id    = c.id();
+        ngran_cgi.crit  = c.crit();
+        ngran_cgi.value = c.value().ngran_cgi();
         break;
       case 109:
         nof_mandatory_ies--;
-        trace_collection_entity_ip_address.id    = c.id;
-        trace_collection_entity_ip_address.crit  = c.crit;
-        trace_collection_entity_ip_address.value = c.value.trace_collection_entity_ip_address();
+        trace_collection_entity_ip_address.id    = c.id();
+        trace_collection_entity_ip_address.crit  = c.crit();
+        trace_collection_entity_ip_address.value = c.value().trace_collection_entity_ip_address();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -8425,7 +8273,7 @@ const char* deactiv_trace_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "deactiv_trace_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<deactiv_trace_ies_o>;
+template struct asn1::protocol_ie_field_s<deactiv_trace_ies_o>;
 
 deactiv_trace_ies_container::deactiv_trace_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), ngran_trace_id(44, crit_e::ignore)
@@ -8451,27 +8299,27 @@ SRSASN_CODE deactiv_trace_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<deactiv_trace_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 44:
         nof_mandatory_ies--;
-        ngran_trace_id.id    = c.id;
-        ngran_trace_id.crit  = c.crit;
-        ngran_trace_id.value = c.value.ngran_trace_id();
+        ngran_trace_id.id    = c.id();
+        ngran_trace_id.crit  = c.crit();
+        ngran_trace_id.value = c.value().ngran_trace_id();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -9325,7 +9173,7 @@ const char* dl_nas_transport_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 9, value, "dl_nas_transport_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<dl_nas_transport_ies_o>;
+template struct asn1::protocol_ie_field_s<dl_nas_transport_ies_o>;
 
 dl_nas_transport_ies_container::dl_nas_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -9383,63 +9231,63 @@ SRSASN_CODE dl_nas_transport_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<dl_nas_transport_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 48:
         old_amf_present = true;
-        old_amf.id      = c.id;
-        old_amf.crit    = c.crit;
-        old_amf.value   = c.value.old_amf();
+        old_amf.id      = c.id();
+        old_amf.crit    = c.crit();
+        old_amf.value   = c.value().old_amf();
         break;
       case 83:
         ran_paging_prio_present = true;
-        ran_paging_prio.id      = c.id;
-        ran_paging_prio.crit    = c.crit;
-        ran_paging_prio.value   = c.value.ran_paging_prio();
+        ran_paging_prio.id      = c.id();
+        ran_paging_prio.crit    = c.crit();
+        ran_paging_prio.value   = c.value().ran_paging_prio();
         break;
       case 38:
         nof_mandatory_ies--;
-        nas_pdu.id    = c.id;
-        nas_pdu.crit  = c.crit;
-        nas_pdu.value = c.value.nas_pdu();
+        nas_pdu.id    = c.id();
+        nas_pdu.crit  = c.crit();
+        nas_pdu.value = c.value().nas_pdu();
         break;
       case 36:
         mob_restrict_list_present = true;
-        mob_restrict_list.id      = c.id;
-        mob_restrict_list.crit    = c.crit;
-        mob_restrict_list.value   = c.value.mob_restrict_list();
+        mob_restrict_list.id      = c.id();
+        mob_restrict_list.crit    = c.crit();
+        mob_restrict_list.value   = c.value().mob_restrict_list();
         break;
       case 31:
         idx_to_rfsp_present = true;
-        idx_to_rfsp.id      = c.id;
-        idx_to_rfsp.crit    = c.crit;
-        idx_to_rfsp.value   = c.value.idx_to_rfsp();
+        idx_to_rfsp.id      = c.id();
+        idx_to_rfsp.crit    = c.crit();
+        idx_to_rfsp.value   = c.value().idx_to_rfsp();
         break;
       case 110:
         ue_aggregate_maximum_bit_rate_present = true;
-        ue_aggregate_maximum_bit_rate.id      = c.id;
-        ue_aggregate_maximum_bit_rate.crit    = c.crit;
-        ue_aggregate_maximum_bit_rate.value   = c.value.ue_aggregate_maximum_bit_rate();
+        ue_aggregate_maximum_bit_rate.id      = c.id();
+        ue_aggregate_maximum_bit_rate.crit    = c.crit();
+        ue_aggregate_maximum_bit_rate.value   = c.value().ue_aggregate_maximum_bit_rate();
         break;
       case 0:
         allowed_nssai_present = true;
-        allowed_nssai.id      = c.id;
-        allowed_nssai.crit    = c.crit;
-        allowed_nssai.value   = c.value.allowed_nssai();
+        allowed_nssai.id      = c.id();
+        allowed_nssai.crit    = c.crit();
+        allowed_nssai.value   = c.value().allowed_nssai();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -9710,7 +9558,7 @@ const char* dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_
   return convert_enum_idx(options, 2, value, "dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o>;
 
 dl_non_ueassociated_nrp_pa_transport_ies_container::dl_non_ueassociated_nrp_pa_transport_ies_container() :
   routing_id(89, crit_e::reject), nrp_pa_pdu(46, crit_e::reject)
@@ -9735,21 +9583,21 @@ SRSASN_CODE dl_non_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref&
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 89:
         nof_mandatory_ies--;
-        routing_id.id    = c.id;
-        routing_id.crit  = c.crit;
-        routing_id.value = c.value.routing_id();
+        routing_id.id    = c.id();
+        routing_id.crit  = c.crit();
+        routing_id.value = c.value().routing_id();
         break;
       case 46:
         nof_mandatory_ies--;
-        nrp_pa_pdu.id    = c.id;
-        nrp_pa_pdu.crit  = c.crit;
-        nrp_pa_pdu.value = c.value.nrp_pa_pdu();
+        nrp_pa_pdu.id    = c.id();
+        nrp_pa_pdu.crit  = c.crit();
+        nrp_pa_pdu.value = c.value().nrp_pa_pdu();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -10456,7 +10304,7 @@ const char* dl_ran_cfg_transfer_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 2, value, "dl_ran_cfg_transfer_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<dl_ran_cfg_transfer_ies_o>;
+template struct asn1::protocol_ie_field_s<dl_ran_cfg_transfer_ies_o>;
 
 dl_ran_cfg_transfer_ies_container::dl_ran_cfg_transfer_ies_container() :
   son_cfg_transfer_dl(98, crit_e::ignore), endc_son_cfg_transfer_dl(157, crit_e::ignore)
@@ -10485,21 +10333,21 @@ SRSASN_CODE dl_ran_cfg_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<dl_ran_cfg_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 98:
         son_cfg_transfer_dl_present = true;
-        son_cfg_transfer_dl.id      = c.id;
-        son_cfg_transfer_dl.crit    = c.crit;
-        son_cfg_transfer_dl.value   = c.value.son_cfg_transfer_dl();
+        son_cfg_transfer_dl.id      = c.id();
+        son_cfg_transfer_dl.crit    = c.crit();
+        son_cfg_transfer_dl.value   = c.value().son_cfg_transfer_dl();
         break;
       case 157:
         endc_son_cfg_transfer_dl_present = true;
-        endc_son_cfg_transfer_dl.id      = c.id;
-        endc_son_cfg_transfer_dl.crit    = c.crit;
-        endc_son_cfg_transfer_dl.value   = c.value.endc_son_cfg_transfer_dl();
+        endc_son_cfg_transfer_dl.id      = c.id();
+        endc_son_cfg_transfer_dl.crit    = c.crit();
+        endc_son_cfg_transfer_dl.value   = c.value().endc_son_cfg_transfer_dl();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -10816,7 +10664,7 @@ const char* dl_ran_status_transfer_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "dl_ran_status_transfer_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<dl_ran_status_transfer_ies_o>;
+template struct asn1::protocol_ie_field_s<dl_ran_status_transfer_ies_o>;
 
 dl_ran_status_transfer_ies_container::dl_ran_status_transfer_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -10844,27 +10692,27 @@ SRSASN_CODE dl_ran_status_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<dl_ran_status_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 84:
         nof_mandatory_ies--;
-        ran_status_transfer_transparent_container.id    = c.id;
-        ran_status_transfer_transparent_container.crit  = c.crit;
-        ran_status_transfer_transparent_container.value = c.value.ran_status_transfer_transparent_container();
+        ran_status_transfer_transparent_container.id    = c.id();
+        ran_status_transfer_transparent_container.crit  = c.crit();
+        ran_status_transfer_transparent_container.value = c.value().ran_status_transfer_transparent_container();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -11178,7 +11026,7 @@ const char* dl_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_stri
   return convert_enum_idx(options, 4, value, "dl_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o>;
 
 dl_ueassociated_nrp_pa_transport_ies_container::dl_ueassociated_nrp_pa_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -11208,33 +11056,33 @@ SRSASN_CODE dl_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref& bre
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 89:
         nof_mandatory_ies--;
-        routing_id.id    = c.id;
-        routing_id.crit  = c.crit;
-        routing_id.value = c.value.routing_id();
+        routing_id.id    = c.id();
+        routing_id.crit  = c.crit();
+        routing_id.value = c.value().routing_id();
         break;
       case 46:
         nof_mandatory_ies--;
-        nrp_pa_pdu.id    = c.id;
-        nrp_pa_pdu.crit  = c.crit;
-        nrp_pa_pdu.value = c.value.nrp_pa_pdu();
+        nrp_pa_pdu.id    = c.id();
+        nrp_pa_pdu.crit  = c.crit();
+        nrp_pa_pdu.value = c.value().nrp_pa_pdu();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -11843,7 +11691,7 @@ const char* error_ind_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 4, value, "error_ind_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<error_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<error_ind_ies_o>;
 
 error_ind_ies_container::error_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -11883,33 +11731,33 @@ SRSASN_CODE error_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<error_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         amf_ue_ngap_id_present = true;
-        amf_ue_ngap_id.id      = c.id;
-        amf_ue_ngap_id.crit    = c.crit;
-        amf_ue_ngap_id.value   = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id      = c.id();
+        amf_ue_ngap_id.crit    = c.crit();
+        amf_ue_ngap_id.value   = c.value().amf_ue_ngap_id();
         break;
       case 85:
         ran_ue_ngap_id_present = true;
-        ran_ue_ngap_id.id      = c.id;
-        ran_ue_ngap_id.crit    = c.crit;
-        ran_ue_ngap_id.value   = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id      = c.id();
+        ran_ue_ngap_id.crit    = c.crit();
+        ran_ue_ngap_id.value   = c.value().ran_ue_ngap_id();
         break;
       case 15:
         cause_present = true;
-        cause.id      = c.id;
-        cause.crit    = c.crit;
-        cause.value   = c.value.cause();
+        cause.id      = c.id();
+        cause.crit    = c.crit();
+        cause.value   = c.value().cause();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -12317,7 +12165,7 @@ const char* ho_cancel_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "ho_cancel_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_cancel_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_cancel_ies_o>;
 
 ho_cancel_ies_container::ho_cancel_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), cause(15, crit_e::ignore)
@@ -12343,27 +12191,27 @@ SRSASN_CODE ho_cancel_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_cancel_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -12638,7 +12486,7 @@ const char* ho_cancel_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "ho_cancel_ack_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_cancel_ack_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_cancel_ack_ies_o>;
 
 ho_cancel_ack_ies_container::ho_cancel_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore), ran_ue_ngap_id(85, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -12667,27 +12515,27 @@ SRSASN_CODE ho_cancel_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_cancel_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -13250,7 +13098,7 @@ const char* ho_cmd_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 8, value, "ho_cmd_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_cmd_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_cmd_ies_o>;
 
 ho_cmd_ies_container::ho_cmd_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -13297,57 +13145,57 @@ SRSASN_CODE ho_cmd_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_cmd_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 29:
         nof_mandatory_ies--;
-        handov_type.id    = c.id;
-        handov_type.crit  = c.crit;
-        handov_type.value = c.value.handov_type();
+        handov_type.id    = c.id();
+        handov_type.crit  = c.crit();
+        handov_type.value = c.value().handov_type();
         break;
       case 39:
         nas_security_params_from_ngran_present = true;
-        nas_security_params_from_ngran.id      = c.id;
-        nas_security_params_from_ngran.crit    = c.crit;
-        nas_security_params_from_ngran.value   = c.value.nas_security_params_from_ngran();
+        nas_security_params_from_ngran.id      = c.id();
+        nas_security_params_from_ngran.crit    = c.crit();
+        nas_security_params_from_ngran.value   = c.value().nas_security_params_from_ngran();
         break;
       case 59:
         nof_mandatory_ies--;
-        pdu_session_res_ho_list.id    = c.id;
-        pdu_session_res_ho_list.crit  = c.crit;
-        pdu_session_res_ho_list.value = c.value.pdu_session_res_ho_list();
+        pdu_session_res_ho_list.id    = c.id();
+        pdu_session_res_ho_list.crit  = c.crit();
+        pdu_session_res_ho_list.value = c.value().pdu_session_res_ho_list();
         break;
       case 78:
         pdu_session_res_to_release_list_ho_cmd_present = true;
-        pdu_session_res_to_release_list_ho_cmd.id      = c.id;
-        pdu_session_res_to_release_list_ho_cmd.crit    = c.crit;
-        pdu_session_res_to_release_list_ho_cmd.value   = c.value.pdu_session_res_to_release_list_ho_cmd();
+        pdu_session_res_to_release_list_ho_cmd.id      = c.id();
+        pdu_session_res_to_release_list_ho_cmd.crit    = c.crit();
+        pdu_session_res_to_release_list_ho_cmd.value   = c.value().pdu_session_res_to_release_list_ho_cmd();
         break;
       case 106:
         nof_mandatory_ies--;
-        target_to_source_transparent_container.id    = c.id;
-        target_to_source_transparent_container.crit  = c.crit;
-        target_to_source_transparent_container.value = c.value.target_to_source_transparent_container();
+        target_to_source_transparent_container.id    = c.id();
+        target_to_source_transparent_container.crit  = c.crit();
+        target_to_source_transparent_container.value = c.value().target_to_source_transparent_container();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -13904,7 +13752,7 @@ uint8_t ho_fail_ies_o::value_c::types_opts::to_number() const
   return map_enum_number(options, 1, value, "ho_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_fail_ies_o>;
 
 ho_fail_ies_container::ho_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore), cause(15, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -13933,27 +13781,27 @@ SRSASN_CODE ho_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -14572,7 +14420,7 @@ const char* ho_notify_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "ho_notify_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_notify_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_notify_ies_o>;
 
 ho_notify_ies_container::ho_notify_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), user_location_info(121, crit_e::ignore)
@@ -14598,27 +14446,27 @@ SRSASN_CODE ho_notify_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_notify_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 121:
         nof_mandatory_ies--;
-        user_location_info.id    = c.id;
-        user_location_info.crit  = c.crit;
-        user_location_info.value = c.value.user_location_info();
+        user_location_info.id    = c.id();
+        user_location_info.crit  = c.crit();
+        user_location_info.value = c.value().user_location_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -14933,7 +14781,7 @@ const char* ho_prep_fail_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 4, value, "ho_prep_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_prep_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_prep_fail_ies_o>;
 
 ho_prep_fail_ies_container::ho_prep_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -14966,33 +14814,33 @@ SRSASN_CODE ho_prep_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_prep_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -16241,7 +16089,7 @@ uint8_t ho_request_ies_o::value_c::types_opts::to_number() const
   return 0;
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_request_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_request_ies_o>;
 
 ho_request_ies_container::ho_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -16328,123 +16176,123 @@ SRSASN_CODE ho_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 29:
         nof_mandatory_ies--;
-        handov_type.id    = c.id;
-        handov_type.crit  = c.crit;
-        handov_type.value = c.value.handov_type();
+        handov_type.id    = c.id();
+        handov_type.crit  = c.crit();
+        handov_type.value = c.value().handov_type();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 110:
         nof_mandatory_ies--;
-        ue_aggregate_maximum_bit_rate.id    = c.id;
-        ue_aggregate_maximum_bit_rate.crit  = c.crit;
-        ue_aggregate_maximum_bit_rate.value = c.value.ue_aggregate_maximum_bit_rate();
+        ue_aggregate_maximum_bit_rate.id    = c.id();
+        ue_aggregate_maximum_bit_rate.crit  = c.crit();
+        ue_aggregate_maximum_bit_rate.value = c.value().ue_aggregate_maximum_bit_rate();
         break;
       case 18:
         core_network_assist_info_present = true;
-        core_network_assist_info.id      = c.id;
-        core_network_assist_info.crit    = c.crit;
-        core_network_assist_info.value   = c.value.core_network_assist_info();
+        core_network_assist_info.id      = c.id();
+        core_network_assist_info.crit    = c.crit();
+        core_network_assist_info.value   = c.value().core_network_assist_info();
         break;
       case 119:
         nof_mandatory_ies--;
-        ue_security_cap.id    = c.id;
-        ue_security_cap.crit  = c.crit;
-        ue_security_cap.value = c.value.ue_security_cap();
+        ue_security_cap.id    = c.id();
+        ue_security_cap.crit  = c.crit();
+        ue_security_cap.value = c.value().ue_security_cap();
         break;
       case 93:
         nof_mandatory_ies--;
-        security_context.id    = c.id;
-        security_context.crit  = c.crit;
-        security_context.value = c.value.security_context();
+        security_context.id    = c.id();
+        security_context.crit  = c.crit();
+        security_context.value = c.value().security_context();
         break;
       case 41:
         new_security_context_ind_present = true;
-        new_security_context_ind.id      = c.id;
-        new_security_context_ind.crit    = c.crit;
-        new_security_context_ind.value   = c.value.new_security_context_ind();
+        new_security_context_ind.id      = c.id();
+        new_security_context_ind.crit    = c.crit();
+        new_security_context_ind.value   = c.value().new_security_context_ind();
         break;
       case 37:
         nasc_present = true;
-        nasc.id      = c.id;
-        nasc.crit    = c.crit;
-        nasc.value   = c.value.nasc();
+        nasc.id      = c.id();
+        nasc.crit    = c.crit();
+        nasc.value   = c.value().nasc();
         break;
       case 73:
         nof_mandatory_ies--;
-        pdu_session_res_setup_list_ho_req.id    = c.id;
-        pdu_session_res_setup_list_ho_req.crit  = c.crit;
-        pdu_session_res_setup_list_ho_req.value = c.value.pdu_session_res_setup_list_ho_req();
+        pdu_session_res_setup_list_ho_req.id    = c.id();
+        pdu_session_res_setup_list_ho_req.crit  = c.crit();
+        pdu_session_res_setup_list_ho_req.value = c.value().pdu_session_res_setup_list_ho_req();
         break;
       case 0:
         nof_mandatory_ies--;
-        allowed_nssai.id    = c.id;
-        allowed_nssai.crit  = c.crit;
-        allowed_nssai.value = c.value.allowed_nssai();
+        allowed_nssai.id    = c.id();
+        allowed_nssai.crit  = c.crit();
+        allowed_nssai.value = c.value().allowed_nssai();
         break;
       case 108:
         trace_activation_present = true;
-        trace_activation.id      = c.id;
-        trace_activation.crit    = c.crit;
-        trace_activation.value   = c.value.trace_activation();
+        trace_activation.id      = c.id();
+        trace_activation.crit    = c.crit();
+        trace_activation.value   = c.value().trace_activation();
         break;
       case 34:
         masked_imeisv_present = true;
-        masked_imeisv.id      = c.id;
-        masked_imeisv.crit    = c.crit;
-        masked_imeisv.value   = c.value.masked_imeisv();
+        masked_imeisv.id      = c.id();
+        masked_imeisv.crit    = c.crit();
+        masked_imeisv.value   = c.value().masked_imeisv();
         break;
       case 101:
         nof_mandatory_ies--;
-        source_to_target_transparent_container.id    = c.id;
-        source_to_target_transparent_container.crit  = c.crit;
-        source_to_target_transparent_container.value = c.value.source_to_target_transparent_container();
+        source_to_target_transparent_container.id    = c.id();
+        source_to_target_transparent_container.crit  = c.crit();
+        source_to_target_transparent_container.value = c.value().source_to_target_transparent_container();
         break;
       case 36:
         mob_restrict_list_present = true;
-        mob_restrict_list.id      = c.id;
-        mob_restrict_list.crit    = c.crit;
-        mob_restrict_list.value   = c.value.mob_restrict_list();
+        mob_restrict_list.id      = c.id();
+        mob_restrict_list.crit    = c.crit();
+        mob_restrict_list.value   = c.value().mob_restrict_list();
         break;
       case 33:
         location_report_request_type_present = true;
-        location_report_request_type.id      = c.id;
-        location_report_request_type.crit    = c.crit;
-        location_report_request_type.value   = c.value.location_report_request_type();
+        location_report_request_type.id      = c.id();
+        location_report_request_type.crit    = c.crit();
+        location_report_request_type.value   = c.value().location_report_request_type();
         break;
       case 91:
         rrc_inactive_transition_report_request_present = true;
-        rrc_inactive_transition_report_request.id      = c.id;
-        rrc_inactive_transition_report_request.crit    = c.crit;
-        rrc_inactive_transition_report_request.value   = c.value.rrc_inactive_transition_report_request();
+        rrc_inactive_transition_report_request.id      = c.id();
+        rrc_inactive_transition_report_request.crit    = c.crit();
+        rrc_inactive_transition_report_request.value   = c.value().rrc_inactive_transition_report_request();
         break;
       case 28:
         nof_mandatory_ies--;
-        guami.id    = c.id;
-        guami.crit  = c.crit;
-        guami.value = c.value.guami();
+        guami.id    = c.id();
+        guami.crit  = c.crit();
+        guami.value = c.value().guami();
         break;
       case 146:
         redirection_voice_fallback_present = true;
-        redirection_voice_fallback.id      = c.id;
-        redirection_voice_fallback.crit    = c.crit;
-        redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
+        redirection_voice_fallback.id      = c.id();
+        redirection_voice_fallback.crit    = c.crit();
+        redirection_voice_fallback.value   = c.value().redirection_voice_fallback();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -16976,7 +16824,7 @@ const char* ho_request_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 6, value, "ho_request_ack_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_request_ack_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_request_ack_ies_o>;
 
 ho_request_ack_ies_container::ho_request_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -17016,45 +16864,45 @@ SRSASN_CODE ho_request_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_request_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 53:
         nof_mandatory_ies--;
-        pdu_session_res_admitted_list.id    = c.id;
-        pdu_session_res_admitted_list.crit  = c.crit;
-        pdu_session_res_admitted_list.value = c.value.pdu_session_res_admitted_list();
+        pdu_session_res_admitted_list.id    = c.id();
+        pdu_session_res_admitted_list.crit  = c.crit();
+        pdu_session_res_admitted_list.value = c.value().pdu_session_res_admitted_list();
         break;
       case 56:
         pdu_session_res_failed_to_setup_list_ho_ack_present = true;
-        pdu_session_res_failed_to_setup_list_ho_ack.id      = c.id;
-        pdu_session_res_failed_to_setup_list_ho_ack.crit    = c.crit;
-        pdu_session_res_failed_to_setup_list_ho_ack.value   = c.value.pdu_session_res_failed_to_setup_list_ho_ack();
+        pdu_session_res_failed_to_setup_list_ho_ack.id      = c.id();
+        pdu_session_res_failed_to_setup_list_ho_ack.crit    = c.crit();
+        pdu_session_res_failed_to_setup_list_ho_ack.value   = c.value().pdu_session_res_failed_to_setup_list_ho_ack();
         break;
       case 106:
         nof_mandatory_ies--;
-        target_to_source_transparent_container.id    = c.id;
-        target_to_source_transparent_container.crit  = c.crit;
-        target_to_source_transparent_container.value = c.value.target_to_source_transparent_container();
+        target_to_source_transparent_container.id    = c.id();
+        target_to_source_transparent_container.crit  = c.crit();
+        target_to_source_transparent_container.value = c.value().target_to_source_transparent_container();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -18038,7 +17886,7 @@ const char* ho_required_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 8, value, "ho_required_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ho_required_ies_o>;
+template struct asn1::protocol_ie_field_s<ho_required_ies_o>;
 
 ho_required_ies_container::ho_required_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -18079,57 +17927,57 @@ SRSASN_CODE ho_required_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ho_required_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 29:
         nof_mandatory_ies--;
-        handov_type.id    = c.id;
-        handov_type.crit  = c.crit;
-        handov_type.value = c.value.handov_type();
+        handov_type.id    = c.id();
+        handov_type.crit  = c.crit();
+        handov_type.value = c.value().handov_type();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 105:
         nof_mandatory_ies--;
-        target_id.id    = c.id;
-        target_id.crit  = c.crit;
-        target_id.value = c.value.target_id();
+        target_id.id    = c.id();
+        target_id.crit  = c.crit();
+        target_id.value = c.value().target_id();
         break;
       case 22:
         direct_forwarding_path_availability_present = true;
-        direct_forwarding_path_availability.id      = c.id;
-        direct_forwarding_path_availability.crit    = c.crit;
-        direct_forwarding_path_availability.value   = c.value.direct_forwarding_path_availability();
+        direct_forwarding_path_availability.id      = c.id();
+        direct_forwarding_path_availability.crit    = c.crit();
+        direct_forwarding_path_availability.value   = c.value().direct_forwarding_path_availability();
         break;
       case 61:
         nof_mandatory_ies--;
-        pdu_session_res_list_ho_rqd.id    = c.id;
-        pdu_session_res_list_ho_rqd.crit  = c.crit;
-        pdu_session_res_list_ho_rqd.value = c.value.pdu_session_res_list_ho_rqd();
+        pdu_session_res_list_ho_rqd.id    = c.id();
+        pdu_session_res_list_ho_rqd.crit  = c.crit();
+        pdu_session_res_list_ho_rqd.value = c.value().pdu_session_res_list_ho_rqd();
         break;
       case 101:
         nof_mandatory_ies--;
-        source_to_target_transparent_container.id    = c.id;
-        source_to_target_transparent_container.crit  = c.crit;
-        source_to_target_transparent_container.value = c.value.source_to_target_transparent_container();
+        source_to_target_transparent_container.id    = c.id();
+        source_to_target_transparent_container.crit  = c.crit();
+        source_to_target_transparent_container.value = c.value().source_to_target_transparent_container();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -18754,7 +18602,7 @@ const char* init_context_setup_fail_ies_o::value_c::types_opts::to_string() cons
   return convert_enum_idx(options, 5, value, "init_context_setup_fail_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<init_context_setup_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<init_context_setup_fail_ies_o>;
 
 init_context_setup_fail_ies_container::init_context_setup_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -18792,39 +18640,39 @@ SRSASN_CODE init_context_setup_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<init_context_setup_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 132:
         pdu_session_res_failed_to_setup_list_cxt_fail_present = true;
-        pdu_session_res_failed_to_setup_list_cxt_fail.id      = c.id;
-        pdu_session_res_failed_to_setup_list_cxt_fail.crit    = c.crit;
-        pdu_session_res_failed_to_setup_list_cxt_fail.value   = c.value.pdu_session_res_failed_to_setup_list_cxt_fail();
+        pdu_session_res_failed_to_setup_list_cxt_fail.id      = c.id();
+        pdu_session_res_failed_to_setup_list_cxt_fail.crit    = c.crit();
+        pdu_session_res_failed_to_setup_list_cxt_fail.value = c.value().pdu_session_res_failed_to_setup_list_cxt_fail();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -19890,7 +19738,7 @@ const char* init_context_setup_request_ies_o::value_c::types_opts::to_string() c
   return convert_enum_idx(options, 20, value, "init_context_setup_request_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<init_context_setup_request_ies_o>;
+template struct asn1::protocol_ie_field_s<init_context_setup_request_ies_o>;
 
 init_context_setup_request_ies_container::init_context_setup_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -19994,129 +19842,129 @@ SRSASN_CODE init_context_setup_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<init_context_setup_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 48:
         old_amf_present = true;
-        old_amf.id      = c.id;
-        old_amf.crit    = c.crit;
-        old_amf.value   = c.value.old_amf();
+        old_amf.id      = c.id();
+        old_amf.crit    = c.crit();
+        old_amf.value   = c.value().old_amf();
         break;
       case 110:
         ue_aggregate_maximum_bit_rate_present = true;
-        ue_aggregate_maximum_bit_rate.id      = c.id;
-        ue_aggregate_maximum_bit_rate.crit    = c.crit;
-        ue_aggregate_maximum_bit_rate.value   = c.value.ue_aggregate_maximum_bit_rate();
+        ue_aggregate_maximum_bit_rate.id      = c.id();
+        ue_aggregate_maximum_bit_rate.crit    = c.crit();
+        ue_aggregate_maximum_bit_rate.value   = c.value().ue_aggregate_maximum_bit_rate();
         break;
       case 18:
         core_network_assist_info_present = true;
-        core_network_assist_info.id      = c.id;
-        core_network_assist_info.crit    = c.crit;
-        core_network_assist_info.value   = c.value.core_network_assist_info();
+        core_network_assist_info.id      = c.id();
+        core_network_assist_info.crit    = c.crit();
+        core_network_assist_info.value   = c.value().core_network_assist_info();
         break;
       case 28:
         nof_mandatory_ies--;
-        guami.id    = c.id;
-        guami.crit  = c.crit;
-        guami.value = c.value.guami();
+        guami.id    = c.id();
+        guami.crit  = c.crit();
+        guami.value = c.value().guami();
         break;
       case 71:
         pdu_session_res_setup_list_cxt_req_present = true;
-        pdu_session_res_setup_list_cxt_req.id      = c.id;
-        pdu_session_res_setup_list_cxt_req.crit    = c.crit;
-        pdu_session_res_setup_list_cxt_req.value   = c.value.pdu_session_res_setup_list_cxt_req();
+        pdu_session_res_setup_list_cxt_req.id      = c.id();
+        pdu_session_res_setup_list_cxt_req.crit    = c.crit();
+        pdu_session_res_setup_list_cxt_req.value   = c.value().pdu_session_res_setup_list_cxt_req();
         break;
       case 0:
         nof_mandatory_ies--;
-        allowed_nssai.id    = c.id;
-        allowed_nssai.crit  = c.crit;
-        allowed_nssai.value = c.value.allowed_nssai();
+        allowed_nssai.id    = c.id();
+        allowed_nssai.crit  = c.crit();
+        allowed_nssai.value = c.value().allowed_nssai();
         break;
       case 119:
         nof_mandatory_ies--;
-        ue_security_cap.id    = c.id;
-        ue_security_cap.crit  = c.crit;
-        ue_security_cap.value = c.value.ue_security_cap();
+        ue_security_cap.id    = c.id();
+        ue_security_cap.crit  = c.crit();
+        ue_security_cap.value = c.value().ue_security_cap();
         break;
       case 94:
         nof_mandatory_ies--;
-        security_key.id    = c.id;
-        security_key.crit  = c.crit;
-        security_key.value = c.value.security_key();
+        security_key.id    = c.id();
+        security_key.crit  = c.crit();
+        security_key.value = c.value().security_key();
         break;
       case 108:
         trace_activation_present = true;
-        trace_activation.id      = c.id;
-        trace_activation.crit    = c.crit;
-        trace_activation.value   = c.value.trace_activation();
+        trace_activation.id      = c.id();
+        trace_activation.crit    = c.crit();
+        trace_activation.value   = c.value().trace_activation();
         break;
       case 36:
         mob_restrict_list_present = true;
-        mob_restrict_list.id      = c.id;
-        mob_restrict_list.crit    = c.crit;
-        mob_restrict_list.value   = c.value.mob_restrict_list();
+        mob_restrict_list.id      = c.id();
+        mob_restrict_list.crit    = c.crit();
+        mob_restrict_list.value   = c.value().mob_restrict_list();
         break;
       case 117:
         ue_radio_cap_present = true;
-        ue_radio_cap.id      = c.id;
-        ue_radio_cap.crit    = c.crit;
-        ue_radio_cap.value   = c.value.ue_radio_cap();
+        ue_radio_cap.id      = c.id();
+        ue_radio_cap.crit    = c.crit();
+        ue_radio_cap.value   = c.value().ue_radio_cap();
         break;
       case 31:
         idx_to_rfsp_present = true;
-        idx_to_rfsp.id      = c.id;
-        idx_to_rfsp.crit    = c.crit;
-        idx_to_rfsp.value   = c.value.idx_to_rfsp();
+        idx_to_rfsp.id      = c.id();
+        idx_to_rfsp.crit    = c.crit();
+        idx_to_rfsp.value   = c.value().idx_to_rfsp();
         break;
       case 34:
         masked_imeisv_present = true;
-        masked_imeisv.id      = c.id;
-        masked_imeisv.crit    = c.crit;
-        masked_imeisv.value   = c.value.masked_imeisv();
+        masked_imeisv.id      = c.id();
+        masked_imeisv.crit    = c.crit();
+        masked_imeisv.value   = c.value().masked_imeisv();
         break;
       case 38:
         nas_pdu_present = true;
-        nas_pdu.id      = c.id;
-        nas_pdu.crit    = c.crit;
-        nas_pdu.value   = c.value.nas_pdu();
+        nas_pdu.id      = c.id();
+        nas_pdu.crit    = c.crit();
+        nas_pdu.value   = c.value().nas_pdu();
         break;
       case 24:
         emergency_fallback_ind_present = true;
-        emergency_fallback_ind.id      = c.id;
-        emergency_fallback_ind.crit    = c.crit;
-        emergency_fallback_ind.value   = c.value.emergency_fallback_ind();
+        emergency_fallback_ind.id      = c.id();
+        emergency_fallback_ind.crit    = c.crit();
+        emergency_fallback_ind.value   = c.value().emergency_fallback_ind();
         break;
       case 91:
         rrc_inactive_transition_report_request_present = true;
-        rrc_inactive_transition_report_request.id      = c.id;
-        rrc_inactive_transition_report_request.crit    = c.crit;
-        rrc_inactive_transition_report_request.value   = c.value.rrc_inactive_transition_report_request();
+        rrc_inactive_transition_report_request.id      = c.id();
+        rrc_inactive_transition_report_request.crit    = c.crit();
+        rrc_inactive_transition_report_request.value   = c.value().rrc_inactive_transition_report_request();
         break;
       case 118:
         ue_radio_cap_for_paging_present = true;
-        ue_radio_cap_for_paging.id      = c.id;
-        ue_radio_cap_for_paging.crit    = c.crit;
-        ue_radio_cap_for_paging.value   = c.value.ue_radio_cap_for_paging();
+        ue_radio_cap_for_paging.id      = c.id();
+        ue_radio_cap_for_paging.crit    = c.crit();
+        ue_radio_cap_for_paging.value   = c.value().ue_radio_cap_for_paging();
         break;
       case 146:
         redirection_voice_fallback_present = true;
-        redirection_voice_fallback.id      = c.id;
-        redirection_voice_fallback.crit    = c.crit;
-        redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
+        redirection_voice_fallback.id      = c.id();
+        redirection_voice_fallback.crit    = c.crit();
+        redirection_voice_fallback.value   = c.value().redirection_voice_fallback();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -20623,7 +20471,7 @@ const char* init_context_setup_resp_ies_o::value_c::types_opts::to_string() cons
   return convert_enum_idx(options, 5, value, "init_context_setup_resp_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<init_context_setup_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<init_context_setup_resp_ies_o>;
 
 init_context_setup_resp_ies_container::init_context_setup_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -20664,39 +20512,39 @@ SRSASN_CODE init_context_setup_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<init_context_setup_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 72:
         pdu_session_res_setup_list_cxt_res_present = true;
-        pdu_session_res_setup_list_cxt_res.id      = c.id;
-        pdu_session_res_setup_list_cxt_res.crit    = c.crit;
-        pdu_session_res_setup_list_cxt_res.value   = c.value.pdu_session_res_setup_list_cxt_res();
+        pdu_session_res_setup_list_cxt_res.id      = c.id();
+        pdu_session_res_setup_list_cxt_res.crit    = c.crit();
+        pdu_session_res_setup_list_cxt_res.value   = c.value().pdu_session_res_setup_list_cxt_res();
         break;
       case 55:
         pdu_session_res_failed_to_setup_list_cxt_res_present = true;
-        pdu_session_res_failed_to_setup_list_cxt_res.id      = c.id;
-        pdu_session_res_failed_to_setup_list_cxt_res.crit    = c.crit;
-        pdu_session_res_failed_to_setup_list_cxt_res.value   = c.value.pdu_session_res_failed_to_setup_list_cxt_res();
+        pdu_session_res_failed_to_setup_list_cxt_res.id      = c.id();
+        pdu_session_res_failed_to_setup_list_cxt_res.crit    = c.crit();
+        pdu_session_res_failed_to_setup_list_cxt_res.value   = c.value().pdu_session_res_failed_to_setup_list_cxt_res();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -21208,7 +21056,7 @@ uint8_t init_ue_msg_ies_o::value_c::types_opts::to_number() const
   return map_enum_number(options, 1, value, "init_ue_msg_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<init_ue_msg_ies_o>;
+template struct asn1::protocol_ie_field_s<init_ue_msg_ies_o>;
 
 init_ue_msg_ies_container::init_ue_msg_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -21258,57 +21106,57 @@ SRSASN_CODE init_ue_msg_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<init_ue_msg_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 38:
         nof_mandatory_ies--;
-        nas_pdu.id    = c.id;
-        nas_pdu.crit  = c.crit;
-        nas_pdu.value = c.value.nas_pdu();
+        nas_pdu.id    = c.id();
+        nas_pdu.crit  = c.crit();
+        nas_pdu.value = c.value().nas_pdu();
         break;
       case 121:
         nof_mandatory_ies--;
-        user_location_info.id    = c.id;
-        user_location_info.crit  = c.crit;
-        user_location_info.value = c.value.user_location_info();
+        user_location_info.id    = c.id();
+        user_location_info.crit  = c.crit();
+        user_location_info.value = c.value().user_location_info();
         break;
       case 90:
         nof_mandatory_ies--;
-        rrcestablishment_cause.id    = c.id;
-        rrcestablishment_cause.crit  = c.crit;
-        rrcestablishment_cause.value = c.value.rrcestablishment_cause();
+        rrcestablishment_cause.id    = c.id();
+        rrcestablishment_cause.crit  = c.crit();
+        rrcestablishment_cause.value = c.value().rrcestablishment_cause();
         break;
       case 26:
         five_g_s_tmsi_present = true;
-        five_g_s_tmsi.id      = c.id;
-        five_g_s_tmsi.crit    = c.crit;
-        five_g_s_tmsi.value   = c.value.five_g_s_tmsi();
+        five_g_s_tmsi.id      = c.id();
+        five_g_s_tmsi.crit    = c.crit();
+        five_g_s_tmsi.value   = c.value().five_g_s_tmsi();
         break;
       case 3:
         amf_set_id_present = true;
-        amf_set_id.id      = c.id;
-        amf_set_id.crit    = c.crit;
-        amf_set_id.value   = c.value.amf_set_id();
+        amf_set_id.id      = c.id();
+        amf_set_id.crit    = c.crit();
+        amf_set_id.value   = c.value().amf_set_id();
         break;
       case 112:
         ue_context_request_present = true;
-        ue_context_request.id      = c.id;
-        ue_context_request.crit    = c.crit;
-        ue_context_request.value   = c.value.ue_context_request();
+        ue_context_request.id      = c.id();
+        ue_context_request.crit    = c.crit();
+        ue_context_request.value   = c.value().ue_context_request();
         break;
       case 0:
         allowed_nssai_present = true;
-        allowed_nssai.id      = c.id;
-        allowed_nssai.crit    = c.crit;
-        allowed_nssai.value   = c.value.allowed_nssai();
+        allowed_nssai.id      = c.id();
+        allowed_nssai.crit    = c.crit();
+        allowed_nssai.value   = c.value().allowed_nssai();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -38742,7 +38590,7 @@ const char* write_replace_warning_resp_ies_o::value_c::types_opts::to_string() c
   return convert_enum_idx(options, 4, value, "write_replace_warning_resp_ies_o::value_c::types");
 }
 
-template struct asn1::ngap::protocol_ie_field_s<location_report_ies_o>;
+template struct asn1::protocol_ie_field_s<location_report_ies_o>;
 
 location_report_ies_container::location_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -38782,45 +38630,45 @@ SRSASN_CODE location_report_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<location_report_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 121:
         nof_mandatory_ies--;
-        user_location_info.id    = c.id;
-        user_location_info.crit  = c.crit;
-        user_location_info.value = c.value.user_location_info();
+        user_location_info.id    = c.id();
+        user_location_info.crit  = c.crit();
+        user_location_info.value = c.value().user_location_info();
         break;
       case 116:
         ue_presence_in_area_of_interest_list_present = true;
-        ue_presence_in_area_of_interest_list.id      = c.id;
-        ue_presence_in_area_of_interest_list.crit    = c.crit;
-        ue_presence_in_area_of_interest_list.value   = c.value.ue_presence_in_area_of_interest_list();
+        ue_presence_in_area_of_interest_list.id      = c.id();
+        ue_presence_in_area_of_interest_list.crit    = c.crit();
+        ue_presence_in_area_of_interest_list.value   = c.value().ue_presence_in_area_of_interest_list();
         break;
       case 33:
         nof_mandatory_ies--;
-        location_report_request_type.id    = c.id;
-        location_report_request_type.crit  = c.crit;
-        location_report_request_type.value = c.value.location_report_request_type();
+        location_report_request_type.id    = c.id();
+        location_report_request_type.crit  = c.crit();
+        location_report_request_type.value = c.value().location_report_request_type();
         break;
       case 149:
         ps_cell_info_present = true;
-        ps_cell_info.id      = c.id;
-        ps_cell_info.crit    = c.crit;
-        ps_cell_info.value   = c.value.ps_cell_info();
+        ps_cell_info.id      = c.id();
+        ps_cell_info.crit    = c.crit();
+        ps_cell_info.value   = c.value().ps_cell_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -38876,7 +38724,7 @@ void location_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<location_report_ctrl_ies_o>;
+template struct asn1::protocol_ie_field_s<location_report_ctrl_ies_o>;
 
 location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -38904,27 +38752,27 @@ SRSASN_CODE location_report_ctrl_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<location_report_ctrl_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 33:
         nof_mandatory_ies--;
-        location_report_request_type.id    = c.id;
-        location_report_request_type.crit  = c.crit;
-        location_report_request_type.value = c.value.location_report_request_type();
+        location_report_request_type.id    = c.id();
+        location_report_request_type.crit  = c.crit();
+        location_report_request_type.value = c.value().location_report_request_type();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -38970,7 +38818,7 @@ void location_report_ctrl_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<location_report_fail_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<location_report_fail_ind_ies_o>;
 
 location_report_fail_ind_ies_container::location_report_fail_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), cause(15, crit_e::ignore)
@@ -38996,27 +38844,27 @@ SRSASN_CODE location_report_fail_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<location_report_fail_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39062,7 +38910,7 @@ void location_report_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
 
 nas_non_delivery_ind_ies_container::nas_non_delivery_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -39092,33 +38940,33 @@ SRSASN_CODE nas_non_delivery_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<nas_non_delivery_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 38:
         nof_mandatory_ies--;
-        nas_pdu.id    = c.id;
-        nas_pdu.crit  = c.crit;
-        nas_pdu.value = c.value.nas_pdu();
+        nas_pdu.id    = c.id();
+        nas_pdu.crit  = c.crit();
+        nas_pdu.value = c.value().nas_pdu();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39166,7 +39014,7 @@ void nas_non_delivery_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ng_reset_ies_o>;
+template struct asn1::protocol_ie_field_s<ng_reset_ies_o>;
 
 ng_reset_ies_container::ng_reset_ies_container() : cause(15, crit_e::ignore), reset_type(88, crit_e::reject) {}
 SRSASN_CODE ng_reset_ies_container::pack(bit_ref& bref) const
@@ -39189,21 +39037,21 @@ SRSASN_CODE ng_reset_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ng_reset_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 88:
         nof_mandatory_ies--;
-        reset_type.id    = c.id;
-        reset_type.crit  = c.crit;
-        reset_type.value = c.value.reset_type();
+        reset_type.id    = c.id();
+        reset_type.crit  = c.crit();
+        reset_type.value = c.value().reset_type();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39247,7 +39095,7 @@ void ng_reset_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ng_reset_ack_ies_o>;
+template struct asn1::protocol_ie_field_s<ng_reset_ack_ies_o>;
 
 ng_reset_ack_ies_container::ng_reset_ack_ies_container() :
   ue_associated_lc_ng_conn_list(111, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -39276,21 +39124,21 @@ SRSASN_CODE ng_reset_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ng_reset_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 111:
         ue_associated_lc_ng_conn_list_present = true;
-        ue_associated_lc_ng_conn_list.id      = c.id;
-        ue_associated_lc_ng_conn_list.crit    = c.crit;
-        ue_associated_lc_ng_conn_list.value   = c.value.ue_associated_lc_ng_conn_list();
+        ue_associated_lc_ng_conn_list.id      = c.id();
+        ue_associated_lc_ng_conn_list.crit    = c.crit();
+        ue_associated_lc_ng_conn_list.value   = c.value().ue_associated_lc_ng_conn_list();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39334,7 +39182,7 @@ void ng_reset_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ng_setup_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<ng_setup_fail_ies_o>;
 
 ng_setup_fail_ies_container::ng_setup_fail_ies_container() :
   cause(15, crit_e::ignore), time_to_wait(107, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -39366,27 +39214,27 @@ SRSASN_CODE ng_setup_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ng_setup_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 107:
         time_to_wait_present = true;
-        time_to_wait.id      = c.id;
-        time_to_wait.crit    = c.crit;
-        time_to_wait.value   = c.value.time_to_wait();
+        time_to_wait.id      = c.id();
+        time_to_wait.crit    = c.crit();
+        time_to_wait.value   = c.value().time_to_wait();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39436,7 +39284,7 @@ void ng_setup_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ng_setup_request_ies_o>;
+template struct asn1::protocol_ie_field_s<ng_setup_request_ies_o>;
 
 ng_setup_request_ies_container::ng_setup_request_ies_container() :
   global_ran_node_id(27, crit_e::reject),
@@ -39474,39 +39322,39 @@ SRSASN_CODE ng_setup_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ng_setup_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 27:
         nof_mandatory_ies--;
-        global_ran_node_id.id    = c.id;
-        global_ran_node_id.crit  = c.crit;
-        global_ran_node_id.value = c.value.global_ran_node_id();
+        global_ran_node_id.id    = c.id();
+        global_ran_node_id.crit  = c.crit();
+        global_ran_node_id.value = c.value().global_ran_node_id();
         break;
       case 82:
         ran_node_name_present = true;
-        ran_node_name.id      = c.id;
-        ran_node_name.crit    = c.crit;
-        ran_node_name.value   = c.value.ran_node_name();
+        ran_node_name.id      = c.id();
+        ran_node_name.crit    = c.crit();
+        ran_node_name.value   = c.value().ran_node_name();
         break;
       case 102:
         nof_mandatory_ies--;
-        supported_ta_list.id    = c.id;
-        supported_ta_list.crit  = c.crit;
-        supported_ta_list.value = c.value.supported_ta_list();
+        supported_ta_list.id    = c.id();
+        supported_ta_list.crit  = c.crit();
+        supported_ta_list.value = c.value().supported_ta_list();
         break;
       case 21:
         nof_mandatory_ies--;
-        default_paging_drx.id    = c.id;
-        default_paging_drx.crit  = c.crit;
-        default_paging_drx.value = c.value.default_paging_drx();
+        default_paging_drx.id    = c.id();
+        default_paging_drx.crit  = c.crit();
+        default_paging_drx.value = c.value().default_paging_drx();
         break;
       case 147:
         ue_retention_info_present = true;
-        ue_retention_info.id      = c.id;
-        ue_retention_info.crit    = c.crit;
-        ue_retention_info.value   = c.value.ue_retention_info();
+        ue_retention_info.id      = c.id();
+        ue_retention_info.crit    = c.crit();
+        ue_retention_info.value   = c.value().ue_retention_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39560,7 +39408,7 @@ void ng_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ng_setup_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<ng_setup_resp_ies_o>;
 
 ng_setup_resp_ies_container::ng_setup_resp_ies_container() :
   amf_name(1, crit_e::reject),
@@ -39600,45 +39448,45 @@ SRSASN_CODE ng_setup_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ng_setup_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 1:
         nof_mandatory_ies--;
-        amf_name.id    = c.id;
-        amf_name.crit  = c.crit;
-        amf_name.value = c.value.amf_name();
+        amf_name.id    = c.id();
+        amf_name.crit  = c.crit();
+        amf_name.value = c.value().amf_name();
         break;
       case 96:
         nof_mandatory_ies--;
-        served_guami_list.id    = c.id;
-        served_guami_list.crit  = c.crit;
-        served_guami_list.value = c.value.served_guami_list();
+        served_guami_list.id    = c.id();
+        served_guami_list.crit  = c.crit();
+        served_guami_list.value = c.value().served_guami_list();
         break;
       case 86:
         nof_mandatory_ies--;
-        relative_amf_capacity.id    = c.id;
-        relative_amf_capacity.crit  = c.crit;
-        relative_amf_capacity.value = c.value.relative_amf_capacity();
+        relative_amf_capacity.id    = c.id();
+        relative_amf_capacity.crit  = c.crit();
+        relative_amf_capacity.value = c.value().relative_amf_capacity();
         break;
       case 80:
         nof_mandatory_ies--;
-        plmn_support_list.id    = c.id;
-        plmn_support_list.crit  = c.crit;
-        plmn_support_list.value = c.value.plmn_support_list();
+        plmn_support_list.id    = c.id();
+        plmn_support_list.crit  = c.crit();
+        plmn_support_list.value = c.value().plmn_support_list();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       case 147:
         ue_retention_info_present = true;
-        ue_retention_info.id      = c.id;
-        ue_retention_info.crit    = c.crit;
-        ue_retention_info.value   = c.value.ue_retention_info();
+        ue_retention_info.id      = c.id();
+        ue_retention_info.crit    = c.crit();
+        ue_retention_info.value   = c.value().ue_retention_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39694,7 +39542,7 @@ void ng_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<overload_start_ies_o>;
+template struct asn1::protocol_ie_field_s<overload_start_ies_o>;
 
 overload_start_ies_container::overload_start_ies_container() :
   amf_overload_resp(2, crit_e::reject),
@@ -39729,27 +39577,27 @@ SRSASN_CODE overload_start_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<overload_start_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 2:
         amf_overload_resp_present = true;
-        amf_overload_resp.id      = c.id;
-        amf_overload_resp.crit    = c.crit;
-        amf_overload_resp.value   = c.value.amf_overload_resp();
+        amf_overload_resp.id      = c.id();
+        amf_overload_resp.crit    = c.crit();
+        amf_overload_resp.value   = c.value().amf_overload_resp();
         break;
       case 9:
         amf_traffic_load_reduction_ind_present = true;
-        amf_traffic_load_reduction_ind.id      = c.id;
-        amf_traffic_load_reduction_ind.crit    = c.crit;
-        amf_traffic_load_reduction_ind.value   = c.value.amf_traffic_load_reduction_ind();
+        amf_traffic_load_reduction_ind.id      = c.id();
+        amf_traffic_load_reduction_ind.crit    = c.crit();
+        amf_traffic_load_reduction_ind.value   = c.value().amf_traffic_load_reduction_ind();
         break;
       case 49:
         overload_start_nssai_list_present = true;
-        overload_start_nssai_list.id      = c.id;
-        overload_start_nssai_list.crit    = c.crit;
-        overload_start_nssai_list.value   = c.value.overload_start_nssai_list();
+        overload_start_nssai_list.id      = c.id();
+        overload_start_nssai_list.crit    = c.crit();
+        overload_start_nssai_list.value   = c.value().overload_start_nssai_list();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39842,7 +39690,7 @@ void overload_stop_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o>;
 
 pdu_session_res_modify_confirm_ies_container::pdu_session_res_modify_confirm_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -39880,39 +39728,39 @@ SRSASN_CODE pdu_session_res_modify_confirm_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 62:
         nof_mandatory_ies--;
-        pdu_session_res_modify_list_mod_cfm.id    = c.id;
-        pdu_session_res_modify_list_mod_cfm.crit  = c.crit;
-        pdu_session_res_modify_list_mod_cfm.value = c.value.pdu_session_res_modify_list_mod_cfm();
+        pdu_session_res_modify_list_mod_cfm.id    = c.id();
+        pdu_session_res_modify_list_mod_cfm.crit  = c.crit();
+        pdu_session_res_modify_list_mod_cfm.value = c.value().pdu_session_res_modify_list_mod_cfm();
         break;
       case 131:
         pdu_session_res_failed_to_modify_list_mod_cfm_present = true;
-        pdu_session_res_failed_to_modify_list_mod_cfm.id      = c.id;
-        pdu_session_res_failed_to_modify_list_mod_cfm.crit    = c.crit;
-        pdu_session_res_failed_to_modify_list_mod_cfm.value   = c.value.pdu_session_res_failed_to_modify_list_mod_cfm();
+        pdu_session_res_failed_to_modify_list_mod_cfm.id      = c.id();
+        pdu_session_res_failed_to_modify_list_mod_cfm.crit    = c.crit();
+        pdu_session_res_failed_to_modify_list_mod_cfm.value = c.value().pdu_session_res_failed_to_modify_list_mod_cfm();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -39966,7 +39814,7 @@ void pdu_session_res_modify_confirm_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_modify_ind_ies_o>;
 
 pdu_session_res_modify_ind_ies_container::pdu_session_res_modify_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -39994,27 +39842,27 @@ SRSASN_CODE pdu_session_res_modify_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_modify_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 63:
         nof_mandatory_ies--;
-        pdu_session_res_modify_list_mod_ind.id    = c.id;
-        pdu_session_res_modify_list_mod_ind.crit  = c.crit;
-        pdu_session_res_modify_list_mod_ind.value = c.value.pdu_session_res_modify_list_mod_ind();
+        pdu_session_res_modify_list_mod_ind.id    = c.id();
+        pdu_session_res_modify_list_mod_ind.crit  = c.crit();
+        pdu_session_res_modify_list_mod_ind.value = c.value().pdu_session_res_modify_list_mod_ind();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40060,7 +39908,7 @@ void pdu_session_res_modify_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_request_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_modify_request_ies_o>;
 
 pdu_session_res_modify_request_ies_container::pdu_session_res_modify_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40093,33 +39941,33 @@ SRSASN_CODE pdu_session_res_modify_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_modify_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 83:
         ran_paging_prio_present = true;
-        ran_paging_prio.id      = c.id;
-        ran_paging_prio.crit    = c.crit;
-        ran_paging_prio.value   = c.value.ran_paging_prio();
+        ran_paging_prio.id      = c.id();
+        ran_paging_prio.crit    = c.crit();
+        ran_paging_prio.value   = c.value().ran_paging_prio();
         break;
       case 64:
         nof_mandatory_ies--;
-        pdu_session_res_modify_list_mod_req.id    = c.id;
-        pdu_session_res_modify_list_mod_req.crit  = c.crit;
-        pdu_session_res_modify_list_mod_req.value = c.value.pdu_session_res_modify_list_mod_req();
+        pdu_session_res_modify_list_mod_req.id    = c.id();
+        pdu_session_res_modify_list_mod_req.crit  = c.crit();
+        pdu_session_res_modify_list_mod_req.value = c.value().pdu_session_res_modify_list_mod_req();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40169,7 +40017,7 @@ void pdu_session_res_modify_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_modify_resp_ies_o>;
 
 pdu_session_res_modify_resp_ies_container::pdu_session_res_modify_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -40215,45 +40063,45 @@ SRSASN_CODE pdu_session_res_modify_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_modify_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 65:
         pdu_session_res_modify_list_mod_res_present = true;
-        pdu_session_res_modify_list_mod_res.id      = c.id;
-        pdu_session_res_modify_list_mod_res.crit    = c.crit;
-        pdu_session_res_modify_list_mod_res.value   = c.value.pdu_session_res_modify_list_mod_res();
+        pdu_session_res_modify_list_mod_res.id      = c.id();
+        pdu_session_res_modify_list_mod_res.crit    = c.crit();
+        pdu_session_res_modify_list_mod_res.value   = c.value().pdu_session_res_modify_list_mod_res();
         break;
       case 54:
         pdu_session_res_failed_to_modify_list_mod_res_present = true;
-        pdu_session_res_failed_to_modify_list_mod_res.id      = c.id;
-        pdu_session_res_failed_to_modify_list_mod_res.crit    = c.crit;
-        pdu_session_res_failed_to_modify_list_mod_res.value   = c.value.pdu_session_res_failed_to_modify_list_mod_res();
+        pdu_session_res_failed_to_modify_list_mod_res.id      = c.id();
+        pdu_session_res_failed_to_modify_list_mod_res.crit    = c.crit();
+        pdu_session_res_failed_to_modify_list_mod_res.value = c.value().pdu_session_res_failed_to_modify_list_mod_res();
         break;
       case 121:
         user_location_info_present = true;
-        user_location_info.id      = c.id;
-        user_location_info.crit    = c.crit;
-        user_location_info.value   = c.value.user_location_info();
+        user_location_info.id      = c.id();
+        user_location_info.crit    = c.crit();
+        user_location_info.value   = c.value().user_location_info();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40313,7 +40161,7 @@ void pdu_session_res_modify_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_notify_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_notify_ies_o>;
 
 pdu_session_res_notify_ies_container::pdu_session_res_notify_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40354,39 +40202,39 @@ SRSASN_CODE pdu_session_res_notify_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_notify_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 66:
         pdu_session_res_notify_list_present = true;
-        pdu_session_res_notify_list.id      = c.id;
-        pdu_session_res_notify_list.crit    = c.crit;
-        pdu_session_res_notify_list.value   = c.value.pdu_session_res_notify_list();
+        pdu_session_res_notify_list.id      = c.id();
+        pdu_session_res_notify_list.crit    = c.crit();
+        pdu_session_res_notify_list.value   = c.value().pdu_session_res_notify_list();
         break;
       case 67:
         pdu_session_res_released_list_not_present = true;
-        pdu_session_res_released_list_not.id      = c.id;
-        pdu_session_res_released_list_not.crit    = c.crit;
-        pdu_session_res_released_list_not.value   = c.value.pdu_session_res_released_list_not();
+        pdu_session_res_released_list_not.id      = c.id();
+        pdu_session_res_released_list_not.crit    = c.crit();
+        pdu_session_res_released_list_not.value   = c.value().pdu_session_res_released_list_not();
         break;
       case 121:
         user_location_info_present = true;
-        user_location_info.id      = c.id;
-        user_location_info.crit    = c.crit;
-        user_location_info.value   = c.value.user_location_info();
+        user_location_info.id      = c.id();
+        user_location_info.crit    = c.crit();
+        user_location_info.value   = c.value().user_location_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40442,7 +40290,7 @@ void pdu_session_res_notify_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_release_cmd_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_release_cmd_ies_o>;
 
 pdu_session_res_release_cmd_ies_container::pdu_session_res_release_cmd_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40480,39 +40328,39 @@ SRSASN_CODE pdu_session_res_release_cmd_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_release_cmd_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 83:
         ran_paging_prio_present = true;
-        ran_paging_prio.id      = c.id;
-        ran_paging_prio.crit    = c.crit;
-        ran_paging_prio.value   = c.value.ran_paging_prio();
+        ran_paging_prio.id      = c.id();
+        ran_paging_prio.crit    = c.crit();
+        ran_paging_prio.value   = c.value().ran_paging_prio();
         break;
       case 38:
         nas_pdu_present = true;
-        nas_pdu.id      = c.id;
-        nas_pdu.crit    = c.crit;
-        nas_pdu.value   = c.value.nas_pdu();
+        nas_pdu.id      = c.id();
+        nas_pdu.crit    = c.crit();
+        nas_pdu.value   = c.value().nas_pdu();
         break;
       case 79:
         nof_mandatory_ies--;
-        pdu_session_res_to_release_list_rel_cmd.id    = c.id;
-        pdu_session_res_to_release_list_rel_cmd.crit  = c.crit;
-        pdu_session_res_to_release_list_rel_cmd.value = c.value.pdu_session_res_to_release_list_rel_cmd();
+        pdu_session_res_to_release_list_rel_cmd.id    = c.id();
+        pdu_session_res_to_release_list_rel_cmd.crit  = c.crit();
+        pdu_session_res_to_release_list_rel_cmd.value = c.value().pdu_session_res_to_release_list_rel_cmd();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40566,7 +40414,7 @@ void pdu_session_res_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_release_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_release_resp_ies_o>;
 
 pdu_session_res_release_resp_ies_container::pdu_session_res_release_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -40604,39 +40452,39 @@ SRSASN_CODE pdu_session_res_release_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_release_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 70:
         nof_mandatory_ies--;
-        pdu_session_res_released_list_rel_res.id    = c.id;
-        pdu_session_res_released_list_rel_res.crit  = c.crit;
-        pdu_session_res_released_list_rel_res.value = c.value.pdu_session_res_released_list_rel_res();
+        pdu_session_res_released_list_rel_res.id    = c.id();
+        pdu_session_res_released_list_rel_res.crit  = c.crit();
+        pdu_session_res_released_list_rel_res.value = c.value().pdu_session_res_released_list_rel_res();
         break;
       case 121:
         user_location_info_present = true;
-        user_location_info.id      = c.id;
-        user_location_info.crit    = c.crit;
-        user_location_info.value   = c.value.user_location_info();
+        user_location_info.id      = c.id();
+        user_location_info.crit    = c.crit();
+        user_location_info.value   = c.value().user_location_info();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40690,7 +40538,7 @@ void pdu_session_res_release_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_setup_request_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_setup_request_ies_o>;
 
 pdu_session_res_setup_request_ies_container::pdu_session_res_setup_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -40733,45 +40581,45 @@ SRSASN_CODE pdu_session_res_setup_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_setup_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 83:
         ran_paging_prio_present = true;
-        ran_paging_prio.id      = c.id;
-        ran_paging_prio.crit    = c.crit;
-        ran_paging_prio.value   = c.value.ran_paging_prio();
+        ran_paging_prio.id      = c.id();
+        ran_paging_prio.crit    = c.crit();
+        ran_paging_prio.value   = c.value().ran_paging_prio();
         break;
       case 38:
         nas_pdu_present = true;
-        nas_pdu.id      = c.id;
-        nas_pdu.crit    = c.crit;
-        nas_pdu.value   = c.value.nas_pdu();
+        nas_pdu.id      = c.id();
+        nas_pdu.crit    = c.crit();
+        nas_pdu.value   = c.value().nas_pdu();
         break;
       case 74:
         nof_mandatory_ies--;
-        pdu_session_res_setup_list_su_req.id    = c.id;
-        pdu_session_res_setup_list_su_req.crit  = c.crit;
-        pdu_session_res_setup_list_su_req.value = c.value.pdu_session_res_setup_list_su_req();
+        pdu_session_res_setup_list_su_req.id    = c.id();
+        pdu_session_res_setup_list_su_req.crit  = c.crit();
+        pdu_session_res_setup_list_su_req.value = c.value().pdu_session_res_setup_list_su_req();
         break;
       case 110:
         ue_aggregate_maximum_bit_rate_present = true;
-        ue_aggregate_maximum_bit_rate.id      = c.id;
-        ue_aggregate_maximum_bit_rate.crit    = c.crit;
-        ue_aggregate_maximum_bit_rate.value   = c.value.ue_aggregate_maximum_bit_rate();
+        ue_aggregate_maximum_bit_rate.id      = c.id();
+        ue_aggregate_maximum_bit_rate.crit    = c.crit();
+        ue_aggregate_maximum_bit_rate.value   = c.value().ue_aggregate_maximum_bit_rate();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40829,7 +40677,7 @@ void pdu_session_res_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_setup_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_setup_resp_ies_o>;
 
 pdu_session_res_setup_resp_ies_container::pdu_session_res_setup_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -40870,39 +40718,39 @@ SRSASN_CODE pdu_session_res_setup_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_setup_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 75:
         pdu_session_res_setup_list_su_res_present = true;
-        pdu_session_res_setup_list_su_res.id      = c.id;
-        pdu_session_res_setup_list_su_res.crit    = c.crit;
-        pdu_session_res_setup_list_su_res.value   = c.value.pdu_session_res_setup_list_su_res();
+        pdu_session_res_setup_list_su_res.id      = c.id();
+        pdu_session_res_setup_list_su_res.crit    = c.crit();
+        pdu_session_res_setup_list_su_res.value   = c.value().pdu_session_res_setup_list_su_res();
         break;
       case 58:
         pdu_session_res_failed_to_setup_list_su_res_present = true;
-        pdu_session_res_failed_to_setup_list_su_res.id      = c.id;
-        pdu_session_res_failed_to_setup_list_su_res.crit    = c.crit;
-        pdu_session_res_failed_to_setup_list_su_res.value   = c.value.pdu_session_res_failed_to_setup_list_su_res();
+        pdu_session_res_failed_to_setup_list_su_res.id      = c.id();
+        pdu_session_res_failed_to_setup_list_su_res.crit    = c.crit();
+        pdu_session_res_failed_to_setup_list_su_res.value   = c.value().pdu_session_res_failed_to_setup_list_su_res();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -40958,7 +40806,7 @@ void pdu_session_res_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pws_cancel_request_ies_o>;
+template struct asn1::protocol_ie_field_s<pws_cancel_request_ies_o>;
 
 pws_cancel_request_ies_container::pws_cancel_request_ies_container() :
   msg_id(35, crit_e::reject),
@@ -40994,33 +40842,33 @@ SRSASN_CODE pws_cancel_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pws_cancel_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 35:
         nof_mandatory_ies--;
-        msg_id.id    = c.id;
-        msg_id.crit  = c.crit;
-        msg_id.value = c.value.msg_id();
+        msg_id.id    = c.id();
+        msg_id.crit  = c.crit();
+        msg_id.value = c.value().msg_id();
         break;
       case 95:
         nof_mandatory_ies--;
-        serial_num.id    = c.id;
-        serial_num.crit  = c.crit;
-        serial_num.value = c.value.serial_num();
+        serial_num.id    = c.id();
+        serial_num.crit  = c.crit();
+        serial_num.value = c.value().serial_num();
         break;
       case 122:
         warning_area_list_present = true;
-        warning_area_list.id      = c.id;
-        warning_area_list.crit    = c.crit;
-        warning_area_list.value   = c.value.warning_area_list();
+        warning_area_list.id      = c.id();
+        warning_area_list.crit    = c.crit();
+        warning_area_list.value   = c.value().warning_area_list();
         break;
       case 14:
         cancel_all_warning_msgs_present = true;
-        cancel_all_warning_msgs.id      = c.id;
-        cancel_all_warning_msgs.crit    = c.crit;
-        cancel_all_warning_msgs.value   = c.value.cancel_all_warning_msgs();
+        cancel_all_warning_msgs.id      = c.id();
+        cancel_all_warning_msgs.crit    = c.crit();
+        cancel_all_warning_msgs.value   = c.value().cancel_all_warning_msgs();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41072,7 +40920,7 @@ void pws_cancel_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pws_cancel_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<pws_cancel_resp_ies_o>;
 
 pws_cancel_resp_ies_container::pws_cancel_resp_ies_container() :
   msg_id(35, crit_e::reject),
@@ -41108,33 +40956,33 @@ SRSASN_CODE pws_cancel_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pws_cancel_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 35:
         nof_mandatory_ies--;
-        msg_id.id    = c.id;
-        msg_id.crit  = c.crit;
-        msg_id.value = c.value.msg_id();
+        msg_id.id    = c.id();
+        msg_id.crit  = c.crit();
+        msg_id.value = c.value().msg_id();
         break;
       case 95:
         nof_mandatory_ies--;
-        serial_num.id    = c.id;
-        serial_num.crit  = c.crit;
-        serial_num.value = c.value.serial_num();
+        serial_num.id    = c.id();
+        serial_num.crit  = c.crit();
+        serial_num.value = c.value().serial_num();
         break;
       case 12:
         broadcast_cancelled_area_list_present = true;
-        broadcast_cancelled_area_list.id      = c.id;
-        broadcast_cancelled_area_list.crit    = c.crit;
-        broadcast_cancelled_area_list.value   = c.value.broadcast_cancelled_area_list();
+        broadcast_cancelled_area_list.id      = c.id();
+        broadcast_cancelled_area_list.crit    = c.crit();
+        broadcast_cancelled_area_list.value   = c.value().broadcast_cancelled_area_list();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41186,7 +41034,7 @@ void pws_cancel_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pws_fail_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<pws_fail_ind_ies_o>;
 
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
   pws_failed_cell_id_list(81, crit_e::reject), global_ran_node_id(27, crit_e::reject)
@@ -41211,21 +41059,21 @@ SRSASN_CODE pws_fail_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pws_fail_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 81:
         nof_mandatory_ies--;
-        pws_failed_cell_id_list.id    = c.id;
-        pws_failed_cell_id_list.crit  = c.crit;
-        pws_failed_cell_id_list.value = c.value.pws_failed_cell_id_list();
+        pws_failed_cell_id_list.id    = c.id();
+        pws_failed_cell_id_list.crit  = c.crit();
+        pws_failed_cell_id_list.value = c.value().pws_failed_cell_id_list();
         break;
       case 27:
         nof_mandatory_ies--;
-        global_ran_node_id.id    = c.id;
-        global_ran_node_id.crit  = c.crit;
-        global_ran_node_id.value = c.value.global_ran_node_id();
+        global_ran_node_id.id    = c.id();
+        global_ran_node_id.crit  = c.crit();
+        global_ran_node_id.value = c.value().global_ran_node_id();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41269,7 +41117,7 @@ void pws_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pws_restart_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<pws_restart_ind_ies_o>;
 
 pws_restart_ind_ies_container::pws_restart_ind_ies_container() :
   cell_id_list_for_restart(16, crit_e::reject),
@@ -41302,33 +41150,33 @@ SRSASN_CODE pws_restart_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pws_restart_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 16:
         nof_mandatory_ies--;
-        cell_id_list_for_restart.id    = c.id;
-        cell_id_list_for_restart.crit  = c.crit;
-        cell_id_list_for_restart.value = c.value.cell_id_list_for_restart();
+        cell_id_list_for_restart.id    = c.id();
+        cell_id_list_for_restart.crit  = c.crit();
+        cell_id_list_for_restart.value = c.value().cell_id_list_for_restart();
         break;
       case 27:
         nof_mandatory_ies--;
-        global_ran_node_id.id    = c.id;
-        global_ran_node_id.crit  = c.crit;
-        global_ran_node_id.value = c.value.global_ran_node_id();
+        global_ran_node_id.id    = c.id();
+        global_ran_node_id.crit  = c.crit();
+        global_ran_node_id.value = c.value().global_ran_node_id();
         break;
       case 104:
         nof_mandatory_ies--;
-        tai_list_for_restart.id    = c.id;
-        tai_list_for_restart.crit  = c.crit;
-        tai_list_for_restart.value = c.value.tai_list_for_restart();
+        tai_list_for_restart.id    = c.id();
+        tai_list_for_restart.crit  = c.crit();
+        tai_list_for_restart.value = c.value().tai_list_for_restart();
         break;
       case 23:
         emergency_area_id_list_for_restart_present = true;
-        emergency_area_id_list_for_restart.id      = c.id;
-        emergency_area_id_list_for_restart.crit    = c.crit;
-        emergency_area_id_list_for_restart.value   = c.value.emergency_area_id_list_for_restart();
+        emergency_area_id_list_for_restart.id      = c.id();
+        emergency_area_id_list_for_restart.crit    = c.crit();
+        emergency_area_id_list_for_restart.value   = c.value().emergency_area_id_list_for_restart();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41378,7 +41226,7 @@ void pws_restart_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<paging_ies_o>;
+template struct asn1::protocol_ie_field_s<paging_ies_o>;
 
 paging_ies_container::paging_ies_container() :
   ue_paging_id(115, crit_e::ignore),
@@ -41429,51 +41277,51 @@ SRSASN_CODE paging_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<paging_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 115:
         nof_mandatory_ies--;
-        ue_paging_id.id    = c.id;
-        ue_paging_id.crit  = c.crit;
-        ue_paging_id.value = c.value.ue_paging_id();
+        ue_paging_id.id    = c.id();
+        ue_paging_id.crit  = c.crit();
+        ue_paging_id.value = c.value().ue_paging_id();
         break;
       case 50:
         paging_drx_present = true;
-        paging_drx.id      = c.id;
-        paging_drx.crit    = c.crit;
-        paging_drx.value   = c.value.paging_drx();
+        paging_drx.id      = c.id();
+        paging_drx.crit    = c.crit();
+        paging_drx.value   = c.value().paging_drx();
         break;
       case 103:
         nof_mandatory_ies--;
-        tai_list_for_paging.id    = c.id;
-        tai_list_for_paging.crit  = c.crit;
-        tai_list_for_paging.value = c.value.tai_list_for_paging();
+        tai_list_for_paging.id    = c.id();
+        tai_list_for_paging.crit  = c.crit();
+        tai_list_for_paging.value = c.value().tai_list_for_paging();
         break;
       case 52:
         paging_prio_present = true;
-        paging_prio.id      = c.id;
-        paging_prio.crit    = c.crit;
-        paging_prio.value   = c.value.paging_prio();
+        paging_prio.id      = c.id();
+        paging_prio.crit    = c.crit();
+        paging_prio.value   = c.value().paging_prio();
         break;
       case 118:
         ue_radio_cap_for_paging_present = true;
-        ue_radio_cap_for_paging.id      = c.id;
-        ue_radio_cap_for_paging.crit    = c.crit;
-        ue_radio_cap_for_paging.value   = c.value.ue_radio_cap_for_paging();
+        ue_radio_cap_for_paging.id      = c.id();
+        ue_radio_cap_for_paging.crit    = c.crit();
+        ue_radio_cap_for_paging.value   = c.value().ue_radio_cap_for_paging();
         break;
       case 51:
         paging_origin_present = true;
-        paging_origin.id      = c.id;
-        paging_origin.crit    = c.crit;
-        paging_origin.value   = c.value.paging_origin();
+        paging_origin.id      = c.id();
+        paging_origin.crit    = c.crit();
+        paging_origin.value   = c.value().paging_origin();
         break;
       case 11:
         assist_data_for_paging_present = true;
-        assist_data_for_paging.id      = c.id;
-        assist_data_for_paging.crit    = c.crit;
-        assist_data_for_paging.value   = c.value.assist_data_for_paging();
+        assist_data_for_paging.id      = c.id();
+        assist_data_for_paging.crit    = c.crit();
+        assist_data_for_paging.value   = c.value().assist_data_for_paging();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41537,7 +41385,7 @@ void paging_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<path_switch_request_ies_o>;
+template struct asn1::protocol_ie_field_s<path_switch_request_ies_o>;
 
 path_switch_request_ies_container::path_switch_request_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -41574,45 +41422,45 @@ SRSASN_CODE path_switch_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<path_switch_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 100:
         nof_mandatory_ies--;
-        source_amf_ue_ngap_id.id    = c.id;
-        source_amf_ue_ngap_id.crit  = c.crit;
-        source_amf_ue_ngap_id.value = c.value.source_amf_ue_ngap_id();
+        source_amf_ue_ngap_id.id    = c.id();
+        source_amf_ue_ngap_id.crit  = c.crit();
+        source_amf_ue_ngap_id.value = c.value().source_amf_ue_ngap_id();
         break;
       case 121:
         nof_mandatory_ies--;
-        user_location_info.id    = c.id;
-        user_location_info.crit  = c.crit;
-        user_location_info.value = c.value.user_location_info();
+        user_location_info.id    = c.id();
+        user_location_info.crit  = c.crit();
+        user_location_info.value = c.value().user_location_info();
         break;
       case 119:
         nof_mandatory_ies--;
-        ue_security_cap.id    = c.id;
-        ue_security_cap.crit  = c.crit;
-        ue_security_cap.value = c.value.ue_security_cap();
+        ue_security_cap.id    = c.id();
+        ue_security_cap.crit  = c.crit();
+        ue_security_cap.value = c.value().ue_security_cap();
         break;
       case 76:
         nof_mandatory_ies--;
-        pdu_session_res_to_be_switched_dl_list.id    = c.id;
-        pdu_session_res_to_be_switched_dl_list.crit  = c.crit;
-        pdu_session_res_to_be_switched_dl_list.value = c.value.pdu_session_res_to_be_switched_dl_list();
+        pdu_session_res_to_be_switched_dl_list.id    = c.id();
+        pdu_session_res_to_be_switched_dl_list.crit  = c.crit();
+        pdu_session_res_to_be_switched_dl_list.value = c.value().pdu_session_res_to_be_switched_dl_list();
         break;
       case 57:
         pdu_session_res_failed_to_setup_list_ps_req_present = true;
-        pdu_session_res_failed_to_setup_list_ps_req.id      = c.id;
-        pdu_session_res_failed_to_setup_list_ps_req.crit    = c.crit;
-        pdu_session_res_failed_to_setup_list_ps_req.value   = c.value.pdu_session_res_failed_to_setup_list_ps_req();
+        pdu_session_res_failed_to_setup_list_ps_req.id      = c.id();
+        pdu_session_res_failed_to_setup_list_ps_req.crit    = c.crit();
+        pdu_session_res_failed_to_setup_list_ps_req.value   = c.value().pdu_session_res_failed_to_setup_list_ps_req();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41666,7 +41514,7 @@ void path_switch_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<path_switch_request_ack_ies_o>;
+template struct asn1::protocol_ie_field_s<path_switch_request_ack_ies_o>;
 
 path_switch_request_ack_ies_container::path_switch_request_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -41733,81 +41581,81 @@ SRSASN_CODE path_switch_request_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<path_switch_request_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 119:
         ue_security_cap_present = true;
-        ue_security_cap.id      = c.id;
-        ue_security_cap.crit    = c.crit;
-        ue_security_cap.value   = c.value.ue_security_cap();
+        ue_security_cap.id      = c.id();
+        ue_security_cap.crit    = c.crit();
+        ue_security_cap.value   = c.value().ue_security_cap();
         break;
       case 93:
         nof_mandatory_ies--;
-        security_context.id    = c.id;
-        security_context.crit  = c.crit;
-        security_context.value = c.value.security_context();
+        security_context.id    = c.id();
+        security_context.crit  = c.crit();
+        security_context.value = c.value().security_context();
         break;
       case 41:
         new_security_context_ind_present = true;
-        new_security_context_ind.id      = c.id;
-        new_security_context_ind.crit    = c.crit;
-        new_security_context_ind.value   = c.value.new_security_context_ind();
+        new_security_context_ind.id      = c.id();
+        new_security_context_ind.crit    = c.crit();
+        new_security_context_ind.value   = c.value().new_security_context_ind();
         break;
       case 77:
         nof_mandatory_ies--;
-        pdu_session_res_switched_list.id    = c.id;
-        pdu_session_res_switched_list.crit  = c.crit;
-        pdu_session_res_switched_list.value = c.value.pdu_session_res_switched_list();
+        pdu_session_res_switched_list.id    = c.id();
+        pdu_session_res_switched_list.crit  = c.crit();
+        pdu_session_res_switched_list.value = c.value().pdu_session_res_switched_list();
         break;
       case 68:
         pdu_session_res_released_list_ps_ack_present = true;
-        pdu_session_res_released_list_ps_ack.id      = c.id;
-        pdu_session_res_released_list_ps_ack.crit    = c.crit;
-        pdu_session_res_released_list_ps_ack.value   = c.value.pdu_session_res_released_list_ps_ack();
+        pdu_session_res_released_list_ps_ack.id      = c.id();
+        pdu_session_res_released_list_ps_ack.crit    = c.crit();
+        pdu_session_res_released_list_ps_ack.value   = c.value().pdu_session_res_released_list_ps_ack();
         break;
       case 0:
         nof_mandatory_ies--;
-        allowed_nssai.id    = c.id;
-        allowed_nssai.crit  = c.crit;
-        allowed_nssai.value = c.value.allowed_nssai();
+        allowed_nssai.id    = c.id();
+        allowed_nssai.crit  = c.crit();
+        allowed_nssai.value = c.value().allowed_nssai();
         break;
       case 18:
         core_network_assist_info_present = true;
-        core_network_assist_info.id      = c.id;
-        core_network_assist_info.crit    = c.crit;
-        core_network_assist_info.value   = c.value.core_network_assist_info();
+        core_network_assist_info.id      = c.id();
+        core_network_assist_info.crit    = c.crit();
+        core_network_assist_info.value   = c.value().core_network_assist_info();
         break;
       case 91:
         rrc_inactive_transition_report_request_present = true;
-        rrc_inactive_transition_report_request.id      = c.id;
-        rrc_inactive_transition_report_request.crit    = c.crit;
-        rrc_inactive_transition_report_request.value   = c.value.rrc_inactive_transition_report_request();
+        rrc_inactive_transition_report_request.id      = c.id();
+        rrc_inactive_transition_report_request.crit    = c.crit();
+        rrc_inactive_transition_report_request.value   = c.value().rrc_inactive_transition_report_request();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       case 146:
         redirection_voice_fallback_present = true;
-        redirection_voice_fallback.id      = c.id;
-        redirection_voice_fallback.crit    = c.crit;
-        redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
+        redirection_voice_fallback.id      = c.id();
+        redirection_voice_fallback.crit    = c.crit();
+        redirection_voice_fallback.value   = c.value().redirection_voice_fallback();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -41885,7 +41733,7 @@ void path_switch_request_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<path_switch_request_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<path_switch_request_fail_ies_o>;
 
 path_switch_request_fail_ies_container::path_switch_request_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -41918,33 +41766,33 @@ SRSASN_CODE path_switch_request_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<path_switch_request_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 69:
         nof_mandatory_ies--;
-        pdu_session_res_released_list_ps_fail.id    = c.id;
-        pdu_session_res_released_list_ps_fail.crit  = c.crit;
-        pdu_session_res_released_list_ps_fail.value = c.value.pdu_session_res_released_list_ps_fail();
+        pdu_session_res_released_list_ps_fail.id    = c.id();
+        pdu_session_res_released_list_ps_fail.crit  = c.crit();
+        pdu_session_res_released_list_ps_fail.value = c.value().pdu_session_res_released_list_ps_fail();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42084,7 +41932,7 @@ void private_msg_s::to_json(json_writer& j) const
   j.end_array();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ran_cfg_upd_ies_o>;
+template struct asn1::protocol_ie_field_s<ran_cfg_upd_ies_o>;
 
 ran_cfg_upd_ies_container::ran_cfg_upd_ies_container() :
   ran_node_name(82, crit_e::ignore),
@@ -42124,33 +41972,33 @@ SRSASN_CODE ran_cfg_upd_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ran_cfg_upd_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 82:
         ran_node_name_present = true;
-        ran_node_name.id      = c.id;
-        ran_node_name.crit    = c.crit;
-        ran_node_name.value   = c.value.ran_node_name();
+        ran_node_name.id      = c.id();
+        ran_node_name.crit    = c.crit();
+        ran_node_name.value   = c.value().ran_node_name();
         break;
       case 102:
         supported_ta_list_present = true;
-        supported_ta_list.id      = c.id;
-        supported_ta_list.crit    = c.crit;
-        supported_ta_list.value   = c.value.supported_ta_list();
+        supported_ta_list.id      = c.id();
+        supported_ta_list.crit    = c.crit();
+        supported_ta_list.value   = c.value().supported_ta_list();
         break;
       case 21:
         default_paging_drx_present = true;
-        default_paging_drx.id      = c.id;
-        default_paging_drx.crit    = c.crit;
-        default_paging_drx.value   = c.value.default_paging_drx();
+        default_paging_drx.id      = c.id();
+        default_paging_drx.crit    = c.crit();
+        default_paging_drx.value   = c.value().default_paging_drx();
         break;
       case 27:
         global_ran_node_id_present = true;
-        global_ran_node_id.id      = c.id;
-        global_ran_node_id.crit    = c.crit;
-        global_ran_node_id.value   = c.value.global_ran_node_id();
+        global_ran_node_id.id      = c.id();
+        global_ran_node_id.crit    = c.crit();
+        global_ran_node_id.value   = c.value().global_ran_node_id();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42224,7 +42072,7 @@ void ran_cfg_upd_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ran_cfg_upd_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<ran_cfg_upd_fail_ies_o>;
 
 ran_cfg_upd_fail_ies_container::ran_cfg_upd_fail_ies_container() :
   cause(15, crit_e::ignore), time_to_wait(107, crit_e::ignore), crit_diagnostics(19, crit_e::ignore)
@@ -42256,27 +42104,27 @@ SRSASN_CODE ran_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ran_cfg_upd_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 107:
         time_to_wait_present = true;
-        time_to_wait.id      = c.id;
-        time_to_wait.crit    = c.crit;
-        time_to_wait.value   = c.value.time_to_wait();
+        time_to_wait.id      = c.id();
+        time_to_wait.crit    = c.crit();
+        time_to_wait.value   = c.value().time_to_wait();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42326,7 +42174,7 @@ void ran_cfg_upd_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<rrc_inactive_transition_report_ies_o>;
+template struct asn1::protocol_ie_field_s<rrc_inactive_transition_report_ies_o>;
 
 rrc_inactive_transition_report_ies_container::rrc_inactive_transition_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -42356,33 +42204,33 @@ SRSASN_CODE rrc_inactive_transition_report_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<rrc_inactive_transition_report_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 92:
         nof_mandatory_ies--;
-        rrc_state.id    = c.id;
-        rrc_state.crit  = c.crit;
-        rrc_state.value = c.value.rrc_state();
+        rrc_state.id    = c.id();
+        rrc_state.crit  = c.crit();
+        rrc_state.value = c.value().rrc_state();
         break;
       case 121:
         nof_mandatory_ies--;
-        user_location_info.id    = c.id;
-        user_location_info.crit  = c.crit;
-        user_location_info.value = c.value.user_location_info();
+        user_location_info.id    = c.id();
+        user_location_info.crit  = c.crit();
+        user_location_info.value = c.value().user_location_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42430,7 +42278,7 @@ void rrc_inactive_transition_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<reroute_nas_request_ies_o>;
+template struct asn1::protocol_ie_field_s<reroute_nas_request_ies_o>;
 
 reroute_nas_request_ies_container::reroute_nas_request_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -42468,39 +42316,39 @@ SRSASN_CODE reroute_nas_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<reroute_nas_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 10:
         amf_ue_ngap_id_present = true;
-        amf_ue_ngap_id.id      = c.id;
-        amf_ue_ngap_id.crit    = c.crit;
-        amf_ue_ngap_id.value   = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id      = c.id();
+        amf_ue_ngap_id.crit    = c.crit();
+        amf_ue_ngap_id.value   = c.value().amf_ue_ngap_id();
         break;
       case 42:
         nof_mandatory_ies--;
-        ngap_msg.id    = c.id;
-        ngap_msg.crit  = c.crit;
-        ngap_msg.value = c.value.ngap_msg();
+        ngap_msg.id    = c.id();
+        ngap_msg.crit  = c.crit();
+        ngap_msg.value = c.value().ngap_msg();
         break;
       case 3:
         nof_mandatory_ies--;
-        amf_set_id.id    = c.id;
-        amf_set_id.crit  = c.crit;
-        amf_set_id.value = c.value.amf_set_id();
+        amf_set_id.id    = c.id();
+        amf_set_id.crit  = c.crit();
+        amf_set_id.value = c.value().amf_set_id();
         break;
       case 0:
         allowed_nssai_present = true;
-        allowed_nssai.id      = c.id;
-        allowed_nssai.crit    = c.crit;
-        allowed_nssai.value   = c.value.allowed_nssai();
+        allowed_nssai.id      = c.id();
+        allowed_nssai.crit    = c.crit();
+        allowed_nssai.value   = c.value().allowed_nssai();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42554,7 +42402,7 @@ void reroute_nas_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
+template struct asn1::protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
 
 secondary_rat_data_usage_report_ies_container::secondary_rat_data_usage_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -42587,33 +42435,33 @@ SRSASN_CODE secondary_rat_data_usage_report_ies_container::unpack(cbit_ref& bref
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<secondary_rat_data_usage_report_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 142:
         nof_mandatory_ies--;
-        pdu_session_res_secondary_ratusage_list.id    = c.id;
-        pdu_session_res_secondary_ratusage_list.crit  = c.crit;
-        pdu_session_res_secondary_ratusage_list.value = c.value.pdu_session_res_secondary_ratusage_list();
+        pdu_session_res_secondary_ratusage_list.id    = c.id();
+        pdu_session_res_secondary_ratusage_list.crit  = c.crit();
+        pdu_session_res_secondary_ratusage_list.value = c.value().pdu_session_res_secondary_ratusage_list();
         break;
       case 143:
         ho_flag_present = true;
-        ho_flag.id      = c.id;
-        ho_flag.crit    = c.crit;
-        ho_flag.value   = c.value.ho_flag();
+        ho_flag.id      = c.id();
+        ho_flag.crit    = c.crit();
+        ho_flag.value   = c.value().ho_flag();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42663,7 +42511,7 @@ void secondary_rat_data_usage_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<trace_fail_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<trace_fail_ind_ies_o>;
 
 trace_fail_ind_ies_container::trace_fail_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -42693,33 +42541,33 @@ SRSASN_CODE trace_fail_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<trace_fail_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 44:
         nof_mandatory_ies--;
-        ngran_trace_id.id    = c.id;
-        ngran_trace_id.crit  = c.crit;
-        ngran_trace_id.value = c.value.ngran_trace_id();
+        ngran_trace_id.id    = c.id();
+        ngran_trace_id.crit  = c.crit();
+        ngran_trace_id.value = c.value().ngran_trace_id();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42767,7 +42615,7 @@ void trace_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<trace_start_ies_o>;
+template struct asn1::protocol_ie_field_s<trace_start_ies_o>;
 
 trace_start_ies_container::trace_start_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), trace_activation(108, crit_e::ignore)
@@ -42793,27 +42641,27 @@ SRSASN_CODE trace_start_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<trace_start_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 108:
         nof_mandatory_ies--;
-        trace_activation.id    = c.id;
-        trace_activation.crit  = c.crit;
-        trace_activation.value = c.value.trace_activation();
+        trace_activation.id    = c.id();
+        trace_activation.crit  = c.crit();
+        trace_activation.value = c.value().trace_activation();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42859,7 +42707,7 @@ void trace_start_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
 
 ue_context_mod_fail_ies_container::ue_context_mod_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -42892,33 +42740,33 @@ SRSASN_CODE ue_context_mod_fail_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_context_mod_fail_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -42968,7 +42816,7 @@ void ue_context_mod_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_context_mod_request_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_context_mod_request_ies_o>;
 
 ue_context_mod_request_ies_container::ue_context_mod_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43039,75 +42887,75 @@ SRSASN_CODE ue_context_mod_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_context_mod_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 83:
         ran_paging_prio_present = true;
-        ran_paging_prio.id      = c.id;
-        ran_paging_prio.crit    = c.crit;
-        ran_paging_prio.value   = c.value.ran_paging_prio();
+        ran_paging_prio.id      = c.id();
+        ran_paging_prio.crit    = c.crit();
+        ran_paging_prio.value   = c.value().ran_paging_prio();
         break;
       case 94:
         security_key_present = true;
-        security_key.id      = c.id;
-        security_key.crit    = c.crit;
-        security_key.value   = c.value.security_key();
+        security_key.id      = c.id();
+        security_key.crit    = c.crit();
+        security_key.value   = c.value().security_key();
         break;
       case 31:
         idx_to_rfsp_present = true;
-        idx_to_rfsp.id      = c.id;
-        idx_to_rfsp.crit    = c.crit;
-        idx_to_rfsp.value   = c.value.idx_to_rfsp();
+        idx_to_rfsp.id      = c.id();
+        idx_to_rfsp.crit    = c.crit();
+        idx_to_rfsp.value   = c.value().idx_to_rfsp();
         break;
       case 110:
         ue_aggregate_maximum_bit_rate_present = true;
-        ue_aggregate_maximum_bit_rate.id      = c.id;
-        ue_aggregate_maximum_bit_rate.crit    = c.crit;
-        ue_aggregate_maximum_bit_rate.value   = c.value.ue_aggregate_maximum_bit_rate();
+        ue_aggregate_maximum_bit_rate.id      = c.id();
+        ue_aggregate_maximum_bit_rate.crit    = c.crit();
+        ue_aggregate_maximum_bit_rate.value   = c.value().ue_aggregate_maximum_bit_rate();
         break;
       case 119:
         ue_security_cap_present = true;
-        ue_security_cap.id      = c.id;
-        ue_security_cap.crit    = c.crit;
-        ue_security_cap.value   = c.value.ue_security_cap();
+        ue_security_cap.id      = c.id();
+        ue_security_cap.crit    = c.crit();
+        ue_security_cap.value   = c.value().ue_security_cap();
         break;
       case 18:
         core_network_assist_info_present = true;
-        core_network_assist_info.id      = c.id;
-        core_network_assist_info.crit    = c.crit;
-        core_network_assist_info.value   = c.value.core_network_assist_info();
+        core_network_assist_info.id      = c.id();
+        core_network_assist_info.crit    = c.crit();
+        core_network_assist_info.value   = c.value().core_network_assist_info();
         break;
       case 24:
         emergency_fallback_ind_present = true;
-        emergency_fallback_ind.id      = c.id;
-        emergency_fallback_ind.crit    = c.crit;
-        emergency_fallback_ind.value   = c.value.emergency_fallback_ind();
+        emergency_fallback_ind.id      = c.id();
+        emergency_fallback_ind.crit    = c.crit();
+        emergency_fallback_ind.value   = c.value().emergency_fallback_ind();
         break;
       case 40:
         new_amf_ue_ngap_id_present = true;
-        new_amf_ue_ngap_id.id      = c.id;
-        new_amf_ue_ngap_id.crit    = c.crit;
-        new_amf_ue_ngap_id.value   = c.value.new_amf_ue_ngap_id();
+        new_amf_ue_ngap_id.id      = c.id();
+        new_amf_ue_ngap_id.crit    = c.crit();
+        new_amf_ue_ngap_id.value   = c.value().new_amf_ue_ngap_id();
         break;
       case 91:
         rrc_inactive_transition_report_request_present = true;
-        rrc_inactive_transition_report_request.id      = c.id;
-        rrc_inactive_transition_report_request.crit    = c.crit;
-        rrc_inactive_transition_report_request.value   = c.value.rrc_inactive_transition_report_request();
+        rrc_inactive_transition_report_request.id      = c.id();
+        rrc_inactive_transition_report_request.crit    = c.crit();
+        rrc_inactive_transition_report_request.value   = c.value().rrc_inactive_transition_report_request();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43187,7 +43035,7 @@ void ue_context_mod_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
 
 ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43228,39 +43076,39 @@ SRSASN_CODE ue_context_mod_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_context_mod_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 92:
         rrc_state_present = true;
-        rrc_state.id      = c.id;
-        rrc_state.crit    = c.crit;
-        rrc_state.value   = c.value.rrc_state();
+        rrc_state.id      = c.id();
+        rrc_state.crit    = c.crit();
+        rrc_state.value   = c.value().rrc_state();
         break;
       case 121:
         user_location_info_present = true;
-        user_location_info.id      = c.id;
-        user_location_info.crit    = c.crit;
-        user_location_info.value   = c.value.user_location_info();
+        user_location_info.id      = c.id();
+        user_location_info.crit    = c.crit();
+        user_location_info.value   = c.value().user_location_info();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43316,7 +43164,7 @@ void ue_context_mod_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
   ue_ngap_ids(114, crit_e::reject), cause(15, crit_e::ignore)
@@ -43341,21 +43189,21 @@ SRSASN_CODE ue_context_release_cmd_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_context_release_cmd_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 114:
         nof_mandatory_ies--;
-        ue_ngap_ids.id    = c.id;
-        ue_ngap_ids.crit  = c.crit;
-        ue_ngap_ids.value = c.value.ue_ngap_ids();
+        ue_ngap_ids.id    = c.id();
+        ue_ngap_ids.crit  = c.crit();
+        ue_ngap_ids.value = c.value().ue_ngap_ids();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43399,7 +43247,7 @@ void ue_context_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_context_release_complete_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_context_release_complete_ies_o>;
 
 ue_context_release_complete_ies_container::ue_context_release_complete_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43445,46 +43293,46 @@ SRSASN_CODE ue_context_release_complete_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_context_release_complete_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 121:
         user_location_info_present = true;
-        user_location_info.id      = c.id;
-        user_location_info.crit    = c.crit;
-        user_location_info.value   = c.value.user_location_info();
+        user_location_info.id      = c.id();
+        user_location_info.crit    = c.crit();
+        user_location_info.value   = c.value().user_location_info();
         break;
       case 32:
         info_on_recommended_cells_and_ran_nodes_for_paging_present = true;
-        info_on_recommended_cells_and_ran_nodes_for_paging.id      = c.id;
-        info_on_recommended_cells_and_ran_nodes_for_paging.crit    = c.crit;
+        info_on_recommended_cells_and_ran_nodes_for_paging.id      = c.id();
+        info_on_recommended_cells_and_ran_nodes_for_paging.crit    = c.crit();
         info_on_recommended_cells_and_ran_nodes_for_paging.value =
-            c.value.info_on_recommended_cells_and_ran_nodes_for_paging();
+            c.value().info_on_recommended_cells_and_ran_nodes_for_paging();
         break;
       case 60:
         pdu_session_res_list_cxt_rel_cpl_present = true;
-        pdu_session_res_list_cxt_rel_cpl.id      = c.id;
-        pdu_session_res_list_cxt_rel_cpl.crit    = c.crit;
-        pdu_session_res_list_cxt_rel_cpl.value   = c.value.pdu_session_res_list_cxt_rel_cpl();
+        pdu_session_res_list_cxt_rel_cpl.id      = c.id();
+        pdu_session_res_list_cxt_rel_cpl.crit    = c.crit();
+        pdu_session_res_list_cxt_rel_cpl.value   = c.value().pdu_session_res_list_cxt_rel_cpl();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43544,7 +43392,7 @@ void ue_context_release_complete_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_context_release_request_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_context_release_request_ies_o>;
 
 ue_context_release_request_ies_container::ue_context_release_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43577,33 +43425,33 @@ SRSASN_CODE ue_context_release_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_context_release_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 133:
         pdu_session_res_list_cxt_rel_req_present = true;
-        pdu_session_res_list_cxt_rel_req.id      = c.id;
-        pdu_session_res_list_cxt_rel_req.crit    = c.crit;
-        pdu_session_res_list_cxt_rel_req.value   = c.value.pdu_session_res_list_cxt_rel_req();
+        pdu_session_res_list_cxt_rel_req.id      = c.id();
+        pdu_session_res_list_cxt_rel_req.crit    = c.crit();
+        pdu_session_res_list_cxt_rel_req.value   = c.value().pdu_session_res_list_cxt_rel_req();
         break;
       case 15:
         nof_mandatory_ies--;
-        cause.id    = c.id;
-        cause.crit  = c.crit;
-        cause.value = c.value.cause();
+        cause.id    = c.id();
+        cause.crit  = c.crit();
+        cause.value = c.value().cause();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43653,7 +43501,7 @@ void ue_context_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_radio_cap_check_request_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_radio_cap_check_request_ies_o>;
 
 ue_radio_cap_check_request_ies_container::ue_radio_cap_check_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject), ue_radio_cap(117, crit_e::ignore)
@@ -43682,27 +43530,27 @@ SRSASN_CODE ue_radio_cap_check_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_radio_cap_check_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 117:
         ue_radio_cap_present = true;
-        ue_radio_cap.id      = c.id;
-        ue_radio_cap.crit    = c.crit;
-        ue_radio_cap.value   = c.value.ue_radio_cap();
+        ue_radio_cap.id      = c.id();
+        ue_radio_cap.crit    = c.crit();
+        ue_radio_cap.value   = c.value().ue_radio_cap();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43750,7 +43598,7 @@ void ue_radio_cap_check_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_radio_cap_check_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_radio_cap_check_resp_ies_o>;
 
 ue_radio_cap_check_resp_ies_container::ue_radio_cap_check_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -43783,33 +43631,33 @@ SRSASN_CODE ue_radio_cap_check_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_radio_cap_check_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 30:
         nof_mandatory_ies--;
-        ims_voice_support_ind.id    = c.id;
-        ims_voice_support_ind.crit  = c.crit;
-        ims_voice_support_ind.value = c.value.ims_voice_support_ind();
+        ims_voice_support_ind.id    = c.id();
+        ims_voice_support_ind.crit  = c.crit();
+        ims_voice_support_ind.value = c.value().ims_voice_support_ind();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43859,7 +43707,7 @@ void ue_radio_cap_check_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ue_radio_cap_info_ind_ies_o>;
+template struct asn1::protocol_ie_field_s<ue_radio_cap_info_ind_ies_o>;
 
 ue_radio_cap_info_ind_ies_container::ue_radio_cap_info_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43892,33 +43740,33 @@ SRSASN_CODE ue_radio_cap_info_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ue_radio_cap_info_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 117:
         nof_mandatory_ies--;
-        ue_radio_cap.id    = c.id;
-        ue_radio_cap.crit  = c.crit;
-        ue_radio_cap.value = c.value.ue_radio_cap();
+        ue_radio_cap.id    = c.id();
+        ue_radio_cap.crit  = c.crit();
+        ue_radio_cap.value = c.value().ue_radio_cap();
         break;
       case 118:
         ue_radio_cap_for_paging_present = true;
-        ue_radio_cap_for_paging.id      = c.id;
-        ue_radio_cap_for_paging.crit    = c.crit;
-        ue_radio_cap_for_paging.value   = c.value.ue_radio_cap_for_paging();
+        ue_radio_cap_for_paging.id      = c.id();
+        ue_radio_cap_for_paging.crit    = c.crit();
+        ue_radio_cap_for_paging.value   = c.value().ue_radio_cap_for_paging();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43968,7 +43816,7 @@ void ue_radio_cap_info_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<uetnla_binding_release_request_ies_o>;
+template struct asn1::protocol_ie_field_s<uetnla_binding_release_request_ies_o>;
 
 uetnla_binding_release_request_ies_container::uetnla_binding_release_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject), ran_ue_ngap_id(85, crit_e::reject)
@@ -43993,21 +43841,21 @@ SRSASN_CODE uetnla_binding_release_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<uetnla_binding_release_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44051,7 +43899,7 @@ void uetnla_binding_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ul_nas_transport_ies_o>;
+template struct asn1::protocol_ie_field_s<ul_nas_transport_ies_o>;
 
 ul_nas_transport_ies_container::ul_nas_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44081,33 +43929,33 @@ SRSASN_CODE ul_nas_transport_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ul_nas_transport_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 38:
         nof_mandatory_ies--;
-        nas_pdu.id    = c.id;
-        nas_pdu.crit  = c.crit;
-        nas_pdu.value = c.value.nas_pdu();
+        nas_pdu.id    = c.id();
+        nas_pdu.crit  = c.crit();
+        nas_pdu.value = c.value().nas_pdu();
         break;
       case 121:
         nof_mandatory_ies--;
-        user_location_info.id    = c.id;
-        user_location_info.crit  = c.crit;
-        user_location_info.value = c.value.user_location_info();
+        user_location_info.id    = c.id();
+        user_location_info.crit  = c.crit();
+        user_location_info.value = c.value().user_location_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44155,7 +44003,7 @@ void ul_nas_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o>;
 
 ul_non_ueassociated_nrp_pa_transport_ies_container::ul_non_ueassociated_nrp_pa_transport_ies_container() :
   routing_id(89, crit_e::reject), nrp_pa_pdu(46, crit_e::reject)
@@ -44180,21 +44028,21 @@ SRSASN_CODE ul_non_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref&
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 89:
         nof_mandatory_ies--;
-        routing_id.id    = c.id;
-        routing_id.crit  = c.crit;
-        routing_id.value = c.value.routing_id();
+        routing_id.id    = c.id();
+        routing_id.crit  = c.crit();
+        routing_id.value = c.value().routing_id();
         break;
       case 46:
         nof_mandatory_ies--;
-        nrp_pa_pdu.id    = c.id;
-        nrp_pa_pdu.crit  = c.crit;
-        nrp_pa_pdu.value = c.value.nrp_pa_pdu();
+        nrp_pa_pdu.id    = c.id();
+        nrp_pa_pdu.crit  = c.crit();
+        nrp_pa_pdu.value = c.value().nrp_pa_pdu();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44238,7 +44086,7 @@ void ul_non_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ul_ran_cfg_transfer_ies_o>;
+template struct asn1::protocol_ie_field_s<ul_ran_cfg_transfer_ies_o>;
 
 ul_ran_cfg_transfer_ies_container::ul_ran_cfg_transfer_ies_container() :
   son_cfg_transfer_ul(99, crit_e::ignore), endc_son_cfg_transfer_ul(158, crit_e::ignore)
@@ -44267,21 +44115,21 @@ SRSASN_CODE ul_ran_cfg_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ul_ran_cfg_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 99:
         son_cfg_transfer_ul_present = true;
-        son_cfg_transfer_ul.id      = c.id;
-        son_cfg_transfer_ul.crit    = c.crit;
-        son_cfg_transfer_ul.value   = c.value.son_cfg_transfer_ul();
+        son_cfg_transfer_ul.id      = c.id();
+        son_cfg_transfer_ul.crit    = c.crit();
+        son_cfg_transfer_ul.value   = c.value().son_cfg_transfer_ul();
         break;
       case 158:
         endc_son_cfg_transfer_ul_present = true;
-        endc_son_cfg_transfer_ul.id      = c.id;
-        endc_son_cfg_transfer_ul.crit    = c.crit;
-        endc_son_cfg_transfer_ul.value   = c.value.endc_son_cfg_transfer_ul();
+        endc_son_cfg_transfer_ul.id      = c.id();
+        endc_son_cfg_transfer_ul.crit    = c.crit();
+        endc_son_cfg_transfer_ul.value   = c.value().endc_son_cfg_transfer_ul();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44325,7 +44173,7 @@ void ul_ran_cfg_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ul_ran_status_transfer_ies_o>;
+template struct asn1::protocol_ie_field_s<ul_ran_status_transfer_ies_o>;
 
 ul_ran_status_transfer_ies_container::ul_ran_status_transfer_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44353,27 +44201,27 @@ SRSASN_CODE ul_ran_status_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ul_ran_status_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 84:
         nof_mandatory_ies--;
-        ran_status_transfer_transparent_container.id    = c.id;
-        ran_status_transfer_transparent_container.crit  = c.crit;
-        ran_status_transfer_transparent_container.value = c.value.ran_status_transfer_transparent_container();
+        ran_status_transfer_transparent_container.id    = c.id();
+        ran_status_transfer_transparent_container.crit  = c.crit();
+        ran_status_transfer_transparent_container.value = c.value().ran_status_transfer_transparent_container();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44419,7 +44267,7 @@ void ul_ran_status_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o>;
 
 ul_ueassociated_nrp_pa_transport_ies_container::ul_ueassociated_nrp_pa_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44449,33 +44297,33 @@ SRSASN_CODE ul_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref& bre
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 10:
         nof_mandatory_ies--;
-        amf_ue_ngap_id.id    = c.id;
-        amf_ue_ngap_id.crit  = c.crit;
-        amf_ue_ngap_id.value = c.value.amf_ue_ngap_id();
+        amf_ue_ngap_id.id    = c.id();
+        amf_ue_ngap_id.crit  = c.crit();
+        amf_ue_ngap_id.value = c.value().amf_ue_ngap_id();
         break;
       case 85:
         nof_mandatory_ies--;
-        ran_ue_ngap_id.id    = c.id;
-        ran_ue_ngap_id.crit  = c.crit;
-        ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
+        ran_ue_ngap_id.id    = c.id();
+        ran_ue_ngap_id.crit  = c.crit();
+        ran_ue_ngap_id.value = c.value().ran_ue_ngap_id();
         break;
       case 89:
         nof_mandatory_ies--;
-        routing_id.id    = c.id;
-        routing_id.crit  = c.crit;
-        routing_id.value = c.value.routing_id();
+        routing_id.id    = c.id();
+        routing_id.crit  = c.crit();
+        routing_id.value = c.value().routing_id();
         break;
       case 46:
         nof_mandatory_ies--;
-        nrp_pa_pdu.id    = c.id;
-        nrp_pa_pdu.crit  = c.crit;
-        nrp_pa_pdu.value = c.value.nrp_pa_pdu();
+        nrp_pa_pdu.id    = c.id();
+        nrp_pa_pdu.crit  = c.crit();
+        nrp_pa_pdu.value = c.value().nrp_pa_pdu();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44523,7 +44371,7 @@ void ul_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<write_replace_warning_request_ies_o>;
+template struct asn1::protocol_ie_field_s<write_replace_warning_request_ies_o>;
 
 write_replace_warning_request_ies_container::write_replace_warning_request_ies_container() :
   msg_id(35, crit_e::reject),
@@ -44588,75 +44436,75 @@ SRSASN_CODE write_replace_warning_request_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<write_replace_warning_request_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 35:
         nof_mandatory_ies--;
-        msg_id.id    = c.id;
-        msg_id.crit  = c.crit;
-        msg_id.value = c.value.msg_id();
+        msg_id.id    = c.id();
+        msg_id.crit  = c.crit();
+        msg_id.value = c.value().msg_id();
         break;
       case 95:
         nof_mandatory_ies--;
-        serial_num.id    = c.id;
-        serial_num.crit  = c.crit;
-        serial_num.value = c.value.serial_num();
+        serial_num.id    = c.id();
+        serial_num.crit  = c.crit();
+        serial_num.value = c.value().serial_num();
         break;
       case 122:
         warning_area_list_present = true;
-        warning_area_list.id      = c.id;
-        warning_area_list.crit    = c.crit;
-        warning_area_list.value   = c.value.warning_area_list();
+        warning_area_list.id      = c.id();
+        warning_area_list.crit    = c.crit();
+        warning_area_list.value   = c.value().warning_area_list();
         break;
       case 87:
         nof_mandatory_ies--;
-        repeat_period.id    = c.id;
-        repeat_period.crit  = c.crit;
-        repeat_period.value = c.value.repeat_period();
+        repeat_period.id    = c.id();
+        repeat_period.crit  = c.crit();
+        repeat_period.value = c.value().repeat_period();
         break;
       case 47:
         nof_mandatory_ies--;
-        nof_broadcasts_requested.id    = c.id;
-        nof_broadcasts_requested.crit  = c.crit;
-        nof_broadcasts_requested.value = c.value.nof_broadcasts_requested();
+        nof_broadcasts_requested.id    = c.id();
+        nof_broadcasts_requested.crit  = c.crit();
+        nof_broadcasts_requested.value = c.value().nof_broadcasts_requested();
         break;
       case 125:
         warning_type_present = true;
-        warning_type.id      = c.id;
-        warning_type.crit    = c.crit;
-        warning_type.value   = c.value.warning_type();
+        warning_type.id      = c.id();
+        warning_type.crit    = c.crit();
+        warning_type.value   = c.value().warning_type();
         break;
       case 124:
         warning_security_info_present = true;
-        warning_security_info.id      = c.id;
-        warning_security_info.crit    = c.crit;
-        warning_security_info.value   = c.value.warning_security_info();
+        warning_security_info.id      = c.id();
+        warning_security_info.crit    = c.crit();
+        warning_security_info.value   = c.value().warning_security_info();
         break;
       case 20:
         data_coding_scheme_present = true;
-        data_coding_scheme.id      = c.id;
-        data_coding_scheme.crit    = c.crit;
-        data_coding_scheme.value   = c.value.data_coding_scheme();
+        data_coding_scheme.id      = c.id();
+        data_coding_scheme.crit    = c.crit();
+        data_coding_scheme.value   = c.value().data_coding_scheme();
         break;
       case 123:
         warning_msg_contents_present = true;
-        warning_msg_contents.id      = c.id;
-        warning_msg_contents.crit    = c.crit;
-        warning_msg_contents.value   = c.value.warning_msg_contents();
+        warning_msg_contents.id      = c.id();
+        warning_msg_contents.crit    = c.crit();
+        warning_msg_contents.value   = c.value().warning_msg_contents();
         break;
       case 17:
         concurrent_warning_msg_ind_present = true;
-        concurrent_warning_msg_ind.id      = c.id;
-        concurrent_warning_msg_ind.crit    = c.crit;
-        concurrent_warning_msg_ind.value   = c.value.concurrent_warning_msg_ind();
+        concurrent_warning_msg_ind.id      = c.id();
+        concurrent_warning_msg_ind.crit    = c.crit();
+        concurrent_warning_msg_ind.value   = c.value().concurrent_warning_msg_ind();
         break;
       case 141:
         warning_area_coordinates_present = true;
-        warning_area_coordinates.id      = c.id;
-        warning_area_coordinates.crit    = c.crit;
-        warning_area_coordinates.value   = c.value.warning_area_coordinates();
+        warning_area_coordinates.id      = c.id();
+        warning_area_coordinates.crit    = c.crit();
+        warning_area_coordinates.value   = c.value().warning_area_coordinates();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44732,7 +44580,7 @@ void write_replace_warning_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::ngap::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
+template struct asn1::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
 
 write_replace_warning_resp_ies_container::write_replace_warning_resp_ies_container() :
   msg_id(35, crit_e::reject),
@@ -44768,33 +44616,33 @@ SRSASN_CODE write_replace_warning_resp_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<write_replace_warning_resp_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 35:
         nof_mandatory_ies--;
-        msg_id.id    = c.id;
-        msg_id.crit  = c.crit;
-        msg_id.value = c.value.msg_id();
+        msg_id.id    = c.id();
+        msg_id.crit  = c.crit();
+        msg_id.value = c.value().msg_id();
         break;
       case 95:
         nof_mandatory_ies--;
-        serial_num.id    = c.id;
-        serial_num.crit  = c.crit;
-        serial_num.value = c.value.serial_num();
+        serial_num.id    = c.id();
+        serial_num.crit  = c.crit();
+        serial_num.value = c.value().serial_num();
         break;
       case 13:
         broadcast_completed_area_list_present = true;
-        broadcast_completed_area_list.id      = c.id;
-        broadcast_completed_area_list.crit    = c.crit;
-        broadcast_completed_area_list.value   = c.value.broadcast_completed_area_list();
+        broadcast_completed_area_list.id      = c.id();
+        broadcast_completed_area_list.crit    = c.crit();
+        broadcast_completed_area_list.value   = c.value().broadcast_completed_area_list();
         break;
       case 19:
         crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
+        crit_diagnostics.id      = c.id();
+        crit_diagnostics.crit    = c.crit();
+        crit_diagnostics.value   = c.value().crit_diagnostics();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -49471,7 +49319,7 @@ const char* pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::types_opts::to
   return convert_enum_idx(options, 2, value, "pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::types");
 }
 
-template struct asn1::ngap::protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o>;
+template struct asn1::protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o>;
 
 pdu_session_res_modify_ind_transfer_ext_ies_container::pdu_session_res_modify_ind_transfer_ext_ies_container() :
   secondary_ratusage_info(144, crit_e::ignore), security_result(156, crit_e::ignore)
@@ -49500,21 +49348,21 @@ SRSASN_CODE pdu_session_res_modify_ind_transfer_ext_ies_container::unpack(cbit_r
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 144:
         secondary_ratusage_info_present = true;
-        secondary_ratusage_info.id      = c.id;
-        secondary_ratusage_info.crit    = c.crit;
-        secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
+        secondary_ratusage_info.id      = c.id();
+        secondary_ratusage_info.crit    = c.crit();
+        secondary_ratusage_info.ext     = c.value().secondary_ratusage_info();
         break;
       case 156:
         security_result_present = true;
-        security_result.id      = c.id;
-        security_result.crit    = c.crit;
-        security_result.ext     = c.ext_value.security_result();
+        security_result.id      = c.id();
+        security_result.crit    = c.crit();
+        security_result.ext     = c.value().security_result();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -50400,7 +50248,7 @@ uint8_t pdu_session_res_modify_request_transfer_ies_o::value_c::types_opts::to_n
   return 0;
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o>;
 
 pdu_session_res_modify_request_transfer_ies_container::pdu_session_res_modify_request_transfer_ies_container() :
   pdu_session_aggregate_maximum_bit_rate(130, crit_e::reject),
@@ -50450,45 +50298,45 @@ SRSASN_CODE pdu_session_res_modify_request_transfer_ies_container::unpack(cbit_r
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 130:
         pdu_session_aggregate_maximum_bit_rate_present = true;
-        pdu_session_aggregate_maximum_bit_rate.id      = c.id;
-        pdu_session_aggregate_maximum_bit_rate.crit    = c.crit;
-        pdu_session_aggregate_maximum_bit_rate.value   = c.value.pdu_session_aggregate_maximum_bit_rate();
+        pdu_session_aggregate_maximum_bit_rate.id      = c.id();
+        pdu_session_aggregate_maximum_bit_rate.crit    = c.crit();
+        pdu_session_aggregate_maximum_bit_rate.value   = c.value().pdu_session_aggregate_maximum_bit_rate();
         break;
       case 140:
         ul_ngu_up_tnl_modify_list_present = true;
-        ul_ngu_up_tnl_modify_list.id      = c.id;
-        ul_ngu_up_tnl_modify_list.crit    = c.crit;
-        ul_ngu_up_tnl_modify_list.value   = c.value.ul_ngu_up_tnl_modify_list();
+        ul_ngu_up_tnl_modify_list.id      = c.id();
+        ul_ngu_up_tnl_modify_list.crit    = c.crit();
+        ul_ngu_up_tnl_modify_list.value   = c.value().ul_ngu_up_tnl_modify_list();
         break;
       case 129:
         network_instance_present = true;
-        network_instance.id      = c.id;
-        network_instance.crit    = c.crit;
-        network_instance.value   = c.value.network_instance();
+        network_instance.id      = c.id();
+        network_instance.crit    = c.crit();
+        network_instance.value   = c.value().network_instance();
         break;
       case 135:
         qos_flow_add_or_modify_request_list_present = true;
-        qos_flow_add_or_modify_request_list.id      = c.id;
-        qos_flow_add_or_modify_request_list.crit    = c.crit;
-        qos_flow_add_or_modify_request_list.value   = c.value.qos_flow_add_or_modify_request_list();
+        qos_flow_add_or_modify_request_list.id      = c.id();
+        qos_flow_add_or_modify_request_list.crit    = c.crit();
+        qos_flow_add_or_modify_request_list.value   = c.value().qos_flow_add_or_modify_request_list();
         break;
       case 137:
         qos_flow_to_release_list_present = true;
-        qos_flow_to_release_list.id      = c.id;
-        qos_flow_to_release_list.crit    = c.crit;
-        qos_flow_to_release_list.value   = c.value.qos_flow_to_release_list();
+        qos_flow_to_release_list.id      = c.id();
+        qos_flow_to_release_list.crit    = c.crit();
+        qos_flow_to_release_list.value   = c.value().qos_flow_to_release_list();
         break;
       case 126:
         add_ul_ngu_up_tnl_info_present = true;
-        add_ul_ngu_up_tnl_info.id      = c.id;
-        add_ul_ngu_up_tnl_info.crit    = c.crit;
-        add_ul_ngu_up_tnl_info.value   = c.value.add_ul_ngu_up_tnl_info();
+        add_ul_ngu_up_tnl_info.id      = c.id();
+        add_ul_ngu_up_tnl_info.crit    = c.crit();
+        add_ul_ngu_up_tnl_info.value   = c.value().add_ul_ngu_up_tnl_info();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -51850,7 +51698,7 @@ uint8_t pdu_session_res_setup_request_transfer_ies_o::value_c::types_opts::to_nu
   return 0;
 }
 
-template struct asn1::ngap::protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o>;
+template struct asn1::protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o>;
 
 pdu_session_res_setup_request_transfer_ies_container::pdu_session_res_setup_request_transfer_ies_container() :
   pdu_session_aggregate_maximum_bit_rate(130, crit_e::reject),
@@ -51903,57 +51751,57 @@ SRSASN_CODE pdu_session_res_setup_request_transfer_ies_container::unpack(cbit_re
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
+    switch (c.id()) {
       case 130:
         pdu_session_aggregate_maximum_bit_rate_present = true;
-        pdu_session_aggregate_maximum_bit_rate.id      = c.id;
-        pdu_session_aggregate_maximum_bit_rate.crit    = c.crit;
-        pdu_session_aggregate_maximum_bit_rate.value   = c.value.pdu_session_aggregate_maximum_bit_rate();
+        pdu_session_aggregate_maximum_bit_rate.id      = c.id();
+        pdu_session_aggregate_maximum_bit_rate.crit    = c.crit();
+        pdu_session_aggregate_maximum_bit_rate.value   = c.value().pdu_session_aggregate_maximum_bit_rate();
         break;
       case 139:
         nof_mandatory_ies--;
-        ul_ngu_up_tnl_info.id    = c.id;
-        ul_ngu_up_tnl_info.crit  = c.crit;
-        ul_ngu_up_tnl_info.value = c.value.ul_ngu_up_tnl_info();
+        ul_ngu_up_tnl_info.id    = c.id();
+        ul_ngu_up_tnl_info.crit  = c.crit();
+        ul_ngu_up_tnl_info.value = c.value().ul_ngu_up_tnl_info();
         break;
       case 126:
         add_ul_ngu_up_tnl_info_present = true;
-        add_ul_ngu_up_tnl_info.id      = c.id;
-        add_ul_ngu_up_tnl_info.crit    = c.crit;
-        add_ul_ngu_up_tnl_info.value   = c.value.add_ul_ngu_up_tnl_info();
+        add_ul_ngu_up_tnl_info.id      = c.id();
+        add_ul_ngu_up_tnl_info.crit    = c.crit();
+        add_ul_ngu_up_tnl_info.value   = c.value().add_ul_ngu_up_tnl_info();
         break;
       case 127:
         data_forwarding_not_possible_present = true;
-        data_forwarding_not_possible.id      = c.id;
-        data_forwarding_not_possible.crit    = c.crit;
-        data_forwarding_not_possible.value   = c.value.data_forwarding_not_possible();
+        data_forwarding_not_possible.id      = c.id();
+        data_forwarding_not_possible.crit    = c.crit();
+        data_forwarding_not_possible.value   = c.value().data_forwarding_not_possible();
         break;
       case 134:
         nof_mandatory_ies--;
-        pdu_session_type.id    = c.id;
-        pdu_session_type.crit  = c.crit;
-        pdu_session_type.value = c.value.pdu_session_type();
+        pdu_session_type.id    = c.id();
+        pdu_session_type.crit  = c.crit();
+        pdu_session_type.value = c.value().pdu_session_type();
         break;
       case 138:
         security_ind_present = true;
-        security_ind.id      = c.id;
-        security_ind.crit    = c.crit;
-        security_ind.value   = c.value.security_ind();
+        security_ind.id      = c.id();
+        security_ind.crit    = c.crit();
+        security_ind.value   = c.value().security_ind();
         break;
       case 129:
         network_instance_present = true;
-        network_instance.id      = c.id;
-        network_instance.crit    = c.crit;
-        network_instance.value   = c.value.network_instance();
+        network_instance.id      = c.id();
+        network_instance.crit    = c.crit();
+        network_instance.value   = c.value().network_instance();
         break;
       case 136:
         nof_mandatory_ies--;
-        qos_flow_setup_request_list.id    = c.id;
-        qos_flow_setup_request_list.crit  = c.crit;
-        qos_flow_setup_request_list.value = c.value.qos_flow_setup_request_list();
+        qos_flow_setup_request_list.id    = c.id();
+        qos_flow_setup_request_list.crit  = c.crit();
+        qos_flow_setup_request_list.value = c.value().qos_flow_setup_request_list();
         break;
       default:
-        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id());
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }

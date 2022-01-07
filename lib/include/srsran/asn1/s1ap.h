@@ -487,41 +487,6 @@ struct private_ie_field_s {
 template <class ies_set_paramT_>
 using private_ie_container_l = dyn_seq_of<private_ie_field_s<ies_set_paramT_>, 1, 65535, true>;
 
-// ProtocolExtensionField{S1AP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-EXTENSION}}
-template <class ext_set_paramT_>
-struct protocol_ext_field_s {
-  uint32_t                        id = 0;
-  crit_e                          crit;
-  typename ext_set_paramT_::ext_c ext_value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
-// ProtocolExtensionContainer{S1AP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
-// ProtocolExtensionField
-template <class ext_set_paramT_>
-using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ext_set_paramT_>, 1, 65535, true>;
-
-// ProtocolIE-Field{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_field_s {
-  uint32_t                          id = 0;
-  crit_e                            crit;
-  typename ies_set_paramT_::value_c value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
-// ProtocolIE-Container{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
-template <class ies_set_paramT_>
-using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<ies_set_paramT_>, 0, 65535, true>;
-
 // ProtocolIE-FieldPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES-PAIR}}
 template <class ies_set_paramT_>
 struct protocol_ie_field_pair_s {
@@ -588,19 +553,6 @@ using plm_nid = fixed_octstring<3, true>;
 
 // Additional-GUTI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 using add_guti_ext_ies_o = s1ap_protocol_ext_empty_o;
-
-template <class extT_>
-struct protocol_ext_container_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  extT_    ext;
-
-  // sequence methods
-  protocol_ext_container_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 
 struct protocol_ext_container_empty_l {
   template <class extT_>
@@ -2469,19 +2421,6 @@ struct cell_traffic_trace_ies_o {
   static crit_e     get_crit(const uint32_t& id);
   static value_c    get_value(const uint32_t& id);
   static presence_e get_presence(const uint32_t& id);
-};
-
-template <class valueT_>
-struct protocol_ie_container_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  valueT_  value;
-
-  // sequence methods
-  protocol_ie_container_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
 };
 
 struct cell_traffic_trace_ies_container {
@@ -18208,24 +18147,125 @@ struct targetenb_to_sourceenb_transparent_container_s {
 } // namespace asn1
 
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::recommended_cell_item_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::bearers_subject_to_status_transfer_item_ext_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::bearers_subject_to_status_transfer_item_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::cell_traffic_trace_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::gbr_qos_info_ext_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::erab_qos_params_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::conn_establishment_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::deactiv_trace_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::ho_restrict_list_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::dl_nas_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::dl_non_ueassociated_lp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::dl_s1cdma2000tunnelling_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::dl_ueassociated_lp_pa_transport_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_item_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_modify_item_bearer_mod_conf_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_mod_confirm_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erabusage_report_item_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::secondary_rat_data_usage_report_item_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_mod_ind_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_modify_item_bearer_mod_res_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::ue_aggregate_maximum_bitrates_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_modify_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_modify_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_release_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_release_ind_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_release_item_bearer_rel_comp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_release_resp_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_bearer_su_res_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::erab_to_be_setup_item_bearer_su_req_ext_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_to_be_setup_item_bearer_su_req_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::erab_setup_resp_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::erab_to_be_setup_item_ctxt_su_req_ext_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::erab_to_be_setup_item_ho_req_ext_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::erab_to_be_setup_item_ctxt_su_req_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::x2_tnl_cfg_info_ext_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::son_info_ext_ie_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::enbcp_relocation_ind_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::son_cfg_transfer_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::enb_cfg_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::enb_cfg_upd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::enb_cfg_upd_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::enb_status_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::error_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_cancel_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_cancel_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_notify_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_prep_fail_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::immediate_mdt_ext_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::logged_mdt_ext_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::mdt_mode_ext_ie_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::trace_activation_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_request_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ho_required_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::recommended_enb_item_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::init_context_setup_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::init_context_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::init_context_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::init_ue_msg_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::ue_associated_lc_s1_conn_item_res_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::tai_item_ies_o>;
 extern template struct asn1::protocol_ie_single_container_s<asn1::s1ap::ue_associated_lc_s1_conn_item_res_ack_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::kill_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::kill_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::location_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::location_report_ctrl_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::location_report_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::mmecp_relocation_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::mme_cfg_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::mme_cfg_upd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::mme_cfg_upd_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::mme_status_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::nas_delivery_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::nas_non_delivery_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::overload_start_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::pws_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::pws_restart_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::paging_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::path_switch_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::path_switch_request_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::path_switch_request_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::reroute_nas_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::reset_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::reset_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::s1_setup_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::s1_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::s1_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::secondary_rat_data_usage_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::trace_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::trace_start_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_cap_info_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_mod_confirm_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_mod_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_mod_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_mod_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_mod_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_release_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_release_complete_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_release_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_resume_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_resume_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_resume_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_suspend_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_context_suspend_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_info_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_radio_cap_match_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ue_radio_cap_match_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ul_nas_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ul_non_ueassociated_lp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ul_s1cdma2000tunnelling_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::ul_ueassociated_lp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::write_replace_warning_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::s1ap::write_replace_warning_resp_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::last_visited_eutran_cell_info_ext_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::s1ap::sourceenb_to_targetenb_transparent_container_ext_ies_o>;
 
 #endif // SRSASN1_S1AP_H
