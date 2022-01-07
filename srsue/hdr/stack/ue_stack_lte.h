@@ -168,6 +168,7 @@ public:
   void      reset_eps_bearers() final;
 
   srsran::ext_task_sched_handle get_task_sched() { return {&task_sched}; }
+  void                          cell_select_completed(const cell_select_result_t& result) override;
 
 private:
   void run_thread() final;

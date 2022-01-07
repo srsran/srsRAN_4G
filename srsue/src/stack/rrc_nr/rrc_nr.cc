@@ -2014,5 +2014,6 @@ void rrc_nr::set_phy_config_complete(bool status)
   }
   phy_cfg_state = PHY_CFG_STATE_NONE;
 }
+void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result) {}
 
 } // namespace srsue

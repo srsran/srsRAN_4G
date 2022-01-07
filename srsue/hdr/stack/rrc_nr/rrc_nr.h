@@ -124,7 +124,7 @@ public:
   bool is_config_pending();
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
-
+  void cell_select_completed(const cell_select_result_t& result) final;
   void set_phy_config_complete(bool status) final;
 
 private:
