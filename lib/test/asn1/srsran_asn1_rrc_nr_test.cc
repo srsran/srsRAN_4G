@@ -362,9 +362,8 @@ int test_cell_group_config_tdd()
       cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present ==
       true);
 
-  TESTASSERT(
-      cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.type() ==
-      asn1::rrc_nr::setup_release_c<rach_cfg_common_s>::types_opts::setup);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common
+                 .is_setup());
 
   asn1::rrc_nr::rach_cfg_common_s& rach_cfg_common =
       cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup();
@@ -980,9 +979,8 @@ int test_cell_group_config_fdd()
       cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present ==
       true);
 
-  TESTASSERT(
-      cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.type() ==
-      asn1::rrc_nr::setup_release_c<rach_cfg_common_s>::types_opts::setup);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common
+                 .is_setup());
 
   asn1::rrc_nr::rach_cfg_common_s& rach_cfg_common =
       cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup();

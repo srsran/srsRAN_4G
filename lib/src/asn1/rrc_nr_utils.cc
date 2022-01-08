@@ -1530,9 +1530,7 @@ bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
 
 bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
 {
-  if (serv_cell.csi_meas_cfg_present and
-      serv_cell.csi_meas_cfg.type().value ==
-          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+  if (serv_cell.csi_meas_cfg_present and serv_cell.csi_meas_cfg.is_setup()) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure NZP-CSI
@@ -1552,8 +1550,7 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
     }
   }
 
-  if (serv_cell.init_dl_bwp.pdsch_cfg_present and
-      serv_cell.init_dl_bwp.pdsch_cfg.type() == setup_release_c<pdsch_cfg_s>::types_opts::setup) {
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present and serv_cell.init_dl_bwp.pdsch_cfg.is_setup()) {
     const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
     if (setup.p_zp_csi_rs_res_set_present) {
       auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
@@ -1573,9 +1570,7 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
 
 bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl)
 {
-  if (serv_cell.csi_meas_cfg_present and
-      serv_cell.csi_meas_cfg.type().value ==
-          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+  if (serv_cell.csi_meas_cfg_present and serv_cell.csi_meas_cfg.is_setup()) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure CSI-Report

@@ -974,7 +974,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
   }
 
   if (mac_cell_group_cfg.phr_cfg_present) {
-    if (mac_cell_group_cfg.phr_cfg.type() == setup_release_c<asn1::rrc_nr::phr_cfg_s>::types_opts::setup) {
+    if (mac_cell_group_cfg.phr_cfg.is_setup()) {
       phr_cfg_nr_t phr_cfg_nr;
       if (make_mac_phr_cfg_t(mac_cell_group_cfg.phr_cfg.setup(), &phr_cfg_nr) != true) {
         logger.warning("Unable to build PHR config");
@@ -1196,8 +1196,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
   }
   if (dl_cfg_common.init_dl_bwp_present) {
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
-      if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
-          asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
+      if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.is_setup()) {
         const pdcch_cfg_common_s& pdcch_cfg_common = dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
 
         // Load CORESET Zero

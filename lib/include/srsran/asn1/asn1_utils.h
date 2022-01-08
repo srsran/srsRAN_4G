@@ -1458,6 +1458,86 @@ struct setup_release_opts {
 };
 using setup_release_e = enumerated<setup_release_opts>;
 
+// SetupRelease{ElementTypeParam} ::= CHOICE
+template <class T>
+struct setup_release_c {
+  using types_opts = setup_release_opts;
+  using types      = setup_release_e;
+
+  // choice methods
+  setup_release_c() = default;
+  void        set(typename types::options e = types::nulltype) { type_ = e; }
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    type_.pack(bref);
+    switch (type_) {
+      case types::release:
+        break;
+      case types::setup:
+        HANDLE_CODE(c.pack(bref));
+        break;
+      default:
+        log_invalid_choice_id(type_, "setup_release_c");
+        return SRSASN_ERROR_ENCODE_FAIL;
+    }
+    return SRSASN_SUCCESS;
+  }
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    types e;
+    e.unpack(bref);
+    set(e);
+    switch (type_) {
+      case types::release:
+        break;
+      case types::setup:
+        HANDLE_CODE(c.unpack(bref));
+        break;
+      default:
+        log_invalid_choice_id(type_, "setup_release_c");
+        return SRSASN_ERROR_DECODE_FAIL;
+    }
+    return SRSASN_SUCCESS;
+  }
+  void to_json(json_writer& j) const
+  {
+    j.start_obj();
+    switch (type_) {
+      case types::release:
+        break;
+      case types::setup:
+        asn1::to_json(j, setup());
+        break;
+      default:
+        log_invalid_choice_id(type_, "setup_release_c");
+    }
+    j.end_obj();
+  }
+  // getters
+  bool is_setup() const { return type_.value == setup_release_opts::setup; }
+  T&   setup()
+  {
+    assert_choice_type(types::setup, type_, "SetupRelease");
+    return c;
+  }
+  const T& setup() const
+  {
+    assert_choice_type(types::setup, type_, "SetupRelease");
+    return c;
+  }
+  void set_release() { set(types::release); }
+  T&   set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
+
+private:
+  types type_;
+  T     c;
+};
+
 // Criticality ::= ENUMERATED
 struct crit_opts {
   enum options { reject, ignore, notify, nulltype } value;
