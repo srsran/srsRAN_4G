@@ -20,33 +20,35 @@ using namespace asn1::ngap;
 
 int test_amf_upd()
 {
-  uint8_t  ngap_msg[] = {0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x11};
+  //  uint8_t  ngap_msg[] = {0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x11};
+  uint8_t ngap_msg[] = {
+      0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x08, 0x02, 0x80, 0x73, 0x72, 0x73, 0x72, 0x61, 0x6e};
   cbit_ref bref(&ngap_msg[0], sizeof(ngap_msg));
   // 0000000A00000100010003000011
+  // 0000000F00000100010008028073727372616E
 
   ngap_pdu_c pdu;
-  TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
+  TESTASSERT_EQ(SRSASN_SUCCESS, pdu.unpack(bref));
 
-  TESTASSERT(pdu.type().value == ngap_pdu_c::types_opts::init_msg);
-  TESTASSERT(pdu.init_msg().proc_code == 0);
-  TESTASSERT(pdu.init_msg().crit.value == crit_opts::reject);
+  TESTASSERT_EQ(ngap_pdu_c::types_opts::init_msg, pdu.type().value);
+  TESTASSERT_EQ(0, pdu.init_msg().proc_code);
+  TESTASSERT_EQ(crit_opts::reject, pdu.init_msg().crit.value);
   ngap_elem_procs_o::init_msg_c& init_choice = pdu.init_msg().value;
-  TESTASSERT(init_choice.type().value == ngap_elem_procs_o::init_msg_c::types_opts::amf_cfg_upd);
+  TESTASSERT_EQ(ngap_elem_procs_o::init_msg_c::types_opts::amf_cfg_upd, init_choice.type().value);
   amf_cfg_upd_s& amf_upd = init_choice.amf_cfg_upd();
   TESTASSERT(not amf_upd.ext);
   auto& amf_name = amf_upd.protocol_ies.amf_name;
   TESTASSERT(amf_upd.protocol_ies.amf_name_present);
-  TESTASSERT(amf_name.id == 1);
-  TESTASSERT(amf_name.crit == crit_opts::reject);
-  TESTASSERT(amf_name.value.size() == 1);
-  TESTASSERT(amf_name.value[0] == 17);
+  TESTASSERT_EQ(1, amf_name.id);
+  TESTASSERT_EQ(crit_opts::reject, amf_name.crit);
+  TESTASSERT_EQ("srsran", amf_name.value.to_string());
 
-  TESTASSERT(ceil(bref.distance_bytes()) == sizeof(ngap_msg));
-  TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
+  TESTASSERT_EQ(sizeof(ngap_msg), ceil(bref.distance_bytes()));
+  TESTASSERT_EQ(SRSASN_SUCCESS, test_pack_unpack_consistency(pdu));
 
-  //  json_writer js;
-  //  pdu.to_json(js);
-  //  printf("PDU json: %s\n", js.to_string().c_str());
+  json_writer js;
+  pdu.to_json(js);
+  printf("PDU json: %s\n", js.to_string().c_str());
 
   return 0;
 }
@@ -344,15 +346,15 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(test_amf_upd() == 0);
-  TESTASSERT(test_ngsetup_request() == 0);
-  TESTASSERT(test_ngsetup_response() == 0);
-  TESTASSERT(test_init_ue_msg() == 0);
-  TESTASSERT(test_dl_nas_transport() == 0);
-  TESTASSERT(test_ul_ran_status_transfer() == 0);
-  TESTASSERT(test_ue_context_release() == 0);
-  TESTASSERT(test_ue_context_release_complete() == 0);
-  TESTASSERT(test_session_res_setup_request() == 0);
+  test_amf_upd();
+  test_ngsetup_request();
+  test_ngsetup_response();
+  test_init_ue_msg();
+  test_dl_nas_transport();
+  test_ul_ran_status_transfer();
+  test_ue_context_release();
+  test_ue_context_release_complete();
+  test_session_res_setup_request();
 
   srslog::flush();
 

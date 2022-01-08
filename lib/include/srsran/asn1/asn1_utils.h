@@ -1377,7 +1377,7 @@ inline auto to_json(json_writer& j, const T& obj) -> decltype(obj.to_json(j))
 }
 
 template <typename T>
-inline void to_json(json_writer& j, const asn1::enumerated<T>& obj)
+inline auto to_json(json_writer& j, const T& obj) -> decltype(j.write_str(obj.to_string()))
 {
   j.write_str(obj.to_string());
 }
@@ -1549,14 +1549,40 @@ struct crit_opts {
 };
 typedef enumerated<crit_opts> crit_e;
 
-template <class ObjSet, class ValueType, ValueType (*Getter)(const uint32_t&)>
-struct base_protocol_ie_field {
-  using value_type = ValueType;
+namespace detail {
 
-  uint32_t          id() const { return ObjSet::idx_to_id(value().type().value); }
-  crit_e            crit() const { return ObjSet::get_crit(id()); }
-  value_type&       value() { return value_; }
-  const value_type& value() const { return value_; }
+template <typename IEsSetParam>
+struct ie_field_value_item {
+  using obj_set_type = IEsSetParam;
+  using value_type   = typename IEsSetParam::value_c;
+  const char* item_name() const { return "value"; }
+  void        set_item(uint32_t id) { item = IEsSetParam::get_value(id); }
+
+protected:
+  value_type item;
+};
+
+template <typename ExtensionSetParam>
+struct ie_field_ext_item {
+  using obj_set_type = ExtensionSetParam;
+  using value_type   = typename ExtensionSetParam::ext_c;
+  const char* item_name() const { return "extension"; }
+  void        set_item(uint32_t id) { item = ExtensionSetParam::get_ext(id); }
+
+protected:
+  value_type item;
+};
+
+template <class IEItem>
+struct base_ie_field : public IEItem {
+  using obj_set_type = typename IEItem::obj_set_type;
+  using value_type   = typename IEItem::value_type;
+
+  uint32_t          id() const { return obj_set_type::idx_to_id(value().type().value); }
+  crit_e            crit() const { return obj_set_type::get_crit(id()); }
+  value_type&       value() { return this->item; }
+  const value_type& value() const { return this->item; }
+
   value_type*       operator->() { return &value(); }
   const value_type* operator->() const { return &value(); }
   value_type&       operator*() { return value(); }
@@ -1573,9 +1599,9 @@ struct base_protocol_ie_field {
   {
     uint32_t id_val;
     HANDLE_CODE(unpack_integer(id_val, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-    value_ = (*Getter)(id_val);
+    this->set_item(id_val);
     HANDLE_CODE(crit().unpack(bref));
-    HANDLE_CODE(value_.unpack(bref));
+    HANDLE_CODE(value().unpack(bref));
     return SRSASN_SUCCESS;
   }
   void to_json(json_writer& j) const
@@ -1583,43 +1609,81 @@ struct base_protocol_ie_field {
     j.start_obj();
     j.write_int("id", id());
     j.write_str("criticality", crit().to_string());
-    //    j.write_str("value");
-    //    to_json(j, value());
+    j.write_fieldname(this->item_name());
+    asn1::to_json(j, value());
     j.end_obj();
   }
   bool load_info_obj(const uint32_t& id_)
   {
-    if (not ObjSet::is_id_valid(id_)) {
+    if (not obj_set_type::is_id_valid(id_)) {
       return false;
     }
-    value_ = ObjSet::get_value(id_);
-    return value_.type().value != ObjSet::value_c::types_opts::nulltype;
+    this->set_item(id_);
+    return value().type().value != obj_set_type::value_c::types_opts::nulltype;
   }
-
-private:
-  value_type value_;
 };
 
+} // namespace detail
+
 // ProtocolIE-Field{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{IEsSetParam}}
-template <class ies_set_paramT_>
-struct protocol_ie_field_s
-  : public base_protocol_ie_field<ies_set_paramT_, typename ies_set_paramT_::value_c, &ies_set_paramT_::get_value> {};
+template <class IEsSetParam>
+struct protocol_ie_field_s : public detail::base_ie_field<detail::ie_field_value_item<IEsSetParam> > {};
 
 // ProtocolIE-SingleContainer{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{IEsSetParam}}
 template <class ies_set_paramT_>
 struct protocol_ie_single_container_s : public protocol_ie_field_s<ies_set_paramT_> {};
 
-// ProtocolExtensionField{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-EXTENSION}}
-template <class ext_set_paramT_>
-struct protocol_ext_field_s
-  : public base_protocol_ie_field<ext_set_paramT_, typename ext_set_paramT_::ext_c, &ext_set_paramT_::get_ext> {};
+// ProtocolExtensionField{LAYER-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{LAYER-PROTOCOL-EXTENSION}}
+template <class ExtensionSetParam>
+struct protocol_ext_field_s : public detail::base_ie_field<detail::ie_field_ext_item<ExtensionSetParam> > {};
 
-template <class Derived>
-struct base_protocol_ie_container_item_s {
-  base_protocol_ie_container_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_) {}
+namespace detail {
+
+template <typename T>
+struct ie_value_item {
+  using value_type = T;
+  value_type value;
+
+  value_type*       operator->() { return &value; }
+  const value_type* operator->() const { return &value; }
+  value_type&       operator*() { return value; }
+  const value_type& operator*() const { return value; }
+  const char*       item_name() const { return "value"; }
+
+protected:
+  value_type&       item() { return value; }
+  const value_type& item() const { return value; }
+};
+
+template <typename T>
+struct ie_ext_item {
+  using value_type = T;
+  value_type ext;
+
+  value_type*       operator->() { return &ext; }
+  const value_type* operator->() const { return &ext; }
+  value_type&       operator*() { return ext; }
+  const value_type& operator*() const { return ext; }
+  const char*       item_name() const { return "extension"; }
+
+protected:
+  value_type&       item() { return ext; }
+  const value_type& item() const { return ext; }
+};
+
+template <class IEItem>
+struct base_ie_container_item : public IEItem {
+  using value_type = typename IEItem::value_type;
+
+  base_ie_container_item(uint32_t id_, crit_e crit_) : id(id_), crit(crit_) {}
 
   uint32_t id = 0;
   crit_e   crit;
+
+  value_type*       operator->() { return &this->item(); }
+  const value_type* operator->() const { return &this->item(); }
+  value_type&       operator*() { return this->item(); }
+  const value_type& operator*() const { return this->item(); }
 
   SRSASN_CODE pack(bit_ref& bref) const
   {
@@ -1627,7 +1691,7 @@ struct base_protocol_ie_container_item_s {
     HANDLE_CODE(crit.pack(bref));
     {
       varlength_field_pack_guard varlen_scope(bref, true);
-      HANDLE_CODE((*derived())->pack(bref));
+      HANDLE_CODE(this->item().pack(bref));
     }
     return SRSASN_SUCCESS;
   }
@@ -1637,7 +1701,7 @@ struct base_protocol_ie_container_item_s {
     HANDLE_CODE(crit.unpack(bref));
     {
       varlength_field_unpack_guard varlen_scope(bref, true);
-      HANDLE_CODE((*derived())->unpack(bref));
+      HANDLE_CODE(this->item().unpack(bref));
     }
     return SRSASN_SUCCESS;
   }
@@ -1646,47 +1710,31 @@ struct base_protocol_ie_container_item_s {
     j.start_obj();
     j.write_int("id", id);
     j.write_str("criticality", crit.to_string());
+    j.write_fieldname(this->item_name());
+    asn1::to_json(j, this->item());
     j.end_obj();
   }
+};
 
-private:
-  Derived*       derived() { return static_cast<Derived*>(this); }
-  const Derived* derived() const { return static_cast<const Derived*>(this); }
+} // namespace detail
+
+template <typename T>
+struct protocol_ie_container_item_s : public detail::base_ie_container_item<detail::ie_value_item<T> > {
+  using base_type = detail::base_ie_container_item<detail::ie_value_item<T> >;
+  using base_type::base_type;
 };
 
 template <typename T>
-struct protocol_ie_container_item_s : public base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> > {
-  using base_type  = base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> >;
-  using value_type = T;
-
-  value_type value;
-
+struct protocol_ext_container_item_s : public detail::base_ie_container_item<detail::ie_ext_item<T> > {
+  using base_type = detail::base_ie_container_item<detail::ie_ext_item<T> >;
   using base_type::base_type;
-  value_type*       operator->() { return &value; }
-  const value_type* operator->() const { return &value; }
-  value_type&       operator*() { return value; }
-  const value_type& operator*() const { return value; }
 };
 
-template <typename T>
-struct protocol_ext_container_item_s : public base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> > {
-  using base_type  = base_protocol_ie_container_item_s<protocol_ie_container_item_s<T> >;
-  using value_type = T;
-
-  value_type ext;
-
-  using base_type::base_type;
-  value_type*       operator->() { return &ext; }
-  const value_type* operator->() const { return &ext; }
-  value_type&       operator*() { return ext; }
-  const value_type& operator*() const { return ext; }
-};
-
-// ProtocolIE-Container{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
+// ProtocolIE-Container{LAYER-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
 template <class IEsSetParam>
 using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<IEsSetParam>, 0, 65535, true>;
 
-// ProtocolExtensionContainer{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
+// ProtocolExtensionContainer{LAYER-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
 // ProtocolExtensionField
 template <class ExtensionSetParam>
 using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ExtensionSetParam>, 1, 65535, true>;
