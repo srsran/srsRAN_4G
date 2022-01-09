@@ -1036,7 +1036,7 @@ void rrc::tti_clock()
       if (p.pdu != nullptr) {
         log_rx_pdu_fail(p.rnti, p.lcid, *p.pdu, "unknown rnti");
       } else {
-        logger.warning("Ignoring rnti=0x%x command. Cause: unknown rnti", p.rnti);
+        logger.warning("Ignoring rnti=0x%x command %d arg %d. Cause: unknown rnti", p.rnti, p.lcid, p.arg);
       }
       continue;
     }

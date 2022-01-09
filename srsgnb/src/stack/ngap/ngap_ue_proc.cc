@@ -31,7 +31,7 @@ ngap_ue_initial_context_setup_proc::ngap_ue_initial_context_setup_proc(ngap_inte
                                                                        srslog::basic_logger&     logger_) :
   logger(logger_), parent(parent_), rrc(rrc_), ue_ctxt(ue_ctxt_){};
 
-proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap_nr::init_context_setup_request_s& msg)
+proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap::init_context_setup_request_s& msg)
 {
   ue_ctxt->amf_pointer   = msg.protocol_ies.guami.value.amf_pointer.to_number();
   ue_ctxt->amf_set_id    = msg.protocol_ies.guami.value.amf_set_id.to_number();
@@ -87,7 +87,7 @@ ngap_ue_ue_context_release_proc::ngap_ue_ue_context_release_proc(ngap_interface_
   bearer_manager = bearer_manager_;
 };
 
-proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap::ue_context_release_cmd_s& msg)
 {
   logger.info("Started %s", name());
   bearer_manager->reset_pdu_sessions(ue_ctxt->rnti);
@@ -109,20 +109,19 @@ ngap_ue_pdu_session_res_setup_proc::ngap_ue_pdu_session_res_setup_proc(ngap_inte
   parent(parent_), rrc(rrc_), ue_ctxt(ue_ctxt_), bearer_manager(bearer_manager_), logger(logger_)
 {}
 
-proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_session_res_setup_request_s& msg)
 {
   if (msg.protocol_ies.pdu_session_res_setup_list_su_req.value.size() != 1) {
     logger.error("Not handling zero or multiple su requests");
     return proc_outcome_t::error;
   }
 
-  asn1::ngap_nr::pdu_session_res_setup_item_su_req_s su_req =
-      msg.protocol_ies.pdu_session_res_setup_list_su_req.value[0];
+  asn1::ngap::pdu_session_res_setup_item_su_req_s su_req = msg.protocol_ies.pdu_session_res_setup_list_su_req.value[0];
 
   asn1::cbit_ref pdu_session_bref(su_req.pdu_session_res_setup_request_transfer.data(),
                                   su_req.pdu_session_res_setup_request_transfer.size());
 
-  asn1::ngap_nr::pdu_session_res_setup_request_transfer_s pdu_ses_res_setup_req_trans;
+  asn1::ngap::pdu_session_res_setup_request_transfer_s pdu_ses_res_setup_req_trans;
 
   if (pdu_ses_res_setup_req_trans.unpack(pdu_session_bref) != SRSRAN_SUCCESS) {
     logger.error("Unable to unpack PDU session response setup request");
@@ -135,11 +134,11 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
   }
 
   if (pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.type() !=
-      asn1::ngap_nr::up_transport_layer_info_c::types::gtp_tunnel) {
+      asn1::ngap::up_transport_layer_info_c::types::gtp_tunnel) {
     logger.error("Expected GTP Tunnel");
     return proc_outcome_t::error;
   }
-  asn1::ngap_nr::qos_flow_setup_request_item_s qos_flow_setup =
+  asn1::ngap::qos_flow_setup_request_item_s qos_flow_setup =
       pdu_ses_res_setup_req_trans.protocol_ies.qos_flow_setup_request_list.value[0];
   srsran::const_span<uint8_t> nas_pdu_dummy;
   uint32_t                    teid_out = 0;
@@ -150,7 +149,7 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap_nr::pdu
   teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[3];
 
   // TODO: Check cause
-  asn1::ngap_nr::cause_c                      cause;
+  asn1::ngap::cause_c                         cause;
   uint32_t                                    teid_in = {};
   uint16_t                                    lcid    = {};
   asn1::bounded_bitstring<1, 160, true, true> addr_in;

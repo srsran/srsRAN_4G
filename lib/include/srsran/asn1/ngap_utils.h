@@ -29,7 +29,7 @@
  ***********************/
 
 namespace asn1 {
-namespace ngap_nr {
+namespace ngap {
 struct rrcestablishment_cause_opts;
 struct cause_radio_network_opts;
 using rrcestablishment_cause_e = enumerated<rrcestablishment_cause_opts, true, 1>;

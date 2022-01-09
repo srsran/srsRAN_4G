@@ -29,20 +29,20 @@ ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
 int ngap_ue_bearer_manager::add_pdu_session(uint16_t                                           rnti,
                                             uint8_t                                            pdu_session_id,
-                                            const asn1::ngap_nr::qos_flow_level_qos_params_s&  qos,
+                                            const asn1::ngap::qos_flow_level_qos_params_s&     qos,
                                             const asn1::bounded_bitstring<1, 160, true, true>& addr_out,
                                             uint32_t                                           teid_out,
                                             uint16_t&                                          lcid,
                                             asn1::bounded_bitstring<1, 160, true, true>&       addr_in,
                                             uint32_t&                                          teid_in,
-                                            asn1::ngap_nr::cause_c&                            cause)
+                                            asn1::ngap::cause_c&                               cause)
 {
   // Only add session if gtpu was successful
   pdu_session_t::gtpu_tunnel tunnel;
 
   if (addr_out.length() > 32) {
     logger.error("Only addresses with length <= 32 (IPv4) are supported");
-    cause.set_radio_network().value = asn1::ngap_nr::cause_radio_network_opts::invalid_qos_combination;
+    cause.set_radio_network().value = asn1::ngap::cause_radio_network_opts::invalid_qos_combination;
     return SRSRAN_ERROR;
   }
 

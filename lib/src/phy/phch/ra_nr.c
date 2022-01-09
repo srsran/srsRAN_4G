@@ -28,6 +28,7 @@
 #include "srsran/phy/phch/ra_ul_nr.h"
 #include "srsran/phy/phch/uci_nr.h"
 #include "srsran/phy/utils/debug.h"
+#include <math.h> /* floor */
 
 typedef struct {
   srsran_mod_t modulation;
@@ -39,6 +40,7 @@ typedef struct {
 #define RA_NR_MCS_SIZE_TABLE2 28
 #define RA_NR_MCS_SIZE_TABLE3 29
 #define RA_NR_TBS_SIZE_TABLE 93
+#define RA_NR_CQI_TABLE_SIZE 16
 #define RA_NR_BETA_OFFSET_HARQACK_SIZE 32
 #define RA_NR_BETA_OFFSET_CSI_SIZE 32
 
@@ -140,12 +142,99 @@ static const float ra_nr_beta_offset_csi_table[RA_NR_BETA_OFFSET_CSI_SIZE] = {
     4.000f, 5.000f, 6.250f, 8.000f, 10.000f, 12.625f, 15.875f, 20.000f, NAN,    NAN,    NAN,
     NAN,    NAN,    NAN,    NAN,    NAN,     NAN,     NAN,     NAN,     NAN,    NAN};
 
-typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
+typedef enum { ra_nr_table_idx_1 = 0, ra_nr_table_idx_2, ra_nr_table_idx_3 } ra_nr_table_idx_t;
 
-static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t         mcs_table,
-                                                          srsran_dci_format_nr_t     dci_format,
-                                                          srsran_search_space_type_t search_space_type,
-                                                          srsran_rnti_type_t         rnti_type)
+/**
+ * The table below performs the mapping of the CQI into the closest MCS, based on the corresponding spectral efficiency.
+ * The mapping works as follows:
+ * - select spectral efficiency from the CQI from tables Table 5.2.2.1-2, Table 5.2.2.1-3, or Table 5.2.2.1-4,
+ *   TS 38.214 V15.14.0
+ * - select MCS corresponding to same spectral efficiency from Table 5.1.3.1-1, Table 5.1.3.1-2, or Table 5.1.3.1-3,
+ *   TS 38.214 V15.14.0
+ *
+ * The array ra_nr_cqi_to_mcs_table[CQI_table_idx][MCS_table_idx][CQI] contains the MCS corresponding to CQI, based on
+ * the given CQI_table_idx and MCS_table_idx tables
+ * CQI_table_idx: 1 -> Table 5.2.2.1-2; 2 -> Table 5.2.2.1-3, 3 -> Table 5.2.2.1-4
+ * MCS_table_idx: 1 -> Table 5.1.3.1-1; 2 -> Table 5.1.3.1-2; 3 -> Table 5.1.3.1-3
+ */
+
+static const int ra_nr_cqi_to_mcs_table[3][3][RA_NR_CQI_TABLE_SIZE] = {
+    /* ROW 1 - CQI Table 1 */
+    {/* MCS Table 1 */ {-1, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24, 26, 28},
+     /* MCS Table 2 */ {-1, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21},
+     /* MCS Table 3 */ {-1, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 28, 28}},
+    /* ROW 2 - CQI Table 2 */
+    {/* MCS Table 1 */ {-1, 0, 2, 6, 11, 13, 15, 18, 20, 22, 24, 26, 28, 28, 28, 28},
+     /* MCS Table 2 */ {-1, 0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27},
+     /* MCS Table 3 */ {-1, 4, 8, 12, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28}},
+    /* ROW 3 - CQI Table 3 */
+    {/* MCS Table 1 */ {-1, 0, 0, 0, 0, 2, 4, 6, 8, 11, 13, 15, 18, 20, 22, 24},
+     /* MCS Table 2 */ {-1, 0, 0, 0, 0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 17},
+     /* MCS Table 3 */ {-1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28}}};
+
+/**
+ * The CQI to Spectral efficiency table.
+ * The array ra_nr_cqi_to_se_table[CQI_table_idx][CQI] contains the Spectral Efficiency corresponding to CQI, based on
+ * the given CQI_table_idx:
+ * CQI_table_idx: 1 -> Table 5.2.2.1-2; 2 -> Table 5.2.2.1-3, 3 -> Table 5.2.2.1-4
+ */
+static const double ra_nr_cqi_to_se_table[3][RA_NR_CQI_TABLE_SIZE] = {
+    /* ROW 1 - CQI Table 1 */
+    {-1,
+     0.1523,
+     0.2344,
+     0.3770,
+     0.6016,
+     0.8770,
+     1.1758,
+     1.4766,
+     1.9141,
+     2.4063,
+     2.7305,
+     3.3223,
+     3.9023,
+     4.5234,
+     5.1152,
+     5.5547},
+    /* ROW 2 - CQI Table 2 */
+    {-1,
+     0.1523,
+     0.3770,
+     0.8770,
+     1.4766,
+     1.9141,
+     2.4063,
+     2.7305,
+     3.3223,
+     3.9023,
+     4.5234,
+     5.1152,
+     5.5547,
+     6.2266,
+     6.9141,
+     7.4063},
+    /* ROW 3 - CQI Table 3 */
+    {-1,
+     0.0586,
+     0.0977,
+     0.1523,
+     0.2344,
+     0.3770,
+     0.6016,
+     0.8770,
+     1.1758,
+     1.4766,
+     1.9141,
+     2.4063,
+     2.7305,
+     3.3223,
+     3.9023,
+     4.5234}};
+
+static ra_nr_table_idx_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t         mcs_table,
+                                                              srsran_dci_format_nr_t     dci_format,
+                                                              srsran_search_space_type_t search_space_type,
+                                                              srsran_rnti_type_t         rnti_type)
 {
   // Non-implemented parameters
   bool mcs_c_rnti = false;
@@ -155,7 +244,7 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
   // - CRC scrambled by C-RNTI or SP-CSI-RNTI,
   if (mcs_table == srsran_mcs_table_256qam && dci_format == srsran_dci_format_nr_0_1 &&
       (rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_sp_csi)) {
-    return ra_nr_table_2;
+    return ra_nr_table_idx_2;
   }
 
   // - the UE is not configured with MCS-C-RNTI,
@@ -165,14 +254,14 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
   if (!mcs_c_rnti && mcs_table == srsran_mcs_table_qam64LowSE && dci_format != srsran_dci_format_nr_rar &&
       search_space_type == srsran_search_space_type_ue &&
       (rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_sp_csi)) {
-    return ra_nr_table_3;
+    return ra_nr_table_idx_3;
   }
 
   // - the UE is configured with MCS-C-RNTI, and
   // - the PUSCH is scheduled by a PDCCH with
   // - CRC scrambled by MCS-C-RNTI,
   //  if (mcs_c_rnti && dci_format != srsran_dci_format_nr_rar && rnti_type == srsran_rnti_type_mcs_c) {
-  //    return ra_nr_table_3;
+  //    return ra_nr_table_idx_3;
   //  }
 
   // - mcs-Table in configuredGrantConfig is set to 'qam256',
@@ -180,7 +269,7 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
   //   - if PUSCH is transmitted with configured grant
   //  if (configured_grant_table == srsran_mcs_table_256qam &&
   //      (rnti_type == srsran_rnti_type_cs || dci_format == srsran_dci_format_nr_cg)) {
-  //    return ra_nr_table_2;
+  //    return ra_nr_table_idx_2;
   //  }
 
   // - mcs-Table in configuredGrantConfig is set to 'qam64LowSE'
@@ -188,23 +277,23 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srsran_mcs_table_t    
   //   - if PUSCH is transmitted with configured grant,
   //  if (configured_grant_table == srsran_mcs_table_qam64LowSE &&
   //      (rnti_type == srsran_rnti_type_cs || dci_format == srsran_dci_format_nr_cg)) {
-  //    return ra_nr_table_3;
+  //    return ra_nr_table_idx_3;
   //  }
 
-  return ra_nr_table_1;
+  return ra_nr_table_idx_1;
 }
 
-static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_table,
-                                              srsran_dci_format_nr_t     dci_format,
-                                              srsran_search_space_type_t search_space_type,
-                                              srsran_rnti_type_t         rnti_type)
+static ra_nr_table_idx_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_table,
+                                                  srsran_dci_format_nr_t     dci_format,
+                                                  srsran_search_space_type_t search_space_type,
+                                                  srsran_rnti_type_t         rnti_type)
 {
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256', and
   // - the PDSCH is scheduled by a PDCCH with DCI format 1_1 with
   // - CRC scrambled by C-RNTI
   if (mcs_table == srsran_mcs_table_256qam && dci_format == srsran_dci_format_nr_1_1 &&
       rnti_type == srsran_rnti_type_c) {
-    return ra_nr_table_2;
+    return ra_nr_table_idx_2;
   }
 
   // the UE is not configured with MCS-C-RNTI,
@@ -213,7 +302,7 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
   // CRC scrambled by C - RNTI
   if (mcs_table == srsran_mcs_table_qam64LowSE && search_space_type == srsran_search_space_type_ue &&
       rnti_type == srsran_rnti_type_c) {
-    return ra_nr_table_3;
+    return ra_nr_table_idx_3;
   }
 
   // - the UE is not configured with the higher layer parameter mcs-Table given by SPS-Config,
@@ -222,7 +311,7 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
   //  if (!sps_config_mcs_table_present && mcs_table == srsran_mcs_table_256qam &&
   //      ((dci_format == srsran_dci_format_nr_1_1 && rnti_type == srsran_rnti_type_cs) || (!is_pdcch_sps))) {
-  //    return ra_nr_table_2;
+  //    return ra_nr_table_idx_2;
   //  }
 
   // - the UE is configured with the higher layer parameter mcs-Table given by SPS-Config set to 'qam64LowSE'
@@ -230,17 +319,17 @@ static ra_nr_table_t ra_nr_select_table_pdsch(srsran_mcs_table_t         mcs_tab
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
   //  if (sps_config_mcs_table_present && sps_config_mcs_table == srsran_mcs_table_qam64LowSE &&
   //      (rnti_type == srsran_rnti_type_cs || is_pdcch_sps)) {
-  //    return ra_nr_table_3;
+  //    return ra_nr_table_idx_3;
   //  }
 
   // else
-  return ra_nr_table_1;
+  return ra_nr_table_idx_1;
 }
 
-static ra_nr_table_t ra_nr_select_table(srsran_mcs_table_t         mcs_table,
-                                        srsran_dci_format_nr_t     dci_format,
-                                        srsran_search_space_type_t search_space_type,
-                                        srsran_rnti_type_t         rnti_type)
+static ra_nr_table_idx_t ra_nr_select_table(srsran_mcs_table_t         mcs_table,
+                                            srsran_dci_format_nr_t     dci_format,
+                                            srsran_search_space_type_t search_space_type,
+                                            srsran_rnti_type_t         rnti_type)
 {
   // Check if it is a PUSCH transmission
   if (dci_format == srsran_dci_format_nr_0_0 || dci_format == srsran_dci_format_nr_0_1 ||
@@ -278,14 +367,14 @@ double srsran_ra_nr_R_from_mcs(srsran_mcs_table_t         mcs_table,
                                srsran_rnti_type_t         rnti_type,
                                uint32_t                   mcs_idx)
 {
-  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
+  ra_nr_table_idx_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
 
   switch (table) {
-    case ra_nr_table_1:
+    case ra_nr_table_idx_1:
       return srsran_ra_nr_R_from_mcs_table1(mcs_idx) / 1024.0;
-    case ra_nr_table_2:
+    case ra_nr_table_idx_2:
       return srsran_ra_nr_R_from_mcs_table2(mcs_idx) / 1024.0;
-    case ra_nr_table_3:
+    case ra_nr_table_idx_3:
       return srsran_ra_nr_R_from_mcs_table3(mcs_idx) / 1024.0;
     default:
       ERROR("Invalid table %d", table);
@@ -300,14 +389,14 @@ srsran_mod_t srsran_ra_nr_mod_from_mcs(srsran_mcs_table_t         mcs_table,
                                        srsran_rnti_type_t         rnti_type,
                                        uint32_t                   mcs_idx)
 {
-  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
+  ra_nr_table_idx_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
 
   switch (table) {
-    case ra_nr_table_1:
+    case ra_nr_table_idx_1:
       return srsran_ra_nr_modulation_from_mcs_table1(mcs_idx);
-    case ra_nr_table_2:
+    case ra_nr_table_idx_2:
       return srsran_ra_nr_modulation_from_mcs_table2(mcs_idx);
-    case ra_nr_table_3:
+    case ra_nr_table_idx_3:
       return srsran_ra_nr_modulation_from_mcs_table3(mcs_idx);
     default:
       ERROR("Invalid table %d", table);
@@ -1092,4 +1181,115 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
   }
 
   return SRSRAN_SUCCESS;
+}
+
+int srsran_ra_nr_cqi_to_mcs(uint8_t                    cqi,
+                            srsran_csi_cqi_table_t     cqi_table_idx,
+                            srsran_mcs_table_t         mcs_table,
+                            srsran_dci_format_nr_t     dci_format,
+                            srsran_search_space_type_t search_space_type,
+                            srsran_rnti_type_t         rnti_type)
+{
+  if (cqi >= RA_NR_CQI_TABLE_SIZE) {
+    ERROR("Invalid CQI (%u)", cqi);
+    return -1;
+  }
+
+  ra_nr_table_idx_t mcs_table_idx = ra_nr_select_table_pdsch(mcs_table, dci_format, search_space_type, rnti_type);
+
+  return ra_nr_cqi_to_mcs_table[cqi_table_idx][mcs_table_idx][cqi];
+}
+
+double srsran_ra_nr_cqi_to_se(uint8_t cqi, srsran_csi_cqi_table_t cqi_table_idx)
+{
+  if (cqi >= RA_NR_CQI_TABLE_SIZE) {
+    ERROR("Invalid CQI (%u)", cqi);
+    return -1;
+  }
+
+  return ra_nr_cqi_to_se_table[cqi_table_idx][cqi];
+}
+
+int srsran_ra_nr_se_to_mcs(double                     se_target,
+                           srsran_mcs_table_t         mcs_table,
+                           srsran_dci_format_nr_t     dci_format,
+                           srsran_search_space_type_t search_space_type,
+                           srsran_rnti_type_t         rnti_type)
+{
+  // Get MCS table index to be used
+  ra_nr_table_idx_t mcs_table_idx = ra_nr_select_table_pdsch(mcs_table, dci_format, search_space_type, rnti_type);
+
+  // Get MCS table and size based on mcs_table_idx
+  const mcs_entry_t* mcs_se_table;
+  size_t             mcs_table_size;
+  switch (mcs_table_idx) {
+    case ra_nr_table_idx_1:
+      mcs_se_table   = ra_nr_table1;
+      mcs_table_size = RA_NR_MCS_SIZE_TABLE1;
+      break;
+    case ra_nr_table_idx_2:
+      mcs_se_table   = ra_nr_table2;
+      mcs_table_size = RA_NR_MCS_SIZE_TABLE2;
+      break;
+    case ra_nr_table_idx_3:
+      mcs_se_table   = ra_nr_table3;
+      mcs_table_size = RA_NR_MCS_SIZE_TABLE3;
+      break;
+    default:
+      ERROR("Invalid MCS table index (%u)", mcs_table_idx);
+      return -1;
+  }
+
+  // if SE is lower than min possible value, return min MCS
+  if (se_target <= mcs_se_table[0].S) {
+    return 0;
+  }
+  // if SE is greater than max possible value, return max MCS
+  else if (se_target >= mcs_se_table[mcs_table_size - 1].S) {
+    return mcs_table_size - 1;
+  }
+
+  // handle monotonicity oddity between MCS 16 and 17 for MCS table 1
+  if (mcs_table_idx == ra_nr_table_idx_1) {
+    if (se_target == mcs_se_table[17].S) {
+      return 17;
+    } else if (se_target <= mcs_se_table[16].S && se_target > mcs_se_table[17].S) {
+      return 16;
+    }
+  }
+
+  /* In the following, we search for the greatest MCS value such that MCS(SE) <= target SE, where the target SE is the
+   * value provided as an input argument. The MCS is the vector index, the content of the vector is the SE.
+   * The search is performed by means of a binary-search like algorithm. At each iteration, we look for the SE in the
+   * left or right half of the vector, depending on the target SE.
+   * We stop when the lower-bound (lb) and upper-bound (ub) are two consecutive MCS values and we return the
+   * lower-bound, which approximates the greatest MCS value such that MCS(SE) <= target SE
+   * */
+  size_t lb = 0;                  // lower-bound of MCS-to-SE vector where to perform binary search
+  size_t ub = mcs_table_size - 1; // upper-bound of MCS-to-SE vector where to perform binary search
+  while (ub > lb + 1) {
+    size_t mid_point = (size_t)floor(((double)(lb + ub)) / 2);
+    // break out of loop is there is an exact match
+    if (mcs_se_table[mid_point].S == se_target) {
+      return (int)mid_point;
+    }
+    // restrict the search to the left half of the vector
+    else if (se_target < mcs_se_table[mid_point].S) {
+      ub = mid_point;
+      // handle monotonicity oddity between MCS 16 and 17 for MCS table 1
+      if (mcs_table_idx == ra_nr_table_idx_1 && ub == 17) {
+        ub = 16;
+      }
+    }
+    // restrict the search to the right half of the vector
+    else { /* se_target > mcs_se_table[mid_point].S ) */
+      lb = mid_point;
+      // handle monotonicity oddity between MCS 16 and 17 for MCS table 1
+      if (mcs_table_idx == ra_nr_table_idx_1 && lb == 16) {
+        lb = 17;
+      }
+    }
+  }
+
+  return (int)lb;
 }

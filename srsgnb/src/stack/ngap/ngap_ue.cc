@@ -24,7 +24,7 @@
 #include "srsgnb/hdr/stack/ngap/ngap_ue_proc.h"
 #include "srsran/common/int_helpers.h"
 
-using namespace asn1::ngap_nr;
+using namespace asn1::ngap;
 
 namespace srsenb {
 
@@ -54,10 +54,10 @@ ngap::ue::~ue() {}
 /* NGAP message senders
 ********************************************************************************/
 
-bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e cause,
-                                       srsran::const_byte_span                 pdu,
-                                       bool                                    has_tmsi,
-                                       uint32_t                                s_tmsi)
+bool ngap::ue::send_initial_ue_message(asn1::ngap::rrcestablishment_cause_e cause,
+                                       srsran::const_byte_span              pdu,
+                                       bool                                 has_tmsi,
+                                       uint32_t                             s_tmsi)
 {
   if (not ngap_ptr->amf_connected) {
     logger.warning("AMF not connected");
@@ -65,7 +65,7 @@ bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e c
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_INIT_UE_MSG);
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_INIT_UE_MSG);
   init_ue_msg_ies_container& container = tx_pdu.init_msg().value.init_ue_msg().protocol_ies;
 
   // 5G-S-TMSI
@@ -97,7 +97,7 @@ bool ngap::ue::send_initial_ue_message(asn1::ngap_nr::rrcestablishment_cause_e c
 
   // UE context request for setup in the NAS registration request
   container.ue_context_request_present = true;
-  container.ue_context_request.value   = asn1::ngap_nr::ue_context_request_opts::options::requested;
+  container.ue_context_request.value   = asn1::ngap::ue_context_request_opts::options::requested;
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialUEMessage");
 }
@@ -110,8 +110,8 @@ bool ngap::ue::send_ul_nas_transport(srsran::const_byte_span pdu)
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_UL_NAS_TRANSPORT);
-  asn1::ngap_nr::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_UL_NAS_TRANSPORT);
+  asn1::ngap::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
 
   // AMF UE NGAP ID
   if (ctxt.amf_ue_ngap_id.has_value()) {
@@ -152,7 +152,7 @@ bool ngap::ue::send_initial_ctxt_setup_response()
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_ID_INIT_CONTEXT_SETUP);
   init_context_setup_resp_s& container = tx_pdu.successful_outcome().value.init_context_setup_resp();
 
   // AMF UE NGAP ID
@@ -172,7 +172,7 @@ bool ngap::ue::send_initial_ctxt_setup_failure(cause_c cause)
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_INIT_CONTEXT_SETUP);
   init_context_setup_fail_s& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail();
 
   // AMF UE NGAP ID
@@ -200,7 +200,7 @@ bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                
   }
   // TODO: QOS Params
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP);
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_ID_PDU_SESSION_RES_SETUP);
   pdu_session_res_setup_resp_s& container     = tx_pdu.successful_outcome().value.pdu_session_res_setup_resp();
   container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
   container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
@@ -214,8 +214,8 @@ bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                
 
   gtp_tunnel.gtp_teid.from_number(teid_in);
   gtp_tunnel.transport_layer_address = addr_in;
-  asn1::ngap_nr::associated_qos_flow_list_l qos_flow_list;
-  asn1::ngap_nr::associated_qos_flow_item_s qos_flow_item;
+  asn1::ngap::associated_qos_flow_list_l qos_flow_list;
+  asn1::ngap::associated_qos_flow_item_s qos_flow_item;
   qos_flow_item.qos_flow_id = 1;
   qos_flow_list.push_back(qos_flow_item);
   resp_transfer.dlqos_flow_per_tnl_info.associated_qos_flow_list = qos_flow_list;
@@ -237,7 +237,7 @@ bool ngap::ue::send_ue_ctxt_release_complete()
   }
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_NR_ID_UE_CONTEXT_RELEASE);
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_ID_UE_CONTEXT_RELEASE);
   ue_context_release_complete_s& container = tx_pdu.successful_outcome().value.ue_context_release_complete();
 
   // userLocationInformationNR
@@ -253,7 +253,7 @@ bool ngap::ue::send_ue_ctxt_release_complete()
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
 
-bool ngap::ue::send_ue_context_release_request(asn1::ngap_nr::cause_c cause)
+bool ngap::ue::send_ue_context_release_request(asn1::ngap::cause_c cause)
 {
   if (not ngap_ptr->amf_connected) {
     logger.warning("AMF not connected");
@@ -267,7 +267,7 @@ bool ngap::ue::send_ue_context_release_request(asn1::ngap_nr::cause_c cause)
   release_requested = true;
 
   ngap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_UE_CONTEXT_RELEASE_REQUEST);
+  tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_UE_CONTEXT_RELEASE_REQUEST);
   ue_context_release_request_s& container = tx_pdu.init_msg().value.ue_context_release_request();
 
   container.protocol_ies.cause.value = cause;
@@ -294,7 +294,7 @@ bool ngap::ue::send_ue_context_release_request(asn1::ngap_nr::cause_c cause)
 /* NGAP message handler
 ********************************************************************************/
 
-bool ngap::ue::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_context_setup_request_s& msg)
+bool ngap::ue::handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setup_request_s& msg)
 {
   if (not initial_context_setup_proc.launch(msg)) {
     logger.error("Failed to start Initial Context Setup Procedure");
@@ -303,7 +303,7 @@ bool ngap::ue::handle_initial_ctxt_setup_request(const asn1::ngap_nr::init_conte
   return true;
 }
 
-bool ngap::ue::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_release_cmd_s& msg)
+bool ngap::ue::handle_ue_context_release_cmd(const asn1::ngap::ue_context_release_cmd_s& msg)
 {
   // TODO: Release UE context
   if (not ue_context_release_proc.launch(msg)) {
@@ -313,7 +313,7 @@ bool ngap::ue::handle_ue_context_release_cmd(const asn1::ngap_nr::ue_context_rel
   return true;
 }
 
-bool ngap::ue::handle_pdu_session_res_setup_request(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg)
+bool ngap::ue::handle_pdu_session_res_setup_request(const asn1::ngap::pdu_session_res_setup_request_s& msg)
 {
   if (not ue_pdu_session_res_setup_proc.launch(msg)) {
     logger.error("Failed to start UE PDU Session Resource Setup Procedure");

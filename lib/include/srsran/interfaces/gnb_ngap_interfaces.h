@@ -43,22 +43,22 @@ struct ngap_args_t {
 class ngap_interface_rrc_nr
 {
 public:
-  virtual void initial_ue(uint16_t                                rnti,
-                          uint32_t                                gnb_cc_idx,
-                          asn1::ngap_nr::rrcestablishment_cause_e cause,
-                          srsran::const_byte_span                 pdu) = 0;
-  virtual void initial_ue(uint16_t                                rnti,
-                          uint32_t                                gnb_cc_idx,
-                          asn1::ngap_nr::rrcestablishment_cause_e cause,
-                          srsran::const_byte_span                 pdu,
-                          uint32_t                                m_tmsi)             = 0;
+  virtual void initial_ue(uint16_t                             rnti,
+                          uint32_t                             gnb_cc_idx,
+                          asn1::ngap::rrcestablishment_cause_e cause,
+                          srsran::const_byte_span              pdu) = 0;
+  virtual void initial_ue(uint16_t                             rnti,
+                          uint32_t                             gnb_cc_idx,
+                          asn1::ngap::rrcestablishment_cause_e cause,
+                          srsran::const_byte_span              pdu,
+                          uint32_t                             m_tmsi)             = 0;
 
-  virtual void write_pdu(uint16_t rnti, srsran::const_byte_span pdu)                                 = 0;
-  virtual bool user_exists(uint16_t rnti)                                                            = 0;
-  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                        = 0;
-  virtual void user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) = 0;
-  virtual bool is_amf_connected()                                                                    = 0;
-  virtual void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)                            = 0;
+  virtual void write_pdu(uint16_t rnti, srsran::const_byte_span pdu)                              = 0;
+  virtual bool user_exists(uint16_t rnti)                                                         = 0;
+  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                     = 0;
+  virtual void user_release_request(uint16_t rnti, asn1::ngap::cause_radio_network_e cause_radio) = 0;
+  virtual bool is_amf_connected()                                                                 = 0;
+  virtual void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome)                         = 0;
 };
 
 } // namespace srsenb

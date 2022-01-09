@@ -30,22 +30,22 @@ namespace srsenb {
 
 class ngap_dummy : public ngap_interface_rrc_nr
 {
-  void initial_ue(uint16_t                                rnti,
-                  uint32_t                                gnb_cc_idx,
-                  asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::const_byte_span                 pdu)
+  void initial_ue(uint16_t                             rnti,
+                  uint32_t                             gnb_cc_idx,
+                  asn1::ngap::rrcestablishment_cause_e cause,
+                  srsran::const_byte_span              pdu)
   {}
-  void initial_ue(uint16_t                                rnti,
-                  uint32_t                                gnb_cc_idx,
-                  asn1::ngap_nr::rrcestablishment_cause_e cause,
-                  srsran::const_byte_span                 pdu,
-                  uint32_t                                m_tmsi)
+  void initial_ue(uint16_t                             rnti,
+                  uint32_t                             gnb_cc_idx,
+                  asn1::ngap::rrcestablishment_cause_e cause,
+                  srsran::const_byte_span              pdu,
+                  uint32_t                             m_tmsi)
   {}
 
   void write_pdu(uint16_t rnti, srsran::const_byte_span pdu) {}
   bool user_exists(uint16_t rnti) { return true; }
   void user_mod(uint16_t old_rnti, uint16_t new_rnti) {}
-  void user_release_request(uint16_t rnti, asn1::ngap_nr::cause_radio_network_e cause_radio) {}
+  void user_release_request(uint16_t rnti, asn1::ngap::cause_radio_network_e cause_radio) {}
   bool is_amf_connected() { return true; }
   void ue_notify_rrc_reconf_complete(uint16_t rnti, bool outcome) {}
 };

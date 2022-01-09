@@ -23,7 +23,7 @@
 #include "srsran/common/test_common.h"
 
 using namespace asn1;
-using namespace asn1::ngap_nr;
+using namespace asn1::ngap;
 
 /* TESTS */
 
@@ -318,7 +318,7 @@ int test_session_res_setup_request()
   TESTASSERT(pdu.init_msg().value.type().value ==
              ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request);
   auto& container = pdu.init_msg().value.pdu_session_res_setup_request().protocol_ies;
-  TESTASSERT(container.pdu_session_res_setup_list_su_req.id == ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP_LIST_SU_REQ);
+  TESTASSERT(container.pdu_session_res_setup_list_su_req.id == ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_SU_REQ);
   TESTASSERT(container.pdu_session_res_setup_list_su_req.value.size() == 1);
   auto& item = container.pdu_session_res_setup_list_su_req.value[0];
   TESTASSERT(item.pdu_session_id == 1);

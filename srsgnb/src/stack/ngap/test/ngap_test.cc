@@ -83,17 +83,17 @@ public:
     rrc_logger.info(sec_key, 32, "Security key");
     return SRSRAN_SUCCESS;
   }
-  int ue_set_bitrates(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+  int ue_set_bitrates(uint16_t rnti, const asn1::ngap::ue_aggregate_maximum_bit_rate_s& rates)
   {
     rrc_logger.info("Setting aggregate max bitrate. RNTI 0x%x", rnti);
     return SRSRAN_SUCCESS;
   }
-  int set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap_nr::ue_aggregate_maximum_bit_rate_s& rates)
+  int set_aggregate_max_bitrate(uint16_t rnti, const asn1::ngap::ue_aggregate_maximum_bit_rate_s& rates)
   {
     rrc_logger.info("Setting aggregate max bitrate");
     return SRSRAN_SUCCESS;
   }
-  int ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap_nr::ue_security_cap_s& caps)
+  int ue_set_security_cfg_capabilities(uint16_t rnti, const asn1::ngap::ue_security_cap_s& caps)
   {
     rrc_logger.info("Setting security capabilities");
     for (uint8_t i = 0; i < 8; i++) {
@@ -128,10 +128,10 @@ public:
   int  allocate_lcid(uint16_t rnti) { return SRSRAN_SUCCESS; }
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) {}
 
-  bool                             sec_mod_proc_started = false;
-  uint8_t                          sec_key[32]          = {};
-  asn1::ngap_nr::ue_security_cap_s sec_caps             = {};
-  srslog::basic_logger&            rrc_logger;
+  bool                          sec_mod_proc_started = false;
+  uint8_t                       sec_key[32]          = {};
+  asn1::ngap::ue_security_cap_s sec_caps             = {};
+  srslog::basic_logger&         rrc_logger;
 };
 struct dummy_socket_manager : public srsran::socket_manager_itf {
   dummy_socket_manager() : srsran::socket_manager_itf(srslog::fetch_basic_logger("TEST")) {}
@@ -163,15 +163,15 @@ struct dummy_socket_manager : public srsran::socket_manager_itf {
 
 void run_ng_setup(ngap& ngap_obj, amf_dummy& amf)
 {
-  asn1::ngap_nr::ngap_pdu_c ngap_pdu;
+  asn1::ngap::ngap_pdu_c ngap_pdu;
 
   // gNB -> AMF: NG Setup Request
   srsran::unique_byte_buffer_t sdu = amf.read_msg();
   TESTASSERT(sdu->N_bytes > 0);
   asn1::cbit_ref cbref(sdu->msg, sdu->N_bytes);
   TESTASSERT(ngap_pdu.unpack(cbref) == asn1::SRSASN_SUCCESS);
-  TESTASSERT(ngap_pdu.type().value == asn1::ngap_nr::ngap_pdu_c::types_opts::init_msg);
-  TESTASSERT(ngap_pdu.init_msg().proc_code == ASN1_NGAP_NR_ID_NG_SETUP);
+  TESTASSERT(ngap_pdu.type().value == asn1::ngap::ngap_pdu_c::types_opts::init_msg);
+  TESTASSERT(ngap_pdu.init_msg().proc_code == ASN1_NGAP_ID_NG_SETUP);
 
   // AMF -> gNB: ng Setup Response
   sockaddr_in     amf_addr = {};
@@ -200,24 +200,24 @@ void run_ng_initial_ue(ngap& ngap_obj, amf_dummy& amf, rrc_nr_dummy& rrc)
   nas_pdu->N_bytes = sizeof(nas_reg_req);
 
   uint32_t rnti = 0xf0f0;
-  ngap_obj.initial_ue(rnti, 0, asn1::ngap_nr::rrcestablishment_cause_opts::mo_sig, srsran::make_span(nas_pdu));
+  ngap_obj.initial_ue(rnti, 0, asn1::ngap::rrcestablishment_cause_opts::mo_sig, srsran::make_span(nas_pdu));
 
   // gNB -> AMF: Inital UE message
-  asn1::ngap_nr::ngap_pdu_c    ngap_initial_ue_pdu;
+  asn1::ngap::ngap_pdu_c       ngap_initial_ue_pdu;
   srsran::unique_byte_buffer_t sdu = amf.read_msg();
   TESTASSERT(sdu->N_bytes > 0);
   asn1::cbit_ref cbref(sdu->msg, sdu->N_bytes);
   TESTASSERT_EQ(ngap_initial_ue_pdu.unpack(cbref), asn1::SRSASN_SUCCESS);
-  TESTASSERT_EQ(ngap_initial_ue_pdu.type().value, asn1::ngap_nr::ngap_pdu_c::types_opts::init_msg);
-  TESTASSERT_EQ(ngap_initial_ue_pdu.init_msg().proc_code, ASN1_NGAP_NR_ID_INIT_UE_MSG);
+  TESTASSERT_EQ(ngap_initial_ue_pdu.type().value, asn1::ngap::ngap_pdu_c::types_opts::init_msg);
+  TESTASSERT_EQ(ngap_initial_ue_pdu.init_msg().proc_code, ASN1_NGAP_ID_INIT_UE_MSG);
 
   // AMF -> gNB: Initial Context Setup Request
   sockaddr_in     amf_addr = {};
   sctp_sndrcvinfo rcvinfo  = {};
   int             flags    = 0;
 
-  asn1::ngap_nr::ngap_pdu_c ngap_initial_ctx_req_pdu;
-  ngap_initial_ctx_req_pdu.set_init_msg().load_info_obj(ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP);
+  asn1::ngap::ngap_pdu_c ngap_initial_ctx_req_pdu;
+  ngap_initial_ctx_req_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_INIT_CONTEXT_SETUP);
   auto& container = ngap_initial_ctx_req_pdu.init_msg().value.init_context_setup_request().protocol_ies;
 
   container.amf_ue_ngap_id.value = 0x1;

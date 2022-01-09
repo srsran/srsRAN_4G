@@ -54,10 +54,7 @@ public:
 
   // setters
   void set_security_key(const asn1::fixed_bitstring<256, false, true>& key) { sec_ctx.set_security_key(key); }
-  void set_security_capabilities(const asn1::ngap_nr::ue_security_cap_s& caps)
-  {
-    sec_ctx.set_security_capabilities(caps);
-  }
+  void set_security_capabilities(const asn1::ngap::ue_security_cap_s& caps) { sec_ctx.set_security_capabilities(caps); }
 
   void deactivate_bearers();
 

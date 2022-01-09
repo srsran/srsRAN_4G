@@ -47,7 +47,7 @@ public:
                                               rrc_interface_ngap_nr*    rrc_,
                                               ngap_ue_ctxt_t*           ue_ctxt,
                                               srslog::basic_logger&     logger_);
-  srsran::proc_outcome_t init(const asn1::ngap_nr::init_context_setup_request_s& msg);
+  srsran::proc_outcome_t init(const asn1::ngap::init_context_setup_request_s& msg);
   srsran::proc_outcome_t react(const bool rrc_reconf_outcome);
   srsran::proc_outcome_t step();
   static const char*     name() { return "Initial Context Setup"; }
@@ -68,7 +68,7 @@ public:
                                            ngap_ue_ctxt_t*           ue_ctxt,
                                            ngap_ue_bearer_manager*   bearer_manager,
                                            srslog::basic_logger&     logger_);
-  srsran::proc_outcome_t init(const asn1::ngap_nr::ue_context_release_cmd_s& msg);
+  srsran::proc_outcome_t init(const asn1::ngap::ue_context_release_cmd_s& msg);
   srsran::proc_outcome_t step();
   static const char*     name() { return "UE Context Release"; }
 
@@ -101,7 +101,7 @@ public:
                                               ngap_ue_ctxt_t*           ue_ctxt,
                                               ngap_ue_bearer_manager*   bearer_manager,
                                               srslog::basic_logger&     logger_);
-  srsran::proc_outcome_t init(const asn1::ngap_nr::pdu_session_res_setup_request_s& msg);
+  srsran::proc_outcome_t init(const asn1::ngap::pdu_session_res_setup_request_s& msg);
   srsran::proc_outcome_t step();
   static const char*     name() { return "UE PDU Session Resource Setup"; }
 

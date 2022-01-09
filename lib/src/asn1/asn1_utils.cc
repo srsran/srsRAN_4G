@@ -205,35 +205,35 @@ SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_pt
 }
 
 template SRSASN_CODE
-unpack_bits<bool, uint8_t*>(bool& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+                     unpack_bits<bool, uint8_t*>(bool& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<bool, const uint8_t*>(bool&           val,
                                                        const uint8_t*& ptr,
                                                        uint8_t&        offset,
                                                        const uint8_t*  max_ptr,
                                                        uint32_t        n_bits);
 template SRSASN_CODE
-unpack_bits<uint8_t, uint8_t*>(uint8_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+                     unpack_bits<uint8_t, uint8_t*>(uint8_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint8_t, const uint8_t*>(uint8_t&        val,
                                                           const uint8_t*& ptr,
                                                           uint8_t&        offset,
                                                           const uint8_t*  max_ptr,
                                                           uint32_t        n_bits);
 template SRSASN_CODE
-unpack_bits<uint16_t, uint8_t*>(uint16_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+                     unpack_bits<uint16_t, uint8_t*>(uint16_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint16_t, const uint8_t*>(uint16_t&       val,
                                                            const uint8_t*& ptr,
                                                            uint8_t&        offset,
                                                            const uint8_t*  max_ptr,
                                                            uint32_t        n_bits);
 template SRSASN_CODE
-unpack_bits<uint32_t, uint8_t*>(uint32_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+                     unpack_bits<uint32_t, uint8_t*>(uint32_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint32_t, const uint8_t*>(uint32_t&       val,
                                                            const uint8_t*& ptr,
                                                            uint8_t&        offset,
                                                            const uint8_t*  max_ptr,
                                                            uint32_t        n_bits);
 template SRSASN_CODE
-unpack_bits<uint64_t, uint8_t*>(uint64_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
+                     unpack_bits<uint64_t, uint8_t*>(uint64_t& val, uint8_t*& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 template SRSASN_CODE unpack_bits<uint64_t, const uint8_t*>(uint64_t&       val,
                                                            const uint8_t*& ptr,
                                                            uint8_t&        offset,
@@ -849,7 +849,7 @@ pack_integer<uint16_t>(bit_ref& bref, uint16_t n, uint16_t lb, uint16_t ub, bool
 template SRSASN_CODE
 pack_integer<uint32_t>(bit_ref& bref, uint32_t n, uint32_t lb, uint32_t ub, bool has_ext, bool aligned);
 template SRSASN_CODE
-pack_integer<uint64_t>(bit_ref& bref, uint64_t n, uint64_t lb, uint64_t ub, bool has_ext, bool aligned);
+                     pack_integer<uint64_t>(bit_ref& bref, uint64_t n, uint64_t lb, uint64_t ub, bool has_ext, bool aligned);
 template SRSASN_CODE pack_integer<int8_t>(bit_ref& bref, int8_t n, int8_t lb, int8_t ub, bool has_ext, bool aligned);
 template SRSASN_CODE
 pack_integer<int16_t>(bit_ref& bref, int16_t n, int16_t lb, int16_t ub, bool has_ext, bool aligned);

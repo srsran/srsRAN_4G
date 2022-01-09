@@ -44,10 +44,10 @@ public:
       asn1::bounded_bitstring<1, 160, true, true> address_out;
       asn1::bounded_bitstring<1, 160, true, true> address_in;
     };
-    uint8_t                                    id   = 0;
-    uint8_t                                    lcid = 0;
-    asn1::ngap_nr::qos_flow_level_qos_params_s qos_params;
-    std::vector<gtpu_tunnel>                   tunnels;
+    uint8_t                                 id   = 0;
+    uint8_t                                 lcid = 0;
+    asn1::ngap::qos_flow_level_qos_params_s qos_params;
+    std::vector<gtpu_tunnel>                tunnels;
   };
 
   ngap_ue_bearer_manager(gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_);
@@ -55,13 +55,13 @@ public:
 
   int add_pdu_session(uint16_t                                           rnti,
                       uint8_t                                            pdu_session_id,
-                      const asn1::ngap_nr::qos_flow_level_qos_params_s&  qos,
+                      const asn1::ngap::qos_flow_level_qos_params_s&     qos,
                       const asn1::bounded_bitstring<1, 160, true, true>& addr,
                       uint32_t                                           teid_out,
                       uint16_t&                                          lcid,
                       asn1::bounded_bitstring<1, 160, true, true>&       addr_in,
                       uint32_t&                                          teid_in,
-                      asn1::ngap_nr::cause_c&                            cause);
+                      asn1::ngap::cause_c&                               cause);
 
   int reset_pdu_sessions(uint16_t rnti);
 
