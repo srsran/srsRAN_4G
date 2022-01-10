@@ -4604,29 +4604,6 @@ void cell_traffic_trace_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// CellTrafficTrace ::= SEQUENCE
-SRSASN_CODE cell_traffic_trace_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE cell_traffic_trace_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void cell_traffic_trace_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // Cell-Size ::= ENUMERATED
 const char* cell_size_opts::to_string() const
 {
@@ -6372,29 +6349,6 @@ void conn_establishment_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// ConnectionEstablishmentIndication ::= SEQUENCE
-SRSASN_CODE conn_establishment_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE conn_establishment_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void conn_establishment_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // ENB-ID ::= CHOICE
 void enb_id_c::destroy_()
 {
@@ -7377,29 +7331,6 @@ void deactiv_trace_ies_container::to_json(json_writer& j) const
   enb_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
   e_utran_trace_id.to_json(j);
-  j.end_obj();
-}
-
-// DeactivateTrace ::= SEQUENCE
-SRSASN_CODE deactiv_trace_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE deactiv_trace_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void deactiv_trace_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -9085,29 +9016,6 @@ void dl_nas_transport_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// DownlinkNASTransport ::= SEQUENCE
-SRSASN_CODE dl_nas_transport_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE dl_nas_transport_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void dl_nas_transport_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // DownlinkNonUEAssociatedLPPaTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_non_ueassociated_lp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
@@ -9367,29 +9275,6 @@ void dl_non_ueassociated_lp_pa_transport_ies_container::to_json(json_writer& j) 
   routing_id.to_json(j);
   j.write_fieldname("");
   lp_pa_pdu.to_json(j);
-  j.end_obj();
-}
-
-// DownlinkNonUEAssociatedLPPaTransport ::= SEQUENCE
-SRSASN_CODE dl_non_ueassociated_lp_pa_transport_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE dl_non_ueassociated_lp_pa_transport_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void dl_non_ueassociated_lp_pa_transport_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -10012,29 +9897,6 @@ void dl_s1cdma2000tunnelling_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// DownlinkS1cdma2000tunnelling ::= SEQUENCE
-SRSASN_CODE dl_s1cdma2000tunnelling_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE dl_s1cdma2000tunnelling_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void dl_s1cdma2000tunnelling_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // DownlinkUEAssociatedLPPaTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_ueassociated_lp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
@@ -10377,29 +10239,6 @@ void dl_ueassociated_lp_pa_transport_ies_container::to_json(json_writer& j) cons
   routing_id.to_json(j);
   j.write_fieldname("");
   lp_pa_pdu.to_json(j);
-  j.end_obj();
-}
-
-// DownlinkUEAssociatedLPPaTransport ::= SEQUENCE
-SRSASN_CODE dl_ueassociated_lp_pa_transport_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE dl_ueassociated_lp_pa_transport_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void dl_ueassociated_lp_pa_transport_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -11714,29 +11553,6 @@ void erab_mod_confirm_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// E-RABModificationConfirm ::= SEQUENCE
-SRSASN_CODE erab_mod_confirm_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_mod_confirm_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_mod_confirm_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // E-RABUsageReportItem ::= SEQUENCE
 SRSASN_CODE erabusage_report_item_s::pack(bit_ref& bref) const
 {
@@ -12985,29 +12801,6 @@ void erab_mod_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// E-RABModificationIndication ::= SEQUENCE
-SRSASN_CODE erab_mod_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_mod_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_mod_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // E-RABModifyItemBearerModRes ::= SEQUENCE
 SRSASN_CODE erab_modify_item_bearer_mod_res_s::pack(bit_ref& bref) const
 {
@@ -14004,29 +13797,6 @@ void erab_modify_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// E-RABModifyRequest ::= SEQUENCE
-SRSASN_CODE erab_modify_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_modify_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_modify_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // E-RABModifyResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_modify_resp_ies_o::idx_to_id(uint32_t idx)
 {
@@ -14510,29 +14280,6 @@ void erab_modify_resp_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// E-RABModifyResponse ::= SEQUENCE
-SRSASN_CODE erab_modify_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_modify_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_modify_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // E-RABReleaseCommandIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_release_cmd_ies_o::idx_to_id(uint32_t idx)
 {
@@ -14942,29 +14689,6 @@ void erab_release_cmd_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     nas_pdu.to_json(j);
   }
-  j.end_obj();
-}
-
-// E-RABReleaseCommand ::= SEQUENCE
-SRSASN_CODE erab_release_cmd_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_release_cmd_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_release_cmd_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -15385,29 +15109,6 @@ void erab_release_ind_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     secondary_rat_data_usage_report_list.to_json(j);
   }
-  j.end_obj();
-}
-
-// E-RABReleaseIndication ::= SEQUENCE
-SRSASN_CODE erab_release_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_release_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_release_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -16046,29 +15747,6 @@ void erab_release_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     secondary_rat_data_usage_report_list.to_json(j);
   }
-  j.end_obj();
-}
-
-// E-RABReleaseResponse ::= SEQUENCE
-SRSASN_CODE erab_release_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_release_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_release_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -17078,29 +16756,6 @@ void erab_setup_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// E-RABSetupRequest ::= SEQUENCE
-SRSASN_CODE erab_setup_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_setup_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_setup_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // E-RABSetupResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
@@ -17521,29 +17176,6 @@ void erab_setup_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// E-RABSetupResponse ::= SEQUENCE
-SRSASN_CODE erab_setup_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_setup_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void erab_setup_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -20530,29 +20162,6 @@ void enbcp_relocation_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// ENBCPRelocationIndication ::= SEQUENCE
-SRSASN_CODE enbcp_relocation_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enbcp_relocation_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void enbcp_relocation_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // ListeningSubframePattern ::= SEQUENCE
 SRSASN_CODE listening_sf_pattern_s::pack(bit_ref& bref) const
 {
@@ -21334,29 +20943,6 @@ void enb_cfg_transfer_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// ENBConfigurationTransfer ::= SEQUENCE
-SRSASN_CODE enb_cfg_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_cfg_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void enb_cfg_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // NB-IoT-DefaultPagingDRX ::= ENUMERATED
 const char* nb_io_t_default_paging_drx_opts::to_string() const
 {
@@ -21923,29 +21509,6 @@ void enb_cfg_upd_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// ENBConfigurationUpdate ::= SEQUENCE
-SRSASN_CODE enb_cfg_upd_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_cfg_upd_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void enb_cfg_upd_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // ENBConfigurationUpdateAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_cfg_upd_ack_ies_o::idx_to_id(uint32_t idx)
 {
@@ -22006,28 +21569,6 @@ const char* enb_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
 {
   static const char* options[] = {"CriticalityDiagnostics"};
   return convert_enum_idx(options, 1, value, "enb_cfg_upd_ack_ies_o::value_c::types");
-}
-
-// ENBConfigurationUpdateAcknowledge ::= SEQUENCE
-SRSASN_CODE enb_cfg_upd_ack_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_cfg_upd_ack_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-void enb_cfg_upd_ack_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  j.end_obj();
 }
 
 // TimeToWait ::= ENUMERATED
@@ -22353,29 +21894,6 @@ void enb_cfg_upd_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// ENBConfigurationUpdateFailure ::= SEQUENCE
-SRSASN_CODE enb_cfg_upd_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_cfg_upd_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void enb_cfg_upd_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -22831,28 +22349,6 @@ const char* enb_direct_info_transfer_ies_o::value_c::types_opts::to_string() con
   return convert_enum_idx(options, 1, value, "enb_direct_info_transfer_ies_o::value_c::types");
 }
 
-// ENBDirectInformationTransfer ::= SEQUENCE
-SRSASN_CODE enb_direct_info_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_direct_info_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-void enb_direct_info_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  j.end_obj();
-}
-
 // ENBStatusTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_status_transfer_ies_o::idx_to_id(uint32_t idx)
 {
@@ -23154,29 +22650,6 @@ void enb_status_transfer_ies_container::to_json(json_writer& j) const
   enb_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
   enb_status_transfer_transparent_container.to_json(j);
-  j.end_obj();
-}
-
-// ENBStatusTransfer ::= SEQUENCE
-SRSASN_CODE enb_status_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_status_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void enb_status_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -23621,29 +23094,6 @@ void error_ind_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     s_tmsi.to_json(j);
   }
-  j.end_obj();
-}
-
-// ErrorIndication ::= SEQUENCE
-SRSASN_CODE error_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE error_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void error_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -24309,29 +23759,6 @@ void ho_cancel_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// HandoverCancel ::= SEQUENCE
-SRSASN_CODE ho_cancel_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_cancel_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_cancel_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // HandoverCancelAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_cancel_ack_ies_o::idx_to_id(uint32_t idx)
 {
@@ -24632,29 +24059,6 @@ void ho_cancel_ack_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// HandoverCancelAcknowledge ::= SEQUENCE
-SRSASN_CODE ho_cancel_ack_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_cancel_ack_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_cancel_ack_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -25303,29 +24707,6 @@ void ho_cmd_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// HandoverCommand ::= SEQUENCE
-SRSASN_CODE ho_cmd_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_cmd_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_cmd_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // HandoverFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_fail_ies_o::idx_to_id(uint32_t idx)
 {
@@ -25636,29 +25017,6 @@ void ho_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// HandoverFailure ::= SEQUENCE
-SRSASN_CODE ho_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -26178,29 +25536,6 @@ void ho_notify_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// HandoverNotify ::= SEQUENCE
-SRSASN_CODE ho_notify_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_notify_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_notify_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // HandoverPreparationFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_prep_fail_ies_o::idx_to_id(uint32_t idx)
 {
@@ -26553,29 +25888,6 @@ void ho_prep_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// HandoverPreparationFailure ::= SEQUENCE
-SRSASN_CODE ho_prep_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_prep_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_prep_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -31347,29 +30659,6 @@ void ho_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// HandoverRequest ::= SEQUENCE
-SRSASN_CODE ho_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // CE-mode-B-SupportIndicator ::= ENUMERATED
 const char* ce_mode_b_support_ind_opts::to_string() const
 {
@@ -31991,29 +31280,6 @@ void ho_request_ack_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     ce_mode_b_support_ind.to_json(j);
   }
-  j.end_obj();
-}
-
-// HandoverRequestAcknowledge ::= SEQUENCE
-SRSASN_CODE ho_request_ack_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_request_ack_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_request_ack_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -33134,29 +32400,6 @@ void ho_required_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// HandoverRequired ::= SEQUENCE
-SRSASN_CODE ho_required_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_required_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ho_required_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // MMEPagingTarget ::= CHOICE
 void mme_paging_target_c::destroy_()
 {
@@ -33828,29 +33071,6 @@ void init_context_setup_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// InitialContextSetupFailure ::= SEQUENCE
-SRSASN_CODE init_context_setup_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE init_context_setup_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void init_context_setup_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -35700,29 +34920,6 @@ void init_context_setup_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// InitialContextSetupRequest ::= SEQUENCE
-SRSASN_CODE init_context_setup_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE init_context_setup_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void init_context_setup_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 // InitialContextSetupResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t init_context_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
@@ -36139,29 +35336,6 @@ void init_context_setup_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// InitialContextSetupResponse ::= SEQUENCE
-SRSASN_CODE init_context_setup_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE init_context_setup_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void init_context_setup_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -37505,37 +36679,6 @@ void init_ue_msg_ies_container::to_json(json_writer& j) const
     edt_session.to_json(j);
   }
   j.end_obj();
-}
-
-// InitialUEMessage ::= SEQUENCE
-SRSASN_CODE init_ue_msg_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  bref.align_bytes_zero();
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE init_ue_msg_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  bref.align_bytes();
-
-  return SRSASN_SUCCESS;
-}
-void init_ue_msg_s::to_json(json_writer& j) const
-{
-  j.start_array();
-  j.start_obj();
-  j.start_obj("InitialUEMessage");
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-  j.end_obj();
-  j.end_array();
 }
 
 // UE-associatedLogicalS1-ConnectionItem ::= SEQUENCE
@@ -55885,29 +55028,6 @@ void kill_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// KillRequest ::= SEQUENCE
-SRSASN_CODE kill_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE kill_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void kill_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<kill_resp_ies_o>;
 
 kill_resp_ies_container::kill_resp_ies_container() :
@@ -55996,29 +55116,6 @@ void kill_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// KillResponse ::= SEQUENCE
-SRSASN_CODE kill_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE kill_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void kill_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -56128,29 +55225,6 @@ void location_report_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// LocationReport ::= SEQUENCE
-SRSASN_CODE location_report_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE location_report_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void location_report_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<location_report_ctrl_ies_o>;
 
 location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
@@ -56217,29 +55291,6 @@ void location_report_ctrl_ies_container::to_json(json_writer& j) const
   enb_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
   request_type.to_json(j);
-  j.end_obj();
-}
-
-// LocationReportingControl ::= SEQUENCE
-SRSASN_CODE location_report_ctrl_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE location_report_ctrl_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void location_report_ctrl_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -56312,29 +55363,6 @@ void location_report_fail_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// LocationReportingFailureIndication ::= SEQUENCE
-SRSASN_CODE location_report_fail_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE location_report_fail_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void location_report_fail_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<mmecp_relocation_ind_ies_o>;
 
 mmecp_relocation_ind_ies_container::mmecp_relocation_ind_ies_container() :
@@ -56392,29 +55420,6 @@ void mmecp_relocation_ind_ies_container::to_json(json_writer& j) const
   mme_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
   enb_ue_s1ap_id.to_json(j);
-  j.end_obj();
-}
-
-// MMECPRelocationIndication ::= SEQUENCE
-SRSASN_CODE mmecp_relocation_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mmecp_relocation_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void mmecp_relocation_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -56479,29 +55484,6 @@ void mme_cfg_transfer_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     en_dcson_cfg_transfer_mct.to_json(j);
   }
-  j.end_obj();
-}
-
-// MMEConfigurationTransfer ::= SEQUENCE
-SRSASN_CODE mme_cfg_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_cfg_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void mme_cfg_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -56600,51 +55582,6 @@ void mme_cfg_upd_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// MMEConfigurationUpdate ::= SEQUENCE
-SRSASN_CODE mme_cfg_upd_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_cfg_upd_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void mme_cfg_upd_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
-// MMEConfigurationUpdateAcknowledge ::= SEQUENCE
-SRSASN_CODE mme_cfg_upd_ack_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_cfg_upd_ack_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-void mme_cfg_upd_ack_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<mme_cfg_upd_fail_ies_o>;
 
 mme_cfg_upd_fail_ies_container::mme_cfg_upd_fail_ies_container() :
@@ -56724,51 +55661,6 @@ void mme_cfg_upd_fail_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// MMEConfigurationUpdateFailure ::= SEQUENCE
-SRSASN_CODE mme_cfg_upd_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_cfg_upd_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void mme_cfg_upd_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
-// MMEDirectInformationTransfer ::= SEQUENCE
-SRSASN_CODE mme_direct_info_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_direct_info_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-void mme_direct_info_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<mme_status_transfer_ies_o>;
 
 mme_status_transfer_ies_container::mme_status_transfer_ies_container() :
@@ -56840,29 +55732,6 @@ void mme_status_transfer_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// MMEStatusTransfer ::= SEQUENCE
-SRSASN_CODE mme_status_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_status_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void mme_status_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<nas_delivery_ind_ies_o>;
 
 nas_delivery_ind_ies_container::nas_delivery_ind_ies_container() :
@@ -56920,29 +55789,6 @@ void nas_delivery_ind_ies_container::to_json(json_writer& j) const
   mme_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
   enb_ue_s1ap_id.to_json(j);
-  j.end_obj();
-}
-
-// NASDeliveryIndication ::= SEQUENCE
-SRSASN_CODE nas_delivery_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE nas_delivery_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void nas_delivery_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -57027,29 +55873,6 @@ void nas_non_delivery_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// NASNonDeliveryIndication ::= SEQUENCE
-SRSASN_CODE nas_non_delivery_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE nas_non_delivery_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void nas_non_delivery_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<overload_start_ies_o>;
 
 overload_start_ies_container::overload_start_ies_container() :
@@ -57129,51 +55952,6 @@ void overload_start_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// OverloadStart ::= SEQUENCE
-SRSASN_CODE overload_start_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE overload_start_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void overload_start_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
-// OverloadStop ::= SEQUENCE
-SRSASN_CODE overload_stop_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE overload_stop_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-void overload_stop_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<pws_fail_ind_ies_o>;
 
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
@@ -57231,29 +56009,6 @@ void pws_fail_ind_ies_container::to_json(json_writer& j) const
   pw_sfailed_ecgi_list.to_json(j);
   j.write_fieldname("");
   global_enb_id.to_json(j);
-  j.end_obj();
-}
-
-// PWSFailureIndication ::= SEQUENCE
-SRSASN_CODE pws_fail_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE pws_fail_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void pws_fail_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -57340,29 +56095,6 @@ void pws_restart_ind_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     emergency_area_id_list_for_restart.to_json(j);
   }
-  j.end_obj();
-}
-
-// PWSRestartIndication ::= SEQUENCE
-SRSASN_CODE pws_restart_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE pws_restart_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void pws_restart_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -57612,29 +56344,6 @@ void paging_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// Paging ::= SEQUENCE
-SRSASN_CODE paging_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE paging_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void paging_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<path_switch_request_ies_o>;
 
 path_switch_request_ies_container::path_switch_request_ies_container() :
@@ -57868,29 +56577,6 @@ void path_switch_request_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     ps_cell_info.to_json(j);
   }
-  j.end_obj();
-}
-
-// PathSwitchRequest ::= SEQUENCE
-SRSASN_CODE path_switch_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE path_switch_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void path_switch_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -58235,29 +56921,6 @@ void path_switch_request_ack_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// PathSwitchRequestAcknowledge ::= SEQUENCE
-SRSASN_CODE path_switch_request_ack_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE path_switch_request_ack_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void path_switch_request_ack_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<path_switch_request_fail_ies_o>;
 
 path_switch_request_fail_ies_container::path_switch_request_fail_ies_container() :
@@ -58341,29 +57004,6 @@ void path_switch_request_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// PathSwitchRequestFailure ::= SEQUENCE
-SRSASN_CODE path_switch_request_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE path_switch_request_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void path_switch_request_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -58573,29 +57213,6 @@ void reroute_nas_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// RerouteNASRequest ::= SEQUENCE
-SRSASN_CODE reroute_nas_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE reroute_nas_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void reroute_nas_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<reset_ies_o>;
 
 reset_ies_container::reset_ies_container() : cause(2, crit_e::ignore), reset_type(92, crit_e::reject) {}
@@ -58651,29 +57268,6 @@ void reset_ies_container::to_json(json_writer& j) const
   cause.to_json(j);
   j.write_fieldname("");
   reset_type.to_json(j);
-  j.end_obj();
-}
-
-// Reset ::= SEQUENCE
-SRSASN_CODE reset_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE reset_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void reset_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -58738,51 +57332,6 @@ void reset_ack_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// ResetAcknowledge ::= SEQUENCE
-SRSASN_CODE reset_ack_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE reset_ack_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void reset_ack_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
-// RetrieveUEInformation ::= SEQUENCE
-SRSASN_CODE retrieve_ue_info_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE retrieve_ue_info_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
-
-  return SRSASN_SUCCESS;
-}
-void retrieve_ue_info_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
   j.end_obj();
 }
 
@@ -58862,29 +57411,6 @@ void s1_setup_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// S1SetupFailure ::= SEQUENCE
-SRSASN_CODE s1_setup_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1_setup_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void s1_setup_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -59034,29 +57560,6 @@ void s1_setup_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// S1SetupRequest ::= SEQUENCE
-SRSASN_CODE s1_setup_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1_setup_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void s1_setup_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<s1_setup_resp_ies_o>;
 
 s1_setup_resp_ies_container::s1_setup_resp_ies_container() :
@@ -59193,29 +57696,6 @@ void s1_setup_resp_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// S1SetupResponse ::= SEQUENCE
-SRSASN_CODE s1_setup_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1_setup_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void s1_setup_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
 
 secondary_rat_data_usage_report_ies_container::secondary_rat_data_usage_report_ies_container() :
@@ -59332,29 +57812,6 @@ void secondary_rat_data_usage_report_ies_container::to_json(json_writer& j) cons
   j.end_obj();
 }
 
-// SecondaryRATDataUsageReport ::= SEQUENCE
-SRSASN_CODE secondary_rat_data_usage_report_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE secondary_rat_data_usage_report_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void secondary_rat_data_usage_report_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<trace_fail_ind_ies_o>;
 
 trace_fail_ind_ies_container::trace_fail_ind_ies_container() :
@@ -59436,29 +57893,6 @@ void trace_fail_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// TraceFailureIndication ::= SEQUENCE
-SRSASN_CODE trace_fail_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE trace_fail_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void trace_fail_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<trace_start_ies_o>;
 
 trace_start_ies_container::trace_start_ies_container() :
@@ -59525,29 +57959,6 @@ void trace_start_ies_container::to_json(json_writer& j) const
   enb_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
   trace_activation.to_json(j);
-  j.end_obj();
-}
-
-// TraceStart ::= SEQUENCE
-SRSASN_CODE trace_start_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE trace_start_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void trace_start_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -59667,29 +58078,6 @@ void ue_cap_info_ind_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UECapabilityInfoIndication ::= SEQUENCE
-SRSASN_CODE ue_cap_info_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_cap_info_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_cap_info_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_mod_confirm_ies_o>;
 
 ue_context_mod_confirm_ies_container::ue_context_mod_confirm_ies_container() :
@@ -59781,29 +58169,6 @@ void ue_context_mod_confirm_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextModificationConfirm ::= SEQUENCE
-SRSASN_CODE ue_context_mod_confirm_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_mod_confirm_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_mod_confirm_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
 
 ue_context_mod_fail_ies_container::ue_context_mod_fail_ies_container() :
@@ -59890,29 +58255,6 @@ void ue_context_mod_fail_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextModificationFailure ::= SEQUENCE
-SRSASN_CODE ue_context_mod_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_mod_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_mod_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_mod_ind_ies_o>;
 
 ue_context_mod_ind_ies_container::ue_context_mod_ind_ies_container() :
@@ -59984,29 +58326,6 @@ void ue_context_mod_ind_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     csg_membership_info.to_json(j);
   }
-  j.end_obj();
-}
-
-// UEContextModificationIndication ::= SEQUENCE
-SRSASN_CODE ue_context_mod_ind_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_mod_ind_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_mod_ind_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -60311,29 +58630,6 @@ void ue_context_mod_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextModificationRequest ::= SEQUENCE
-SRSASN_CODE ue_context_mod_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_mod_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_mod_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
 
 ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
@@ -60408,29 +58704,6 @@ void ue_context_mod_resp_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextModificationResponse ::= SEQUENCE
-SRSASN_CODE ue_context_mod_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_mod_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_mod_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
@@ -60488,29 +58761,6 @@ void ue_context_release_cmd_ies_container::to_json(json_writer& j) const
   ue_s1ap_ids.to_json(j);
   j.write_fieldname("");
   cause.to_json(j);
-  j.end_obj();
-}
-
-// UEContextReleaseCommand ::= SEQUENCE
-SRSASN_CODE ue_context_release_cmd_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_release_cmd_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_release_cmd_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -60665,29 +58915,6 @@ void ue_context_release_complete_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextReleaseComplete ::= SEQUENCE
-SRSASN_CODE ue_context_release_complete_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_release_complete_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_release_complete_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_release_request_ies_o>;
 
 ue_context_release_request_ies_container::ue_context_release_request_ies_container() :
@@ -60789,29 +59016,6 @@ void ue_context_release_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextReleaseRequest ::= SEQUENCE
-SRSASN_CODE ue_context_release_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_release_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_release_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_resume_fail_ies_o>;
 
 ue_context_resume_fail_ies_container::ue_context_resume_fail_ies_container() :
@@ -60895,29 +59099,6 @@ void ue_context_resume_fail_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// UEContextResumeFailure ::= SEQUENCE
-SRSASN_CODE ue_context_resume_fail_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_resume_fail_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_resume_fail_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -61009,29 +59190,6 @@ void ue_context_resume_request_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     rrc_resume_cause.to_json(j);
   }
-  j.end_obj();
-}
-
-// UEContextResumeRequest ::= SEQUENCE
-SRSASN_CODE ue_context_resume_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_resume_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_resume_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -61153,29 +59311,6 @@ void ue_context_resume_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     pending_data_ind.to_json(j);
   }
-  j.end_obj();
-}
-
-// UEContextResumeResponse ::= SEQUENCE
-SRSASN_CODE ue_context_resume_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_resume_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_resume_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -61315,29 +59450,6 @@ void ue_context_suspend_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEContextSuspendRequest ::= SEQUENCE
-SRSASN_CODE ue_context_suspend_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_suspend_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_suspend_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_context_suspend_resp_ies_o>;
 
 ue_context_suspend_resp_ies_container::ue_context_suspend_resp_ies_container() :
@@ -61426,29 +59538,6 @@ void ue_context_suspend_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     security_context.to_json(j);
   }
-  j.end_obj();
-}
-
-// UEContextSuspendResponse ::= SEQUENCE
-SRSASN_CODE ue_context_suspend_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_context_suspend_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_context_suspend_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -61563,29 +59652,6 @@ void ue_info_transfer_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UEInformationTransfer ::= SEQUENCE
-SRSASN_CODE ue_info_transfer_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_info_transfer_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_info_transfer_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ue_radio_cap_match_request_ies_o>;
 
 ue_radio_cap_match_request_ies_container::ue_radio_cap_match_request_ies_container() :
@@ -61657,29 +59723,6 @@ void ue_radio_cap_match_request_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     ue_radio_cap.to_json(j);
   }
-  j.end_obj();
-}
-
-// UERadioCapabilityMatchRequest ::= SEQUENCE
-SRSASN_CODE ue_radio_cap_match_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_radio_cap_match_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_radio_cap_match_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -61766,29 +59809,6 @@ void ue_radio_cap_match_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// UERadioCapabilityMatchResponse ::= SEQUENCE
-SRSASN_CODE ue_radio_cap_match_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_radio_cap_match_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_radio_cap_match_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -61943,29 +59963,6 @@ void ul_nas_transport_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UplinkNASTransport ::= SEQUENCE
-SRSASN_CODE ul_nas_transport_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ul_nas_transport_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ul_nas_transport_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ul_non_ueassociated_lp_pa_transport_ies_o>;
 
 ul_non_ueassociated_lp_pa_transport_ies_container::ul_non_ueassociated_lp_pa_transport_ies_container() :
@@ -62023,29 +60020,6 @@ void ul_non_ueassociated_lp_pa_transport_ies_container::to_json(json_writer& j) 
   routing_id.to_json(j);
   j.write_fieldname("");
   lp_pa_pdu.to_json(j);
-  j.end_obj();
-}
-
-// UplinkNonUEAssociatedLPPaTransport ::= SEQUENCE
-SRSASN_CODE ul_non_ueassociated_lp_pa_transport_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ul_non_ueassociated_lp_pa_transport_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ul_non_ueassociated_lp_pa_transport_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -62200,29 +60174,6 @@ void ul_s1cdma2000tunnelling_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UplinkS1cdma2000tunnelling ::= SEQUENCE
-SRSASN_CODE ul_s1cdma2000tunnelling_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ul_s1cdma2000tunnelling_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ul_s1cdma2000tunnelling_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<ul_ueassociated_lp_pa_transport_ies_o>;
 
 ul_ueassociated_lp_pa_transport_ies_container::ul_ueassociated_lp_pa_transport_ies_container() :
@@ -62301,29 +60252,6 @@ void ul_ueassociated_lp_pa_transport_ies_container::to_json(json_writer& j) cons
   routing_id.to_json(j);
   j.write_fieldname("");
   lp_pa_pdu.to_json(j);
-  j.end_obj();
-}
-
-// UplinkUEAssociatedLPPaTransport ::= SEQUENCE
-SRSASN_CODE ul_ueassociated_lp_pa_transport_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ul_ueassociated_lp_pa_transport_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ul_ueassociated_lp_pa_transport_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -62528,29 +60456,6 @@ void write_replace_warning_request_ies_container::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// WriteReplaceWarningRequest ::= SEQUENCE
-SRSASN_CODE write_replace_warning_request_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE write_replace_warning_request_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void write_replace_warning_request_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
-  j.end_obj();
-}
-
 template struct asn1::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
 
 write_replace_warning_resp_ies_container::write_replace_warning_resp_ies_container() :
@@ -62639,29 +60544,6 @@ void write_replace_warning_resp_ies_container::to_json(json_writer& j) const
     j.write_fieldname("");
     crit_diagnostics.to_json(j);
   }
-  j.end_obj();
-}
-
-// WriteReplaceWarningResponse ::= SEQUENCE
-SRSASN_CODE write_replace_warning_resp_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE write_replace_warning_resp_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void write_replace_warning_resp_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 

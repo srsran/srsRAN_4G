@@ -1823,6 +1823,36 @@ struct protocol_ie_container_empty_l {
 
 using protocol_ext_container_empty_l = protocol_ie_container_empty_l;
 
+template <typename ProtocolIEs>
+class elementary_procedure_option
+{
+public:
+  bool        ext;
+  ProtocolIEs protocol_ies;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    bref.pack(ext, 1);
+    HANDLE_CODE(protocol_ies.pack(bref));
+    return SRSASN_SUCCESS;
+  }
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    bref.unpack(ext, 1);
+    HANDLE_CODE(protocol_ies.unpack(bref));
+    return SRSASN_SUCCESS;
+  }
+  void to_json(json_writer& j) const
+  {
+    j.start_obj();
+    j.write_fieldname("protocolIEs");
+    asn1::to_json(j, protocol_ies);
+    j.end_obj();
+  }
+};
+
 } // namespace asn1
 
 #endif // SRSASN_COMMON_UTILS_H

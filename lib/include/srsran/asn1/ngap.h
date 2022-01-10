@@ -658,16 +658,7 @@ struct amf_cfg_upd_ies_container {
 };
 
 // AMFConfigurationUpdate ::= SEQUENCE
-struct amf_cfg_upd_s {
-  bool                      ext = false;
-  amf_cfg_upd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_cfg_upd_s = elementary_procedure_option<amf_cfg_upd_ies_container>;
 
 // Cause-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 using cause_ext_ies_o = protocol_ies_empty_o;
@@ -1030,16 +1021,7 @@ struct amf_cfg_upd_ack_ies_container {
 };
 
 // AMFConfigurationUpdateAcknowledge ::= SEQUENCE
-struct amf_cfg_upd_ack_s {
-  bool                          ext = false;
-  amf_cfg_upd_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_cfg_upd_ack_s = elementary_procedure_option<amf_cfg_upd_ack_ies_container>;
 
 // TimeToWait ::= ENUMERATED
 struct time_to_wait_opts {
@@ -1114,16 +1096,7 @@ struct amf_cfg_upd_fail_ies_container {
 };
 
 // AMFConfigurationUpdateFailure ::= SEQUENCE
-struct amf_cfg_upd_fail_s {
-  bool                           ext = false;
-  amf_cfg_upd_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_cfg_upd_fail_s = elementary_procedure_option<amf_cfg_upd_fail_ies_container>;
 
 // GNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 using gnb_id_ext_ies_o = protocol_ies_empty_o;
@@ -1600,16 +1573,7 @@ struct amf_status_ind_ies_o {
 };
 
 // AMFStatusIndication ::= SEQUENCE
-struct amf_status_ind_s {
-  bool                                          ext = false;
-  protocol_ie_container_l<amf_status_ind_ies_o> protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_status_ind_s = elementary_procedure_option<protocol_ie_container_l<amf_status_ind_ies_o> >;
 
 // DataForwardingAccepted ::= ENUMERATED
 struct data_forwarding_accepted_opts {
@@ -3076,16 +3040,7 @@ struct cell_traffic_trace_ies_container {
 };
 
 // CellTrafficTrace ::= SEQUENCE
-struct cell_traffic_trace_s {
-  bool                             ext = false;
-  cell_traffic_trace_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using cell_traffic_trace_s = elementary_procedure_option<cell_traffic_trace_ies_container>;
 
 // CellSize ::= ENUMERATED
 struct cell_size_opts {
@@ -3682,16 +3637,7 @@ struct deactiv_trace_ies_container {
 };
 
 // DeactivateTrace ::= SEQUENCE
-struct deactiv_trace_s {
-  bool                        ext = false;
-  deactiv_trace_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using deactiv_trace_s = elementary_procedure_option<deactiv_trace_ies_container>;
 
 // ForbiddenAreaInformation-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using forbidden_area_info_item_ext_ies_o = protocol_ext_empty_o;
@@ -3949,16 +3895,7 @@ struct dl_nas_transport_ies_container {
 };
 
 // DownlinkNASTransport ::= SEQUENCE
-struct dl_nas_transport_s {
-  bool                           ext = false;
-  dl_nas_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_nas_transport_s = elementary_procedure_option<dl_nas_transport_ies_container>;
 
 // DownlinkNonUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct dl_non_ueassociated_nrp_pa_transport_ies_o {
@@ -4018,16 +3955,8 @@ struct dl_non_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // DownlinkNonUEAssociatedNRPPaTransport ::= SEQUENCE
-struct dl_non_ueassociated_nrp_pa_transport_s {
-  bool                                               ext = false;
-  dl_non_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_non_ueassociated_nrp_pa_transport_s =
+    elementary_procedure_option<dl_non_ueassociated_nrp_pa_transport_ies_container>;
 
 // XnExtTLA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using xn_ext_tla_item_ext_ies_o = protocol_ext_empty_o;
@@ -4296,16 +4225,7 @@ struct dl_ran_cfg_transfer_ies_container {
 };
 
 // DownlinkRANConfigurationTransfer ::= SEQUENCE
-struct dl_ran_cfg_transfer_s {
-  bool                              ext = false;
-  dl_ran_cfg_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_ran_cfg_transfer_s = elementary_procedure_option<dl_ran_cfg_transfer_ies_container>;
 
 // RANStatusTransfer-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using ran_status_transfer_transparent_container_ext_ies_o = protocol_ext_empty_o;
@@ -4387,16 +4307,7 @@ struct dl_ran_status_transfer_ies_container {
 };
 
 // DownlinkRANStatusTransfer ::= SEQUENCE
-struct dl_ran_status_transfer_s {
-  bool                                 ext = false;
-  dl_ran_status_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_ran_status_transfer_s = elementary_procedure_option<dl_ran_status_transfer_ies_container>;
 
 // DownlinkUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct dl_ueassociated_nrp_pa_transport_ies_o {
@@ -4462,16 +4373,7 @@ struct dl_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // DownlinkUEAssociatedNRPPaTransport ::= SEQUENCE
-struct dl_ueassociated_nrp_pa_transport_s {
-  bool                                           ext = false;
-  dl_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_ueassociated_nrp_pa_transport_s = elementary_procedure_option<dl_ueassociated_nrp_pa_transport_ies_container>;
 
 // PacketErrorRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using packet_error_rate_ext_ies_o = protocol_ext_empty_o;
@@ -4698,16 +4600,7 @@ struct error_ind_ies_container {
 };
 
 // ErrorIndication ::= SEQUENCE
-struct error_ind_s {
-  bool                    ext = false;
-  error_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using error_ind_s = elementary_procedure_option<error_ind_ies_container>;
 
 // FiveG-S-TMSI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using five_g_s_tmsi_ext_ies_o = protocol_ext_empty_o;
@@ -4827,16 +4720,7 @@ struct ho_cancel_ies_container {
 };
 
 // HandoverCancel ::= SEQUENCE
-struct ho_cancel_s {
-  bool                    ext = false;
-  ho_cancel_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_cancel_s = elementary_procedure_option<ho_cancel_ies_container>;
 
 // HandoverCancelAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct ho_cancel_ack_ies_o {
@@ -4900,16 +4784,7 @@ struct ho_cancel_ack_ies_container {
 };
 
 // HandoverCancelAcknowledge ::= SEQUENCE
-struct ho_cancel_ack_s {
-  bool                        ext = false;
-  ho_cancel_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_cancel_ack_s = elementary_procedure_option<ho_cancel_ack_ies_container>;
 
 // PDUSessionResourceHandoverItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using pdu_session_res_ho_item_ext_ies_o = protocol_ext_empty_o;
@@ -5059,16 +4934,7 @@ struct ho_cmd_ies_container {
 };
 
 // HandoverCommand ::= SEQUENCE
-struct ho_cmd_s {
-  bool                 ext = false;
-  ho_cmd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_cmd_s = elementary_procedure_option<ho_cmd_ies_container>;
 
 // QosFlowPerTNLInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using qos_flow_per_tnl_info_ext_ies_o = protocol_ext_empty_o;
@@ -5249,16 +5115,7 @@ struct ho_fail_ies_container {
 };
 
 // HandoverFailure ::= SEQUENCE
-struct ho_fail_s {
-  bool                  ext = false;
-  ho_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_fail_s = elementary_procedure_option<ho_fail_ies_container>;
 
 // UserLocationInformationEUTRA-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using user_location_info_eutra_ext_ies_o = protocol_ext_empty_o;
@@ -5472,16 +5329,7 @@ struct ho_notify_ies_container {
 };
 
 // HandoverNotify ::= SEQUENCE
-struct ho_notify_s {
-  bool                    ext = false;
-  ho_notify_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_notify_s = elementary_procedure_option<ho_notify_ies_container>;
 
 // HandoverPreparationFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct ho_prep_fail_ies_o {
@@ -5548,16 +5396,7 @@ struct ho_prep_fail_ies_container {
 };
 
 // HandoverPreparationFailure ::= SEQUENCE
-struct ho_prep_fail_s {
-  bool                       ext = false;
-  ho_prep_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_prep_fail_s = elementary_procedure_option<ho_prep_fail_ies_container>;
 
 // HandoverPreparationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using ho_prep_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
@@ -5915,16 +5754,7 @@ struct ho_request_ies_container {
 };
 
 // HandoverRequest ::= SEQUENCE
-struct ho_request_s {
-  bool                     ext = false;
-  ho_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_request_s = elementary_procedure_option<ho_request_ies_container>;
 
 // PDUSessionResourceAdmittedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using pdu_session_res_admitted_item_ext_ies_o = protocol_ext_empty_o;
@@ -6057,16 +5887,7 @@ struct ho_request_ack_ies_container {
 };
 
 // HandoverRequestAcknowledge ::= SEQUENCE
-struct ho_request_ack_s {
-  bool                         ext = false;
-  ho_request_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_request_ack_s = elementary_procedure_option<ho_request_ack_ies_container>;
 
 // QosFlowWithCauseItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using qos_flow_with_cause_item_ext_ies_o = protocol_ext_empty_o;
@@ -6384,16 +6205,7 @@ struct ho_required_ies_container {
 };
 
 // HandoverRequired ::= SEQUENCE
-struct ho_required_s {
-  bool                      ext = false;
-  ho_required_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_required_s = elementary_procedure_option<ho_required_ies_container>;
 
 // HandoverRequiredTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using ho_required_transfer_ext_ies_o = protocol_ext_empty_o;
@@ -6597,16 +6409,7 @@ struct init_context_setup_fail_ies_container {
 };
 
 // InitialContextSetupFailure ::= SEQUENCE
-struct init_context_setup_fail_s {
-  bool                                  ext = false;
-  init_context_setup_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_context_setup_fail_s = elementary_procedure_option<init_context_setup_fail_ies_container>;
 
 // PDUSessionResourceSetupItemCxtReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using pdu_session_res_setup_item_cxt_req_ext_ies_o = protocol_ext_empty_o;
@@ -6817,16 +6620,7 @@ struct init_context_setup_request_ies_container {
 };
 
 // InitialContextSetupRequest ::= SEQUENCE
-struct init_context_setup_request_s {
-  bool                                     ext = false;
-  init_context_setup_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_context_setup_request_s = elementary_procedure_option<init_context_setup_request_ies_container>;
 
 // PDUSessionResourceFailedToSetupItemCxtRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_o = protocol_ext_empty_o;
@@ -6955,16 +6749,7 @@ struct init_context_setup_resp_ies_container {
 };
 
 // InitialContextSetupResponse ::= SEQUENCE
-struct init_context_setup_resp_s {
-  bool                                  ext = false;
-  init_context_setup_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_context_setup_resp_s = elementary_procedure_option<init_context_setup_resp_ies_container>;
 
 // RRCEstablishmentCause ::= ENUMERATED
 struct rrcestablishment_cause_opts {
@@ -7093,16 +6878,7 @@ struct init_ue_msg_ies_container {
 };
 
 // InitialUEMessage ::= SEQUENCE
-struct init_ue_msg_s {
-  bool                      ext = false;
-  init_ue_msg_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_ue_msg_s = elementary_procedure_option<init_ue_msg_ies_container>;
 
 // SliceOverloadItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using slice_overload_item_ext_ies_o = protocol_ext_empty_o;
@@ -11048,16 +10824,7 @@ struct location_report_ies_container {
 };
 
 // LocationReport ::= SEQUENCE
-struct location_report_s {
-  bool                          ext = false;
-  location_report_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using location_report_s = elementary_procedure_option<location_report_ies_container>;
 
 struct location_report_ctrl_ies_container {
   template <class valueT_>
@@ -11076,16 +10843,7 @@ struct location_report_ctrl_ies_container {
 };
 
 // LocationReportingControl ::= SEQUENCE
-struct location_report_ctrl_s {
-  bool                               ext = false;
-  location_report_ctrl_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using location_report_ctrl_s = elementary_procedure_option<location_report_ctrl_ies_container>;
 
 struct location_report_fail_ind_ies_container {
   template <class valueT_>
@@ -11104,16 +10862,7 @@ struct location_report_fail_ind_ies_container {
 };
 
 // LocationReportingFailureIndication ::= SEQUENCE
-struct location_report_fail_ind_s {
-  bool                                   ext = false;
-  location_report_fail_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using location_report_fail_ind_s = elementary_procedure_option<location_report_fail_ind_ies_container>;
 
 struct nas_non_delivery_ind_ies_container {
   template <class valueT_>
@@ -11133,16 +10882,7 @@ struct nas_non_delivery_ind_ies_container {
 };
 
 // NASNonDeliveryIndication ::= SEQUENCE
-struct nas_non_delivery_ind_s {
-  bool                               ext = false;
-  nas_non_delivery_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using nas_non_delivery_ind_s = elementary_procedure_option<nas_non_delivery_ind_ies_container>;
 
 struct ng_reset_ies_container {
   template <class valueT_>
@@ -11160,16 +10900,7 @@ struct ng_reset_ies_container {
 };
 
 // NGReset ::= SEQUENCE
-struct ng_reset_s {
-  bool                   ext = false;
-  ng_reset_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_reset_s = elementary_procedure_option<ng_reset_ies_container>;
 
 struct ng_reset_ack_ies_container {
   template <class valueT_>
@@ -11189,16 +10920,7 @@ struct ng_reset_ack_ies_container {
 };
 
 // NGResetAcknowledge ::= SEQUENCE
-struct ng_reset_ack_s {
-  bool                       ext = false;
-  ng_reset_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_reset_ack_s = elementary_procedure_option<ng_reset_ack_ies_container>;
 
 struct ng_setup_fail_ies_container {
   template <class valueT_>
@@ -11219,16 +10941,7 @@ struct ng_setup_fail_ies_container {
 };
 
 // NGSetupFailure ::= SEQUENCE
-struct ng_setup_fail_s {
-  bool                        ext = false;
-  ng_setup_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_setup_fail_s = elementary_procedure_option<ng_setup_fail_ies_container>;
 
 struct ng_setup_request_ies_container {
   template <class valueT_>
@@ -11251,16 +10964,7 @@ struct ng_setup_request_ies_container {
 };
 
 // NGSetupRequest ::= SEQUENCE
-struct ng_setup_request_s {
-  bool                           ext = false;
-  ng_setup_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_setup_request_s = elementary_procedure_option<ng_setup_request_ies_container>;
 
 struct ng_setup_resp_ies_container {
   template <class valueT_>
@@ -11284,16 +10988,7 @@ struct ng_setup_resp_ies_container {
 };
 
 // NGSetupResponse ::= SEQUENCE
-struct ng_setup_resp_s {
-  bool                        ext = false;
-  ng_setup_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_setup_resp_s = elementary_procedure_option<ng_setup_resp_ies_container>;
 
 struct overload_start_ies_container {
   template <class valueT_>
@@ -11315,30 +11010,12 @@ struct overload_start_ies_container {
 };
 
 // OverloadStart ::= SEQUENCE
-struct overload_start_s {
-  bool                         ext = false;
-  overload_start_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using overload_start_s = elementary_procedure_option<overload_start_ies_container>;
 
 using overload_stop_ies_container = protocol_ie_container_empty_l;
 
 // OverloadStop ::= SEQUENCE
-struct overload_stop_s {
-  bool                        ext = false;
-  overload_stop_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using overload_stop_s = elementary_procedure_option<overload_stop_ies_container>;
 
 struct pdu_session_res_modify_confirm_ies_container {
   template <class valueT_>
@@ -11362,16 +11039,7 @@ struct pdu_session_res_modify_confirm_ies_container {
 };
 
 // PDUSessionResourceModifyConfirm ::= SEQUENCE
-struct pdu_session_res_modify_confirm_s {
-  bool                                         ext = false;
-  pdu_session_res_modify_confirm_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_confirm_s = elementary_procedure_option<pdu_session_res_modify_confirm_ies_container>;
 
 struct pdu_session_res_modify_ind_ies_container {
   template <class valueT_>
@@ -11390,16 +11058,7 @@ struct pdu_session_res_modify_ind_ies_container {
 };
 
 // PDUSessionResourceModifyIndication ::= SEQUENCE
-struct pdu_session_res_modify_ind_s {
-  bool                                     ext = false;
-  pdu_session_res_modify_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_ind_s = elementary_procedure_option<pdu_session_res_modify_ind_ies_container>;
 
 struct pdu_session_res_modify_request_ies_container {
   template <class valueT_>
@@ -11420,16 +11079,7 @@ struct pdu_session_res_modify_request_ies_container {
 };
 
 // PDUSessionResourceModifyRequest ::= SEQUENCE
-struct pdu_session_res_modify_request_s {
-  bool                                         ext = false;
-  pdu_session_res_modify_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_request_s = elementary_procedure_option<pdu_session_res_modify_request_ies_container>;
 
 struct pdu_session_res_modify_resp_ies_container {
   template <class valueT_>
@@ -11456,16 +11106,7 @@ struct pdu_session_res_modify_resp_ies_container {
 };
 
 // PDUSessionResourceModifyResponse ::= SEQUENCE
-struct pdu_session_res_modify_resp_s {
-  bool                                      ext = false;
-  pdu_session_res_modify_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_resp_s = elementary_procedure_option<pdu_session_res_modify_resp_ies_container>;
 
 struct pdu_session_res_notify_ies_container {
   template <class valueT_>
@@ -11489,16 +11130,7 @@ struct pdu_session_res_notify_ies_container {
 };
 
 // PDUSessionResourceNotify ::= SEQUENCE
-struct pdu_session_res_notify_s {
-  bool                                 ext = false;
-  pdu_session_res_notify_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_notify_s = elementary_procedure_option<pdu_session_res_notify_ies_container>;
 
 struct pdu_session_res_release_cmd_ies_container {
   template <class valueT_>
@@ -11522,16 +11154,7 @@ struct pdu_session_res_release_cmd_ies_container {
 };
 
 // PDUSessionResourceReleaseCommand ::= SEQUENCE
-struct pdu_session_res_release_cmd_s {
-  bool                                      ext = false;
-  pdu_session_res_release_cmd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_release_cmd_s = elementary_procedure_option<pdu_session_res_release_cmd_ies_container>;
 
 struct pdu_session_res_release_resp_ies_container {
   template <class valueT_>
@@ -11554,16 +11177,7 @@ struct pdu_session_res_release_resp_ies_container {
 };
 
 // PDUSessionResourceReleaseResponse ::= SEQUENCE
-struct pdu_session_res_release_resp_s {
-  bool                                       ext = false;
-  pdu_session_res_release_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_release_resp_s = elementary_procedure_option<pdu_session_res_release_resp_ies_container>;
 
 struct pdu_session_res_setup_request_ies_container {
   template <class valueT_>
@@ -11588,16 +11202,7 @@ struct pdu_session_res_setup_request_ies_container {
 };
 
 // PDUSessionResourceSetupRequest ::= SEQUENCE
-struct pdu_session_res_setup_request_s {
-  bool                                        ext = false;
-  pdu_session_res_setup_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_setup_request_s = elementary_procedure_option<pdu_session_res_setup_request_ies_container>;
 
 struct pdu_session_res_setup_resp_ies_container {
   template <class valueT_>
@@ -11622,16 +11227,7 @@ struct pdu_session_res_setup_resp_ies_container {
 };
 
 // PDUSessionResourceSetupResponse ::= SEQUENCE
-struct pdu_session_res_setup_resp_s {
-  bool                                     ext = false;
-  pdu_session_res_setup_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_setup_resp_s = elementary_procedure_option<pdu_session_res_setup_resp_ies_container>;
 
 struct pws_cancel_request_ies_container {
   template <class valueT_>
@@ -11653,16 +11249,7 @@ struct pws_cancel_request_ies_container {
 };
 
 // PWSCancelRequest ::= SEQUENCE
-struct pws_cancel_request_s {
-  bool                             ext = false;
-  pws_cancel_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_cancel_request_s = elementary_procedure_option<pws_cancel_request_ies_container>;
 
 struct pws_cancel_resp_ies_container {
   template <class valueT_>
@@ -11684,16 +11271,7 @@ struct pws_cancel_resp_ies_container {
 };
 
 // PWSCancelResponse ::= SEQUENCE
-struct pws_cancel_resp_s {
-  bool                          ext = false;
-  pws_cancel_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_cancel_resp_s = elementary_procedure_option<pws_cancel_resp_ies_container>;
 
 struct pws_fail_ind_ies_container {
   template <class valueT_>
@@ -11711,16 +11289,7 @@ struct pws_fail_ind_ies_container {
 };
 
 // PWSFailureIndication ::= SEQUENCE
-struct pws_fail_ind_s {
-  bool                       ext = false;
-  pws_fail_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_fail_ind_s = elementary_procedure_option<pws_fail_ind_ies_container>;
 
 struct pws_restart_ind_ies_container {
   template <class valueT_>
@@ -11741,16 +11310,7 @@ struct pws_restart_ind_ies_container {
 };
 
 // PWSRestartIndication ::= SEQUENCE
-struct pws_restart_ind_s {
-  bool                          ext = false;
-  pws_restart_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_restart_ind_s = elementary_procedure_option<pws_restart_ind_ies_container>;
 
 struct paging_ies_container {
   template <class valueT_>
@@ -11778,16 +11338,7 @@ struct paging_ies_container {
 };
 
 // Paging ::= SEQUENCE
-struct paging_s {
-  bool                 ext = false;
-  paging_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using paging_s = elementary_procedure_option<paging_ies_container>;
 
 struct path_switch_request_ies_container {
   template <class valueT_>
@@ -11812,16 +11363,7 @@ struct path_switch_request_ies_container {
 };
 
 // PathSwitchRequest ::= SEQUENCE
-struct path_switch_request_s {
-  bool                              ext = false;
-  path_switch_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using path_switch_request_s = elementary_procedure_option<path_switch_request_ies_container>;
 
 struct path_switch_request_ack_ies_container {
   template <class valueT_>
@@ -11856,16 +11398,7 @@ struct path_switch_request_ack_ies_container {
 };
 
 // PathSwitchRequestAcknowledge ::= SEQUENCE
-struct path_switch_request_ack_s {
-  bool                                  ext = false;
-  path_switch_request_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using path_switch_request_ack_s = elementary_procedure_option<path_switch_request_ack_ies_container>;
 
 struct path_switch_request_fail_ies_container {
   template <class valueT_>
@@ -11886,16 +11419,7 @@ struct path_switch_request_fail_ies_container {
 };
 
 // PathSwitchRequestFailure ::= SEQUENCE
-struct path_switch_request_fail_s {
-  bool                                   ext = false;
-  path_switch_request_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using path_switch_request_fail_s = elementary_procedure_option<path_switch_request_fail_ies_container>;
 
 template <class valueT_>
 struct private_ie_container_item_s {
@@ -11955,28 +11479,10 @@ struct ran_cfg_upd_ies_container {
 };
 
 // RANConfigurationUpdate ::= SEQUENCE
-struct ran_cfg_upd_s {
-  bool                      ext = false;
-  ran_cfg_upd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ran_cfg_upd_s = elementary_procedure_option<ran_cfg_upd_ies_container>;
 
 // RANConfigurationUpdateAcknowledge ::= SEQUENCE
-struct ran_cfg_upd_ack_s {
-  bool                                           ext = false;
-  protocol_ie_container_l<ran_cfg_upd_ack_ies_o> protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ran_cfg_upd_ack_s = elementary_procedure_option<protocol_ie_container_l<ran_cfg_upd_ack_ies_o> >;
 
 struct ran_cfg_upd_fail_ies_container {
   template <class valueT_>
@@ -11997,16 +11503,7 @@ struct ran_cfg_upd_fail_ies_container {
 };
 
 // RANConfigurationUpdateFailure ::= SEQUENCE
-struct ran_cfg_upd_fail_s {
-  bool                           ext = false;
-  ran_cfg_upd_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ran_cfg_upd_fail_s = elementary_procedure_option<ran_cfg_upd_fail_ies_container>;
 
 struct rrc_inactive_transition_report_ies_container {
   template <class valueT_>
@@ -12026,16 +11523,7 @@ struct rrc_inactive_transition_report_ies_container {
 };
 
 // RRCInactiveTransitionReport ::= SEQUENCE
-struct rrc_inactive_transition_report_s {
-  bool                                         ext = false;
-  rrc_inactive_transition_report_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using rrc_inactive_transition_report_s = elementary_procedure_option<rrc_inactive_transition_report_ies_container>;
 
 struct reroute_nas_request_ies_container {
   template <class valueT_>
@@ -12058,16 +11546,7 @@ struct reroute_nas_request_ies_container {
 };
 
 // RerouteNASRequest ::= SEQUENCE
-struct reroute_nas_request_s {
-  bool                              ext = false;
-  reroute_nas_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using reroute_nas_request_s = elementary_procedure_option<reroute_nas_request_ies_container>;
 
 struct secondary_rat_data_usage_report_ies_container {
   template <class valueT_>
@@ -12089,16 +11568,7 @@ struct secondary_rat_data_usage_report_ies_container {
 };
 
 // SecondaryRATDataUsageReport ::= SEQUENCE
-struct secondary_rat_data_usage_report_s {
-  bool                                          ext = false;
-  secondary_rat_data_usage_report_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using secondary_rat_data_usage_report_s = elementary_procedure_option<secondary_rat_data_usage_report_ies_container>;
 
 struct trace_fail_ind_ies_container {
   template <class valueT_>
@@ -12118,16 +11588,7 @@ struct trace_fail_ind_ies_container {
 };
 
 // TraceFailureIndication ::= SEQUENCE
-struct trace_fail_ind_s {
-  bool                         ext = false;
-  trace_fail_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using trace_fail_ind_s = elementary_procedure_option<trace_fail_ind_ies_container>;
 
 struct trace_start_ies_container {
   template <class valueT_>
@@ -12146,16 +11607,7 @@ struct trace_start_ies_container {
 };
 
 // TraceStart ::= SEQUENCE
-struct trace_start_s {
-  bool                      ext = false;
-  trace_start_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using trace_start_s = elementary_procedure_option<trace_start_ies_container>;
 
 struct ue_context_mod_fail_ies_container {
   template <class valueT_>
@@ -12176,16 +11628,7 @@ struct ue_context_mod_fail_ies_container {
 };
 
 // UEContextModificationFailure ::= SEQUENCE
-struct ue_context_mod_fail_s {
-  bool                              ext = false;
-  ue_context_mod_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_mod_fail_s = elementary_procedure_option<ue_context_mod_fail_ies_container>;
 
 struct ue_context_mod_request_ies_container {
   template <class valueT_>
@@ -12221,16 +11664,7 @@ struct ue_context_mod_request_ies_container {
 };
 
 // UEContextModificationRequest ::= SEQUENCE
-struct ue_context_mod_request_s {
-  bool                                 ext = false;
-  ue_context_mod_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_mod_request_s = elementary_procedure_option<ue_context_mod_request_ies_container>;
 
 struct ue_context_mod_resp_ies_container {
   template <class valueT_>
@@ -12254,16 +11688,7 @@ struct ue_context_mod_resp_ies_container {
 };
 
 // UEContextModificationResponse ::= SEQUENCE
-struct ue_context_mod_resp_s {
-  bool                              ext = false;
-  ue_context_mod_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_mod_resp_s = elementary_procedure_option<ue_context_mod_resp_ies_container>;
 
 struct ue_context_release_cmd_ies_container {
   template <class valueT_>
@@ -12281,16 +11706,7 @@ struct ue_context_release_cmd_ies_container {
 };
 
 // UEContextReleaseCommand ::= SEQUENCE
-struct ue_context_release_cmd_s {
-  bool                                 ext = false;
-  ue_context_release_cmd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_release_cmd_s = elementary_procedure_option<ue_context_release_cmd_ies_container>;
 
 struct ue_context_release_complete_ies_container {
   template <class valueT_>
@@ -12316,16 +11732,7 @@ struct ue_context_release_complete_ies_container {
 };
 
 // UEContextReleaseComplete ::= SEQUENCE
-struct ue_context_release_complete_s {
-  bool                                      ext = false;
-  ue_context_release_complete_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_release_complete_s = elementary_procedure_option<ue_context_release_complete_ies_container>;
 
 struct ue_context_release_request_ies_container {
   template <class valueT_>
@@ -12346,16 +11753,7 @@ struct ue_context_release_request_ies_container {
 };
 
 // UEContextReleaseRequest ::= SEQUENCE
-struct ue_context_release_request_s {
-  bool                                     ext = false;
-  ue_context_release_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_release_request_s = elementary_procedure_option<ue_context_release_request_ies_container>;
 
 struct ue_radio_cap_check_request_ies_container {
   template <class valueT_>
@@ -12375,16 +11773,7 @@ struct ue_radio_cap_check_request_ies_container {
 };
 
 // UERadioCapabilityCheckRequest ::= SEQUENCE
-struct ue_radio_cap_check_request_s {
-  bool                                     ext = false;
-  ue_radio_cap_check_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_radio_cap_check_request_s = elementary_procedure_option<ue_radio_cap_check_request_ies_container>;
 
 struct ue_radio_cap_check_resp_ies_container {
   template <class valueT_>
@@ -12405,16 +11794,7 @@ struct ue_radio_cap_check_resp_ies_container {
 };
 
 // UERadioCapabilityCheckResponse ::= SEQUENCE
-struct ue_radio_cap_check_resp_s {
-  bool                                  ext = false;
-  ue_radio_cap_check_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_radio_cap_check_resp_s = elementary_procedure_option<ue_radio_cap_check_resp_ies_container>;
 
 struct ue_radio_cap_info_ind_ies_container {
   template <class valueT_>
@@ -12435,16 +11815,7 @@ struct ue_radio_cap_info_ind_ies_container {
 };
 
 // UERadioCapabilityInfoIndication ::= SEQUENCE
-struct ue_radio_cap_info_ind_s {
-  bool                                ext = false;
-  ue_radio_cap_info_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_radio_cap_info_ind_s = elementary_procedure_option<ue_radio_cap_info_ind_ies_container>;
 
 struct uetnla_binding_release_request_ies_container {
   template <class valueT_>
@@ -12462,16 +11833,7 @@ struct uetnla_binding_release_request_ies_container {
 };
 
 // UETNLABindingReleaseRequest ::= SEQUENCE
-struct uetnla_binding_release_request_s {
-  bool                                         ext = false;
-  uetnla_binding_release_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using uetnla_binding_release_request_s = elementary_procedure_option<uetnla_binding_release_request_ies_container>;
 
 struct ul_nas_transport_ies_container {
   template <class valueT_>
@@ -12491,16 +11853,7 @@ struct ul_nas_transport_ies_container {
 };
 
 // UplinkNASTransport ::= SEQUENCE
-struct ul_nas_transport_s {
-  bool                           ext = false;
-  ul_nas_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_nas_transport_s = elementary_procedure_option<ul_nas_transport_ies_container>;
 
 struct ul_non_ueassociated_nrp_pa_transport_ies_container {
   template <class valueT_>
@@ -12518,16 +11871,8 @@ struct ul_non_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // UplinkNonUEAssociatedNRPPaTransport ::= SEQUENCE
-struct ul_non_ueassociated_nrp_pa_transport_s {
-  bool                                               ext = false;
-  ul_non_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_non_ueassociated_nrp_pa_transport_s =
+    elementary_procedure_option<ul_non_ueassociated_nrp_pa_transport_ies_container>;
 
 struct ul_ran_cfg_transfer_ies_container {
   template <class valueT_>
@@ -12547,16 +11892,7 @@ struct ul_ran_cfg_transfer_ies_container {
 };
 
 // UplinkRANConfigurationTransfer ::= SEQUENCE
-struct ul_ran_cfg_transfer_s {
-  bool                              ext = false;
-  ul_ran_cfg_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_ran_cfg_transfer_s = elementary_procedure_option<ul_ran_cfg_transfer_ies_container>;
 
 struct ul_ran_status_transfer_ies_container {
   template <class valueT_>
@@ -12575,16 +11911,7 @@ struct ul_ran_status_transfer_ies_container {
 };
 
 // UplinkRANStatusTransfer ::= SEQUENCE
-struct ul_ran_status_transfer_s {
-  bool                                 ext = false;
-  ul_ran_status_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_ran_status_transfer_s = elementary_procedure_option<ul_ran_status_transfer_ies_container>;
 
 struct ul_ueassociated_nrp_pa_transport_ies_container {
   template <class valueT_>
@@ -12604,16 +11931,7 @@ struct ul_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // UplinkUEAssociatedNRPPaTransport ::= SEQUENCE
-struct ul_ueassociated_nrp_pa_transport_s {
-  bool                                           ext = false;
-  ul_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_ueassociated_nrp_pa_transport_s = elementary_procedure_option<ul_ueassociated_nrp_pa_transport_ies_container>;
 
 struct write_replace_warning_request_ies_container {
   template <class valueT_>
@@ -12647,16 +11965,7 @@ struct write_replace_warning_request_ies_container {
 };
 
 // WriteReplaceWarningRequest ::= SEQUENCE
-struct write_replace_warning_request_s {
-  bool                                        ext = false;
-  write_replace_warning_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using write_replace_warning_request_s = elementary_procedure_option<write_replace_warning_request_ies_container>;
 
 struct write_replace_warning_resp_ies_container {
   template <class valueT_>
@@ -12678,16 +11987,7 @@ struct write_replace_warning_resp_ies_container {
 };
 
 // WriteReplaceWarningResponse ::= SEQUENCE
-struct write_replace_warning_resp_s {
-  bool                                     ext = false;
-  write_replace_warning_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using write_replace_warning_resp_s = elementary_procedure_option<write_replace_warning_resp_ies_container>;
 
 // NGAP-ELEMENTARY-PROCEDURES ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
 struct ngap_elem_procs_o {
@@ -13969,16 +13269,8 @@ struct pdu_session_res_modify_request_transfer_ies_container {
 };
 
 // PDUSessionResourceModifyRequestTransfer ::= SEQUENCE
-struct pdu_session_res_modify_request_transfer_s {
-  bool                                                  ext = false;
-  pdu_session_res_modify_request_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_request_transfer_s =
+    elementary_procedure_option<pdu_session_res_modify_request_transfer_ies_container>;
 
 // QosFlowAddOrModifyResponseItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using qos_flow_add_or_modify_resp_item_ext_ies_o = protocol_ext_empty_o;
@@ -14482,16 +13774,8 @@ struct pdu_session_res_setup_request_transfer_ies_container {
 };
 
 // PDUSessionResourceSetupRequestTransfer ::= SEQUENCE
-struct pdu_session_res_setup_request_transfer_s {
-  bool                                                 ext = false;
-  pdu_session_res_setup_request_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_setup_request_transfer_s =
+    elementary_procedure_option<pdu_session_res_setup_request_transfer_ies_container>;
 
 // PDUSessionResourceSetupResponseTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 using pdu_session_res_setup_resp_transfer_ext_ies_o = protocol_ext_empty_o;
