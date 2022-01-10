@@ -149,7 +149,7 @@ private:
 
   // Queues and buffers
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
-  rlc_amd_tx_sdu_nr_t                current_sdu; // SDU currently being segmented
+  rlc_amd_tx_sdu_nr_t                sdu_under_segmentation;
 
   // Helper constants
   uint32_t min_hdr_size = 2;

@@ -111,14 +111,14 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // Send remaining segment, if it exists
-  if (current_sdu.rlc_sn != INVALID_RLC_SN) {
-    if (not tx_window.has_sn(current_sdu.rlc_sn)) {
-      current_sdu.rlc_sn = INVALID_RLC_SN;
+  if (sdu_under_segmentation.rlc_sn != INVALID_RLC_SN) {
+    if (not tx_window.has_sn(sdu_under_segmentation.rlc_sn)) {
+      sdu_under_segmentation.rlc_sn = INVALID_RLC_SN;
       Error("SDU currently being segmented does not exist in tx_window. Aborting segmentation SN=%d",
-            current_sdu.rlc_sn);
+            sdu_under_segmentation.rlc_sn);
       return 0;
     }
-    return build_continuation_sdu_segment(tx_window[current_sdu.rlc_sn], payload, nof_bytes);
+    return build_continuation_sdu_segment(tx_window[sdu_under_segmentation.rlc_sn], payload, nof_bytes);
   }
 
   // Check whether there is something to TX
@@ -231,8 +231,8 @@ int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
   memcpy(&payload[hdr_len], tx_pdu.buf->msg, segment_payload_len);
 
   // Save SDU currently being segmented
-  current_sdu.rlc_sn = st.tx_next;
-  current_sdu.buf    = std::move(tx_sdu);
+  sdu_under_segmentation.rlc_sn = st.tx_next;
+  sdu_under_segmentation.buf    = std::move(tx_sdu);
 
   // Store Segment Info
   rlc_amd_tx_pdu_nr::pdu_segment segment_info;
@@ -244,19 +244,19 @@ int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
 int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes)
 {
   Info("continuing SDU segment. SN=%d, Tx SDU (%d B), nof_bytes=%d B ",
-       current_sdu.rlc_sn,
-       current_sdu.buf->N_bytes,
+       sdu_under_segmentation.rlc_sn,
+       sdu_under_segmentation.buf->N_bytes,
        nof_bytes);
 
   // Sanity check: is there an initial SDU segment?
   if (tx_pdu.segment_list.empty()) {
     Error("build_continuation_sdu_segment was called, but there was no initial segment. SN=%d, Tx SDU (%d B), "
           "nof_bytes=%d B ",
-          current_sdu.rlc_sn,
-          current_sdu.buf->N_bytes,
+          sdu_under_segmentation.rlc_sn,
+          sdu_under_segmentation.buf->N_bytes,
           nof_bytes);
-    current_sdu.rlc_sn = INVALID_RLC_SN;
-    current_sdu.buf    = nullptr;
+    sdu_under_segmentation.rlc_sn = INVALID_RLC_SN;
+    sdu_under_segmentation.buf    = nullptr;
     return 0;
   }
 
@@ -268,20 +268,19 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
   }
 
   // Can the rest of the SDU be sent on a single segment PDU?
-  std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator it = tx_pdu.segment_list.end();
-  --it;
-  uint32_t last_byte = it->so + it->payload_len;
+  const rlc_amd_tx_pdu_nr::pdu_segment& seg       = tx_pdu.segment_list.back();
+  uint32_t                              last_byte = seg.so + seg.payload_len;
   Debug("continuing SDU segment. SN=%d, last byte transmitted %d", tx_pdu.rlc_sn, last_byte);
 
   // Sanity check: last byte must be smaller than SDU
-  if (current_sdu.buf->N_bytes < last_byte) {
+  if (sdu_under_segmentation.buf->N_bytes < last_byte) {
     Error("last byte transmitted larger than SDU len. SDU len=%d B, last_byte=%d B", tx_pdu.buf->N_bytes, last_byte);
     return 0;
   }
 
-  uint32_t          segment_payload_full_len = current_sdu.buf->N_bytes - last_byte + max_hdr_size; // SO is included
-  uint32_t          segment_payload_len      = current_sdu.buf->N_bytes - last_byte;
-  rlc_nr_si_field_t si                       = {};
+  uint32_t segment_payload_full_len = sdu_under_segmentation.buf->N_bytes - last_byte + max_hdr_size; // SO is included
+  uint32_t segment_payload_len      = sdu_under_segmentation.buf->N_bytes - last_byte;
+  rlc_nr_si_field_t si              = {};
 
   if (segment_payload_full_len > nof_bytes) {
     Info("grant is not large enough for full SDU. "
@@ -333,8 +332,8 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
   } else {
     Info("grant is large enough for full SDU."
          "Removing current SDU info");
-    current_sdu.rlc_sn = INVALID_RLC_SN;
-    current_sdu.buf    = nullptr;
+    sdu_under_segmentation.rlc_sn = INVALID_RLC_SN;
+    sdu_under_segmentation.buf    = nullptr;
   }
 
   return hdr_len + segment_payload_len;
