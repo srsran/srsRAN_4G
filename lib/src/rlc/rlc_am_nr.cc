@@ -201,7 +201,7 @@ int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
   }
 
   // Sanity check: can this SDU be sent considering header overhead?
-  if (3 < nof_bytes) { // Only two bytes of header, as SO is 0
+  if (nof_bytes <= min_hdr_size) { // Small header as SO is not present
     Error("cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d",
           nof_bytes);
     return 0;
@@ -220,12 +220,14 @@ int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
 
   // Write header
   uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(hdr, payload);
-  if (hdr_len > nof_bytes) {
-    logger->error("error writing AMD PDU header");
+  if (hdr_len >= nof_bytes || hdr_len != min_hdr_size) {
+    Error("error writing AMD PDU header");
+    return 0;
   }
 
   // Copy PDU to payload
   uint32_t segment_payload_len = nof_bytes - hdr_len;
+  srsran_assert((hdr_len + segment_payload_len) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
   memcpy(&payload[hdr_len], tx_pdu.buf->msg, segment_payload_len);
 
   // Save SDU currently being segmented
@@ -310,12 +312,13 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
 
   // Write header
   uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(hdr, payload);
-  if (hdr_len > nof_bytes) {
+  if (hdr_len >= nof_bytes || hdr_len != max_hdr_size) {
     Error("error writing AMD PDU header");
     return 0;
   }
 
   // Copy PDU to payload
+  srsran_assert((hdr_len + segment_payload_len) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
   memcpy(&payload[hdr_len], &tx_pdu.buf->msg[last_byte], segment_payload_len);
 
   // Store PDU segment info into tx_window

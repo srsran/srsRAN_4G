@@ -432,7 +432,7 @@ int main(int argc, char** argv)
   logger_rlc1.set_level(srslog::basic_levels::debug);
   logger_rlc2.set_level(srslog::basic_levels::debug);
 
-  // start log backend
+  // start log back-end
   srslog::init();
 
   TESTASSERT(window_checker_test() == SRSRAN_SUCCESS);
