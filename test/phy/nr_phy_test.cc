@@ -87,10 +87,11 @@ test_bench::args_t::args_t(int argc, char** argv)
         ;
 
   options_ue_phy.add_options()
-        ("ue.phy.nof_threads",     bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),          "Number of threads")
-        ("ue.phy.log.level",       bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"), "UE PHY log level")
-        ("ue.phy.log.hex_limit",   bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),             "UE PHY log hex limit")
-        ("ue.phy.log.id_preamble", bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"),  "UE PHY log ID preamble")
+        ("ue.phy.fix_wideband_cqi", bpo::value<uint32_t>(&ue_phy.fix_wideband_cqi)->default_value(15),        "Fix wideband CQI value, set to 0 or greater than 15 to disable")
+        ("ue.phy.nof_threads",      bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),          "Number of threads")
+        ("ue.phy.log.level",        bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"), "UE PHY log level")
+        ("ue.phy.log.hex_limit",    bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),             "UE PHY log hex limit")
+        ("ue.phy.log.id_preamble",  bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"),  "UE PHY log ID preamble")
         ;
 
   options_ue_stack.add_options()
