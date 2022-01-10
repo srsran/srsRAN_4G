@@ -151,6 +151,11 @@ private:
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
   rlc_amd_tx_sdu_nr_t                current_sdu; // SDU currently being segmented
 
+  // Helper constants
+  uint32_t min_hdr_size = 2;
+  uint32_t so_size      = 2;
+  uint32_t max_hdr_size = 4;
+
 public:
   // Getters/Setters
   void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.

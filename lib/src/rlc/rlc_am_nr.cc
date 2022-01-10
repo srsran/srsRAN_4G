@@ -55,7 +55,10 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
     return false;
   }
 
-  mod_nr = (cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits) ? 4096 : 262144;
+  mod_nr = cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits ? 4096 : 262144;
+
+  min_hdr_size = cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  max_hdr_size = min_hdr_size + so_size;
 
   tx_enabled = true;
 
@@ -148,8 +151,7 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // Segment new SDU if necessary
-  uint16_t hdr_size = 2;
-  if (tx_sdu->N_bytes + hdr_size > nof_bytes) {
+  if (tx_sdu->N_bytes + min_hdr_size > nof_bytes) {
     Info("trying to build PDU segment from SDU.");
     return build_new_sdu_segment(std::move(tx_sdu), tx_pdu, payload, nof_bytes);
   }
@@ -190,7 +192,7 @@ int rlc_am_nr_tx::build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
   Info("creating new SDU segment. Tx SDU (%d B), nof_bytes=%d B ", tx_sdu->N_bytes, nof_bytes);
 
   // Sanity check: can this SDU be sent this in a single PDU?
-  if ((tx_sdu->N_bytes + 2) < nof_bytes) {
+  if ((tx_sdu->N_bytes + min_hdr_size) < nof_bytes) {
     Error("calling build_new_sdu_segment(), but there are enough bytes to tx in a single PDU. Tx SDU (%d B), "
           "nof_bytes=%d B ",
           tx_sdu->N_bytes,
@@ -257,7 +259,7 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
   }
 
   // Sanity check: can this SDU be sent considering header overhead?
-  if (5 < nof_bytes) { // Four bytes of header, as SO is present
+  if ((max_hdr_size + 1) < nof_bytes) { // Larger header size, as SO is present
     Error("cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d",
           nof_bytes);
     return 0;
@@ -275,7 +277,7 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
     return 0;
   }
 
-  uint32_t          segment_payload_full_len = current_sdu.buf->N_bytes - last_byte + 4; // Four bytes of header
+  uint32_t          segment_payload_full_len = current_sdu.buf->N_bytes - last_byte + max_hdr_size; // SO is included
   uint32_t          segment_payload_len      = current_sdu.buf->N_bytes - last_byte;
   rlc_nr_si_field_t si = segment_payload_full_len > nof_bytes ? rlc_nr_si_field_t::neither_first_nor_last_segment
                                                               : rlc_nr_si_field_t::last_segment;
@@ -285,7 +287,7 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
          "SDU bytes left %d, nof_bytes %d, ",
          segment_payload_full_len,
          nof_bytes);
-    segment_payload_len      = nof_bytes - 4;
+    segment_payload_len      = nof_bytes - max_hdr_size;
     segment_payload_full_len = nof_bytes;
   } else {
     Info("grant is large enough for full SDU."
@@ -508,7 +510,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
           retx.so_end);
     if (tx_window.has_sn(retx.sn)) {
       int req_bytes     = retx.so_end - retx.so_start;
-      int hdr_req_bytes = retx.is_segment ? 4 : 2; // Segmentation not supported yet
+      int hdr_req_bytes = retx.is_segment ? max_hdr_size : min_hdr_size; // Segmentation not supported yet
       if (req_bytes <= 0) {
         Error("in get_buffer_state(): Removing retx with SN=%d from queue", retx.sn);
         retx_queue.pop();
@@ -524,7 +526,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   n_bytes_new += tx_sdu_queue.size_bytes();
 
   // Room needed for fixed header of data PDUs
-  n_bytes_new += 2 * n_sdus; // TODO make header size configurable
+  n_bytes_new += min_hdr_size * n_sdus;
   Debug("total buffer state - %d SDUs (%d B)", n_sdus, n_bytes_new + n_bytes_prio);
 
   if (bsr_callback) {
