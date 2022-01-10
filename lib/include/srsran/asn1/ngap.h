@@ -291,6 +291,12 @@ namespace ngap {
  *                              Struct Definitions
  ******************************************************************************/
 
+// INTEGER (0..4294967295) ::= INTEGER (0..4294967295)
+using ran_ue_ngap_id_t = integer<uint64_t, 0, 4294967295, false, true>;
+
+// INTEGER (0..1099511627775) ::= INTEGER (0..1099511627775)
+using amf_ue_ngap_id_t = integer<uint64_t, 0, 1099511627775, false, true>;
+
 // CPTransportLayerInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 using cp_transport_layer_info_ext_ies_o = protocol_ies_empty_o;
 
@@ -3026,11 +3032,11 @@ struct cell_traffic_trace_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<fixed_octstring<8, true> >                         ngran_trace_id;
-  ie_field_s<ngran_cgi_c>                                       ngran_cgi;
-  ie_field_s<bounded_bitstring<1, 160, true, true> >            trace_collection_entity_ip_address;
+  ie_field_s<amf_ue_ngap_id_t>                       amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                       ran_ue_ngap_id;
+  ie_field_s<fixed_octstring<8, true> >              ngran_trace_id;
+  ie_field_s<ngran_cgi_c>                            ngran_cgi;
+  ie_field_s<bounded_bitstring<1, 160, true, true> > trace_collection_entity_ip_address;
 
   // sequence methods
   cell_traffic_trace_ies_container();
@@ -3625,9 +3631,9 @@ struct deactiv_trace_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<fixed_octstring<8, true> >                         ngran_trace_id;
+  ie_field_s<amf_ue_ngap_id_t>          amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>          ran_ue_ngap_id;
+  ie_field_s<fixed_octstring<8, true> > ngran_trace_id;
 
   // sequence methods
   deactiv_trace_ies_container();
@@ -3871,21 +3877,21 @@ struct dl_nas_transport_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          old_amf_present                       = false;
-  bool                                                          ran_paging_prio_present               = false;
-  bool                                                          mob_restrict_list_present             = false;
-  bool                                                          idx_to_rfsp_present                   = false;
-  bool                                                          ue_aggregate_maximum_bit_rate_present = false;
-  bool                                                          allowed_nssai_present                 = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<printable_string<1, 150, true, true> >             old_amf;
-  ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
-  ie_field_s<mob_restrict_list_s>                               mob_restrict_list;
-  ie_field_s<integer<uint16_t, 1, 256, true, true> >            idx_to_rfsp;
-  ie_field_s<ue_aggregate_maximum_bit_rate_s>                   ue_aggregate_maximum_bit_rate;
-  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >     allowed_nssai;
+  bool                                                      old_amf_present                       = false;
+  bool                                                      ran_paging_prio_present               = false;
+  bool                                                      mob_restrict_list_present             = false;
+  bool                                                      idx_to_rfsp_present                   = false;
+  bool                                                      ue_aggregate_maximum_bit_rate_present = false;
+  bool                                                      allowed_nssai_present                 = false;
+  ie_field_s<amf_ue_ngap_id_t>                              amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                              ran_ue_ngap_id;
+  ie_field_s<printable_string<1, 150, true, true> >         old_amf;
+  ie_field_s<integer<uint16_t, 1, 256, false, true> >       ran_paging_prio;
+  ie_field_s<unbounded_octstring<true> >                    nas_pdu;
+  ie_field_s<mob_restrict_list_s>                           mob_restrict_list;
+  ie_field_s<integer<uint16_t, 1, 256, true, true> >        idx_to_rfsp;
+  ie_field_s<ue_aggregate_maximum_bit_rate_s>               ue_aggregate_maximum_bit_rate;
+  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> > allowed_nssai;
 
   // sequence methods
   dl_nas_transport_ies_container();
@@ -4295,9 +4301,9 @@ struct dl_ran_status_transfer_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ran_status_transfer_transparent_container_s>       ran_status_transfer_transparent_container;
+  ie_field_s<amf_ue_ngap_id_t>                            amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                            ran_ue_ngap_id;
+  ie_field_s<ran_status_transfer_transparent_container_s> ran_status_transfer_transparent_container;
 
   // sequence methods
   dl_ran_status_transfer_ies_container();
@@ -4360,10 +4366,10 @@ struct dl_ueassociated_nrp_pa_transport_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        routing_id;
-  ie_field_s<unbounded_octstring<true> >                        nrp_pa_pdu;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > routing_id;
+  ie_field_s<unbounded_octstring<true> > nrp_pa_pdu;
 
   // sequence methods
   dl_ueassociated_nrp_pa_transport_ies_container();
@@ -4583,14 +4589,14 @@ struct error_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          amf_ue_ngap_id_present   = false;
-  bool                                                          ran_ue_ngap_id_present   = false;
-  bool                                                          cause_present            = false;
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           amf_ue_ngap_id_present   = false;
+  bool                           ran_ue_ngap_id_present   = false;
+  bool                           cause_present            = false;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   error_ind_ies_container();
@@ -4708,9 +4714,9 @@ struct ho_cancel_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
+  ie_field_s<cause_c>          cause;
 
   // sequence methods
   ho_cancel_ies_container();
@@ -4771,10 +4777,10 @@ struct ho_cancel_ack_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ho_cancel_ack_ies_container();
@@ -4913,13 +4919,13 @@ struct ho_cmd_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          nas_security_params_from_ngran_present         = false;
-  bool                                                          pdu_session_res_to_release_list_ho_cmd_present = false;
-  bool                                                          crit_diagnostics_present                       = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<handov_type_e>                                     handov_type;
-  ie_field_s<unbounded_octstring<true> >                        nas_security_params_from_ngran;
+  bool                                   nas_security_params_from_ngran_present         = false;
+  bool                                   pdu_session_res_to_release_list_ho_cmd_present = false;
+  bool                                   crit_diagnostics_present                       = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<handov_type_e>              handov_type;
+  ie_field_s<unbounded_octstring<true> > nas_security_params_from_ngran;
   ie_field_s<dyn_seq_of<pdu_session_res_ho_item_s, 1, 256, true> > pdu_session_res_ho_list;
   ie_field_s<dyn_seq_of<pdu_session_res_to_release_item_ho_cmd_s, 1, 256, true> >
                                          pdu_session_res_to_release_list_ho_cmd;
@@ -5102,10 +5108,10 @@ struct ho_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ho_fail_ies_container();
@@ -5317,9 +5323,9 @@ struct ho_notify_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<user_location_info_c> user_location_info;
 
   // sequence methods
   ho_notify_ies_container();
@@ -5382,11 +5388,11 @@ struct ho_prep_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ho_prep_fail_ies_container();
@@ -5717,24 +5723,24 @@ struct ho_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          core_network_assist_info_present               = false;
-  bool                                                          new_security_context_ind_present               = false;
-  bool                                                          nasc_present                                   = false;
-  bool                                                          trace_activation_present                       = false;
-  bool                                                          masked_imeisv_present                          = false;
-  bool                                                          mob_restrict_list_present                      = false;
-  bool                                                          location_report_request_type_present           = false;
-  bool                                                          rrc_inactive_transition_report_request_present = false;
-  bool                                                          redirection_voice_fallback_present             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<handov_type_e>                                     handov_type;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<ue_aggregate_maximum_bit_rate_s>                   ue_aggregate_maximum_bit_rate;
-  ie_field_s<core_network_assist_info_s>                        core_network_assist_info;
-  ie_field_s<ue_security_cap_s>                                 ue_security_cap;
-  ie_field_s<security_context_s>                                security_context;
-  ie_field_s<new_security_context_ind_e>                        new_security_context_ind;
-  ie_field_s<unbounded_octstring<true> >                        nasc;
+  bool                                        core_network_assist_info_present               = false;
+  bool                                        new_security_context_ind_present               = false;
+  bool                                        nasc_present                                   = false;
+  bool                                        trace_activation_present                       = false;
+  bool                                        masked_imeisv_present                          = false;
+  bool                                        mob_restrict_list_present                      = false;
+  bool                                        location_report_request_type_present           = false;
+  bool                                        rrc_inactive_transition_report_request_present = false;
+  bool                                        redirection_voice_fallback_present             = false;
+  ie_field_s<amf_ue_ngap_id_t>                amf_ue_ngap_id;
+  ie_field_s<handov_type_e>                   handov_type;
+  ie_field_s<cause_c>                         cause;
+  ie_field_s<ue_aggregate_maximum_bit_rate_s> ue_aggregate_maximum_bit_rate;
+  ie_field_s<core_network_assist_info_s>      core_network_assist_info;
+  ie_field_s<ue_security_cap_s>               ue_security_cap;
+  ie_field_s<security_context_s>              security_context;
+  ie_field_s<new_security_context_ind_e>      new_security_context_ind;
+  ie_field_s<unbounded_octstring<true> >      nasc;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_ho_req_s, 1, 256, true> > pdu_session_res_setup_list_ho_req;
   ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >                  allowed_nssai;
   ie_field_s<trace_activation_s>                                             trace_activation;
@@ -5869,10 +5875,10 @@ struct ho_request_ack_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_setup_list_ho_ack_present = false;
-  bool crit_diagnostics_present                            = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >          amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >             ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_setup_list_ho_ack_present = false;
+  bool                         crit_diagnostics_present                            = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_admitted_item_s, 1, 256, true> > pdu_session_res_admitted_list;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_ho_ack_s, 1, 256, true> >
                                          pdu_session_res_failed_to_setup_list_ho_ack;
@@ -6187,13 +6193,13 @@ struct ho_required_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          direct_forwarding_path_availability_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<handov_type_e>                                     handov_type;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<target_id_c>                                       target_id;
-  ie_field_s<direct_forwarding_path_availability_e>             direct_forwarding_path_availability;
+  bool                                              direct_forwarding_path_availability_present = false;
+  ie_field_s<amf_ue_ngap_id_t>                      amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                      ran_ue_ngap_id;
+  ie_field_s<handov_type_e>                         handov_type;
+  ie_field_s<cause_c>                               cause;
+  ie_field_s<target_id_c>                           target_id;
+  ie_field_s<direct_forwarding_path_availability_e> direct_forwarding_path_availability;
   ie_field_s<dyn_seq_of<pdu_session_res_item_ho_rqd_s, 1, 256, true> > pdu_session_res_list_ho_rqd;
   ie_field_s<unbounded_octstring<true> >                               source_to_target_transparent_container;
 
@@ -6392,10 +6398,10 @@ struct init_context_setup_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_setup_list_cxt_fail_present = false;
-  bool crit_diagnostics_present                              = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_setup_list_cxt_fail_present = false;
+  bool                         crit_diagnostics_present                              = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_cxt_fail_s, 1, 256, true> >
                                  pdu_session_res_failed_to_setup_list_cxt_fail;
   ie_field_s<cause_c>            cause;
@@ -6577,26 +6583,26 @@ struct init_context_setup_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          old_amf_present                                = false;
-  bool                                                          ue_aggregate_maximum_bit_rate_present          = false;
-  bool                                                          core_network_assist_info_present               = false;
-  bool                                                          pdu_session_res_setup_list_cxt_req_present     = false;
-  bool                                                          trace_activation_present                       = false;
-  bool                                                          mob_restrict_list_present                      = false;
-  bool                                                          ue_radio_cap_present                           = false;
-  bool                                                          idx_to_rfsp_present                            = false;
-  bool                                                          masked_imeisv_present                          = false;
-  bool                                                          nas_pdu_present                                = false;
-  bool                                                          emergency_fallback_ind_present                 = false;
-  bool                                                          rrc_inactive_transition_report_request_present = false;
-  bool                                                          ue_radio_cap_for_paging_present                = false;
-  bool                                                          redirection_voice_fallback_present             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<printable_string<1, 150, true, true> >             old_amf;
-  ie_field_s<ue_aggregate_maximum_bit_rate_s>                   ue_aggregate_maximum_bit_rate;
-  ie_field_s<core_network_assist_info_s>                        core_network_assist_info;
-  ie_field_s<guami_s>                                           guami;
+  bool                                              old_amf_present                                = false;
+  bool                                              ue_aggregate_maximum_bit_rate_present          = false;
+  bool                                              core_network_assist_info_present               = false;
+  bool                                              pdu_session_res_setup_list_cxt_req_present     = false;
+  bool                                              trace_activation_present                       = false;
+  bool                                              mob_restrict_list_present                      = false;
+  bool                                              ue_radio_cap_present                           = false;
+  bool                                              idx_to_rfsp_present                            = false;
+  bool                                              masked_imeisv_present                          = false;
+  bool                                              nas_pdu_present                                = false;
+  bool                                              emergency_fallback_ind_present                 = false;
+  bool                                              rrc_inactive_transition_report_request_present = false;
+  bool                                              ue_radio_cap_for_paging_present                = false;
+  bool                                              redirection_voice_fallback_present             = false;
+  ie_field_s<amf_ue_ngap_id_t>                      amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                      ran_ue_ngap_id;
+  ie_field_s<printable_string<1, 150, true, true> > old_amf;
+  ie_field_s<ue_aggregate_maximum_bit_rate_s>       ue_aggregate_maximum_bit_rate;
+  ie_field_s<core_network_assist_info_s>            core_network_assist_info;
+  ie_field_s<guami_s>                               guami;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_cxt_req_s, 1, 256, true> > pdu_session_res_setup_list_cxt_req;
   ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >                   allowed_nssai;
   ie_field_s<ue_security_cap_s>                                               ue_security_cap;
@@ -6731,11 +6737,11 @@ struct init_context_setup_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_setup_list_cxt_res_present           = false;
-  bool pdu_session_res_failed_to_setup_list_cxt_res_present = false;
-  bool crit_diagnostics_present                             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >               amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                  ran_ue_ngap_id;
+  bool                         pdu_session_res_setup_list_cxt_res_present           = false;
+  bool                         pdu_session_res_failed_to_setup_list_cxt_res_present = false;
+  bool                         crit_diagnostics_present                             = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_cxt_res_s, 1, 256, true> > pdu_session_res_setup_list_cxt_res;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_cxt_res_s, 1, 256, true> >
                                  pdu_session_res_failed_to_setup_list_cxt_res;
@@ -6857,18 +6863,18 @@ struct init_ue_msg_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                       five_g_s_tmsi_present      = false;
-  bool                                                       amf_set_id_present         = false;
-  bool                                                       ue_context_request_present = false;
-  bool                                                       allowed_nssai_present      = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                     nas_pdu;
-  ie_field_s<user_location_info_c>                           user_location_info;
-  ie_field_s<rrcestablishment_cause_e>                       rrcestablishment_cause;
-  ie_field_s<five_g_s_tmsi_s>                                five_g_s_tmsi;
-  ie_field_s<fixed_bitstring<10, false, true> >              amf_set_id;
-  ie_field_s<ue_context_request_e>                           ue_context_request;
-  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >  allowed_nssai;
+  bool                                                      five_g_s_tmsi_present      = false;
+  bool                                                      amf_set_id_present         = false;
+  bool                                                      ue_context_request_present = false;
+  bool                                                      allowed_nssai_present      = false;
+  ie_field_s<ran_ue_ngap_id_t>                              ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> >                    nas_pdu;
+  ie_field_s<user_location_info_c>                          user_location_info;
+  ie_field_s<rrcestablishment_cause_e>                      rrcestablishment_cause;
+  ie_field_s<five_g_s_tmsi_s>                               five_g_s_tmsi;
+  ie_field_s<fixed_bitstring<10, false, true> >             amf_set_id;
+  ie_field_s<ue_context_request_e>                          ue_context_request;
+  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> > allowed_nssai;
 
   // sequence methods
   init_ue_msg_ies_container();
@@ -10807,11 +10813,11 @@ struct location_report_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_presence_in_area_of_interest_list_present = false;
-  bool                                                          ps_cell_info_present                         = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  bool                             ue_presence_in_area_of_interest_list_present = false;
+  bool                             ps_cell_info_present                         = false;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<user_location_info_c> user_location_info;
   ie_field_s<dyn_seq_of<ue_presence_in_area_of_interest_item_s, 1, 64, true> > ue_presence_in_area_of_interest_list;
   ie_field_s<location_report_request_type_s>                                   location_report_request_type;
   ie_field_s<ngran_cgi_c>                                                      ps_cell_info;
@@ -10831,9 +10837,9 @@ struct location_report_ctrl_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<location_report_request_type_s>                    location_report_request_type;
+  ie_field_s<amf_ue_ngap_id_t>               amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>               ran_ue_ngap_id;
+  ie_field_s<location_report_request_type_s> location_report_request_type;
 
   // sequence methods
   location_report_ctrl_ies_container();
@@ -10850,9 +10856,9 @@ struct location_report_fail_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
+  ie_field_s<cause_c>          cause;
 
   // sequence methods
   location_report_fail_ind_ies_container();
@@ -10869,10 +10875,10 @@ struct nas_non_delivery_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > nas_pdu;
+  ie_field_s<cause_c>                    cause;
 
   // sequence methods
   nas_non_delivery_ind_ies_container();
@@ -11022,10 +11028,10 @@ struct pdu_session_res_modify_confirm_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_modify_list_mod_cfm_present = false;
-  bool crit_diagnostics_present                              = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_modify_list_mod_cfm_present = false;
+  bool                         crit_diagnostics_present                              = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_cfm_s, 1, 256, true> > pdu_session_res_modify_list_mod_cfm;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_modify_item_mod_cfm_s, 1, 256, true> >
                                  pdu_session_res_failed_to_modify_list_mod_cfm;
@@ -11046,8 +11052,8 @@ struct pdu_session_res_modify_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                 amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                 ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_ind_s, 1, 256, true> > pdu_session_res_modify_list_mod_ind;
 
   // sequence methods
@@ -11066,8 +11072,8 @@ struct pdu_session_res_modify_request_ies_container {
 
   // member variables
   bool                                                                         ran_paging_prio_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                 amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                 ran_ue_ngap_id;
   ie_field_s<integer<uint16_t, 1, 256, false, true> >                          ran_paging_prio;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_req_s, 1, 256, true> > pdu_session_res_modify_list_mod_req;
 
@@ -11086,12 +11092,12 @@ struct pdu_session_res_modify_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_modify_list_mod_res_present           = false;
-  bool pdu_session_res_failed_to_modify_list_mod_res_present = false;
-  bool user_location_info_present                            = false;
-  bool crit_diagnostics_present                              = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  bool                         pdu_session_res_modify_list_mod_res_present           = false;
+  bool                         pdu_session_res_failed_to_modify_list_mod_res_present = false;
+  bool                         user_location_info_present                            = false;
+  bool                         crit_diagnostics_present                              = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_res_s, 1, 256, true> > pdu_session_res_modify_list_mod_res;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_modify_item_mod_res_s, 1, 256, true> >
                                    pdu_session_res_failed_to_modify_list_mod_res;
@@ -11113,11 +11119,11 @@ struct pdu_session_res_notify_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          pdu_session_res_notify_list_present       = false;
-  bool                                                          pdu_session_res_released_list_not_present = false;
-  bool                                                          user_location_info_present                = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_notify_list_present       = false;
+  bool                         pdu_session_res_released_list_not_present = false;
+  bool                         user_location_info_present                = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_notify_item_s, 1, 256, true> >       pdu_session_res_notify_list;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_not_s, 1, 256, true> > pdu_session_res_released_list_not;
   ie_field_s<user_location_info_c>                                           user_location_info;
@@ -11137,12 +11143,12 @@ struct pdu_session_res_release_cmd_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ran_paging_prio_present = false;
-  bool                                                          nas_pdu_present         = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
+  bool                                                ran_paging_prio_present = false;
+  bool                                                nas_pdu_present         = false;
+  ie_field_s<amf_ue_ngap_id_t>                        amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                        ran_ue_ngap_id;
+  ie_field_s<integer<uint16_t, 1, 256, false, true> > ran_paging_prio;
+  ie_field_s<unbounded_octstring<true> >              nas_pdu;
   ie_field_s<dyn_seq_of<pdu_session_res_to_release_item_rel_cmd_s, 1, 256, true> >
       pdu_session_res_to_release_list_rel_cmd;
 
@@ -11163,8 +11169,8 @@ struct pdu_session_res_release_resp_ies_container {
   // member variables
   bool                                                                           user_location_info_present = false;
   bool                                                                           crit_diagnostics_present   = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                  amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                     ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                   ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_rel_res_s, 1, 256, true> > pdu_session_res_released_list_rel_res;
   ie_field_s<user_location_info_c>                                               user_location_info;
   ie_field_s<crit_diagnostics_s>                                                 crit_diagnostics;
@@ -11184,13 +11190,13 @@ struct pdu_session_res_setup_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ran_paging_prio_present               = false;
-  bool                                                          nas_pdu_present                       = false;
-  bool                                                          ue_aggregate_maximum_bit_rate_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
+  bool                                                ran_paging_prio_present               = false;
+  bool                                                nas_pdu_present                       = false;
+  bool                                                ue_aggregate_maximum_bit_rate_present = false;
+  ie_field_s<amf_ue_ngap_id_t>                        amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                        ran_ue_ngap_id;
+  ie_field_s<integer<uint16_t, 1, 256, false, true> > ran_paging_prio;
+  ie_field_s<unbounded_octstring<true> >              nas_pdu;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_su_req_s, 1, 256, true> > pdu_session_res_setup_list_su_req;
   ie_field_s<ue_aggregate_maximum_bit_rate_s>                                ue_aggregate_maximum_bit_rate;
 
@@ -11209,11 +11215,11 @@ struct pdu_session_res_setup_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_setup_list_su_res_present           = false;
-  bool pdu_session_res_failed_to_setup_list_su_res_present = false;
-  bool crit_diagnostics_present                            = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >              amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                 ran_ue_ngap_id;
+  bool                         pdu_session_res_setup_list_su_res_present           = false;
+  bool                         pdu_session_res_failed_to_setup_list_su_res_present = false;
+  bool                         crit_diagnostics_present                            = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_su_res_s, 1, 256, true> > pdu_session_res_setup_list_su_res;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_su_res_s, 1, 256, true> >
                                  pdu_session_res_failed_to_setup_list_su_res;
@@ -11345,8 +11351,8 @@ struct path_switch_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_setup_list_ps_req_present = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_setup_list_ps_req_present = false;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > source_amf_ue_ngap_id;
   ie_field_s<user_location_info_c>                              user_location_info;
   ie_field_s<ue_security_cap_s>                                 ue_security_cap;
@@ -11370,18 +11376,18 @@ struct path_switch_request_ack_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_security_cap_present                        = false;
-  bool                                                          new_security_context_ind_present               = false;
-  bool                                                          pdu_session_res_released_list_ps_ack_present   = false;
-  bool                                                          core_network_assist_info_present               = false;
-  bool                                                          rrc_inactive_transition_report_request_present = false;
-  bool                                                          crit_diagnostics_present                       = false;
-  bool                                                          redirection_voice_fallback_present             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ue_security_cap_s>                                 ue_security_cap;
-  ie_field_s<security_context_s>                                security_context;
-  ie_field_s<new_security_context_ind_e>                        new_security_context_ind;
+  bool                                   ue_security_cap_present                        = false;
+  bool                                   new_security_context_ind_present               = false;
+  bool                                   pdu_session_res_released_list_ps_ack_present   = false;
+  bool                                   core_network_assist_info_present               = false;
+  bool                                   rrc_inactive_transition_report_request_present = false;
+  bool                                   crit_diagnostics_present                       = false;
+  bool                                   redirection_voice_fallback_present             = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<ue_security_cap_s>          ue_security_cap;
+  ie_field_s<security_context_s>         security_context;
+  ie_field_s<new_security_context_ind_e> new_security_context_ind;
   ie_field_s<dyn_seq_of<pdu_session_res_switched_item_s, 1, 256, true> >        pdu_session_res_switched_list;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_ps_ack_s, 1, 256, true> > pdu_session_res_released_list_ps_ack;
   ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >                     allowed_nssai;
@@ -11406,8 +11412,8 @@ struct path_switch_request_fail_ies_container {
 
   // member variables
   bool                                                                           crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                  amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                     ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                   ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_ps_fail_s, 1, 256, true> > pdu_session_res_released_list_ps_fail;
   ie_field_s<crit_diagnostics_s>                                                 crit_diagnostics;
 
@@ -11510,10 +11516,10 @@ struct rrc_inactive_transition_report_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<rrc_state_e>                                       rrc_state;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<rrc_state_e>          rrc_state;
+  ie_field_s<user_location_info_c> user_location_info;
 
   // sequence methods
   rrc_inactive_transition_report_ies_container();
@@ -11530,13 +11536,13 @@ struct reroute_nas_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          amf_ue_ngap_id_present = false;
-  bool                                                          allowed_nssai_present  = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        ngap_msg;
-  ie_field_s<fixed_bitstring<10, false, true> >                 amf_set_id;
-  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >     allowed_nssai;
+  bool                                                      amf_ue_ngap_id_present = false;
+  bool                                                      allowed_nssai_present  = false;
+  ie_field_s<ran_ue_ngap_id_t>                              ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                              amf_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> >                    ngap_msg;
+  ie_field_s<fixed_bitstring<10, false, true> >             amf_set_id;
+  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> > allowed_nssai;
 
   // sequence methods
   reroute_nas_request_ies_container();
@@ -11553,9 +11559,9 @@ struct secondary_rat_data_usage_report_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ho_flag_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         ho_flag_present = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_secondary_ratusage_item_s, 1, 256, true> >
                         pdu_session_res_secondary_ratusage_list;
   ie_field_s<ho_flag_e> ho_flag;
@@ -11575,10 +11581,10 @@ struct trace_fail_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<fixed_octstring<8, true> >                         ngran_trace_id;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t>          amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>          ran_ue_ngap_id;
+  ie_field_s<fixed_octstring<8, true> > ngran_trace_id;
+  ie_field_s<cause_c>                   cause;
 
   // sequence methods
   trace_fail_ind_ies_container();
@@ -11595,9 +11601,9 @@ struct trace_start_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<trace_activation_s>                                trace_activation;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<trace_activation_s> trace_activation;
 
   // sequence methods
   trace_start_ies_container();
@@ -11614,11 +11620,11 @@ struct ue_context_mod_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ue_context_mod_fail_ies_container();
@@ -11644,8 +11650,8 @@ struct ue_context_mod_request_ies_container {
   bool                                                          emergency_fallback_ind_present                 = false;
   bool                                                          new_amf_ue_ngap_id_present                     = false;
   bool                                                          rrc_inactive_transition_report_request_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                  amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                  ran_ue_ngap_id;
   ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
   ie_field_s<fixed_bitstring<256, false, true> >                security_key;
   ie_field_s<integer<uint16_t, 1, 256, true, true> >            idx_to_rfsp;
@@ -11671,14 +11677,14 @@ struct ue_context_mod_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          rrc_state_present          = false;
-  bool                                                          user_location_info_present = false;
-  bool                                                          crit_diagnostics_present   = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<rrc_state_e>                                       rrc_state;
-  ie_field_s<user_location_info_c>                              user_location_info;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                             rrc_state_present          = false;
+  bool                             user_location_info_present = false;
+  bool                             crit_diagnostics_present   = false;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<rrc_state_e>          rrc_state;
+  ie_field_s<user_location_info_c> user_location_info;
+  ie_field_s<crit_diagnostics_s>   crit_diagnostics;
 
   // sequence methods
   ue_context_mod_resp_ies_container();
@@ -11713,13 +11719,13 @@ struct ue_context_release_complete_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool user_location_info_present                                 = false;
-  bool info_on_recommended_cells_and_ran_nodes_for_paging_present = false;
-  bool pdu_session_res_list_cxt_rel_cpl_present                   = false;
-  bool crit_diagnostics_present                                   = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >    amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >       ran_ue_ngap_id;
-  ie_field_s<user_location_info_c>                                 user_location_info;
+  bool                             user_location_info_present                                 = false;
+  bool                             info_on_recommended_cells_and_ran_nodes_for_paging_present = false;
+  bool                             pdu_session_res_list_cxt_rel_cpl_present                   = false;
+  bool                             crit_diagnostics_present                                   = false;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<user_location_info_c> user_location_info;
   ie_field_s<info_on_recommended_cells_and_ran_nodes_for_paging_s> info_on_recommended_cells_and_ran_nodes_for_paging;
   ie_field_s<dyn_seq_of<pdu_session_res_item_cxt_rel_cpl_s, 1, 256, true> > pdu_session_res_list_cxt_rel_cpl;
   ie_field_s<crit_diagnostics_s>                                            crit_diagnostics;
@@ -11739,9 +11745,9 @@ struct ue_context_release_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          pdu_session_res_list_cxt_rel_req_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_list_cxt_rel_req_present = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_item_cxt_rel_req_s, 1, 256, true> > pdu_session_res_list_cxt_rel_req;
   ie_field_s<cause_c>                                                       cause;
 
@@ -11760,10 +11766,10 @@ struct ue_radio_cap_check_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_radio_cap_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        ue_radio_cap;
+  bool                                   ue_radio_cap_present = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > ue_radio_cap;
 
   // sequence methods
   ue_radio_cap_check_request_ies_container();
@@ -11780,11 +11786,11 @@ struct ue_radio_cap_check_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ims_voice_support_ind_e>                           ims_voice_support_ind;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                                crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>        amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>        ran_ue_ngap_id;
+  ie_field_s<ims_voice_support_ind_e> ims_voice_support_ind;
+  ie_field_s<crit_diagnostics_s>      crit_diagnostics;
 
   // sequence methods
   ue_radio_cap_check_resp_ies_container();
@@ -11801,11 +11807,11 @@ struct ue_radio_cap_info_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_radio_cap_for_paging_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        ue_radio_cap;
-  ie_field_s<ue_radio_cap_for_paging_s>                         ue_radio_cap_for_paging;
+  bool                                   ue_radio_cap_for_paging_present = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > ue_radio_cap;
+  ie_field_s<ue_radio_cap_for_paging_s>  ue_radio_cap_for_paging;
 
   // sequence methods
   ue_radio_cap_info_ind_ies_container();
@@ -11822,8 +11828,8 @@ struct uetnla_binding_release_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
 
   // sequence methods
   uetnla_binding_release_request_ies_container();
@@ -11840,10 +11846,10 @@ struct ul_nas_transport_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > nas_pdu;
+  ie_field_s<user_location_info_c>       user_location_info;
 
   // sequence methods
   ul_nas_transport_ies_container();
@@ -11899,9 +11905,9 @@ struct ul_ran_status_transfer_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ran_status_transfer_transparent_container_s>       ran_status_transfer_transparent_container;
+  ie_field_s<amf_ue_ngap_id_t>                            amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                            ran_ue_ngap_id;
+  ie_field_s<ran_status_transfer_transparent_container_s> ran_status_transfer_transparent_container;
 
   // sequence methods
   ul_ran_status_transfer_ies_container();
@@ -11918,10 +11924,10 @@ struct ul_ueassociated_nrp_pa_transport_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        routing_id;
-  ie_field_s<unbounded_octstring<true> >                        nrp_pa_pdu;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > routing_id;
+  ie_field_s<unbounded_octstring<true> > nrp_pa_pdu;
 
   // sequence methods
   ul_ueassociated_nrp_pa_transport_ies_container();

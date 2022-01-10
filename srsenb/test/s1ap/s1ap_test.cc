@@ -192,9 +192,9 @@ void add_rnti(s1ap& s1ap_obj, mme_dummy& mme)
   TESTASSERT(s1ap_pdu.unpack(cbref) == SRSRAN_SUCCESS);
   TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::successful_outcome);
   TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
-  const auto& resp = s1ap_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
-  TESTASSERT(resp.erab_setup_list_ctxt_su_res.value.size() > 0);
-  TESTASSERT(not resp.erab_failed_to_setup_list_ctxt_su_res_present);
+  const auto& resp = s1ap_pdu.successful_outcome().value.init_context_setup_resp();
+  TESTASSERT(resp->erab_setup_list_ctxt_su_res.value.size() > 0);
+  TESTASSERT(not resp->erab_failed_to_setup_list_ctxt_su_res_present);
 }
 
 enum class test_event { success, wrong_erabid_mod, wrong_mme_s1ap_id, repeated_erabid_mod };
@@ -235,10 +235,10 @@ void test_s1ap_erab_setup(test_event event)
   int                    flags    = 0;
   asn1::s1ap::s1ap_pdu_c mod_req_pdu;
   mod_req_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
-  auto& protocols                = mod_req_pdu.init_msg().value.erab_modify_request().protocol_ies;
-  protocols.enb_ue_s1ap_id.value = 1;
-  protocols.mme_ue_s1ap_id.value = event == test_event::wrong_mme_s1ap_id ? 2 : 1;
-  auto& erab_list                = protocols.erab_to_be_modified_list_bearer_mod_req.value;
+  auto& protocols                 = mod_req_pdu.init_msg().value.erab_modify_request();
+  protocols->enb_ue_s1ap_id.value = 1;
+  protocols->mme_ue_s1ap_id.value = event == test_event::wrong_mme_s1ap_id ? 2 : 1;
+  auto& erab_list                 = protocols->erab_to_be_modified_list_bearer_mod_req.value;
   erab_list.resize(2);
   erab_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_TO_BE_MODIFIED_ITEM_BEARER_MOD_REQ);
   auto* erab_ptr                      = &erab_list[0]->erab_to_be_modified_item_bearer_mod_req();
@@ -273,33 +273,33 @@ void test_s1ap_erab_setup(test_event event)
     // See TS 36.413, Section 10.6 - Handling of AP ID
     TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::init_msg);
     TESTASSERT(s1ap_pdu.init_msg().proc_code == ASN1_S1AP_ID_ERROR_IND);
-    auto& protocol_ies = s1ap_pdu.init_msg().value.error_ind().protocol_ies;
-    TESTASSERT(protocol_ies.mme_ue_s1ap_id_present and protocol_ies.mme_ue_s1ap_id.value.value == 2);
-    TESTASSERT(protocol_ies.enb_ue_s1ap_id_present and protocol_ies.enb_ue_s1ap_id.value.value == 1);
+    auto& err_ind = s1ap_pdu.init_msg().value.error_ind();
+    TESTASSERT(err_ind->mme_ue_s1ap_id_present and err_ind->mme_ue_s1ap_id.value.value == 2);
+    TESTASSERT(err_ind->enb_ue_s1ap_id_present and err_ind->enb_ue_s1ap_id.value.value == 1);
     TESTASSERT(rrc.last_released_rnti == 0x46);
     return;
   }
 
   TESTASSERT(s1ap_pdu.type().value == asn1::s1ap::s1ap_pdu_c::types_opts::successful_outcome);
   TESTASSERT(s1ap_pdu.successful_outcome().proc_code == ASN1_S1AP_ID_ERAB_MODIFY);
-  auto& protocol_ies = s1ap_pdu.successful_outcome().value.erab_modify_resp().protocol_ies;
+  auto& erab_mod = s1ap_pdu.successful_outcome().value.erab_modify_resp();
   if (event == test_event::wrong_erabid_mod) {
-    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
-    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 1);
-    TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value[0]->erab_modify_item_bearer_mod_res().erab_id == 5);
-    TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
-    TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
-    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0]->erab_item();
+    TESTASSERT(erab_mod->erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(erab_mod->erab_modify_list_bearer_mod_res.value.size() == 1);
+    TESTASSERT(erab_mod->erab_modify_list_bearer_mod_res.value[0]->erab_modify_item_bearer_mod_res().erab_id == 5);
+    TESTASSERT(erab_mod->erab_failed_to_modify_list_present);
+    TESTASSERT(erab_mod->erab_failed_to_modify_list.value.size() == 1);
+    auto& erab_item = erab_mod->erab_failed_to_modify_list.value[0]->erab_item();
     TESTASSERT(erab_item.erab_id == 6);
     TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
     TESTASSERT(erab_item.cause.radio_network().value == asn1::s1ap::cause_radio_network_opts::unknown_erab_id);
     return;
   }
   if (event == test_event::repeated_erabid_mod) {
-    TESTASSERT(not protocol_ies.erab_modify_list_bearer_mod_res_present);
-    TESTASSERT(protocol_ies.erab_failed_to_modify_list_present);
-    TESTASSERT(protocol_ies.erab_failed_to_modify_list.value.size() == 1);
-    auto& erab_item = protocol_ies.erab_failed_to_modify_list.value[0]->erab_item();
+    TESTASSERT(not erab_mod->erab_modify_list_bearer_mod_res_present);
+    TESTASSERT(erab_mod->erab_failed_to_modify_list_present);
+    TESTASSERT(erab_mod->erab_failed_to_modify_list.value.size() == 1);
+    auto& erab_item = erab_mod->erab_failed_to_modify_list.value[0]->erab_item();
     TESTASSERT(erab_item.erab_id == 5);
     TESTASSERT(erab_item.cause.type().value == asn1::s1ap::cause_c::types_opts::radio_network);
     TESTASSERT(erab_item.cause.radio_network().value ==
@@ -307,10 +307,10 @@ void test_s1ap_erab_setup(test_event event)
     return;
   }
 
-  TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res_present);
-  TESTASSERT(not protocol_ies.erab_failed_to_modify_list_present);
-  TESTASSERT(protocol_ies.erab_modify_list_bearer_mod_res.value.size() == 2);
-  auto& erab_item = protocol_ies.erab_modify_list_bearer_mod_res.value[0]->erab_modify_item_bearer_mod_res();
+  TESTASSERT(erab_mod->erab_modify_list_bearer_mod_res_present);
+  TESTASSERT(not erab_mod->erab_failed_to_modify_list_present);
+  TESTASSERT(erab_mod->erab_modify_list_bearer_mod_res.value.size() == 2);
+  auto& erab_item = erab_mod->erab_modify_list_bearer_mod_res.value[0]->erab_modify_item_bearer_mod_res();
   TESTASSERT(erab_item.erab_id == 5);
 }
 

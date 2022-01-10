@@ -24,24 +24,24 @@ ngap_ue_initial_context_setup_proc::ngap_ue_initial_context_setup_proc(ngap_inte
 
 proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap::init_context_setup_request_s& msg)
 {
-  ue_ctxt->amf_pointer   = msg.protocol_ies.guami.value.amf_pointer.to_number();
-  ue_ctxt->amf_set_id    = msg.protocol_ies.guami.value.amf_set_id.to_number();
-  ue_ctxt->amf_region_id = msg.protocol_ies.guami.value.amf_region_id.to_number();
+  ue_ctxt->amf_pointer   = msg->guami.value.amf_pointer.to_number();
+  ue_ctxt->amf_set_id    = msg->guami.value.amf_set_id.to_number();
+  ue_ctxt->amf_region_id = msg->guami.value.amf_region_id.to_number();
 
-  if (msg.protocol_ies.ue_aggregate_maximum_bit_rate_present == true) {
-    rrc->ue_set_bitrates(ue_ctxt->rnti, msg.protocol_ies.ue_aggregate_maximum_bit_rate.value);
+  if (msg->ue_aggregate_maximum_bit_rate_present == true) {
+    rrc->ue_set_bitrates(ue_ctxt->rnti, msg->ue_aggregate_maximum_bit_rate.value);
   }
-  rrc->ue_set_security_cfg_capabilities(ue_ctxt->rnti, msg.protocol_ies.ue_security_cap.value);
-  rrc->ue_set_security_cfg_key(ue_ctxt->rnti, msg.protocol_ies.security_key.value);
+  rrc->ue_set_security_cfg_capabilities(ue_ctxt->rnti, msg->ue_security_cap.value);
+  rrc->ue_set_security_cfg_key(ue_ctxt->rnti, msg->security_key.value);
 
-  if (msg.protocol_ies.nas_pdu_present) {
+  if (msg->nas_pdu_present) {
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (pdu == nullptr) {
       logger.error("Fatal Error: Couldn't allocate buffer in %s.", __FUNCTION__);
       return proc_outcome_t::error;
     }
-    memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
-    pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
+    memcpy(pdu->msg, msg->nas_pdu.value.data(), msg->nas_pdu.value.size());
+    pdu->N_bytes = msg->nas_pdu.value.size();
     rrc->start_security_mode_procedure(ue_ctxt->rnti, std::move(pdu));
   } else {
     rrc->start_security_mode_procedure(ue_ctxt->rnti, nullptr);
@@ -102,12 +102,12 @@ ngap_ue_pdu_session_res_setup_proc::ngap_ue_pdu_session_res_setup_proc(ngap_inte
 
 proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_session_res_setup_request_s& msg)
 {
-  if (msg.protocol_ies.pdu_session_res_setup_list_su_req.value.size() != 1) {
+  if (msg->pdu_session_res_setup_list_su_req.value.size() != 1) {
     logger.error("Not handling zero or multiple su requests");
     return proc_outcome_t::error;
   }
 
-  asn1::ngap::pdu_session_res_setup_item_su_req_s su_req = msg.protocol_ies.pdu_session_res_setup_list_su_req.value[0];
+  asn1::ngap::pdu_session_res_setup_item_su_req_s su_req = msg->pdu_session_res_setup_list_su_req.value[0];
 
   asn1::cbit_ref pdu_session_bref(su_req.pdu_session_res_setup_request_transfer.data(),
                                   su_req.pdu_session_res_setup_request_transfer.size());
@@ -119,25 +119,25 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
     return proc_outcome_t::error;
   }
 
-  if (pdu_ses_res_setup_req_trans.protocol_ies.qos_flow_setup_request_list.value.size() != 1) {
+  if (pdu_ses_res_setup_req_trans->qos_flow_setup_request_list.value.size() != 1) {
     logger.error("Expected one item in QoS flow setup request list");
     return proc_outcome_t::error;
   }
 
-  if (pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.type() !=
+  if (pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.type() !=
       asn1::ngap::up_transport_layer_info_c::types::gtp_tunnel) {
     logger.error("Expected GTP Tunnel");
     return proc_outcome_t::error;
   }
   asn1::ngap::qos_flow_setup_request_item_s qos_flow_setup =
-      pdu_ses_res_setup_req_trans.protocol_ies.qos_flow_setup_request_list.value[0];
+      pdu_ses_res_setup_req_trans->qos_flow_setup_request_list.value[0];
   srsran::const_span<uint8_t> nas_pdu_dummy;
   uint32_t                    teid_out = 0;
 
-  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[0] << 24u;
-  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[1] << 16u;
-  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[2] << 8u;
-  teid_out |= pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[3];
+  teid_out |= pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[0] << 24u;
+  teid_out |= pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[1] << 16u;
+  teid_out |= pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[2] << 8u;
+  teid_out |= pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.gtp_tunnel().gtp_teid[3];
 
   // TODO: Check cause
   asn1::ngap::cause_c                         cause;
@@ -149,7 +149,7 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
           ue_ctxt->rnti,
           su_req.pdu_session_id,
           qos_flow_setup.qos_flow_level_qos_params,
-          pdu_ses_res_setup_req_trans.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address,
+          pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address,
           teid_out,
           lcid,
           addr_in,

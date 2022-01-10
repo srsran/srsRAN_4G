@@ -434,9 +434,9 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(rrc::ho_prep_result  
   }
 
   // Check if any E-RAB that was not admitted. Cancel Handover, in such case.
-  if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
+  if (msg->erab_to_release_list_ho_cmd_present) {
     get_logger().warning("E-RAB id=%d was not admitted in target eNB. Cancelling handover...",
-                         msg.protocol_ies.erab_to_release_list_ho_cmd.value[0]->erab_item().erab_id);
+                         msg->erab_to_release_list_ho_cmd.value[0]->erab_item().erab_id);
     asn1::s1ap::cause_c cause;
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
     trigger(ho_cancel_ev{cause});
@@ -622,8 +622,8 @@ rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1
   }
 
   // Setup GTPU forwarding tunnel
-  if (s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list_present) {
-    const auto& fwd_erab_list = s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list.value;
+  if (s1ap_ho_cmd->erab_subjectto_data_forwarding_list_present) {
+    const auto& fwd_erab_list = s1ap_ho_cmd->erab_subjectto_data_forwarding_list.value;
     const auto& erab_list     = rrc_ue->bearer_list.get_erabs();
     for (const auto& e : fwd_erab_list) {
       const auto& fwd_erab = e->erab_data_forwarding_item();
@@ -810,7 +810,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
       rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   recfg_r8.security_cfg_ho.handov_type.intra_lte().key_change_ind = false;
   recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count =
-      ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_chaining_count;
+      (*ho_req.ho_req_msg)->security_context.value.next_hop_chaining_count;
 
   /* Prepare Handover Command to be sent via S1AP */
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
@@ -935,7 +935,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
   const cell_cfg_t&  target_cell_cfg = target_cell->cell_common->cell_cfg;
 
   // Establish ERABs/DRBs
-  for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
+  for (const auto& erab_item : ho_req_msg->erab_to_be_setup_list_ho_req.value) {
     const auto& erab = erab_item->erab_to_be_setup_item_ho_req();
     if (erab.ext) {
       get_logger().warning("Not handling E-RABToBeSetupList extensions");
@@ -972,13 +972,13 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
 
   // Regenerate AS Keys
   // See TS 33.401, Sec. 7.2.8.4.3
-  if (not rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg.protocol_ies.ue_security_cap.value)) {
+  if (not rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg->ue_security_cap.value)) {
     cause.set_radio_network().value =
         asn1::s1ap::cause_radio_network_opts::encryption_and_or_integrity_protection_algorithms_not_supported;
     return false;
   }
-  rrc_ue->ue_security_cfg.set_security_key(ho_req_msg.protocol_ies.security_context.value.next_hop_param);
-  rrc_ue->ue_security_cfg.set_ncc(ho_req_msg.protocol_ies.security_context.value.next_hop_chaining_count);
+  rrc_ue->ue_security_cfg.set_security_key(ho_req_msg->security_context.value.next_hop_param);
+  rrc_ue->ue_security_cfg.set_ncc(ho_req_msg->security_context.value.next_hop_chaining_count);
   rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
 
   // Save UE Capabilities

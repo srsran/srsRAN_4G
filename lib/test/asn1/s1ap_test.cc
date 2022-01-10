@@ -39,10 +39,10 @@ int test_s1setup_request()
   TESTASSERT(init_choice.type().value == s1ap_elem_procs_o::init_msg_c::types_opts::s1_setup_request);
   s1_setup_request_s& s1req = init_choice.s1_setup_request();
   TESTASSERT(not s1req.ext);
-  TESTASSERT(s1req.protocol_ies.global_enb_id.id == ASN1_S1AP_ID_GLOBAL_ENB_ID);
-  TESTASSERT(s1req.protocol_ies.global_enb_id.crit.value == crit_opts::reject);
-  TESTASSERT(s1req.protocol_ies.global_enb_id.value.enb_id.type().value == enb_id_c::types_opts::macro_enb_id);
-  TESTASSERT(s1req.protocol_ies.global_enb_id.value.enb_id.macro_enb_id().to_number() == 0x0019B);
+  TESTASSERT(s1req->global_enb_id.id == ASN1_S1AP_ID_GLOBAL_ENB_ID);
+  TESTASSERT(s1req->global_enb_id.crit.value == crit_opts::reject);
+  TESTASSERT(s1req->global_enb_id.value.enb_id.type().value == enb_id_c::types_opts::macro_enb_id);
+  TESTASSERT(s1req->global_enb_id.value.enb_id.macro_enb_id().to_number() == 0x0019B);
   //
   //  //  json_writer js;
   //  //  pdu.to_json(js);
@@ -77,10 +77,10 @@ int test_init_ctxt_setup_req()
   TESTASSERT(pdu.init_msg().proc_code == 9);
   TESTASSERT(pdu.init_msg().crit.value == crit_opts::reject);
   s1ap_elem_procs_o::init_msg_c& init_choice = pdu.init_msg().value;
-  auto&                          ctxt_setup  = init_choice.init_context_setup_request().protocol_ies;
-  TESTASSERT(ctxt_setup.ue_security_cap.id == 107);
-  TESTASSERT(ctxt_setup.ue_security_cap.value.encryption_algorithms.to_string() == "1100000000000000");
-  TESTASSERT(ctxt_setup.ue_security_cap.value.integrity_protection_algorithms.to_string() == "1100000000000000");
+  auto&                          ctxt_setup  = init_choice.init_context_setup_request();
+  TESTASSERT(ctxt_setup->ue_security_cap.id == 107);
+  TESTASSERT(ctxt_setup->ue_security_cap.value.encryption_algorithms.to_string() == "1100000000000000");
+  TESTASSERT(ctxt_setup->ue_security_cap.value.integrity_protection_algorithms.to_string() == "1100000000000000");
 
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
 
@@ -99,11 +99,11 @@ int test_ue_ctxt_release_req()
 
   TESTASSERT(pdu.type().value == s1ap_pdu_c::types_opts::init_msg);
   TESTASSERT(pdu.init_msg().proc_code == ASN1_S1AP_ID_UE_CONTEXT_RELEASE_REQUEST);
-  auto& req = pdu.init_msg().value.ue_context_release_request().protocol_ies;
-  TESTASSERT(req.mme_ue_s1ap_id.value.value == 1);
-  TESTASSERT(req.enb_ue_s1ap_id.value.value == 1);
-  TESTASSERT(req.cause.value.type().value == cause_c::types_opts::radio_network);
-  TESTASSERT(req.cause.value.radio_network().value == cause_radio_network_opts::user_inactivity);
+  auto& req = pdu.init_msg().value.ue_context_release_request();
+  TESTASSERT(req->mme_ue_s1ap_id.value.value == 1);
+  TESTASSERT(req->enb_ue_s1ap_id.value.value == 1);
+  TESTASSERT(req->cause.value.type().value == cause_c::types_opts::radio_network);
+  TESTASSERT(req->cause.value.radio_network().value == cause_radio_network_opts::user_inactivity);
 
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
 
@@ -178,9 +178,9 @@ int test_ho_request()
   TESTASSERT(pdu.type().value == s1ap_pdu_c::types_opts::init_msg);
   TESTASSERT(pdu.init_msg().proc_code == ASN1_S1AP_ID_HO_RES_ALLOC);
   TESTASSERT(pdu.init_msg().crit.value == crit_opts::reject);
-  auto& horeq = pdu.init_msg().value.ho_request().protocol_ies;
+  auto& horeq = pdu.init_msg().value.ho_request();
 
-  auto& erab_item = horeq.erab_to_be_setup_list_ho_req.value[0]->erab_to_be_setup_item_ho_req();
+  auto& erab_item = horeq->erab_to_be_setup_list_ho_req.value[0]->erab_to_be_setup_item_ho_req();
   TESTASSERT(erab_item.erab_id == 5);
   TESTASSERT(erab_item.gtp_teid.to_string() == "b7361c56");
 
@@ -194,12 +194,13 @@ int test_enb_status_transfer()
   s1ap_pdu_c pdu;
 
   TESTASSERT(pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ENB_STATUS_TRANSFER));
-  auto& enb_status_transfer                      = pdu.init_msg().value.enb_status_transfer().protocol_ies;
-  enb_status_transfer.mme_ue_s1ap_id.value.value = 1;
-  enb_status_transfer.enb_ue_s1ap_id.value.value = 1;
-  enb_status_transfer.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list.resize(1);
+  auto& enb_status_transfer                       = pdu.init_msg().value.enb_status_transfer();
+  enb_status_transfer->mme_ue_s1ap_id.value.value = 1;
+  enb_status_transfer->enb_ue_s1ap_id.value.value = 1;
+  enb_status_transfer->enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list.resize(
+      1);
   auto& bearer =
-      enb_status_transfer.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list[0];
+      enb_status_transfer->enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list[0];
 
   TESTASSERT(bearer.load_info_obj(ASN1_S1AP_ID_BEARERS_SUBJECT_TO_STATUS_TRANSFER_ITEM));
   auto& bearer_item = bearer->bearers_subject_to_status_transfer_item();
@@ -221,10 +222,9 @@ int test_enb_status_transfer()
   s1ap_pdu_c     pdu2;
   TESTASSERT(pdu2.unpack(bref2) == SRSASN_SUCCESS);
 
-  auto& bearer2 =
-      pdu2.init_msg()
-          .value.enb_status_transfer()
-          .protocol_ies.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list[0];
+  auto& bearer2 = pdu2.init_msg()
+                      .value.enb_status_transfer()
+                      ->enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list[0];
   auto& bearer_item2 = bearer2->bearers_subject_to_status_transfer_item();
   TESTASSERT(bearer_item2.dl_coun_tvalue.hfn == bearer_item.dl_coun_tvalue.hfn);
   TESTASSERT(bearer_item2.dl_coun_tvalue.hfn == 0);
@@ -267,15 +267,15 @@ int test_initial_ctxt_setup_response()
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
 
   // Fill in the MME and eNB IDs
-  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
-  container.mme_ue_s1ap_id.value = 1;
-  container.enb_ue_s1ap_id.value = 1;
+  auto& container                 = tx_pdu.successful_outcome().value.init_context_setup_resp();
+  container->mme_ue_s1ap_id.value = 1;
+  container->enb_ue_s1ap_id.value = 1;
 
-  container.erab_setup_list_ctxt_su_res.value.resize(1);
+  container->erab_setup_list_ctxt_su_res.value.resize(1);
   // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < container.erab_setup_list_ctxt_su_res.value.size(); ++i) {
-    container.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = container.erab_setup_list_ctxt_su_res.value[i]->erab_setup_item_ctxt_su_res();
+  for (uint32_t i = 0; i < container->erab_setup_list_ctxt_su_res.value.size(); ++i) {
+    container->erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item   = container->erab_setup_list_ctxt_su_res.value[i]->erab_setup_item_ctxt_su_res();
     item.erab_id = 1;
     // uint32_to_uint8(teid_in, item.gtp_teid.data());
     item.transport_layer_address.resize(32);

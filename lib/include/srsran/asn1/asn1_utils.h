@@ -1826,10 +1826,16 @@ using protocol_ext_container_empty_l = protocol_ie_container_empty_l;
 template <typename ProtocolIEs>
 class elementary_procedure_option
 {
-public:
-  bool        ext;
   ProtocolIEs protocol_ies;
+
+public:
+  bool ext;
   // ...
+
+  ProtocolIEs*       operator->() { return &protocol_ies; }
+  const ProtocolIEs* operator->() const { return &protocol_ies; }
+  ProtocolIEs&       operator*() { return protocol_ies; }
+  const ProtocolIEs& operator*() const { return protocol_ies; }
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const
