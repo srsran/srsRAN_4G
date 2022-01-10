@@ -279,14 +279,14 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
 
   uint32_t          segment_payload_full_len = current_sdu.buf->N_bytes - last_byte + max_hdr_size; // SO is included
   uint32_t          segment_payload_len      = current_sdu.buf->N_bytes - last_byte;
-  rlc_nr_si_field_t si = segment_payload_full_len > nof_bytes ? rlc_nr_si_field_t::neither_first_nor_last_segment
-                                                              : rlc_nr_si_field_t::last_segment;
+  rlc_nr_si_field_t si                       = {};
 
-  if (si == rlc_nr_si_field_t::neither_first_nor_last_segment) {
+  if (segment_payload_full_len > nof_bytes) {
     Info("grant is not large enough for full SDU. "
          "SDU bytes left %d, nof_bytes %d, ",
          segment_payload_full_len,
          nof_bytes);
+    si                       = rlc_nr_si_field_t::neither_first_nor_last_segment;
     segment_payload_len      = nof_bytes - max_hdr_size;
     segment_payload_full_len = nof_bytes;
   } else {
@@ -294,6 +294,7 @@ int rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint
          "SDU bytes left %d, nof_bytes %d, ",
          segment_payload_full_len,
          nof_bytes);
+    si = rlc_nr_si_field_t::last_segment;
   }
 
   // Prepare header
