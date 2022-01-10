@@ -1570,6 +1570,15 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
 
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
+  update_sp_cell_cfg(sp_cell_cfg);
+
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
+
+  return true;
+}
+
+bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
+{
   srsran_csi_hl_cfg_t prev_csi = phy_cfg.csi;
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
@@ -1621,7 +1630,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
     }
   } else {
-    logger.warning("Reconfig with with sync not present");
+    logger.warning("Reconfig with sync not present");
   }
 
   // Dedicated config
@@ -1740,8 +1749,6 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   current_phycfg.csi                  = prev_csi;
   phy->set_config(current_phycfg);
 
-  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
-
   return true;
 }
 
@@ -1758,6 +1765,15 @@ bool rrc_nr::apply_phy_cell_group_cfg(const phys_cell_group_cfg_s& phys_cell_gro
 }
 
 bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
+{
+  update_cell_group_cfg(cell_group_cfg);
+
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
+
+  return true;
+}
+
+bool rrc_nr::update_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
   if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
@@ -1777,7 +1793,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
     }
   }
   if (cell_group_cfg.sp_cell_cfg_present) {
-    if (apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg) == false) {
+    if (update_sp_cell_cfg(cell_group_cfg.sp_cell_cfg) == false) {
       return false;
     }
   }

@@ -34,11 +34,9 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
   Info("Starting...");
   initiator = initiator_;
 
-#if 0
   asn1::json_writer js;
   rrc_nr_reconf.to_json(js);
   Debug("RRC NR Reconfiguration: %s", js.to_string().c_str());
-#endif
 
   if (rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present) {
     if (rrc_nr_reconf.crit_exts.type() != asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
@@ -55,11 +53,9 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
       return proc_outcome_t::error;
     }
 
-#if 0
     asn1::json_writer js1;
     secondary_cell_group_cfg.to_json(js1);
     Debug("Secondary Cell Group: %s", js1.to_string().c_str());
-#endif
 
     Info("Applying Secondary Cell Group Cfg.");
     if (!rrc_handle.apply_cell_group_cfg(secondary_cell_group_cfg)) {
@@ -85,11 +81,9 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
       return proc_outcome_t::error;
     }
 
-#if 0
     asn1::json_writer js2;
     master_cell_group_cfg.to_json(js2);
     Debug("Master Cell Group: %s", js2.to_string().c_str());
-#endif
 
     Info("Applying Master Cell Group Cfg.");
     if (!rrc_handle.apply_cell_group_cfg(master_cell_group_cfg)) {
@@ -168,7 +162,7 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& resu
  *************************************/
 
 rrc_nr::setup_request_proc::setup_request_proc(rrc_nr& parent_) :
-  rrc_handle(parent_), logger(srslog::fetch_basic_logger("RRC"))
+  rrc_handle(parent_), logger(srslog::fetch_basic_logger("RRC-NR"))
 {}
 
 proc_outcome_t rrc_nr::setup_request_proc::init(srsran::nr_establishment_cause_t cause_,
@@ -293,7 +287,7 @@ srsran::proc_outcome_t rrc_nr::setup_request_proc::react(const cell_selection_pr
 
 // Simple procedure mainly do defer the transmission of the SetupComplete until all PHY reconfiguration are done
 rrc_nr::connection_setup_proc::connection_setup_proc(srsue::rrc_nr& parent_) :
-  rrc_handle(parent_), logger(srslog::fetch_basic_logger("RRC"))
+  rrc_handle(parent_), logger(srslog::fetch_basic_logger("RRC-NR"))
 {}
 
 srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg_,
@@ -315,7 +309,7 @@ srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::r
   }
 
   // Apply the Cell Group configuration
-  if (!rrc_handle.apply_cell_group_cfg(cell_group_)) {
+  if (!rrc_handle.update_cell_group_cfg(cell_group_)) {
     return proc_outcome_t::error;
   }
 
