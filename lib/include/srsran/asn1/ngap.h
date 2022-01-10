@@ -291,67 +291,11 @@ namespace ngap {
  *                              Struct Definitions
  ******************************************************************************/
 
-// Presence ::= ENUMERATED
-struct presence_opts {
-  enum options { optional, conditional, mandatory, nulltype } value;
-
-  const char* to_string() const;
-};
-typedef enumerated<presence_opts> presence_e;
-
-struct ngap_protocol_ies_empty_o {
-  // Value ::= OPEN TYPE
-  struct value_c {
-    struct types_opts {
-      enum options { nulltype } value;
-
-      const char* to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    types       type() const { return types::nulltype; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-  };
-
-  // members lookup methods
-  static uint32_t   idx_to_id(uint32_t idx);
-  static bool       is_id_valid(const uint32_t& id);
-  static crit_e     get_crit(const uint32_t& id);
-  static value_c    get_value(const uint32_t& id);
-  static presence_e get_presence(const uint32_t& id);
-};
 // CPTransportLayerInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using cp_transport_layer_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using cp_transport_layer_info_ext_ies_o = protocol_ies_empty_o;
 
-struct ngap_protocol_ext_empty_o {
-  // Extension ::= OPEN TYPE
-  struct ext_c {
-    struct types_opts {
-      enum options { nulltype } value;
-
-      const char* to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    types       type() const { return types::nulltype; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-  };
-
-  // members lookup methods
-  static uint32_t   idx_to_id(uint32_t idx);
-  static bool       is_id_valid(const uint32_t& id);
-  static crit_e     get_crit(const uint32_t& id);
-  static ext_c      get_ext(const uint32_t& id);
-  static presence_e get_presence(const uint32_t& id);
-};
 // AMF-TNLAssociationSetupItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_setup_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_setup_item_ext_ies_o = protocol_ext_empty_o;
 
 // CPTransportLayerInformation ::= CHOICE
 struct cp_transport_layer_info_c {
@@ -405,15 +349,6 @@ private:
   void destroy_();
 };
 
-struct protocol_ext_container_empty_l {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 using amf_tnlassoc_setup_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // AMF-TNLAssociationSetupItem ::= SEQUENCE
@@ -434,7 +369,7 @@ struct amf_tnlassoc_setup_item_s {
 using amf_tnlassoc_setup_list_l = dyn_array<amf_tnlassoc_setup_item_s>;
 
 // AMF-TNLAssociationToAddItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_to_add_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_to_add_item_ext_ies_o = protocol_ext_empty_o;
 
 // TNLAssociationUsage ::= ENUMERATED
 struct tnlassoc_usage_opts {
@@ -467,7 +402,7 @@ struct amf_tnlassoc_to_add_item_s {
 using amf_tnlassoc_to_add_list_l = dyn_array<amf_tnlassoc_to_add_item_s>;
 
 // AMF-TNLAssociationToRemoveItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_to_rem_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_to_rem_item_ext_ies_o = protocol_ext_empty_o;
 
 using amf_tnlassoc_to_rem_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -489,7 +424,7 @@ struct amf_tnlassoc_to_rem_item_s {
 using amf_tnlassoc_to_rem_list_l = dyn_array<amf_tnlassoc_to_rem_item_s>;
 
 // AMF-TNLAssociationToUpdateItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_to_upd_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_to_upd_item_ext_ies_o = protocol_ext_empty_o;
 
 using amf_tnlassoc_to_upd_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -515,7 +450,7 @@ struct amf_tnlassoc_to_upd_item_s {
 using amf_tnlassoc_to_upd_list_l = dyn_array<amf_tnlassoc_to_upd_item_s>;
 
 // S-NSSAI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using s_nssai_ext_ies_o = ngap_protocol_ext_empty_o;
+using s_nssai_ext_ies_o = protocol_ext_empty_o;
 
 using s_nssai_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -536,10 +471,10 @@ struct s_nssai_s {
 };
 
 // SliceSupportItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using slice_support_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using slice_support_item_ext_ies_o = protocol_ext_empty_o;
 
 // GUAMI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using guami_ext_ies_o = ngap_protocol_ext_empty_o;
+using guami_ext_ies_o = protocol_ext_empty_o;
 
 using slice_support_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -577,10 +512,10 @@ struct guami_s {
 };
 
 // PLMNSupportItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using plmn_support_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using plmn_support_item_ext_ies_o = protocol_ext_empty_o;
 
 // ServedGUAMIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using served_guami_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using served_guami_item_ext_ies_o = protocol_ext_empty_o;
 
 // SliceSupportList ::= SEQUENCE (SIZE (1..1024)) OF SliceSupportItem
 using slice_support_list_l = dyn_array<slice_support_item_s>;
@@ -735,7 +670,7 @@ struct amf_cfg_upd_s {
 };
 
 // Cause-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using cause_ext_ies_o = ngap_protocol_ies_empty_o;
+using cause_ext_ies_o = protocol_ies_empty_o;
 
 // CauseMisc ::= ENUMERATED
 struct cause_misc_opts {
@@ -847,7 +782,7 @@ struct cause_transport_opts {
 typedef enumerated<cause_transport_opts, true> cause_transport_e;
 
 // CriticalityDiagnostics-IE-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using crit_diagnostics_ie_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using crit_diagnostics_ie_item_ext_ies_o = protocol_ext_empty_o;
 
 // TypeOfError ::= ENUMERATED
 struct type_of_error_opts {
@@ -972,10 +907,10 @@ struct crit_diagnostics_ie_item_s {
 };
 
 // TNLAssociationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tnlassoc_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tnlassoc_item_ext_ies_o = protocol_ext_empty_o;
 
 // CriticalityDiagnostics-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using crit_diagnostics_ext_ies_o = ngap_protocol_ext_empty_o;
+using crit_diagnostics_ext_ies_o = protocol_ext_empty_o;
 
 // CriticalityDiagnostics-IE-List ::= SEQUENCE (SIZE (1..256)) OF CriticalityDiagnostics-IE-Item
 using crit_diagnostics_ie_list_l = dyn_array<crit_diagnostics_ie_item_s>;
@@ -1191,13 +1126,13 @@ struct amf_cfg_upd_fail_s {
 };
 
 // GNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using gnb_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using gnb_id_ext_ies_o = protocol_ies_empty_o;
 
 // N3IWF-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using n3_iwf_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using n3_iwf_id_ext_ies_o = protocol_ies_empty_o;
 
 // NgENB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ng_enb_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using ng_enb_id_ext_ies_o = protocol_ies_empty_o;
 
 // GNB-ID ::= CHOICE
 struct gnb_id_c {
@@ -1250,13 +1185,13 @@ private:
 };
 
 // GlobalGNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using global_gnb_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using global_gnb_id_ext_ies_o = protocol_ext_empty_o;
 
 // GlobalN3IWF-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using global_n3_iwf_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using global_n3_iwf_id_ext_ies_o = protocol_ext_empty_o;
 
 // GlobalNgENB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using global_ng_enb_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using global_ng_enb_id_ext_ies_o = protocol_ext_empty_o;
 
 // N3IWF-ID ::= CHOICE
 struct n3_iwf_id_c {
@@ -1434,13 +1369,13 @@ struct global_ng_enb_id_s {
 };
 
 // GlobalRANNodeID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using global_ran_node_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using global_ran_node_id_ext_ies_o = protocol_ies_empty_o;
 
 // TAI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_ext_ies_o = protocol_ext_empty_o;
 
 // AMFPagingTarget-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using amf_paging_target_ext_ies_o = ngap_protocol_ies_empty_o;
+using amf_paging_target_ext_ies_o = protocol_ies_empty_o;
 
 // GlobalRANNodeID ::= CHOICE
 struct global_ran_node_id_c {
@@ -1607,7 +1542,7 @@ struct timer_approach_for_guami_removal_opts {
 typedef enumerated<timer_approach_for_guami_removal_opts, true> timer_approach_for_guami_removal_e;
 
 // UnavailableGUAMIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using unavailable_guami_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using unavailable_guami_item_ext_ies_o = protocol_ext_empty_o;
 
 using unavailable_guami_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1685,10 +1620,10 @@ struct data_forwarding_accepted_opts {
 typedef enumerated<data_forwarding_accepted_opts, true> data_forwarding_accepted_e;
 
 // GTPTunnel-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using gtp_tunnel_ext_ies_o = ngap_protocol_ext_empty_o;
+using gtp_tunnel_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowItemWithDataForwarding-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_item_with_data_forwarding_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_item_with_data_forwarding_ext_ies_o = protocol_ext_empty_o;
 
 using gtp_tunnel_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1726,10 +1661,10 @@ struct qos_flow_item_with_data_forwarding_s {
 };
 
 // UPTransportLayerInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using up_transport_layer_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using up_transport_layer_info_ext_ies_o = protocol_ies_empty_o;
 
 // AdditionalDLUPTNLInformationForHOItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using add_dluptnl_info_for_ho_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using add_dluptnl_info_for_ho_item_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowListWithDataForwarding ::= SEQUENCE (SIZE (1..64)) OF QosFlowItemWithDataForwarding
 using qos_flow_list_with_data_forwarding_l = dyn_array<qos_flow_item_with_data_forwarding_s>;
@@ -1807,7 +1742,7 @@ struct add_dluptnl_info_for_ho_item_s {
 using add_dluptnl_info_for_ho_list_l = dyn_array<add_dluptnl_info_for_ho_item_s>;
 
 // AllocationAndRetentionPriority-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using alloc_and_retention_prio_ext_ies_o = ngap_protocol_ext_empty_o;
+using alloc_and_retention_prio_ext_ies_o = protocol_ext_empty_o;
 
 // Pre-emptionCapability ::= ENUMERATED
 struct pre_emption_cap_opts {
@@ -1844,7 +1779,7 @@ struct alloc_and_retention_prio_s {
 };
 
 // AllowedNSSAI-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using allowed_nssai_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using allowed_nssai_item_ext_ies_o = protocol_ext_empty_o;
 
 using allowed_nssai_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1869,10 +1804,10 @@ using allowed_nssai_l = dyn_array<allowed_nssai_item_s>;
 using allowed_tacs_l = bounded_array<fixed_octstring<3, true>, 16>;
 
 // EUTRA-CGI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using eutra_cgi_ext_ies_o = ngap_protocol_ext_empty_o;
+using eutra_cgi_ext_ies_o = protocol_ext_empty_o;
 
 // NR-CGI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using nr_cgi_ext_ies_o = ngap_protocol_ext_empty_o;
+using nr_cgi_ext_ies_o = protocol_ext_empty_o;
 
 using eutra_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1892,7 +1827,7 @@ struct eutra_cgi_s {
 };
 
 // NGRAN-CGI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ngran_cgi_ext_ies_o = ngap_protocol_ies_empty_o;
+using ngran_cgi_ext_ies_o = protocol_ies_empty_o;
 
 using nr_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1912,13 +1847,13 @@ struct nr_cgi_s {
 };
 
 // AreaOfInterestCellItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_cell_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_cell_item_ext_ies_o = protocol_ext_empty_o;
 
 // AreaOfInterestRANNodeItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_ran_node_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_ran_node_item_ext_ies_o = protocol_ext_empty_o;
 
 // AreaOfInterestTAIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_tai_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_tai_item_ext_ies_o = protocol_ext_empty_o;
 
 // NGRAN-CGI ::= CHOICE
 struct ngran_cgi_c {
@@ -2030,7 +1965,7 @@ struct area_of_interest_tai_item_s {
 };
 
 // AreaOfInterest-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_ext_ies_o = protocol_ext_empty_o;
 
 // AreaOfInterestCellList ::= SEQUENCE (SIZE (1..256)) OF AreaOfInterestCellItem
 using area_of_interest_cell_list_l = dyn_array<area_of_interest_cell_item_s>;
@@ -2063,7 +1998,7 @@ struct area_of_interest_s {
 };
 
 // AreaOfInterestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_item_ext_ies_o = protocol_ext_empty_o;
 
 using area_of_interest_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2086,7 +2021,7 @@ struct area_of_interest_item_s {
 using area_of_interest_list_l = dyn_array<area_of_interest_item_s>;
 
 // RecommendedCellItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_cell_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_cell_item_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_cell_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2110,10 +2045,10 @@ struct recommended_cell_item_s {
 using recommended_cell_list_l = dyn_array<recommended_cell_item_s>;
 
 // RecommendedCellsForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_cells_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_cells_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // AssistanceDataForRecommendedCells-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using assist_data_for_recommended_cells_ext_ies_o = ngap_protocol_ext_empty_o;
+using assist_data_for_recommended_cells_ext_ies_o = protocol_ext_empty_o;
 
 // NextPagingAreaScope ::= ENUMERATED
 struct next_paging_area_scope_opts {
@@ -2124,7 +2059,7 @@ struct next_paging_area_scope_opts {
 typedef enumerated<next_paging_area_scope_opts, true> next_paging_area_scope_e;
 
 // PagingAttemptInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using paging_attempt_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using paging_attempt_info_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_cells_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2143,7 +2078,7 @@ struct recommended_cells_for_paging_s {
 };
 
 // AssistanceDataForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using assist_data_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using assist_data_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 using assist_data_for_recommended_cells_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2200,7 +2135,7 @@ struct assist_data_for_paging_s {
 };
 
 // AssociatedQosFlowItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using associated_qos_flow_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using associated_qos_flow_item_ext_ies_o = protocol_ext_empty_o;
 
 using associated_qos_flow_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2232,16 +2167,16 @@ struct associated_qos_flow_item_s {
 using associated_qos_flow_list_l = dyn_array<associated_qos_flow_item_s>;
 
 // CancelledCellsInEAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_eai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_eai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellsInEAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_eai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_eai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellsInTAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_tai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_tai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellsInTAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_tai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_tai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using cancelled_cells_in_eai_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2324,22 +2259,22 @@ using cancelled_cells_in_tai_eutra_l = dyn_array<cancelled_cells_in_tai_eutra_it
 using cancelled_cells_in_tai_nr_l = dyn_array<cancelled_cells_in_tai_nr_item_s>;
 
 // CellIDCancelledEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_cancelled_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_cancelled_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CellIDCancelledNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_cancelled_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_cancelled_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaIDCancelledEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_cancelled_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_cancelled_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaIDCancelledNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_cancelled_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_cancelled_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAICancelledEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_cancelled_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_cancelled_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAICancelledNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_cancelled_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_cancelled_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_cancelled_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2444,7 +2379,7 @@ struct tai_cancelled_nr_item_s {
 };
 
 // BroadcastCancelledAreaList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using broadcast_cancelled_area_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using broadcast_cancelled_area_list_ext_ies_o = protocol_ies_empty_o;
 
 // CellIDCancelledEUTRA ::= SEQUENCE (SIZE (1..65535)) OF CellIDCancelledEUTRA-Item
 using cell_id_cancelled_eutra_l = dyn_array<cell_id_cancelled_eutra_item_s>;
@@ -2586,16 +2521,16 @@ private:
 };
 
 // CompletedCellsInEAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_eai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_eai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInEAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_eai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_eai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInTAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_tai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_tai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInTAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_tai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_tai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using completed_cells_in_eai_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2662,10 +2597,10 @@ struct completed_cells_in_tai_nr_item_s {
 };
 
 // CellIDBroadcastEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_broadcast_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_broadcast_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CellIDBroadcastNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_broadcast_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_broadcast_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInEAI-EUTRA ::= SEQUENCE (SIZE (1..65535)) OF CompletedCellsInEAI-EUTRA-Item
 using completed_cells_in_eai_eutra_l = dyn_array<completed_cells_in_eai_eutra_item_s>;
@@ -2680,16 +2615,16 @@ using completed_cells_in_tai_eutra_l = dyn_array<completed_cells_in_tai_eutra_it
 using completed_cells_in_tai_nr_l = dyn_array<completed_cells_in_tai_nr_item_s>;
 
 // EmergencyAreaIDBroadcastEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_broadcast_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_broadcast_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaIDBroadcastNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_broadcast_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_broadcast_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIBroadcastEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_broadcast_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_broadcast_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIBroadcastNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_broadcast_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_broadcast_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_broadcast_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2792,7 +2727,7 @@ struct tai_broadcast_nr_item_s {
 };
 
 // BroadcastCompletedAreaList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using broadcast_completed_area_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using broadcast_completed_area_list_ext_ies_o = protocol_ies_empty_o;
 
 // CellIDBroadcastEUTRA ::= SEQUENCE (SIZE (1..65535)) OF CellIDBroadcastEUTRA-Item
 using cell_id_broadcast_eutra_l = dyn_array<cell_id_broadcast_eutra_item_s>;
@@ -2934,7 +2869,7 @@ private:
 };
 
 // BroadcastPLMNItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using broadcast_plmn_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using broadcast_plmn_item_ext_ies_o = protocol_ext_empty_o;
 
 using broadcast_plmn_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2957,7 +2892,7 @@ struct broadcast_plmn_item_s {
 using broadcast_plmn_list_l = dyn_array<broadcast_plmn_item_s>;
 
 // COUNTValueForPDCP-SN12-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using count_value_for_pdcp_sn12_ext_ies_o = ngap_protocol_ext_empty_o;
+using count_value_for_pdcp_sn12_ext_ies_o = protocol_ext_empty_o;
 
 using count_value_for_pdcp_sn12_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2977,7 +2912,7 @@ struct count_value_for_pdcp_sn12_s {
 };
 
 // COUNTValueForPDCP-SN18-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using count_value_for_pdcp_sn18_ext_ies_o = ngap_protocol_ext_empty_o;
+using count_value_for_pdcp_sn18_ext_ies_o = protocol_ext_empty_o;
 
 using count_value_for_pdcp_sn18_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2997,7 +2932,7 @@ struct count_value_for_pdcp_sn18_s {
 };
 
 // CellIDListForRestart-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using cell_id_list_for_restart_ext_ies_o = ngap_protocol_ies_empty_o;
+using cell_id_list_for_restart_ext_ies_o = protocol_ies_empty_o;
 
 // EUTRA-CGIList ::= SEQUENCE (SIZE (1..256)) OF EUTRA-CGI
 using eutra_cgi_list_l = dyn_array<eutra_cgi_s>;
@@ -3161,7 +3096,7 @@ struct cell_size_opts {
 typedef enumerated<cell_size_opts, true> cell_size_e;
 
 // CellType-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_type_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_type_ext_ies_o = protocol_ext_empty_o;
 
 using cell_type_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3180,10 +3115,10 @@ struct cell_type_s {
 };
 
 // ExpectedUEMovingTrajectoryItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using expected_ue_moving_trajectory_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using expected_ue_moving_trajectory_item_ext_ies_o = protocol_ext_empty_o;
 
 // ExpectedUEActivityBehaviour-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using expected_ue_activity_behaviour_ext_ies_o = ngap_protocol_ext_empty_o;
+using expected_ue_activity_behaviour_ext_ies_o = protocol_ext_empty_o;
 
 using expected_ue_moving_trajectory_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3212,7 +3147,7 @@ struct source_of_ue_activity_behaviour_info_opts {
 typedef enumerated<source_of_ue_activity_behaviour_info_opts, true> source_of_ue_activity_behaviour_info_e;
 
 // TAIListForInactiveItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_list_for_inactive_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_list_for_inactive_item_ext_ies_o = protocol_ext_empty_o;
 
 // ExpectedHOInterval ::= ENUMERATED
 struct expected_ho_interv_opts {
@@ -3246,7 +3181,7 @@ struct expected_ue_activity_behaviour_s {
 };
 
 // ExpectedUEBehaviour-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using expected_ue_behaviour_ext_ies_o = ngap_protocol_ext_empty_o;
+using expected_ue_behaviour_ext_ies_o = protocol_ext_empty_o;
 
 // ExpectedUEMobility ::= ENUMERATED
 struct expected_ue_mob_opts {
@@ -3276,10 +3211,10 @@ struct tai_list_for_inactive_item_s {
 };
 
 // UEIdentityIndexValue-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ue_id_idx_value_ext_ies_o = ngap_protocol_ies_empty_o;
+using ue_id_idx_value_ext_ies_o = protocol_ies_empty_o;
 
 // CoreNetworkAssistanceInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using core_network_assist_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using core_network_assist_info_ext_ies_o = protocol_ext_empty_o;
 
 using expected_ue_behaviour_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3402,13 +3337,13 @@ struct core_network_assist_info_s {
 };
 
 // DRBStatusDL12-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_dl12_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_dl12_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusDL18-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_dl18_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_dl18_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusDL-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using drb_status_dl_ext_ies_o = ngap_protocol_ies_empty_o;
+using drb_status_dl_ext_ies_o = protocol_ies_empty_o;
 
 using drb_status_dl12_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3506,13 +3441,13 @@ private:
 };
 
 // DRBStatusUL12-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_ul12_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_ul12_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusUL18-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_ul18_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_ul18_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusUL-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using drb_status_ul_ext_ies_o = ngap_protocol_ies_empty_o;
+using drb_status_ul_ext_ies_o = protocol_ies_empty_o;
 
 using drb_status_ul12_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3614,7 +3549,7 @@ private:
 };
 
 // DRBsSubjectToStatusTransferItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drbs_subject_to_status_transfer_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using drbs_subject_to_status_transfer_item_ext_ies_o = protocol_ext_empty_o;
 
 using drbs_subject_to_status_transfer_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3638,7 +3573,7 @@ struct drbs_subject_to_status_transfer_item_s {
 using drbs_subject_to_status_transfer_list_l = dyn_array<drbs_subject_to_status_transfer_item_s>;
 
 // DRBsToQosFlowsMappingItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drbs_to_qos_flows_map_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using drbs_to_qos_flows_map_item_ext_ies_o = protocol_ext_empty_o;
 
 using drbs_to_qos_flows_map_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3661,7 +3596,7 @@ struct drbs_to_qos_flows_map_item_s {
 using drbs_to_qos_flows_map_list_l = dyn_array<drbs_to_qos_flows_map_item_s>;
 
 // DataForwardingResponseDRBItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using data_forwarding_resp_drb_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using data_forwarding_resp_drb_item_ext_ies_o = protocol_ext_empty_o;
 
 using data_forwarding_resp_drb_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3759,7 +3694,7 @@ struct deactiv_trace_s {
 };
 
 // ForbiddenAreaInformation-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using forbidden_area_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using forbidden_area_info_item_ext_ies_o = protocol_ext_empty_o;
 
 // ForbiddenTACs ::= SEQUENCE (SIZE (1..4096)) OF OCTET STRING (SIZE (3))
 using forbidden_tacs_l = dyn_array<fixed_octstring<3, true> >;
@@ -3768,10 +3703,10 @@ using forbidden_tacs_l = dyn_array<fixed_octstring<3, true> >;
 using not_allowed_tacs_l = bounded_array<fixed_octstring<3, true>, 16>;
 
 // RATRestrictions-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using rat_restricts_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using rat_restricts_item_ext_ies_o = protocol_ext_empty_o;
 
 // ServiceAreaInformation-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using service_area_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using service_area_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using forbidden_area_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3872,7 +3807,7 @@ using rat_restricts_l = dyn_array<rat_restricts_item_s>;
 using service_area_info_l = dyn_array<service_area_info_item_s>;
 
 // UEAggregateMaximumBitRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_aggregate_maximum_bit_rate_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_aggregate_maximum_bit_rate_ext_ies_o = protocol_ext_empty_o;
 
 // MobilityRestrictionList ::= SEQUENCE
 struct mob_restrict_list_s {
@@ -4095,7 +4030,7 @@ struct dl_non_ueassociated_nrp_pa_transport_s {
 };
 
 // XnExtTLA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using xn_ext_tla_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using xn_ext_tla_item_ext_ies_o = protocol_ext_empty_o;
 
 // XnGTP-TLAs ::= SEQUENCE (SIZE (1..16)) OF BIT STRING (SIZE (1..160,...))
 using xn_gtp_tlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 16>;
@@ -4126,10 +4061,10 @@ using xn_ext_tlas_l = dyn_array<xn_ext_tla_item_s>;
 using xn_tlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 16>;
 
 // XnTNLConfigurationInfo-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using xn_tnl_cfg_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using xn_tnl_cfg_info_ext_ies_o = protocol_ext_empty_o;
 
 // SONInformationReply-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using son_info_reply_ext_ies_o = ngap_protocol_ext_empty_o;
+using son_info_reply_ext_ies_o = protocol_ext_empty_o;
 
 using xn_tnl_cfg_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4150,7 +4085,7 @@ struct xn_tnl_cfg_info_s {
 };
 
 // SONInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using son_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using son_info_ext_ies_o = protocol_ies_empty_o;
 
 using son_info_reply_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4178,13 +4113,13 @@ struct son_info_request_opts {
 typedef enumerated<son_info_request_opts, true> son_info_request_e;
 
 // SourceRANNodeID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using source_ran_node_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using source_ran_node_id_ext_ies_o = protocol_ext_empty_o;
 
 // TargetRANNodeID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using target_ran_node_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using target_ran_node_id_ext_ies_o = protocol_ext_empty_o;
 
 // SONConfigurationTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using son_cfg_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using son_cfg_transfer_ext_ies_o = protocol_ext_empty_o;
 
 // SONInformation ::= CHOICE
 struct son_info_c {
@@ -4373,7 +4308,7 @@ struct dl_ran_cfg_transfer_s {
 };
 
 // RANStatusTransfer-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ran_status_transfer_transparent_container_ext_ies_o = ngap_protocol_ext_empty_o;
+using ran_status_transfer_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 using ran_status_transfer_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4539,7 +4474,7 @@ struct dl_ueassociated_nrp_pa_transport_s {
 };
 
 // PacketErrorRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using packet_error_rate_ext_ies_o = ngap_protocol_ext_empty_o;
+using packet_error_rate_ext_ies_o = protocol_ext_empty_o;
 
 // DelayCritical ::= ENUMERATED
 struct delay_crit_opts {
@@ -4550,7 +4485,7 @@ struct delay_crit_opts {
 typedef enumerated<delay_crit_opts, true> delay_crit_e;
 
 // Dynamic5QIDescriptor-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using dynamic5_qi_descriptor_ext_ies_o = ngap_protocol_ext_empty_o;
+using dynamic5_qi_descriptor_ext_ies_o = protocol_ext_empty_o;
 
 using packet_error_rate_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4604,7 +4539,7 @@ struct dl_forwarding_opts {
 typedef enumerated<dl_forwarding_opts, true> dl_forwarding_e;
 
 // E-RABInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using erab_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using erab_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4628,7 +4563,7 @@ struct erab_info_item_s {
 using erab_info_list_l = dyn_array<erab_info_item_s>;
 
 // EPS-TAI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using eps_tai_ext_ies_o = ngap_protocol_ext_empty_o;
+using eps_tai_ext_ies_o = protocol_ext_empty_o;
 
 using eps_tai_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4657,7 +4592,7 @@ using emergency_area_id_list_l = dyn_array<fixed_octstring<3, true> >;
 using emergency_area_id_list_for_restart_l = dyn_array<fixed_octstring<3, true> >;
 
 // EmergencyFallbackIndicator-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_fallback_ind_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_fallback_ind_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyFallbackRequestIndicator ::= ENUMERATED
 struct emergency_fallback_request_ind_opts {
@@ -4775,7 +4710,7 @@ struct error_ind_s {
 };
 
 // FiveG-S-TMSI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using five_g_s_tmsi_ext_ies_o = ngap_protocol_ext_empty_o;
+using five_g_s_tmsi_ext_ies_o = protocol_ext_empty_o;
 
 using five_g_s_tmsi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4796,7 +4731,7 @@ struct five_g_s_tmsi_s {
 };
 
 // GBR-QosInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using gbr_qos_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using gbr_qos_info_ext_ies_o = protocol_ext_empty_o;
 
 // NotificationControl ::= ENUMERATED
 struct notif_ctrl_opts {
@@ -4977,10 +4912,10 @@ struct ho_cancel_ack_s {
 };
 
 // PDUSessionResourceHandoverItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_ho_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_ho_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceToReleaseItemHOCmd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_to_release_item_ho_cmd_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_to_release_item_ho_cmd_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_ho_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5136,7 +5071,7 @@ struct ho_cmd_s {
 };
 
 // QosFlowPerTNLInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_per_tnl_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_per_tnl_info_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_per_tnl_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5156,7 +5091,7 @@ struct qos_flow_per_tnl_info_s {
 };
 
 // QosFlowPerTNLInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_per_tnl_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_per_tnl_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_per_tnl_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5175,7 +5110,7 @@ struct qos_flow_per_tnl_info_item_s {
 };
 
 // QosFlowToBeForwardedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_to_be_forwarded_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_to_be_forwarded_item_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowPerTNLInformationList ::= SEQUENCE (SIZE (1..3)) OF QosFlowPerTNLInformationItem
 using qos_flow_per_tnl_info_list_l = dyn_array<qos_flow_per_tnl_info_item_s>;
@@ -5326,16 +5261,16 @@ struct ho_fail_s {
 };
 
 // UserLocationInformationEUTRA-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_location_info_eutra_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_location_info_eutra_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformationN3IWF-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_location_info_n3_iwf_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_location_info_n3_iwf_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformationNR-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_location_info_nr_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_location_info_nr_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using user_location_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using user_location_info_ext_ies_o = protocol_ies_empty_o;
 
 using user_location_info_eutra_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5625,7 +5560,7 @@ struct ho_prep_fail_s {
 };
 
 // HandoverPreparationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ho_prep_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using ho_prep_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using ho_prep_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5644,7 +5579,7 @@ struct ho_prep_unsuccessful_transfer_s {
 };
 
 // PDUSessionResourceSetupItemHOReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_ho_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_ho_req_ext_ies_o = protocol_ext_empty_o;
 
 // EventType ::= ENUMERATED
 struct event_type_opts {
@@ -5664,7 +5599,7 @@ struct event_type_opts {
 typedef enumerated<event_type_opts, true> event_type_e;
 
 // LocationReportingRequestType-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using location_report_request_type_ext_ies_o = ngap_protocol_ext_empty_o;
+using location_report_request_type_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_item_ho_req_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5693,10 +5628,10 @@ struct report_area_opts {
 typedef enumerated<report_area_opts, true> report_area_e;
 
 // SecurityContext-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using security_context_ext_ies_o = ngap_protocol_ext_empty_o;
+using security_context_ext_ies_o = protocol_ext_empty_o;
 
 // TraceActivation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using trace_activation_ext_ies_o = ngap_protocol_ext_empty_o;
+using trace_activation_ext_ies_o = protocol_ext_empty_o;
 
 // TraceDepth ::= ENUMERATED
 struct trace_depth_opts {
@@ -5716,7 +5651,7 @@ struct trace_depth_opts {
 typedef enumerated<trace_depth_opts, true> trace_depth_e;
 
 // UESecurityCapabilities-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_security_cap_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_security_cap_ext_ies_o = protocol_ext_empty_o;
 
 using location_report_request_type_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5992,10 +5927,10 @@ struct ho_request_s {
 };
 
 // PDUSessionResourceAdmittedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_admitted_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_admitted_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToSetupItemHOAck-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_ho_ack_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_ho_ack_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_admitted_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6134,7 +6069,7 @@ struct ho_request_ack_s {
 };
 
 // QosFlowWithCauseItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_with_cause_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_with_cause_item_ext_ies_o = protocol_ext_empty_o;
 
 // ConfidentialityProtectionResult ::= ENUMERATED
 struct confidentiality_protection_result_opts {
@@ -6170,7 +6105,7 @@ struct qos_flow_with_cause_item_s {
 };
 
 // SecurityResult-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using security_result_ext_ies_o = ngap_protocol_ext_empty_o;
+using security_result_ext_ies_o = protocol_ext_empty_o;
 
 // HandoverRequestAcknowledgeTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 struct ho_request_ack_transfer_ext_ies_o {
@@ -6248,10 +6183,10 @@ struct ho_request_ack_transfer_s {
 };
 
 // PDUSessionResourceItemHORqd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_item_ho_rqd_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_item_ho_rqd_ext_ies_o = protocol_ext_empty_o;
 
 // TargeteNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using targetenb_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using targetenb_id_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_item_ho_rqd_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6271,7 +6206,7 @@ struct pdu_session_res_item_ho_rqd_s {
 };
 
 // TargetID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using target_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using target_id_ext_ies_o = protocol_ies_empty_o;
 
 using targetenb_id_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6461,7 +6396,7 @@ struct ho_required_s {
 };
 
 // HandoverRequiredTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ho_required_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using ho_required_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using ho_required_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6481,7 +6416,7 @@ struct ho_required_transfer_s {
 };
 
 // HandoverResourceAllocationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ho_res_alloc_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using ho_res_alloc_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using ho_res_alloc_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6502,7 +6437,7 @@ struct ho_res_alloc_unsuccessful_transfer_s {
 };
 
 // RecommendedRANNodeItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_ran_node_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_ran_node_item_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_ran_node_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6524,10 +6459,10 @@ struct recommended_ran_node_item_s {
 using recommended_ran_node_list_l = dyn_array<recommended_ran_node_item_s>;
 
 // RecommendedRANNodesForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_ran_nodes_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_ran_nodes_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // InfoOnRecommendedCellsAndRANNodesForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using info_on_recommended_cells_and_ran_nodes_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using info_on_recommended_cells_and_ran_nodes_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_ran_nodes_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6563,7 +6498,7 @@ struct info_on_recommended_cells_and_ran_nodes_for_paging_s {
 };
 
 // PDUSessionResourceFailedToSetupItemCxtFail-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_cxt_fail_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_cxt_fail_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_failed_to_setup_item_cxt_fail_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6674,7 +6609,7 @@ struct init_context_setup_fail_s {
 };
 
 // PDUSessionResourceSetupItemCxtReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_cxt_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_cxt_req_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_item_cxt_req_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6697,7 +6632,7 @@ struct pdu_session_res_setup_item_cxt_req_s {
 };
 
 // UERadioCapabilityForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_radio_cap_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_radio_cap_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupListCxtReq ::= SEQUENCE (SIZE (1..256)) OF PDUSessionResourceSetupItemCxtReq
 using pdu_session_res_setup_list_cxt_req_l = dyn_array<pdu_session_res_setup_item_cxt_req_s>;
@@ -6894,10 +6829,10 @@ struct init_context_setup_request_s {
 };
 
 // PDUSessionResourceFailedToSetupItemCxtRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupItemCxtRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_cxt_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_cxt_res_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7170,7 +7105,7 @@ struct init_ue_msg_s {
 };
 
 // SliceOverloadItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using slice_overload_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using slice_overload_item_ext_ies_o = protocol_ext_empty_o;
 
 // OverloadAction ::= ENUMERATED
 struct overload_action_opts {
@@ -7188,7 +7123,7 @@ struct overload_action_opts {
 typedef enumerated<overload_action_opts, true> overload_action_e;
 
 // OverloadResponse-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using overload_resp_ext_ies_o = ngap_protocol_ies_empty_o;
+using overload_resp_ext_ies_o = protocol_ies_empty_o;
 
 using slice_overload_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7207,7 +7142,7 @@ struct slice_overload_item_s {
 };
 
 // UE-associatedLogicalNG-connectionItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_associated_lc_ng_conn_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_associated_lc_ng_conn_item_ext_ies_o = protocol_ext_empty_o;
 
 // OverloadResponse ::= CHOICE
 struct overload_resp_c {
@@ -7260,19 +7195,19 @@ private:
 };
 
 // OverloadStartNSSAIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using overload_start_nssai_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using overload_start_nssai_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToModifyItemModCfm-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_modify_item_mod_cfm_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_modify_item_mod_cfm_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToModifyItemModRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_modify_item_mod_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_modify_item_mod_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToSetupItemPSReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_ps_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_ps_req_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToSetupItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_su_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_su_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceItemCxtRelCpl-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 struct pdu_session_res_item_cxt_rel_cpl_ext_ies_o {
@@ -7307,13 +7242,13 @@ struct pdu_session_res_item_cxt_rel_cpl_ext_ies_o {
 };
 
 // PDUSessionResourceItemCxtRelReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_item_cxt_rel_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_item_cxt_rel_req_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceModifyItemModCfm-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_item_mod_cfm_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_item_mod_cfm_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceModifyItemModInd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_item_mod_ind_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_item_mod_ind_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceModifyItemModReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 struct pdu_session_res_modify_item_mod_req_ext_ies_o {
@@ -7348,40 +7283,40 @@ struct pdu_session_res_modify_item_mod_req_ext_ies_o {
 };
 
 // PDUSessionResourceModifyItemModRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_item_mod_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_item_mod_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceNotifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_notify_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_notify_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemNot-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_not_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_not_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemPSAck-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_ps_ack_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_ps_ack_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemPSFail-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_ps_fail_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_ps_fail_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemRelRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_rel_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_rel_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSecondaryRATUsageItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_secondary_ratusage_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_secondary_ratusage_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupItemSUReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_su_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_su_req_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_su_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_su_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSwitchedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_switched_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_switched_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceToBeSwitchedDLItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_to_be_switched_dl_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_to_be_switched_dl_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceToReleaseItemRelCmd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_to_release_item_rel_cmd_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_to_release_item_rel_cmd_ext_ies_o = protocol_ext_empty_o;
 
 // PrivateIE-ID ::= CHOICE
 struct private_ie_id_c {
@@ -7422,13 +7357,13 @@ private:
 using slice_overload_list_l = dyn_array<slice_overload_item_s>;
 
 // SupportedTAItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using supported_ta_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using supported_ta_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIListForPagingItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_list_for_paging_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_list_for_paging_item_ext_ies_o = protocol_ext_empty_o;
 
 // UE-NGAP-ID-pair-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_ngap_id_pair_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_ngap_id_pair_ext_ies_o = protocol_ext_empty_o;
 
 using ue_associated_lc_ng_conn_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7458,7 +7393,7 @@ struct ue_presence_opts {
 typedef enumerated<ue_presence_opts, true> ue_presence_e;
 
 // UEPresenceInAreaOfInterestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_presence_in_area_of_interest_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_presence_in_area_of_interest_item_ext_ies_o = protocol_ext_empty_o;
 
 // NR-CGIListForWarning ::= SEQUENCE (SIZE (1..65535)) OF NR-CGI
 using nr_cgi_list_for_warning_l = dyn_array<nr_cgi_s>;
@@ -7840,7 +7775,7 @@ struct pdu_session_res_to_release_item_rel_cmd_s {
 };
 
 // PWSFailedCellIDList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using pws_failed_cell_id_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using pws_failed_cell_id_list_ext_ies_o = protocol_ies_empty_o;
 
 // ResetAll ::= ENUMERATED
 struct reset_all_opts {
@@ -7851,7 +7786,7 @@ struct reset_all_opts {
 typedef enumerated<reset_all_opts, true> reset_all_e;
 
 // ResetType-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using reset_type_ext_ies_o = ngap_protocol_ies_empty_o;
+using reset_type_ext_ies_o = protocol_ies_empty_o;
 
 using supported_ta_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7907,13 +7842,13 @@ struct ue_ngap_id_pair_s {
 };
 
 // UE-NGAP-IDs-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ue_ngap_ids_ext_ies_o = ngap_protocol_ies_empty_o;
+using ue_ngap_ids_ext_ies_o = protocol_ies_empty_o;
 
 // UE-associatedLogicalNG-connectionList ::= SEQUENCE (SIZE (1..65536)) OF UE-associatedLogicalNG-connectionItem
 using ue_associated_lc_ng_conn_list_l = dyn_array<ue_associated_lc_ng_conn_item_s>;
 
 // UEPagingIdentity-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ue_paging_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using ue_paging_id_ext_ies_o = protocol_ies_empty_o;
 
 using ue_presence_in_area_of_interest_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7933,7 +7868,7 @@ struct ue_presence_in_area_of_interest_item_s {
 };
 
 // WarningAreaList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using warning_area_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using warning_area_list_ext_ies_o = protocol_ies_empty_o;
 
 // CancelAllWarningMessages ::= ENUMERATED
 struct cancel_all_warning_msgs_opts {
@@ -8922,7 +8857,7 @@ struct overload_start_ies_o {
 };
 
 // OverloadStopIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using overload_stop_ies_o = ngap_protocol_ies_empty_o;
+using overload_stop_ies_o = protocol_ies_empty_o;
 
 // PDUSessionResourceModifyConfirmIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct pdu_session_res_modify_confirm_ies_o {
@@ -11391,15 +11326,6 @@ struct overload_start_s {
   void        to_json(json_writer& j) const;
 };
 
-struct protocol_ie_container_empty_l {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 using overload_stop_ies_container = protocol_ie_container_empty_l;
 
 // OverloadStop ::= SEQUENCE
@@ -13191,10 +13117,10 @@ struct init_msg_s {
 };
 
 // LastVisitedNGRANCellInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using last_visited_ngran_cell_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using last_visited_ngran_cell_info_ext_ies_o = protocol_ext_empty_o;
 
 // LastVisitedCellInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using last_visited_cell_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using last_visited_cell_info_ext_ies_o = protocol_ies_empty_o;
 
 using last_visited_ngran_cell_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13305,7 +13231,7 @@ private:
 };
 
 // LastVisitedCellItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using last_visited_cell_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using last_visited_cell_item_ext_ies_o = protocol_ext_empty_o;
 
 using last_visited_cell_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13409,7 +13335,7 @@ private:
 };
 
 // NonDynamic5QIDescriptor-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using non_dynamic5_qi_descriptor_ext_ies_o = ngap_protocol_ext_empty_o;
+using non_dynamic5_qi_descriptor_ext_ies_o = protocol_ext_empty_o;
 
 using non_dynamic5_qi_descriptor_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13434,7 +13360,7 @@ struct non_dynamic5_qi_descriptor_s {
 };
 
 // PDUSessionAggregateMaximumBitRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_aggregate_maximum_bit_rate_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_aggregate_maximum_bit_rate_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_aggregate_maximum_bit_rate_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13454,7 +13380,7 @@ struct pdu_session_aggregate_maximum_bit_rate_s {
 };
 
 // QosFlowInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13475,7 +13401,7 @@ struct qos_flow_info_item_s {
 };
 
 // PDUSessionResourceInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_info_item_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowInformationList ::= SEQUENCE (SIZE (1..64)) OF QosFlowInformationItem
 using qos_flow_info_list_l = dyn_array<qos_flow_info_item_s>;
@@ -13503,10 +13429,10 @@ struct pdu_session_res_info_item_s {
 using pdu_session_res_info_list_l = dyn_array<pdu_session_res_info_item_s>;
 
 // QosFlowModifyConfirmItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_modify_confirm_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_modify_confirm_item_ext_ies_o = protocol_ext_empty_o;
 
 // UPTransportLayerInformationPairItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using up_transport_layer_info_pair_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using up_transport_layer_info_pair_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_modify_confirm_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13542,7 +13468,7 @@ struct up_transport_layer_info_pair_item_s {
 };
 
 // PDUSessionResourceModifyConfirmTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_confirm_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_confirm_transfer_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowModifyConfirmList ::= SEQUENCE (SIZE (1..64)) OF QosFlowModifyConfirmItem
 using qos_flow_modify_confirm_list_l = dyn_array<qos_flow_modify_confirm_item_s>;
@@ -13572,7 +13498,7 @@ struct pdu_session_res_modify_confirm_transfer_s {
 };
 
 // VolumeTimedReport-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using volume_timed_report_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using volume_timed_report_item_ext_ies_o = protocol_ext_empty_o;
 
 using volume_timed_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13594,13 +13520,13 @@ struct volume_timed_report_item_s {
 };
 
 // QoSFlowsUsageReport-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qo_sflows_usage_report_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qo_sflows_usage_report_item_ext_ies_o = protocol_ext_empty_o;
 
 // VolumeTimedReportList ::= SEQUENCE (SIZE (1..2)) OF VolumeTimedReport-Item
 using volume_timed_report_list_l = dyn_array<volume_timed_report_item_s>;
 
 // PDUSessionUsageReport-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_usage_report_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_usage_report_ext_ies_o = protocol_ext_empty_o;
 
 using qo_sflows_usage_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13657,7 +13583,7 @@ struct pdu_session_usage_report_s {
 using qo_sflows_usage_report_list_l = dyn_array<qo_sflows_usage_report_item_s>;
 
 // SecondaryRATUsageInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using secondary_ratusage_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using secondary_ratusage_info_ext_ies_o = protocol_ext_empty_o;
 
 using secondary_ratusage_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13754,7 +13680,7 @@ struct pdu_session_res_modify_ind_transfer_s {
 };
 
 // PDUSessionResourceModifyIndicationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_ind_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_ind_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_modify_ind_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13773,7 +13699,7 @@ struct pdu_session_res_modify_ind_unsuccessful_transfer_s {
 };
 
 // QosCharacteristics-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using qos_characteristics_ext_ies_o = ngap_protocol_ies_empty_o;
+using qos_characteristics_ext_ies_o = protocol_ies_empty_o;
 
 // AdditionalQosFlowInformation ::= ENUMERATED
 struct add_qos_flow_info_opts {
@@ -13848,7 +13774,7 @@ private:
 };
 
 // QosFlowLevelQosParameters-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_level_qos_params_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_level_qos_params_ext_ies_o = protocol_ext_empty_o;
 
 // ReflectiveQosAttribute ::= ENUMERATED
 struct reflective_qos_attribute_opts {
@@ -13859,7 +13785,7 @@ struct reflective_qos_attribute_opts {
 typedef enumerated<reflective_qos_attribute_opts, true> reflective_qos_attribute_e;
 
 // QosFlowAddOrModifyRequestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_add_or_modify_request_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_add_or_modify_request_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_level_qos_params_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13885,10 +13811,10 @@ struct qos_flow_level_qos_params_s {
 };
 
 // UL-NGU-UP-TNLModifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ul_ngu_up_tnl_modify_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using ul_ngu_up_tnl_modify_item_ext_ies_o = protocol_ext_empty_o;
 
 // UPTransportLayerInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using up_transport_layer_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using up_transport_layer_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_add_or_modify_request_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14055,7 +13981,7 @@ struct pdu_session_res_modify_request_transfer_s {
 };
 
 // QosFlowAddOrModifyResponseItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_add_or_modify_resp_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_add_or_modify_resp_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_add_or_modify_resp_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14132,7 +14058,7 @@ struct pdu_session_res_modify_resp_transfer_s {
 };
 
 // PDUSessionResourceModifyUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_modify_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14207,7 +14133,7 @@ struct notif_cause_opts {
 typedef enumerated<notif_cause_opts, true> notif_cause_e;
 
 // QosFlowNotifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_notify_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_notify_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_notify_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14279,7 +14205,7 @@ struct pdu_session_res_notify_transfer_s {
 };
 
 // PDUSessionResourceReleaseCommandTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_release_cmd_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_release_cmd_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_release_cmd_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14353,7 +14279,7 @@ struct maximum_integrity_protected_data_rate_opts {
 typedef enumerated<maximum_integrity_protected_data_rate_opts, true> maximum_integrity_protected_data_rate_e;
 
 // QosFlowSetupRequestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_setup_request_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_setup_request_item_ext_ies_o = protocol_ext_empty_o;
 
 // ConfidentialityProtectionIndication ::= ENUMERATED
 struct confidentiality_protection_ind_opts {
@@ -14568,7 +14494,7 @@ struct pdu_session_res_setup_request_transfer_s {
 };
 
 // PDUSessionResourceSetupResponseTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_resp_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_resp_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_resp_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14593,7 +14519,7 @@ struct pdu_session_res_setup_resp_transfer_s {
 };
 
 // PDUSessionResourceSetupUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14663,7 +14589,7 @@ struct path_switch_request_ack_transfer_s {
 };
 
 // PathSwitchRequestSetupFailedTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using path_switch_request_setup_failed_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using path_switch_request_setup_failed_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using path_switch_request_setup_failed_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14682,7 +14608,7 @@ struct path_switch_request_setup_failed_transfer_s {
 };
 
 // QosFlowAcceptedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_accepted_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_accepted_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_accepted_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14701,7 +14627,7 @@ struct qos_flow_accepted_item_s {
 };
 
 // UserPlaneSecurityInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_plane_security_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_plane_security_info_ext_ies_o = protocol_ext_empty_o;
 
 // DL-NGU-TNLInformationReused ::= ENUMERATED
 struct dl_ngu_tnl_info_reused_opts {
@@ -14783,7 +14709,7 @@ struct path_switch_request_transfer_s {
 };
 
 // PathSwitchRequestUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using path_switch_request_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using path_switch_request_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using path_switch_request_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14821,7 +14747,7 @@ template <class ies_set_paramT_>
 using protocol_ie_container_pair_l = dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>;
 
 // QosFlowSetupResponseItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_setup_resp_item_su_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_setup_resp_item_su_res_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_setup_resp_item_su_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14843,7 +14769,7 @@ struct qos_flow_setup_resp_item_su_res_s {
 using qos_flow_setup_resp_list_su_res_l = dyn_array<qos_flow_setup_resp_item_su_res_s>;
 
 // SecondaryRATDataUsageReportTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using secondary_rat_data_usage_report_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using secondary_rat_data_usage_report_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using secondary_rat_data_usage_report_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14863,7 +14789,7 @@ struct secondary_rat_data_usage_report_transfer_s {
 };
 
 // SourceNGRANNode-ToTargetNGRANNode-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using source_ngran_node_to_target_ngran_node_transparent_container_ext_ies_o = ngap_protocol_ext_empty_o;
+using source_ngran_node_to_target_ngran_node_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 // UEHistoryInformation ::= SEQUENCE (SIZE (1..16)) OF LastVisitedCellItem
 using ue_history_info_l = dyn_array<last_visited_cell_item_s>;
@@ -14893,7 +14819,7 @@ struct source_ngran_node_to_target_ngran_node_transparent_container_s {
 };
 
 // TargetNGRANNode-ToSourceNGRANNode-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using target_ngran_node_to_source_ngran_node_transparent_container_ext_ies_o = ngap_protocol_ext_empty_o;
+using target_ngran_node_to_source_ngran_node_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 using target_ngran_node_to_source_ngran_node_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 

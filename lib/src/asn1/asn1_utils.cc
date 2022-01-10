@@ -1556,4 +1556,49 @@ std::string json_writer::to_string() const
   return std::string(buffer.data(), buffer.size());
 }
 
+/************************
+   General Layer Types
+************************/
+
+uint32_t detail::base_empty_obj_set::idx_to_id(uint32_t idx)
+{
+  asn1::log_error("object set is empty\n");
+  return 0;
+}
+bool detail::base_empty_obj_set::is_id_valid(const uint32_t& id)
+{
+  asn1::log_error("object set is empty\n");
+  return false;
+}
+crit_e detail::base_empty_obj_set::get_crit(const uint32_t& id)
+{
+  return {};
+}
+presence_e detail::base_empty_obj_set::get_presence(const uint32_t& id)
+{
+  return {};
+}
+
+void detail::empty_obj_set_item_c::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.end_obj();
+}
+SRSASN_CODE detail::empty_obj_set_item_c::pack(bit_ref& bref) const
+{
+  varlength_field_pack_guard varlen_scope(bref, true);
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE detail::empty_obj_set_item_c::unpack(cbit_ref& bref)
+{
+  varlength_field_unpack_guard varlen_scope(bref, true);
+  return SRSASN_SUCCESS;
+}
+
+const char* detail::empty_obj_set_item_c::types_opts::to_string() const
+{
+  log_error("The enum value=0 of type protocol_ies_empty_o::value_c::types is not valid.");
+  return "";
+}
+
 } // namespace asn1

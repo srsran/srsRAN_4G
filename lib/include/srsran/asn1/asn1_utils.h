@@ -1549,6 +1549,18 @@ struct crit_opts {
 };
 typedef enumerated<crit_opts> crit_e;
 
+// Presence ::= ENUMERATED
+struct presence_opts {
+  enum options { optional, conditional, mandatory, nulltype } value;
+
+  const char* to_string() const
+  {
+    static const char* options[] = {"optional", "conditional", "mandatory"};
+    return convert_enum_idx(options, 3, value, "presence_e");
+  }
+};
+typedef enumerated<presence_opts> presence_e;
+
 namespace detail {
 
 template <typename IEsSetParam>
@@ -1738,6 +1750,78 @@ using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<IEsSetParam>, 0, 
 // ProtocolExtensionField
 template <class ExtensionSetParam>
 using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ExtensionSetParam>, 1, 65535, true>;
+
+namespace detail {
+
+struct empty_obj_set_item_c {
+  struct types_opts {
+    enum options { nulltype } value;
+    const char* to_string() const;
+  };
+  typedef enumerated<types_opts> types;
+
+  // choice methods
+  types       type() const { return types::nulltype; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+struct base_empty_obj_set {
+  // members lookup methods
+  static uint32_t   idx_to_id(uint32_t idx);
+  static bool       is_id_valid(const uint32_t& id);
+  static crit_e     get_crit(const uint32_t& id);
+  static presence_e get_presence(const uint32_t& id);
+};
+
+} // namespace detail
+
+/// Empty Protocol IE Object Set
+struct protocol_ies_empty_o : public detail::base_empty_obj_set {
+  using value_c = detail::empty_obj_set_item_c;
+
+  // members lookup methods
+  static value_c get_value(uint32_t id) { return {}; }
+};
+
+/// Empty Protocol Extension Object Set
+struct protocol_ext_empty_o : public detail::base_empty_obj_set {
+  using ext_c = detail::empty_obj_set_item_c;
+
+  // members lookup methods
+  static ext_c get_ext(uint32_t id) { return {}; }
+};
+
+/// Empty ProtocolExtensionContainer
+struct protocol_ie_container_empty_l {
+  template <class extT_>
+  using ie_field_s = protocol_ext_container_item_s<extT_>;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    uint32_t nof_ies = 0;
+    pack_length(bref, nof_ies, 1u, 65535u, true);
+    return SRSASN_SUCCESS;
+  }
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    uint32_t nof_ies = 0;
+    unpack_length(nof_ies, bref, 1u, 65535u, true);
+    if (nof_ies > 0) {
+      return SRSASN_ERROR_DECODE_FAIL;
+    }
+    return SRSASN_SUCCESS;
+  }
+  void to_json(json_writer& j) const
+  {
+    j.start_obj();
+    j.end_obj();
+  }
+};
+
+using protocol_ext_container_empty_l = protocol_ie_container_empty_l;
 
 } // namespace asn1
 

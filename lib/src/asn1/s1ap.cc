@@ -20,13 +20,6 @@ using namespace asn1::s1ap;
  *                                Struct Methods
  ******************************************************************************/
 
-// Presence ::= ENUMERATED
-const char* presence_opts::to_string() const
-{
-  static const char* options[] = {"optional", "conditional", "mandatory"};
-  return convert_enum_idx(options, 3, value, "presence_e");
-}
-
 // PrivateIE-ID ::= CHOICE
 void private_ie_id_c::set(types::options e)
 {
@@ -193,74 +186,6 @@ void activ_cells_list_item_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_str("cell-ID", cell_id.to_string());
-  j.end_obj();
-}
-
-uint32_t s1ap_protocol_ext_empty_o::idx_to_id(uint32_t idx)
-{
-  asn1::log_error("object set is empty\n");
-  return 0;
-}
-bool s1ap_protocol_ext_empty_o::is_id_valid(const uint32_t& id)
-{
-  asn1::log_error("object set is empty\n");
-  return false;
-}
-crit_e s1ap_protocol_ext_empty_o::get_crit(const uint32_t& id)
-{
-  return {};
-}
-s1ap_protocol_ext_empty_o::ext_c s1ap_protocol_ext_empty_o::get_ext(const uint32_t& id)
-{
-  return {};
-}
-presence_e s1ap_protocol_ext_empty_o::get_presence(const uint32_t& id)
-{
-  return {};
-}
-
-// Extension ::= OPEN TYPE
-void s1ap_protocol_ext_empty_o::ext_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.end_obj();
-}
-SRSASN_CODE s1ap_protocol_ext_empty_o::ext_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_protocol_ext_empty_o::ext_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-
-const char* s1ap_protocol_ext_empty_o::ext_c::types_opts::to_string() const
-{
-  static const char* options[] = {};
-  return convert_enum_idx(options, 0, value, "s1ap_protocol_ext_empty_o::ext_c::types");
-}
-
-SRSASN_CODE protocol_ext_container_empty_l::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE protocol_ext_container_empty_l::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-  if (nof_ies > 0) {
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void protocol_ext_container_empty_l::to_json(json_writer& j) const
-{
-  j.start_obj();
   j.end_obj();
 }
 

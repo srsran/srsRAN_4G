@@ -428,14 +428,6 @@ namespace s1ap {
  *                              Struct Definitions
  ******************************************************************************/
 
-// Presence ::= ENUMERATED
-struct presence_opts {
-  enum options { optional, conditional, mandatory, nulltype } value;
-
-  const char* to_string() const;
-};
-typedef enumerated<presence_opts> presence_e;
-
 // PrivateIE-ID ::= CHOICE
 struct private_ie_id_c {
   struct types_opts {
@@ -521,48 +513,15 @@ struct activ_cells_list_item_s {
 // ActivatedCellsList ::= SEQUENCE (SIZE (0..256)) OF ActivatedCellsList-Item
 using activ_cells_list_l = dyn_array<activ_cells_list_item_s>;
 
-struct s1ap_protocol_ext_empty_o {
-  // Extension ::= OPEN TYPE
-  struct ext_c {
-    struct types_opts {
-      enum options { nulltype } value;
-
-      const char* to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    types       type() const { return types::nulltype; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-  };
-
-  // members lookup methods
-  static uint32_t   idx_to_id(uint32_t idx);
-  static bool       is_id_valid(const uint32_t& id);
-  static crit_e     get_crit(const uint32_t& id);
-  static ext_c      get_ext(const uint32_t& id);
-  static presence_e get_presence(const uint32_t& id);
-};
 // GUMMEI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using gummei_ext_ies_o = s1ap_protocol_ext_empty_o;
+using gummei_ext_ies_o = protocol_ext_empty_o;
 
 // PLMNidentity ::= OCTET STRING
 using plm_nid = fixed_octstring<3, true>;
 
 // Additional-GUTI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using add_guti_ext_ies_o = s1ap_protocol_ext_empty_o;
+using add_guti_ext_ies_o = protocol_ext_empty_o;
 
-struct protocol_ext_container_empty_l {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 using gummei_ext_ies_container = protocol_ext_container_empty_l;
 
 // GUMMEI ::= SEQUENCE
@@ -599,7 +558,7 @@ struct add_guti_s {
 };
 
 // AllocationAndRetentionPriority-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using alloc_and_retention_prio_ext_ies_o = s1ap_protocol_ext_empty_o;
+using alloc_and_retention_prio_ext_ies_o = protocol_ext_empty_o;
 
 // Pre-emptionCapability ::= ENUMERATED
 struct pre_emption_cap_opts {
@@ -636,10 +595,10 @@ struct alloc_and_retention_prio_s {
 };
 
 // EUTRAN-CGI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using eutran_cgi_ext_ies_o = s1ap_protocol_ext_empty_o;
+using eutran_cgi_ext_ies_o = protocol_ext_empty_o;
 
 // TAI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tai_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tai_ext_ies_o = protocol_ext_empty_o;
 
 using eutran_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -676,16 +635,16 @@ struct tai_s {
 };
 
 // CellBasedMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cell_based_mdt_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cell_based_mdt_ext_ies_o = protocol_ext_empty_o;
 
 // CellIdListforMDT ::= SEQUENCE (SIZE (1..32)) OF EUTRAN-CGI
 using cell_id_listfor_mdt_l = dyn_array<eutran_cgi_s>;
 
 // TABasedMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ta_based_mdt_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ta_based_mdt_ext_ies_o = protocol_ext_empty_o;
 
 // TAIBasedMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tai_based_mdt_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tai_based_mdt_ext_ies_o = protocol_ext_empty_o;
 
 // TAIListforMDT ::= SEQUENCE (SIZE (1..8)) OF TAI
 using tai_listfor_mdt_l = dyn_array<tai_s>;
@@ -804,22 +763,22 @@ private:
 };
 
 // CellBasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cell_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cell_based_qmc_ext_ies_o = protocol_ext_empty_o;
 
 // CellIdListforQMC ::= SEQUENCE (SIZE (1..32)) OF EUTRAN-CGI
 using cell_id_listfor_qmc_l = dyn_array<eutran_cgi_s>;
 
 // PLMNAreaBasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using plmn_area_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
+using plmn_area_based_qmc_ext_ies_o = protocol_ext_empty_o;
 
 // PLMNListforQMC ::= SEQUENCE (SIZE (1..16)) OF OCTET STRING (SIZE (3))
 using plmn_listfor_qmc_l = bounded_array<fixed_octstring<3, true>, 16>;
 
 // TABasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ta_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ta_based_qmc_ext_ies_o = protocol_ext_empty_o;
 
 // TAIBasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tai_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tai_based_qmc_ext_ies_o = protocol_ext_empty_o;
 
 // TAIListforQMC ::= SEQUENCE (SIZE (1..8)) OF TAI
 using tai_listfor_qmc_l = dyn_array<tai_s>;
@@ -964,7 +923,7 @@ private:
 };
 
 // CellIdentifierAndCELevelForCECapableUEs-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cell_id_and_ce_level_for_ce_capable_ues_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cell_id_and_ce_level_for_ce_capable_ues_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_and_ce_level_for_ce_capable_ues_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -984,7 +943,7 @@ struct cell_id_and_ce_level_for_ce_capable_ues_s {
 };
 
 // InformationForCECapableUEs-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using info_for_ce_capable_ues_ext_ies_o = s1ap_protocol_ext_empty_o;
+using info_for_ce_capable_ues_ext_ies_o = protocol_ext_empty_o;
 
 using info_for_ce_capable_ues_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1003,7 +962,7 @@ struct assist_data_for_ce_capable_ues_s {
 };
 
 // RecommendedCellsForPagingItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using recommended_cells_for_paging_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using recommended_cells_for_paging_item_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_cells_for_paging_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1059,10 +1018,10 @@ struct recommended_cell_item_ies_o {
 using recommended_cell_list_l = bounded_array<protocol_ie_single_container_s<recommended_cell_item_ies_o>, 16>;
 
 // RecommendedCellsForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using recommended_cells_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
+using recommended_cells_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // AssistanceDataForRecommendedCells-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using assist_data_for_recommended_cells_ext_ies_o = s1ap_protocol_ext_empty_o;
+using assist_data_for_recommended_cells_ext_ies_o = protocol_ext_empty_o;
 
 // NextPagingAreaScope ::= ENUMERATED
 struct next_paging_area_scope_opts {
@@ -1073,7 +1032,7 @@ struct next_paging_area_scope_opts {
 typedef enumerated<next_paging_area_scope_opts, true> next_paging_area_scope_e;
 
 // PagingAttemptInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using paging_attempt_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using paging_attempt_info_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_cells_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1092,7 +1051,7 @@ struct recommended_cells_for_paging_s {
 };
 
 // AssistanceDataForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using assist_data_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
+using assist_data_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 using assist_data_for_recommended_cells_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1154,10 +1113,10 @@ struct assist_data_for_paging_s {
 using bplmns_l = bounded_array<fixed_octstring<3, true>, 6>;
 
 // COUNTValueExtended-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using count_value_extended_ext_ies_o = s1ap_protocol_ext_empty_o;
+using count_value_extended_ext_ies_o = protocol_ext_empty_o;
 
 // COUNTvaluePDCP-SNlength18-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using coun_tvalue_pdcp_snlen18_ext_ies_o = s1ap_protocol_ext_empty_o;
+using coun_tvalue_pdcp_snlen18_ext_ies_o = protocol_ext_empty_o;
 
 using count_value_extended_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1177,7 +1136,7 @@ struct count_value_extended_s {
 };
 
 // COUNTvalue-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using coun_tvalue_ext_ies_o = s1ap_protocol_ext_empty_o;
+using coun_tvalue_ext_ies_o = protocol_ext_empty_o;
 
 using coun_tvalue_pdcp_snlen18_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1367,7 +1326,7 @@ struct bluetooth_meas_cfg_opts {
 typedef enumerated<bluetooth_meas_cfg_opts, true> bluetooth_meas_cfg_e;
 
 // BluetoothMeasurementConfiguration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using bluetooth_meas_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using bluetooth_meas_cfg_ext_ies_o = protocol_ext_empty_o;
 
 using bluetooth_meas_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1398,10 +1357,10 @@ struct bluetooth_meas_cfg_s {
 };
 
 // CancelledCellinEAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cancelled_cellin_eai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cancelled_cellin_eai_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellinTAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cancelled_cellin_tai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cancelled_cellin_tai_item_ext_ies_o = protocol_ext_empty_o;
 
 using cancelled_cellin_eai_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1444,13 +1403,13 @@ using cancelled_cellin_eai_l = dyn_array<cancelled_cellin_eai_item_s>;
 using cancelled_cellin_tai_l = dyn_array<cancelled_cellin_tai_item_s>;
 
 // CellID-Cancelled-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cell_id_cancelled_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cell_id_cancelled_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaID-Cancelled-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using emergency_area_id_cancelled_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using emergency_area_id_cancelled_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAI-Cancelled-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tai_cancelled_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tai_cancelled_item_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_cancelled_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1574,10 +1533,10 @@ private:
 };
 
 // CompletedCellinEAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using completed_cellin_eai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using completed_cellin_eai_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellinTAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using completed_cellin_tai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using completed_cellin_tai_item_ext_ies_o = protocol_ext_empty_o;
 
 using completed_cellin_eai_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1612,7 +1571,7 @@ struct completed_cellin_tai_item_s {
 };
 
 // CellID-Broadcast-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cell_id_broadcast_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cell_id_broadcast_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellinEAI ::= SEQUENCE (SIZE (1..65535)) OF CompletedCellinEAI-Item
 using completed_cellin_eai_l = dyn_array<completed_cellin_eai_item_s>;
@@ -1621,10 +1580,10 @@ using completed_cellin_eai_l = dyn_array<completed_cellin_eai_item_s>;
 using completed_cellin_tai_l = dyn_array<completed_cellin_tai_item_s>;
 
 // EmergencyAreaID-Broadcast-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using emergency_area_id_broadcast_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using emergency_area_id_broadcast_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAI-Broadcast-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tai_broadcast_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tai_broadcast_item_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_broadcast_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1747,7 +1706,7 @@ private:
 };
 
 // CGI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cgi_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cgi_ext_ies_o = protocol_ext_empty_o;
 
 using cgi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1780,7 +1739,7 @@ struct cn_type_opts {
 typedef enumerated<cn_type_opts, true, 1> cn_type_e;
 
 // CNTypeRestrictions-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cn_type_restricts_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cn_type_restricts_item_ext_ies_o = protocol_ext_empty_o;
 
 using cn_type_restricts_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1803,7 +1762,7 @@ struct cn_type_restricts_item_s {
 using cn_type_restricts_l = dyn_array<cn_type_restricts_item_s>;
 
 // CSG-IdList-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using csg_id_list_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using csg_id_list_item_ext_ies_o = protocol_ext_empty_o;
 
 using csg_id_list_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1825,7 +1784,7 @@ struct csg_id_list_item_s {
 using csg_id_list_l = dyn_array<csg_id_list_item_s>;
 
 // CSGMembershipInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using csg_membership_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using csg_membership_info_ext_ies_o = protocol_ext_empty_o;
 
 // CSGMembershipStatus ::= ENUMERATED
 struct csg_membership_status_opts {
@@ -2150,7 +2109,7 @@ private:
 };
 
 // Cdma2000OneXSRVCCInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cdma2000_one_xsrvcc_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cdma2000_one_xsrvcc_info_ext_ies_o = protocol_ext_empty_o;
 
 using cdma2000_one_xsrvcc_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2464,7 +2423,7 @@ struct cell_size_opts {
 typedef enumerated<cell_size_opts, true> cell_size_e;
 
 // CellType-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using cell_type_ext_ies_o = s1ap_protocol_ext_empty_o;
+using cell_type_ext_ies_o = protocol_ext_empty_o;
 
 using cell_type_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2538,7 +2497,7 @@ struct supported_tas_item_s {
 };
 
 // ConnectedengNBItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using connectedeng_nb_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using connectedeng_nb_item_ext_ies_o = protocol_ext_empty_o;
 
 // SupportedTAs ::= SEQUENCE (SIZE (1..256)) OF SupportedTAs-Item
 using supported_tas_l = dyn_array<supported_tas_item_s>;
@@ -2616,10 +2575,10 @@ struct gbr_qos_info_ext_ies_o {
 };
 
 // ScheduledCommunicationTime-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using sched_communication_time_ext_ies_o = s1ap_protocol_ext_empty_o;
+using sched_communication_time_ext_ies_o = protocol_ext_empty_o;
 
 // DL-CP-SecurityInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using dl_cp_security_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using dl_cp_security_info_ext_ies_o = protocol_ext_empty_o;
 
 // E-RABQoSParameters-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct erab_qos_params_ext_ies_o {
@@ -2723,7 +2682,7 @@ struct sched_communication_time_s {
 };
 
 // Subscription-Based-UE-DifferentiationInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using subscription_based_ue_differentiation_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using subscription_based_ue_differentiation_info_ext_ies_o = protocol_ext_empty_o;
 
 // CE-ModeBRestricted ::= ENUMERATED
 struct ce_mode_brestricted_opts {
@@ -3064,13 +3023,13 @@ private:
 };
 
 // Global-GNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using global_gnb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using global_gnb_id_ext_ies_o = protocol_ext_empty_o;
 
 // GlobalENB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using global_enb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using global_enb_id_ext_ies_o = protocol_ext_empty_o;
 
 // GNB-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using gnb_ext_ies_o = s1ap_protocol_ext_empty_o;
+using gnb_ext_ies_o = protocol_ext_empty_o;
 
 using global_enb_id_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3107,7 +3066,7 @@ struct global_gnb_id_s {
 };
 
 // NG-eNB-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ng_enb_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ng_enb_ext_ies_o = protocol_ext_empty_o;
 
 using gnb_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3142,7 +3101,7 @@ struct ng_enb_s {
 };
 
 // ContextatSource-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using contextat_source_ext_ies_o = s1ap_protocol_ext_empty_o;
+using contextat_source_ext_ies_o = protocol_ext_empty_o;
 
 // Global-RAN-NODE-ID ::= CHOICE
 struct global_ran_node_id_c {
@@ -3212,7 +3171,7 @@ struct contextat_source_s {
 };
 
 // CriticalityDiagnostics-IE-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using crit_diagnostics_ie_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using crit_diagnostics_ie_item_ext_ies_o = protocol_ext_empty_o;
 
 // TypeOfError ::= ENUMERATED
 struct type_of_error_opts {
@@ -3241,7 +3200,7 @@ struct crit_diagnostics_ie_item_s {
 };
 
 // CriticalityDiagnostics-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using crit_diagnostics_ext_ies_o = s1ap_protocol_ext_empty_o;
+using crit_diagnostics_ext_ies_o = protocol_ext_empty_o;
 
 // CriticalityDiagnostics-IE-List ::= SEQUENCE (SIZE (1..256)) OF CriticalityDiagnostics-IE-Item
 using crit_diagnostics_ie_list_l = dyn_array<crit_diagnostics_ie_item_s>;
@@ -3353,13 +3312,13 @@ struct deactiv_trace_s {
 using forbidden_lacs_l = dyn_array<fixed_octstring<2, true> >;
 
 // ForbiddenLAs-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using forbidden_las_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using forbidden_las_item_ext_ies_o = protocol_ext_empty_o;
 
 // ForbiddenTACs ::= SEQUENCE (SIZE (1..4096)) OF OCTET STRING (SIZE (2))
 using forbidden_tacs_l = dyn_array<fixed_octstring<2, true> >;
 
 // ForbiddenTAs-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using forbidden_tas_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using forbidden_tas_item_ext_ies_o = protocol_ext_empty_o;
 
 using forbidden_las_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3496,7 +3455,7 @@ struct ho_restrict_list_ext_ies_o {
 };
 
 // NRUESecurityCapabilities-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using nrue_security_cap_ext_ies_o = s1ap_protocol_ext_empty_o;
+using nrue_security_cap_ext_ies_o = protocol_ext_empty_o;
 
 // DLNASPDUDeliveryAckRequest ::= ENUMERATED
 struct dlnaspdu_delivery_ack_request_opts {
@@ -3811,7 +3770,7 @@ struct dl_non_ueassociated_lp_pa_transport_s {
 };
 
 // E-RABDataForwardingItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_data_forwarding_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_data_forwarding_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_data_forwarding_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4073,7 +4032,7 @@ using erab_ie_container_pair_list_l =
     dyn_seq_of<dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>, 1, 256>;
 
 // E-RABAdmittedItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_admitted_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_admitted_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_admitted_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4134,7 +4093,7 @@ struct erab_admitted_item_ies_o {
 };
 
 // E-RABFailedToResumeItemResumeReq-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_failed_to_resume_item_resume_req_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_failed_to_resume_item_resume_req_ext_ies_o = protocol_ext_empty_o;
 
 using erab_failed_to_resume_item_resume_req_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4186,7 +4145,7 @@ struct erab_failed_to_resume_item_resume_req_ies_o {
 };
 
 // E-RABFailedToResumeItemResumeRes-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_failed_to_resume_item_resume_res_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_failed_to_resume_item_resume_res_ext_ies_o = protocol_ext_empty_o;
 
 using erab_failed_to_resume_item_resume_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4238,7 +4197,7 @@ struct erab_failed_to_resume_item_resume_res_ies_o {
 };
 
 // E-RABFailedToSetupItemHOReqAckExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_failed_to_setup_item_ho_req_ack_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_failed_to_setup_item_ho_req_ack_ext_ies_o = protocol_ext_empty_o;
 
 using erab_failed_to_setup_item_ho_req_ack_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4298,7 +4257,7 @@ struct dl_forwarding_opts {
 typedef enumerated<dl_forwarding_opts, true> dl_forwarding_e;
 
 // E-RABInformationListItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_info_list_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_info_list_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_info_list_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4354,7 +4313,7 @@ struct erab_info_list_ies_o {
 using erab_info_list_l = dyn_array<protocol_ie_single_container_s<erab_info_list_ies_o> >;
 
 // E-RABItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4409,7 +4368,7 @@ struct erab_item_ies_o {
 using erab_list_l = dyn_array<protocol_ie_single_container_s<erab_item_ies_o> >;
 
 // E-RABModifyItemBearerModConfExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_modify_item_bearer_mod_conf_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_modify_item_bearer_mod_conf_ext_ies_o = protocol_ext_empty_o;
 
 using erab_modify_item_bearer_mod_conf_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4566,7 +4525,7 @@ struct erab_mod_confirm_s {
 };
 
 // E-RABUsageReportItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erabusage_report_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erabusage_report_item_ext_ies_o = protocol_ext_empty_o;
 
 using erabusage_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4620,13 +4579,13 @@ struct erabusage_report_item_ies_o {
 };
 
 // NR-CGI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using nr_cgi_ext_ies_o = s1ap_protocol_ext_empty_o;
+using nr_cgi_ext_ies_o = protocol_ext_empty_o;
 
 // E-RABNotToBeModifiedItemBearerModInd-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_not_to_be_modified_item_bearer_mod_ind_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_not_to_be_modified_item_bearer_mod_ind_ext_ies_o = protocol_ext_empty_o;
 
 // E-RABToBeModifiedItemBearerModInd-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_to_be_modified_item_bearer_mod_ind_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_to_be_modified_item_bearer_mod_ind_ext_ies_o = protocol_ext_empty_o;
 
 // E-RABUsageReportList ::= SEQUENCE (SIZE (1..2)) OF ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam}
 using erabusage_report_list_l = bounded_array<protocol_ie_single_container_s<erabusage_report_item_ies_o>, 2>;
@@ -4649,10 +4608,10 @@ struct nr_cgi_s {
 };
 
 // PSCellInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ps_cell_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ps_cell_info_ext_ies_o = protocol_ext_empty_o;
 
 // SecondaryRATDataUsageReportItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using secondary_rat_data_usage_report_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using secondary_rat_data_usage_report_item_ext_ies_o = protocol_ext_empty_o;
 
 // SecondaryRATType ::= ENUMERATED
 struct secondary_rat_type_opts {
@@ -4832,7 +4791,7 @@ struct secondary_rat_data_usage_report_item_ies_o {
 };
 
 // Tunnel-Information-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tunnel_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tunnel_info_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct user_location_info_ext_ies_o {
@@ -5019,7 +4978,7 @@ struct erab_mod_ind_s {
 };
 
 // E-RABModifyItemBearerModResExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_modify_item_bearer_mod_res_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_modify_item_bearer_mod_res_ext_ies_o = protocol_ext_empty_o;
 
 using erab_modify_item_bearer_mod_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5621,7 +5580,7 @@ struct erab_release_ind_s {
 };
 
 // E-RABReleaseItemBearerRelCompExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_release_item_bearer_rel_comp_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_release_item_bearer_rel_comp_ext_ies_o = protocol_ext_empty_o;
 
 using erab_release_item_bearer_rel_comp_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5782,7 +5741,7 @@ struct erab_release_resp_s {
 };
 
 // E-RABSetupItemBearerSUResExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_setup_item_bearer_su_res_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_setup_item_bearer_su_res_ext_ies_o = protocol_ext_empty_o;
 
 using erab_setup_item_bearer_su_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5835,7 +5794,7 @@ struct erab_setup_item_bearer_su_res_ies_o {
 };
 
 // E-RABSetupItemCtxtSUResExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_setup_item_ctxt_su_res_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_setup_item_ctxt_su_res_ext_ies_o = protocol_ext_empty_o;
 
 using erab_setup_item_ctxt_su_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6428,7 +6387,7 @@ using erab_to_be_setup_list_ctxt_su_req_l =
     dyn_array<protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o> >;
 
 // E-RABToBeSwitchedDLItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_to_be_switched_dl_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_to_be_switched_dl_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_to_be_switched_dl_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6481,7 +6440,7 @@ struct erab_to_be_switched_dl_item_ies_o {
 };
 
 // E-RABToBeSwitchedULItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using erab_to_be_switched_ul_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using erab_to_be_switched_ul_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_to_be_switched_ul_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6553,7 +6512,7 @@ struct ehrpd_multi_sector_load_report_resp_item_s {
 };
 
 // ENBX2ExtTLA-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using enbx2_ext_tla_ext_ies_o = s1ap_protocol_ext_empty_o;
+using enbx2_ext_tla_ext_ies_o = protocol_ext_empty_o;
 
 // ENBX2GTPTLAs ::= SEQUENCE (SIZE (1..16)) OF BIT STRING (SIZE (1..160,...))
 using enbx2_gtptlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 16>;
@@ -6586,7 +6545,7 @@ struct muting_availability_ind_opts {
 typedef enumerated<muting_availability_ind_opts, true> muting_availability_ind_e;
 
 // RLFReportInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using rlf_report_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using rlf_report_info_ext_ies_o = protocol_ext_empty_o;
 
 // ENBIndirectX2TransportLayerAddresses ::= SEQUENCE (SIZE (1..2)) OF BIT STRING (SIZE (1..160,...))
 using enb_indirect_x2_transport_layer_addresses_l = bounded_array<bounded_bitstring<1, 160, true, true>, 2>;
@@ -6595,10 +6554,10 @@ using enb_indirect_x2_transport_layer_addresses_l = bounded_array<bounded_bitstr
 using enbx2_ext_tlas_l = dyn_array<enbx2_ext_tla_s>;
 
 // Global-en-gNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using global_en_g_nb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using global_en_g_nb_id_ext_ies_o = protocol_ext_empty_o;
 
 // MutingPatternInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using muting_pattern_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using muting_pattern_info_ext_ies_o = protocol_ext_empty_o;
 
 using rlf_report_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6659,16 +6618,16 @@ struct time_synchronisation_info_ext_ies_o {
 };
 
 // EN-DCSONeNBIdentification-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using en_dcso_nenb_identif_ext_ies_o = s1ap_protocol_ext_empty_o;
+using en_dcso_nenb_identif_ext_ies_o = protocol_ext_empty_o;
 
 // EN-DCSONengNBIdentification-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using en_dcso_neng_nb_identif_ext_ies_o = s1ap_protocol_ext_empty_o;
+using en_dcso_neng_nb_identif_ext_ies_o = protocol_ext_empty_o;
 
 // ENBX2TLAs ::= SEQUENCE (SIZE (1..2)) OF BIT STRING (SIZE (1..160,...))
 using enbx2_tlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 2>;
 
 // FiveGSTAI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using five_gstai_ext_ies_o = s1ap_protocol_ext_empty_o;
+using five_gstai_ext_ies_o = protocol_ext_empty_o;
 
 using global_en_g_nb_id_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6833,10 +6792,10 @@ struct en_dcso_neng_nb_identif_s {
 };
 
 // EN-DCTransferTypeReply-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using en_dc_transfer_type_reply_ext_ies_o = s1ap_protocol_ext_empty_o;
+using en_dc_transfer_type_reply_ext_ies_o = protocol_ext_empty_o;
 
 // EN-DCTransferTypeRequest-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using en_dc_transfer_type_request_ext_ies_o = s1ap_protocol_ext_empty_o;
+using en_dc_transfer_type_request_ext_ies_o = protocol_ext_empty_o;
 
 using five_gstai_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7016,7 +6975,7 @@ struct son_info_request_opts {
 typedef enumerated<son_info_request_opts, true, 3> son_info_request_e;
 
 // EN-DCSONConfigurationTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using en_dcson_cfg_transfer_ext_ies_o = s1ap_protocol_ext_empty_o;
+using en_dcson_cfg_transfer_ext_ies_o = protocol_ext_empty_o;
 
 // EN-DCSONTransferType ::= CHOICE
 struct en_dcson_transfer_type_c {
@@ -7149,7 +7108,7 @@ struct en_dcson_cfg_transfer_s {
 };
 
 // ENB-StatusTransfer-TransparentContainer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using enb_status_transfer_transparent_container_ext_ies_o = s1ap_protocol_ext_empty_o;
+using enb_status_transfer_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 using enb_status_transfer_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7168,10 +7127,10 @@ struct enb_status_transfer_transparent_container_s {
 };
 
 // S-TMSI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using s_tmsi_ext_ies_o = s1ap_protocol_ext_empty_o;
+using s_tmsi_ext_ies_o = protocol_ext_empty_o;
 
 // UL-CP-SecurityInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ul_cp_security_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ul_cp_security_info_ext_ies_o = protocol_ext_empty_o;
 
 using s_tmsi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7288,7 +7247,7 @@ struct enbcp_relocation_ind_s {
 };
 
 // ListeningSubframePattern-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using listening_sf_pattern_ext_ies_o = s1ap_protocol_ext_empty_o;
+using listening_sf_pattern_ext_ies_o = protocol_ext_empty_o;
 
 using listening_sf_pattern_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7318,10 +7277,10 @@ struct listening_sf_pattern_s {
 };
 
 // SynchronisationInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using synchronisation_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using synchronisation_info_ext_ies_o = protocol_ext_empty_o;
 
 // SourceeNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using sourceenb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using sourceenb_id_ext_ies_o = protocol_ext_empty_o;
 
 using synchronisation_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7345,7 +7304,7 @@ struct synchronisation_info_s {
 };
 
 // TargeteNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using targetenb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using targetenb_id_ext_ies_o = protocol_ext_empty_o;
 
 // SONConfigurationTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct son_cfg_transfer_ext_ies_o {
@@ -7776,10 +7735,10 @@ struct enb_cfg_upd_fail_s {
 };
 
 // LAI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using lai_ext_ies_o = s1ap_protocol_ext_empty_o;
+using lai_ext_ies_o = protocol_ext_empty_o;
 
 // GERAN-Cell-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using geran_cell_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using geran_cell_id_ext_ies_o = protocol_ext_empty_o;
 
 using lai_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7799,7 +7758,7 @@ struct lai_s {
 };
 
 // TargetRNC-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using target_rnc_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using target_rnc_id_ext_ies_o = protocol_ext_empty_o;
 
 using geran_cell_id_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7902,7 +7861,7 @@ private:
 };
 
 // RIMTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using rim_transfer_ext_ies_o = s1ap_protocol_ext_empty_o;
+using rim_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using rim_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -8207,7 +8166,7 @@ struct event_triggered_cell_load_report_resp_s {
 };
 
 // ExpectedUEActivityBehaviour-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using expected_ue_activity_behaviour_ext_ies_o = s1ap_protocol_ext_empty_o;
+using expected_ue_activity_behaviour_ext_ies_o = protocol_ext_empty_o;
 
 // SourceOfUEActivityBehaviourInformation ::= ENUMERATED
 struct source_of_ue_activity_behaviour_info_opts {
@@ -8249,7 +8208,7 @@ struct expected_ho_interv_opts {
 typedef enumerated<expected_ho_interv_opts, true> expected_ho_interv_e;
 
 // ExpectedUEBehaviour-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using expected_ue_behaviour_ext_ies_o = s1ap_protocol_ext_empty_o;
+using expected_ue_behaviour_ext_ies_o = protocol_ext_empty_o;
 
 using expected_ue_behaviour_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -8867,7 +8826,7 @@ struct ho_prep_fail_s {
 };
 
 // MBSFN-ResultToLogInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using mbsfn_result_to_log_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using mbsfn_result_to_log_info_ext_ies_o = protocol_ext_empty_o;
 
 using mbsfn_result_to_log_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -8896,7 +8855,7 @@ struct links_to_log_opts {
 typedef enumerated<links_to_log_opts, true> links_to_log_e;
 
 // LoggedMBSFNMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using logged_mbsfnmdt_ext_ies_o = s1ap_protocol_ext_empty_o;
+using logged_mbsfnmdt_ext_ies_o = protocol_ext_empty_o;
 
 // LoggingDuration ::= ENUMERATED
 struct logging_dur_opts {
@@ -8919,7 +8878,7 @@ struct logging_interv_opts {
 typedef enumerated<logging_interv_opts> logging_interv_e;
 
 // M3Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m3_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m3_cfg_ext_ies_o = protocol_ext_empty_o;
 
 // M3period ::= ENUMERATED
 struct m3period_opts {
@@ -8944,7 +8903,7 @@ struct m3period_opts {
 typedef enumerated<m3period_opts, true, 7> m3period_e;
 
 // M4Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m4_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m4_cfg_ext_ies_o = protocol_ext_empty_o;
 
 // M4period ::= ENUMERATED
 struct m4period_opts {
@@ -8957,7 +8916,7 @@ struct m4period_opts {
 typedef enumerated<m4period_opts, true> m4period_e;
 
 // M5Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m5_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m5_cfg_ext_ies_o = protocol_ext_empty_o;
 
 // M5period ::= ENUMERATED
 struct m5period_opts {
@@ -8970,7 +8929,7 @@ struct m5period_opts {
 typedef enumerated<m5period_opts, true> m5period_e;
 
 // M6Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m6_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m6_cfg_ext_ies_o = protocol_ext_empty_o;
 
 // M6delay-threshold ::= ENUMERATED
 struct m6delay_thres_opts {
@@ -8993,7 +8952,7 @@ struct m6report_interv_opts {
 typedef enumerated<m6report_interv_opts, true> m6report_interv_e;
 
 // M7Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m7_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m7_cfg_ext_ies_o = protocol_ext_empty_o;
 
 // MBSFN-ResultToLog ::= SEQUENCE (SIZE (1..8)) OF MBSFN-ResultToLogInfo
 using mbsfn_result_to_log_l = dyn_array<mbsfn_result_to_log_info_s>;
@@ -9010,7 +8969,7 @@ typedef enumerated<wlan_meas_cfg_opts, true> wlan_meas_cfg_e;
 using wlan_meas_cfg_name_list_l = bounded_array<bounded_octstring<1, 32, true>, 4>;
 
 // WLANMeasurementConfiguration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using wlan_meas_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
+using wlan_meas_cfg_ext_ies_o = protocol_ext_empty_o;
 
 using logged_mbsfnmdt_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -9032,10 +8991,10 @@ struct logged_mbsfnmdt_s {
 };
 
 // M1PeriodicReporting-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m1_periodic_report_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m1_periodic_report_ext_ies_o = protocol_ext_empty_o;
 
 // M1ThresholdEventA2-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using m1_thres_event_a2_ext_ies_o = s1ap_protocol_ext_empty_o;
+using m1_thres_event_a2_ext_ies_o = protocol_ext_empty_o;
 
 using m3_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -9817,7 +9776,7 @@ struct request_type_ext_ies_o {
 };
 
 // SecurityContext-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using security_context_ext_ies_o = s1ap_protocol_ext_empty_o;
+using security_context_ext_ies_o = protocol_ext_empty_o;
 
 // TraceActivation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct trace_activation_ext_ies_o {
@@ -9879,13 +9838,13 @@ struct trace_depth_opts {
 typedef enumerated<trace_depth_opts, true> trace_depth_e;
 
 // UE-Sidelink-Aggregate-MaximumBitrates-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ue_sidelink_aggregate_maximum_bitrates_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ue_sidelink_aggregate_maximum_bitrates_ext_ies_o = protocol_ext_empty_o;
 
 // UESecurityCapabilities-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ue_security_cap_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ue_security_cap_ext_ies_o = protocol_ext_empty_o;
 
 // V2XServicesAuthorized-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using v2xservices_authorized_ext_ies_o = s1ap_protocol_ext_empty_o;
+using v2xservices_authorized_ext_ies_o = protocol_ext_empty_o;
 
 // VehicleUE ::= ENUMERATED
 struct vehicle_ue_opts {
@@ -10410,7 +10369,7 @@ struct ho_request_ack_s {
 };
 
 // TargetNgRanNode-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using target_ng_ran_node_id_ext_ies_o = s1ap_protocol_ext_empty_o;
+using target_ng_ran_node_id_ext_ies_o = protocol_ext_empty_o;
 
 using target_ng_ran_node_id_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -10705,7 +10664,7 @@ private:
 };
 
 // RecommendedENBItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using recommended_enb_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using recommended_enb_item_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_enb_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -10759,10 +10718,10 @@ struct recommended_enb_item_ies_o {
 using recommended_enb_list_l = bounded_array<protocol_ie_single_container_s<recommended_enb_item_ies_o>, 16>;
 
 // RecommendedENBsForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using recommended_enbs_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
+using recommended_enbs_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // InformationOnRecommendedCellsAndENBsForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using info_on_recommended_cells_and_enbs_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
+using info_on_recommended_cells_and_enbs_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_enbs_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -11448,10 +11407,10 @@ struct init_ue_msg_s {
 };
 
 // UE-associatedLogicalS1-ConnectionItemExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ue_associated_lc_s1_conn_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ue_associated_lc_s1_conn_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIItemExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using tai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using tai_item_ext_ies_o = protocol_ext_empty_o;
 
 using ue_associated_lc_s1_conn_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -11473,7 +11432,7 @@ struct ue_associated_lc_s1_conn_item_s {
 };
 
 // ServedDCNsItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using served_dcns_item_ext_ies_o = s1ap_protocol_ext_empty_o;
+using served_dcns_item_ext_ies_o = protocol_ext_empty_o;
 
 // ServedGUMMEIsItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct served_gummeis_item_ext_ies_o {
@@ -11533,7 +11492,7 @@ struct tai_item_s {
 };
 
 // UE-S1AP-ID-pair-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using ue_s1ap_id_pair_ext_ies_o = s1ap_protocol_ext_empty_o;
+using ue_s1ap_id_pair_ext_ies_o = protocol_ext_empty_o;
 
 // UE-associatedLogicalS1-ConnectionItemRes ::= OBJECT SET OF S1AP-PROTOCOL-IES
 struct ue_associated_lc_s1_conn_item_res_o {
@@ -11596,7 +11555,7 @@ struct nb_io_t_paging_e_drx_cycle_opts {
 typedef enumerated<nb_io_t_paging_e_drx_cycle_opts, true> nb_io_t_paging_e_drx_cycle_e;
 
 // NB-IoT-Paging-eDRXInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using nb_io_t_paging_e_drx_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using nb_io_t_paging_e_drx_info_ext_ies_o = protocol_ext_empty_o;
 
 // NB-IoT-PagingTimeWindow ::= ENUMERATED
 struct nb_io_t_paging_time_win_opts {
@@ -11654,7 +11613,7 @@ struct paging_e_drx_cycle_opts {
 typedef enumerated<paging_e_drx_cycle_opts, true> paging_e_drx_cycle_e;
 
 // Paging-eDRXInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using paging_e_drx_info_ext_ies_o = s1ap_protocol_ext_empty_o;
+using paging_e_drx_info_ext_ies_o = protocol_ext_empty_o;
 
 // PagingTimeWindow ::= ENUMERATED
 struct paging_time_win_opts {
@@ -18125,7 +18084,7 @@ struct sourceenb_to_targetenb_transparent_container_s {
 };
 
 // TargeteNB-ToSourceeNB-TransparentContainer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-using targetenb_to_sourceenb_transparent_container_ext_ies_o = s1ap_protocol_ext_empty_o;
+using targetenb_to_sourceenb_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 using targetenb_to_sourceenb_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
