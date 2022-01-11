@@ -396,8 +396,12 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   // Apply SSB Config
   fill_phy_ssb_cfg(sib1.serving_cell_cfg_common, &phy_cfg.ssb);
 
-  if (not phy->set_config(phy_cfg)) {
-    logger.warning("Could not set phy config.");
+  // Init cell selection
+  phy_interface_rrc_nr::cell_select_args_t cell_cfg = {};
+  cell_cfg.carrier                                  = phy_cfg.carrier;
+  cell_cfg.ssb_cfg                                  = phy_cfg.get_ssb_cfg();
+  if (not phy->start_cell_select(cell_cfg)) {
+    logger.warning("Could not set start cell select.");
     return;
   }
 }
@@ -2014,6 +2018,13 @@ void rrc_nr::set_phy_config_complete(bool status)
   }
   phy_cfg_state = PHY_CFG_STATE_NONE;
 }
-void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result) {}
+
+void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  if (not phy->set_config(phy_cfg)) {
+    logger.warning("Could not set phy config.");
+    return;
+  }
+}
 
 } // namespace srsue
