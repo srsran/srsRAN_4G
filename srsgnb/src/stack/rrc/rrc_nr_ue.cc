@@ -946,7 +946,7 @@ void rrc_nr::ue::handle_rrc_reest_request(const asn1::rrc_nr::rrc_reest_request_
   // Recover security setup
   sec_ctx          = old_ue->sec_ctx;
   auto& pscell_cfg = parent->cfg.cell_list.at(UE_PSCELL_CC_IDX);
-  sec_ctx.regenerate_keys_handover(pscell_cfg.phy_cell.carrier.pci, pscell_cfg.dl_arfcn);
+  sec_ctx.regenerate_keys_handover(pscell_cfg.phy_cell.carrier.pci, pscell_cfg.ssb_absolute_freq_point);
 
   // For the reestablishment, only add SRB1 to new UE context
   next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
