@@ -1453,3 +1453,25 @@ uint32_t srsran_ssb_candidate_sf_offset(const srsran_ssb_t* q, uint32_t ssb_idx)
 
   return cp_sz_0 + l * (q->symbol_sz + q->cp_sz);
 }
+
+uint32_t srsran_ssb_cfg_to_str(const srsran_ssb_cfg_t* cfg, char* str, uint32_t str_len)
+{
+  uint32_t n = 0;
+
+  n = srsran_print_check(str,
+                         str_len,
+                         n,
+                         "srate=%.2f MHz; c-freq=%.3f MHz; ss-freq=%.3f MHz; scs=%s; pattern=%s; duplex=%s;",
+                         cfg->srate_hz / 1e6,
+                         cfg->center_freq_hz / 1e6,
+                         cfg->ssb_freq_hz / 1e6,
+                         srsran_subcarrier_spacing_to_str(cfg->scs),
+                         srsran_ssb_pattern_to_str(cfg->pattern),
+                         cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "fdd" : "tdd");
+
+  if (cfg->periodicity_ms > 0) {
+    n = srsran_print_check(str, str_len, n, " period=%d ms;", cfg->periodicity_ms);
+  }
+
+  return n;
+}
