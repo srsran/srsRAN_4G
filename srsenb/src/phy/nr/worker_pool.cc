@@ -138,6 +138,13 @@ int worker_pool::set_common_cfg(const phy_interface_rrc_nr::common_cfg_t& common
   ssb_cfg.scaling =
       srsran_convert_dB_to_amplitude(srsran_gnb_dl_get_maximum_signal_power_dBfs(common_cfg.carrier.nof_prb));
 
+  // Print SSB configuration, helps debugging gNb and UE
+  if (logger.info.enabled()) {
+    std::array<char, 512> ssb_cfg_str = {};
+    srsran_ssb_cfg_to_str(&ssb_cfg, ssb_cfg_str.data(), (uint32_t)ssb_cfg_str.size());
+    logger.info("Setting SSB configuration %s", ssb_cfg_str.data());
+  }
+
   // For each worker set configuration
   for (uint32_t i = 0; i < pool.get_nof_workers(); i++) {
     // Reserve worker from pool

@@ -62,6 +62,14 @@ bool slot_sync::init(const args_t& args, stack_interface_phy_nr* stack_, srsran:
 
 int slot_sync::set_sync_cfg(const srsran_ue_sync_nr_cfg_t& cfg)
 {
+  // Print the configuration, it is essential to make sure the UE synchronizes with the wight cell
+  if (logger.info.enabled()) {
+    std::array<char, 512> ssb_cfg_str = {};
+    srsran_ssb_cfg_to_str(&cfg.ssb, ssb_cfg_str.data(), (uint32_t)ssb_cfg_str.size());
+    logger.info("SYNC: Setting SSB configuration %s Tracking N_id=%d.", ssb_cfg_str.data(), cfg.N_id);
+  }
+
+  // Set the synchronization configuration
   if (srsran_ue_sync_nr_set_cfg(&ue_sync_nr, &cfg) < SRSRAN_SUCCESS) {
     logger.error("SYNC: failed to set cell configuration for N_id %d", cfg.N_id);
     return SRSRAN_ERROR;
