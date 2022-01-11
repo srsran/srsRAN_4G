@@ -270,8 +270,7 @@ void sync_sa::run_state_sfn_sync()
 
 void sync_sa::run_state_cell_camping()
 {
-  nr::sf_worker* nr_worker = nullptr;
-  nr_worker                = workers.wait_worker(tti);
+  nr::sf_worker* nr_worker = workers.wait_worker(tti);
   if (nr_worker == nullptr) {
     running = false;
     return;
@@ -286,7 +285,7 @@ void sync_sa::run_state_cell_camping()
   }
 
   srsran::phy_common_interface::worker_context_t context;
-  context.sf_idx     = slot_synchronizer.get_slot_cfg().idx;
+  context.sf_idx     = tti;
   context.worker_ptr = nr_worker;
   context.last       = true; // Set last if standalone
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);

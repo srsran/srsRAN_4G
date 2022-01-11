@@ -350,16 +350,6 @@ bool cc_worker::decode_pdsch_dl()
 
 bool cc_worker::measure_csi()
 {
-  srsran_ssb_search_res_t search_res = {};
-  if (srsran_ssb_search(&ssb, rx_buffer[0], cfg.carrier.pci, &search_res) < SRSRAN_SUCCESS) {
-    logger.error("Error measuring SSB");
-    return false;
-  }
-
-  if (search_res.pbch_msg.crc) {
-    logger.error("Error measuring SSB");
-  }
-
   // Measure SSB CSI
   if (srsran_ssb_send(&ssb, dl_slot_cfg.idx)) {
     srsran_csi_trs_measurements_t meas = {};
