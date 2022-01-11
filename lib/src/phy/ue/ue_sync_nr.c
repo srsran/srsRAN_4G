@@ -167,8 +167,11 @@ static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
   // Check if the SSB selected candidate index shall be received in this subframe
   bool is_ssb_opportunity = (q->sf_idx == srsran_ssb_candidate_sf_idx(&q->ssb, q->ssb_idx, half_frame > 0));
 
-  // TODO: it assumes SSB opportunity is every 10 ms, use real SSB SF candidate
-  is_ssb_opportunity = (q->sf_idx % SRSRAN_NOF_SF_X_FRAME == 0);
+  // Use SSB periodicity
+  if (q->ssb.cfg.periodicity_ms >= 10) {
+    // SFN match with the periodicity
+    is_ssb_opportunity = is_ssb_opportunity && (half_frame == 0) && (q->sfn % q->ssb.cfg.periodicity_ms / 10 == 0);
+  }
 
   if (is_ssb_opportunity) {
     // Measure PSS/SSS and decode PBCH
@@ -185,10 +188,10 @@ static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
 
     // Otherwise feedback measurements and apply
     srsran_combine_csi_trs_measurements(&q->feedback, &measurements, &q->feedback);
-  }
 
-  // Apply accumulated feedback
-  ue_sync_nr_apply_feedback(q);
+    // Apply accumulated feedback
+    ue_sync_nr_apply_feedback(q);
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -240,7 +243,7 @@ static int ue_sync_nr_recv(srsran_ue_sync_nr_t* q, cf_t** buffer, srsran_timesta
   // Compensate CFO
   for (uint32_t chan = 0; chan < q->nof_rx_channels; chan++) {
     if (buffer[chan] != 0 && !q->disable_cfo) {
-      srsran_vec_apply_cfo(buffer[chan], q->cfo_hz / q->srate_hz, buffer[chan], (int)q->sf_sz);
+      srsran_vec_apply_cfo(buffer[chan], -q->cfo_hz / q->srate_hz, buffer[chan], (int)q->sf_sz);
     }
   }
 
