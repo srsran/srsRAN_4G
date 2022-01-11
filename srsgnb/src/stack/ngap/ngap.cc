@@ -656,18 +656,8 @@ bool ngap::setup_ng()
   ng_setup_request_s& container     = pdu.init_msg().value.ng_setup_request();
   global_gnb_id_s&    global_gnb_id = container->global_ran_node_id.value.set_global_gnb_id();
   global_gnb_id.plmn_id             = tai.plmn_id;
-  // TODO: when ASN1 is fixed
-  // global_gnb_id.gnb_id.set_gnb_id().from_number(args.gnb_id);
 
-  // container->ran_node_name_present = true;
-  // container->ran_node_name.value.from_string(args.gnb_name);
-
-  asn1::bounded_bitstring<22, 32, false, true>& gnb_str = global_gnb_id.gnb_id.set_gnb_id();
-  gnb_str.resize(32);
-  uint8_t       buffer[4];
-  asn1::bit_ref bref(&buffer[0], sizeof(buffer));
-  bref.pack(args.gnb_id, 8);
-  memcpy(gnb_str.data(), &buffer[0], bref.distance_bytes());
+  global_gnb_id.gnb_id.set_gnb_id().from_number(args.gnb_id);
 
   container->ran_node_name_present = true;
   if (args.gnb_name.length() >= 150) {

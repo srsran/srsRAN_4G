@@ -359,7 +359,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   // Convert eNB Id
   std::size_t pos = {};
   try {
-    args->enb.enb_id = std::stoi(enb_id, &pos, 0);
+    args->enb.enb_id = std::stoul(enb_id, &pos, 0);
   } catch (...) {
     cout << "Error parsing enb.enb_id: " << enb_id << "." << endl;
     exit(1);
