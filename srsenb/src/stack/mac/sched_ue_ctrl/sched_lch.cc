@@ -254,18 +254,34 @@ uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,
                            uint32_t                          total_tbs,
                            uint32_t                          tbidx)
 {
-  uint32_t rem_tbs = total_tbs;
+  uint32_t  rem_tbs       = total_tbs;
+  auto&     pdu           = data->pdu[tbidx];
+  uint32_t& nof_pdu_elems = data->nof_pdu_elems[tbidx];
 
   // if we do not have enough bytes to fit MAC subheader, skip MAC SDU allocation
   // NOTE: we do not account RLC header because some LCIDs (e.g. CCCH) do not need them
+  uint32_t first_pdu_idx = nof_pdu_elems;
   while (rem_tbs > MAC_MAX_HEADER_SIZE and data->nof_pdu_elems[tbidx] < sched_interface::MAX_RLC_PDU_LIST) {
     uint32_t max_sdu_bytes   = rem_tbs - get_mac_subheader_size(rem_tbs - MAC_MIN_HEADER_SIZE);
-    uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
+    uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&pdu[nof_pdu_elems], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
       break;
     }
     rem_tbs -= get_mac_sdu_and_subheader_size(alloc_sdu_bytes); // account for MAC sub-header
-    data->nof_pdu_elems[tbidx]++;
+
+    // In case the same LCID got reallocated (e.g. retx and newtx), merge with previous SDU.
+    // Otherwise, increment number of scheduled SDUs
+    uint32_t prev_same_lcid_idx = first_pdu_idx;
+    for (; prev_same_lcid_idx < nof_pdu_elems; ++prev_same_lcid_idx) {
+      if (pdu[prev_same_lcid_idx].lcid == pdu[nof_pdu_elems].lcid) {
+        pdu[prev_same_lcid_idx].nbytes += pdu[nof_pdu_elems].nbytes;
+        pdu[nof_pdu_elems].nbytes = 0;
+        break;
+      }
+    }
+    if (prev_same_lcid_idx == nof_pdu_elems) {
+      nof_pdu_elems++;
+    }
   }
 
   return total_tbs - rem_tbs;
