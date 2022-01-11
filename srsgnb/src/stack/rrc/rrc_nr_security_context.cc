@@ -159,7 +159,6 @@ void nr_security_context::set_security_key(const asn1::fixed_bitstring<256, fals
   for (uint32_t i = 0; i < key.nof_octets(); ++i) {
     k_gnb[i] = key.data()[key.nof_octets() - 1 - i];
   }
-  logger.info(k_gnb, 32, "Key gNodeB (k_gnb)");
 
   generate_as_keys();
 }
@@ -187,13 +186,13 @@ void nr_security_context::generate_as_keys()
   logger.info(sec_cfg.k_nr_up_int.data(), 32, "NR UP Encryption Key (k_nr_up_enc)");
 }
 
-void nr_security_context::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn)
+void nr_security_context::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_arfcn)
 {
-  logger.info("Regenerating KgNB with PCI=0x%02x, DL-EARFCN=%d", new_pci, new_dl_earfcn);
-  logger.info(k_gnb, 32, "Old K_gNB (k_enb)");
+  logger.info("Regenerating KgNB with PCI=0x%02x, DL-ARFCN=%d", new_pci, new_dl_arfcn);
+  logger.info(k_gnb, 32, "Old K_gNB (k_gnb)");
   // Generate K_enb*
   uint8_t k_gnb_star[32];
-  srsran::security_generate_k_enb_star(k_gnb, new_pci, new_dl_earfcn, k_gnb_star);
+  srsran::security_generate_k_enb_star(k_gnb, new_pci, new_dl_arfcn, k_gnb_star);
 
   // K_enb becomes K_enb*
   memcpy(k_gnb, k_gnb_star, 32);
