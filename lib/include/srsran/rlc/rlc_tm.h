@@ -62,7 +62,6 @@ public:
 
 private:
   byte_buffer_pool*          pool = nullptr;
-  srslog::basic_logger&      logger;
   uint32_t                   lcid = 0;
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;

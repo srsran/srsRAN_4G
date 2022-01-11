@@ -154,14 +154,12 @@ protected:
   };
 
   // Common variables needed by parent class
-  srsue::rrc_interface_rlc*  rrc  = nullptr;
-  srsue::pdcp_interface_rlc* pdcp = nullptr;
-  srslog::basic_logger&      logger;
+  srsue::rrc_interface_rlc*  rrc    = nullptr;
+  srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srsran::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
   rlc_config_t               cfg    = {};
-  std::string                rb_name;
-  byte_buffer_pool*          pool = nullptr;
+  byte_buffer_pool*          pool   = nullptr;
   std::string                get_rb_name(srsue::rrc_interface_rlc* rrc, uint32_t lcid, bool is_mrb);
 
   // Rx and Tx objects

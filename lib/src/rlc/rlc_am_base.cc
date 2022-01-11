@@ -38,7 +38,7 @@ rlc_am::rlc_am(srsran_rat_t               rat,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
                srsran::timer_handler*     timers_) :
-  logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_)
+  rlc_common(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_)
 {
   if (rat == srsran_rat_t::lte) {
     rlc_am_lte_tx* tx = new rlc_am_lte_tx(this);
@@ -55,9 +55,10 @@ rlc_am::rlc_am(srsran_rat_t               rat,
     tx->set_rx(rx);
     rx->set_tx(tx);
   } else {
-    logger.error("Invalid RAT at entity initialization");
+    RlcError("Invalid RAT at entity initialization");
   }
 }
+
 bool rlc_am::configure(const rlc_config_t& cfg_)
 {
   // determine bearer name and configure rx/tx objects
@@ -67,37 +68,36 @@ bool rlc_am::configure(const rlc_config_t& cfg_)
   cfg = cfg_;
 
   if (not rx_base->configure(cfg)) {
-    logger.error("Error configuring bearer (RX)");
+    RlcError("Error configuring bearer (RX)");
     return false;
   }
 
   if (not tx_base->configure(cfg)) {
-    logger.error("Error configuring bearer (TX)");
+    RlcError("Error configuring bearer (TX)");
     return false;
   }
 
-  logger.info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-              "t_reordering=%d, t_status_prohibit=%d",
-              rb_name.c_str(),
-              cfg.am.t_poll_retx,
-              cfg.am.poll_pdu,
-              cfg.am.poll_byte,
-              cfg.am.max_retx_thresh,
-              cfg.am.t_reordering,
-              cfg.am.t_status_prohibit);
+  RlcInfo("configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+          "t_reordering=%d, t_status_prohibit=%d",
+          cfg.am.t_poll_retx,
+          cfg.am.poll_pdu,
+          cfg.am.poll_byte,
+          cfg.am.max_retx_thresh,
+          cfg.am.t_reordering,
+          cfg.am.t_status_prohibit);
   return true;
 }
 
 void rlc_am::stop()
 {
-  logger.debug("Stopped bearer %s", rb_name.c_str());
+  RlcDebug("Stopped bearer %s", rb_name.c_str());
   tx_base->stop();
   rx_base->stop();
 }
 
 void rlc_am::reestablish()
 {
-  logger.debug("Reestablished bearer %s", rb_name.c_str());
+  RlcDebug("Reestablished bearer %s", rb_name.c_str());
   tx_base->reestablish(); // calls stop and enables tx again
   rx_base->reestablish(); // calls only stop
 }

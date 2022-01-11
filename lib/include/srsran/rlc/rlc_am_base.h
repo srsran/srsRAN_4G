@@ -104,11 +104,9 @@ public:
 
 protected:
   // Common variables needed/provided by parent class
-  srslog::basic_logger&  logger;
   srsran::timer_handler* timers = nullptr;
   uint32_t               lcid   = 0;
   rlc_config_t           cfg    = {};
-  std::string            rb_name;
 
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 
