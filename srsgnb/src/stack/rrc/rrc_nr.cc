@@ -52,6 +52,20 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
 
   cfg = cfg_;
 
+  // log cell configs
+  for (uint32_t i = 0; i < cfg.cell_list.size(); ++i) {
+    const auto& cell = cfg.cell_list.at(i);
+    logger.info("Cell idx=%d, pci=%d, nr_dl_arfcn=%d, nr_ul_arfcn=%d, band=%d, duplex=%s, n_rb_dl=%d, ssb_arfcn=%d",
+                i,
+                cell.phy_cell.carrier.pci,
+                cell.dl_arfcn,
+                cell.ul_arfcn,
+                cell.band,
+                cell.duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "FDD" : "TDD",
+                cell.phy_cell.carrier.nof_prb,
+                cell.ssb_absolute_freq_point);
+  }
+
   // Generate cell config structs
   cell_ctxt.reset(new cell_ctxt_t{});
   if (cfg.is_standalone) {
