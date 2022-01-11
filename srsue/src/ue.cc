@@ -82,6 +82,7 @@ int ue::init(const all_args_t& args_)
   phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
   phy_args_nr.log                  = args.phy.log;
   phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
+  phy_args_nr.srate_hz             = args.rf.srate_hz;
 
   // init layers
   if (args.phy.nof_lte_carriers == 0) {
@@ -268,6 +269,12 @@ int ue::parse_args(const all_args_t& args_)
 
   // Consider Carrier Aggregation support if more than one
   args.stack.rrc.support_ca = (args.phy.nof_lte_carriers > 1);
+
+  // Make sure fix sampling rate is set for SA mode
+  if (args.phy.nof_lte_carriers == 0 and not std::isnormal(args.rf.srate_hz)) {
+    srsran::console("Error. NR Standalone PHY requires a fix RF sampling rate.\n");
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }

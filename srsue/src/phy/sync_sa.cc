@@ -281,7 +281,9 @@ void sync_sa::run_state_cell_camping()
   rf_buffer.set_nof_samples(slot_sz);
   rf_buffer.set(0, nr_worker->get_buffer(0, 0));
   if (not slot_synchronizer.run_camping(rf_buffer, last_rx_time)) {
-    logger.error("SYNC: detected out-of-sync... unhandled outcome...");
+    logger.error("SYNC: detected out-of-sync... skipping slot ...");
+    nr_worker->release();
+    return;
   }
 
   srsran::phy_common_interface::worker_context_t context;
