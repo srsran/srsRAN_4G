@@ -818,7 +818,7 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
   if (clock_src != "internal") {
     // blocks until clock source is locked
     int error = wait_sensor_locked(handler, sensor_name, true, 300, is_locked);
-    // Print Not lock error if the return was succesful, wait_sensor_locked prints the error before returning
+    // Print Not lock error if the return was successful, wait_sensor_locked prints the error before returning
     if (not is_locked and error == SRSRAN_SUCCESS) {
       ERROR(
           "Could not lock reference clock source. Sensor: %s=%s\n", sensor_name.c_str(), is_locked ? "true" : "false");

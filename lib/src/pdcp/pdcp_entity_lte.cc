@@ -164,7 +164,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // If the bearer is mapped to RLC AM, save TX_COUNT and a copy of the PDU.
   // This will be used for reestablishment, where unack'ed PDUs will be re-transmitted.
   // PDUs will be removed from the queue, either when the lower layers will report
-  // a succesfull transmission or when the discard timer expires.
+  // a successfull transmission or when the discard timer expires.
   // Status report will also use this queue, to know the First Missing SDU (FMS).
   if (!rlc->rb_is_um(lcid) and is_drb()) {
     if (not store_sdu(used_sn, sdu)) {

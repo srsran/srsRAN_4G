@@ -695,7 +695,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
           tb_count++;
         }
 
-        // Count transmission if at least one TB has succesfully added
+        // Count transmission if at least one TB has successfully added
         if (tb_count > 0) {
           n++;
         }

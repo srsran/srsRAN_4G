@@ -1921,7 +1921,7 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
     return false;
   }
 
-  // Reset the state if it is a successful or unsucessfull message
+  // Reset the state if it is a successful or unsuccessfull message
   if (tx_pdu.type() == s1ap_pdu_c::types_opts::successful_outcome ||
       tx_pdu.type() == s1ap_pdu_c::types_opts::unsuccessful_outcome) {
     if (rnti != SRSRAN_INVALID_RNTI) {

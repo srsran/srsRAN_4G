@@ -78,7 +78,7 @@ SRSRAN_API uint32_t srsran_pucch_proc_get_npucch(const srsran_cell_t*      cell,
  * @param uci_cfg uplink control information configuration
  * @param j selected channel
  * @param b received bits
- * @return Returns SRSRAN_SUCCESS if it can decode it succesfully, SRSRAN_ERROR code otherwise
+ * @return Returns SRSRAN_SUCCESS if it can decode it successfully, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_pucch_cs_get_ack(const srsran_pucch_cfg_t* cfg,
                                        const srsran_uci_cfg_t*   uci_cfg,
