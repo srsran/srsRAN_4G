@@ -230,7 +230,7 @@ int main(int argc, char** argv)
   // Start cell selection procedure
   srsue::rrc_interface_phy_nr::cell_select_result_t cs_res =
       tb.run_cell_select(args.phy_cfg.carrier, args.phy_cfg.get_ssb_cfg());
-  srsran_assert(cs_res.status == srsue::rrc_interface_phy_nr::cell_select_result_t::SUCCESFUL,
+  srsran_assert(cs_res.status == srsue::rrc_interface_phy_nr::cell_select_result_t::SUCCESSFUL,
                 "Failed to perform cell selection");
 
   // Run per TTI basis

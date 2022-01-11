@@ -50,9 +50,9 @@ public:
    */
   struct cell_select_result_t {
     enum {
-      ERROR = 0,   ///< The cell selection procedure failed due a to an invalid configuration
-      UNSUCCESFUL, ///< The cell selection failed to find and synchronise the SSB
-      SUCCESFUL,   ///< The cell selection was succesful, resulting in a camping state
+      ERROR = 0,    ///< The cell selection procedure failed due a to an invalid configuration
+      UNSUCCESSFUL, ///< The cell selection failed to find and synchronise the SSB
+      SUCCESSFUL,   ///< The cell selection was successful, resulting in a camping state
     } status;
   };
 

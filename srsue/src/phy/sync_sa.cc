@@ -187,10 +187,10 @@ rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_in
   // Determine if the procedure was successful if the current state is camping, otherwise it is unsuccessful
   if (phy_state.is_camping()) {
     logger.info("Cell Select: SFN synchronized. CAMPING...");
-    result.status = rrc_interface_phy_nr::cell_select_result_t::SUCCESFUL;
+    result.status = rrc_interface_phy_nr::cell_select_result_t::SUCCESSFUL;
   } else {
     logger.info("Cell Select: Could not synchronize SFN");
-    result.status = rrc_interface_phy_nr::cell_select_result_t::UNSUCCESFUL;
+    result.status = rrc_interface_phy_nr::cell_select_result_t::UNSUCCESSFUL;
   }
 
   rrc_proc_state = PROC_IDLE;
