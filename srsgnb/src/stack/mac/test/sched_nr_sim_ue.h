@@ -62,6 +62,7 @@ struct ue_nr_slot_events {
     bool                                      configured = false;
     srsran::bounded_vector<ack_t, MAX_GRANTS> dl_acks;
     srsran::bounded_vector<ack_t, MAX_GRANTS> ul_acks;
+    int                                       cqi = -1;
   };
   slot_point           slot_rx;
   std::vector<cc_data> cc_list;
@@ -106,7 +107,7 @@ private:
 };
 
 /// Implementation of features common to parallel and sequential sched nr testers
-class sched_nr_base_tester
+class sched_nr_base_test_bench
 {
 public:
   struct cc_result_t {
@@ -114,11 +115,11 @@ public:
     std::chrono::nanoseconds cc_latency_ns;
   };
 
-  sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,
-                       const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
-                       std::string                                        test_name,
-                       uint32_t                                           nof_workers = 1);
-  virtual ~sched_nr_base_tester();
+  sched_nr_base_test_bench(const sched_nr_interface::sched_args_t&            sched_args,
+                           const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
+                           std::string                                        test_name,
+                           uint32_t                                           nof_workers = 1);
+  virtual ~sched_nr_base_test_bench();
 
   void run_slot(slot_point slot_tx);
   void stop();
@@ -133,10 +134,21 @@ public:
 
   srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() { return cell_params; }
 
-  // configurable by simulator concrete implementation
+  /**
+   * @brief Specify external events that will be forwarded to the scheduler (CQI, ACKs, etc.) in the given slot
+   *        This method can be overridden by the derived class to simulate the environment of interest.
+   * @param[in] ue_ctxt simulated UE context object
+   * @param[in/out] pending_events events to be sent to the scheduler. The passed arg is initialized with the
+   *                               "default events", sufficient to ensure a stable connection without retxs.
+   *                               The derived class can decide to erase/modify/add new events
+   */
   virtual void set_external_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events) {}
 
-  // configurable by simulator concrete implementation
+  /**
+   * @brief Called every slot to process the scheduler output for a given CC.
+   * @param enb_ctxt simulated eNB context object
+   * @param cc_out scheduler result for a given CC
+   */
   virtual void process_slot_result(const sim_nr_enb_ctxt_t& enb_ctxt, srsran::const_span<cc_result_t> cc_out) {}
 
 protected:

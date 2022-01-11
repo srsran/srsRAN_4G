@@ -23,10 +23,10 @@ using dl_sched_t = sched_nr_interface::dl_sched_t;
 static const srsran::phy_cfg_nr_t default_phy_cfg =
     srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
 
-class sched_nr_tester : public sched_nr_base_tester
+class sched_nr_tester : public sched_nr_base_test_bench
 {
 public:
-  using sched_nr_base_tester::sched_nr_base_tester;
+  using sched_nr_base_test_bench::sched_nr_base_test_bench;
 
   void process_slot_result(const sim_nr_enb_ctxt_t& slot_ctxt, srsran::const_span<cc_result_t> cc_list) override
   {

@@ -154,10 +154,10 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
   }
 }
 
-sched_nr_base_tester::sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,
-                                           const std::vector<sched_nr_interface::cell_cfg_t>& cell_cfg_list,
-                                           std::string                                        test_name_,
-                                           uint32_t                                           nof_workers) :
+sched_nr_base_test_bench::sched_nr_base_test_bench(const sched_nr_interface::sched_args_t&            sched_args,
+                                                   const std::vector<sched_nr_interface::cell_cfg_t>& cell_cfg_list,
+                                                   std::string                                        test_name_,
+                                                   uint32_t                                           nof_workers) :
   logger(srslog::fetch_basic_logger("TEST")),
   mac_logger(srslog::fetch_basic_logger("MAC-NR")),
   sched_ptr(new sched_nr()),
@@ -183,12 +183,12 @@ sched_nr_base_tester::sched_nr_base_tester(const sched_nr_interface::sched_args_
   TESTASSERT(cell_params.size() > 0);
 }
 
-sched_nr_base_tester::~sched_nr_base_tester()
+sched_nr_base_test_bench::~sched_nr_base_test_bench()
 {
   stop();
 }
 
-void sched_nr_base_tester::stop()
+void sched_nr_base_test_bench::stop()
 {
   bool stopping = not stopped.exchange(true);
   if (stopping) {
@@ -202,10 +202,10 @@ void sched_nr_base_tester::stop()
   }
 }
 
-int sched_nr_base_tester::add_user(uint16_t                            rnti,
-                                   const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                                   slot_point                          tti_rx,
-                                   uint32_t                            preamble_idx)
+int sched_nr_base_test_bench::add_user(uint16_t                            rnti,
+                                       const sched_nr_interface::ue_cfg_t& ue_cfg_,
+                                       slot_point                          tti_rx,
+                                       uint32_t                            preamble_idx)
 {
   sem_wait(&slot_sem);
 
@@ -225,7 +225,7 @@ int sched_nr_base_tester::add_user(uint16_t                            rnti,
   return SRSRAN_SUCCESS;
 }
 
-void sched_nr_base_tester::user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_)
+void sched_nr_base_test_bench::user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_)
 {
   TESTASSERT(ue_db.count(rnti) > 0);
 
@@ -233,13 +233,13 @@ void sched_nr_base_tester::user_cfg(uint16_t rnti, const sched_nr_interface::ue_
   sched_ptr->ue_cfg(rnti, ue_cfg_);
 }
 
-void sched_nr_base_tester::add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes)
+void sched_nr_base_test_bench::add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes)
 {
   TESTASSERT(ue_db.count(rnti) > 0);
   dl_buffer_state_diff(rnti, lcid, pdu_size_bytes);
 }
 
-void sched_nr_base_tester::run_slot(slot_point slot_tx)
+void sched_nr_base_test_bench::run_slot(slot_point slot_tx)
 {
   srsran_assert(not stopped.load(std::memory_order_relaxed), "Running scheduler when it has already been stopped");
   // Block concurrent or out-of-order calls to the scheduler
@@ -281,7 +281,7 @@ void sched_nr_base_tester::run_slot(slot_point slot_tx)
   }
 }
 
-void sched_nr_base_tester::generate_cc_result(uint32_t cc)
+void sched_nr_base_test_bench::generate_cc_result(uint32_t cc)
 {
   // Run scheduler
   cc_results[cc].res.slot      = current_slot_tx;
@@ -303,7 +303,7 @@ void sched_nr_base_tester::generate_cc_result(uint32_t cc)
   sem_post(&slot_sem);
 }
 
-void sched_nr_base_tester::process_results()
+void sched_nr_base_test_bench::process_results()
 {
   // Derived class-defined tests
   process_slot_result(slot_ctxt, cc_results);
@@ -329,7 +329,7 @@ void sched_nr_base_tester::process_results()
   }
 }
 
-void sched_nr_base_tester::dl_buffer_state_diff(uint16_t rnti, uint32_t lcid, int newtx)
+void sched_nr_base_test_bench::dl_buffer_state_diff(uint16_t rnti, uint32_t lcid, int newtx)
 {
   auto& lch       = gnb_ue_db[rnti].logical_channels[lcid];
   lch.rlc_unacked = std::max(0, (int)lch.rlc_unacked + newtx);
@@ -341,7 +341,7 @@ void sched_nr_base_tester::dl_buffer_state_diff(uint16_t rnti, uint32_t lcid, in
                lch.rlc_newtx);
 }
 
-void sched_nr_base_tester::dl_buffer_state_diff(uint16_t rnti, int diff_bs)
+void sched_nr_base_test_bench::dl_buffer_state_diff(uint16_t rnti, int diff_bs)
 {
   if (diff_bs == 0) {
     return;
@@ -368,7 +368,7 @@ void sched_nr_base_tester::dl_buffer_state_diff(uint16_t rnti, int diff_bs)
   }
 }
 
-void sched_nr_base_tester::update_sched_buffer_state(uint16_t rnti)
+void sched_nr_base_test_bench::update_sched_buffer_state(uint16_t rnti)
 {
   auto& u = ue_db.at(rnti);
   for (auto& lch : gnb_ue_db[rnti].logical_channels) {
@@ -394,7 +394,7 @@ void sched_nr_base_tester::update_sched_buffer_state(uint16_t rnti)
   }
 }
 
-void sched_nr_base_tester::update_sched_buffer_state(const sched_nr_cc_result_view& cc_out)
+void sched_nr_base_test_bench::update_sched_buffer_state(const sched_nr_cc_result_view& cc_out)
 {
   for (auto& dl : cc_out.dl->phy.pdcch_dl) {
     if (dl.dci.ctx.rnti_type == srsran_rnti_type_c or dl.dci.ctx.rnti_type == srsran_rnti_type_tc) {
@@ -403,7 +403,8 @@ void sched_nr_base_tester::update_sched_buffer_state(const sched_nr_cc_result_vi
   }
 }
 
-int sched_nr_base_tester::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events)
+int sched_nr_base_test_bench::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt,
+                                                      ue_nr_slot_events&      pending_events)
 {
   pending_events.cc_list.clear();
   pending_events.cc_list.resize(cell_params.size());
@@ -427,6 +428,14 @@ int sched_nr_base_tester::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctx
         cc_feedback.ul_acks.emplace_back(ue_nr_slot_events::ack_t{pid, true});
       }
 
+      // Set default CQI
+      if (ue_ctxt.ue_cfg.phy_cfg.csi.reports[0].type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
+        auto& p = ue_ctxt.ue_cfg.phy_cfg.csi.reports[0].periodic;
+        if (p.offset == pending_events.slot_rx.to_uint() % p.period) {
+          cc_feedback.cqi = 15;
+        }
+      }
+
       // TODO: other CSI
     }
   }
@@ -434,7 +443,7 @@ int sched_nr_base_tester::set_default_slot_events(const sim_nr_ue_ctxt_t& ue_ctx
   return SRSRAN_SUCCESS;
 }
 
-int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events)
+int sched_nr_base_test_bench::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_nr_slot_events& events)
 {
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < events.cc_list.size(); ++enb_cc_idx) {
     const auto& cc_feedback = events.cc_list[enb_cc_idx];
@@ -468,8 +477,11 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
       auto& h = ue_ctxt.cc_list[enb_cc_idx].ul_harqs[ack.pid];
 
       if (ack.ack) {
-        logger.info(
-            "UL ACK rnti=0x%x, slot_ul_tx=%u, cc=%d pid=%d", ue_ctxt.rnti, h.last_slot_tx.to_uint(), enb_cc_idx, h.pid);
+        logger.info("EVENT: UL ACK rnti=0x%x, slot_ul_tx=%u, cc=%d pid=%d",
+                    ue_ctxt.rnti,
+                    h.last_slot_tx.to_uint(),
+                    enb_cc_idx,
+                    h.pid);
       }
 
       // update scheduler
@@ -480,12 +492,17 @@ int sched_nr_base_tester::apply_slot_events(sim_nr_ue_ctxt_t& ue_ctxt, const ue_
         dl_buffer_state_diff(ue_ctxt.rnti, 0, 150); // Schedule RRC setup
       }
     }
+
+    if (cc_feedback.cqi >= 0) {
+      logger.info("EVENT: DL CQI rnti=0x%x, cqi=%d", ue_ctxt.rnti, cc_feedback.cqi);
+      sched_ptr->dl_cqi_info(ue_ctxt.rnti, enb_cc_idx, cc_feedback.cqi);
+    }
   }
 
   return SRSRAN_SUCCESS;
 }
 
-sim_nr_enb_ctxt_t sched_nr_base_tester::get_enb_ctxt() const
+sim_nr_enb_ctxt_t sched_nr_base_test_bench::get_enb_ctxt() const
 {
   sim_nr_enb_ctxt_t ctxt;
   ctxt.cell_params = cell_params;
