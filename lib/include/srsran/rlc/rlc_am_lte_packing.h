@@ -62,8 +62,8 @@ bool     rlc_am_is_unaligned(const uint8_t fi);
 bool     rlc_am_not_start_aligned(const uint8_t fi);
 std::string
 rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_pdu_info<rlc_amd_pdu_header_t> >& info_queue);
-const char* rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
-const char* rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
+std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
+std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
 } // namespace srsran
 
 #endif // SRSRAN_RLC_AM_LTE_PACKING_H

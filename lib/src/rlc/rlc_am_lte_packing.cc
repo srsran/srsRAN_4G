@@ -312,7 +312,7 @@ bool rlc_am_not_start_aligned(const uint8_t fi)
 /**
  * Logging helpers
  */
-const char* rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header)
+std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header)
 {
   fmt::memory_buffer buffer;
   fmt::format_to(buffer,
@@ -334,10 +334,10 @@ const char* rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header)
   }
   fmt::format_to(buffer, "]");
 
-  return to_c_str(buffer);
+  return fmt::to_string(buffer);
 }
 
-const char* rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
+std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
 {
   fmt::memory_buffer buffer;
   fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
@@ -352,7 +352,7 @@ const char* rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
       }
     }
   }
-  return to_c_str(buffer);
+  return fmt::to_string(buffer);
 }
 
 } // namespace srsran

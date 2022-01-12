@@ -420,7 +420,7 @@ bool rlc_am_lte_tx::poll_required()
 
   /* According to 5.2.2.1 in 36.322 v13.3.0 a poll should be requested if
    * the entire AM window is unacknowledged, i.e. no new PDU can be transmitted.
-   * However, it seems more appropiate to request more often if polling
+   * However, it seems more appropriate to request more often if polling
    * is disabled otherwise, e.g. every N PDUs.
    */
   if (cfg.poll_pdu == 0 && cfg.poll_byte == 0 && vt_s % rlc_am::poll_periodicity == 0) {
