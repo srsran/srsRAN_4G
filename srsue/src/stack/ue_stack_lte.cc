@@ -510,9 +510,13 @@ void ue_stack_lte::set_phy_config_complete(bool status)
   cfg_task_queue.push([this, status]() { rrc_nr.set_phy_config_complete(status); });
 }
 
+void ue_stack_lte::cell_search_found_cell(const cell_search_result_t& result)
+{
+  cfg_task_queue.push([this, result]() { rrc_nr.cell_search_found_cell(result); });
+}
 void ue_stack_lte::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
 {
-  rrc_nr.cell_select_completed(result);
+  cfg_task_queue.push([this, result]() { rrc_nr.cell_select_completed(result); });
 }
 
 } // namespace srsue

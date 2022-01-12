@@ -32,7 +32,8 @@ public:
   srsran::proc_outcome_t step();
   cell_search_result_t   get_result() const { return cell_search_ret; }
   static const char*     name() { return "Cell Selection"; }
-  srsran::proc_outcome_t react(const bool& event);
+  srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_search_result_t& result);
+  srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_select_result_t& result);
   void                   then(const srsran::proc_result_t<cell_search_result_t>& proc_result) const;
 
 private:

@@ -202,6 +202,11 @@ void ue_stack_nr::set_phy_config_complete(bool status)
   sync_task_queue.push([this, status]() { rrc->set_phy_config_complete(status); });
 }
 
+void ue_stack_nr::cell_search_found_cell(const cell_search_result_t& result)
+{
+  sync_task_queue.push([this, result]() { rrc->cell_search_found_cell(result); });
+}
+
 void ue_stack_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
 {
   sync_task_queue.push([this, result]() { rrc->cell_select_completed(result); });

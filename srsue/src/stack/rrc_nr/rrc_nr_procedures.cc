@@ -367,18 +367,21 @@ proc_outcome_t rrc_nr::cell_selection_proc::init()
   init_serv_cell = meas_cells.serving_cell().phy_cell;
 
   // TODO: add full cell selection
-  phy_interface_rrc_nr::cell_select_args_t cell_cfg = {};
-  cell_cfg.carrier                                  = rrc_handle.phy_cfg.carrier;
-  cell_cfg.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
-  rrc_handle.phy->start_cell_select(cell_cfg);
-
-  // Skip cell selection if serving cell is suitable and there are no stronger neighbours in same earfcn
-  if (is_serv_cell_suitable()) {
-    Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.");
-    return set_proc_complete();
+  // Start cell search
+  phy_interface_rrc_nr::cell_search_args_t cs_args = {};
+  cs_args.center_freq_hz                           = rrc_handle.phy_cfg.carrier.dl_center_frequency_hz;
+  cs_args.ssb_freq_hz                              = rrc_handle.phy_cfg.carrier.ssb_center_freq_hz;
+  cs_args.ssb_scs                                  = rrc_handle.phy_cfg.ssb.scs;
+  cs_args.ssb_pattern                              = rrc_handle.phy_cfg.ssb.pattern;
+  cs_args.duplex_mode                              = rrc_handle.phy_cfg.duplex.mode;
+  if (not rrc_handle.phy->start_cell_search(cs_args)) {
+    Error("Could not set start cell search.");
+    return proc_outcome_t::error;
   }
 
-  return set_proc_complete();
+  state = search_state_t::cell_search;
+
+  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc_nr::cell_selection_proc::step()
@@ -398,6 +401,61 @@ proc_outcome_t rrc_nr::cell_selection_proc::step()
       return proc_outcome_t::yield;
   }
   return proc_outcome_t::error;
+}
+
+proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_search_result_t& result)
+{
+  if (state != search_state_t::cell_search) {
+    Error("Cell search result received in wrong state");
+    return proc_outcome_t::error;
+  }
+
+  // Print result only if the cell is found
+  if (result.cell_found) {
+    // Convert Cell measurement in Text
+    std::array<char, 512> csi_info_str = {};
+    srsran_csi_meas_info_short(&result.measurements, csi_info_str.data(), (uint32_t)csi_info_str.size());
+
+    // Unpack MIB and convert to text
+    srsran_mib_nr_t       mib          = {};
+    std::array<char, 512> mib_info_str = {};
+    if (srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib) == SRSASN_SUCCESS) {
+      // Convert to text
+      srsran_pbch_msg_nr_mib_info(&mib, mib_info_str.data(), (uint32_t)mib_info_str.size());
+    } else {
+      // It could be the PBCH does not carry MIB
+      strcpy(mib_info_str.data(), "No MIB found");
+    }
+
+    // Logs the PCI, cell measurements and decoded MIB
+    Info("Cell search found PCI=%d %s %s", result.pci, csi_info_str.data(), mib_info_str.data());
+  } else {
+    Info("Cell search did not find any cell");
+  }
+
+  // Transition to cell selection ignoring the cell search result
+  state = search_state_t::cell_selection;
+
+  phy_interface_rrc_nr::cell_select_args_t cs_args = {};
+  cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
+  cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
+
+  if (not rrc_handle.phy->start_cell_select(cs_args)) {
+    Error("Could not set start cell search.");
+    return proc_outcome_t::error;
+  }
+
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  if (state != search_state_t::cell_selection) {
+    Error("Cell selection result received in wrong state");
+    return proc_outcome_t::error;
+  }
+
+  return set_proc_complete();
 }
 
 void rrc_nr::cell_selection_proc::then(const srsran::proc_result_t<cell_search_result_t>& proc_result) const

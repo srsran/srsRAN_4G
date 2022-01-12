@@ -87,7 +87,6 @@ public:
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
-  void cell_search_found_cell(const cell_search_result_t& result) final{};
 
   // RLC interface
   void max_retx_attempted() final;
@@ -122,8 +121,9 @@ public:
   void rrc_release();
   bool configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
+
   // STACK interface
-  void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
+  void cell_search_found_cell(const rrc_interface_phy_nr::cell_search_result_t& result) final;
   void cell_select_completed(const cell_select_result_t& result) final;
   void set_phy_config_complete(bool status) final;
 
