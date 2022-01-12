@@ -122,11 +122,9 @@ cell_search::ret_t sync_sa::cell_search_run(const cell_search::cfg_t& cfg)
 
   rrc_proc_state = PROC_SEARCH_RUNNING;
 
-  // Configure searcher without locking state for avoiding stalling the Rx stream
-  logger.info("Cell search: starting in center frequency %.2f and SSB frequency %.2f with subcarrier spacing of %s",
-              cfg.center_freq_hz / 1e6,
-              cfg.ssb_freq_hz / 1e6,
-              srsran_subcarrier_spacing_to_str(cfg.ssb_scs));
+  // tune radio
+  logger.info("Tuning Rx channel %d to %.2f MHz", 0, cfg.center_freq_hz / 1e6);
+  radio->set_rx_freq(0, cfg.center_freq_hz);
 
   if (not searcher.start(cfg)) {
     logger.error("Sync: failed to start cell search");
