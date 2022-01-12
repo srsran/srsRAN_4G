@@ -157,7 +157,6 @@ int rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg
 int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   // RLC for DRB1 (with fixed LCID)
-  cell_group_cfg_pack.rlc_bearer_to_add_mod_list_present = true;
   cell_group_cfg_pack.rlc_bearer_to_add_mod_list.resize(1);
   auto& rlc_bearer                       = cell_group_cfg_pack.rlc_bearer_to_add_mod_list[0];
   rlc_bearer.lc_ch_id                    = drb1_lcid;
@@ -207,10 +206,9 @@ int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s
 int rrc_nr::ue::pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   // mac-CellGroup-Config for BSR and SR
-  cell_group_cfg_pack.mac_cell_group_cfg_present                         = true;
-  auto& mac_cell_group                                                   = cell_group_cfg_pack.mac_cell_group_cfg;
-  mac_cell_group.sched_request_cfg_present                               = true;
-  mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list_present = true;
+  cell_group_cfg_pack.mac_cell_group_cfg_present = true;
+  auto& mac_cell_group                           = cell_group_cfg_pack.mac_cell_group_cfg;
+  mac_cell_group.sched_request_cfg_present       = true;
   mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list.resize(1);
   mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list[0].sched_request_id = 0;
   mac_cell_group.sched_request_cfg.sched_request_to_add_mod_list[0].sr_trans_max =
@@ -220,8 +218,7 @@ int rrc_nr::ue::pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s
   mac_cell_group.bsr_cfg.retx_bsr_timer     = asn1::rrc_nr::bsr_cfg_s::retx_bsr_timer_opts::sf320;
 
   // Skip TAG and PHR config
-  mac_cell_group.tag_cfg_present                     = false;
-  mac_cell_group.tag_cfg.tag_to_add_mod_list_present = true;
+  mac_cell_group.tag_cfg_present = false;
   mac_cell_group.tag_cfg.tag_to_add_mod_list.resize(1);
   mac_cell_group.tag_cfg.tag_to_add_mod_list[0].tag_id           = 0;
   mac_cell_group.tag_cfg.tag_to_add_mod_list[0].time_align_timer = time_align_timer_opts::infinity;
@@ -253,7 +250,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_init_dl_bwp_radio_link_monitoring(
 {
   cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.radio_link_monitoring_cfg_present = true;
   auto& radio_link_monitoring = cell_group_cfg_pack.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.radio_link_monitoring_cfg;
-  radio_link_monitoring.set_setup().fail_detection_res_to_add_mod_list_present = true;
 
   // add resource to detect RLF
   radio_link_monitoring.set_setup().fail_detection_res_to_add_mod_list.resize(1);
@@ -278,7 +274,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pucch_cfg(asn1::rrc_nr::
   pucch_cfg.setup().format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
 
   // SR resources
-  pucch_cfg.setup().sched_request_res_to_add_mod_list_present = true;
   pucch_cfg.setup().sched_request_res_to_add_mod_list.resize(1);
   auto& sr_res1                             = pucch_cfg.setup().sched_request_res_to_add_mod_list[0];
   sr_res1.sched_request_res_id              = 1;
@@ -289,8 +284,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pucch_cfg(asn1::rrc_nr::
   sr_res1.res                               = 2; // PUCCH resource for SR
 
   // DL data
-  pucch_cfg.setup().dl_data_to_ul_ack_present = true;
-
   if (parent->cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
     pucch_cfg.setup().dl_data_to_ul_ack.resize(1);
     pucch_cfg.setup().dl_data_to_ul_ack[0] = 4;
@@ -331,7 +324,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pucch_cfg(asn1::rrc_nr::
   resource_sr.time_domain_occ            = 0;
 
   // Make 3 possible resources
-  pucch_cfg.setup().res_to_add_mod_list_present = true;
   pucch_cfg.setup().res_to_add_mod_list.resize(3);
   if (not srsran::make_phy_res_config(resource_small, pucch_cfg.setup().res_to_add_mod_list[0], 0)) {
     logger.warning("Failed to create 1-2 bit NR PUCCH resource");
@@ -344,7 +336,6 @@ int rrc_nr::ue::pack_sp_cell_cfg_ded_ul_cfg_init_ul_bwp_pucch_cfg(asn1::rrc_nr::
   }
 
   // Make 2 PUCCH resource sets
-  pucch_cfg.setup().res_set_to_add_mod_list_present = true;
   pucch_cfg.setup().res_set_to_add_mod_list.resize(2);
 
   // Make PUCCH resource set for 1-2 bit
@@ -481,7 +472,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_dl_cfg_init_dl_bwp_pdsch
 
   auto& pdsch_cfg_common = cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp
                                .pdsch_cfg_common.setup();
-  pdsch_cfg_common.pdsch_time_domain_alloc_list_present = true;
   pdsch_cfg_common.pdsch_time_domain_alloc_list.resize(1);
   pdsch_cfg_common.pdsch_time_domain_alloc_list[0].map_type = pdsch_time_domain_res_alloc_s::map_type_opts::type_a;
   pdsch_cfg_common.pdsch_time_domain_alloc_list[0].start_symbol_and_len = 40;
@@ -524,7 +514,6 @@ int rrc_nr::ue::pack_recfg_with_sync_sp_cell_cfg_common_ul_cfg_common_init_ul_bw
   auto& pusch_cfg_common_pack =
       cell_group_cfg_pack.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.pusch_cfg_common;
   pusch_cfg_common_pack.set_setup();
-  pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list_present = true;
   pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list.resize(2);
   pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list[0].k2_present = true;
   pusch_cfg_common_pack.setup().pusch_time_domain_alloc_list[0].k2         = 4;
@@ -652,8 +641,6 @@ int rrc_nr::ue::pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfi
   rrc_recfg_ies_s& recfg_ies  = reconfig.crit_exts.set_rrc_recfg();
 
   // add secondary cell group config
-  recfg_ies.secondary_cell_group_present = true;
-
   if (pack_secondary_cell_group_cfg(recfg_ies.secondary_cell_group) == SRSRAN_ERROR) {
     logger.error("Failed to pack secondary cell group");
     return SRSRAN_ERROR;
@@ -780,7 +767,6 @@ int rrc_nr::ue::add_drb()
   // RLC for DRB1 (with fixed LCID) inside cell_group_cfg
   auto& cell_group_cfg_pack = cell_group_cfg;
 
-  cell_group_cfg_pack.rlc_bearer_to_add_mod_list_present = true;
   cell_group_cfg_pack.rlc_bearer_to_add_mod_list.resize(1);
   auto& rlc_bearer                       = cell_group_cfg_pack.rlc_bearer_to_add_mod_list[0];
   rlc_bearer.lc_ch_id                    = drb1_lcid;
@@ -830,8 +816,7 @@ int rrc_nr::ue::add_drb()
   // TODO: add LC config to MAC
 
   // PDCP config goes into radio_bearer_cfg
-  auto& radio_bearer_cfg_pack                       = radio_bearer_cfg;
-  radio_bearer_cfg_pack.drb_to_add_mod_list_present = true;
+  auto& radio_bearer_cfg_pack = radio_bearer_cfg;
   radio_bearer_cfg_pack.drb_to_add_mod_list.resize(1);
 
   // configure fixed DRB1
@@ -923,7 +908,6 @@ void rrc_nr::ue::send_rrc_setup()
 
   // Add SRB1 to UE context
   // Note: See 5.3.5.6.3 - SRB addition/modification
-  next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
   next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
   srb_to_add_mod_s& srb1 = next_radio_bearer_cfg.srb_to_add_mod_list[0];
   srb1.srb_id            = 1;
@@ -1051,8 +1035,6 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   // Set ies.non_crit_ext_present (a few lines below) only if
   // master_cell_group_present == true or ies.non_crit_ext.ded_nas_msg_list_present == true
   if (ies.radio_bearer_cfg_present) {
-    ies.non_crit_ext.master_cell_group_present = true;
-
     // Fill masterCellGroup
     cell_group_cfg_s master_cell_group;
     master_cell_group.cell_group_id = 0;
@@ -1085,7 +1067,6 @@ void rrc_nr::ue::send_rrc_reconfiguration()
 
   if (nas_pdu_queue.size() > 0) {
     // Pass stored NAS PDUs
-    ies.non_crit_ext.ded_nas_msg_list_present = true;
     ies.non_crit_ext.ded_nas_msg_list.resize(nas_pdu_queue.size());
     for (uint32_t i = 0; i < nas_pdu_queue.size(); ++i) {
       ies.non_crit_ext.ded_nas_msg_list[i].resize(nas_pdu_queue[i]->size());
@@ -1094,7 +1075,8 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     nas_pdu_queue.clear();
   }
 
-  ies.non_crit_ext_present = ies.non_crit_ext.master_cell_group_present or ies.non_crit_ext.ded_nas_msg_list_present;
+  ies.non_crit_ext_present =
+      ies.non_crit_ext.master_cell_group.size() > 0 or ies.non_crit_ext.ded_nas_msg_list.size() > 0;
 
   if (send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg) != SRSRAN_SUCCESS) {
     parent->ngap->user_release_request(rnti, asn1::ngap::cause_radio_network_opts::radio_res_not_available);
@@ -1135,7 +1117,6 @@ void rrc_nr::ue::send_dl_information_transfer(srsran::unique_byte_buffer_t sdu)
   dl_dcch_msg.msg.set_c1().set_dl_info_transfer().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   dl_info_transfer_ies_s& ies = dl_dcch_msg.msg.c1().dl_info_transfer().crit_exts.set_dl_info_transfer();
 
-  ies.ded_nas_msg_present = true;
   ies.ded_nas_msg.resize(sdu->N_bytes);
   memcpy(ies.ded_nas_msg.data(), sdu->data(), ies.ded_nas_msg.size());
 
@@ -1164,18 +1145,16 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
 
   // Add SRB2, if not yet added
   if (radio_bearer_cfg.srb_to_add_mod_list.size() <= 1) {
-    next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
     next_radio_bearer_cfg.srb_to_add_mod_list.push_back(srb_to_add_mod_s{});
     next_radio_bearer_cfg.srb_to_add_mod_list.back().srb_id = 2;
   }
 
   drb_to_add_mod_s drb;
-  drb.cn_assoc_present                                    = true;
-  drb.cn_assoc.set_sdap_cfg().pdu_session                 = 1;
-  drb.cn_assoc.sdap_cfg().sdap_hdr_dl.value               = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::absent;
-  drb.cn_assoc.sdap_cfg().sdap_hdr_ul.value               = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::absent;
-  drb.cn_assoc.sdap_cfg().default_drb                     = true;
-  drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add_present = true;
+  drb.cn_assoc_present                      = true;
+  drb.cn_assoc.set_sdap_cfg().pdu_session   = 1;
+  drb.cn_assoc.sdap_cfg().sdap_hdr_dl.value = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::absent;
+  drb.cn_assoc.sdap_cfg().sdap_hdr_ul.value = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::absent;
+  drb.cn_assoc.sdap_cfg().default_drb       = true;
   drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add.resize(1);
   drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add[0] = 1;
 
@@ -1192,7 +1171,6 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
   drb.pdcp_cfg.t_reordering_present = true;
   drb.pdcp_cfg.t_reordering.value   = asn1::rrc_nr::pdcp_cfg_s::t_reordering_opts::ms0;
 
-  next_radio_bearer_cfg.drb_to_add_mod_list_present = true;
   next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
 
   parent->bearer_mapper->add_eps_bearer(

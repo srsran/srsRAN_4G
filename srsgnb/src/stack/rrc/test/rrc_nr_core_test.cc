@@ -180,7 +180,6 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
   ul_dcch_msg_s ul_dcch_msg_auth_resp;
 
   ul_dcch_msg_auth_resp.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
-  ul_dcch_msg_auth_resp.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg_present = true;
   ul_dcch_msg_auth_resp.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg.from_string(
       "7e00572d10db165fffdb7b74c326e3fc3f154117fe");
 
@@ -195,7 +194,6 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
   asn1::bit_ref bref_smc{sec_complete_pdu->data(), sec_complete_pdu->get_tailroom()};
   ul_dcch_msg_s ul_dcch_msg_smc;
   ul_dcch_msg_smc.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
-  ul_dcch_msg_smc.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg_present = true;
   ul_dcch_msg_smc.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg.from_string(
       "7e046b3737af017e005e7700093535940096783351f37100237e004179000d0100f11000000000103254760810030000002e02e0602f0201"
       "01530100");

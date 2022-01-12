@@ -64,7 +64,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
                 dl_ccch_msg.msg.c1().rrc_setup().crit_exts.type().value);
 
   const rrc_setup_ies_s& setup_ies = dl_ccch_msg.msg.c1().rrc_setup().crit_exts.rrc_setup();
-  TESTASSERT(setup_ies.radio_bearer_cfg.srb_to_add_mod_list_present);
+  TESTASSERT(setup_ies.radio_bearer_cfg.srb_to_add_mod_list.size() > 0);
   TESTASSERT_EQ(1, setup_ies.radio_bearer_cfg.srb_to_add_mod_list.size());
 
   const srb_to_add_mod_s& srb1 = setup_ies.radio_bearer_cfg.srb_to_add_mod_list[0];
@@ -102,7 +102,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   complete_ies.guami_type.value   = rrc_setup_complete_ies_s::guami_type_opts::native;
   std::string NAS_msg_str = "7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F11080010134"
                             "7B80801001002E02F0702F0201015200F11000006418010174000090530101";
-  auto&       ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
+  auto& ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
 
   {
     pdu = srsran::make_byte_buffer();
@@ -169,13 +169,12 @@ void test_rrc_nr_info_transfer(srsran::task_scheduler& task_sched,
                 dl_dcch_msg.msg.c1().dl_info_transfer().crit_exts.type().value);
 
   dl_info_transfer_ies_s& ies_DL = dl_dcch_msg.msg.c1().dl_info_transfer().crit_exts.dl_info_transfer();
-  TESTASSERT(ies_DL.ded_nas_msg_present == true);
+  TESTASSERT(ies_DL.ded_nas_msg.size() > 0);
   TESTASSERT(NAS_DL_msg == ies_DL.ded_nas_msg);
 
   // STEP 2: Send ULInformationTransfer (UE -> gNB)
   ul_dcch_msg_s ul_dcch_msg;
-  auto&         ies_UL       = ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
-  ies_UL.ded_nas_msg_present = true;
+  auto&         ies_UL = ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
 
   // Create an unbounded_octstring object that contains a random NAS message (we simulate a NAS message)
   // We reuse ies_UL below to compare the string with the message sent to and unpacked by the gNB
@@ -279,7 +278,7 @@ void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
   // The RRCreconfiguration reads the SecurityModeCommand NAS msg previously saved in the queue
   asn1::unbounded_octstring<false> NAS_msg;
   NAS_msg.from_string(NAS_SEC_CMD_STR);
-  TESTASSERT_EQ(true, reconf_ies.non_crit_ext.ded_nas_msg_list_present);
+  TESTASSERT(reconf_ies.non_crit_ext.ded_nas_msg_list.size() > 0);
   // Test if NAS_msg is the same as the one sent in SecurityModeCommand
   TESTASSERT(NAS_msg == reconf_ies.non_crit_ext.ded_nas_msg_list[0]);
 
@@ -338,7 +337,7 @@ void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
                 dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.type().value);
   const rrc_recfg_ies_s& reconf_ies = dl_dcch_msg.msg.c1().rrc_recfg().crit_exts.rrc_recfg();
   TESTASSERT_EQ(true, reconf_ies.radio_bearer_cfg_present);
-  TESTASSERT_EQ(true, reconf_ies.radio_bearer_cfg.srb_to_add_mod_list_present);
+  TESTASSERT(reconf_ies.radio_bearer_cfg.srb_to_add_mod_list.size() > 0);
   TESTASSERT_EQ(1, reconf_ies.radio_bearer_cfg.srb_to_add_mod_list.size());
   TESTASSERT_EQ(2, reconf_ies.radio_bearer_cfg.srb_to_add_mod_list[0].srb_id);
   TESTASSERT_EQ(1, reconf_ies.radio_bearer_cfg.drb_to_add_mod_list.size());
@@ -346,7 +345,7 @@ void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
   TESTASSERT_EQ(1, drb.drb_id);
 
   TESTASSERT_EQ(true, reconf_ies.non_crit_ext_present);
-  TESTASSERT_EQ(true, reconf_ies.non_crit_ext.master_cell_group_present);
+  TESTASSERT(reconf_ies.non_crit_ext.master_cell_group.size() > 0);
   auto& master_group_msg = reconf_ies.non_crit_ext.master_cell_group;
 
   cell_group_cfg_s master_cell_group;
@@ -357,14 +356,14 @@ void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
 
   // Test if the master_cell_group SRB and DRB IDs match those in the RadioBearerConfig
   TESTASSERT_EQ(0, master_cell_group.cell_group_id);
-  TESTASSERT_EQ(true, master_cell_group.rlc_bearer_to_add_mod_list_present);
+  TESTASSERT(master_cell_group.rlc_bearer_to_add_mod_list.size() > 0);
   auto& rlc_srb = master_cell_group.rlc_bearer_to_add_mod_list[0];
   TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.srb_to_add_mod_list[0].srb_id, rlc_srb.served_radio_bearer.srb_id());
   auto& rlc_drb = master_cell_group.rlc_bearer_to_add_mod_list[1];
   TESTASSERT_EQ(reconf_ies.radio_bearer_cfg.drb_to_add_mod_list[0].drb_id, rlc_drb.served_radio_bearer.drb_id());
 
   // Test if NAS_msg is the same as the one sent in DLInformationTransfer
-  TESTASSERT_EQ(true, reconf_ies.non_crit_ext.ded_nas_msg_list_present);
+  TESTASSERT(reconf_ies.non_crit_ext.ded_nas_msg_list.size() > 0);
   TESTASSERT(NAS_msg == reconf_ies.non_crit_ext.ded_nas_msg_list[0]);
 
   // STEP 2 - Send RRCReconfiguration (UE -> gNB)

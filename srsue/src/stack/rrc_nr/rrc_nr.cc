@@ -362,7 +362,7 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
 
   // Apply PDSCH Config Common
   if (sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup()
-          .pdsch_time_domain_alloc_list_present) {
+          .pdsch_time_domain_alloc_list.size() > 0) {
     if (not fill_phy_pdsch_cfg_common(sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup(),
                                       &phy_cfg.pdsch)) {
       logger.warning("Could not set PDSCH config.");
@@ -623,7 +623,6 @@ void rrc_nr::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
   rrc_setup_complete->sel_plmn_id                      = 1;
   rrc_setup_complete->registered_amf_present           = false;
   rrc_setup_complete->guami_type_present               = false;
-  rrc_setup_complete->s_nssai_list_present             = false;
   rrc_setup_complete->ng_minus5_g_s_tmsi_value_present = false;
 
   rrc_setup_complete->ded_nas_msg.resize(nas_msg->N_bytes);
@@ -663,7 +662,6 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
   }
 
   mrdc_cap.rf_params_mrdc.supported_band_combination_list.push_back(band_combination);
-  mrdc_cap.rf_params_mrdc.supported_band_combination_list_present = true;
 
   mrdc_cap.rf_params_mrdc.ext = true;
 
@@ -683,8 +681,6 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
     band_info_nr.band_info_nr().band_nr = band;
     mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_nr);
   }
-
-  mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt_present = true;
 
   // rf_params_mrdc supported band combination list v1540
 
@@ -738,8 +734,6 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
   }
 
   mrdc_cap.feature_set_combinations.push_back(feature_set_combination);
-
-  mrdc_cap.feature_set_combinations_present = true;
 
   // Pack mrdc_cap
   asn1::bit_ref bref(eutra_nr_caps_pdu->msg, eutra_nr_caps_pdu->get_tailroom());
@@ -911,7 +905,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
   if (mac_cell_group_cfg.sched_request_cfg_present) {
-    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
+    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() > 0) {
       if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() == 1) {
         const sched_request_to_add_mod_s& asn1_cfg =
             mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0];
@@ -933,7 +927,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
       }
     }
 
-    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list_present) {
+    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list.size() > 0) {
       logger.warning("Not handling sched request to release list");
       return false;
     }
@@ -951,7 +945,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     }
 
   if (mac_cell_group_cfg.tag_cfg_present) {
-    if (mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list_present) {
+    if (mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.size() > 0) {
       for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.size(); i++) {
         tag_cfg_nr_t tag_cfg_nr     = {};
         tag_cfg_nr.tag_id           = mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[i].tag_id;
@@ -962,7 +956,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
         }
       }
     }
-    if (mac_cell_group_cfg.tag_cfg.tag_to_release_list_present) {
+    if (mac_cell_group_cfg.tag_cfg.tag_to_release_list.size() > 0) {
       for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_release_list.size(); i++) {
         uint32_t tag_id = mac_cell_group_cfg.tag_cfg.tag_to_release_list[i];
         if (mac->remove_tag_config(tag_id) != SRSRAN_SUCCESS) {
@@ -995,7 +989,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 
 bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg)
 {
-  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
+  if (pdcch_cfg.search_spaces_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pdcch_cfg.search_spaces_to_add_mod_list.size(); i++) {
       srsran_search_space_t search_space;
       if (make_phy_search_space_cfg(pdcch_cfg.search_spaces_to_add_mod_list[i], &search_space) == true) {
@@ -1010,7 +1004,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_
     logger.warning("Option search_spaces_to_add_mod_list not present");
     return false;
   }
-  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
+  if (pdcch_cfg.ctrl_res_set_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pdcch_cfg.ctrl_res_set_to_add_mod_list.size(); i++) {
       srsran_coreset_t coreset;
       if (make_phy_coreset_cfg(pdcch_cfg.ctrl_res_set_to_add_mod_list[i], &coreset) == true) {
@@ -1071,7 +1065,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
     phy_cfg.pdsch.alloc = resource_alloc;
   }
 
-  if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+  if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size(); i++) {
       srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
       if (make_phy_zp_csi_rs_resource(pdsch_cfg.zp_csi_rs_res_to_add_mod_list[i], &zp_csi_rs_resource) == true) {
@@ -1086,7 +1080,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
 
   if (pdsch_cfg.p_zp_csi_rs_res_set_present) {
     // check if resources have been processed
-    if (not pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+    if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size() == 0) {
       logger.warning("Can't build ZP-CSI config, option zp_csi_rs_res_to_add_mod_list not present");
       return false;
     }
@@ -1140,43 +1134,37 @@ bool rrc_nr::apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_
 
 bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg)
 {
-  if (csi_meas_cfg.csi_report_cfg_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < csi_meas_cfg.csi_report_cfg_to_add_mod_list.size(); i++) {
-      if (apply_res_csi_report_cfg(csi_meas_cfg.csi_report_cfg_to_add_mod_list[i]) == false) {
-        return false;
-      }
+  for (uint32_t i = 0; i < csi_meas_cfg.csi_report_cfg_to_add_mod_list.size(); i++) {
+    if (apply_res_csi_report_cfg(csi_meas_cfg.csi_report_cfg_to_add_mod_list[i]) == false) {
+      return false;
     }
   }
 
-  if (csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.size(); i++) {
-      srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
-      if (make_phy_nzp_csi_rs_resource(csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list[i], &csi_rs_nzp_resource) == true) {
-        // temporally store csi_rs_zp_res
-        csi_rs_nzp_res[csi_rs_nzp_resource.id] = csi_rs_nzp_resource;
-      } else {
-        logger.warning("Warning while building phy_nzp_csi_rs resource");
-        return false;
-      }
+  for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.size(); i++) {
+    srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+    if (make_phy_nzp_csi_rs_resource(csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list[i], &csi_rs_nzp_resource) == true) {
+      // temporally store csi_rs_zp_res
+      csi_rs_nzp_res[csi_rs_nzp_resource.id] = csi_rs_nzp_resource;
+    } else {
+      logger.warning("Warning while building phy_nzp_csi_rs resource");
+      return false;
     }
   }
 
-  if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.size(); i++) {
-      uint8_t set_id = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_res_set_id;
-      for (uint32_t j = 0; j < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res.size(); j++) {
-        uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
-        // use temporally stored values to assign
-        if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
-          logger.warning("Can not find nzp_csi_rs_res in temporally stored csi_rs_nzp_res");
-          return false;
-        }
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
+  for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.size(); i++) {
+    uint8_t set_id = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_res_set_id;
+    for (uint32_t j = 0; j < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res.size(); j++) {
+      uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
+      // use temporally stored values to assign
+      if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
+        logger.warning("Can not find nzp_csi_rs_res in temporally stored csi_rs_nzp_res");
+        return false;
       }
-      if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
-      }
+      phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
+      phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
+    }
+    if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
+      phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
     }
   }
 
@@ -1248,7 +1236,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
           logger.warning("Option common_ctrl_res_set not present");
           return false;
         }
-        if (pdcch_cfg_common.common_search_space_list_present) {
+        if (pdcch_cfg_common.common_search_space_list.size() > 0) {
           for (uint32_t i = 0; i < pdcch_cfg_common.common_search_space_list.size(); i++) {
             srsran_search_space_t search_space;
             if (make_phy_search_space_cfg(pdcch_cfg_common.common_search_space_list[i], &search_space) == true) {
@@ -1288,7 +1276,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
       if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() == setup_release_c<pdsch_cfg_common_s>::types::setup) {
         pdsch_cfg_common_s pdsch_cfg_common = dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup();
-        if (pdsch_cfg_common.pdsch_time_domain_alloc_list_present) {
+        if (pdsch_cfg_common.pdsch_time_domain_alloc_list.size() > 0) {
           for (uint32_t i = 0; i < pdsch_cfg_common.pdsch_time_domain_alloc_list.size(); i++) {
             srsran_sch_time_ra_t common_time_ra;
             if (make_phy_common_time_ra(pdsch_cfg_common.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
@@ -1350,7 +1338,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     }
     if (ul_cfg_common.init_ul_bwp.pusch_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.type() == setup_release_c<pusch_cfg_common_s>::types_opts::setup) {
-        if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list_present) {
+        if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list.size() > 0) {
           for (uint32_t i = 0;
                i < ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list.size();
                i++) {
@@ -1410,7 +1398,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
   }
 
   // now look up resource and assign into internal struct
-  if (pucch_cfg.res_to_add_mod_list_present) {
+  if (pucch_cfg.res_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.res_to_add_mod_list.size(); i++) {
       uint32_t res_id = pucch_cfg.res_to_add_mod_list[i].pucch_res_id;
       pucch_res_list.insert(res_id, {});
@@ -1426,7 +1414,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
 
   // Check first all resource lists and
   phy_cfg.pucch.enabled = true;
-  if (pucch_cfg.res_set_to_add_mod_list_present) {
+  if (pucch_cfg.res_set_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.res_set_to_add_mod_list.size(); i++) {
       uint32_t set_id                          = pucch_cfg.res_set_to_add_mod_list[i].pucch_res_set_id;
       phy_cfg.pucch.sets[set_id].nof_resources = pucch_cfg.res_set_to_add_mod_list[i].res_list.size();
@@ -1442,7 +1430,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
     }
   }
 
-  if (pucch_cfg.sched_request_res_to_add_mod_list_present) {
+  if (pucch_cfg.sched_request_res_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.sched_request_res_to_add_mod_list.size(); i++) {
       uint32_t                      sr_res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].sched_request_res_id;
       srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource;
@@ -1476,7 +1464,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
     return false;
   }
 
-  if (pucch_cfg.dl_data_to_ul_ack_present) {
+  if (pucch_cfg.dl_data_to_ul_ack.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.dl_data_to_ul_ack.size(); i++) {
       phy_cfg.harq_ack.dl_data_to_ul_ack[i] = pucch_cfg.dl_data_to_ul_ack[i];
     }
@@ -1774,7 +1762,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 
 bool rrc_nr::update_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
-  if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
+  if (cell_group_cfg.rlc_bearer_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
       if (apply_rlc_add_mod(cell_group_cfg.rlc_bearer_to_add_mod_list[i]) == false) {
         return false;
@@ -1912,14 +1900,14 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 
 bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
 {
-  if (radio_bearer_cfg.drb_to_add_mod_list_present) {
+  if (radio_bearer_cfg.drb_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_add_mod_list.size(); i++) {
       if (apply_drb_add_mod(radio_bearer_cfg.drb_to_add_mod_list[i]) == false) {
         return false;
       }
     }
   }
-  if (radio_bearer_cfg.drb_to_release_list_present) {
+  if (radio_bearer_cfg.drb_to_release_list.size() > 0) {
     for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_release_list.size(); i++) {
       if (apply_drb_release(radio_bearer_cfg.drb_to_release_list[i]) == false) {
         return false;

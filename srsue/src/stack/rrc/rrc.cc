@@ -800,7 +800,7 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool*
           return false;
         }
 
-        if (secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present) {
+        if (secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size() > 0) {
           asn1::cbit_ref bref1(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.data(),
                                secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size());
 
@@ -810,7 +810,6 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg, bool*
             return false;
           }
 
-          rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
           rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
               secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group;
         }

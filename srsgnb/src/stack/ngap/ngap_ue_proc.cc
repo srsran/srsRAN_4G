@@ -166,7 +166,7 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
               addr_in.to_string());
 
   // QoS parameter mapping in config in LTE enb
-  if (su_req.pdu_session_nas_pdu_present) {
+  if (su_req.pdu_session_nas_pdu.size() > 0) {
     if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
         SRSRAN_SUCCESS) {
       parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_in, addr_in);

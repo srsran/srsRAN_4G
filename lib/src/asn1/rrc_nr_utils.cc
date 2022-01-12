@@ -1534,17 +1534,15 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure NZP-CSI
-    if (setup.nzp_csi_rs_res_set_to_add_mod_list_present) {
-      for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
-        auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
-        uecfg_set.trs_info = nzp_set.trs_info_present;
-        uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
-        uint32_t count     = 0;
-        for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
-          auto& res = uecfg_set.data[count++];
-          if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
-            return false;
-          }
+    for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
+      auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
+      uecfg_set.trs_info = nzp_set.trs_info_present;
+      uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
+      uint32_t count     = 0;
+      for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
+        auto& res = uecfg_set.data[count++];
+        if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
+          return false;
         }
       }
     }
@@ -1574,12 +1572,10 @@ bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_ce
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure CSI-Report
-    if (setup.csi_report_cfg_to_add_mod_list_present) {
-      for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
-        const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
-        if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
-          return false;
-        }
+    for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
+      const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
+      if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+        return false;
       }
     }
   }
@@ -1601,18 +1597,14 @@ bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_
 
 bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
 {
-  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
-    for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
-      pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
-      make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
-    }
+  for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
+    pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
+    make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
   }
 
-  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
-    for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
-      pdcch->search_space_present[ss.search_space_id] = true;
-      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
-    }
+  for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
+    pdcch->search_space_present[ss.search_space_id] = true;
+    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
   }
   return true;
 }
@@ -1623,14 +1615,12 @@ void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
     pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
     make_phy_coreset_cfg(pdcch_cfg.common_ctrl_res_set, &pdcch->coreset[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id]);
   }
-  if (pdcch_cfg.common_search_space_list_present) {
-    for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
-      pdcch->search_space_present[ss.search_space_id] = true;
-      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
-      if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
-        pdcch->ra_search_space_present = true;
-        pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
-      }
+  for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
+    pdcch->search_space_present[ss.search_space_id] = true;
+    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+    if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
+      pdcch->ra_search_space_present = true;
+      pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
     }
   }
 }

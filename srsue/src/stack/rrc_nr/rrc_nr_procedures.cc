@@ -38,7 +38,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
   rrc_nr_reconf.to_json(js);
   Debug("RRC NR Reconfiguration: %s", js.to_string().c_str());
 
-  if (rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present) {
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group.size() > 0) {
     if (rrc_nr_reconf.crit_exts.type() != asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
       Error("Reconfiguration does not contain Secondary Cell Group Config.");
       return proc_outcome_t::error;
@@ -71,7 +71,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group_present) {
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group.size() > 0) {
     cbit_ref bref1(rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group.data(),
                    rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.master_cell_group.size());
 
@@ -91,7 +91,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list_present) {
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
     srsran::unique_byte_buffer_t nas_sdu;
     for (uint32_t i = 0; i < rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size(); ++i) {
       nas_sdu = srsran::make_byte_buffer();

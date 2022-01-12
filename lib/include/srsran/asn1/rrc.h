@@ -169,7 +169,7 @@ struct bcch_dl_sch_msg_mbms_s {
 };
 
 // ThresholdEUTRA-v1250 ::= INTEGER (0..97)
-using thres_eutra_v1250 = uint8_t;
+using thres_eutra_v1250 = integer<uint8_t, 0, 97>;
 
 // MBMS-SessionInfo-r9 ::= SEQUENCE
 struct mbms_session_info_r9_s {

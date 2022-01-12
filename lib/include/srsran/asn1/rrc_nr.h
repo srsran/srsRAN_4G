@@ -436,8 +436,7 @@ struct eutra_freq_neigh_cell_info_s {
 
 // EUTRA-MultiBandInfo ::= SEQUENCE
 struct eutra_multi_band_info_s {
-  bool                 eutra_ns_pmax_list_present = false;
-  uint16_t             eutra_freq_band_ind        = 1;
+  uint16_t             eutra_freq_band_ind = 1;
   eutra_ns_pmax_list_l eutra_ns_pmax_list;
 
   // sequence methods
@@ -508,7 +507,6 @@ struct inter_freq_neigh_cell_info_s {
 // NR-MultiBandInfo ::= SEQUENCE
 struct nr_multi_band_info_s {
   bool              freq_band_ind_nr_present = false;
-  bool              nr_ns_pmax_list_present  = false;
   uint16_t          freq_band_ind_nr         = 1;
   nr_ns_pmax_list_l nr_ns_pmax_list;
 
@@ -680,12 +678,10 @@ struct ctrl_res_set_s {
   using tci_states_pdcch_to_release_list_l_ = dyn_array<uint8_t>;
 
   // member variables
-  bool                                ext                                      = false;
-  bool                                tci_states_pdcch_to_add_list_present     = false;
-  bool                                tci_states_pdcch_to_release_list_present = false;
-  bool                                tci_present_in_dci_present               = false;
-  bool                                pdcch_dmrs_scrambling_id_present         = false;
-  uint8_t                             ctrl_res_set_id                          = 0;
+  bool                                ext                              = false;
+  bool                                tci_present_in_dci_present       = false;
+  bool                                pdcch_dmrs_scrambling_id_present = false;
+  uint8_t                             ctrl_res_set_id                  = 0;
   fixed_bitstring<45>                 freq_domain_res;
   uint8_t                             dur = 1;
   cce_reg_map_type_c_                 cce_reg_map_type;
@@ -1503,13 +1499,10 @@ struct carrier_freq_eutra_s {
   };
 
   // member variables
-  bool                         eutra_multi_band_info_list_present = false;
-  bool                         eutra_freq_neigh_cell_list_present = false;
-  bool                         eutra_black_cell_list_present      = false;
-  bool                         cell_resel_prio_present            = false;
-  bool                         cell_resel_sub_prio_present        = false;
-  bool                         thresh_x_q_present                 = false;
-  uint32_t                     carrier_freq                       = 0;
+  bool                         cell_resel_prio_present     = false;
+  bool                         cell_resel_sub_prio_present = false;
+  bool                         thresh_x_q_present          = false;
+  uint32_t                     carrier_freq                = 0;
   eutra_multi_band_info_list_l eutra_multi_band_info_list;
   eutra_freq_neigh_cell_list_l eutra_freq_neigh_cell_list;
   eutra_freq_black_cell_list_l eutra_black_cell_list;
@@ -1539,8 +1532,6 @@ struct inter_freq_carrier_freq_info_s {
 
   // member variables
   bool                          ext                                        = false;
-  bool                          freq_band_list_present                     = false;
-  bool                          freq_band_list_sul_present                 = false;
   bool                          nrof_ss_blocks_to_average_present          = false;
   bool                          abs_thresh_ss_blocks_consolidation_present = false;
   bool                          smtc_present                               = false;
@@ -1554,8 +1545,6 @@ struct inter_freq_carrier_freq_info_s {
   bool                          cell_resel_prio_present                    = false;
   bool                          cell_resel_sub_prio_present                = false;
   bool                          q_offset_freq_present                      = false;
-  bool                          inter_freq_neigh_cell_list_present         = false;
-  bool                          inter_freq_black_cell_list_present         = false;
   uint32_t                      dl_carrier_freq                            = 0;
   multi_freq_band_list_nr_sib_l freq_band_list;
   multi_freq_band_list_nr_sib_l freq_band_list_sul;
@@ -1784,7 +1773,6 @@ struct pdcch_cfg_common_s {
   bool                        ctrl_res_set_zero_present           = false;
   bool                        common_ctrl_res_set_present         = false;
   bool                        search_space_zero_present           = false;
-  bool                        common_search_space_list_present    = false;
   bool                        search_space_sib1_present           = false;
   bool                        search_space_other_sys_info_present = false;
   bool                        paging_search_space_present         = false;
@@ -1809,8 +1797,7 @@ struct pdcch_cfg_common_s {
 
 // PDSCH-ConfigCommon ::= SEQUENCE
 struct pdsch_cfg_common_s {
-  bool                               ext                                  = false;
-  bool                               pdsch_time_domain_alloc_list_present = false;
+  bool                               ext = false;
   pdsch_time_domain_res_alloc_list_l pdsch_time_domain_alloc_list;
   // ...
 
@@ -1862,7 +1849,6 @@ struct pucch_cfg_common_s {
 struct pusch_cfg_common_s {
   bool                               ext                                           = false;
   bool                               group_hop_enabled_transform_precoding_present = false;
-  bool                               pusch_time_domain_alloc_list_present          = false;
   bool                               msg3_delta_preamb_present                     = false;
   bool                               p0_nominal_with_grant_present                 = false;
   pusch_time_domain_res_alloc_list_l pusch_time_domain_alloc_list;
@@ -2329,7 +2315,6 @@ struct freq_info_ul_sib_s {
 
   // member variables
   bool                          ext                           = false;
-  bool                          freq_band_list_present        = false;
   bool                          absolute_freq_point_a_present = false;
   bool                          p_max_present                 = false;
   bool                          freq_shift7p5khz_present      = false;
@@ -2890,22 +2875,20 @@ struct sib2_s {
     // ...
   };
   struct intra_freq_cell_resel_info_s_ {
-    bool                          ext                        = false;
-    bool                          q_rx_lev_min_sul_present   = false;
-    bool                          q_qual_min_present         = false;
-    bool                          s_intra_search_q_present   = false;
-    bool                          freq_band_list_present     = false;
-    bool                          freq_band_list_sul_present = false;
-    bool                          p_max_present              = false;
-    bool                          smtc_present               = false;
-    bool                          ss_rssi_meas_present       = false;
-    bool                          ssb_to_measure_present     = false;
-    int8_t                        q_rx_lev_min               = -70;
-    int8_t                        q_rx_lev_min_sul           = -70;
-    int8_t                        q_qual_min                 = -43;
-    uint8_t                       s_intra_search_p           = 0;
-    uint8_t                       s_intra_search_q           = 0;
-    uint8_t                       t_resel_nr                 = 0;
+    bool                          ext                      = false;
+    bool                          q_rx_lev_min_sul_present = false;
+    bool                          q_qual_min_present       = false;
+    bool                          s_intra_search_q_present = false;
+    bool                          p_max_present            = false;
+    bool                          smtc_present             = false;
+    bool                          ss_rssi_meas_present     = false;
+    bool                          ssb_to_measure_present   = false;
+    int8_t                        q_rx_lev_min             = -70;
+    int8_t                        q_rx_lev_min_sul         = -70;
+    int8_t                        q_qual_min               = -43;
+    uint8_t                       s_intra_search_p         = 0;
+    uint8_t                       s_intra_search_q         = 0;
+    uint8_t                       t_resel_nr               = 0;
     multi_freq_band_list_nr_sib_l freq_band_list;
     multi_freq_band_list_nr_sib_l freq_band_list_sul;
     int8_t                        p_max = -30;
@@ -2938,10 +2921,7 @@ struct sib2_s {
 
 // SIB3 ::= SEQUENCE
 struct sib3_s {
-  bool                         ext                                = false;
-  bool                         intra_freq_neigh_cell_list_present = false;
-  bool                         intra_freq_black_cell_list_present = false;
-  bool                         late_non_crit_ext_present          = false;
+  bool                         ext = false;
   intra_freq_neigh_cell_list_l intra_freq_neigh_cell_list;
   intra_freq_black_cell_list_l intra_freq_black_cell_list;
   dyn_octstring                late_non_crit_ext;
@@ -2955,8 +2935,7 @@ struct sib3_s {
 
 // SIB4 ::= SEQUENCE
 struct sib4_s {
-  bool                           ext                       = false;
-  bool                           late_non_crit_ext_present = false;
+  bool                           ext = false;
   inter_freq_carrier_freq_list_l inter_freq_carrier_freq_list;
   dyn_octstring                  late_non_crit_ext;
   // ...
@@ -2969,10 +2948,8 @@ struct sib4_s {
 
 // SIB5 ::= SEQUENCE
 struct sib5_s {
-  bool                        ext                             = false;
-  bool                        carrier_freq_list_eutra_present = false;
-  bool                        t_resel_eutra_sf_present        = false;
-  bool                        late_non_crit_ext_present       = false;
+  bool                        ext                      = false;
+  bool                        t_resel_eutra_sf_present = false;
   carrier_freq_list_eutra_l   carrier_freq_list_eutra;
   uint8_t                     t_resel_eutra = 0;
   speed_state_scale_factors_s t_resel_eutra_sf;
@@ -2987,8 +2964,7 @@ struct sib5_s {
 
 // SIB6 ::= SEQUENCE
 struct sib6_s {
-  bool                ext                       = false;
-  bool                late_non_crit_ext_present = false;
+  bool                ext = false;
   fixed_bitstring<16> msg_id;
   fixed_bitstring<16> serial_num;
   fixed_octstring<2>  warning_type;
@@ -3013,7 +2989,6 @@ struct sib7_s {
   // member variables
   bool                        ext                        = false;
   bool                        data_coding_scheme_present = false;
-  bool                        late_non_crit_ext_present  = false;
   fixed_bitstring<16>         msg_id;
   fixed_bitstring<16>         serial_num;
   warning_msg_segment_type_e_ warning_msg_segment_type;
@@ -3039,10 +3014,8 @@ struct sib8_s {
   typedef enumerated<warning_msg_segment_type_opts> warning_msg_segment_type_e_;
 
   // member variables
-  bool                        ext                                      = false;
-  bool                        data_coding_scheme_present               = false;
-  bool                        warning_area_coordinates_segment_present = false;
-  bool                        late_non_crit_ext_present                = false;
+  bool                        ext                        = false;
+  bool                        data_coding_scheme_present = false;
   fixed_bitstring<16>         msg_id;
   fixed_bitstring<16>         serial_num;
   warning_msg_segment_type_e_ warning_msg_segment_type;
@@ -3072,9 +3045,8 @@ struct sib9_s {
   };
 
   // member variables
-  bool          ext                       = false;
-  bool          time_info_present         = false;
-  bool          late_non_crit_ext_present = false;
+  bool          ext               = false;
+  bool          time_info_present = false;
   time_info_s_  time_info;
   dyn_octstring late_non_crit_ext;
   // ...
@@ -3475,8 +3447,7 @@ struct sys_info_ies_s {
   using sib_type_and_info_l_ = dyn_array<sib_type_and_info_item_c_>;
 
   // member variables
-  bool                 late_non_crit_ext_present = false;
-  bool                 non_crit_ext_present      = false;
+  bool                 non_crit_ext_present = false;
   sib_type_and_info_l_ sib_type_and_info;
   dyn_octstring        late_non_crit_ext;
 
@@ -3641,8 +3612,6 @@ struct sib1_s {
     };
 
     // member variables
-    bool                                    uac_barr_for_common_present                  = false;
-    bool                                    uac_barr_per_plmn_list_present               = false;
     bool                                    uac_access_category1_sel_assist_info_present = false;
     uac_barr_per_cat_list_l                 uac_barr_for_common;
     uac_barr_per_plmn_list_l                uac_barr_per_plmn_list;
@@ -3660,7 +3629,6 @@ struct sib1_s {
   bool                          ue_timers_and_consts_present    = false;
   bool                          uac_barr_info_present           = false;
   bool                          use_full_resume_id_present      = false;
-  bool                          late_non_crit_ext_present       = false;
   bool                          non_crit_ext_present            = false;
   cell_sel_info_s_              cell_sel_info;
   cell_access_related_info_s    cell_access_related_info;
@@ -4146,10 +4114,8 @@ struct sdap_cfg_s {
   using mapped_qos_flows_to_release_l_ = dyn_array<uint8_t>;
 
   // member variables
-  bool                           ext                                 = false;
-  bool                           mapped_qos_flows_to_add_present     = false;
-  bool                           mapped_qos_flows_to_release_present = false;
-  uint16_t                       pdu_session                         = 0;
+  bool                           ext         = false;
+  uint16_t                       pdu_session = 0;
   sdap_hdr_dl_e_                 sdap_hdr_dl;
   sdap_hdr_ul_e_                 sdap_hdr_ul;
   bool                           default_drb = false;
@@ -4295,12 +4261,9 @@ struct security_cfg_s {
 
 // RadioBearerConfig ::= SEQUENCE
 struct radio_bearer_cfg_s {
-  bool                  ext                         = false;
-  bool                  srb_to_add_mod_list_present = false;
-  bool                  srb3_to_release_present     = false;
-  bool                  drb_to_add_mod_list_present = false;
-  bool                  drb_to_release_list_present = false;
-  bool                  security_cfg_present        = false;
+  bool                  ext                     = false;
+  bool                  srb3_to_release_present = false;
+  bool                  security_cfg_present    = false;
   srb_to_add_mod_list_l srb_to_add_mod_list;
   drb_to_add_mod_list_l drb_to_add_mod_list;
   drb_to_release_list_l drb_to_release_list;
@@ -4315,10 +4278,9 @@ struct radio_bearer_cfg_s {
 
 // RRCReject-IEs ::= SEQUENCE
 struct rrc_reject_ies_s {
-  bool          wait_time_present         = false;
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
-  uint8_t       wait_time                 = 1;
+  bool          wait_time_present    = false;
+  bool          non_crit_ext_present = false;
+  uint8_t       wait_time            = 1;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -4329,8 +4291,7 @@ struct rrc_reject_ies_s {
 
 // RRCSetup-IEs ::= SEQUENCE
 struct rrc_setup_ies_s {
-  bool               late_non_crit_ext_present = false;
-  bool               non_crit_ext_present      = false;
+  bool               non_crit_ext_present = false;
   radio_bearer_cfg_s radio_bearer_cfg;
   dyn_octstring      master_cell_group;
   dyn_octstring      late_non_crit_ext;
@@ -5462,7 +5423,6 @@ struct ran_area_cfg_s {
   using ran_area_code_list_l_ = bounded_array<uint16_t, 32>;
 
   // member variables
-  bool                  ran_area_code_list_present = false;
   fixed_bitstring<24>   tac;
   ran_area_code_list_l_ ran_area_code_list;
 
@@ -5555,7 +5515,6 @@ struct ssb_mtc2_s {
   typedef enumerated<periodicity_opts> periodicity_e_;
 
   // member variables
-  bool           pci_list_present = false;
   pci_list_l_    pci_list;
   periodicity_e_ periodicity;
 
@@ -5632,13 +5591,9 @@ struct meas_obj_eutra_s {
   using black_cells_to_add_mod_list_eutran_l_ = dyn_array<eutra_black_cell_s>;
 
   // member variables
-  bool                                  ext                                        = false;
-  bool                                  cells_to_rem_list_eutran_present           = false;
-  bool                                  cells_to_add_mod_list_eutran_present       = false;
-  bool                                  black_cells_to_rem_list_eutran_present     = false;
-  bool                                  black_cells_to_add_mod_list_eutran_present = false;
-  bool                                  eutra_q_offset_range_present               = false;
-  uint32_t                              carrier_freq                               = 0;
+  bool                                  ext                          = false;
+  bool                                  eutra_q_offset_range_present = false;
+  uint32_t                              carrier_freq                 = 0;
   eutra_allowed_meas_bw_e               allowed_meas_bw;
   eutra_cell_idx_list_l                 cells_to_rem_list_eutran;
   cells_to_add_mod_list_eutran_l_       cells_to_add_mod_list_eutran;
@@ -5679,12 +5634,6 @@ struct meas_obj_nr_s {
   bool                           abs_thresh_csi_rs_consolidation_present    = false;
   bool                           nrof_ss_blocks_to_average_present          = false;
   bool                           nrof_csi_rs_res_to_average_present         = false;
-  bool                           cells_to_rem_list_present                  = false;
-  bool                           cells_to_add_mod_list_present              = false;
-  bool                           black_cells_to_rem_list_present            = false;
-  bool                           black_cells_to_add_mod_list_present        = false;
-  bool                           white_cells_to_rem_list_present            = false;
-  bool                           white_cells_to_add_mod_list_present        = false;
   uint32_t                       ssb_freq                                   = 0;
   subcarrier_spacing_e           ssb_subcarrier_spacing;
   ssb_mtc_s                      smtc1;
@@ -6170,7 +6119,6 @@ typedef enumerated<rat_type_opts, true> rat_type_e;
 // RRCReconfiguration-v1560-IEs ::= SEQUENCE
 struct rrc_recfg_v1560_ies_s {
   bool                                             mrdc_secondary_cell_group_cfg_present = false;
-  bool                                             radio_bearer_cfg2_present             = false;
   bool                                             sk_counter_present                    = false;
   bool                                             non_crit_ext_present                  = false;
   setup_release_c<mrdc_secondary_cell_group_cfg_s> mrdc_secondary_cell_group_cfg;
@@ -6280,7 +6228,6 @@ using freq_prio_list_nr_l = dyn_array<freq_prio_nr_s>;
 // MasterKeyUpdate ::= SEQUENCE
 struct master_key_upd_s {
   bool          ext                     = false;
-  bool          nas_container_present   = false;
   bool          key_set_change_ind      = false;
   uint8_t       next_hop_chaining_count = 0;
   dyn_octstring nas_container;
@@ -6411,8 +6358,7 @@ struct quant_cfg_s {
   using quant_cfg_nr_list_l_ = dyn_array<quant_cfg_nr_s>;
 
   // member variables
-  bool                 ext                       = false;
-  bool                 quant_cfg_nr_list_present = false;
+  bool                 ext = false;
   quant_cfg_nr_list_l_ quant_cfg_nr_list;
   // ...
   // group 0
@@ -6517,8 +6463,7 @@ using report_cfg_to_rem_list_l = dyn_array<uint8_t>;
 
 // UE-CapabilityRAT-Request ::= SEQUENCE
 struct ue_cap_rat_request_s {
-  bool          ext                      = false;
-  bool          cap_request_filt_present = false;
+  bool          ext = false;
   rat_type_e    rat_type;
   dyn_octstring cap_request_filt;
   // ...
@@ -6541,10 +6486,8 @@ struct cell_resel_priorities_s {
   typedef enumerated<t320_opts> t320_e_;
 
   // member variables
-  bool                   ext                          = false;
-  bool                   freq_prio_list_eutra_present = false;
-  bool                   freq_prio_list_nr_present    = false;
-  bool                   t320_present                 = false;
+  bool                   ext          = false;
+  bool                   t320_present = false;
   freq_prio_list_eutra_l freq_prio_list_eutra;
   freq_prio_list_nr_l    freq_prio_list_nr;
   t320_e_                t320;
@@ -6611,17 +6554,11 @@ struct meas_cfg_s {
   };
 
   // member variables
-  bool                         ext                                = false;
-  bool                         meas_obj_to_rem_list_present       = false;
-  bool                         meas_obj_to_add_mod_list_present   = false;
-  bool                         report_cfg_to_rem_list_present     = false;
-  bool                         report_cfg_to_add_mod_list_present = false;
-  bool                         meas_id_to_rem_list_present        = false;
-  bool                         meas_id_to_add_mod_list_present    = false;
-  bool                         s_measure_cfg_present              = false;
-  bool                         quant_cfg_present                  = false;
-  bool                         meas_gap_cfg_present               = false;
-  bool                         meas_gap_sharing_cfg_present       = false;
+  bool                         ext                          = false;
+  bool                         s_measure_cfg_present        = false;
+  bool                         quant_cfg_present            = false;
+  bool                         meas_gap_cfg_present         = false;
+  bool                         meas_gap_sharing_cfg_present = false;
   meas_obj_to_rem_list_l       meas_obj_to_rem_list;
   meas_obj_to_add_mod_list_l   meas_obj_to_add_mod_list;
   report_cfg_to_rem_list_l     report_cfg_to_rem_list;
@@ -6645,14 +6582,10 @@ struct rrc_recfg_v1530_ies_s {
   using ded_nas_msg_list_l_ = bounded_array<dyn_octstring, 29>;
 
   // member variables
-  bool                  master_cell_group_present     = false;
-  bool                  full_cfg_present              = false;
-  bool                  ded_nas_msg_list_present      = false;
-  bool                  master_key_upd_present        = false;
-  bool                  ded_sib1_delivery_present     = false;
-  bool                  ded_sys_info_delivery_present = false;
-  bool                  other_cfg_present             = false;
-  bool                  non_crit_ext_present          = false;
+  bool                  full_cfg_present       = false;
+  bool                  master_key_upd_present = false;
+  bool                  other_cfg_present      = false;
+  bool                  non_crit_ext_present   = false;
   dyn_octstring         master_cell_group;
   ded_nas_msg_list_l_   ded_nas_msg_list;
   master_key_upd_s      master_key_upd;
@@ -6681,9 +6614,8 @@ struct rrc_release_v1540_ies_s {
 
 // RRCResume-v1560-IEs ::= SEQUENCE
 struct rrc_resume_v1560_ies_s {
-  bool          radio_bearer_cfg2_present = false;
-  bool          sk_counter_present        = false;
-  bool          non_crit_ext_present      = false;
+  bool          sk_counter_present   = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring radio_bearer_cfg2;
   uint32_t      sk_counter = 0;
 
@@ -6779,8 +6711,7 @@ using ue_cap_rat_request_list_l = dyn_array<ue_cap_rat_request_s>;
 
 // CounterCheck-IEs ::= SEQUENCE
 struct counter_check_ies_s {
-  bool                      late_non_crit_ext_present = false;
-  bool                      non_crit_ext_present      = false;
+  bool                      non_crit_ext_present = false;
   drb_count_msb_info_list_l drb_count_msb_info_list;
   dyn_octstring             late_non_crit_ext;
 
@@ -6792,9 +6723,7 @@ struct counter_check_ies_s {
 
 // DLInformationTransfer-IEs ::= SEQUENCE
 struct dl_info_transfer_ies_s {
-  bool          ded_nas_msg_present       = false;
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring ded_nas_msg;
   dyn_octstring late_non_crit_ext;
 
@@ -6814,9 +6743,7 @@ struct mob_from_nr_cmd_ies_s {
   typedef enumerated<target_rat_type_opts, true> target_rat_type_e_;
 
   // member variables
-  bool               nas_security_param_from_nr_present = false;
-  bool               late_non_crit_ext_present          = false;
-  bool               non_crit_ext_present               = false;
+  bool               non_crit_ext_present = false;
   target_rat_type_e_ target_rat_type;
   dyn_octstring      target_rat_msg_container;
   dyn_octstring      nas_security_param_from_nr;
@@ -6830,11 +6757,9 @@ struct mob_from_nr_cmd_ies_s {
 
 // RRCReconfiguration-IEs ::= SEQUENCE
 struct rrc_recfg_ies_s {
-  bool                  radio_bearer_cfg_present     = false;
-  bool                  secondary_cell_group_present = false;
-  bool                  meas_cfg_present             = false;
-  bool                  late_non_crit_ext_present    = false;
-  bool                  non_crit_ext_present         = false;
+  bool                  radio_bearer_cfg_present = false;
+  bool                  meas_cfg_present         = false;
+  bool                  non_crit_ext_present     = false;
   radio_bearer_cfg_s    radio_bearer_cfg;
   dyn_octstring         secondary_cell_group;
   meas_cfg_s            meas_cfg;
@@ -6849,9 +6774,8 @@ struct rrc_recfg_ies_s {
 
 // RRCReestablishment-IEs ::= SEQUENCE
 struct rrc_reest_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
-  uint8_t       next_hop_chaining_count   = 0;
+  bool          non_crit_ext_present    = false;
+  uint8_t       next_hop_chaining_count = 0;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -6888,7 +6812,6 @@ struct rrc_release_ies_s {
   bool                      cell_resel_priorities_present   = false;
   bool                      suspend_cfg_present             = false;
   bool                      depriorit_req_present           = false;
-  bool                      late_non_crit_ext_present       = false;
   bool                      non_crit_ext_present            = false;
   redirected_carrier_info_c redirected_carrier_info;
   cell_resel_priorities_s   cell_resel_priorities;
@@ -6905,12 +6828,10 @@ struct rrc_release_ies_s {
 
 // RRCResume-IEs ::= SEQUENCE
 struct rrc_resume_ies_s {
-  bool                   radio_bearer_cfg_present  = false;
-  bool                   master_cell_group_present = false;
-  bool                   meas_cfg_present          = false;
-  bool                   full_cfg_present          = false;
-  bool                   late_non_crit_ext_present = false;
-  bool                   non_crit_ext_present      = false;
+  bool                   radio_bearer_cfg_present = false;
+  bool                   meas_cfg_present         = false;
+  bool                   full_cfg_present         = false;
+  bool                   non_crit_ext_present     = false;
   radio_bearer_cfg_s     radio_bearer_cfg;
   dyn_octstring          master_cell_group;
   meas_cfg_s             meas_cfg;
@@ -6925,8 +6846,7 @@ struct rrc_resume_ies_s {
 
 // SecurityModeCommand-IEs ::= SEQUENCE
 struct security_mode_cmd_ies_s {
-  bool               late_non_crit_ext_present = false;
-  bool               non_crit_ext_present      = false;
+  bool               non_crit_ext_present = false;
   security_cfg_smc_s security_cfg_smc;
   dyn_octstring      late_non_crit_ext;
 
@@ -6938,8 +6858,6 @@ struct security_mode_cmd_ies_s {
 
 // UECapabilityEnquiry-IEs ::= SEQUENCE
 struct ue_cap_enquiry_ies_s {
-  bool                      late_non_crit_ext_present  = false;
-  bool                      ue_cap_enquiry_ext_present = false;
   ue_cap_rat_request_list_l ue_cap_rat_request_list;
   dyn_octstring             late_non_crit_ext;
   dyn_octstring             ue_cap_enquiry_ext;
@@ -7640,9 +7558,7 @@ using paging_record_list_l = dyn_array<paging_record_s>;
 
 // Paging ::= SEQUENCE
 struct paging_s {
-  bool                 paging_record_list_present = false;
-  bool                 late_non_crit_ext_present  = false;
-  bool                 non_crit_ext_present       = false;
+  bool                 non_crit_ext_present = false;
   paging_record_list_l paging_record_list;
   dyn_octstring        late_non_crit_ext;
 
@@ -8361,10 +8277,8 @@ struct cgi_info_nr_s {
   };
 
   // member variables
-  bool                      ext                       = false;
-  bool                      plmn_id_info_list_present = false;
-  bool                      freq_band_list_present    = false;
-  bool                      no_sib1_present           = false;
+  bool                      ext             = false;
+  bool                      no_sib1_present = false;
   plmn_id_info_list_l       plmn_id_info_list;
   multi_freq_band_list_nr_l freq_band_list;
   no_sib1_s_                no_sib1;
@@ -8417,17 +8331,14 @@ struct cgi_info_eutra_s {
     using cgi_info_epc_list_l_ = dyn_array<cell_access_related_info_eutra_epc_s>;
 
     // member variables
-    bool                                 cgi_info_epc_list_present = false;
     cell_access_related_info_eutra_epc_s cgi_info_epc_legacy;
     cgi_info_epc_list_l_                 cgi_info_epc_list;
   };
   using cgi_info_minus5_gc_l_ = dyn_array<cell_access_related_info_eutra_minus5_gc_s>;
 
   // member variables
-  bool                         cgi_info_epc_present         = false;
-  bool                         cgi_info_minus5_gc_present   = false;
-  bool                         multi_band_info_list_present = false;
-  bool                         freq_band_ind_prio_present   = false;
+  bool                         cgi_info_epc_present       = false;
+  bool                         freq_band_ind_prio_present = false;
   cgi_info_epc_s_              cgi_info_epc;
   cgi_info_minus5_gc_l_        cgi_info_minus5_gc;
   uint16_t                     freq_band_ind = 1;
@@ -8464,8 +8375,6 @@ struct meas_result_nr_s {
       meas_quant_results_s results_csi_rs_cell;
     };
     struct rs_idx_results_s_ {
-      bool                          results_ssb_idxes_present    = false;
-      bool                          results_csi_rs_idxes_present = false;
       results_per_ssb_idx_list_l    results_ssb_idxes;
       results_per_csi_rs_idx_list_l results_csi_rs_idxes;
     };
@@ -8572,13 +8481,12 @@ struct meas_result2_eutra_s {
 
 // MeasResult2NR ::= SEQUENCE
 struct meas_result2_nr_s {
-  bool                  ext                                    = false;
-  bool                  ssb_freq_present                       = false;
-  bool                  ref_freq_csi_rs_present                = false;
-  bool                  meas_result_serving_cell_present       = false;
-  bool                  meas_result_neigh_cell_list_nr_present = false;
-  uint32_t              ssb_freq                               = 0;
-  uint32_t              ref_freq_csi_rs                        = 0;
+  bool                  ext                              = false;
+  bool                  ssb_freq_present                 = false;
+  bool                  ref_freq_csi_rs_present          = false;
+  bool                  meas_result_serving_cell_present = false;
+  uint32_t              ssb_freq                         = 0;
+  uint32_t              ref_freq_csi_rs                  = 0;
   meas_result_nr_s      meas_result_serving_cell;
   meas_result_list_nr_l meas_result_neigh_cell_list_nr;
   // ...
@@ -8924,9 +8832,7 @@ struct fail_report_scg_s {
   typedef enumerated<fail_type_opts> fail_type_e_;
 
   // member variables
-  bool                    ext                           = false;
-  bool                    meas_result_freq_list_present = false;
-  bool                    meas_result_scg_fail_present  = false;
+  bool                    ext = false;
   fail_type_e_            fail_type;
   meas_result_freq_list_l meas_result_freq_list;
   dyn_octstring           meas_result_scg_fail;
@@ -8960,9 +8866,7 @@ struct fail_report_scg_eutra_s {
   typedef enumerated<fail_type_opts> fail_type_e_;
 
   // member variables
-  bool                              ext                                = false;
-  bool                              meas_result_freq_list_mrdc_present = false;
-  bool                              meas_result_scg_fail_mrdc_present  = false;
+  bool                              ext = false;
   fail_type_e_                      fail_type;
   meas_result_freq_list_fail_mrdc_l meas_result_freq_list_mrdc;
   dyn_octstring                     meas_result_scg_fail_mrdc;
@@ -9083,8 +8987,7 @@ struct meas_results_s {
 
 // RRCReconfigurationComplete-v1530-IEs ::= SEQUENCE
 struct rrc_recfg_complete_v1530_ies_s {
-  bool                           ul_tx_direct_current_list_present = false;
-  bool                           non_crit_ext_present              = false;
+  bool                           non_crit_ext_present = false;
   ul_tx_direct_current_list_l    ul_tx_direct_current_list;
   rrc_recfg_complete_v1560_ies_s non_crit_ext;
 
@@ -9158,8 +9061,7 @@ private:
 
 // SCGFailureInformation-v1590-IEs ::= SEQUENCE
 struct scg_fail_info_v1590_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -9170,8 +9072,7 @@ struct scg_fail_info_v1590_ies_s {
 
 // SCGFailureInformationEUTRA-v1590-IEs ::= SEQUENCE
 struct scg_fail_info_eutra_v1590_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -9197,8 +9098,7 @@ struct ueassist_info_v1540_ies_s {
 
 // CounterCheckResponse-IEs ::= SEQUENCE
 struct counter_check_resp_ies_s {
-  bool                  late_non_crit_ext_present = false;
-  bool                  non_crit_ext_present      = false;
+  bool                  non_crit_ext_present = false;
   drb_count_info_list_l drb_count_info_list;
   dyn_octstring         late_non_crit_ext;
 
@@ -9211,7 +9111,6 @@ struct counter_check_resp_ies_s {
 // FailureInformation-IEs ::= SEQUENCE
 struct fail_info_ies_s {
   bool                   fail_info_rlc_bearer_present = false;
-  bool                   late_non_crit_ext_present    = false;
   bool                   non_crit_ext_present         = false;
   fail_info_rlc_bearer_s fail_info_rlc_bearer;
   dyn_octstring          late_non_crit_ext;
@@ -9224,8 +9123,7 @@ struct fail_info_ies_s {
 
 // LocationMeasurementIndication-IEs ::= SEQUENCE
 struct location_meas_ind_ies_s {
-  bool                                  late_non_crit_ext_present = false;
-  bool                                  non_crit_ext_present      = false;
+  bool                                  non_crit_ext_present = false;
   setup_release_c<location_meas_info_c> meas_ind;
   dyn_octstring                         late_non_crit_ext;
 
@@ -9237,8 +9135,7 @@ struct location_meas_ind_ies_s {
 
 // MeasurementReport-IEs ::= SEQUENCE
 struct meas_report_ies_s {
-  bool           late_non_crit_ext_present = false;
-  bool           non_crit_ext_present      = false;
+  bool           non_crit_ext_present = false;
   meas_results_s meas_results;
   dyn_octstring  late_non_crit_ext;
 
@@ -9250,8 +9147,7 @@ struct meas_report_ies_s {
 
 // RRCReconfigurationComplete-IEs ::= SEQUENCE
 struct rrc_recfg_complete_ies_s {
-  bool                           late_non_crit_ext_present = false;
-  bool                           non_crit_ext_present      = false;
+  bool                           non_crit_ext_present = false;
   dyn_octstring                  late_non_crit_ext;
   rrc_recfg_complete_v1530_ies_s non_crit_ext;
 
@@ -9263,8 +9159,7 @@ struct rrc_recfg_complete_ies_s {
 
 // RRCReestablishmentComplete-IEs ::= SEQUENCE
 struct rrc_reest_complete_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -9275,11 +9170,8 @@ struct rrc_reest_complete_ies_s {
 
 // RRCResumeComplete-IEs ::= SEQUENCE
 struct rrc_resume_complete_ies_s {
-  bool                        ded_nas_msg_present               = false;
-  bool                        sel_plmn_id_present               = false;
-  bool                        ul_tx_direct_current_list_present = false;
-  bool                        late_non_crit_ext_present         = false;
-  bool                        non_crit_ext_present              = false;
+  bool                        sel_plmn_id_present  = false;
+  bool                        non_crit_ext_present = false;
   dyn_octstring               ded_nas_msg;
   uint8_t                     sel_plmn_id = 1;
   ul_tx_direct_current_list_l ul_tx_direct_current_list;
@@ -9352,9 +9244,7 @@ struct rrc_setup_complete_ies_s {
   // member variables
   bool                        registered_amf_present           = false;
   bool                        guami_type_present               = false;
-  bool                        s_nssai_list_present             = false;
   bool                        ng_minus5_g_s_tmsi_value_present = false;
-  bool                        late_non_crit_ext_present        = false;
   bool                        non_crit_ext_present             = false;
   uint8_t                     sel_plmn_id                      = 1;
   registered_amf_s            registered_amf;
@@ -9398,8 +9288,7 @@ struct scg_fail_info_eutra_ies_s {
 
 // SecurityModeComplete-IEs ::= SEQUENCE
 struct security_mode_complete_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -9410,8 +9299,7 @@ struct security_mode_complete_ies_s {
 
 // SecurityModeFailure-IEs ::= SEQUENCE
 struct security_mode_fail_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring late_non_crit_ext;
 
   // sequence methods
@@ -9423,7 +9311,6 @@ struct security_mode_fail_ies_s {
 // UEAssistanceInformation-IEs ::= SEQUENCE
 struct ueassist_info_ies_s {
   bool                      delay_budget_report_present = false;
-  bool                      late_non_crit_ext_present   = false;
   bool                      non_crit_ext_present        = false;
   delay_budget_report_c     delay_budget_report;
   dyn_octstring             late_non_crit_ext;
@@ -9438,7 +9325,6 @@ struct ueassist_info_ies_s {
 // UECapabilityInformation-IEs ::= SEQUENCE
 struct ue_cap_info_ies_s {
   bool                        ue_cap_rat_container_list_present = false;
-  bool                        late_non_crit_ext_present         = false;
   bool                        non_crit_ext_present              = false;
   ue_cap_rat_container_list_l ue_cap_rat_container_list;
   dyn_octstring               late_non_crit_ext;
@@ -9451,9 +9337,7 @@ struct ue_cap_info_ies_s {
 
 // ULInformationTransfer-IEs ::= SEQUENCE
 struct ul_info_transfer_ies_s {
-  bool          ded_nas_msg_present       = false;
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring ded_nas_msg;
   dyn_octstring late_non_crit_ext;
 
@@ -9465,10 +9349,7 @@ struct ul_info_transfer_ies_s {
 
 // ULInformationTransferMRDC-IEs ::= SEQUENCE
 struct ul_info_transfer_mrdc_ies_s {
-  bool          ul_dcch_msg_nr_present    = false;
-  bool          ul_dcch_msg_eutra_present = false;
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
+  bool          non_crit_ext_present = false;
   dyn_octstring ul_dcch_msg_nr;
   dyn_octstring ul_dcch_msg_eutra;
   dyn_octstring late_non_crit_ext;
@@ -10532,10 +10413,9 @@ struct bfr_csirs_res_s {
   using ra_occasion_list_l_ = dyn_array<uint16_t>;
 
   // member variables
-  bool                ext                      = false;
-  bool                ra_occasion_list_present = false;
-  bool                ra_preamb_idx_present    = false;
-  uint8_t             csi_rs                   = 0;
+  bool                ext                   = false;
+  bool                ra_preamb_idx_present = false;
+  uint8_t             csi_rs                = 0;
   ra_occasion_list_l_ ra_occasion_list;
   uint8_t             ra_preamb_idx = 0;
   // ...
@@ -11548,15 +11428,11 @@ struct pdcch_cfg_s {
   using search_spaces_to_release_list_l_ = bounded_array<uint8_t, 10>;
 
   // member variables
-  bool                                 ext                                   = false;
-  bool                                 ctrl_res_set_to_add_mod_list_present  = false;
-  bool                                 ctrl_res_set_to_release_list_present  = false;
-  bool                                 search_spaces_to_add_mod_list_present = false;
-  bool                                 search_spaces_to_release_list_present = false;
-  bool                                 dl_preemption_present                 = false;
-  bool                                 tpc_pusch_present                     = false;
-  bool                                 tpc_pucch_present                     = false;
-  bool                                 tpc_srs_present                       = false;
+  bool                                 ext                   = false;
+  bool                                 dl_preemption_present = false;
+  bool                                 tpc_pusch_present     = false;
+  bool                                 tpc_pucch_present     = false;
+  bool                                 tpc_srs_present       = false;
   ctrl_res_set_to_add_mod_list_l_      ctrl_res_set_to_add_mod_list;
   ctrl_res_set_to_release_list_l_      ctrl_res_set_to_release_list;
   search_spaces_to_add_mod_list_l_     search_spaces_to_add_mod_list;
@@ -11719,35 +11595,23 @@ struct pdsch_cfg_s {
   using sp_zp_csi_rs_res_sets_to_release_list_l_        = bounded_array<uint8_t, 16>;
 
   // member variables
-  bool                           ext                                                  = false;
-  bool                           data_scrambling_id_pdsch_present                     = false;
-  bool                           dmrs_dl_for_pdsch_map_type_a_present                 = false;
-  bool                           dmrs_dl_for_pdsch_map_type_b_present                 = false;
-  bool                           tci_states_to_add_mod_list_present                   = false;
-  bool                           tci_states_to_release_list_present                   = false;
-  bool                           vrb_to_prb_interleaver_present                       = false;
-  bool                           pdsch_time_domain_alloc_list_present                 = false;
-  bool                           pdsch_aggregation_factor_present                     = false;
-  bool                           rate_match_pattern_to_add_mod_list_present           = false;
-  bool                           rate_match_pattern_to_release_list_present           = false;
-  bool                           rate_match_pattern_group1_present                    = false;
-  bool                           rate_match_pattern_group2_present                    = false;
-  bool                           mcs_table_present                                    = false;
-  bool                           max_nrof_code_words_sched_by_dci_present             = false;
-  bool                           zp_csi_rs_res_to_add_mod_list_present                = false;
-  bool                           zp_csi_rs_res_to_release_list_present                = false;
-  bool                           aperiodic_zp_csi_rs_res_sets_to_add_mod_list_present = false;
-  bool                           aperiodic_zp_csi_rs_res_sets_to_release_list_present = false;
-  bool                           sp_zp_csi_rs_res_sets_to_add_mod_list_present        = false;
-  bool                           sp_zp_csi_rs_res_sets_to_release_list_present        = false;
-  bool                           p_zp_csi_rs_res_set_present                          = false;
-  uint16_t                       data_scrambling_id_pdsch                             = 0;
-  setup_release_c<dmrs_dl_cfg_s> dmrs_dl_for_pdsch_map_type_a;
-  setup_release_c<dmrs_dl_cfg_s> dmrs_dl_for_pdsch_map_type_b;
-  tci_states_to_add_mod_list_l_  tci_states_to_add_mod_list;
-  tci_states_to_release_list_l_  tci_states_to_release_list;
-  vrb_to_prb_interleaver_e_      vrb_to_prb_interleaver;
-  res_alloc_e_                   res_alloc;
+  bool                                                               ext                                      = false;
+  bool                                                               data_scrambling_id_pdsch_present         = false;
+  bool                                                               dmrs_dl_for_pdsch_map_type_a_present     = false;
+  bool                                                               dmrs_dl_for_pdsch_map_type_b_present     = false;
+  bool                                                               vrb_to_prb_interleaver_present           = false;
+  bool                                                               pdsch_time_domain_alloc_list_present     = false;
+  bool                                                               pdsch_aggregation_factor_present         = false;
+  bool                                                               mcs_table_present                        = false;
+  bool                                                               max_nrof_code_words_sched_by_dci_present = false;
+  bool                                                               p_zp_csi_rs_res_set_present              = false;
+  uint16_t                                                           data_scrambling_id_pdsch                 = 0;
+  setup_release_c<dmrs_dl_cfg_s>                                     dmrs_dl_for_pdsch_map_type_a;
+  setup_release_c<dmrs_dl_cfg_s>                                     dmrs_dl_for_pdsch_map_type_b;
+  tci_states_to_add_mod_list_l_                                      tci_states_to_add_mod_list;
+  tci_states_to_release_list_l_                                      tci_states_to_release_list;
+  vrb_to_prb_interleaver_e_                                          vrb_to_prb_interleaver;
+  res_alloc_e_                                                       res_alloc;
   setup_release_c<dyn_seq_of<pdsch_time_domain_res_alloc_s, 1, 16> > pdsch_time_domain_alloc_list;
   pdsch_aggregation_factor_e_                                        pdsch_aggregation_factor;
   rate_match_pattern_to_add_mod_list_l_                              rate_match_pattern_to_add_mod_list;
@@ -11795,11 +11659,9 @@ struct radio_link_monitoring_cfg_s {
   typedef enumerated<beam_fail_detection_timer_opts> beam_fail_detection_timer_e_;
 
   // member variables
-  bool                                  ext                                        = false;
-  bool                                  fail_detection_res_to_add_mod_list_present = false;
-  bool                                  fail_detection_res_to_release_list_present = false;
-  bool                                  beam_fail_instance_max_count_present       = false;
-  bool                                  beam_fail_detection_timer_present          = false;
+  bool                                  ext                                  = false;
+  bool                                  beam_fail_instance_max_count_present = false;
+  bool                                  beam_fail_detection_timer_present    = false;
   fail_detection_res_to_add_mod_list_l_ fail_detection_res_to_add_mod_list;
   fail_detection_res_to_release_list_l_ fail_detection_res_to_release_list;
   beam_fail_instance_max_count_e_       beam_fail_instance_max_count;
@@ -12740,8 +12602,6 @@ struct pucch_pwr_ctrl_s {
   bool                delta_f_pucch_f2_present               = false;
   bool                delta_f_pucch_f3_present               = false;
   bool                delta_f_pucch_f4_present               = false;
-  bool                p0_set_present                         = false;
-  bool                pathloss_ref_rss_present               = false;
   bool                two_pucch_pc_adjustment_states_present = false;
   int8_t              delta_f_pucch_f0                       = -16;
   int8_t              delta_f_pucch_f1                       = -16;
@@ -12972,16 +12832,11 @@ struct pusch_pwr_ctrl_s {
   using sri_pusch_map_to_release_list_l_   = bounded_array<uint8_t, 16>;
 
   // member variables
-  bool                               tpc_accumulation_present                = false;
-  bool                               msg3_alpha_present                      = false;
-  bool                               p0_nominal_without_grant_present        = false;
-  bool                               p0_alpha_sets_present                   = false;
-  bool                               pathloss_ref_rs_to_add_mod_list_present = false;
-  bool                               pathloss_ref_rs_to_release_list_present = false;
-  bool                               two_pusch_pc_adjustment_states_present  = false;
-  bool                               delta_mcs_present                       = false;
-  bool                               sri_pusch_map_to_add_mod_list_present   = false;
-  bool                               sri_pusch_map_to_release_list_present   = false;
+  bool                               tpc_accumulation_present               = false;
+  bool                               msg3_alpha_present                     = false;
+  bool                               p0_nominal_without_grant_present       = false;
+  bool                               two_pusch_pc_adjustment_states_present = false;
+  bool                               delta_mcs_present                      = false;
   alpha_e                            msg3_alpha;
   int16_t                            p0_nominal_without_grant = -202;
   p0_alpha_sets_l_                   p0_alpha_sets;
@@ -13394,7 +13249,6 @@ struct srs_res_set_s {
 
   // member variables
   bool                              ext                                    = false;
-  bool                              srs_res_id_list_present                = false;
   bool                              alpha_present                          = false;
   bool                              p0_present                             = false;
   bool                              pathloss_ref_rs_present                = false;
@@ -13705,7 +13559,6 @@ struct beam_fail_recovery_cfg_s {
   bool                        root_seq_idx_bfr_present         = false;
   bool                        rach_cfg_bfr_present             = false;
   bool                        rsrp_thres_ssb_present           = false;
-  bool                        candidate_beam_rs_list_present   = false;
   bool                        ssb_per_rach_occasion_present    = false;
   bool                        ra_ssb_occasion_mask_idx_present = false;
   bool                        recovery_search_space_id_present = false;
@@ -13912,22 +13765,12 @@ struct pucch_cfg_s {
   using spatial_relation_info_to_release_list_l_ = bounded_array<uint8_t, 8>;
 
   // member variables
-  bool                                     ext                                           = false;
-  bool                                     res_set_to_add_mod_list_present               = false;
-  bool                                     res_set_to_release_list_present               = false;
-  bool                                     res_to_add_mod_list_present                   = false;
-  bool                                     res_to_release_list_present                   = false;
-  bool                                     format1_present                               = false;
-  bool                                     format2_present                               = false;
-  bool                                     format3_present                               = false;
-  bool                                     format4_present                               = false;
-  bool                                     sched_request_res_to_add_mod_list_present     = false;
-  bool                                     sched_request_res_to_release_list_present     = false;
-  bool                                     multi_csi_pucch_res_list_present              = false;
-  bool                                     dl_data_to_ul_ack_present                     = false;
-  bool                                     spatial_relation_info_to_add_mod_list_present = false;
-  bool                                     spatial_relation_info_to_release_list_present = false;
-  bool                                     pucch_pwr_ctrl_present                        = false;
+  bool                                     ext                    = false;
+  bool                                     format1_present        = false;
+  bool                                     format2_present        = false;
+  bool                                     format3_present        = false;
+  bool                                     format4_present        = false;
+  bool                                     pucch_pwr_ctrl_present = false;
   res_set_to_add_mod_list_l_               res_set_to_add_mod_list;
   res_set_to_release_list_l_               res_set_to_release_list;
   res_to_add_mod_list_l_                   res_to_add_mod_list;
@@ -14019,7 +13862,6 @@ struct pusch_cfg_s {
   bool                                                               dmrs_ul_for_pusch_map_type_b_present = false;
   bool                                                               pusch_pwr_ctrl_present               = false;
   bool                                                               freq_hop_present                     = false;
-  bool                                                               freq_hop_offset_lists_present        = false;
   bool                                                               pusch_time_domain_alloc_list_present = false;
   bool                                                               pusch_aggregation_factor_present     = false;
   bool                                                               mcs_table_present                    = false;
@@ -14062,12 +13904,8 @@ struct srs_cfg_s {
   using srs_res_to_add_mod_list_l_     = dyn_array<srs_res_s>;
 
   // member variables
-  bool                           ext                                 = false;
-  bool                           srs_res_set_to_release_list_present = false;
-  bool                           srs_res_set_to_add_mod_list_present = false;
-  bool                           srs_res_to_release_list_present     = false;
-  bool                           srs_res_to_add_mod_list_present     = false;
-  bool                           tpc_accumulation_present            = false;
+  bool                           ext                      = false;
+  bool                           tpc_accumulation_present = false;
   srs_res_set_to_release_list_l_ srs_res_set_to_release_list;
   srs_res_set_to_add_mod_list_l_ srs_res_set_to_add_mod_list;
   srs_res_to_release_list_l_     srs_res_to_release_list;
@@ -15801,8 +15639,7 @@ struct csi_associated_report_cfg_info_s {
       using qcl_info_l_ = bounded_array<uint8_t, 16>;
 
       // member variables
-      bool        qcl_info_present = false;
-      uint8_t     res_set          = 1;
+      uint8_t     res_set = 1;
       qcl_info_l_ qcl_info;
     };
     struct types_opts {
@@ -17599,7 +17436,6 @@ struct csi_report_cfg_s {
   bool                                    codebook_cfg_present                    = false;
   bool                                    dummy_present                           = false;
   bool                                    cqi_table_present                       = false;
-  bool                                    non_pmi_port_ind_present                = false;
   uint8_t                                 report_cfg_id                           = 0;
   uint8_t                                 carrier                                 = 0;
   uint8_t                                 res_for_ch_meas                         = 0;
@@ -17634,8 +17470,7 @@ struct csi_res_cfg_s {
       using csi_ssb_res_set_list_l_    = std::array<uint8_t, 1>;
 
       // member variables
-      bool                       nzp_csi_rs_res_set_list_present = false;
-      bool                       csi_ssb_res_set_list_present    = false;
+      bool                       csi_ssb_res_set_list_present = false;
       nzp_csi_rs_res_set_list_l_ nzp_csi_rs_res_set_list;
       csi_ssb_res_set_list_l_    csi_ssb_res_set_list;
     };
@@ -17804,20 +17639,6 @@ struct csi_meas_cfg_s {
 
   // member variables
   bool                                  ext                                                 = false;
-  bool                                  nzp_csi_rs_res_to_add_mod_list_present              = false;
-  bool                                  nzp_csi_rs_res_to_release_list_present              = false;
-  bool                                  nzp_csi_rs_res_set_to_add_mod_list_present          = false;
-  bool                                  nzp_csi_rs_res_set_to_release_list_present          = false;
-  bool                                  csi_im_res_to_add_mod_list_present                  = false;
-  bool                                  csi_im_res_to_release_list_present                  = false;
-  bool                                  csi_im_res_set_to_add_mod_list_present              = false;
-  bool                                  csi_im_res_set_to_release_list_present              = false;
-  bool                                  csi_ssb_res_set_to_add_mod_list_present             = false;
-  bool                                  csi_ssb_res_set_to_release_list_present             = false;
-  bool                                  csi_res_cfg_to_add_mod_list_present                 = false;
-  bool                                  csi_res_cfg_to_release_list_present                 = false;
-  bool                                  csi_report_cfg_to_add_mod_list_present              = false;
-  bool                                  csi_report_cfg_to_release_list_present              = false;
   bool                                  report_trigger_size_present                         = false;
   bool                                  aperiodic_trigger_state_list_present                = false;
   bool                                  semi_persistent_on_pusch_trigger_state_list_present = false;
@@ -18028,7 +17849,6 @@ struct freq_info_ul_s {
 
   // member variables
   bool                         ext                           = false;
-  bool                         freq_band_list_present        = false;
   bool                         absolute_freq_point_a_present = false;
   bool                         add_spec_emission_present     = false;
   bool                         p_max_present                 = false;
@@ -18073,7 +17893,6 @@ struct srs_tpc_pdcch_cfg_s {
   using srs_cc_set_idxlist_l_ = dyn_array<srs_cc_set_idx_s>;
 
   // member variables
-  bool                  srs_cc_set_idxlist_present = false;
   srs_cc_set_idxlist_l_ srs_cc_set_idxlist;
 
   // sequence methods
@@ -18087,11 +17906,10 @@ struct slot_format_combinations_per_cell_s {
   using slot_format_combinations_l_ = dyn_array<slot_format_combination_s>;
 
   // member variables
-  bool                        ext                              = false;
-  bool                        subcarrier_spacing2_present      = false;
-  bool                        slot_format_combinations_present = false;
-  bool                        position_in_dci_present          = false;
-  uint8_t                     serving_cell_id                  = 0;
+  bool                        ext                         = false;
+  bool                        subcarrier_spacing2_present = false;
+  bool                        position_in_dci_present     = false;
+  uint8_t                     serving_cell_id             = 0;
   subcarrier_spacing_e        subcarrier_spacing;
   subcarrier_spacing_e        subcarrier_spacing2;
   slot_format_combinations_l_ slot_format_combinations;
@@ -18321,8 +18139,7 @@ struct rate_match_pattern_lte_crs_s {
   typedef enumerated<v_shift_opts> v_shift_e_;
 
   // member variables
-  bool                      mbsfn_sf_cfg_list_present = false;
-  uint16_t                  carrier_freq_dl           = 0;
+  uint16_t                  carrier_freq_dl = 0;
   carrier_bw_dl_e_          carrier_bw_dl;
   eutra_mbsfn_sf_cfg_list_l mbsfn_sf_cfg_list;
   nrof_crs_ports_e_         nrof_crs_ports;
@@ -18417,7 +18234,6 @@ struct srs_carrier_switching_s {
   bool                       ext                                   = false;
   bool                       srs_switch_from_serv_cell_idx_present = false;
   bool                       srs_tpc_pdcch_group_present           = false;
-  bool                       monitoring_cells_present              = false;
   uint8_t                    srs_switch_from_serv_cell_idx         = 0;
   srs_switch_from_carrier_e_ srs_switch_from_carrier;
   srs_tpc_pdcch_group_c_     srs_tpc_pdcch_group;
@@ -18436,11 +18252,9 @@ struct slot_format_ind_s {
   using slot_format_comb_to_release_list_l_ = bounded_array<uint8_t, 16>;
 
   // member variables
-  bool                                ext                                      = false;
-  bool                                slot_format_comb_to_add_mod_list_present = false;
-  bool                                slot_format_comb_to_release_list_present = false;
-  uint32_t                            sfi_rnti                                 = 0;
-  uint8_t                             dci_payload_size                         = 1;
+  bool                                ext              = false;
+  uint32_t                            sfi_rnti         = 0;
+  uint8_t                             dci_payload_size = 1;
   slot_format_comb_to_add_mod_list_l_ slot_format_comb_to_add_mod_list;
   slot_format_comb_to_release_list_l_ slot_format_comb_to_release_list;
   // ...
@@ -18998,20 +18812,18 @@ struct serving_cell_cfg_common_s {
   using rate_match_pattern_to_release_list_l_ = bounded_array<uint8_t, 4>;
 
   // member variables
-  bool                                          ext                                        = false;
-  bool                                          pci_present                                = false;
-  bool                                          dl_cfg_common_present                      = false;
-  bool                                          ul_cfg_common_present                      = false;
-  bool                                          supplementary_ul_cfg_present               = false;
-  bool                                          n_timing_advance_offset_present            = false;
-  bool                                          ssb_positions_in_burst_present             = false;
-  bool                                          ssb_periodicity_serving_cell_present       = false;
-  bool                                          lte_crs_to_match_around_present            = false;
-  bool                                          rate_match_pattern_to_add_mod_list_present = false;
-  bool                                          rate_match_pattern_to_release_list_present = false;
-  bool                                          ssb_subcarrier_spacing_present             = false;
-  bool                                          tdd_ul_dl_cfg_common_present               = false;
-  uint16_t                                      pci                                        = 0;
+  bool                                          ext                                  = false;
+  bool                                          pci_present                          = false;
+  bool                                          dl_cfg_common_present                = false;
+  bool                                          ul_cfg_common_present                = false;
+  bool                                          supplementary_ul_cfg_present         = false;
+  bool                                          n_timing_advance_offset_present      = false;
+  bool                                          ssb_positions_in_burst_present       = false;
+  bool                                          ssb_periodicity_serving_cell_present = false;
+  bool                                          lte_crs_to_match_around_present      = false;
+  bool                                          ssb_subcarrier_spacing_present       = false;
+  bool                                          tdd_ul_dl_cfg_common_present         = false;
+  uint16_t                                      pci                                  = 0;
   dl_cfg_common_s                               dl_cfg_common;
   ul_cfg_common_s                               ul_cfg_common;
   ul_cfg_common_s                               supplementary_ul_cfg;
@@ -19052,9 +18864,7 @@ struct tdd_ul_dl_cfg_ded_s {
   using slot_specific_cfgs_to_release_list_l_ = dyn_array<uint16_t>;
 
   // member variables
-  bool                                  ext                                        = false;
-  bool                                  slot_specific_cfgs_to_add_mod_list_present = false;
-  bool                                  slot_specific_cfgs_to_release_list_present = false;
+  bool                                  ext = false;
   slot_specific_cfgs_to_add_mod_list_l_ slot_specific_cfgs_to_add_mod_list;
   slot_specific_cfgs_to_release_list_l_ slot_specific_cfgs_to_release_list;
   // ...
@@ -19110,8 +18920,6 @@ struct ul_cfg_s {
   // member variables
   bool                                      ext                            = false;
   bool                                      init_ul_bwp_present            = false;
-  bool                                      ul_bwp_to_release_list_present = false;
-  bool                                      ul_bwp_to_add_mod_list_present = false;
   bool                                      first_active_ul_bwp_id_present = false;
   bool                                      pusch_serving_cell_cfg_present = false;
   bool                                      carrier_switching_present      = false;
@@ -19850,8 +19658,6 @@ struct lc_ch_cfg_s {
 
     // member variables
     bool                     ext                                 = false;
-    bool                     allowed_serving_cells_present       = false;
-    bool                     allowed_scs_list_present            = false;
     bool                     max_pusch_dur_present               = false;
     bool                     cfgured_grant_type1_allowed_present = false;
     bool                     lc_ch_group_present                 = false;
@@ -20157,8 +19963,6 @@ struct sched_request_cfg_s {
   using sched_request_to_release_list_l_ = bounded_array<uint8_t, 8>;
 
   // member variables
-  bool                             sched_request_to_add_mod_list_present = false;
-  bool                             sched_request_to_release_list_present = false;
   sched_request_to_add_mod_list_l_ sched_request_to_add_mod_list;
   sched_request_to_release_list_l_ sched_request_to_release_list;
 
@@ -20253,8 +20057,6 @@ struct serving_cell_cfg_s {
   bool                                      ext                              = false;
   bool                                      tdd_ul_dl_cfg_ded_present        = false;
   bool                                      init_dl_bwp_present              = false;
-  bool                                      dl_bwp_to_release_list_present   = false;
-  bool                                      dl_bwp_to_add_mod_list_present   = false;
   bool                                      first_active_dl_bwp_id_present   = false;
   bool                                      bwp_inactivity_timer_present     = false;
   bool                                      default_dl_bwp_id_present        = false;
@@ -20304,8 +20106,6 @@ struct tag_cfg_s {
   using tag_to_add_mod_list_l_ = dyn_array<tag_s>;
 
   // member variables
-  bool                   tag_to_release_list_present = false;
-  bool                   tag_to_add_mod_list_present = false;
   tag_to_release_list_l_ tag_to_release_list;
   tag_to_add_mod_list_l_ tag_to_add_mod_list;
 
@@ -20508,15 +20308,11 @@ struct cell_group_cfg_s {
   using scell_to_release_list_l_      = bounded_array<uint8_t, 31>;
 
   // member variables
-  bool                          ext                                = false;
-  bool                          rlc_bearer_to_add_mod_list_present = false;
-  bool                          rlc_bearer_to_release_list_present = false;
-  bool                          mac_cell_group_cfg_present         = false;
-  bool                          phys_cell_group_cfg_present        = false;
-  bool                          sp_cell_cfg_present                = false;
-  bool                          scell_to_add_mod_list_present      = false;
-  bool                          scell_to_release_list_present      = false;
-  uint8_t                       cell_group_id                      = 0;
+  bool                          ext                         = false;
+  bool                          mac_cell_group_cfg_present  = false;
+  bool                          phys_cell_group_cfg_present = false;
+  bool                          sp_cell_cfg_present         = false;
+  uint8_t                       cell_group_id               = 0;
   rlc_bearer_to_add_mod_list_l_ rlc_bearer_to_add_mod_list;
   rlc_bearer_to_release_list_l_ rlc_bearer_to_release_list;
   mac_cell_group_cfg_s          mac_cell_group_cfg;
@@ -21049,10 +20845,6 @@ struct feature_set_dl_s {
   bool                                            time_dur_for_qcl_present                             = false;
   bool                                            pdsch_processing_type1_different_tb_per_slot_present = false;
   bool                                            dummy3_present                                       = false;
-  bool                                            dummy4_present                                       = false;
-  bool                                            dummy5_present                                       = false;
-  bool                                            dummy6_present                                       = false;
-  bool                                            dummy7_present                                       = false;
   feature_set_list_per_dl_cc_l_                   feature_set_list_per_dl_cc;
   freq_separation_class_e                         intra_band_freq_separation_dl;
   scaling_factor_e_                               scaling_factor;
@@ -21488,11 +21280,7 @@ struct feature_sets_s {
   using feature_sets_dl_v15a0_l_        = dyn_array<feature_set_dl_v15a0_s>;
 
   // member variables
-  bool                      ext                            = false;
-  bool                      feature_sets_dl_present        = false;
-  bool                      feature_sets_dl_per_cc_present = false;
-  bool                      feature_sets_ul_present        = false;
-  bool                      feature_sets_ul_per_cc_present = false;
+  bool                      ext = false;
   feature_sets_dl_l_        feature_sets_dl;
   feature_sets_dl_per_cc_l_ feature_sets_dl_per_cc;
   feature_sets_ul_l_        feature_sets_ul;
@@ -21969,7 +21757,6 @@ struct nrdc_params_s {
   bool                           tdd_add_ue_nrdc_cap_present      = false;
   bool                           fr1_add_ue_nrdc_cap_present      = false;
   bool                           fr2_add_ue_nrdc_cap_present      = false;
-  bool                           late_non_crit_ext_present        = false;
   bool                           dummy_present                    = false;
   meas_and_mob_params_mrdc_s     meas_and_mob_params_nrdc;
   general_params_mrdc_xdd_diff_s general_params_nrdc;
@@ -22357,8 +22144,7 @@ struct phy_params_mrdc_s {
   using naics_cap_list_l_ = dyn_array<naics_cap_entry_s>;
 
   // member variables
-  bool              ext                    = false;
-  bool              naics_cap_list_present = false;
+  bool              ext = false;
   naics_cap_list_l_ naics_cap_list;
   // ...
   // group 0
@@ -22375,9 +22161,7 @@ struct rf_params_s {
   using supported_band_list_nr_l_ = dyn_array<band_nr_s>;
 
   // member variables
-  bool                      ext                                     = false;
-  bool                      supported_band_combination_list_present = false;
-  bool                      applied_freq_band_list_filt_present     = false;
+  bool                      ext = false;
   supported_band_list_nr_l_ supported_band_list_nr;
   band_combination_list_l   supported_band_combination_list;
   freq_band_list_l          applied_freq_band_list_filt;
@@ -22399,11 +22183,6 @@ struct rf_params_s {
 // RF-ParametersMRDC ::= SEQUENCE
 struct rf_params_mrdc_s {
   struct supported_band_combination_list_nedc_only_v15a0_s_ {
-    bool                          supported_band_combination_list_v1540_present = false;
-    bool                          supported_band_combination_list_v1560_present = false;
-    bool                          supported_band_combination_list_v1570_present = false;
-    bool                          supported_band_combination_list_v1580_present = false;
-    bool                          supported_band_combination_list_v1590_present = false;
     band_combination_list_v1540_l supported_band_combination_list_v1540;
     band_combination_list_v1560_l supported_band_combination_list_v1560;
     band_combination_list_v1570_l supported_band_combination_list_v1570;
@@ -22412,9 +22191,7 @@ struct rf_params_mrdc_s {
   };
 
   // member variables
-  bool                    ext                                     = false;
-  bool                    supported_band_combination_list_present = false;
-  bool                    applied_freq_band_list_filt_present     = false;
+  bool                    ext = false;
   band_combination_list_l supported_band_combination_list;
   freq_band_list_l        applied_freq_band_list_filt;
   // ...
@@ -22454,8 +22231,7 @@ struct ue_cap_request_filt_nr_v1540_s {
 
 // UE-CapabilityRequestFilterNR ::= SEQUENCE
 struct ue_cap_request_filt_nr_s {
-  bool                           freq_band_list_filt_present = false;
-  bool                           non_crit_ext_present        = false;
+  bool                           non_crit_ext_present = false;
   freq_band_list_l               freq_band_list_filt;
   ue_cap_request_filt_nr_v1540_s non_crit_ext;
 
@@ -22489,7 +22265,6 @@ struct pdcp_params_mrdc_s {
 
 // UE-MRDC-Capability-v1560 ::= SEQUENCE
 struct ue_mrdc_cap_v1560_s {
-  bool                             rx_filts_present                       = false;
   bool                             meas_and_mob_params_mrdc_v1560_present = false;
   bool                             fdd_add_ue_mrdc_cap_v1560_present      = false;
   bool                             tdd_add_ue_mrdc_cap_v1560_present      = false;
@@ -22517,9 +22292,7 @@ struct ue_mrdc_cap_s {
   bool                           tdd_add_ue_mrdc_cap_present      = false;
   bool                           fr1_add_ue_mrdc_cap_present      = false;
   bool                           fr2_add_ue_mrdc_cap_present      = false;
-  bool                           feature_set_combinations_present = false;
   bool                           pdcp_params_mrdc_v1530_present   = false;
-  bool                           late_non_crit_ext_present        = false;
   bool                           non_crit_ext_present             = false;
   meas_and_mob_params_mrdc_s     meas_and_mob_params_mrdc;
   phy_params_mrdc_s              phy_params_mrdc_v1530;
@@ -22565,7 +22338,6 @@ struct ue_nr_cap_v1570_s {
 // UE-NR-Capability-v1560 ::= SEQUENCE
 struct ue_nr_cap_v1560_s {
   bool              nrdc_params_present  = false;
-  bool              rx_filts_present     = false;
   bool              non_crit_ext_present = false;
   nrdc_params_s     nrdc_params;
   dyn_octstring     rx_filts;
@@ -22780,17 +22552,15 @@ struct ue_nr_cap_s {
   using feature_set_combinations_l_ = dyn_array<feature_set_combination_l>;
 
   // member variables
-  bool                        rlc_params_present               = false;
-  bool                        mac_params_present               = false;
-  bool                        meas_and_mob_params_present      = false;
-  bool                        fdd_add_ue_nr_cap_present        = false;
-  bool                        tdd_add_ue_nr_cap_present        = false;
-  bool                        fr1_add_ue_nr_cap_present        = false;
-  bool                        fr2_add_ue_nr_cap_present        = false;
-  bool                        feature_sets_present             = false;
-  bool                        feature_set_combinations_present = false;
-  bool                        late_non_crit_ext_present        = false;
-  bool                        non_crit_ext_present             = false;
+  bool                        rlc_params_present          = false;
+  bool                        mac_params_present          = false;
+  bool                        meas_and_mob_params_present = false;
+  bool                        fdd_add_ue_nr_cap_present   = false;
+  bool                        tdd_add_ue_nr_cap_present   = false;
+  bool                        fr1_add_ue_nr_cap_present   = false;
+  bool                        fr2_add_ue_nr_cap_present   = false;
+  bool                        feature_sets_present        = false;
+  bool                        non_crit_ext_present        = false;
   access_stratum_release_e    access_stratum_release;
   pdcp_params_s               pdcp_params;
   rlc_params_s                rlc_params;
@@ -22851,9 +22621,6 @@ struct as_cfg_s {
   dyn_octstring rrc_recfg;
   // ...
   // group 0
-  bool          source_rb_sn_cfg_present     = false;
-  bool          source_scg_nr_cfg_present    = false;
-  bool          source_scg_eutra_cfg_present = false;
   dyn_octstring source_rb_sn_cfg;
   dyn_octstring source_scg_nr_cfg;
   dyn_octstring source_scg_eutra_cfg;
@@ -22930,7 +22697,6 @@ struct cfg_restrict_info_scg_s {
 
   // member variables
   bool                         ext                             = false;
-  bool                         allowed_bc_list_mrdc_present    = false;
   bool                         pwr_coordination_fr1_present    = false;
   bool                         serv_cell_idx_range_scg_present = false;
   bool                         max_meas_freqs_scg_present      = false;
@@ -22961,8 +22727,7 @@ struct cfg_restrict_info_scg_s {
 
 // ReestablishmentInfo ::= SEQUENCE
 struct reest_info_s {
-  bool                      add_reestab_info_list_present = false;
-  uint16_t                  source_pci                    = 0;
+  uint16_t                  source_pci = 0;
   fixed_bitstring<16>       target_cell_short_mac_i;
   reestab_ncell_info_list_l add_reestab_info_list;
 
@@ -22983,7 +22748,6 @@ struct as_context_s {
   // group 0
   copy_ptr<ran_notif_area_info_c> ran_notif_area_info;
   // group 1
-  bool          ue_assist_info_present = false;
   dyn_octstring ue_assist_info;
   // group 2
   copy_ptr<band_combination_info_sn_s> sel_band_combination_sn;
@@ -23024,7 +22788,6 @@ struct affected_carrier_freq_comb_info_mrdc_s {
   };
   typedef enumerated<interference_direction_mrdc_opts> interference_direction_mrdc_e_;
   struct affected_carrier_freq_comb_mrdc_s_ {
-    bool                               affected_carrier_freq_comb_eutra_present = false;
     affected_carrier_freq_comb_eutra_l affected_carrier_freq_comb_eutra;
     affected_carrier_freq_comb_nr_l    affected_carrier_freq_comb_nr;
   };
@@ -23069,9 +22832,7 @@ struct cg_cfg_v1590_ies_s {
   using scell_frequencies_sn_eutra_l_ = bounded_array<uint32_t, 31>;
 
   // member variables
-  bool                          scell_frequencies_sn_nr_present    = false;
-  bool                          scell_frequencies_sn_eutra_present = false;
-  bool                          non_crit_ext_present               = false;
+  bool                          non_crit_ext_present = false;
   scell_frequencies_sn_nr_l_    scell_frequencies_sn_nr;
   scell_frequencies_sn_eutra_l_ scell_frequencies_sn_eutra;
 
@@ -23113,15 +22874,12 @@ struct cg_cfg_v1560_ies_s {
   };
 
   // member variables
-  bool                                pscell_freq_eutra_present                 = false;
-  bool                                scg_cell_group_cfg_eutra_present          = false;
-  bool                                candidate_cell_info_list_sn_eutra_present = false;
-  bool                                candidate_serving_freq_list_eutra_present = false;
-  bool                                need_for_gaps_present                     = false;
-  bool                                drx_cfg_scg_present                       = false;
-  bool                                report_cgi_request_eutra_present          = false;
-  bool                                non_crit_ext_present                      = false;
-  uint32_t                            pscell_freq_eutra                         = 0;
+  bool                                pscell_freq_eutra_present        = false;
+  bool                                need_for_gaps_present            = false;
+  bool                                drx_cfg_scg_present              = false;
+  bool                                report_cgi_request_eutra_present = false;
+  bool                                non_crit_ext_present             = false;
+  uint32_t                            pscell_freq_eutra                = 0;
   dyn_octstring                       scg_cell_group_cfg_eutra;
   dyn_octstring                       candidate_cell_info_list_sn_eutra;
   candidate_serving_freq_list_eutra_l candidate_serving_freq_list_eutra;
@@ -23188,7 +22946,6 @@ struct cg_cfg_v1540_ies_s {
   // member variables
   bool                     pscell_freq_present           = false;
   bool                     report_cgi_request_nr_present = false;
-  bool                     ph_info_scg_present           = false;
   bool                     non_crit_ext_present          = false;
   uint32_t                 pscell_freq                   = 0;
   report_cgi_request_nr_s_ report_cgi_request_nr;
@@ -23564,8 +23321,7 @@ struct meas_cfg_sn_s {
   using measured_frequencies_sn_l_ = dyn_array<nr_freq_info_s>;
 
   // member variables
-  bool                       ext                             = false;
-  bool                       measured_frequencies_sn_present = false;
+  bool                       ext = false;
   measured_frequencies_sn_l_ measured_frequencies_sn;
   // ...
 
@@ -23577,16 +23333,11 @@ struct meas_cfg_sn_s {
 
 // CG-Config-IEs ::= SEQUENCE
 struct cg_cfg_ies_s {
-  bool                             scg_cell_group_cfg_present             = false;
-  bool                             scg_rb_cfg_present                     = false;
-  bool                             cfg_restrict_mod_req_present           = false;
-  bool                             drx_info_scg_present                   = false;
-  bool                             candidate_cell_info_list_sn_present    = false;
-  bool                             meas_cfg_sn_present                    = false;
-  bool                             sel_band_combination_present           = false;
-  bool                             fr_info_list_scg_present               = false;
-  bool                             candidate_serving_freq_list_nr_present = false;
-  bool                             non_crit_ext_present                   = false;
+  bool                             cfg_restrict_mod_req_present = false;
+  bool                             drx_info_scg_present         = false;
+  bool                             meas_cfg_sn_present          = false;
+  bool                             sel_band_combination_present = false;
+  bool                             non_crit_ext_present         = false;
   dyn_octstring                    scg_cell_group_cfg;
   dyn_octstring                    scg_rb_cfg;
   cfg_restrict_mod_req_scg_s       cfg_restrict_mod_req;
@@ -23691,8 +23442,7 @@ struct cg_cfg_info_v1590_ies_s {
   using serv_frequencies_mn_nr_l_ = bounded_array<uint32_t, 31>;
 
   // member variables
-  bool                      serv_frequencies_mn_nr_present = false;
-  bool                      non_crit_ext_present           = false;
+  bool                      non_crit_ext_present = false;
   serv_frequencies_mn_nr_l_ serv_frequencies_mn_nr;
 
   // sequence methods
@@ -23731,9 +23481,7 @@ using sftd_freq_list_nr_l = bounded_array<uint32_t, 3>;
 
 // CG-ConfigInfo-v1570-IEs ::= SEQUENCE
 struct cg_cfg_info_v1570_ies_s {
-  bool                    sftd_freq_list_nr_present    = false;
-  bool                    sftd_freq_list_eutra_present = false;
-  bool                    non_crit_ext_present         = false;
+  bool                    non_crit_ext_present = false;
   sftd_freq_list_nr_l     sftd_freq_list_nr;
   sftd_freq_list_eutra_l  sftd_freq_list_eutra;
   cg_cfg_info_v1590_ies_s non_crit_ext;
@@ -23782,15 +23530,10 @@ struct cg_cfg_info_v1560_ies_s {
   };
 
   // member variables
-  bool                               candidate_cell_info_list_mn_eutra_present = false;
-  bool                               candidate_cell_info_list_sn_eutra_present = false;
-  bool                               source_cfg_scg_eutra_present              = false;
-  bool                               scg_fail_info_eutra_present               = false;
-  bool                               drx_cfg_mcg_present                       = false;
-  bool                               meas_result_report_cgi_eutra_present      = false;
-  bool                               meas_result_cell_list_sftd_eutra_present  = false;
-  bool                               fr_info_list_mcg_present                  = false;
-  bool                               non_crit_ext_present                      = false;
+  bool                               scg_fail_info_eutra_present          = false;
+  bool                               drx_cfg_mcg_present                  = false;
+  bool                               meas_result_report_cgi_eutra_present = false;
+  bool                               non_crit_ext_present                 = false;
   dyn_octstring                      candidate_cell_info_list_mn_eutra;
   dyn_octstring                      candidate_cell_info_list_sn_eutra;
   dyn_octstring                      source_cfg_scg_eutra;
@@ -23819,7 +23562,6 @@ struct cg_cfg_info_v1540_ies_s {
   };
 
   // member variables
-  bool                      ph_info_mcg_present            = false;
   bool                      meas_result_report_cgi_present = false;
   bool                      non_crit_ext_present           = false;
   ph_type_list_mcg_l        ph_info_mcg;
@@ -23860,10 +23602,9 @@ struct meas_cfg_mn_s {
   typedef enumerated<gap_purpose_opts> gap_purpose_e_;
 
   // member variables
-  bool                       ext                             = false;
-  bool                       measured_frequencies_mn_present = false;
-  bool                       meas_gap_cfg_present            = false;
-  bool                       gap_purpose_present             = false;
+  bool                       ext                  = false;
+  bool                       meas_gap_cfg_present = false;
+  bool                       gap_purpose_present  = false;
   measured_frequencies_mn_l_ measured_frequencies_mn;
   setup_release_c<gap_cfg_s> meas_gap_cfg;
   gap_purpose_e_             gap_purpose;
@@ -23903,19 +23644,12 @@ struct cg_cfg_info_ies_s {
   };
 
   // member variables
-  bool                            ue_cap_info_present                   = false;
-  bool                            candidate_cell_info_list_mn_present   = false;
-  bool                            candidate_cell_info_list_sn_present   = false;
-  bool                            meas_result_cell_list_sftd_nr_present = false;
-  bool                            scg_fail_info_present                 = false;
-  bool                            cfg_restrict_info_present             = false;
-  bool                            drx_info_mcg_present                  = false;
-  bool                            meas_cfg_mn_present                   = false;
-  bool                            source_cfg_scg_present                = false;
-  bool                            scg_rb_cfg_present                    = false;
-  bool                            mcg_rb_cfg_present                    = false;
-  bool                            mrdc_assist_info_present              = false;
-  bool                            non_crit_ext_present                  = false;
+  bool                            scg_fail_info_present     = false;
+  bool                            cfg_restrict_info_present = false;
+  bool                            drx_info_mcg_present      = false;
+  bool                            meas_cfg_mn_present       = false;
+  bool                            mrdc_assist_info_present  = false;
+  bool                            non_crit_ext_present      = false;
   dyn_octstring                   ue_cap_info;
   meas_result_list2_nr_l          candidate_cell_info_list_mn;
   dyn_octstring                   candidate_cell_info_list_sn;
@@ -24239,9 +23973,8 @@ struct rrm_cfg_s {
   typedef enumerated<ue_inactive_time_opts> ue_inactive_time_e_;
 
   // member variables
-  bool                   ext                              = false;
-  bool                   ue_inactive_time_present         = false;
-  bool                   candidate_cell_info_list_present = false;
+  bool                   ext                      = false;
+  bool                   ue_inactive_time_present = false;
   ue_inactive_time_e_    ue_inactive_time;
   meas_result_list2_nr_l candidate_cell_info_list;
   // ...
@@ -24396,7 +24129,6 @@ struct meas_timing_cfg_v1550_ies_s {
 
 // MeasurementTimingConfiguration-IEs ::= SEQUENCE
 struct meas_timing_cfg_ies_s {
-  bool                        meas_timing_present  = false;
   bool                        non_crit_ext_present = false;
   meas_timing_list_l          meas_timing;
   meas_timing_cfg_v1550_ies_s non_crit_ext;
@@ -24601,8 +24333,7 @@ struct ue_radio_paging_info_ies_s {
   using supported_band_list_nr_for_paging_l_ = dyn_array<uint16_t>;
 
   // member variables
-  bool                                 supported_band_list_nr_for_paging_present = false;
-  bool                                 non_crit_ext_present                      = false;
+  bool                                 non_crit_ext_present = false;
   supported_band_list_nr_for_paging_l_ supported_band_list_nr_for_paging;
 
   // sequence methods
@@ -24749,11 +24480,8 @@ struct var_meas_cfg_s {
   };
 
   // member variables
-  bool                         meas_id_list_present    = false;
-  bool                         meas_obj_list_present   = false;
-  bool                         report_cfg_list_present = false;
-  bool                         quant_cfg_present       = false;
-  bool                         s_measure_cfg_present   = false;
+  bool                         quant_cfg_present     = false;
+  bool                         s_measure_cfg_present = false;
   meas_id_to_add_mod_list_l    meas_id_list;
   meas_obj_to_add_mod_list_l   meas_obj_list;
   report_cfg_to_add_mod_list_l report_cfg_list;
@@ -24768,8 +24496,7 @@ struct var_meas_cfg_s {
 
 // VarMeasReport ::= SEQUENCE
 struct var_meas_report_s {
-  bool                   cells_triggered_list_present = false;
-  uint8_t                meas_id                      = 1;
+  uint8_t                meas_id = 1;
   cells_triggered_list_l cells_triggered_list;
   int64_t                nof_reports_sent = 0;
 

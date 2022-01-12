@@ -678,8 +678,7 @@ int fill_phy_pdsch_cfg_common_test()
   //             "startSymbolAndLength": 40
   //         ]
 
-  asn1::rrc_nr::pdsch_cfg_common_s pdsch_cfg     = {};
-  pdsch_cfg.pdsch_time_domain_alloc_list_present = true;
+  asn1::rrc_nr::pdsch_cfg_common_s pdsch_cfg = {};
   pdsch_cfg.pdsch_time_domain_alloc_list.resize(1);
   pdsch_cfg.pdsch_time_domain_alloc_list[0].map_type =
       asn1::rrc_nr::pdsch_time_domain_res_alloc_s::map_type_opts::options::type_a;
@@ -734,8 +733,7 @@ int fill_phy_pusch_cfg_common_test()
   //         ],
   //         "p0-NominalWithGrant": -76
 
-  asn1::rrc_nr::pusch_cfg_common_s pusch_cfg     = {};
-  pusch_cfg.pusch_time_domain_alloc_list_present = true;
+  asn1::rrc_nr::pusch_cfg_common_s pusch_cfg = {};
   pusch_cfg.pusch_time_domain_alloc_list.resize(1);
   pusch_cfg.pusch_time_domain_alloc_list[0].map_type =
       asn1::rrc_nr::pusch_time_domain_res_alloc_s::map_type_opts::options::type_a;
@@ -794,7 +792,6 @@ int fill_phy_carrier_cfg_test()
       asn1::rrc_nr::subcarrier_spacing_opts::options::khz15;
   serv_cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = 52;
 
-  serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list_present = true;
   serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list.resize(1);
   serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
   serv_cell_cfg.ul_cfg_common.freq_info_ul.freq_band_list[0].freq_band_ind_nr         = 3;
