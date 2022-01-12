@@ -182,8 +182,17 @@ uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_netw
 
 uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count, uint8_t* k_enb);
 
+uint8_t security_generate_k_nb_star_common(uint8_t        fc,
+                                           const uint8_t* k_enb,
+                                           const uint32_t pci_,
+                                           const uint32_t earfcn_,
+                                           uint8_t*       k_enb_star);
+
 uint8_t
 security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci, const uint32_t earfcn, uint8_t* k_enb_star);
+
+uint8_t
+security_generate_k_gnb_star(const uint8_t* k_gnb, const uint32_t pci_, const uint32_t dl_arfcn_, uint8_t* k_gnb_star);
 
 uint8_t security_generate_nh(const uint8_t* k_asme, const uint8_t* sync, uint8_t* nh);
 

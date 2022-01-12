@@ -38,6 +38,7 @@
 #define ALGO_EPS_DISTINGUISHER_UP_ENC_ALG 0x05
 #define ALGO_EPS_DISTINGUISHER_UP_INT_ALG 0x06
 
+#define FC_5G_K_GNB_STAR_DERIVATION 0x70
 #define FC_5G_ALGORITHM_KEY_DERIVATION 0x69
 #define FC_5G_KAUSF_DERIVATION 0x6A
 #define FC_5G_RES_STAR_DERIVATION 0x6B
@@ -219,8 +220,27 @@ uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count_
   return SRSRAN_SUCCESS;
 }
 
+// Generate k_enb* according to TS 33.401 Appendix A.5
 uint8_t
 security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci_, const uint32_t earfcn_, uint8_t* k_enb_star)
+
+{
+  return security_generate_k_nb_star_common(FC_EPS_K_ENB_STAR_DERIVATION, k_enb, pci_, earfcn_, k_enb_star);
+}
+
+// Generate k_gnb* according to TS 33.501 Appendix A.11
+uint8_t
+security_generate_k_gnb_star(const uint8_t* k_gnb, const uint32_t pci_, const uint32_t dl_arfcn_, uint8_t* k_gnb_star)
+
+{
+  return security_generate_k_nb_star_common(FC_5G_K_GNB_STAR_DERIVATION, k_gnb, pci_, dl_arfcn_, k_gnb_star);
+}
+
+uint8_t security_generate_k_nb_star_common(uint8_t        fc,
+                                           const uint8_t* k_enb,
+                                           const uint32_t pci_,
+                                           const uint32_t earfcn_,
+                                           uint8_t*       k_enb_star)
 {
   if (k_enb == NULL || k_enb_star == NULL) {
     log_error("Invalid inputs");
@@ -235,13 +255,20 @@ security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci_, const ui
   pci[0] = (pci_ >> 8) & 0xFF;
   pci[1] = pci_ & 0xFF;
 
-  // EARFCN
+  // ARFCN, can be two or three bytes
   std::vector<uint8_t> earfcn;
-  earfcn.resize(2);
-  earfcn[0] = (earfcn_ >> 8) & 0xFF;
-  earfcn[1] = earfcn_ & 0xFF;
+  if (earfcn_ < pow(2, 16)) {
+    earfcn.resize(2);
+    earfcn[0] = (earfcn_ >> 8) & 0xFF;
+    earfcn[1] = earfcn_ & 0xFF;
+  } else if (earfcn_ < pow(2, 24)) {
+    earfcn.resize(3);
+    earfcn[0] = (earfcn_ >> 16) & 0xFF;
+    earfcn[1] = (earfcn_ >> 8) & 0xFF;
+    earfcn[2] = earfcn_ & 0xFF;
+  }
 
-  if (kdf_common(FC_EPS_K_ENB_STAR_DERIVATION, key, pci, earfcn, k_enb_star) != SRSRAN_SUCCESS) {
+  if (kdf_common(fc, key, pci, earfcn, k_enb_star) != SRSRAN_SUCCESS) {
     log_error("Failed to run kdf_common");
     return SRSRAN_ERROR;
   }
