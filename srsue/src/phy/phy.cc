@@ -240,11 +240,11 @@ void phy::configure_prach_params()
 
 void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 {
+  uint32_t pcell_earfcn = selected_earfcn;
   // As the SCell configuration is performed asynchronously through the cmd_worker, append the command adding the
   // measurements to avoid a concurrency issue
-  cmd_worker.add_cmd([this, earfcn, pci]() {
+  cmd_worker.add_cmd([this, earfcn, pci, pcell_earfcn]() {
     // Check if the EARFCN matches with serving cell
-    uint32_t pcell_earfcn = selected_earfcn;
     bool available = (pcell_earfcn == earfcn);
 
     // Find if there is secondary serving cell configured with the specified EARFCN
@@ -253,12 +253,17 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
       // If it is configured...
       if (common.cell_state.is_configured(cc)) {
         // ... Check if the EARFCN match
+        logger_phy.info(
+            "Setting new SCell measurement cc=%d is configured and earfcn=%d", cc, common.cell_state.get_earfcn(cc));
         if (common.cell_state.get_earfcn(cc) == earfcn) {
           available = true;
         }
-      } else if (cc_empty == 0) {
-        // ... otherwise, save the CC as non-configured
-        cc_empty = cc;
+      } else {
+        logger_phy.info("Setting new SCell measurement cc=%d is not configured", cc);
+        if (cc_empty == 0) {
+          // ... otherwise, save the CC as non-configured
+          cc_empty = cc;
+        }
       }
     }
 
@@ -274,7 +279,7 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 
       // Configure a the empty carrier as it was CA
       logger_phy.info("Setting new SCell measurement cc_idx=%d, earfcn=%d, pci=%d...", cc_empty, earfcn, cell.id);
-      set_scell(cell, cc_empty, earfcn);
+      set_scell(cell, cc_empty, earfcn, false);
     }
 
     // Finally, set the serving cell measure
@@ -483,6 +488,11 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 
 bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
+  return set_scell(cell_info, cc_idx, earfcn, true);
+}
+
+bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool run_in_background)
+{
   if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
@@ -517,49 +527,58 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 
   // Component carrier index zero should be reserved for PCell
   // Send configuration to workers
-  cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
-    logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d...", cc_idx, earfcn, cell_info.id);
-    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-      // set_cell is not protected so run when worker has finished to ensure no PHY processing is done at the time of
-      // cell setting
-      lte::sf_worker* w = lte_workers.wait_worker_id(i);
-      if (w) {
-        // Reset secondary serving cell configuration, this needs to be done when the sf_worker is reserved to prevent
-        // resetting the cell while it is working
-        w->reset_cell_nolock(cc_idx);
-
-        // Set the new cell
-        w->set_cell_nolock(cc_idx, cell_info);
-
-        // Release the new worker, it should not start processing until the SCell state is set to configured
-        w->release();
-      }
-    }
-
-    // Reset measurements for the given CC after all workers finished processing and have been configured to ensure the
-    // measurements are not overwritten
-    common.reset_measurements(cc_idx);
-
-    // Change frequency only if the earfcn was modified
-    if (earfcn_is_different) {
-      double dl_freq = srsran_band_fd(earfcn) * 1e6;
-      double ul_freq = srsran_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
-      radio->set_rx_freq(cc_idx, dl_freq);
-      radio->set_tx_freq(cc_idx, ul_freq);
-    }
-
-    // Set secondary serving cell synchronization
-    sfsync.scell_sync_set(cc_idx, cell_info);
-
-    logger_phy.info(
-        "Finished setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d", cc_idx, earfcn, cell_info.id);
-
-    // Configure secondary serving cell, allows this component carrier to execute PHY processing
-    common.cell_state.configure(cc_idx, earfcn, cell_info.id);
-
-    stack->set_scell_complete(true);
-  });
+  if (run_in_background) {
+    cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
+      set_scell_cmd(cell_info, cc_idx, earfcn, earfcn_is_different);
+    });
+  } else {
+    set_scell_cmd(cell_info, cc_idx, earfcn, earfcn_is_different);
+  }
   return true;
+}
+
+void phy::set_scell_cmd(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool earfcn_is_different)
+{
+  logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d...", cc_idx, earfcn, cell_info.id);
+  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
+    // set_cell is not protected so run when worker has finished to ensure no PHY processing is done at the time of
+    // cell setting
+    lte::sf_worker* w = lte_workers.wait_worker_id(i);
+    if (w) {
+      // Reset secondary serving cell configuration, this needs to be done when the sf_worker is reserved to prevent
+      // resetting the cell while it is working
+      w->reset_cell_nolock(cc_idx);
+
+      // Set the new cell
+      w->set_cell_nolock(cc_idx, cell_info);
+
+      // Release the new worker, it should not start processing until the SCell state is set to configured
+      w->release();
+    }
+  }
+
+  // Reset measurements for the given CC after all workers finished processing and have been configured to ensure the
+  // measurements are not overwritten
+  common.reset_measurements(cc_idx);
+
+  // Change frequency only if the earfcn was modified
+  if (earfcn_is_different) {
+    double dl_freq = srsran_band_fd(earfcn) * 1e6;
+    double ul_freq = srsran_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
+    radio->set_rx_freq(cc_idx, dl_freq);
+    radio->set_tx_freq(cc_idx, ul_freq);
+  }
+
+  // Set secondary serving cell synchronization
+  sfsync.scell_sync_set(cc_idx, cell_info);
+
+  logger_phy.info(
+      "Finished setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d", cc_idx, earfcn, cell_info.id);
+
+  // Configure secondary serving cell, allows this component carrier to execute PHY processing
+  common.cell_state.configure(cc_idx, earfcn, cell_info.id);
+
+  stack->set_scell_complete(true);
 }
 
 void phy::set_config_tdd(srsran_tdd_config_t& tdd_config_)

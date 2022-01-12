@@ -155,6 +155,8 @@ private:
   void run_thread() final;
   void configure_prach_params();
   void reset();
+  bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool run_in_background);
+  void set_scell_cmd(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool earfcn_is_different);
 
   std::mutex              config_mutex;
   std::condition_variable config_cond;
