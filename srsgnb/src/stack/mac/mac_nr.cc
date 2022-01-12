@@ -104,12 +104,17 @@ private:
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH_SIZE_64: {
         srsran::mac_sch_subpdu_nr& ccch_subpdu = const_cast<srsran::mac_sch_subpdu_nr&>(subpdu);
         rlc->write_pdu(rnti, 0, ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length());
-        // store content for ConRes CE
+        // store content for ConRes CE and schedule CE accordingly
         mac.store_msg3(rnti,
                        srsran::make_byte_buffer(ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length(), __FUNCTION__));
+        sched->dl_mac_ce(rnti, srsran::mac_sch_subpdu_nr::CON_RES_ID);
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
         uint16_t ce_crnti  = subpdu.get_c_rnti();
+        if (ce_crnti == SRSRAN_INVALID_RNTI) {
+          logger.error("Malformed C-RNTI CE detected. C-RNTI can't be 0x0.", subpdu.get_lcid());
+          return SRSRAN_ERROR;
+        }
         uint16_t prev_rnti = rnti;
         rnti               = ce_crnti;
         rrc->update_user(prev_rnti, rnti);
