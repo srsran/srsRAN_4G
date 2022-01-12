@@ -309,11 +309,11 @@ bool rlc_am_not_start_aligned(const uint8_t fi)
   return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
-void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header)
+/**
+ * Logging helpers
+ */
+const char* rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header)
 {
-  if (not log_ch.enabled()) {
-    return;
-  }
   fmt::memory_buffer buffer;
   fmt::format_to(buffer,
                  "[{}, RF={}, P={}, FI={}, SN={}, LSF={}, SO={}, N_li={}",
@@ -334,7 +334,25 @@ void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd
   }
   fmt::format_to(buffer, "]");
 
-  log_ch("%s", to_c_str(buffer));
+  return to_c_str(buffer);
+}
+
+const char* rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
+{
+  fmt::memory_buffer buffer;
+  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
+  if (status->N_nack > 0) {
+    fmt::format_to(buffer, ", NACK_SN = ");
+    for (uint32_t i = 0; i < status->N_nack; ++i) {
+      if (status->nacks[i].has_so) {
+        fmt::format_to(
+            buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+      } else {
+        fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
+      }
+    }
+  }
+  return to_c_str(buffer);
 }
 
 } // namespace srsran
