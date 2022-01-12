@@ -44,6 +44,9 @@ rlc_am_lte_tx::rlc_am_lte_tx(rlc_am* parent_) :
 bool rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
 {
   std::lock_guard<std::mutex> lock(mutex);
+
+  rb_name = parent->rb_name;
+
   if (cfg_.tx_queue_length > MAX_SDUS_PER_RLC_PDU) {
     RlcError("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
              cfg_.tx_queue_length,
@@ -221,7 +224,7 @@ void rlc_am_lte_tx::get_buffer_state_nolock(uint32_t& n_bytes_newtx, uint32_t& n
   // Bytes needed for retx
   if (not retx_queue.empty()) {
     rlc_amd_retx_t& retx = retx_queue.front();
-    RlcDebug("%s Buffer state - retx - SN=%d, Segment: %s, %d:%d",
+    RlcDebug("Buffer state - retx - SN=%d, Segment: %s, %d:%d",
              retx.sn,
              retx.is_segment ? "true" : "false",
              retx.so_start,
@@ -1183,6 +1186,8 @@ bool rlc_am_lte_rx::configure(const rlc_config_t& cfg_)
 {
   // TODO: add config checks
   cfg = cfg_.am;
+
+  rb_name = parent->rb_name;
 
   // check timers
   if (not reordering_timer.is_valid()) {

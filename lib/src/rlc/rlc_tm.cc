@@ -23,7 +23,8 @@ rlc_tm::rlc_tm(srslog::basic_logger&      logger,
                srsue::rrc_interface_rlc*  rrc_) :
   rlc_common(logger), pdcp(pdcp_), rrc(rrc_), lcid(lcid_)
 {
-  pool = byte_buffer_pool::get_instance();
+  pool    = byte_buffer_pool::get_instance();
+  rb_name = "SRB0";
 }
 
 // Warning: must call stop() to properly deallocate all buffers
@@ -80,12 +81,7 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
     uint32_t                                 nof_bytes = sdu->N_bytes;
     srsran::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
     if (ret) {
-      RlcHexInfo(msg_ptr,
-                 nof_bytes,
-                 "%s Tx SDU, queue size=%d, bytes=%d",
-                 rrc->get_rb_name(lcid),
-                 ul_queue.size(),
-                 ul_queue.size_bytes());
+      RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU, queue size=%d, bytes=%d", ul_queue.size(), ul_queue.size_bytes());
     } else {
       RlcHexWarning(ret.error()->msg,
                     ret.error()->N_bytes,
