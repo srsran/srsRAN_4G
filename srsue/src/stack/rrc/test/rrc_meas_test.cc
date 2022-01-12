@@ -40,7 +40,7 @@ public:
   void set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
   void set_config_mbsfn_sib13(const srsran::sib13_t& sib13) override {}
   void set_config_mbsfn_mcch(const srsran::mcch_msg_t& mcch) override {}
-  bool cell_search() override { return true; }
+  bool cell_search(int earfcn) override { return true; }
   bool cell_is_camping() override { return true; }
   void deactivate_scells() override {}
   bool cell_select(phy_cell_t cell) override

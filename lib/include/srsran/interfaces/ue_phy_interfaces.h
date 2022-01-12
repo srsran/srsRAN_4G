@@ -96,7 +96,6 @@ struct phy_args_t {
 
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;
-
 };
 
 /* RAT agnostic Interface MAC -> PHY */
@@ -158,7 +157,7 @@ public:
   virtual void meas_stop()                                                       = 0;
 
   /* Cell search and selection procedures */
-  virtual bool cell_search()                = 0;
+  virtual bool cell_search(int earfcn)      = 0;
   virtual bool cell_select(phy_cell_t cell) = 0;
   virtual bool cell_is_camping()            = 0;
 };

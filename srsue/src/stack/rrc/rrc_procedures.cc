@@ -41,7 +41,7 @@ proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...");
   state = state_t::phy_cell_search;
-  if (not rrc_ptr->phy_ctrl->start_cell_search(rrc_ptr->cell_searcher)) {
+  if (not rrc_ptr->phy_ctrl->start_cell_search(rrc_ptr->cell_searcher, rrc_ptr->cell_search_earfcn)) {
     Warning("Failed to initiate Cell Search.");
     return proc_outcome_t::error;
   }
@@ -1256,11 +1256,14 @@ proc_outcome_t rrc::go_idle_proc::step()
 
 void rrc::go_idle_proc::then(const srsran::proc_state_t& result)
 {
-  if (rrc_ptr->nas->is_registered() and not rrc_ptr->cell_reselector.launch()) {
-    rrc_ptr->logger.error("Failed to initiate a Cell Reselection procedure...");
-    return;
+  // only start cell reselection if no RRC redirect is present (redirect will trigger a cell search)
+  if (rrc_ptr->cell_search_earfcn < 0) {
+    if (rrc_ptr->nas->is_registered() and not rrc_ptr->cell_reselector.launch()) {
+      rrc_ptr->logger.error("Failed to initiate a Cell Reselection procedure...");
+      return;
+    }
+    rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
   }
-  rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
 }
 
 /**************************************
@@ -1362,7 +1365,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 {
   // Save Current RNTI before MAC Reset
   uint16_t crnti             = rrc_ptr->mac->get_crnti();
-  size_t nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
+  size_t   nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
 
   // 5.3.7.1 - Conditions for Reestablishment procedure
   if (not rrc_ptr->security_is_activated or rrc_ptr->state != RRC_STATE_CONNECTED or crnti == SRSRAN_INVALID_RNTI) {
@@ -1384,9 +1387,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
-       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
-           ? "Reconfiguration failure"
-           : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
+       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail ? "Reconfiguration failure"
+       : cause == asn1::rrc::reest_cause_opts::ho_fail        ? "Handover failure"
+                                                              : "Other failure",
        reest_rnti,
        reest_source_pci,
        reest_cellid);

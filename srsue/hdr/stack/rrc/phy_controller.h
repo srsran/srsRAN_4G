@@ -40,7 +40,9 @@ public:
   struct cell_sel_cmd {
     phy_cell_t phy_cell;
   };
-  struct cell_search_cmd {};
+  struct cell_search_cmd {
+    int earfcn;
+  };
   struct in_sync_ev {
     static const bool log_verbose = false;
   };
@@ -52,7 +54,7 @@ public:
 
   // PHY procedures interfaces
   bool start_cell_select(const phy_cell_t& phy_cell, srsran::event_observer<bool> observer = {});
-  bool start_cell_search(srsran::event_observer<cell_srch_res> observer);
+  bool start_cell_search(srsran::event_observer<cell_srch_res> observer, int earfcn);
   void cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell);
   void cell_selection_completed(bool outcome);
   void in_sync();
@@ -117,7 +119,7 @@ public:
     // clang-format on
   };
   struct searching_cell {
-    void enter(phy_controller* f);
+    void enter(phy_controller* f, const cell_search_cmd& ev);
   };
 
 private:

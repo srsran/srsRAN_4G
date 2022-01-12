@@ -64,7 +64,7 @@ public:
 class nas_5g_interface_procedures
 {
 public:
-  virtual int send_registration_request() = 0;
+  virtual int send_registration_request()                                                  = 0;
   virtual int send_pdu_session_establishment_request(uint32_t                 transaction_identity,
                                                      uint16_t                 pdu_session_id,
                                                      const pdu_session_cfg_t& pdu_session) = 0;

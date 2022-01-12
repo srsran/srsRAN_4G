@@ -166,13 +166,13 @@ void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)
  *************************************/
 
 //! Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet
-bool phy_controller::start_cell_search(srsran::event_observer<cell_srch_res> observer)
+bool phy_controller::start_cell_search(srsran::event_observer<cell_srch_res> observer, int earfcn)
 {
   if (is_in_state<searching_cell>()) {
     fsmInfo("Cell search already launched.");
     return true;
   }
-  trigger(cell_search_cmd{});
+  trigger(cell_search_cmd{earfcn});
   if (not is_in_state<searching_cell>()) {
     fsmWarning("Failed to launch cell search");
     return false;
@@ -186,10 +186,10 @@ void phy_controller::cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t 
   trigger(cell_srch_res{cs_ret, found_cell});
 }
 
-void phy_controller::searching_cell::enter(phy_controller* f)
+void phy_controller::searching_cell::enter(phy_controller* f, const cell_search_cmd& ev)
 {
   otherfsmInfo(f, "Initiating Cell search");
-  f->phy->cell_search();
+  f->phy->cell_search(ev.earfcn);
 }
 
 void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_res& result)

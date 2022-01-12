@@ -342,12 +342,12 @@ bool phy::cell_select(phy_cell_t cell)
 
 // This function executes one part of the procedure immediatly and returns to continue in the background.
 // When it returns, the caller thread can expect the PHY to have switched to IDLE and have stopped all DL/UL/PRACH
-// processing.
-bool phy::cell_search()
+// processing. If a valid EARFCN (>0) is given, this is used for cell search.
+bool phy::cell_search(int earfcn)
 {
   sfsync.scell_sync_stop();
   if (sfsync.cell_search_init()) {
-    cmd_worker_cell.add_cmd([this]() {
+    cmd_worker_cell.add_cmd([this, earfcn]() {
       // Wait SYNC transitions to IDLE
       sfsync.wait_idle();
 
@@ -355,7 +355,7 @@ bool phy::cell_search()
       reset();
 
       phy_cell_t                               found_cell = {};
-      rrc_interface_phy_lte::cell_search_ret_t ret        = sfsync.cell_search_start(&found_cell);
+      rrc_interface_phy_lte::cell_search_ret_t ret        = sfsync.cell_search_start(&found_cell, earfcn);
       stack->cell_search_complete(ret, found_cell);
     });
   } else {

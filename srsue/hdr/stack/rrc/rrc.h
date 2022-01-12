@@ -211,6 +211,9 @@ private:
 
   meas_cell_list<meas_cell_nr> meas_cells_nr;
 
+  // if this is set to a valid earfcn, this earfcn will be used for cell search
+  int cell_search_earfcn = -1;
+
   bool                     initiated                  = false;
   asn1::rrc::reest_cause_e m_reest_cause              = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 m_reest_rnti               = 0;
@@ -328,7 +331,8 @@ private:
   bool con_reconfig_ho(const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void ho_failed();
   void start_go_idle();
-  void rrc_connection_release(const std::string& cause);
+  void handle_rrc_connection_release(const asn1::rrc::rrc_conn_release_s& release);
+  void start_rrc_redirect(uint32_t new_dl_earfcn);
   void radio_link_failure_push_cmd();
   void radio_link_failure_process();
   void leave_connected();

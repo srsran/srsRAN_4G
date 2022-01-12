@@ -81,7 +81,7 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.is_in_sync());
 
   // TEST: Correct initiation of Cell Search state
-  TESTASSERT(phy_ctrl.start_cell_search(csearch_tester));
+  TESTASSERT(phy_ctrl.start_cell_search(csearch_tester, -1));
   TESTASSERT(not phy_ctrl.is_in_sync());
 
   // TEST: Cell Search only listens to a cell search result event

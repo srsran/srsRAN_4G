@@ -87,7 +87,7 @@ void lte_ttcn3_phy::meas_stop() {}
 // configured by the SS, including the ones that we should not even detect because
 // their power is too weak. The cell search should only report the cells that
 // are actually visible though.
-bool lte_ttcn3_phy::cell_search()
+bool lte_ttcn3_phy::cell_search(int earfcn)
 {
   std::lock_guard<std::mutex> lock(phy_mutex);
 
