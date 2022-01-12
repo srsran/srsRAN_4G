@@ -188,11 +188,11 @@ void nr_security_context::generate_as_keys()
 
 void nr_security_context::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_arfcn)
 {
-  logger.info("Regenerating KgNB with PCI=0x%02x, DL-ARFCN=%d", new_pci, new_dl_arfcn);
+  logger.info("Regenerating KgNB with PCI=0x%02x, SSB-ARFCN=%d", new_pci, new_dl_arfcn);
   logger.info(k_gnb, 32, "Old K_gNB (k_gnb)");
   // Generate K_enb*
   uint8_t k_gnb_star[32];
-  srsran::security_generate_k_enb_star(k_gnb, new_pci, new_dl_arfcn, k_gnb_star);
+  srsran::security_generate_k_gnb_star(k_gnb, new_pci, new_dl_arfcn, k_gnb_star);
 
   // K_enb becomes K_enb*
   memcpy(k_gnb, k_gnb_star, 32);
