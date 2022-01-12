@@ -845,8 +845,35 @@ static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& cellroot)
               rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a4_thresh"]);
         }
         break;
+      case 5:
+        // a5-threshold1
+        if (!root[i].exists("a5_thresh1")) {
+          ERROR("Missing a5_thresh1 field for A5 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a5().a5_thres1.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a5_thresh1"]);
+        } else {
+          event.event_id.set_event_a5().a5_thres1.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a5_thresh1"]);
+        }
+
+        // a5-threshold2
+        if (!root[i].exists("a5_thresh2")) {
+          ERROR("Missing a5_thresh2 field for A5 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a5().a5_thres2.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a5_thresh2"]);
+        } else {
+          event.event_id.set_event_a5().a5_thres2.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a5_thresh2"]);
+        }
+        break;
       default:
-        ERROR("Invalid or unsupported event A%d in meas_report_desc (only A1-A4 are supported)\n",
+        ERROR("Invalid or unsupported event A%d in meas_report_desc (only A1-A5 are supported)\n",
               (int)root[i]["eventA"]);
         return SRSRAN_ERROR;
     }
