@@ -85,8 +85,7 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
     } else {
       RlcHexWarning(ret.error()->msg,
                     ret.error()->N_bytes,
-                    "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-                    rrc->get_rb_name(lcid),
+                    "[Dropped SDU] Tx SDU, queue size=%d, bytes=%d",
                     ul_queue.size(),
                     ul_queue.size_bytes());
     }
