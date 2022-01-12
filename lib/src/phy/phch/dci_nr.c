@@ -2071,7 +2071,7 @@ uint32_t srsran_dci_ctx_to_str(const srsran_dci_ctx_t* ctx, char* str, uint32_t 
   len = srsran_print_check(str,
                            str_len,
                            len,
-                           "%s-rnti=%04x dci=%s ss=%s ",
+                           "%s-rnti=0x%04x dci=%s ss=%s ",
                            srsran_rnti_type_str_short(ctx->rnti_type),
                            ctx->rnti,
                            srsran_dci_format_nr_string(ctx->format),
