@@ -39,6 +39,11 @@ namespace srsran {
 #define RlcWarning(fmt, ...) logger.warning("%s: " fmt, rb_name, ##__VA_ARGS__)
 #define RlcError(fmt, ...) logger.error("%s: " fmt, rb_name, ##__VA_ARGS__)
 
+#define RlcHexDebug(msg, bytes, fmt, ...) logger.debug(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexInfo(msg, bytes, fmt, ...) logger.info(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexWarning(msg, bytes, fmt, ...) logger.warning(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexError(msg, bytes, fmt, ...) logger.error(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+
 typedef enum {
   RLC_FI_FIELD_START_AND_END_ALIGNED = 0,
   RLC_FI_FIELD_NOT_END_ALIGNED,

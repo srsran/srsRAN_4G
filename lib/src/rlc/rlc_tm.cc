@@ -80,19 +80,19 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
     uint32_t                                 nof_bytes = sdu->N_bytes;
     srsran::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
     if (ret) {
-      logger.info(msg_ptr,
-                  nof_bytes,
-                  "%s Tx SDU, queue size=%d, bytes=%d",
-                  rrc->get_rb_name(lcid),
-                  ul_queue.size(),
-                  ul_queue.size_bytes());
+      RlcHexInfo(msg_ptr,
+                 nof_bytes,
+                 "%s Tx SDU, queue size=%d, bytes=%d",
+                 rrc->get_rb_name(lcid),
+                 ul_queue.size(),
+                 ul_queue.size_bytes());
     } else {
-      logger.warning(ret.error()->msg,
-                     ret.error()->N_bytes,
-                     "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-                     rrc->get_rb_name(lcid),
-                     ul_queue.size(),
-                     ul_queue.size_bytes());
+      RlcHexWarning(ret.error()->msg,
+                    ret.error()->N_bytes,
+                    "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+                    rrc->get_rb_name(lcid),
+                    ul_queue.size(),
+                    ul_queue.size_bytes());
     }
 
   } else {
@@ -161,13 +161,12 @@ uint32_t rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
     RlcDebug("Complete SDU scheduled for tx. Stack latency: %" PRIu64 " us", (uint64_t)buf->get_latency_us().count());
-    logger.info(payload,
-                pdu_size,
-                "%s Tx %s PDU, queue size=%d, bytes=%d",
-                rrc->get_rb_name(lcid),
-                srsran::to_string(rlc_mode_t::tm),
-                ul_queue.size(),
-                ul_queue.size_bytes());
+    RlcHexInfo(payload,
+               pdu_size,
+               "Tx %s PDU, queue size=%d, bytes=%d",
+               srsran::to_string(rlc_mode_t::tm),
+               ul_queue.size(),
+               ul_queue.size_bytes());
 
     std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_tx_pdu_bytes += pdu_size;

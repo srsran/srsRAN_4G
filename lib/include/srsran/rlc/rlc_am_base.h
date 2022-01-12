@@ -125,7 +125,7 @@ public:
   class rlc_am_base_tx
   {
   public:
-    explicit rlc_am_base_tx(srslog::basic_logger* logger_) : logger(logger_) {}
+    explicit rlc_am_base_tx(srslog::basic_logger& logger_) : logger(logger_) {}
     virtual ~rlc_am_base_tx() = default;
 
     virtual bool     configure(const rlc_config_t& cfg_)                           = 0;
@@ -146,7 +146,7 @@ public:
 
     bool                  tx_enabled = false;
     byte_buffer_pool*     pool       = nullptr;
-    srslog::basic_logger* logger;
+    srslog::basic_logger& logger;
     std::string           rb_name;
 
     bsr_callback_t bsr_callback;
@@ -166,7 +166,7 @@ public:
   class rlc_am_base_rx
   {
   public:
-    explicit rlc_am_base_rx(rlc_am* parent_, srslog::basic_logger* logger_) : parent(parent_), logger(logger_) {}
+    explicit rlc_am_base_rx(rlc_am* parent_, srslog::basic_logger& logger_) : parent(parent_), logger(logger_) {}
     virtual ~rlc_am_base_rx() = default;
 
     virtual bool     configure(const rlc_config_t& cfg_)                   = 0;
@@ -178,7 +178,7 @@ public:
 
     void write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
-    srslog::basic_logger* logger = nullptr;
+    srslog::basic_logger& logger;
     byte_buffer_pool*     pool   = nullptr;
     rlc_am*               parent = nullptr;
     std::string           rb_name;

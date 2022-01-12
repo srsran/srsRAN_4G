@@ -266,12 +266,7 @@ void rlc_um_base::rlc_um_base_tx::set_bsr_callback(bsr_callback_t callback)
 void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)
 {
   if (sdu) {
-    logger.info(sdu->msg,
-                sdu->N_bytes,
-                "%s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                rb_name.c_str(),
-                sdu->N_bytes,
-                tx_sdu_queue.size());
+    RlcHexInfo(sdu->msg, sdu->N_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", sdu->N_bytes, tx_sdu_queue.size());
     tx_sdu_queue.write(std::move(sdu));
   } else {
     RlcWarning("NULL SDU pointer in write_sdu()");
@@ -285,16 +280,15 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
     uint32_t                                 nof_bytes = sdu->N_bytes;
     srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
     if (ret) {
-      logger.info(
-          msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());
+      RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, tx_sdu_queue.size());
       return SRSRAN_SUCCESS;
     } else {
-      logger.warning(ret.error()->msg,
-                     ret.error()->N_bytes,
-                     "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                     rb_name.c_str(),
-                     ret.error()->N_bytes,
-                     tx_sdu_queue.size());
+      RlcHexWarning(ret.error()->msg,
+                    ret.error()->N_bytes,
+                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                    rb_name.c_str(),
+                    ret.error()->N_bytes,
+                    tx_sdu_queue.size());
     }
   } else {
     RlcWarning("NULL SDU pointer in write_sdu()");
