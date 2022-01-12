@@ -149,6 +149,15 @@ public:
   virtual void ul_crc_info(uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)                  = 0;
   virtual void ul_sr_info(uint16_t rnti)                                                        = 0;
   virtual void ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)                             = 0;
+
+  /**
+   * Enqueue MAC CEs for DL transmission
+   *
+   * @param rnti user rnti
+   * @param ce_lcid lcid of the MAC CE
+   * @return error code
+   */
+  virtual void dl_mac_ce(uint16_t rnti, uint32_t ce_lcid) = 0;
 };
 
 } // namespace srsenb

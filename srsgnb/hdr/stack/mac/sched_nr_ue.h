@@ -128,7 +128,7 @@ public:
   void            set_cfg(const ue_cfg_t& cfg);
   const ue_cfg_t& cfg() const { return ue_cfg; }
 
-  void mac_buffer_state(uint32_t ce_lcid, uint32_t nof_cmds = 1);
+  void add_dl_mac_ce(uint32_t ce_lcid, uint32_t nof_cmds = 1);
   void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx);
 
   /// UE state feedback

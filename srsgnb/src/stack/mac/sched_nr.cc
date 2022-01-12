@@ -471,6 +471,15 @@ void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
   });
 }
 
+void sched_nr::dl_mac_ce(uint16_t rnti, uint32_t ce_lcid)
+{
+  pending_events->enqueue_ue_event("dl_mac_ce", rnti, [ce_lcid](ue& u, event_manager::logger& event_logger) {
+    // CE is added to list of pending CE
+    u.add_dl_mac_ce(ce_lcid, 1);
+    event_logger.push("0x{:x}: dl_mac_ce(lcid={})", u.rnti, ce_lcid);
+  });
+}
+
 void sched_nr::dl_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t newtx, uint32_t retx)
 {
   pending_events->enqueue_ue_event(
