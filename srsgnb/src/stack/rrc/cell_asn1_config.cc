@@ -176,8 +176,11 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
     csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
     csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
 
-  if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 1;
+    if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+      csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 1;
+    } else {
+      csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
+    }
   } else {
     csi_meas_cfg.csi_report_cfg_to_add_mod_list.resize(1);
 
@@ -593,7 +596,7 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
   out.zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset_present = true;
   out.zp_csi_rs_res_to_add_mod_list[0].periodicity_and_offset.set_slots80() = 1;
 
-  out.p_zp_csi_rs_res_set_present = true; // TEMP
+  out.p_zp_csi_rs_res_set_present = false; // TEMP
   out.p_zp_csi_rs_res_set.set_setup();
   out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_set_id = 0;
   out.p_zp_csi_rs_res_set.setup().zp_csi_rs_res_id_list.resize(1);
