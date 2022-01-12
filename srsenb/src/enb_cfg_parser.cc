@@ -898,6 +898,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_required_field(cell_cfg.cell_id, cellroot, "cell_id"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
+    parse_default_field(cell_cfg.tx_gain, cellroot, "tx_gain", 0.0);
     cell_cfg.pci = cell_cfg.pci % SRSRAN_NUM_PCI;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn"));
     parse_default_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq", 0.0); // will be derived from DL EARFCN If not set
@@ -1296,6 +1297,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cell_cfg.cell_id        = cfg.cell_id;
     phy_cell_cfg.root_seq_idx   = cfg.root_seq_idx;
     phy_cell_cfg.rf_port        = cfg.rf_port;
+    phy_cell_cfg.gain_db        = cfg.tx_gain;
     phy_cell_cfg.num_ra_preambles =
         rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
 
