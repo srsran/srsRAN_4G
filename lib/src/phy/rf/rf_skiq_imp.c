@@ -536,7 +536,6 @@ int rf_skiq_set_rx_gain(void* h_, double rx_gain)
 
   for (uint32_t i = 0; i < h->nof_cards; i++) {
     rf_skiq_card_set_rx_gain_db(&h->cards[i], h->nof_ports, rx_gain);
-    h->cards[i].cur_rx_gain_db = rx_gain;
   }
 
   return SRSRAN_SUCCESS;
@@ -583,7 +582,6 @@ int rf_skiq_set_rx_gain_ch(void* h_, uint32_t ch, double rx_gain)
   }
 
   rx_gain = rf_skiq_card_set_rx_gain_db(&h->cards[card_idx], port_idx, rx_gain);
-  h->cards[card_idx].cur_rx_gain_db = rx_gain;
 
   return SRSRAN_SUCCESS;
 }

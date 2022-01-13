@@ -287,6 +287,9 @@ double rf_skiq_card_set_rx_gain_db(rf_skiq_card_t* q, uint32_t port_idx, double 
     }
   }
 
+  // Update current rx_gain
+  q->cur_rx_gain_db = gain_db;
+
   return gain_db;
 }
 
