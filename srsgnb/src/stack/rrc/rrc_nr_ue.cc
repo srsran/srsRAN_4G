@@ -1117,12 +1117,6 @@ void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode
   update_as_security(srb_to_lcid(srsran::nr_srb::srb1), false, true);
 
   send_ue_capability_enquiry();
-  send_rrc_reconfiguration();
-
-  // Send RRCReconfiguration if necessary
-  if (not nas_pdu_queue.empty()) {
-    send_rrc_reconfiguration();
-  }
 }
 
 /// TS 38.331, RRCReconfiguration
@@ -1230,6 +1224,13 @@ void rrc_nr::ue::send_ue_capability_enquiry()
 void rrc_nr::ue::handle_ue_capability_information(const asn1::rrc_nr::ue_cap_info_s& msg)
 {
   logger.info("UECapabilityInformation transaction ID: %d", msg.rrc_transaction_id);
+
+  send_rrc_reconfiguration();
+
+  // Send RRCReconfiguration if necessary
+  if (not nas_pdu_queue.empty()) {
+    send_rrc_reconfiguration();
+  }
 }
 
 void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg)
