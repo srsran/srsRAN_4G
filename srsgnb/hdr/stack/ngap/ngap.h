@@ -74,7 +74,7 @@ public:
 
   // Stack interface
   bool
-       handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  handle_amf_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void get_metrics(ngap_metrics_t& m);
   void get_args(ngap_args_t& args_);
 
@@ -138,6 +138,8 @@ private:
   bool handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setup_request_s& msg);
   // TS 38.413 - Section 9.2.1.1 - PDU Session Resource Setup Request
   bool handle_ue_pdu_session_res_setup_request(const asn1::ngap::pdu_session_res_setup_request_s& msg);
+  // TS 38.413 - Section 9.2.4.1 - Paging
+  bool handle_paging(const asn1::ngap::paging_s& msg);
 
   // PCAP
   srsran::ngap_pcap* pcap = nullptr;

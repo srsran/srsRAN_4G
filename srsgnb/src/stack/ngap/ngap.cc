@@ -435,6 +435,8 @@ bool ngap::handle_initiating_message(const asn1::ngap::init_msg_s& msg)
       return handle_ue_context_release_cmd(msg.value.ue_context_release_cmd());
     case ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request:
       return handle_ue_pdu_session_res_setup_request(msg.value.pdu_session_res_setup_request());
+    case ngap_elem_procs_o::init_msg_c::types_opts::paging:
+      return handle_paging(msg.value.paging());
     default:
       logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
@@ -570,6 +572,20 @@ bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap::pdu_session
     rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg->ue_aggregate_maximum_bit_rate.value);
   }
   u->handle_pdu_session_res_setup_request(msg);
+
+  return true;
+}
+
+bool ngap::handle_paging(const asn1::ngap::paging_s& msg)
+{
+  logger.info("Paging is not supported yet.");
+
+  // TODO: Handle Paging after RRC Paging is implemented
+
+  // uint32_t ue_paging_id = msg->ue_paging_id.id;
+  // Note: IMSI Paging is not supported in NR
+  // uint64_t tmsi = msg->ue_paging_id.value.five_g_s_tmsi().five_g_tmsi.to_number();
+  // rrc->add_paging(ue_paging_id, tmsi);
 
   return true;
 }
