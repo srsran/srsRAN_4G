@@ -438,7 +438,7 @@ int rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_bytes)
     RlcDebug("Deferred Status PDU. Cause: Failed to acquire Rx lock");
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
-    RlcInfo("Tx status PDU - %s", rlc_am_status_pdu_to_string(&tx_status));
+    log_rlc_am_status_pdu_to_string(logger.info, rb_name, "Tx status PDU - %s", &tx_status);
     if (cfg.t_status_prohibit > 0 && status_prohibit_timer.is_valid()) {
       // re-arm timer
       status_prohibit_timer.run();
@@ -528,7 +528,7 @@ int rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
              tx_window[retx.sn].buf->N_bytes,
              tx_window[retx.sn].retx_count + 1,
              cfg.max_retx_thresh);
-  RlcDebug("%s", rlc_amd_pdu_header_to_string(new_header));
+  log_rlc_amd_pdu_header_to_string(logger.debug, rb_name, "Tx PDU - %s", new_header);
 
   debug_state();
   return (ptr - payload) + tx_window[retx.sn].buf->N_bytes;
@@ -551,8 +551,7 @@ int rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_r
 
   pdu_without_poll++;
   byte_without_poll += (tx_window[retx.sn].buf->N_bytes + rlc_am_packed_length(&new_header));
-  RlcInfo("pdu_without_poll: %d", pdu_without_poll);
-  RlcInfo("byte_without_poll: %d", byte_without_poll);
+  RlcInfo("pdu_without_poll: %d, byte_without_poll: %d", pdu_without_poll, byte_without_poll);
 
   new_header.dc   = RLC_DC_FIELD_DATA_PDU;
   new_header.rf   = 1;
@@ -909,7 +908,7 @@ int rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   memcpy(ptr, buffer_ptr->msg, buffer_ptr->N_bytes);
   int total_len = (ptr - payload) + buffer_ptr->N_bytes;
   RlcHexInfo(payload, total_len, "Tx PDU SN=%d (%d B)", header.sn, total_len);
-  RlcDebug("%s", rlc_amd_pdu_header_to_string(header));
+  log_rlc_amd_pdu_header_to_string(logger.debug, rb_name, "%s", header);
   debug_state();
 
   return total_len;
@@ -933,7 +932,7 @@ void rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 
     rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
-    RlcInfo("Rx Status PDU %s", rlc_am_status_pdu_to_string(&status));
+    log_rlc_am_status_pdu_to_string(logger.info, rb_name, "Rx Status PDU %s", &status);
 
     // make sure ACK_SN is within our Tx window
     if (((MOD + status.ack_sn - vt_a) % MOD > RLC_AM_WINDOW_SIZE) ||
@@ -1268,7 +1267,7 @@ void rlc_am_lte_rx::handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, r
   std::map<uint32_t, rlc_amd_rx_pdu>::iterator it;
 
   RlcHexInfo(payload, nof_bytes, "Rx data PDU SN=%d (%d B)", header.sn, nof_bytes);
-  RlcDebug("%s", rlc_amd_pdu_header_to_string(header));
+  log_rlc_amd_pdu_header_to_string(logger.debug, rb_name, "%s", header);
 
   // sanity check for segments not exceeding PDU length
   if (header.N_li > 0) {
@@ -1387,7 +1386,7 @@ void rlc_am_lte_rx::handle_data_pdu_segment(uint8_t* payload, uint32_t nof_bytes
              nof_bytes,
              header.so,
              header.N_li);
-  RlcDebug("%s", rlc_amd_pdu_header_to_string(header));
+  log_rlc_amd_pdu_header_to_string(logger.debug, rb_name, "Rx data PDU segment %s", header);
 
   // Check inside rx window
   if (!inside_rx_window(header.sn)) {
