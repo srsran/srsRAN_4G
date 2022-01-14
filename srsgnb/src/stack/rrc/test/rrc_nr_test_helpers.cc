@@ -71,12 +71,10 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), srb1.srb_id);
   // Test UE context in MAC
   TESTASSERT_EQ(rnti, mac.last_ue_cfg_rnti);
-  // Only LCID=0 and LCID=2 are active
-  TESTASSERT_EQ(mac_lc_ch_cfg_t::BOTH, mac.last_ue_cfg.ue_bearers[0].direction);
-  TESTASSERT_EQ(mac_lc_ch_cfg_t::BOTH, mac.last_ue_cfg.ue_bearers[1].direction);
-  for (uint32_t lcid = 2; lcid < mac.last_ue_cfg.ue_bearers.size(); ++lcid) {
-    TESTASSERT_EQ(mac_lc_ch_cfg_t::IDLE, mac.last_ue_cfg.ue_bearers[lcid].direction);
-  }
+  // Only LCID=1 is added
+  TESTASSERT_EQ(1, mac.last_ue_cfg.lc_ch_to_add.size());
+  TESTASSERT_EQ(1, mac.last_ue_cfg.lc_ch_to_add.front().lcid);
+  TESTASSERT_EQ(mac_lc_ch_cfg_t::BOTH, mac.last_ue_cfg.lc_ch_to_add.front().cfg.direction);
   bool found_common_ul_dci_format = false;
   for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
     if (mac.last_ue_cfg.phy_cfg.pdcch.search_space_present[ss_id]) {

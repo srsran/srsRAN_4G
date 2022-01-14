@@ -18,16 +18,16 @@
 
 namespace srsenb {
 
-sched_nr_ue_sim::sched_nr_ue_sim(uint16_t                            rnti_,
-                                 const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                                 slot_point                          prach_slot_rx,
-                                 uint32_t                            preamble_idx) :
+sched_nr_ue_sim::sched_nr_ue_sim(uint16_t                 rnti_,
+                                 const sched_nr_ue_cfg_t& ue_cfg_,
+                                 slot_point               prach_slot_rx,
+                                 uint32_t                 preamble_idx) :
   logger(srslog::fetch_basic_logger("MAC"))
 {
   ctxt.rnti          = rnti_;
   ctxt.prach_slot_rx = prach_slot_rx;
   ctxt.preamble_idx  = preamble_idx;
-  ctxt.ue_cfg        = ue_cfg_;
+  ctxt.ue_cfg.apply_config_request(ue_cfg_);
 
   ctxt.cc_list.resize(ue_cfg_.carriers.size());
   for (auto& cc : ctxt.cc_list) {
@@ -229,7 +229,7 @@ void sched_nr_base_test_bench::user_cfg(uint16_t rnti, const sched_nr_interface:
 {
   TESTASSERT(ue_db.count(rnti) > 0);
 
-  ue_db.at(rnti).get_ctxt().ue_cfg = ue_cfg_;
+  ue_db.at(rnti).get_ctxt().ue_cfg.apply_config_request(ue_cfg_);
   sched_ptr->ue_cfg(rnti, ue_cfg_);
 }
 

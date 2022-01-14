@@ -69,11 +69,11 @@ struct ue_nr_slot_events {
 };
 
 struct sim_nr_ue_ctxt_t {
-  uint16_t                     rnti;
-  uint32_t                     preamble_idx;
-  slot_point                   prach_slot_rx;
-  sched_nr_interface::ue_cfg_t ue_cfg;
-  std::vector<ue_nr_cc_ctxt_t> cc_list;
+  uint16_t                      rnti;
+  uint32_t                      preamble_idx;
+  slot_point                    prach_slot_rx;
+  sched_nr_impl::ue_cfg_manager ue_cfg;
+  std::vector<ue_nr_cc_ctxt_t>  cc_list;
 
   bool is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
   {
@@ -89,10 +89,7 @@ struct sim_nr_enb_ctxt_t {
 class sched_nr_ue_sim
 {
 public:
-  sched_nr_ue_sim(uint16_t                            rnti_,
-                  const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                  slot_point                          prach_slot_rx,
-                  uint32_t                            preamble_idx);
+  sched_nr_ue_sim(uint16_t rnti_, const sched_nr_ue_cfg_t& ue_cfg_, slot_point prach_slot_rx, uint32_t preamble_idx);
 
   int update(const sched_nr_cc_result_view& cc_out);
 

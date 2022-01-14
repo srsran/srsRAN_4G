@@ -36,7 +36,7 @@ void test_coreset0_cfg()
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
 
   // UE config
-  ue_cfg_t uecfg      = get_rach_ue_cfg(0);
+  ue_cfg_manager uecfg{get_rach_ue_cfg(0)};
   uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts without UE-specific PDCCH
   ue_carrier_params_t ue_cc{0x46, bwp_params, uecfg};
 
@@ -149,7 +149,7 @@ void test_coreset2_cfg()
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
 
   // UE config
-  ue_cfg_t uecfg      = get_rach_ue_cfg(0);
+  ue_cfg_manager uecfg{get_rach_ue_cfg(0)};
   uecfg.phy_cfg       = get_common_ue_phy_cfg(cell_cfg);
   uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
   ue_carrier_params_t ue_cc{0x46, bwp_params, uecfg};
@@ -243,7 +243,7 @@ void test_invalid_params()
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
 
   // UE config
-  ue_cfg_t uecfg      = get_rach_ue_cfg(0);
+  ue_cfg_manager uecfg{get_rach_ue_cfg(0)};
   uecfg.phy_cfg       = get_common_ue_phy_cfg(cell_cfg);
   uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
   ue_carrier_params_t ue_cc{0x46, bwp_params, uecfg};

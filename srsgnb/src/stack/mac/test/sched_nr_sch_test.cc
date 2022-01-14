@@ -34,9 +34,9 @@ sched_nr_interface::cell_cfg_t get_cell_cfg()
 
 sched_nr_interface::ue_cfg_t get_ue_cfg(const sched_nr_interface::cell_cfg_t& cell_cfg)
 {
-  ue_cfg_t uecfg      = get_rach_ue_cfg(0);
-  uecfg.phy_cfg       = get_common_ue_phy_cfg(cell_cfg);
-  uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
+  sched_nr_ue_cfg_t uecfg = get_rach_ue_cfg(0);
+  uecfg.phy_cfg           = get_common_ue_phy_cfg(cell_cfg);
+  uecfg.phy_cfg.pdcch     = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
   return uecfg;
 }
 
@@ -202,7 +202,7 @@ void test_ue_pdsch()
 
   // Create Cell and UE configs
   sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
+  sched_nr_impl::ue_cfg_manager    uecfg{get_ue_cfg(cell_cfg)};
   sched_nr_interface::sched_args_t sched_args;
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
   ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
@@ -269,7 +269,7 @@ void test_pdsch_fail()
 
   // Create Cell and UE configs
   sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
+  sched_nr_impl::ue_cfg_manager    uecfg{get_ue_cfg(cell_cfg)};
   sched_nr_interface::sched_args_t sched_args;
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
   ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
@@ -318,7 +318,7 @@ void test_multi_pdsch()
 
   // Create Cell and UE configs
   sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
+  sched_nr_impl::ue_cfg_manager    uecfg{get_ue_cfg(cell_cfg)};
   sched_nr_interface::sched_args_t sched_args;
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
   ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
@@ -409,7 +409,7 @@ void test_multi_pusch()
 
   // Create Cell and UE configs
   sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
+  sched_nr_impl::ue_cfg_manager    uecfg{get_ue_cfg(cell_cfg)};
   sched_nr_interface::sched_args_t sched_args;
   bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
   ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};

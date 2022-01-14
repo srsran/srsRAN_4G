@@ -701,9 +701,8 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   // try to allocate new user
   sched_nr_ue_cfg_t uecfg{};
   uecfg.carriers.resize(1);
-  uecfg.carriers[0].active      = true;
-  uecfg.carriers[0].cc          = 0;
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+  uecfg.carriers[0].active = true;
+  uecfg.carriers[0].cc     = 0;
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
   ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
                         ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4

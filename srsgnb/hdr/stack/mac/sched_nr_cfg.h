@@ -42,7 +42,6 @@ using ssb_list           = srsran::bounded_vector<ssb_t, mac_interface_phy_nr::M
 using sched_args_t       = sched_nr_interface::sched_args_t;
 using cell_cfg_t         = sched_nr_interface::cell_cfg_t;
 using bwp_cfg_t          = sched_nr_interface::bwp_cfg_t;
-using ue_cfg_t           = sched_nr_interface::ue_cfg_t;
 using ue_cc_cfg_t        = sched_nr_interface::ue_cc_cfg_t;
 using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
 using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
@@ -135,68 +134,6 @@ struct sched_params_t {
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Semi-static configuration of a UE for a given CC.
-class ue_carrier_params_t
-{
-public:
-  ue_carrier_params_t() = default;
-  explicit ue_carrier_params_t(uint16_t rnti, const bwp_params_t& active_bwp_cfg, const ue_cfg_t& uecfg_);
-
-  uint16_t rnti = SRSRAN_INVALID_RNTI;
-  uint32_t cc   = SRSRAN_MAX_CARRIERS;
-
-  const ue_cfg_t&             ue_cfg() const { return *cfg_; }
-  const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
-  const bwp_params_t&         active_bwp() const { return *bwp_cfg; }
-
-  /// Get SearchSpace based on SearchSpaceId
-  const srsran_search_space_t* get_ss(uint32_t ss_id) const
-  {
-    if (phy().pdcch.search_space_present[ss_id]) {
-      // UE-dedicated SearchSpace
-      return &bwp_cfg->cfg.pdcch.search_space[ss_id];
-    }
-    return nullptr;
-  }
-
-  srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
-  {
-    if (cce_positions_list.size() > ss_id_to_cce_idx[search_id]) {
-      auto& lst = cce_pos_list(search_id);
-      return lst[slot_idx][aggr_idx];
-    }
-    return srsran::const_span<uint32_t>{};
-  }
-  const bwp_cce_pos_list& cce_pos_list(uint32_t search_id) const
-  {
-    return cce_positions_list[ss_id_to_cce_idx[search_id]];
-  }
-
-  uint32_t get_k1(slot_point pdsch_slot) const
-  {
-    if (phy().duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
-      return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().duplex.tdd.pattern1.period_ms];
-    }
-    return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().harq_ack.nof_dl_data_to_ul_ack];
-  }
-  int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
-  int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
-
-  const srsran_dci_cfg_nr_t& get_dci_cfg() const { return cached_dci_cfg; }
-
-  int find_ss_id(srsran_dci_format_nr_t dci_fmt) const;
-
-private:
-  const ue_cfg_t*     cfg_    = nullptr;
-  const bwp_params_t* bwp_cfg = nullptr;
-
-  // derived
-  std::vector<bwp_cce_pos_list>                              cce_positions_list;
-  std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;
-  srsran_dci_cfg_nr_t                                        cached_dci_cfg;
-};
-
 } // namespace sched_nr_impl
 } // namespace srsenb
 

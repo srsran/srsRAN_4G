@@ -188,12 +188,12 @@ private:
     return 0;
   }
 
-  rlc_interface_mac*         rlc;
-  rrc_interface_mac_nr*      rrc;
-  sched_nr_interface*        sched;
+  rlc_interface_mac*          rlc;
+  rrc_interface_mac_nr*       rrc;
+  sched_nr_interface*         sched;
   mac_interface_pdu_demux_nr& mac;
-  srslog::basic_logger&      logger;
-  srsran::task_queue_handle& task_queue;
+  srslog::basic_logger&       logger;
+  srsran::task_queue_handle&  task_queue;
 
   srsran::mac_sch_pdu_nr pdu_ul;
 };
@@ -338,11 +338,7 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
 
     // Add new user to the scheduler so that it can RX/TX SRB0
     sched_nr_ue_cfg_t uecfg = {};
-    uecfg.carriers.resize(1);
-    uecfg.carriers[0].active      = true;
-    uecfg.carriers[0].cc          = enb_cc_idx;
-    uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-    uecfg.phy_cfg                 = default_ue_phy_cfg;
+    uecfg.phy_cfg           = default_ue_phy_cfg;
 
     uint16_t rnti = alloc_ue(enb_cc_idx);
 

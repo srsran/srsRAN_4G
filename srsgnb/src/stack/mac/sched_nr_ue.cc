@@ -85,7 +85,7 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_) : ue(&ue_), pdcch_slot(sl
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ue_carrier::ue_carrier(uint16_t                              rnti_,
-                       const ue_cfg_t&                       uecfg_,
+                       const ue_cfg_manager&                 uecfg_,
                        const cell_params_t&                  cell_params_,
                        const ue_context_common&              ctxt,
                        const ue_buffer_manager::pdu_builder& pdu_builder_) :
@@ -99,7 +99,7 @@ ue_carrier::ue_carrier(uint16_t                              rnti_,
   harq_ent(rnti_, cell_params_.nof_prb(), SCHED_NR_MAX_HARQ, cell_params_.bwps[0].logger)
 {}
 
-void ue_carrier::set_cfg(const ue_cfg_t& ue_cfg)
+void ue_carrier::set_cfg(const ue_cfg_manager& ue_cfg)
 {
   bwp_cfg = ue_carrier_params_t(rnti, cell_params.bwps[0], ue_cfg);
 }
@@ -131,15 +131,18 @@ int ue_carrier::ul_crc_info(uint32_t pid, bool crc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue::ue(uint16_t rnti_, const ue_cfg_t& cfg, const sched_params_t& sched_cfg_) :
-  rnti(rnti_), sched_cfg(sched_cfg_), buffers(rnti_, srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name))
+ue::ue(uint16_t rnti_, const sched_nr_ue_cfg_t& cfg, const sched_params_t& sched_cfg_) :
+  rnti(rnti_),
+  sched_cfg(sched_cfg_),
+  buffers(rnti_, srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name)),
+  ue_cfg(0)
 {
   set_cfg(cfg);
 }
 
-void ue::set_cfg(const ue_cfg_t& cfg)
+void ue::set_cfg(const sched_nr_ue_cfg_t& cfg)
 {
-  ue_cfg = cfg;
+  ue_cfg.apply_config_request(cfg);
   for (auto& ue_cc_cfg : cfg.carriers) {
     if (ue_cc_cfg.active) {
       if (carriers[ue_cc_cfg.cc] == nullptr) {
@@ -154,7 +157,7 @@ void ue::set_cfg(const ue_cfg_t& cfg)
     }
   }
 
-  buffers.config_lcids(cfg.ue_bearers);
+  buffers.config_lcids(ue_cfg.ue_bearers);
 }
 
 void ue::add_dl_mac_ce(uint32_t ce_lcid, uint32_t nof_cmds)

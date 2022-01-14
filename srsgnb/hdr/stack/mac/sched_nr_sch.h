@@ -15,6 +15,7 @@
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_cfg.h"
+#include "srsgnb/hdr/stack/mac/sched_ue/ue_cfg_manager.h"
 
 namespace srsenb {
 

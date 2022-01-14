@@ -89,9 +89,6 @@ inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t                    
   uecfg.carriers[0].active = true;
   uecfg.carriers[0].cc     = cc;
 
-  // set SRB0 as active
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-
   // set basic PHY config
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
   uecfg.phy_cfg.csi = {};
@@ -115,8 +112,7 @@ inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
     uecfg.carriers[cc].cc     = cc;
     uecfg.carriers[cc].active = true;
   }
-  uecfg.phy_cfg                 = phy_cfg;
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+  uecfg.phy_cfg = phy_cfg;
 
   return uecfg;
 }

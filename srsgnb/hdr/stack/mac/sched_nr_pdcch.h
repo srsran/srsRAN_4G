@@ -15,6 +15,7 @@
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_cfg.h"
+#include "srsgnb/hdr/stack/mac/sched_ue/ue_cfg_manager.h"
 #include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/phy/common/phy_common_nr.h"

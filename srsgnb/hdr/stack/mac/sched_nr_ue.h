@@ -16,6 +16,7 @@
 #include "sched_nr_cfg.h"
 #include "sched_nr_harq.h"
 #include "sched_nr_interface.h"
+#include "sched_ue/ue_cfg_manager.h"
 #include "srsenb/hdr/stack/mac/common/base_ue_buffer_manager.h"
 #include "srsenb/hdr/stack/mac/common/mac_metrics.h"
 #include "srsran/adt/circular_map.h"
@@ -79,12 +80,12 @@ class ue_carrier
 {
 public:
   ue_carrier(uint16_t                              rnti,
-             const ue_cfg_t&                       cfg,
+             const ue_cfg_manager&                 cfg,
              const cell_params_t&                  cell_params_,
              const ue_context_common&              ctxt,
              const ue_buffer_manager::pdu_builder& pdu_builder_);
 
-  void                       set_cfg(const ue_cfg_t& ue_cfg);
+  void                       set_cfg(const ue_cfg_manager& ue_cfg);
   const ue_carrier_params_t& cfg() const { return bwp_cfg; }
 
   int dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack);
@@ -118,15 +119,15 @@ private:
 class ue
 {
 public:
-  ue(uint16_t rnti, const ue_cfg_t& cfg, const sched_params_t& sched_cfg_);
+  ue(uint16_t rnti, const sched_nr_ue_cfg_t& cfg, const sched_params_t& sched_cfg_);
 
   void new_slot(slot_point pdcch_slot);
 
   slot_ue make_slot_ue(slot_point pdcch_slot, uint32_t cc);
 
   /// Update UE CC configuration
-  void            set_cfg(const ue_cfg_t& cfg);
-  const ue_cfg_t& cfg() const { return ue_cfg; }
+  void                  set_cfg(const sched_nr_ue_cfg_t& cfg);
+  const ue_cfg_manager& cfg() const { return ue_cfg; }
 
   void add_dl_mac_ce(uint32_t ce_lcid, uint32_t nof_cmds = 1);
   void rlc_buffer_state(uint32_t lcid, uint32_t newtx, uint32_t retx);
@@ -150,7 +151,7 @@ public:
 private:
   const sched_params_t& sched_cfg;
 
-  ue_cfg_t ue_cfg;
+  ue_cfg_manager ue_cfg;
 
   slot_point        last_tx_slot;
   slot_point        last_sr_slot;

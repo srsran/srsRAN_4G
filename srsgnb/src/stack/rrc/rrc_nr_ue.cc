@@ -737,13 +737,13 @@ void rrc_nr::ue::crnti_ce_received()
 
     // Add DRB1 to MAC
     for (auto& drb : cell_group_cfg.rlc_bearer_to_add_mod_list) {
-      uecfg.ue_bearers[drb.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
-      uecfg.ue_bearers[drb.lc_ch_id].group     = drb.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
+      uecfg.lc_ch_to_add.emplace_back();
+      uecfg.lc_ch_to_add.back().lcid          = drb.lc_ch_id;
+      uecfg.lc_ch_to_add.back().cfg.direction = mac_lc_ch_cfg_t::BOTH;
+      uecfg.lc_ch_to_add.back().cfg.group     = drb.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
     }
 
     // Update UE phy params
-    srsran::make_pdsch_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.pdsch);
-    srsran::make_csi_cfg_from_serv_cell(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
     srsran::make_phy_ssb_cfg(parent->cfg.cell_list[0].phy_cell.carrier,
                              cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common,
                              &uecfg.phy_cfg.ssb);
@@ -751,6 +751,10 @@ void rrc_nr::ue::crnti_ce_received()
                                            &uecfg.phy_cfg.duplex);
 
     srsran_assert(check_nr_pdcch_cfg_valid(uecfg.phy_cfg.pdcch) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
+
+    uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
+    uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
+    uecfg.phy_cell_group_cfg.reset(new phys_cell_group_cfg_s{cell_group_cfg.phys_cell_group_cfg});
     parent->mac->ue_cfg(rnti, uecfg);
   }
 }
@@ -1414,17 +1418,19 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
   if (not is_config_complete) {
     // Release bearers
     for (uint8_t lcid : cell_group_config.rlc_bearer_to_release_list) {
-      uecfg.ue_bearers[lcid].direction = mac_lc_ch_cfg_t::IDLE;
+      uecfg.lc_ch_to_rem.push_back(lcid);
     }
 
     for (const rlc_bearer_cfg_s& bearer : cell_group_config.rlc_bearer_to_add_mod_list) {
-      uecfg.ue_bearers[bearer.lc_ch_id].direction = mac_lc_ch_cfg_t::BOTH;
+      uecfg.lc_ch_to_add.emplace_back();
+      uecfg.lc_ch_to_add.back().lcid = bearer.lc_ch_id;
+      auto& lch                      = uecfg.lc_ch_to_add.back().cfg;
+      lch.direction                  = mac_lc_ch_cfg_t::BOTH;
       if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
-        uecfg.ue_bearers[bearer.lc_ch_id].priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
-        uecfg.ue_bearers[bearer.lc_ch_id].pbr =
-            bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
-        uecfg.ue_bearers[bearer.lc_ch_id].bsd   = bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
-        uecfg.ue_bearers[bearer.lc_ch_id].group = bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
+        lch.priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
+        lch.pbr      = bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
+        lch.bsd      = bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
+        lch.group    = bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
         // TODO: remaining fields
       }
     }
@@ -1442,9 +1448,10 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
     }
   }
 
+  uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
+  uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
+  uecfg.phy_cell_group_cfg.reset(new phys_cell_group_cfg_s{cell_group_cfg.phys_cell_group_cfg});
   parent->mac->ue_cfg(rnti, uecfg);
-
-  srsran::make_csi_cfg_from_serv_cell(cell_group_config.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
 
   return SRSRAN_SUCCESS;
 }
@@ -1457,11 +1464,14 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
 void rrc_nr::ue::deactivate_bearers()
 {
   // Iterate over the bearers (MAC LC CH) and set each of them to IDLE
-  for (auto& ue_bearer : uecfg.ue_bearers) {
-    ue_bearer.direction = mac_lc_ch_cfg_t::IDLE;
+  for (uint32_t lcid = 0; lcid < SCHED_NR_MAX_LCID; ++lcid) {
+    uecfg.lc_ch_to_rem.push_back(lcid);
   }
 
   // No need to check the returned value, as the function ue_cfg will return SRSRAN_SUCCESS (it asserts if it fails)
+  uecfg.phy_cell_group_cfg = {};
+  uecfg.mac_cell_group_cfg = {};
+  uecfg.sp_cell_cfg        = {};
   parent->mac->ue_cfg(rnti, uecfg);
 }
 

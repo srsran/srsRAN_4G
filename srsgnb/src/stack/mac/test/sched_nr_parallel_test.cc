@@ -84,9 +84,11 @@ void run_sched_nr_test(uint32_t nof_workers)
   for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
     slot_point slot_rx(0, nof_slots % 10240);
     slot_point slot_tx = slot_rx + TX_ENB_DELAY;
-    if (slot_rx.to_uint() == 9) {
+    if (nof_slots == 9) {
       sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
-      uecfg.ue_bearers[1].direction      = mac_lc_ch_cfg_t::BOTH;
+      uecfg.lc_ch_to_add.emplace_back();
+      uecfg.lc_ch_to_add.back().lcid          = 1;
+      uecfg.lc_ch_to_add.back().cfg.direction = mac_lc_ch_cfg_t::BOTH;
       tester.add_user(rnti, uecfg, slot_rx, 0);
     }
     tester.run_slot(slot_tx);

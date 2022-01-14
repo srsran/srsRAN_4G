@@ -14,10 +14,10 @@
 #define SRSRAN_SCHED_NR_INTERFACE_H
 
 #include "srsenb/hdr/stack/mac/common/sched_config.h"
-#include "srsran/adt/bounded_bitset.h"
 #include "srsran/adt/bounded_vector.h"
 #include "srsran/adt/optional.h"
 #include "srsran/adt/span.h"
+#include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/common_nr.h"
 #include "srsran/common/phy_cfg_nr.h"
 #include "srsran/common/slot_point.h"
@@ -40,11 +40,20 @@ struct sched_nr_ue_cc_cfg_t {
   uint32_t cc     = 0;
 };
 
+struct sched_nr_ue_lc_ch_cfg_t {
+  uint32_t        lcid; // 1..32
+  mac_lc_ch_cfg_t cfg;
+};
+
 struct sched_nr_ue_cfg_t {
   uint32_t                                                            maxharq_tx = 4;
   srsran::bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> carriers;
-  std::array<mac_lc_ch_cfg_t, SCHED_NR_MAX_LCID>                      ue_bearers = {};
-  srsran::phy_cfg_nr_t                                                phy_cfg    = {};
+  srsran::phy_cfg_nr_t                                                phy_cfg = {};
+  asn1::copy_ptr<asn1::rrc_nr::mac_cell_group_cfg_s>                  mac_cell_group_cfg;
+  asn1::copy_ptr<asn1::rrc_nr::phys_cell_group_cfg_s>                 phy_cell_group_cfg;
+  asn1::copy_ptr<asn1::rrc_nr::sp_cell_cfg_s>                         sp_cell_cfg;
+  std::vector<sched_nr_ue_lc_ch_cfg_t>                                lc_ch_to_add;
+  std::vector<uint32_t>                                               lc_ch_to_rem;
 };
 
 class sched_nr_interface
