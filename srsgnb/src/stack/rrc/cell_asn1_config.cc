@@ -641,8 +641,8 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   uint32_t j = 0, j2 = 0;
   for (uint32_t i = 0; i < out.res_to_add_mod_list.size(); ++i) {
     out.res_to_add_mod_list[i].pucch_res_id                = i;
-    out.res_to_add_mod_list[i].intra_slot_freq_hop_present = true;
-    out.res_to_add_mod_list[i].second_hop_prb_present      = true;
+    out.res_to_add_mod_list[i].intra_slot_freq_hop_present = false;
+    out.res_to_add_mod_list[i].second_hop_prb_present      = false;
     if (i < 8 or i == 16) {
       out.res_to_add_mod_list[i].start_prb                              = 51;
       out.res_to_add_mod_list[i].second_hop_prb                         = 0;
@@ -675,6 +675,9 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   out.format2.set_setup();
   out.format2.setup().max_code_rate_present = true;
   out.format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
+  // NOTE: IMPORTANT!! The gNB expects the CSI to be reported along with HARQ-ACK
+  // If simul_harq_ack_csi_present = false, PUCCH might not be decoded properly when CSI is reported
+  out.format2.setup().simul_harq_ack_csi_present = true;
 
   // SR resources
   out.sched_request_res_to_add_mod_list.resize(1);

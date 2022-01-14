@@ -619,6 +619,10 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_SUCCESS;
   }
 
+  if (uci_cfg->ack.count > 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
+    printf("This is point where we fail");
+  }
+
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
