@@ -64,8 +64,9 @@ void test_sib_generation()
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, bearer_mapper, nullptr) ==
-             SRSRAN_SUCCESS);
+  TESTASSERT(
+      rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, bearer_mapper, nullptr) ==
+      SRSRAN_SUCCESS);
 
   const sched_nr_interface::cell_cfg_t& nrcell = mac_obj.nr_cells.at(0);
 
@@ -119,8 +120,9 @@ int test_rrc_setup()
   srsran::string_to_mnc("01", &rrc_cfg_nr.mnc);
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, bearer_mapper, nullptr) ==
-             SRSRAN_SUCCESS);
+  TESTASSERT(
+      rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, bearer_mapper, nullptr) ==
+      SRSRAN_SUCCESS);
 
   for (uint32_t n = 0; n < 2; ++n) {
     uint32_t timeout = 5500;
@@ -163,8 +165,9 @@ void test_rrc_sa_connection()
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, bearer_mapper, nullptr) ==
-             SRSRAN_SUCCESS);
+  TESTASSERT(
+      rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, nullptr, bearer_mapper, nullptr) ==
+      SRSRAN_SUCCESS);
 
   sched_nr_ue_cfg_t uecfg                     = get_default_ue_cfg(1);
   uecfg.phy_cfg.pdcch                         = rrc_cfg_nr.cell_list[0].phy_cell.pdcch;

@@ -39,6 +39,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
                  ngap_interface_rrc_nr*      ngap_,
+                 gtpu_interface_rrc*         gtpu_,
                  enb_bearer_manager&         bearer_mapper_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
@@ -47,6 +48,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   rlc           = rlc_;
   pdcp          = pdcp_;
   ngap          = ngap_;
+  gtpu          = gtpu_;
   bearer_mapper = &bearer_mapper_;
   rrc_eutra     = rrc_eutra_;
 

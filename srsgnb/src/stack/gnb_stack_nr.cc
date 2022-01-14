@@ -95,7 +95,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
 
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
 
-  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), *bearer_manager, x2_) != SRSRAN_SUCCESS) {
+  if (rrc.init(rrc_cfg_, phy, &mac, &rlc, &pdcp, ngap.get(), gtpu.get(), *bearer_manager, x2_) != SRSRAN_SUCCESS) {
     stack_logger.error("Couldn't initialize RRC");
     return SRSRAN_ERROR;
   }

@@ -56,6 +56,7 @@ public:
                rlc_interface_rrc*          rlc,
                pdcp_interface_rrc*         pdcp,
                ngap_interface_rrc_nr*      ngap_,
+               gtpu_interface_rrc*         gtpu_,
                enb_bearer_manager&         bearer_mapper_,
                rrc_eutra_interface_rrc_nr* rrc_eutra_);
 
@@ -128,6 +129,7 @@ private:
   rlc_interface_rrc*          rlc           = nullptr;
   pdcp_interface_rrc*         pdcp          = nullptr;
   ngap_interface_rrc_nr*      ngap          = nullptr;
+  gtpu_interface_rrc*         gtpu          = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra     = nullptr;
   enb_bearer_manager*         bearer_mapper = nullptr;
 
