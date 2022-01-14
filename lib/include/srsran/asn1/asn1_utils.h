@@ -1473,7 +1473,7 @@ struct setup_release_c {
   SRSASN_CODE pack(bit_ref& bref) const
   {
     type_.pack(bref);
-    switch (type_) {
+    switch (type_.value) {
       case types::release:
         break;
       case types::setup:
@@ -1490,7 +1490,7 @@ struct setup_release_c {
     types e;
     e.unpack(bref);
     set(e);
-    switch (type_) {
+    switch (type_.value) {
       case types::release:
         break;
       case types::setup:
@@ -1505,7 +1505,7 @@ struct setup_release_c {
   void to_json(json_writer& j) const
   {
     j.start_obj();
-    switch (type_) {
+    switch (type_.value) {
       case types::release:
         break;
       case types::setup:
