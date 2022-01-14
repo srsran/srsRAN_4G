@@ -66,7 +66,8 @@ public:
   void handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg);
 
   /** TS 38.331 - 5.3.7 RRC connection reestablishment */
-  void handle_rrc_reest_request(const asn1::rrc_nr::rrc_reest_request_s& msg);
+  void handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_reest_request_s& msg);
+  void handle_rrc_reestablishment_complete(const asn1::rrc_nr::rrc_reest_complete_s& msg);
 
   /** TS 38.331 - 5.3.8 Connection Release */
   void send_rrc_release();

@@ -884,7 +884,7 @@ void rrc_nr::ue::handle_rrc_setup_request(const asn1::rrc_nr::rrc_setup_request_
   set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
-void rrc_nr::ue::handle_rrc_reest_request(const asn1::rrc_nr::rrc_reest_request_s& msg)
+void rrc_nr::ue::handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_reest_request_s& msg)
 {
   uint32_t old_rnti = msg.rrc_reest_request.ue_id.c_rnti;
   uint16_t pci      = msg.rrc_reest_request.ue_id.pci;
@@ -954,32 +954,34 @@ void rrc_nr::ue::handle_rrc_reest_request(const asn1::rrc_nr::rrc_reest_request_
   srb_to_add_mod_s& srb1 = next_radio_bearer_cfg.srb_to_add_mod_list[0];
   srb1.srb_id            = 1;
 
+  // compute config and create SRB1 for new user
   asn1::rrc_nr::radio_bearer_cfg_s dummy_radio_bearer_cfg; // just to compute difference, it's never sent to UE
   compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, dummy_radio_bearer_cfg);
-
-  // - Setup masterCellGroup
-  // - Derive master cell group config bearers
   fill_cellgroup_with_radio_bearer_cfg(parent->cfg, dummy_radio_bearer_cfg, next_cell_group_cfg);
 
   // send RRC Reestablishment message and restore bearer configuration
   send_connection_reest(old_ue->sec_ctx.get_ncc());
+
+  // store current bearer/cell config with configured SRB1
+  radio_bearer_cfg = next_radio_bearer_cfg;
+  cell_group_cfg   = next_cell_group_cfg;
 
   // recover all previously created bearers from old UE object for (later) reconfiguration
   next_radio_bearer_cfg = old_ue->radio_bearer_cfg;
   next_cell_group_cfg   = old_ue->cell_group_cfg;
 
   // Recover GTP-U tunnels and NGAP context
-  // parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
+  parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
   parent->ngap->user_mod(old_rnti, rnti);
 
   // Reestablish E-RABs of old rnti later, during ConnectionReconfiguration
   // bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
 
   // remove old RNTI
-  // old_ue->mac_ctrl.set_drb_activation(false);
-  // parent->rem_user_thread(old_rnti);
+  old_ue->deactivate_bearers();
+  parent->bearer_mapper->rem_user(old_rnti);
+  parent->task_sched.defer_task([this, old_rnti]() { parent->rem_user(old_rnti); });
 
-  // state = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
   set_activity_timeout(MSG5_RX_TIMEOUT);
 }
 
@@ -1213,6 +1215,20 @@ void rrc_nr::ue::handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_rec
   radio_bearer_cfg = next_radio_bearer_cfg;
   cell_group_cfg   = next_cell_group_cfg;
   parent->ngap->ue_notify_rrc_reconf_complete(rnti, true);
+}
+
+void rrc_nr::ue::handle_rrc_reestablishment_complete(const asn1::rrc_nr::rrc_reest_complete_s& msg)
+{
+  // Register DRB again, TODO: combine/move to establish_eps_bearer()
+  for (const auto& drb : next_radio_bearer_cfg.drb_to_add_mod_list) {
+    uint16_t lcid = drb1_lcid;
+    parent->bearer_mapper->add_eps_bearer(rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid);
+
+    logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
+  }
+
+  // send reconfiguration to reestablish SRB2 and all previously established DRBs
+  send_rrc_reconfiguration();
 }
 
 void rrc_nr::ue::send_rrc_release()
