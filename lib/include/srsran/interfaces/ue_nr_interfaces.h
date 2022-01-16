@@ -43,7 +43,7 @@ public:
    */
   struct cell_search_result_t {
     bool                          cell_found = false;
-    uint32_t                      pci = 0;           ///< Physical Cell Identifier
+    uint32_t                      pci        = 0;    ///< Physical Cell Identifier
     srsran_pbch_msg_nr_t          pbch_msg;          ///< Packed PBCH message for the upper layers
     srsran_csi_trs_measurements_t measurements = {}; ///< Measurements from SSB block
   };
@@ -200,7 +200,7 @@ struct phy_args_nr_t {
   srsran_ue_dl_nr_args_t dl                 = {};
   srsran_ue_ul_nr_args_t ul                 = {};
   std::set<uint32_t>     fixed_sr           = {1};
-  uint32_t               fix_wideband_cqi   = 15; // Set to a non-zero value for fixing the wide-band CQI report
+  uint32_t               fix_wideband_cqi   = 15; ///< Set to a non-zero value for fixing the wide-band CQI report
   bool                   store_pdsch_ko     = false;
   float                  trs_epre_ema_alpha = 0.1f; ///< EPRE measurement exponential average alpha
   float                  trs_rsrp_ema_alpha = 0.1f; ///< RSRP measurement exponential average alpha
@@ -231,7 +231,6 @@ struct phy_args_nr_t {
 class phy_interface_mac_nr
 {
 public:
-
   // MAC informs PHY about UL grant included in RAR PDU
   virtual int set_rar_grant(uint32_t                                       rar_slot_idx,
                             std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,

@@ -370,6 +370,16 @@ public:
       uci_data.cfg.nof_csi = n;
     }
 
+    // Set fix wideband CQI if it is not zero nor greater than 15
+    if (args.fix_wideband_cqi != 0 && args.fix_wideband_cqi < 15) {
+      for (uint32_t i = 0; i < uci_data.cfg.nof_csi; i++) {
+        if (uci_data.cfg.csi[i].cfg.quantity == SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI &&
+            uci_data.cfg.csi[i].cfg.freq_cfg == SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
+          uci_data.value.csi[i].wideband_cri_ri_pmi_cqi.cqi = args.fix_wideband_cqi;
+        }
+      }
+    }
+
     uci_data.cfg.pucch.rnti = stack->get_ul_sched_rnti_nr(slot_cfg.idx).id;
   }
 

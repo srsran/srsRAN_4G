@@ -63,6 +63,8 @@ private:
 
   // {slot,cc} specific variables
   slot_ue_map_t slot_ues;
+
+  slot_point last_tx_sl;
 };
 
 } // namespace sched_nr_impl

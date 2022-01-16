@@ -289,6 +289,20 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
   log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
+
+  dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
+  switch (dl_dcch_msg.msg.c1().type().value) {
+    // TODO: ADD missing cases
+    case dl_dcch_msg_type_c::c1_c_::types::rrc_recfg: {
+      transaction_id    = c1->rrc_recfg().rrc_transaction_id;
+      rrc_recfg_s recfg = c1->rrc_recfg();
+      task_sched.defer_task([this, recfg]() { handle_rrc_reconfig(recfg); });
+      break;
+    }
+    default:
+      logger.error("The provided DL-CCCH message type is not recognized or supported");
+      break;
+  }
 }
 
 void rrc_nr::write_pdu_bcch_bch(srsran::unique_byte_buffer_t pdu) {}
@@ -824,8 +838,8 @@ int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
 
 void rrc_nr::phy_meas_stop()
 {
-  // possbile race condition for sim_measurement timer, which might be set at the same moment as stopped => fix with
-  // phy integration
+  // possbile race condition for sim_measurement timer, which might be set at the same moment as stopped => fix
+  // with phy integration
   logger.debug("Stopping simulated measurements");
   sim_measurement_timer.stop();
 }
@@ -1565,6 +1579,15 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
 
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
+  update_sp_cell_cfg(sp_cell_cfg);
+
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
+
+  return true;
+}
+
+bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
+{
   srsran_csi_hl_cfg_t prev_csi = phy_cfg.csi;
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
@@ -1616,7 +1639,7 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
     }
   } else {
-    logger.warning("Reconfig with with sync not present");
+    logger.warning("Reconfig with sync not present");
   }
 
   // Dedicated config
@@ -1735,8 +1758,6 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   current_phycfg.csi                  = prev_csi;
   phy->set_config(current_phycfg);
 
-  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
-
   return true;
 }
 
@@ -1753,6 +1774,15 @@ bool rrc_nr::apply_phy_cell_group_cfg(const phys_cell_group_cfg_s& phys_cell_gro
 }
 
 bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
+{
+  update_cell_group_cfg(cell_group_cfg);
+
+  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
+
+  return true;
+}
+
+bool rrc_nr::update_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
   if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
@@ -1772,7 +1802,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
     }
   }
   if (cell_group_cfg.sp_cell_cfg_present) {
-    if (apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg) == false) {
+    if (update_sp_cell_cfg(cell_group_cfg.sp_cell_cfg) == false) {
       return false;
     }
   }
@@ -1943,6 +1973,15 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   }
   callback_list.add_proc(conn_setup_proc);
   return true;
+}
+
+void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
+{
+  if (not conn_recfg_proc.launch(nr, false, reconfig)) {
+    logger.error("Unable to launch connection reconfiguration procedure");
+    return;
+  }
+  callback_list.add_proc(conn_recfg_proc);
 }
 
 // RLC interface

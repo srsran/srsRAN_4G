@@ -151,6 +151,7 @@ private:
   // helpers
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
+  void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
@@ -221,10 +222,12 @@ private:
   std::map<uint32_t, srsran_csi_rs_nzp_resource_t>                       csi_rs_nzp_res;
 
   bool apply_cell_group_cfg(const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg);
+  bool update_cell_group_cfg(const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg);
   bool apply_radio_bearer_cfg(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
   bool apply_rlc_add_mod(const asn1::rrc_nr::rlc_bearer_cfg_s& rlc_bearer_cfg);
   bool apply_mac_cell_group(const asn1::rrc_nr::mac_cell_group_cfg_s& mac_cell_group_cfg);
   bool apply_sp_cell_cfg(const asn1::rrc_nr::sp_cell_cfg_s& sp_cell_cfg);
+  bool update_sp_cell_cfg(const asn1::rrc_nr::sp_cell_cfg_s& sp_cell_cfg);
   bool apply_phy_cell_group_cfg(const asn1::rrc_nr::phys_cell_group_cfg_s& phys_cell_group_cfg);
   bool apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_common);
   bool apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_common);
