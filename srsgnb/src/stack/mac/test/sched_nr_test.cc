@@ -165,10 +165,10 @@ void test_sched_nr_no_data(sim_args_t args)
 
 void test_sched_nr_data(sim_args_t args)
 {
-  uint32_t max_nof_ttis = 100000, nof_sectors = 1;
-  uint16_t rnti = 0x4601;
+  uint32_t nof_sectors = 1;
+  uint16_t rnti        = 0x4601;
   uint32_t nof_dl_bytes_to_tx =
-      std::uniform_int_distribution<int>{0, 9}(rand_gen)*pow(10, std::uniform_int_distribution<int>{1, 7}(rand_gen));
+      std::uniform_int_distribution<int>{1, 9}(rand_gen)*pow(10, std::uniform_int_distribution<int>{1, 7}(rand_gen));
 
   sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer                     = false;
@@ -185,8 +185,13 @@ void test_sched_nr_data(sim_args_t args)
   events.push_back(add_rlc_dl_bytes(50, rnti, 0, nof_dl_bytes_to_tx));
 
   /* Run Test */
-  auto finish_condition = [max_nof_ttis, rnti, nof_dl_bytes_to_tx, &tester](uint32_t nof_slots) {
-    return nof_slots >= max_nof_ttis or tester.ue_metrics[rnti].nof_dl_bytes > nof_dl_bytes_to_tx;
+  uint32_t stop_tti         = std::numeric_limits<uint32_t>::max();
+  auto     finish_condition = [&stop_tti, rnti, nof_dl_bytes_to_tx, &tester](uint32_t nof_slots) mutable {
+    if (stop_tti == std::numeric_limits<uint32_t>::max() and
+        tester.ue_metrics[rnti].nof_dl_bytes >= nof_dl_bytes_to_tx) {
+      stop_tti = nof_slots + 10;
+    }
+    return nof_slots >= std::min(stop_tti, 100000u);
   };
   for (uint32_t nof_slots = 0; not finish_condition(nof_slots); ++nof_slots) {
     slot_point slot_rx(0, nof_slots % 10240);
@@ -214,8 +219,9 @@ void test_sched_nr_data(sim_args_t args)
   fmt::print("Enqueued RLC DL bytes: {}\n", nof_dl_bytes_to_tx);
   tester.print_results();
 
-  TESTASSERT(tester.ue_metrics[rnti].nof_dl_txs > 1);
+  TESTASSERT(tester.ue_metrics[rnti].nof_dl_txs > 0);
   TESTASSERT(tester.ue_metrics[rnti].nof_dl_bytes >= nof_dl_bytes_to_tx);
+  TESTASSERT(tester.ue_metrics[rnti].nof_dl_bytes < nof_dl_bytes_to_tx + 20000);
   // Since UL buffers were not externally updated, we should only see Msg3 as UL tx
   TESTASSERT_EQ(1, tester.ue_metrics[rnti].nof_ul_txs);
 }

@@ -125,7 +125,7 @@ public:
   slot_point get_slot_tx() const { return current_slot_tx; }
 
   /// may block waiting for scheduler to finish generating slot result
-  srsran::const_span<cc_result_t> get_slot_results() const;
+  std::vector<cc_result_t> get_slot_results() const;
 
   int rach_ind(uint16_t rnti, uint32_t cc, slot_point tti_rx, uint32_t preamble_idx);
 

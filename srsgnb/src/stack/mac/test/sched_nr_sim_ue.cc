@@ -208,7 +208,7 @@ void sched_nr_base_test_bench::stop()
   }
 }
 
-srsran::const_span<sched_nr_base_test_bench::cc_result_t> sched_nr_base_test_bench::get_slot_results() const
+std::vector<sched_nr_base_test_bench::cc_result_t> sched_nr_base_test_bench::get_slot_results() const
 {
   sem_wait(&slot_sem);
   auto ret = cc_results;

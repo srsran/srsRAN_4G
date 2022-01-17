@@ -143,7 +143,8 @@ cell_params_t::cell_params_t(uint32_t cc_, const sched_nr_cell_cfg_t& cell, cons
   // Conversion 36.331 ASN1 TDD-UL-DL-ConfigCommon to srsran_duplex_config_nr_t
   duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
   if (cell.tdd_ul_dl_cfg_common.is_present()) {
-    srsran_assert(srsran::make_phy_tdd_cfg(*cell.tdd_ul_dl_cfg_common, &duplex), "Failed to generate Cell TDD config");
+    bool success = srsran::make_phy_tdd_cfg(*cell.tdd_ul_dl_cfg_common, &duplex);
+    srsran_assert(success, "Failed to generate Cell TDD config");
   }
 
   bwps.reserve(cell.bwps.size());

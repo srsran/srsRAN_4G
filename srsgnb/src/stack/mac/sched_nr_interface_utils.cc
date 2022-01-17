@@ -49,8 +49,8 @@ srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_cell_cfg_t& cfg)
   // TDD UL-DL config
   ue_phy_cfg.duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
   if (cfg.tdd_ul_dl_cfg_common.is_present()) {
-    srsran_sanity_check(srsran::make_phy_tdd_cfg(*cfg.tdd_ul_dl_cfg_common, &ue_phy_cfg.duplex),
-                        "Failed to convert Cell TDDConfig to UEPHYConfig");
+    bool success = srsran::make_phy_tdd_cfg(*cfg.tdd_ul_dl_cfg_common, &ue_phy_cfg.duplex);
+    srsran_sanity_check(success, "Failed to convert Cell TDDConfig to UEPHYConfig");
   }
 
   return ue_phy_cfg;

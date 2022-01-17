@@ -334,41 +334,38 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
   srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
   srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
   srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
-  // Copy and return struct
-  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
-  if (not tdd_ul_dl_cfg_common.pattern2_present) {
-    return true;
+  if (tdd_ul_dl_cfg_common.pattern2_present) {
+    switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
+        break;
+
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
+      default:
+        asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
+                          tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
+        return false;
+    }
+
+    srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
+    srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
+    srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
+    srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
   }
 
-  switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
-      break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
-      break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
-      break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
-      break;
-
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
-    default:
-      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
-                        tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
-      return false;
-  }
-
-  srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
-  srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
-  srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
-  srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
   // Copy and return struct
   *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
