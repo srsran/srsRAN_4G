@@ -171,7 +171,7 @@ srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
                     false,
-                    srsran_rat_t::lte);
+                    srsran_rat_t::nr);
   return cfg;
 }
 
