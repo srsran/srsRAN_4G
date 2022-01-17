@@ -34,6 +34,7 @@ public:
    */
   struct cell_search_result_t {
     bool                          cell_found   = false;
+    uint32_t                      ssb_arfcn    = 0;  ///< SSB center ARFCN
     uint32_t                      pci          = 0;  ///< Physical Cell Identifier
     srsran_pbch_msg_nr_t          pbch_msg     = {}; ///< Packed PBCH message for the upper layers
     srsran_csi_trs_measurements_t measurements = {}; ///< Measurements from SSB block
