@@ -189,6 +189,11 @@ private:
 
   uint8_t transaction_id = 0;
 
+  // RRC constants and timers
+  uint32_t                            n310_cnt = 0, N310 = 0;
+  uint32_t                            n311_cnt = 0, N311 = 0;
+  srsran::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
+
   // Stores the state of the PHY configuration setting
   enum {
     PHY_CFG_STATE_NONE = 0,
@@ -228,6 +233,7 @@ private:
   bool apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg);
   bool apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg);
   bool apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg);
+  bool apply_srb_add_mod(const asn1::rrc_nr::srb_to_add_mod_s& srb_cfg);
   bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
   bool apply_drb_release(const uint8_t drb);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
@@ -237,13 +243,13 @@ private:
   typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;
 
   // RRC procedures
-  enum class cell_search_result_t { changed_cell, same_cell, no_cell };
+  enum class rrc_cell_search_result_t { changed_cell, same_cell, no_cell };
   class cell_selection_proc;
   class connection_setup_proc;
   class connection_reconf_no_ho_proc;
   class setup_request_proc;
 
-  srsran::proc_t<cell_selection_proc, cell_search_result_t> cell_selector;
+  srsran::proc_t<cell_selection_proc, rrc_cell_search_result_t> cell_selector;
   srsran::proc_t<connection_setup_proc>                     conn_setup_proc;
   srsran::proc_t<connection_reconf_no_ho_proc>              conn_recfg_proc;
   srsran::proc_t<setup_request_proc>                        setup_req_proc;

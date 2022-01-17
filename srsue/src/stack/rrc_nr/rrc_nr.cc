@@ -62,6 +62,8 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
 
   plmn_is_selected = true; // short-cut SA test
 
+  t300 = task_sched.get_unique_timer();
+
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
   return SRSRAN_SUCCESS;
@@ -350,8 +352,24 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   //    - uplinkConfigCommon.initialUplinkBWP.rach-ConfigCommon.restricted_set_cfg
   //    - uplinkConfigCommon.initialUplinkBWP.pusch-ConfigCommon.pusch-TimeDomainResourceAllocationList.p0-NominalWithGrant
   //    - ss-PBCH-BlockPower
-  // - ue-TimersAndConstants
   // clang-format on
+
+  // ue-TimersAndConstants
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t300.set(sib1.ue_timers_and_consts.t300.to_number(), timer_expire_func);
+  t301.set(sib1.ue_timers_and_consts.t301.to_number(), timer_expire_func);
+  t310.set(sib1.ue_timers_and_consts.t310.to_number(), timer_expire_func);
+  t311.set(sib1.ue_timers_and_consts.t311.to_number(), timer_expire_func);
+  N310 = sib1.ue_timers_and_consts.n310.to_number();
+  N311 = sib1.ue_timers_and_consts.n311.to_number();
+
+  logger.info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d",
+              N310,
+              N311,
+              t300.duration(),
+              t301.duration(),
+              t310.duration(),
+              t311.duration());
 
   // Apply RACH and timeAlginmentTimer configuration
   mac_cfg_nr_t mac_cfg = {};
@@ -456,13 +474,9 @@ int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::u
   harq_cfg.nof_procs                = 8;
   mac->set_config(harq_cfg);
 
-  // Setup SRB0, 1 and 2
-  for (int i = 0; i < 3; i++) {
-    logical_channel_config_t lch = {};
-    lch.lcid                     = i;
-    lch.priority                 = i + 1;
-    mac->setup_lcid(lch);
-  }
+  // Setup SRB0
+  logical_channel_config_t lch = {};
+  mac->setup_lcid(lch);
 
   // Coreset0 configuration
   // Get pointA and SSB absolute frequencies
@@ -871,6 +885,8 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
       drb_id = rlc_bearer_cfg.served_radio_bearer.drb_id();
       add_lcid_drb(lc_ch_id, drb_id);
       is_drb = true;
+    } else if (rlc_bearer_cfg.served_radio_bearer.type() == rlc_bearer_cfg_s::served_radio_bearer_c_::types::srb_id) {
+      srb_id = rlc_bearer_cfg.served_radio_bearer.srb_id();
     }
   } else {
     logger.error("In RLC bearer cfg does not contain served radio bearer");
@@ -1803,6 +1819,19 @@ bool rrc_nr::apply_drb_release(const uint8_t drb)
   return true;
 }
 
+bool rrc_nr::apply_srb_add_mod(const srb_to_add_mod_s& srb_cfg)
+{
+  if (srb_cfg.pdcp_cfg_present) {
+    logger.error("Cannot add SRB - only default configuration supported.");
+    return false;
+  }
+
+  srsran::pdcp_config_t pdcp_cfg = srsran::make_nr_srb_pdcp_config_t(srb_cfg.srb_id, true);
+  pdcp->add_bearer(srb_cfg.srb_id, pdcp_cfg);
+
+  return true;
+}
+
 bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 {
   if (!drb_cfg.pdcp_cfg_present) {
@@ -1900,20 +1929,23 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 
 bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
 {
-  if (radio_bearer_cfg.drb_to_add_mod_list.size() > 0) {
-    for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_add_mod_list.size(); i++) {
-      if (apply_drb_add_mod(radio_bearer_cfg.drb_to_add_mod_list[i]) == false) {
-        return false;
-      }
+  for (const auto& srb : radio_bearer_cfg.srb_to_add_mod_list) {
+    if (apply_srb_add_mod(srb) == false) {
+      logger.error("Couldn't apply config for SRB%d.", srb.srb_id);
+      return false;
     }
   }
-  if (radio_bearer_cfg.drb_to_release_list.size() > 0) {
-    for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_release_list.size(); i++) {
-      if (apply_drb_release(radio_bearer_cfg.drb_to_release_list[i]) == false) {
-        return false;
-      }
+  for (const auto& drb : radio_bearer_cfg.drb_to_add_mod_list) {
+    if (apply_drb_add_mod(drb) == false) {
+      return false;
     }
   }
+  for (const auto& drb : radio_bearer_cfg.drb_to_release_list) {
+    if (apply_drb_release(drb) == false) {
+      return false;
+    }
+  }
+
   if (radio_bearer_cfg.security_cfg_present) {
     if (apply_security_cfg(radio_bearer_cfg.security_cfg) == false) {
       return false;
@@ -1987,8 +2019,24 @@ void rrc_nr::cell_search_found_cell(const rrc_interface_phy_nr::cell_search_resu
   cell_selector.trigger(result);
 }
 
+void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  cell_selector.trigger(result);
+}
+
 void rrc_nr::set_phy_config_complete(bool status)
 {
+  logger.info("set_phy_config_complete() status=%d", status);
+
+  // inform procedures if they are running
+  if (conn_setup_proc.is_busy()) {
+    conn_setup_proc.trigger(status);
+  }
+
+  if (conn_recfg_proc.is_busy()) {
+    conn_recfg_proc.trigger(status);
+  }
+
   switch (phy_cfg_state) {
     case PHY_CFG_STATE_NONE:
       logger.warning("PHY configuration completed without a clear state.");
@@ -2003,11 +2051,6 @@ void rrc_nr::set_phy_config_complete(bool status)
       break;
   }
   phy_cfg_state = PHY_CFG_STATE_NONE;
-}
-
-void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
-{
-  cell_selector.trigger(result);
 }
 
 } // namespace srsue

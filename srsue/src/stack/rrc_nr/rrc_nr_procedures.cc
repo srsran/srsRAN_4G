@@ -183,9 +183,9 @@ proc_outcome_t rrc_nr::setup_request_proc::init(srsran::nr_establishment_cause_t
 
   // TODO: add T302 handling
 
-  Info("Initiation of Connection establishment procedure");
+  Info("Initiation of Setup request procedure");
 
-  cell_search_ret = cell_search_result_t::no_cell;
+  cell_search_ret = rrc_cell_search_result_t::no_cell;
 
   state = state_t::cell_selection;
   if (rrc_handle.cell_selector.is_idle()) {
@@ -214,15 +214,39 @@ proc_outcome_t rrc_nr::setup_request_proc::step()
     rrc_handle.phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
     rrc_handle.phy->set_config(rrc_handle.phy_cfg);
 
+    // start T300
+    rrc_handle.t300.run();
+
     // Send setup request message to lower layers
     rrc_handle.send_setup_request(cause);
+
+    // Save dedicatedInfoNAS SDU, if needed (TODO: this should be passed to procedure without temp storage)
+    if (dedicated_info_nas.get()) {
+      if (rrc_handle.dedicated_info_nas.get()) {
+        Warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it.");
+        rrc_handle.dedicated_info_nas.reset();
+      }
+
+      Debug("Updating dedicatedInfoNAS in RRC");
+      rrc_handle.dedicated_info_nas = std::move(dedicated_info_nas);
+    } else {
+      Debug("dedicatedInfoNAS has already been provided to RRC.");
+    }
 
     Info("Waiting for RRCSetup/Reject or expiry");
     state = state_t::wait_t300;
     return step();
 
   } else if (state == state_t::wait_t300) {
-    // TODO: add T300 waiting
+    // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
+    if (rrc_handle.t300.is_running()) {
+      return proc_outcome_t::yield;
+    }
+
+    if (rrc_handle.state == RRC_NR_STATE_CONNECTED) {
+      // Received ConnectionSetup
+      return proc_outcome_t::success;
+    }
   }
 
   return proc_outcome_t::error;
@@ -231,7 +255,7 @@ proc_outcome_t rrc_nr::setup_request_proc::step()
 void rrc_nr::setup_request_proc::then(const srsran::proc_state_t& result)
 {
   if (result.is_error()) {
-    logger.warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU");
+    logger.warning("Could not finish setup request. Deallocating dedicatedInfoNAS PDU");
     dedicated_info_nas.reset();
     rrc_handle.dedicated_info_nas.reset();
   } else {
@@ -266,18 +290,6 @@ srsran::proc_outcome_t rrc_nr::setup_request_proc::react(const cell_selection_pr
 
     // Skip SI acquisition
     return step();
-  } else {
-    switch (cell_search_ret) {
-      case cell_search_result_t::same_cell:
-        logger.warning("Did not reselect cell but serving cell is out-of-sync.");
-        break;
-      case cell_search_result_t::changed_cell:
-        logger.warning("Selected a new cell but could not camp on. Setting out-of-sync.");
-        break;
-      default:
-        logger.warning("Could not find any suitable cell to connect");
-    }
-    return proc_outcome_t::error;
   }
 }
 
@@ -296,12 +308,15 @@ srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::r
 {
   Info("Starting...");
 
-  // if (dedicated_info_nas_.get() == nullptr) {
-  //   logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
-  //   return proc_outcome_t::error;
-  // }
+  if (dedicated_info_nas_.get() == nullptr) {
+    logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
+    return proc_outcome_t::error;
+  }
 
   dedicated_info_nas = std::move(dedicated_info_nas_);
+
+  // Stop T300
+  rrc_handle.t300.stop();
 
   // Apply the Radio Bearer configuration
   if (!rrc_handle.apply_radio_bearer_cfg(radio_bearer_cfg_)) {
@@ -336,35 +351,16 @@ void rrc_nr::connection_setup_proc::then(const srsran::proc_state_t& result)
 }
 
 /**************************************
- *       Basic Cell Selection Procedure
+ * Combined Cell Search/Selection Procedure
  *************************************/
 
-rrc_nr::cell_selection_proc::cell_selection_proc(rrc_nr& parent_) :
-  rrc_handle(parent_), meas_cells(rrc_handle.meas_cells)
-{}
+rrc_nr::cell_selection_proc::cell_selection_proc(rrc_nr& parent_) : rrc_handle(parent_) {}
 
-/// Verifies if serving cell passes selection criteria, UE is camping, and required SIBs were obtained
-bool rrc_nr::cell_selection_proc::is_serv_cell_suitable() const
-{
-  // TODO: add selection criteria
-  return true;
-}
-
-/// Called on procedure exit to set result
-proc_outcome_t rrc_nr::cell_selection_proc::set_proc_complete()
-{
-  if (is_serv_cell_suitable()) {
-    cell_search_ret = is_same_cell(init_serv_cell, meas_cells.serving_cell()) ? cell_search_result_t::same_cell
-                                                                              : cell_search_result_t::changed_cell;
-    return proc_outcome_t::success;
-  }
-  cell_search_ret = cell_search_result_t::no_cell;
-  return proc_outcome_t::error;
-}
-
+// Starts PHY's cell search in the current ARFCN
 proc_outcome_t rrc_nr::cell_selection_proc::init()
 {
-  init_serv_cell = meas_cells.serving_cell().phy_cell;
+  Info("Starting...");
+  state = state_t::phy_cell_search;
 
   // TODO: add full cell selection
   // Start cell search
@@ -375,42 +371,29 @@ proc_outcome_t rrc_nr::cell_selection_proc::init()
   cs_args.ssb_pattern                              = rrc_handle.phy_cfg.ssb.pattern;
   cs_args.duplex_mode                              = rrc_handle.phy_cfg.duplex.mode;
   if (not rrc_handle.phy->start_cell_search(cs_args)) {
-    Error("Could not set start cell search.");
+    Error("Failed to initiate Cell Search.");
     return proc_outcome_t::error;
   }
-
-  state = search_state_t::cell_search;
 
   return proc_outcome_t::yield;
 }
 
+// Skipping SI acquisition procedure
 proc_outcome_t rrc_nr::cell_selection_proc::step()
 {
   switch (state) {
-    case search_state_t::cell_selection:
-      // this state waits for phy event
-      return proc_outcome_t::yield;
-    case search_state_t::serv_cell_camp:
-      // this state waits for phy event
-      return proc_outcome_t::yield;
-    case search_state_t::cell_config:
-      // return step_cell_config();
-      return proc_outcome_t::yield;
-    case search_state_t::cell_search:
-      // return step_cell_search();
+    case state_t::phy_cell_search:
+    case state_t::phy_cell_select:
+      // Waits for cell select/search to complete
       return proc_outcome_t::yield;
   }
-  return proc_outcome_t::error;
+  return proc_outcome_t::yield;
 }
 
-proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_search_result_t& result)
+// Handles result of PHY's cell search and triggers PHY cell select when new cell was found
+proc_outcome_t
+rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_nr::cell_search_result_t& result)
 {
-  if (state != search_state_t::cell_search) {
-    Error("Cell search result received in wrong state");
-    return proc_outcome_t::error;
-  }
-
-  // Print result only if the cell is found
   if (result.cell_found) {
     // Convert Cell measurement in Text
     std::array<char, 512> csi_info_str = {};
@@ -428,37 +411,70 @@ proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::ce
     }
 
     // Logs the PCI, cell measurements and decoded MIB
-    Info("Cell search found PCI=%d %s %s", result.pci, csi_info_str.data(), mib_info_str.data());
+    Info("Cell search found ARFCN=%d PCI=%d %s %s",
+         result.ssb_arfcn,
+         result.pci,
+         csi_info_str.data(),
+         mib_info_str.data());
+
+    // Transition to cell selection ignoring the cell search result
+    state = state_t::phy_cell_select;
+
+    phy_interface_rrc_nr::cell_select_args_t cs_args = {};
+    cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
+    cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
+
+    // until cell selection is done, update PHY config to take the last found PCI
+    rrc_handle.phy_cfg.carrier.pci = result.pci;
+
+    if (not rrc_handle.phy->start_cell_select(cs_args)) {
+      Error("Could not set start cell search.");
+      return proc_outcome_t::error;
+    }
+    return proc_outcome_t::yield;
   } else {
-    Info("Cell search did not find any cell");
+    Info("Cell search did not find any cell.");
   }
 
-  // Transition to cell selection ignoring the cell search result
-  state = search_state_t::cell_selection;
-
-  phy_interface_rrc_nr::cell_select_args_t cs_args = {};
-  cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
-  cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
-
-  if (not rrc_handle.phy->start_cell_select(cs_args)) {
-    Error("Could not set start cell search.");
-    return proc_outcome_t::error;
-  }
-
-  return proc_outcome_t::yield;
+  return proc_outcome_t::error;
 }
 
-proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_select_result_t& result)
+proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_select_result_t& event)
 {
-  if (state != search_state_t::cell_selection) {
-    Error("Cell selection result received in wrong state");
+  if (state != state_t::phy_cell_select) {
+    Warning("Received unexpected cell search result");
+    return proc_outcome_t::yield;
+  }
+
+  if (event.status != rrc_interface_phy_nr::cell_select_result_t::SUCCESSFUL) {
+    Error("Couldn't select new serving cell");
+    phy_search_result.cell_found = false;
+    rrc_search_result            = rrc_nr::rrc_cell_search_result_t::no_cell;
     return proc_outcome_t::error;
   }
 
-  return set_proc_complete();
+  rrc_search_result = rrc_nr::rrc_cell_search_result_t::same_cell;
+
+  // PHY is now camping on serving cell
+  Info("Cell search completed.");
+  return proc_outcome_t::success;
 }
 
-void rrc_nr::cell_selection_proc::then(const srsran::proc_result_t<cell_search_result_t>& proc_result) const
+proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_search_result_t& event)
+{
+  if (state != state_t::phy_cell_search) {
+    Error("Received unexpected cell search result");
+    return proc_outcome_t::error;
+  }
+  phy_search_result = event;
+
+  if (phy_search_result.cell_found) {
+    return handle_cell_search_result(phy_search_result);
+  }
+  return proc_outcome_t::error;
+}
+
+void rrc_nr::cell_selection_proc::then(const cell_selection_complete_ev& proc_result) const
 {
   Info("Completed with %s.", proc_result.is_success() ? "success" : "failure");
   // Inform Connection Request Procedure

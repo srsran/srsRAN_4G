@@ -25,32 +25,30 @@ namespace srsue {
 class rrc_nr::cell_selection_proc
 {
 public:
-  using cell_selection_complete_ev = srsran::proc_result_t<cell_search_result_t>;
+  enum class state_t { phy_cell_search, phy_cell_select };
 
+  using cell_selection_complete_ev = srsran::proc_result_t<rrc_cell_search_result_t>;
   explicit cell_selection_proc(rrc_nr& parent_);
   srsran::proc_outcome_t init();
   srsran::proc_outcome_t step();
-  cell_search_result_t   get_result() const { return cell_search_ret; }
-  static const char*     name() { return "Cell Selection"; }
-  srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_search_result_t& result);
-  srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_select_result_t& result);
-  void                   then(const srsran::proc_result_t<cell_search_result_t>& proc_result) const;
+  srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_search_result_t& event);
+  srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_select_result_t& event);
+
+  void then(const cell_selection_complete_ev& proc_result) const;
+
+  rrc_cell_search_result_t get_result() const { return rrc_search_result; }
+  static const char*       name() { return "Cell Selection"; }
 
 private:
-  bool                   is_serv_cell_suitable() const;
-  srsran::proc_outcome_t set_proc_complete();
+  srsran::proc_outcome_t handle_cell_search_result(const rrc_interface_phy_nr::cell_search_result_t& result);
 
-  // consts
+  // conts
   rrc_nr&                       rrc_handle;
-  meas_cell_list<meas_cell_nr>& meas_cells;
 
-  // state variables
-  enum class search_state_t { cell_selection, serv_cell_camp, cell_config, cell_search };
-  cell_search_result_t                                            cell_search_ret;
-  search_state_t                                                  state;
-  srsran::proc_future_t<rrc_interface_phy_lte::cell_search_ret_t> cell_search_fut;
-  srsran::proc_future_t<void>                                     serv_cell_cfg_fut;
-  phy_cell_t                                                      init_serv_cell;
+  // state vars
+  rrc_interface_phy_nr::cell_search_result_t phy_search_result = {};
+  rrc_cell_search_result_t                   rrc_search_result = {};
+  state_t                                    state;
 };
 
 class rrc_nr::setup_request_proc
@@ -74,7 +72,7 @@ private:
 
   // state variables
   enum class state_t { cell_selection, config_serving_cell, wait_t300 } state;
-  cell_search_result_t        cell_search_ret;
+  rrc_cell_search_result_t    cell_search_ret;
   srsran::proc_future_t<void> serv_cfg_fut;
 };
 
