@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 
     // ADD CHANNEL NOISE
     if (snr < 50) {
-      float var = powf(10.0f, -snr / 10.0f);
+      float var = srsran_convert_dB_to_power(-snr);
       srsran_ch_awgn_c(output_buffer, output_buffer, var, output_buffer_len);
     }
 

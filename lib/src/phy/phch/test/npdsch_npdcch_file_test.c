@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 
       // add some noise to the signal
       if (snr != -1.0) {
-        float var = powf(10.0f, -snr / 10.0f);
+        float var = srsran_convert_dB_to_power(-snr);
         srsran_ch_awgn_c(buff_ptrs[0], buff_ptrs[0], var, nread);
       }
 
