@@ -299,9 +299,8 @@ void rrc_nr::config_mac()
   ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
                         ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
                         : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  std::vector<sched_nr_interface::cell_cfg_t> sched_cells_cfg(
-      1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
-  sched_nr_interface::cell_cfg_t& cell = sched_cells_cfg[0];
+  std::vector<sched_nr_cell_cfg_t> sched_cells_cfg(1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
+  sched_nr_cell_cfg_t&             cell = sched_cells_cfg[0];
 
   // Derive cell config from rrc_nr_cfg_t
   cell.bwps[0].pdcch = cfg.cell_list[0].phy_cell.pdcch;
@@ -311,17 +310,23 @@ void rrc_nr::config_mac()
   cell.ssb.position_in_burst[0] = true;
   cell.ssb.scs                  = cfg.cell_list[0].ssb_cfg.scs;
   cell.ssb.pattern              = cfg.cell_list[0].ssb_cfg.pattern;
-  cell.duplex.mode              = SRSRAN_DUPLEX_MODE_FDD;
   if (not cfg.is_standalone) {
     // Derive cell config from ASN1
     valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
     srsran_assert(valid_cfg, "Invalid NR cell configuration.");
-    valid_cfg =
-        srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
-    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+    if (base_sp_cell_cfg.sp_cell_cfg_ded.tdd_ul_dl_cfg_ded_present) {
+      cell.tdd_ul_dl_cfg_common.reset(
+          new tdd_ul_dl_cfg_common_s{base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common});
+    }
   } else {
     cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
     bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
+    cell.dl_cfg_common.reset(new dl_cfg_common_sib_s{cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common});
+    cell.ul_cfg_common.reset(new ul_cfg_common_sib_s{cell_ctxt->sib1.serving_cell_cfg_common.ul_cfg_common});
+    if (cell_ctxt->sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
+      cell.tdd_ul_dl_cfg_common.reset(
+          new tdd_ul_dl_cfg_common_s{cell_ctxt->sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common});
+    }
   }
 
   // Set SIB1 and SI messages

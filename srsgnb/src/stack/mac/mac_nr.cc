@@ -277,7 +277,7 @@ void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
   }
 }
 
-int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells)
+int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_cell_cfg_t>& nr_cells)
 {
   cell_config = nr_cells;
   sched->config(args.sched_cfg, nr_cells);

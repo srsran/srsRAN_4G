@@ -61,7 +61,7 @@ inline bool operator==(srsran_dci_location_t lhs, srsran_dci_location_t rhs)
 
 //////////////////////////////////// UE configuration Helpers ////////////////////////////////////////////
 
-srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_interface::cell_cfg_t& cfg);
+srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_cell_cfg_t& cfg);
 
 } // namespace srsenb
 

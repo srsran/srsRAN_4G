@@ -62,7 +62,7 @@ public:
 class mac_nr_dummy : public mac_interface_rrc_nr
 {
 public:
-  int cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells_) override
+  int cell_cfg(const std::vector<sched_nr_cell_cfg_t>& nr_cells_) override
   {
     nr_cells = nr_cells_;
     return SRSRAN_SUCCESS;
@@ -78,9 +78,9 @@ public:
 
   int remove_ue(uint16_t rnti) override { return SRSRAN_SUCCESS; }
 
-  std::vector<srsenb::sched_nr_interface::cell_cfg_t> nr_cells;
-  uint16_t                                            last_ue_cfg_rnti = SRSRAN_INVALID_RNTI;
-  sched_nr_interface::ue_cfg_t                        last_ue_cfg{};
+  std::vector<sched_nr_cell_cfg_t> nr_cells;
+  uint16_t                         last_ue_cfg_rnti = SRSRAN_INVALID_RNTI;
+  sched_nr_interface::ue_cfg_t     last_ue_cfg{};
 };
 
 class phy_nr_dummy : public phy_interface_stack_nr

@@ -375,6 +375,69 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
   return true;
 }
 
+bool make_phy_tdd_cfg(const srsran_duplex_config_nr_t&      srsran_duplex_config_nr,
+                      srsran_subcarrier_spacing_t           scs,
+                      asn1::rrc_nr::tdd_ul_dl_cfg_common_s* tdd_ul_dl_cfg_common)
+{
+  if (srsran_duplex_config_nr.mode == SRSRAN_DUPLEX_MODE_FDD) {
+    return true;
+  }
+  tdd_ul_dl_cfg_common->ref_subcarrier_spacing.value = (asn1::rrc_nr::subcarrier_spacing_e::options)scs;
+
+  switch (srsran_duplex_config_nr.tdd.pattern1.period_ms) {
+    case 1:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1;
+      break;
+    case 2:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2;
+      break;
+    case 5:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5;
+      break;
+    case 10:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+      break;
+    default:
+      asn1::log_warning("Invalid option for dl_ul_tx_periodicity_opts %d",
+                        srsran_duplex_config_nr.tdd.pattern1.period_ms);
+      return false;
+  }
+  tdd_ul_dl_cfg_common->pattern1.nrof_dl_slots   = srsran_duplex_config_nr.tdd.pattern1.nof_dl_slots;
+  tdd_ul_dl_cfg_common->pattern1.nrof_dl_symbols = srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols;
+  tdd_ul_dl_cfg_common->pattern1.nrof_ul_slots   = srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots;
+  tdd_ul_dl_cfg_common->pattern1.nrof_ul_symbols = srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols;
+
+  if (srsran_duplex_config_nr.tdd.pattern2.period_ms == 0) {
+    return true;
+  }
+
+  tdd_ul_dl_cfg_common->pattern2_present = true;
+  switch (srsran_duplex_config_nr.tdd.pattern2.period_ms) {
+    case 1:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1;
+      break;
+    case 2:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2;
+      break;
+    case 5:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5;
+      break;
+    case 10:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+      break;
+    default:
+      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %d",
+                        srsran_duplex_config_nr.tdd.pattern2.period_ms);
+      return false;
+  }
+  tdd_ul_dl_cfg_common->pattern2.nrof_dl_slots   = srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots;
+  tdd_ul_dl_cfg_common->pattern2.nrof_dl_symbols = srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols;
+  tdd_ul_dl_cfg_common->pattern2.nrof_ul_slots   = srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots;
+  tdd_ul_dl_cfg_common->pattern2.nrof_ul_symbols = srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols;
+
+  return true;
+}
+
 bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s& phys_cell_group_cfg,
                            srsran_harq_ack_cfg_hl_t*    in_srsran_ue_dl_nr_harq_ack_cfg)
 {

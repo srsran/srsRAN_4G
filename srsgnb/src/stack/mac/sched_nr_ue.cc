@@ -62,8 +62,6 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_) : ue(&ue_), pdcch_slot(sl
   uint32_t k2       = ue->bwp_cfg.active_bwp().pusch_ra_list[0].K;
   pusch_slot        = pdcch_slot + k2;
 
-  const srsran_duplex_config_nr_t& tdd_cfg = ue->cell_params.cfg.duplex;
-
   dl_active = ue->cell_params.bwps[0].slots[pdsch_slot.slot_idx()].is_dl;
   if (dl_active) {
     dl_bytes = ue->common_ctxt.pending_dl_bytes;

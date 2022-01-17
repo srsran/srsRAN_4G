@@ -374,7 +374,7 @@ public:
     mac_args.sched_cfg.fixed_dl_mcs  = args.pdsch.mcs;
     mac_args.sched_cfg.fixed_ul_mcs  = args.pusch.mcs;
     mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
-    std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
+    std::vector<srsenb::sched_nr_cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
 
     dl.mcs = args.pdsch.mcs;

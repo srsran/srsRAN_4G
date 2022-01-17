@@ -38,7 +38,7 @@ public:
   ~sched_nr() override;
 
   void stop();
-  int  config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list) override;
+  int  config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_cell_cfg_t> cell_list) override;
   void ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) override;
   void ue_rem(uint16_t rnti) override;
 

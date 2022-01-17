@@ -56,43 +56,44 @@ struct sched_nr_ue_cfg_t {
   std::vector<uint32_t>                                               lc_ch_to_rem;
 };
 
+struct sched_nr_bwp_cfg_t {
+  uint32_t                 start_rb        = 0;
+  uint32_t                 rb_width        = 100;
+  srsran_pdcch_cfg_nr_t    pdcch           = {};
+  srsran_sch_hl_cfg_nr_t   pdsch           = {};
+  srsran_sch_hl_cfg_nr_t   pusch           = {};
+  srsran_pucch_nr_hl_cfg_t pucch           = {};
+  srsran_prach_cfg_t       prach           = {};
+  srsran_harq_ack_cfg_hl_t harq_ack        = {};
+  uint32_t                 rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
+  uint32_t                 numerology_idx  = 0;
+};
+
+struct sched_nr_cell_cfg_sib_t {
+  uint32_t len;
+  uint32_t period_rf;
+  uint32_t si_window_slots;
+};
+
+struct sched_nr_cell_cfg_t {
+  static const size_t                                  MAX_SIBS = 2;
+  srsran_carrier_nr_t                                  carrier  = {};
+  srsran::phy_cfg_nr_t::ssb_cfg_t                      ssb      = {};
+  std::vector<sched_nr_bwp_cfg_t>                      bwps{1}; // idx0 for BWP-common
+  srsran_mib_nr_t                                      mib;
+  std::vector<sched_nr_cell_cfg_sib_t>                 sibs;
+  asn1::copy_ptr<asn1::rrc_nr::dl_cfg_common_sib_s>    dl_cfg_common;
+  asn1::copy_ptr<asn1::rrc_nr::ul_cfg_common_sib_s>    ul_cfg_common;
+  asn1::copy_ptr<asn1::rrc_nr::tdd_ul_dl_cfg_common_s> tdd_ul_dl_cfg_common;
+};
+
 class sched_nr_interface
 {
 public:
   static const size_t MAX_GRANTS  = mac_interface_phy_nr::MAX_GRANTS;
-  static const size_t MAX_SIBS    = 2;
   static const size_t MAX_SUBPDUS = 8;
 
   ///// Configuration /////
-
-  struct bwp_cfg_t {
-    uint32_t                 start_rb        = 0;
-    uint32_t                 rb_width        = 100;
-    srsran_pdcch_cfg_nr_t    pdcch           = {};
-    srsran_sch_hl_cfg_nr_t   pdsch           = {};
-    srsran_sch_hl_cfg_nr_t   pusch           = {};
-    srsran_pucch_nr_hl_cfg_t pucch           = {};
-    srsran_prach_cfg_t       prach           = {};
-    srsran_harq_ack_cfg_hl_t harq_ack        = {};
-    uint32_t                 rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
-    uint32_t                 numerology_idx  = 0;
-  };
-
-  struct cell_cfg_sib_t {
-    uint32_t len;
-    uint32_t period_rf;
-    uint32_t si_window_slots;
-  };
-
-  struct cell_cfg_t {
-    srsran_carrier_nr_t                                          carrier = {};
-    srsran_duplex_config_nr_t                                    duplex  = {};
-    srsran::phy_cfg_nr_t::ssb_cfg_t                              ssb     = {};
-    srsran::bounded_vector<bwp_cfg_t, SCHED_NR_MAX_BWP_PER_CELL> bwps{1}; // idx0 for BWP-common
-    srsran_mib_nr_t                                              mib;
-    srsran::bounded_vector<cell_cfg_sib_t, MAX_SIBS>             sibs;
-  };
-
   struct sched_args_t {
     bool        pdsch_enabled      = true;
     bool        pusch_enabled      = true;
@@ -145,10 +146,10 @@ public:
     sched_sib_list_t    sib_idxs;
   };
 
-  virtual ~sched_nr_interface() = default;
-  virtual int  config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_interface::cell_cfg_t> ue_cfg) = 0;
-  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                                                    = 0;
-  virtual void ue_rem(uint16_t rnti)                                                                            = 0;
+  virtual ~sched_nr_interface()                                                                      = default;
+  virtual int  config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_cell_cfg_t> ue_cfg) = 0;
+  virtual void ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg)                                         = 0;
+  virtual void ue_rem(uint16_t rnti)                                                                 = 0;
 
   virtual void      slot_indication(slot_point slot_tx)           = 0;
   virtual dl_res_t* get_dl_sched(slot_point slot_rx, uint32_t cc) = 0;

@@ -33,10 +33,10 @@ class sched_tester : public sched_nr_base_test_bench
   sim_args_t args;
 
 public:
-  explicit sched_tester(sim_args_t                                         args_,
-                        const sched_nr_interface::sched_args_t&            sched_args,
-                        const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
-                        std::string                                        test_name) :
+  explicit sched_tester(sim_args_t                              args_,
+                        const sched_nr_interface::sched_args_t& sched_args,
+                        const std::vector<sched_nr_cell_cfg_t>& cell_params_,
+                        std::string                             test_name) :
     sched_nr_base_test_bench(sched_args, cell_params_, test_name), args(args_)
   {}
 
@@ -123,8 +123,8 @@ void test_sched_nr_no_data(sim_args_t args)
   uint16_t rnti = 0x4601;
 
   sched_nr_interface::sched_args_t cfg;
-  cfg.auto_refill_buffer                                = false;
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
+  cfg.auto_refill_buffer                     = false;
+  std::vector<sched_nr_cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   std::string  test_name = "Test with no data";
   sched_tester tester(args, cfg, cells_cfg, test_name);
@@ -165,8 +165,8 @@ void test_sched_nr_data(sim_args_t args)
   uint32_t nof_dl_bytes_to_tx = 2e6;
 
   sched_nr_interface::sched_args_t cfg;
-  cfg.auto_refill_buffer                                = false;
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
+  cfg.auto_refill_buffer                     = false;
+  std::vector<sched_nr_cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   std::string  test_name = "Test with data";
   sched_tester tester(args, cfg, cells_cfg, test_name);

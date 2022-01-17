@@ -290,7 +290,7 @@ void sched_nr::stop()
   metrics_handler->stop();
 }
 
-int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<cell_cfg_t> cell_list)
+int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_cell_cfg_t> cell_list)
 {
   cfg    = sched_params_t{sched_cfg};
   logger = &srslog::fetch_basic_logger(sched_cfg.logger_name);

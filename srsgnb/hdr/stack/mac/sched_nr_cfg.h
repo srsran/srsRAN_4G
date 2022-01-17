@@ -40,8 +40,7 @@ using nzp_csi_rs_list    = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, 
 using ssb_t              = mac_interface_phy_nr::ssb_t;
 using ssb_list           = srsran::bounded_vector<ssb_t, mac_interface_phy_nr::MAX_SSB>;
 using sched_args_t       = sched_nr_interface::sched_args_t;
-using cell_cfg_t         = sched_nr_interface::cell_cfg_t;
-using bwp_cfg_t          = sched_nr_interface::bwp_cfg_t;
+using bwp_cfg_t          = sched_nr_bwp_cfg_t;
 using ue_cc_cfg_t        = sched_nr_interface::ue_cc_cfg_t;
 using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
 using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
@@ -57,20 +56,23 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct cell_params_t;
+
 /// Structure that extends the sched_nr_interface::bwp_cfg_t passed by upper layers with other
 /// derived BWP-specific params
 struct bwp_params_t {
-  const uint32_t      bwp_id;
-  const uint32_t      cc;
-  const bwp_cfg_t&    cfg;
-  const cell_cfg_t&   cell_cfg;
-  const sched_args_t& sched_cfg;
+  const uint32_t       bwp_id;
+  const uint32_t       cc;
+  const bwp_cfg_t      cfg;
+  const cell_params_t& cell_cfg;
+  const sched_args_t&  sched_cfg;
+  sched_nr_bwp_cfg_t   bwp_cfg;
 
   // derived params
   srslog::basic_logger& logger;
   uint32_t              P;
   uint32_t              N_rbg;
-  uint32_t              nof_prb() const { return cell_cfg.carrier.nof_prb; }
+  uint32_t              nof_prb;
 
   /// Table specifying if a slot has DL or UL enabled
   struct slot_cfg {
@@ -91,7 +93,7 @@ struct bwp_params_t {
 
   srsran::optional_vector<bwp_cce_pos_list> common_cce_list;
 
-  bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
+  bwp_params_t(const cell_params_t& cell, uint32_t bwp_id, const sched_nr_bwp_cfg_t& bwp_cfg);
 
   prb_interval  coreset_prb_range(uint32_t cs_id) const { return coresets[cs_id].prb_limits; }
   prb_interval  dci_fmt_1_0_prb_lims(uint32_t cs_id) const { return coresets[cs_id].dci_1_0_prb_limits; }
@@ -114,14 +116,28 @@ private:
 
 /// Structure packing a single cell config params, and sched args
 struct cell_params_t {
-  const uint32_t            cc;
-  const cell_cfg_t          cfg;
-  const sched_args_t&       sched_args;
-  std::vector<bwp_params_t> bwps;
+  const uint32_t                                    cc;
+  srsran_carrier_nr_t                               carrier = {};
+  srsran::phy_cfg_nr_t::ssb_cfg_t                   ssb     = {};
+  std::vector<bwp_params_t>                         bwps; // idx0 for BWP-common
+  srsran_mib_nr_t                                   mib;
+  std::vector<sched_nr_cell_cfg_sib_t>              sibs;
+  asn1::copy_ptr<asn1::rrc_nr::dl_cfg_common_sib_s> dl_cfg_common;
+  asn1::copy_ptr<asn1::rrc_nr::ul_cfg_common_sib_s> ul_cfg_common;
+  srsran_duplex_config_nr_t                         duplex = {};
+  const sched_args_t&                               sched_args;
+  const srsran::phy_cfg_nr_t                        default_ue_phy_cfg;
 
-  cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_);
+  cell_params_t(uint32_t cc_, const sched_nr_cell_cfg_t& cell, const sched_args_t& sched_args_);
 
-  uint32_t nof_prb() const { return cfg.carrier.nof_prb; }
+  uint32_t nof_prb() const { return carrier.nof_prb; }
+
+  /// Table specifying if a slot has DL or UL enabled
+  struct slot_cfg {
+    bool is_dl;
+    bool is_ul;
+  };
+  srsran::bounded_vector<slot_cfg, SRSRAN_NOF_SF_X_FRAME> slots;
 };
 
 /// Structure packing both the sched args and all gNB NR cell configurations

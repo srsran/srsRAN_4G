@@ -112,10 +112,10 @@ public:
     std::chrono::nanoseconds cc_latency_ns;
   };
 
-  sched_nr_base_test_bench(const sched_nr_interface::sched_args_t&            sched_args,
-                           const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
-                           std::string                                        test_name,
-                           uint32_t                                           nof_workers = 1);
+  sched_nr_base_test_bench(const sched_nr_interface::sched_args_t& sched_args,
+                           const std::vector<sched_nr_cell_cfg_t>& cell_params_,
+                           std::string                             test_name,
+                           uint32_t                                nof_workers = 1);
   virtual ~sched_nr_base_test_bench();
 
   void run_slot(slot_point slot_tx);

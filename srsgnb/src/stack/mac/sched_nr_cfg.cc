@@ -13,6 +13,7 @@
 #include "srsgnb/hdr/stack/mac/sched_nr_cfg.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsran/adt/optional_array.h"
+#include "srsran/asn1/rrc_nr_utils.h"
 extern "C" {
 #include "srsran/phy/phch/ra_ul_nr.h"
 }
@@ -38,16 +39,15 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
+bwp_params_t::bwp_params_t(const cell_params_t& cell, uint32_t bwp_id_, const sched_nr_bwp_cfg_t& bwp_cfg) :
   cell_cfg(cell),
-  sched_cfg(sched_cfg_),
-  cc(cc_),
+  sched_cfg(cell.sched_args),
+  cc(cell.cc),
   bwp_id(bwp_id_),
-  cfg(cell.bwps[bwp_id_]),
-  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name)),
-  cached_empty_prb_mask(cell.bwps[bwp_id_].rb_width,
-                        cell.bwps[bwp_id_].start_rb,
-                        cell.bwps[bwp_id_].pdsch.rbg_size_cfg_1)
+  cfg(bwp_cfg),
+  nof_prb(cell_cfg.carrier.nof_prb),
+  logger(srslog::fetch_basic_logger(sched_cfg.logger_name)),
+  cached_empty_prb_mask(bwp_cfg.rb_width, bwp_cfg.start_rb, bwp_cfg.pdsch.rbg_size_cfg_1)
 {
   srsran_assert(cfg.pdcch.ra_search_space_present, "BWPs without RA search space not supported");
   const uint32_t ra_coreset_id = cfg.pdcch.ra_search_space.coreset_id;
@@ -100,8 +100,8 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
     for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
       rar_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
-      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].pdcch.coreset[ra_coreset_id],
-                                                &cell_cfg.bwps[0].pdcch.ra_search_space,
+      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].cfg.pdcch.coreset[ra_coreset_id],
+                                                &cell_cfg.bwps[0].cfg.pdcch.ra_search_space,
                                                 0,
                                                 agg_idx,
                                                 sl,
@@ -112,11 +112,11 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   }
 
   for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
-    if (not cell_cfg.bwps[0].pdcch.search_space_present[ss_id]) {
+    if (not cell_cfg.bwps[0].cfg.pdcch.search_space_present[ss_id]) {
       continue;
     }
-    auto& ss      = cell_cfg.bwps[0].pdcch.search_space[ss_id];
-    auto& coreset = cell_cfg.bwps[0].pdcch.coreset[ss.coreset_id];
+    auto& ss      = cell_cfg.bwps[0].cfg.pdcch.search_space[ss_id];
+    auto& coreset = cell_cfg.bwps[0].cfg.pdcch.coreset[ss.coreset_id];
     common_cce_list.emplace(ss_id);
     bwp_cce_pos_list& ss_cce_list = common_cce_list[ss_id];
     for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
@@ -131,12 +131,24 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   }
 }
 
-cell_params_t::cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_) :
-  cc(cc_), cfg(cell), sched_args(sched_cfg_)
+cell_params_t::cell_params_t(uint32_t cc_, const sched_nr_cell_cfg_t& cell, const sched_args_t& sched_args_) :
+  cc(cc_),
+  sched_args(sched_args_),
+  default_ue_phy_cfg(get_common_ue_phy_cfg(cell)),
+  ssb(cell.ssb),
+  carrier(cell.carrier),
+  mib(cell.mib),
+  sibs(cell.sibs)
 {
+  // Conversion 36.331 ASN1 TDD-UL-DL-ConfigCommon to srsran_duplex_config_nr_t
+  duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
+  if (cell.tdd_ul_dl_cfg_common.is_present()) {
+    srsran_assert(srsran::make_phy_tdd_cfg(*cell.tdd_ul_dl_cfg_common, &duplex), "Failed to generate Cell TDD config");
+  }
+
   bwps.reserve(cell.bwps.size());
-  for (uint32_t i = 0; i < cfg.bwps.size(); ++i) {
-    bwps.emplace_back(cfg, sched_cfg_, cc, i);
+  for (uint32_t i = 0; i < cell.bwps.size(); ++i) {
+    bwps.emplace_back(*this, i, cell.bwps[i]);
   }
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }

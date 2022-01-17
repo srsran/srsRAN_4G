@@ -21,7 +21,7 @@ namespace sched_nr_impl {
 cc_worker::cc_worker(const cell_params_t& params) :
   cfg(params), logger(srslog::fetch_basic_logger(params.sched_args.logger_name))
 {
-  for (uint32_t bwp_id = 0; bwp_id < cfg.cfg.bwps.size(); ++bwp_id) {
+  for (uint32_t bwp_id = 0; bwp_id < cfg.bwps.size(); ++bwp_id) {
     bwps.emplace_back(cfg.bwps[bwp_id]);
   }
 

@@ -39,7 +39,7 @@ public:
       pdsch_count += cc_out.res.dl->phy.pdcch_dl.size();
       cc_res_count++;
 
-      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
+      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].duplex, 0, current_slot_tx.slot_idx());
 
       if (is_dl_slot) {
         if (cc_out.res.dl->phy.ssb.empty() and not slot_ctxt.ue_db.empty()) {
@@ -73,7 +73,7 @@ void run_sched_nr_test(uint32_t nof_workers)
   sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer = true;
 
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
+  std::vector<sched_nr_cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   std::string test_name = "Serialized Test";
   if (nof_workers > 1) {

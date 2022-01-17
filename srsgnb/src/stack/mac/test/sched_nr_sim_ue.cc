@@ -154,10 +154,10 @@ void sched_nr_ue_sim::update_dl_harqs(const sched_nr_cc_result_view& cc_out)
   }
 }
 
-sched_nr_base_test_bench::sched_nr_base_test_bench(const sched_nr_interface::sched_args_t&            sched_args,
-                                                   const std::vector<sched_nr_interface::cell_cfg_t>& cell_cfg_list,
-                                                   std::string                                        test_name_,
-                                                   uint32_t                                           nof_workers) :
+sched_nr_base_test_bench::sched_nr_base_test_bench(const sched_nr_interface::sched_args_t& sched_args,
+                                                   const std::vector<sched_nr_cell_cfg_t>& cell_cfg_list,
+                                                   std::string                             test_name_,
+                                                   uint32_t                                nof_workers) :
   logger(srslog::fetch_basic_logger("TEST")),
   mac_logger(srslog::fetch_basic_logger("MAC-NR")),
   sched_ptr(new sched_nr()),
@@ -312,9 +312,9 @@ void sched_nr_base_test_bench::process_results()
     sched_nr_cc_result_view cc_out = cc_results[cc].res;
 
     // Run common tests
-    test_dl_pdcch_consistency(cell_params[cc].cfg, cc_out.dl->phy.pdcch_dl);
+    test_dl_pdcch_consistency(cell_params[cc], cc_out.dl->phy.pdcch_dl);
     test_pdsch_consistency(cc_out.dl->phy.pdsch);
-    test_ssb_scheduled_grant(cc_out.slot, cell_params[cc_out.cc].cfg, cc_out.dl->phy.ssb);
+    test_ssb_scheduled_grant(cc_out.slot, cell_params[cc_out.cc], cc_out.dl->phy.ssb);
 
     // Run UE-dedicated tests
     test_dl_sched_result(slot_ctxt, cc_out);

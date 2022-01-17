@@ -218,7 +218,7 @@ pdsch_t& pdsch_allocator::alloc_pdsch_unchecked(uint32_t                   cores
   if (grant.is_alloc_type0()) {
     out_dci.freq_domain_assigment = grant.rbgs().to_uint64();
   } else {
-    uint32_t rb_start = grant.prbs().start(), nof_prb = bwp_cfg.nof_prb();
+    uint32_t rb_start = grant.prbs().start(), nof_prb = bwp_cfg.nof_prb;
     if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)) {
       prb_interval lims = bwp_cfg.coreset_prb_range(coreset_id);
       if (dci_fmt == srsran_dci_format_nr_1_0) {
@@ -345,7 +345,7 @@ pusch_t& pusch_allocator::alloc_pusch_unchecked(const prb_grant& grant, srsran_d
   if (grant.is_alloc_type0()) {
     out_dci.freq_domain_assigment = grant.rbgs().to_uint64();
   } else {
-    uint32_t nof_prb              = bwp_cfg.nof_prb();
+    uint32_t nof_prb              = bwp_cfg.nof_prb;
     out_dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, grant.prbs().start(), grant.prbs().length());
   }
 

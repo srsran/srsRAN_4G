@@ -68,7 +68,7 @@ void test_sib_generation()
       rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, bearer_mapper, nullptr) ==
       SRSRAN_SUCCESS);
 
-  const sched_nr_interface::cell_cfg_t& nrcell = mac_obj.nr_cells.at(0);
+  const sched_nr_cell_cfg_t& nrcell = mac_obj.nr_cells.at(0);
 
   TESTASSERT(nrcell.sibs.size() > 0);
 

@@ -34,8 +34,8 @@ void test_single_prach()
   sched_cfg.auto_refill_buffer = std::uniform_int_distribution<uint32_t>{0, 1}(rgen) > 0;
 
   // Set cells configuration
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(1);
-  sched_params_t                              schedparams{sched_cfg};
+  std::vector<sched_nr_cell_cfg_t> cells_cfg = get_default_cells_cfg(1);
+  sched_params_t                   schedparams{sched_cfg};
   schedparams.cells.emplace_back(0, cells_cfg[0], sched_cfg);
   const bwp_params_t& bwpparams = schedparams.cells[0].bwps[0];
   slot_ue_map_t       slot_ues;

@@ -11,6 +11,7 @@
  */
 
 #include "srsgnb/hdr/stack/mac/sched_nr_interface_utils.h"
+#include "srsran/asn1/rrc_nr_utils.h"
 
 namespace srsenb {
 
@@ -21,14 +22,13 @@ uint32_t coreset_nof_cces(const srsran_coreset_t& coreset)
   return nof_freq_res * coreset.duration;
 }
 
-srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_interface::cell_cfg_t& cfg)
+srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_cell_cfg_t& cfg)
 {
   srsran::phy_cfg_nr_t ue_phy_cfg;
 
   ue_phy_cfg.csi = {}; // disable CSI until RA is complete
 
   ue_phy_cfg.carrier  = cfg.carrier;
-  ue_phy_cfg.duplex   = cfg.duplex;
   ue_phy_cfg.ssb      = cfg.ssb;
   ue_phy_cfg.pdcch    = cfg.bwps[0].pdcch;
   ue_phy_cfg.pdsch    = cfg.bwps[0].pdsch;
@@ -44,6 +44,13 @@ srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_interface::cell_cfg_t&
       ue_phy_cfg.pdcch.search_space_present[i] = false;
       ue_phy_cfg.pdcch.search_space[i]         = {};
     }
+  }
+
+  // TDD UL-DL config
+  ue_phy_cfg.duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
+  if (cfg.tdd_ul_dl_cfg_common.is_present()) {
+    srsran_sanity_check(srsran::make_phy_tdd_cfg(*cfg.tdd_ul_dl_cfg_common, &ue_phy_cfg.duplex),
+                        "Failed to convert Cell TDDConfig to UEPHYConfig");
   }
 
   return ue_phy_cfg;
