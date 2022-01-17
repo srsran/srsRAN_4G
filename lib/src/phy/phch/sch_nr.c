@@ -596,6 +596,7 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
 
   // Counter of code blocks that have matched CRC
   uint32_t cb_ok = 0;
+  res->crc       = false;
 
   // For each code block...
   uint32_t j = 0;
@@ -693,7 +694,6 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
 
   // Not all CB are decoded, skip TB union and CRC check
   if (cb_ok != cfg.C) {
-    res->crc = false;
     return SRSRAN_SUCCESS;
   }
 
