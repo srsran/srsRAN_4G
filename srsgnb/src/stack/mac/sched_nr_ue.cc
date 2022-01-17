@@ -129,13 +129,27 @@ int ue_carrier::ul_crc_info(uint32_t pid, bool crc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ue::ue(uint16_t rnti_, const sched_nr_ue_cfg_t& cfg, const sched_params_t& sched_cfg_) :
+sched_nr_ue_cfg_t get_rach_ue_cfg(uint32_t cc, const sched_params_t& sched_params)
+{
+  sched_nr_ue_cfg_t uecfg = {};
+  uecfg.carriers.resize(1);
+  uecfg.carriers[0].active = true;
+  uecfg.carriers[0].cc     = cc;
+  uecfg.phy_cfg            = sched_params.cells[cc].default_ue_phy_cfg;
+  return uecfg;
+}
+
+ue::ue(uint16_t rnti_, uint32_t cc, const sched_params_t& sched_cfg_) :
+  ue(rnti_, get_rach_ue_cfg(cc, sched_cfg_), sched_cfg_)
+{}
+
+ue::ue(uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, const sched_params_t& sched_cfg_) :
   rnti(rnti_),
   sched_cfg(sched_cfg_),
   buffers(rnti_, srslog::fetch_basic_logger(sched_cfg_.sched_cfg.logger_name)),
-  ue_cfg(0)
+  ue_cfg(uecfg.carriers[0].cc)
 {
-  set_cfg(cfg);
+  set_cfg(uecfg);
 }
 
 void ue::set_cfg(const sched_nr_ue_cfg_t& cfg)
@@ -144,11 +158,11 @@ void ue::set_cfg(const sched_nr_ue_cfg_t& cfg)
   for (auto& ue_cc_cfg : cfg.carriers) {
     if (ue_cc_cfg.active) {
       if (carriers[ue_cc_cfg.cc] == nullptr) {
-        carriers[ue_cc_cfg.cc].reset(new ue_carrier(rnti,
-                                                    ue_cfg,
-                                                    sched_cfg.cells[ue_cc_cfg.cc],
-                                                    common_ctxt,
-                                                    ue_buffer_manager::pdu_builder{ue_cc_cfg.cc, buffers}));
+        carriers[ue_cc_cfg.cc] = std::make_unique<ue_carrier>(rnti,
+                                                              ue_cfg,
+                                                              sched_cfg.cells[ue_cc_cfg.cc],
+                                                              common_ctxt,
+                                                              ue_buffer_manager::pdu_builder{ue_cc_cfg.cc, buffers});
       } else {
         carriers[ue_cc_cfg.cc]->set_cfg(ue_cfg);
       }

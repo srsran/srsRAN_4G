@@ -342,7 +342,7 @@ int sched_nr::add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u)
 int sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
-    return add_ue_impl(rnti, std::unique_ptr<ue>(new ue{rnti, uecfg, cfg}));
+    return add_ue_impl(rnti, std::make_unique<ue>(rnti, uecfg, cfg));
   }
   ue_db[rnti]->set_cfg(uecfg);
   return SRSRAN_SUCCESS;
@@ -413,25 +413,24 @@ void sched_nr::get_metrics(mac_metrics_t& metrics)
   metrics_handler->get_metrics(metrics);
 }
 
-int sched_nr::dl_rach_info(const rar_info_t& rar_info, const ue_cfg_t& uecfg)
+int sched_nr::dl_rach_info(const rar_info_t& rar_info)
 {
-  // enqueue UE creation event + RACH handling
-  auto add_ue = [this, uecfg, rar_info](event_manager::logger& ev_logger) {
-    // create user
-    // Note: UEs being created in sched main thread, which has higher priority
-    std::unique_ptr<ue> u{new ue{rar_info.temp_crnti, uecfg, cfg}};
+  // create user object outside of sched main thread
+  std::unique_ptr<ue> u = std::make_unique<ue>(rar_info.temp_crnti, rar_info.cc, cfg);
 
+  // enqueue UE creation event + RACH handling
+  auto add_ue = [this, rar_info, u = std::move(u)](event_manager::logger& ev_logger) mutable {
     uint16_t rnti = rar_info.temp_crnti;
     if (add_ue_impl(rnti, std::move(u)) == SRSRAN_SUCCESS) {
       ev_logger.push("dl_rach_info(temp c-rnti=0x{:x})", rar_info.temp_crnti);
       // RACH is handled only once the UE object is created and inserted in the ue_db
-      uint32_t cc = uecfg.carriers[0].cc;
+      uint32_t cc = rar_info.cc;
       cc_workers[cc]->dl_rach_info(rar_info);
     } else {
       logger->warning("Failed to create UE object with rnti=0x%x", rar_info.temp_crnti);
     }
   };
-  pending_events->enqueue_event("dl_rach_info", add_ue);
+  pending_events->enqueue_event("dl_rach_info", std::move(add_ue));
   return SRSRAN_SUCCESS;
 }
 

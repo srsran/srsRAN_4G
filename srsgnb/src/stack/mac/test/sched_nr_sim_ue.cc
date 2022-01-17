@@ -18,16 +18,12 @@
 
 namespace srsenb {
 
-sched_nr_ue_sim::sched_nr_ue_sim(uint16_t                 rnti_,
-                                 const sched_nr_ue_cfg_t& ue_cfg_,
-                                 slot_point               prach_slot_rx,
-                                 uint32_t                 preamble_idx) :
+sched_nr_ue_sim::sched_nr_ue_sim(uint16_t rnti_, const sched_nr_ue_cfg_t& ue_cfg_) :
   logger(srslog::fetch_basic_logger("MAC"))
 {
-  ctxt.rnti          = rnti_;
-  ctxt.prach_slot_rx = prach_slot_rx;
-  ctxt.preamble_idx  = preamble_idx;
+  ctxt.rnti = rnti_;
   ctxt.ue_cfg.apply_config_request(ue_cfg_);
+  ctxt.preamble_idx = -1;
 
   ctxt.cc_list.resize(ue_cfg_.carriers.size());
   for (auto& cc : ctxt.cc_list) {
@@ -36,6 +32,16 @@ sched_nr_ue_sim::sched_nr_ue_sim(uint16_t                 rnti_,
       cc.dl_harqs[pid].pid = pid;
     }
   }
+}
+
+sched_nr_ue_sim::sched_nr_ue_sim(uint16_t                 rnti_,
+                                 const sched_nr_ue_cfg_t& ue_cfg_,
+                                 slot_point               prach_slot_rx,
+                                 uint32_t                 preamble_idx) :
+  sched_nr_ue_sim(rnti_, ue_cfg_)
+{
+  ctxt.prach_slot_rx = prach_slot_rx;
+  ctxt.preamble_idx  = preamble_idx;
 }
 
 int sched_nr_ue_sim::update(const sched_nr_cc_result_view& cc_out)
@@ -202,35 +208,51 @@ void sched_nr_base_test_bench::stop()
   }
 }
 
-int sched_nr_base_test_bench::add_user(uint16_t                            rnti,
-                                       const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                                       slot_point                          tti_rx,
-                                       uint32_t                            preamble_idx)
+srsran::const_span<sched_nr_base_test_bench::cc_result_t> sched_nr_base_test_bench::get_slot_results() const
+{
+  sem_wait(&slot_sem);
+  auto ret = cc_results;
+  sem_post(&slot_sem);
+  return ret;
+}
+
+int sched_nr_base_test_bench::rach_ind(uint16_t rnti, uint32_t cc, slot_point tti_rx, uint32_t preamble_idx)
 {
   sem_wait(&slot_sem);
 
   TESTASSERT(ue_db.count(rnti) == 0);
 
-  ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_, current_slot_tx, preamble_idx)));
-
   sched_nr_interface::rar_info_t rach_info{};
+  rach_info.cc           = cc;
   rach_info.temp_crnti   = rnti;
   rach_info.prach_slot   = tti_rx;
   rach_info.preamble_idx = preamble_idx;
   rach_info.msg3_size    = 7;
-  sched_ptr->dl_rach_info(rach_info, ue_cfg_);
+  sched_ptr->dl_rach_info(rach_info);
+
+  sched_nr_ue_cfg_t uecfg;
+  uecfg.carriers.resize(1);
+  uecfg.carriers[0].active = true;
+  uecfg.carriers[0].cc     = cc;
+  uecfg.phy_cfg            = cell_params[cc].default_ue_phy_cfg;
+  ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, uecfg, current_slot_tx, preamble_idx)));
 
   sem_post(&slot_sem);
-
   return SRSRAN_SUCCESS;
 }
 
 void sched_nr_base_test_bench::user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_)
 {
-  TESTASSERT(ue_db.count(rnti) > 0);
+  sem_wait(&slot_sem);
 
-  ue_db.at(rnti).get_ctxt().ue_cfg.apply_config_request(ue_cfg_);
+  if (ue_db.count(rnti) == 0) {
+    ue_db.insert(std::make_pair(rnti, sched_nr_ue_sim(rnti, ue_cfg_)));
+  } else {
+    ue_db.at(rnti).get_ctxt().ue_cfg.apply_config_request(ue_cfg_);
+  }
   sched_ptr->ue_cfg(rnti, ue_cfg_);
+
+  sem_post(&slot_sem);
 }
 
 void sched_nr_base_test_bench::add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes)

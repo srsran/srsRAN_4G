@@ -89,14 +89,15 @@ void run_sched_nr_test(uint32_t nof_workers)
       uecfg.lc_ch_to_add.emplace_back();
       uecfg.lc_ch_to_add.back().lcid          = 1;
       uecfg.lc_ch_to_add.back().cfg.direction = mac_lc_ch_cfg_t::BOTH;
-      tester.add_user(rnti, uecfg, slot_rx, 0);
+      tester.user_cfg(rnti, uecfg);
     }
     tester.run_slot(slot_tx);
   }
 
   tester.stop();
   tester.print_results();
-  //  TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
+  TESTASSERT(tester.pdsch_count > 0);
+  //  TESTASSERT(tester.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
 
   double final_avg_usec = tester.tot_latency_sched_ns;
   final_avg_usec        = final_avg_usec / 1000.0 / max_nof_ttis;

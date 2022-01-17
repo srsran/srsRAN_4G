@@ -109,13 +109,14 @@ public:
   ////// RA signalling //////
 
   struct rar_info_t {
-    uint32_t   preamble_idx; // is this the RAPID?
+    uint32_t   msg3_size = 7;
+    uint32_t   cc;
+    uint16_t   temp_crnti;
+    slot_point prach_slot;
     uint32_t   ofdm_symbol_idx;
     uint32_t   freq_idx;
+    uint32_t   preamble_idx;
     uint32_t   ta_cmd;
-    uint16_t   temp_crnti;
-    uint32_t   msg3_size = 7;
-    slot_point prach_slot;
   };
   struct msg3_grant_t {
     rar_info_t         data;

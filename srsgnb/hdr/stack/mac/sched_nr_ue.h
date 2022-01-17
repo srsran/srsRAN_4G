@@ -119,7 +119,8 @@ private:
 class ue
 {
 public:
-  ue(uint16_t rnti, const sched_nr_ue_cfg_t& cfg, const sched_params_t& sched_cfg_);
+  ue(uint16_t rnti, uint32_t cc, const sched_params_t& sched_cfg_);
+  ue(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, const sched_params_t& sched_cfg_);
 
   void new_slot(slot_point pdcch_slot);
 

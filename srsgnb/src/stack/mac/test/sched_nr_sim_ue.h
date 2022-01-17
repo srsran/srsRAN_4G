@@ -89,6 +89,7 @@ struct sim_nr_enb_ctxt_t {
 class sched_nr_ue_sim
 {
 public:
+  sched_nr_ue_sim(uint16_t rnti_, const sched_nr_ue_cfg_t& ue_cfg_);
   sched_nr_ue_sim(uint16_t rnti_, const sched_nr_ue_cfg_t& ue_cfg_, slot_point prach_slot_rx, uint32_t preamble_idx);
 
   int update(const sched_nr_cc_result_view& cc_out);
@@ -123,13 +124,16 @@ public:
 
   slot_point get_slot_tx() const { return current_slot_tx; }
 
-  int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, slot_point tti_rx, uint32_t preamble_idx);
+  /// may block waiting for scheduler to finish generating slot result
+  srsran::const_span<cc_result_t> get_slot_results() const;
+
+  int rach_ind(uint16_t rnti, uint32_t cc, slot_point tti_rx, uint32_t preamble_idx);
 
   void user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_);
 
   void add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes);
 
-  srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() { return cell_params; }
+  srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() const { return cell_params; }
 
   /**
    * @brief Specify external events that will be forwarded to the scheduler (CQI, ACKs, etc.) in the given slot

@@ -347,12 +347,13 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
 
     // Trigger scheduler RACH
     srsenb::sched_nr_interface::rar_info_t rar_info = {};
+    rar_info.cc                                     = enb_cc_idx;
     rar_info.preamble_idx                           = rach_info.preamble;
     rar_info.temp_crnti                             = rnti;
     rar_info.ta_cmd                                 = rach_info.time_adv;
     rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
     // TODO: fill remaining fields as required
-    sched->dl_rach_info(rar_info, uecfg);
+    sched->dl_rach_info(rar_info);
     rrc->add_user(rnti, uecfg);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",

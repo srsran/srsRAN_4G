@@ -14,15 +14,20 @@
 #include "sched_nr_sim_ue.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/test_common.h"
+#include "srsran/support/emergency_handlers.h"
 #include <boost/program_options.hpp>
 #include <fstream>
+#include <random>
 
 // shorten boost program options namespace
 namespace bpo = boost::program_options;
 
 namespace srsenb {
 
+std::default_random_engine rand_gen;
+
 struct sim_args_t {
+  uint32_t    rand_seed;
   uint32_t    fixed_cqi;
   std::string mac_log_level;
   std::string test_log_level;
@@ -98,7 +103,7 @@ struct sched_event_t {
 sched_event_t add_user(uint32_t slot_count, uint16_t rnti, uint32_t preamble_idx)
 {
   auto task = [rnti, preamble_idx](sched_nr_base_test_bench& tester) {
-    tester.add_user(rnti, get_rach_ue_cfg(0), tester.get_slot_tx() - TX_ENB_DELAY, preamble_idx);
+    tester.rach_ind(rnti, 0, tester.get_slot_tx() - TX_ENB_DELAY, preamble_idx);
   };
   return sched_event_t{slot_count, task};
 }
@@ -160,9 +165,10 @@ void test_sched_nr_no_data(sim_args_t args)
 
 void test_sched_nr_data(sim_args_t args)
 {
-  uint32_t max_nof_ttis = 1000, nof_sectors = 1;
-  uint16_t rnti               = 0x4601;
-  uint32_t nof_dl_bytes_to_tx = 2e6;
+  uint32_t max_nof_ttis = 100000, nof_sectors = 1;
+  uint16_t rnti = 0x4601;
+  uint32_t nof_dl_bytes_to_tx =
+      std::uniform_int_distribution<int>{0, 9}(rand_gen)*pow(10, std::uniform_int_distribution<int>{1, 7}(rand_gen));
 
   sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer                     = false;
@@ -179,7 +185,10 @@ void test_sched_nr_data(sim_args_t args)
   events.push_back(add_rlc_dl_bytes(50, rnti, 0, nof_dl_bytes_to_tx));
 
   /* Run Test */
-  for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
+  auto finish_condition = [max_nof_ttis, rnti, nof_dl_bytes_to_tx, &tester](uint32_t nof_slots) {
+    return nof_slots >= max_nof_ttis or tester.ue_metrics[rnti].nof_dl_bytes > nof_dl_bytes_to_tx;
+  };
+  for (uint32_t nof_slots = 0; not finish_condition(nof_slots); ++nof_slots) {
     slot_point slot_rx(0, nof_slots % 10240);
     slot_point slot_tx = slot_rx + TX_ENB_DELAY;
 
@@ -192,7 +201,17 @@ void test_sched_nr_data(sim_args_t args)
     // call sched
     tester.run_slot(slot_tx);
   }
+  // Run a few extra slots to ensure the scheduler does not allocate more DL bytes than necessary
+  for (uint32_t nof_slots_extra = 0; nof_slots_extra < 40; ++nof_slots_extra) {
+    tester.run_slot(tester.get_slot_tx() + 1);
+    auto results = tester.get_slot_results();
+    TESTASSERT(results[0].res.dl->phy.pdcch_dl.empty());
+    TESTASSERT(results[0].res.dl->phy.pdcch_ul.empty());
+  }
 
+  srslog::flush();
+  fmt::print("== Results ==\n");
+  fmt::print("Enqueued RLC DL bytes: {}\n", nof_dl_bytes_to_tx);
   tester.print_results();
 
   TESTASSERT(tester.ue_metrics[rnti].nof_dl_txs > 1);
@@ -212,6 +231,7 @@ sim_args_t handle_args(int argc, char** argv)
 
   // clang-format off
   options_sim.add_options()
+      ("seed",            bpo::value<uint32_t>(&args.rand_seed)->default_value(std::chrono::system_clock::now().time_since_epoch().count()), "Simulation Random Seed")
       ("cqi",            bpo::value<uint32_t>(&args.fixed_cqi)->default_value(15), "UE DL CQI")
       ("log.mac_level",  bpo::value<std::string>(&args.mac_log_level)->default_value("info"), "MAC log level")
       ("log.test_level", bpo::value<std::string>(&args.test_log_level)->default_value("info"), "TEST log level")
@@ -268,8 +288,13 @@ sim_args_t handle_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+  // Start the log backend.
+  srslog::init();
+
+  // Parse args
   srsenb::sim_args_t args = srsenb::handle_args(argc, argv);
 
+  // Initialize Loggers
   auto& test_logger = srslog::fetch_basic_logger("TEST");
   test_logger.set_level(srslog::str_to_basic_level(args.test_log_level));
   auto& mac_nr_logger = srslog::fetch_basic_logger("MAC-NR");
@@ -277,9 +302,18 @@ int main(int argc, char** argv)
   auto& pool_logger = srslog::fetch_basic_logger("POOL");
   pool_logger.set_level(srslog::basic_levels::debug);
 
-  // Start the log backend.
-  srslog::init();
+  // Setup Random Generator
+  srsenb::rand_gen = std::default_random_engine(args.rand_seed);
+  fmt::print("TEST: Random Seed is {}", args.rand_seed);
+  add_emergency_cleanup_handler(
+      [](void* args_void) {
+        auto* args = (srsenb::sim_args_t*)args_void;
+        fmt::print("TEST: Random Seed was {}", args->rand_seed);
+      },
+      (void*)&args);
 
   srsenb::test_sched_nr_no_data(args);
   srsenb::test_sched_nr_data(args);
+
+  fmt::print("TEST: Random Seed was {}", args.rand_seed);
 }
