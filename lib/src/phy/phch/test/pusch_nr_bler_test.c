@@ -22,6 +22,7 @@
  *  - <tt>-L num</tt>: sets the number of transmission layers to \c num.
  *  - <tt>-A num</tt>: sets the number of HARQ-ACK bits to \c num.
  *  - <tt>-C num</tt>: sets the number of CSI bits to \c num.
+ *  - <tt>-N num</tt>: sets the maximum number of simulated transport blocks to \c num.
  *  - <tt>-s val</tt>: sets the nominal SNR to \c val (in dB).
  *  - <tt>-f </tt>: activates full BLER simulations (Tx--Rx comparison as opposed to CRC-verification only).
  *  - <tt>-v </tt>: activates verbose output.
@@ -43,25 +44,27 @@
 #include <getopt.h>
 
 static srsran_carrier_nr_t carrier      = SRSRAN_DEFAULT_CARRIER_NR;
-static uint32_t            n_prb        = 0;  // Set to 0 for steering
-static uint32_t            mcs          = 30; // Set to 30 for steering
+static uint32_t            n_prb        = 0;
+static uint32_t            mcs          = 30;
 static srsran_sch_cfg_nr_t pusch_cfg    = {};
 static uint16_t            rnti         = 0x1234;
 static uint32_t            nof_ack_bits = 0;
 static uint32_t            nof_csi_bits = 0;
+static uint32_t            max_blocks   = 2e6; // max number of simulated transport blocks
 static float               snr          = 10;
 static bool                full_check   = false;
 
 void usage(char* prog)
 {
-  printf("Usage: %s [pmTLACsfv] \n", prog);
-  printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
-  printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
+  printf("Usage: %s [pmTLACNsfv] \n", prog);
+  printf("\t-p Number of grant PRB [Default %d]\n", n_prb);
+  printf("\t-m MCS PRB [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srsran_mcs_table_to_str(pusch_cfg.sch_cfg.mcs_table));
   printf("\t-L Provide number of layers [Default %d]\n", carrier.max_mimo_layers);
   printf("\t-A Provide a number of HARQ-ACK bits [Default %d]\n", nof_ack_bits);
   printf("\t-C Provide a number of CSI bits [Default %d]\n", nof_csi_bits);
+  printf("\t-N Maximum number of simulated transport blocks [Default %d]\n", max_blocks);
   printf("\t-s Signal-to-Noise Ratio in dB [Default %.1f]\n", snr);
   printf("\t-f Perform full BLER check instead of CRC only [Default %s]\n", full_check ? "true" : "false");
   printf("\t-v [set srsran_verbose to debug, default none]\n");
@@ -70,7 +73,7 @@ void usage(char* prog)
 int parse_args(int argc, char** argv)
 {
   int opt = 0;
-  while ((opt = getopt(argc, argv, "p:m:T:L:A:C:s:fv")) != -1) {
+  while ((opt = getopt(argc, argv, "p:m:T:L:A:C:N:s:fv")) != -1) {
     switch (opt) {
       case 'p':
         n_prb = (uint32_t)strtol(optarg, NULL, 10);
@@ -89,6 +92,9 @@ int parse_args(int argc, char** argv)
         break;
       case 'C':
         nof_csi_bits = (uint32_t)strtol(optarg, NULL, 10);
+        break;
+      case 'N':
+        max_blocks = (uint32_t)strtol(optarg, NULL, 10);
         break;
       case 's':
         snr = strtof(optarg, NULL);
@@ -242,7 +248,7 @@ int main(int argc, char** argv)
   uint32_t crc_false_pos = 0;
   uint32_t crc_false_neg = 0;
   float    evm           = 0;
-  for (; n_blocks < 2000000 && n_errors < 100; n_blocks++) {
+  for (; n_blocks < max_blocks && n_errors < 100; n_blocks++) {
     // Generate SCH payload
     for (uint32_t tb = 0; tb < SRSRAN_MAX_TB; tb++) {
       // Skip TB if no allocated
