@@ -336,10 +336,6 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
   stack_task_queue.push([this, rach_info, enb_cc_idx, rach_tprof_meas]() mutable {
     rach_tprof_meas.defer_stop();
 
-    // Add new user to the scheduler so that it can RX/TX SRB0
-    sched_nr_ue_cfg_t uecfg = {};
-    uecfg.phy_cfg           = default_ue_phy_cfg;
-
     uint16_t rnti = alloc_ue(enb_cc_idx);
 
     // Log this event.
@@ -352,9 +348,8 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     rar_info.temp_crnti                             = rnti;
     rar_info.ta_cmd                                 = rach_info.time_adv;
     rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
-    // TODO: fill remaining fields as required
     sched->dl_rach_info(rar_info);
-    rrc->add_user(rnti, uecfg);
+    rrc->add_user(rnti, enb_cc_idx);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,

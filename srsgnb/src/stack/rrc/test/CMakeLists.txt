@@ -9,9 +9,11 @@
 add_library(rrc_nr_test_helpers rrc_nr_test_helpers.cc)
 
 add_executable(rrc_nr_test rrc_nr_test.cc)
-target_link_libraries(rrc_nr_test srsgnb_rrc srsgnb_rrc_config_utils srsran_common rrc_nr_asn1 rrc_nr_test_helpers ${ATOMIC_LIBS})
+target_link_libraries(rrc_nr_test srsgnb_rrc srsgnb_rrc_config_utils srsran_common rrc_nr_asn1 rrc_nr_test_helpers srsgnb_mac ${ATOMIC_LIBS})
 add_test(rrc_nr_test rrc_nr_test)
 
 add_executable(rrc_nr_core_test rrc_nr_core_test.cc)
-target_link_libraries(rrc_nr_core_test srsgnb_rrc srsgnb_rrc_config_utils srsran_common rrc_nr_asn1 test_helpers rrc_nr_test_helpers srsgnb_ngap ngap_nr_asn1 srsran_gtpu srsenb_upper ${SCTP_LIBRARIES} ${ATOMIC_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(rrc_nr_core_test srsgnb_rrc srsgnb_rrc_config_utils srsran_common rrc_nr_asn1 test_helpers
+                                       rrc_nr_test_helpers srsgnb_mac srsgnb_ngap ngap_nr_asn1 srsran_gtpu
+                                       srsenb_upper ${SCTP_LIBRARIES} ${ATOMIC_LIBS} ${Boost_LIBRARIES})
 

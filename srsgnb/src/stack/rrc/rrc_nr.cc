@@ -178,11 +178,11 @@ void rrc_nr::log_rx_pdu_fail(uint16_t                rnti,
  *
  * This function WILL NOT TRIGGER the RX MSG3 activity timer
  */
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer)
+int rrc_nr::add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
 {
   if (users.contains(rnti) == 0) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
-    users.insert(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, start_msg3_timer)));
+    users.insert(rnti, std::unique_ptr<ue>(new ue(this, rnti, pcell_cc_idx, start_msg3_timer)));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -197,10 +197,10 @@ int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_m
  *
  * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
  */
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
+int rrc_nr::add_user(uint16_t rnti, uint32_t pcell_cc_idx)
 {
   // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
-  return add_user(rnti, uecfg, true);
+  return add_user(rnti, pcell_cc_idx, true);
 }
 
 void rrc_nr::rem_user(uint16_t rnti)
@@ -344,6 +344,9 @@ void rrc_nr::config_mac()
 
   // Configure MAC/scheduler
   mac->cell_cfg(sched_cells_cfg);
+
+  // Make default UE PHY config object
+  cell_ctxt->default_phy_ue_cfg_nr = get_common_ue_phy_cfg(cell);
 }
 
 int32_t rrc_nr::generate_sibs()
@@ -708,12 +711,7 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   uecfg.carriers.resize(1);
   uecfg.carriers[0].active = true;
   uecfg.carriers[0].cc     = 0;
-  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
-  uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+  uecfg.phy_cfg            = cell_ctxt->default_phy_ue_cfg_nr;
 
   uint16_t nr_rnti = mac->reserve_rnti(0, uecfg);
   if (nr_rnti == SRSRAN_INVALID_RNTI) {
@@ -722,7 +720,7 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
     return;
   }
 
-  if (add_user(nr_rnti, uecfg, false) != SRSRAN_SUCCESS) {
+  if (add_user(nr_rnti, 0, false) != SRSRAN_SUCCESS) {
     logger.error("Failed to allocate RNTI at RRC");
     rrc_eutra->sgnb_addition_reject(eutra_rnti);
     return;

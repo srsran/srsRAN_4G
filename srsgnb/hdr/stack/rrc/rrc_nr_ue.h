@@ -29,7 +29,7 @@ public:
   };
 
   /// @param [in] start_msg3_timer: indicates whether the UE is created as part of a RACH process
-  ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer = true);
+  ue(rrc_nr* parent_, uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer = true);
   ~ue();
 
   int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);

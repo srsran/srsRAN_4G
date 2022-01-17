@@ -28,9 +28,15 @@ namespace srsenb {
 Every function in UE class is called from a mutex environment thus does not
     need extra protection.
     *******************************************************************************/
-rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg_, bool start_msg3_timer) :
-  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(uecfg_), sec_ctx(parent->cfg)
+rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer) :
+  parent(parent_), logger(parent_->logger), rnti(rnti_), uecfg(), sec_ctx(parent->cfg)
 {
+  // Set default MAC UE config
+  uecfg.carriers.resize(1);
+  uecfg.carriers[0].active = true;
+  uecfg.carriers[0].cc     = pcell_cc_idx;
+  uecfg.phy_cfg            = parent->cell_ctxt->default_phy_ue_cfg_nr;
+
   if (not parent->cfg.is_standalone) {
     // Add the final PDCCH config in case of NSA
     uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;

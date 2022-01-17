@@ -129,7 +129,8 @@ int ue_carrier::ul_crc_info(uint32_t pid, bool crc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-sched_nr_ue_cfg_t get_rach_ue_cfg(uint32_t cc, const sched_params_t& sched_params)
+/// Generate basic UE config at the point of RACH
+sched_nr_ue_cfg_t get_rach_ue_cfg_helper(uint32_t cc, const sched_params_t& sched_params)
 {
   sched_nr_ue_cfg_t uecfg = {};
   uecfg.carriers.resize(1);
@@ -140,7 +141,7 @@ sched_nr_ue_cfg_t get_rach_ue_cfg(uint32_t cc, const sched_params_t& sched_param
 }
 
 ue::ue(uint16_t rnti_, uint32_t cc, const sched_params_t& sched_cfg_) :
-  ue(rnti_, get_rach_ue_cfg(cc, sched_cfg_), sched_cfg_)
+  ue(rnti_, get_rach_ue_cfg_helper(cc, sched_cfg_), sched_cfg_)
 {}
 
 ue::ue(uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, const sched_params_t& sched_cfg_) :

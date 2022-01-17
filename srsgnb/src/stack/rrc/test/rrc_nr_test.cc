@@ -169,10 +169,7 @@ void test_rrc_sa_connection()
       rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, nullptr, bearer_mapper, nullptr) ==
       SRSRAN_SUCCESS);
 
-  sched_nr_ue_cfg_t uecfg                     = get_default_ue_cfg(1);
-  uecfg.phy_cfg.pdcch                         = rrc_cfg_nr.cell_list[0].phy_cell.pdcch;
-  uecfg.phy_cfg.pdcch.search_space_present[2] = false;
-  TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
+  TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, 0));
 
   test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, mac_obj, ngap_obj, 0x4601);
   test_rrc_nr_info_transfer(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
