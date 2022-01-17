@@ -248,6 +248,41 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
 
+void test_rrc_nr_ue_capability_enquiry(srsran::task_scheduler& task_sched,
+                                       rrc_nr&                 rrc_obj,
+                                       pdcp_nr_rrc_tester&     pdcp,
+                                       uint16_t                rnti)
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  {
+    asn1::cbit_ref bref{pdcp.last_sdu->data(), pdcp.last_sdu->size()};
+    TESTASSERT_SUCCESS(dl_dcch_msg.unpack(bref));
+  }
+
+  // Check if unpacked message is correct (ueCapabilityEnquiry | gNB -> UE)
+  TESTASSERT_EQ(dl_dcch_msg_type_c::types_opts::c1, dl_dcch_msg.msg.type().value);
+  TESTASSERT_EQ(dl_dcch_msg_type_c::c1_c_::types_opts::ue_cap_enquiry, dl_dcch_msg.msg.c1().type().value);
+  TESTASSERT_EQ(ue_cap_enquiry_s::crit_exts_c_::types_opts::ue_cap_enquiry,
+                dl_dcch_msg.msg.c1().ue_cap_enquiry().crit_exts.type().value);
+
+  // Send response (ueCapabilityInformation | UE -> gNB)
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         ue_capability_information      = ul_dcch_msg.msg.set_c1().set_ue_cap_info();
+  ue_capability_information.rrc_transaction_id = dl_dcch_msg.msg.c1().ue_cap_enquiry().rrc_transaction_id;
+  ue_capability_information.crit_exts.set_ue_cap_info();
+
+  srsran::unique_byte_buffer_t pdu;
+  {
+    pdu = srsran::make_byte_buffer();
+    asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
+    TESTASSERT_SUCCESS(ul_dcch_msg.pack(bref));
+    pdu->N_bytes = bref.distance_bytes();
+  }
+
+  // send message to RRC
+  rrc_obj.write_pdu(rnti, 1, std::move(pdu));
+}
+
 void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                                  rrc_nr&                 rrc_obj,
                                  pdcp_nr_rrc_tester&     pdcp,

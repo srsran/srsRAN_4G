@@ -1183,7 +1183,7 @@ void rrc_nr::ue::send_rrc_reconfiguration()
   }
 }
 
-void rrc_nr::ue::send_ue_capability_enquiry()
+int rrc_nr::ue::send_ue_capability_enquiry()
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_ue_cap_enquiry().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
@@ -1191,14 +1191,12 @@ void rrc_nr::ue::send_ue_capability_enquiry()
 
   // ue-CapabilityRAT-RequestList
   ue_cap_rat_request_s cap_rat_request;
-  cap_rat_request.rat_type.value           = rat_type_opts::nr;
-  cap_rat_request.cap_request_filt_present = true;
+  cap_rat_request.rat_type.value = rat_type_opts::nr;
 
   // capabilityRequestFilter
   ue_cap_request_filt_nr_s request_filter;
 
   // frequencyBandListFilter
-  request_filter.freq_band_list_filt_present = true;
   freq_band_info_c     freq_band_info;
   freq_band_info_nr_s& freq_band_info_nr = freq_band_info.set_band_info_nr();
 
@@ -1213,12 +1211,15 @@ void rrc_nr::ue::send_ue_capability_enquiry()
   asn1::bit_ref bref_pack(cap_rat_request.cap_request_filt.data(), cap_rat_request.cap_request_filt.size());
   if (request_filter.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack capabilityRequestFilter in UE Capability Enquiry");
+    return SRSRAN_ERROR;
   }
   cap_rat_request.cap_request_filt.resize(bref_pack.distance_bytes());
 
   ies.ue_cap_rat_request_list.push_back(cap_rat_request);
 
   send_dl_dcch(srsran::nr_srb::srb1, dl_dcch_msg);
+
+  return SRSRAN_SUCCESS;
 }
 
 void rrc_nr::ue::handle_ue_capability_information(const asn1::rrc_nr::ue_cap_info_s& msg)
