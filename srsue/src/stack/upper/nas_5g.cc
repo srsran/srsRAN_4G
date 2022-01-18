@@ -826,7 +826,7 @@ int nas_5g::handle_registration_reject(registration_reject_t& registration_rejec
 
 int nas_5g::handle_authentication_request(authentication_request_t& authentication_request)
 {
-  logger.info("Handling Registration Request");
+  logger.info("Handling Authentication Request");
   ctxt_base.rx_count++;
   // Generate authentication response using RAND, AUTN & KSI-ASME
   uint16 mcc, mnc;
@@ -873,10 +873,10 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
     logger.info(res_star, 16, "Generated res_star (%d):", 16);
 
   } else if (auth_result == AUTH_FAILED) {
-    logger.error("Network authentication failure.");
+    logger.error("Network authentication failure");
     send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure, res_star);
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
-    logger.error("Network authentication synchronization failure.");
+    logger.error("Network authentication synchronization failure");
     send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure, res_star);
   } else {
     logger.error("Unhandled authentication failure cause");
