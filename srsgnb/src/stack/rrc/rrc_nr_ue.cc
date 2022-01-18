@@ -949,7 +949,6 @@ void rrc_nr::ue::handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_rees
   sec_ctx.regenerate_keys_handover(pscell_cfg.phy_cell.carrier.pci, pscell_cfg.ssb_absolute_freq_point);
 
   // For the reestablishment, only add SRB1 to new UE context
-  next_radio_bearer_cfg.srb_to_add_mod_list_present = true;
   next_radio_bearer_cfg.srb_to_add_mod_list.resize(1);
   srb_to_add_mod_s& srb1 = next_radio_bearer_cfg.srb_to_add_mod_list[0];
   srb1.srb_id            = 1;
