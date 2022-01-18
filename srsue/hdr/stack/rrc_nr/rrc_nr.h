@@ -24,6 +24,7 @@
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_nas_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
@@ -53,6 +54,7 @@ public:
            rlc_interface_rrc*          rlc_,
            pdcp_interface_rrc*         pdcp_,
            gw_interface_rrc*           gw_,
+           nas_5g_interface_rrc_nr*    nas_,
            rrc_eutra_interface_rrc_nr* rrc_eutra_,
            usim_interface_rrc_nr*      usim_,
            srsran::timer_handler*      timers_,
@@ -138,11 +140,15 @@ private:
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);
+  void send_security_mode_complete();
 
   // helpers
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
   void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
+  void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
+  void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
+  void generate_as_keys();
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
@@ -163,6 +169,7 @@ private:
   rlc_interface_rrc*          rlc       = nullptr;
   pdcp_interface_rrc*         pdcp      = nullptr;
   gw_interface_rrc*           gw        = nullptr;
+  nas_5g_interface_rrc_nr*    nas       = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
   usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
@@ -238,6 +245,8 @@ private:
   bool apply_drb_release(const uint8_t drb);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
 
+  // Security configuration
+  bool                         security_is_activated = false;
   srsran::as_security_config_t sec_cfg;
 
   typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;

@@ -44,6 +44,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
                  gw_interface_rrc*           gw_,
+                 nas_5g_interface_rrc_nr*    nas_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_,
                  usim_interface_rrc_nr*      usim_,
                  srsran::timer_handler*      timers_,
@@ -54,6 +55,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   rlc       = rlc_;
   pdcp      = pdcp_;
   gw        = gw_;
+  nas       = nas_;
   mac       = mac_;
   rrc_eutra = rrc_eutra_;
   usim      = usim_;
@@ -241,24 +243,23 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
 
   dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
   switch (dl_ccch_msg.msg.c1().type().value) {
-    // case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
-    //   // 5.3.3.8
-    //   rrc_conn_reject_r8_ies_s* reject_r8 = &c1->rrc_reject().crit_exts.c1().rrc_conn_reject_r8();
-    //   logger.info("Received ConnectionReject. Wait time: %d", reject_r8->wait_time);
-    //   srsran::console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
+    case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
+      // 5.3.15
+      const auto& reject = c1->rrc_reject();
+      srsran::console("Received RRC Reject");
 
-    //   t300.stop();
+      t300.stop();
 
-    //   if (reject_r8->wait_time) {
-    //     nas->set_barring(srsran::barring_t::all);
-    //     t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
-    //     t302.run();
-    //   } else {
-    //     // Perform the actions upon expiry of T302 if wait time is zero
-    //     nas->set_barring(srsran::barring_t::none);
-    //     start_go_idle();
-    //   }
-    // } break;
+      if (reject.crit_exts.rrc_reject().wait_time_present) {
+        // nas->set_barring(srsran::barring_t::all);
+        t302.set(reject.crit_exts.rrc_reject().wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
+        t302.run();
+      } else {
+        // Perform the actions upon expiry of T302 if wait time is zero
+        // nas->set_barring(srsran::barring_t::none);
+        // start_go_idle();
+      }
+    } break;
     case dl_ccch_msg_type_c::c1_c_::types::rrc_setup: {
       transaction_id             = c1->rrc_setup().rrc_transaction_id;
       rrc_setup_s rrc_setup_copy = c1->rrc_setup();
@@ -287,13 +288,22 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   switch (dl_dcch_msg.msg.c1().type().value) {
     // TODO: ADD missing cases
     case dl_dcch_msg_type_c::c1_c_::types::rrc_recfg: {
-      transaction_id    = c1->rrc_recfg().rrc_transaction_id;
       rrc_recfg_s recfg = c1->rrc_recfg();
       task_sched.defer_task([this, recfg]() { handle_rrc_reconfig(recfg); });
       break;
     }
+    case dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer: {
+      dl_info_transfer_s dl_info_transfer = c1->dl_info_transfer();
+      task_sched.defer_task([this, dl_info_transfer]() { handle_dl_info_transfer(dl_info_transfer); });
+      break;
+    }
+    case dl_dcch_msg_type_c::c1_c_::types::security_mode_cmd: {
+      security_mode_cmd_s smc = c1->security_mode_cmd();
+      task_sched.defer_task([this, smc]() { handle_security_mode_command(smc); });
+      break;
+    }
     default:
-      logger.error("The provided DL-CCCH message type is not recognized or supported");
+      logger.error("The provided DL-DCCH message type is not recognized or supported");
       break;
   }
 }
@@ -546,7 +556,35 @@ uint16_t rrc_nr::get_mnc()
 // Senders
 void rrc_nr::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
-  logger.warning("%s not implemented yet.", __FUNCTION__);
+  logger.debug("Preparing UL Info Transfer");
+
+  ul_dcch_msg_s           ul_dcch_msg;
+  ul_info_transfer_ies_s* ul_info_transfer =
+      &ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
+
+  // Try to resize target buffer first
+  ul_info_transfer->ded_nas_msg.resize(nas_msg->N_bytes);
+
+  // check we have enough space in target buffer
+  if (nas_msg->N_bytes > ul_info_transfer->ded_nas_msg.size()) {
+    logger.error("NAS message too big to send in UL Info transfer (%d > %d).",
+                 nas_msg->N_bytes,
+                 ul_info_transfer->ded_nas_msg.size());
+    return;
+  }
+
+  // copy message content
+  memcpy(ul_info_transfer->ded_nas_msg.data(), nas_msg->msg, nas_msg->N_bytes);
+
+  // send message
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
+void rrc_nr::send_security_mode_complete()
+{
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         smc = ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete();
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
 void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
@@ -1987,11 +2025,75 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
 
 void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
 {
+  transaction_id = reconfig.rrc_transaction_id;
+
   if (not conn_recfg_proc.launch(nr, false, reconfig)) {
     logger.error("Unable to launch connection reconfiguration procedure");
     return;
   }
   callback_list.add_proc(conn_recfg_proc);
+}
+
+void rrc_nr::handle_dl_info_transfer(const dl_info_transfer_s& dl_info_transfer)
+{
+  transaction_id = dl_info_transfer.rrc_transaction_id;
+
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+  if (pdu->get_tailroom() < dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.size()) {
+    logger.error("DL Info Transfer too big (%d > %d)",
+                 dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.size(),
+                 pdu->get_tailroom());
+    return;
+  }
+  pdu->N_bytes = dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.size();
+  memcpy(pdu->msg, dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.data(), pdu->N_bytes);
+  nas->write_pdu(std::move(pdu));
+}
+
+void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc)
+{
+  transaction_id = smc.rrc_transaction_id;
+
+  const auto& sec_algo_cfg = smc.crit_exts.security_mode_cmd().security_cfg_smc.security_algorithm_cfg;
+  sec_cfg.cipher_algo      = (CIPHERING_ALGORITHM_ID_ENUM)sec_algo_cfg.ciphering_algorithm.value;
+  if (sec_algo_cfg.integrity_prot_algorithm_present) {
+    sec_cfg.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)sec_algo_cfg.integrity_prot_algorithm.value;
+  } else {
+    logger.error("Missing Integrity Algorithm Config");
+  }
+
+  logger.info("Received Security Mode Command nea: %s, nia: %s",
+              ciphering_algorithm_id_nr_text[sec_cfg.cipher_algo],
+              integrity_algorithm_id_nr_text[sec_cfg.integ_algo]);
+
+  // Generate AS security keys
+  generate_as_keys();
+  security_is_activated = true;
+
+  // Configure PDCP for security
+  uint32_t lcid = srb_to_lcid(nr_srb::srb1);
+  pdcp->config_security(lcid, sec_cfg);
+  pdcp->enable_integrity(lcid, DIRECTION_TXRX);
+  send_security_mode_complete();
+  pdcp->enable_encryption(lcid, DIRECTION_TXRX);
+}
+
+// Security helper used by Security Mode Command and Mobility handling routines
+void rrc_nr::generate_as_keys()
+{
+  uint8_t k_asme[32] = {};
+  // FIXME: need to add
+  // nas->get_k_asme(k_asme, 32);
+  logger.debug(k_asme, 32, "UE K_asme");
+  // logger.debug("Generating K_enb with UL NAS COUNT: %d", nas->get_k_enb_count());
+  // usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
+  logger.info(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
+  logger.info(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
+  logger.info(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");
 }
 
 // RLC interface
