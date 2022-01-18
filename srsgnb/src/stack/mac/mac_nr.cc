@@ -273,7 +273,7 @@ void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
   metrics.cc_info.resize(detected_rachs.size());
   for (unsigned cc = 0, e = detected_rachs.size(); cc != e; ++cc) {
     metrics.cc_info[cc].cc_rach_counter = detected_rachs[cc];
-    metrics.cc_info[cc].pci             = (cc < cell_config.size()) ? cell_config[cc].carrier.pci : 0;
+    metrics.cc_info[cc].pci             = (cc < cell_config.size()) ? cell_config[cc].pci : 0;
   }
 }
 

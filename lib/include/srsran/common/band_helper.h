@@ -80,7 +80,7 @@ public:
    * @param scs SSB Subcarrier spacing
    * @return The SSB pattern case if band and subcarrier spacing match, SRSRAN_SSB_PATTERN_INVALID otherwise
    */
-  srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs) const;
+  static srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs);
 
   /**
    * @brief Select the lower SSB subcarrier spacing valid for this band

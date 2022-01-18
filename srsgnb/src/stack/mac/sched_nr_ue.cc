@@ -84,7 +84,7 @@ slot_ue::slot_ue(ue_carrier& ue_, slot_point slot_tx_) : ue(&ue_), pdcch_slot(sl
 
 ue_carrier::ue_carrier(uint16_t                              rnti_,
                        const ue_cfg_manager&                 uecfg_,
-                       const cell_params_t&                  cell_params_,
+                       const cell_config_manager&            cell_params_,
                        const ue_context_common&              ctxt,
                        const ue_buffer_manager::pdu_builder& pdu_builder_) :
   rnti(rnti_),

@@ -1574,7 +1574,7 @@ bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
 {
   mib->sfn     = 0;
   mib->ssb_idx = 0;
-  mib->hrf     = 0;
+  mib->hrf     = false;
   mib->scs_common =
       mib_cfg.sub_carrier_spacing_common.value == asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60
           ? srsran_subcarrier_spacing_15kHz

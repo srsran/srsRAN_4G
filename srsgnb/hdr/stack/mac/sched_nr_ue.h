@@ -81,7 +81,7 @@ class ue_carrier
 public:
   ue_carrier(uint16_t                              rnti,
              const ue_cfg_manager&                 cfg,
-             const cell_params_t&                  cell_params_,
+             const cell_config_manager&            cell_params_,
              const ue_context_common&              ctxt,
              const ue_buffer_manager::pdu_builder& pdu_builder_);
 
@@ -91,9 +91,9 @@ public:
   int dl_ack_info(uint32_t pid, uint32_t tb_idx, bool ack);
   int ul_crc_info(uint32_t pid, bool crc);
 
-  const uint16_t       rnti;
-  const uint32_t       cc;
-  const cell_params_t& cell_params;
+  const uint16_t             rnti;
+  const uint32_t             cc;
+  const cell_config_manager& cell_params;
 
   // Channel state
   uint32_t dl_cqi = 1;

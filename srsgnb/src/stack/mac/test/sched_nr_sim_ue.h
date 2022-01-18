@@ -82,8 +82,8 @@ struct sim_nr_ue_ctxt_t {
   }
 };
 struct sim_nr_enb_ctxt_t {
-  srsran::span<const sched_nr_impl::cell_params_t> cell_params;
-  std::map<uint16_t, const sim_nr_ue_ctxt_t*>      ue_db;
+  srsran::span<const sched_nr_impl::cell_config_manager> cell_params;
+  std::map<uint16_t, const sim_nr_ue_ctxt_t*>            ue_db;
 };
 
 class sched_nr_ue_sim
@@ -133,7 +133,7 @@ public:
 
   void add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes);
 
-  srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() const { return cell_params; }
+  srsran::const_span<sched_nr_impl::cell_config_manager> get_cell_params() const { return cell_params; }
 
   /**
    * @brief Specify external events that will be forwarded to the scheduler (CQI, ACKs, etc.) in the given slot
@@ -167,11 +167,11 @@ protected:
   /// Runs general tests to verify result consistency, and updates UE state
   void process_results();
 
-  std::unique_ptr<srsran::test_delimit_logger> test_delimiter;
-  srslog::basic_logger&                        logger;
-  srslog::basic_logger&                        mac_logger;
-  std::unique_ptr<sched_nr>                    sched_ptr;
-  std::vector<sched_nr_impl::cell_params_t>    cell_params;
+  std::unique_ptr<srsran::test_delimit_logger>    test_delimiter;
+  srslog::basic_logger&                           logger;
+  srslog::basic_logger&                           mac_logger;
+  std::unique_ptr<sched_nr>                       sched_ptr;
+  std::vector<sched_nr_impl::cell_config_manager> cell_params;
 
   std::vector<std::unique_ptr<srsran::task_worker> > cc_workers;
 

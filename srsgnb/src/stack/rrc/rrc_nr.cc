@@ -303,31 +303,44 @@ void rrc_nr::config_mac()
   sched_nr_cell_cfg_t&             cell = sched_cells_cfg[0];
 
   // Derive cell config from rrc_nr_cfg_t
-  cell.bwps[0].pdcch = cfg.cell_list[0].phy_cell.pdcch;
-  bool valid_cfg     = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
-  srsran_assert(valid_cfg, "Invalid NR cell MIB configuration.");
-  cell.ssb.periodicity_ms       = cfg.cell_list[0].ssb_cfg.periodicity_ms;
-  cell.ssb.position_in_burst[0] = true;
-  cell.ssb.scs                  = cfg.cell_list[0].ssb_cfg.scs;
-  cell.ssb.pattern              = cfg.cell_list[0].ssb_cfg.pattern;
+  cell.bwps[0].pdcch          = cfg.cell_list[0].phy_cell.pdcch;
+  cell.pci                    = cfg.cell_list[0].phy_cell.carrier.pci;
+  cell.nof_layers             = cfg.cell_list[0].phy_cell.carrier.max_mimo_layers;
+  cell.dl_cell_nof_prb        = cfg.cell_list[0].phy_cell.carrier.nof_prb;
+  cell.ul_cell_nof_prb        = cfg.cell_list[0].phy_cell.carrier.nof_prb;
+  cell.dl_center_frequency_hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz;
+  cell.ul_center_frequency_hz = cfg.cell_list[0].phy_cell.carrier.ul_center_frequency_hz;
+  cell.ssb_center_freq_hz     = cfg.cell_list[0].phy_cell.carrier.ssb_center_freq_hz;
+  cell.offset_to_carrier      = cfg.cell_list[0].phy_cell.carrier.offset_to_carrier;
+  cell.scs                    = cfg.cell_list[0].phy_cell.carrier.scs;
   if (not cfg.is_standalone) {
+    const serving_cell_cfg_common_s& serv_cell = base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
     // Derive cell config from ASN1
-    valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
+    bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
     srsran_assert(valid_cfg, "Invalid NR cell configuration.");
-    if (base_sp_cell_cfg.sp_cell_cfg_ded.tdd_ul_dl_cfg_ded_present) {
-      cell.tdd_ul_dl_cfg_common.reset(
-          new tdd_ul_dl_cfg_common_s{base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common});
+    if (serv_cell.tdd_ul_dl_cfg_common_present) {
+      cell.tdd_ul_dl_cfg_common.emplace(serv_cell.tdd_ul_dl_cfg_common);
     }
+    cell.ssb_positions_in_burst.in_one_group.set(0, true);
+    cell.ssb_periodicity_ms  = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_scs             = serv_cell.ssb_subcarrier_spacing;
+    cell.ss_pbch_block_power = serv_cell.ss_pbch_block_pwr;
   } else {
-    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
+    const serving_cell_cfg_common_sib_s& serv_cell = cell_ctxt->sib1.serving_cell_cfg_common;
+    cell.bwps[0].pdsch.p_zp_csi_rs_set             = {};
     bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
-    cell.dl_cfg_common.reset(new dl_cfg_common_sib_s{cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common});
-    cell.ul_cfg_common.reset(new ul_cfg_common_sib_s{cell_ctxt->sib1.serving_cell_cfg_common.ul_cfg_common});
-    if (cell_ctxt->sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
-      cell.tdd_ul_dl_cfg_common.reset(
-          new tdd_ul_dl_cfg_common_s{cell_ctxt->sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common});
+    cell.dl_cfg_common.reset(new dl_cfg_common_sib_s{serv_cell.dl_cfg_common});
+    cell.ul_cfg_common.reset(new ul_cfg_common_sib_s{serv_cell.ul_cfg_common});
+    if (serv_cell.tdd_ul_dl_cfg_common_present) {
+      cell.tdd_ul_dl_cfg_common.emplace(serv_cell.tdd_ul_dl_cfg_common);
     }
+    cell.ssb_positions_in_burst = serv_cell.ssb_positions_in_burst;
+    cell.ssb_periodicity_ms     = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
+    cell.ss_pbch_block_power    = serv_cell.ss_pbch_block_pwr;
   }
+  cell.dmrs_type_a_position = cell_ctxt->mib.dmrs_type_a_position;
+  cell.pdcch_cfg_sib1       = cell_ctxt->mib.pdcch_cfg_sib1;
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());

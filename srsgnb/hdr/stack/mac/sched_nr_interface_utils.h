@@ -61,6 +61,8 @@ inline bool operator==(srsran_dci_location_t lhs, srsran_dci_location_t rhs)
 
 //////////////////////////////////// UE configuration Helpers ////////////////////////////////////////////
 
+void                 make_mib_cfg(const sched_nr_cell_cfg_t& cfg, srsran_mib_nr_t* mib);
+void                 make_ssb_cfg(const sched_nr_cell_cfg_t& cfg, srsran::phy_cfg_nr_t::ssb_cfg_t* ssb);
 srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_cell_cfg_t& cfg);
 
 } // namespace srsenb

@@ -39,7 +39,7 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bwp_params_t::bwp_params_t(const cell_params_t& cell, uint32_t bwp_id_, const sched_nr_bwp_cfg_t& bwp_cfg) :
+bwp_params_t::bwp_params_t(const cell_config_manager& cell, uint32_t bwp_id_, const sched_nr_bwp_cfg_t& bwp_cfg) :
   cell_cfg(cell),
   sched_cfg(cell.sched_args),
   cc(cell.cc),
@@ -131,21 +131,37 @@ bwp_params_t::bwp_params_t(const cell_params_t& cell, uint32_t bwp_id_, const sc
   }
 }
 
-cell_params_t::cell_params_t(uint32_t cc_, const sched_nr_cell_cfg_t& cell, const sched_args_t& sched_args_) :
-  cc(cc_),
-  sched_args(sched_args_),
-  default_ue_phy_cfg(get_common_ue_phy_cfg(cell)),
-  ssb(cell.ssb),
-  carrier(cell.carrier),
-  mib(cell.mib),
-  sibs(cell.sibs)
+cell_config_manager::cell_config_manager(uint32_t                   cc_,
+                                         const sched_nr_cell_cfg_t& cell,
+                                         const sched_args_t&        sched_args_) :
+  cc(cc_), sched_args(sched_args_), default_ue_phy_cfg(get_common_ue_phy_cfg(cell)), sibs(cell.sibs)
 {
-  // Conversion 36.331 ASN1 TDD-UL-DL-ConfigCommon to srsran_duplex_config_nr_t
+  carrier.pci                    = cell.pci;
+  carrier.dl_center_frequency_hz = cell.dl_center_frequency_hz;
+  carrier.ul_center_frequency_hz = cell.ul_center_frequency_hz;
+  carrier.ssb_center_freq_hz     = cell.ssb_center_freq_hz;
+  carrier.offset_to_carrier      = cell.offset_to_carrier;
+  carrier.scs                    = cell.scs;
+  carrier.nof_prb                = cell.dl_cell_nof_prb;
+  carrier.start                  = 0; // TODO: Check
+  carrier.max_mimo_layers        = cell.nof_layers;
+  if (cell.dl_cfg_common.is_present()) {
+    carrier.offset_to_carrier = cell.dl_cfg_common->freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+    carrier.scs = (srsran_subcarrier_spacing_t)cell.dl_cfg_common->init_dl_bwp.generic_params.subcarrier_spacing.value;
+  }
+
+  // TDD-UL-DL-ConfigCommon
   duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
-  if (cell.tdd_ul_dl_cfg_common.is_present()) {
+  if (cell.tdd_ul_dl_cfg_common.has_value()) {
     bool success = srsran::make_phy_tdd_cfg(*cell.tdd_ul_dl_cfg_common, &duplex);
     srsran_assert(success, "Failed to generate Cell TDD config");
   }
+
+  // Set SSB params
+  make_ssb_cfg(cell, &ssb);
+
+  // MIB
+  make_mib_cfg(cell, &mib);
 
   bwps.reserve(cell.bwps.size());
   for (uint32_t i = 0; i < cell.bwps.size(); ++i) {

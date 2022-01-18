@@ -76,15 +76,30 @@ struct sched_nr_cell_cfg_sib_t {
 };
 
 struct sched_nr_cell_cfg_t {
-  static const size_t                                  MAX_SIBS = 2;
-  srsran_carrier_nr_t                                  carrier  = {};
-  srsran::phy_cfg_nr_t::ssb_cfg_t                      ssb      = {};
-  std::vector<sched_nr_bwp_cfg_t>                      bwps{1}; // idx0 for BWP-common
-  srsran_mib_nr_t                                      mib;
-  std::vector<sched_nr_cell_cfg_sib_t>                 sibs;
-  asn1::copy_ptr<asn1::rrc_nr::dl_cfg_common_sib_s>    dl_cfg_common;
-  asn1::copy_ptr<asn1::rrc_nr::ul_cfg_common_sib_s>    ul_cfg_common;
-  asn1::copy_ptr<asn1::rrc_nr::tdd_ul_dl_cfg_common_s> tdd_ul_dl_cfg_common;
+  static const size_t MAX_SIBS   = 2;
+  using ssb_positions_in_burst_t = asn1::rrc_nr::serving_cell_cfg_common_sib_s::ssb_positions_in_burst_s_;
+
+  uint32_t                                               nof_layers;
+  uint32_t                                               pci;
+  uint32_t                                               dl_cell_nof_prb;
+  uint32_t                                               ul_cell_nof_prb;
+  asn1::copy_ptr<asn1::rrc_nr::dl_cfg_common_sib_s>      dl_cfg_common;
+  asn1::copy_ptr<asn1::rrc_nr::ul_cfg_common_sib_s>      ul_cfg_common;
+  srsran::optional<asn1::rrc_nr::tdd_ul_dl_cfg_common_s> tdd_ul_dl_cfg_common;
+  ssb_positions_in_burst_t                               ssb_positions_in_burst;
+  uint32_t                                               ssb_periodicity_ms = 0;
+  asn1::rrc_nr::mib_s::dmrs_type_a_position_e_           dmrs_type_a_position;
+  asn1::rrc_nr::subcarrier_spacing_e                     ssb_scs;
+  asn1::rrc_nr::pdcch_cfg_sib1_s                         pdcch_cfg_sib1;
+  int                                                    ss_pbch_block_power = 0;
+  // Extras
+  std::vector<sched_nr_bwp_cfg_t>      bwps{1}; // idx0 for BWP-common
+  std::vector<sched_nr_cell_cfg_sib_t> sibs;
+  double                               dl_center_frequency_hz;
+  double                               ul_center_frequency_hz;
+  double                               ssb_center_freq_hz;
+  uint32_t                             offset_to_carrier;
+  srsran_subcarrier_spacing_t          scs;
 };
 
 class sched_nr_interface

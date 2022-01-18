@@ -33,7 +33,7 @@ namespace sched_nr_impl {
 class cc_worker
 {
 public:
-  explicit cc_worker(const cell_params_t& params);
+  explicit cc_worker(const cell_config_manager& params);
 
   void dl_rach_info(const sched_nr_interface::rar_info_t& rar_info);
 
@@ -41,8 +41,8 @@ public:
   ul_sched_t*     get_ul_sched(slot_point sl);
 
   // const params
-  const cell_params_t&  cfg;
-  srslog::basic_logger& logger;
+  const cell_config_manager& cfg;
+  srslog::basic_logger&      logger;
 
   // cc-specific resources
   srsran::bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL> bwps;

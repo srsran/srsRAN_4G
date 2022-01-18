@@ -18,7 +18,7 @@
 namespace srsenb {
 namespace sched_nr_impl {
 
-cc_worker::cc_worker(const cell_params_t& params) :
+cc_worker::cc_worker(const cell_config_manager& params) :
   cfg(params), logger(srslog::fetch_basic_logger(params.sched_args.logger_name))
 {
   for (uint32_t bwp_id = 0; bwp_id < cfg.bwps.size(); ++bwp_id) {

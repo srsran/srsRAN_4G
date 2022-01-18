@@ -31,9 +31,9 @@ void test_coreset0_cfg()
 
   srsran::test_delimit_logger delimiter{"Test PDCCH Allocation in CORESET#0"};
 
-  sched_nr_interface::sched_args_t sched_args;
-  sched_nr_impl::cell_params_t     cell_cfg{0, get_default_sa_cell_cfg_common(), sched_args};
-  bwp_params_t&                    bwp_params = cell_cfg.bwps[0];
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_impl::cell_config_manager cell_cfg{0, get_default_sa_cell_cfg_common(), sched_args};
+  bwp_params_t&                      bwp_params = cell_cfg.bwps[0];
 
   // UE config
   ue_cfg_manager uecfg{get_rach_ue_cfg(0)};
@@ -145,9 +145,9 @@ void test_coreset2_cfg()
   cell_cfg.bwps[0].pdcch.search_space_present[2] = true;
   cell_cfg.bwps[0].pdcch.search_space[2]         = get_default_ue_specific_search_space(2, 2);
   cell_cfg.bwps[0].pdcch.coreset_present[2]      = true;
-  cell_cfg.bwps[0].pdcch.coreset[2]              = get_default_ue_specific_coreset(2, cell_cfg.carrier.pci);
-  sched_nr_impl::cell_params_t cellparams{0, cell_cfg, sched_args};
-  bwp_params_t&                bwp_params = cellparams.bwps[0];
+  cell_cfg.bwps[0].pdcch.coreset[2]              = get_default_ue_specific_coreset(2, cell_cfg.pci);
+  sched_nr_impl::cell_config_manager cellparams{0, cell_cfg, sched_args};
+  bwp_params_t&                      bwp_params = cellparams.bwps[0];
 
   // UE config
   ue_cfg_manager uecfg{get_rach_ue_cfg(0)};
@@ -235,14 +235,14 @@ void test_invalid_params()
   cell_cfg.bwps[0].pdcch.search_space_present[2]     = true;
   cell_cfg.bwps[0].pdcch.search_space[2]             = get_default_ue_specific_search_space(2, 2);
   cell_cfg.bwps[0].pdcch.coreset_present[2]          = true;
-  cell_cfg.bwps[0].pdcch.coreset[2]                  = get_default_ue_specific_coreset(2, cell_cfg.carrier.pci);
+  cell_cfg.bwps[0].pdcch.coreset[2]                  = get_default_ue_specific_coreset(2, cell_cfg.pci);
   cell_cfg.bwps[0].pdcch.search_space_present[3]     = true;
   cell_cfg.bwps[0].pdcch.search_space[3]             = get_default_ue_specific_search_space(3, 2);
   cell_cfg.bwps[0].pdcch.search_space[3].nof_formats = 1; // only DL
   cell_cfg.bwps[0].pdcch.search_space[3].formats[0]  = srsran_dci_format_nr_1_0;
-  sched_nr_interface::sched_args_t sched_args;
-  sched_nr_impl::cell_params_t     cellparams{0, cell_cfg, sched_args};
-  bwp_params_t&                    bwp_params = cellparams.bwps[0];
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_impl::cell_config_manager cellparams{0, cell_cfg, sched_args};
+  bwp_params_t&                      bwp_params = cellparams.bwps[0];
 
   // UE config
   ue_cfg_manager uecfg{get_rach_ue_cfg(0)};
