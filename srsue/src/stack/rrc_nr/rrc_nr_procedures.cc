@@ -308,7 +308,7 @@ srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::r
 {
   Info("Starting...");
 
-  if (dedicated_info_nas_.get() == nullptr) {
+  if (dedicated_info_nas_) {
     logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
     return proc_outcome_t::error;
   }
@@ -442,7 +442,7 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
 proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_select_result_t& event)
 {
   if (state != state_t::phy_cell_select) {
-    Warning("Received unexpected cell search result");
+    Warning("Received unexpected cell select result");
     return proc_outcome_t::yield;
   }
 
