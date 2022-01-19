@@ -74,7 +74,7 @@ struct rlc_amd_tx_pdu_nr {
   const uint32_t         rlc_sn     = INVALID_RLC_SN;
   const uint32_t         pdcp_sn    = INVALID_RLC_SN;
   rlc_am_nr_pdu_header_t header     = {};
-  unique_byte_buffer_t   buf        = nullptr;
+  unique_byte_buffer_t   sdu_buf    = nullptr;
   uint32_t               retx_count = 0;
   struct pdu_segment {
     uint32_t so          = 0;
@@ -104,10 +104,8 @@ public:
   void empty_queue() final;
 
   // Data PDU helpers
-  int build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
-                            rlc_amd_tx_pdu_nr&   tx_pdu,
-                            uint8_t*             payload,
-                            uint32_t             nof_bytes);
+  int build_new_pdu(uint8_t* payload, uint32_t nof_bytes);
+  int build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   int build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
 
@@ -149,7 +147,7 @@ private:
 
   // Queues and buffers
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
-  rlc_amd_tx_sdu_nr_t                sdu_under_segmentation;
+  uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
 
   // Helper constants
   uint32_t min_hdr_size = 2;

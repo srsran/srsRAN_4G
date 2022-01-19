@@ -71,7 +71,7 @@ public:
   int     read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer) final;
   int     read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) final;
 
-  /// User manegement
+  /// User management
   int  add_user(uint16_t rnti, uint32_t pcell_cc_idx) final;
   void rem_user(uint16_t rnti);
   int  update_user(uint16_t new_rnti, uint16_t old_rnti) final;
