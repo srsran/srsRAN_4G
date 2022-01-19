@@ -45,7 +45,7 @@ private:
   std::vector<srsran_ringbuffer_t> rx_ring_buffers;
   std::vector<srsran_ringbuffer_t> tx_ring_buffers;
   std::mutex                       tx_mutex;
-  double                           srate_hz       = 0.0f;
+  std::atomic<double>              srate_hz       = {0.0f};
   std::atomic<float>               rx_gain        = {1.0f};
   std::atomic<float>               tx_gain        = {1.0f};
   cf_t*                            temp_buffer    = nullptr;
@@ -211,9 +211,12 @@ public:
     uint64_t tx_time_n = srsran_timestamp_uint64(&tx_time.get(0), srate_hz);
 
     // Check if the transmission is in the past
-    if (tx_time_n < tx_timestamp) {
-      logger.error("Error transmission in the past for %d samples", (int)(tx_timestamp - tx_time_n));
-      return false;
+    {
+      std::lock_guard<std::mutex> lock(tx_mutex);
+      if (tx_time_n < tx_timestamp) {
+        logger.error("Error transmission in the past for %d samples", (int)(tx_timestamp - tx_time_n));
+        return false;
+      }
     }
 
     // Advance TX to timestamp
