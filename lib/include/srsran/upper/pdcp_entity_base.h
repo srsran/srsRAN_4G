@@ -89,7 +89,7 @@ public:
     } else {
       encryption_direction = direction;
     }
-    logger.debug("LCID=%d encryption=%s", lcid, srsran_direction_text[integrity_direction]);
+    logger.debug("LCID=%d, encryption=%s", lcid, srsran_direction_text[integrity_direction]);
   }
 
   void enable_security_timed(srsran_direction_t direction, uint32_t sn)
