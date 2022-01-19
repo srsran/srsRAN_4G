@@ -296,9 +296,9 @@ int main(int argc, char** argv)
       goto clean_exit;
     }
 
-    float noise_std_1d = srsran_convert_dB_to_amplitude(-snr - 3.0103F);
+    float noise_var = srsran_convert_dB_to_power(-snr);
     for (uint32_t i = 0; i < carrier.max_mimo_layers; i++) {
-      srsran_ch_awgn_f((float*)sf_symbols_tx[i], (float*)sf_symbols_rx[i], noise_std_1d, 2 * slot_length);
+      srsran_ch_awgn_c(sf_symbols_tx[i], sf_symbols_rx[i], noise_var, slot_length);
       // memcpy(sf_symbols_rx[i], sf_symbols_tx[i], slot_length * sizeof(cf_t));
     }
 
@@ -334,7 +334,7 @@ int main(int argc, char** argv)
       chest.ce[0][0][i] = 1.0F;
     }
     chest.nof_re         = pusch_cfg.grant.tb->nof_re;
-    chest.noise_estimate = 4 * noise_std_1d * noise_std_1d;
+    chest.noise_estimate = 2 * noise_var;
 
     if (srsran_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols_rx, &data_rx) <
         SRSRAN_SUCCESS) {
