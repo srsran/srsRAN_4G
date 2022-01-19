@@ -97,7 +97,7 @@ private:
   uint32_t                     tti       = 0;
   srsran::tti_semaphore<void*> tti_semaphore;
   srsran::rf_timestamp_t       last_rx_time;
-  bool                         is_pending_tx_end      = false;
+  std::atomic<bool>            is_pending_tx_end      = {false};
   uint32_t                     cell_search_nof_trials = 0;
   const static uint32_t        cell_search_max_trials = 100;
   uint32_t                     sfn_sync_nof_trials    = 0;

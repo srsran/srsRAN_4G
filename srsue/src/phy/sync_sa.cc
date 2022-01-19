@@ -131,9 +131,6 @@ cell_search::ret_t sync_sa::cell_search_run(const cell_search::cfg_t& cfg)
     return cs_ret;
   }
 
-  // Zero receive buffer
-  srsran_vec_zero(rx_buffer, slot_sz);
-
   logger.info("Cell Search: Running Cell search state");
   cell_search_nof_trials = 0;
   phy_state.run_cell_search();
@@ -280,6 +277,7 @@ void sync_sa::run_state_cell_camping()
   rf_buffer.set(0, nr_worker->get_buffer(0, 0));
   if (not slot_synchronizer.run_camping(rf_buffer, last_rx_time)) {
     logger.error("SYNC: detected out-of-sync... skipping slot ...");
+    is_pending_tx_end = true;
     nr_worker->release();
     return;
   }
@@ -345,11 +343,9 @@ void sync_sa::worker_end(const srsran::phy_common_interface::worker_context_t& w
         is_pending_tx_end = false;
       } else {
         if (!radio->get_is_start_of_burst()) {
-          // TODO
-          /*
-          zeros_multi.set_nof_samples(buffer.get_nof_samples());
+          srsran::rf_buffer_t zeros_multi;
+          zeros_multi.set_nof_samples(tx_buffer.get_nof_samples());
           radio->tx(zeros_multi, tx_time);
-           */
         }
       }
     } else {
