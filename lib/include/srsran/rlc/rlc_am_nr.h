@@ -104,10 +104,11 @@ public:
   void empty_queue() final;
 
   // Data PDU helpers
-  int build_new_pdu(uint8_t* payload, uint32_t nof_bytes);
-  int build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
-  int build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
-  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
+  uint32_t build_new_pdu(uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
 
   // Buffer State
   bool     has_data() final;
@@ -147,7 +148,8 @@ private:
 
   // Queues and buffers
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
-  uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  uint32_t sdu_under_segmentation_sn  = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  uint32_t retx_under_segmentation_sn = INVALID_RLC_SN; // SN of RETX currently being segmented.
 
   // Helper constants
   uint32_t min_hdr_size = 2;
@@ -159,6 +161,9 @@ public:
   void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
   uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
+
+  // Debug Helper
+  void debug_state();
 };
 
 /****************************************************************************

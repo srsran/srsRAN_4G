@@ -516,6 +516,10 @@ int segment_retx_test()
       retx_buf.N_bytes  = len;
       TESTASSERT(3 == len);
 
+      rlc_am_nr_pdu_header_t header_check = {};
+      uint32_t hdr_len = rlc_am_nr_read_data_pdu_header(&retx_buf, rlc_am_nr_sn_size_t::size12bits, &header_check);
+      TESTASSERT(header_check.sn == 3); // Double check RETX SN
+
       rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
     }
     TESTASSERT(0 == rlc1.get_buffer_state());
