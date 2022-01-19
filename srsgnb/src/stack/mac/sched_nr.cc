@@ -124,7 +124,7 @@ public:
     for (ue_event_t& ev : current_slot_ue_events) {
       auto ue_it = ues.find(ev.rnti);
       if (ue_it == ues.end()) {
-        sched_logger.warning("SCHED: \"%s\" called for inexistent rnti=0x%x.", ev.event_name, ev.rnti);
+        sched_logger.warning("SCHED: \"%s\" called for unknown rnti=0x%x.", ev.event_name, ev.rnti);
         ev.rnti = SRSRAN_INVALID_RNTI;
       } else if (ue_it->second->has_ca()) {
         // events specific to existing UEs with CA
@@ -152,7 +152,7 @@ public:
       }
       auto ue_it = ues.find(ev.rnti);
       if (ue_it == ues.end()) {
-        sched_logger.warning("SCHED: \"%s\" called for inexistent rnti=0x%x.", ev.event_name, ev.rnti);
+        sched_logger.warning("SCHED: \"%s\" called for unknown rnti=0x%x.", ev.event_name, ev.rnti);
         ev.rnti = SRSRAN_INVALID_RNTI;
       } else if (not ue_it->second->has_ca() and ue_it->second->carriers[cc] != nullptr) {
         ev.callback(*ue_it->second, evlogger);
@@ -165,7 +165,7 @@ public:
       if (ue_it != ues.end() and ue_it->second->carriers[cc] != nullptr) {
         ev.callback(*ue_it->second->carriers[cc], evlogger);
       } else {
-        sched_logger.warning("SCHED: \"%s\" called for inexistent rnti=0x%x,cc=%d.", ev.event_name, ev.rnti, ev.cc);
+        sched_logger.warning("SCHED: \"%s\" called for unknown rnti=0x%x,cc=%d.", ev.event_name, ev.rnti, ev.cc);
       }
     }
   }
