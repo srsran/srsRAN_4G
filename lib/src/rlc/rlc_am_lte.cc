@@ -1391,7 +1391,7 @@ void rlc_am_lte_rx::handle_data_pdu_segment(uint8_t* payload, uint32_t nof_bytes
   // Check inside rx window
   if (!inside_rx_window(header.sn)) {
     if (header.p) {
-      logger.info("%s Status packet requested through polling bit");
+      logger.info("Status packet requested through polling bit");
       do_status = true;
     }
     logger.info("SN=%d outside rx window [%d:%d] - discarding", header.sn, vr_r, vr_mr);
