@@ -303,13 +303,20 @@ public:
 
   void clear_pending_grants()
   {
-    // Scope mutex to protect read/write the list
-    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
-
     // Clear all PDSCH assignments and PUSCH grants
-    pending_dl_grant = {};
-    pending_ul_grant = {};
-    pending_ack      = {};
+    // Scope mutex to protect read/write each list
+    {
+      std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+      pending_ul_grant = {};
+    }
+    {
+      std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
+      pending_dl_grant = {};
+    }
+    {
+      std::lock_guard<std::mutex> lock(pending_ack_mutex);
+      pending_ack = {};
+    }
   }
 
   void get_pending_sr(const srsran::phy_cfg_nr_t& cfg, const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
