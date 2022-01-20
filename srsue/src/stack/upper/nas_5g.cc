@@ -453,6 +453,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
 
+  has_sec_ctxt = true;
   logger.info("Sending Security Mode Complete");
   rrc_nr->write_sdu(std::move(pdu));
   ctxt_base.tx_count++;
@@ -798,6 +799,7 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
 int nas_5g::handle_registration_reject(registration_reject_t& registration_reject)
 {
   logger.info("Handling Registration Reject");
+  has_sec_ctxt = false;
   ctxt_base.rx_count++;
   state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
 
@@ -888,6 +890,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 int nas_5g::handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject)
 {
   logger.info("Handling Authentication Reject");
+  has_sec_ctxt = false;
   ctxt_base.rx_count++;
   state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
   return SRSRAN_SUCCESS;
@@ -911,6 +914,7 @@ int nas_5g::handle_service_accept(srsran::nas_5g::service_accept_t& service_acce
 int nas_5g::handle_service_reject(srsran::nas_5g::service_reject_t& service_reject)
 {
   logger.info("Handling Service Reject");
+  has_sec_ctxt = false;
   ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
@@ -1104,6 +1108,17 @@ void nas_5g::get_metrics(nas_5g_metrics_t& metrics)
 {
   metrics.nof_active_pdu_sessions = num_of_est_pdu_sessions();
   metrics.state                   = state.get_state();
+}
+
+int nas_5g::get_k_amf(as_key_t& k_amf)
+{
+  if (not has_sec_ctxt) {
+    logger.error("K_amf requested before a valid NAS security context was established");
+    return SRSRAN_ERROR;
+  }
+
+  std::copy(std::begin(ctxt_5g.k_amf), std::end(ctxt_5g.k_amf), k_amf.begin());
+  return SRSRAN_SUCCESS;
 }
 
 /*******************************************************************************

@@ -110,6 +110,7 @@ class dummy_eutra : public rrc_eutra_interface_rrc_nr
 class dummy_nas : public nas_5g_interface_rrc_nr
 {
   int write_pdu(srsran::unique_byte_buffer_t pdu) { return SRSRAN_SUCCESS; };
+  int get_k_amf(srsran::as_key_t& k_amf) { return SRSRAN_SUCCESS; };
 };
 
 class dummy_sim : public usim_interface_rrc_nr
