@@ -108,8 +108,14 @@ public:
   uint32_t build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
-
+  uint32_t build_retx_pdu_from_full_sdu(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_segment_from_full_sdu(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu_from_sdu_segment(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_segment_from_sdu_segment(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  /*
+   * uint32_t build_retx_sdu_segment(rlc_amd_retx_t& retx, rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t
+   * nof_bytes);
+   */
   // Buffer State
   bool     has_data() final;
   uint32_t get_buffer_state() final;

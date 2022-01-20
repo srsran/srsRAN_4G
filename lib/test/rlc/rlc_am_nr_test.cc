@@ -512,13 +512,27 @@ int segment_retx_test()
     // Re-transmit PDU in 3 segments
     for (int i = 0; i < 3; i++) {
       byte_buffer_t retx_buf;
-      int           len = rlc1.read_pdu(retx_buf.msg, 3);
-      retx_buf.N_bytes  = len;
-      TESTASSERT(3 == len);
+      uint32_t      len = 0;
+      if (i == 0) {
+        len = rlc1.read_pdu(retx_buf.msg, 3);
+        TESTASSERT(3 == len);
+      } else {
+        len = rlc1.read_pdu(retx_buf.msg, 5);
+        TESTASSERT(5 == len);
+      }
+      retx_buf.N_bytes = len;
 
       rlc_am_nr_pdu_header_t header_check = {};
       uint32_t hdr_len = rlc_am_nr_read_data_pdu_header(&retx_buf, rlc_am_nr_sn_size_t::size12bits, &header_check);
+      // Double check header.
       TESTASSERT(header_check.sn == 3); // Double check RETX SN
+      if (i == 0) {
+        TESTASSERT(header_check.si == rlc_nr_si_field_t::first_segment);
+      } else if (i == 1) {
+        TESTASSERT(header_check.si == rlc_nr_si_field_t::neither_first_nor_last_segment);
+      } else {
+        TESTASSERT(header_check.si == rlc_nr_si_field_t::last_segment);
+      }
 
       rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
     }
