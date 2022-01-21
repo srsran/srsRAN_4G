@@ -215,41 +215,6 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
     }
   }
 
-  // the code below would be for NSA, even though this function was never called for NSA
-#if 0
-  csi_meas_cfg.csi_report_cfg_to_add_mod_list_present = true;
-  csi_meas_cfg.csi_report_cfg_to_add_mod_list.resize(1);
-
-  auto& csi_report                               = csi_meas_cfg.csi_report_cfg_to_add_mod_list[0];
-  csi_report.report_cfg_id                       = 0;
-  csi_report.res_for_ch_meas                     = 0;
-  csi_report.csi_im_res_for_interference_present = true;
-  csi_report.csi_im_res_for_interference         = 1;
-  csi_report.report_cfg_type.set_periodic();
-  csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
-  csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 1; // was 17 in orig PCAP
-  csi_report.report_quant.set_cri_ri_pmi_cqi();
-  // Report freq config (optional)
-  csi_report.report_freq_cfg_present                = true;
-  csi_report.report_freq_cfg.cqi_format_ind_present = true;
-  csi_report.report_freq_cfg.cqi_format_ind = csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
-  csi_report.time_restrict_for_ch_meass     = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
-  csi_report.time_restrict_for_interference_meass =
-      asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
-  csi_report.group_based_beam_report.set_disabled();
-  // Skip CQI table (optional)
-  csi_report.cqi_table_present = true;
-  csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
-  csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
-
-  if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 5;
-  } else {
-    csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
-  }
-#endif
   return SRSRAN_SUCCESS;
 }
 

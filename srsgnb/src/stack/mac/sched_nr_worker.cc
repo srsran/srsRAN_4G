@@ -185,6 +185,10 @@ void cc_worker::postprocess_decisions(bwp_slot_allocator& bwp_alloc)
         continue;
       }
 
+      if (uci_cfg.nof_csi == 1 and uci_cfg.ack.count == 1) {
+        printf("Stop here");
+      }
+
       // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
       if (uci_cfg.o_sr > 0 and uci_cfg.ack.count > 0 and
           pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {

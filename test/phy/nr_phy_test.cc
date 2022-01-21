@@ -171,8 +171,8 @@ test_bench::args_t::args_t(int argc, char** argv)
   // Load default reference configuration
   phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
 
-#if 0
   // configure nzp
+#if 0
   auto& uecfg_set_0 = phy_cfg.pdsch.nzp_csi_rs_sets[0];
   uecfg_set_0.trs_info  = true;
   uecfg_set_0.count     = 1;

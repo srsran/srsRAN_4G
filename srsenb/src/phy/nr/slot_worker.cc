@@ -186,6 +186,10 @@ bool slot_worker::work_ul()
         printf("Stop here");
       }
 
+      if (pucch_info[i].uci_data.cfg.nof_csi == 1 && pucch_info[i].uci_data.cfg.ack.count > 0) {
+        printf("Stop here");
+      }
+
       // Decode PUCCH
       if (srsran_gnb_ul_get_pucch(&gnb_ul,
                                   &ul_slot_cfg,

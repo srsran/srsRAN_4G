@@ -61,6 +61,7 @@ struct pdcch_cfg_common_s;
 struct pdcch_cfg_s;
 struct pdsch_cfg_common_s;
 struct pucch_cfg_common_s;
+struct pucch_cfg_s;
 struct pusch_cfg_common_s;
 struct mib_s;
 
@@ -135,6 +136,7 @@ void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
 bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
 bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch);
 void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch);
+bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
 bool fill_phy_pusch_cfg_common(const asn1::rrc_nr::pusch_cfg_common_s& pusch_cfg, srsran_sch_hl_cfg_nr_t* pusch);
 void fill_phy_carrier_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
                           srsran_carrier_nr_t*                               carrier_nr);

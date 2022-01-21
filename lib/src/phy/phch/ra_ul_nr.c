@@ -551,6 +551,27 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_SUCCESS;
   }
 
+  for (size_t n = 0; n < SRSRAN_PUCCH_NR_MAX_NOF_SETS; n++) {
+    if (pucch_cfg->sets[n].nof_resources > 0) {
+      printf("\n ==== Set index number %zu:  =====\n", n);
+      for (size_t k = 0; k < pucch_cfg->sets[n].nof_resources; k++) {
+        printf("\n PUCCH resource ID %zu", k);
+        printf("\n Format %u", pucch_cfg->sets[n].resources[k].format);
+        printf("\n Starting PRB %u", pucch_cfg->sets[n].resources[k].starting_prb);
+        printf("\n Second PRB %u", pucch_cfg->sets[n].resources[k].second_hop_prb);
+        if (pucch_cfg->sets[n].resources[k].format == SRSRAN_PUCCH_NR_FORMAT_1) {
+          printf("\n Num of symbols %u", pucch_cfg->sets[n].resources[k].nof_symbols);
+          printf("\n ICS %u \n", pucch_cfg->sets[n].resources[k].initial_cyclic_shift);
+        }
+        if (pucch_cfg->sets[n].resources[k].format == SRSRAN_PUCCH_NR_FORMAT_2) {
+          printf("\n Num of PRBs %u", pucch_cfg->sets[n].resources[k].nof_prb);
+          printf("\n Start symb idx %u", pucch_cfg->sets[n].resources[k].start_symbol_idx);
+          printf("\n Num of symbols %u \n", pucch_cfg->sets[n].resources[k].nof_symbols);
+        }
+      }
+    }
+  }
+
   // Use SR PUCCH resource
   // - At least one positive SR
   // - up to 2 HARQ-ACK

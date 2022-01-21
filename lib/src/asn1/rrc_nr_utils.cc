@@ -1726,6 +1726,67 @@ void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg
   }
 }
 
+bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  // sanity check to avoid pucch->sets[n] goes out of bound
+  if (pucch_cfg.res_set_to_add_mod_list.size() > SRSRAN_PUCCH_NR_MAX_NOF_SETS) {
+    return false;
+  }
+
+  // iterate over the sets of resourceSetToAddModList
+  for (size_t n = 0; n < pucch_cfg.res_set_to_add_mod_list.size() and
+                     pucch_cfg.res_set_to_add_mod_list.size() <= SRSRAN_PUCCH_NR_MAX_NOF_SETS;
+       n++) {
+    auto& res_set                = pucch_cfg.res_set_to_add_mod_list[n];
+    pucch->sets[n].nof_resources = res_set.res_list.size();
+    if (res_set.max_payload_size_present) {
+      pucch->sets[n].max_payload_size = res_set.max_payload_size;
+    }
+    // NOTE:  res_set.pucch_res_set_id does not have a corresponding field in the PHY struct
+
+    // for each set, iterate over the elements (an element is an index). For each of the element or index, find the
+    // corresponding pucch_res_s object in the pucch_cfg.res_to_add_mod_list
+    for (size_t res_idx = 0; res_idx < res_set.res_list.size(); res_idx++) {
+      size_t pucch_resource_id = res_set.res_list[res_idx];
+
+      // Find the pucch_res_s object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      size_t m = 0;
+      while (m <= pucch_cfg.res_to_add_mod_list.size()) {
+        if (m == pucch_cfg.res_to_add_mod_list.size()) {
+          // if we get here, the list pucch_cfg.res_to_add_mod_list does not contain any object corresponding to
+          // pucch_resource_id
+          return false;
+        }
+        if (pucch_cfg.res_to_add_mod_list[m].pucch_res_id == pucch_resource_id) {
+          break; // item found, exit the loop
+        }
+        m++;
+      }
+
+      // Below is the object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      const auto& asn1_resource = pucch_cfg.res_to_add_mod_list[m];
+
+      // sanity check to avoid pucch->sets[n].resources[res_idx] goes out of bound;
+      if (res_idx >= SRSRAN_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET) {
+        return false;
+      }
+
+      auto&    resource     = pucch->sets[n].resources[res_idx];
+      uint32_t format2_rate = 0;
+      if (pucch_cfg.format2_present and
+          pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+          pucch_cfg.format2.setup().max_code_rate_present) {
+        format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
+      }
+      if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch)
 {
   for (uint32_t i = 0; i < pdsch_cfg.pdsch_time_domain_alloc_list.size(); i++) {
