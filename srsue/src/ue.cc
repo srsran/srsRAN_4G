@@ -276,6 +276,11 @@ int ue::parse_args(const all_args_t& args_)
     return SRSRAN_ERROR;
   }
 
+  // Update NAS-5G args
+  args.stack.nas_5g.ia5g = args.stack.nas.eia;
+  args.stack.nas_5g.ea5g = args.stack.nas.eea;
+  args.stack.nas_5g.pdu_session_cfgs.push_back({args.stack.nas.apn_name});
+
   return SRSRAN_SUCCESS;
 }
 
