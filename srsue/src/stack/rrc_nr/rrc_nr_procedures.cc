@@ -308,7 +308,7 @@ srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::r
 {
   Info("Starting...");
 
-  if (dedicated_info_nas_) {
+  if (dedicated_info_nas_ == nullptr) {
     logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
     return proc_outcome_t::error;
   }
