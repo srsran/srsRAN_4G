@@ -71,6 +71,12 @@ void meas_cell_eutra::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
   has_valid_sib13 = true;
 }
 
+void meas_cell_nr::set_sib1(const asn1::rrc_nr::sib1_s& sib1_)
+{
+  sib1           = sib1_;
+  has_valid_sib1 = true;
+}
+
 bool meas_cell::is_sib_scheduled(uint32_t sib_index) const
 {
   return sib_info_map.find(sib_index) != sib_info_map.end();

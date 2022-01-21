@@ -340,6 +340,11 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
   logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
 
+  meas_cells.serving_cell().set_sib1(sib1);
+  
+  // TODO: config basic config and remove early exit
+  return;
+
   // clang-format off
   // unhandled fields:
   // - cellSelectionInfo
