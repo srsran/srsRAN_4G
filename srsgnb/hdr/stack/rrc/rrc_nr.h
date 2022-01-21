@@ -37,6 +37,7 @@
 namespace srsenb {
 
 class enb_bearer_manager;
+class du_config_manager;
 
 enum class rrc_nr_state_t { RRC_IDLE, RRC_INACTIVE, RRC_CONNECTED };
 
@@ -142,8 +143,8 @@ private:
   asn1::rrc_nr::sp_cell_cfg_s base_sp_cell_cfg;
 
   // vars
+  std::unique_ptr<du_config_manager> du_cfg;
   struct cell_ctxt_t {
-    asn1::rrc_nr::mib_s                                   mib;
     asn1::rrc_nr::sib1_s                                  sib1;
     asn1::rrc_nr::sys_info_ies_s::sib_type_and_info_l_    sibs;
     srsran::unique_byte_buffer_t                          mib_buffer = nullptr;

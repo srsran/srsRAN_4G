@@ -122,6 +122,18 @@ void set_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void fill_tdd_ul_dl_config_common(const rrc_cell_cfg_nr_t& cfg, asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd)
+{
+  srsran_assert(cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD, "This function should only be called for TDD configs");
+  // TDD UL-DL config
+  tdd.ref_subcarrier_spacing.value  = (asn1::rrc_nr::subcarrier_spacing_opts::options)cfg.phy_cell.carrier.scs;
+  tdd.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+  tdd.pattern1.nrof_dl_slots        = 6;
+  tdd.pattern1.nrof_dl_symbols      = 0;
+  tdd.pattern1.nrof_ul_slots        = 4;
+  tdd.pattern1.nrof_ul_symbols      = 0;
+}
+
 /// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -888,13 +900,7 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
   if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     // TDD UL-DL config
     serv_common.tdd_ul_dl_cfg_common_present = true;
-    auto& tdd_config                         = serv_common.tdd_ul_dl_cfg_common;
-    tdd_config.ref_subcarrier_spacing        = subcarrier_spacing_e::khz15;
-    tdd_config.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
-    tdd_config.pattern1.nrof_dl_slots        = 6;
-    tdd_config.pattern1.nrof_dl_symbols      = 0;
-    tdd_config.pattern1.nrof_ul_slots        = 4;
-    tdd_config.pattern1.nrof_ul_symbols      = 0;
+    fill_tdd_ul_dl_config_common(cfg.cell_list[cc], serv_common.tdd_ul_dl_cfg_common);
   }
 
   serv_common.ul_cfg_common_present = true;
@@ -1135,7 +1141,7 @@ void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib
   uint32_t offset_point_a_prbs       = offset_point_a_hz / prb_bw;
   cfg.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
   cfg.freq_info_dl.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = 0;
+  cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
   cfg.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
   cfg.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
@@ -1165,7 +1171,7 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
       band_helper.get_abs_freq_point_a_arfcn(cell_cfg.phy_cell.carrier.nof_prb, cell_cfg.ul_arfcn);
 
   cfg.freq_info_ul.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = 0;
+  cfg.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
   cfg.freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
   cfg.freq_info_ul.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
@@ -1211,6 +1217,12 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
   cfg.ssb_positions_in_burst.in_one_group.from_number(0x80);
 
   cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms20;
+
+  // TDD UL-DL config
+  if (cell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    cfg.tdd_ul_dl_cfg_common_present = true;
+    fill_tdd_ul_dl_config_common(cell_cfg, cfg.tdd_ul_dl_cfg_common);
+  }
 
   cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
 }

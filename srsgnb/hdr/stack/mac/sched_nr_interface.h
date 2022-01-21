@@ -83,8 +83,8 @@ struct sched_nr_cell_cfg_t {
   uint32_t                                               pci;
   uint32_t                                               dl_cell_nof_prb;
   uint32_t                                               ul_cell_nof_prb;
-  asn1::copy_ptr<asn1::rrc_nr::dl_cfg_common_sib_s>      dl_cfg_common;
-  asn1::copy_ptr<asn1::rrc_nr::ul_cfg_common_sib_s>      ul_cfg_common;
+  asn1::rrc_nr::dl_cfg_common_sib_s                      dl_cfg_common;
+  asn1::rrc_nr::ul_cfg_common_sib_s                      ul_cfg_common;
   srsran::optional<asn1::rrc_nr::tdd_ul_dl_cfg_common_s> tdd_ul_dl_cfg_common;
   ssb_positions_in_burst_t                               ssb_positions_in_burst;
   uint32_t                                               ssb_periodicity_ms = 0;
@@ -98,8 +98,6 @@ struct sched_nr_cell_cfg_t {
   double                               dl_center_frequency_hz;
   double                               ul_center_frequency_hz;
   double                               ssb_center_freq_hz;
-  uint32_t                             offset_to_carrier;
-  srsran_subcarrier_spacing_t          scs;
 };
 
 class sched_nr_interface

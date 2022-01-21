@@ -53,11 +53,16 @@ inline sched_nr_cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_
   cell_cfg.dl_center_frequency_hz = phy_cfg.carrier.dl_center_frequency_hz;
   cell_cfg.ul_center_frequency_hz = phy_cfg.carrier.ul_center_frequency_hz;
   cell_cfg.ssb_center_freq_hz     = phy_cfg.carrier.ssb_center_freq_hz;
-  cell_cfg.offset_to_carrier      = phy_cfg.carrier.offset_to_carrier;
-  cell_cfg.scs                    = phy_cfg.carrier.scs;
-  cell_cfg.dl_cell_nof_prb        = phy_cfg.carrier.nof_prb;
-  cell_cfg.nof_layers             = phy_cfg.carrier.max_mimo_layers;
-  cell_cfg.ssb_periodicity_ms     = phy_cfg.ssb.periodicity_ms;
+  cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list.resize(1);
+  cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
+      (asn1::rrc_nr::subcarrier_spacing_opts::options)phy_cfg.carrier.scs;
+  cell_cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier =
+      phy_cfg.carrier.offset_to_carrier;
+  cell_cfg.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing =
+      (asn1::rrc_nr::subcarrier_spacing_opts::options)phy_cfg.carrier.scs;
+  cell_cfg.dl_cell_nof_prb    = phy_cfg.carrier.nof_prb;
+  cell_cfg.nof_layers         = phy_cfg.carrier.max_mimo_layers;
+  cell_cfg.ssb_periodicity_ms = phy_cfg.ssb.periodicity_ms;
   for (uint32_t i = 0; i < cell_cfg.ssb_positions_in_burst.in_one_group.length(); ++i) {
     cell_cfg.ssb_positions_in_burst.in_one_group.set(i, phy_cfg.ssb.position_in_burst[i]);
   }
