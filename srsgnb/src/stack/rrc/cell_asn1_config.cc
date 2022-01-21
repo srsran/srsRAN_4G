@@ -868,18 +868,15 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
 
   serv_common.ss_pbch_block_pwr               = cell_cfg.phy_cell.pdsch.rs_power;
   serv_common.n_timing_advance_offset_present = true;
-  serv_common.n_timing_advance_offset = asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
+  serv_common.n_timing_advance_offset         = serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   serv_common.n_timing_advance_offset_present = true;
-  serv_common.dmrs_type_a_position = asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
+  serv_common.dmrs_type_a_position            = serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
 
   serv_common.pci_present = true;
   serv_common.pci         = cell_cfg.phy_cell.carrier.pci;
 
   serv_common.ssb_periodicity_serving_cell_present = true;
-  if (not asn1::number_to_enum(serv_common.ssb_periodicity_serving_cell, cell_cfg.ssb_cfg.periodicity_ms)) {
-    get_logger(cfg).error("Config Error: Invalid SSB periodicity = %d\n", cell_cfg.ssb_cfg.periodicity_ms);
-    return SRSRAN_ERROR;
-  }
+  serv_common.ssb_periodicity_serving_cell.value   = serving_cell_cfg_common_s::ssb_periodicity_serving_cell_opts::ms10;
 
   // Fill SSB config
   serv_common.ssb_positions_in_burst_present = true;
@@ -1136,7 +1133,7 @@ void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib
   cfg.freq_info_dl.freq_band_list.resize(1);
   cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
   cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
-  double   ssb_freq_start            = cell_cfg.ssb_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
+  double   ssb_freq_start                                     = cell_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
   double   offset_point_a_hz         = ssb_freq_start - band_helper.nr_arfcn_to_freq(cell_cfg.dl_absolute_freq_point_a);
   uint32_t offset_point_a_prbs       = offset_point_a_hz / prb_bw;
   cfg.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
@@ -1207,7 +1204,7 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
   cfg.time_align_timer_common.value = time_align_timer_opts::infinity;
 }
 
-void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cell_cfg_common_sib_s& cfg)
+int fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cell_cfg_common_sib_s& cfg)
 {
   fill_dl_cfg_common_sib(cell_cfg, cfg.dl_cfg_common);
 
@@ -1216,7 +1213,7 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
 
   cfg.ssb_positions_in_burst.in_one_group.from_number(0x80);
 
-  cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms20;
+  cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
 
   // TDD UL-DL config
   if (cell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
@@ -1225,6 +1222,8 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
   }
 
   cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
+
+  return SRSRAN_SUCCESS;
 }
 
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1)
@@ -1269,7 +1268,7 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   //  sib1.si_sched_info.sched_info_list[0].sib_map_info[0].value_tag         = 0;
 
   sib1.serving_cell_cfg_common_present = true;
-  fill_serv_cell_cfg_common_sib(cell_cfg, sib1.serving_cell_cfg_common);
+  HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cell_cfg, sib1.serving_cell_cfg_common));
 
   sib1.ue_timers_and_consts_present    = true;
   sib1.ue_timers_and_consts.t300.value = ue_timers_and_consts_s::t300_opts::ms1000;

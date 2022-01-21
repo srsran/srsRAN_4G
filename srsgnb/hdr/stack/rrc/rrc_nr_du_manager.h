@@ -31,6 +31,11 @@ public:
   asn1::rrc_nr::sib1_s         sib1;
   srsran::unique_byte_buffer_t packed_sib1;
 
+  const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg_common() const
+  {
+    return sib1.serving_cell_cfg_common;
+  }
+
   /// SI messages (index=0 for SIB1)
   srsran::const_byte_span packed_si_msg(uint32_t idx) { return srsran::make_span(packed_sib1); }
   size_t                  nof_si_msgs() const { return 1; }
@@ -39,8 +44,10 @@ public:
 class du_config_manager
 {
 public:
-  du_config_manager(const rrc_nr_cfg_t& cfg);
+  explicit du_config_manager(const rrc_nr_cfg_t& cfg);
   ~du_config_manager();
+
+  const rrc_nr_cfg_t& cfg;
 
   int add_cell();
 
@@ -51,7 +58,6 @@ public:
   }
 
 private:
-  const rrc_nr_cfg_t&   cfg;
   srslog::basic_logger& logger;
 
   std::vector<std::unique_ptr<du_cell_config> > cells;

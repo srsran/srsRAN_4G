@@ -95,13 +95,13 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   int ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, base_sp_cell_cfg);
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
 
-  pdcch_cfg_common_s* asn1_pdcch;
+  const pdcch_cfg_common_s* asn1_pdcch;
   if (not cfg.is_standalone) {
     // Fill rrc_nr_cfg with UE-specific search spaces and coresets
     asn1_pdcch =
         &base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   } else {
-    asn1_pdcch = &cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+    asn1_pdcch = &du_cfg->cell(0).serv_cell_cfg_common().dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   }
   srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
@@ -290,7 +290,13 @@ void rrc_nr::config_phy()
   common_cfg.pdcch                                      = cfg.cell_list[0].phy_cell.pdcch;
   common_cfg.prach                                      = cfg.cell_list[0].phy_cell.prach;
   common_cfg.duplex_mode                                = cfg.cell_list[0].duplex_mode;
-  common_cfg.ssb                                        = cfg.cell_list[0].ssb_cfg;
+  common_cfg.ssb                                        = {};
+  common_cfg.ssb.center_freq_hz                         = cfg.cell_list[0].phy_cell.dl_freq_hz;
+  common_cfg.ssb.ssb_freq_hz                            = cfg.cell_list[0].ssb_freq_hz;
+  common_cfg.ssb.scs                                    = cfg.cell_list[0].ssb_scs;
+  common_cfg.ssb.pattern                                = cfg.cell_list[0].ssb_pattern;
+  common_cfg.ssb.duplex_mode                            = cfg.cell_list[0].duplex_mode;
+  common_cfg.ssb.periodicity_ms = du_cfg->cell(0).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     logger.error("Couldn't set common PHY config");
     return;
@@ -320,12 +326,12 @@ void rrc_nr::config_mac()
   cell.ssb_center_freq_hz     = cfg.cell_list[cc].phy_cell.carrier.ssb_center_freq_hz;
   cell.dmrs_type_a_position   = du_cfg->cell(cc).mib.dmrs_type_a_position;
   cell.pdcch_cfg_sib1         = du_cfg->cell(cc).mib.pdcch_cfg_sib1;
-  if (du_cfg->cell(cc).sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
-    cell.tdd_ul_dl_cfg_common.emplace(du_cfg->cell(cc).sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common);
+  if (du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common_present) {
+    cell.tdd_ul_dl_cfg_common.emplace(du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common);
   }
-  cell.dl_cfg_common       = du_cfg->cell(cc).sib1.serving_cell_cfg_common.dl_cfg_common;
-  cell.ul_cfg_common       = du_cfg->cell(cc).sib1.serving_cell_cfg_common.ul_cfg_common;
-  cell.ss_pbch_block_power = du_cfg->cell(cc).sib1.serving_cell_cfg_common.ss_pbch_block_pwr;
+  cell.dl_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().dl_cfg_common;
+  cell.ul_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().ul_cfg_common;
+  cell.ss_pbch_block_power = du_cfg->cell(cc).serv_cell_cfg_common().ss_pbch_block_pwr;
   if (not cfg.is_standalone) {
     const serving_cell_cfg_common_s& serv_cell = base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
     // Derive cell config from ASN1
@@ -335,11 +341,10 @@ void rrc_nr::config_mac()
     cell.ssb_periodicity_ms = serv_cell.ssb_periodicity_serving_cell.to_number();
     cell.ssb_scs            = serv_cell.ssb_subcarrier_spacing;
   } else {
-    const serving_cell_cfg_common_sib_s& serv_cell = cell_ctxt->sib1.serving_cell_cfg_common;
-    cell.bwps[0].pdsch.p_zp_csi_rs_set             = {};
+    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
     bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
-    cell.ssb_positions_in_burst = serv_cell.ssb_positions_in_burst;
-    cell.ssb_periodicity_ms     = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
+    cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
     cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
   }
 
