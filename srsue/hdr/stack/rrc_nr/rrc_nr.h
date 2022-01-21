@@ -137,6 +137,7 @@ private:
   // senders
   void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
+  void send_rrc_reconfig_complete();
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);

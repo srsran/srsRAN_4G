@@ -683,6 +683,16 @@ void rrc_nr::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
   send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
+void rrc_nr::send_rrc_reconfig_complete()
+{
+  logger.debug("Preparing RRC Connection Reconfig Complete");
+
+  asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+  auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete().crit_exts.set_rrc_recfg_complete();
+
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
 // EUTRA-RRC interface
 int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
 {
