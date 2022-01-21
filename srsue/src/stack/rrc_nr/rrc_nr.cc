@@ -62,9 +62,15 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   stack     = stack_;
   args      = args_;
 
-  plmn_is_selected = true; // short-cut SA test
-
+  // allocate RRC timers
   t300 = task_sched.get_unique_timer();
+  t301 = task_sched.get_unique_timer();
+  t302 = task_sched.get_unique_timer();
+  t304 = task_sched.get_unique_timer();
+  t310 = task_sched.get_unique_timer();
+  t311 = task_sched.get_unique_timer();
+
+  plmn_is_selected = true; // short-cut SA test
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -246,7 +252,7 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
     case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
       // 5.3.15
       const auto& reject = c1->rrc_reject();
-      srsran::console("Received RRC Reject");
+      srsran::console("Received RRC Reject\n");
 
       t300.stop();
 
@@ -266,7 +272,6 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
       task_sched.defer_task([this, rrc_setup_copy]() { handle_rrc_setup(rrc_setup_copy); });
       break;
     }
-
     default:
       logger.error("The provided DL-CCCH message type is not recognized");
       break;
@@ -607,7 +612,7 @@ void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
   for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
     random_id |= ((uint64_t)rand() & 0xFF) << i * 8;
   }
-  rrc_setup_req->ue_id.random_value().from_number(random_id);
+  rrc_setup_req->ue_id.random_value().from_number(random_id, rrc_setup_req->ue_id.random_value().length());
   rrc_setup_req->establishment_cause = (establishment_cause_opts::options)cause;
 
   send_ul_ccch_msg(ul_ccch_msg);
@@ -1909,12 +1914,24 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     return false;
   }
 
-  if (!(drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id)) {
-    logger.error("CN association type not supported %s ", drb_cfg.cn_assoc.type().to_string());
+  if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id) {
+    // register EPS bearer over NR PDCP
+    uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
+    drb_eps_bearer_id[drb_cfg.drb_id] = eps_bearer_id;
+    stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
+  } else if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::sdap_cfg) {
+    const auto& sdap_cfg = drb_cfg.cn_assoc.sdap_cfg();
+    if (sdap_cfg.sdap_hdr_dl == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::present ||
+        sdap_cfg.sdap_hdr_ul == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::present) {
+      logger.error("SDAP currently not supported.");
+      return false;
+    }
+    // TODO: configure SDAP accordingly
+    uint32_t pdu_session_id = drb_cfg.cn_assoc.sdap_cfg().pdu_session;
+  } else {
+    logger.error("CN association type not supported %s", drb_cfg.cn_assoc.type().to_string());
     return false;
   }
-  uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
-  drb_eps_bearer_id[drb_cfg.drb_id] = eps_bearer_id;
 
   if (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl_present && drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul_present &&
       (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul.to_number() != drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number())) {
@@ -1924,9 +1941,6 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
   srsran::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
-
-  // register EPS bearer over NR PDCP
-  stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
 
   return true;
 }

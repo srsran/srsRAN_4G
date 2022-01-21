@@ -91,27 +91,29 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
-    srsran::unique_byte_buffer_t nas_sdu;
-    for (uint32_t i = 0; i < rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size(); ++i) {
-      nas_sdu = srsran::make_byte_buffer();
-      if (nas_sdu != nullptr) {
-        memcpy(nas_sdu->msg,
-               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].data(),
-               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size());
-        nas_sdu->N_bytes = rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size();
-        rrc_handle.write_sdu(std::move(nas_sdu));
-      } else {
-        rrc_handle.logger.error("Couldn't allocate SDU in %s.", __FUNCTION__);
-        return proc_outcome_t::error;
-      }
-    }
-  }
-
   if (rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present) {
     Info("Applying Radio Bearer Cfg.");
     if (!rrc_handle.apply_radio_bearer_cfg(rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg)) {
       return proc_outcome_t::error;
+    }
+  }
+
+  rrc_handle.send_rrc_reconfig_complete();
+
+  // Handle NAS messages
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
+    for (uint32_t i = 0; i < rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size(); ++i) {
+      srsran::unique_byte_buffer_t nas_pdu = srsran::make_byte_buffer();
+      if (nas_pdu != nullptr) {
+        memcpy(nas_pdu->msg,
+               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].data(),
+               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size());
+        nas_pdu->N_bytes = rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size();
+        rrc_handle.nas->write_pdu(std::move(nas_pdu));
+      } else {
+        rrc_handle.logger.error("Couldn't allocate SDU in %s.", __FUNCTION__);
+        return proc_outcome_t::error;
+      }
     }
   }
 
