@@ -170,6 +170,7 @@ void test_rrc_sa_connection()
       SRSRAN_SUCCESS);
 
   TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, 0));
+  TESTASSERT_SUCCESS(rrc_obj.ue_set_security_cfg_key(0x4601, {}));
 
   test_rrc_nr_connection_establishment(task_sched, rrc_obj, rlc_obj, mac_obj, ngap_obj, 0x4601);
   test_rrc_nr_info_transfer(task_sched, rrc_obj, pdcp_obj, ngap_obj, 0x4601);
