@@ -113,12 +113,17 @@ private:
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH_SIZE_64: {
         srsran::mac_sch_subpdu_nr& ccch_subpdu = const_cast<srsran::mac_sch_subpdu_nr&>(subpdu);
         rlc->write_pdu(rnti, 0, ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length());
-        // store content for ConRes CE
+        // store content for ConRes CE and schedule CE accordingly
         mac.store_msg3(rnti,
                        srsran::make_byte_buffer(ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length(), __FUNCTION__));
+        sched->dl_mac_ce(rnti, srsran::mac_sch_subpdu_nr::CON_RES_ID);
       } break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CRNTI: {
         uint16_t ce_crnti  = subpdu.get_c_rnti();
+        if (ce_crnti == SRSRAN_INVALID_RNTI) {
+          logger.error("Malformed C-RNTI CE detected. C-RNTI can't be 0x0.", subpdu.get_lcid());
+          return SRSRAN_ERROR;
+        }
         uint16_t prev_rnti = rnti;
         rnti               = ce_crnti;
         rrc->update_user(prev_rnti, rnti);
@@ -192,12 +197,12 @@ private:
     return 0;
   }
 
-  rlc_interface_mac*         rlc;
-  rrc_interface_mac_nr*      rrc;
-  sched_nr_interface*        sched;
+  rlc_interface_mac*          rlc;
+  rrc_interface_mac_nr*       rrc;
+  sched_nr_interface*         sched;
   mac_interface_pdu_demux_nr& mac;
-  srslog::basic_logger&      logger;
-  srsran::task_queue_handle& task_queue;
+  srslog::basic_logger&       logger;
+  srsran::task_queue_handle&  task_queue;
 
   srsran::mac_sch_pdu_nr pdu_ul;
 };
@@ -277,11 +282,11 @@ void mac_nr::get_metrics_nolock(srsenb::mac_metrics_t& metrics)
   metrics.cc_info.resize(detected_rachs.size());
   for (unsigned cc = 0, e = detected_rachs.size(); cc != e; ++cc) {
     metrics.cc_info[cc].cc_rach_counter = detected_rachs[cc];
-    metrics.cc_info[cc].pci             = (cc < cell_config.size()) ? cell_config[cc].carrier.pci : 0;
+    metrics.cc_info[cc].pci             = (cc < cell_config.size()) ? cell_config[cc].pci : 0;
   }
 }
 
-int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells)
+int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_cell_cfg_t>& nr_cells)
 {
   cell_config = nr_cells;
   sched->config(args.sched_cfg, nr_cells);
@@ -340,14 +345,6 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
   stack_task_queue.push([this, rach_info, enb_cc_idx, rach_tprof_meas]() mutable {
     rach_tprof_meas.defer_stop();
 
-    // Add new user to the scheduler so that it can RX/TX SRB0
-    sched_nr_ue_cfg_t uecfg = {};
-    uecfg.carriers.resize(1);
-    uecfg.carriers[0].active      = true;
-    uecfg.carriers[0].cc          = enb_cc_idx;
-    uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-    uecfg.phy_cfg                 = default_ue_phy_cfg;
-
     uint16_t rnti = alloc_ue(enb_cc_idx);
 
     // Log this event.
@@ -355,13 +352,13 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
 
     // Trigger scheduler RACH
     srsenb::sched_nr_interface::rar_info_t rar_info = {};
+    rar_info.cc                                     = enb_cc_idx;
     rar_info.preamble_idx                           = rach_info.preamble;
     rar_info.temp_crnti                             = rnti;
     rar_info.ta_cmd                                 = rach_info.time_adv;
     rar_info.prach_slot                             = slot_point{NUMEROLOGY_IDX, rach_info.slot_index};
-    // TODO: fill remaining fields as required
-    sched->dl_rach_info(rar_info, uecfg);
-    rrc->add_user(rnti, uecfg);
+    sched->dl_rach_info(rar_info);
+    rrc->add_user(rnti, enb_cc_idx);
 
     logger.info("RACH:  slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
                 rach_info.slot_index,

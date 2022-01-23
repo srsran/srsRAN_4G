@@ -643,7 +643,7 @@ void cc_worker::ue::metrics_read(phy_metrics_t* metrics_)
   if (metrics_) {
     *metrics_ = metrics;
   }
-  bzero(&metrics, sizeof(phy_metrics_t));
+  metrics = {};
 }
 
 void cc_worker::ue::metrics_dl(uint32_t mcs)

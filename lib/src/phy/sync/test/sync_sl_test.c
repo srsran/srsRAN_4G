@@ -175,8 +175,8 @@ int main(int argc, char** argv)
 
     // ADD CHANNEL NOISE
     if (snr < 50) {
-      float std_dev = powf(10.0f, -(snr + 3.0f) / 20.0f);
-      srsran_ch_awgn_c(output_buffer, output_buffer, std_dev, output_buffer_len);
+      float var = srsran_convert_dB_to_power(-snr);
+      srsran_ch_awgn_c(output_buffer, output_buffer, var, output_buffer_len);
     }
 
     // ADD FREQUENCY OFFSET

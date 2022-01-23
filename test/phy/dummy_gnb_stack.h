@@ -96,7 +96,9 @@ private:
   srsenb::rlc_dummy               rlc_obj;
   std::unique_ptr<srsenb::mac_nr> mac;
   srslog::basic_logger&           sched_logger;
-  bool                            autofill_sch_bsr = false;
+  bool                            autofill_sch_bsr  = false;
+  bool                            wait_preamble     = false;
+  std::atomic<bool>               enable_user_sched = {false};
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -175,7 +177,8 @@ private:
 
   bool schedule_pdsch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
-    if (dl.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx)) == 0) {
+    if (dl.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx)) == 0 or
+        not enable_user_sched) {
       return true;
     }
 
@@ -250,7 +253,8 @@ private:
 
   bool schedule_pusch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
-    if (ul.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx + 4)) == 0) {
+    if (ul.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx + 4)) == 0 or
+        not enable_user_sched) {
       return true;
     }
 
@@ -362,7 +366,8 @@ public:
     phy_cfg(args.phy_cfg),
     ss_id(args.ss_id),
     use_dummy_mac(args.use_dummy_mac == "dummymac"),
-    sched_logger(srslog::fetch_basic_logger("MAC"))
+    sched_logger(srslog::fetch_basic_logger("MAC")),
+    wait_preamble(args.wait_preamble)
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
     sched_logger.set_level(srslog::str_to_basic_level(args.log_level));
@@ -378,16 +383,8 @@ public:
     mac_args.sched_cfg.fixed_dl_mcs  = args.pdsch.mcs;
     mac_args.sched_cfg.fixed_ul_mcs  = args.pusch.mcs;
     mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
-    std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
+    std::vector<srsenb::sched_nr_cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
-
-    // add UE to scheduler
-    if (not use_dummy_mac and not args.wait_preamble) {
-      srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-      ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
-
-      mac->reserve_rnti(0, ue_cfg);
-    }
 
     dl.mcs = args.pdsch.mcs;
     ul.mcs = args.pusch.mcs;
@@ -472,6 +469,21 @@ public:
 
   bool is_valid() const { return valid; }
 
+  void start_scheduling()
+  {
+    // add UE to scheduler
+    if (not use_dummy_mac and not wait_preamble) {
+      srsenb::sched_nr_ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
+      ue_cfg.lc_ch_to_add.emplace_back();
+      ue_cfg.lc_ch_to_add.back().lcid          = 4;
+      ue_cfg.lc_ch_to_add.back().cfg.direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+
+      mac->reserve_rnti(0, ue_cfg);
+    }
+
+    enable_user_sched = true;
+  }
+
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
 
   dl_sched_t* get_dl_sched(const srsran_slot_cfg_t& slot_cfg) override
@@ -512,6 +524,25 @@ public:
       return nullptr;
     }
 
+    // Schedule SSB before UL
+    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
+      if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
+        srsran_mib_nr_t mib = {};
+        mib.ssb_idx         = ssb_idx;
+        mib.sfn             = slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs);
+        mib.hrf             = (slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs)) >=
+                  SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs) / 2;
+
+        mac_interface_phy_nr::ssb_t ssb = {};
+        if (srsran_pbch_msg_nr_mib_pack(&mib, &ssb.pbch_msg) < SRSRAN_SUCCESS) {
+          logger.error("Error Packing MIB in slot %d", slot_cfg.idx);
+          continue;
+        }
+        ssb.pbch_msg.ssb_idx = (uint32_t)ssb_idx;
+        dl_sched.ssb.push_back(ssb);
+      }
+    }
+
     // Check if the UL slot is valid, if not skip UL scheduling
     if (not srsran_duplex_nr_is_ul(&phy_cfg.duplex, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
       return &dl_sched;
@@ -533,25 +564,6 @@ public:
         if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
           dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
         }
-      }
-    }
-
-    // Schedule SSB
-    for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
-      if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
-        srsran_mib_nr_t mib = {};
-        mib.ssb_idx         = ssb_idx;
-        mib.sfn             = slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs);
-        mib.hrf             = (slot_cfg.idx % SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs)) >=
-                  SRSRAN_NSLOTS_PER_FRAME_NR(phy_cfg.carrier.scs) / 2;
-
-        mac_interface_phy_nr::ssb_t ssb = {};
-        if (srsran_pbch_msg_nr_mib_pack(&mib, &ssb.pbch_msg) < SRSRAN_SUCCESS) {
-          logger.error("Error Packing MIB in slot %d", slot_cfg.idx);
-          continue;
-        }
-        ssb.pbch_msg.ssb_idx = (uint32_t)ssb_idx;
-        dl_sched.ssb.push_back(ssb);
       }
     }
 
@@ -604,7 +616,7 @@ public:
       }
 
       ul_sched.pusch.push_back(pusch);
-    } else if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
+    } else if ((uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) and enable_user_sched) {
       // If any UCI information is triggered, schedule PUCCH
       ul_sched.pucch.emplace_back();
 

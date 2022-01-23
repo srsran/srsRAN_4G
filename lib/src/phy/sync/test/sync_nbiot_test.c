@@ -184,8 +184,8 @@ int main(int argc, char** argv)
   if (snr != -1.0) {
     snr -= 10.0;
     printf("Adding AWGN with target SNR: %.2fdB\n", snr);
-    float nstd = srsran_convert_dB_to_amplitude(-snr);
-    srsran_ch_awgn_c(fft_buffer, fft_buffer, nstd, SFLEN);
+    float var = srsran_convert_dB_to_power(-snr);
+    srsran_ch_awgn_c(fft_buffer, fft_buffer, var, SFLEN);
   }
 
   // look for NPSS signal

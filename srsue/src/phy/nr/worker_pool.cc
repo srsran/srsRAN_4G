@@ -26,10 +26,7 @@ namespace nr {
 
 worker_pool::worker_pool(srslog::basic_logger& logger_, uint32_t max_workers) : pool(max_workers), logger(logger_) {}
 
-bool worker_pool::init(const phy_args_nr_t&          args,
-                       srsran::phy_common_interface& common,
-                       stack_interface_phy_nr*       stack_,
-                       int                           prio)
+bool worker_pool::init(const phy_args_nr_t& args, srsran::phy_common_interface& common, stack_interface_phy_nr* stack_)
 {
   phy_state.stack = stack_;
   phy_state.args  = args;
@@ -68,7 +65,7 @@ bool worker_pool::init(const phy_args_nr_t&          args,
       std::lock_guard<std::mutex> lock(cfg_mutex);
       w = new sf_worker(common, phy_state, cfg, log);
     }
-    pool.init_worker(i, w, prio, args.worker_cpu_mask);
+    pool.init_worker(i, w, args.workers_thread_prio, args.worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
   }
 

@@ -116,6 +116,11 @@ class dummy_eutra : public rrc_eutra_interface_rrc_nr
   void nr_scg_failure_information(const srsran::scg_failure_cause_t cause){};
 };
 
+class dummy_nas : public nas_5g_interface_rrc_nr
+{
+  int write_pdu(srsran::unique_byte_buffer_t pdu) { return SRSRAN_SUCCESS; };
+};
+
 class dummy_sim : public usim_interface_rrc_nr
 {
   bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) { return true; }
@@ -137,7 +142,7 @@ int rrc_nr_cap_request_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
   srsran::byte_buffer_t     caps;
 
   dummy_phy     dummy_phy;
@@ -145,6 +150,7 @@ int rrc_nr_cap_request_test()
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -158,6 +164,7 @@ int rrc_nr_cap_request_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),
@@ -176,13 +183,14 @@ int rrc_nsa_reconfig_tdd_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
 
   dummy_phy     dummy_phy;
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -192,6 +200,7 @@ int rrc_nsa_reconfig_tdd_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),
@@ -240,9 +249,8 @@ int rrc_nsa_reconfig_tdd_test()
 
   asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
   TESTASSERT(secondary_cell_group_r15.unpack(bref0) == asn1::SRSASN_SUCCESS);
-  TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present);
+  TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size() > 0);
 
-  rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
       secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group;
 
@@ -276,13 +284,14 @@ int rrc_nsa_reconfig_fdd_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
 
   dummy_phy     dummy_phy;
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -292,6 +301,7 @@ int rrc_nsa_reconfig_fdd_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),
@@ -340,9 +350,8 @@ int rrc_nsa_reconfig_fdd_test()
 
   asn1::rrc_nr::rrc_recfg_s secondary_cell_group_r15;
   TESTASSERT(secondary_cell_group_r15.unpack(bref0) == asn1::SRSASN_SUCCESS);
-  TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group_present);
+  TESTASSERT(secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group.size() > 0);
 
-  rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group_present = true;
   rrc_nr_reconf.crit_exts.rrc_recfg().secondary_cell_group =
       secondary_cell_group_r15.crit_exts.rrc_recfg().secondary_cell_group;
 
@@ -376,7 +385,7 @@ int rrc_nr_setup_request_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
   srsran::byte_buffer_t     caps;
 
   dummy_phy     dummy_phy;
@@ -384,6 +393,7 @@ int rrc_nr_setup_request_test()
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -396,6 +406,7 @@ int rrc_nr_setup_request_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),
@@ -417,13 +428,14 @@ int rrc_nr_sib1_decoding_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
 
   dummy_phy     dummy_phy;
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -433,6 +445,7 @@ int rrc_nr_sib1_decoding_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),
@@ -462,13 +475,14 @@ int rrc_nr_setup_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
 
   dummy_phy     dummy_phy;
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -478,6 +492,7 @@ int rrc_nr_setup_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),
@@ -513,13 +528,14 @@ int rrc_nr_reconfig_test()
   logger.set_hex_dump_max_size(-1);
   srsran::task_scheduler    task_sched{512, 100};
   srsran::task_sched_handle task_sched_handle(&task_sched);
-  rrc_nr                    rrc_nr(task_sched_handle);
+  srsue::rrc_nr             rrc_nr(task_sched_handle);
 
   dummy_phy     dummy_phy;
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
   dummy_gw      dummy_gw;
+  dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
@@ -529,6 +545,7 @@ int rrc_nr_reconfig_test()
                          &dummy_rlc,
                          &dummy_pdcp,
                          &dummy_gw,
+                         &dummy_nas,
                          &dummy_eutra,
                          &dummy_sim,
                          task_sched.get_timer_handler(),

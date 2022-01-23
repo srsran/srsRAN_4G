@@ -46,7 +46,7 @@ class rlc_am_nr_rx;
 
 /****************************************************************************
  * Tx state variables
- * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
  ***************************************************************************/
 struct rlc_am_nr_tx_state_t {
   /*
@@ -79,6 +79,21 @@ struct rlc_am_nr_tx_state_t {
   uint32_t byte_without_poll;
 };
 
+struct rlc_amd_tx_pdu_nr {
+  const uint32_t         rlc_sn     = INVALID_RLC_SN;
+  const uint32_t         pdcp_sn    = INVALID_RLC_SN;
+  rlc_am_nr_pdu_header_t header     = {};
+  unique_byte_buffer_t   buf        = nullptr;
+  uint32_t               retx_count = 0;
+  struct pdu_segment {
+    uint32_t so          = 0;
+    uint32_t retx_count  = 0;
+    uint32_t payload_len = 0;
+  };
+  std::list<pdu_segment> segment_list;
+  explicit rlc_amd_tx_pdu_nr(uint32_t sn) : rlc_sn(sn) {}
+};
+
 class rlc_am_nr_tx : public rlc_am::rlc_am_base_tx
 {
 public:
@@ -94,18 +109,28 @@ public:
   bool sdu_queue_is_full() final;
   void reestablish() final;
 
-  int      write_sdu(unique_byte_buffer_t sdu);
-  void     empty_queue() final;
+  int  write_sdu(unique_byte_buffer_t sdu);
+  void empty_queue() final;
+
+  // Data PDU helpers
+  int build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
+                            rlc_amd_tx_pdu_nr&   tx_pdu,
+                            uint8_t*             payload,
+                            uint32_t             nof_bytes);
+  int build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
+  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
+
+  // Buffer State
   bool     has_data() final;
   uint32_t get_buffer_state() final;
   void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) final;
 
+  // Status PDU
   bool     do_status();
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
+  // Polling
   uint8_t get_pdu_poll();
-
-  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
 
   void stop() final;
 
@@ -120,19 +145,25 @@ private:
 
   /****************************************************************************
    * Configurable parameters
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * Tx state variables
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
-  struct rlc_am_nr_tx_state_t st = {};
-
-  using rlc_amd_tx_pdu_nr = rlc_amd_tx_pdu<rlc_am_nr_pdu_header_t>;
+  struct rlc_am_nr_tx_state_t                             st = {};
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
-  pdu_retx_queue<RLC_AM_WINDOW_SIZE>                      retx_queue;
+
+  // Queues and buffers
+  pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
+  rlc_amd_tx_sdu_nr_t                sdu_under_segmentation;
+
+  // Helper constants
+  uint32_t min_hdr_size = 2;
+  uint32_t so_size      = 2;
+  uint32_t max_hdr_size = 4;
 
 public:
   // Getters/Setters
@@ -142,8 +173,8 @@ public:
 };
 
 /****************************************************************************
- * RX State Variables
- * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+ * State Variables
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
  ***************************************************************************/
 struct rlc_am_nr_rx_state_t {
   /*
@@ -190,9 +221,11 @@ public:
   uint32_t get_status_pdu_length();
 
   // Data handling methods
-  void handle_data_pdu_full(uint8_t* payload, uint32_t nof_bytes, rlc_am_nr_pdu_header_t& header);
+  int  handle_full_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
+  int  handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
+  bool have_all_segments_been_received(const std::list<rlc_amd_rx_pdu_nr>& segment_list);
 
   // Metrics
   uint32_t get_sdu_rx_latency_ms() final;
@@ -220,20 +253,20 @@ private:
 
   /****************************************************************************
    * Rx timers
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.3
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
    ***************************************************************************/
   srsran::timer_handler::unique_timer status_prohibit_timer;
   srsran::timer_handler::unique_timer reassembly_timer;
 
   /****************************************************************************
    * Configurable parameters
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.4
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.4
    ***************************************************************************/
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
    * Tx state variables
-   * Ref: 3GPP TS 38.322 v16.2.0 Section 7.1
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_rx_state_t st = {};
 

@@ -22,6 +22,7 @@ set(SOURCES mac_nr.cc
             ue_nr.cc
             sched_nr.cc
             sched_nr_ue.cc
+            sched_ue/ue_cfg_manager.cc
             sched_nr_worker.cc
             sched_nr_grant_allocator.cc
             sched_nr_harq.cc
@@ -37,7 +38,7 @@ set(SOURCES mac_nr.cc
             sched_nr_interface_utils.cc)
 
 add_library(srsgnb_mac STATIC ${SOURCES})
-target_link_libraries(srsgnb_mac srsenb_mac_common srsran_mac)
+target_link_libraries(srsgnb_mac srsenb_mac_common srsran_mac rrc_nr_asn1)
 include_directories(${PROJECT_SOURCE_DIR})
 
 add_subdirectory(test)

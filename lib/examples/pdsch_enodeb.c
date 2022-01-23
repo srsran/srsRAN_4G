@@ -1001,7 +1001,7 @@ int main(int argc, char** argv)
         if (!null_file_sink) {
           /* Apply AWGN */
           if (output_file_snr != +INFINITY) {
-            float var = srsran_convert_dB_to_amplitude(-(output_file_snr + 3.0f));
+            float var = srsran_convert_dB_to_power(-output_file_snr);
             for (int k = 0; k < cell.nof_ports; k++) {
               srsran_ch_awgn_c(output_buffer[k], output_buffer[k], var, sf_n_samples);
             }

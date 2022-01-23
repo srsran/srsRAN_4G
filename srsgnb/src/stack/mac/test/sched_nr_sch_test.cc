@@ -31,21 +31,21 @@ namespace srsenb {
 
 using namespace sched_nr_impl;
 
-sched_nr_interface::cell_cfg_t get_cell_cfg()
+sched_nr_cell_cfg_t get_cell_cfg()
 {
-  sched_nr_impl::cell_cfg_t cell_cfg             = get_default_sa_cell_cfg_common();
+  sched_nr_cell_cfg_t cell_cfg                   = get_default_sa_cell_cfg_common();
   cell_cfg.bwps[0].pdcch.search_space_present[2] = true;
   cell_cfg.bwps[0].pdcch.search_space[2]         = get_default_ue_specific_search_space(2, 2);
   cell_cfg.bwps[0].pdcch.coreset_present[2]      = true;
-  cell_cfg.bwps[0].pdcch.coreset[2]              = get_default_ue_specific_coreset(2, cell_cfg.carrier.pci);
+  cell_cfg.bwps[0].pdcch.coreset[2]              = get_default_ue_specific_coreset(2, cell_cfg.pci);
   return cell_cfg;
 }
 
-sched_nr_interface::ue_cfg_t get_ue_cfg(const sched_nr_interface::cell_cfg_t& cell_cfg)
+sched_nr_interface::ue_cfg_t get_ue_cfg(const sched_nr_cell_cfg_t& cell_cfg)
 {
-  ue_cfg_t uecfg      = get_rach_ue_cfg(0);
-  uecfg.phy_cfg       = get_common_ue_phy_cfg(cell_cfg);
-  uecfg.phy_cfg.pdcch = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
+  sched_nr_ue_cfg_t uecfg = get_rach_ue_cfg(0);
+  uecfg.phy_cfg           = get_common_ue_phy_cfg(cell_cfg);
+  uecfg.phy_cfg.pdcch     = cell_cfg.bwps[0].pdcch; // Starts with UE-specific PDCCH
   return uecfg;
 }
 
@@ -72,7 +72,7 @@ srsran_dci_ctx_t generate_dci_ctx(const srsran_pdcch_cfg_nr_t& pdcch,
 void test_dci_freq_assignment(const bwp_params_t& bwp_params, prb_interval grant, const pdcch_dl_t& pdcch)
 {
   // Compute BWP PRB limits
-  prb_interval lims{0, bwp_params.nof_prb()};
+  prb_interval lims{0, bwp_params.nof_prb};
   if (SRSRAN_SEARCH_SPACE_IS_COMMON(pdcch.dci.ctx.ss_type) and pdcch.dci.ctx.format == srsran_dci_format_nr_1_0) {
     lims = bwp_params.dci_fmt_1_0_prb_lims(pdcch.dci.ctx.coreset_id);
   }
@@ -95,9 +95,10 @@ void test_si()
   static const uint32_t ss_id = 0;
 
   // Create Cell and UE configs
-  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_interface::sched_args_t sched_args;
-  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_cell_cfg_t                cellcfg = get_cell_cfg();
+  sched_nr_impl::cell_config_manager cell_params{0, cellcfg, sched_args};
+  const bwp_params_t&                bwp_params = cell_params.bwps[0];
 
   pdsch_list_t       pdschs;
   pdsch_alloc_result alloc_res;
@@ -111,7 +112,7 @@ void test_si()
   uint32_t max_prb = bwp_params.dci_fmt_1_0_prb_lims(pdcch.dci.ctx.coreset_id).stop();
 
   std::array<prb_interval, 3> grant_list = {
-      prb_interval{2, 4}, prb_interval{min_prb, max_prb}, prb_interval{0, bwp_params.nof_prb()}};
+      prb_interval{2, 4}, prb_interval{min_prb, max_prb}, prb_interval{0, bwp_params.nof_prb}};
 
   for (uint32_t i = 0; i < grant_list.size(); ++i) {
     pdsch_sched.reset();
@@ -153,9 +154,9 @@ void test_rar()
   static const uint32_t       ss_id = 1;
 
   // Create Cell and UE configs
-  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_interface::sched_args_t sched_args;
-  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_impl::cell_config_manager cell_cfg{0, get_cell_cfg(), sched_args};
+  const bwp_params_t&                bwp_params = cell_cfg.bwps[0];
 
   pdsch_list_t       pdschs;
   pdsch_alloc_result alloc_res;
@@ -169,7 +170,7 @@ void test_rar()
   uint32_t max_prb = bwp_params.dci_fmt_1_0_prb_lims(pdcch.dci.ctx.coreset_id).stop();
 
   std::array<prb_interval, 3> grant_list = {
-      prb_interval{2, 4}, prb_interval{min_prb, max_prb}, prb_interval{0, bwp_params.nof_prb()}};
+      prb_interval{2, 4}, prb_interval{min_prb, max_prb}, prb_interval{0, bwp_params.nof_prb}};
 
   for (uint32_t i = 0; i < grant_list.size(); ++i) {
     pdsch_sched.reset();
@@ -210,11 +211,12 @@ void test_ue_pdsch()
   srsran::test_delimit_logger delimiter{"Test PDSCH UE Allocation"};
 
   // Create Cell and UE configs
-  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
-  sched_nr_interface::sched_args_t sched_args;
-  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
-  ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_cell_cfg_t                cellcfg = get_cell_cfg();
+  sched_nr_impl::cell_config_manager cell_params{0, get_cell_cfg(), sched_args};
+  sched_nr_impl::ue_cfg_manager      uecfg{get_ue_cfg(cellcfg)};
+  const bwp_params_t&                bwp_params = cell_params.bwps[0];
+  ue_carrier_params_t                ue_cc{0x4601, bwp_params, uecfg};
 
   pdsch_list_t       pdschs;
   pdsch_alloc_result alloc_res;
@@ -226,7 +228,7 @@ void test_ue_pdsch()
   pdcch_ue.dci.ctx     = generate_dci_ctx(bwp_params.cfg.pdcch, 2, srsran_rnti_type_c, 0x4601);
 
   prb_interval lims_common = bwp_params.dci_fmt_1_0_prb_lims(pdcch_common.dci.ctx.coreset_id);
-  prb_interval lims_ue{0, bwp_params.nof_prb()};
+  prb_interval lims_ue{0, bwp_params.nof_prb};
 
   std::array<std::pair<uint32_t, prb_interval>, 4> grant_list = {std::make_pair(1, prb_interval{2, 4}),
                                                                  std::make_pair(1, lims_common),
@@ -277,11 +279,12 @@ void test_pdsch_fail()
   srsran::test_delimit_logger delimiter{"Test PDSCH Allocation Failure"};
 
   // Create Cell and UE configs
-  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
-  sched_nr_interface::sched_args_t sched_args;
-  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
-  ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_cell_cfg_t                cellcfg = get_cell_cfg();
+  sched_nr_impl::cell_config_manager cell_params{0, cellcfg, sched_args};
+  sched_nr_impl::ue_cfg_manager      uecfg{get_ue_cfg(cellcfg)};
+  const bwp_params_t&                bwp_params = cell_params.bwps[0];
+  ue_carrier_params_t                ue_cc{0x4601, bwp_params, uecfg};
 
   pdsch_list_t       pdschs;
   pdsch_alloc_result alloc_res;
@@ -313,7 +316,7 @@ void test_pdsch_fail()
   // Allocations of DCI format 1_0 should start from CORESET first RB and their BW should be limited by CORESET#0 BW
   prb_grant grant_type1 = prb_interval{0, bwp_params.coreset_prb_range(0).stop()};
   TESTASSERT(pdsch_sched.alloc_ue_pdsch(1, srsran_dci_format_nr_1_0, grant_type1, ue_cc, pdcch.dci).is_error());
-  grant_type1 = prb_interval{bwp_params.coreset_prb_range(0).start(), bwp_params.nof_prb()};
+  grant_type1 = prb_interval{bwp_params.coreset_prb_range(0).start(), bwp_params.nof_prb};
   TESTASSERT(pdsch_sched.alloc_ue_pdsch(1, srsran_dci_format_nr_1_0, grant_type1, ue_cc, pdcch.dci).is_error());
   TESTASSERT(pdsch_sched.alloc_ue_pdsch(2, srsran_dci_format_nr_1_0, grant_type1, ue_cc, pdcch.dci).has_value());
 
@@ -326,12 +329,13 @@ void test_multi_pdsch()
   srsran::test_delimit_logger delimiter{"Test Multiple PDSCH Allocations"};
 
   // Create Cell and UE configs
-  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
-  sched_nr_interface::sched_args_t sched_args;
-  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
-  ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
-  ue_carrier_params_t              ue_cc2{0x4602, bwp_params, uecfg};
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_cell_cfg_t                cellcfg = get_cell_cfg();
+  sched_nr_impl::cell_config_manager cell_params{0, cellcfg, sched_args};
+  sched_nr_impl::ue_cfg_manager      uecfg{get_ue_cfg(cellcfg)};
+  const bwp_params_t&                bwp_params = cell_params.bwps[0];
+  ue_carrier_params_t                ue_cc{0x4601, bwp_params, uecfg};
+  ue_carrier_params_t                ue_cc2{0x4602, bwp_params, uecfg};
 
   pdsch_list_t       pdschs;
   pdsch_alloc_result alloc_res;
@@ -389,7 +393,7 @@ void test_multi_pdsch()
   pdcch                  = &pdcch_ue;
   used_prbs              = pdsch_sched.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);
   prb_interval ue_grant2 = find_empty_interval_of_length(used_prbs, used_prbs_ue.size(), 0);
-  TESTASSERT_EQ(bwp_params.nof_prb(), ue_grant2.stop());
+  TESTASSERT_EQ(bwp_params.nof_prb, ue_grant2.stop());
   TESTASSERT_EQ(alloc_result::success,
                 pdsch_sched.is_ue_grant_valid(ue_cc, ss_id, srsran_dci_format_nr_1_0, ue_grant2));
   alloc_res = pdsch_sched.alloc_ue_pdsch(ss_id, srsran_dci_format_nr_1_0, ue_grant2, ue_cc, pdcch->dci);
@@ -417,12 +421,13 @@ void test_multi_pusch()
   srsran::test_delimit_logger delimiter{"Test Multiple PUSCH Allocations"};
 
   // Create Cell and UE configs
-  sched_nr_impl::cell_cfg_t        cell_cfg = get_cell_cfg();
-  sched_nr_impl::ue_cfg_t          uecfg    = get_ue_cfg(cell_cfg);
-  sched_nr_interface::sched_args_t sched_args;
-  bwp_params_t                     bwp_params{cell_cfg, sched_args, 0, 0};
-  ue_carrier_params_t              ue_cc{0x4601, bwp_params, uecfg};
-  ue_carrier_params_t              ue_cc2{0x4602, bwp_params, uecfg};
+  sched_nr_interface::sched_args_t   sched_args;
+  sched_nr_cell_cfg_t                cellcfg = get_cell_cfg();
+  sched_nr_impl::cell_config_manager cell_params{0, cellcfg, sched_args};
+  sched_nr_impl::ue_cfg_manager      uecfg{get_ue_cfg(cellcfg)};
+  const bwp_params_t&                bwp_params = cell_params.bwps[0];
+  ue_carrier_params_t                ue_cc{0x4601, bwp_params, uecfg};
+  ue_carrier_params_t                ue_cc2{0x4602, bwp_params, uecfg};
 
   pusch_list_t       puschs;
   pusch_alloc_result alloc_res;

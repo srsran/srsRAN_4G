@@ -68,15 +68,15 @@ public:
   bool           start_cell_search(const cell_search_args_t& req) final;
   bool           start_cell_select(const cell_select_args_t& req) final;
 
-  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final{};
+  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final { return workers.get_metrics(*m); };
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
 private:
   srslog::basic_logger& logger;
   srslog::basic_logger& logger_phy_lib;
 
-  nr::worker_pool       workers;
-  nr::sync_sa           sync;
+  nr::worker_pool workers;
+  nr::sync_sa     sync;
 
   srsran::phy_cfg_nr_t config_nr     = {};
   phy_args_nr_t        args          = {};
@@ -85,7 +85,7 @@ private:
   srsran::radio_interface_phy* radio = nullptr;
   stack_interface_phy_nr*      stack = nullptr;
 
-  std::atomic<bool>       is_configured = {false};
+  std::atomic<bool> is_configured = {false};
 
   // Since cell_search/cell_select operations take a lot of time, we use another queue to process the other commands
   // in parallel and avoid accumulating in the queue
@@ -95,10 +95,8 @@ private:
   void        init_background();
   std::thread init_thread;
 
-  const static int SF_RECV_THREAD_PRIO = 0;
-  const static int WORKERS_THREAD_PRIO = 2;
-  const static int MAX_WORKERS         = 4;
-  const static int DEFAULT_WORKERS     = 4;
+  const static int MAX_WORKERS     = 4;
+  const static int DEFAULT_WORKERS = 4;
 
   static void set_default_args(phy_args_nr_t& args);
   bool        check_args(const phy_args_nr_t& args);

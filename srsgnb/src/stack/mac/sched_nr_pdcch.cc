@@ -77,10 +77,11 @@ coreset_region::coreset_region(const bwp_params_t& bwp_cfg_, uint32_t coreset_id
   nof_freq_res           = std::count(res_active, res_active + SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, true);
   srsran_assert(get_td_symbols() <= SRSRAN_CORESET_DURATION_MAX,
                 "Possible number of time-domain OFDM symbols in CORESET must be within {1,2,3}");
-  srsran_assert(nof_freq_res <= bwp_cfg_.cell_cfg.carrier.nof_prb,
-                "The number of frequency resources=%d of CORESET#%d exceeds BWP bandwidth",
+  srsran_assert(nof_freq_res <= bwp_cfg_.cell_cfg.nof_prb(),
+                "The number of frequency resources=%d of CORESET#%d exceeds BWP bandwidth=%d",
                 nof_freq_res,
-                coreset_id);
+                coreset_id,
+                bwp_cfg_.cell_cfg.nof_prb());
 }
 
 void coreset_region::reset()

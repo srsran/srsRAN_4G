@@ -128,7 +128,6 @@ static inline void channel_awgn_run(srsran_channel_awgn_t* q, const float* in, f
 
 #if SRSRAN_SIMD_F_SIZE
   for (; i < (int)size - SRSRAN_SIMD_F_SIZE + 1; i += SRSRAN_SIMD_F_SIZE) {
-
     if (i % AWGN_TABLE_READ_BURST == 0) {
       idx1 = channel_awgn_rand(q);
       idx2 = channel_awgn_rand(q);
@@ -154,7 +153,6 @@ static inline void channel_awgn_run(srsran_channel_awgn_t* q, const float* in, f
 #endif /* SRSRAN_SIMD_F_SIZE */
 
   for (; i < size; i++) {
-
     if (i % AWGN_TABLE_READ_BURST == 0) {
       idx1 = channel_awgn_rand(q);
       idx2 = channel_awgn_rand(q);
@@ -206,19 +204,21 @@ void srsran_ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len)
 {
   cf_t     tmp;
   uint32_t i;
+  float    stddev = sqrtf(variance);
 
   for (i = 0; i < len; i++) {
     __real__ tmp = rand_gauss();
     __imag__ tmp = rand_gauss();
-    tmp *= variance;
+    tmp *= stddev * (float)M_SQRT1_2;
     y[i] = tmp + x[i];
   }
 }
 void srsran_ch_awgn_f(const float* x, float* y, float variance, uint32_t len)
 {
   uint32_t i;
+  float    stddev = sqrtf(variance);
 
   for (i = 0; i < len; i++) {
-    y[i] = x[i] + variance * rand_gauss();
+    y[i] = x[i] + stddev * rand_gauss();
   }
 }

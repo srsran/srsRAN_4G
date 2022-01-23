@@ -66,38 +66,38 @@ bool ngap::ue::send_initial_ue_message(asn1::ngap::rrcestablishment_cause_e caus
 
   ngap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_INIT_UE_MSG);
-  init_ue_msg_ies_container& container = tx_pdu.init_msg().value.init_ue_msg().protocol_ies;
+  init_ue_msg_s& container = tx_pdu.init_msg().value.init_ue_msg();
 
   // 5G-S-TMSI
   if (has_tmsi) {
-    container.five_g_s_tmsi_present = true;
-    srsran::uint32_to_uint8(s_tmsi, container.five_g_s_tmsi.value.five_g_tmsi.data());
-    container.five_g_s_tmsi.value.amf_set_id.from_number(ctxt.amf_set_id);
-    container.five_g_s_tmsi.value.amf_pointer.from_number(ctxt.amf_pointer);
+    container->five_g_s_tmsi_present = true;
+    srsran::uint32_to_uint8(s_tmsi, container->five_g_s_tmsi.value.five_g_tmsi.data());
+    container->five_g_s_tmsi.value.amf_set_id.from_number(ctxt.amf_set_id);
+    container->five_g_s_tmsi.value.amf_pointer.from_number(ctxt.amf_pointer);
   }
 
   // RAN_UE_NGAP_ID
-  container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container->ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
   // NAS_PDU
-  container.nas_pdu.value.resize(pdu.size());
-  memcpy(container.nas_pdu.value.data(), pdu.data(), pdu.size());
+  container->nas_pdu.value.resize(pdu.size());
+  memcpy(container->nas_pdu.value.data(), pdu.data(), pdu.size());
 
   // RRC Establishment Cause
-  container.rrcestablishment_cause.value = cause;
+  container->rrcestablishment_cause.value = cause;
 
   // User Location Info
 
   // userLocationInformationNR
-  container.user_location_info.value.set_user_location_info_nr();
-  container.user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
-  container.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
+  container->user_location_info.value.set_user_location_info_nr();
+  container->user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
+  container->user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
+  container->user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
+  container->user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
 
   // UE context request for setup in the NAS registration request
-  container.ue_context_request_present = true;
-  container.ue_context_request.value   = asn1::ngap::ue_context_request_opts::options::requested;
+  container->ue_context_request_present = true;
+  container->ue_context_request.value   = asn1::ngap::ue_context_request_opts::options::requested;
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialUEMessage");
 }
@@ -111,30 +111,30 @@ bool ngap::ue::send_ul_nas_transport(srsran::const_byte_span pdu)
 
   ngap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_UL_NAS_TRANSPORT);
-  asn1::ngap::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
+  ul_nas_transport_s& container = tx_pdu.init_msg().value.ul_nas_transport();
 
   // AMF UE NGAP ID
   if (ctxt.amf_ue_ngap_id.has_value()) {
-    container.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+    container->amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
   } else {
     logger.error("Attempting to send UL NAS Transport without AMF context");
     return false;
   }
 
   // RAN UE NGAP ID
-  container.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container->ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
   // NAS PDU
-  container.nas_pdu.value.resize(pdu.size());
-  memcpy(container.nas_pdu.value.data(), pdu.data(), pdu.size());
+  container->nas_pdu.value.resize(pdu.size());
+  memcpy(container->nas_pdu.value.data(), pdu.data(), pdu.size());
 
   // User Location Info
   // userLocationInformationNR
-  container.user_location_info.value.set_user_location_info_nr();
-  container.user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
-  container.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
-  container.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
+  container->user_location_info.value.set_user_location_info_nr();
+  container->user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
+  container->user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
+  container->user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
+  container->user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UplinkNASTransport");
 }
@@ -156,10 +156,10 @@ bool ngap::ue::send_initial_ctxt_setup_response()
   init_context_setup_resp_s& container = tx_pdu.successful_outcome().value.init_context_setup_resp();
 
   // AMF UE NGAP ID
-  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  container->amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
 
   // RAN UE NGAP ID
-  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container->ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
 }
@@ -176,16 +176,16 @@ bool ngap::ue::send_initial_ctxt_setup_failure(cause_c cause)
   init_context_setup_fail_s& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail();
 
   // AMF UE NGAP ID
-  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  container->amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
 
   // RAN UE NGAP ID
-  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container->ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
 
   /* // TODO: PDU Session Resource Setup Response List - Integrate PDU Session and Bearer management into NGAP
-  container.protocol_ies.pdu_session_res_setup_list_cxt_res_present = true;
+  container->pdu_session_res_setup_list_cxt_res_present = true;
 
   // Case PDU Session Resource Failed to Setup List
-  container.protocol_ies.pdu_session_res_failed_to_setup_list_cxt_res_present = true; */
+  container->pdu_session_res_failed_to_setup_list_cxt_res_present = true; */
 
   return true;
 }
@@ -201,10 +201,10 @@ bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                
   // TODO: QOS Params
   ngap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_NGAP_ID_PDU_SESSION_RES_SETUP);
-  pdu_session_res_setup_resp_s& container     = tx_pdu.successful_outcome().value.pdu_session_res_setup_resp();
-  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
-  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
-  container.protocol_ies.pdu_session_res_setup_list_su_res_present = true;
+  pdu_session_res_setup_resp_s& container              = tx_pdu.successful_outcome().value.pdu_session_res_setup_resp();
+  container->amf_ue_ngap_id.value                      = ctxt.amf_ue_ngap_id.value();
+  container->ran_ue_ngap_id.value                      = ctxt.ran_ue_ngap_id;
+  container->pdu_session_res_setup_list_su_res_present = true;
   pdu_session_res_setup_item_su_res_s su_res;
   su_res.pdu_session_res_setup_resp_transfer.resize(512);
   su_res.pdu_session_id = pdu_session_id;
@@ -225,7 +225,7 @@ bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                
   resp_transfer.pack(bref);
   su_res.pdu_session_res_setup_resp_transfer.resize(bref.distance_bytes());
 
-  container.protocol_ies.pdu_session_res_setup_list_su_res.value.push_back(su_res);
+  container->pdu_session_res_setup_list_su_res.value.push_back(su_res);
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "PDUSessionResourceSetupResponse");
 }
 
@@ -241,14 +241,14 @@ bool ngap::ue::send_ue_ctxt_release_complete()
   ue_context_release_complete_s& container = tx_pdu.successful_outcome().value.ue_context_release_complete();
 
   // userLocationInformationNR
-  container.protocol_ies.user_location_info.value.set_user_location_info_nr();
-  container.protocol_ies.user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
-  container.protocol_ies.user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
-  container.protocol_ies.user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
-  container.protocol_ies.user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
+  container->user_location_info.value.set_user_location_info_nr();
+  container->user_location_info.value.user_location_info_nr().nr_cgi.nrcell_id = ngap_ptr->nr_cgi.nrcell_id;
+  container->user_location_info.value.user_location_info_nr().nr_cgi.plmn_id   = ngap_ptr->nr_cgi.plmn_id;
+  container->user_location_info.value.user_location_info_nr().tai.plmn_id      = ngap_ptr->tai.plmn_id;
+  container->user_location_info.value.user_location_info_nr().tai.tac          = ngap_ptr->tai.tac;
 
-  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
-  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  container->ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container->amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
 
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
@@ -270,10 +270,10 @@ bool ngap::ue::send_ue_context_release_request(asn1::ngap::cause_c cause)
   tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_UE_CONTEXT_RELEASE_REQUEST);
   ue_context_release_request_s& container = tx_pdu.init_msg().value.ue_context_release_request();
 
-  container.protocol_ies.cause.value = cause;
+  container->cause.value = cause;
 
   // PDU Session Resource List
-  auto& session_lst = container.protocol_ies.pdu_session_res_list_cxt_rel_req.value;
+  auto& session_lst = container->pdu_session_res_list_cxt_rel_req.value;
   for (const auto& pdu_pair : bearer_manager.pdu_sessions()) {
     const ngap_ue_bearer_manager::pdu_session_t& session = pdu_pair.second;
 
@@ -281,10 +281,10 @@ bool ngap::ue::send_ue_context_release_request(asn1::ngap::cause_c cause)
     obj.pdu_session_id = session.id;
     session_lst.push_back(obj);
   }
-  container.protocol_ies.pdu_session_res_list_cxt_rel_req_present = session_lst.size() > 0;
+  container->pdu_session_res_list_cxt_rel_req_present = session_lst.size() > 0;
 
-  container.protocol_ies.ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
-  container.protocol_ies.amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
+  container->ran_ue_ngap_id.value = ctxt.ran_ue_ngap_id;
+  container->amf_ue_ngap_id.value = ctxt.amf_ue_ngap_id.value();
 
   // TODO: Implement timeout
   return ngap_ptr->sctp_send_ngap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseRequest");

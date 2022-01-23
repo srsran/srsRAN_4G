@@ -218,31 +218,31 @@ void run_ng_initial_ue(ngap& ngap_obj, amf_dummy& amf, rrc_nr_dummy& rrc)
 
   asn1::ngap::ngap_pdu_c ngap_initial_ctx_req_pdu;
   ngap_initial_ctx_req_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_INIT_CONTEXT_SETUP);
-  auto& container = ngap_initial_ctx_req_pdu.init_msg().value.init_context_setup_request().protocol_ies;
+  auto& container = ngap_initial_ctx_req_pdu.init_msg().value.init_context_setup_request();
 
-  container.amf_ue_ngap_id.value = 0x1;
-  container.ran_ue_ngap_id.value = 0x1;
-  container.nas_pdu_present      = true;
+  container->amf_ue_ngap_id.value = 0x1;
+  container->ran_ue_ngap_id.value = 0x1;
+  container->nas_pdu_present      = true;
 
   // Set allowed NSSAI (FIXME)
-  container.allowed_nssai.value.resize(1);
+  container->allowed_nssai.value.resize(1);
 
   // Set security key
   uint8_t sec_key[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
   for (uint8_t i = 0; i < 32; ++i) {
-    container.security_key.value.data()[31 - i] = sec_key[i];
+    container->security_key.value.data()[31 - i] = sec_key[i];
   }
 
   // Set security capabilities
-  container.ue_security_cap.value.nrencryption_algorithms.set(0, true);
-  container.ue_security_cap.value.nrencryption_algorithms.set(1, true);
-  container.ue_security_cap.value.nrintegrity_protection_algorithms.set(0, true);
-  container.ue_security_cap.value.nrintegrity_protection_algorithms.set(1, true);
-  container.ue_security_cap.value.eutr_aencryption_algorithms.set(0, true);
-  container.ue_security_cap.value.eutr_aencryption_algorithms.set(1, true);
-  container.ue_security_cap.value.eutr_aintegrity_protection_algorithms.set(0, true);
-  container.ue_security_cap.value.eutr_aintegrity_protection_algorithms.set(1, true);
+  container->ue_security_cap.value.nrencryption_algorithms.set(0, true);
+  container->ue_security_cap.value.nrencryption_algorithms.set(1, true);
+  container->ue_security_cap.value.nrintegrity_protection_algorithms.set(0, true);
+  container->ue_security_cap.value.nrintegrity_protection_algorithms.set(1, true);
+  container->ue_security_cap.value.eutr_aencryption_algorithms.set(0, true);
+  container->ue_security_cap.value.eutr_aencryption_algorithms.set(1, true);
+  container->ue_security_cap.value.eutr_aintegrity_protection_algorithms.set(0, true);
+  container->ue_security_cap.value.eutr_aintegrity_protection_algorithms.set(1, true);
 
   // Set PDU Session Response Setup Item
   // TODO
@@ -263,13 +263,13 @@ void run_ng_initial_ue(ngap& ngap_obj, amf_dummy& amf, rrc_nr_dummy& rrc)
 
   // Check RRC security capabilities
   for (uint8_t i = 0; i < 8; ++i) {
-    TESTASSERT_EQ(container.ue_security_cap.value.nrencryption_algorithms.get(i),
+    TESTASSERT_EQ(container->ue_security_cap.value.nrencryption_algorithms.get(i),
                   rrc.sec_caps.nrencryption_algorithms.get(i));
-    TESTASSERT_EQ(container.ue_security_cap.value.nrintegrity_protection_algorithms.get(i),
+    TESTASSERT_EQ(container->ue_security_cap.value.nrintegrity_protection_algorithms.get(i),
                   rrc.sec_caps.nrintegrity_protection_algorithms.get(i));
-    TESTASSERT_EQ(container.ue_security_cap.value.eutr_aencryption_algorithms.get(i),
+    TESTASSERT_EQ(container->ue_security_cap.value.eutr_aencryption_algorithms.get(i),
                   rrc.sec_caps.eutr_aencryption_algorithms.get(i));
-    TESTASSERT_EQ(container.ue_security_cap.value.eutr_aintegrity_protection_algorithms.get(i),
+    TESTASSERT_EQ(container->ue_security_cap.value.eutr_aintegrity_protection_algorithms.get(i),
                   rrc.sec_caps.eutr_aintegrity_protection_algorithms.get(i));
   }
 

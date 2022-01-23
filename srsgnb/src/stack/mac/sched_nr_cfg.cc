@@ -22,6 +22,7 @@
 #include "srsgnb/hdr/stack/mac/sched_nr_cfg.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
 #include "srsran/adt/optional_array.h"
+#include "srsran/asn1/rrc_nr_utils.h"
 extern "C" {
 #include "srsran/phy/phch/ra_ul_nr.h"
 }
@@ -47,16 +48,15 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc_, uint32_t bwp_id_) :
+bwp_params_t::bwp_params_t(const cell_config_manager& cell, uint32_t bwp_id_, const sched_nr_bwp_cfg_t& bwp_cfg) :
   cell_cfg(cell),
-  sched_cfg(sched_cfg_),
-  cc(cc_),
+  sched_cfg(cell.sched_args),
+  cc(cell.cc),
   bwp_id(bwp_id_),
-  cfg(cell.bwps[bwp_id_]),
-  logger(srslog::fetch_basic_logger(sched_cfg_.logger_name)),
-  cached_empty_prb_mask(cell.bwps[bwp_id_].rb_width,
-                        cell.bwps[bwp_id_].start_rb,
-                        cell.bwps[bwp_id_].pdsch.rbg_size_cfg_1)
+  cfg(bwp_cfg),
+  nof_prb(cell_cfg.carrier.nof_prb),
+  logger(srslog::fetch_basic_logger(sched_cfg.logger_name)),
+  cached_empty_prb_mask(bwp_cfg.rb_width, bwp_cfg.start_rb, bwp_cfg.pdsch.rbg_size_cfg_1)
 {
   srsran_assert(cfg.pdcch.ra_search_space_present, "BWPs without RA search space not supported");
   const uint32_t ra_coreset_id = cfg.pdcch.ra_search_space.coreset_id;
@@ -109,8 +109,8 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
     for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
       rar_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
-      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].pdcch.coreset[ra_coreset_id],
-                                                &cell_cfg.bwps[0].pdcch.ra_search_space,
+      int n = srsran_pdcch_nr_locations_coreset(&cell_cfg.bwps[0].cfg.pdcch.coreset[ra_coreset_id],
+                                                &cell_cfg.bwps[0].cfg.pdcch.ra_search_space,
                                                 0,
                                                 agg_idx,
                                                 sl,
@@ -121,11 +121,11 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   }
 
   for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
-    if (not cell_cfg.bwps[0].pdcch.search_space_present[ss_id]) {
+    if (not cell_cfg.bwps[0].cfg.pdcch.search_space_present[ss_id]) {
       continue;
     }
-    auto& ss      = cell_cfg.bwps[0].pdcch.search_space[ss_id];
-    auto& coreset = cell_cfg.bwps[0].pdcch.coreset[ss.coreset_id];
+    auto& ss      = cell_cfg.bwps[0].cfg.pdcch.search_space[ss_id];
+    auto& coreset = cell_cfg.bwps[0].cfg.pdcch.coreset[ss.coreset_id];
     common_cce_list.emplace(ss_id);
     bwp_cce_pos_list& ss_cce_list = common_cce_list[ss_id];
     for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
@@ -140,12 +140,41 @@ bwp_params_t::bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg
   }
 }
 
-cell_params_t::cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_) :
-  cc(cc_), cfg(cell), sched_args(sched_cfg_)
+cell_config_manager::cell_config_manager(uint32_t                   cc_,
+                                         const sched_nr_cell_cfg_t& cell,
+                                         const sched_args_t&        sched_args_) :
+  cc(cc_), sched_args(sched_args_), default_ue_phy_cfg(get_common_ue_phy_cfg(cell)), sibs(cell.sibs)
 {
+  carrier.pci                    = cell.pci;
+  carrier.dl_center_frequency_hz = cell.dl_center_frequency_hz;
+  carrier.ul_center_frequency_hz = cell.ul_center_frequency_hz;
+  carrier.ssb_center_freq_hz     = cell.ssb_center_freq_hz;
+  carrier.offset_to_carrier      = cell.offset_to_carrier;
+  carrier.scs                    = cell.scs;
+  carrier.nof_prb                = cell.dl_cell_nof_prb;
+  carrier.start                  = 0; // TODO: Check
+  carrier.max_mimo_layers        = cell.nof_layers;
+  if (cell.dl_cfg_common.is_present()) {
+    carrier.offset_to_carrier = cell.dl_cfg_common->freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+    carrier.scs = (srsran_subcarrier_spacing_t)cell.dl_cfg_common->init_dl_bwp.generic_params.subcarrier_spacing.value;
+  }
+
+  // TDD-UL-DL-ConfigCommon
+  duplex.mode = SRSRAN_DUPLEX_MODE_FDD;
+  if (cell.tdd_ul_dl_cfg_common.has_value()) {
+    bool success = srsran::make_phy_tdd_cfg(*cell.tdd_ul_dl_cfg_common, &duplex);
+    srsran_assert(success, "Failed to generate Cell TDD config");
+  }
+
+  // Set SSB params
+  make_ssb_cfg(cell, &ssb);
+
+  // MIB
+  make_mib_cfg(cell, &mib);
+
   bwps.reserve(cell.bwps.size());
-  for (uint32_t i = 0; i < cfg.bwps.size(); ++i) {
-    bwps.emplace_back(cfg, sched_cfg_, cc, i);
+  for (uint32_t i = 0; i < cell.bwps.size(); ++i) {
+    bwps.emplace_back(*this, i, cell.bwps[i]);
   }
   srsran_assert(not bwps.empty(), "No BWPs were configured");
 }
@@ -157,48 +186,6 @@ sched_params_t::sched_params_t(const sched_args_t& sched_cfg_) : sched_cfg(sched
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-ue_carrier_params_t::ue_carrier_params_t(uint16_t rnti_, const bwp_params_t& bwp_cfg_, const ue_cfg_t& uecfg_) :
-  rnti(rnti_), cc(bwp_cfg_.cc), cfg_(&uecfg_), bwp_cfg(&bwp_cfg_), cached_dci_cfg(uecfg_.phy_cfg.get_dci_cfg())
-{
-  std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
-  const auto& pdcch        = phy().pdcch;
-  auto        ss_view      = srsran::make_optional_span(pdcch.search_space, pdcch.search_space_present);
-  auto        coreset_view = srsran::make_optional_span(pdcch.coreset, pdcch.coreset_present);
-  for (const auto& ss : ss_view) {
-    srsran_assert(coreset_view.contains(ss.coreset_id),
-                  "Invalid mapping search space id=%d to coreset id=%d",
-                  ss.id,
-                  ss.coreset_id);
-    cce_positions_list.emplace_back();
-    get_dci_locs(coreset_view[ss.coreset_id], ss, rnti, cce_positions_list.back());
-    ss_id_to_cce_idx[ss.id] = cce_positions_list.size() - 1;
-  }
-}
-
-int ue_carrier_params_t::find_ss_id(srsran_dci_format_nr_t dci_fmt) const
-{
-  static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
-  static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
-
-  auto active_ss_lst = view_active_search_spaces(phy().pdcch);
-
-  for (const srsran_search_space_t& ss : active_ss_lst) {
-    // Prioritize UE-dedicated SearchSpaces
-    if (ss.type == srsran_search_space_type_ue and ss.nof_candidates[aggr_idx] > 0 and
-        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
-      return ss.id;
-    }
-  }
-  // Search Common SearchSpaces
-  for (const srsran_search_space_t& ss : active_ss_lst) {
-    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) and ss.nof_candidates[aggr_idx] > 0 and
-        contains_dci_format(ss, dci_fmt) and is_rnti_type_valid_in_search_space(rnti_type, ss.type)) {
-      return ss.id;
-    }
-  }
-  return -1;
-}
 
 } // namespace sched_nr_impl
 } // namespace srsenb

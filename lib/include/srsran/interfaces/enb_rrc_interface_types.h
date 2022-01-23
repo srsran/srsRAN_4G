@@ -61,6 +61,7 @@ struct cell_cfg_t {
   uint32_t                            cell_id;
   uint16_t                            tac;
   uint32_t                            pci;
+  double                              tx_gain;
   uint16_t                            root_seq_idx;
   uint32_t                            dl_earfcn;
   double                              dl_freq_hz;

@@ -143,14 +143,14 @@ public:
 
   /********** NR INTERFACE ********************/
   int            init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
-  bool set_config(const srsran::phy_cfg_nr_t& cfg) final;
-  void send_prach(const uint32_t prach_occasion,
-                  const int      preamble_index,
-                  const float    preamble_received_target_power,
-                  const float    ta_base_sec = 0.0f) final;
+  bool           set_config(const srsran::phy_cfg_nr_t& cfg) final;
+  void           send_prach(const uint32_t prach_occasion,
+                            const int      preamble_index,
+                            const float    preamble_received_target_power,
+                            const float    ta_base_sec = 0.0f) final;
   void           set_earfcn(std::vector<uint32_t> earfcns);
-  bool has_valid_sr_resource(uint32_t sr_id) final;
-  void clear_pending_grants() final;
+  bool           has_valid_sr_resource(uint32_t sr_id) final;
+  void           clear_pending_grants() final;
   int            set_rar_grant(uint32_t                                       rar_slot_idx,
                                std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                                uint16_t                                       rnti,
@@ -164,6 +164,8 @@ private:
   void run_thread() final;
   void configure_prach_params();
   void reset();
+  bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool run_in_background);
+  void set_scell_cmd(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool earfcn_is_different);
 
   std::mutex              config_mutex;
   std::condition_variable config_cond;

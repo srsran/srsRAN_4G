@@ -48,7 +48,8 @@ test_bench::args_t::args_t(int argc, char** argv)
   bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
   bpo::options_description options_gnb_phy("gNb PHY related options");
   bpo::options_description options_ue_stack("UE stack options");
-  bpo::options_description options_ue_phy("UE stack options");
+  bpo::options_description options_ue_phy("UE PHY options");
+  bpo::options_description options_ue_rf("UE RF options");
   bpo::options_description options_assertion("Test assertions");
   bpo::options_description options_conf_file("Configuration file");
 
@@ -103,6 +104,10 @@ test_bench::args_t::args_t(int argc, char** argv)
         ("ue.phy.log.id_preamble",  bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"),  "UE PHY log ID preamble")
         ;
 
+  options_ue_rf.add_options()
+        ("ue.rf.log.level",       bpo::value<std::string>(&ue_radio_log_level)->default_value("warning"), "UE RF log level")
+        ;
+
   options_ue_stack.add_options()
         ("ue.stack.sr.period",      bpo::value<uint32_t>(&ue_stack.sr_period)->default_value(ue_stack.sr_period),           "SR period in number of opportunities. Set 0 to disable and 1 for all.")
         ("ue.stack.prach.period",   bpo::value<uint32_t>(&ue_stack.prach_period)->default_value(ue_stack.prach_period),     "PRACH period in SFN. Set 0 to disable and 1 for all.")
@@ -124,7 +129,8 @@ test_bench::args_t::args_t(int argc, char** argv)
   bpo::positional_options_description p;
   p.add("config_file", -1);
 
-  options.add(options_tb).add(options_assertion).add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add(options_conf_file).add_options()
+  options.add(options_tb).add(options_assertion).add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack)
+      .add(options_ue_phy).add(options_ue_rf).add(options_conf_file).add_options()
         ("help",                      "Show this message")
         ;
   // clang-format on
@@ -182,6 +188,7 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   // Calculate sampling rate in Hz
   srate_hz = (double)(srsran_min_symbol_sz_rb(phy_cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs));
+  ue_phy.srate_hz = srate_hz;
 
   cell_list.resize(1);
   cell_list[0].carrier = phy_cfg.carrier;
@@ -205,6 +212,10 @@ test_bench::args_t::args_t(int argc, char** argv)
     gnb_stack.pdsch.rb_start  = 0;
   }
 
+  // Disable RT priority in the UE PHY
+  ue_phy.workers_thread_prio   = -1;
+  ue_phy.slot_recv_thread_prio = -1;
+
   // Flag configuration as valid
   valid = true;
 }
@@ -224,6 +235,12 @@ int main(int argc, char** argv)
 
   // Assert bench is initialised correctly
   TESTASSERT(tb.is_initialised());
+
+  // Start cell selection procedure
+  srsue::rrc_interface_phy_nr::cell_select_result_t cs_res =
+      tb.run_cell_select(args.phy_cfg.carrier, args.phy_cfg.get_ssb_cfg());
+  srsran_assert(cs_res.status == srsue::rrc_interface_phy_nr::cell_select_result_t::SUCCESSFUL,
+                "Failed to perform cell selection");
 
   // Run per TTI basis
   while (tb.run_tti()) {

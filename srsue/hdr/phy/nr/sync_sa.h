@@ -76,22 +76,22 @@ public:
   sync_sa(srslog::basic_logger& logger, worker_pool& workers_);
   ~sync_sa();
 
-  bool init(const args_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
+  bool                init(const args_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
   bool                reset();
-  void stop();
+  void                stop();
   sync_state::state_t get_state();
 
   // The following methods control the SYNC state machine
-  void               cell_go_idle();
-  cell_search::ret_t cell_search_run(const cell_search::cfg_t& cfg);
-  bool               cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req);
+  void                                       cell_go_idle();
+  cell_search::ret_t                         cell_search_run(const cell_search::cfg_t& cfg);
+  rrc_interface_phy_nr::cell_select_result_t cell_select_run(const phy_interface_rrc_nr::cell_select_args_t& req);
 
   void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
 private:
   stack_interface_phy_nr*      stack = nullptr; ///< Stand-Alone RRC interface
   srsran::radio_interface_phy* radio = nullptr; ///< Radio object
-  srslog::basic_logger&        logger; ///< General PHY logger
+  srslog::basic_logger&        logger;          ///< General PHY logger
   worker_pool&                 workers;
 
   // FSM that manages RRC commands for cell search/select/sync procedures
@@ -101,13 +101,16 @@ private:
 
   std::atomic<bool>            running   = {false};
   cf_t*                        rx_buffer = nullptr;
+  double                       srate_hz  = 0; ///< Sampling rate in Hz
   uint32_t                     slot_sz   = 0; ///< Subframe size (1-ms)
   uint32_t                     tti       = 0;
   srsran::tti_semaphore<void*> tti_semaphore;
   srsran::rf_timestamp_t       last_rx_time;
-  bool                         is_pending_tx_end      = false;
+  std::atomic<bool>            is_pending_tx_end      = {false};
   uint32_t                     cell_search_nof_trials = 0;
   const static uint32_t        cell_search_max_trials = 100;
+  uint32_t                     sfn_sync_nof_trials    = 0;
+  const static uint32_t        sfn_sync_max_trials    = 100;
 
   cell_search::ret_t cs_ret;
   cell_search        searcher;
@@ -117,7 +120,7 @@ private:
   bool wait_idle();
   void run_state_idle();
   void run_state_cell_search();
-  void run_state_cell_select();
+  void run_state_sfn_sync();
   void run_state_cell_camping();
 
   int  radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time);

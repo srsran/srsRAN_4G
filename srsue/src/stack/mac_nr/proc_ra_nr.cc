@@ -266,7 +266,7 @@ void proc_ra_nr::ra_contention_resolution(bool received_con_res_matches_ue_id)
   }
   if (started_by == initiators_t::RRC || started_by == initiators_t::MAC || received_con_res_matches_ue_id) {
     if (received_con_res_matches_ue_id) {
-      logger.info("Received CONRES ID matches transmitted UE ID\n");
+      logger.info("Received CONRES ID matches transmitted UE ID");
     } else {
       logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
     }

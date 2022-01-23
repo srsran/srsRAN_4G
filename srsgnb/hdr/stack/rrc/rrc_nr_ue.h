@@ -38,7 +38,7 @@ public:
   };
 
   /// @param [in] start_msg3_timer: indicates whether the UE is created as part of a RACH process
-  ue(rrc_nr* parent_, uint16_t rnti_, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer = true);
+  ue(rrc_nr* parent_, uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer = true);
   ~ue();
 
   int  handle_sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_params_t& params);
@@ -74,6 +74,10 @@ public:
   /** TS 38.331 - 5.3.5 RRC reconfiguration */
   void handle_rrc_reconfiguration_complete(const asn1::rrc_nr::rrc_recfg_complete_s& msg);
 
+  /** TS 38.331 - 5.3.7 RRC connection reestablishment */
+  void handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_reest_request_s& msg);
+  void handle_rrc_reestablishment_complete(const asn1::rrc_nr::rrc_reest_complete_s& msg);
+
   /** TS 38.331 - 5.3.8 Connection Release */
   void send_rrc_release();
 
@@ -99,6 +103,9 @@ private:
   /** TS 38.331 - 5.3.3 RRC connection establishment */
   void send_rrc_setup();
   void send_rrc_reject(uint8_t reject_wait_time_secs);
+
+  /** TS 38.331 - 5.3.7 RRC connection reestablishment */
+  void send_connection_reest(uint8_t ncc);
 
   /// Update PDCP bearers based on ASN1 structs passed to the UE
   int update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_diff,

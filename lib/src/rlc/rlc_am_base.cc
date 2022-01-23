@@ -47,7 +47,7 @@ rlc_am::rlc_am(srsran_rat_t               rat,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
                srsran::timer_handler*     timers_) :
-  logger(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_)
+  rlc_common(logger), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_)
 {
   if (rat == srsran_rat_t::lte) {
     rlc_am_lte_tx* tx = new rlc_am_lte_tx(this);
@@ -64,49 +64,49 @@ rlc_am::rlc_am(srsran_rat_t               rat,
     tx->set_rx(rx);
     rx->set_tx(tx);
   } else {
-    logger.error("Invalid RAT at entity initialization");
+    RlcError("Invalid RAT at entity initialization");
   }
 }
+
 bool rlc_am::configure(const rlc_config_t& cfg_)
 {
-  // determine bearer name and configure Rx/Tx objects
+  // determine bearer name and configure rx/tx objects
   rb_name = rrc->get_rb_name(lcid);
 
-  // store config
+  // store configuration
   cfg = cfg_;
 
   if (not rx_base->configure(cfg)) {
-    logger.error("Error configuring bearer (RX)");
+    RlcError("Error configuring bearer (RX)");
     return false;
   }
 
   if (not tx_base->configure(cfg)) {
-    logger.error("Error configuring bearer (TX)");
+    RlcError("Error configuring bearer (TX)");
     return false;
   }
 
-  logger.info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-              "t_reordering=%d, t_status_prohibit=%d",
-              rb_name.c_str(),
-              cfg.am.t_poll_retx,
-              cfg.am.poll_pdu,
-              cfg.am.poll_byte,
-              cfg.am.max_retx_thresh,
-              cfg.am.t_reordering,
-              cfg.am.t_status_prohibit);
+  RlcInfo("configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+          "t_reordering=%d, t_status_prohibit=%d",
+          cfg.am.t_poll_retx,
+          cfg.am.poll_pdu,
+          cfg.am.poll_byte,
+          cfg.am.max_retx_thresh,
+          cfg.am.t_reordering,
+          cfg.am.t_status_prohibit);
   return true;
 }
 
 void rlc_am::stop()
 {
-  logger.debug("Stopped bearer %s", rb_name.c_str());
+  RlcDebug("Stopped bearer");
   tx_base->stop();
   rx_base->stop();
 }
 
 void rlc_am::reestablish()
 {
-  logger.debug("Reestablished bearer %s", rb_name.c_str());
+  RlcDebug("Reestablished bearer");
   tx_base->reestablish(); // calls stop and enables tx again
   rx_base->reestablish(); // calls only stop
 }
@@ -207,7 +207,7 @@ void rlc_am::set_bsr_callback(bsr_callback_t callback)
 /*******************************************************
  *     RLC AM TX entity
  *     This class is used for common code between the
- *     LTE and NR TX entitites
+ *     LTE and NR TX entities
  *******************************************************/
 int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
 {
@@ -218,7 +218,7 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   }
 
   if (sdu.get() == nullptr) {
-    logger->warning("NULL SDU pointer in write_sdu()");
+    RlcWarning("NULL SDU pointer in write_sdu()");
     return SRSRAN_ERROR;
   }
 
@@ -230,15 +230,14 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   uint32_t                                 nof_bytes = sdu->N_bytes;
   srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
   if (ret) {
-    logger->info(msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name, nof_bytes, tx_sdu_queue.size());
+    RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, tx_sdu_queue.size());
   } else {
     // in case of fail, the try_write returns back the sdu
-    logger->warning(ret.error()->msg,
-                    ret.error()->N_bytes,
-                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                    rb_name,
-                    ret.error()->N_bytes,
-                    tx_sdu_queue.size());
+    RlcHexWarning(ret.error()->msg,
+                  ret.error()->N_bytes,
+                  "[Dropped SDU] Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                  ret.error()->N_bytes,
+                  tx_sdu_queue.size());
     return SRSRAN_ERROR;
   }
 
@@ -253,11 +252,11 @@ void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
 /*******************************************************
  *     RLC AM RX entity
  *     This class is used for common code between the
- *     LTE and NR TX entitites
+ *     LTE and NR TX entities
  *******************************************************/
 void rlc_am::rlc_am_base_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
-  logger->info("Rx PDU -- N bytes %d", nof_bytes);
+  RlcInfo("Rx PDU - N bytes %d", nof_bytes);
   if (nof_bytes < 1) {
     return;
   }

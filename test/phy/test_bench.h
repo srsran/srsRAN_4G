@@ -23,9 +23,10 @@
 #define SRSRAN_TEST_BENCH_H
 
 #include "dummy_phy_common.h"
-#include "dummy_ue_phy.h"
 #include "srsenb/hdr/phy/nr/worker_pool.h"
+#include "srsran/radio/radio_dummy.h"
 #include "srsue/hdr/phy/nr/worker_pool.h"
+#include "srsue/hdr/phy/phy_nr_sa.h"
 
 class test_bench
 {
@@ -40,10 +41,13 @@ private:
   srsenb::nr::worker_pool gnb_phy;
   phy_common              gnb_phy_com;
   ue_dummy_stack          ue_stack;
-  ue_dummy_phy            ue_phy;
-  phy_common              ue_phy_com;
-  bool                    initialised = false;
-  uint32_t                sf_sz       = 0;
+  srsue::phy_nr_sa        ue_phy;
+  srsran::radio_dummy     ue_radio;
+  srsran::rf_timestamp_t  gnb_rx_time = {};
+
+  bool                initialised = false;
+  uint32_t            sf_sz       = 0;
+  srsran::rf_buffer_t rf_buffer;
   // Channel simulator
   srsran::channel dl_channel;
   srsran::channel ul_channel;
@@ -60,9 +64,10 @@ public:
     gnb_dummy_stack::args_t         gnb_stack;
     srsue::phy_args_nr_t            ue_phy;
     ue_dummy_stack::args_t          ue_stack;
-    std::string                     phy_com_log_level = "info";
-    std::string                     phy_lib_log_level = "none";
-    uint64_t                        durations_slots   = 100;
+    std::string                     gnb_phy_com_log_level = "info";
+    std::string                     ue_radio_log_level    = "info";
+    std::string                     phy_lib_log_level     = "none";
+    uint64_t                        durations_slots       = 100;
 
     // channel simulator args
     srsran::channel::args_t dl_channel;
@@ -80,19 +85,18 @@ public:
     gnb_stack(args.gnb_stack),
     gnb_phy(gnb_phy_com, gnb_stack, srslog::get_default_sink(), args.gnb_phy.nof_phy_threads),
     ue_stack(args.ue_stack, ue_phy),
-    ue_phy("PHY", args.ue_phy.nof_phy_threads),
-
-    ue_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
-               srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
+    ue_phy("PHY"),
+    ue_radio(),
     gnb_phy_com(phy_common::args_t(args.srate_hz, args.buffer_sz_ms, args.nof_channels),
                 srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME, srslog::get_default_sink(), false)),
     sf_sz((uint32_t)std::round(args.srate_hz * 1e-3)),
     duration_slots(args.durations_slots),
     dl_channel(args.dl_channel, 1, srslog::fetch_basic_logger(CHANNEL_LOG_NAME, srslog::get_default_sink(), false)),
-    ul_channel(args.ul_channel, 1, srslog::fetch_basic_logger(CHANNEL_LOG_NAME, srslog::get_default_sink(), false))
+    ul_channel(args.ul_channel, 1, srslog::fetch_basic_logger(CHANNEL_LOG_NAME, srslog::get_default_sink(), false)),
+    rf_buffer(1)
   {
-    srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
-    srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.phy_com_log_level));
+    srslog::fetch_basic_logger(UE_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.gnb_phy_com_log_level));
+    srslog::fetch_basic_logger(GNB_PHY_COM_LOG_NAME).set_level(srslog::str_to_basic_level(args.gnb_phy_com_log_level));
     srslog::fetch_basic_logger(CHANNEL_LOG_NAME).set_level(srslog::basic_levels::error);
 
     if (not gnb_phy.init(args.gnb_phy, args.cell_list)) {
@@ -110,15 +114,31 @@ public:
       return;
     }
 
-    // Initialise UE PHY
-    if (not ue_phy.init(args.ue_phy, ue_phy_com, &ue_stack, 31)) {
+    // Initialise radio
+    srsran::rf_args_t rf_args = {};
+    rf_args.nof_antennas      = 1;
+    rf_args.nof_carriers      = 1;
+    rf_args.srate_hz          = args.srate_hz;
+    rf_args.log_level         = args.ue_radio_log_level;
+    if (ue_radio.init(rf_args, &ue_phy) != SRSRAN_SUCCESS) {
       return;
     }
+
+    // Initialise UE PHY
+    if (ue_phy.init(args.ue_phy, &ue_stack, &ue_radio) != SRSRAN_SUCCESS) {
+      return;
+    }
+
+    // Wait for PHY to initialise
+    ue_phy.wait_initialize();
 
     // Set UE configuration
     if (not ue_phy.set_config(args.phy_cfg)) {
       return;
     }
+
+    // Wait for UE to notify stack that the configuration is completed
+    ue_stack.wait_phy_config_complete();
 
     // Make sure PHY log is not set by UE or gNb PHY
     set_handler_enabled(false);
@@ -136,9 +156,41 @@ public:
     initialised = true;
   }
 
+  srsue::rrc_interface_phy_nr::cell_select_result_t run_cell_select(const srsran_carrier_nr_t& carrier,
+                                                                    const srsran_ssb_cfg_t&    ssb_cfg)
+  {
+    // Prepare return value
+    srsue::rrc_interface_phy_nr::cell_select_result_t ret = {};
+
+    // Prepare cell selection arguments
+    srsue::phy_interface_rrc_nr::cell_select_args_t cs_args = {};
+    cs_args.carrier                                         = carrier;
+    cs_args.ssb_cfg                                         = ssb_cfg;
+
+    // Start cell selection procedure
+    if (not ue_phy.start_cell_select(cs_args)) {
+      // Return unsuccessful cell select result
+      return {};
+    }
+
+    // Run test bench until the cell selection is completed
+    while (not ue_stack.get_cell_select_finished()) {
+      run_tti();
+    }
+
+    // It is now the right time to start scheduling
+    gnb_stack.start_scheduling();
+
+    // Reset slot counting
+    slot_count = 0;
+
+    return ue_stack.get_cell_select_result();
+  }
+
   void stop()
   {
-    ue_phy_com.stop();
+    ue_stack.stop();
+    ue_radio.stop();
     gnb_phy_com.stop();
     gnb_phy.stop();
     ue_phy.stop();
@@ -147,7 +199,11 @@ public:
 
   ~test_bench() = default;
 
-  bool is_initialised() const { return ue_stack.is_valid() and gnb_stack.is_valid() and initialised; }
+  bool is_initialised()
+  {
+    return ue_stack.is_valid() and ue_radio.is_init() and ue_phy.is_initialized() and gnb_stack.is_valid() and
+           initialised;
+  }
 
   bool run_tti()
   {
@@ -158,16 +214,19 @@ public:
     }
 
     // Feed gNb the UE transmitted signal
-    srsran::rf_timestamp_t gnb_time = {};
-    std::vector<cf_t*>     gnb_rx_buffers(1);
+    std::vector<cf_t*> gnb_rx_buffers(1);
     gnb_rx_buffers[0] = gnb_worker->get_buffer_rx(0);
-    ue_phy_com.read(gnb_rx_buffers, sf_sz, gnb_time);
-
-    // Set gNb time
-    gnb_time.add(TX_ENB_DELAY * 1e-3);
+    ue_radio.read_tx(gnb_rx_buffers.data(), sf_sz);
 
     // Run the UL channel simulator
-    ul_channel.run(gnb_rx_buffers.data(), gnb_rx_buffers.data(), (uint32_t)sf_sz, gnb_time.get(0));
+    ul_channel.run(gnb_rx_buffers.data(), gnb_rx_buffers.data(), (uint32_t)sf_sz, gnb_rx_time.get(0));
+
+    // Set gNb TX time
+    srsran::rf_timestamp_t gnb_time = gnb_rx_time;
+    gnb_time.add(TX_ENB_DELAY * 1e-3);
+
+    // Advance gNb Rx time
+    gnb_rx_time.add(1e-3);
 
     // Set gNb context
     srsran::phy_common_interface::worker_context_t gnb_context;
@@ -181,41 +240,26 @@ public:
     gnb_phy_com.push_semaphore(gnb_worker);
     gnb_phy.start_worker(gnb_worker);
 
-    // Get UE worker
-    srsue::nr::sf_worker* ue_worker = ue_phy.wait_worker(slot_idx);
-    if (ue_worker == nullptr) {
-      return false;
-    }
-
     // Feed UE the gNb transmitted signal
     srsran::rf_timestamp_t ue_time = {};
     std::vector<cf_t*>     ue_rx_buffers(1);
-    ue_rx_buffers[0] = ue_worker->get_buffer(0, 0);
+    ue_rx_buffers[0] = rf_buffer.get(0);
     gnb_phy_com.read(ue_rx_buffers, sf_sz, ue_time);
-
-    // Set UE time
-    ue_time.add(TX_ENB_DELAY * 1e-3);
 
     // Run the DL channel simulator
     dl_channel.run(ue_rx_buffers.data(), ue_rx_buffers.data(), (uint32_t)sf_sz, ue_time.get(0));
 
-    // Set UE context
-    srsran::phy_common_interface::worker_context_t ue_context;
-    ue_context.sf_idx     = slot_idx;
-    ue_context.worker_ptr = ue_worker;
-    ue_context.last       = true; // Set last if standalone
-    ue_context.tx_time.copy(gnb_time);
-    ue_worker->set_context(ue_context);
+    // Write signal in UE radio buffer, this triggers UE to work
+    ue_radio.write_rx(ue_rx_buffers.data(), sf_sz);
 
-    // Run UE stack
-    ue_stack.run_tti(slot_idx, 1);
+    // Throttle UE PHY by running stack tick
+    ue_stack.tick();
 
-    // Start UE work
-    ue_phy_com.push_semaphore(ue_worker);
-    ue_phy.start_worker(ue_worker);
+    // Increment slot index, the slot index shall be continuous
+    slot_idx = (slot_idx + 1) % (1024 * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz));
 
+    // Increment slot counter and determine end of execution
     slot_count++;
-    slot_idx = slot_count % (1024 * SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz));
     return slot_count <= duration_slots;
   }
 
@@ -224,7 +268,7 @@ public:
     metrics_t metrics = {};
     metrics.gnb_stack = gnb_stack.get_metrics();
     metrics.ue_stack  = ue_stack.get_metrics();
-    ue_phy.get_metrics(metrics.ue_phy); // get the metrics from the ue_phy
+    ue_phy.get_metrics(srsran::srsran_rat_t::nr, &metrics.ue_phy); // get the metrics from the ue_phy
     return metrics;
   }
 };

@@ -129,6 +129,37 @@ static void ue_sync_nr_apply_feedback(srsran_ue_sync_nr_t* q)
   ue_sync_nr_reset_feedback(q);
 }
 
+static int ue_sync_nr_update_ssb(srsran_ue_sync_nr_t*                 q,
+                                 const srsran_csi_trs_measurements_t* measurements,
+                                 const srsran_pbch_msg_nr_t*          pbch_msg)
+{
+  srsran_mib_nr_t mib = {};
+  if (srsran_pbch_msg_nr_mib_unpack(pbch_msg, &mib) != SRSRAN_SUCCESS) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Reset feedback to prevent any previous erroneous measurement
+  ue_sync_nr_reset_feedback(q);
+
+  // Set feedback measurement
+  srsran_combine_csi_trs_measurements(&q->feedback, measurements, &q->feedback);
+
+  // Apply feedback
+  ue_sync_nr_apply_feedback(q);
+
+  // Setup context
+  q->ssb_idx = pbch_msg->ssb_idx;
+  q->sf_idx  = srsran_ssb_candidate_sf_idx(&q->ssb, pbch_msg->ssb_idx, pbch_msg->hrf);
+  q->sfn     = mib.sfn;
+
+  // Transition to track only if the measured delay is below 2.4 microseconds
+  if (measurements->delay_us < 2.4f) {
+    q->state = SRSRAN_UE_SYNC_NR_STATE_TRACK;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 static int ue_sync_nr_run_find(srsran_ue_sync_nr_t* q, cf_t* buffer)
 {
   srsran_csi_trs_measurements_t measurements = {};
@@ -145,26 +176,7 @@ static int ue_sync_nr_run_find(srsran_ue_sync_nr_t* q, cf_t* buffer)
     return SRSRAN_SUCCESS;
   }
 
-  // Reset feedback to prevent any previous erroneous measurement
-  ue_sync_nr_reset_feedback(q);
-
-  // Set feedback measurement
-  srsran_combine_csi_trs_measurements(&q->feedback, &measurements, &q->feedback);
-
-  // Apply feedback
-  ue_sync_nr_apply_feedback(q);
-
-  // Setup context
-  q->ssb_idx = pbch_msg.ssb_idx;
-  q->sf_idx  = srsran_ssb_candidate_sf_idx(&q->ssb, pbch_msg.ssb_idx, pbch_msg.hrf);
-  q->sfn     = pbch_msg.sfn_4lsb;
-
-  // Transition to track only if the measured delay is below 2.4 microseconds
-  if (measurements.delay_us < 2.4f) {
-    q->state = SRSRAN_UE_SYNC_NR_STATE_TRACK;
-  }
-
-  return SRSRAN_SUCCESS;
+  return ue_sync_nr_update_ssb(q, &measurements, &pbch_msg);
 }
 
 static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
@@ -176,28 +188,29 @@ static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
   // Check if the SSB selected candidate index shall be received in this subframe
   bool is_ssb_opportunity = (q->sf_idx == srsran_ssb_candidate_sf_idx(&q->ssb, q->ssb_idx, half_frame > 0));
 
-  // If
-  if (is_ssb_opportunity) {
-    // Measure PSS/SSS and decode PBCH
-    if (srsran_ssb_track(&q->ssb, buffer, q->N_id, q->ssb_idx, half_frame, &measurements, &pbch_msg) < SRSRAN_SUCCESS) {
-      ERROR("Error finding SSB");
-      return SRSRAN_ERROR;
-    }
-
-    // If the PBCH message was NOT decoded, transition to track
-    if (!pbch_msg.crc) {
-      q->state = SRSRAN_UE_SYNC_NR_STATE_FIND;
-      return SRSRAN_SUCCESS;
-    }
-
-    // Otherwise feedback measurements and apply
-    srsran_combine_csi_trs_measurements(&q->feedback, &measurements, &q->feedback);
+  // Use SSB periodicity
+  if (q->ssb.cfg.periodicity_ms >= 10) {
+    // SFN match with the periodicity
+    is_ssb_opportunity = is_ssb_opportunity && (half_frame == 0) && (q->sfn % q->ssb.cfg.periodicity_ms / 10 == 0);
   }
 
-  // Apply accumulated feedback
-  ue_sync_nr_apply_feedback(q);
+  if (!is_ssb_opportunity) {
+    return SRSRAN_SUCCESS;
+  }
 
-  return SRSRAN_SUCCESS;
+  // Measure PSS/SSS and decode PBCH
+  if (srsran_ssb_track(&q->ssb, buffer, q->N_id, q->ssb_idx, half_frame, &measurements, &pbch_msg) < SRSRAN_SUCCESS) {
+    ERROR("Error finding SSB");
+    return SRSRAN_ERROR;
+  }
+
+  // If the PBCH message was NOT decoded, transition to find
+  if (!pbch_msg.crc) {
+    q->state = SRSRAN_UE_SYNC_NR_STATE_FIND;
+    return SRSRAN_SUCCESS;
+  }
+
+  return ue_sync_nr_update_ssb(q, &measurements, &pbch_msg);
 }
 
 static int ue_sync_nr_recv(srsran_ue_sync_nr_t* q, cf_t** buffer, srsran_timestamp_t* timestamp)
@@ -247,7 +260,7 @@ static int ue_sync_nr_recv(srsran_ue_sync_nr_t* q, cf_t** buffer, srsran_timesta
   // Compensate CFO
   for (uint32_t chan = 0; chan < q->nof_rx_channels; chan++) {
     if (buffer[chan] != 0 && !q->disable_cfo) {
-      srsran_vec_apply_cfo(buffer[chan], q->cfo_hz / q->srate_hz, buffer[chan], (int)q->sf_sz);
+      srsran_vec_apply_cfo(buffer[chan], -q->cfo_hz / q->srate_hz, buffer[chan], (int)q->sf_sz);
     }
   }
 

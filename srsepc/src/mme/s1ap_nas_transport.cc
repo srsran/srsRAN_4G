@@ -95,19 +95,19 @@ bool s1ap_nas_transport::handle_initial_ue_message(const asn1::s1ap::init_ue_msg
   bool                         err, mac_valid;
   uint8_t                      pd, msg_type, sec_hdr_type;
   srsran::unique_byte_buffer_t nas_msg = srsran::make_byte_buffer();
-  memcpy(nas_msg->msg, init_ue.protocol_ies.nas_pdu.value.data(), init_ue.protocol_ies.nas_pdu.value.size());
-  nas_msg->N_bytes = init_ue.protocol_ies.nas_pdu.value.size();
+  memcpy(nas_msg->msg, init_ue->nas_pdu.value.data(), init_ue->nas_pdu.value.size());
+  nas_msg->N_bytes = init_ue->nas_pdu.value.size();
 
   uint64_t imsi           = 0;
   uint32_t m_tmsi         = 0;
-  uint32_t enb_ue_s1ap_id = init_ue.protocol_ies.enb_ue_s1ap_id.value.value;
+  uint32_t enb_ue_s1ap_id = init_ue->enb_ue_s1ap_id.value.value;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg.get(), &pd, &msg_type);
 
   srsran::console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
   m_logger.info("Initial UE message: %s", liblte_nas_msg_type_to_string(msg_type));
 
-  if (init_ue.protocol_ies.s_tmsi_present) {
-    srsran::uint8_to_uint32(init_ue.protocol_ies.s_tmsi.value.m_tmsi.data(), &m_tmsi);
+  if (init_ue->s_tmsi_present) {
+    srsran::uint8_to_uint32(init_ue->s_tmsi.value.m_tmsi.data(), &m_tmsi);
   }
 
   switch (msg_type) {
@@ -144,8 +144,8 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
                                                      struct sctp_sndrcvinfo*               enb_sri)
 {
   uint8_t  pd, msg_type, sec_hdr_type;
-  uint32_t enb_ue_s1ap_id      = ul_xport.protocol_ies.enb_ue_s1ap_id.value.value;
-  uint32_t mme_ue_s1ap_id      = ul_xport.protocol_ies.mme_ue_s1ap_id.value.value;
+  uint32_t enb_ue_s1ap_id      = ul_xport->enb_ue_s1ap_id.value.value;
+  uint32_t mme_ue_s1ap_id      = ul_xport->mme_ue_s1ap_id.value.value;
   bool     mac_valid           = false;
   bool     increase_ul_nas_cnt = true;
 
@@ -163,8 +163,8 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
 
   // Parse NAS message header
   srsran::unique_byte_buffer_t nas_msg = srsran::make_byte_buffer();
-  memcpy(nas_msg->msg, ul_xport.protocol_ies.nas_pdu.value.data(), ul_xport.protocol_ies.nas_pdu.value.size());
-  nas_msg->N_bytes   = ul_xport.protocol_ies.nas_pdu.value.size();
+  memcpy(nas_msg->msg, ul_xport->nas_pdu.value.data(), ul_xport->nas_pdu.value.size());
+  nas_msg->N_bytes   = ul_xport->nas_pdu.value.size();
   bool msg_encrypted = false;
 
   // Parse the message security header
@@ -362,13 +362,13 @@ bool s1ap_nas_transport::send_downlink_nas_transport(uint32_t               enb_
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_DL_NAS_TRANSPORT);
 
   // Setup Dw NAS structure
-  asn1::s1ap::dl_nas_transport_ies_container& dw_nas = tx_pdu.init_msg().value.dl_nas_transport().protocol_ies;
-  dw_nas.enb_ue_s1ap_id.value                        = enb_ue_s1ap_id;
-  dw_nas.mme_ue_s1ap_id.value                        = mme_ue_s1ap_id;
+  asn1::s1ap::dl_nas_transport_s& dw_nas = tx_pdu.init_msg().value.dl_nas_transport();
+  dw_nas->enb_ue_s1ap_id.value           = enb_ue_s1ap_id;
+  dw_nas->mme_ue_s1ap_id.value           = mme_ue_s1ap_id;
 
   // Copy NAS PDU to Downlink NAS Trasport message buffer
-  dw_nas.nas_pdu.value.resize(nas_msg->N_bytes);
-  memcpy(dw_nas.nas_pdu.value.data(), nas_msg->msg, nas_msg->N_bytes);
+  dw_nas->nas_pdu.value.resize(nas_msg->N_bytes);
+  memcpy(dw_nas->nas_pdu.value.data(), nas_msg->msg, nas_msg->N_bytes);
 
   // Send Downlink NAS Transport Message
   m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_sri);

@@ -105,7 +105,7 @@ void demux_nr::handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byt
         break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
         received_crueid = subpdu.get_ue_con_res_id_ce_packed();
-        logger.info("Received Contention Resolution ID 0x%lx\n", subpdu.get_ue_con_res_id_ce_packed());
+        logger.info("Received Contention Resolution ID 0x%lx", subpdu.get_ue_con_res_id_ce_packed());
         break;
       default:
         if (subpdu.is_sdu()) {

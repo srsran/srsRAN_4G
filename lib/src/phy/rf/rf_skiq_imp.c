@@ -592,10 +592,6 @@ int rf_skiq_set_rx_gain_ch(void* h_, uint32_t ch, double rx_gain)
 
   rx_gain = rf_skiq_card_set_rx_gain_db(&h->cards[card_idx], port_idx, rx_gain);
 
-  if (ch == 0) {
-    h->cur_tx_gain = rx_gain;
-  }
-
   return SRSRAN_SUCCESS;
 }
 
@@ -620,12 +616,10 @@ srsran_rf_info_t* rf_skiq_get_info(void* h_)
   if (h != NULL) {
     ret = &h->info;
 
-    rf_skiq_card_update_gain_table(&h->cards[0]);
-
     ret->min_tx_gain = 0.25 * (double)h->cards[0].param.tx_param->atten_quarter_db_max;
     ret->max_tx_gain = 0.25 * (double)h->cards[0].param.tx_param->atten_quarter_db_min;
-    ret->min_rx_gain = h->cards[0].rx_gain_table_db[h->cards[0].param.rx_param[0].gain_index_min];
-    ret->max_rx_gain = h->cards[0].rx_gain_table_db[h->cards[0].param.rx_param[0].gain_index_max];
+    ret->min_rx_gain = h->cards[0].param.rx_param[0].gain_index_min;
+    ret->max_rx_gain = h->cards[0].param.rx_param[0].gain_index_max;
   }
 
   return ret;

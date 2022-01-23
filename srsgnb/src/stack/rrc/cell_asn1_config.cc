@@ -135,7 +135,6 @@ void set_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
   if (cfg.is_standalone) {
-    csi_meas_cfg.csi_report_cfg_to_add_mod_list_present = true;
     csi_meas_cfg.csi_report_cfg_to_add_mod_list.resize(1);
 
     auto& csi_report                               = csi_meas_cfg.csi_report_cfg_to_add_mod_list[0];
@@ -180,7 +179,6 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
       csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
     }
   } else {
-    csi_meas_cfg.csi_report_cfg_to_add_mod_list_present = true;
     csi_meas_cfg.csi_report_cfg_to_add_mod_list.resize(1);
 
     auto& csi_report                               = csi_meas_cfg.csi_report_cfg_to_add_mod_list[0];
@@ -221,7 +219,6 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
 void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
   if (cfg.is_standalone) {
-    csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present = true;
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
       csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.resize(5);
       auto& nzp_csi_res = csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list;
@@ -293,7 +290,6 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     }
 
     // Fill NZP-CSI Resource Sets
-    csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present = true;
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
       csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.resize(2);
       auto& nzp_csi_res_set = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list;
@@ -319,7 +315,6 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
       // Skip TRS info
     }
   } else {
-    csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present = true;
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
       csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.resize(5);
       auto& nzp_csi_res = csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list;
@@ -391,7 +386,6 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     }
 
     // Fill NZP-CSI Resource Sets
-    csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present = true;
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
       csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.resize(2);
       auto& nzp_csi_res_set = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list;
@@ -422,12 +416,10 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
 void fill_csi_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
   if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list_present = true;
     csi_meas_cfg.csi_res_cfg_to_add_mod_list.resize(3);
 
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].csi_res_cfg_id = 0;
     auto& nzp = csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].csi_rs_res_set_list.set_nzp_csi_rs_ssb();
-    nzp.nzp_csi_rs_res_set_list_present = true;
     nzp.nzp_csi_rs_res_set_list.push_back(0);
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].bwp_id         = 0;
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
@@ -440,7 +432,6 @@ void fill_csi_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
 
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].csi_res_cfg_id = 2;
     auto& nzp2 = csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].csi_rs_res_set_list.set_nzp_csi_rs_ssb();
-    nzp2.nzp_csi_rs_res_set_list_present = true;
     nzp2.nzp_csi_rs_res_set_list.push_back(1);
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].bwp_id         = 0;
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
@@ -451,7 +442,6 @@ void fill_csi_im_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& cs
 {
   if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
     // csi-IM-ResourceToAddModList
-    csi_meas_cfg.csi_im_res_to_add_mod_list_present = true;
     csi_meas_cfg.csi_im_res_to_add_mod_list.resize(1);
 
     auto& csi_im_res                           = csi_meas_cfg.csi_im_res_to_add_mod_list[0];
@@ -472,7 +462,6 @@ void fill_csi_im_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& cs
     csi_im_res.periodicity_and_offset.slots80() = 1;
 
     // csi-IM-ResourceSetToAddModList
-    csi_meas_cfg.csi_im_res_set_to_add_mod_list_present = true;
     csi_meas_cfg.csi_im_res_set_to_add_mod_list.resize(1);
 
     auto& csi_im_res_set             = csi_meas_cfg.csi_im_res_set_to_add_mod_list[0];
@@ -520,14 +509,12 @@ int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_
       }
 
       // Add UE-specific SearchSpace
-      pdcch_cfg.search_spaces_to_add_mod_list_present = true;
       pdcch_cfg.search_spaces_to_add_mod_list.push_back({});
       set_search_space_from_phy_cfg(search_space_cfg, pdcch_cfg.search_spaces_to_add_mod_list.back());
 
       // Add CORESET associated with SearchSpace
-      uint32_t coreset_id                            = search_space_cfg.coreset_id;
-      auto&    coreset_cfg                           = cell_cfg.phy_cell.pdcch.coreset[coreset_id];
-      pdcch_cfg.ctrl_res_set_to_add_mod_list_present = true;
+      uint32_t coreset_id  = search_space_cfg.coreset_id;
+      auto&    coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[coreset_id];
       pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
       set_coreset_from_phy_cfg(coreset_cfg, pdcch_cfg.ctrl_res_set_to_add_mod_list.back());
     }
@@ -542,7 +529,6 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
   out.dmrs_dl_for_pdsch_map_type_a.setup().dmrs_add_position_present = true;
   out.dmrs_dl_for_pdsch_map_type_a.setup().dmrs_add_position         = dmrs_dl_cfg_s::dmrs_add_position_opts::pos1;
 
-  out.tci_states_to_add_mod_list_present = true;
   out.tci_states_to_add_mod_list.resize(1);
   out.tci_states_to_add_mod_list[0].tci_state_id = 0;
   out.tci_states_to_add_mod_list[0].qcl_type1.ref_sig.set_ssb();
@@ -557,7 +543,6 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
       pdsch_cfg_s::prb_bundling_type_c_::static_bundling_s_::bundle_size_opts::wideband;
 
   // ZP-CSI
-  out.zp_csi_rs_res_to_add_mod_list_present = false; // TEMP
   out.zp_csi_rs_res_to_add_mod_list.resize(1);
   out.zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
   out.zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.set_row4();
@@ -597,7 +582,6 @@ int fill_init_dl_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_d
 void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg_s& out)
 {
   // Make 2 PUCCH resource sets
-  out.res_set_to_add_mod_list_present = true;
   out.res_set_to_add_mod_list.resize(2);
 
   // Make PUCCH resource set for 1-2 bit
@@ -615,7 +599,6 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   }
 
   // Make 3 possible resources
-  out.res_to_add_mod_list_present = true;
   out.res_to_add_mod_list.resize(18);
   uint32_t j = 0, j2 = 0;
   for (uint32_t i = 0; i < out.res_to_add_mod_list.size(); ++i) {
@@ -656,7 +639,6 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   out.format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
 
   // SR resources
-  out.sched_request_res_to_add_mod_list_present = true;
   out.sched_request_res_to_add_mod_list.resize(1);
   auto& sr_res1                             = out.sched_request_res_to_add_mod_list[0];
   sr_res1.sched_request_res_id              = 1;
@@ -667,7 +649,6 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   sr_res1.res                               = 2;
 
   // DL data
-  out.dl_data_to_ul_ack_present = true;
   if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
     out.dl_data_to_ul_ack.resize(1);
     out.dl_data_to_ul_ack[0] = 4;
@@ -762,7 +743,6 @@ int fill_pdcch_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdc
   pdcch_cfg_common.common_ctrl_res_set_present = true;
   set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], pdcch_cfg_common.common_ctrl_res_set);
 
-  pdcch_cfg_common.common_search_space_list_present = true;
   pdcch_cfg_common.common_search_space_list.push_back({});
   set_search_space_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.search_space[1],
                                 pdcch_cfg_common.common_search_space_list.back());
@@ -831,7 +811,6 @@ int fill_freq_info_ul_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_in
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
 
-  freq_info_ul.freq_band_list_present = true;
   freq_info_ul.freq_band_list.push_back(cell_cfg.band);
   freq_info_ul.absolute_freq_point_a_present = true;
   freq_info_ul.absolute_freq_point_a         = cell_cfg.ul_absolute_freq_point_a;
@@ -1036,24 +1015,21 @@ void fill_drb(const rrc_nr_cfg_t& cfg, uint32_t lcid, srsran::nr_drb drb_id, asn
 /// Fill MasterCellConfig with gNB config
 int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::cell_group_cfg_s& out)
 {
-  out.cell_group_id                      = 0;
-  out.rlc_bearer_to_add_mod_list_present = true;
+  out.cell_group_id = 0;
   out.rlc_bearer_to_add_mod_list.resize(1);
   fill_srb(cfg, srsran::nr_srb::srb1, out.rlc_bearer_to_add_mod_list[0]);
 
   // mac-CellGroupConfig -- Need M
-  out.mac_cell_group_cfg_present                                                 = true;
-  out.mac_cell_group_cfg.sched_request_cfg_present                               = true;
-  out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present = true;
+  out.mac_cell_group_cfg_present                   = true;
+  out.mac_cell_group_cfg.sched_request_cfg_present = true;
   out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.resize(1);
   out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0].sched_request_id = 0;
   out.mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0].sr_trans_max.value =
       sched_request_to_add_mod_s::sr_trans_max_opts::n64;
-  out.mac_cell_group_cfg.bsr_cfg_present                     = true;
-  out.mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.value    = bsr_cfg_s::periodic_bsr_timer_opts::sf20;
-  out.mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.value        = bsr_cfg_s::retx_bsr_timer_opts::sf320;
-  out.mac_cell_group_cfg.tag_cfg_present                     = true;
-  out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list_present = true;
+  out.mac_cell_group_cfg.bsr_cfg_present                  = true;
+  out.mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.value = bsr_cfg_s::periodic_bsr_timer_opts::sf20;
+  out.mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.value     = bsr_cfg_s::retx_bsr_timer_opts::sf320;
+  out.mac_cell_group_cfg.tag_cfg_present                  = true;
   out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.resize(1);
   out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].tag_id                 = 0;
   out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].time_align_timer.value = time_align_timer_opts::infinity;
@@ -1123,7 +1099,6 @@ void fill_pdcch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdcch_cfg_common_s
   cfg.search_space_zero_present = true;
   cfg.search_space_zero         = 0;
 
-  cfg.common_search_space_list_present = true;
   cfg.common_search_space_list.resize(1);
   set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], cfg.common_search_space_list[0]);
 
@@ -1139,7 +1114,6 @@ void fill_pdcch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdcch_cfg_common_s
 
 void fill_pdsch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdsch_cfg_common_s& cfg)
 {
-  cfg.pdsch_time_domain_alloc_list_present = true;
   cfg.pdsch_time_domain_alloc_list.resize(1);
   cfg.pdsch_time_domain_alloc_list[0].map_type.value       = pdsch_time_domain_res_alloc_s::map_type_opts::type_a;
   cfg.pdsch_time_domain_alloc_list[0].start_symbol_and_len = 40;
@@ -1191,7 +1165,6 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
 {
   srsran::srsran_band_helper band_helper;
 
-  cfg.freq_info_ul.freq_band_list_present = true;
   cfg.freq_info_ul.freq_band_list.resize(1);
   cfg.freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
   cfg.freq_info_ul.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
@@ -1216,9 +1189,8 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
   cfg.init_ul_bwp.rach_cfg_common_present = true;
   set_rach_cfg_common(cell_cfg.phy_cell.prach, cfg.init_ul_bwp.rach_cfg_common.set_setup());
 
-  cfg.init_ul_bwp.pusch_cfg_common_present   = true;
-  pusch_cfg_common_s& pusch                  = cfg.init_ul_bwp.pusch_cfg_common.set_setup();
-  pusch.pusch_time_domain_alloc_list_present = true;
+  cfg.init_ul_bwp.pusch_cfg_common_present = true;
+  pusch_cfg_common_s& pusch                = cfg.init_ul_bwp.pusch_cfg_common.set_setup();
   pusch.pusch_time_domain_alloc_list.resize(1);
   pusch.pusch_time_domain_alloc_list[0].k2_present           = true;
   pusch.pusch_time_domain_alloc_list[0].k2                   = 4;
@@ -1319,17 +1291,15 @@ bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&       cfg,
   std::vector<uint8_t> srbs_to_rem;
   srsran::compute_cfg_diff(
       prev_bearers.srb_to_add_mod_list, next_bearers.srb_to_add_mod_list, diff.srb_to_add_mod_list, srbs_to_rem);
-  diff.srb_to_add_mod_list_present = diff.srb_to_add_mod_list.size() > 0;
 
   // Compute DRB differences
   srsran::compute_cfg_diff(prev_bearers.drb_to_add_mod_list,
                            next_bearers.drb_to_add_mod_list,
                            diff.drb_to_add_mod_list,
                            diff.drb_to_release_list);
-  diff.drb_to_add_mod_list_present = diff.drb_to_add_mod_list.size() > 0;
-  diff.drb_to_release_list_present = diff.drb_to_release_list.size() > 0;
 
-  return diff.srb_to_add_mod_list_present or diff.drb_to_release_list_present or diff.drb_to_add_mod_list_present;
+  return diff.srb_to_add_mod_list.size() > 0 or diff.drb_to_release_list.size() > 0 or
+         diff.drb_to_add_mod_list.size() > 0;
 }
 
 void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
@@ -1350,13 +1320,11 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
     uint32_t lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
     fill_drb(cfg, lcid, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
   }
-  out.rlc_bearer_to_add_mod_list_present = out.rlc_bearer_to_add_mod_list.size() > 0;
 
   // Release DRBs
   for (uint8_t drb_id : bearers.drb_to_release_list) {
     out.rlc_bearer_to_release_list.push_back(drb_id);
   }
-  out.rlc_bearer_to_release_list_present = out.rlc_bearer_to_release_list.size() > 0;
 }
 
 } // namespace srsenb

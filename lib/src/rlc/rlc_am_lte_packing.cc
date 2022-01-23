@@ -318,32 +318,4 @@ bool rlc_am_not_start_aligned(const uint8_t fi)
   return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
-void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header)
-{
-  if (not log_ch.enabled()) {
-    return;
-  }
-  fmt::memory_buffer buffer;
-  fmt::format_to(buffer,
-                 "[{}, RF={}, P={}, FI={}, SN={}, LSF={}, SO={}, N_li={}",
-                 rlc_dc_field_text[header.dc],
-                 (header.rf ? "1" : "0"),
-                 (header.p ? "1" : "0"),
-                 (header.fi ? "1" : "0"),
-                 header.sn,
-                 (header.lsf ? "1" : "0"),
-                 header.so,
-                 header.N_li);
-  if (header.N_li > 0) {
-    fmt::format_to(buffer, " ({}", header.li[0]);
-    for (uint32_t i = 1; i < header.N_li; ++i) {
-      fmt::format_to(buffer, ", {}", header.li[i]);
-    }
-    fmt::format_to(buffer, ")");
-  }
-  fmt::format_to(buffer, "]");
-
-  log_ch("%s", to_c_str(buffer));
-}
-
 } // namespace srsran

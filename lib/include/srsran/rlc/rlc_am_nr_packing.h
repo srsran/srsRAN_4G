@@ -27,6 +27,8 @@
 
 namespace srsran {
 
+const uint32_t INVALID_RLC_SN = 0xFFFFFFFF;
+
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {
   rlc_am_nr_pdu_header_t()                                = default;
@@ -69,6 +71,14 @@ struct rlc_amd_rx_sdu_nr_t {
   explicit rlc_amd_rx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
 };
 
+struct rlc_amd_tx_sdu_nr_t {
+  uint32_t             rlc_sn = INVALID_RLC_SN;
+  unique_byte_buffer_t buf;
+
+  rlc_amd_tx_sdu_nr_t() = default;
+  explicit rlc_amd_tx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
+};
+
 ///< AM NR Status PDU header (perhaps merge with LTE version)
 typedef struct {
   rlc_am_nr_control_pdu_type_t cpt;
@@ -91,6 +101,7 @@ uint32_t rlc_am_nr_read_data_pdu_header(const uint8_t*            payload,
                                         const rlc_am_nr_sn_size_t sn_size,
                                         rlc_am_nr_pdu_header_t*   header);
 
+uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, uint8_t* payload);
 uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu);
 
 uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header);

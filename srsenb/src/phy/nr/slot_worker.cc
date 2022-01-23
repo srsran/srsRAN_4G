@@ -27,7 +27,7 @@
 
 #ifdef DEBUG_WRITE_FILE
 FILE*           f;
-static uint32_t num_slots = 0;
+static uint32_t num_slots     = 0;
 static uint32_t slots_to_dump = 10;
 #endif
 
@@ -293,9 +293,8 @@ bool slot_worker::work_dl()
   // Releases synchronization lock and allow next worker to retrieve scheduling results
   sync.release();
 
-  // Abort if the scheduling failed
+  // Abort DL processing if the scheduling returned an invalid pointer
   if (dl_sched_ptr == nullptr) {
-    logger.error("Error retrieving DL scheduling");
     return false;
   }
 

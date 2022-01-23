@@ -854,8 +854,35 @@ static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& cellroot)
               rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a4_thresh"]);
         }
         break;
+      case 5:
+        // a5-threshold1
+        if (!root[i].exists("a5_thresh1")) {
+          ERROR("Missing a5_thresh1 field for A5 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a5().a5_thres1.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a5_thresh1"]);
+        } else {
+          event.event_id.set_event_a5().a5_thres1.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a5_thresh1"]);
+        }
+
+        // a5-threshold2
+        if (!root[i].exists("a5_thresh2")) {
+          ERROR("Missing a5_thresh2 field for A5 event\n");
+          return SRSRAN_ERROR;
+        }
+        if (meas_item.trigger_quant == report_cfg_eutra_s::trigger_quant_opts::rsrp) {
+          event.event_id.set_event_a5().a5_thres2.set_thres_rsrp() =
+              rrc_value_to_range(srsran::quant_rsrp, (int)root[i]["a5_thresh2"]);
+        } else {
+          event.event_id.set_event_a5().a5_thres2.set_thres_rsrq() =
+              rrc_value_to_range(srsran::quant_rsrq, (int)root[i]["a5_thresh2"]);
+        }
+        break;
       default:
-        ERROR("Invalid or unsupported event A%d in meas_report_desc (only A1-A4 are supported)\n",
+        ERROR("Invalid or unsupported event A%d in meas_report_desc (only A1-A5 are supported)\n",
               (int)root[i]["eventA"]);
         return SRSRAN_ERROR;
     }
@@ -907,6 +934,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     HANDLEPARSERCODE(parse_required_field(cell_cfg.cell_id, cellroot, "cell_id"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.pci, cellroot, "pci"));
+    parse_default_field(cell_cfg.tx_gain, cellroot, "tx_gain", 0.0);
     cell_cfg.pci = cell_cfg.pci % SRSRAN_NUM_PCI;
     HANDLEPARSERCODE(parse_required_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn"));
     parse_default_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq", 0.0); // will be derived from DL EARFCN If not set
@@ -1305,6 +1333,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cell_cfg.cell_id        = cfg.cell_id;
     phy_cell_cfg.root_seq_idx   = cfg.root_seq_idx;
     phy_cell_cfg.rf_port        = cfg.rf_port;
+    phy_cell_cfg.gain_db        = cfg.tx_gain;
     phy_cell_cfg.num_ra_preambles =
         rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
 

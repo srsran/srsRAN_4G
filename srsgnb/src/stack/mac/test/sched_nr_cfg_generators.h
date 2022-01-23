@@ -23,6 +23,7 @@
 #define SRSRAN_SCHED_NR_CFG_GENERATORS_H
 
 #include "srsgnb/hdr/stack/mac/sched_nr_interface_utils.h"
+#include "srsran/asn1/rrc_nr_utils.h"
 #include "srsran/common/phy_cfg_nr_default.h"
 
 namespace srsenb {
@@ -52,16 +53,28 @@ inline srsran_search_space_t get_default_search_space0()
   return ss;
 }
 
-inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
-    const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
+inline sched_nr_cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{
+                                                    srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
-  sched_nr_interface::cell_cfg_t cell_cfg{};
+  sched_nr_cell_cfg_t cell_cfg{};
 
-  cell_cfg.carrier          = phy_cfg.carrier;
-  cell_cfg.duplex           = phy_cfg.duplex;
-  cell_cfg.ssb              = phy_cfg.ssb;
-  cell_cfg.mib.coreset0_idx = 6;
-  cell_cfg.mib.scs_common   = srsran_subcarrier_spacing_15kHz;
+  cell_cfg.pci                    = phy_cfg.carrier.pci;
+  cell_cfg.dl_center_frequency_hz = phy_cfg.carrier.dl_center_frequency_hz;
+  cell_cfg.ul_center_frequency_hz = phy_cfg.carrier.ul_center_frequency_hz;
+  cell_cfg.ssb_center_freq_hz     = phy_cfg.carrier.ssb_center_freq_hz;
+  cell_cfg.offset_to_carrier      = phy_cfg.carrier.offset_to_carrier;
+  cell_cfg.scs                    = phy_cfg.carrier.scs;
+  cell_cfg.dl_cell_nof_prb        = phy_cfg.carrier.nof_prb;
+  cell_cfg.nof_layers             = phy_cfg.carrier.max_mimo_layers;
+  cell_cfg.ssb_periodicity_ms     = phy_cfg.ssb.periodicity_ms;
+  for (uint32_t i = 0; i < cell_cfg.ssb_positions_in_burst.in_one_group.length(); ++i) {
+    cell_cfg.ssb_positions_in_burst.in_one_group.set(i, phy_cfg.ssb.position_in_burst[i]);
+  }
+  // TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
+  cell_cfg.dmrs_type_a_position.value       = asn1::rrc_nr::mib_s::dmrs_type_a_position_opts::pos2;
+  cell_cfg.ssb_scs.value                    = (asn1::rrc_nr::subcarrier_spacing_opts::options)phy_cfg.ssb.scs;
+  cell_cfg.pdcch_cfg_sib1.ctrl_res_set_zero = 6;
+  cell_cfg.pdcch_cfg_sib1.search_space_zero = 0;
 
   cell_cfg.bwps.resize(1);
   cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;
@@ -72,14 +85,21 @@ inline sched_nr_interface::cell_cfg_t get_default_cell_cfg(
   cell_cfg.bwps[0].harq_ack = phy_cfg.harq_ack;
   cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
 
+  if (phy_cfg.duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+    cell_cfg.tdd_ul_dl_cfg_common.emplace();
+    srsran_assert(srsran::make_phy_tdd_cfg(
+                      phy_cfg.duplex, srsran_subcarrier_spacing_15kHz, &cell_cfg.tdd_ul_dl_cfg_common.value()),
+                  "Failed to generate TDD config");
+  }
+
   return cell_cfg;
 }
 
-inline std::vector<sched_nr_interface::cell_cfg_t> get_default_cells_cfg(
+inline std::vector<sched_nr_cell_cfg_t> get_default_cells_cfg(
     uint32_t                    nof_sectors,
     const srsran::phy_cfg_nr_t& phy_cfg = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}})
 {
-  std::vector<sched_nr_interface::cell_cfg_t> cells;
+  std::vector<sched_nr_cell_cfg_t> cells;
   cells.reserve(nof_sectors);
   for (uint32_t i = 0; i < nof_sectors; ++i) {
     cells.push_back(get_default_cell_cfg(phy_cfg));
@@ -97,9 +117,6 @@ inline sched_nr_interface::ue_cfg_t get_rach_ue_cfg(uint32_t                    
   uecfg.carriers.resize(1);
   uecfg.carriers[0].active = true;
   uecfg.carriers[0].cc     = cc;
-
-  // set SRB0 as active
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
 
   // set basic PHY config
   uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
@@ -124,17 +141,16 @@ inline sched_nr_interface::ue_cfg_t get_default_ue_cfg(
     uecfg.carriers[cc].cc     = cc;
     uecfg.carriers[cc].active = true;
   }
-  uecfg.phy_cfg                 = phy_cfg;
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
+  uecfg.phy_cfg = phy_cfg;
 
   return uecfg;
 }
 
-inline sched_nr_interface::cell_cfg_t get_default_sa_cell_cfg_common()
+inline sched_nr_cell_cfg_t get_default_sa_cell_cfg_common()
 {
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref;
   ref.duplex                                        = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  sched_nr_interface::cell_cfg_t cell_cfg           = get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref});
+  sched_nr_cell_cfg_t cell_cfg                      = get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref});
   cell_cfg.bwps[0].pdcch.coreset_present[0]         = true;
   cell_cfg.bwps[0].pdcch.coreset[0]                 = get_default_coreset0(52);
   cell_cfg.bwps[0].pdcch.coreset[0].offset_rb       = 1;

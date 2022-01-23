@@ -444,6 +444,8 @@ bool ngap::handle_initiating_message(const asn1::ngap::init_msg_s& msg)
       return handle_ue_context_release_cmd(msg.value.ue_context_release_cmd());
     case ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request:
       return handle_ue_pdu_session_res_setup_request(msg.value.pdu_session_res_setup_request());
+    case ngap_elem_procs_o::init_msg_c::types_opts::paging:
+      return handle_paging(msg.value.paging());
     default:
       logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
@@ -478,7 +480,7 @@ bool ngap::handle_ng_setup_response(const asn1::ngap::ng_setup_resp_s& msg)
   amf_connected   = true;
   ng_setup_proc_t::ngsetupresult res;
   res.success = true;
-  logger.info("AMF name: %s", ngsetupresponse.protocol_ies.amf_name.value.to_string());
+  logger.info("AMF name: %s", ngsetupresponse->amf_name.value.to_string());
   ngsetup_proc.trigger(res);
 
   return true;
@@ -486,7 +488,7 @@ bool ngap::handle_ng_setup_response(const asn1::ngap::ng_setup_resp_s& msg)
 
 bool ngap::handle_ng_setup_failure(const asn1::ngap::ng_setup_fail_s& msg)
 {
-  std::string cause = get_cause(msg.protocol_ies.cause.value);
+  std::string cause = get_cause(msg->cause.value);
   logger.error("NG Setup Failure. Cause: %s", cause.c_str());
   srsran::console("NG Setup Failure. Cause: %s\n", cause.c_str());
   return true;
@@ -497,37 +499,36 @@ bool ngap::handle_dl_nas_transport(const asn1::ngap::dl_nas_transport_s& msg)
   if (msg.ext) {
     logger.warning("Not handling NGAP message extension");
   }
-  ue* u =
-      handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
+  ue* u = handle_ngapmsg_ue_id(msg->ran_ue_ngap_id.value.value, msg->amf_ue_ngap_id.value.value);
 
   if (u == nullptr) {
     logger.warning("Couldn't find user with ran_ue_ngap_id %d and %d",
-                   msg.protocol_ies.ran_ue_ngap_id.value.value,
-                   msg.protocol_ies.amf_ue_ngap_id.value.value);
+                   msg->ran_ue_ngap_id.value.value,
+                   msg->amf_ue_ngap_id.value.value);
     return false;
   }
 
-  if (msg.protocol_ies.old_amf_present) {
+  if (msg->old_amf_present) {
     logger.warning("Not handling OldAMF");
   }
 
-  if (msg.protocol_ies.ran_paging_prio_present) {
+  if (msg->ran_paging_prio_present) {
     logger.warning("Not handling RANPagingPriority");
   }
 
-  if (msg.protocol_ies.mob_restrict_list_present) {
+  if (msg->mob_restrict_list_present) {
     logger.warning("Not handling MobilityRestrictionList");
   }
 
-  if (msg.protocol_ies.idx_to_rfsp_present) {
+  if (msg->idx_to_rfsp_present) {
     logger.warning("Not handling IndexToRFSP");
   }
 
-  if (msg.protocol_ies.ue_aggregate_maximum_bit_rate_present) {
+  if (msg->ue_aggregate_maximum_bit_rate_present) {
     logger.warning("Not handling UEAggregateMaximumBitRate");
   }
 
-  if (msg.protocol_ies.allowed_nssai_present) {
+  if (msg->allowed_nssai_present) {
     logger.warning("Not handling AllowedNSSAI");
   }
 
@@ -536,16 +537,15 @@ bool ngap::handle_dl_nas_transport(const asn1::ngap::dl_nas_transport_s& msg)
     logger.error("Fatal Error: Couldn't allocate buffer in ngap::run_thread().");
     return false;
   }
-  memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
-  pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
+  memcpy(pdu->msg, msg->nas_pdu.value.data(), msg->nas_pdu.value.size());
+  pdu->N_bytes = msg->nas_pdu.value.size();
   rrc->write_dl_info(u->ctxt.rnti, std::move(pdu));
   return true;
 }
 
 bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setup_request_s& msg)
 {
-  ue* u =
-      handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
+  ue* u = handle_ngapmsg_ue_id(msg->ran_ue_ngap_id.value.value, msg->amf_ue_ngap_id.value.value);
   if (u == nullptr) {
     logger.warning("Can not find UE");
     return false;
@@ -558,7 +558,7 @@ bool ngap::handle_initial_ctxt_setup_request(const asn1::ngap::init_context_setu
 
 bool ngap::handle_ue_context_release_cmd(const asn1::ngap::ue_context_release_cmd_s& msg)
 {
-  const asn1::ngap::ue_ngap_id_pair_s& ue_ngap_id_pair = msg.protocol_ies.ue_ngap_ids.value.ue_ngap_id_pair();
+  const asn1::ngap::ue_ngap_id_pair_s& ue_ngap_id_pair = msg->ue_ngap_ids.value.ue_ngap_id_pair();
 
   ue* u = handle_ngapmsg_ue_id(ue_ngap_id_pair.ran_ue_ngap_id, ue_ngap_id_pair.amf_ue_ngap_id);
   if (u == nullptr) {
@@ -571,17 +571,30 @@ bool ngap::handle_ue_context_release_cmd(const asn1::ngap::ue_context_release_cm
 
 bool ngap::handle_ue_pdu_session_res_setup_request(const asn1::ngap::pdu_session_res_setup_request_s& msg)
 {
-  ue* u =
-      handle_ngapmsg_ue_id(msg.protocol_ies.ran_ue_ngap_id.value.value, msg.protocol_ies.amf_ue_ngap_id.value.value);
+  ue* u = handle_ngapmsg_ue_id(msg->ran_ue_ngap_id.value.value, msg->amf_ue_ngap_id.value.value);
   if (u == nullptr) {
     logger.warning("Can not find UE");
     return false;
   }
 
-  if (msg.protocol_ies.ue_aggregate_maximum_bit_rate_present) {
-    rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg.protocol_ies.ue_aggregate_maximum_bit_rate.value);
+  if (msg->ue_aggregate_maximum_bit_rate_present) {
+    rrc->set_aggregate_max_bitrate(u->ctxt.rnti, msg->ue_aggregate_maximum_bit_rate.value);
   }
   u->handle_pdu_session_res_setup_request(msg);
+
+  return true;
+}
+
+bool ngap::handle_paging(const asn1::ngap::paging_s& msg)
+{
+  logger.info("Paging is not supported yet.");
+
+  // TODO: Handle Paging after RRC Paging is implemented
+
+  // uint32_t ue_paging_id = msg->ue_paging_id.id;
+  // Note: IMSI Paging is not supported in NR
+  // uint64_t tmsi = msg->ue_paging_id.value.five_g_s_tmsi().five_g_tmsi.to_number();
+  // rrc->add_paging(ue_paging_id, tmsi);
 
   return true;
 }
@@ -601,22 +614,22 @@ bool ngap::send_error_indication(const asn1::ngap::cause_c& cause,
 
   ngap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_ERROR_IND);
-  auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
+  auto& container = tx_pdu.init_msg().value.error_ind();
 
-  uint16_t rnti                    = SRSRAN_INVALID_RNTI;
-  container.ran_ue_ngap_id_present = ran_ue_ngap_id.has_value();
+  uint16_t rnti                     = SRSRAN_INVALID_RNTI;
+  container->ran_ue_ngap_id_present = ran_ue_ngap_id.has_value();
   if (ran_ue_ngap_id.has_value()) {
-    container.ran_ue_ngap_id.value = ran_ue_ngap_id.value();
-    ue* user_ptr                   = users.find_ue_gnbid(ran_ue_ngap_id.value());
-    rnti                           = user_ptr != nullptr ? user_ptr->ctxt.rnti : SRSRAN_INVALID_RNTI;
+    container->ran_ue_ngap_id.value = ran_ue_ngap_id.value();
+    ue* user_ptr                    = users.find_ue_gnbid(ran_ue_ngap_id.value());
+    rnti                            = user_ptr != nullptr ? user_ptr->ctxt.rnti : SRSRAN_INVALID_RNTI;
   }
-  container.amf_ue_ngap_id_present = amf_ue_ngap_id.has_value();
+  container->amf_ue_ngap_id_present = amf_ue_ngap_id.has_value();
   if (amf_ue_ngap_id.has_value()) {
-    container.amf_ue_ngap_id.value = amf_ue_ngap_id.value();
+    container->amf_ue_ngap_id.value = amf_ue_ngap_id.value();
   }
 
-  container.cause_present = true;
-  container.cause.value   = cause;
+  container->cause_present = true;
+  container->cause.value   = cause;
 
   return sctp_send_ngap_pdu(tx_pdu, rnti, "Error Indication");
 }
@@ -665,38 +678,28 @@ bool ngap::setup_ng()
 
   ngap_pdu_c pdu;
   pdu.set_init_msg().load_info_obj(ASN1_NGAP_ID_NG_SETUP);
-  ng_setup_request_ies_container& container     = pdu.init_msg().value.ng_setup_request().protocol_ies;
-  global_gnb_id_s&                global_gnb_id = container.global_ran_node_id.value.set_global_gnb_id();
-  global_gnb_id.plmn_id                         = tai.plmn_id;
-  // TODO: when ASN1 is fixed
-  // global_gnb_id.gnb_id.set_gnb_id().from_number(args.gnb_id);
+  ng_setup_request_s& container     = pdu.init_msg().value.ng_setup_request();
+  global_gnb_id_s&    global_gnb_id = container->global_ran_node_id.value.set_global_gnb_id();
+  global_gnb_id.plmn_id             = tai.plmn_id;
 
-  // container.ran_node_name_present = true;
-  // container.ran_node_name.value.from_string(args.gnb_name);
+  global_gnb_id.gnb_id.set_gnb_id().from_number(args.gnb_id);
 
-  asn1::bounded_bitstring<22, 32, false, true>& gnb_str = global_gnb_id.gnb_id.set_gnb_id();
-  gnb_str.resize(32);
-  uint8_t       buffer[4];
-  asn1::bit_ref bref(&buffer[0], sizeof(buffer));
-  bref.pack(args.gnb_id, 8);
-  memcpy(gnb_str.data(), &buffer[0], bref.distance_bytes());
-
-  container.ran_node_name_present = true;
+  container->ran_node_name_present = true;
   if (args.gnb_name.length() >= 150) {
     args.gnb_name.resize(150);
   }
 
-  container.ran_node_name.value.resize(args.gnb_name.size());
-  memcpy(&container.ran_node_name.value[0], &args.gnb_name[0], args.gnb_name.size());
+  container->ran_node_name.value.resize(args.gnb_name.size());
+  memcpy(&container->ran_node_name.value[0], &args.gnb_name[0], args.gnb_name.size());
 
-  container.supported_ta_list.value.resize(1);
-  container.supported_ta_list.value[0].tac = tai.tac;
-  container.supported_ta_list.value[0].broadcast_plmn_list.resize(1);
-  container.supported_ta_list.value[0].broadcast_plmn_list[0].plmn_id = tai.plmn_id;
-  container.supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list.resize(1);
-  container.supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list[0].s_nssai.sst.from_number(1);
+  container->supported_ta_list.value.resize(1);
+  container->supported_ta_list.value[0].tac = tai.tac;
+  container->supported_ta_list.value[0].broadcast_plmn_list.resize(1);
+  container->supported_ta_list.value[0].broadcast_plmn_list[0].plmn_id = tai.plmn_id;
+  container->supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list.resize(1);
+  container->supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list[0].s_nssai.sst.from_number(1);
 
-  container.default_paging_drx.value.value = asn1::ngap::paging_drx_opts::v256; // Todo: add to args, config file
+  container->default_paging_drx.value.value = asn1::ngap::paging_drx_opts::v256; // Todo: add to args, config file
 
   return sctp_send_ngap_pdu(pdu, 0, "ngSetupRequest");
 }

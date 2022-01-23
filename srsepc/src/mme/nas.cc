@@ -644,8 +644,6 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     srsran::console("Service Request -- Short MAC valid\n");
     nas_logger.info("Service Request -- Short MAC valid");
     if (ecm_ctx->state == ECM_STATE_CONNECTED) {
-      nas_logger.error("Service Request -- User is ECM CONNECTED");
-
       // Release previous context
       nas_logger.info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d",
                       ecm_ctx->enb_ue_s1ap_id,
@@ -697,8 +695,6 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     srsran::console("Service Request -- Short MAC invalid\n");
     nas_logger.info("Service Request -- Short MAC invalid");
     if (ecm_ctx->state == ECM_STATE_CONNECTED) {
-      nas_logger.error("Service Request -- User is ECM CONNECTED");
-
       // Release previous context
       nas_logger.info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d",
                       ecm_ctx->enb_ue_s1ap_id,

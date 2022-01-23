@@ -66,7 +66,7 @@ public:
   void get_metrics(srsenb::mac_metrics_t& metrics);
 
   // MAC interface for RRC
-  int      cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells) override;
+  int      cell_cfg(const std::vector<srsenb::sched_nr_cell_cfg_t>& nr_cells) override;
   uint16_t reserve_rnti(uint32_t enb_cc_idx, const sched_nr_interface::ue_cfg_t& uecfg) override;
   int      read_pdu_bcch_bch(uint8_t* payload);
   int      ue_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg) override;
@@ -127,9 +127,9 @@ private:
 
   std::atomic<bool> started = {false};
 
-  const static uint32_t                       NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
-  std::unique_ptr<srsenb::sched_nr>           sched;
-  std::vector<sched_nr_interface::cell_cfg_t> cell_config;
+  const static uint32_t             NUMEROLOGY_IDX = 0; /// only 15kHz supported at this stage
+  std::unique_ptr<srsenb::sched_nr> sched;
+  std::vector<sched_nr_cell_cfg_t>  cell_config;
 
   // Map of active UEs
   pthread_rwlock_t                                                              rwmutex    = {};

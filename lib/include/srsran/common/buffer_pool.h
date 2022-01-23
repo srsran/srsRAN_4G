@@ -166,8 +166,10 @@ private:
   uint32_t               capacity;
 };
 
+/// Type of global byte buffer pool
 using byte_buffer_pool = concurrent_fixed_memory_pool<sizeof(byte_buffer_t)>;
 
+/// Function used to generate unique byte buffers
 inline unique_byte_buffer_t make_byte_buffer() noexcept
 {
   return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t());
@@ -206,11 +208,29 @@ inline unique_byte_buffer_t make_byte_buffer(const uint8_t* payload, uint32_t le
 
 namespace detail {
 
+template <typename T>
 struct byte_buffer_pool_deleter {
-  void operator()(void* ptr) { byte_buffer_pool::get_instance()->deallocate_node(ptr); }
+  void operator()(T* ptr) const { byte_buffer_pool::get_instance()->deallocate_node(ptr); }
 };
 
 } // namespace detail
+
+/// Unique ptr to global byte buffer pool
+template <typename T>
+using buffer_pool_ptr = std::unique_ptr<T, detail::byte_buffer_pool_deleter<T> >;
+
+/// Method to create unique_ptrs of type T allocated in global byte buffer pool
+template <typename T, typename... CtorArgs>
+buffer_pool_ptr<T> make_buffer_pool_obj(CtorArgs&&... args) noexcept
+{
+  static_assert(sizeof(T) <= byte_buffer_pool::BLOCK_SIZE, "pool_bounded_vector does not fit buffer pool block size");
+  void* memblock = byte_buffer_pool::get_instance()->allocate_node(sizeof(T));
+  if (memblock == nullptr) {
+    return buffer_pool_ptr<T>();
+  }
+  new (memblock) T(std::forward<CtorArgs>(args)...);
+  return buffer_pool_ptr<T>(static_cast<T*>(memblock), detail::byte_buffer_pool_deleter<T>());
+}
 
 /**
  * Class to wrap objects of type T which get allocated/deallocated using the byte_buffer_pool
@@ -239,20 +259,18 @@ public:
   template <typename... CtorArgs>
   static byte_buffer_pool_ptr<T> make(CtorArgs&&... args)
   {
-    void* memblock = byte_buffer_pool::get_instance()->allocate_node(sizeof(T));
-    if (memblock == nullptr) {
-      return byte_buffer_pool_ptr<T>();
-    }
-    new (memblock) T(std::forward<CtorArgs>(args)...);
     byte_buffer_pool_ptr<T> ret;
-    ret.ptr = std::unique_ptr<T, detail::byte_buffer_pool_deleter>(static_cast<T*>(memblock),
-                                                                   detail::byte_buffer_pool_deleter());
+    ret.ptr = make_buffer_pool_obj<T>(std::forward<CtorArgs>(args)...);
     return ret;
   };
 
 private:
-  std::unique_ptr<T, detail::byte_buffer_pool_deleter> ptr;
+  buffer_pool_ptr<T> ptr;
 };
+
+/// unique_ptr with virtual deleter, so it can be used by any pool
+template <typename T>
+using any_pool_ptr = std::unique_ptr<T, std::function<void(T*)> >;
 
 } // namespace srsran
 

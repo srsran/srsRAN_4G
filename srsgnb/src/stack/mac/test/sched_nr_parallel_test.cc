@@ -32,10 +32,10 @@ using dl_sched_t = sched_nr_interface::dl_sched_t;
 static const srsran::phy_cfg_nr_t default_phy_cfg =
     srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{}};
 
-class sched_nr_tester : public sched_nr_base_tester
+class sched_nr_tester : public sched_nr_base_test_bench
 {
 public:
-  using sched_nr_base_tester::sched_nr_base_tester;
+  using sched_nr_base_test_bench::sched_nr_base_test_bench;
 
   void process_slot_result(const sim_nr_enb_ctxt_t& slot_ctxt, srsran::const_span<cc_result_t> cc_list) override
   {
@@ -48,7 +48,7 @@ public:
       pdsch_count += cc_out.res.dl->phy.pdcch_dl.size();
       cc_res_count++;
 
-      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].cfg.duplex, 0, current_slot_tx.slot_idx());
+      bool is_dl_slot = srsran_duplex_nr_is_dl(&cell_params[cc_out.res.cc].duplex, 0, current_slot_tx.slot_idx());
 
       if (is_dl_slot) {
         if (cc_out.res.dl->phy.ssb.empty() and not slot_ctxt.ue_db.empty()) {
@@ -82,7 +82,7 @@ void run_sched_nr_test(uint32_t nof_workers)
   sched_nr_interface::sched_args_t cfg;
   cfg.auto_refill_buffer = true;
 
-  std::vector<sched_nr_interface::cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
+  std::vector<sched_nr_cell_cfg_t> cells_cfg = get_default_cells_cfg(nof_sectors);
 
   std::string test_name = "Serialized Test";
   if (nof_workers > 1) {
@@ -93,17 +93,20 @@ void run_sched_nr_test(uint32_t nof_workers)
   for (uint32_t nof_slots = 0; nof_slots < max_nof_ttis; ++nof_slots) {
     slot_point slot_rx(0, nof_slots % 10240);
     slot_point slot_tx = slot_rx + TX_ENB_DELAY;
-    if (slot_rx.to_uint() == 9) {
+    if (nof_slots == 9) {
       sched_nr_interface::ue_cfg_t uecfg = get_default_ue_cfg(nof_sectors);
-      uecfg.ue_bearers[1].direction      = mac_lc_ch_cfg_t::BOTH;
-      tester.add_user(rnti, uecfg, slot_rx, 0);
+      uecfg.lc_ch_to_add.emplace_back();
+      uecfg.lc_ch_to_add.back().lcid          = 1;
+      uecfg.lc_ch_to_add.back().cfg.direction = mac_lc_ch_cfg_t::BOTH;
+      tester.user_cfg(rnti, uecfg);
     }
     tester.run_slot(slot_tx);
   }
 
   tester.stop();
   tester.print_results();
-  //  TESTASSERT(tasks.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
+  TESTASSERT(tester.pdsch_count > 0);
+  //  TESTASSERT(tester.pdsch_count == (int)(max_nof_ttis * nof_sectors * 0.6));
 
   double final_avg_usec = tester.tot_latency_sched_ns;
   final_avg_usec        = final_avg_usec / 1000.0 / max_nof_ttis;

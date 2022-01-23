@@ -110,7 +110,7 @@ private:
   std::array<std::vector<cf_t>, SRSRAN_MAX_CHANNELS>      rx_buffer;
   std::array<srsran_resampler_fft_t, SRSRAN_MAX_CHANNELS> interpolators = {};
   std::array<srsran_resampler_fft_t, SRSRAN_MAX_CHANNELS> decimators    = {};
-  bool decimator_busy = false; ///< Indicates the decimator is changing the rate
+  std::atomic<bool> decimator_busy = {false}; ///< Indicates the decimator is changing the rate
 
   rf_timestamp_t    end_of_burst_time = {};
   std::atomic<bool> is_start_of_burst{false};

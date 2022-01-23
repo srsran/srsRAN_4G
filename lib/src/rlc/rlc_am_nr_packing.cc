@@ -105,12 +105,9 @@ uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header)
   return len;
 }
 
-uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu)
+uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, uint8_t* payload)
 {
-  // Make room for the header
-  uint32_t len = rlc_am_nr_packed_length(header);
-  pdu->msg -= len;
-  uint8_t* ptr = pdu->msg;
+  uint8_t* ptr = payload;
 
   // fixed header part
   *ptr = (header.dc & 0x01) << 7;  ///< 1 bit D/C field
@@ -140,9 +137,16 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
     *ptr = (header.so & 0xff); // second part of SO
     ptr++;
   }
+  return rlc_am_nr_packed_length(header);
+}
 
-  pdu->N_bytes += ptr - pdu->msg;
-
+uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu)
+{
+  // Make room for the header
+  uint32_t len = rlc_am_nr_packed_length(header);
+  pdu->msg -= len;
+  pdu->N_bytes += len;
+  rlc_am_nr_write_data_pdu_header(header, pdu->msg);
   return len;
 }
 

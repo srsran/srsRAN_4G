@@ -31,29 +31,36 @@
 namespace asn1 {
 namespace s1ap {
 
-struct init_context_setup_request_s;
-struct ue_context_mod_request_s;
-struct erab_setup_request_s;
-struct erab_release_cmd_s;
-struct erab_modify_request_s;
+struct init_context_setup_request_ies_container;
+using init_context_setup_request_s = elementary_procedure_option<init_context_setup_request_ies_container>;
+struct ue_context_mod_request_ies_container;
+using ue_context_mod_request_s = elementary_procedure_option<ue_context_mod_request_ies_container>;
+struct erab_setup_request_ies_container;
+using erab_setup_request_s = elementary_procedure_option<erab_setup_request_ies_container>;
+struct erab_release_cmd_ies_container;
+using erab_release_cmd_s = elementary_procedure_option<erab_release_cmd_ies_container>;
+struct erab_modify_request_ies_container;
+using erab_modify_request_s = elementary_procedure_option<erab_modify_request_ies_container>;
 struct ue_paging_id_c;
-struct ho_request_s;
+struct ho_request_ies_container;
+using ho_request_s = elementary_procedure_option<ho_request_ies_container>;
 struct sourceenb_to_targetenb_transparent_container_s;
-struct init_context_setup_resp_s;
-struct erab_setup_resp_s;
+struct init_context_setup_resp_ies_container;
+using init_context_setup_resp_s = elementary_procedure_option<init_context_setup_resp_ies_container>;
+struct erab_setup_resp_ies_container;
+using erab_setup_resp_s = elementary_procedure_option<erab_setup_resp_ies_container>;
 struct rrc_establishment_cause_opts;
 struct cause_radio_network_opts;
 struct bearers_subject_to_status_transfer_item_ies_o;
 struct erab_level_qos_params_s;
-struct ho_cmd_s;
+struct ho_cmd_ies_container;
+using ho_cmd_s = elementary_procedure_option<ho_cmd_ies_container>;
 struct erab_admitted_item_s;
 struct erab_to_be_modified_item_bearer_mod_req_s;
 struct cause_c;
 struct erab_item_s;
 struct ue_aggregate_maximum_bitrate_s;
 
-template <class ies_set_paramT_>
-struct protocol_ie_single_container_s;
 using bearers_subject_to_status_transfer_list_l =
     dyn_array<protocol_ie_single_container_s<bearers_subject_to_status_transfer_item_ies_o> >;
 using rrc_establishment_cause_e = enumerated<rrc_establishment_cause_opts, true, 3>;

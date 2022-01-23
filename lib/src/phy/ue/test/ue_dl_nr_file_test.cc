@@ -26,6 +26,7 @@ extern "C" {
 #include "srsran/phy/phch/ra_nr.h"
 #include "srsran/phy/ue/ue_dl_nr.h"
 #include "srsran/phy/utils/debug.h"
+#include <srsran/phy/common/sliv.h>
 }
 #endif // __cplusplus
 
@@ -46,12 +47,14 @@ static srsran_ue_dl_nr_t      ue_dl                    = {};
 static cf_t*                  buffer[SRSRAN_MAX_PORTS] = {};
 static srsran_softbuffer_rx_t softbuffer               = {};
 static uint8_t*               data                     = NULL;
+static int                    pdsch_time_ra_start      = -1;
+static int                    pdsch_time_ra_length     = -1;
 
 static uint32_t coreset0_idx      = 0; // if ss_type=si coreset0 is used and this is the index
 static uint32_t coreset_offset_rb = 0;
-
-static uint32_t dl_arfcn  = 161200; // center of the NR carrier (default at 806e6 Hz)
-static uint32_t ssb_arfcn = 161290; // center of the SSB within the carrier (default at 806.45e6)
+static bool     interleaved_pdcch = false;
+static uint32_t dl_arfcn          = 161200; // center of the NR carrier (default at 806e6 Hz)
+static uint32_t ssb_arfcn         = 161290; // center of the SSB within the carrier (default at 806.45e6)
 
 static uint32_t                   coreset_n_rb = 48;
 static uint32_t                   coreset_len  = 1;
@@ -59,19 +62,20 @@ static srsran_search_space_type_t ss_type      = srsran_search_space_type_common
 
 static void usage(char* prog)
 {
-  printf("Usage: %s [pTLR] \n", prog);
+  printf("Usage: %s [fPivnSRTscoNlAaIt] \n", prog);
   printf("\t-f File name [Default none]\n");
   printf("\t-P Number of BWP (Carrier) PRB [Default %d]\n", carrier.nof_prb);
   printf("\t-i Physical cell identifier [Default %d]\n", carrier.pci);
   printf("\t-n Slot index [Default %d]\n", slot_cfg.idx);
   printf("\t-R RNTI in hexadecimal [Default 0x%x]\n", rnti);
   printf("\t-T RNTI type (c, ra, si) [Default %s]\n", srsran_rnti_type_str(rnti_type));
-  printf("\t-s Search space type (common0, common3) [Default %s]\n", srsran_ss_type_str(ss_type));
+  printf("\t-s Search space type (common0, common3, ue) [Default %s]\n", srsran_ss_type_str(ss_type));
   printf("\t-c Coreset0 index (only used if SS type is common0 for SIB) [Default %d]\n", coreset0_idx);
   printf("\t-o Coreset RB offset [Default %d]\n", coreset_offset_rb);
   printf("\t-N Coreset N_RB [Default %d]\n", coreset_n_rb);
   printf("\t-l Coreset duration in symbols [Default %d]\n", coreset_len);
-
+  printf("\t-I Enable interleaved CCE-to-REG [Default %s]\n", interleaved_pdcch ? "Enabled" : "Disabled");
+  printf("\t-t PDSCH time resource allocation [start symbol] [length]\n");
   printf("\t-A ARFCN of the NR carrier (center) [Default %d]\n", dl_arfcn);
   printf("\t-a center of the SSB within the carrier [Default %d]\n", ssb_arfcn);
 
@@ -83,7 +87,7 @@ static void usage(char* prog)
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "fPivnSRTscoNlAa")) != -1) {
+  while ((opt = getopt(argc, argv, "fPivnSRTscoNlAaIt")) != -1) {
     switch (opt) {
       case 'f':
         filename = argv[optind];
@@ -102,6 +106,10 @@ static int parse_args(int argc, char** argv)
         break;
       case 'R':
         rnti = (uint16_t)strtol(argv[optind], NULL, 16);
+        break;
+      case 't':
+        pdsch_time_ra_start  = (int)strtol(argv[optind++], NULL, 10);
+        pdsch_time_ra_length = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         if (strcmp(argv[optind], "c") == 0) {
@@ -130,6 +138,9 @@ static int parse_args(int argc, char** argv)
           usage(argv[0]);
           return SRSRAN_ERROR;
         }
+        break;
+      case 'I':
+        interleaved_pdcch ^= true;
         break;
       case 'c':
         coreset0_idx = (uint16_t)strtol(argv[optind], NULL, 10);
@@ -325,7 +336,16 @@ int main(int argc, char** argv)
   srsran_dci_cfg_nr_t dci_cfg = {};
   dci_cfg.bwp_dl_initial_bw   = carrier.nof_prb;
   dci_cfg.bwp_ul_initial_bw   = carrier.nof_prb;
+  dci_cfg.bwp_dl_active_bw    = carrier.nof_prb;
+  dci_cfg.bwp_ul_active_bw    = carrier.nof_prb;
   dci_cfg.monitor_common_0_0  = true;
+  dci_cfg.monitor_0_0_and_1_0 = true;
+
+
+  // derive absolute frequencies from ARFCNs
+  srsran::srsran_band_helper band_helper;
+  carrier.ssb_center_freq_hz     = band_helper.nr_arfcn_to_freq(ssb_arfcn);
+  carrier.dl_center_frequency_hz = band_helper.nr_arfcn_to_freq(dl_arfcn);
 
   srsran_coreset_t* coreset = NULL;
 
@@ -335,18 +355,13 @@ int main(int argc, char** argv)
     coreset                      = &pdcch_cfg.coreset[0];
     pdcch_cfg.coreset_present[0] = true;
 
-    // derive absolute frequencies from ARFCNs
-    srsran::srsran_band_helper band_helper;
-    carrier.ssb_center_freq_hz     = band_helper.nr_arfcn_to_freq(ssb_arfcn);
-    carrier.dl_center_frequency_hz = band_helper.nr_arfcn_to_freq(dl_arfcn);
-
     // Get pointA and SSB absolute frequencies
     double pointA_abs_freq_Hz =
-        carrier.dl_center_frequency_hz - carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(carrier.scs) / 2;
+            carrier.dl_center_frequency_hz - carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(carrier.scs) / 2;
     double ssb_abs_freq_Hz = carrier.ssb_center_freq_hz;
     // Calculate integer SSB to pointA frequency offset in Hz
     uint32_t ssb_pointA_freq_offset_Hz =
-        (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+            (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
 
     // derive coreset0 parameters
     if (srsran_coreset_zero(carrier.pci, ssb_pointA_freq_offset_Hz, carrier.scs, carrier.scs, coreset0_idx, coreset) !=
@@ -373,7 +388,31 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
       coreset->freq_resources[i] = i < coreset_n_rb / 6;
     }
-    pdsch_hl_cfg.nof_common_time_ra = 1;
+    if (interleaved_pdcch) {
+      coreset->mapping_type         = srsran_coreset_mapping_type_interleaved;
+      coreset->reg_bundle_size      = srsran_coreset_bundle_size_n6;
+      coreset->interleaver_size     = srsran_coreset_bundle_size_n2;
+      coreset->precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
+      coreset->shift_index          = carrier.pci;
+    }
+    // set coreset0 bandwidth (it is used in RA when ss_type = common3)
+    dci_cfg.coreset0_bw = coreset_n_rb;
+
+    // SCH configuration parameters
+    if (pdsch_time_ra_start >= 0 && pdsch_time_ra_length >= 0) {
+      auto last_pdsch_symbol = (uint16_t)(pdsch_time_ra_start + pdsch_time_ra_length);
+
+      if (last_pdsch_symbol > SRSRAN_NSYMB_PER_SLOT_NR) {
+        ERROR("incorrect PDSCH start symbol or length provided");
+        return clean_exit(ret);
+      }
+      uint32_t sliv = srsran_ra_nr_type1_riv(SRSRAN_NSYMB_PER_SLOT_NR, pdsch_time_ra_start, pdsch_time_ra_length);
+
+      pdsch_hl_cfg.nof_dedicated_time_ra             = 1;
+      pdsch_hl_cfg.dedicated_time_ra[0].mapping_type = srsran_sch_mapping_type_A;
+      pdsch_hl_cfg.dedicated_time_ra[0].k            = 0;
+      pdsch_hl_cfg.dedicated_time_ra[0].sliv         = sliv;
+    }
   }
 
   char coreset_info[512] = {};

@@ -180,7 +180,7 @@ srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is
                     pdcp_t_reordering_t::ms500,
                     pdcp_discard_timer_t::infinity,
                     false,
-                    srsran_rat_t::lte);
+                    srsran_rat_t::nr);
   return cfg;
 }
 
@@ -343,43 +343,103 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
   srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
   srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
   srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
+
+  if (tdd_ul_dl_cfg_common.pattern2_present) {
+    switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
+        break;
+
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
+      default:
+        asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
+                          tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
+        return false;
+    }
+
+    srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
+    srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
+    srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
+    srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
+  }
+
   // Copy and return struct
   *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
-  if (not tdd_ul_dl_cfg_common.pattern2_present) {
+  return true;
+}
+
+bool make_phy_tdd_cfg(const srsran_duplex_config_nr_t&      srsran_duplex_config_nr,
+                      srsran_subcarrier_spacing_t           scs,
+                      asn1::rrc_nr::tdd_ul_dl_cfg_common_s* tdd_ul_dl_cfg_common)
+{
+  if (srsran_duplex_config_nr.mode == SRSRAN_DUPLEX_MODE_FDD) {
+    return true;
+  }
+  tdd_ul_dl_cfg_common->ref_subcarrier_spacing.value = (asn1::rrc_nr::subcarrier_spacing_e::options)scs;
+
+  switch (srsran_duplex_config_nr.tdd.pattern1.period_ms) {
+    case 1:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1;
+      break;
+    case 2:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2;
+      break;
+    case 5:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5;
+      break;
+    case 10:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+      break;
+    default:
+      asn1::log_warning("Invalid option for dl_ul_tx_periodicity_opts %d",
+                        srsran_duplex_config_nr.tdd.pattern1.period_ms);
+      return false;
+  }
+  tdd_ul_dl_cfg_common->pattern1.nrof_dl_slots   = srsran_duplex_config_nr.tdd.pattern1.nof_dl_slots;
+  tdd_ul_dl_cfg_common->pattern1.nrof_dl_symbols = srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols;
+  tdd_ul_dl_cfg_common->pattern1.nrof_ul_slots   = srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots;
+  tdd_ul_dl_cfg_common->pattern1.nrof_ul_symbols = srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols;
+
+  if (srsran_duplex_config_nr.tdd.pattern2.period_ms == 0) {
     return true;
   }
 
-  switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
+  tdd_ul_dl_cfg_common->pattern2_present = true;
+  switch (srsran_duplex_config_nr.tdd.pattern2.period_ms) {
+    case 1:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1;
       break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
+    case 2:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2;
       break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
+    case 5:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5;
       break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
+    case 10:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
       break;
-
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
     default:
-      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
-                        tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
+      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %d",
+                        srsran_duplex_config_nr.tdd.pattern2.period_ms);
       return false;
   }
-
-  srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
-  srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
-  srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
-  srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
-  // Copy and return struct
-  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
+  tdd_ul_dl_cfg_common->pattern2.nrof_dl_slots   = srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots;
+  tdd_ul_dl_cfg_common->pattern2.nrof_dl_symbols = srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols;
+  tdd_ul_dl_cfg_common->pattern2.nrof_ul_slots   = srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots;
+  tdd_ul_dl_cfg_common->pattern2.nrof_ul_symbols = srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols;
 
   return true;
 }
@@ -1523,7 +1583,7 @@ bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
 {
   mib->sfn     = 0;
   mib->ssb_idx = 0;
-  mib->hrf     = 0;
+  mib->hrf     = false;
   mib->scs_common =
       mib_cfg.sub_carrier_spacing_common.value == asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60
           ? srsran_subcarrier_spacing_15kHz
@@ -1539,30 +1599,25 @@ bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
 
 bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
 {
-  if (serv_cell.csi_meas_cfg_present and
-      serv_cell.csi_meas_cfg.type().value ==
-          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+  if (serv_cell.csi_meas_cfg_present and serv_cell.csi_meas_cfg.is_setup()) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure NZP-CSI
-    if (setup.nzp_csi_rs_res_set_to_add_mod_list_present) {
-      for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
-        auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
-        uecfg_set.trs_info = nzp_set.trs_info_present;
-        uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
-        uint32_t count     = 0;
-        for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
-          auto& res = uecfg_set.data[count++];
-          if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
-            return false;
-          }
+    for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
+      auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
+      uecfg_set.trs_info = nzp_set.trs_info_present;
+      uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
+      uint32_t count     = 0;
+      for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
+        auto& res = uecfg_set.data[count++];
+        if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
+          return false;
         }
       }
     }
   }
 
-  if (serv_cell.init_dl_bwp.pdsch_cfg_present and
-      serv_cell.init_dl_bwp.pdsch_cfg.type() == setup_release_c<pdsch_cfg_s>::types_opts::setup) {
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present and serv_cell.init_dl_bwp.pdsch_cfg.is_setup()) {
     const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
     if (setup.p_zp_csi_rs_res_set_present) {
       auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
@@ -1582,18 +1637,14 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
 
 bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl)
 {
-  if (serv_cell.csi_meas_cfg_present and
-      serv_cell.csi_meas_cfg.type().value ==
-          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+  if (serv_cell.csi_meas_cfg_present and serv_cell.csi_meas_cfg.is_setup()) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure CSI-Report
-    if (setup.csi_report_cfg_to_add_mod_list_present) {
-      for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
-        const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
-        if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
-          return false;
-        }
+    for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
+      const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
+      if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+        return false;
       }
     }
   }
@@ -1615,18 +1666,14 @@ bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_
 
 bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
 {
-  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
-    for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
-      pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
-      make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
-    }
+  for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
+    pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
+    make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
   }
 
-  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
-    for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
-      pdcch->search_space_present[ss.search_space_id] = true;
-      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
-    }
+  for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
+    pdcch->search_space_present[ss.search_space_id] = true;
+    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
   }
   return true;
 }
@@ -1637,14 +1684,12 @@ void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
     pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
     make_phy_coreset_cfg(pdcch_cfg.common_ctrl_res_set, &pdcch->coreset[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id]);
   }
-  if (pdcch_cfg.common_search_space_list_present) {
-    for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
-      pdcch->search_space_present[ss.search_space_id] = true;
-      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
-      if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
-        pdcch->ra_search_space_present = true;
-        pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
-      }
+  for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
+    pdcch->search_space_present[ss.search_space_id] = true;
+    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+    if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
+      pdcch->ra_search_space_present = true;
+      pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
     }
   }
 }

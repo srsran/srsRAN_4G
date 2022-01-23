@@ -104,12 +104,17 @@ int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, 
 void phy_nr_sa::init_background()
 {
   nr::sync_sa::args_t sync_args = {};
-  sync_args.srate_hz            = srsran_sampling_freq_hz(args.max_nof_prb);
+  sync_args.srate_hz            = args.srate_hz;
+  sync_args.thread_priority     = args.slot_recv_thread_prio;
   if (not sync.init(sync_args, stack, radio)) {
     logger.error("Error initialising SYNC");
     return;
   }
-  workers.init(args, sync, stack, WORKERS_THREAD_PRIO);
+  workers.init(args, sync, stack);
+
+  // Set fix Tx and Rx sampling rates
+  radio->set_tx_srate(args.srate_hz);
+  radio->set_rx_srate(args.srate_hz);
 
   is_configured = true;
 }
@@ -155,6 +160,8 @@ phy_interface_rrc_nr::phy_nr_state_t phy_nr_sa::get_state()
 void phy_nr_sa::reset_nr()
 {
   sync.reset();
+
+  sync.cell_go_idle();
 }
 
 // This function executes one part of the procedure immediately and returns to continue in the background.
@@ -166,13 +173,13 @@ bool phy_nr_sa::start_cell_search(const cell_search_args_t& req)
 {
   // TODO: verify arguments are valid before starting procedure
 
-  logger.info("Cell Search: Going to IDLE");
-  sync.cell_go_idle();
-
   cmd_worker_cell.add_cmd([this, req]() {
+    logger.info("Cell Search: Going to IDLE");
+    sync.cell_go_idle();
+
     // Prepare cell search configuration from the request
     nr::cell_search::cfg_t cfg = {};
-    cfg.srate_hz               = req.srate_hz;
+    cfg.srate_hz               = args.srate_hz;
     cfg.center_freq_hz         = req.center_freq_hz;
     cfg.ssb_freq_hz            = req.ssb_freq_hz;
     cfg.ssb_scs                = req.ssb_scs;
@@ -211,9 +218,8 @@ bool phy_nr_sa::start_cell_select(const cell_select_args_t& req)
   selected_cell = req.carrier;
 
   cmd_worker_cell.add_cmd([this, req]() {
-
-    // Request cell search to lower synchronization instance.
-    sync.cell_select_run(req);
+    // Request cell search to lower synchronization instance and push the result directly to the stack
+    stack->cell_select_completed(sync.cell_select_run(req));
   });
 
   return true;
@@ -252,7 +258,6 @@ bool phy_nr_sa::set_config(const srsran::phy_cfg_nr_t& cfg)
 
   // Setup carrier configuration asynchronously
   cmd_worker.add_cmd([this]() {
-
     // Set UE configuration
     bool ret = workers.set_config(config_nr);
 

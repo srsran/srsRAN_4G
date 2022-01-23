@@ -63,6 +63,13 @@ bool cell_search::start(const cfg_t& cfg)
   ssb_cfg.pattern          = cfg.ssb_pattern;
   ssb_cfg.duplex_mode      = cfg.duplex_mode;
 
+  // Print SSB configuration, helps debugging gNb and UE
+  if (logger.info.enabled()) {
+    std::array<char, 512> ssb_cfg_str = {};
+    srsran_ssb_cfg_to_str(&ssb_cfg, ssb_cfg_str.data(), (uint32_t)ssb_cfg_str.size());
+    logger.info("Cell search: Setting SSB configuration %s", ssb_cfg_str.data());
+  }
+
   // Configure SSB
   if (srsran_ssb_set_cfg(&ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
     logger.error("Cell search: Error setting SSB configuration");

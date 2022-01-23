@@ -33,6 +33,7 @@
 #include "srsran/common/stack_procedure.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/ue_interfaces.h"
+#include "srsran/interfaces/ue_nas_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
@@ -62,6 +63,7 @@ public:
            rlc_interface_rrc*          rlc_,
            pdcp_interface_rrc*         pdcp_,
            gw_interface_rrc*           gw_,
+           nas_5g_interface_rrc_nr*    nas_,
            rrc_eutra_interface_rrc_nr* rrc_eutra_,
            usim_interface_rrc_nr*      usim_,
            srsran::timer_handler*      timers_,
@@ -96,7 +98,6 @@ public:
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
-  void cell_search_found_cell(const cell_search_result_t& result) final{};
 
   // RLC interface
   void max_retx_attempted() final;
@@ -131,9 +132,10 @@ public:
   void rrc_release();
   bool configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
-  // STACK interface
-  void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
 
+  // STACK interface
+  void cell_search_found_cell(const rrc_interface_phy_nr::cell_search_result_t& result) final;
+  void cell_select_completed(const cell_select_result_t& result) final;
   void set_phy_config_complete(bool status) final;
 
 private:
@@ -147,11 +149,15 @@ private:
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);
+  void send_security_mode_complete();
 
   // helpers
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
   void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
+  void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
+  void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
+  void generate_as_keys();
 
   srsran::task_sched_handle task_sched;
   struct cmd_msg_t {
@@ -172,6 +178,7 @@ private:
   rlc_interface_rrc*          rlc       = nullptr;
   pdcp_interface_rrc*         pdcp      = nullptr;
   gw_interface_rrc*           gw        = nullptr;
+  nas_5g_interface_rrc_nr*    nas       = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
   usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
@@ -197,6 +204,11 @@ private:
   rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
 
   uint8_t transaction_id = 0;
+
+  // RRC constants and timers
+  uint32_t                            n310_cnt = 0, N310 = 0;
+  uint32_t                            n311_cnt = 0, N311 = 0;
+  srsran::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
   // Stores the state of the PHY configuration setting
   enum {
@@ -237,22 +249,25 @@ private:
   bool apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg);
   bool apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg);
   bool apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg);
+  bool apply_srb_add_mod(const asn1::rrc_nr::srb_to_add_mod_s& srb_cfg);
   bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
   bool apply_drb_release(const uint8_t drb);
   bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
 
+  // Security configuration
+  bool                         security_is_activated = false;
   srsran::as_security_config_t sec_cfg;
 
   typedef enum { mcg_srb1, en_dc_srb3, nr } reconf_initiator_t;
 
   // RRC procedures
-  enum class cell_search_result_t { changed_cell, same_cell, no_cell };
+  enum class rrc_cell_search_result_t { changed_cell, same_cell, no_cell };
   class cell_selection_proc;
   class connection_setup_proc;
   class connection_reconf_no_ho_proc;
   class setup_request_proc;
 
-  srsran::proc_t<cell_selection_proc, cell_search_result_t> cell_selector;
+  srsran::proc_t<cell_selection_proc, rrc_cell_search_result_t> cell_selector;
   srsran::proc_t<connection_setup_proc>                     conn_setup_proc;
   srsran::proc_t<connection_reconf_no_ho_proc>              conn_recfg_proc;
   srsran::proc_t<setup_request_proc>                        setup_req_proc;

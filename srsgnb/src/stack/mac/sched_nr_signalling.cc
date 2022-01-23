@@ -121,7 +121,7 @@ si_sched::si_sched(const bwp_params_t& bwp_cfg_) :
     si.len_bytes      = bwp_cfg->cell_cfg.sibs[i].len;
     si.period_frames  = bwp_cfg->cell_cfg.sibs[i].period_rf;
     si.win_len_slots  = bwp_cfg->cell_cfg.sibs[i].si_window_slots;
-    si.si_softbuffer  = harq_softbuffer_pool::get_instance().get_tx(bwp_cfg->nof_prb());
+    si.si_softbuffer  = harq_softbuffer_pool::get_instance().get_tx(bwp_cfg->nof_prb);
   }
 }
 

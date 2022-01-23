@@ -92,12 +92,12 @@ void test_pdcch_collisions(const srsran_pdcch_cfg_nr_t&   pdcch_cfg,
   }
 }
 
-void test_dl_pdcch_consistency(const sched_nr_interface::cell_cfg_t&         cell_cfg,
+void test_dl_pdcch_consistency(const cell_config_manager&                    cell_cfg,
                                srsran::const_span<sched_nr_impl::pdcch_dl_t> dl_pdcchs)
 {
   for (const auto& pdcch : dl_pdcchs) {
     TESTASSERT(pdcch.dci.bwp_id < cell_cfg.bwps.size());
-    const srsran_pdcch_cfg_nr_t& pdcch_cfg = cell_cfg.bwps[pdcch.dci.bwp_id].pdcch;
+    const srsran_pdcch_cfg_nr_t& pdcch_cfg = cell_cfg.bwps[pdcch.dci.bwp_id].cfg.pdcch;
     test_dci_ctx_consistency(pdcch_cfg, pdcch.dci.ctx);
 
     const srsran_coreset_t& coreset = pdcch_cfg.coreset[pdcch.dci.ctx.coreset_id];
@@ -129,7 +129,7 @@ void test_pdsch_consistency(srsran::const_span<mac_interface_phy_nr::pdsch_t> pd
 
 void test_ssb_scheduled_grant(
     const srsran::slot_point&                                                                 sl_point,
-    const sched_nr_interface::cell_cfg_t&                                                     cell_cfg,
+    const sched_nr_impl::cell_config_manager&                                                 cell_cfg,
     const srsran::bounded_vector<mac_interface_phy_nr::ssb_t, mac_interface_phy_nr::MAX_SSB>& ssb_list)
 {
   /*

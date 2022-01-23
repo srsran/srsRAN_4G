@@ -55,7 +55,7 @@ class rrc_nr_dummy : public rrc_interface_mac_nr
 public:
   int  read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
   int  read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) { return SRSRAN_SUCCESS; }
-  int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg) { return SRSRAN_SUCCESS; }
+  int  add_user(uint16_t rnti, uint32_t pcell_cc_idx) { return SRSRAN_SUCCESS; }
   int  update_user(uint16_t new_rnti, uint16_t old_rnti) { return SRSRAN_SUCCESS; }
   void set_activity_user(uint16_t rnti) {}
 };
@@ -71,7 +71,7 @@ public:
 class mac_nr_dummy : public mac_interface_rrc_nr
 {
 public:
-  int cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells_) override
+  int cell_cfg(const std::vector<sched_nr_cell_cfg_t>& nr_cells_) override
   {
     nr_cells = nr_cells_;
     return SRSRAN_SUCCESS;
@@ -87,9 +87,9 @@ public:
 
   int remove_ue(uint16_t rnti) override { return SRSRAN_SUCCESS; }
 
-  std::vector<srsenb::sched_nr_interface::cell_cfg_t> nr_cells;
-  uint16_t                                            last_ue_cfg_rnti = SRSRAN_INVALID_RNTI;
-  sched_nr_interface::ue_cfg_t                        last_ue_cfg{};
+  std::vector<sched_nr_cell_cfg_t> nr_cells;
+  uint16_t                         last_ue_cfg_rnti = SRSRAN_INVALID_RNTI;
+  sched_nr_interface::ue_cfg_t     last_ue_cfg{};
 };
 
 class phy_nr_dummy : public phy_interface_stack_nr

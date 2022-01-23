@@ -29,33 +29,33 @@ using namespace asn1::ngap;
 
 int test_amf_upd()
 {
-  uint8_t  ngap_msg[] = {0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x11};
+  uint8_t ngap_msg[] = {
+      0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x08, 0x02, 0x80, 0x73, 0x72, 0x73, 0x72, 0x61, 0x6e};
   cbit_ref bref(&ngap_msg[0], sizeof(ngap_msg));
-  // 0000000A00000100010003000011
+  // 0000000F00000100010008028073727372616E
 
   ngap_pdu_c pdu;
-  TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
+  TESTASSERT_EQ(SRSASN_SUCCESS, pdu.unpack(bref));
 
-  TESTASSERT(pdu.type().value == ngap_pdu_c::types_opts::init_msg);
-  TESTASSERT(pdu.init_msg().proc_code == 0);
-  TESTASSERT(pdu.init_msg().crit.value == crit_opts::reject);
+  TESTASSERT_EQ(ngap_pdu_c::types_opts::init_msg, pdu.type().value);
+  TESTASSERT_EQ(0, pdu.init_msg().proc_code);
+  TESTASSERT_EQ(crit_opts::reject, pdu.init_msg().crit.value);
   ngap_elem_procs_o::init_msg_c& init_choice = pdu.init_msg().value;
-  TESTASSERT(init_choice.type().value == ngap_elem_procs_o::init_msg_c::types_opts::amf_cfg_upd);
+  TESTASSERT_EQ(ngap_elem_procs_o::init_msg_c::types_opts::amf_cfg_upd, init_choice.type().value);
   amf_cfg_upd_s& amf_upd = init_choice.amf_cfg_upd();
   TESTASSERT(not amf_upd.ext);
-  auto& amf_name = amf_upd.protocol_ies.amf_name;
-  TESTASSERT(amf_upd.protocol_ies.amf_name_present);
-  TESTASSERT(amf_name.id == 1);
-  TESTASSERT(amf_name.crit == crit_opts::reject);
-  TESTASSERT(amf_name.value.size() == 1);
-  TESTASSERT(amf_name.value[0] == 17);
+  auto& amf_name = amf_upd->amf_name;
+  TESTASSERT(amf_upd->amf_name_present);
+  TESTASSERT_EQ(1, amf_name.id);
+  TESTASSERT_EQ(crit_opts::reject, amf_name.crit);
+  TESTASSERT_EQ("srsran", amf_name.value.to_string());
 
-  TESTASSERT(ceil(bref.distance_bytes()) == sizeof(ngap_msg));
-  TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
+  TESTASSERT_EQ(sizeof(ngap_msg), ceil(bref.distance_bytes()));
+  TESTASSERT_EQ(SRSASN_SUCCESS, test_pack_unpack_consistency(pdu));
 
-  //  json_writer js;
-  //  pdu.to_json(js);
-  //  printf("PDU json: %s\n", js.to_string().c_str());
+  json_writer js;
+  pdu.to_json(js);
+  printf("PDU json: %s\n", js.to_string().c_str());
 
   return 0;
 }
@@ -79,30 +79,29 @@ int test_ngsetup_request()
   ng_setup_request_s& ngsetup = pdu.init_msg().value.ng_setup_request();
   TESTASSERT(not ngsetup.ext);
   // Field 0
-  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.id == 27);
-  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.crit.value == crit_opts::reject);
-  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.value.type().value ==
-             global_ran_node_id_c::types_opts::global_gnb_id);
-  global_gnb_id_s& global_gnb = ngsetup.protocol_ies.global_ran_node_id.value.global_gnb_id();
+  TESTASSERT(ngsetup->global_ran_node_id.id == 27);
+  TESTASSERT(ngsetup->global_ran_node_id.crit.value == crit_opts::reject);
+  TESTASSERT(ngsetup->global_ran_node_id.value.type().value == global_ran_node_id_c::types_opts::global_gnb_id);
+  global_gnb_id_s& global_gnb = ngsetup->global_ran_node_id.value.global_gnb_id();
   TESTASSERT(global_gnb.plmn_id.to_number() == 0xF110);
   TESTASSERT(global_gnb.gnb_id.type().value == gnb_id_c::types_opts::gnb_id);
   TESTASSERT(global_gnb.gnb_id.gnb_id().to_number() == 1);
   // Field 1
-  TESTASSERT(ngsetup.protocol_ies.ran_node_name_present);
+  TESTASSERT(ngsetup->ran_node_name_present);
   // Field 2
-  TESTASSERT(ngsetup.protocol_ies.supported_ta_list.id == 102);
-  TESTASSERT(ngsetup.protocol_ies.supported_ta_list.crit.value == crit_opts::reject);
-  TESTASSERT(ngsetup.protocol_ies.supported_ta_list.value.size() == 1);
-  TESTASSERT(ngsetup.protocol_ies.supported_ta_list.value[0].tac.to_number() == 0x75);
-  TESTASSERT(ngsetup.protocol_ies.supported_ta_list.value[0].broadcast_plmn_list.size() == 1);
-  auto& bcast_item = ngsetup.protocol_ies.supported_ta_list.value[0].broadcast_plmn_list[0];
+  TESTASSERT(ngsetup->supported_ta_list.id == 102);
+  TESTASSERT(ngsetup->supported_ta_list.crit.value == crit_opts::reject);
+  TESTASSERT(ngsetup->supported_ta_list.value.size() == 1);
+  TESTASSERT(ngsetup->supported_ta_list.value[0].tac.to_number() == 0x75);
+  TESTASSERT(ngsetup->supported_ta_list.value[0].broadcast_plmn_list.size() == 1);
+  auto& bcast_item = ngsetup->supported_ta_list.value[0].broadcast_plmn_list[0];
   TESTASSERT(bcast_item.plmn_id.to_number() == 0xF110);
   TESTASSERT(bcast_item.tai_slice_support_list.size());
   TESTASSERT(bcast_item.tai_slice_support_list[0].s_nssai.sst.to_number() == 1);
   // Field 3
-  TESTASSERT(ngsetup.protocol_ies.default_paging_drx.id == 21);
-  TESTASSERT(ngsetup.protocol_ies.default_paging_drx.crit.value == crit_opts::ignore);
-  TESTASSERT(ngsetup.protocol_ies.default_paging_drx.value.value == paging_drx_opts::v256);
+  TESTASSERT(ngsetup->default_paging_drx.id == 21);
+  TESTASSERT(ngsetup->default_paging_drx.crit.value == crit_opts::ignore);
+  TESTASSERT(ngsetup->default_paging_drx.value.value == paging_drx_opts::v256);
 
   TESTASSERT(ceil(bref.distance(ngap_msg) / 8.0) == sizeof(ngap_msg));
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
@@ -137,19 +136,18 @@ int test_ngsetup_response()
              ngap_elem_procs_o::successful_outcome_c::types_opts::ng_setup_resp);
   ng_setup_resp_s& resp = pdu.successful_outcome().value.ng_setup_resp();
   // field 0
-  TESTASSERT(resp.protocol_ies.amf_name.id == 1);
-  TESTASSERT(resp.protocol_ies.amf_name.crit.value == crit_opts::reject);
-  TESTASSERT(resp.protocol_ies.amf_name.value.size() == 56);
-  TESTASSERT(resp.protocol_ies.amf_name.value.to_string() ==
-             "amf1.cluster1.net2.amf.5gc.mnc001.mcc001.3gppnetwork.org");
+  TESTASSERT(resp->amf_name.id == 1);
+  TESTASSERT(resp->amf_name.crit.value == crit_opts::reject);
+  TESTASSERT(resp->amf_name.value.size() == 56);
+  TESTASSERT(resp->amf_name.value.to_string() == "amf1.cluster1.net2.amf.5gc.mnc001.mcc001.3gppnetwork.org");
   // field 1
-  TESTASSERT(resp.protocol_ies.served_guami_list.id == 96);
-  TESTASSERT(resp.protocol_ies.served_guami_list.crit.value == crit_opts::reject);
-  TESTASSERT(resp.protocol_ies.served_guami_list.value.size() == 1);
-  TESTASSERT(resp.protocol_ies.served_guami_list.value[0].guami.plmn_id.to_number() == 0xF110);
-  TESTASSERT(resp.protocol_ies.served_guami_list.value[0].guami.amf_region_id.to_number() == 0b111000);
-  TESTASSERT(resp.protocol_ies.served_guami_list.value[0].guami.amf_set_id.to_number() == 0b100010);
-  TESTASSERT(resp.protocol_ies.served_guami_list.value[0].guami.amf_pointer.to_number() == 0b10111);
+  TESTASSERT(resp->served_guami_list.id == 96);
+  TESTASSERT(resp->served_guami_list.crit.value == crit_opts::reject);
+  TESTASSERT(resp->served_guami_list.value.size() == 1);
+  TESTASSERT(resp->served_guami_list.value[0].guami.plmn_id.to_number() == 0xF110);
+  TESTASSERT(resp->served_guami_list.value[0].guami.amf_region_id.to_number() == 0b111000);
+  TESTASSERT(resp->served_guami_list.value[0].guami.amf_set_id.to_number() == 0b100010);
+  TESTASSERT(resp->served_guami_list.value[0].guami.amf_pointer.to_number() == 0b10111);
   // field 2
   // ...
 
@@ -181,7 +179,7 @@ int test_init_ue_msg()
   TESTASSERT(pdu.init_msg().proc_code == 15);
   TESTASSERT(pdu.init_msg().crit.value == crit_opts::ignore);
   TESTASSERT(pdu.init_msg().value.type().value == ngap_elem_procs_o::init_msg_c::types_opts::init_ue_msg);
-  auto& container = pdu.init_msg().value.init_ue_msg().protocol_ies;
+  auto& container = *pdu.init_msg().value.init_ue_msg();
   // Field 0
   TESTASSERT(container.ran_ue_ngap_id.id == 85);
   TESTASSERT(container.ran_ue_ngap_id.crit.value == crit_opts::reject);
@@ -220,7 +218,7 @@ int test_dl_nas_transport()
   // Field 0
   // ...
   // Field 1
-  TESTASSERT(dl_nas.protocol_ies.nas_pdu.value.size() == 42);
+  TESTASSERT(dl_nas->nas_pdu.value.size() == 42);
 
   TESTASSERT(ceil(bref.distance(ngap_msg) / 8.0) == sizeof(ngap_msg));
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
@@ -246,7 +244,7 @@ int test_ul_ran_status_transfer()
   TESTASSERT(pdu.init_msg().value.type().value == ngap_elem_procs_o::init_msg_c::types_opts::ul_nas_transport);
   auto& ul_nas = pdu.init_msg().value.ul_nas_transport();
   // Field 1
-  TESTASSERT(ul_nas.protocol_ies.nas_pdu.value.size() == 21);
+  TESTASSERT(ul_nas->nas_pdu.value.size() == 21);
 
   TESTASSERT(ceil(bref.distance(ngap_msg) / 8.0) == sizeof(ngap_msg));
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
@@ -317,10 +315,10 @@ int test_session_res_setup_request()
   TESTASSERT(pdu.init_msg().crit.value == crit_opts::reject);
   TESTASSERT(pdu.init_msg().value.type().value ==
              ngap_elem_procs_o::init_msg_c::types_opts::pdu_session_res_setup_request);
-  auto& container = pdu.init_msg().value.pdu_session_res_setup_request().protocol_ies;
-  TESTASSERT(container.pdu_session_res_setup_list_su_req.id == ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_SU_REQ);
-  TESTASSERT(container.pdu_session_res_setup_list_su_req.value.size() == 1);
-  auto& item = container.pdu_session_res_setup_list_su_req.value[0];
+  auto& container = pdu.init_msg().value.pdu_session_res_setup_request();
+  TESTASSERT(container->pdu_session_res_setup_list_su_req.id == ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_SU_REQ);
+  TESTASSERT(container->pdu_session_res_setup_list_su_req.value.size() == 1);
+  auto& item = container->pdu_session_res_setup_list_su_req.value[0];
   TESTASSERT(item.pdu_session_id == 1);
   TESTASSERT(item.s_nssai.sst.to_number() == 0);
   TESTASSERT(item.pdu_session_res_setup_request_transfer.to_string() ==
@@ -330,10 +328,9 @@ int test_session_res_setup_request()
                  item.pdu_session_res_setup_request_transfer.size());
   pdu_session_res_setup_request_transfer_s req;
   TESTASSERT(req.unpack(bref2) == SRSASN_SUCCESS);
-  TESTASSERT(req.protocol_ies.ul_ngu_up_tnl_info.id == 139);
-  TESTASSERT(req.protocol_ies.ul_ngu_up_tnl_info.value.type().value ==
-             up_transport_layer_info_c::types_opts::gtp_tunnel);
-  TESTASSERT(req.protocol_ies.ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address.to_string() ==
+  TESTASSERT(req->ul_ngu_up_tnl_info.id == 139);
+  TESTASSERT(req->ul_ngu_up_tnl_info.value.type().value == up_transport_layer_info_c::types_opts::gtp_tunnel);
+  TESTASSERT(req->ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address.to_string() ==
              "11000000101010000001000111010010");
 
   TESTASSERT(bref2.distance_bytes() == (int)item.pdu_session_res_setup_request_transfer.size());
@@ -353,15 +350,15 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(test_amf_upd() == 0);
-  TESTASSERT(test_ngsetup_request() == 0);
-  TESTASSERT(test_ngsetup_response() == 0);
-  TESTASSERT(test_init_ue_msg() == 0);
-  TESTASSERT(test_dl_nas_transport() == 0);
-  TESTASSERT(test_ul_ran_status_transfer() == 0);
-  TESTASSERT(test_ue_context_release() == 0);
-  TESTASSERT(test_ue_context_release_complete() == 0);
-  TESTASSERT(test_session_res_setup_request() == 0);
+  test_amf_upd();
+  test_ngsetup_request();
+  test_ngsetup_response();
+  test_init_ue_msg();
+  test_dl_nas_transport();
+  test_ul_ran_status_transfer();
+  test_ue_context_release();
+  test_ue_context_release_complete();
+  test_session_res_setup_request();
 
   srslog::flush();
 

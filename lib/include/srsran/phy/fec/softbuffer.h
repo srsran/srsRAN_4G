@@ -62,7 +62,8 @@ SRSRAN_API int srsran_softbuffer_rx_init(srsran_softbuffer_rx_t* q, uint32_t nof
  * @param q The Rx soft-buffer pointer
  * @param max_cb The maximum number of code blocks to allocate
  * @param max_cb_size The code block size to allocate
- * @return It returns SRSRAN_SUCCESS if it allocates the soft-buffer succesfully, otherwise it returns SRSRAN_ERROR code
+ * @return It returns SRSRAN_SUCCESS if it allocates the soft-buffer successfully, otherwise it returns SRSRAN_ERROR
+ * code
  */
 SRSRAN_API int srsran_softbuffer_rx_init_guru(srsran_softbuffer_rx_t* q, uint32_t max_cb, uint32_t max_cb_size);
 
@@ -90,7 +91,8 @@ SRSRAN_API int srsran_softbuffer_tx_init(srsran_softbuffer_tx_t* q, uint32_t nof
  * @param q The Tx soft-buffer pointer
  * @param max_cb The maximum number of code blocks to allocate
  * @param max_cb_size The code block size to allocate
- * @return It returns SRSRAN_SUCCESS if it allocates the soft-buffer succesfully, otherwise it returns SRSRAN_ERROR code
+ * @return It returns SRSRAN_SUCCESS if it allocates the soft-buffer successfully, otherwise it returns SRSRAN_ERROR
+ * code
  */
 SRSRAN_API int srsran_softbuffer_tx_init_guru(srsran_softbuffer_tx_t* q, uint32_t max_cb, uint32_t max_cb_size);
 

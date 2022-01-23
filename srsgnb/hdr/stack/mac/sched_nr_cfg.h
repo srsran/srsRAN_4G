@@ -49,9 +49,7 @@ using nzp_csi_rs_list    = srsran::bounded_vector<srsran_csi_rs_nzp_resource_t, 
 using ssb_t              = mac_interface_phy_nr::ssb_t;
 using ssb_list           = srsran::bounded_vector<ssb_t, mac_interface_phy_nr::MAX_SSB>;
 using sched_args_t       = sched_nr_interface::sched_args_t;
-using cell_cfg_t         = sched_nr_interface::cell_cfg_t;
-using bwp_cfg_t          = sched_nr_interface::bwp_cfg_t;
-using ue_cfg_t           = sched_nr_interface::ue_cfg_t;
+using bwp_cfg_t          = sched_nr_bwp_cfg_t;
 using ue_cc_cfg_t        = sched_nr_interface::ue_cc_cfg_t;
 using pdcch_cce_pos_list = srsran::bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>;
 using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
@@ -67,20 +65,23 @@ void get_dci_locs(const srsran_coreset_t&      coreset,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct cell_config_manager;
+
 /// Structure that extends the sched_nr_interface::bwp_cfg_t passed by upper layers with other
 /// derived BWP-specific params
 struct bwp_params_t {
-  const uint32_t      bwp_id;
-  const uint32_t      cc;
-  const bwp_cfg_t&    cfg;
-  const cell_cfg_t&   cell_cfg;
-  const sched_args_t& sched_cfg;
+  const uint32_t             bwp_id;
+  const uint32_t             cc;
+  const bwp_cfg_t            cfg;
+  const cell_config_manager& cell_cfg;
+  const sched_args_t&        sched_cfg;
+  sched_nr_bwp_cfg_t         bwp_cfg;
 
   // derived params
   srslog::basic_logger& logger;
   uint32_t              P;
   uint32_t              N_rbg;
-  uint32_t              nof_prb() const { return cell_cfg.carrier.nof_prb; }
+  uint32_t              nof_prb;
 
   /// Table specifying if a slot has DL or UL enabled
   struct slot_cfg {
@@ -101,7 +102,7 @@ struct bwp_params_t {
 
   srsran::optional_vector<bwp_cce_pos_list> common_cce_list;
 
-  bwp_params_t(const cell_cfg_t& cell, const sched_args_t& sched_cfg_, uint32_t cc, uint32_t bwp_id);
+  bwp_params_t(const cell_config_manager& cell, uint32_t bwp_id, const sched_nr_bwp_cfg_t& bwp_cfg);
 
   prb_interval  coreset_prb_range(uint32_t cs_id) const { return coresets[cs_id].prb_limits; }
   prb_interval  dci_fmt_1_0_prb_lims(uint32_t cs_id) const { return coresets[cs_id].dci_1_0_prb_limits; }
@@ -123,89 +124,34 @@ private:
 };
 
 /// Structure packing a single cell config params, and sched args
-struct cell_params_t {
-  const uint32_t            cc;
-  const cell_cfg_t          cfg;
-  const sched_args_t&       sched_args;
-  std::vector<bwp_params_t> bwps;
+struct cell_config_manager {
+  const uint32_t                                    cc;
+  srsran_carrier_nr_t                               carrier = {};
+  srsran_mib_nr_t                                   mib;
+  srsran::phy_cfg_nr_t::ssb_cfg_t                   ssb = {};
+  std::vector<bwp_params_t>                         bwps; // idx0 for BWP-common
+  std::vector<sched_nr_cell_cfg_sib_t>              sibs;
+  asn1::copy_ptr<asn1::rrc_nr::dl_cfg_common_sib_s> dl_cfg_common;
+  asn1::copy_ptr<asn1::rrc_nr::ul_cfg_common_sib_s> ul_cfg_common;
+  srsran_duplex_config_nr_t                         duplex = {};
+  const sched_args_t&                               sched_args;
+  const srsran::phy_cfg_nr_t                        default_ue_phy_cfg;
 
-  cell_params_t(uint32_t cc_, const cell_cfg_t& cell, const sched_args_t& sched_cfg_);
+  cell_config_manager(uint32_t cc_, const sched_nr_cell_cfg_t& cell, const sched_args_t& sched_args_);
 
-  uint32_t nof_prb() const { return cfg.carrier.nof_prb; }
+  uint32_t nof_prb() const { return carrier.nof_prb; }
 };
 
 /// Structure packing both the sched args and all gNB NR cell configurations
 struct sched_params_t {
-  sched_args_t               sched_cfg;
-  std::vector<cell_params_t> cells;
+  sched_args_t                     sched_cfg;
+  std::vector<cell_config_manager> cells;
 
   sched_params_t() = default;
   explicit sched_params_t(const sched_args_t& sched_cfg_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Semi-static configuration of a UE for a given CC.
-class ue_carrier_params_t
-{
-public:
-  ue_carrier_params_t() = default;
-  explicit ue_carrier_params_t(uint16_t rnti, const bwp_params_t& active_bwp_cfg, const ue_cfg_t& uecfg_);
-
-  uint16_t rnti = SRSRAN_INVALID_RNTI;
-  uint32_t cc   = SRSRAN_MAX_CARRIERS;
-
-  const ue_cfg_t&             ue_cfg() const { return *cfg_; }
-  const srsran::phy_cfg_nr_t& phy() const { return cfg_->phy_cfg; }
-  const bwp_params_t&         active_bwp() const { return *bwp_cfg; }
-
-  /// Get SearchSpace based on SearchSpaceId
-  const srsran_search_space_t* get_ss(uint32_t ss_id) const
-  {
-    if (phy().pdcch.search_space_present[ss_id]) {
-      // UE-dedicated SearchSpace
-      return &bwp_cfg->cfg.pdcch.search_space[ss_id];
-    }
-    return nullptr;
-  }
-
-  srsran::const_span<uint32_t> cce_pos_list(uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx) const
-  {
-    if (cce_positions_list.size() > ss_id_to_cce_idx[search_id]) {
-      auto& lst = cce_pos_list(search_id);
-      return lst[slot_idx][aggr_idx];
-    }
-    return srsran::const_span<uint32_t>{};
-  }
-  const bwp_cce_pos_list& cce_pos_list(uint32_t search_id) const
-  {
-    return cce_positions_list[ss_id_to_cce_idx[search_id]];
-  }
-
-  uint32_t get_k1(slot_point pdsch_slot) const
-  {
-    if (phy().duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
-      return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().duplex.tdd.pattern1.period_ms];
-    }
-    return phy().harq_ack.dl_data_to_ul_ack[pdsch_slot.to_uint() % phy().harq_ack.nof_dl_data_to_ul_ack];
-  }
-  int fixed_pdsch_mcs() const { return bwp_cfg->sched_cfg.fixed_dl_mcs; }
-  int fixed_pusch_mcs() const { return bwp_cfg->sched_cfg.fixed_ul_mcs; }
-
-  const srsran_dci_cfg_nr_t& get_dci_cfg() const { return cached_dci_cfg; }
-
-  int find_ss_id(srsran_dci_format_nr_t dci_fmt) const;
-
-private:
-  const ue_cfg_t*     cfg_    = nullptr;
-  const bwp_params_t* bwp_cfg = nullptr;
-
-  // derived
-  std::vector<bwp_cce_pos_list>                              cce_positions_list;
-  std::array<uint32_t, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE> ss_id_to_cce_idx;
-  srsran_dci_cfg_nr_t                                        cached_dci_cfg;
-};
-
 } // namespace sched_nr_impl
 } // namespace srsenb
 

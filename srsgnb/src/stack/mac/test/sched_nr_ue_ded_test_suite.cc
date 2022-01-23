@@ -51,7 +51,7 @@ void test_dl_sched_result(const sim_nr_enb_ctxt_t& enb_ctxt, const sched_nr_cc_r
 
     // CHECK: UCI
     if (pdcch.dci.ctx.format == srsran_dci_format_nr_1_0) {
-      TESTASSERT(pdcch.dci.harq_feedback == k1 - 1);
+      TESTASSERT_EQ(k1 - 1, pdcch.dci.harq_feedback);
     } else {
       TESTASSERT(pdcch.dci.harq_feedback == pdcch_slot.slot_idx());
     }

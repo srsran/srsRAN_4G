@@ -43,6 +43,16 @@ namespace srsran {
 #define RLC_MAX_SDU_SIZE ((1 << 11) - 1) // Length of LI field is 11bits
 #define RLC_AM_MIN_DATA_PDU_SIZE (3)     // AMD PDU with 10 bit SN (length of LI field is 11 bits) (No LI)
 
+#define RlcDebug(fmt, ...) logger.debug("%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcInfo(fmt, ...) logger.info("%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcWarning(fmt, ...) logger.warning("%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcError(fmt, ...) logger.error("%s: " fmt, rb_name, ##__VA_ARGS__)
+
+#define RlcHexDebug(msg, bytes, fmt, ...) logger.debug(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexInfo(msg, bytes, fmt, ...) logger.info(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexWarning(msg, bytes, fmt, ...) logger.warning(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexError(msg, bytes, fmt, ...) logger.error(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+
 typedef enum {
   RLC_FI_FIELD_START_AND_END_ALIGNED = 0,
   RLC_FI_FIELD_NOT_END_ALIGNED,
@@ -197,6 +207,7 @@ typedef std::function<void(uint32_t, uint32_t, uint32_t)> bsr_callback_t;
 class rlc_common
 {
 public:
+  explicit rlc_common(srslog::basic_logger& logger_) : logger(logger_) {}
   virtual ~rlc_common()                            = default;
   virtual bool configure(const rlc_config_t& cnfg) = 0;
   virtual void stop()                              = 0;
@@ -273,6 +284,10 @@ public:
 
   void* operator new(size_t sz) { return allocate_rlc_bearer(sz); }
   void  operator delete(void* p) { return deallocate_rlc_bearer(p); }
+
+protected:
+  std::string           rb_name = {};
+  srslog::basic_logger& logger;
 
 private:
   bool suspended = false;

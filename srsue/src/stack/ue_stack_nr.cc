@@ -87,8 +87,17 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_args.log_hex_limit     = args.log.rrc_hex_limit;
   rrc_args.coreless.drb_lcid = 4;
   rrc_args.coreless.ip_addr  = "192.168.1.3";
-  rrc->init(
-      phy, mac.get(), rlc.get(), pdcp.get(), gw, nullptr, nullptr, task_sched.get_timer_handler(), this, rrc_args);
+  rrc->init(phy,
+            mac.get(),
+            rlc.get(),
+            pdcp.get(),
+            gw,
+            nullptr,
+            nullptr,
+            nullptr,
+            task_sched.get_timer_handler(),
+            this,
+            rrc_args);
   rrc->init_core_less();
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -209,6 +218,16 @@ void ue_stack_nr::run_tti_impl(uint32_t tti)
 void ue_stack_nr::set_phy_config_complete(bool status)
 {
   sync_task_queue.push([this, status]() { rrc->set_phy_config_complete(status); });
+}
+
+void ue_stack_nr::cell_search_found_cell(const cell_search_result_t& result)
+{
+  sync_task_queue.push([this, result]() { rrc->cell_search_found_cell(result); });
+}
+
+void ue_stack_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  sync_task_queue.push([this, result]() { rrc->cell_select_completed(result); });
 }
 
 } // namespace srsue

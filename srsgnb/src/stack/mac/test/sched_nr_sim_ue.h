@@ -71,17 +71,18 @@ struct ue_nr_slot_events {
     bool                                      configured = false;
     srsran::bounded_vector<ack_t, MAX_GRANTS> dl_acks;
     srsran::bounded_vector<ack_t, MAX_GRANTS> ul_acks;
+    int                                       cqi = -1;
   };
   slot_point           slot_rx;
   std::vector<cc_data> cc_list;
 };
 
 struct sim_nr_ue_ctxt_t {
-  uint16_t                     rnti;
-  uint32_t                     preamble_idx;
-  slot_point                   prach_slot_rx;
-  sched_nr_interface::ue_cfg_t ue_cfg;
-  std::vector<ue_nr_cc_ctxt_t> cc_list;
+  uint16_t                      rnti;
+  uint32_t                      preamble_idx;
+  slot_point                    prach_slot_rx;
+  sched_nr_impl::ue_cfg_manager ue_cfg;
+  std::vector<ue_nr_cc_ctxt_t>  cc_list;
 
   bool is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
   {
@@ -90,17 +91,15 @@ struct sim_nr_ue_ctxt_t {
   }
 };
 struct sim_nr_enb_ctxt_t {
-  srsran::span<const sched_nr_impl::cell_params_t> cell_params;
-  std::map<uint16_t, const sim_nr_ue_ctxt_t*>      ue_db;
+  srsran::span<const sched_nr_impl::cell_config_manager> cell_params;
+  std::map<uint16_t, const sim_nr_ue_ctxt_t*>            ue_db;
 };
 
 class sched_nr_ue_sim
 {
 public:
-  sched_nr_ue_sim(uint16_t                            rnti_,
-                  const sched_nr_interface::ue_cfg_t& ue_cfg_,
-                  slot_point                          prach_slot_rx,
-                  uint32_t                            preamble_idx);
+  sched_nr_ue_sim(uint16_t rnti_, const sched_nr_ue_cfg_t& ue_cfg_);
+  sched_nr_ue_sim(uint16_t rnti_, const sched_nr_ue_cfg_t& ue_cfg_, slot_point prach_slot_rx, uint32_t preamble_idx);
 
   int update(const sched_nr_cc_result_view& cc_out);
 
@@ -115,7 +114,7 @@ private:
 };
 
 /// Implementation of features common to parallel and sequential sched nr testers
-class sched_nr_base_tester
+class sched_nr_base_test_bench
 {
 public:
   struct cc_result_t {
@@ -123,29 +122,43 @@ public:
     std::chrono::nanoseconds cc_latency_ns;
   };
 
-  sched_nr_base_tester(const sched_nr_interface::sched_args_t&            sched_args,
-                       const std::vector<sched_nr_interface::cell_cfg_t>& cell_params_,
-                       std::string                                        test_name,
-                       uint32_t                                           nof_workers = 1);
-  virtual ~sched_nr_base_tester();
+  sched_nr_base_test_bench(const sched_nr_interface::sched_args_t& sched_args,
+                           const std::vector<sched_nr_cell_cfg_t>& cell_params_,
+                           std::string                             test_name,
+                           uint32_t                                nof_workers = 1);
+  virtual ~sched_nr_base_test_bench();
 
   void run_slot(slot_point slot_tx);
   void stop();
 
   slot_point get_slot_tx() const { return current_slot_tx; }
 
-  int add_user(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_, slot_point tti_rx, uint32_t preamble_idx);
+  /// may block waiting for scheduler to finish generating slot result
+  std::vector<cc_result_t> get_slot_results() const;
+
+  int rach_ind(uint16_t rnti, uint32_t cc, slot_point tti_rx, uint32_t preamble_idx);
 
   void user_cfg(uint16_t rnti, const sched_nr_interface::ue_cfg_t& ue_cfg_);
 
   void add_rlc_dl_bytes(uint16_t rnti, uint32_t lcid, uint32_t pdu_size_bytes);
 
-  srsran::const_span<sched_nr_impl::cell_params_t> get_cell_params() { return cell_params; }
+  srsran::const_span<sched_nr_impl::cell_config_manager> get_cell_params() const { return cell_params; }
 
-  // configurable by simulator concrete implementation
+  /**
+   * @brief Specify external events that will be forwarded to the scheduler (CQI, ACKs, etc.) in the given slot
+   *        This method can be overridden by the derived class to simulate the environment of interest.
+   * @param[in] ue_ctxt simulated UE context object
+   * @param[in/out] pending_events events to be sent to the scheduler. The passed arg is initialized with the
+   *                               "default events", sufficient to ensure a stable connection without retxs.
+   *                               The derived class can decide to erase/modify/add new events
+   */
   virtual void set_external_slot_events(const sim_nr_ue_ctxt_t& ue_ctxt, ue_nr_slot_events& pending_events) {}
 
-  // configurable by simulator concrete implementation
+  /**
+   * @brief Called every slot to process the scheduler output for a given CC.
+   * @param enb_ctxt simulated eNB context object
+   * @param cc_out scheduler result for a given CC
+   */
   virtual void process_slot_result(const sim_nr_enb_ctxt_t& enb_ctxt, srsran::const_span<cc_result_t> cc_out) {}
 
 protected:
@@ -163,11 +176,11 @@ protected:
   /// Runs general tests to verify result consistency, and updates UE state
   void process_results();
 
-  std::unique_ptr<srsran::test_delimit_logger> test_delimiter;
-  srslog::basic_logger&                        logger;
-  srslog::basic_logger&                        mac_logger;
-  std::unique_ptr<sched_nr>                    sched_ptr;
-  std::vector<sched_nr_impl::cell_params_t>    cell_params;
+  std::unique_ptr<srsran::test_delimit_logger>    test_delimiter;
+  srslog::basic_logger&                           logger;
+  srslog::basic_logger&                           mac_logger;
+  std::unique_ptr<sched_nr>                       sched_ptr;
+  std::vector<sched_nr_impl::cell_config_manager> cell_params;
 
   std::vector<std::unique_ptr<srsran::task_worker> > cc_workers;
 

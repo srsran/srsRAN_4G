@@ -346,9 +346,8 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
     srsran_assert(success, "Failed to allocate DL HARQ retx");
   }
 
-
   srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx             = ue.pdsch_slot.to_uint();
+  slot_cfg.idx = ue.pdsch_slot.to_uint();
   // Value 0.95 is from TS 38.214 v15.14.00, Section 5.1.3, page 17
   const static float max_R = 0.95;
   while (true) {
@@ -380,8 +379,8 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   // Generate PUCCH
   bwp_uci_slot.pending_acks.emplace_back();
   bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();
-  srsran_assert(ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res),
-                "Error getting ack resource");
+  bool success = ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res);
+  srsran_assert(success, "Error getting ack resource");
 
   return alloc_result::success;
 }

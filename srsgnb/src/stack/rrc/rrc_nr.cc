@@ -48,6 +48,7 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
                  ngap_interface_rrc_nr*      ngap_,
+                 gtpu_interface_rrc*         gtpu_,
                  enb_bearer_manager&         bearer_mapper_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_)
 {
@@ -56,10 +57,25 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   rlc           = rlc_;
   pdcp          = pdcp_;
   ngap          = ngap_;
+  gtpu          = gtpu_;
   bearer_mapper = &bearer_mapper_;
   rrc_eutra     = rrc_eutra_;
 
   cfg = cfg_;
+
+  // log cell configs
+  for (uint32_t i = 0; i < cfg.cell_list.size(); ++i) {
+    const auto& cell = cfg.cell_list.at(i);
+    logger.info("Cell idx=%d, pci=%d, nr_dl_arfcn=%d, nr_ul_arfcn=%d, band=%d, duplex=%s, n_rb_dl=%d, ssb_arfcn=%d",
+                i,
+                cell.phy_cell.carrier.pci,
+                cell.dl_arfcn,
+                cell.ul_arfcn,
+                cell.band,
+                cell.duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "FDD" : "TDD",
+                cell.phy_cell.carrier.nof_prb,
+                cell.ssb_absolute_freq_point);
+  }
 
   // Generate cell config structs
   cell_ctxt.reset(new cell_ctxt_t{});
@@ -171,11 +187,11 @@ void rrc_nr::log_rx_pdu_fail(uint16_t                rnti,
  *
  * This function WILL NOT TRIGGER the RX MSG3 activity timer
  */
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer)
+int rrc_nr::add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
 {
   if (users.contains(rnti) == 0) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
-    users.insert(rnti, std::unique_ptr<ue>(new ue(this, rnti, uecfg, start_msg3_timer)));
+    users.insert(rnti, std::unique_ptr<ue>(new ue(this, rnti, pcell_cc_idx, start_msg3_timer)));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
@@ -190,10 +206,10 @@ int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_m
  *
  * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
  */
-int rrc_nr::add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg)
+int rrc_nr::add_user(uint16_t rnti, uint32_t pcell_cc_idx)
 {
   // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
-  return add_user(rnti, uecfg, true);
+  return add_user(rnti, pcell_cc_idx, true);
 }
 
 void rrc_nr::rem_user(uint16_t rnti)
@@ -292,30 +308,48 @@ void rrc_nr::config_mac()
   ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
                         ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
                         : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  std::vector<sched_nr_interface::cell_cfg_t> sched_cells_cfg(
-      1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
-  sched_nr_interface::cell_cfg_t& cell = sched_cells_cfg[0];
+  std::vector<sched_nr_cell_cfg_t> sched_cells_cfg(1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
+  sched_nr_cell_cfg_t&             cell = sched_cells_cfg[0];
 
   // Derive cell config from rrc_nr_cfg_t
-  cell.bwps[0].pdcch = cfg.cell_list[0].phy_cell.pdcch;
-  bool valid_cfg     = srsran::make_phy_mib(cell_ctxt->mib, &cell.mib);
-  srsran_assert(valid_cfg, "Invalid NR cell MIB configuration.");
-  cell.ssb.periodicity_ms       = cfg.cell_list[0].ssb_cfg.periodicity_ms;
-  cell.ssb.position_in_burst[0] = true;
-  cell.ssb.scs                  = cfg.cell_list[0].ssb_cfg.scs;
-  cell.ssb.pattern              = cfg.cell_list[0].ssb_cfg.pattern;
-  cell.duplex.mode              = SRSRAN_DUPLEX_MODE_FDD;
+  cell.bwps[0].pdcch          = cfg.cell_list[0].phy_cell.pdcch;
+  cell.pci                    = cfg.cell_list[0].phy_cell.carrier.pci;
+  cell.nof_layers             = cfg.cell_list[0].phy_cell.carrier.max_mimo_layers;
+  cell.dl_cell_nof_prb        = cfg.cell_list[0].phy_cell.carrier.nof_prb;
+  cell.ul_cell_nof_prb        = cfg.cell_list[0].phy_cell.carrier.nof_prb;
+  cell.dl_center_frequency_hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz;
+  cell.ul_center_frequency_hz = cfg.cell_list[0].phy_cell.carrier.ul_center_frequency_hz;
+  cell.ssb_center_freq_hz     = cfg.cell_list[0].phy_cell.carrier.ssb_center_freq_hz;
+  cell.offset_to_carrier      = cfg.cell_list[0].phy_cell.carrier.offset_to_carrier;
+  cell.scs                    = cfg.cell_list[0].phy_cell.carrier.scs;
   if (not cfg.is_standalone) {
+    const serving_cell_cfg_common_s& serv_cell = base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
     // Derive cell config from ASN1
-    valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
+    bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
     srsran_assert(valid_cfg, "Invalid NR cell configuration.");
-    valid_cfg =
-        srsran::make_duplex_cfg_from_serv_cell(base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common, &cell.duplex);
-    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+    if (serv_cell.tdd_ul_dl_cfg_common_present) {
+      cell.tdd_ul_dl_cfg_common.emplace(serv_cell.tdd_ul_dl_cfg_common);
+    }
+    cell.ssb_positions_in_burst.in_one_group.set(0, true);
+    cell.ssb_periodicity_ms  = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_scs             = serv_cell.ssb_subcarrier_spacing;
+    cell.ss_pbch_block_power = serv_cell.ss_pbch_block_pwr;
   } else {
-    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
+    const serving_cell_cfg_common_sib_s& serv_cell = cell_ctxt->sib1.serving_cell_cfg_common;
+    cell.bwps[0].pdsch.p_zp_csi_rs_set             = {};
     bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
+    cell.dl_cfg_common.reset(new dl_cfg_common_sib_s{serv_cell.dl_cfg_common});
+    cell.ul_cfg_common.reset(new ul_cfg_common_sib_s{serv_cell.ul_cfg_common});
+    if (serv_cell.tdd_ul_dl_cfg_common_present) {
+      cell.tdd_ul_dl_cfg_common.emplace(serv_cell.tdd_ul_dl_cfg_common);
+    }
+    cell.ssb_positions_in_burst = serv_cell.ssb_positions_in_burst;
+    cell.ssb_periodicity_ms     = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
+    cell.ss_pbch_block_power    = serv_cell.ss_pbch_block_pwr;
   }
+  cell.dmrs_type_a_position = cell_ctxt->mib.dmrs_type_a_position;
+  cell.pdcch_cfg_sib1       = cell_ctxt->mib.pdcch_cfg_sib1;
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());
@@ -332,6 +366,9 @@ void rrc_nr::config_mac()
 
   // Configure MAC/scheduler
   mac->cell_cfg(sched_cells_cfg);
+
+  // Make default UE PHY config object
+  cell_ctxt->default_phy_ue_cfg_nr = get_common_ue_phy_cfg(cell);
 }
 
 int32_t rrc_nr::generate_sibs()
@@ -492,6 +529,9 @@ void rrc_nr::handle_ul_ccch(uint16_t rnti, srsran::const_byte_span pdu)
     case ul_ccch_msg_type_c::c1_c_::types_opts::rrc_setup_request:
       handle_rrc_setup_request(rnti, ul_ccch_msg.msg.c1().rrc_setup_request());
       break;
+    case ul_ccch_msg_type_c::c1_c_::types_opts::rrc_reest_request:
+      handle_rrc_reest_request(rnti, ul_ccch_msg.msg.c1().rrc_reest_request());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type");
       // TODO Remove user
@@ -538,6 +578,9 @@ void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_spa
     case ul_dcch_msg_type_c::c1_c_::types_opts::ul_info_transfer:
       u.handle_ul_information_transfer(ul_dcch_msg.msg.c1().ul_info_transfer());
       break;
+    case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_reest_complete:
+      u.handle_rrc_reestablishment_complete(ul_dcch_msg.msg.c1().rrc_reest_complete());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user
@@ -555,6 +598,19 @@ void rrc_nr::handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_set
   }
   ue& u = *ue_it->second;
   u.handle_rrc_setup_request(msg);
+}
+
+void rrc_nr::handle_rrc_reest_request(uint16_t rnti, const asn1::rrc_nr::rrc_reest_request_s& msg)
+{
+  auto ue_it = users.find(rnti);
+
+  // TODO: Defer creation of ue to this point
+  if (ue_it == users.end()) {
+    logger.error("%s received for inexistent rnti=0x%x", "UL-CCCH", rnti);
+    return;
+  }
+  ue& u = *ue_it->second;
+  u.handle_rrc_reestablishment_request(msg);
 }
 
 /*******************************************************************************
@@ -675,15 +731,9 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
   // try to allocate new user
   sched_nr_ue_cfg_t uecfg{};
   uecfg.carriers.resize(1);
-  uecfg.carriers[0].active      = true;
-  uecfg.carriers[0].cc          = 0;
-  uecfg.ue_bearers[0].direction = mac_lc_ch_cfg_t::BOTH;
-  srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
-                        ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
-                        : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  uecfg.phy_cfg     = srsran::phy_cfg_nr_default_t{ref_args};
-  uecfg.phy_cfg.csi = {}; // disable CSI until RA is complete
+  uecfg.carriers[0].active = true;
+  uecfg.carriers[0].cc     = 0;
+  uecfg.phy_cfg            = cell_ctxt->default_phy_ue_cfg_nr;
 
   uint16_t nr_rnti = mac->reserve_rnti(0, uecfg);
   if (nr_rnti == SRSRAN_INVALID_RNTI) {
@@ -692,7 +742,7 @@ void rrc_nr::sgnb_addition_request(uint16_t eutra_rnti, const sgnb_addition_req_
     return;
   }
 
-  if (add_user(nr_rnti, uecfg, false) != SRSRAN_SUCCESS) {
+  if (add_user(nr_rnti, 0, false) != SRSRAN_SUCCESS) {
     logger.error("Failed to allocate RNTI at RRC");
     rrc_eutra->sgnb_addition_reject(eutra_rnti);
     return;

@@ -163,10 +163,10 @@ void populate_channel(srsran_tx_scheme_t type, cf_t* h[SRSRAN_MAX_PORTS][SRSRAN_
 static void awgn(cf_t* y[SRSRAN_MAX_PORTS], uint32_t n, float snr)
 {
   int   i;
-  float std_dev = srsran_convert_dB_to_amplitude(-(snr + 3.0f)) * scaling;
+  float var = srsran_convert_dB_to_power(-snr) * scaling * scaling;
 
   for (i = 0; i < nof_rx_ports; i++) {
-    srsran_ch_awgn_c(y[i], y[i], std_dev, n);
+    srsran_ch_awgn_c(y[i], y[i], var, n);
   }
 }
 

@@ -113,11 +113,9 @@ public:
 
 protected:
   // Common variables needed/provided by parent class
-  srslog::basic_logger&  logger;
   srsran::timer_handler* timers = nullptr;
   uint32_t               lcid   = 0;
   rlc_config_t           cfg    = {};
-  std::string            rb_name;
 
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 
@@ -130,13 +128,13 @@ protected:
   /*******************************************************
    *     RLC AM TX entity
    *     This class is used for common code between the
-   *     LTE and NR TX entitites
+   *     LTE and NR TX entities
    *******************************************************/
 public:
   class rlc_am_base_tx
   {
   public:
-    explicit rlc_am_base_tx(srslog::basic_logger* logger_) : logger(logger_) {}
+    explicit rlc_am_base_tx(srslog::basic_logger& logger_) : logger(logger_) {}
     virtual ~rlc_am_base_tx() = default;
 
     virtual bool     configure(const rlc_config_t& cfg_)                           = 0;
@@ -157,7 +155,7 @@ public:
 
     bool                  tx_enabled = false;
     byte_buffer_pool*     pool       = nullptr;
-    srslog::basic_logger* logger;
+    srslog::basic_logger& logger;
     std::string           rb_name;
 
     bsr_callback_t bsr_callback;
@@ -172,12 +170,12 @@ public:
   /*******************************************************
    *     RLC AM RX entity
    *     This class is used for common code between the
-   *     LTE and NR RX entitites
+   *     LTE and NR RX entities
    *******************************************************/
   class rlc_am_base_rx
   {
   public:
-    explicit rlc_am_base_rx(rlc_am* parent_, srslog::basic_logger* logger_) : parent(parent_), logger(logger_) {}
+    explicit rlc_am_base_rx(rlc_am* parent_, srslog::basic_logger& logger_) : parent(parent_), logger(logger_) {}
     virtual ~rlc_am_base_rx() = default;
 
     virtual bool     configure(const rlc_config_t& cfg_)                   = 0;
@@ -189,9 +187,10 @@ public:
 
     void write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
-    srslog::basic_logger* logger = nullptr;
+    srslog::basic_logger& logger;
     byte_buffer_pool*     pool   = nullptr;
     rlc_am*               parent = nullptr;
+    std::string           rb_name;
 
   protected:
     std::atomic<bool> do_status = {false}; // light-weight access from Tx entity

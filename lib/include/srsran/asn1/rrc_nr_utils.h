@@ -93,6 +93,9 @@ bool make_phy_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type, srsran_
 
 bool make_phy_tdd_cfg(const asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_duplex_config_nr_t*                  srsran_duplex_config_nr);
+bool make_phy_tdd_cfg(const srsran_duplex_config_nr_t&      srsran_duplex_config_nr,
+                      srsran_subcarrier_spacing_t           scs,
+                      asn1::rrc_nr::tdd_ul_dl_cfg_common_s* tdd_ul_dl_cfg_common);
 bool make_phy_harq_ack_cfg(const asn1::rrc_nr::phys_cell_group_cfg_s& phys_cell_group_cfg,
                            srsran_harq_ack_cfg_hl_t*                  srsran_ue_dl_nr_harq_ack_cfg);
 bool make_phy_coreset_cfg(const asn1::rrc_nr::ctrl_res_set_s& ctrl_res_set, srsran_coreset_t* srsran_coreset);

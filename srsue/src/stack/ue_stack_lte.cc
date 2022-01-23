@@ -224,8 +224,17 @@ int ue_stack_lte::init(const stack_args_t& args_)
   mac_nr.init(mac_nr_args, phy_nr, &rlc_nr, &rrc_nr);
   rlc_nr.init(&pdcp_nr, &rrc_nr, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp_nr.init(&rlc_nr, &rrc_nr, gw);
-  rrc_nr.init(
-      phy_nr, &mac_nr, &rlc_nr, &pdcp_nr, gw, &rrc, usim.get(), task_sched.get_timer_handler(), this, args.rrc_nr);
+  rrc_nr.init(phy_nr,
+              &mac_nr,
+              &rlc_nr,
+              &pdcp_nr,
+              gw,
+              &nas_5g,
+              &rrc,
+              usim.get(),
+              task_sched.get_timer_handler(),
+              this,
+              args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
   args.nas_5g.ia5g = "0,1,2,3";
@@ -517,6 +526,15 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
 void ue_stack_lte::set_phy_config_complete(bool status)
 {
   cfg_task_queue.push([this, status]() { rrc_nr.set_phy_config_complete(status); });
+}
+
+void ue_stack_lte::cell_search_found_cell(const cell_search_result_t& result)
+{
+  cfg_task_queue.push([this, result]() { rrc_nr.cell_search_found_cell(result); });
+}
+void ue_stack_lte::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  cfg_task_queue.push([this, result]() { rrc_nr.cell_select_completed(result); });
 }
 
 } // namespace srsue

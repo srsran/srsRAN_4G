@@ -278,4 +278,6 @@ SRSRAN_API uint32_t srsran_ssb_candidate_sf_idx(const srsran_ssb_t* q, uint32_t 
  */
 SRSRAN_API uint32_t srsran_ssb_candidate_sf_offset(const srsran_ssb_t* q, uint32_t ssb_idx);
 
+SRSRAN_API uint32_t srsran_ssb_cfg_to_str(const srsran_ssb_cfg_t* cfg, char* str, uint32_t str_len);
+
 #endif // SRSRAN_SSB_H

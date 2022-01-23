@@ -31,7 +31,7 @@ class mac_interface_rrc_nr
 {
 public:
   // Provides cell configuration including SIB periodicity, etc.
-  virtual int cell_cfg(const std::vector<srsenb::sched_nr_interface::cell_cfg_t>& nr_cells) = 0;
+  virtual int cell_cfg(const std::vector<sched_nr_cell_cfg_t>& nr_cells) = 0;
 
   /// Allocates a new user/RNTI at MAC. Returns RNTI on success or SRSRAN_INVALID_RNTI otherwise.
   virtual uint16_t reserve_rnti(uint32_t enb_cc_idx, const sched_nr_interface::ue_cfg_t& uecfg) = 0;

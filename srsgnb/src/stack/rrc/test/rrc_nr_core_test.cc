@@ -169,13 +169,11 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
   srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
-  TESTASSERT(rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, bearer_mapper, nullptr) ==
-             SRSRAN_SUCCESS);
+  TESTASSERT(
+      rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, &gtpu_obj, bearer_mapper, nullptr) ==
+      SRSRAN_SUCCESS);
 
-  sched_nr_ue_cfg_t uecfg                     = get_default_ue_cfg(1);
-  uecfg.phy_cfg.pdcch                         = rrc_cfg_nr.cell_list[0].phy_cell.pdcch;
-  uecfg.phy_cfg.pdcch.search_space_present[2] = false;
-  TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, uecfg));
+  TESTASSERT_SUCCESS(rrc_obj.add_user(0x4601, 0));
 
   // RRCSetupComplete triggers NGAP Initial UE Message with NAS-PDU: Registration Request
   ngap_rrc_tester ngap_dummy;
@@ -189,7 +187,6 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
   ul_dcch_msg_s ul_dcch_msg_auth_resp;
 
   ul_dcch_msg_auth_resp.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
-  ul_dcch_msg_auth_resp.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg_present = true;
   ul_dcch_msg_auth_resp.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg.from_string(
       "7e00572d10db165fffdb7b74c326e3fc3f154117fe");
 
@@ -204,7 +201,6 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
   asn1::bit_ref bref_smc{sec_complete_pdu->data(), sec_complete_pdu->get_tailroom()};
   ul_dcch_msg_s ul_dcch_msg_smc;
   ul_dcch_msg_smc.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
-  ul_dcch_msg_smc.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg_present = true;
   ul_dcch_msg_smc.msg.c1().ul_info_transfer().crit_exts.ul_info_transfer().ded_nas_msg.from_string(
       "7e046b3737af017e005e7700093535940096783351f37100237e004179000d0100f11000000000103254760810030000002e02e0602f0201"
       "01530100");

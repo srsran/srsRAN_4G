@@ -62,7 +62,7 @@ typedef struct SRSRAN_API {
  */
 typedef struct SRSRAN_API {
   srsran_ssb_cfg_t ssb;  ///< SSB configuration
-  uint32_t         N_id; ///< Physicall cell identifier
+  uint32_t         N_id; ///< Physical cell identifier
 } srsran_ue_sync_nr_cfg_t;
 
 /**

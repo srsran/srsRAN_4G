@@ -65,6 +65,7 @@ public:
                rlc_interface_rrc*          rlc,
                pdcp_interface_rrc*         pdcp,
                ngap_interface_rrc_nr*      ngap_,
+               gtpu_interface_rrc*         gtpu_,
                enb_bearer_manager&         bearer_mapper_,
                rrc_eutra_interface_rrc_nr* rrc_eutra_);
 
@@ -79,7 +80,7 @@ public:
   int     read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) final;
 
   /// User manegement
-  int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg) final;
+  int  add_user(uint16_t rnti, uint32_t pcell_cc_idx) final;
   void rem_user(uint16_t rnti);
   int  update_user(uint16_t new_rnti, uint16_t old_rnti) final;
   void set_activity_user(uint16_t rnti) final;
@@ -137,6 +138,7 @@ private:
   rlc_interface_rrc*          rlc           = nullptr;
   pdcp_interface_rrc*         pdcp          = nullptr;
   ngap_interface_rrc_nr*      ngap          = nullptr;
+  gtpu_interface_rrc*         gtpu          = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra     = nullptr;
   enb_bearer_manager*         bearer_mapper = nullptr;
 
@@ -156,6 +158,7 @@ private:
     srsran::unique_byte_buffer_t                          mib_buffer = nullptr;
     std::vector<srsran::unique_byte_buffer_t>             sib_buffer;
     std::unique_ptr<const asn1::rrc_nr::cell_group_cfg_s> master_cell_group;
+    srsran::phy_cfg_nr_t                                  default_phy_ue_cfg_nr;
   };
   std::unique_ptr<cell_ctxt_t>     cell_ctxt;
   rnti_map_t<std::unique_ptr<ue> > users;
@@ -169,8 +172,11 @@ private:
   // TS 38.331, 5.3.3 - RRC connection establishment
   void handle_rrc_setup_request(uint16_t rnti, const asn1::rrc_nr::rrc_setup_request_s& msg);
 
+  // TS 38.331, 5.3.7 RRC connection reestablishment
+  void handle_rrc_reest_request(uint16_t rnti, const asn1::rrc_nr::rrc_reest_request_s& msg);
+
   /// This gets called by rrc_nr::sgnb_addition_request and WILL NOT TRIGGER the RX MSG3 activity timer
-  int add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg, bool start_msg3_timer);
+  int add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer);
 
   // Helper to create PDU from RRC message
   template <class T>

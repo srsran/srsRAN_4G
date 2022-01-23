@@ -54,6 +54,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_sta
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_measure    = true;
   ssb_args.enable_decode     = true;
+  ssb_args.enable_search     = true;
   if (srsran_ssb_init(&ssb, &ssb_args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating SSB");
     return;
@@ -167,7 +168,7 @@ void cc_worker::decode_pdcch_dl()
 
     if (logger.debug.enabled()) {
       // log coreset info
-      srsran_coreset_t* coreset = &ue_dl.cfg.coreset[dci_rx[i].ctx.coreset_id];
+      srsran_coreset_t*     coreset = &ue_dl.cfg.coreset[dci_rx[i].ctx.coreset_id];
       std::array<char, 512> coreset_str;
       srsran_coreset_to_str(coreset, coreset_str.data(), coreset_str.size());
       logger.info("PDCCH: coreset=%d, %s", cc_idx, coreset_str.data());

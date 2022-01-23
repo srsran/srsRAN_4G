@@ -53,6 +53,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
                  gw_interface_rrc*           gw_,
+                 nas_5g_interface_rrc_nr*    nas_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_,
                  usim_interface_rrc_nr*      usim_,
                  srsran::timer_handler*      timers_,
@@ -63,6 +64,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   rlc       = rlc_;
   pdcp      = pdcp_;
   gw        = gw_;
+  nas       = nas_;
   mac       = mac_;
   rrc_eutra = rrc_eutra_;
   usim      = usim_;
@@ -70,6 +72,8 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   args      = args_;
 
   plmn_is_selected = true; // short-cut SA test
+
+  t300 = task_sched.get_unique_timer();
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -248,24 +252,23 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
 
   dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
   switch (dl_ccch_msg.msg.c1().type().value) {
-    // case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
-    //   // 5.3.3.8
-    //   rrc_conn_reject_r8_ies_s* reject_r8 = &c1->rrc_reject().crit_exts.c1().rrc_conn_reject_r8();
-    //   logger.info("Received ConnectionReject. Wait time: %d", reject_r8->wait_time);
-    //   srsran::console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
+    case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
+      // 5.3.15
+      const auto& reject = c1->rrc_reject();
+      srsran::console("Received RRC Reject");
 
-    //   t300.stop();
+      t300.stop();
 
-    //   if (reject_r8->wait_time) {
-    //     nas->set_barring(srsran::barring_t::all);
-    //     t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
-    //     t302.run();
-    //   } else {
-    //     // Perform the actions upon expiry of T302 if wait time is zero
-    //     nas->set_barring(srsran::barring_t::none);
-    //     start_go_idle();
-    //   }
-    // } break;
+      if (reject.crit_exts.rrc_reject().wait_time_present) {
+        // nas->set_barring(srsran::barring_t::all);
+        t302.set(reject.crit_exts.rrc_reject().wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
+        t302.run();
+      } else {
+        // Perform the actions upon expiry of T302 if wait time is zero
+        // nas->set_barring(srsran::barring_t::none);
+        // start_go_idle();
+      }
+    } break;
     case dl_ccch_msg_type_c::c1_c_::types::rrc_setup: {
       transaction_id             = c1->rrc_setup().rrc_transaction_id;
       rrc_setup_s rrc_setup_copy = c1->rrc_setup();
@@ -294,13 +297,22 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   switch (dl_dcch_msg.msg.c1().type().value) {
     // TODO: ADD missing cases
     case dl_dcch_msg_type_c::c1_c_::types::rrc_recfg: {
-      transaction_id    = c1->rrc_recfg().rrc_transaction_id;
       rrc_recfg_s recfg = c1->rrc_recfg();
       task_sched.defer_task([this, recfg]() { handle_rrc_reconfig(recfg); });
       break;
     }
+    case dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer: {
+      dl_info_transfer_s dl_info_transfer = c1->dl_info_transfer();
+      task_sched.defer_task([this, dl_info_transfer]() { handle_dl_info_transfer(dl_info_transfer); });
+      break;
+    }
+    case dl_dcch_msg_type_c::c1_c_::types::security_mode_cmd: {
+      security_mode_cmd_s smc = c1->security_mode_cmd();
+      task_sched.defer_task([this, smc]() { handle_security_mode_command(smc); });
+      break;
+    }
     default:
-      logger.error("The provided DL-CCCH message type is not recognized or supported");
+      logger.error("The provided DL-DCCH message type is not recognized or supported");
       break;
   }
 }
@@ -359,8 +371,24 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   //    - uplinkConfigCommon.initialUplinkBWP.rach-ConfigCommon.restricted_set_cfg
   //    - uplinkConfigCommon.initialUplinkBWP.pusch-ConfigCommon.pusch-TimeDomainResourceAllocationList.p0-NominalWithGrant
   //    - ss-PBCH-BlockPower
-  // - ue-TimersAndConstants
   // clang-format on
+
+  // ue-TimersAndConstants
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t300.set(sib1.ue_timers_and_consts.t300.to_number(), timer_expire_func);
+  t301.set(sib1.ue_timers_and_consts.t301.to_number(), timer_expire_func);
+  t310.set(sib1.ue_timers_and_consts.t310.to_number(), timer_expire_func);
+  t311.set(sib1.ue_timers_and_consts.t311.to_number(), timer_expire_func);
+  N310 = sib1.ue_timers_and_consts.n310.to_number();
+  N311 = sib1.ue_timers_and_consts.n311.to_number();
+
+  logger.info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d",
+              N310,
+              N311,
+              t300.duration(),
+              t301.duration(),
+              t310.duration(),
+              t311.duration());
 
   // Apply RACH and timeAlginmentTimer configuration
   mac_cfg_nr_t mac_cfg = {};
@@ -371,7 +399,7 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
 
   // Apply PDSCH Config Common
   if (sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup()
-          .pdsch_time_domain_alloc_list_present) {
+          .pdsch_time_domain_alloc_list.size() > 0) {
     if (not fill_phy_pdsch_cfg_common(sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup(),
                                       &phy_cfg.pdsch)) {
       logger.warning("Could not set PDSCH config.");
@@ -465,13 +493,9 @@ int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::u
   harq_cfg.nof_procs                = 8;
   mac->set_config(harq_cfg);
 
-  // Setup SRB0, 1 and 2
-  for (int i = 0; i < 3; i++) {
-    logical_channel_config_t lch = {};
-    lch.lcid                     = i;
-    lch.priority                 = i + 1;
-    mac->setup_lcid(lch);
-  }
+  // Setup SRB0
+  logical_channel_config_t lch = {};
+  mac->setup_lcid(lch);
 
   // Coreset0 configuration
   // Get pointA and SSB absolute frequencies
@@ -541,7 +565,35 @@ uint16_t rrc_nr::get_mnc()
 // Senders
 void rrc_nr::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
-  logger.warning("%s not implemented yet.", __FUNCTION__);
+  logger.debug("Preparing UL Info Transfer");
+
+  ul_dcch_msg_s           ul_dcch_msg;
+  ul_info_transfer_ies_s* ul_info_transfer =
+      &ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_ul_info_transfer();
+
+  // Try to resize target buffer first
+  ul_info_transfer->ded_nas_msg.resize(nas_msg->N_bytes);
+
+  // check we have enough space in target buffer
+  if (nas_msg->N_bytes > ul_info_transfer->ded_nas_msg.size()) {
+    logger.error("NAS message too big to send in UL Info transfer (%d > %d).",
+                 nas_msg->N_bytes,
+                 ul_info_transfer->ded_nas_msg.size());
+    return;
+  }
+
+  // copy message content
+  memcpy(ul_info_transfer->ded_nas_msg.data(), nas_msg->msg, nas_msg->N_bytes);
+
+  // send message
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
+void rrc_nr::send_security_mode_complete()
+{
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         smc = ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete();
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
 void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
@@ -632,7 +684,6 @@ void rrc_nr::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
   rrc_setup_complete->sel_plmn_id                      = 1;
   rrc_setup_complete->registered_amf_present           = false;
   rrc_setup_complete->guami_type_present               = false;
-  rrc_setup_complete->s_nssai_list_present             = false;
   rrc_setup_complete->ng_minus5_g_s_tmsi_value_present = false;
 
   rrc_setup_complete->ded_nas_msg.resize(nas_msg->N_bytes);
@@ -672,7 +723,6 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
   }
 
   mrdc_cap.rf_params_mrdc.supported_band_combination_list.push_back(band_combination);
-  mrdc_cap.rf_params_mrdc.supported_band_combination_list_present = true;
 
   mrdc_cap.rf_params_mrdc.ext = true;
 
@@ -692,8 +742,6 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
     band_info_nr.band_info_nr().band_nr = band;
     mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_nr);
   }
-
-  mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt_present = true;
 
   // rf_params_mrdc supported band combination list v1540
 
@@ -747,8 +795,6 @@ int rrc_nr::get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps_pdu)
   }
 
   mrdc_cap.feature_set_combinations.push_back(feature_set_combination);
-
-  mrdc_cap.feature_set_combinations_present = true;
 
   // Pack mrdc_cap
   asn1::bit_ref bref(eutra_nr_caps_pdu->msg, eutra_nr_caps_pdu->get_tailroom());
@@ -886,6 +932,8 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
       drb_id = rlc_bearer_cfg.served_radio_bearer.drb_id();
       add_lcid_drb(lc_ch_id, drb_id);
       is_drb = true;
+    } else if (rlc_bearer_cfg.served_radio_bearer.type() == rlc_bearer_cfg_s::served_radio_bearer_c_::types::srb_id) {
+      srb_id = rlc_bearer_cfg.served_radio_bearer.srb_id();
     }
   } else {
     logger.error("In RLC bearer cfg does not contain served radio bearer");
@@ -920,7 +968,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
   if (mac_cell_group_cfg.sched_request_cfg_present) {
-    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
+    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() > 0) {
       if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() == 1) {
         const sched_request_to_add_mod_s& asn1_cfg =
             mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0];
@@ -942,7 +990,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
       }
     }
 
-    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list_present) {
+    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list.size() > 0) {
       logger.warning("Not handling sched request to release list");
       return false;
     }
@@ -960,7 +1008,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     }
 
   if (mac_cell_group_cfg.tag_cfg_present) {
-    if (mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list_present) {
+    if (mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.size() > 0) {
       for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.size(); i++) {
         tag_cfg_nr_t tag_cfg_nr     = {};
         tag_cfg_nr.tag_id           = mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[i].tag_id;
@@ -971,7 +1019,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
         }
       }
     }
-    if (mac_cell_group_cfg.tag_cfg.tag_to_release_list_present) {
+    if (mac_cell_group_cfg.tag_cfg.tag_to_release_list.size() > 0) {
       for (uint32_t i = 0; i < mac_cell_group_cfg.tag_cfg.tag_to_release_list.size(); i++) {
         uint32_t tag_id = mac_cell_group_cfg.tag_cfg.tag_to_release_list[i];
         if (mac->remove_tag_config(tag_id) != SRSRAN_SUCCESS) {
@@ -983,7 +1031,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
   }
 
   if (mac_cell_group_cfg.phr_cfg_present) {
-    if (mac_cell_group_cfg.phr_cfg.type() == setup_release_c<asn1::rrc_nr::phr_cfg_s>::types_opts::setup) {
+    if (mac_cell_group_cfg.phr_cfg.is_setup()) {
       phr_cfg_nr_t phr_cfg_nr;
       if (make_mac_phr_cfg_t(mac_cell_group_cfg.phr_cfg.setup(), &phr_cfg_nr) != true) {
         logger.warning("Unable to build PHR config");
@@ -1004,7 +1052,7 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 
 bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg)
 {
-  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
+  if (pdcch_cfg.search_spaces_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pdcch_cfg.search_spaces_to_add_mod_list.size(); i++) {
       srsran_search_space_t search_space;
       if (make_phy_search_space_cfg(pdcch_cfg.search_spaces_to_add_mod_list[i], &search_space) == true) {
@@ -1019,7 +1067,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdcch(const asn1::rrc_nr::pdcch_cfg_s& pdcch_
     logger.warning("Option search_spaces_to_add_mod_list not present");
     return false;
   }
-  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
+  if (pdcch_cfg.ctrl_res_set_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pdcch_cfg.ctrl_res_set_to_add_mod_list.size(); i++) {
       srsran_coreset_t coreset;
       if (make_phy_coreset_cfg(pdcch_cfg.ctrl_res_set_to_add_mod_list[i], &coreset) == true) {
@@ -1080,7 +1128,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
     phy_cfg.pdsch.alloc = resource_alloc;
   }
 
-  if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+  if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size(); i++) {
       srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
       if (make_phy_zp_csi_rs_resource(pdsch_cfg.zp_csi_rs_res_to_add_mod_list[i], &zp_csi_rs_resource) == true) {
@@ -1095,7 +1143,7 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
 
   if (pdsch_cfg.p_zp_csi_rs_res_set_present) {
     // check if resources have been processed
-    if (not pdsch_cfg.zp_csi_rs_res_to_add_mod_list_present) {
+    if (pdsch_cfg.zp_csi_rs_res_to_add_mod_list.size() == 0) {
       logger.warning("Can't build ZP-CSI config, option zp_csi_rs_res_to_add_mod_list not present");
       return false;
     }
@@ -1149,43 +1197,37 @@ bool rrc_nr::apply_res_csi_report_cfg(const asn1::rrc_nr::csi_report_cfg_s& csi_
 
 bool rrc_nr::apply_csi_meas_cfg(const asn1::rrc_nr::csi_meas_cfg_s& csi_meas_cfg)
 {
-  if (csi_meas_cfg.csi_report_cfg_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < csi_meas_cfg.csi_report_cfg_to_add_mod_list.size(); i++) {
-      if (apply_res_csi_report_cfg(csi_meas_cfg.csi_report_cfg_to_add_mod_list[i]) == false) {
-        return false;
-      }
+  for (uint32_t i = 0; i < csi_meas_cfg.csi_report_cfg_to_add_mod_list.size(); i++) {
+    if (apply_res_csi_report_cfg(csi_meas_cfg.csi_report_cfg_to_add_mod_list[i]) == false) {
+      return false;
     }
   }
 
-  if (csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.size(); i++) {
-      srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
-      if (make_phy_nzp_csi_rs_resource(csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list[i], &csi_rs_nzp_resource) == true) {
-        // temporally store csi_rs_zp_res
-        csi_rs_nzp_res[csi_rs_nzp_resource.id] = csi_rs_nzp_resource;
-      } else {
-        logger.warning("Warning while building phy_nzp_csi_rs resource");
-        return false;
-      }
+  for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.size(); i++) {
+    srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+    if (make_phy_nzp_csi_rs_resource(csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list[i], &csi_rs_nzp_resource) == true) {
+      // temporally store csi_rs_zp_res
+      csi_rs_nzp_res[csi_rs_nzp_resource.id] = csi_rs_nzp_resource;
+    } else {
+      logger.warning("Warning while building phy_nzp_csi_rs resource");
+      return false;
     }
   }
 
-  if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.size(); i++) {
-      uint8_t set_id = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_res_set_id;
-      for (uint32_t j = 0; j < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res.size(); j++) {
-        uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
-        // use temporally stored values to assign
-        if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
-          logger.warning("Can not find nzp_csi_rs_res in temporally stored csi_rs_nzp_res");
-          return false;
-        }
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
+  for (uint32_t i = 0; i < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.size(); i++) {
+    uint8_t set_id = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_res_set_id;
+    for (uint32_t j = 0; j < csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res.size(); j++) {
+      uint8_t res = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].nzp_csi_rs_res[j];
+      // use temporally stored values to assign
+      if (csi_rs_nzp_res.find(res) == csi_rs_nzp_res.end()) {
+        logger.warning("Can not find nzp_csi_rs_res in temporally stored csi_rs_nzp_res");
+        return false;
       }
-      if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
-        phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
-      }
+      phy_cfg.pdsch.nzp_csi_rs_sets[set_id].data[j] = csi_rs_nzp_res[res];
+      phy_cfg.pdsch.nzp_csi_rs_sets[set_id].count += 1;
+    }
+    if (csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list[i].trs_info_present) {
+      phy_cfg.pdsch.nzp_csi_rs_sets[set_id].trs_info = true;
     }
   }
 
@@ -1205,8 +1247,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
   }
   if (dl_cfg_common.init_dl_bwp_present) {
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
-      if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() ==
-          asn1::rrc_nr::setup_release_c<asn1::rrc_nr::pdsch_cfg_common_s>::types_opts::setup) {
+      if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.is_setup()) {
         const pdcch_cfg_common_s& pdcch_cfg_common = dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
 
         // Load CORESET Zero
@@ -1258,7 +1299,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
           logger.warning("Option common_ctrl_res_set not present");
           return false;
         }
-        if (pdcch_cfg_common.common_search_space_list_present) {
+        if (pdcch_cfg_common.common_search_space_list.size() > 0) {
           for (uint32_t i = 0; i < pdcch_cfg_common.common_search_space_list.size(); i++) {
             srsran_search_space_t search_space;
             if (make_phy_search_space_cfg(pdcch_cfg_common.common_search_space_list[i], &search_space) == true) {
@@ -1298,7 +1339,7 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
     if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common_present) {
       if (dl_cfg_common.init_dl_bwp.pdsch_cfg_common.type() == setup_release_c<pdsch_cfg_common_s>::types::setup) {
         pdsch_cfg_common_s pdsch_cfg_common = dl_cfg_common.init_dl_bwp.pdsch_cfg_common.setup();
-        if (pdsch_cfg_common.pdsch_time_domain_alloc_list_present) {
+        if (pdsch_cfg_common.pdsch_time_domain_alloc_list.size() > 0) {
           for (uint32_t i = 0; i < pdsch_cfg_common.pdsch_time_domain_alloc_list.size(); i++) {
             srsran_sch_time_ra_t common_time_ra;
             if (make_phy_common_time_ra(pdsch_cfg_common.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
@@ -1360,7 +1401,7 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
     }
     if (ul_cfg_common.init_ul_bwp.pusch_cfg_common_present) {
       if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.type() == setup_release_c<pusch_cfg_common_s>::types_opts::setup) {
-        if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list_present) {
+        if (ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list.size() > 0) {
           for (uint32_t i = 0;
                i < ul_cfg_common.init_ul_bwp.pusch_cfg_common.setup().pusch_time_domain_alloc_list.size();
                i++) {
@@ -1420,7 +1461,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
   }
 
   // now look up resource and assign into internal struct
-  if (pucch_cfg.res_to_add_mod_list_present) {
+  if (pucch_cfg.res_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.res_to_add_mod_list.size(); i++) {
       uint32_t res_id = pucch_cfg.res_to_add_mod_list[i].pucch_res_id;
       pucch_res_list.insert(res_id, {});
@@ -1436,7 +1477,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
 
   // Check first all resource lists and
   phy_cfg.pucch.enabled = true;
-  if (pucch_cfg.res_set_to_add_mod_list_present) {
+  if (pucch_cfg.res_set_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.res_set_to_add_mod_list.size(); i++) {
       uint32_t set_id                          = pucch_cfg.res_set_to_add_mod_list[i].pucch_res_set_id;
       phy_cfg.pucch.sets[set_id].nof_resources = pucch_cfg.res_set_to_add_mod_list[i].res_list.size();
@@ -1452,7 +1493,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
     }
   }
 
-  if (pucch_cfg.sched_request_res_to_add_mod_list_present) {
+  if (pucch_cfg.sched_request_res_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.sched_request_res_to_add_mod_list.size(); i++) {
       uint32_t                      sr_res_id = pucch_cfg.sched_request_res_to_add_mod_list[i].sched_request_res_id;
       srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource;
@@ -1486,7 +1527,7 @@ bool rrc_nr::apply_sp_cell_ded_ul_pucch(const asn1::rrc_nr::pucch_cfg_s& pucch_c
     return false;
   }
 
-  if (pucch_cfg.dl_data_to_ul_ack_present) {
+  if (pucch_cfg.dl_data_to_ul_ack.size() > 0) {
     for (uint32_t i = 0; i < pucch_cfg.dl_data_to_ul_ack.size(); i++) {
       phy_cfg.harq_ack.dl_data_to_ul_ack[i] = pucch_cfg.dl_data_to_ul_ack[i];
     }
@@ -1784,7 +1825,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 
 bool rrc_nr::update_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
-  if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
+  if (cell_group_cfg.rlc_bearer_to_add_mod_list.size() > 0) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
       if (apply_rlc_add_mod(cell_group_cfg.rlc_bearer_to_add_mod_list[i]) == false) {
         return false;
@@ -1822,6 +1863,19 @@ bool rrc_nr::apply_drb_release(const uint8_t drb)
   //  2>  if the UE is operating in EN-DC
   // 3>  if a new bearer is not added either with NR or E-UTRA with same eps-BearerIdentity:
   // 4>  indicate the release of the DRB and the eps-BearerIdentity of the released DRB to upper layers.
+  return true;
+}
+
+bool rrc_nr::apply_srb_add_mod(const srb_to_add_mod_s& srb_cfg)
+{
+  if (srb_cfg.pdcp_cfg_present) {
+    logger.error("Cannot add SRB - only default configuration supported.");
+    return false;
+  }
+
+  srsran::pdcp_config_t pdcp_cfg = srsran::make_nr_srb_pdcp_config_t(srb_cfg.srb_id, true);
+  pdcp->add_bearer(srb_cfg.srb_id, pdcp_cfg);
+
   return true;
 }
 
@@ -1922,20 +1976,23 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 
 bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
 {
-  if (radio_bearer_cfg.drb_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_add_mod_list.size(); i++) {
-      if (apply_drb_add_mod(radio_bearer_cfg.drb_to_add_mod_list[i]) == false) {
-        return false;
-      }
+  for (const auto& srb : radio_bearer_cfg.srb_to_add_mod_list) {
+    if (apply_srb_add_mod(srb) == false) {
+      logger.error("Couldn't apply config for SRB%d.", srb.srb_id);
+      return false;
     }
   }
-  if (radio_bearer_cfg.drb_to_release_list_present) {
-    for (uint32_t i = 0; i < radio_bearer_cfg.drb_to_release_list.size(); i++) {
-      if (apply_drb_release(radio_bearer_cfg.drb_to_release_list[i]) == false) {
-        return false;
-      }
+  for (const auto& drb : radio_bearer_cfg.drb_to_add_mod_list) {
+    if (apply_drb_add_mod(drb) == false) {
+      return false;
     }
   }
+  for (const auto& drb : radio_bearer_cfg.drb_to_release_list) {
+    if (apply_drb_release(drb) == false) {
+      return false;
+    }
+  }
+
   if (radio_bearer_cfg.security_cfg_present) {
     if (apply_security_cfg(radio_bearer_cfg.security_cfg) == false) {
       return false;
@@ -1977,11 +2034,75 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
 
 void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
 {
+  transaction_id = reconfig.rrc_transaction_id;
+
   if (not conn_recfg_proc.launch(nr, false, reconfig)) {
     logger.error("Unable to launch connection reconfiguration procedure");
     return;
   }
   callback_list.add_proc(conn_recfg_proc);
+}
+
+void rrc_nr::handle_dl_info_transfer(const dl_info_transfer_s& dl_info_transfer)
+{
+  transaction_id = dl_info_transfer.rrc_transaction_id;
+
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+  if (pdu->get_tailroom() < dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.size()) {
+    logger.error("DL Info Transfer too big (%d > %d)",
+                 dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.size(),
+                 pdu->get_tailroom());
+    return;
+  }
+  pdu->N_bytes = dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.size();
+  memcpy(pdu->msg, dl_info_transfer.crit_exts.dl_info_transfer().ded_nas_msg.data(), pdu->N_bytes);
+  nas->write_pdu(std::move(pdu));
+}
+
+void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc)
+{
+  transaction_id = smc.rrc_transaction_id;
+
+  const auto& sec_algo_cfg = smc.crit_exts.security_mode_cmd().security_cfg_smc.security_algorithm_cfg;
+  sec_cfg.cipher_algo      = (CIPHERING_ALGORITHM_ID_ENUM)sec_algo_cfg.ciphering_algorithm.value;
+  if (sec_algo_cfg.integrity_prot_algorithm_present) {
+    sec_cfg.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)sec_algo_cfg.integrity_prot_algorithm.value;
+  } else {
+    logger.error("Missing Integrity Algorithm Config");
+  }
+
+  logger.info("Received Security Mode Command nea: %s, nia: %s",
+              ciphering_algorithm_id_nr_text[sec_cfg.cipher_algo],
+              integrity_algorithm_id_nr_text[sec_cfg.integ_algo]);
+
+  // Generate AS security keys
+  generate_as_keys();
+  security_is_activated = true;
+
+  // Configure PDCP for security
+  uint32_t lcid = srb_to_lcid(nr_srb::srb1);
+  pdcp->config_security(lcid, sec_cfg);
+  pdcp->enable_integrity(lcid, DIRECTION_TXRX);
+  send_security_mode_complete();
+  pdcp->enable_encryption(lcid, DIRECTION_TXRX);
+}
+
+// Security helper used by Security Mode Command and Mobility handling routines
+void rrc_nr::generate_as_keys()
+{
+  uint8_t k_asme[32] = {};
+  // FIXME: need to add
+  // nas->get_k_asme(k_asme, 32);
+  logger.debug(k_asme, 32, "UE K_asme");
+  // logger.debug("Generating K_enb with UL NAS COUNT: %d", nas->get_k_enb_count());
+  // usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
+  logger.info(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
+  logger.info(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
+  logger.info(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");
 }
 
 // RLC interface
@@ -2004,11 +2125,29 @@ void rrc_nr::ra_problem()
 void rrc_nr::release_pucch_srs() {}
 
 // STACK interface
-void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell)
-{}
+void rrc_nr::cell_search_found_cell(const rrc_interface_phy_nr::cell_search_result_t& result)
+{
+  cell_selector.trigger(result);
+}
+
+void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  cell_selector.trigger(result);
+}
 
 void rrc_nr::set_phy_config_complete(bool status)
 {
+  logger.info("set_phy_config_complete() status=%d", status);
+
+  // inform procedures if they are running
+  if (conn_setup_proc.is_busy()) {
+    conn_setup_proc.trigger(status);
+  }
+
+  if (conn_recfg_proc.is_busy()) {
+    conn_recfg_proc.trigger(status);
+  }
+
   switch (phy_cfg_state) {
     case PHY_CFG_STATE_NONE:
       logger.warning("PHY configuration completed without a clear state.");

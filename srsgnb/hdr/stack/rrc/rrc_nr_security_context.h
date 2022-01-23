@@ -33,10 +33,10 @@ class nr_security_context
 {
 public:
   explicit nr_security_context(const srsenb::rrc_nr_cfg_t& cfg_) :
-    cfg(cfg_), logger(srslog::fetch_basic_logger("RRC_NR"))
+    cfg(cfg_), logger(srslog::fetch_basic_logger("RRC-NR"))
   {}
 
-  nr_security_context(const nr_security_context& other) : cfg(other.cfg), logger(srslog::fetch_basic_logger("RRC_NR"))
+  nr_security_context(const nr_security_context& other) : cfg(other.cfg), logger(srslog::fetch_basic_logger("RRC-NR"))
   {
     k_gnb_present         = other.k_gnb_present;
     security_capabilities = other.security_capabilities;
