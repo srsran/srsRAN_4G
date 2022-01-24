@@ -856,8 +856,9 @@ static int ssb_pss_search(srsran_ssb_t* q,
         // Find maximum
         uint32_t peak_idx = srsran_vec_max_abs_ci(q->tmp_time, q->corr_window);
 
-        // Average power, skip window if value is invalid (0.0, nan or inf)
-        float avg_pwr_corr = srsran_vec_avg_power_cf(&q->tmp_time[peak_idx], q->symbol_sz);
+        // Average power, take total power of the frequency domain signal after filtering, skip correlation window if
+        // value is invalid (0.0, nan or inf)
+        float avg_pwr_corr = srsran_vec_avg_power_cf(q->tmp_corr, q->corr_sz);
         if (!isnormal(avg_pwr_corr)) {
           continue;
         }
