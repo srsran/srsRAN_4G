@@ -1632,27 +1632,24 @@ bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_ce
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure CSI-Report
-    if (setup.csi_report_cfg_to_add_mod_list_present) {
-      for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
-        const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
-        if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
-          return false;
+    for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
+      const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
+      if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+        return false;
+      }
+      if (csi_rep.report_cfg_type.type().value == csi_report_cfg_s::report_cfg_type_c_::types_opts::periodic) {
+        const auto&                 pucch_setup = serv_cell.ul_cfg.init_ul_bwp.pucch_cfg.setup();
+        srsran_pucch_nr_resource_t& resource    = csi_hl->reports[i].periodic.resource;
+        uint32_t    pucch_resource_id           = csi_rep.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res;
+        const auto& asn1_resource               = pucch_setup.res_to_add_mod_list[pucch_resource_id];
+        uint32_t    format2_rate                = 0;
+        if (pucch_setup.format2_present and
+            pucch_setup.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+            pucch_setup.format2.setup().max_code_rate_present) {
+          format2_rate = pucch_setup.format2.setup().max_code_rate.to_number();
         }
-        if (csi_rep.report_cfg_type.type().value == csi_report_cfg_s::report_cfg_type_c_::types_opts::periodic) {
-          const auto&                 pucch_setup = serv_cell.ul_cfg.init_ul_bwp.pucch_cfg.setup();
-          srsran_pucch_nr_resource_t& resource    = csi_hl->reports[i].periodic.resource;
-          uint32_t    pucch_resource_id           = csi_rep.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res;
-          const auto& asn1_resource               = pucch_setup.res_to_add_mod_list[pucch_resource_id];
-          uint32_t    format2_rate                = 0;
-          if (pucch_setup.format2_present and
-              pucch_setup.format2.type().value ==
-                  asn1::rrc_nr::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
-              pucch_setup.format2.setup().max_code_rate_present) {
-            format2_rate = pucch_setup.format2.setup().max_code_rate.to_number();
-          }
-          if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
-            return false;
-          }
+        if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
+          return false;
         }
       }
     }
