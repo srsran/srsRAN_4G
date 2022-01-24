@@ -182,6 +182,7 @@ bool slot_worker::work_ul()
     for (uint32_t i = 0; i < (uint32_t)pucch.candidates.size(); i++) {
       pucch_info[i].uci_data.cfg = pucch.candidates[i].uci_cfg;
 
+#if 0
       if (pucch_info[i].uci_data.cfg.nof_csi == 1 && pucch_info[i].uci_data.cfg.ack.count > 0) {
         printf("Stop here");
       }
@@ -189,6 +190,7 @@ bool slot_worker::work_ul()
       if (pucch_info[i].uci_data.cfg.nof_csi == 1 && pucch_info[i].uci_data.cfg.ack.count > 0) {
         printf("Stop here");
       }
+#endif
 
       // Decode PUCCH
       if (srsran_gnb_ul_get_pucch(&gnb_ul,

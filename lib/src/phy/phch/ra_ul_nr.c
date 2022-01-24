@@ -551,6 +551,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_SUCCESS;
   }
 
+#if 0
   for (size_t n = 0; n < SRSRAN_PUCCH_NR_MAX_NOF_SETS; n++) {
     if (pucch_cfg->sets[n].nof_resources > 0) {
       printf("\n ==== Set index number %zu:  =====\n", n);
@@ -558,19 +559,23 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
         printf("\n PUCCH resource ID %zu", k);
         printf("\n Format %u", pucch_cfg->sets[n].resources[k].format);
         printf("\n Starting PRB %u", pucch_cfg->sets[n].resources[k].starting_prb);
+        printf("\n Intra slot hopping %s", pucch_cfg->sets[n].resources[k].intra_slot_hopping ? "True" : "False");
         printf("\n Second PRB %u", pucch_cfg->sets[n].resources[k].second_hop_prb);
         if (pucch_cfg->sets[n].resources[k].format == SRSRAN_PUCCH_NR_FORMAT_1) {
+          printf("\n ICS %u", pucch_cfg->sets[n].resources[k].initial_cyclic_shift);
           printf("\n Num of symbols %u", pucch_cfg->sets[n].resources[k].nof_symbols);
-          printf("\n ICS %u \n", pucch_cfg->sets[n].resources[k].initial_cyclic_shift);
+          printf("\n Starting sym idx %u", pucch_cfg->sets[n].resources[k].start_symbol_idx);
+          printf("\n Time domain OCC %u \n", pucch_cfg->sets[n].resources[k].time_domain_occ);
         }
         if (pucch_cfg->sets[n].resources[k].format == SRSRAN_PUCCH_NR_FORMAT_2) {
           printf("\n Num of PRBs %u", pucch_cfg->sets[n].resources[k].nof_prb);
-          printf("\n Start symb idx %u", pucch_cfg->sets[n].resources[k].start_symbol_idx);
-          printf("\n Num of symbols %u \n", pucch_cfg->sets[n].resources[k].nof_symbols);
+          printf("\n Num of symbols %u", pucch_cfg->sets[n].resources[k].nof_symbols);
+          printf("\n Start symb idx %u \n", pucch_cfg->sets[n].resources[k].start_symbol_idx);
         }
       }
     }
   }
+#endif
 
   // Use SR PUCCH resource
   // - At least one positive SR
@@ -640,9 +645,11 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_SUCCESS;
   }
 
+#if 0
   if (uci_cfg->ack.count > 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
     printf("This is point where we fail");
   }
+#endif
 
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size

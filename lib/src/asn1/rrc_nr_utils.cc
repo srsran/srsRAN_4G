@@ -796,6 +796,10 @@ bool make_phy_res_config(const pucch_res_s&          pucch_res,
 {
   srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {};
   srsran_pucch_nr_resource.starting_prb               = pucch_res.start_prb;
+  srsran_pucch_nr_resource.intra_slot_hopping         = pucch_res.intra_slot_freq_hop_present;
+  if (pucch_res.second_hop_prb_present) {
+    srsran_pucch_nr_resource.second_hop_prb = pucch_res.second_hop_prb;
+  }
   switch (pucch_res.format.type()) {
     case pucch_res_s::format_c_::types_opts::format0:
       srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;

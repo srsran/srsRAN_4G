@@ -607,9 +607,9 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   for (uint32_t i = 0; i < out.res_to_add_mod_list.size(); ++i) {
     out.res_to_add_mod_list[i].pucch_res_id                = i;
     out.res_to_add_mod_list[i].intra_slot_freq_hop_present = false;
-    out.res_to_add_mod_list[i].second_hop_prb_present      = false;
     if (i < 8 or i == 16) {
       out.res_to_add_mod_list[i].start_prb                              = 51;
+      out.res_to_add_mod_list[i].second_hop_prb_present                 = true;
       out.res_to_add_mod_list[i].second_hop_prb                         = 0;
       out.res_to_add_mod_list[i].format.set_format1().init_cyclic_shift = (4 * (j % 3));
       out.res_to_add_mod_list[i].format.format1().nrof_symbols          = 14;
@@ -618,6 +618,7 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
       j++;
     } else if (i < 15) {
       out.res_to_add_mod_list[i].start_prb                         = 1;
+      out.res_to_add_mod_list[i].second_hop_prb_present            = true;
       out.res_to_add_mod_list[i].second_hop_prb                    = 50;
       out.res_to_add_mod_list[i].format.set_format2().nrof_prbs    = 1;
       out.res_to_add_mod_list[i].format.format2().nrof_symbols     = 2;
@@ -625,6 +626,7 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
       j2++;
     } else {
       out.res_to_add_mod_list[i].start_prb                         = 50;
+      out.res_to_add_mod_list[i].second_hop_prb_present            = true;
       out.res_to_add_mod_list[i].second_hop_prb                    = 1;
       out.res_to_add_mod_list[i].format.set_format2().nrof_prbs    = 1;
       out.res_to_add_mod_list[i].format.format2().nrof_symbols     = 2;

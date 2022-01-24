@@ -1467,6 +1467,14 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
         // TODO: remaining fields
       }
     }
+
+    if (cell_group_config.sp_cell_cfg_present and cell_group_config.sp_cell_cfg.sp_cell_cfg_ded_present and
+        cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present and
+        cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp_present and
+        cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg_present) {
+      auto& pucch_cfg = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.setup();
+      srsran::fill_phy_pucch_cfg(pucch_cfg, &uecfg.phy_cfg.pucch);
+    }
   } else {
     auto& pdcch = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
     for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
@@ -1480,7 +1488,6 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
           parent->cfg.cell_list[0].phy_cell.pdcch.coreset[cs.ctrl_res_set_id];
     }
   }
-
 
   uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
   uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
