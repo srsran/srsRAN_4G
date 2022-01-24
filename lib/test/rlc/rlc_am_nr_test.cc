@@ -513,6 +513,10 @@ int segment_retx_test()
     for (int i = 0; i < 3; i++) {
       byte_buffer_t retx_buf;
       uint32_t      len = 0;
+      test_logger.info("Looping!!! i=%d", i);
+      test_logger.info("Looping!!! i=%d", i);
+      test_logger.info("Looping!!! i=%d", i);
+      test_logger.info("Looping!!! i=%d", i);
       if (i == 0) {
         len = rlc1.read_pdu(retx_buf.msg, 3);
         TESTASSERT(3 == len);
