@@ -20,6 +20,9 @@
 #include <srsran/phy/utils/random.h>
 #include <stdlib.h>
 
+#define SSB_DECODE_TEST_PCI_STRIDE 53
+#define SSB_DECODE_TEST_SSB_STRIDE 3
+
 // NR parameters
 static uint32_t                    carrier_nof_prb = 52;
 static srsran_subcarrier_spacing_t carrier_scs     = srsran_subcarrier_spacing_15kHz;
@@ -119,7 +122,7 @@ static void gen_pbch_msg(srsran_pbch_msg_nr_t* pbch_msg, uint32_t ssb_idx)
   pbch_msg->crc     = true;
 }
 
-static int test_case_1(srsran_ssb_t* ssb)
+static int test_case_true(srsran_ssb_t* ssb)
 {
   // For benchmarking purposes
   uint64_t t_encode_usec = 0;
@@ -138,8 +141,8 @@ static int test_case_1(srsran_ssb_t* ssb)
 
   // For each PCI...
   uint64_t count = 0;
-  for (uint32_t pci = 0; pci < SRSRAN_NOF_NID_NR; pci += 23) {
-    for (uint32_t ssb_idx = 0; ssb_idx < ssb->Lmax; ssb_idx++, count++) {
+  for (uint32_t pci = 0; pci < SRSRAN_NOF_NID_NR; pci += SSB_DECODE_TEST_PCI_STRIDE) {
+    for (uint32_t ssb_idx = 0; ssb_idx < ssb->Lmax; ssb_idx += SSB_DECODE_TEST_SSB_STRIDE, count++) {
       struct timeval t[3] = {};
 
       // Build PBCH message
@@ -149,7 +152,7 @@ static int test_case_1(srsran_ssb_t* ssb)
       // Print encoded PBCH message
       char str[512] = {};
       srsran_pbch_msg_info(&pbch_msg_tx, str, sizeof(str));
-      INFO("test_case_1 - encoded pci=%d %s", pci, str);
+      INFO("test_case_true - encoded pci=%d %s", pci, str);
 
       // Initialise baseband
       srsran_vec_cf_zero(buffer, hf_len);
@@ -175,7 +178,7 @@ static int test_case_1(srsran_ssb_t* ssb)
 
       // Print decoded PBCH message
       srsran_pbch_msg_info(&pbch_msg_rx, str, sizeof(str));
-      INFO("test_case_1 - decoded pci=%d %s crc=%s", pci, str, pbch_msg_rx.crc ? "OK" : "KO");
+      INFO("test_case_true - decoded pci=%d %s crc=%s", pci, str, pbch_msg_rx.crc ? "OK" : "KO");
 
       // Assert PBCH message CRC
       TESTASSERT(pbch_msg_rx.crc);
@@ -191,7 +194,7 @@ static int test_case_1(srsran_ssb_t* ssb)
 
       // Print decoded PBCH message
       srsran_pbch_msg_info(&res.pbch_msg, str, sizeof(str));
-      INFO("test_case_1 - found   pci=%d %s crc=%s", res.N_id, str, res.pbch_msg.crc ? "OK" : "KO");
+      INFO("test_case_true - found   pci=%d %s crc=%s", res.N_id, str, res.pbch_msg.crc ? "OK" : "KO");
 
       // Assert PBCH message CRC
       TESTASSERT(res.pbch_msg.crc);
@@ -200,12 +203,83 @@ static int test_case_1(srsran_ssb_t* ssb)
   }
 
   if (!count) {
-    ERROR("Error in test case 1: undefined division");
+    ERROR("Error in test case true: undefined division");
     return SRSRAN_ERROR;
   }
 
-  INFO("test_case_1 - %.1f usec/encode; %.1f usec/decode; %.1f usec/decode;",
+  INFO("test_case_true - %.1f usec/encode; %.1f usec/decode; %.1f usec/decode;",
        (double)t_encode_usec / (double)(count),
+       (double)t_decode_usec / (double)(count),
+       (double)t_search_usec / (double)(count));
+
+  return SRSRAN_SUCCESS;
+}
+
+static int test_case_false(srsran_ssb_t* ssb)
+{
+  // For benchmarking purposes
+  uint64_t t_decode_usec = 0;
+  uint64_t t_search_usec = 0;
+
+  // SSB configuration
+  srsran_ssb_cfg_t ssb_cfg = {};
+  ssb_cfg.srate_hz         = srate_hz;
+  ssb_cfg.center_freq_hz   = carrier_freq_hz;
+  ssb_cfg.ssb_freq_hz      = ssb_freq_hz;
+  ssb_cfg.scs              = ssb_scs;
+  ssb_cfg.pattern          = ssb_pattern;
+
+  TESTASSERT(srsran_ssb_set_cfg(ssb, &ssb_cfg) == SRSRAN_SUCCESS);
+
+  // For each PCI...
+  uint32_t count = 0;
+  for (uint32_t pci = 0; pci < SRSRAN_NOF_NID_NR; pci += SSB_DECODE_TEST_PCI_STRIDE, count++) {
+    struct timeval t[3] = {};
+
+    // Initialise baseband
+    srsran_vec_cf_zero(buffer, hf_len);
+
+    // Channel, as it is zero it only adds noise
+    srsran_channel_awgn_run_c(&awgn, buffer, buffer, hf_len);
+
+    // Decode
+    gettimeofday(&t[1], NULL);
+    srsran_pbch_msg_nr_t pbch_msg_rx = {};
+    TESTASSERT(srsran_ssb_decode_pbch(ssb, pci, false, 0, buffer, &pbch_msg_rx) == SRSRAN_SUCCESS);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    t_decode_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
+
+    // Print decoded PBCH message
+    char str[512] = {};
+    srsran_pbch_msg_info(&pbch_msg_rx, str, sizeof(str));
+    INFO("test_case_false - decoded pci=%d %s crc=%s", pci, str, pbch_msg_rx.crc ? "OK" : "KO");
+
+    // Assert PBCH message CRC is not okay
+    TESTASSERT(!pbch_msg_rx.crc);
+
+    // Search
+    srsran_ssb_search_res_t res = {};
+    gettimeofday(&t[1], NULL);
+    TESTASSERT(srsran_ssb_search(ssb, buffer, hf_len, &res) == SRSRAN_SUCCESS);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    t_search_usec += t[0].tv_usec + t[0].tv_sec * 1000000UL;
+
+    // Print decoded PBCH message
+    srsran_pbch_msg_info(&res.pbch_msg, str, sizeof(str));
+    INFO("test_case_false - false found pci=%d %s crc=%s", res.N_id, str, res.pbch_msg.crc ? "OK" : "KO");
+
+    // Assert PBCH message CRC
+    TESTASSERT(!res.pbch_msg.crc);
+  }
+
+  if (!count) {
+    ERROR("Error in test case true: undefined division");
+    return SRSRAN_ERROR;
+  }
+
+  INFO("test_case_false - %.1f usec/decode; %.1f usec/decode;",
        (double)t_decode_usec / (double)(count),
        (double)t_search_usec / (double)(count));
 
@@ -248,7 +322,12 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (test_case_1(&ssb) != SRSRAN_SUCCESS) {
+  if (test_case_true(&ssb) != SRSRAN_SUCCESS) {
+    ERROR("test case failed");
+    goto clean_exit;
+  }
+
+  if (test_case_false(&ssb) != SRSRAN_SUCCESS) {
     ERROR("test case failed");
     goto clean_exit;
   }
