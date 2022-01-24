@@ -222,6 +222,7 @@ void usim_base::generate_nas_keys(uint8_t*                            k_asme,
 /*
  *  RRC Interface
  */
+
 void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srsran::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
@@ -366,6 +367,42 @@ bool usim_base::generate_nas_keys_5g(uint8_t*                            k_amf,
 /*
  *  NR RRC Interface
  */
+
+void usim_base::generate_nr_as_keys(srsran::as_key_t& k_amf, uint32_t count_ul, srsran::as_security_config_t* sec_cfg)
+{
+  if (!initiated) {
+    logger.error("USIM not initiated!");
+    return;
+  }
+
+  logger.info("Generating NR AS Keys. NAS UL COUNT %d", count_ul);
+  logger.debug(k_amf.data(), 32, "K_amf");
+
+  // Generate K_gnb
+  srsran::security_generate_k_gnb(k_amf, count_ul, k_gnb_ctx.k_gnb);
+  logger.info(k_gnb_ctx.k_gnb.data(), 32, "K_gnb");
+
+  // Save initial k_gnb
+  k_gnb_initial = k_gnb_ctx.k_gnb;
+
+  security_generate_k_nr_rrc(k_gnb_ctx.k_gnb.data(),
+                             sec_cfg->cipher_algo,
+                             sec_cfg->integ_algo,
+                             sec_cfg->k_rrc_enc.data(),
+                             sec_cfg->k_rrc_int.data());
+
+  security_generate_k_nr_up(k_gnb_ctx.k_gnb.data(),
+                            sec_cfg->cipher_algo,
+                            sec_cfg->integ_algo,
+                            sec_cfg->k_up_enc.data(),
+                            sec_cfg->k_up_int.data());
+
+  logger.info(k_gnb_ctx.k_gnb.data(), 32, "Initial K_gnb");
+  logger.info(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "NR K_RRC_int");
+  logger.info(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "NR K_RRC_enc");
+  logger.info(sec_cfg->k_up_int.data(), sec_cfg->k_up_int.size(), "NR K_UP_int");
+  logger.info(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "NR K_UP_enc");
+}
 
 bool usim_base::generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg)
 {

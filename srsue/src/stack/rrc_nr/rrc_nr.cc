@@ -2114,12 +2114,11 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
 // Security helper used by Security Mode Command and Mobility handling routines
 void rrc_nr::generate_as_keys()
 {
-  uint8_t k_asme[32] = {};
-  // FIXME: need to add
-  // nas->get_k_asme(k_asme, 32);
-  logger.debug(k_asme, 32, "UE K_asme");
-  // logger.debug("Generating K_enb with UL NAS COUNT: %d", nas->get_k_enb_count());
-  // usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
+  as_key_t k_amf = {};
+  nas->get_k_amf(k_amf);
+  logger.debug(k_amf.data(), 32, "UE K_amf");
+  logger.debug("Generating K_gnb with UL NAS COUNT: %d", nas->get_ul_nas_count());
+  usim->generate_nr_as_keys(k_amf, nas->get_ul_nas_count(), &sec_cfg);
   logger.info(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
   logger.info(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
   logger.info(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");

@@ -293,6 +293,11 @@ int nas_5g::send_registration_request()
     }
   }
 
+  if (has_sec_ctxt) {
+    set_k_gnb_count(ctxt_base.tx_count);
+    ctxt_base.tx_count++;
+  }
+
   state.set_registered_initiated();
 
   return SRSRAN_SUCCESS;
@@ -847,6 +852,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
     return SRSRAN_ERROR;
   }
 
+  initial_sec_command = true;
   uint8_t res_star[16];
 
   logger.info(authentication_request.authentication_parameter_rand.rand.data(),
@@ -936,10 +942,8 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
     return SRSRAN_ERROR;
   }
 
-  initial_sec_command = false; // TODO
-
   if (initial_sec_command) {
-    ctxt_base.rx_count  = 0;
+    set_k_gnb_count(0);
     ctxt_base.tx_count  = 0;
     initial_sec_command = false;
   }
@@ -1119,6 +1123,16 @@ int nas_5g::get_k_amf(as_key_t& k_amf)
 
   std::copy(std::begin(ctxt_5g.k_amf), std::end(ctxt_5g.k_amf), k_amf.begin());
   return SRSRAN_SUCCESS;
+}
+
+uint32_t nas_5g::get_ul_nas_count()
+{
+  return ctxt_5g.k_gnb_count;
+}
+
+void nas_5g::set_k_gnb_count(uint32_t count)
+{
+  ctxt_5g.k_gnb_count = count;
 }
 
 /*******************************************************************************

@@ -97,6 +97,7 @@ public:
   void restore_keys_from_failed_ho(srsran::as_security_config_t* as_ctx) final;
 
   // NR RRC interface
+  void generate_nr_as_keys(srsran::as_key_t& k_amf, uint32_t count_ul, srsran::as_security_config_t* sec_cfg) final;
   bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) final;
   bool update_nr_context(srsran::as_security_config_t* sec_cfg) final;
 
@@ -139,6 +140,8 @@ protected:
   uint8_t k_enb_star[KEY_LEN]    = {};
   uint8_t k_enb_initial[KEY_LEN] = {};
   uint8_t auts[AKA_AUTS_LEN]     = {};
+
+  srsran::as_key_t k_gnb_initial = {};
 
   // Current K_eNB context (K_eNB, NH and NCC)
   srsran::k_enb_context_t k_enb_ctx = {};

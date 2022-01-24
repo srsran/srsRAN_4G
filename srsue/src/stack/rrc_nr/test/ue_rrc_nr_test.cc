@@ -109,12 +109,14 @@ class dummy_eutra : public rrc_eutra_interface_rrc_nr
 
 class dummy_nas : public nas_5g_interface_rrc_nr
 {
-  int write_pdu(srsran::unique_byte_buffer_t pdu) { return SRSRAN_SUCCESS; };
-  int get_k_amf(srsran::as_key_t& k_amf) { return SRSRAN_SUCCESS; };
+  int      write_pdu(srsran::unique_byte_buffer_t pdu) { return SRSRAN_SUCCESS; };
+  int      get_k_amf(srsran::as_key_t& k_amf) { return SRSRAN_SUCCESS; };
+  uint32_t get_ul_nas_count() { return SRSRAN_SUCCESS; };
 };
 
 class dummy_sim : public usim_interface_rrc_nr
 {
+  void generate_nr_as_keys(srsran::as_key_t& k_amf, uint32_t count_ul, srsran::as_security_config_t* sec_cfg){};
   bool generate_nr_context(uint16_t sk_counter, srsran::as_security_config_t* sec_cfg) { return true; }
   bool update_nr_context(srsran::as_security_config_t* sec_cfg) { return true; }
 };
