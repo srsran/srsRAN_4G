@@ -629,6 +629,10 @@ if(RF_FOUND)
   target_link_libraries(prach_test_usrp srsran_rf srsran_phy pthread)
 endif(RF_FOUND)
 
+add_executable(prach_nr_test_perf EXCLUDE_FROM_ALL prach_nr_test_perf.c)
+target_link_libraries(prach_nr_test_perf srsran_phy)
+# this is just for performance evaluation, not for unit testing
+
 ########################################################################
 # NR
 ########################################################################
