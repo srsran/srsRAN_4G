@@ -1215,6 +1215,10 @@ int fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cel
 
   cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
 
+  // The time advance offset is not supported by the current PHY
+  cfg.n_timing_advance_offset_present = true;
+  cfg.n_timing_advance_offset         = serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0;
+
   // TDD UL-DL config
   if (cell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     cfg.tdd_ul_dl_cfg_common_present = true;
