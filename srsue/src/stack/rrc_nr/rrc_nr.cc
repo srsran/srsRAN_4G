@@ -25,7 +25,7 @@ using namespace asn1;
 using namespace srsran;
 namespace srsue {
 
-const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
+const static char* rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC-NR")),
@@ -101,7 +101,11 @@ void rrc_nr::init_core_less()
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
   return;
 }
-void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
+
+void rrc_nr::get_metrics(rrc_nr_metrics_t& m)
+{
+  m.state = state;
+}
 
 const char* rrc_nr::get_rb_name(uint32_t lcid)
 {

@@ -350,6 +350,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
     rlc.get_metrics(metrics.rlc, metrics.mac[0].nof_tti);
     nas.get_metrics(&metrics.nas);
     rrc.get_metrics(metrics.rrc);
+    rrc_nr.get_metrics(metrics.rrc_nr);
     pending_stack_metrics.push(metrics);
   });
   // wait for result

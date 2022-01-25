@@ -181,7 +181,7 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     return;
   }
 
-  if (metrics.stack.rrc.state != RRC_STATE_CONNECTED) {
+  if (metrics.stack.rrc.state != RRC_STATE_CONNECTED && metrics.stack.rrc_nr.state != RRC_NR_STATE_CONNECTED) {
     fmt::print("--- disconnected ---\n");
     return;
   }
@@ -193,25 +193,30 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     display_neighbours |= metrics.stack.rrc.neighbour_cells.size() > 0;
   }
 
-  bool is_nr = metrics.phy_nr.nof_active_cc > 0;
+  bool has_lte = metrics.phy.nof_active_cc > 0;
+  bool has_nr  = metrics.phy_nr.nof_active_cc > 0;
 
   // print table header every 10 reports
   if (++n_reports > 10) {
-    print_table(display_neighbours, is_nr);
+    print_table(display_neighbours, has_nr);
   }
 
   // also print table header if neighbours are added/removed in between
   if (display_neighbours != table_has_neighbours) {
-    print_table(display_neighbours, is_nr);
+    print_table(display_neighbours, has_nr);
   }
 
-  for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-    set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r, false, !is_nr);
+  if (has_lte) {
+    for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
+      set_metrics_helper(metrics.phy, metrics.stack.mac, metrics.stack.rrc, display_neighbours, r, false, !has_nr);
+    }
   }
 
-  for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
-    // Assumption LTE is followed by the NR carriers.
-    set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r, true, !is_nr);
+  if (has_nr) {
+    for (uint32_t r = 0; r < metrics.phy_nr.nof_active_cc; r++) {
+      // Assumption LTE is followed by the NR carriers.
+      set_metrics_helper(metrics.phy_nr, metrics.stack.mac_nr, metrics.stack.rrc, display_neighbours, r, true, !has_nr);
+    }
   }
 
   if (metrics.rf.rf_error) {
