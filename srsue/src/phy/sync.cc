@@ -128,14 +128,14 @@ sync::~sync()
 
 void sync::stop()
 {
+  running = false;
+  wait_thread_finish();
+
   std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
   worker_com->semaphore.wait_all();
   for (auto& q : intra_freq_meas) {
     q->stop();
   }
-  running = false;
-
-  wait_thread_finish();
 
   // Reset (stop Rx stream) as soon as possible to avoid base-band Rx buffer overflow
   radio_h->reset();
