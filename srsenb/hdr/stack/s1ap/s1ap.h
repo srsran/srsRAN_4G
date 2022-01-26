@@ -107,7 +107,7 @@ public:
 
   // Stack interface
   bool
-       handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srsran::s1ap_pcap* pcap_);
 
 private:
@@ -261,6 +261,7 @@ private:
 
     void
     set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
+    s1ap_proc_id_t get_state() const { return current_state; }
 
     ue_ctxt_t ctxt      = {};
     uint16_t  stream_id = 1;
