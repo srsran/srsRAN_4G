@@ -876,7 +876,7 @@ int rf_skiq_send_timed(void*  h,
 }
 
 int rf_skiq_send_timed_multi(void*  h_,
-                             void** data_,
+                             void*  data_[SRSRAN_MAX_PORTS],
                              int    nsamples,
                              time_t secs,
                              double frac_secs,
