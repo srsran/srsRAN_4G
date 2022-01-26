@@ -29,7 +29,7 @@ class pdu_session_cfg_t
 {
 public:
   std::string apn_name;
-  apn_types   apn_type;
+  apn_types   apn_type = ipv4;
   std::string apn_user;
   std::string apn_pass;
 };
