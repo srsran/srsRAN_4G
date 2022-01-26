@@ -965,6 +965,11 @@ int srsran_ssb_csi_search(srsran_ssb_t*                  q,
     t_offset = 0;
   }
 
+  // Make sure SSB time offset is in bounded in the input buffer
+  if (t_offset + q->ssb_sz > nof_samples) {
+    return SRSRAN_SUCCESS;
+  }
+
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
   if (ssb_demodulate(q, in, t_offset, coarse_cfo_hz, ssb_grid) < SRSRAN_SUCCESS) {
@@ -1034,11 +1039,12 @@ int srsran_ssb_csi_measure(srsran_ssb_t*                  q,
   return SRSRAN_SUCCESS;
 }
 
-static int ssb_select_pbch(srsran_ssb_t* q,
-                           uint32_t      N_id,
-                           const cf_t    ssb_grid[SRSRAN_SSB_NOF_RE],
-                           uint32_t*     found_n_hf,
-                           uint32_t*     found_ssb_idx_4lsb)
+static int ssb_select_pbch(srsran_ssb_t*            q,
+                           uint32_t                 N_id,
+                           const cf_t               ssb_grid[SRSRAN_SSB_NOF_RE],
+                           uint32_t*                found_n_hf,
+                           uint32_t*                found_ssb_idx_4lsb,
+                           srsran_dmrs_pbch_meas_t* pbch_meas)
 {
   // Prepare PBCH DMRS configuration
   srsran_dmrs_pbch_cfg_t pbch_dmrs_cfg = {};
@@ -1080,6 +1086,7 @@ static int ssb_select_pbch(srsran_ssb_t* q,
   // Save findings
   *found_n_hf         = best_n_hf;
   *found_ssb_idx_4lsb = best_ssb_idx;
+  *pbch_meas          = best_meas;
 
   return SRSRAN_SUCCESS;
 }
@@ -1177,6 +1184,9 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
     return SRSRAN_ERROR;
   }
 
+  // Set the SSB search result with default value with PBCH CRC unmatched, meaning no cell is found
+  SRSRAN_MEM_ZERO(res, srsran_ssb_search_res_t, 1);
+
   // Search for PSS in time domain
   uint32_t N_id_2        = 0;
   uint32_t t_offset      = 0;
@@ -1191,6 +1201,11 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
     t_offset -= q->cp_sz;
   } else {
     t_offset = 0;
+  }
+
+  // Make sure SSB time offset is in bounded in the input buffer
+  if (t_offset + q->ssb_sz > nof_samples) {
+    return SRSRAN_SUCCESS;
   }
 
   // Demodulate
@@ -1212,20 +1227,32 @@ int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_samples, srs
   uint32_t N_id = SRSRAN_NID_NR(N_id_1, N_id_2);
 
   // Select the most suitable SSB candidate
-  uint32_t n_hf    = 0;
-  uint32_t ssb_idx = 0;
-  if (ssb_select_pbch(q, N_id, ssb_grid, &n_hf, &ssb_idx) < SRSRAN_SUCCESS) {
+  uint32_t                n_hf      = 0;
+  uint32_t                ssb_idx   = 0;
+  srsran_dmrs_pbch_meas_t pbch_meas = {};
+  if (ssb_select_pbch(q, N_id, ssb_grid, &n_hf, &ssb_idx, &pbch_meas) < SRSRAN_SUCCESS) {
     ERROR("Error selecting PBCH");
     return SRSRAN_ERROR;
   }
 
-  // Compute PBCH channel estimates
+  // Avoid decoding if the selected PBCH DMRS do not reach the minimum threshold
+  if (pbch_meas.corr < q->args.pbch_dmrs_thr) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Decode PBCH
   srsran_pbch_msg_nr_t pbch_msg = {};
   if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, &pbch_msg) < SRSRAN_SUCCESS) {
     ERROR("Error decoding PBCH");
     return SRSRAN_ERROR;
   }
 
+  // If PBCH was not decoded, skip measurements
+  if (!pbch_msg.crc) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Perform measurements from PSS and SSS
   srsran_csi_trs_measurements_t measurements = {};
   if (ssb_measure(q, ssb_grid, N_id, &measurements) < SRSRAN_SUCCESS) {
     ERROR("Error measuring");
@@ -1327,6 +1354,9 @@ int srsran_ssb_find(srsran_ssb_t*                  q,
     return SRSRAN_ERROR;
   }
 
+  // Set the PBCH message result with default value (CRC unmatched), meaning no cell is found
+  SRSRAN_MEM_ZERO(pbch_msg, srsran_pbch_msg_nr_t, 1);
+
   // Copy tail from previous execution into the start of this
   srsran_vec_cf_copy(q->sf_buffer, &q->sf_buffer[q->sf_sz], q->ssb_sz);
 
@@ -1347,6 +1377,11 @@ int srsran_ssb_find(srsran_ssb_t*                  q,
     t_offset = 0;
   }
 
+  // Make sure SSB time offset is in bounded in the input buffer
+  if (t_offset > q->sf_sz) {
+    return SRSRAN_SUCCESS;
+  }
+
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
   if (ssb_demodulate(q, q->sf_buffer, t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {
@@ -1361,11 +1396,17 @@ int srsran_ssb_find(srsran_ssb_t*                  q,
   }
 
   // Select the most suitable SSB candidate
-  uint32_t n_hf    = 0;
-  uint32_t ssb_idx = 0; // SSB candidate index
-  if (ssb_select_pbch(q, N_id, ssb_grid, &n_hf, &ssb_idx) < SRSRAN_SUCCESS) {
+  uint32_t                n_hf      = 0;
+  uint32_t                ssb_idx   = 0; // SSB candidate index
+  srsran_dmrs_pbch_meas_t pbch_meas = {};
+  if (ssb_select_pbch(q, N_id, ssb_grid, &n_hf, &ssb_idx, &pbch_meas) < SRSRAN_SUCCESS) {
     ERROR("Error selecting PBCH");
     return SRSRAN_ERROR;
+  }
+
+  // Avoid decoding if the selected PBCH DMRS do not reach the minimum threshold
+  if (pbch_meas.corr < q->args.pbch_dmrs_thr) {
+    return SRSRAN_SUCCESS;
   }
 
   // Calculate the SSB offset in the subframe
