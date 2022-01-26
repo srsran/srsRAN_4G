@@ -1928,6 +1928,8 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     }
     // TODO: configure SDAP accordingly
     uint32_t pdu_session_id = drb_cfg.cn_assoc.sdap_cfg().pdu_session;
+    // Register PDU session as "EPS bearer" in bearer manager
+    stack->add_eps_bearer(pdu_session_id, srsran::srsran_rat_t::nr, lcid);
   } else {
     logger.error("CN association type not supported %s", drb_cfg.cn_assoc.type().to_string());
     return false;

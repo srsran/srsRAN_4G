@@ -328,7 +328,13 @@ bool ue_stack_lte::disable_data()
 bool ue_stack_lte::start_service_request()
 {
   if (running) {
-    ue_task_queue.try_push([this]() { nas.start_service_request(srsran::establishment_cause_t::mo_data); });
+    ue_task_queue.try_push([this]() {
+      if (args.attach_on_nr) {
+        nas_5g.start_service_request();
+      } else {
+        nas.start_service_request(srsran::establishment_cause_t::mo_data);
+      }
+    });
   }
   return true;
 }

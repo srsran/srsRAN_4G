@@ -62,7 +62,7 @@ int ue::init(const all_args_t& args_)
     return SRSRAN_ERROR;
   }
 
-  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
+  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW", false)));
   if (!gw_ptr) {
     srsran::console("Error creating a GW instance.\n");
     return SRSRAN_ERROR;
