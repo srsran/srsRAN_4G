@@ -37,7 +37,7 @@
 /*
  * Default NR-PBCH DMRS normalised correlation (RSRP/EPRE) threshold
  */
-#define SSB_PBCH_DMRS_DEFAULT_CORR_THR 0.6f
+#define SSB_PBCH_DMRS_DEFAULT_CORR_THR 0.5f
 
 static int ssb_init_corr(srsran_ssb_t* q)
 {
