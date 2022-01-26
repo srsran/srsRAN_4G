@@ -108,7 +108,7 @@ int main(int argc, char** argv)
   }
 
   cf_t preamble[MAX_LEN];
-  memset(preamble, 0, sizeof(cf_t) * MAX_LEN);
+  srsran_vec_cf_zero(preamble, MAX_LEN);
 
   srsran_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
@@ -138,12 +138,15 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
-  const uint32_t preamble_length     = prach.N_seq;
-  const uint32_t ZC_length           = prach.N_zc; // Zadoff-Chu sequence length (i.e., L_RA)
-  const float    base_time_offset_us = (float)prach.N_cs * 1000 / (2.0F * (float)ZC_length * prach_scs_kHz);
+  const uint32_t preamble_length = prach.N_seq;
 
-  float prach_pwr = srsran_vec_avg_power_cf(preamble, preamble_length);
-  srsran_vec_sc_prod_cfc(preamble, 1.0F / sqrtf(prach_pwr), preamble, preamble_length);
+  float prach_pwr_sqrt = sqrtf(srsran_vec_avg_power_cf(preamble, preamble_length));
+  if (!isnormal(prach_pwr_sqrt)) {
+    ERROR("PRACH preamble power is not a finite, nonzero value");
+    srsran_prach_free(&prach);
+    return SRSRAN_ERROR;
+  }
+  srsran_vec_sc_prod_cfc(preamble, 1.0F / prach_pwr_sqrt, preamble, preamble_length);
 
   int  vector_length = 2 * slot_length;
   cf_t symbols[vector_length];
@@ -163,6 +166,10 @@ int main(int argc, char** argv)
   int   false_detection_noise      = 0;
   int   offset_est_error           = 0;
 
+  // Timing offset base value is equivalent to N_cs/2
+  const uint32_t ZC_length           = prach.N_zc; // Zadoff-Chu sequence length (i.e., L_RA)
+  const float    base_time_offset_us = (float)prach.N_cs * 1000 / (2.0F * (float)ZC_length * prach_scs_kHz);
+
   int step = SRSRAN_MAX(nof_runs / 100, 1);
   for (int i_run = 0; i_run < nof_runs; i_run++) {
     // show we are doing something
@@ -177,19 +184,18 @@ int main(int argc, char** argv)
     srsran_vec_cf_zero(noise_vec, vector_length);
     srsran_ch_awgn_c(noise_vec, noise_vec, noise_var, vector_length);
     if (is_verbose) {
-      prach_pwr       = srsran_vec_avg_power_cf(preamble, preamble_length);
+      float prach_pwr = srsran_vec_avg_power_cf(preamble, preamble_length);
       float noise_pwr = srsran_vec_avg_power_cf(noise_vec, vector_length);
       printf("    Tx power: %.3f\n", prach_pwr);
       printf("    Noise power: %.3f\n", noise_pwr);
       printf("    Target/measured SNR: %.3f / %.3f dB\n", snr_dB, srsran_convert_power_to_dB(prach_pwr / noise_pwr));
     }
+    // Cycle timing offset with a 0.1-us step starting from the base value
     for (int i = 0; i < nof_offset_steps; i++) {
       time_offset_us = base_time_offset_us + (float)i * 0.1F;
       offset_samples = (int)roundf(time_offset_us / sampling_time_us);
       srsran_vec_cf_copy(symbols, noise_vec, vector_length);
-      for (int j = 0; j < preamble_length; j++) {
-        symbols[j + offset_samples] += preamble[j];
-      }
+      srsran_vec_sum_ccc(&symbols[offset_samples], preamble, &symbols[offset_samples], preamble_length);
 
       srsran_prach_detect_offset(&prach, 0, &symbols[prach.N_cp], slot_length, indices, offset_est, NULL, &n_indices);
       false_detection_signal_tmp = 0;
