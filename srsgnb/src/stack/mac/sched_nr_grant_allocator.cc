@@ -329,6 +329,16 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   // Allocate HARQ
   int mcs = ue->fixed_pdsch_mcs();
   if (ue.h_dl->empty()) {
+    mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ ue.dl_cqi(),
+                                  /* cqi_table_idx */ ue.cfg().phy().csi.reports->cqi_table,
+                                  /* mcs_table */ pdsch.sch.sch_cfg.mcs_table,
+                                  /* dci_format */ pdcch.dci.ctx.format,
+                                  /* search_space_type*/ pdcch.dci.ctx.ss_type,
+                                  /* rnti_type */ rnti_type);
+    if (mcs < 0) {
+      logger.warning("SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", ue->rnti);
+      mcs = 0;
+    }
     bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4, pdcch.dci);
     srsran_assert(success, "Failed to allocate DL HARQ");
   } else {

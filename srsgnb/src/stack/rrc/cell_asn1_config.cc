@@ -173,7 +173,7 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
     csi_report.group_based_beam_report.set_disabled();
     // Skip CQI table (optional)
     csi_report.cqi_table_present = true;
-    csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
+    csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table1;
     csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
 
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
@@ -518,6 +518,11 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
   out.prb_bundling_type.static_bundling().bundle_size_present = true;
   out.prb_bundling_type.static_bundling().bundle_size =
       pdsch_cfg_s::prb_bundling_type_c_::static_bundling_s_::bundle_size_opts::wideband;
+
+  // MCS Table
+  // NOTE: For Table 1 or QAM64, set false and comment value
+  // out.mcs_table_present = true;
+  // out.mcs_table.value = pdsch_cfg_s::mcs_table_opts::qam256;
 
   // ZP-CSI
   out.zp_csi_rs_res_to_add_mod_list.resize(1);
