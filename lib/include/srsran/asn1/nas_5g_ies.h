@@ -1577,11 +1577,6 @@ public:
 class time_zone_t
 {
 public:
-  uint8_t year;
-  uint8_t month;
-  uint8_t day;
-  uint8_t hour;
-  uint8_t second;
   uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1594,6 +1589,12 @@ public:
 class time_zone_and_time_t
 {
 public:
+  uint8_t year;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
   uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);

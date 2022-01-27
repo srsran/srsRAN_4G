@@ -2721,11 +2721,6 @@ SRSASN_CODE network_name_t::unpack(asn1::cbit_ref& bref)
 // Reference: 9.11.3.52
 SRSASN_CODE time_zone_t::pack(asn1::bit_ref& bref)
 {
-  HANDLE_CODE(bref.pack(year, 8));
-  HANDLE_CODE(bref.pack(month, 8));
-  HANDLE_CODE(bref.pack(day, 8));
-  HANDLE_CODE(bref.pack(hour, 8));
-  HANDLE_CODE(bref.pack(second, 8));
   HANDLE_CODE(bref.pack(time_zone, 8));
   return SRSASN_SUCCESS;
 }
@@ -2734,11 +2729,6 @@ SRSASN_CODE time_zone_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.52
 SRSASN_CODE time_zone_t::unpack(asn1::cbit_ref& bref)
 {
-  HANDLE_CODE(bref.unpack(year, 8));
-  HANDLE_CODE(bref.unpack(month, 8));
-  HANDLE_CODE(bref.unpack(day, 8));
-  HANDLE_CODE(bref.unpack(hour, 8));
-  HANDLE_CODE(bref.unpack(second, 8));
   HANDLE_CODE(bref.unpack(time_zone, 8));
   return SRSASN_SUCCESS;
 }
@@ -2747,6 +2737,12 @@ SRSASN_CODE time_zone_t::unpack(asn1::cbit_ref& bref)
 // Reference: 9.11.3.53
 SRSASN_CODE time_zone_and_time_t::pack(asn1::bit_ref& bref)
 {
+  HANDLE_CODE(bref.pack(year, 8));
+  HANDLE_CODE(bref.pack(month, 8));
+  HANDLE_CODE(bref.pack(day, 8));
+  HANDLE_CODE(bref.pack(hour, 8));
+  HANDLE_CODE(bref.pack(minute, 8));
+  HANDLE_CODE(bref.pack(second, 8));
   HANDLE_CODE(bref.pack(time_zone, 8));
   return SRSASN_SUCCESS;
 }
@@ -2755,6 +2751,12 @@ SRSASN_CODE time_zone_and_time_t::pack(asn1::bit_ref& bref)
 // Reference: 9.11.3.53
 SRSASN_CODE time_zone_and_time_t::unpack(asn1::cbit_ref& bref)
 {
+  HANDLE_CODE(bref.unpack(year, 8));
+  HANDLE_CODE(bref.unpack(month, 8));
+  HANDLE_CODE(bref.unpack(day, 8));
+  HANDLE_CODE(bref.unpack(hour, 8));
+  HANDLE_CODE(bref.unpack(minute, 8));
+  HANDLE_CODE(bref.unpack(second, 8));
   HANDLE_CODE(bref.unpack(time_zone, 8));
   return SRSASN_SUCCESS;
 }
