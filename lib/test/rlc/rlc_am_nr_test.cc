@@ -421,6 +421,11 @@ int segment_retx_test()
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
   test_delimit_logger delimiter("segment retx PDU");
 
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+  rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
+  rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
+
   // before configuring entity
   TESTASSERT(0 == rlc1.get_buffer_state());
 
@@ -513,10 +518,6 @@ int segment_retx_test()
     for (int i = 0; i < 3; i++) {
       byte_buffer_t retx_buf;
       uint32_t      len = 0;
-      test_logger.info("Looping!!! i=%d", i);
-      test_logger.info("Looping!!! i=%d", i);
-      test_logger.info("Looping!!! i=%d", i);
-      test_logger.info("Looping!!! i=%d", i);
       if (i == 0) {
         len = rlc1.read_pdu(retx_buf.msg, 3);
         TESTASSERT(3 == len);
@@ -554,10 +555,10 @@ int segment_retx_test()
   TESTASSERT_EQ(0, metrics1.num_rx_sdu_bytes);
   TESTASSERT_EQ(0, metrics1.num_lost_sdus);
   // PDU metrics
-  TESTASSERT_EQ(5 + 3, metrics1.num_tx_pdus); // 3 re-transmissions
-  TESTASSERT_EQ(2, metrics1.num_rx_pdus);     // Two status PDU
-  TESTASSERT_EQ(18,
-                metrics1.num_tx_pdu_bytes); // 2 Bytes * NBUFFS (header size) + NBUFFS * 3 (data) + 3 rext (3 * 3) = 34
+  TESTASSERT_EQ(5 + 3, metrics1.num_tx_pdus);      // 3 re-transmissions
+  TESTASSERT_EQ(2, metrics1.num_rx_pdus);          // Two status PDU
+  TESTASSERT_EQ(38, metrics1.num_tx_pdu_bytes);    // 2 Bytes * NBUFFS (header size) + NBUFFS * 3 (data) +
+                                                   // 3 (1 retx no SO) + 2 * 5 (2 retx with SO) = 38
   TESTASSERT_EQ(3 + 5, metrics1.num_rx_pdu_bytes); // Two status PDU (one with a NACK)
   TESTASSERT_EQ(0, metrics1.num_lost_sdus);        // No lost SDUs
 
@@ -565,14 +566,19 @@ int segment_retx_test()
   TESTASSERT_EQ(0, metrics2.num_tx_sdus);
   TESTASSERT_EQ(5, metrics2.num_rx_sdus);
   TESTASSERT_EQ(0, metrics2.num_tx_sdu_bytes);
-  TESTASSERT_EQ(5, metrics2.num_rx_sdu_bytes);
+  TESTASSERT_EQ(15, metrics2.num_rx_sdu_bytes); // 5 SDUs, 3 bytes each
   TESTASSERT_EQ(0, metrics2.num_lost_sdus);
   // SDU metrics
   TESTASSERT_EQ(2, metrics2.num_tx_pdus);          // Two status PDUs
-  TESTASSERT_EQ(5, metrics2.num_rx_pdus);          // 5 PDUs (6 tx'ed, but one was lost)
+  TESTASSERT_EQ(7, metrics2.num_rx_pdus);          // 7 PDUs (8 tx'ed, but one was lost)
   TESTASSERT_EQ(5 + 3, metrics2.num_tx_pdu_bytes); // Two status PDU (one with a NACK)
-  TESTASSERT_EQ(15, metrics2.num_rx_pdu_bytes);    // 2 Bytes * NBUFFS (header size) + NBUFFS (data) = 15
+  TESTASSERT_EQ(33, metrics2.num_rx_pdu_bytes);    // 2 Bytes * (NBUFFS-1) (header size) + (NBUFFS-1) * 3 (data)
+                                                   // 3 (1 retx no SO) + 2 * 5 (2 retx with SO) = 33
   TESTASSERT_EQ(0, metrics2.num_lost_sdus);        // No lost SDUs
+
+  // Check state
+  rlc_am_nr_rx_state_t state2_rx = rx2->get_rx_state();
+  TESTASSERT_EQ(5, state2_rx.rx_next);
   return SRSRAN_SUCCESS;
 }
 
