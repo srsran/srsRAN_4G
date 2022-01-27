@@ -311,6 +311,11 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       task_sched.defer_task([this, smc]() { handle_security_mode_command(smc); });
       break;
     }
+    case dl_dcch_msg_type_c::c1_c_::types::rrc_release: {
+      rrc_release_s rrc_release = c1->rrc_release();
+      task_sched.defer_task([this, rrc_release]() { handle_rrc_release(rrc_release); });
+      break;
+    }
     default:
       logger.error("The provided DL-DCCH message type is not recognized or supported");
       break;
@@ -350,7 +355,7 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
 
   meas_cells.serving_cell().set_sib1(sib1);
-  
+
   // TODO: config basic config and remove early exit
   return;
 
@@ -2115,6 +2120,11 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
   pdcp->enable_integrity(lcid, DIRECTION_TXRX);
   send_security_mode_complete();
   pdcp->enable_encryption(lcid, DIRECTION_TXRX);
+}
+
+void rrc_nr::handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release)
+{
+  logger.info("RRC Release not handled yet");
 }
 
 // Security helper used by Security Mode Command and Mobility handling routines

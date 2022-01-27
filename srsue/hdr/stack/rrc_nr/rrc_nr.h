@@ -148,6 +148,7 @@ private:
   void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
   void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
   void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
+  void handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release);
   void generate_as_keys();
 
   srsran::task_sched_handle task_sched;
@@ -184,7 +185,7 @@ private:
   uint32_t                            sim_measurement_carrier_freq_r15;
   srsran::timer_handler::unique_timer sim_measurement_timer;
 
-  rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
+  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
 
   uint8_t transaction_id = 0;
 
@@ -251,9 +252,9 @@ private:
   class setup_request_proc;
 
   srsran::proc_t<cell_selection_proc, rrc_cell_search_result_t> cell_selector;
-  srsran::proc_t<connection_setup_proc>                     conn_setup_proc;
-  srsran::proc_t<connection_reconf_no_ho_proc>              conn_recfg_proc;
-  srsran::proc_t<setup_request_proc>                        setup_req_proc;
+  srsran::proc_t<connection_setup_proc>                         conn_setup_proc;
+  srsran::proc_t<connection_reconf_no_ho_proc>                  conn_recfg_proc;
+  srsran::proc_t<setup_request_proc>                            setup_req_proc;
 
   srsran::proc_manager_list_t callback_list;
 };
