@@ -3935,9 +3935,9 @@ SRSASN_CODE pdu_address_t::pack(asn1::bit_ref& bref)
   if (pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv4) {
     HANDLE_CODE(bref.pack_bytes(ipv4.data(), 4));
   } else if (pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv6) {
-    HANDLE_CODE(bref.pack_bytes(ipv6.data(), 16));
+    HANDLE_CODE(bref.pack_bytes(ipv6.data(), 8));
   } else if (pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv4v6) {
-    HANDLE_CODE(bref.pack_bytes(ipv6.data(), 16));
+    HANDLE_CODE(bref.pack_bytes(ipv6.data(), 8));
     HANDLE_CODE(bref.pack_bytes(ipv4.data(), 4));
   }
 
@@ -3976,20 +3976,20 @@ SRSASN_CODE pdu_address_t::unpack(asn1::cbit_ref& bref)
     HANDLE_CODE(bref.unpack_bytes(ipv4.data(), 4));
   } else if (length == 9 && pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv6 &&
              si6_lla == false) {
-    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 16));
+    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 8));
   } else if (length == 13 && pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv4v6 &&
              si6_lla == false) {
-    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 16));
+    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 8));
     HANDLE_CODE(bref.unpack_bytes(ipv4.data(), 4));
   } else if (length == 25 && pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv6 &&
              si6_lla == true) {
-    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 16));
-    HANDLE_CODE(bref.unpack_bytes(smf_i_pv6_link_local_address.data(), 16));
+    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 8));
+    HANDLE_CODE(bref.unpack_bytes(smf_i_pv6_link_local_address.data(), 8));
   } else if (length == 29 && pdu_session_type_value == pdu_address_t::PDU_session_type_value_type_::options::ipv4v6 &&
              si6_lla == true) {
-    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 16));
+    HANDLE_CODE(bref.unpack_bytes(ipv6.data(), 8));
     HANDLE_CODE(bref.unpack_bytes(ipv4.data(), 4));
-    HANDLE_CODE(bref.unpack_bytes(smf_i_pv6_link_local_address.data(), 16));
+    HANDLE_CODE(bref.unpack_bytes(smf_i_pv6_link_local_address.data(), 8));
   } else {
     asn1::log_error("Not expected combination of length and type field");
     return SRSASN_ERROR_DECODE_FAIL;
