@@ -24,6 +24,8 @@
 namespace srsran {
 
 const static uint32_t max_tx_queue_size = 256;
+const static uint32_t so_end_of_sdu     = 0xFFFF;
+
 /****************************************************************************
  * RLC AM NR entity
  ***************************************************************************/
@@ -1254,12 +1256,39 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 
   uint32_t i = status->ack_sn;
   while (rx_mod_base_nr(i) <= rx_mod_base_nr(st.rx_highest_status)) {
-    if (rx_window.has_sn(i) || i == st.rx_highest_status) {
-      // only update ACK_SN if this SN has been received, or if we reached the maximum possible SN
+    if ((rx_window.has_sn(i) && rx_window[i].fully_received) || i == st.rx_highest_status) {
+      // only update ACK_SN if this SN has been fully received, or if we reached the maximum possible SN
       status->ack_sn = i;
     } else {
-      status->nacks[status->N_nack].nack_sn = i;
-      status->N_nack++;
+      if (not rx_window.has_sn(i)) {
+        // No segment received, NACK the whole SDU
+        status->nacks[status->N_nack].nack_sn = i;
+        status->N_nack++;
+      } else if (not rx_window[i].fully_received) {
+        // Some segments were received, but not all.
+        // NACK non consecutive missing bytes
+        uint32_t last_so         = 0;
+        bool     last_segment_rx = false;
+        for (auto segm = rx_window[i].segments.begin(); segm != rx_window[i].segments.end(); segm++) {
+          if (segm->header.so != last_so) {
+            // Some bytes were not received
+            status->nacks[status->N_nack].nack_sn  = i;
+            status->nacks[status->N_nack].so_start = last_so;
+            status->nacks[status->N_nack].so_end   = segm->header.so;
+            status->N_nack++;
+          }
+          if (segm->header.si == rlc_nr_si_field_t::last_segment) {
+            last_segment_rx = true;
+          }
+          last_so = segm->header.so + segm->buf->N_bytes;
+        }
+        if (not last_segment_rx) {
+          status->nacks[status->N_nack].nack_sn  = i;
+          status->nacks[status->N_nack].so_start = last_so;
+          status->nacks[status->N_nack].so_end   = so_end_of_sdu;
+          status->N_nack++;
+        }
+      }
     }
 
     // make sure we don't exceed grant size (FIXME)
@@ -1313,7 +1342,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      */
     for (uint32_t tmp_sn = st.rx_next_status_trigger; tmp_sn < st.rx_next_status_trigger + RLC_AM_WINDOW_SIZE;
          tmp_sn++) {
-      if (not rx_window.has_sn(tmp_sn) || not rx_window[tmp_sn].fully_received) {
+      if (not rx_window.has_sn(tmp_sn)) {
         st.rx_highest_status = tmp_sn;
         break;
       }
