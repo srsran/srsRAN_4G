@@ -342,7 +342,9 @@ void rrc_nr::config_mac()
     cell.ssb_scs            = serv_cell.ssb_subcarrier_spacing;
   } else {
     cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
-    bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
+    bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded,
+                                                           &cell.bwps[0].pdsch);
+    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
     cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
     cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
     cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
