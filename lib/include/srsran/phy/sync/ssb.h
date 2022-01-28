@@ -89,7 +89,7 @@ typedef struct SRSRAN_API {
   uint32_t corr_sz;       ///< Correlation size
   uint32_t corr_window;   ///< Correlation window length
   uint32_t ssb_sz;        ///< SSB size in samples at the configured sampling rate
-  int32_t  f_offset;      ///< Current SSB integer frequency offset (multiple of SCS)
+  int32_t  f_offset;      ///< SSB integer frequency offset (multiple of SCS) between DC and the SSB center
   uint32_t cp_sz;         ///< CP length for the given symbol size
 
   /// Other parameters
@@ -143,22 +143,6 @@ SRSRAN_API void srsran_ssb_free(srsran_ssb_t* q);
  * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_ssb_set_cfg(srsran_ssb_t* q, const srsran_ssb_cfg_t* cfg);
-/**
- * @brief Decodes PBCH in the given time domain signal
- * @note It currently expects an input buffer of half radio frame
- * @param q SSB object
- * @param N_id Physical Cell Identifier
- * @param n_hf Number of hald radio frame, 0 or 1
- * @param ssb_idx SSB candidate index
- * @param in Input baseband buffer
- * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
- */
-SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
-                                      uint32_t              N_id,
-                                      uint32_t              n_hf,
-                                      uint32_t              ssb_idx,
-                                      const cf_t*           in,
-                                      srsran_pbch_msg_nr_t* msg);
 
 /**
  * @brief Searches for an SSB transmission and decodes the PBCH message
@@ -179,6 +163,21 @@ SRSRAN_API int srsran_ssb_search(srsran_ssb_t* q, const cf_t* in, uint32_t nof_s
 SRSRAN_API bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx);
 
 /**
+ *
+ * @param q SSB object
+ * @param N_id Physical Cell Identifier
+ * @param msg NR PBCH message to transmit
+ * @param re_grid Resource grid pointer
+ * @param grid_sz_rb Resource grid bandwidth in subcarriers
+ * @return SRSRAN_SUCCES if inputs and data are correct, otherwise SRSRAN_ERROR code
+ */
+SRSRAN_API int srsran_ssb_put_grid(srsran_ssb_t*               q,
+                                   uint32_t                    N_id,
+                                   const srsran_pbch_msg_nr_t* msg,
+                                   cf_t*                       re_grid,
+                                   uint32_t                    grid_bw_sc);
+
+/**
  * @brief Adds SSB to a given signal in time domain
  * @param q SSB object
  * @param N_id Physical Cell Identifier
@@ -187,6 +186,41 @@ SRSRAN_API bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx);
  */
 SRSRAN_API int
 srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out);
+
+/**
+ * @brief Decodes PBCH in the given time domain signal
+ * @note It currently expects an input buffer of half radio frame
+ * @param q SSB object
+ * @param N_id Physical Cell Identifier
+ * @param n_hf Number of hald radio frame, 0 or 1
+ * @param ssb_idx SSB candidate index
+ * @param in Input baseband buffer
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_ssb_decode_pbch(srsran_ssb_t*         q,
+                                      uint32_t              N_id,
+                                      uint32_t              n_hf,
+                                      uint32_t              ssb_idx,
+                                      const cf_t*           grid,
+                                      srsran_pbch_msg_nr_t* msg);
+
+/**
+ * @brief Decodes PBCH in the given resource grid
+ * @param q SSB object
+ * @param N_id Physical Cell Identifier
+ * @param n_hf Number of hald radio frame, 0 or 1
+ * @param ssb_idx SSB candidate index
+ * @param grid Input resource grid buffer
+ * @param grid_sz_rb Resource grid bandwidth in subcarriers
+ * @return SRSRAN_SUCCESS if the parameters are valid, SRSRAN_ERROR code otherwise
+ */
+SRSRAN_API int srsran_ssb_decode_grid(srsran_ssb_t*         q,
+                                      uint32_t              N_id,
+                                      uint32_t              n_hf,
+                                      uint32_t              ssb_idx,
+                                      const cf_t*           in,
+                                      uint32_t              grid_sz_rb,
+                                      srsran_pbch_msg_nr_t* msg);
 
 /**
  * @brief Perform cell search and measurement

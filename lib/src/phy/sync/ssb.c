@@ -527,21 +527,10 @@ bool srsran_ssb_send(srsran_ssb_t* q, uint32_t sf_idx)
   return (sf_idx % q->cfg.periodicity_ms == 0);
 }
 
-int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out)
+static int ssb_encode(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, cf_t ssb_grid[SRSRAN_SSB_NOF_RE])
 {
-  // Verify input parameters
-  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || msg == NULL || in == NULL || out == NULL) {
-    return SRSRAN_ERROR_INVALID_INPUTS;
-  }
-
-  if (!q->args.enable_encode) {
-    ERROR("SSB is not configured for encode");
-    return SRSRAN_ERROR;
-  }
-
-  uint32_t N_id_1                      = SRSRAN_NID_1_NR(N_id);
-  uint32_t N_id_2                      = SRSRAN_NID_2_NR(N_id);
-  cf_t     ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  uint32_t N_id_1 = SRSRAN_NID_1_NR(N_id);
+  uint32_t N_id_2 = SRSRAN_NID_2_NR(N_id);
 
   // Put PSS
   if (srsran_pss_nr_put(ssb_grid, N_id_2, q->cfg.beta_pss) < SRSRAN_SUCCESS) {
@@ -577,6 +566,64 @@ int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* m
   pbch_cfg.beta                 = 0.0f;
   if (srsran_pbch_nr_encode(&q->pbch, &pbch_cfg, msg, ssb_grid) < SRSRAN_SUCCESS) {
     ERROR("Error encoding PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+SRSRAN_API int
+srsran_ssb_put_grid(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, cf_t* re_grid, uint32_t grid_bw_sc)
+{
+  // Verify input parameters
+  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || msg == NULL || re_grid == NULL ||
+      grid_bw_sc * SRSRAN_NRE < SRSRAN_SSB_BW_SUBC) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_encode) {
+    ERROR("SSB is not configured for encode");
+    return SRSRAN_ERROR;
+  }
+
+  // Put signals in SSB grid
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_encode(q, N_id, msg, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Putting SSB in grid");
+    return SRSRAN_ERROR;
+  }
+
+  // First symbol in the half frame
+  uint32_t l_first = q->l_first[msg->ssb_idx];
+
+  // Frequency offset fom the bottom of the grid
+  uint32_t f_offset = grid_bw_sc / 2 + q->f_offset - SRSRAN_SSB_BW_SUBC / 2;
+
+  // Put SSB grid in the actual resource grid
+  for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
+    srsran_vec_cf_copy(
+        &re_grid[grid_bw_sc * (l_first + l) + f_offset], &ssb_grid[SRSRAN_SSB_BW_SUBC * l], SRSRAN_SSB_BW_SUBC);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_add(srsran_ssb_t* q, uint32_t N_id, const srsran_pbch_msg_nr_t* msg, const cf_t* in, cf_t* out)
+{
+  // Verify input parameters
+  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || msg == NULL || in == NULL || out == NULL) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_encode) {
+    ERROR("SSB is not configured for encode");
+    return SRSRAN_ERROR;
+  }
+
+  // Put signals in SSB grid
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  if (ssb_encode(q, N_id, msg, ssb_grid) < SRSRAN_SUCCESS) {
+    ERROR("Putting SSB in grid");
     return SRSRAN_ERROR;
   }
 
@@ -1126,6 +1173,46 @@ static int ssb_decode_pbch(srsran_ssb_t*         q,
   // Decode
   if (srsran_pbch_nr_decode(&q->pbch, &pbch_cfg, ssb_grid, ce, msg) < SRSRAN_SUCCESS) {
     ERROR("Error decoding PBCH");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int srsran_ssb_decode_grid(srsran_ssb_t*         q,
+                           uint32_t              N_id,
+                           uint32_t              n_hf,
+                           uint32_t              ssb_idx,
+                           const cf_t*           re_grid,
+                           uint32_t              grid_bw_sc,
+                           srsran_pbch_msg_nr_t* msg)
+{
+  // Verify input parameters
+  if (q == NULL || N_id >= SRSRAN_NOF_NID_NR || msg == NULL || re_grid == NULL || grid_bw_sc < SRSRAN_SSB_BW_SUBC) {
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  if (!q->args.enable_encode) {
+    ERROR("SSB is not configured for encode");
+    return SRSRAN_ERROR;
+  }
+
+  // First symbol in the half frame
+  uint32_t l_first = q->l_first[ssb_idx];
+
+  // Frequency offset fom the bottom of the grid
+  uint32_t f_offset = grid_bw_sc / 2 + q->f_offset - SRSRAN_SSB_BW_SUBC / 2;
+
+  // Get SSB grid from resource grid
+  cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
+  for (uint32_t l = 0; l < SRSRAN_SSB_DURATION_NSYMB; l++) {
+    srsran_vec_cf_copy(
+        &ssb_grid[SRSRAN_SSB_BW_SUBC * l], &re_grid[grid_bw_sc * (l_first + l) + f_offset], SRSRAN_SSB_BW_SUBC);
+  }
+
+  // Decode PBCH
+  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, msg) < SRSRAN_SUCCESS) {
+    ERROR("Error decoding");
     return SRSRAN_ERROR;
   }
 
