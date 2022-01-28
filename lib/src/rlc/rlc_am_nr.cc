@@ -372,6 +372,8 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
     RlcInfo("grant is large enough for full SDU."
             "Removing current SDU info");
     sdu_under_segmentation_sn = INVALID_RLC_SN;
+    // SDU is fully TX'ed. Increment TX_NEXt
+    st.tx_next++;
   }
 
   return hdr_len + segment_payload_len;
