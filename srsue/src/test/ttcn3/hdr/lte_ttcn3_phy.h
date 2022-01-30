@@ -78,7 +78,7 @@ public:
   void set_mch_period_stop(uint32_t stop) override{};
 
   // Cell search and selection procedures
-  bool cell_search() override;
+  bool cell_search(int earfcn) override;
   bool cell_select(phy_cell_t cell) override;
   bool cell_is_camping() override;
 

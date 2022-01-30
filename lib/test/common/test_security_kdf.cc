@@ -167,6 +167,26 @@ int test_generate_k_nas()
   return SRSRAN_SUCCESS;
 }
 
+int test_generate_k_gnb()
+{
+  auto& logger = srslog::fetch_basic_logger("LOG", false);
+
+  as_key_t k_gnb_o;
+
+  as_key_t k_gnb = {0x49, 0x3a, 0x16, 0xc5, 0x8b, 0x77, 0xb6, 0x27, 0xfa, 0x3f, 0x1a, 0xc6, 0x34, 0x4c, 0x18, 0x30,
+                    0x39, 0xf0, 0x1b, 0xa0, 0xcb, 0x76, 0x36, 0xbb, 0xcc, 0xc4, 0x36, 0x5b, 0x02, 0x3b, 0xd5, 0x62};
+
+  as_key_t k_amf = {0xd6, 0x55, 0xf1, 0x61, 0x42, 0x03, 0x5d, 0x4d, 0x72, 0xca, 0x39, 0x58, 0x3d, 0x22, 0x8d, 0x2d,
+                    0xd2, 0xec, 0x0c, 0xa7, 0x92, 0x9a, 0xd0, 0x07, 0xf5, 0x3b, 0x38, 0x2d, 0x05, 0x54, 0x44, 0x05};
+
+  uint32_t nas_ul_count = 0;
+
+  TESTASSERT(srsran::security_generate_k_gnb(k_amf, nas_ul_count, k_gnb_o) == SRSRAN_SUCCESS);
+  TESTASSERT(k_gnb_o == k_gnb);
+
+  return SRSRAN_SUCCESS;
+}
+
 int test_generate_k_enb()
 {
   auto&   logger = srslog::fetch_basic_logger("LOG", false);
@@ -442,7 +462,7 @@ int main(int argc, char** argv)
   TESTASSERT(test_generate_up_keys() == SRSRAN_SUCCESS);
   TESTASSERT(test_generate_k_enb_star() == SRSRAN_SUCCESS);
   TESTASSERT(test_generate_k_nh() == SRSRAN_SUCCESS);
-
+  TESTASSERT(test_generate_k_gnb() == SRSRAN_SUCCESS);
   TESTASSERT(test_generate_res_star() == SRSRAN_SUCCESS);
   TESTASSERT(test_generate_k_ausf() == SRSRAN_SUCCESS);
   TESTASSERT(test_generate_k_seaf() == SRSRAN_SUCCESS);

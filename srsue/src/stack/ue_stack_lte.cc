@@ -237,8 +237,6 @@ int ue_stack_lte::init(const stack_args_t& args_)
               args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
-  args.nas_5g.ia5g = "0,1,2,3";
-  args.nas_5g.ea5g = "0,1,2,3";
   nas_5g.init(usim.get(), &rrc_nr, gw, args.nas_5g);
 
   running = true;
@@ -339,7 +337,13 @@ bool ue_stack_lte::disable_data()
 bool ue_stack_lte::start_service_request()
 {
   if (running) {
-    ue_task_queue.try_push([this]() { nas.start_service_request(srsran::establishment_cause_t::mo_data); });
+    ue_task_queue.try_push([this]() {
+      if (args.attach_on_nr) {
+        nas_5g.start_service_request();
+      } else {
+        nas.start_service_request(srsran::establishment_cause_t::mo_data);
+      }
+    });
   }
   return true;
 }
@@ -355,6 +359,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
     rlc.get_metrics(metrics.rlc, metrics.mac[0].nof_tti);
     nas.get_metrics(&metrics.nas);
     rrc.get_metrics(metrics.rrc);
+    rrc_nr.get_metrics(metrics.rrc_nr);
     pending_stack_metrics.push(metrics);
   });
   // wait for result

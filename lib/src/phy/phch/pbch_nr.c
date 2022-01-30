@@ -637,9 +637,22 @@ int srsran_pbch_nr_decode(srsran_pbch_nr_t*           q,
     return SRSRAN_ERROR;
   }
 
+  // Avoid NAN getting into the demodulator
+  for (uint32_t i = 0; i < PBCH_NR_M; i++) {
+    if (isnan(__real__ symbols[i]) || isnan(__imag__ symbols[i])) {
+      symbols[i] = 0.0f;
+    }
+  }
+
   // 7.3.3.2 Modulation
   int8_t llr[PBCH_NR_E];
   srsran_demod_soft_demodulate_b(SRSRAN_MOD_QPSK, symbols, llr, PBCH_NR_M);
+
+  // If all LLR are zero, no message could be received
+  if (srsran_vec_avg_power_bf(llr, PBCH_NR_E) == 0) {
+    SRSRAN_MEM_ZERO(msg, srsran_pbch_msg_nr_t, 1);
+    return SRSRAN_SUCCESS;
+  }
 
   // TS 38.211 7.3.3 Physical broadcast channel
   // 7.3.3.1 Scrambling

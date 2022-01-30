@@ -77,7 +77,7 @@ public:
 
   /********** RRC INTERFACE ********************/
 
-  bool cell_search() final;
+  bool cell_search(int earfcn) final;
   bool cell_select(phy_cell_t cell) final;
 
   // Sets the new PHY configuration for the given CC. The configuration is applied in the background. The notify()

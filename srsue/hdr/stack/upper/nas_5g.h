@@ -66,7 +66,9 @@ public:
   void run_tti();
 
   // Stack+RRC interface
-  bool is_registered();
+  bool     is_registered();
+  int      get_k_amf(srsran::as_key_t& k_amf);
+  uint32_t get_ul_nas_count();
 
   int write_pdu(srsran::unique_byte_buffer_t pdu);
 
@@ -88,8 +90,8 @@ private:
   usim_interface_nas*      usim   = nullptr;
   gw_interface_nas*        gw     = nullptr;
 
-  bool running = false;
-
+  bool                                             running             = false;
+  bool                                             has_sec_ctxt        = false;
   bool                                             initial_sec_command = false;
   srsran::nas_5g::mobile_identity_5gs_t::guti_5g_s guti_5g;
 
@@ -101,6 +103,8 @@ private:
   // Security
   bool ia5g_caps[8] = {};
   bool ea5g_caps[8] = {};
+
+  void set_k_gnb_count(uint32_t count);
 
   // TS 23.003 Sec. 6.2.2 IMEISV's last two octets are Software Version Number (SVN)
   // which identifies the software version number of the mobile equipment

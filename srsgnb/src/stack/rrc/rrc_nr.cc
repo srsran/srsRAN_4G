@@ -23,6 +23,7 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsgnb/hdr/stack/rrc/cell_asn1_config.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
+#include "srsgnb/hdr/stack/rrc/rrc_nr_du_manager.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_ue.h"
 #include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/asn1/rrc_nr_utils.h"
@@ -77,6 +78,11 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
                 cell.ssb_absolute_freq_point);
   }
 
+  du_cfg = std::make_unique<du_config_manager>(cfg);
+  for (uint32_t i = 0; i < cfg.cell_list.size(); ++i) {
+    du_cfg->add_cell();
+  }
+
   // Generate cell config structs
   cell_ctxt.reset(new cell_ctxt_t{});
   if (cfg.is_standalone) {
@@ -98,13 +104,13 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   int ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, base_sp_cell_cfg);
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
 
-  pdcch_cfg_common_s* asn1_pdcch;
+  const pdcch_cfg_common_s* asn1_pdcch;
   if (not cfg.is_standalone) {
     // Fill rrc_nr_cfg with UE-specific search spaces and coresets
     asn1_pdcch =
         &base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   } else {
-    asn1_pdcch = &cell_ctxt->sib1.serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
+    asn1_pdcch = &du_cfg->cell(0).serv_cell_cfg_common().dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   }
   srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
@@ -293,7 +299,13 @@ void rrc_nr::config_phy()
   common_cfg.pdcch                                      = cfg.cell_list[0].phy_cell.pdcch;
   common_cfg.prach                                      = cfg.cell_list[0].phy_cell.prach;
   common_cfg.duplex_mode                                = cfg.cell_list[0].duplex_mode;
-  common_cfg.ssb                                        = cfg.cell_list[0].ssb_cfg;
+  common_cfg.ssb                                        = {};
+  common_cfg.ssb.center_freq_hz                         = cfg.cell_list[0].phy_cell.dl_freq_hz;
+  common_cfg.ssb.ssb_freq_hz                            = cfg.cell_list[0].ssb_freq_hz;
+  common_cfg.ssb.scs                                    = cfg.cell_list[0].ssb_scs;
+  common_cfg.ssb.pattern                                = cfg.cell_list[0].ssb_pattern;
+  common_cfg.ssb.duplex_mode                            = cfg.cell_list[0].duplex_mode;
+  common_cfg.ssb.periodicity_ms = du_cfg->cell(0).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     logger.error("Couldn't set common PHY config");
     return;
@@ -302,54 +314,48 @@ void rrc_nr::config_phy()
 
 void rrc_nr::config_mac()
 {
+  uint32_t cc = 0;
   // Fill MAC scheduler configuration for SIBs
   // TODO: use parsed cell NR cfg configuration
   srsran::phy_cfg_nr_default_t::reference_cfg_t ref_args{};
-  ref_args.duplex = cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
+  ref_args.duplex = cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD
                         ? srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_TDD_CUSTOM_6_4
                         : srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
   std::vector<sched_nr_cell_cfg_t> sched_cells_cfg(1, get_default_cell_cfg(srsran::phy_cfg_nr_default_t{ref_args}));
-  sched_nr_cell_cfg_t&             cell = sched_cells_cfg[0];
+  sched_nr_cell_cfg_t&             cell = sched_cells_cfg[cc];
 
   // Derive cell config from rrc_nr_cfg_t
-  cell.bwps[0].pdcch          = cfg.cell_list[0].phy_cell.pdcch;
-  cell.pci                    = cfg.cell_list[0].phy_cell.carrier.pci;
-  cell.nof_layers             = cfg.cell_list[0].phy_cell.carrier.max_mimo_layers;
-  cell.dl_cell_nof_prb        = cfg.cell_list[0].phy_cell.carrier.nof_prb;
-  cell.ul_cell_nof_prb        = cfg.cell_list[0].phy_cell.carrier.nof_prb;
-  cell.dl_center_frequency_hz = cfg.cell_list[0].phy_cell.carrier.dl_center_frequency_hz;
-  cell.ul_center_frequency_hz = cfg.cell_list[0].phy_cell.carrier.ul_center_frequency_hz;
-  cell.ssb_center_freq_hz     = cfg.cell_list[0].phy_cell.carrier.ssb_center_freq_hz;
-  cell.offset_to_carrier      = cfg.cell_list[0].phy_cell.carrier.offset_to_carrier;
-  cell.scs                    = cfg.cell_list[0].phy_cell.carrier.scs;
+  cell.bwps[0].pdcch          = cfg.cell_list[cc].phy_cell.pdcch;
+  cell.pci                    = cfg.cell_list[cc].phy_cell.carrier.pci;
+  cell.nof_layers             = cfg.cell_list[cc].phy_cell.carrier.max_mimo_layers;
+  cell.dl_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
+  cell.ul_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
+  cell.dl_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.dl_center_frequency_hz;
+  cell.ul_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.ul_center_frequency_hz;
+  cell.ssb_center_freq_hz     = cfg.cell_list[cc].phy_cell.carrier.ssb_center_freq_hz;
+  cell.dmrs_type_a_position   = du_cfg->cell(cc).mib.dmrs_type_a_position;
+  cell.pdcch_cfg_sib1         = du_cfg->cell(cc).mib.pdcch_cfg_sib1;
+  if (du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common_present) {
+    cell.tdd_ul_dl_cfg_common.emplace(du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common);
+  }
+  cell.dl_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().dl_cfg_common;
+  cell.ul_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().ul_cfg_common;
+  cell.ss_pbch_block_power = du_cfg->cell(cc).serv_cell_cfg_common().ss_pbch_block_pwr;
   if (not cfg.is_standalone) {
     const serving_cell_cfg_common_s& serv_cell = base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
     // Derive cell config from ASN1
     bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
     srsran_assert(valid_cfg, "Invalid NR cell configuration.");
-    if (serv_cell.tdd_ul_dl_cfg_common_present) {
-      cell.tdd_ul_dl_cfg_common.emplace(serv_cell.tdd_ul_dl_cfg_common);
-    }
     cell.ssb_positions_in_burst.in_one_group.set(0, true);
-    cell.ssb_periodicity_ms  = serv_cell.ssb_periodicity_serving_cell.to_number();
-    cell.ssb_scs             = serv_cell.ssb_subcarrier_spacing;
-    cell.ss_pbch_block_power = serv_cell.ss_pbch_block_pwr;
+    cell.ssb_periodicity_ms = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_scs            = serv_cell.ssb_subcarrier_spacing;
   } else {
-    const serving_cell_cfg_common_sib_s& serv_cell = cell_ctxt->sib1.serving_cell_cfg_common;
-    cell.bwps[0].pdsch.p_zp_csi_rs_set             = {};
+    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
     bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
-    cell.dl_cfg_common.reset(new dl_cfg_common_sib_s{serv_cell.dl_cfg_common});
-    cell.ul_cfg_common.reset(new ul_cfg_common_sib_s{serv_cell.ul_cfg_common});
-    if (serv_cell.tdd_ul_dl_cfg_common_present) {
-      cell.tdd_ul_dl_cfg_common.emplace(serv_cell.tdd_ul_dl_cfg_common);
-    }
-    cell.ssb_positions_in_burst = serv_cell.ssb_positions_in_burst;
-    cell.ssb_periodicity_ms     = serv_cell.ssb_periodicity_serving_cell.to_number();
+    cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
+    cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
     cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
-    cell.ss_pbch_block_power    = serv_cell.ss_pbch_block_pwr;
   }
-  cell.dmrs_type_a_position = cell_ctxt->mib.dmrs_type_a_position;
-  cell.pdcch_cfg_sib1       = cell_ctxt->mib.pdcch_cfg_sib1;
 
   // Set SIB1 and SI messages
   cell.sibs.resize(cell_ctxt->sib_buffer.size());
@@ -373,26 +379,6 @@ void rrc_nr::config_mac()
 
 int32_t rrc_nr::generate_sibs()
 {
-  // MIB packing
-  fill_mib_from_enb_cfg(cfg.cell_list[0], cell_ctxt->mib);
-  bcch_bch_msg_s mib_msg;
-  mib_msg.msg.set_mib() = cell_ctxt->mib;
-  {
-    srsran::unique_byte_buffer_t mib_buf = srsran::make_byte_buffer();
-    if (mib_buf == nullptr) {
-      logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-      return SRSRAN_ERROR;
-    }
-    asn1::bit_ref bref(mib_buf->msg, mib_buf->get_tailroom());
-    if (mib_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
-      logger.error("Couldn't pack mib msg");
-      return SRSRAN_ERROR;
-    }
-    mib_buf->N_bytes = bref.distance_bytes();
-    logger.debug(mib_buf->msg, mib_buf->N_bytes, "MIB payload (%d B)", mib_buf->N_bytes);
-    cell_ctxt->mib_buffer = std::move(mib_buf);
-  }
-
   if (not cfg.is_standalone) {
     return SRSRAN_SUCCESS;
   }

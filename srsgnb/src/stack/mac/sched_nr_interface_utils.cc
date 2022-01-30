@@ -34,9 +34,9 @@ uint32_t coreset_nof_cces(const srsran_coreset_t& coreset)
 
 void make_mib_cfg(const sched_nr_cell_cfg_t& cfg, srsran_mib_nr_t* mib)
 {
-  *mib                        = {};
-  mib->scs_common             = cfg.scs;
-  mib->ssb_offset             = 6; // TODO
+  *mib            = {};
+  mib->scs_common = (srsran_subcarrier_spacing_t)cfg.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing.value;
+  mib->ssb_offset = 6; // TODO
   mib->dmrs_typeA_pos         = (srsran_dmrs_sch_typeA_pos_t)cfg.dmrs_type_a_position.value;
   mib->coreset0_idx           = cfg.pdcch_cfg_sib1.ctrl_res_set_zero;
   mib->ss0_idx                = cfg.pdcch_cfg_sib1.search_space_zero;
@@ -62,12 +62,10 @@ void make_ssb_cfg(const sched_nr_cell_cfg_t& cfg, srsran::phy_cfg_nr_t::ssb_cfg_
   }
   ssb->scs     = (srsran_subcarrier_spacing_t)cfg.ssb_scs.value;
   ssb->pattern = SRSRAN_SSB_PATTERN_A;
-  if (cfg.dl_cfg_common.is_present()) {
-    if (cfg.dl_cfg_common->freq_info_dl.freq_band_list.size() > 0 and
-        cfg.dl_cfg_common->freq_info_dl.freq_band_list[0].freq_band_ind_nr_present) {
-      uint32_t band = cfg.dl_cfg_common->freq_info_dl.freq_band_list[0].freq_band_ind_nr;
-      ssb->pattern  = srsran::srsran_band_helper::get_ssb_pattern(band, ssb->scs);
-    }
+  if (cfg.dl_cfg_common.freq_info_dl.freq_band_list.size() > 0 and
+      cfg.dl_cfg_common.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present) {
+    uint32_t band = cfg.dl_cfg_common.freq_info_dl.freq_band_list[0].freq_band_ind_nr;
+    ssb->pattern  = srsran::srsran_band_helper::get_ssb_pattern(band, ssb->scs);
   }
 }
 
@@ -93,10 +91,11 @@ srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_cell_cfg_t& cfg)
   ue_phy_cfg.carrier.dl_center_frequency_hz = cfg.dl_center_frequency_hz;
   ue_phy_cfg.carrier.ul_center_frequency_hz = cfg.ul_center_frequency_hz;
   ue_phy_cfg.carrier.ssb_center_freq_hz     = cfg.ssb_center_freq_hz;
-  ue_phy_cfg.carrier.offset_to_carrier      = cfg.offset_to_carrier;
-  ue_phy_cfg.carrier.scs                    = cfg.scs;
-  ue_phy_cfg.carrier.nof_prb                = cfg.dl_cell_nof_prb;
-  ue_phy_cfg.carrier.max_mimo_layers        = cfg.nof_layers;
+  ue_phy_cfg.carrier.offset_to_carrier = cfg.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  ue_phy_cfg.carrier.scs =
+      (srsran_subcarrier_spacing_t)cfg.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing.value;
+  ue_phy_cfg.carrier.nof_prb         = cfg.dl_cell_nof_prb;
+  ue_phy_cfg.carrier.max_mimo_layers = cfg.nof_layers;
   make_ssb_cfg(cfg, &ue_phy_cfg.ssb);
 
   // remove UE-specific SearchSpaces (they will be added later via RRC)

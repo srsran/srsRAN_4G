@@ -1162,8 +1162,9 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, const rrc_conn_recfg_s& reconfi
 }
 
 /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
-void rrc::rrc_connection_release(const std::string& cause)
+void rrc::handle_rrc_connection_release(const asn1::rrc::rrc_conn_release_s& release)
 {
+  std::string cause = release.crit_exts.c1().rrc_conn_release_r8().release_cause.to_string();
   // Save idleModeMobilityControlInfo, etc.
   srsran::console("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
 
@@ -1173,6 +1174,36 @@ void rrc::rrc_connection_release(const std::string& cause)
 
   // delay actions by 60ms as per 5.3.8.3
   task_sched.defer_callback(60, [this]() { start_go_idle(); });
+
+  uint32_t earfcn = 0;
+  if (release.crit_exts.c1().rrc_conn_release_r8().redirected_carrier_info_present) {
+    switch (release.crit_exts.c1().rrc_conn_release_r8().redirected_carrier_info.type()) {
+      case asn1::rrc::redirected_carrier_info_c::types_opts::options::eutra:
+        earfcn = release.crit_exts.c1().rrc_conn_release_r8().redirected_carrier_info.eutra();
+        break;
+      default:
+        srsran::console("Ignoring RedirectedCarrierInfo with unsupported type (%s)\n",
+                        release.crit_exts.c1().rrc_conn_release_r8().redirected_carrier_info.type().to_string());
+        break;
+    }
+    if (earfcn != 0) {
+      srsran::console("RedirectedCarrierInfo present (type %s, earfcn: %d) - Redirecting\n",
+                      release.crit_exts.c1().rrc_conn_release_r8().redirected_carrier_info.type().to_string(),
+                      earfcn);
+      logger.info("RedirectedCarrierInfo present (type %s, earfcn: %d) - Redirecting",
+                  release.crit_exts.c1().rrc_conn_release_r8().redirected_carrier_info.type().to_string(),
+                  earfcn);
+
+      // delay actions by 60ms as per 5.3.8.3
+      task_sched.defer_callback(60, [this, earfcn]() { start_rrc_redirect(earfcn); });
+    }
+  }
+}
+
+void rrc::start_rrc_redirect(uint32_t new_dl_earfcn)
+{
+  cell_search_earfcn = (int)new_dl_earfcn;
+  plmn_search();
 }
 
 /// TS 36.331, 5.3.12 - UE actions upon leaving RRC_CONNECTED
@@ -1827,7 +1858,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       handle_ue_capability_enquiry(c1->ue_cap_enquiry());
       break;
     case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_release:
-      rrc_connection_release(c1->rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause.to_string());
+      handle_rrc_connection_release(c1->rrc_conn_release());
       break;
     case dl_dcch_msg_type_c::c1_c_::types::ue_info_request_r9:
       transaction_id = c1->ue_info_request_r9().rrc_transaction_id;

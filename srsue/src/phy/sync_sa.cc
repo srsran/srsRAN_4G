@@ -224,6 +224,11 @@ void sync_sa::run_state_idle()
 
 void sync_sa::run_state_cell_search()
 {
+  // Initialise buffer
+  if (cell_search_nof_trials == 0) {
+    srsran_vec_cf_zero(rx_buffer, slot_sz);
+  }
+
   // Receive samples
   srsran::rf_buffer_t rf_buffer = {};
   rf_buffer.set_nof_samples(slot_sz);

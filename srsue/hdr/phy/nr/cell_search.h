@@ -58,8 +58,6 @@ public:
   bool  start(const cfg_t& cfg);
   ret_t run_slot(const cf_t* buffer, uint32_t slot_sz);
 
-  void reset();
-
 private:
   srslog::basic_logger&        logger;
   srsran_ssb_t                 ssb    = {};

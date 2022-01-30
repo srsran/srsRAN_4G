@@ -100,27 +100,29 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
-    srsran::unique_byte_buffer_t nas_sdu;
-    for (uint32_t i = 0; i < rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size(); ++i) {
-      nas_sdu = srsran::make_byte_buffer();
-      if (nas_sdu != nullptr) {
-        memcpy(nas_sdu->msg,
-               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].data(),
-               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size());
-        nas_sdu->N_bytes = rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size();
-        rrc_handle.write_sdu(std::move(nas_sdu));
-      } else {
-        rrc_handle.logger.error("Couldn't allocate SDU in %s.", __FUNCTION__);
-        return proc_outcome_t::error;
-      }
-    }
-  }
-
   if (rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg_present) {
     Info("Applying Radio Bearer Cfg.");
     if (!rrc_handle.apply_radio_bearer_cfg(rrc_nr_reconf.crit_exts.rrc_recfg().radio_bearer_cfg)) {
       return proc_outcome_t::error;
+    }
+  }
+
+  rrc_handle.send_rrc_reconfig_complete();
+
+  // Handle NAS messages
+  if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
+    for (uint32_t i = 0; i < rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size(); ++i) {
+      srsran::unique_byte_buffer_t nas_pdu = srsran::make_byte_buffer();
+      if (nas_pdu != nullptr) {
+        memcpy(nas_pdu->msg,
+               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].data(),
+               rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size());
+        nas_pdu->N_bytes = rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list[i].size();
+        rrc_handle.nas->write_pdu(std::move(nas_pdu));
+      } else {
+        rrc_handle.logger.error("Couldn't allocate SDU in %s.", __FUNCTION__);
+        return proc_outcome_t::error;
+      }
     }
   }
 
@@ -317,7 +319,7 @@ srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::r
 {
   Info("Starting...");
 
-  if (dedicated_info_nas_) {
+  if (dedicated_info_nas_ == nullptr) {
     logger.error("Connection Setup Failed, no dedicatedInfoNAS available");
     return proc_outcome_t::error;
   }
@@ -435,6 +437,17 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
 
     // until cell selection is done, update PHY config to take the last found PCI
     rrc_handle.phy_cfg.carrier.pci = result.pci;
+
+    // Until SI acquisition is implemented, provide hard-coded SIB for now
+    uint8_t msg[] = {0x74, 0x81, 0x01, 0x70, 0x10, 0x40, 0x04, 0x02, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x33, 0x60, 0x38,
+                     0x05, 0x01, 0x00, 0x40, 0x1a, 0x00, 0x00, 0x06, 0x6c, 0x6d, 0x92, 0x21, 0xf3, 0x70, 0x40, 0x20,
+                     0x00, 0x00, 0x80, 0x80, 0x00, 0x41, 0x06, 0x80, 0xa0, 0x90, 0x9c, 0x20, 0x08, 0x55, 0x19, 0x40,
+                     0x00, 0x00, 0x33, 0xa1, 0xc6, 0xd9, 0x22, 0x40, 0x00, 0x00, 0x20, 0xb8, 0x94, 0x63, 0xc0, 0x09,
+                     0x28, 0x44, 0x1b, 0x7e, 0xad, 0x8e, 0x1d, 0x00, 0x9e, 0x2d, 0xa3, 0x0a};
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    memcpy(pdu->msg, msg, sizeof(msg));
+    pdu->N_bytes = sizeof(msg);
+    rrc_handle.write_pdu_bcch_dlsch(std::move(pdu));
 
     if (not rrc_handle.phy->start_cell_select(cs_args)) {
       Error("Could not set start cell search.");

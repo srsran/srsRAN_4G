@@ -192,7 +192,7 @@ void nr_security_context::generate_as_keys()
   logger.info(sec_cfg.k_nr_rrc_enc.data(), 32, "NR RRC Encryption Key (k_nr_rrc_enc)");
   logger.info(sec_cfg.k_nr_rrc_int.data(), 32, "NR RRC Integrity Key (k_nr_rrc_int)");
   logger.info(sec_cfg.k_nr_up_enc.data(), 32, "NR UP Encryption Key (k_nr_up_enc)");
-  logger.info(sec_cfg.k_nr_up_int.data(), 32, "NR UP Encryption Key (k_nr_up_enc)");
+  logger.info(sec_cfg.k_nr_up_int.data(), 32, "NR UP Integrity Key (k_nr_up_int)");
 }
 
 void nr_security_context::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_arfcn)

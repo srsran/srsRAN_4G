@@ -235,7 +235,7 @@ void ue::new_slot(slot_point pdcch_slot)
 
 slot_ue ue::make_slot_ue(slot_point pdcch_slot, uint32_t cc)
 {
-  srsran_assert(carriers[cc] != nullptr, "make_slot_ue() called for inexistent rnti=0x%x,cc=%d", rnti, cc);
+  srsran_assert(carriers[cc] != nullptr, "make_slot_ue() called for unknown rnti=0x%x,cc=%d", rnti, cc);
   return slot_ue(*carriers[cc], pdcch_slot);
 }
 

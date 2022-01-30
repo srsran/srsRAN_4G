@@ -106,6 +106,7 @@ struct k_enb_context_t {
 };
 
 struct k_gnb_context_t {
+  as_key_t k_gnb;
   as_key_t sk_gnb;
 };
 
@@ -188,6 +189,8 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
                                 uint8_t*       k_amf);
 
 uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_network_name, uint8_t* k_seaf);
+
+uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count, as_key_t& k_gnb);
 
 uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count, uint8_t* k_enb);
 

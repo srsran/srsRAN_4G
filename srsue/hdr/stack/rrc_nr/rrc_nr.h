@@ -24,6 +24,7 @@
 
 #include "../rrc/rrc_cell.h"
 #include "rrc_nr_config.h"
+#include "rrc_nr_metrics.h"
 #include "srsran/adt/circular_map.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/asn1/rrc_nr_utils.h"
@@ -43,8 +44,6 @@ namespace srsue {
 class usim_interface_rrc_nr;
 class pdcp_interface_rrc;
 class rlc_interface_rrc;
-
-struct rrc_nr_metrics_t {};
 
 class rrc_nr final : public rrc_interface_phy_nr,
                      public rrc_interface_pdcp,
@@ -146,6 +145,7 @@ private:
   // senders
   void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
+  void send_rrc_reconfig_complete();
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);
@@ -193,14 +193,6 @@ private:
   uint32_t                            sim_measurement_carrier_freq_r15;
   srsran::timer_handler::unique_timer sim_measurement_timer;
 
-  /// RRC states (3GPP 38.331 v15.5.1 Sec 4.2.1)
-  enum rrc_nr_state_t {
-    RRC_NR_STATE_IDLE = 0,
-    RRC_NR_STATE_CONNECTED,
-    RRC_NR_STATE_CONNECTED_INACTIVE,
-    RRC_NR_STATE_N_ITEMS,
-  };
-  const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
   rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
 
   uint8_t transaction_id = 0;

@@ -131,6 +131,18 @@ void set_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void fill_tdd_ul_dl_config_common(const rrc_cell_cfg_nr_t& cfg, asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd)
+{
+  srsran_assert(cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD, "This function should only be called for TDD configs");
+  // TDD UL-DL config
+  tdd.ref_subcarrier_spacing.value  = (asn1::rrc_nr::subcarrier_spacing_opts::options)cfg.phy_cell.carrier.scs;
+  tdd.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+  tdd.pattern1.nrof_dl_slots        = 6;
+  tdd.pattern1.nrof_dl_symbols      = 0;
+  tdd.pattern1.nrof_ul_slots        = 4;
+  tdd.pattern1.nrof_ul_symbols      = 0;
+}
+
 /// Fill list of CSI-ReportConfig with gNB config
 int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
@@ -174,7 +186,7 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
     csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
 
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-      csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 9;
+      csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 1;
     } else {
       csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
     }
@@ -224,11 +236,11 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
       auto& nzp_csi_res = csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list;
       // item 0
       nzp_csi_res[0].nzp_csi_rs_res_id = 0;
-      nzp_csi_res[0].res_map.freq_domain_alloc.set_other();
-      nzp_csi_res[0].res_map.freq_domain_alloc.other().from_number(0b100000);
-      nzp_csi_res[0].res_map.nrof_ports.value                 = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p2;
+      nzp_csi_res[0].res_map.freq_domain_alloc.set_row2();
+      nzp_csi_res[0].res_map.freq_domain_alloc.row2().from_number(0x800);
+      nzp_csi_res[0].res_map.nrof_ports.value                 = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
       nzp_csi_res[0].res_map.first_ofdm_symbol_in_time_domain = 4;
-      nzp_csi_res[0].res_map.cdm_type.value                   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::fd_cdm2;
+      nzp_csi_res[0].res_map.cdm_type.value                   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
       nzp_csi_res[0].res_map.density.set_one();
       nzp_csi_res[0].res_map.freq_band.start_rb     = 0;
       nzp_csi_res[0].res_map.freq_band.nrof_rbs     = 52;
@@ -246,7 +258,7 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
       nzp_csi_res[1]                   = nzp_csi_res[0];
       nzp_csi_res[1].nzp_csi_rs_res_id = 1;
       nzp_csi_res[1].res_map.freq_domain_alloc.set_row1();
-      nzp_csi_res[1].res_map.freq_domain_alloc.row1().from_number(0b0001);
+      nzp_csi_res[1].res_map.freq_domain_alloc.row1().from_number(0x1);
       nzp_csi_res[1].res_map.nrof_ports.value = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
       nzp_csi_res[1].res_map.cdm_type.value   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
       nzp_csi_res[1].res_map.density.set_three();
@@ -425,8 +437,8 @@ void fill_csi_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
 
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_res_cfg_id = 1;
-    auto& imres = csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_rs_res_set_list.set_csi_im_res_set_list();
-    imres.push_back(0);
+    auto& im_res = csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_rs_res_set_list.set_csi_im_res_set_list();
+    im_res.push_back(0);
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].bwp_id         = 0;
     csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
 
@@ -603,10 +615,10 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   uint32_t j = 0, j2 = 0;
   for (uint32_t i = 0; i < out.res_to_add_mod_list.size(); ++i) {
     out.res_to_add_mod_list[i].pucch_res_id                = i;
-    out.res_to_add_mod_list[i].intra_slot_freq_hop_present = true;
-    out.res_to_add_mod_list[i].second_hop_prb_present      = true;
+    out.res_to_add_mod_list[i].intra_slot_freq_hop_present = false;
     if (i < 8 or i == 16) {
       out.res_to_add_mod_list[i].start_prb                              = 51;
+      out.res_to_add_mod_list[i].second_hop_prb_present                 = true;
       out.res_to_add_mod_list[i].second_hop_prb                         = 0;
       out.res_to_add_mod_list[i].format.set_format1().init_cyclic_shift = (4 * (j % 3));
       out.res_to_add_mod_list[i].format.format1().nrof_symbols          = 14;
@@ -615,6 +627,7 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
       j++;
     } else if (i < 15) {
       out.res_to_add_mod_list[i].start_prb                         = 1;
+      out.res_to_add_mod_list[i].second_hop_prb_present            = true;
       out.res_to_add_mod_list[i].second_hop_prb                    = 50;
       out.res_to_add_mod_list[i].format.set_format2().nrof_prbs    = 1;
       out.res_to_add_mod_list[i].format.format2().nrof_symbols     = 2;
@@ -622,6 +635,7 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
       j2++;
     } else {
       out.res_to_add_mod_list[i].start_prb                         = 50;
+      out.res_to_add_mod_list[i].second_hop_prb_present            = true;
       out.res_to_add_mod_list[i].second_hop_prb                    = 1;
       out.res_to_add_mod_list[i].format.set_format2().nrof_prbs    = 1;
       out.res_to_add_mod_list[i].format.format2().nrof_symbols     = 2;
@@ -637,6 +651,9 @@ void fill_pucch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pucch_cfg
   out.format2.set_setup();
   out.format2.setup().max_code_rate_present = true;
   out.format2.setup().max_code_rate         = pucch_max_code_rate_opts::zero_dot25;
+  // NOTE: IMPORTANT!! The gNB expects the CSI to be reported along with HARQ-ACK
+  // If simul_harq_ack_csi_present = false, PUCCH might not be decoded properly when CSI is reported
+  out.format2.setup().simul_harq_ack_csi_present = true;
 
   // SR resources
   out.sched_request_res_to_add_mod_list.resize(1);
@@ -865,18 +882,15 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
 
   serv_common.ss_pbch_block_pwr               = cell_cfg.phy_cell.pdsch.rs_power;
   serv_common.n_timing_advance_offset_present = true;
-  serv_common.n_timing_advance_offset = asn1::rrc_nr::serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
+  serv_common.n_timing_advance_offset         = serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   serv_common.n_timing_advance_offset_present = true;
-  serv_common.dmrs_type_a_position = asn1::rrc_nr::serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
+  serv_common.dmrs_type_a_position            = serving_cell_cfg_common_s::dmrs_type_a_position_opts::pos2;
 
   serv_common.pci_present = true;
   serv_common.pci         = cell_cfg.phy_cell.carrier.pci;
 
   serv_common.ssb_periodicity_serving_cell_present = true;
-  if (not asn1::number_to_enum(serv_common.ssb_periodicity_serving_cell, cell_cfg.ssb_cfg.periodicity_ms)) {
-    get_logger(cfg).error("Config Error: Invalid SSB periodicity = %d\n", cell_cfg.ssb_cfg.periodicity_ms);
-    return SRSRAN_ERROR;
-  }
+  serv_common.ssb_periodicity_serving_cell.value   = serving_cell_cfg_common_s::ssb_periodicity_serving_cell_opts::ms10;
 
   // Fill SSB config
   serv_common.ssb_positions_in_burst_present = true;
@@ -897,13 +911,7 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
   if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
     // TDD UL-DL config
     serv_common.tdd_ul_dl_cfg_common_present = true;
-    auto& tdd_config                         = serv_common.tdd_ul_dl_cfg_common;
-    tdd_config.ref_subcarrier_spacing        = subcarrier_spacing_e::khz15;
-    tdd_config.pattern1.dl_ul_tx_periodicity = asn1::rrc_nr::tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
-    tdd_config.pattern1.nrof_dl_slots        = 6;
-    tdd_config.pattern1.nrof_dl_symbols      = 0;
-    tdd_config.pattern1.nrof_ul_slots        = 4;
-    tdd_config.pattern1.nrof_ul_symbols      = 0;
+    fill_tdd_ul_dl_config_common(cfg.cell_list[cc], serv_common.tdd_ul_dl_cfg_common);
   }
 
   serv_common.ul_cfg_common_present = true;
@@ -1057,9 +1065,6 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
   out.sp_cell_cfg.recfg_with_sync_present = false;
 
-  // The current CSI config make the PUCCH decoding fail. We temporarily disable it until further investigation
-  out.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present = false;
-
   return SRSRAN_SUCCESS;
 }
 
@@ -1139,12 +1144,12 @@ void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib
   cfg.freq_info_dl.freq_band_list.resize(1);
   cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
   cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
-  double   ssb_freq_start            = cell_cfg.ssb_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
+  double   ssb_freq_start                                     = cell_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
   double   offset_point_a_hz         = ssb_freq_start - band_helper.nr_arfcn_to_freq(cell_cfg.dl_absolute_freq_point_a);
   uint32_t offset_point_a_prbs       = offset_point_a_hz / prb_bw;
   cfg.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
   cfg.freq_info_dl.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = 0;
+  cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
   cfg.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
   cfg.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
@@ -1174,7 +1179,7 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
       band_helper.get_abs_freq_point_a_arfcn(cell_cfg.phy_cell.carrier.nof_prb, cell_cfg.ul_arfcn);
 
   cfg.freq_info_ul.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = 0;
+  cfg.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
   cfg.freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
   cfg.freq_info_ul.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
@@ -1210,7 +1215,7 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
   cfg.time_align_timer_common.value = time_align_timer_opts::infinity;
 }
 
-void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cell_cfg_common_sib_s& cfg)
+int fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cell_cfg_common_sib_s& cfg)
 {
   fill_dl_cfg_common_sib(cell_cfg, cfg.dl_cfg_common);
 
@@ -1219,9 +1224,21 @@ void fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_ce
 
   cfg.ssb_positions_in_burst.in_one_group.from_number(0x80);
 
-  cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms20;
+  cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
+
+  // The time advance offset is not supported by the current PHY
+  cfg.n_timing_advance_offset_present = true;
+  cfg.n_timing_advance_offset         = serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0;
+
+  // TDD UL-DL config
+  if (cell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    cfg.tdd_ul_dl_cfg_common_present = true;
+    fill_tdd_ul_dl_config_common(cell_cfg, cfg.tdd_ul_dl_cfg_common);
+  }
 
   cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
+
+  return SRSRAN_SUCCESS;
 }
 
 int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::sib1_s& sib1)
@@ -1266,7 +1283,7 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   //  sib1.si_sched_info.sched_info_list[0].sib_map_info[0].value_tag         = 0;
 
   sib1.serving_cell_cfg_common_present = true;
-  fill_serv_cell_cfg_common_sib(cell_cfg, sib1.serving_cell_cfg_common);
+  HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cell_cfg, sib1.serving_cell_cfg_common));
 
   sib1.ue_timers_and_consts_present    = true;
   sib1.ue_timers_and_consts.t300.value = ue_timers_and_consts_s::t300_opts::ms1000;

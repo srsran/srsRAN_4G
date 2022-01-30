@@ -149,15 +149,11 @@ cell_config_manager::cell_config_manager(uint32_t                   cc_,
   carrier.dl_center_frequency_hz = cell.dl_center_frequency_hz;
   carrier.ul_center_frequency_hz = cell.ul_center_frequency_hz;
   carrier.ssb_center_freq_hz     = cell.ssb_center_freq_hz;
-  carrier.offset_to_carrier      = cell.offset_to_carrier;
-  carrier.scs                    = cell.scs;
   carrier.nof_prb                = cell.dl_cell_nof_prb;
   carrier.start                  = 0; // TODO: Check
   carrier.max_mimo_layers        = cell.nof_layers;
-  if (cell.dl_cfg_common.is_present()) {
-    carrier.offset_to_carrier = cell.dl_cfg_common->freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
-    carrier.scs = (srsran_subcarrier_spacing_t)cell.dl_cfg_common->init_dl_bwp.generic_params.subcarrier_spacing.value;
-  }
+  carrier.offset_to_carrier      = cell.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  carrier.scs = (srsran_subcarrier_spacing_t)cell.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing.value;
 
   // TDD-UL-DL-ConfigCommon
   duplex.mode = SRSRAN_DUPLEX_MODE_FDD;

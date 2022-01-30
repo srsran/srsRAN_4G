@@ -188,10 +188,10 @@ void sync::reset()
  *
  */
 
-/* A call to cell_search() finds the strongest cell in the set of supported EARFCNs. When the first cell is found,
- * returns 1 and stores cell information and RSRP values in the pointers (if provided). If a cell is not found in the
- * current frequency it moves to the next one and the next call to cell_search() will look in the next EARFCN in the
- * set. If no cells are found in any frequency it returns 0. If error returns -1.
+/* A call to cell_search() finds the strongest cell at a given EARFCN or in the set of supported EARFCNs. When the first
+ * cell is found, returns 1 and stores cell information and RSRP values in the pointers (if provided). If a cell is not
+ * found in the current frequency it moves to the next one and the next call to cell_search() will look in the next
+ * EARFCN in the set. If no cells are found in any frequency it returns 0. If error returns -1.
  *
  * The first part of the procedure (call to _init()) moves the PHY To IDLE, ensuring that no UL/DL/PRACH will happen
  *
@@ -206,7 +206,6 @@ bool sync::cell_search_init()
   }
 
   // Move state to IDLE
-  Info("Cell Search: Start EARFCN index=%u/%zd", cellsearch_earfcn_index, worker_com->args->dl_earfcn_list.size());
   phy_state.go_idle();
 
   // Stop all intra-frequency measurement before changing frequency
@@ -217,9 +216,15 @@ bool sync::cell_search_init()
   return true;
 }
 
-rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* found_cell)
+rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* found_cell, int earfcn)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
+
+  if (earfcn < 0) {
+    Info("Cell Search: Start EARFCN index=%u/%zd", cellsearch_earfcn_index, worker_com->args->dl_earfcn_list.size());
+  } else {
+    Info("Cell Search: Start EARFCN=%d", earfcn);
+  }
 
   rrc_interface_phy_lte::cell_search_ret_t ret = {};
   ret.found                                    = rrc_interface_phy_lte::cell_search_ret_t::ERROR;
@@ -238,16 +243,20 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
     Info("SYNC:  Setting Cell Search sampling rate");
   }
 
-  try {
-    if (current_earfcn != (int)worker_com->args->dl_earfcn_list.at(cellsearch_earfcn_index)) {
-      current_earfcn = (int)worker_com->args->dl_earfcn_list[cellsearch_earfcn_index];
-      Info("Cell Search: changing frequency to EARFCN=%d", current_earfcn);
-      set_frequency();
+  if (earfcn < 0) {
+    try {
+      if (current_earfcn != (int)worker_com->args->dl_earfcn_list.at(cellsearch_earfcn_index)) {
+        current_earfcn = (int)worker_com->args->dl_earfcn_list[cellsearch_earfcn_index];
+      }
+    } catch (const std::out_of_range& oor) {
+      Error("Index %d is not a valid EARFCN element.", cellsearch_earfcn_index);
+      return ret;
     }
-  } catch (const std::out_of_range& oor) {
-    Error("Index %d is not a valid EARFCN element.", cellsearch_earfcn_index);
-    return ret;
+  } else {
+    current_earfcn = earfcn;
   }
+  Info("Cell Search: changing frequency to EARFCN=%d", current_earfcn);
+  set_frequency();
 
   // Move to CELL SEARCH and wait to finish
   Info("Cell Search: Setting Cell search state");
@@ -275,7 +284,7 @@ rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* fou
   }
 
   cellsearch_earfcn_index++;
-  if (cellsearch_earfcn_index >= worker_com->args->dl_earfcn_list.size()) {
+  if (cellsearch_earfcn_index >= worker_com->args->dl_earfcn_list.size() or earfcn < 0) {
     Info("Cell Search: No more frequencies in the current EARFCN set");
     cellsearch_earfcn_index = 0;
     ret.last_freq           = rrc_interface_phy_lte::cell_search_ret_t::NO_MORE_FREQS;

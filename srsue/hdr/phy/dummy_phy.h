@@ -62,7 +62,7 @@ public:
   void meas_stop() final {}
 
   /* Cell search and selection procedures */
-  bool cell_search() final { return false; }
+  bool cell_search(int earfcn) final { return false; }
   bool cell_select(phy_cell_t cell) final { return false; }
   bool cell_is_camping() final { return false; }
 

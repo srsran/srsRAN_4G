@@ -71,7 +71,7 @@ int ue::init(const all_args_t& args_)
     return SRSRAN_ERROR;
   }
 
-  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
+  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW", false)));
   if (!gw_ptr) {
     srsran::console("Error creating a GW instance.\n");
     return SRSRAN_ERROR;
@@ -284,6 +284,11 @@ int ue::parse_args(const all_args_t& args_)
     srsran::console("Error. NR Standalone PHY requires a fix RF sampling rate.\n");
     return SRSRAN_ERROR;
   }
+
+  // Update NAS-5G args
+  args.stack.nas_5g.ia5g = args.stack.nas.eia;
+  args.stack.nas_5g.ea5g = args.stack.nas.eea;
+  args.stack.nas_5g.pdu_session_cfgs.push_back({args.stack.nas.apn_name});
 
   return SRSRAN_SUCCESS;
 }

@@ -1117,20 +1117,8 @@ void rrc_nr::ue::handle_rrc_setup_complete(const asn1::rrc_nr::rrc_setup_complet
 /// TS 38.331, SecurityModeCommand
 void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu)
 {
-  // FIXME: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
-  // When we start using PDCP-NR we can avoid this step.
-  srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
-  srsran::as_security_config_t    pdcp_cnfg = {};
-  pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
-  pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
-  pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
-  pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
-  pdcp_cnfg.integ_algo                      = (srsran::INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
-  pdcp_cnfg.cipher_algo                     = (srsran::CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
-
-  // Setup SRB1 security/integrity. Encryption is set on completion
-  parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
-  parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+  // apply selected security config and enable integrity on SRB1 before generating security mode command
+  update_as_security(srb_to_lcid(srsran::nr_srb::srb1), true, false);
 
   if (nas_pdu != nullptr) {
     nas_pdu_queue.push_back(std::move(nas_pdu));
@@ -1148,11 +1136,58 @@ void rrc_nr::ue::send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu
   }
 }
 
+/**
+ * @brief  Internal helper to update the security configuration of a PDCP bearer
+ *
+ * If no valid AS security config is present (yet) the method doesn't modify the
+ * PDCP config and returns SRSRAN_ERROR. In some cases, however,
+ * for example during RRC Setup, this is in fact the expected behaviour as
+ * AS security isn't established yet.
+ *
+ * @param lcid Logical channel ID of the bearer
+ * @param enable_integrity Whether to enable integrity protection for the bearer
+ * @param enable_ciphering Whether to enable ciphering for the bearer
+ * @return int SRSRAN_SUCCESS if a valid AS security config was found and the security was configured
+ */
+int rrc_nr::ue::update_as_security(uint32_t lcid, bool enable_integrity = true, bool enable_ciphering = true)
+{
+  if (not sec_ctx.is_as_sec_cfg_valid()) {
+    parent->logger.error("Invalid AS security configuration. Skipping configuration for lcid=%d", lcid);
+    return SRSRAN_ERROR;
+  }
+
+  // FIXME: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
+  // When we start using PDCP-NR we can avoid this step.
+  srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
+  srsran::as_security_config_t    pdcp_cnfg = {};
+  pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
+  pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
+  pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
+  pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
+  pdcp_cnfg.integ_algo                      = (srsran::INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
+  pdcp_cnfg.cipher_algo                     = (srsran::CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
+
+  // configure algorithm and keys
+  parent->pdcp->config_security(rnti, lcid, pdcp_cnfg);
+
+  if (enable_integrity) {
+    parent->pdcp->enable_integrity(rnti, lcid);
+  }
+
+  if (enable_ciphering) {
+    parent->pdcp->enable_encryption(rnti, lcid);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 /// TS 38.331, SecurityModeComplete
 void rrc_nr::ue::handle_security_mode_complete(const asn1::rrc_nr::security_mode_complete_s& msg)
 {
   parent->logger.info("SecurityModeComplete transaction ID: %d", msg.rrc_transaction_id);
-  parent->pdcp->enable_encryption(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+
+  // finally, also enable ciphering on SRB1
+  update_as_security(srb_to_lcid(srsran::nr_srb::srb1), false, true);
 
   send_rrc_reconfiguration();
   // Note: Skip UE capabilities
@@ -1366,20 +1401,8 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
     }
     parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
 
-    // enable security config
     if (sec_ctx.is_as_sec_cfg_valid()) {
-      srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
-      srsran::as_security_config_t    pdcp_cnfg = {};
-      pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
-      pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
-      pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
-      pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
-      pdcp_cnfg.integ_algo                      = (srsran::INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
-      pdcp_cnfg.cipher_algo                     = (srsran::CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
-
-      // Setup SRB1 security/integrity. Encryption is set on completion
-      parent->pdcp->config_security(rnti, srb_to_lcid(srsran::nr_srb::srb1), pdcp_cnfg);
-      parent->pdcp->enable_integrity(rnti, srb_to_lcid(srsran::nr_srb::srb1));
+      update_as_security(rlc_bearer->lc_ch_id);
     }
   }
 
@@ -1399,6 +1422,10 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
       return SRSRAN_ERROR;
     }
     parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+
+    if (sec_ctx.is_as_sec_cfg_valid()) {
+      update_as_security(rlc_bearer->lc_ch_id);
+    }
   }
 
   return SRSRAN_SUCCESS;
@@ -1449,6 +1476,14 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
         // TODO: remaining fields
       }
     }
+
+    if (cell_group_config.sp_cell_cfg_present and cell_group_config.sp_cell_cfg.sp_cell_cfg_ded_present and
+        cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present and
+        cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp_present and
+        cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg_present) {
+      auto& pucch_cfg = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.setup();
+      srsran::fill_phy_pucch_cfg(pucch_cfg, &uecfg.phy_cfg.pucch);
+    }
   } else {
     auto& pdcch = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
     for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
@@ -1466,6 +1501,7 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
   uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
   uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
   uecfg.phy_cell_group_cfg.reset(new phys_cell_group_cfg_s{cell_group_cfg.phys_cell_group_cfg});
+  srsran::make_csi_cfg_from_serv_cell(cell_group_config.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
   parent->mac->ue_cfg(rnti, uecfg);
 
   return SRSRAN_SUCCESS;

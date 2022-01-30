@@ -117,7 +117,7 @@ int derive_coreset0_params(rrc_cell_cfg_nr_t& cell)
       (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
   int ret = srsran_coreset_zero(cell.phy_cell.carrier.pci,
                                 ssb_pointA_freq_offset_Hz,
-                                cell.ssb_cfg.scs,
+                                cell.ssb_scs,
                                 cell.phy_cell.carrier.scs,
                                 cell.coreset0_idx,
                                 &cell.phy_cell.pdcch.coreset[0]);
@@ -131,7 +131,7 @@ int derive_ssb_params(bool                        is_sa,
                       srsran_subcarrier_spacing_t pdcch_scs,
                       uint32_t                    coreset0_idx,
                       uint32_t                    nof_prb,
-                      srsran_ssb_cfg_t&           ssb)
+                      rrc_cell_cfg_nr_t&          cell)
 {
   // Verify essential parameters are specified and valid
   ERROR_IF_NOT(dl_arfcn > 0, "Invalid DL ARFCN=%d", dl_arfcn);
@@ -145,20 +145,17 @@ int derive_ssb_params(bool                        is_sa,
   double   dl_freq_hz               = band_helper.nr_arfcn_to_freq(dl_arfcn);
   uint32_t dl_absolute_freq_point_a = band_helper.get_abs_freq_point_a_arfcn(nof_prb, dl_arfcn);
 
-  ssb.center_freq_hz = dl_freq_hz;
-  ssb.duplex_mode    = band_helper.get_duplex_mode(band);
-
   // derive SSB pattern and scs
-  ssb.pattern = band_helper.get_ssb_pattern(band, srsran_subcarrier_spacing_15kHz);
-  if (ssb.pattern == SRSRAN_SSB_PATTERN_A) {
+  cell.ssb_pattern = band_helper.get_ssb_pattern(band, srsran_subcarrier_spacing_15kHz);
+  if (cell.ssb_pattern == SRSRAN_SSB_PATTERN_A) {
     // 15kHz SSB SCS
-    ssb.scs = srsran_subcarrier_spacing_15kHz;
+    cell.ssb_scs = srsran_subcarrier_spacing_15kHz;
   } else {
     // try to optain SSB pattern for same band with 30kHz SCS
-    ssb.pattern = band_helper.get_ssb_pattern(band, srsran_subcarrier_spacing_30kHz);
-    if (ssb.pattern == SRSRAN_SSB_PATTERN_B || ssb.pattern == SRSRAN_SSB_PATTERN_C) {
+    cell.ssb_pattern = band_helper.get_ssb_pattern(band, srsran_subcarrier_spacing_30kHz);
+    if (cell.ssb_pattern == SRSRAN_SSB_PATTERN_B || cell.ssb_pattern == SRSRAN_SSB_PATTERN_C) {
       // SSB SCS is 30 kHz
-      ssb.scs = srsran_subcarrier_spacing_30kHz;
+      cell.ssb_scs = srsran_subcarrier_spacing_30kHz;
     } else {
       srsran_terminate("Can't derive SSB pattern from band %d", band);
     }
@@ -168,29 +165,20 @@ int derive_ssb_params(bool                        is_sa,
   int coreset0_rb_offset = 0;
   if (is_sa) {
     // Get offset in RBs between CORESET#0 and SSB
-    coreset0_rb_offset = srsran_coreset0_ssb_offset(coreset0_idx, ssb.scs, pdcch_scs);
+    coreset0_rb_offset = srsran_coreset0_ssb_offset(coreset0_idx, cell.ssb_scs, pdcch_scs);
     ERROR_IF_NOT(coreset0_rb_offset >= 0, "Failed to compute RB offset between CORESET#0 and SSB");
   } else {
     // TODO: Verify if specified SSB frequency is valid
   }
   uint32_t ssb_abs_freq_point =
-      band_helper.get_abs_freq_ssb_arfcn(band, ssb.scs, dl_absolute_freq_point_a, coreset0_rb_offset);
+      band_helper.get_abs_freq_ssb_arfcn(band, cell.ssb_scs, dl_absolute_freq_point_a, coreset0_rb_offset);
   ERROR_IF_NOT(ssb_abs_freq_point > 0,
                "Can't derive SSB freq point for dl_arfcn=%d and band %d",
                band_helper.freq_to_nr_arfcn(dl_freq_hz),
                band);
 
   // Convert to frequency for PHY
-  ssb.ssb_freq_hz = band_helper.nr_arfcn_to_freq(ssb_abs_freq_point);
-
-  ssb.periodicity_ms = 10; // TODO: make a param
-  ssb.beta_pss       = 0.0;
-  ssb.beta_sss       = 0.0;
-  ssb.beta_pbch      = 0.0;
-  ssb.beta_pbch_dmrs = 0.0;
-  // set by PHY layer in worker_pool::set_common_cfg
-  ssb.srate_hz = 0.0;
-  ssb.scaling  = 0.0;
+  cell.ssb_freq_hz = band_helper.nr_arfcn_to_freq(ssb_abs_freq_point);
 
   return SRSRAN_SUCCESS;
 }
@@ -259,9 +247,9 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
                     cell.phy_cell.carrier.scs,
                     cell.coreset0_idx,
                     cell.phy_cell.carrier.nof_prb,
-                    cell.ssb_cfg);
-  cell.phy_cell.carrier.ssb_center_freq_hz = cell.ssb_cfg.ssb_freq_hz;
-  cell.ssb_absolute_freq_point             = band_helper.freq_to_nr_arfcn(cell.ssb_cfg.ssb_freq_hz);
+                    cell);
+  cell.phy_cell.carrier.ssb_center_freq_hz = cell.ssb_freq_hz;
+  cell.ssb_absolute_freq_point             = band_helper.freq_to_nr_arfcn(cell.ssb_freq_hz);
 
   // Derive remaining config params
   if (is_sa) {
@@ -346,7 +334,6 @@ int set_derived_nr_rrc_params(rrc_nr_cfg_t& rrc_cfg)
 int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa)
 {
   // verify SSB params are consistent
-  ERROR_IF_NOT(cell.ssb_cfg.center_freq_hz == cell.phy_cell.dl_freq_hz, "Invalid SSB param generation");
   HANDLE_ERROR(check_nr_phy_cell_cfg_valid(cell.phy_cell));
 
   if (is_sa) {

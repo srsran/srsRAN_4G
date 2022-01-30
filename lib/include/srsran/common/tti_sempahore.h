@@ -84,8 +84,10 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    // Pop first element
-    fifo.pop_front();
+    // If the FIFO is not empty pop first element
+    if (not fifo.empty()) {
+      fifo.pop_front();
+    }
 
     // Notify release
     cvar.notify_all();

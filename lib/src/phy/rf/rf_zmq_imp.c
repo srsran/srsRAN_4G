@@ -794,7 +794,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
             for (int j = 0; j < decim_factor; j++, n++) {
               avg += ptr[n];
             }
-            dst[i] = avg;
+            dst[i] = avg; // divide by decim_factor later via scale
           }
 
           rf_zmq_info(handler->id,
@@ -810,6 +810,10 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
     pthread_mutex_lock(&handler->rx_gain_mutex);
     float scale = srsran_convert_dB_to_amplitude(handler->rx_gain);
     pthread_mutex_unlock(&handler->rx_gain_mutex);
+    // scale shall also incorporate decim_factor
+    if (decim_factor > 0) {
+      scale = scale / decim_factor;
+    }
     for (uint32_t c = 0; c < handler->nof_channels; c++) {
       if (buffers[c]) {
         srsran_vec_sc_prod_cfc(buffers[c], scale, buffers[c], nsamples);

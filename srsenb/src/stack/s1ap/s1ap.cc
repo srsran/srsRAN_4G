@@ -785,6 +785,14 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
     return false;
   }
 
+  if (u->get_state() == s1ap_proc_id_t::init_context_setup_request) {
+    logger.warning("Initial Context Setup Request already in progress. Ignoring ICS request.");
+    asn1::s1ap::cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::msg_not_compatible_with_receiver_state;
+    send_error_indication(cause, msg->enb_ue_s1ap_id.value.value, msg->mme_ue_s1ap_id.value.value);
+    return false;
+  }
+
   // Setup UE ctxt in RRC
   if (not rrc->setup_ue_ctxt(u->ctxt.rnti, msg)) {
     return false;
@@ -1999,6 +2007,9 @@ s1ap::ue* s1ap::handle_s1apmsg_ue_id(uint32_t enb_id, uint32_t mme_id)
   ue*     user_ptr     = users.find_ue_enbid(enb_id);
   ue*     user_mme_ptr = nullptr;
   cause_c cause;
+
+  logger.info("Checking UE S1 logical connection. eNB UE S1AP ID=%d, MME UE S1AP ID=%d", enb_id, mme_id);
+
   if (user_ptr != nullptr) {
     if (user_ptr->ctxt.mme_ue_s1ap_id == mme_id) {
       // No ID inconsistency found

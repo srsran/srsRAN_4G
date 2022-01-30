@@ -34,7 +34,7 @@ using namespace asn1;
 using namespace srsran;
 namespace srsue {
 
-const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
+const static char* rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC-NR")),
@@ -71,9 +71,15 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   stack     = stack_;
   args      = args_;
 
-  plmn_is_selected = true; // short-cut SA test
-
+  // allocate RRC timers
   t300 = task_sched.get_unique_timer();
+  t301 = task_sched.get_unique_timer();
+  t302 = task_sched.get_unique_timer();
+  t304 = task_sched.get_unique_timer();
+  t310 = task_sched.get_unique_timer();
+  t311 = task_sched.get_unique_timer();
+
+  plmn_is_selected = true; // short-cut SA test
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -104,7 +110,11 @@ void rrc_nr::init_core_less()
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
   return;
 }
-void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
+
+void rrc_nr::get_metrics(rrc_nr_metrics_t& m)
+{
+  m.state = state;
+}
 
 const char* rrc_nr::get_rb_name(uint32_t lcid)
 {
@@ -255,7 +265,7 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
     case dl_ccch_msg_type_c::c1_c_::types::rrc_reject: {
       // 5.3.15
       const auto& reject = c1->rrc_reject();
-      srsran::console("Received RRC Reject");
+      srsran::console("Received RRC Reject\n");
 
       t300.stop();
 
@@ -275,7 +285,6 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
       task_sched.defer_task([this, rrc_setup_copy]() { handle_rrc_setup(rrc_setup_copy); });
       break;
     }
-
     default:
       logger.error("The provided DL-CCCH message type is not recognized");
       break;
@@ -348,6 +357,11 @@ void rrc_nr::decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
 void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
   logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
+
+  meas_cells.serving_cell().set_sib1(sib1);
+  
+  // TODO: config basic config and remove early exit
+  return;
 
   // clang-format off
   // unhandled fields:
@@ -611,7 +625,7 @@ void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
   for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
     random_id |= ((uint64_t)rand() & 0xFF) << i * 8;
   }
-  rrc_setup_req->ue_id.random_value().from_number(random_id);
+  rrc_setup_req->ue_id.random_value().from_number(random_id, rrc_setup_req->ue_id.random_value().length());
   rrc_setup_req->establishment_cause = (establishment_cause_opts::options)cause;
 
   send_ul_ccch_msg(ul_ccch_msg);
@@ -688,6 +702,16 @@ void rrc_nr::send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg)
 
   rrc_setup_complete->ded_nas_msg.resize(nas_msg->N_bytes);
   memcpy(rrc_setup_complete->ded_nas_msg.data(), nas_msg->msg, nas_msg->N_bytes);
+
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
+void rrc_nr::send_rrc_reconfig_complete()
+{
+  logger.debug("Preparing RRC Connection Reconfig Complete");
+
+  asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+  auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete().crit_exts.set_rrc_recfg_complete();
 
   send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
@@ -1903,12 +1927,26 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     return false;
   }
 
-  if (!(drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id)) {
-    logger.error("CN association type not supported %s ", drb_cfg.cn_assoc.type().to_string());
+  if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id) {
+    // register EPS bearer over NR PDCP
+    uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
+    drb_eps_bearer_id[drb_cfg.drb_id] = eps_bearer_id;
+    stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
+  } else if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::sdap_cfg) {
+    const auto& sdap_cfg = drb_cfg.cn_assoc.sdap_cfg();
+    if (sdap_cfg.sdap_hdr_dl == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::present ||
+        sdap_cfg.sdap_hdr_ul == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::present) {
+      logger.error("SDAP currently not supported.");
+      return false;
+    }
+    // TODO: configure SDAP accordingly
+    uint32_t pdu_session_id = drb_cfg.cn_assoc.sdap_cfg().pdu_session;
+    // Register PDU session as "EPS bearer" in bearer manager
+    stack->add_eps_bearer(pdu_session_id, srsran::srsran_rat_t::nr, lcid);
+  } else {
+    logger.error("CN association type not supported %s", drb_cfg.cn_assoc.type().to_string());
     return false;
   }
-  uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
-  drb_eps_bearer_id[drb_cfg.drb_id] = eps_bearer_id;
 
   if (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl_present && drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul_present &&
       (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul.to_number() != drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number())) {
@@ -1918,9 +1956,6 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
   srsran::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
-
-  // register EPS bearer over NR PDCP
-  stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
 
   return true;
 }
@@ -2094,12 +2129,11 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
 // Security helper used by Security Mode Command and Mobility handling routines
 void rrc_nr::generate_as_keys()
 {
-  uint8_t k_asme[32] = {};
-  // FIXME: need to add
-  // nas->get_k_asme(k_asme, 32);
-  logger.debug(k_asme, 32, "UE K_asme");
-  // logger.debug("Generating K_enb with UL NAS COUNT: %d", nas->get_k_enb_count());
-  // usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
+  as_key_t k_amf = {};
+  nas->get_k_amf(k_amf);
+  logger.debug(k_amf.data(), 32, "UE K_amf");
+  logger.debug("Generating K_gnb with UL NAS COUNT: %d", nas->get_ul_nas_count());
+  usim->generate_nr_as_keys(k_amf, nas->get_ul_nas_count(), &sec_cfg);
   logger.info(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
   logger.info(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
   logger.info(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");

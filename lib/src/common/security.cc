@@ -24,7 +24,6 @@
 #include "srsran/common/s3g.h"
 #include "srsran/common/ssl.h"
 #include "srsran/config.h"
-
 #include <arpa/inet.h>
 
 #ifdef HAVE_MBEDTLS
@@ -198,6 +197,32 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
   memcpy(abba.data(), abba_, abba.size());
 
   if (kdf_common(FC_5G_KAMF_DERIVATION, key, supi, abba, k_amf) != SRSRAN_SUCCESS) {
+    log_error("Failed to run kdf_common");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
+uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count_, as_key_t& k_gnb)
+{
+  if (k_amf.empty()) {
+    log_error("Invalid inputs");
+    return SRSRAN_ERROR;
+  }
+
+  // NAS Count
+  std::vector<uint8_t> nas_count;
+  nas_count.resize(4);
+  nas_count[0] = (nas_count_ >> 24) & 0xFF;
+  nas_count[1] = (nas_count_ >> 16) & 0xFF;
+  nas_count[2] = (nas_count_ >> 8) & 0xFF;
+  nas_count[3] = nas_count_ & 0xFF;
+
+  // Access Type Distinguisher 3GPP access = 0x01 (TS 33501 Annex A.9)
+  std::vector<uint8_t> access_type_distinguisher = {1};
+
+  if (kdf_common(FC_5G_KGNB_KN3IWF_DERIVATION, k_amf, nas_count, access_type_distinguisher, k_gnb.data()) !=
+      SRSRAN_SUCCESS) {
     log_error("Failed to run kdf_common");
     return SRSRAN_ERROR;
   }

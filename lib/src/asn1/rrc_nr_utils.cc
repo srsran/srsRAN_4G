@@ -580,42 +580,41 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
   }
 
   if (srsran_csi_hl_report_cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
-    srsran_csi_hl_report_cfg.periodic.period =
-        csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_number();
-    switch (csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type()) {
+    const auto& csi_periodic                 = csi_report_cfg.report_cfg_type.periodic();
+    srsran_csi_hl_report_cfg.periodic.period = csi_periodic.report_slot_cfg.type().to_number();
+    switch (csi_periodic.report_slot_cfg.type()) {
       case csi_report_periodicity_and_offset_c::types_opts::slots4:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots4();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots4();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots5:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots5();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots5();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots8:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots8();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots8();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots10:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots10();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots10();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots16:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots16();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots16();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots20:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots20();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots20();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots40:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots40();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots40();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots80:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots80();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots80();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots160:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots160();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots160();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots320:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots320();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots320();
         break;
       default:
-        asn1::log_warning("Invalid option for report_slot_cfg %s",
-                          csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_string());
+        asn1::log_warning("Invalid option for report_slot_cfg %s", csi_periodic.report_slot_cfg.type().to_string());
         return false;
     }
   }
@@ -699,6 +698,7 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
       asn1::log_warning("Invalid option for cqi_table %s", csi_report_cfg.cqi_table.to_string());
       return false;
   }
+
   *in_srsran_csi_hl_report_cfg = srsran_csi_hl_report_cfg;
   return true;
 }
@@ -805,6 +805,10 @@ bool make_phy_res_config(const pucch_res_s&          pucch_res,
 {
   srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {};
   srsran_pucch_nr_resource.starting_prb               = pucch_res.start_prb;
+  srsran_pucch_nr_resource.intra_slot_hopping         = pucch_res.intra_slot_freq_hop_present;
+  if (pucch_res.second_hop_prb_present) {
+    srsran_pucch_nr_resource.second_hop_prb = pucch_res.second_hop_prb;
+  }
   switch (pucch_res.format.type()) {
     case pucch_res_s::format_c_::types_opts::format0:
       srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;
@@ -1646,6 +1650,21 @@ bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_ce
       if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
         return false;
       }
+      if (csi_rep.report_cfg_type.type().value == csi_report_cfg_s::report_cfg_type_c_::types_opts::periodic) {
+        const auto&                 pucch_setup = serv_cell.ul_cfg.init_ul_bwp.pucch_cfg.setup();
+        srsran_pucch_nr_resource_t& resource    = csi_hl->reports[i].periodic.resource;
+        uint32_t    pucch_resource_id           = csi_rep.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res;
+        const auto& asn1_resource               = pucch_setup.res_to_add_mod_list[pucch_resource_id];
+        uint32_t    format2_rate                = 0;
+        if (pucch_setup.format2_present and
+            pucch_setup.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+            pucch_setup.format2.setup().max_code_rate_present) {
+          format2_rate = pucch_setup.format2.setup().max_code_rate.to_number();
+        }
+        if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
+          return false;
+        }
+      }
     }
   }
 
@@ -1718,6 +1737,67 @@ void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg
       pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_NEITHER;
       break;
   }
+}
+
+bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  // sanity check to avoid pucch->sets[n] goes out of bound
+  if (pucch_cfg.res_set_to_add_mod_list.size() > SRSRAN_PUCCH_NR_MAX_NOF_SETS) {
+    return false;
+  }
+
+  // iterate over the sets of resourceSetToAddModList
+  for (size_t n = 0; n < pucch_cfg.res_set_to_add_mod_list.size() and
+                     pucch_cfg.res_set_to_add_mod_list.size() <= SRSRAN_PUCCH_NR_MAX_NOF_SETS;
+       n++) {
+    auto& res_set                = pucch_cfg.res_set_to_add_mod_list[n];
+    pucch->sets[n].nof_resources = res_set.res_list.size();
+    if (res_set.max_payload_size_present) {
+      pucch->sets[n].max_payload_size = res_set.max_payload_size;
+    }
+    // NOTE:  res_set.pucch_res_set_id does not have a corresponding field in the PHY struct
+
+    // for each set, iterate over the elements (an element is an index). For each of the element or index, find the
+    // corresponding pucch_res_s object in the pucch_cfg.res_to_add_mod_list
+    for (size_t res_idx = 0; res_idx < res_set.res_list.size(); res_idx++) {
+      size_t pucch_resource_id = res_set.res_list[res_idx];
+
+      // Find the pucch_res_s object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      size_t m = 0;
+      while (m <= pucch_cfg.res_to_add_mod_list.size()) {
+        if (m == pucch_cfg.res_to_add_mod_list.size()) {
+          // if we get here, the list pucch_cfg.res_to_add_mod_list does not contain any object corresponding to
+          // pucch_resource_id
+          return false;
+        }
+        if (pucch_cfg.res_to_add_mod_list[m].pucch_res_id == pucch_resource_id) {
+          break; // item found, exit the loop
+        }
+        m++;
+      }
+
+      // Below is the object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      const auto& asn1_resource = pucch_cfg.res_to_add_mod_list[m];
+
+      // sanity check to avoid pucch->sets[n].resources[res_idx] goes out of bound;
+      if (res_idx >= SRSRAN_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET) {
+        return false;
+      }
+
+      auto&    resource     = pucch->sets[n].resources[res_idx];
+      uint32_t format2_rate = 0;
+      if (pucch_cfg.format2_present and
+          pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+          pucch_cfg.format2.setup().max_code_rate_present) {
+        format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
+      }
+      if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch)

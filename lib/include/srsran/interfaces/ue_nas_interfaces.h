@@ -38,7 +38,7 @@ class pdu_session_cfg_t
 {
 public:
   std::string apn_name;
-  apn_types   apn_type;
+  apn_types   apn_type = ipv4;
   std::string apn_user;
   std::string apn_pass;
 };
@@ -67,13 +67,15 @@ public:
 class nas_5g_interface_rrc_nr
 {
 public:
-  virtual int write_pdu(srsran::unique_byte_buffer_t pdu) = 0;
+  virtual int      write_pdu(srsran::unique_byte_buffer_t pdu) = 0;
+  virtual int      get_k_amf(srsran::as_key_t& k_amf)          = 0;
+  virtual uint32_t get_ul_nas_count()                          = 0;
 };
 
 class nas_5g_interface_procedures
 {
 public:
-  virtual int send_registration_request() = 0;
+  virtual int send_registration_request()                                                  = 0;
   virtual int send_pdu_session_establishment_request(uint32_t                 transaction_identity,
                                                      uint16_t                 pdu_session_id,
                                                      const pdu_session_cfg_t& pdu_session) = 0;
