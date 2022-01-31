@@ -70,7 +70,33 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   t310 = task_sched.get_unique_timer();
   t311 = task_sched.get_unique_timer();
 
-  plmn_is_selected = true; // short-cut SA test
+  if (args.sa_mode) {
+    plmn_is_selected = true; // short-cut SA test
+
+    // for SA mode setup inital HARQ config and SRB0
+    srsran::dl_harq_cfg_nr_t harq_cfg = {};
+    harq_cfg.nof_procs                = 8;
+    mac->set_config(harq_cfg);
+
+    // Setup SRB0
+    logical_channel_config_t lch = {};
+    mac->setup_lcid(lch);
+
+    // Carrier config
+    srsran::srsran_band_helper bands;
+    phy_cfg.carrier.dl_center_frequency_hz = bands.nr_arfcn_to_freq(args.dl_nr_arfcn);
+    phy_cfg.carrier.ssb_center_freq_hz     = bands.nr_arfcn_to_freq(args.ssb_nr_arfcn);
+    phy_cfg.carrier.nof_prb                = args.nof_prb;
+    phy_cfg.carrier.max_mimo_layers        = 1;
+    phy_cfg.carrier.pci                    = args.pci;
+    phy_cfg.carrier.scs                    = args.scs;
+    phy_cfg.duplex.mode                    = bands.get_duplex_mode(bands.get_band_from_dl_arfcn(args.dl_nr_arfcn));
+
+    // SSB configuration
+    phy_cfg.ssb.periodicity_ms       = 10;
+    phy_cfg.ssb.position_in_burst[0] = true;
+    phy_cfg.ssb.scs                  = args.ssb_scs;
+  }
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -80,26 +106,6 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
 void rrc_nr::stop()
 {
   running = false;
-}
-
-void rrc_nr::init_core_less()
-{
-  logger.info("Creating dummy DRB on LCID=%d", args.coreless.drb_lcid);
-  srsran::rlc_config_t rlc_cnfg = srsran::rlc_config_t::default_rlc_um_nr_config(6);
-  rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
-
-  srsran::pdcp_config_t pdcp_cnfg{args.coreless.drb_lcid,
-                                  srsran::PDCP_RB_IS_DRB,
-                                  srsran::SECURITY_DIRECTION_DOWNLINK,
-                                  srsran::SECURITY_DIRECTION_UPLINK,
-                                  srsran::PDCP_SN_LEN_18,
-                                  srsran::pdcp_t_reordering_t::ms500,
-                                  srsran::pdcp_discard_timer_t::ms100,
-                                  false,
-                                  srsran_rat_t::nr};
-
-  pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
-  return;
 }
 
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m)
@@ -223,7 +229,6 @@ void rrc_nr::run_tti(uint32_t tti) {}
 // PDCP interface
 void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  printf("RRC received PDU\n");
   logger.debug("RX PDU, LCID: %d", lcid);
   switch (static_cast<nr_srb>(lcid)) {
     case nr_srb::srb0:
@@ -317,7 +322,7 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       break;
     }
     default:
-      logger.error("The provided DL-DCCH message type is not recognized or supported");
+      logger.error("The provided DL-DCCH message type is not recognized or supported.");
       break;
   }
 }
@@ -352,12 +357,9 @@ void rrc_nr::decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
 
 void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
-  logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
-
   meas_cells.serving_cell().set_sib1(sib1);
 
-  // TODO: config basic config and remove early exit
-  return;
+  logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
 
   // clang-format off
   // unhandled fields:
@@ -466,94 +468,11 @@ int rrc_nr::write_sdu(srsran::unique_byte_buffer_t sdu)
 
 bool rrc_nr::is_connected()
 {
-  return false;
+  return state == RRC_NR_STATE_CONNECTED;
 }
 
 int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t dedicated_info_nas_)
 {
-  // TODO:
-  // Assume cell has been found and SSB with MIB has been decoded
-  srsran::phy_cfg_nr_default_t::reference_cfg_t cfg = {};
-  cfg.carrier = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_CARRIER_CUSTOM_10MHZ;
-  cfg.duplex  = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{cfg}};
-
-  // Carrier configuration
-  phy_cfg.ssb.periodicity_ms             = 10;
-  phy_cfg.carrier.ssb_center_freq_hz     = 1842.05e6;
-  phy_cfg.carrier.dl_center_frequency_hz = 1842.5e6;
-  phy_cfg.carrier.ul_center_frequency_hz = 1747.5e6;
-
-  // PRACH configuration
-  phy_cfg.prach.num_ra_preambles = 8;
-  phy_cfg.prach.config_idx       = 0;
-  phy_cfg.prach.root_seq_idx     = 1;
-  phy_cfg.prach.zero_corr_zone   = 0;
-  phy_cfg.prach.is_nr            = true;
-  phy_cfg.prach.freq_offset      = 1;
-
-  srsran::rach_cfg_nr_t rach_cfg        = {};
-  rach_cfg.prach_ConfigurationIndex     = 0;
-  rach_cfg.preambleTransMax             = 7;
-  rach_cfg.ra_responseWindow            = 10;
-  rach_cfg.ra_ContentionResolutionTimer = 64;
-  mac->set_config(rach_cfg);
-
-  srsran::dl_harq_cfg_nr_t harq_cfg = {};
-  harq_cfg.nof_procs                = 8;
-  mac->set_config(harq_cfg);
-
-  // Setup SRB0
-  logical_channel_config_t lch = {};
-  mac->setup_lcid(lch);
-
-  // Coreset0 configuration
-  // Get pointA and SSB absolute frequencies
-  double pointA_abs_freq_Hz = phy_cfg.carrier.dl_center_frequency_hz -
-                              phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
-  double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
-  // Calculate integer SSB to pointA frequency offset in Hz
-  uint32_t ssb_pointA_freq_offset_Hz =
-      (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-
-  if (srsran_coreset_zero(phy_cfg.carrier.pci,
-                          ssb_pointA_freq_offset_Hz,
-                          phy_cfg.ssb.scs,
-                          phy_cfg.carrier.scs,
-                          6,
-                          &phy_cfg.pdcch.coreset[0])) {
-    fprintf(stderr, "Error generating coreset0\n");
-  }
-  phy_cfg.pdcch.coreset_present[0] = true;
-
-  // RAR SS
-  phy_cfg.pdcch.ra_search_space_present           = true;
-  phy_cfg.pdcch.ra_search_space.coreset_id        = 0;
-  phy_cfg.pdcch.ra_search_space.duration          = 1;
-  phy_cfg.pdcch.ra_search_space.type              = srsran_search_space_type_common_1;
-  phy_cfg.pdcch.ra_search_space.nof_formats       = 1;
-  phy_cfg.pdcch.ra_search_space.formats[1]        = srsran_dci_format_nr_1_0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[0] = 0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[1] = 0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[2] = 1;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[3] = 0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[4] = 0;
-
-  // common1 SS
-  phy_cfg.pdcch.search_space_present[0]           = true;
-  phy_cfg.pdcch.search_space[0].coreset_id        = 0;
-  phy_cfg.pdcch.search_space[0].duration          = 1;
-  phy_cfg.pdcch.search_space[0].nof_candidates[0] = 0;
-  phy_cfg.pdcch.search_space[0].nof_candidates[1] = 0;
-  phy_cfg.pdcch.search_space[0].nof_candidates[2] = 1;
-  phy_cfg.pdcch.search_space[0].nof_candidates[3] = 0;
-  phy_cfg.pdcch.search_space[0].nof_candidates[4] = 0;
-  phy_cfg.pdcch.search_space[0].type              = srsran_search_space_type_common_1;
-  phy_cfg.pdcch.search_space[0].nof_formats       = 2;
-  phy_cfg.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_0_0;
-  phy_cfg.pdcch.search_space[0].formats[1]        = srsran_dci_format_nr_1_0;
-  phy_cfg.pdcch.search_space_present[1]           = false;
-
   if (not setup_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
     logger.error("Failed to initiate setup request procedure");
     return SRSRAN_ERROR;
@@ -1336,7 +1255,6 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
         }
         if (pdcch_cfg_common.ra_search_space_present) {
           if (phy_cfg.pdcch.search_space_present[pdcch_cfg_common.ra_search_space] == true) {
-            // phy_cfg.pdcch.ra_rnti                 = 0x16; //< Supposed to be deduced from PRACH configuration
             phy_cfg.pdcch.ra_search_space         = phy_cfg.pdcch.search_space[pdcch_cfg_common.ra_search_space];
             phy_cfg.pdcch.ra_search_space_present = true;
             phy_cfg.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;

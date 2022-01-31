@@ -61,7 +61,6 @@ public:
            const rrc_nr_args_t&        args_);
 
   void stop();
-  void init_core_less();
 
   void get_metrics(rrc_nr_metrics_t& m);
 
