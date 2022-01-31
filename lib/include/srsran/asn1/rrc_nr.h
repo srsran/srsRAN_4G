@@ -3639,6 +3639,9 @@ struct sib1_s {
   uac_barr_info_s_              uac_barr_info;
   dyn_octstring                 late_non_crit_ext;
 
+  // Temporary hacky fix for Clang not being able to find dtor
+  ~sib1_s(){};
+
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);
@@ -20135,6 +20138,9 @@ struct mac_cell_group_cfg_s {
   bool                                                csi_mask         = false;
   copy_ptr<setup_release_c<data_inactivity_timer_e> > data_inactivity_timer;
 
+  // Temporary hacky fix for Clang not being able to find dtor
+  ~mac_cell_group_cfg_s(){};
+
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);
@@ -20186,6 +20192,9 @@ struct phys_cell_group_cfg_s {
   xscale_e_ xscale;
   // group 2
   copy_ptr<setup_release_c<integer<uint8_t, 1, 15> > > pdcch_blind_detection;
+
+  // Temporary hacky fix for Clang not being able to find dtor
+  ~phys_cell_group_cfg_s(){};
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
