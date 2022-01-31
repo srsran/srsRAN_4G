@@ -27,16 +27,17 @@
     }                                                                                                                  \
   }
 
-#define PCAP 0
+#define PCAP 1
 #define PCAP_CRNTI (0x1001)
 #define PCAP_TTI (666)
 
 using namespace srsran;
 
 #if PCAP
-#include "srsran/common/mac_nr_pcap.h"
-#include "srsran/mac/mac_nr_pdu.h"
-static std::unique_ptr<srsran::mac_nr_pcap> pcap_handle = nullptr;
+#include "srsran/common/mac_pcap.h"
+#include "srsran/mac/mac_rar_pdu_nr.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
+static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 #endif
 
 int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_t len)
@@ -44,11 +45,11 @@ int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_
 #if PCAP
   if (pcap_handle) {
     byte_buffer_t          tx_buffer;
-    srsran::mac_nr_sch_pdu tx_pdu;
+    srsran::mac_sch_pdu_nr tx_pdu;
     tx_pdu.init_tx(&tx_buffer, len + 10);
     tx_pdu.add_sdu(lcid, payload, len);
     tx_pdu.pack();
-    pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
     return SRSRAN_SUCCESS;
   }
 #endif
@@ -285,10 +286,41 @@ int rlc_am_nr_control_pdu_test2()
   return SRSRAN_SUCCESS;
 }
 
+// Status PDU for 12bit SN with ACK_SN=2065, NACK_SN=273, SO_START=2, SO_END=5, NACK_SN=275, SO_START=5, SO_END=0xFF
+// E1 bit set)
+int rlc_am_nr_control_pdu_test3()
+{
+  const int                len = 5;
+  std::array<uint8_t, len> tv  = {0x08, 0x11, 0x80, 0x11, 0x10};
+  srsran::byte_buffer_t    pdu = make_pdu_and_log(tv);
+
+  TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
+
+  // unpack PDU
+  rlc_am_nr_status_pdu_t status_pdu = {};
+  TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
+  TESTASSERT(status_pdu.ack_sn == 2065);
+  TESTASSERT(status_pdu.N_nack == 1);
+  TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
+
+  // reset status PDU
+  pdu.clear();
+
+  // pack again
+  TESTASSERT(rlc_am_nr_write_status_pdu(status_pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &pdu) == SRSRAN_SUCCESS);
+  // TESTASSERT(pdu.N_bytes == tv.size());
+
+  write_pdu_to_pcap(4, pdu.msg, pdu.N_bytes);
+
+  TESTASSERT(memcmp(pdu.msg, tv.data(), pdu.N_bytes) == 0);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if PCAP
-  pcap_handle = std::unique_ptr<srsran::mac_nr_pcap>(new srsran::mac_nr_pcap());
+  pcap_handle = std::unique_ptr<srsran::mac_pcap>(new srsran::mac_pcap());
   pcap_handle->open("rlc_am_nr_pdu_test.pcap");
 #endif
 
