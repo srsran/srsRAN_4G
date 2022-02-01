@@ -221,14 +221,16 @@ int ue_stack_lte::init(const stack_args_t& args_)
               &pdcp_nr,
               gw,
               &nas_5g,
-              &rrc,
+              args.sa_mode ? nullptr : &rrc,
               usim.get(),
               task_sched.get_timer_handler(),
               this,
               args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
-  nas_5g.init(usim.get(), &rrc_nr, gw, args.nas_5g);
+  if (args.sa_mode) {
+    nas_5g.init(usim.get(), &rrc_nr, gw, args.nas_5g);
+  }
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -276,7 +278,7 @@ bool ue_stack_lte::switch_on()
   if (running) {
     stack_logger.info("Triggering NAS switch on");
     if (!ue_task_queue.try_push([this]() {
-          if (args.attach_on_nr) {
+          if (args.sa_mode) {
             nas_5g.switch_on();
           } else {
             nas.switch_on();
@@ -329,7 +331,7 @@ bool ue_stack_lte::start_service_request()
 {
   if (running) {
     ue_task_queue.try_push([this]() {
-      if (args.attach_on_nr) {
+      if (args.sa_mode) {
         nas_5g.start_service_request();
       } else {
         nas.start_service_request(srsran::establishment_cause_t::mo_data);

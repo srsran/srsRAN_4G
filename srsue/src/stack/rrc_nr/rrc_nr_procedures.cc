@@ -142,12 +142,16 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& resu
   if (result.is_success()) {
     Info("Finished %s successfully", name());
     srsran::console("RRC NR reconfiguration successful.\n");
-    rrc_handle.rrc_eutra->nr_rrc_con_reconfig_complete(true);
+    if (rrc_handle.rrc_eutra) {
+      rrc_handle.rrc_eutra->nr_rrc_con_reconfig_complete(true);
+    }
   } else {
     // 5.3.5.8.2 Inability to comply with RRCReconfiguration
     switch (initiator) {
       case reconf_initiator_t::mcg_srb1:
-        rrc_handle.rrc_eutra->nr_notify_reconfiguration_failure();
+        if (rrc_handle.rrc_eutra) {
+          rrc_handle.rrc_eutra->nr_notify_reconfiguration_failure();
+        }
         break;
       default:
         Warning("Reconfiguration failure not implemented for initiator %d", initiator);

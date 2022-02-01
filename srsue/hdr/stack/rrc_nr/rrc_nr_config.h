@@ -19,7 +19,6 @@
 namespace srsue {
 
 struct rrc_nr_args_t {
-  bool                        sa_mode;
   uint32_t                    sim_nr_meas_pci;
   bool                        pdcp_short_sn_support;
   std::string                 supported_bands_nr_str;

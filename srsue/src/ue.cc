@@ -110,7 +110,7 @@ int ue::init(const all_args_t& args_)
     }
 
     // In SA mode, pass NR PHY pointer to stack
-    args.stack.attach_on_nr = true;
+    args.stack.sa_mode = true;
     if (lte_stack->init(args.stack, dummy_lte_phy.get(), nr_phy.get(), gw_ptr.get())) {
       srsran::console("Error initializing stack.\n");
       ret = SRSRAN_ERROR;
@@ -272,13 +272,12 @@ int ue::parse_args(const all_args_t& args_)
 
   // Make sure fix sampling rate is set for SA mode
   if (args.phy.nof_lte_carriers == 0 and not std::isnormal(args.rf.srate_hz)) {
-    srsran::console("Error. NR Standalone PHY requires a fix RF sampling rate.\n");
+    srsran::console("Error. NR Standalone PHY requires a fixed RF sampling rate.\n");
     return SRSRAN_ERROR;
   }
 
   // SA params
   if (args.phy.nof_lte_carriers == 0 && args.phy.nof_nr_carriers == 1) {
-    args.stack.rrc_nr.sa_mode = true;
     // TODO: expose to UE config
     args.stack.rrc_nr.dl_nr_arfcn  = 368500;
     args.stack.rrc_nr.ssb_nr_arfcn = 368410;

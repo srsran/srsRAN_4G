@@ -70,10 +70,11 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   t310 = task_sched.get_unique_timer();
   t311 = task_sched.get_unique_timer();
 
-  if (args.sa_mode) {
-    plmn_is_selected = true; // short-cut SA test
+  if (rrc_eutra == nullptr) {
+    // SA mode
+    plmn_is_selected = true;
 
-    // for SA mode setup inital HARQ config and SRB0
+    // setup inital HARQ config
     srsran::dl_harq_cfg_nr_t harq_cfg = {};
     harq_cfg.nof_procs                = 8;
     mac->set_config(harq_cfg);
@@ -129,7 +130,7 @@ const char* rrc_nr::get_rb_name(uint32_t lcid)
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
   logger.debug("Handling Timer Expired");
-  if (timeout_id == sim_measurement_timer.id()) {
+  if (timeout_id == sim_measurement_timer.id() && rrc_eutra != nullptr) {
     logger.debug("Triggered simulated measurement");
 
     phy_meas_nr_t              sim_meas = {};
@@ -2072,7 +2073,11 @@ void rrc_nr::ra_completed()
 
 void rrc_nr::ra_problem()
 {
-  rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);
+  if (rrc_eutra) {
+    rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);
+  } else {
+    // TODO: handle RA problem
+  }
 }
 
 void rrc_nr::release_pucch_srs() {}
