@@ -277,7 +277,7 @@ int ue::parse_args(const all_args_t& args_)
   }
 
   // SA params
-  if (args.phy.nof_lte_carriers == 0 && args.phy.nof_nr_carriers == 1) {
+  if (args.phy.nof_lte_carriers == 0 && args.phy.nof_nr_carriers > 0) {
     // Update NAS-5G args
     args.stack.nas_5g.ia5g = args.stack.nas.eia;
     args.stack.nas_5g.ea5g = args.stack.nas.eea;

@@ -12,7 +12,6 @@
 
 #include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsran/common/band_helper.h"
-#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/security.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
@@ -23,6 +22,7 @@
 using namespace asn1::rrc_nr;
 using namespace asn1;
 using namespace srsran;
+
 namespace srsue {
 
 const static char* rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
