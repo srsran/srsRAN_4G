@@ -1555,6 +1555,8 @@ srsran::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_co
   // 1> perform the measurement related actions as specified in 5.5.6.1;
   rrc_ptr->measurements->ho_reest_actions(rrc_ptr->get_serving_cell()->get_earfcn(),
                                           rrc_ptr->get_serving_cell()->get_earfcn());
+  // Update PHY measurements after HO Reestablishment actions.
+  rrc_ptr->measurements->update_phy();
 
   // 1> submit the RRCConnectionReestablishmentComplete message to lower layers for transmission, upon which the
   //    procedure ends;
@@ -1738,6 +1740,8 @@ srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // perform the measurement related actions as specified in 5.5.6.1;
   rrc_ptr->measurements->ho_reest_actions(ho_src_cell.earfcn, target_earfcn);
 
+  // Do not update PHY measurements here since it will be updated after the HO procedure finishes
+
   // Note: We delay the enqueuing of RRC Reconf Complete message to avoid that the message goes in an UL grant
   //       directed at the old RNTI.
   rrc_ptr->task_sched.defer_callback(4, [this]() {
@@ -1796,6 +1800,8 @@ void rrc::ho_proc::then(const srsran::proc_state_t& result)
   srsran::console("HO %ssuccessful\n", result.is_success() ? "" : "un");
 
   rrc_ptr->t304.stop();
+
+  rrc_ptr->measurements->update_phy();
 }
 
 } // namespace srsue

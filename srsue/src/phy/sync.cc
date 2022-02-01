@@ -129,16 +129,18 @@ sync::~sync()
 void sync::stop()
 {
   running = false;
-  wait_thread_finish();
 
   std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
-  worker_com->semaphore.wait_all();
   for (auto& q : intra_freq_meas) {
     q->stop();
   }
 
   // Reset (stop Rx stream) as soon as possible to avoid base-band Rx buffer overflow
   radio_h->reset();
+
+  // let the sync FSM finish before waiting for workers semaphores to avoid workers locking
+  wait_thread_finish();
+  worker_com->semaphore.wait_all();
 }
 
 void sync::reset()

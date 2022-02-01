@@ -457,7 +457,8 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
   bool neighbour_added = meas_cells.process_new_cell_meas(meas, filter);
 
   // Instruct measurements subclass to update phy with new cells to measure based on strongest neighbours
-  if (state == RRC_STATE_CONNECTED && neighbour_added) {
+  // Avoid updating PHY while HO procedure is busy
+  if (state == RRC_STATE_CONNECTED && neighbour_added && !ho_handler.is_busy()) {
     measurements->update_phy();
   }
 }
@@ -2482,6 +2483,8 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config, boo
     logger.error("Adding SCell cc_idx=%d", scell_config.scell_idx_r10);
   } else if (!phy_ctrl->set_cell_config(scell_cfg, scell_config.scell_idx_r10)) {
     logger.error("Setting SCell configuration for cc_idx=%d", scell_config.scell_idx_r10);
+  } else {
+    meas_cells.set_scell_cc_idx(scell_config.scell_idx_r10, earfcn, scell.id);
   }
 }
 

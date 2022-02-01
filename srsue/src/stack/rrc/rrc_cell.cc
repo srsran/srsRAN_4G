@@ -435,6 +435,25 @@ int meas_cell_list<T>::set_serving_cell(phy_cell_t phy_cell, bool discard_servin
 }
 
 template <class T>
+void meas_cell_list<T>::set_scell_cc_idx(uint32_t cc_idx, uint32_t earfcn, uint32_t pci)
+{
+  current_cell_pci_earfcn[cc_idx].first  = earfcn;
+  current_cell_pci_earfcn[cc_idx].second = pci;
+}
+
+template <class T>
+bool meas_cell_list<T>::get_scell_cc_idx(uint32_t earfcn, uint32_t& pci)
+{
+  for (auto& cell : current_cell_pci_earfcn) {
+    if (cell.first == earfcn) {
+      pci = cell.second;
+      return true;
+    }
+  }
+  return false;
+}
+
+template <class T>
 bool meas_cell_list<T>::process_new_cell_meas(const std::vector<phy_meas_t>&                    meas,
                                               const std::function<void(T&, const phy_meas_t&)>& filter_meas)
 {

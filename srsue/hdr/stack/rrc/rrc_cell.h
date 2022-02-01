@@ -247,6 +247,10 @@ public:
   // serving cell handling
   int set_serving_cell(phy_cell_t phy_cell, bool discard_serving);
 
+  // Set serving cell and earfcn for each cc_idx
+  void set_scell_cc_idx(uint32_t cc_idx, uint32_t earfcn, uint32_t pci);
+  bool get_scell_cc_idx(uint32_t earfcn, uint32_t& pci);
+
   T&       serving_cell() { return *serv_cell; }
   const T& serving_cell() const { return *serv_cell; }
 
@@ -263,6 +267,9 @@ private:
 
   unique_meas_cell              serv_cell;
   std::vector<unique_meas_cell> neighbour_cells;
+
+  // store serving pci and earfcn for each carrier
+  std::array<std::pair<uint32_t, uint32_t>, SRSRAN_MAX_CARRIERS> current_cell_pci_earfcn = {};
 };
 
 } // namespace srsue
