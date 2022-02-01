@@ -75,9 +75,9 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   }
 
   // Generate cell config structs
-  cell_ctxt.reset(new cell_ctxt_t{});
+  cell_ctxt.reset(new cell_ctxt_t());
   if (cfg.is_standalone) {
-    std::unique_ptr<cell_group_cfg_s> master_cell_group{new cell_group_cfg_s{}};
+    std::unique_ptr<cell_group_cfg_s> master_cell_group{new cell_group_cfg_s()};
     int                               ret = fill_master_cell_cfg_from_enb_cfg(cfg, 0, *master_cell_group);
     srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure MasterCellGroup");
     cell_ctxt->master_cell_group = std::move(master_cell_group);

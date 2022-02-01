@@ -49,7 +49,7 @@ void test_sib_generation()
   enb_bearer_manager     bearer_mapper;
 
   // set cfg
-  rrc_nr_cfg_t rrc_cfg_nr = {};
+  rrc_nr_cfg_t rrc_cfg_nr;
   rrc_cfg_nr.cell_list.emplace_back();
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
@@ -107,7 +107,7 @@ int test_rrc_setup()
   rrc_nr                 rrc_obj(&task_sched);
 
   // set cfg
-  rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
+  rrc_nr_cfg_t rrc_cfg_nr;
   rrc_cfg_nr.cell_list.emplace_back();
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
@@ -150,7 +150,7 @@ void test_rrc_sa_connection()
   rrc_nr rrc_obj(&task_sched);
 
   // set cfg
-  rrc_nr_cfg_t rrc_cfg_nr = rrc_nr_cfg_t{};
+  rrc_nr_cfg_t rrc_cfg_nr;
   rrc_cfg_nr.cell_list.emplace_back();
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
