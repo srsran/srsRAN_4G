@@ -89,7 +89,6 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
     phy_cfg.carrier.ssb_center_freq_hz     = bands.nr_arfcn_to_freq(args.ssb_nr_arfcn);
     phy_cfg.carrier.nof_prb                = args.nof_prb;
     phy_cfg.carrier.max_mimo_layers        = 1;
-    phy_cfg.carrier.pci                    = args.pci;
     phy_cfg.carrier.scs                    = args.scs;
     phy_cfg.duplex.mode                    = bands.get_duplex_mode(bands.get_band_from_dl_arfcn(args.dl_nr_arfcn));
 

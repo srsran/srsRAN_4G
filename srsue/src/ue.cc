@@ -278,14 +278,6 @@ int ue::parse_args(const all_args_t& args_)
 
   // SA params
   if (args.phy.nof_lte_carriers == 0 && args.phy.nof_nr_carriers == 1) {
-    // TODO: expose to UE config
-    args.stack.rrc_nr.dl_nr_arfcn  = 368500;
-    args.stack.rrc_nr.ssb_nr_arfcn = 368410;
-    args.stack.rrc_nr.nof_prb      = 52;
-    args.stack.rrc_nr.pci          = 500;
-    args.stack.rrc_nr.scs          = srsran_subcarrier_spacing_15kHz;
-    args.stack.rrc_nr.ssb_scs      = srsran_subcarrier_spacing_15kHz;
-
     // Update NAS-5G args
     args.stack.nas_5g.ia5g = args.stack.nas.eia;
     args.stack.nas_5g.ea5g = args.stack.nas.eea;

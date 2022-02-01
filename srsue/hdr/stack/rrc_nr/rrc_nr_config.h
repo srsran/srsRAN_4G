@@ -27,7 +27,6 @@ struct rrc_nr_args_t {
   uint32_t                    dl_nr_arfcn;
   uint32_t                    ssb_nr_arfcn;
   uint32_t                    nof_prb;
-  uint32_t                    pci;
   srsran_subcarrier_spacing_t scs;
   srsran_subcarrier_spacing_t ssb_scs;
   std::string                 log_level;

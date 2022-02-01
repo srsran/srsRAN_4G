@@ -426,12 +426,12 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
     // Transition to cell selection ignoring the cell search result
     state = state_t::phy_cell_select;
 
+    // until cell selection is done, update PHY config to take the last found PCI
+    rrc_handle.phy_cfg.carrier.pci = result.pci;
+
     phy_interface_rrc_nr::cell_select_args_t cs_args = {};
     cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
     cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
-
-    // until cell selection is done, update PHY config to take the last found PCI
-    rrc_handle.phy_cfg.carrier.pci = result.pci;
 
     {
       // Coreset0 configuration
