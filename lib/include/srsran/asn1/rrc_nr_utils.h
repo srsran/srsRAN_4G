@@ -108,7 +108,6 @@ bool make_phy_res_config(const srsran_pucch_nr_resource_t& in_pucch_res,
                          uint32_t                          pucch_res_id);
 bool make_phy_sr_resource(const asn1::rrc_nr::sched_request_res_cfg_s& sched_request_res_cfg,
                           srsran_pucch_nr_sr_resource_t*               srsran_pucch_nr_sr_resource);
-bool make_phy_pucch_sched_req(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
 bool make_phy_pusch_alloc_type(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg,
                                srsran_resource_alloc_t*         in_srsran_resource_alloc);
 bool make_phy_pdsch_alloc_type(const asn1::rrc_nr::pdsch_cfg_s& pdsch_cfg,
@@ -138,6 +137,7 @@ bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch
 bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch);
 void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch);
 bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
+bool fill_phy_pucch_hl_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
 bool fill_phy_pusch_cfg_common(const asn1::rrc_nr::pusch_cfg_common_s& pusch_cfg, srsran_sch_hl_cfg_nr_t* pusch);
 void fill_phy_carrier_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
                           srsran_carrier_nr_t*                               carrier_nr);

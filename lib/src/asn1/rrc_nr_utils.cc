@@ -945,31 +945,6 @@ bool make_phy_sr_resource(const sched_request_res_cfg_s& sched_request_res_cfg,
   return true;
 }
 
-bool make_phy_pucch_sched_req(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
-{
-  for (size_t n = 0; n < pucch_cfg.sched_request_res_to_add_mod_list.size(); n++) {
-    // fill each sr_resource's cnf
-    srsran_pucch_nr_sr_resource_t* sr_res     = &pucch->sr_resources[n];
-    auto&                          asn_sr_res = pucch_cfg.sched_request_res_to_add_mod_list[n];
-    make_phy_sr_resource(asn_sr_res, sr_res);
-
-    // get the pucch_resource from pucch_cfg.res_to_add_mod_list and copy it into the sr_resouce.resource
-    const auto& asn1_pucch_resource = pucch_cfg.res_to_add_mod_list[asn_sr_res.res];
-    auto&       pucch_resource      = sr_res->resource;
-    uint32_t    format2_rate        = 0;
-    if (pucch_cfg.format2_present and
-        pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
-        pucch_cfg.format2.setup().max_code_rate_present) {
-      format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
-    }
-    if (not make_phy_res_config(asn1_pucch_resource, format2_rate, &pucch_resource)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 bool make_phy_pusch_alloc_type(const asn1::rrc_nr::pusch_cfg_s& pusch_cfg,
                                srsran_resource_alloc_t*         in_srsran_resource_alloc)
 {
@@ -1817,7 +1792,32 @@ bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch
   }
 
   // configure scheduling request resources
-  return make_phy_pucch_sched_req(pucch_cfg, pucch);
+  return fill_phy_pucch_hl_cfg(pucch_cfg, pucch);
+}
+
+bool fill_phy_pucch_hl_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  for (size_t n = 0; n < pucch_cfg.sched_request_res_to_add_mod_list.size(); n++) {
+    // fill each sr_resource's cnf
+    auto&                          asn_sr_res = pucch_cfg.sched_request_res_to_add_mod_list[n];
+    srsran_pucch_nr_sr_resource_t* sr_res     = &pucch->sr_resources[asn_sr_res.sched_request_res_id];
+    make_phy_sr_resource(asn_sr_res, sr_res);
+
+    // get the pucch_resource from pucch_cfg.res_to_add_mod_list and copy it into the sr_resouce.resource
+    const auto& asn1_pucch_resource = pucch_cfg.res_to_add_mod_list[asn_sr_res.res];
+    auto&       pucch_resource      = sr_res->resource;
+    uint32_t    format2_rate        = 0;
+    if (pucch_cfg.format2_present and
+        pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+        pucch_cfg.format2.setup().max_code_rate_present) {
+      format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
+    }
+    if (not make_phy_res_config(asn1_pucch_resource, format2_rate, &pucch_resource)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch)
