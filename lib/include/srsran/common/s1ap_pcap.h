@@ -22,6 +22,7 @@ class s1ap_pcap
 {
 public:
   s1ap_pcap();
+  ~s1ap_pcap();
   s1ap_pcap(const s1ap_pcap& other) = delete;
   s1ap_pcap& operator=(const s1ap_pcap& other) = delete;
   s1ap_pcap(s1ap_pcap&& other)                 = delete;
@@ -35,7 +36,8 @@ public:
 private:
   bool        enable_write = false;
   std::string filename;
-  FILE*       pcap_file = nullptr;
+  FILE*       pcap_file            = nullptr;
+  int         emergency_handler_id = -1;
 };
 
 } // namespace srsran

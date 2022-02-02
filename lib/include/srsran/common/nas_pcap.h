@@ -23,16 +23,18 @@ class nas_pcap
 {
 public:
   nas_pcap();
-  void enable();
+  ~nas_pcap();
+  void     enable();
   uint32_t open(std::string filename_, uint32_t ue_id = 0, srsran_rat_t rat_type = srsran_rat_t::lte);
-  void close();
-  void write_nas(uint8_t* pdu, uint32_t pdu_len_bytes);
+  void     close();
+  void     write_nas(uint8_t* pdu, uint32_t pdu_len_bytes);
 
 private:
   bool        enable_write = false;
   std::string filename;
-  FILE*       pcap_file = nullptr;
-  uint32_t    ue_id     = 0;
+  FILE*       pcap_file            = nullptr;
+  uint32_t    ue_id                = 0;
+  int         emergency_handler_id = -1;
   void        pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes);
 };
 

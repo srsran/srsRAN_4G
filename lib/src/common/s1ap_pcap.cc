@@ -26,7 +26,14 @@ static void emergency_cleanup_handler(void* data)
 
 s1ap_pcap::s1ap_pcap()
 {
-  add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+  emergency_handler_id = add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+}
+
+s1ap_pcap::~s1ap_pcap()
+{
+  if (emergency_handler_id > 0) {
+    remove_emergency_cleanup_handler(emergency_handler_id);
+  }
 }
 
 void s1ap_pcap::enable()
