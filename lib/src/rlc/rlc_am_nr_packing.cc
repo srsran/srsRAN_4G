@@ -240,23 +240,27 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
     ptr++;
 
     // write E1 flag in octet 3
-    *ptr = (status_pdu.N_nack > 0) ? 0x80 : 0x00;
+    if (status_pdu.N_nack > 0) {
+      *ptr = 0x80;
+    } else {
+      *ptr = 0x00;
+    }
     ptr++;
 
     if (status_pdu.N_nack > 0) {
       for (uint32_t i = 0; i < status_pdu.N_nack; i++) {
+        // write first 8 bit of NACK_SN
+        *ptr = (status_pdu.nacks[i].nack_sn >> 4) & 0xff;
+        ptr++;
+
+        // write remaining 4 bits of NACK_SN
+        *ptr = (status_pdu.nacks[i].nack_sn & 0x0f) << 4;
+        // Set E1 if necessary
+        if (i < (uint32_t)(status_pdu.N_nack - 1)) {
+          *ptr |= 0x08;
+        }
+
         if (status_pdu.nacks[i].has_so) {
-          // write first 8 bit of NACK_SN
-          *ptr = (status_pdu.nacks[i].nack_sn >> 4) & 0xff;
-          ptr++;
-
-          // write remaining 4 bits of NACK_SN
-          *ptr = (status_pdu.nacks[i].nack_sn & 0x0f) << 4;
-
-          // Set E1 if necessary
-          if (i < (uint32_t)(status_pdu.N_nack - 1)) {
-            *ptr |= 0x08;
-          }
           // Set E2
           *ptr |= 0x04;
 
@@ -268,8 +272,8 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
           (*ptr) = status_pdu.nacks[i].so_end >> 8;
           ptr++;
           (*ptr) = status_pdu.nacks[i].so_end;
-          ptr++;
         }
+        ptr++;
       }
     }
   } else {
