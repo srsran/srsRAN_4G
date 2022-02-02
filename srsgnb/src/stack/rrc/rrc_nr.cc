@@ -71,7 +71,8 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
 
   du_cfg = std::make_unique<du_config_manager>(cfg);
   for (uint32_t i = 0; i < cfg.cell_list.size(); ++i) {
-    du_cfg->add_cell();
+    int ret = du_cfg->add_cell();
+    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure NR cell %d", i);
   }
 
   // Generate cell config structs
@@ -95,14 +96,8 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   int ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, base_sp_cell_cfg);
   srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
 
-  const pdcch_cfg_common_s* asn1_pdcch;
-  if (not cfg.is_standalone) {
-    // Fill rrc_nr_cfg with UE-specific search spaces and coresets
-    asn1_pdcch =
-        &base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
-  } else {
-    asn1_pdcch = &du_cfg->cell(0).serv_cell_cfg_common().dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
-  }
+  const pdcch_cfg_common_s* asn1_pdcch =
+      &du_cfg->cell(0).serv_cell_cfg_common().dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
   srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization

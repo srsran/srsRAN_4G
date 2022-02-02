@@ -746,23 +746,7 @@ int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_ce
   return SRSRAN_SUCCESS;
 }
 
-int fill_pdcch_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& pdcch_cfg_common)
-{
-  pdcch_cfg_common.common_ctrl_res_set_present = true;
-  set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], pdcch_cfg_common.common_ctrl_res_set);
-
-  pdcch_cfg_common.common_search_space_list.push_back({});
-  set_search_space_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.search_space[1],
-                                pdcch_cfg_common.common_search_space_list.back());
-  pdcch_cfg_common.ra_search_space_present = true;
-  pdcch_cfg_common.ra_search_space         = cfg.cell_list[cc].phy_cell.pdcch.ra_search_space.id;
-
-  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-    pdcch_cfg_common.ext = false;
-  }
-
-  return SRSRAN_SUCCESS;
-}
+void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& out);
 
 /// Fill FrequencyInfoDL with gNB config
 int fill_freq_info_dl_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_info_dl_s& freq_info_dl)
@@ -794,9 +778,8 @@ int fill_freq_info_dl_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_in
 int fill_init_dl_bwp_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_common_s& init_dl_bwp)
 {
   init_dl_bwp.pdcch_cfg_common_present = true;
-  HANDLE_ERROR(fill_pdcch_cfg_common_from_enb_cfg(cfg, cc, init_dl_bwp.pdcch_cfg_common.set_setup()));
+  fill_pdcch_cfg_common(cfg, cc, init_dl_bwp.pdcch_cfg_common.set_setup());
   // TODO: ADD missing fields
-
   return SRSRAN_SUCCESS;
 }
 
@@ -1086,26 +1069,30 @@ int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s
   return SRSRAN_SUCCESS;
 }
 
-void fill_pdcch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdcch_cfg_common_s& cfg)
+// Called for SA
+void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& out)
 {
-  cfg.ctrl_res_set_zero_present   = true; // may be disabled later if called by sib1 generation
-  cfg.ctrl_res_set_zero           = 0;
-  cfg.common_ctrl_res_set_present = false;
+  auto& cell_cfg = cfg.cell_list[cc];
 
-  cfg.search_space_zero_present = true;
-  cfg.search_space_zero         = 0;
+  out.ctrl_res_set_zero_present = false;
+  out.search_space_zero_present = false;
 
-  cfg.common_search_space_list.resize(1);
-  set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], cfg.common_search_space_list[0]);
+  if (not cfg.is_standalone) {
+    // In NSA, Common CORESET is passed in RRC Reconfiguration
+    out.common_ctrl_res_set_present = true;
+    set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], out.common_ctrl_res_set);
+  }
+  out.common_search_space_list.resize(1);
+  set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], out.common_search_space_list.back());
 
-  cfg.search_space_sib1_present           = true;
-  cfg.search_space_sib1                   = 0;
-  cfg.search_space_other_sys_info_present = true;
-  cfg.search_space_other_sys_info         = 1;
-  cfg.paging_search_space_present         = true;
-  cfg.paging_search_space                 = 1;
-  cfg.ra_search_space_present             = true;
-  cfg.ra_search_space                     = 1;
+  out.search_space_sib1_present           = true;
+  out.search_space_sib1                   = 0;
+  out.search_space_other_sys_info_present = true;
+  out.search_space_other_sys_info         = 1;
+  out.paging_search_space_present         = true;
+  out.paging_search_space                 = 1;
+  out.ra_search_space_present             = true;
+  out.ra_search_space                     = 1;
 }
 
 void fill_pdsch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdsch_cfg_common_s& cfg)
@@ -1115,46 +1102,51 @@ void fill_pdsch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdsch_cfg_common_s
   cfg.pdsch_time_domain_alloc_list[0].start_symbol_and_len = 40;
 }
 
-void fill_init_dl_bwp(const rrc_cell_cfg_nr_t& cell_cfg, bwp_dl_common_s& cfg)
+// Called for SA
+void fill_init_dl_bwp(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_common_s& out)
 {
-  cfg.generic_params.location_and_bw    = 14025;
-  cfg.generic_params.subcarrier_spacing = (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
+  auto& cell_cfg = cfg.cell_list[cc];
 
-  cfg.pdcch_cfg_common_present = true;
-  fill_pdcch_cfg_common(cell_cfg, cfg.pdcch_cfg_common.set_setup());
-  cfg.pdsch_cfg_common_present = true;
-  fill_pdsch_cfg_common(cell_cfg, cfg.pdsch_cfg_common.set_setup());
+  out.generic_params.location_and_bw    = 14025;
+  out.generic_params.subcarrier_spacing = (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
+
+  out.pdcch_cfg_common_present = true;
+  fill_pdcch_cfg_common(cfg, cc, out.pdcch_cfg_common.set_setup());
+  out.pdsch_cfg_common_present = true;
+  fill_pdsch_cfg_common(cell_cfg, out.pdsch_cfg_common.set_setup());
 }
 
-void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib_s& cfg)
+void fill_dl_cfg_common_sib(const rrc_nr_cfg_t& cfg, uint32_t cc, dl_cfg_common_sib_s& out)
 {
+  auto& cell_cfg = cfg.cell_list[cc];
+
   uint32_t scs_hz = SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs);
   uint32_t prb_bw = scs_hz * SRSRAN_NRE;
 
   srsran::srsran_band_helper band_helper;
-  cfg.freq_info_dl.freq_band_list.resize(1);
-  cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
-  cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
+  out.freq_info_dl.freq_band_list.resize(1);
+  out.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
+  out.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
   double   ssb_freq_start                                     = cell_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
   double   offset_point_a_hz         = ssb_freq_start - band_helper.nr_arfcn_to_freq(cell_cfg.dl_absolute_freq_point_a);
   uint32_t offset_point_a_prbs       = offset_point_a_hz / prb_bw;
-  cfg.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
-  cfg.freq_info_dl.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
-  cfg.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
+  out.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
+  out.freq_info_dl.scs_specific_carrier_list.resize(1);
+  out.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
+  out.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
-  cfg.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
+  out.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
 
-  fill_init_dl_bwp(cell_cfg, cfg.init_dl_bwp);
+  fill_init_dl_bwp(cfg, cc, out.init_dl_bwp);
   // disable InitialBWP-Only fields
-  cfg.init_dl_bwp.pdcch_cfg_common.setup().ctrl_res_set_zero_present = false;
-  cfg.init_dl_bwp.pdcch_cfg_common.setup().search_space_zero_present = false;
+  out.init_dl_bwp.pdcch_cfg_common.setup().ctrl_res_set_zero_present = false;
+  out.init_dl_bwp.pdcch_cfg_common.setup().search_space_zero_present = false;
 
-  cfg.bcch_cfg.mod_period_coeff.value = bcch_cfg_s::mod_period_coeff_opts::n4;
+  out.bcch_cfg.mod_period_coeff.value = bcch_cfg_s::mod_period_coeff_opts::n4;
 
-  cfg.pcch_cfg.default_paging_cycle.value = paging_cycle_opts::rf128;
-  cfg.pcch_cfg.nand_paging_frame_offset.set_one_t();
-  cfg.pcch_cfg.ns.value = pcch_cfg_s::ns_opts::one;
+  out.pcch_cfg.default_paging_cycle.value = paging_cycle_opts::rf128;
+  out.pcch_cfg.nand_paging_frame_offset.set_one_t();
+  out.pcch_cfg.ns.value = pcch_cfg_s::ns_opts::one;
 }
 
 void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib_s& cfg)
@@ -1206,28 +1198,30 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
   cfg.time_align_timer_common.value = time_align_timer_opts::infinity;
 }
 
-int fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cell_cfg_common_sib_s& cfg)
+int fill_serv_cell_cfg_common_sib(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_cell_cfg_common_sib_s& out)
 {
-  fill_dl_cfg_common_sib(cell_cfg, cfg.dl_cfg_common);
+  auto& cell_cfg = cfg.cell_list[cc];
 
-  cfg.ul_cfg_common_present = true;
-  fill_ul_cfg_common_sib(cell_cfg, cfg.ul_cfg_common);
+  fill_dl_cfg_common_sib(cfg, cc, out.dl_cfg_common);
 
-  cfg.ssb_positions_in_burst.in_one_group.from_number(0x80);
+  out.ul_cfg_common_present = true;
+  fill_ul_cfg_common_sib(cell_cfg, out.ul_cfg_common);
 
-  cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
+  out.ssb_positions_in_burst.in_one_group.from_number(0x80);
+
+  out.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
 
   // The time advance offset is not supported by the current PHY
-  cfg.n_timing_advance_offset_present = true;
-  cfg.n_timing_advance_offset         = serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0;
+  out.n_timing_advance_offset_present = true;
+  out.n_timing_advance_offset         = serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0;
 
   // TDD UL-DL config
   if (cell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-    cfg.tdd_ul_dl_cfg_common_present = true;
-    fill_tdd_ul_dl_config_common(cell_cfg, cfg.tdd_ul_dl_cfg_common);
+    out.tdd_ul_dl_cfg_common_present = true;
+    fill_tdd_ul_dl_config_common(cell_cfg, out.tdd_ul_dl_cfg_common);
   }
 
-  cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
+  out.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
 
   return SRSRAN_SUCCESS;
 }
@@ -1274,7 +1268,7 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   //  sib1.si_sched_info.sched_info_list[0].sib_map_info[0].value_tag         = 0;
 
   sib1.serving_cell_cfg_common_present = true;
-  HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cell_cfg, sib1.serving_cell_cfg_common));
+  HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cfg, cc, sib1.serving_cell_cfg_common));
 
   sib1.ue_timers_and_consts_present    = true;
   sib1.ue_timers_and_consts.t300.value = ue_timers_and_consts_s::t300_opts::ms1000;
