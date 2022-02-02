@@ -1975,10 +1975,7 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   cell_group.to_json(js);
   logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
 
-  // Must enter CONNECT before stopping T300
   state = RRC_NR_STATE_CONNECTED;
-  // t300.stop();
-  // t302.stop();
   srsran::console("RRC Connected\n");
 
   // defer transmission of Setup Complete until PHY reconfiguration has been completed
