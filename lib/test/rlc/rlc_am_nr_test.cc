@@ -814,11 +814,11 @@ int main()
 
   // start log back-end
   srslog::init();
-  // TESTASSERT(window_checker_test() == SRSRAN_SUCCESS);
-  // TESTASSERT(basic_test() == SRSRAN_SUCCESS);
-  // TESTASSERT(lost_pdu_test() == SRSRAN_SUCCESS);
-  // TESTASSERT(basic_segmentation_test() == SRSRAN_SUCCESS);
-  // TESTASSERT(segment_retx_test() == SRSRAN_SUCCESS);
+  TESTASSERT(window_checker_test() == SRSRAN_SUCCESS);
+  TESTASSERT(basic_test() == SRSRAN_SUCCESS);
+  TESTASSERT(lost_pdu_test() == SRSRAN_SUCCESS);
+  TESTASSERT(basic_segmentation_test() == SRSRAN_SUCCESS);
+  TESTASSERT(segment_retx_test() == SRSRAN_SUCCESS);
   TESTASSERT(retx_segment_test() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }
