@@ -1273,6 +1273,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
           if (segm->header.so != last_so) {
             // Some bytes were not received
             status->nacks[status->N_nack].nack_sn  = i;
+            status->nacks[status->N_nack].has_so   = true;
             status->nacks[status->N_nack].so_start = last_so;
             status->nacks[status->N_nack].so_end   = segm->header.so;
             status->N_nack++;
@@ -1284,6 +1285,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
         }
         if (not last_segment_rx) {
           status->nacks[status->N_nack].nack_sn  = i;
+          status->nacks[status->N_nack].has_so   = true;
           status->nacks[status->N_nack].so_start = last_so;
           status->nacks[status->N_nack].so_end   = so_end_of_sdu;
           status->N_nack++;

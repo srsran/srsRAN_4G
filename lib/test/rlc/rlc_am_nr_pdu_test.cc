@@ -287,6 +287,7 @@ int rlc_am_nr_control_pdu_test2()
 // E1 and E2 bit set on first NACK, only E2 on second.
 int rlc_am_nr_control_pdu_test3()
 {
+  test_delimit_logger      delimiter("Control PDU test 3");
   const int                len = 15;
   std::array<uint8_t, len> tv  = {
       0x08, 0x11, 0x80, 0x11, 0x1c, 0x00, 0x02, 0x00, 0x05, 0x11, 0x34, 0x00, 0x05, 0xFF, 0xFF};

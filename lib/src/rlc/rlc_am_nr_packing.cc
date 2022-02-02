@@ -200,6 +200,7 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
 
       ptr++;
       if (e2 != 0) {
+        status->nacks[status->N_nack].has_so   = true;
         status->nacks[status->N_nack].so_start = (*ptr) << 8;
         ptr++;
         status->nacks[status->N_nack].so_start |= (*ptr);
@@ -244,7 +245,7 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
 
     if (status_pdu.N_nack > 0) {
       for (uint32_t i = 0; i < status_pdu.N_nack; i++) {
-        if (status_pdu.nacks[i].so_start != 0 || status_pdu.nacks[i].so_end != 0) {
+        if (status_pdu.nacks[i].has_so) {
           // write first 8 bit of NACK_SN
           *ptr = (status_pdu.nacks[i].nack_sn >> 4) & 0xff;
           ptr++;
