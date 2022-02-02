@@ -1567,7 +1567,9 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 
 bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
+  // NSA specific handling to defer CSI, SR, SRS config until after RA (see TS 38.331, Section 5.3.5.3)
   srsran_csi_hl_cfg_t prev_csi = phy_cfg.csi;
+
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
@@ -1618,7 +1620,8 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       }
     }
   } else {
-    logger.warning("Reconfig with sync not present");
+    // for SA this is not sent
+    logger.debug("Reconfig with sync not present");
   }
 
   // Dedicated config
@@ -1710,7 +1713,7 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         mac->set_config(dl_harq_cfg_nr);
       }
     } else {
-      logger.warning("Option pdsch_serving_cell_cfg not present");
+      logger.debug("Option pdsch_serving_cell_cfg not present");
     }
 
     if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present) {
@@ -1732,10 +1735,15 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   }
 
   // Configure PHY
-  // Note: CSI config is deferred to when RA is complete. See TS 38.331, Section 5.3.5.3
-  srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
-  current_phycfg.csi                  = prev_csi;
-  phy->set_config(current_phycfg);
+  if (sp_cell_cfg.recfg_with_sync_present) {
+    // defer CSI config until after RA complete
+    srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
+    current_phycfg.csi                  = prev_csi;
+    phy->set_config(current_phycfg);
+  } else {
+    // apply full config immediately
+    phy->set_config(phy_cfg);
+  }
 
   return true;
 }
@@ -2065,9 +2073,14 @@ void rrc_nr::protocol_failure() {}
 // MAC interface
 void rrc_nr::ra_completed()
 {
-  logger.info("RA completed. Applying remaining CSI configuration.");
-  phy->set_config(phy_cfg);
-  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
+  logger.info("RA completed.");
+  if (rrc_eutra) {
+    logger.debug("Applying remaining CSI configuration.");
+    phy->set_config(phy_cfg);
+    phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
+  } else {
+    phy_cfg_state = PHY_CFG_STATE_NONE;
+  }
 }
 
 void rrc_nr::ra_problem()
@@ -2094,8 +2107,6 @@ void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_resul
 
 void rrc_nr::set_phy_config_complete(bool status)
 {
-  logger.info("set_phy_config_complete() status=%d", status);
-
   // inform procedures if they are running
   if (conn_setup_proc.is_busy()) {
     conn_setup_proc.trigger(status);
