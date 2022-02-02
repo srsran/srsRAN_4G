@@ -1537,9 +1537,11 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
           logger.warning("Option beta_offsets not of type semi_static");
           return false;
         }
-        if (make_phy_pusch_scaling(pusch_cfg.uci_on_pusch.setup(), &phy_cfg.pusch.scaling) == false) {
-          logger.warning("Warning while building scaling structure");
-          return false;
+        if (pusch_cfg.uci_on_pusch_present) {
+          if (make_phy_pusch_scaling(pusch_cfg.uci_on_pusch.setup(), &phy_cfg.pusch.scaling) == false) {
+            logger.warning("Warning while building scaling structure");
+            return false;
+          }
         }
       } else {
         logger.warning("Option beta_offsets not present");
