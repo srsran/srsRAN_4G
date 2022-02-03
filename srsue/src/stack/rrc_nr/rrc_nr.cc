@@ -35,7 +35,9 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   setup_req_proc(*this),
   cell_selector(*this),
   meas_cells(task_sched_)
-{}
+{
+  set_phy_default_config();
+}
 
 rrc_nr::~rrc_nr() = default;
 
@@ -352,6 +354,30 @@ void rrc_nr::decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
   if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
     logger.info("Processing SIB1 (1/1)");
     handle_sib1(dlsch_msg.msg.c1().sib_type1());
+  }
+}
+
+void rrc_nr::set_phy_default_config()
+{
+  phy_cfg = {};
+
+  // uses default values provided in 38.311 TS 138 331 V16.6 page 361
+  if (make_phy_beta_offsets({}, &phy_cfg.pusch.beta_offsets) == false) {
+    logger.warning("Couldn't set default beta_offsets config");
+  }
+
+  // no default value provided, asume factor 1.0
+  uci_on_pusch_s uci_on_pusch = {};
+  uci_on_pusch.scaling        = uci_on_pusch_s::scaling_opts::f1;
+  if (make_phy_pusch_scaling(uci_on_pusch, &phy_cfg.pusch.scaling) == false) {
+    logger.warning("Couldn't set default scaling config");
+  }
+
+  // no default value specified, use dynamic
+  phys_cell_group_cfg_s phys_cell_group_cfg   = {};
+  phys_cell_group_cfg.pdsch_harq_ack_codebook = phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value;
+  if (make_phy_harq_ack_cfg(phys_cell_group_cfg, &phy_cfg.harq_ack) == false) {
+    logger.warning("Couldn't set default HARQ ack config");
   }
 }
 
