@@ -88,6 +88,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
     // Carrier config
     srsran::srsran_band_helper bands;
     phy_cfg.carrier.dl_center_frequency_hz = bands.nr_arfcn_to_freq(args.dl_nr_arfcn);
+    phy_cfg.carrier.ul_center_frequency_hz = bands.nr_arfcn_to_freq(bands.get_ul_arfcn_from_dl_arfcn(args.dl_nr_arfcn));
     phy_cfg.carrier.ssb_center_freq_hz     = bands.nr_arfcn_to_freq(args.ssb_nr_arfcn);
     phy_cfg.carrier.nof_prb                = args.nof_prb;
     phy_cfg.carrier.max_mimo_layers        = 1;
