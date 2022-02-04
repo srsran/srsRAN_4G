@@ -909,7 +909,9 @@ int fill_recfg_with_sync_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, recf
 /// Fill spCellConfig with gNB config
 int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_cfg_s& sp_cell)
 {
-  sp_cell.recfg_with_sync_present = true;
+  if (not cfg.is_standalone) {
+    sp_cell.recfg_with_sync_present = true;
+  }
   HANDLE_ERROR(fill_recfg_with_sync_from_enb_cfg(cfg, cc, sp_cell.recfg_with_sync));
 
   sp_cell.sp_cell_cfg_ded_present = true;
@@ -1037,7 +1039,6 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   // spCellConfig -- Need M
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
-  out.sp_cell_cfg.recfg_with_sync_present = false;
 
   return SRSRAN_SUCCESS;
 }

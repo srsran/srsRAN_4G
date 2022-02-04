@@ -138,16 +138,13 @@ private:
   srsran::task_sched_handle task_sched;
 
   // derived
-  uint32_t                    slot_dur_ms = 0;
-  srslog::basic_logger&       logger;
-  asn1::rrc_nr::sp_cell_cfg_s base_sp_cell_cfg;
+  uint32_t              slot_dur_ms = 0;
+  srslog::basic_logger& logger;
 
   // vars
   std::unique_ptr<du_config_manager> du_cfg;
   struct cell_ctxt_t {
-    asn1::rrc_nr::sib1_s                                  sib1;
     asn1::rrc_nr::sys_info_ies_s::sib_type_and_info_l_    sibs;
-    srsran::unique_byte_buffer_t                          mib_buffer = nullptr;
     std::vector<srsran::unique_byte_buffer_t>             sib_buffer;
     std::unique_ptr<const asn1::rrc_nr::cell_group_cfg_s> master_cell_group;
     srsran::phy_cfg_nr_t                                  default_phy_ue_cfg_nr;
