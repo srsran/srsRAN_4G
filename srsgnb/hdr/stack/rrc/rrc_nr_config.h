@@ -23,19 +23,21 @@ namespace srsenb {
 
 // Cell/Sector configuration for NR cells
 struct rrc_cell_cfg_nr_t {
-  phy_cell_cfg_nr_t           phy_cell; // already contains all PHY-related parameters (i.e. RF port, PCI, etc.)
-  uint32_t                    tac;      // Tracking area code
-  uint32_t                    dl_arfcn; // DL freq already included in phy_cell
-  uint32_t                    ul_arfcn; // UL freq also in phy_cell
-  uint32_t                    dl_absolute_freq_point_a; // derived from DL ARFCN
-  uint32_t                    ul_absolute_freq_point_a; // derived from UL ARFCN
-  uint32_t                    band;
-  uint32_t                    coreset0_idx; // Table 13-{1,...15} row index
-  srsran_duplex_mode_t        duplex_mode;
-  double                      ssb_freq_hz;
-  uint32_t                    ssb_absolute_freq_point; // derived from DL ARFCN (SSB arfcn)
-  srsran_subcarrier_spacing_t ssb_scs;
-  srsran_ssb_patern_t         ssb_pattern;
+  phy_cell_cfg_nr_t                phy_cell; // already contains all PHY-related parameters (i.e. RF port, PCI, etc.)
+  uint32_t                         tac;      // Tracking area code
+  uint32_t                         dl_arfcn; // DL freq already included in phy_cell
+  uint32_t                         ul_arfcn; // UL freq also in phy_cell
+  uint32_t                         dl_absolute_freq_point_a; // derived from DL ARFCN
+  uint32_t                         ul_absolute_freq_point_a; // derived from UL ARFCN
+  uint32_t                         band;
+  uint32_t                         coreset0_idx; // Table 13-{1,...15} row index
+  srsran_duplex_mode_t             duplex_mode;
+  double                           ssb_freq_hz;
+  uint32_t                         ssb_absolute_freq_point; // derived from DL ARFCN (SSB arfcn)
+  srsran_subcarrier_spacing_t      ssb_scs;
+  srsran_ssb_patern_t              ssb_pattern;
+  asn1::rrc_nr::pdcch_cfg_common_s pdcch_cfg_common;
+  asn1::rrc_nr::pdcch_cfg_s        pdcch_cfg_ded;
 };
 
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;

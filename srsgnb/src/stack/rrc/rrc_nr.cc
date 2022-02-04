@@ -273,10 +273,13 @@ void rrc_nr::config_phy()
 {
   srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
   common_cfg.carrier                                    = cfg.cell_list[0].phy_cell.carrier;
-  common_cfg.pdcch                                      = cfg.cell_list[0].phy_cell.pdcch;
-  common_cfg.prach                                      = cfg.cell_list[0].phy_cell.prach;
-  common_cfg.duplex_mode                                = cfg.cell_list[0].duplex_mode;
-  bool ret                                              = srsran::fill_phy_ssb_cfg(
+  fill_phy_pdcch_cfg_common(du_cfg->cell(0), &common_cfg.pdcch);
+  bool ret = srsran::fill_phy_pdcch_cfg(
+      cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &common_cfg.pdcch);
+  srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
+  common_cfg.prach       = cfg.cell_list[0].phy_cell.prach;
+  common_cfg.duplex_mode = cfg.cell_list[0].duplex_mode;
+  ret                    = srsran::fill_phy_ssb_cfg(
       cfg.cell_list[0].phy_cell.carrier, du_cfg->cell(0).serv_cell_cfg_common(), &common_cfg.ssb);
   srsran_assert(ret, "Failed to generate PHY config");
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
@@ -298,7 +301,10 @@ void rrc_nr::config_mac()
   sched_nr_cell_cfg_t&             cell = sched_cells_cfg[cc];
 
   // Derive cell config from rrc_nr_cfg_t
-  cell.bwps[0].pdcch          = cfg.cell_list[cc].phy_cell.pdcch;
+  fill_phy_pdcch_cfg_common(du_cfg->cell(cc), &cell.bwps[0].pdcch);
+  bool ret = srsran::fill_phy_pdcch_cfg(
+      cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &cell.bwps[0].pdcch);
+  srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
   cell.pci                    = cfg.cell_list[cc].phy_cell.carrier.pci;
   cell.nof_layers             = cfg.cell_list[cc].phy_cell.carrier.max_mimo_layers;
   cell.dl_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;

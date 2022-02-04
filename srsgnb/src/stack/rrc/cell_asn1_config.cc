@@ -499,32 +499,6 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   return SRSRAN_SUCCESS;
 }
 
-/// Fill InitDlBwp with gNB config
-int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_s& pdcch_cfg)
-{
-  auto& cell_cfg = cfg.cell_list.at(cc);
-  for (uint32_t ss_idx = 1; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
-    if (cell_cfg.phy_cell.pdcch.search_space_present[ss_idx]) {
-      auto& search_space_cfg = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
-      if (search_space_cfg.type != srsran_search_space_type_ue) {
-        // Only add UE-specific search spaces at this stage
-        continue;
-      }
-
-      // Add UE-specific SearchSpace
-      pdcch_cfg.search_spaces_to_add_mod_list.push_back({});
-      set_search_space_from_phy_cfg(search_space_cfg, pdcch_cfg.search_spaces_to_add_mod_list.back());
-
-      // Add CORESET associated with SearchSpace
-      uint32_t coreset_id  = search_space_cfg.coreset_id;
-      auto&    coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[coreset_id];
-      pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
-      set_coreset_from_phy_cfg(coreset_cfg, pdcch_cfg.ctrl_res_set_to_add_mod_list.back());
-    }
-  }
-  return SRSRAN_SUCCESS;
-}
-
 void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg_s& out)
 {
   out.dmrs_dl_for_pdsch_map_type_a_present = true;
@@ -571,8 +545,8 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
 /// Fill InitDlBwp with gNB config
 int fill_init_dl_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_ded_s& init_dl_bwp)
 {
-  init_dl_bwp.pdcch_cfg_present = true;
-  HANDLE_ERROR(fill_pdcch_cfg_from_enb_cfg(cfg, cc, init_dl_bwp.pdcch_cfg.set_setup()));
+  init_dl_bwp.pdcch_cfg_present     = true;
+  init_dl_bwp.pdcch_cfg.set_setup() = cfg.cell_list[cc].pdcch_cfg_ded;
 
   init_dl_bwp.pdsch_cfg_present = true;
   fill_pdsch_cfg_from_enb_cfg(cfg, cc, init_dl_bwp.pdsch_cfg.set_setup());
@@ -1070,7 +1044,7 @@ int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s
   return SRSRAN_SUCCESS;
 }
 
-// Called for SA
+// Called for SA and NSA
 void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& out)
 {
   auto& cell_cfg = cfg.cell_list[cc];
@@ -1078,13 +1052,9 @@ void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_commo
   out.ctrl_res_set_zero_present = false;
   out.search_space_zero_present = false;
 
-  if (not cfg.is_standalone) {
-    // In NSA, Common CORESET is passed in RRC Reconfiguration
-    out.common_ctrl_res_set_present = true;
-    set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], out.common_ctrl_res_set);
-  }
-  out.common_search_space_list.resize(1);
-  set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], out.common_search_space_list.back());
+  out.common_ctrl_res_set_present = cell_cfg.pdcch_cfg_common.common_ctrl_res_set_present;
+  out.common_ctrl_res_set         = cell_cfg.pdcch_cfg_common.common_ctrl_res_set;
+  out.common_search_space_list    = cell_cfg.pdcch_cfg_ded.search_spaces_to_add_mod_list;
 
   out.search_space_sib1_present           = true;
   out.search_space_sib1                   = 0;

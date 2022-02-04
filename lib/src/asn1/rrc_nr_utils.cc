@@ -1775,7 +1775,7 @@ bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch
   return true;
 }
 
-void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
+bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
 {
   if (pdcch_cfg.common_ctrl_res_set_present) {
     pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
@@ -1783,7 +1783,10 @@ void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
   }
   for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
     pdcch->search_space_present[ss.search_space_id] = true;
-    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+    if (not make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id])) {
+      asn1::log_error("Failed to convert SearchSpace Configuration");
+      return false;
+    }
     if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
       pdcch->ra_search_space_present     = true;
       pdcch->ra_search_space             = pdcch->search_space[ss.search_space_id];
@@ -1792,6 +1795,7 @@ void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
       pdcch->ra_search_space.formats[1]  = srsran_dci_format_nr_1_0;
     }
   }
+  return true;
 }
 
 void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch)

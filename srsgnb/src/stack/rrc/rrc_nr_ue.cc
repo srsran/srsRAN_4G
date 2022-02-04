@@ -39,7 +39,9 @@ rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_, uint32_t pcell_cc_idx, bool star
 
   if (not parent->cfg.is_standalone) {
     // Add the final PDCCH config in case of NSA
-    uecfg.phy_cfg.pdcch = parent->cfg.cell_list[0].phy_cell.pdcch;
+    srsran::fill_phy_pdcch_cfg(
+        parent->cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(),
+        &uecfg.phy_cfg.pdcch);
   } else {
     cell_group_cfg      = *parent->cell_ctxt->master_cell_group;
     next_cell_group_cfg = cell_group_cfg;
@@ -1479,13 +1481,11 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
     auto& pdcch = cell_group_config.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup();
     for (auto& ss : pdcch.search_spaces_to_add_mod_list) {
       uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
-      uecfg.phy_cfg.pdcch.search_space[ss.search_space_id] =
-          parent->cfg.cell_list[0].phy_cell.pdcch.search_space[ss.search_space_id];
+      srsran::make_phy_search_space_cfg(ss, &uecfg.phy_cfg.pdcch.search_space[ss.search_space_id]);
     }
     for (auto& cs : pdcch.ctrl_res_set_to_add_mod_list) {
       uecfg.phy_cfg.pdcch.coreset_present[cs.ctrl_res_set_id] = true;
-      uecfg.phy_cfg.pdcch.coreset[cs.ctrl_res_set_id] =
-          parent->cfg.cell_list[0].phy_cell.pdcch.coreset[cs.ctrl_res_set_id];
+      srsran::make_phy_coreset_cfg(cs, &uecfg.phy_cfg.pdcch.coreset[cs.ctrl_res_set_id]);
     }
   }
 

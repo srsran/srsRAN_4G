@@ -30,6 +30,33 @@
 
 namespace srsenb {
 
+uint32_t coreset_get_bw(const asn1::rrc_nr::ctrl_res_set_s& coreset)
+{
+  uint32_t prb_count = 0;
+
+  // Iterate all the frequency domain resources bit-map...
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    // ... and count 6 PRB for every frequency domain resource that it is enabled
+    if (coreset.freq_domain_res.get(i)) {
+      prb_count += 6;
+    }
+  }
+
+  // Return the total count of physical resource blocks
+  return prb_count;
+}
+
+int coreset_get_pdcch_nr_max_candidates(const asn1::rrc_nr::ctrl_res_set_s& coreset, uint32_t aggregation_level)
+{
+  uint32_t coreset_bw = coreset_get_bw(coreset);
+  uint32_t nof_cce    = (coreset_bw * coreset.dur) / 6;
+
+  uint32_t L              = 1U << aggregation_level;
+  uint32_t nof_candidates = nof_cce / L;
+
+  return SRSRAN_MIN(nof_candidates, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+}
+
 /// Generate default phy cell configuration
 void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
 {
@@ -50,34 +77,8 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
   phy_cell.prach.freq_offset      = 1; // msg1-FrequencyStart (zero not supported with current PRACH implementation)
   phy_cell.prach.zero_corr_zone   = 0;
   phy_cell.prach.num_ra_preambles = phy_cell.num_ra_preambles;
-  phy_cell.prach.hs_flag          = false;
+  phy_cell.prach.hs_flag               = false;
   phy_cell.prach.tdd_config.configured = false;
-
-  // PDCCH
-  // - Add CORESET#2 as UE-specific
-  phy_cell.pdcch.coreset_present[2]              = true;
-  phy_cell.pdcch.coreset[2].id                   = 2;
-  phy_cell.pdcch.coreset[2].duration             = 1;
-  phy_cell.pdcch.coreset[2].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
-  phy_cell.pdcch.coreset[2].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
-  // Generate frequency resources for the full BW
-  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    phy_cell.pdcch.coreset[2].freq_resources[i] = i < SRSRAN_FLOOR(phy_cell.carrier.nof_prb, 6);
-  }
-  // - Add SearchSpace#2 as UE-specific
-  phy_cell.pdcch.search_space_present[2]    = true;
-  phy_cell.pdcch.search_space[2].id         = 2;
-  phy_cell.pdcch.search_space[2].coreset_id = 2;
-  phy_cell.pdcch.search_space[2].type       = srsran_search_space_type_ue;
-  // Generate frequency resources for the full BW
-  for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    phy_cell.pdcch.search_space[2].nof_candidates[L] =
-        SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&phy_cell.pdcch.coreset[2], L));
-  }
-  phy_cell.pdcch.search_space[2].nof_formats = 2;
-  phy_cell.pdcch.search_space[2].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
-  phy_cell.pdcch.search_space[2].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
-  phy_cell.pdcch.search_space[2].duration    = 1;
 
   // PDSCH
   phy_cell.pdsch.rs_power = 0;
@@ -91,29 +92,45 @@ void generate_default_nr_cell(rrc_cell_cfg_nr_t& cell)
   cell.coreset0_idx            = 6;
   cell.ssb_absolute_freq_point = 0; // auto derived
   generate_default_nr_phy_cell(cell.phy_cell);
-}
 
-/// Generate CORESET#0 and SSB absolute frequency (if not specified)
-int derive_coreset0_params(rrc_cell_cfg_nr_t& cell)
-{
-  // Generate CORESET#0
-  cell.phy_cell.pdcch.coreset_present[0] = true;
-  // Get pointA and SSB absolute frequencies
-  double pointA_abs_freq_Hz =
-      cell.phy_cell.carrier.dl_center_frequency_hz -
-      cell.phy_cell.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(cell.phy_cell.carrier.scs) / 2;
-  double ssb_abs_freq_Hz = cell.phy_cell.carrier.ssb_center_freq_hz;
-  // Calculate integer SSB to pointA frequency offset in Hz
-  uint32_t ssb_pointA_freq_offset_Hz =
-      (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-  int ret = srsran_coreset_zero(cell.phy_cell.carrier.pci,
-                                ssb_pointA_freq_offset_Hz,
-                                cell.ssb_scs,
-                                cell.phy_cell.carrier.scs,
-                                cell.coreset0_idx,
-                                &cell.phy_cell.pdcch.coreset[0]);
-  ERROR_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to generate CORESET#0");
-  return SRSRAN_SUCCESS;
+  // PDCCH
+  // - Add CORESET#2 as UE-specific
+  cell.pdcch_cfg_ded.ctrl_res_set_to_add_mod_list.resize(1);
+  auto& coreset2           = cell.pdcch_cfg_ded.ctrl_res_set_to_add_mod_list[0];
+  coreset2.ctrl_res_set_id = 2;
+  // Generate frequency resources for the full BW
+  for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    coreset2.freq_domain_res.set(i, i < SRSRAN_FLOOR(cell.phy_cell.carrier.nof_prb, 6));
+  }
+  coreset2.dur = 1;
+  coreset2.cce_reg_map_type.set_non_interleaved();
+  coreset2.precoder_granularity.value = asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
+
+  // - Add SearchSpace#2 as UE-specific -> CORESET#2
+  cell.pdcch_cfg_ded.search_spaces_to_add_mod_list.resize(1);
+  auto& ss2                                          = cell.pdcch_cfg_ded.search_spaces_to_add_mod_list[0];
+  ss2.search_space_id                                = 2;
+  ss2.ctrl_res_set_id_present                        = true;
+  ss2.ctrl_res_set_id                                = coreset2.ctrl_res_set_id;
+  ss2.dur_present                                    = false; // false for duration=1
+  ss2.monitoring_slot_periodicity_and_offset_present = true;
+  ss2.monitoring_slot_periodicity_and_offset.set_sl1();
+  ss2.monitoring_symbols_within_slot_present = true;
+  ss2.monitoring_symbols_within_slot.from_number(0b10000000000000);
+  ss2.search_space_type_present                             = true;
+  ss2.search_space_type.set_ue_specific().dci_formats.value = asn1::rrc_nr::search_space_s::search_space_type_c_::
+      ue_specific_s_::dci_formats_opts::formats0_minus0_and_minus1_minus0;
+  ss2.nrof_candidates_present = true;
+  uint32_t nof_cand           = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset2, 0), 2);
+  asn1::number_to_enum(ss2.nrof_candidates.aggregation_level1, nof_cand);
+  nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset2, 1), 2);
+  asn1::number_to_enum(ss2.nrof_candidates.aggregation_level2, nof_cand);
+  nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset2, 2), 2);
+  asn1::number_to_enum(ss2.nrof_candidates.aggregation_level4, nof_cand);
+  nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset2, 3), 2);
+  asn1::number_to_enum(ss2.nrof_candidates.aggregation_level8, nof_cand);
+  nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset2, 4), 2);
+  asn1::number_to_enum(ss2.nrof_candidates.aggregation_level16, nof_cand);
 }
 
 int derive_ssb_params(bool                        is_sa,
@@ -243,65 +260,64 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   cell.ssb_absolute_freq_point             = band_helper.freq_to_nr_arfcn(cell.ssb_freq_hz);
 
   // Derive remaining config params
+  cell.pdcch_cfg_common.common_search_space_list.resize(1); // SearchSpace#1
+  auto& ss1                                          = cell.pdcch_cfg_common.common_search_space_list[0];
+  ss1.search_space_id                                = 1;
+  ss1.dur_present                                    = false; // false for duration=1
+  ss1.monitoring_slot_periodicity_and_offset_present = true;
+  ss1.monitoring_slot_periodicity_and_offset.set_sl1();
+  ss1.monitoring_symbols_within_slot_present = true;
+  ss1.monitoring_symbols_within_slot.from_number(0b10000000000000);
+  ss1.nrof_candidates_present                                                      = true;
+  ss1.search_space_type_present                                                    = true;
+  ss1.search_space_type.set_common().dci_format0_minus0_and_format1_minus0_present = true;
+  cell.pdcch_cfg_common.ra_search_space_present                                    = true;
+  cell.pdcch_cfg_common.ra_search_space = cell.pdcch_cfg_common.common_search_space_list[0].search_space_id;
   if (is_sa) {
-    derive_coreset0_params(cell);
-    cell.phy_cell.pdcch.search_space_present[0]           = true;
-    cell.phy_cell.pdcch.search_space[0].id                = 0;
-    cell.phy_cell.pdcch.search_space[0].coreset_id        = 0;
-    cell.phy_cell.pdcch.search_space[0].type              = srsran_search_space_type_common_0;
-    cell.phy_cell.pdcch.search_space[0].nof_candidates[0] = 1;
-    cell.phy_cell.pdcch.search_space[0].nof_candidates[1] = 1;
-    cell.phy_cell.pdcch.search_space[0].nof_candidates[2] = 1;
-    cell.phy_cell.pdcch.search_space[0].nof_candidates[3] = 0;
-    cell.phy_cell.pdcch.search_space[0].nof_candidates[4] = 0;
-    cell.phy_cell.pdcch.search_space[0].nof_formats       = 1;
-    cell.phy_cell.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_1_0;
-    cell.phy_cell.pdcch.search_space[0].duration          = 1;
-    cell.phy_cell.pdcch.search_space_present[1]           = true;
-    cell.phy_cell.pdcch.search_space[1].id                = 1;
-    cell.phy_cell.pdcch.search_space[1].coreset_id        = 0;
-    cell.phy_cell.pdcch.search_space[1].type              = srsran_search_space_type_common_1;
-    cell.phy_cell.pdcch.search_space[1].nof_candidates[0] = 0;
-    cell.phy_cell.pdcch.search_space[1].nof_candidates[1] = 0;
-    cell.phy_cell.pdcch.search_space[1].nof_candidates[2] = 1;
-    cell.phy_cell.pdcch.search_space[1].nof_candidates[3] = 0;
-    cell.phy_cell.pdcch.search_space[1].nof_candidates[4] = 0;
-    cell.phy_cell.pdcch.search_space[1].nof_formats       = 2;
-    cell.phy_cell.pdcch.search_space[1].formats[0]        = srsran_dci_format_nr_0_0; // DCI format for PUSCH
-    cell.phy_cell.pdcch.search_space[1].formats[1]        = srsran_dci_format_nr_1_0; // DCI format for PDSCH
-    cell.phy_cell.pdcch.search_space[1].duration          = 1;
+    // Configure SearchSpace#1 -> CORESET#0
+    ss1.ctrl_res_set_id_present = true;
+    ss1.ctrl_res_set_id         = 0;
+    ss1.nrof_candidates.aggregation_level1.value =
+        asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level1_opts::n0;
+    ss1.nrof_candidates.aggregation_level2.value =
+        asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level2_opts::n0;
+    ss1.nrof_candidates.aggregation_level4.value =
+        asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level4_opts::n1;
+    ss1.nrof_candidates.aggregation_level8.value =
+        asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level8_opts::n0;
+    ss1.nrof_candidates.aggregation_level16.value =
+        asn1::rrc_nr::search_space_s::nrof_candidates_s_::aggregation_level16_opts::n0;
   } else {
     // Configure CORESET#1
-    cell.phy_cell.pdcch.coreset_present[1]              = true;
-    cell.phy_cell.pdcch.coreset[1].id                   = 1;
-    cell.phy_cell.pdcch.coreset[1].duration             = 1;
-    cell.phy_cell.pdcch.coreset[1].mapping_type         = srsran_coreset_mapping_type_non_interleaved;
-    cell.phy_cell.pdcch.coreset[1].precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
-
+    // Note: In NSA, Common CORESET is passed in RRC Reconfiguration
+    cell.pdcch_cfg_common.common_ctrl_res_set_present = true;
+    auto& coreset1                                    = cell.pdcch_cfg_common.common_ctrl_res_set;
+    coreset1.ctrl_res_set_id                          = 1;
     // Generate frequency resources for the full BW
-    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-      cell.phy_cell.pdcch.coreset[1].freq_resources[i] = i < SRSRAN_FLOOR(cell.phy_cell.carrier.nof_prb, 6);
+    for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; ++i) {
+      coreset1.freq_domain_res.set(i, i < SRSRAN_FLOOR(cell.phy_cell.carrier.nof_prb, 6));
     }
+    coreset1.dur = 1;
+    coreset1.cce_reg_map_type.set_non_interleaved();
+    coreset1.precoder_granularity.value = asn1::rrc_nr::ctrl_res_set_s::precoder_granularity_opts::same_as_reg_bundle;
 
     // Configure SearchSpace#1 -> CORESET#1
-    cell.phy_cell.pdcch.search_space_present[1]    = true;
-    cell.phy_cell.pdcch.search_space[1].id         = 1;
-    cell.phy_cell.pdcch.search_space[1].coreset_id = 1;
-    cell.phy_cell.pdcch.search_space[1].type       = srsran_search_space_type_common_3;
-    // Generate frequency resources for the full BW
-    for (uint32_t L = 0; L < SRSRAN_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-      cell.phy_cell.pdcch.search_space[1].nof_candidates[L] =
-          SRSRAN_MIN(2, srsran_pdcch_nr_max_candidates_coreset(&cell.phy_cell.pdcch.coreset[1], L));
-    }
-    cell.phy_cell.pdcch.search_space[1].nof_formats = 2;
-    cell.phy_cell.pdcch.search_space[1].formats[0]  = srsran_dci_format_nr_0_0; // DCI format for PUSCH
-    cell.phy_cell.pdcch.search_space[1].formats[1]  = srsran_dci_format_nr_1_0; // DCI format for PDSCH
-    cell.phy_cell.pdcch.search_space[1].duration    = 1;
+    ss1.ctrl_res_set_id_present = true;
+    ss1.ctrl_res_set_id         = coreset1.ctrl_res_set_id;
+    uint32_t nof_cand           = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset1, 0), 2);
+    asn1::number_to_enum(ss1.nrof_candidates.aggregation_level1, nof_cand);
+    nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset1, 1), 2);
+    asn1::number_to_enum(ss1.nrof_candidates.aggregation_level2, nof_cand);
+    nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset1, 2), 2);
+    asn1::number_to_enum(ss1.nrof_candidates.aggregation_level4, nof_cand);
+    nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset1, 3), 2);
+    asn1::number_to_enum(ss1.nrof_candidates.aggregation_level8, nof_cand);
+    nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(coreset1, 4), 2);
+    asn1::number_to_enum(ss1.nrof_candidates.aggregation_level16, nof_cand);
+    ss1.search_space_type_present                                                    = true;
+    ss1.search_space_type.set_common().dci_format0_minus0_and_format1_minus0_present = true;
+    //    cell.phy_cell.pdcch.search_space[1].type       = srsran_search_space_type_common_3;
   }
-
-  cell.phy_cell.pdcch.ra_search_space_present = true;
-  cell.phy_cell.pdcch.ra_search_space         = cell.phy_cell.pdcch.search_space[1];
-  cell.phy_cell.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
 
   // Derive remaining PHY cell params
   cell.phy_cell.prach.num_ra_preambles      = cell.phy_cell.num_ra_preambles;
@@ -327,16 +343,11 @@ int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa)
   // verify SSB params are consistent
   HANDLE_ERROR(check_nr_phy_cell_cfg_valid(cell.phy_cell));
 
-  if (is_sa) {
-    ERROR_IF_NOT(cell.phy_cell.pdcch.coreset_present[0], "CORESET#0 must be defined in Standalone mode");
-  }
-
   return SRSRAN_SUCCESS;
 }
 
 int check_nr_phy_cell_cfg_valid(const phy_cell_cfg_nr_t& phy_cell)
 {
-  HANDLE_ERROR(check_nr_pdcch_cfg_valid(phy_cell.pdcch));
   return SRSRAN_SUCCESS;
 }
 
