@@ -1635,7 +1635,7 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         return false;
       }
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
-        logger.info("TDD UL DL config present, using TDD");
+        logger.debug("TDD UL DL config present, using TDD");
         srsran_duplex_config_nr_t duplex;
         if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex) == true) {
           phy_cfg.duplex = duplex;
@@ -1644,7 +1644,7 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
           return false;
         }
       } else {
-        logger.info("TDD UL DL config not present, using FDD");
+        logger.debug("TDD UL DL config not present, using FDD");
       }
     }
   } else {
