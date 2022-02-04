@@ -10,6 +10,8 @@
  *
  */
 
+#include <iomanip>
+
 #include "srsran/common/threads.h"
 #include "srsran/srsran.h"
 
@@ -77,11 +79,12 @@ FILE* f;
 
 void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
 {
-  phy                   = phy_;
-  cc_idx                = cc_idx_;
-  srsran_cell_t cell    = phy_->get_cell(cc_idx);
-  uint32_t      nof_prb = phy_->get_nof_prb(cc_idx);
-  uint32_t      sf_len  = SRSRAN_SF_LEN_PRB(nof_prb);
+  phy                         = phy_;
+  cc_idx                      = cc_idx_;
+  srsran_cell_t    cell       = phy_->get_cell(cc_idx);
+  uint32_t         nof_prb    = phy_->get_nof_prb(cc_idx);
+  uint32_t         sf_len     = SRSRAN_SF_LEN_PRB(nof_prb);
+  srsran_cfr_cfg_t cfr_config = phy_->get_cfr_config();
 
   // Init cell here
   for (uint32_t p = 0; p < phy->get_nof_ports(cc_idx); p++) {
@@ -104,6 +107,10 @@ void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
   }
   if (srsran_enb_dl_set_cell(&enb_dl, cell)) {
     ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
+    return;
+  }
+  if (srsran_enb_dl_set_cfr(&enb_dl, &cfr_config) < SRSRAN_SUCCESS) {
+    ERROR("Error setting the CFR");
     return;
   }
   if (srsran_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
@@ -250,6 +257,20 @@ void cc_worker::work_dl(const srsran_dl_sf_cfg_t&            dl_sf_cfg,
     for (uint32_t i = 0; i < enb_dl.cell.nof_ports; i++) {
       srsran_vec_sc_prod_cfc(signal_buffer_tx[i], scale, signal_buffer_tx[i], sf_len);
     }
+  }
+
+  // Measure PAPR if flag was triggered
+  bool cell_meas_flag = phy->get_cell_measure_trigger(cc_idx);
+  if (cell_meas_flag) {
+    uint32_t sf_len = SRSRAN_SF_LEN_PRB(enb_dl.cell.nof_prb);
+    for (uint32_t i = 0; i < enb_dl.cell.nof_ports; i++) {
+      // PAPR measure
+      float papr_db = 10.0f * log10(srsran_vec_papr_c(signal_buffer_tx[i], sf_len));
+      std::cout << "Cell #" << cc_idx << " port #" << i << " PAPR = " << std::setprecision(4) << papr_db << " dB "
+                << std::endl;
+    }
+    // clear measurement flag on cell
+    phy->clear_cell_measure_trigger(cc_idx);
   }
 }
 

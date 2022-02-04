@@ -68,6 +68,19 @@ static int ofdm_init_mbsfn_(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg, srsran_dft
   q->slot_sz           = (uint32_t)SRSRAN_SLOT_LEN(q->cfg.symbol_sz);
   q->sf_sz             = (uint32_t)SRSRAN_SF_LEN(q->cfg.symbol_sz);
 
+  // Set the CFR parameters related to OFDM symbol and FFT size
+  q->cfg.cfr_tx_cfg.symbol_sz = symbol_sz;
+  q->cfg.cfr_tx_cfg.symbol_bw = q->nof_re;
+
+  // in the DL, the DC carrier is empty but still counts when designing the filter BW
+  q->cfg.cfr_tx_cfg.dc_sc = (!q->cfg.keep_dc) && (!isnormal(q->cfg.freq_shift_f));
+  if (q->cfg.cfr_tx_cfg.cfr_enable) {
+    if (srsran_cfr_init(&q->tx_cfr, &q->cfg.cfr_tx_cfg) < SRSRAN_SUCCESS) {
+      ERROR("Error while initialising CFR module");
+      return SRSRAN_ERROR;
+    }
+  }
+
   // Plan MBSFN
   if (q->fft_plan.size) {
     // Replan if it was initialised previously
@@ -242,6 +255,7 @@ void srsran_ofdm_free_(srsran_ofdm_t* q)
   if (q->window_offset_buffer) {
     free(q->window_offset_buffer);
   }
+  srsran_cfr_free(&q->tx_cfr);
   SRSRAN_MEM_ZERO(q, srsran_ofdm_t, 1);
 }
 
@@ -289,6 +303,10 @@ int srsran_ofdm_tx_init(srsran_ofdm_t* q, srsran_cp_t cp, cf_t* in_buffer, cf_t*
 
 int srsran_ofdm_tx_init_cfg(srsran_ofdm_t* q, srsran_ofdm_cfg_t* cfg)
 {
+  if (q == NULL || cfg == NULL) {
+    ERROR("Error, invalid inputs");
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
   return ofdm_init_mbsfn_(q, cfg, SRSRAN_DFT_BACKWARD);
 }
 
@@ -610,6 +628,11 @@ static void ofdm_tx_slot(srsran_ofdm_t* q, int slot_in_sf)
       srsran_vec_sc_prod_cfc(&output[cp_len], norm, &output[cp_len], symbol_sz);
     }
 
+    // CFR: Process the time-domain signal without the CP
+    if (q->cfg.cfr_tx_cfg.cfr_enable) {
+      srsran_cfr_process(&q->tx_cfr, output + cp_len, output + cp_len);
+    }
+
     /* add CP */
     srsran_vec_cf_copy(output, &output[symbol_sz], cp_len);
     output += symbol_sz + cp_len;
@@ -655,4 +678,38 @@ void srsran_ofdm_tx_sf(srsran_ofdm_t* q)
   if (isnormal(q->cfg.freq_shift_f)) {
     srsran_vec_prod_ccc(q->cfg.out_buffer, q->shift_buffer, q->cfg.out_buffer, q->sf_sz);
   }
+}
+
+int srsran_ofdm_set_cfr(srsran_ofdm_t* q, srsran_cfr_cfg_t* cfr)
+{
+  if (q == NULL || cfr == NULL) {
+    ERROR("Error, invalid inputs");
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+  if (!q->max_prb) {
+    ERROR("Error, ofdm object not initialised");
+    return SRSRAN_ERROR;
+  }
+  // Check if there is nothing to configure
+  if (memcmp(&q->cfg.cfr_tx_cfg, cfr, sizeof(srsran_cfr_cfg_t)) == 0) {
+    return SRSRAN_SUCCESS;
+  }
+
+  // Copy the CFR config into the OFDM object
+  q->cfg.cfr_tx_cfg = *cfr;
+
+  // Set the CFR parameters related to OFDM symbol and FFT size
+  q->cfg.cfr_tx_cfg.symbol_sz = q->cfg.symbol_sz;
+  q->cfg.cfr_tx_cfg.symbol_bw = q->nof_re;
+
+  // in the DL, the DC carrier is empty but still counts when designing the filter BW
+  q->cfg.cfr_tx_cfg.dc_sc = (!q->cfg.keep_dc) && (!isnormal(q->cfg.freq_shift_f));
+  if (q->cfg.cfr_tx_cfg.cfr_enable) {
+    if (srsran_cfr_init(&q->tx_cfr, &q->cfg.cfr_tx_cfg) < SRSRAN_SUCCESS) {
+      ERROR("Error while initialising CFR module");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
 }

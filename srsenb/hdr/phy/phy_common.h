@@ -166,6 +166,45 @@ public:
     return c;
   }
 
+  void set_cell_measure_trigger()
+  {
+    // Trigger on LTE cell
+    for (auto it_lte = cell_list_lte.begin(); it_lte != cell_list_lte.end(); ++it_lte) {
+      it_lte->dl_measure = true;
+    }
+
+    // Trigger on NR cell
+    for (auto it_nr = cell_list_nr.begin(); it_nr != cell_list_nr.end(); ++it_nr) {
+      it_nr->dl_measure = true;
+    }
+  }
+
+  bool get_cell_measure_trigger(uint32_t cc_idx)
+  {
+    if (cc_idx < cell_list_lte.size()) {
+      return cell_list_lte.at(cc_idx).dl_measure;
+    }
+
+    cc_idx -= cell_list_lte.size();
+    if (cc_idx < cell_list_nr.size()) {
+      return cell_list_nr.at(cc_idx).dl_measure;
+    }
+
+    return false;
+  }
+
+  void clear_cell_measure_trigger(uint32_t cc_idx)
+  {
+    if (cc_idx < cell_list_lte.size()) {
+      cell_list_lte.at(cc_idx).dl_measure = false;
+    }
+
+    cc_idx -= cell_list_lte.size();
+    if (cc_idx < cell_list_nr.size()) {
+      cell_list_nr.at(cc_idx).dl_measure = false;
+    }
+  }
+
   void set_cell_gain(uint32_t cell_id, float gain_db)
   {
     // Find LTE cell
@@ -207,6 +246,11 @@ public:
 
     return 0.0f;
   }
+
+  // Common CFR configuration
+  srsran_cfr_cfg_t cfr_config = {};
+  void             set_cfr_config(srsran_cfr_cfg_t cfr_cfg) { cfr_config = cfr_cfg; }
+  srsran_cfr_cfg_t get_cfr_config() { return cfr_config; }
 
   // Common Physical Uplink DMRS configuration
   srsran_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg = {};

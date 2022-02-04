@@ -30,6 +30,7 @@ struct phy_cell_cfg_nr_t {
   srsran_pdcch_cfg_nr_t pdcch = {}; ///< Common CORESET and Search Space configuration
   srsran_pdsch_cfg_t    pdsch = {};
   srsran_prach_cfg_t    prach = {};
+  bool                  dl_measure;
 };
 
 using phy_cell_cfg_list_nr_t = std::vector<phy_cell_cfg_nr_t>;

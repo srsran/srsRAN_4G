@@ -1153,6 +1153,30 @@ int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell)
   return SRSRAN_SUCCESS;
 }
 
+// Parse the relevant CFR configuration params
+int parse_cfr_args(all_args_t* args, srsran_cfr_cfg_t* cfr_config)
+{
+  cfr_config->cfr_enable  = args->phy.cfr_args.enable;
+  cfr_config->cfr_mode    = args->phy.cfr_args.mode;
+  cfr_config->alpha       = args->phy.cfr_args.strength;
+  cfr_config->manual_thr  = args->phy.cfr_args.manual_thres;
+  cfr_config->max_papr_db = args->phy.cfr_args.auto_target_papr;
+  cfr_config->ema_alpha   = args->phy.cfr_args.ema_alpha;
+
+  if (!srsran_cfr_params_valid(cfr_config)) {
+    fprintf(stderr,
+            "Invalid CFR parameters: cfr_mode=%d, alpha=%.2f, manual_thr=%.2f, \n "
+            "max_papr_db=%.2f, ema_alpha=%.2f\n",
+            cfr_config->cfr_mode,
+            cfr_config->alpha,
+            cfr_config->manual_thr,
+            cfr_config->max_papr_db,
+            cfr_config->ema_alpha);
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_)
 {
   // Parse config files
@@ -1270,6 +1294,12 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
       rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
       rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
     }
+  }
+
+  // Parse CFR args
+  if (parse_cfr_args(args_, &phy_cfg_->cfr_config) < SRSRAN_SUCCESS) {
+    fprintf(stderr, "Error parsing CFR configuration\n");
+    return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;

@@ -165,6 +165,9 @@ int phy::init_lte(const phy_args_t&            args,
   workers_common.params = args;
 
   workers_common.init(cfg.phy_cell_cfg, cfg.phy_cell_cfg_nr, radio, stack_lte_);
+  if (cfg.cfr_config.cfr_enable) {
+    workers_common.set_cfr_config(cfg.cfr_config);
+  }
 
   parse_common_config(cfg);
 
@@ -270,6 +273,11 @@ void phy::cmd_cell_gain(uint32_t cell_id, float gain_db)
 {
   Info("set_cell_gain: cell_id=%d, gain_db=%.2f", cell_id, gain_db);
   workers_common.set_cell_gain(cell_id, gain_db);
+}
+
+void phy::cmd_cell_measure()
+{
+  workers_common.set_cell_measure_trigger();
 }
 
 /***** RRC->PHY interface **********/

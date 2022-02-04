@@ -326,6 +326,32 @@ enable = false
 #fd_hz         = -750.0
 #init_time_s   = 0.0
 
+#####################################################################
+# CFR configuration options
+#
+# The CFR module provides crest factor reduction for the transmitted signal.
+#
+# enable:           Enable or disable the CFR. Default: disabled
+#
+# mode:             manual:   CFR threshold is set by cfr_manual_thres (default).
+#                   auto_ema: CFR threshold is adaptive based on the signal PAPR. Power avg. with Exponential Moving Average.
+#                             The time constant of the averaging can be tweaked with the ema_alpha parameter.
+#                   auto_cma: CFR threshold is adaptive based on the signal PAPR. Power avg. with Cumulative Moving Average.
+#                             Use with care, as CMA's increasingly slow response may be unsuitable for most use cases.
+#
+# strength:         Ratio between amplitude-limited vs unprocessed signal (0 to 1). Default: 1
+# manual_thres:     Fixed manual clipping threshold for CFR manual mode. Default: 0.5
+# auto_target_papr: Signal PAPR target (in dB) in CFR auto modes. output PAPR can be higher due to peak smoothing. Default: 8
+# ema_alpha:        Alpha coefficient for the power average in auto_ema mode. Default: 1/7
+#
+#####################################################################
+[cfr]
+#enable           = false
+#mode             = manual
+#manual_thres     = 0.5
+#strength         = 1
+#auto_target_papr = 8
+#ema_alpha        = 0.0143
 
 #####################################################################
 # Expert configuration options
