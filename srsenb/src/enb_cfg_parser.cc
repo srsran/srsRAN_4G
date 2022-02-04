@@ -1090,9 +1090,9 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     if (it->ul_arfcn != 0) {
       // Check if ul_arfcn is valid for the given band
       bool                  ul_arfcn_valid = false;
-      std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->ul_arfcn);
-      for (uint32_t band_idx = 0; band_idx < bands.size(); band_idx++) {
-        if (bands.at(band_idx) == it->band) {
+      std::vector<uint32_t> ul_bands       = band_helper.get_bands_nr(it->ul_arfcn);
+      for (uint32_t band_idx = 0; band_idx < ul_bands.size(); band_idx++) {
+        if (ul_bands.at(band_idx) == it->band) {
           ul_arfcn_valid = true;
         }
       }
