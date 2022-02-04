@@ -1078,7 +1078,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           for (std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator segm = pdu.segment_list.begin();
                segm != pdu.segment_list.end();
                segm++) {
-            if (segm->so >= nack.so_start && nack.so_end <= (segm->so + segm->payload_len)) {
+            if (segm->so >= nack.so_start && segm->so < nack.so_end) {
               rlc_amd_retx_t& retx = retx_queue.push();
               retx.sn              = nack_sn;
               retx.sdu_end         = pdu.sdu_buf->N_bytes;
