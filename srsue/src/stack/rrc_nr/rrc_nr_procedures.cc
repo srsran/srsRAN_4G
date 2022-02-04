@@ -98,7 +98,10 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  rrc_handle.send_rrc_reconfig_complete();
+  // only send reconfig complete in SA mode
+  if (rrc_handle.rrc_eutra == nullptr) {
+    rrc_handle.send_rrc_reconfig_complete();
+  }
 
   // Handle NAS messages
   if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
