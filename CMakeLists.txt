@@ -62,17 +62,17 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(ENABLE_SRSUE          "Build srsUE application"                  ON)
+option(ENABLE_SRSUE          "Build srsUE application"                  OFF)
 option(ENABLE_SRSENB         "Build srsENB application"                 ON)
-option(ENABLE_SRSEPC         "Build srsEPC application"                 ON)
+option(ENABLE_SRSEPC         "Build srsEPC application"                 OFF)
 option(DISABLE_SIMD          "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA       "Autodetect supported ISA extensions"      ON)
 
 option(ENABLE_GUI            "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_UHD            "Enable UHD"                               ON)
-option(ENABLE_BLADERF        "Enable BladeRF"                           ON)
-option(ENABLE_SOAPYSDR       "Enable SoapySDR"                          ON)
-option(ENABLE_SKIQ           "Enable Sidekiq SDK"                       ON)
+option(ENABLE_BLADERF        "Enable BladeRF"                           OFF)
+option(ENABLE_SOAPYSDR       "Enable SoapySDR"                          OFF)
+option(ENABLE_SKIQ           "Enable Sidekiq SDK"                       OFF)
 option(ENABLE_ZEROMQ         "Enable ZeroMQ"                            ON)
 option(ENABLE_HARDSIM        "Enable support for SIM cards"             ON)
 

@@ -128,4 +128,6 @@ private:
 } // namespace lte
 } // namespace srsenb
 
+std::string ieee_float_to_hex(float f);
+
 #endif // SRSENB_CC_WORKER_H

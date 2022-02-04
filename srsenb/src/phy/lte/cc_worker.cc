@@ -22,6 +22,12 @@
 #include "srsran/common/threads.h"
 #include "srsran/srsran.h"
 
+#include <complex.h>
+#include <bitset>
+#include <iostream>
+#include <iomanip>
+#include <limits>
+
 #include "srsenb/hdr/phy/lte/cc_worker.h"
 
 #define Error(fmt, ...)                                                                                                \
@@ -689,6 +695,13 @@ int cc_worker::read_pusch_d(cf_t* pdsch_d)
 {
   int nof_re = enb_ul.pusch.max_re;
   memcpy(pdsch_d, enb_ul.pusch.d, nof_re * sizeof(cf_t));
+
+  // ADDED: ouput pusch to terminal
+  complex<float>* pusch_array = (complex<float>*) enb_ul.pusch.d;
+  for (int i=0; i < nof_re; i++){
+    cout << "7363" << ieee_float_to_hex(pusch_array[i].real()) << ieee_float_to_hex(pusch_array[i].imag()) <<  endl;
+  }
+
   return nof_re;
 }
 
@@ -696,8 +709,33 @@ int cc_worker::read_pucch_d(cf_t* pdsch_d)
 {
   int nof_re = SRSRAN_PUCCH_MAX_BITS / 2;
   memcpy(pdsch_d, enb_ul.pucch.z_tmp, nof_re * sizeof(cf_t));
+
+  // ADDED: ouput pucch to terminal
+  complex<float>* pucch_array = (complex<float>*) enb_ul.pucch.z_tmp;
+  for (int i=0; i < nof_re; i++){  
+    cout << "6363" << ieee_float_to_hex(pucch_array[i].real()) << ieee_float_to_hex(pucch_array[i].imag()) << endl; //(*pucch).real() << " + " << (*pucch).imag() << "i"<< endl;
+  }
+
   return nof_re;
 }
 
 } // namespace lte
 } // namespace srsenb
+
+// ADDED
+string ieee_float_to_hex(float f)
+{
+    // source: // http://www.cplusplus.com/forum/general/63755/
+
+    static_assert( numeric_limits<float>::is_iec559,
+                   "native float must be an IEEE float" ) ;
+
+    union { float fval ;uint32_t ival ; };
+    fval = f ;
+
+    ostringstream stm ;
+    stm << hex << uppercase << ival ;
+
+    return stm.str() ;
+}
+

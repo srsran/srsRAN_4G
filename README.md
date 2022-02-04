@@ -1,10 +1,6 @@
 srsRAN
 ======
 
-[![Build Status](https://app.travis-ci.com/srsran/srsRAN.svg?branch=master)](https://app.travis-ci.com/github/srsran/srsRAN)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsran/srsRAN.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsran/srsRAN/context:cpp)
-[![Coverity](https://scan.coverity.com/projects/23045/badge.svg)](https://scan.coverity.com/projects/srsran)
-
 srsRAN is a 4G/5G software radio suite developed by [SRS](http://www.srs.io).
 
 See the [srsRAN project pages](https://www.srsran.com) for information, guides and project news.
@@ -18,7 +14,22 @@ For application features, build instructions and user guides see the [srsRAN doc
 
 For license details, see LICENSE file.
 
-Support
+Team 13
 =======
 
-Mailing list: https://lists.srsran.com/mailman/listinfo/srsran-users
+Team 13 is a group of Boston University Students modifying and using the srsRAN library to model and study C-V2X traffic.
+
+Building & Installation
+=======
+
+This repo is configured for ease of rebuilding on machines that currently have srsRAN built and installed.
+
+In order to build this library on a new machine, change the following lines in `CMakeLists.txt` from ""OFF" to "ON":
+
+```
+option(ENABLE_SRSUE          "Build srsUE application"                  OFF)
+option(ENABLE_SRSUE          "Build srsUE application"                  OFF)
+option(ENABLE_BLADERF        "Enable BladeRF"                           OFF)
+option(ENABLE_SOAPYSDR       "Enable SoapySDR"                          OFF)
+option(ENABLE_SKIQ           "Enable Sidekiq SDK"                       OFF)
+```
