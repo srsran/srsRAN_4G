@@ -417,17 +417,218 @@ uint32_t rlc_am_nr_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
     }
   }
 
-  RlcDebug("RETX - is_segment=%s, current_so=%d, so_start=%d, so_end=%d",
+  RlcDebug("RETX - SDU len=%d, is_segment=%s, current_so=%d, so_start=%d, so_end=%d",
+           retx.sdu_end,
            retx.is_segment ? "true" : "false",
            retx.current_so,
            retx.so_start,
            retx.so_end);
-  if (retx.is_segment) {
-    return build_retx_pdu_from_sdu_segment(retx, payload, nof_bytes);
+
+  // Is segmentation/re-segmentation required?
+  bool segmentation_required = is_retx_segmentation_required(retx, nof_bytes);
+
+  if (segmentation_required) {
+    return build_retx_pdu_with_segmentation(retx, payload, nof_bytes);
   }
-  return build_retx_pdu_from_full_sdu(retx, payload, nof_bytes);
+  return build_retx_pdu_without_segmentation(retx, payload, nof_bytes);
 }
 
+/**
+ * Builds a retx RLC PDU, without requiring (re-)segmentation.
+ *
+ * The RETX PDU may be transporting a full SDU or an SDU segment.
+ *
+ * \param [retx] is the retx info contained in the retx_queue.
+ * \param [payload] is a pointer to the MAC buffer that will hold the PDU segment.
+ * \param [nof_bytes] is the number of bytes the RLC is allowed to fill.
+ *
+ * \returns the number of bytes written to the payload buffer.
+ * \remark this function will not update the SI. This means that if the retx is of the last
+ * SDU segment, the SI should already be of the `last_segment` type.
+ */
+uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes)
+{
+  srsran_assert(tx_window.has_sn(retx.sn), "Called %s without checking retx SN", __FUNCTION__);
+  srsran_assert(not is_retx_segmentation_required(retx, nof_bytes),
+                "Called %s without checking if segmentation was required",
+                __FUNCTION__);
+
+  // Get tx_pdu info from tx_window
+  rlc_amd_tx_pdu_nr& tx_pdu = tx_window[retx.sn];
+
+  // Get expected header and payload len
+  uint32_t expected_hdr_len = get_retx_expected_hdr_len(retx);
+  uint32_t retx_payload_len = retx.is_segment ? (retx.so_end - retx.current_so) : tx_window[retx.sn].sdu_buf->N_bytes;
+  srsran_assert(nof_bytes >= (expected_hdr_len + retx_payload_len),
+                "Called %s but segmentation is required. nof_bytes=%d, expeced_hdr_len=%d, retx_payload_len=%d",
+                __FUNCTION__,
+                nof_bytes,
+                expected_hdr_len,
+                retx_payload_len);
+
+  // Update SI, if necessary
+  rlc_nr_si_field_t si = rlc_nr_si_field_t::full_sdu;
+  if (retx.is_segment) {
+    RlcDebug("SDU segment can be fully transmitted. SN=%d, nof_bytes=%d, expected_hdr_len=%d, "
+             "current_so=%d, so_start=%d, so_end=%d",
+             retx.sn,
+             nof_bytes,
+             expected_hdr_len,
+             retx.current_so,
+             retx.so_start,
+             retx.so_end);
+    if (retx.current_so == 0) {
+      si = rlc_nr_si_field_t::first_segment;
+    } else if ((retx.current_so + retx_payload_len) < tx_pdu.sdu_buf->N_bytes) {
+      si = rlc_nr_si_field_t::neither_first_nor_last_segment;
+    } else {
+      si = rlc_nr_si_field_t::last_segment;
+    }
+  }
+
+  // Update & write header
+  rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
+  new_header.si                     = si;
+  new_header.p                      = 0;
+  if (retx.is_segment) {
+    new_header.so = retx.current_so;
+  }
+  uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(new_header, payload);
+
+  uint32_t pdu_bytes = 0;
+  if (not retx.is_segment) {
+    // RETX full SDU
+    memcpy(&payload[hdr_len], tx_window[retx.sn].sdu_buf->msg, tx_window[retx.sn].sdu_buf->N_bytes);
+    pdu_bytes = hdr_len + tx_window[retx.sn].sdu_buf->N_bytes;
+  } else {
+    // RETX SDU segment
+    uint32_t retx_pdu_payload_size = (retx.so_end - retx.current_so);
+    pdu_bytes                      = hdr_len + retx_pdu_payload_size;
+    memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[retx.current_so], retx_pdu_payload_size);
+  }
+
+  retx_queue.pop();
+  RlcHexInfo(tx_window[retx.sn].sdu_buf->msg,
+             tx_window[retx.sn].sdu_buf->N_bytes,
+             "Original SDU SN=%d (%d B) (attempt %d/%d)",
+             retx.sn,
+             tx_window[retx.sn].sdu_buf->N_bytes,
+             tx_window[retx.sn].retx_count + 1,
+             cfg.max_retx_thresh);
+  RlcHexInfo(payload, nof_bytes, "retx PDU SN=%d (%d B)", retx.sn, nof_bytes);
+  log_rlc_am_nr_pdu_header_to_string(logger.debug, new_header);
+
+  debug_state();
+  return pdu_bytes;
+}
+
+/**
+ * Builds a retx RLC PDU that requires (re-)segmentation.
+ *
+ * \param [tx_pdu] is the tx_pdu info contained in the tx_window.
+ * \param [payload] is a pointer to the MAC buffer that will hold the PDU segment.
+ * \param [nof_bytes] is the number of bytes the RLC is allowed to fill.
+ *
+ * \returns the number of bytes written to the payload buffer.
+ * \remark: This functions assumes that the SDU has already been copied to tx_pdu.sdu_buf.
+ */
+uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes)
+{
+  // Get tx_pdu info from tx_window
+  srsran_assert(tx_window.has_sn(retx.sn), "Called %s without checking retx SN", __FUNCTION__);
+  srsran_assert(is_retx_segmentation_required(retx, nof_bytes),
+                "Called %s without checking if segmentation was not required",
+                __FUNCTION__);
+
+  rlc_amd_tx_pdu_nr& tx_pdu = tx_window[retx.sn];
+
+  // Is this an SDU segment or a full SDU?
+  if (not retx.is_segment) {
+    RlcDebug("Creating SDU segment from full SDU. SN=%d Tx SDU (%d B), nof_bytes=%d B ",
+             retx.sn,
+             tx_pdu.sdu_buf->N_bytes,
+             nof_bytes);
+
+  } else {
+    RlcDebug("Creating SDU segment from SDU segment. SN=%d, current_so=%d, so_start=%d, so_end=%d",
+             __FUNCTION__,
+             retx.sn,
+             retx.current_so,
+             retx.so_start,
+             retx.so_end);
+  }
+
+  uint32_t          expected_hdr_len = min_hdr_size;
+  rlc_nr_si_field_t si               = rlc_nr_si_field_t::first_segment;
+  if (retx.current_so != 0) {
+    si               = rlc_nr_si_field_t::neither_first_nor_last_segment;
+    expected_hdr_len = max_hdr_size;
+  }
+
+  // Sanity check: are there enough bytes for header plus data?
+  if (nof_bytes <= expected_hdr_len) {
+    RlcError("called %s, but there are not enough bytes for data plus header. SN=%d", __FUNCTION__, retx.sn);
+    return 0;
+  }
+
+  // Sanity check: could this have been transmitted without segmentation?
+  if (nof_bytes > (tx_pdu.sdu_buf->N_bytes + expected_hdr_len)) {
+    RlcError("called %s, but there are enough bytes to avoid segmentation. SN=%d", __FUNCTION__, retx.sn);
+    return 0;
+  }
+
+  // Can the RETX PDU be transmitted in a single PDU?
+  uint32_t retx_pdu_payload_size = nof_bytes - expected_hdr_len;
+
+  // Write header
+  rlc_am_nr_pdu_header_t hdr = tx_pdu.header;
+  hdr.so                     = retx.current_so;
+  hdr.si                     = si;
+  uint32_t hdr_len           = rlc_am_nr_write_data_pdu_header(hdr, payload);
+  if (hdr_len >= nof_bytes || hdr_len != expected_hdr_len) {
+    log_rlc_am_nr_pdu_header_to_string(logger.error, hdr);
+    RlcError("Error writing AMD PDU header. nof_bytes=%d, hdr_len=%d", nof_bytes, hdr_len);
+    return 0;
+  }
+  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr);
+
+  // Copy SDU segment into payload
+  srsran_assert((hdr_len + retx_pdu_payload_size) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
+  memcpy(&payload[hdr_len], tx_pdu.sdu_buf->msg, retx_pdu_payload_size);
+
+  // Update retx queue
+  retx.is_segment = true;
+  retx.current_so = retx.current_so + retx_pdu_payload_size;
+
+  RlcDebug("Updated RETX info. is_segment=%s, current_so=%d, so_start=%d, so_end=%d",
+           retx.is_segment ? "true" : "false",
+           retx.current_so,
+           retx.so_start,
+           retx.so_end);
+
+  if (retx.current_so >= tx_pdu.sdu_buf->N_bytes) {
+    RlcError("Current SO larger or equal to SDU size when creating SDU segment. SN=%d, current SO=%d, SO_start=%d, "
+             "SO_end=%d",
+             retx.sn,
+             retx.current_so,
+             retx.so_start,
+             retx.so_end);
+    return 0;
+  }
+
+  if (retx.current_so >= retx.so_end) {
+    RlcError("Current SO larger than SO end. SN=%d, current SO=%d, SO_start=%d, SO_end=%s",
+             retx.sn,
+             retx.current_so,
+             retx.so_start,
+             retx.so_end);
+    return 0;
+  }
+
+  // Update SDU segment info
+  // TODO
+  return hdr_len + retx_pdu_payload_size;
+}
 /**
  * Builds a retx RLC PDU from a full SDU.
  *
@@ -777,6 +978,33 @@ uint32_t rlc_am_nr_tx::build_retx_segment_from_sdu_segment(rlc_amd_retx_t& retx,
   return 0;
 }
 
+bool rlc_am_nr_tx::is_retx_segmentation_required(const rlc_amd_retx_t& retx, uint32_t nof_bytes)
+{
+  bool segmentation_required = false;
+  if (retx.is_segment) {
+    uint32_t expected_hdr_size = retx.current_so == 0 ? min_hdr_size : max_hdr_size;
+    if (nof_bytes < ((retx.so_end - retx.current_so) + expected_hdr_size)) {
+      RlcInfo("Re-segmentation required for RETX. SN=%d", retx.sn);
+      segmentation_required = true;
+    }
+  } else {
+    if (nof_bytes < (tx_window[retx.sn].sdu_buf->N_bytes + min_hdr_size)) {
+      RlcInfo("Segmentation required for RETX. SN=%d", retx.sn);
+      segmentation_required = true;
+    }
+  }
+  return segmentation_required;
+}
+
+uint32_t rlc_am_nr_tx::get_retx_expected_hdr_len(const rlc_amd_retx_t& retx)
+{
+  uint32_t expected_hdr_len = min_hdr_size;
+  if (retx.is_segment && retx.current_so != 0) {
+    expected_hdr_len = max_hdr_size;
+  }
+  return expected_hdr_len;
+}
+
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
 {
   RlcInfo("generating status PDU. Bytes available:%d", nof_bytes);
@@ -817,7 +1045,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Process ACKs
   uint32_t stop_sn = status.N_nack == 0
                          ? status.ack_sn
-                         : status.nacks[0].nack_sn - 1; // Stop processing ACKs at the first NACK, if it exists.
+                         : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
   if (stop_sn > st.tx_next) {
     RlcError("Received ACK or NACK larger than TX_NEXT. Ignoring status report");
     return;
@@ -836,25 +1064,46 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Process N_acks
   for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
     if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
-      uint32_t nack_sn = status.nacks[nack_idx].nack_sn;
+      auto     nack    = status.nacks[nack_idx];
+      uint32_t nack_sn = nack.nack_sn;
       if (tx_window.has_sn(nack_sn)) {
         auto& pdu = tx_window[nack_sn];
 
-        // add to retx queue if it's not already there
-        if (not retx_queue.has_sn(nack_sn)) {
-          // increment Retx counter and inform upper layers if needed
-          pdu.retx_count++;
+        if (nack.has_so) {
+          // NACK'ing missing bytes in SDU segment.
+          // Retransmit all SDU segments within those missing bytes.
+          if (pdu.segment_list.empty()) {
+            RlcError("Received NACK with SO, but there is no segment information");
+          }
+          for (std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator segm = pdu.segment_list.begin();
+               segm != pdu.segment_list.end();
+               segm++) {
+            if (segm->so >= nack.so_start && nack.so_end <= (segm->so + segm->payload_len)) {
+              rlc_amd_retx_t& retx = retx_queue.push();
+              retx.sn              = nack_sn;
+              retx.sdu_end         = pdu.sdu_buf->N_bytes;
+              retx.is_segment      = true;
+              retx.so_start        = segm->so;
+              retx.current_so      = segm->so;
+              retx.so_end          = segm->so + segm->payload_len;
+            }
+          }
+        } else {
+          // NACK'ing full SDU.
+          // add to retx queue if it's not already there
+          if (not retx_queue.has_sn(nack_sn)) {
+            // increment Retx counter and inform upper layers if needed
+            pdu.retx_count++;
 
-          // check_sn_reached_max_retx(nack_sn);
-          rlc_amd_retx_t& retx = retx_queue.push();
-          srsran_expect(tx_window[nack_sn].rlc_sn == nack_sn,
-                        "Incorrect RLC SN=%d!=%d being accessed",
-                        tx_window[nack_sn].rlc_sn,
-                        nack_sn);
-          retx.sn         = nack_sn;
-          retx.is_segment = false;
-          retx.so_start   = 0;
-          retx.so_end     = pdu.sdu_buf->N_bytes;
+            // check_sn_reached_max_retx(nack_sn);
+            rlc_amd_retx_t& retx = retx_queue.push();
+            retx.sn              = nack_sn;
+            retx.sdu_end         = pdu.sdu_buf->N_bytes;
+            retx.is_segment      = false;
+            retx.so_start        = 0;
+            retx.current_so      = 0;
+            retx.so_end          = pdu.sdu_buf->N_bytes;
+          }
         }
       }
     }
