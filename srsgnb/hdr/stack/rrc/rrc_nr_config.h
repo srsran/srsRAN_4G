@@ -21,15 +21,6 @@
 
 namespace srsenb {
 
-// TODO: Make this common to NR and LTE
-struct rrc_nr_cfg_sr_t {
-  uint32_t period;
-  //  asn1::rrc::sched_request_cfg_c::setup_s_::dsr_trans_max_e_ dsr_max;
-  uint32_t nof_prb;
-  uint32_t sf_mapping[80];
-  uint32_t nof_subframes;
-};
-
 // Cell/Sector configuration for NR cells
 struct rrc_cell_cfg_nr_t {
   phy_cell_cfg_nr_t           phy_cell; // already contains all PHY-related parameters (i.e. RF port, PCI, etc.)
@@ -50,8 +41,6 @@ struct rrc_cell_cfg_nr_t {
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
 
 struct rrc_nr_cfg_t {
-  rrc_nr_cfg_sr_t    sr_cfg;
-  rrc_cfg_cqi_t      cqi_cfg;
   rrc_cell_list_nr_t cell_list;
   uint32_t           inactivity_timeout_ms = 100000;
   uint32_t           enb_id;

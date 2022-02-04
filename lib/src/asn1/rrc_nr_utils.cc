@@ -1494,6 +1494,91 @@ static inline void make_ssb_positions_in_burst(const bitstring_t&               
   }
 }
 
+void fill_ssb_pos_in_burst(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
+{
+  auto& ssb_pos = cfg.ssb_positions_in_burst;
+
+  out_ssb->position_in_burst = {};
+  uint32_t N                 = ssb_pos.in_one_group.length();
+  for (uint32_t i = 0; i < N; ++i) {
+    out_ssb->position_in_burst[i] = ssb_pos.in_one_group.get(i);
+  }
+  if (ssb_pos.group_presence_present) {
+    for (uint32_t i = 1; i < ssb_pos.group_presence.length(); ++i) {
+      if (ssb_pos.group_presence.get(i)) {
+        std::copy(out_ssb->position_in_burst.begin(),
+                  out_ssb->position_in_burst.begin() + N,
+                  out_ssb->position_in_burst.begin() + i * N);
+      }
+    }
+  }
+}
+
+bool fill_ssb_pattern_scs(const srsran_carrier_nr_t&   carrier,
+                          srsran_ssb_patern_t*         pattern,
+                          srsran_subcarrier_spacing_t* ssb_scs)
+{
+  srsran::srsran_band_helper bands;
+  uint16_t                   band = bands.get_band_from_dl_freq_Hz(carrier.ssb_center_freq_hz);
+  if (band == UINT16_MAX) {
+    asn1::log_error("Invalid band for SSB frequency %.3f MHz", carrier.ssb_center_freq_hz);
+    return false;
+  }
+
+  // TODO: Generalize conversion for other SCS
+  *pattern = bands.get_ssb_pattern(band, srsran_subcarrier_spacing_15kHz);
+  if (*pattern == SRSRAN_SSB_PATTERN_A) {
+    *ssb_scs = carrier.scs;
+  } else {
+    // try to optain SSB pattern for same band with 30kHz SCS
+    *pattern = bands.get_ssb_pattern(band, srsran_subcarrier_spacing_30kHz);
+    if (*pattern == SRSRAN_SSB_PATTERN_B || *pattern == SRSRAN_SSB_PATTERN_C) {
+      // SSB SCS is 30 kHz
+      *ssb_scs = srsran_subcarrier_spacing_30kHz;
+    } else {
+      asn1::log_error("Can't derive SSB pattern from band %d", band);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      srsran_ssb_cfg_t*                                  out_ssb)
+{
+  *out_ssb = {};
+
+  out_ssb->center_freq_hz = carrier.dl_center_frequency_hz;
+  out_ssb->ssb_freq_hz    = carrier.ssb_center_freq_hz;
+  if (not fill_ssb_pattern_scs(carrier, &out_ssb->pattern, &out_ssb->scs)) {
+    return false;
+  }
+
+  out_ssb->duplex_mode = SRSRAN_DUPLEX_MODE_FDD;
+  if (serv_cell_cfg.tdd_ul_dl_cfg_common_present) {
+    out_ssb->duplex_mode = SRSRAN_DUPLEX_MODE_TDD;
+  }
+
+  out_ssb->periodicity_ms = serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+  return true;
+}
+
+// SA case
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb)
+{
+  // Derive SSB pattern and SCS
+  if (not fill_ssb_pattern_scs(carrier, &out_ssb->pattern, &out_ssb->scs)) {
+    return false;
+  }
+  fill_ssb_pos_in_burst(serv_cell_cfg, out_ssb);
+  out_ssb->periodicity_ms = (uint32_t)serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+
+  return true;
+}
+
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       out_ssb)

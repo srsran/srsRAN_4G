@@ -124,6 +124,14 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
 bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& nzp_csi_rs_res,
                                   srsran_csi_rs_nzp_resource_t*         csi_rs_nzp_resource);
 bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s& freq_info_dl, srsran_carrier_nr_t* carrier_nr);
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb);
+void fill_ssb_pos_in_burst(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& ssb_pos,
+                           phy_cfg_nr_t::ssb_cfg_t*                           out_ssb);
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      srsran_ssb_cfg_t*                                  out_ssb);
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       ssb);
