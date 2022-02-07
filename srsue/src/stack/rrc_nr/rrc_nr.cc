@@ -472,6 +472,7 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   // Apply SSB Config
   fill_phy_ssb_cfg(sib1.serving_cell_cfg_common, &phy_cfg.ssb);
 
+  phy_cfg_state = PHY_CFG_STATE_SA_SIB_CFG;
   if (not phy->set_config(phy_cfg)) {
     logger.warning("Could not set phy config.");
     return;
@@ -582,7 +583,10 @@ void rrc_nr::send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg)
   }
 
   asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-  msg.pack(bref);
+  if (msg.pack(bref) != SRSASN_SUCCESS) {
+    logger.error("Coulnd't pack UL-CCCH message.");
+    return;
+  }
   bref.align_bytes_zero();
   pdu->N_bytes = (uint32_t)bref.distance_bytes(pdu->msg);
   pdu->set_timestamp();
@@ -1589,8 +1593,6 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
   update_sp_cell_cfg(sp_cell_cfg);
 
-  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
-
   return true;
 }
 
@@ -1768,9 +1770,11 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     // defer CSI config until after RA complete
     srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
     current_phycfg.csi                  = prev_csi;
+    phy_cfg_state                       = PHY_CFG_STATE_NSA_APPLY_SP_CELL;
     phy->set_config(current_phycfg);
   } else {
     // apply full config immediately
+    phy_cfg_state = PHY_CFG_STATE_SA_FULL_CFG;
     phy->set_config(phy_cfg);
   }
 
@@ -1792,8 +1796,6 @@ bool rrc_nr::apply_phy_cell_group_cfg(const phys_cell_group_cfg_s& phys_cell_gro
 bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
   update_cell_group_cfg(cell_group_cfg);
-
-  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
 
   return true;
 }
@@ -2102,8 +2104,8 @@ void rrc_nr::ra_completed()
   logger.info("RA completed.");
   if (rrc_eutra) {
     logger.debug("Applying remaining CSI configuration.");
+    phy_cfg_state = PHY_CFG_STATE_NSA_RA_COMPLETED;
     phy->set_config(phy_cfg);
-    phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
   } else {
     phy_cfg_state = PHY_CFG_STATE_NONE;
   }
@@ -2146,12 +2148,18 @@ void rrc_nr::set_phy_config_complete(bool status)
     case PHY_CFG_STATE_NONE:
       logger.warning("PHY configuration completed without a clear state.");
       break;
-    case PHY_CFG_STATE_APPLY_SP_CELL:
+    case PHY_CFG_STATE_SA_SIB_CFG:
+      logger.info("PHY configuration with SIB parameters completed.");
+      break;
+    case PHY_CFG_STATE_SA_FULL_CFG:
+      logger.info("PHY configuration completed.");
+      break;
+    case PHY_CFG_STATE_NSA_APPLY_SP_CELL:
       // Start RA procedure
       logger.info("PHY configuration completed. Starting RA procedure.");
       mac->start_ra_procedure();
       break;
-    case PHY_CFG_STATE_RA_COMPLETED:
+    case PHY_CFG_STATE_NSA_RA_COMPLETED:
       logger.info("Remaining CSI configuration completed.");
       break;
   }

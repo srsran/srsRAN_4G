@@ -197,8 +197,10 @@ private:
   // Stores the state of the PHY configuration setting
   enum {
     PHY_CFG_STATE_NONE = 0,
-    PHY_CFG_STATE_APPLY_SP_CELL,
-    PHY_CFG_STATE_RA_COMPLETED,
+    PHY_CFG_STATE_SA_SIB_CFG,
+    PHY_CFG_STATE_SA_FULL_CFG,
+    PHY_CFG_STATE_NSA_APPLY_SP_CELL,
+    PHY_CFG_STATE_NSA_RA_COMPLETED,
   } phy_cfg_state;
 
   rrc_nr_args_t args = {};

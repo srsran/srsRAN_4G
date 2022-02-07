@@ -220,9 +220,6 @@ proc_outcome_t rrc_nr::setup_request_proc::step()
   if (state == state_t::config_serving_cell) {
     // TODO: start serving cell config and start T300
 
-    rrc_handle.phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
-    rrc_handle.phy->set_config(rrc_handle.phy_cfg);
-
     // start T300
     rrc_handle.t300.run();
 
