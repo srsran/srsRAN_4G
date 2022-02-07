@@ -133,7 +133,7 @@ bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier
 void fill_ssb_pos_in_burst(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& ssb_pos,
                            phy_cfg_nr_t::ssb_cfg_t*                           out_ssb);
 bool fill_ssb_pattern_scs(const srsran_carrier_nr_t&   carrier,
-                          srsran_ssb_patern_t*         pattern,
+                          srsran_ssb_pattern_t*        pattern,
                           srsran_subcarrier_spacing_t* ssb_scs);
 bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,

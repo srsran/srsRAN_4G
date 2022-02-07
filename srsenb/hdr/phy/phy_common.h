@@ -122,7 +122,7 @@ public:
 
     cc_idx -= cell_list_lte.size();
     if (cc_idx < cell_list_nr.size()) {
-      ret = cell_list_nr[cc_idx].ul_freq_hz;
+      ret = cell_list_nr[cc_idx].carrier.ul_center_frequency_hz;
     }
 
     return ret;
@@ -137,7 +137,7 @@ public:
 
     cc_idx -= cell_list_lte.size();
     if (cc_idx < cell_list_nr.size()) {
-      ret = cell_list_nr[cc_idx].dl_freq_hz;
+      ret = cell_list_nr[cc_idx].carrier.dl_center_frequency_hz;
     }
 
     return ret;

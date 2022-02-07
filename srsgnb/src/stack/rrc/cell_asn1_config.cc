@@ -813,21 +813,21 @@ int fill_rach_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, rach_cfg_common_s
   rach.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
 
   // totalNumberOfRA-Preambles
-  if (cfg.cell_list[cc].phy_cell.num_ra_preambles != 64) {
+  if (cfg.cell_list[cc].num_ra_preambles != 64) {
     rach.total_nof_ra_preambs_present = true;
-    rach.total_nof_ra_preambs         = cfg.cell_list[cc].phy_cell.num_ra_preambles;
+    rach.total_nof_ra_preambs         = cfg.cell_list[cc].num_ra_preambles;
   }
 
   // ssb-perRACH-OccasionAndCB-PreamblesPerSSB
   rach.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
   if (not asn1::number_to_enum(rach.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(),
-                               cfg.cell_list[cc].phy_cell.num_ra_preambles)) {
-    get_logger(cfg).error("Invalid number of RA preambles=%d", cfg.cell_list[cc].phy_cell.num_ra_preambles);
+                               cfg.cell_list[cc].num_ra_preambles)) {
+    get_logger(cfg).error("Invalid number of RA preambles=%d", cfg.cell_list[cc].num_ra_preambles);
     return -1;
   }
 
   rach.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
-  rach.prach_root_seq_idx.set_l839()        = cfg.cell_list[cc].phy_cell.root_seq_idx;
+  rach.prach_root_seq_idx.set_l839()        = cfg.cell_list[cc].prach_root_seq_idx;
   rach.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
 
   return SRSRAN_SUCCESS;
@@ -865,7 +865,7 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
 
-  serv_common.ss_pbch_block_pwr               = cell_cfg.phy_cell.pdsch.rs_power;
+  serv_common.ss_pbch_block_pwr               = cell_cfg.pdsch_rs_power;
   serv_common.n_timing_advance_offset_present = true;
   serv_common.n_timing_advance_offset         = serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   serv_common.n_timing_advance_offset_present = true;
@@ -1230,7 +1230,7 @@ int fill_serv_cell_cfg_common_sib(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_
     fill_tdd_ul_dl_config_common(cell_cfg, out.tdd_ul_dl_cfg_common);
   }
 
-  out.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
+  out.ss_pbch_block_pwr = cell_cfg.pdsch_rs_power;
 
   return SRSRAN_SUCCESS;
 }

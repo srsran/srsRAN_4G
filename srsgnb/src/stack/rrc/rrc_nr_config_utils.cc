@@ -109,14 +109,6 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
   phy_cell.carrier.scs             = srsran_subcarrier_spacing_15kHz;
   phy_cell.carrier.nof_prb         = 52;
   phy_cell.carrier.max_mimo_layers = 1;
-
-  phy_cell.dl_freq_hz       = 0; // auto set
-  phy_cell.ul_freq_hz       = 0;
-  phy_cell.num_ra_preambles = 8;
-
-  // PDSCH
-  phy_cell.pdsch.rs_power = 0;
-  phy_cell.pdsch.p_b      = 0;
 }
 
 /// Generate default rrc nr cell configuration
@@ -125,6 +117,7 @@ void generate_default_nr_cell(rrc_cell_cfg_nr_t& cell)
   cell                         = {};
   cell.coreset0_idx            = 6;
   cell.ssb_absolute_freq_point = 0; // auto derived
+  cell.num_ra_preambles        = 8;
   generate_default_nr_phy_cell(cell.phy_cell);
 
   // PDCCH
@@ -208,24 +201,20 @@ int derive_phy_cell_freq_params(uint32_t dl_arfcn, uint32_t ul_arfcn, phy_cell_c
   srsran::srsran_band_helper band_helper;
 
   // derive DL freq from ARFCN
-  if (phy_cell.dl_freq_hz == 0) {
-    phy_cell.dl_freq_hz = band_helper.nr_arfcn_to_freq(dl_arfcn);
+  if (phy_cell.carrier.dl_center_frequency_hz == 0) {
+    phy_cell.carrier.dl_center_frequency_hz = band_helper.nr_arfcn_to_freq(dl_arfcn);
   }
 
   // derive UL freq from ARFCN
-  if (phy_cell.ul_freq_hz == 0) {
+  if (phy_cell.carrier.ul_center_frequency_hz == 0) {
     // auto-detect UL frequency
     if (ul_arfcn == 0) {
       // derive UL ARFCN from given DL ARFCN
       ul_arfcn = band_helper.get_ul_arfcn_from_dl_arfcn(dl_arfcn);
       ERROR_IF_NOT(ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", dl_arfcn);
     }
-    phy_cell.ul_freq_hz = band_helper.nr_arfcn_to_freq(ul_arfcn);
+    phy_cell.carrier.ul_center_frequency_hz = band_helper.nr_arfcn_to_freq(ul_arfcn);
   }
-
-  // copy center frequencies
-  phy_cell.carrier.dl_center_frequency_hz = phy_cell.dl_freq_hz;
-  phy_cell.carrier.ul_center_frequency_hz = phy_cell.ul_freq_hz;
 
   return SRSRAN_SUCCESS;
 }

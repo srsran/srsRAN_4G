@@ -80,7 +80,7 @@ public:
    * @param scs SSB Subcarrier spacing
    * @return The SSB pattern case if band and subcarrier spacing match, SRSRAN_SSB_PATTERN_INVALID otherwise
    */
-  static srsran_ssb_patern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs);
+  static srsran_ssb_pattern_t get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs);
 
   /**
    * @brief Select the lower SSB subcarrier spacing valid for this band
@@ -402,7 +402,7 @@ private:
   struct nr_band_ss_raster {
     uint16_t                    band;
     srsran_subcarrier_spacing_t scs;
-    srsran_ssb_patern_t         pattern;
+    srsran_ssb_pattern_t        pattern;
     uint32_t                    gscn_first;
     uint32_t                    gscn_step;
     uint32_t                    gscn_last;

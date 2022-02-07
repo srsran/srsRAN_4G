@@ -48,7 +48,7 @@ public:
     srsran::channel::args_t     channel;
     std::string                 log_level = "error";
 
-    srsran_ssb_patern_t  get_ssb_pattern() const { return srsran::srsran_band_helper().get_ssb_pattern(band, ssb_scs); }
+    srsran_ssb_pattern_t get_ssb_pattern() const { return srsran::srsran_band_helper().get_ssb_pattern(band, ssb_scs); }
     srsran_duplex_mode_t get_duplex_mode() const { return srsran::srsran_band_helper().get_duplex_mode(band); }
   };
 

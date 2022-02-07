@@ -24,7 +24,7 @@ struct args_t {
   // Generic parameters
   double                      srate_hz        = 11.52e6;
   srsran_carrier_nr_t         base_carrier    = SRSRAN_DEFAULT_CARRIER_NR;
-  srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
+  srsran_ssb_pattern_t        ssb_pattern     = SRSRAN_SSB_PATTERN_A;
   srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_15kHz;
   srsran_duplex_mode_t        duplex_mode     = SRSRAN_DUPLEX_MODE_FDD;
   uint32_t                    duration_ms     = 1000;
@@ -216,7 +216,7 @@ struct cell_search_result_t {
   bool                        found           = false;
   double                      ssb_abs_freq_hz = 0.0f;
   srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_15kHz;
-  srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
+  srsran_ssb_pattern_t        ssb_pattern     = SRSRAN_SSB_PATTERN_A;
   srsran_duplex_mode_t        duplex_mode     = SRSRAN_DUPLEX_MODE_FDD;
   srsran_mib_nr_t             mib             = {};
   uint32_t                    pci             = 0;

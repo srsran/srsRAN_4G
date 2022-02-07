@@ -24,7 +24,7 @@ static srsran_subcarrier_spacing_t carrier_scs     = srsran_subcarrier_spacing_1
 static double                      carrier_freq_hz = 3.5e9 + 960e3;
 static srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_30kHz;
 static double                      ssb_freq_hz     = 3.5e9;
-static srsran_ssb_patern_t         ssb_pattern     = SRSRAN_SSB_PATTERN_A;
+static srsran_ssb_pattern_t        ssb_pattern     = SRSRAN_SSB_PATTERN_A;
 
 // Channel parameters
 static int32_t delay_n = 2;

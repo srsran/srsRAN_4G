@@ -32,7 +32,7 @@ public:
   srsran::unique_byte_buffer_t packed_sib1;
 
   asn1::rrc_nr::subcarrier_spacing_e ssb_scs;
-  srsran_ssb_patern_t                ssb_pattern;
+  srsran_ssb_pattern_t               ssb_pattern;
   double                             ssb_center_freq_hz;
   double                             dl_freq_hz;
   bool                               is_standalone;

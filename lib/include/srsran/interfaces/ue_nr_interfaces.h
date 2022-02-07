@@ -301,7 +301,7 @@ public:
     double                      center_freq_hz;
     double                      ssb_freq_hz;
     srsran_subcarrier_spacing_t ssb_scs;
-    srsran_ssb_patern_t         ssb_pattern;
+    srsran_ssb_pattern_t        ssb_pattern;
     srsran_duplex_mode_t        duplex_mode;
   };
 

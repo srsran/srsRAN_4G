@@ -61,7 +61,7 @@ typedef struct SRSRAN_API {
   double                      center_freq_hz; ///< Base-band center frequency in Hz
   double                      ssb_freq_hz;    ///< SSB center frequency
   srsran_subcarrier_spacing_t scs;            ///< SSB configured Subcarrier spacing
-  srsran_ssb_patern_t         pattern;        ///< SSB pattern as defined in TS 38.313 section 4.1 Cell search
+  srsran_ssb_pattern_t        pattern;        ///< SSB pattern as defined in TS 38.313 section 4.1 Cell search
   srsran_duplex_mode_t        duplex_mode;    ///< Set to true if the spectrum is paired (FDD)
   uint32_t                    periodicity_ms; ///< SSB periodicity in ms
   float                       beta_pss;       ///< PSS power allocation

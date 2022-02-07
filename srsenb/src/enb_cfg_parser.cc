@@ -1007,7 +1007,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     parse_opt_field(cell_cfg.phy_cell.rf_port, cellroot, "rf_port");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.carrier.pci, cellroot, "pci"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.cell_id, cellroot, "cell_id"));
-    HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.root_seq_idx, cellroot, "root_seq_idx"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.prach_root_seq_idx, cellroot, "root_seq_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
 
     cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
@@ -1594,8 +1594,7 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
     // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
 
     // PDSCH
-    cfg.phy_cell.pdsch.rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
-    cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;
+    cfg.pdsch_rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
   }
   rrc_nr_cfg_->enb_id = args_->enb.enb_id;
   rrc_nr_cfg_->mcc    = args_->stack.s1ap.mcc;

@@ -27,7 +27,7 @@ static srsran_subcarrier_spacing_t carrier_scs         = srsran_subcarrier_spaci
 static double                      center_frequency_hz = 3.5e9;
 static srsran_subcarrier_spacing_t ssb_scs             = srsran_subcarrier_spacing_15kHz;
 static double                      ssb_frequency_hz    = 3.5e9 - 960e3;
-static srsran_ssb_patern_t         ssb_pattern         = SRSRAN_SSB_PATTERN_C;
+static srsran_ssb_pattern_t        ssb_pattern         = SRSRAN_SSB_PATTERN_C;
 static srsran_duplex_mode_t        duplex_mode         = SRSRAN_DUPLEX_MODE_TDD;
 
 // Test and channel parameters
