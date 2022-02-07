@@ -1112,8 +1112,8 @@ int rlc_am_nr_rx::handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header,
   memcpy(pdu_segment.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
   pdu_segment.buf->N_bytes = nof_bytes - hdr_len;
 
-  // Store SDU segment. TODO sort by SO and check for duplicate bytes.
-  rx_sdu.segments.push_back(std::move(pdu_segment));
+  // Store SDU segment. Sort by SO and check for duplicate bytes.
+  insert_received_segment(std::move(pdu_segment), rx_sdu.segments);
 
   // Check weather all segments have been received
   rx_sdu.fully_received = have_all_segments_been_received(rx_sdu.segments);
@@ -1301,14 +1301,21 @@ uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
   return 0;
 }
 
-bool rlc_am_nr_rx::have_all_segments_been_received(const std::list<rlc_amd_rx_pdu_nr>& segment_list)
+void rlc_am_nr_rx::insert_received_segment(rlc_amd_rx_pdu_nr                                   segment,
+                                           std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list)
+{
+  segment_list.insert(std::move(segment));
+}
+
+bool rlc_am_nr_rx::have_all_segments_been_received(
+    const std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list)
 {
   if (segment_list.empty()) {
     return false;
   }
 
   // Check if we have received the last segment
-  if ((--segment_list.end())->header.si != rlc_nr_si_field_t::last_segment) {
+  if (segment_list.rbegin()->header.si != rlc_nr_si_field_t::last_segment) {
     return false;
   }
 

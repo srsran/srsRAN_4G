@@ -221,7 +221,9 @@ public:
   int  handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
-  bool have_all_segments_been_received(const std::list<rlc_amd_rx_pdu_nr>& segment_list);
+  void insert_received_segment(rlc_amd_rx_pdu_nr                                   segment,
+                               std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list);
+  bool have_all_segments_been_received(const std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list);
 
   // Metrics
   uint32_t get_sdu_rx_latency_ms() final;

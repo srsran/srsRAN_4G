@@ -15,6 +15,7 @@
 
 #include "srsran/common/string_helpers.h"
 #include "srsran/rlc/rlc_am_base.h"
+#include <set>
 
 namespace srsran {
 
@@ -52,11 +53,15 @@ struct rlc_amd_rx_pdu_nr {
   explicit rlc_amd_rx_pdu_nr(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
 };
 
+struct rlc_amd_rx_pdu_nr_cmp {
+  bool operator()(const rlc_amd_rx_pdu_nr& a, const rlc_amd_rx_pdu_nr& b) const { return a.header.so < b.header.so; }
+};
+
 struct rlc_amd_rx_sdu_nr_t {
-  uint32_t                     rlc_sn         = 0;
-  bool                         fully_received = false;
-  unique_byte_buffer_t         buf;
-  std::list<rlc_amd_rx_pdu_nr> segments;
+  uint32_t                                           rlc_sn         = 0;
+  bool                                               fully_received = false;
+  unique_byte_buffer_t                               buf;
+  std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp> segments;
 
   rlc_amd_rx_sdu_nr_t() = default;
   explicit rlc_amd_rx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
