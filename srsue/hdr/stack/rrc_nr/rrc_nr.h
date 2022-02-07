@@ -138,6 +138,7 @@ private:
   void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
   void send_rrc_reconfig_complete();
+  int  send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg);
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);
@@ -148,6 +149,7 @@ private:
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
   void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
+  void handle_ue_capability_enquiry(const asn1::rrc_nr::ue_cap_enquiry_s& ue_cap_enquiry);
   void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
   void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
   void handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release);

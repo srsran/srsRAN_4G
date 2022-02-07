@@ -327,8 +327,8 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       break;
     }
     case dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry: {
-      ue_cap_enquiry_s rrc_cap_enquiry = c1->ue_cap_enquiry();
-      task_sched.defer_task([this, rrc_cap_enquiry]() { handle_ue_cap_enquiry(rrc_cap_enquiry); });
+      ue_cap_enquiry_s ue_cap_enquiry = c1->ue_cap_enquiry();
+      task_sched.defer_task([this, ue_cap_enquiry]() { handle_ue_capability_enquiry(ue_cap_enquiry); });
       break;
     }
     default:
@@ -697,6 +697,96 @@ void rrc_nr::send_rrc_reconfig_complete()
   auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete().crit_exts.set_rrc_recfg_complete();
 
   send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
+int rrc_nr::send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg)
+{
+  ue_cap_enquiry_ies_s ue_cap_enquiry_ies = msg.crit_exts.ue_cap_enquiry();
+
+  asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+
+  auto& ue_cap_info = ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_ue_cap_info();
+  ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = msg.rrc_transaction_id;
+
+  for (auto ue_cap_rat_request : ue_cap_enquiry_ies.ue_cap_rat_request_list) {
+    if (ue_cap_rat_request.rat_type.value == rat_type_opts::nr) {
+      ue_cap_info.ue_cap_rat_container_list_present = true;
+      ue_cap_rat_container_s ue_cap_rat_container;
+      ue_cap_rat_container.rat_type.value = rat_type_opts::nr;
+
+      ue_nr_cap_s ue_cap;
+      ue_cap.access_stratum_release = access_stratum_release_opts::rel15;
+
+      // PDCP parameters
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0000 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0001 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0002 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0003 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0004 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0006 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0101 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0102 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0103 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0104 = false;
+      ue_cap.pdcp_params.max_num_rohc_context_sessions.value   = pdcp_params_s::max_num_rohc_context_sessions_opts::cs2;
+
+      if (args.pdcp_short_sn_support) {
+        ue_cap.pdcp_params.short_sn_present = true;
+      }
+      // PHY Parameters
+      ue_cap.phy_params.phy_params_common_present = true;
+
+      // RF Parameters
+      for (const auto band : args.supported_bands_nr) {
+        band_nr_s band_nr;
+        band_nr.band_nr = band;
+        ue_cap.rf_params.supported_band_list_nr.push_back(band_nr);
+
+        // supportedBandCombinationList
+        band_combination_s band_combination;
+        band_params_c      band_params;
+        band_params.set_nr().band_nr = band;
+        band_combination.band_list.push_back(band_params);
+        ue_cap.rf_params.supported_band_combination_list.push_back(band_combination);
+      }
+      // featureSets
+      ue_cap.feature_sets_present = true;
+      feature_set_dl_per_cc_s feature_set_dl_per_cc;
+      feature_set_ul_per_cc_s feature_set_ul_per_cc;
+
+      feature_set_dl_per_cc.supported_bw_dl.set_fr1().value = supported_bw_c::fr1_opts::mhz10;
+      feature_set_ul_per_cc.supported_bw_ul.set_fr1().value = supported_bw_c::fr1_opts::mhz10;
+
+      switch (args.scs) {
+        case srsran_subcarrier_spacing_15kHz:
+          feature_set_dl_per_cc.supported_subcarrier_spacing_dl = subcarrier_spacing_opts::khz15;
+          feature_set_ul_per_cc.supported_subcarrier_spacing_ul = subcarrier_spacing_opts::khz15;
+          break;
+        case srsran_subcarrier_spacing_30kHz:
+          feature_set_dl_per_cc.supported_subcarrier_spacing_dl = subcarrier_spacing_opts::khz30;
+          feature_set_ul_per_cc.supported_subcarrier_spacing_ul = subcarrier_spacing_opts::khz30;
+          break;
+        default:
+          logger.warning("Unsupported subcarrier spacing value");
+      }
+
+      ue_cap.feature_sets.feature_sets_dl_per_cc.push_back(feature_set_dl_per_cc);
+      ue_cap.feature_sets.feature_sets_ul_per_cc.push_back(feature_set_ul_per_cc);
+
+      ue_cap_rat_container.ue_cap_rat_container.resize(512);
+      asn1::bit_ref bref_pack(ue_cap_rat_container.ue_cap_rat_container.data(),
+                              ue_cap_rat_container.ue_cap_rat_container.size());
+
+      if (ue_cap.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
+        logger.error("Failed to pack UE NR Capabilities in UE Capability Info");
+        return SRSRAN_ERROR;
+      }
+      ue_cap_rat_container.ue_cap_rat_container.resize(bref_pack.distance_bytes());
+      ue_cap_info.ue_cap_rat_container_list.push_back(ue_cap_rat_container);
+    }
+  }
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+  return SRSASN_SUCCESS;
 }
 
 // EUTRA-RRC interface
@@ -2079,6 +2169,11 @@ void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
     return;
   }
   callback_list.add_proc(conn_recfg_proc);
+}
+void rrc_nr::handle_ue_capability_enquiry(const ue_cap_enquiry_s& ue_cap_enquiry)
+{
+  logger.info("Received UE Capability Enquiry");
+  send_ue_capability_info(ue_cap_enquiry);
 }
 
 void rrc_nr::handle_dl_info_transfer(const dl_info_transfer_s& dl_info_transfer)
