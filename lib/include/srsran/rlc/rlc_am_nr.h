@@ -110,10 +110,6 @@ public:
   uint32_t build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_pdu_from_full_sdu(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_segment_from_full_sdu(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_pdu_from_sdu_segment(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_segment_from_sdu_segment(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
   bool     is_retx_segmentation_required(const rlc_amd_retx_t& retx, uint32_t nof_bytes);
   uint32_t get_retx_expected_hdr_len(const rlc_amd_retx_t& retx);
   /*
