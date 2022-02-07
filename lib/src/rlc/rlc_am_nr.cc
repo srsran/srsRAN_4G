@@ -72,7 +72,7 @@ bool rlc_am_nr_tx::has_data()
 /**
  * Builds the RLC PDU.
  *
- * Called by the MAC, trough the STACK thread.
+ * Called by the MAC, trough one of the PHY worker threads.
  *
  * \param [payload] is a pointer to the buffer that will hold the PDU.
  * \param [nof_bytes] is the number of bytes the RLC is allowed to fill.
@@ -131,14 +131,13 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 }
 
 /**
- * Builds a new RLC PDU, which contains the full SDU.
+ * Builds a new RLC PDU.
  *
- * Called by the MAC, trough the STACK thread.
  * This will be called after checking whether control, retransmission,
  * or segment PDUs needed to be transmitted first.
  *
  * This will read an SDU from the SDU queue, build a new PDU, and add it to the tx_window.
- * Segmentation will be done if necessary.
+ * SDU segmentation will be done if necessary.
  *
  * \param [payload] is a pointer to the buffer that will hold the PDU.
  * \param [nof_bytes] is the number of bytes the RLC is allowed to fill.
@@ -206,9 +205,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
 }
 
 /**
- * Builds a new RLC PDU segment.
- *
- * Called by the MAC, trough the STACK thread.
+ * Builds a new RLC PDU segment, from a RLC SDU.
  *
  * \param [tx_pdu] is the tx_pdu info contained in the tx_window.
  * \param [payload] is a pointer to the MAC buffer that will hold the PDU segment.
@@ -272,8 +269,6 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
 
 /**
  * Build PDU segment for an RLC SDU that is already on-going segmentation.
- *
- * Called by the MAC, trough the STACK thread.
  *
  * \param [tx_pdu] is the tx_pdu info contained in the tx_window.
  * \param [payload] is a pointer to the MAC buffer that will hold the PDU segment.
@@ -417,8 +412,8 @@ uint32_t rlc_am_nr_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
     }
   }
 
-  RlcDebug("RETX - SDU len=%d, is_segment=%s, current_so=%d, so_start=%d, so_end=%d",
-           retx.sdu_end,
+  RlcDebug("RETX - SN=%d, is_segment=%s, current_so=%d, so_start=%d, so_end=%d",
+           retx.sn,
            retx.is_segment ? "true" : "false",
            retx.current_so,
            retx.so_start,
@@ -733,7 +728,6 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
             if (segm->so >= nack.so_start && segm->so < nack.so_end) {
               rlc_amd_retx_t& retx = retx_queue.push();
               retx.sn              = nack_sn;
-              retx.sdu_end         = pdu.sdu_buf->N_bytes;
               retx.is_segment      = true;
               retx.so_start        = segm->so;
               retx.current_so      = segm->so;
@@ -750,7 +744,6 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
             // check_sn_reached_max_retx(nack_sn);
             rlc_amd_retx_t& retx = retx_queue.push();
             retx.sn              = nack_sn;
-            retx.sdu_end         = pdu.sdu_buf->N_bytes;
             retx.is_segment      = false;
             retx.so_start        = 0;
             retx.current_so      = 0;
