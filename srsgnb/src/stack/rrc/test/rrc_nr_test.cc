@@ -62,7 +62,6 @@ void test_sib_generation()
   srsran::string_to_mcc("001", &rrc_cfg_nr.mcc);
   srsran::string_to_mnc("01", &rrc_cfg_nr.mnc);
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
-  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
   TESTASSERT(
       rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, bearer_mapper, nullptr) ==
@@ -119,7 +118,6 @@ int test_rrc_setup()
   srsran::string_to_mcc("001", &rrc_cfg_nr.mcc);
   srsran::string_to_mnc("01", &rrc_cfg_nr.mnc);
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
-  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
   TESTASSERT(
       rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr, bearer_mapper, nullptr) ==
       SRSRAN_SUCCESS);
@@ -163,7 +161,6 @@ void test_rrc_sa_connection()
   srsran::string_to_mcc("001", &rrc_cfg_nr.mcc);
   srsran::string_to_mnc("01", &rrc_cfg_nr.mnc);
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
-  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
   TESTASSERT(
       rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, nullptr, bearer_mapper, nullptr) ==

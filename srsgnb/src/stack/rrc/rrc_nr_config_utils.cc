@@ -294,7 +294,7 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   cell.pdcch_cfg_common.ra_search_space_present = true;
   cell.pdcch_cfg_common.ra_search_space         = ss1.search_space_id;
 
-  return check_nr_cell_cfg_valid(cell, is_sa);
+  return SRSRAN_SUCCESS;
 }
 
 int set_derived_nr_rrc_params(rrc_nr_cfg_t& rrc_cfg)
@@ -302,19 +302,6 @@ int set_derived_nr_rrc_params(rrc_nr_cfg_t& rrc_cfg)
   for (rrc_cell_cfg_nr_t& cell : rrc_cfg.cell_list) {
     HANDLE_ERROR(set_derived_nr_cell_params(rrc_cfg.is_standalone, cell));
   }
-  return SRSRAN_SUCCESS;
-}
-
-int check_nr_cell_cfg_valid(const rrc_cell_cfg_nr_t& cell, bool is_sa)
-{
-  // verify SSB params are consistent
-  HANDLE_ERROR(check_nr_phy_cell_cfg_valid(cell.phy_cell));
-
-  return SRSRAN_SUCCESS;
-}
-
-int check_nr_phy_cell_cfg_valid(const phy_cell_cfg_nr_t& phy_cell)
-{
   return SRSRAN_SUCCESS;
 }
 
@@ -335,17 +322,6 @@ int check_nr_pdcch_cfg_valid(const srsran_pdcch_cfg_nr_t& pdcch)
   // Verify CORESET id
   for (uint32_t cs_id = 0; cs_id < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_id) {
     ERROR_IF_NOT(pdcch.coreset_present[cs_id] == used_coresets[cs_id], "CORESET#%d is configured but not used", cs_id);
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
-int check_rrc_nr_cfg_valid(const rrc_nr_cfg_t& cfg)
-{
-  ERROR_IF_NOT(cfg.cell_list.size() > 0, "The number of NR cells must be positive");
-
-  for (const rrc_cell_cfg_nr_t& cell : cfg.cell_list) {
-    HANDLE_ERROR(check_nr_cell_cfg_valid(cell, cfg.is_standalone));
   }
 
   return SRSRAN_SUCCESS;

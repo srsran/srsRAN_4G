@@ -90,8 +90,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
     return SRSRAN_ERROR;
   }
 
-  srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
-
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 

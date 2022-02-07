@@ -158,7 +158,6 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
   rrc_cfg_nr.cell_list[0].duplex_mode              = SRSRAN_DUPLEX_MODE_FDD;
   rrc_cfg_nr.is_standalone                         = true;
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
-  srsran_assert(check_rrc_nr_cfg_valid(rrc_cfg_nr) == SRSRAN_SUCCESS, "Invalid RRC NR configuration");
 
   TESTASSERT(
       rrc_obj.init(rrc_cfg_nr, &phy_obj, &mac_obj, &rlc_obj, &pdcp_obj, &ngap_obj, &gtpu_obj, bearer_mapper, nullptr) ==
