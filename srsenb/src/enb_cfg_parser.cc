@@ -1593,9 +1593,6 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
 
     // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
 
-    // PRACH
-    cfg.phy_cell.prach.hs_flag = phy_cfg_->prach_cnfg.prach_cfg_info.high_speed_flag;
-
     // PDSCH
     cfg.phy_cell.pdsch.rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
     cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;

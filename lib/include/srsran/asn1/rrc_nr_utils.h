@@ -81,7 +81,10 @@ void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 /***************************
  *      PHY Config
  **************************/
-bool make_phy_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* prach_cfg);
+bool make_phy_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type,
+                       srsran_duplex_mode_t                   duplex_mode,
+                       srsran_prach_cfg_t*                    prach_cfg);
+bool fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type);
 
 bool make_phy_tdd_cfg(const asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_duplex_config_nr_t*                  srsran_duplex_config_nr);

@@ -277,7 +277,9 @@ void rrc_nr::config_phy()
   bool ret = srsran::fill_phy_pdcch_cfg(
       cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &common_cfg.pdcch);
   srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
-  common_cfg.prach       = cfg.cell_list[0].phy_cell.prach;
+  srsran::make_phy_rach_cfg(du_cfg->cell(0).serv_cell_cfg_common().ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(),
+                            cfg.cell_list[0].duplex_mode,
+                            &common_cfg.prach);
   common_cfg.duplex_mode = cfg.cell_list[0].duplex_mode;
   ret                    = srsran::fill_phy_ssb_cfg(
       cfg.cell_list[0].phy_cell.carrier, du_cfg->cell(0).serv_cell_cfg_common(), &common_cfg.ssb);

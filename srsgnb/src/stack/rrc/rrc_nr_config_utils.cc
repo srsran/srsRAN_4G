@@ -114,16 +114,6 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
   phy_cell.ul_freq_hz       = 0;
   phy_cell.num_ra_preambles = 8;
 
-  // PRACH
-  phy_cell.prach.is_nr            = true;
-  phy_cell.prach.config_idx       = 0;
-  phy_cell.prach.root_seq_idx     = 1;
-  phy_cell.prach.freq_offset      = 1; // msg1-FrequencyStart (zero not supported with current PRACH implementation)
-  phy_cell.prach.zero_corr_zone   = 0;
-  phy_cell.prach.num_ra_preambles = phy_cell.num_ra_preambles;
-  phy_cell.prach.hs_flag          = false;
-  phy_cell.prach.tdd_config.configured = false;
-
   // PDSCH
   phy_cell.pdsch.rs_power = 0;
   phy_cell.pdsch.p_b      = 0;
@@ -303,14 +293,6 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   }
   cell.pdcch_cfg_common.ra_search_space_present = true;
   cell.pdcch_cfg_common.ra_search_space         = ss1.search_space_id;
-
-  // Derive remaining PHY cell params
-  cell.phy_cell.prach.num_ra_preambles      = cell.phy_cell.num_ra_preambles;
-  cell.phy_cell.prach.tdd_config.configured = (cell.duplex_mode == SRSRAN_DUPLEX_MODE_TDD);
-  if (cell.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-    // Note: Give more time margin to fit RAR
-    cell.phy_cell.prach.config_idx = 8;
-  }
 
   return check_nr_cell_cfg_valid(cell, is_sa);
 }

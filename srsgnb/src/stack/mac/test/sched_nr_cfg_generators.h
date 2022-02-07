@@ -60,6 +60,8 @@ inline sched_nr_cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_
       phy_cfg.carrier.offset_to_carrier;
   cell_cfg.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing =
       (asn1::rrc_nr::subcarrier_spacing_opts::options)phy_cfg.carrier.scs;
+  cell_cfg.ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
+  srsran::fill_rach_cfg_common(phy_cfg.prach, cell_cfg.ul_cfg_common.init_ul_bwp.rach_cfg_common.set_setup());
   cell_cfg.dl_cell_nof_prb    = phy_cfg.carrier.nof_prb;
   cell_cfg.nof_layers         = phy_cfg.carrier.max_mimo_layers;
   cell_cfg.ssb_periodicity_ms = phy_cfg.ssb.periodicity_ms;
@@ -77,7 +79,6 @@ inline sched_nr_cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_
   cell_cfg.bwps[0].pdsch    = phy_cfg.pdsch;
   cell_cfg.bwps[0].pusch    = phy_cfg.pusch;
   cell_cfg.bwps[0].pucch    = phy_cfg.pucch;
-  cell_cfg.bwps[0].prach    = phy_cfg.prach;
   cell_cfg.bwps[0].harq_ack = phy_cfg.harq_ack;
   cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
 

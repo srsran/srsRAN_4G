@@ -457,6 +457,8 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
 
   // Apply RACH Config Common
   if (not make_phy_rach_cfg(sib1.serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(),
+                            sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common_present ? SRSRAN_DUPLEX_MODE_TDD
+                                                                                      : SRSRAN_DUPLEX_MODE_FDD,
                             &phy_cfg.prach)) {
     logger.warning("Could not set phy rach config.");
     return;
@@ -1355,7 +1357,8 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
         mac->set_config(rach_cfg_nr);
 
         // Make the RACH configuration for PHY
-        if (not make_phy_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), &phy_cfg.prach)) {
+        if (not make_phy_rach_cfg(
+                ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), SRSRAN_DUPLEX_MODE_FDD, &phy_cfg.prach)) {
           logger.warning("Error parsing rach_cfg_common");
           return false;
         }
@@ -1640,8 +1643,9 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
         logger.debug("TDD UL DL config present, using TDD");
         srsran_duplex_config_nr_t duplex;
-        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex) == true) {
-          phy_cfg.duplex = duplex;
+        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex)) {
+          phy_cfg.duplex                      = duplex;
+          phy_cfg.prach.tdd_config.configured = true;
         } else {
           logger.warning("Warning while building duplex structure");
           return false;
