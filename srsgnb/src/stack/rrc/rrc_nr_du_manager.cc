@@ -83,12 +83,14 @@ int du_config_manager::add_cell()
     }
     cell.packed_sib1->N_bytes = bref.distance_bytes();
   }
-  logger.info(cell.packed_sib1->data(),
-              cell.packed_sib1->size(),
-              "BCCH-DL-SCH-Message (with SIB1) (%d B)",
-              cell.packed_sib1->size());
-  cell.sib1.to_json(js);
-  logger.info("SIB1 content: %s", js.to_string().c_str());
+  if (cfg.is_standalone) {
+    logger.info(cell.packed_sib1->data(),
+                cell.packed_sib1->size(),
+                "BCCH-DL-SCH-Message (with SIB1) (%d B)",
+                cell.packed_sib1->size());
+    cell.sib1.to_json(js);
+    logger.info("SIB1 content: %s", js.to_string().c_str());
+  }
 
   // Generate SSB SCS
   srsran_subcarrier_spacing_t ssb_scs;
@@ -98,6 +100,7 @@ int du_config_manager::add_cell()
   cell.ssb_scs.value      = (subcarrier_spacing_e::options)ssb_scs;
   cell.ssb_center_freq_hz = cfg.cell_list[cell.cc].ssb_freq_hz;
   cell.dl_freq_hz         = cfg.cell_list[cell.cc].phy_cell.carrier.dl_center_frequency_hz;
+  cell.is_standalone      = cfg.is_standalone;
 
   cells.push_back(std::move(obj));
   return SRSRAN_SUCCESS;
@@ -108,8 +111,8 @@ void fill_phy_pdcch_cfg_common(const du_cell_config& cell, srsran_pdcch_cfg_nr_t
   const serving_cell_cfg_common_sib_s& serv_cell    = cell.serv_cell_cfg_common();
   const pdcch_cfg_common_s&            pdcch_common = serv_cell.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
 
-  bool    is_sa        = pdcch_common.ctrl_res_set_zero_present;
-  uint8_t coreset0_idx = pdcch_common.ctrl_res_set_zero;
+  bool    is_sa        = cell.is_standalone;
+  uint8_t coreset0_idx = cell.mib.pdcch_cfg_sib1.ctrl_res_set_zero;
   auto scs = (srsran_subcarrier_spacing_t)serv_cell.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing.value;
   auto ssb_scs     = (srsran_subcarrier_spacing_t)cell.ssb_scs.value;
   uint32_t nof_prb = serv_cell.dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].carrier_bw;

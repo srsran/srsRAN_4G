@@ -35,6 +35,7 @@ public:
   srsran_ssb_patern_t                ssb_pattern;
   double                             ssb_center_freq_hz;
   double                             dl_freq_hz;
+  bool                               is_standalone;
 
   const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg_common() const
   {

@@ -1792,7 +1792,7 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
       pdcch->ra_search_space             = pdcch->search_space[ss.search_space_id];
       pdcch->ra_search_space.type        = srsran_search_space_type_common_1;
       pdcch->ra_search_space.nof_formats = 1;
-      pdcch->ra_search_space.formats[1]  = srsran_dci_format_nr_1_0;
+      pdcch->ra_search_space.formats[0]  = srsran_dci_format_nr_1_0;
     }
   }
   return true;

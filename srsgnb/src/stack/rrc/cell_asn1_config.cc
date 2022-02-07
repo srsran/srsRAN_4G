@@ -1054,7 +1054,7 @@ void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_commo
 
   out.common_ctrl_res_set_present = cell_cfg.pdcch_cfg_common.common_ctrl_res_set_present;
   out.common_ctrl_res_set         = cell_cfg.pdcch_cfg_common.common_ctrl_res_set;
-  out.common_search_space_list    = cell_cfg.pdcch_cfg_ded.search_spaces_to_add_mod_list;
+  out.common_search_space_list    = cell_cfg.pdcch_cfg_common.common_search_space_list;
 
   out.search_space_sib1_present           = true;
   out.search_space_sib1                   = 0;
