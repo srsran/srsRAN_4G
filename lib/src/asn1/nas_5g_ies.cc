@@ -4091,6 +4091,100 @@ SRSASN_CODE cause_5gsm_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* cause_5gsm_t::cause_value_type_::to_string() const
+{
+  switch (value) {
+    case cause_value_type_::operator_determined_barring:
+      return "Operator determined barring";
+    case cause_value_type_::insufficient_resources:
+      return "Insufficient resources";
+    case cause_value_type_::missing_or_unknown_dnn:
+      return "Missing or unknown DNN";
+    case cause_value_type_::unknown_pdu_session_type:
+      return "Unknown PDU session type";
+    case cause_value_type_::user_authentication_or_authorization_failed:
+      return "User authentication or authorization failed";
+    case cause_value_type_::request_rejected_unspecified:
+      return "Request rejected, unspecified";
+    case cause_value_type_::service_option_not_supported:
+      return "Service option not supported";
+    case cause_value_type_::requested_service_option_not_subscribed:
+      return "Requested service option not subscribed";
+    case cause_value_type_::pti_already_in_use:
+      return "PTI already in use";
+    case cause_value_type_::regular_deactivation:
+      return "Regular deactivation";
+    case cause_value_type_::network_failure:
+      return "Network failure";
+    case cause_value_type_::reactivation_requested:
+      return "Reactivation requested";
+    case cause_value_type_::semantic_error_in_the_tft_operation:
+      return "Semantic error in the TFT operation";
+    case cause_value_type_::syntactical_error_in_the_tft_operation:
+      return "Syntactical error in the TFT operation";
+    case cause_value_type_::invalid_pdu_session_identity:
+      return "Invalid PDU session identity";
+    case cause_value_type_::semantic_errors_in_packet_filter:
+      return "Semantic errors in packet filter";
+    case cause_value_type_::syntactical_error_in_packet_filter:
+      return "Syntactical error in packet filter";
+    case cause_value_type_::out_of_ladn_service_area:
+      return "Out of LADN service area";
+    case cause_value_type_::pti_mismatch:
+      return "PTI mismatch";
+    case cause_value_type_::pdu_session_type_i_pv4_only_allowed:
+      return "PDU session type IPv4 only allowed";
+    case cause_value_type_::pdu_session_type_i_pv6_only_allowed:
+      return "PDU session type IPv6 only allowed";
+    case cause_value_type_::pdu_session_does_not_exist:
+      return "PDU session does not exist";
+    case cause_value_type_::pdu_session_type_i_pv4v6_only_allowed:
+      return "PDU session type IPv4v6 only allowed";
+    case cause_value_type_::pdu_session_type_unstructured_only_allowed:
+      return "PDU session type Unstructured only allowed";
+    case cause_value_type_::unsupported_5_qi_value:
+      return "Unsupported 5QI value";
+    case cause_value_type_::pdu_session_type_ethernet_only_allowed:
+      return "PDU session type Ethernet only allowed";
+    case cause_value_type_::insufficient_resources_for_specific_slice_and_dnn:
+      return "Insufficient resources for specific slice and DNN";
+    case cause_value_type_::not_supported_ssc_mode:
+      return "Not supported SSC mode";
+    case cause_value_type_::insufficient_resources_for_specific_slice:
+      return "Insufficient resources for specific slice";
+    case cause_value_type_::missing_or_unknown_dnn_in_a_slice:
+      return "Missing or unknown DNN in a slice";
+    case cause_value_type_::invalid_pti_value:
+      return "Invalid PTI value";
+    case cause_value_type_::maximum_data_rate_per_ue_for_user_plane_integrity_protection_is_too_low:
+      return "Maximum data rate per UE for user-plane integrity protection is too low";
+    case cause_value_type_::semantic_error_in_the_qo_s_operation:
+      return "Semantic error in the QoS operation";
+    case cause_value_type_::syntactical_error_in_the_qo_s_operation:
+      return "Syntactical error in the QoS operation";
+    case cause_value_type_::invalid_mapped_eps_bearer_identity:
+      return "Invalid mapped EPS bearer identity";
+    case cause_value_type_::semantically_incorrect_message:
+      return "Semantically incorrect message";
+    case cause_value_type_::invalid_mandatory_information:
+      return "Invalid mandatory information";
+    case cause_value_type_::message_type_non_existent_or_not_implemented:
+      return "Message type non-existent or not implemented";
+    case cause_value_type_::message_type_not_compatible_with_the_protocol_state:
+      return "Message type not compatible with the protocol state";
+    case cause_value_type_::information_element_non_existent_or_not_implemented:
+      return "Information element non-existent or not implemented";
+    case cause_value_type_::conditional_ie_error:
+      return "Conditional IE error";
+    case cause_value_type_::message_not_compatible_with_the_protocol_state:
+      return "Message not compatible with the protocol state";
+    case cause_value_type_::protocol_error_unspecified:
+      return "Protocol error, unspecified";
+    default:
+      return "Invalid Choice";
+  }
+}
+
 // IE: GPRS timer
 // Reference: 9.11.2.3
 SRSASN_CODE gprs_timer_t::pack(asn1::bit_ref& bref)

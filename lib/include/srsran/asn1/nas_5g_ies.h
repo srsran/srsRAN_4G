@@ -2397,7 +2397,7 @@ public:
       protocol_error_unspecified                                              = 0b01101111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<cause_value_type_, 8> cause_value_type;
 
