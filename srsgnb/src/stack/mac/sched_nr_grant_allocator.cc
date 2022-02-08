@@ -353,33 +353,51 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   slot_cfg.idx = ue.pdsch_slot.to_uint();
   // Value 0.95 is from TS 38.214 v15.14.00, Section 5.1.3, page 17
   const static float max_R = 0.95;
-  double             R_prime = max_R;
+  double             R_prime;
+  const static int   min_MCS_ccch = 4;
+  // The purpose of the external loop is to reset the MCS to a min value of 4 if there are not enough PRBs to
+  // allocate the SRB0/CCCH. This loop only affects the low MCS values
   while (true) {
-    // Generate PDSCH
-    bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
-    srsran_assert(success, "Error converting DCI to grant");
-    if (ue.h_dl->nof_retx() != 0) {
-      srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
+    // The purpose of the internal loop is to decrease the MCS if the effective coderate is too high. This loop
+    // only affects the high MCS values
+    while (true) {
+      // Generate PDSCH
+      bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+      srsran_assert(success, "Error converting DCI to grant");
+      if (ue.h_dl->nof_retx() != 0) {
+        srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
+      }
+      R_prime = pdsch.sch.grant.tb[0].R_prime;
+      if (ue.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0) {
+        break;
+      }
+      // Decrease MCS if first tx and rate is too high
+      mcs--;
+      pdcch.dci.mcs = mcs;
     }
-    R_prime = pdsch.sch.grant.tb[0].R_prime;
-    if (ue.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0) {
+    if (R_prime >= max_R and mcs == 0) {
+      logger.warning("Couldn't find mcs that leads to R<0.95");
+    }
+    ue.h_dl->set_mcs(mcs);
+    ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS
+    pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
+    pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
+
+    // Select scheduled LCIDs and update UE buffer state
+    bwp_pdsch_slot.dl.data.emplace_back();
+    // NOTE: ue.h_dl->tbs() has to be converted from bits to bytes
+    bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back());
+    if (segmented_ccch_pdu) {
+      // In case of segmented PDU for CCCH, set minimum MCS to 4 and re-run the outer while loop
+      bwp_pdsch_slot.dl.data.pop_back();
+      mcs           = min_MCS_ccch;
+      pdcch.dci.mcs = mcs;
+      logger.warning(
+          "SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
+    } else {
       break;
     }
-    // Decrease MCS if first tx and rate is too high
-    mcs--;
-    pdcch.dci.mcs = mcs;
   }
-  if (R_prime >= max_R and mcs == 0) {
-    logger.warning("Couldn't find mcs that leads to R<0.95");
-  }
-  ue.h_dl->set_mcs(mcs);
-  ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS
-  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
-  pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
-
-  // Select scheduled LCIDs and update UE buffer state
-  bwp_pdsch_slot.dl.data.emplace_back();
-  ue.build_pdu(ue.h_dl->tbs(), bwp_pdsch_slot.dl.data.back());
 
   // Generate PUCCH
   bwp_uci_slot.pending_acks.emplace_back();

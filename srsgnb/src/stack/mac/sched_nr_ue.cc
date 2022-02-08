@@ -27,8 +27,16 @@ int ue_buffer_manager::get_dl_tx_total() const
   return total_bytes;
 }
 
-void ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+// Return true if there is no SRB0/CCCH MAC PDU segmentation, false otherwise
+bool ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
 {
+  // In case of SRB0/CCCH PDUs, we need to check whether there is PDU segmentation; if LCID = 0 has emtpy buffer, no
+  // need to perform this check
+  bool check_ccch_pdu_segmentation =
+      parent->get_dl_tx_total(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) > 0 ? true : false;
+
+  // First step: allocate MAC CEs until resources allow
+  srsran::deque<ce_t> restore_ces;
   for (ce_t ce : parent->pending_ces) {
     if (ce.cc == cc) {
       // Note: This check also avoids thread collisions across UE carriers
@@ -38,17 +46,35 @@ void ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_
       }
       rem_bytes -= size_ce;
       pdu.subpdus.push_back(ce.lcid);
-      parent->pending_ces.pop_front();
+      // If there is possibility of CCCH segmentation, we need to save the MAC CEs in a tmp queue to be later restored
+      if (check_ccch_pdu_segmentation) {
+        restore_ces.push_back(parent->pending_ces.front());
+        parent->pending_ces.pop_front();
+      }
     }
   }
 
+  // Second step: allocate the remaining LCIDs (LCIDs for MAC CEs are addressed above)
   for (uint32_t lcid = 0; rem_bytes > 0 and is_lcid_valid(lcid); ++lcid) {
     uint32_t pending_lcid_bytes = parent->get_dl_tx_total(lcid);
+    // Verify if the TBS is big enough to store the entire CCCH buffer
+    // Note: (pending_lcid_bytes > rem_bytes) implies (check_ccch_pdu_segmentation == true)
+    if (lcid == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH and pending_lcid_bytes > rem_bytes) {
+      // restore the MAC CEs as they were at the beginning of the function
+      for (ce_t ce : restore_ces) {
+        parent->pending_ces.push_back(ce);
+      }
+      // double check if this line is required
+      pdu.subpdus.clear();
+      return false;
+    }
     if (pending_lcid_bytes > 0) {
       rem_bytes -= std::min(rem_bytes, pending_lcid_bytes);
       pdu.subpdus.push_back(lcid);
     }
   }
+
+  return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
