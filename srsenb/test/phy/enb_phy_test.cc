@@ -1209,8 +1209,8 @@ private:
   srslog::basic_logger& logger;
 
   args_t                                            args = {};   ///< Test arguments
-  srsenb::phy_args_t                                phy_args;    ///< PHY arguments
-  srsenb::phy_cfg_t                                 phy_cfg;     ///< eNb Cell/Carrier configuration
+  srsenb::phy_args_t                                phy_args = {};   ///< PHY arguments
+  srsenb::phy_cfg_t                                 phy_cfg  = {};   ///< eNb Cell/Carrier configuration
   srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_cfg; ///< UE PHY configuration
 
   uint64_t tti_counter = 0;
