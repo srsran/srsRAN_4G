@@ -774,22 +774,23 @@ int retx_segment_test()
   // PDU metrics
   TESTASSERT_EQ(0, metrics2.num_tx_sdus);
   TESTASSERT_EQ(5, metrics2.num_rx_sdus);
-  /*
   TESTASSERT_EQ(0, metrics2.num_tx_sdu_bytes);
   TESTASSERT_EQ(15, metrics2.num_rx_sdu_bytes); // 5 SDUs, 3 bytes each
   TESTASSERT_EQ(0, metrics2.num_lost_sdus);
   // SDU metrics
-  TESTASSERT_EQ(2, metrics2.num_tx_pdus);          // Two status PDUs
-  TESTASSERT_EQ(7, metrics2.num_rx_pdus);          // 7 PDUs (8 tx'ed, but one was lost)
-  TESTASSERT_EQ(5 + 3, metrics2.num_tx_pdu_bytes); // Two status PDU (one with a NACK)
-  TESTASSERT_EQ(33, metrics2.num_rx_pdu_bytes);    // 2 Bytes * (NBUFFS-1) (header size) + (NBUFFS-1) * 3 (data)
-                                                   // 3 (1 retx no SO) + 2 * 5 (2 retx with SO) = 33
-  TESTASSERT_EQ(0, metrics2.num_lost_sdus);        // No lost SDUs
+  TESTASSERT_EQ(2, metrics2.num_tx_pdus);       // Two status PDUs
+  TESTASSERT_EQ(15, metrics2.num_rx_pdus);      // 15 PDUs (18 tx'ed, but three were lost)
+  TESTASSERT_EQ(24, metrics2.num_tx_pdu_bytes); // Two status PDU. One with just an ack (3 bytes)
+                                                // Another with 3 NACKs all with SO. (3 + 3*6 bytes)
+  TESTASSERT_EQ(65, metrics2.num_rx_pdu_bytes); // 3 Bytes (header + data size, without SO) * 5 (N PDUs without SO)
+                                                // 5 bytes (header + data size, with SO) * 10 (N PDUs with SO)
+                                                // = 81 bytes
+  TESTASSERT_EQ(0, metrics2.num_lost_sdus);     // No lost SDUs
 
   // Check state
   rlc_am_nr_rx_state_t state2_rx = rx2->get_rx_state();
   TESTASSERT_EQ(5, state2_rx.rx_next);
-  */
+
   return SRSRAN_SUCCESS;
 }
 
