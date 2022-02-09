@@ -385,15 +385,22 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
 
     // Select scheduled LCIDs and update UE buffer state
     bwp_pdsch_slot.dl.data.emplace_back();
-    // NOTE: ue.h_dl->tbs() has to be converted from bits to bytes
-    bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back());
-    if (segmented_ccch_pdu) {
+    // NOTES: 1) ue.h_dl->tbs() has to be converted from bits to bytes
+    //        2) In case of CCCH segmentation, we'll need to repeat the scheduling with a higher MCS. Hence, the
+    //        function ue.build_pdu() will reset the LCIDs and UE buffer states as before its execution if the flag
+    //        "mcs<min_MCS_ccch" is true
+    bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back(), mcs < min_MCS_ccch);
+    if (segmented_ccch_pdu and mcs < min_MCS_ccch) {
       // In case of segmented PDU for CCCH, set minimum MCS to 4 and re-run the outer while loop
       bwp_pdsch_slot.dl.data.pop_back();
       mcs           = min_MCS_ccch;
       pdcch.dci.mcs = mcs;
-      logger.warning(
-          "SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
+      logger.info("SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
+    } else if (segmented_ccch_pdu /* and mcs >= min_MCS_ccch */) {
+      // With MCS >= then min_MCS_ccch, it is not possible to allocate SRB0/CCCH without PDU segmentation
+      logger.error("SCHED: Insufficient resources to allocate SRB0/CCCH without PDU segmentation for rnti=0x%x",
+                   ue->rnti);
+      break;
     } else {
       break;
     }

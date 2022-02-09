@@ -27,8 +27,18 @@ int ue_buffer_manager::get_dl_tx_total() const
   return total_bytes;
 }
 
-// Return true if there is no SRB0/CCCH MAC PDU segmentation, false otherwise
-bool ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+/**
+ * @brief Allocates LCIDs and update US buffer states depending on available resources and checks if there is SRB0/CCCH
+ MAC PDU segmentation
+
+ * @param rem_bytes TBS to be filled with MAC CEs and MAC SDUs [in bytes]
+ * @param reset_buf_states If true, when there is SRB0/CCCH MAC PDU segmentation, restore the UE buffers and scheduled
+ LCIDs as before running this function
+ * @return true if there is no SRB0/CCCH MAC PDU segmentation, false otherwise
+ */
+bool ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t                      rem_bytes,
+                                                   sched_nr_interface::dl_pdu_t& pdu,
+                                                   bool                          reset_buf_states)
 {
   // In case of SRB0/CCCH PDUs, we need to check whether there is PDU segmentation; if LCID = 0 has emtpy buffer, no
   // need to perform this check
@@ -47,10 +57,10 @@ bool ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_
       rem_bytes -= size_ce;
       pdu.subpdus.push_back(ce.lcid);
       // If there is possibility of CCCH segmentation, we need to save the MAC CEs in a tmp queue to be later restored
-      if (check_ccch_pdu_segmentation) {
+      if (check_ccch_pdu_segmentation and reset_buf_states) {
         restore_ces.push_back(parent->pending_ces.front());
-        parent->pending_ces.pop_front();
       }
+      parent->pending_ces.pop_front();
     }
   }
 
@@ -60,12 +70,16 @@ bool ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_
     // Verify if the TBS is big enough to store the entire CCCH buffer
     // Note: (pending_lcid_bytes > rem_bytes) implies (check_ccch_pdu_segmentation == true)
     if (lcid == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH and pending_lcid_bytes > rem_bytes) {
-      // restore the MAC CEs as they were at the beginning of the function
-      for (ce_t ce : restore_ces) {
-        parent->pending_ces.push_back(ce);
+      if (reset_buf_states) {
+        // restore the MAC CEs as they were at the beginning of the function
+        for (ce_t ce : restore_ces) {
+          parent->pending_ces.push_back(ce);
+        }
+        // double check if this line is required
+        pdu.subpdus.clear();
+      } else {
+        pdu.subpdus.push_back(lcid);
       }
-      // double check if this line is required
-      pdu.subpdus.clear();
       return false;
     }
     if (pending_lcid_bytes > 0) {
