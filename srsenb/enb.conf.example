@@ -217,7 +217,7 @@ enable = false
 #init_dl_cqi=5
 #max_sib_coderate=0.3
 #pdcch_cqi_offset=0
-#nr_pdsch_mcs=28
+nr_pdsch_mcs=28
 #nr_pusch_mcs=28
 
 #####################################################################

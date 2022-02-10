@@ -13,6 +13,7 @@
 #include "srsgnb/hdr/stack/mac/sched_nr_grant_allocator.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_bwp.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_helpers.h"
+#include "srsran/mac/mac_sch_pdu_nr.h"
 
 namespace srsenb {
 namespace sched_nr_impl {
@@ -326,8 +327,9 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   // Allocate PDSCH
   pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_ue_pdsch_unchecked(ss_id, dci_fmt, dl_grant, ue.cfg(), pdcch.dci);
 
-  // Allocate HARQ
-  int mcs = ue->fixed_pdsch_mcs();
+  // Select MCS and Allocate HARQ
+  int              mcs          = ue->fixed_pdsch_mcs();
+  const static int min_MCS_ccch = 4;
   if (ue.h_dl->empty()) {
     if (mcs < 0) {
       mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ ue.dl_cqi(),
@@ -340,6 +342,13 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
         logger.warning("SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", ue->rnti);
         mcs = 0;
       }
+    }
+    // Overwrite MCS if there are pending bytes for LCID. The optimal way would be to verify that there are pending
+    // bytes and that the MAC SDU for CCCH gets segmented. But since the event of segmentation happens at most a couple
+    // of times (e.g., to send msg4/RRCSetup), we opt for the less optimal but simpler approach.
+    if (ue.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs < min_MCS_ccch) {
+      mcs = min_MCS_ccch;
+      logger.info("SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
     }
     bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4, pdcch.dci);
     srsran_assert(success, "Failed to allocate DL HARQ");
@@ -354,56 +363,39 @@ alloc_result bwp_slot_allocator::alloc_pdsch(slot_ue& ue, uint32_t ss_id, const 
   // Value 0.95 is from TS 38.214 v15.14.00, Section 5.1.3, page 17
   const static float max_R = 0.95;
   double             R_prime;
-  const static int   min_MCS_ccch = 4;
-  // The purpose of the external loop is to reset the MCS to a min value of 4 if there are not enough PRBs to
-  // allocate the SRB0/CCCH. This loop only affects the low MCS values
+  // The purpose of the internal loop is to decrease the MCS if the effective coderate is too high. This loop
+  // only affects the high MCS values
   while (true) {
-    // The purpose of the internal loop is to decrease the MCS if the effective coderate is too high. This loop
-    // only affects the high MCS values
-    while (true) {
-      // Generate PDSCH
-      bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
-      srsran_assert(success, "Error converting DCI to grant");
-      if (ue.h_dl->nof_retx() != 0) {
-        srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
-      }
-      R_prime = pdsch.sch.grant.tb[0].R_prime;
-      if (ue.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0) {
-        break;
-      }
-      // Decrease MCS if first tx and rate is too high
-      mcs--;
-      pdcch.dci.mcs = mcs;
+    // Generate PDSCH
+    bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);
+    srsran_assert(success, "Error converting DCI to grant");
+    if (ue.h_dl->nof_retx() != 0) {
+      srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");
     }
-    if (R_prime >= max_R and mcs == 0) {
-      logger.warning("Couldn't find mcs that leads to R<0.95");
+    R_prime = pdsch.sch.grant.tb[0].R_prime;
+    if (ue.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0 or
+        (ue.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs <= min_MCS_ccch)) {
+      break;
     }
-    ue.h_dl->set_mcs(mcs);
-    ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS
-    pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
-    pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
+    // Decrease MCS if first tx and rate is too high
+    mcs--;
+    pdcch.dci.mcs = mcs;
+  }
+  if (R_prime >= max_R and mcs == 0) {
+    logger.warning("Couldn't find mcs that leads to R<0.95");
+  }
 
-    // Select scheduled LCIDs and update UE buffer state
-    bwp_pdsch_slot.dl.data.emplace_back();
-    // NOTES: 1) ue.h_dl->tbs() has to be converted from bits to bytes
-    //        2) In case of CCCH segmentation, we'll need to repeat the scheduling with a higher MCS. Hence, the
-    //        function ue.build_pdu() will reset the LCIDs and UE buffer states as before its execution if the flag
-    //        "mcs<min_MCS_ccch" is true
-    bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back(), mcs < min_MCS_ccch);
-    if (segmented_ccch_pdu and mcs < min_MCS_ccch) {
-      // In case of segmented PDU for CCCH, set minimum MCS to 4 and re-run the outer while loop
-      bwp_pdsch_slot.dl.data.pop_back();
-      mcs           = min_MCS_ccch;
-      pdcch.dci.mcs = mcs;
-      logger.info("SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
-    } else if (segmented_ccch_pdu /* and mcs >= min_MCS_ccch */) {
-      // With MCS >= then min_MCS_ccch, it is not possible to allocate SRB0/CCCH without PDU segmentation
-      logger.error("SCHED: Insufficient resources to allocate SRB0/CCCH without PDU segmentation for rnti=0x%x",
-                   ue->rnti);
-      break;
-    } else {
-      break;
-    }
+  ue.h_dl->set_mcs(mcs);
+  ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS
+  pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();
+  pdsch.data[0]                       = ue.h_dl->get_tx_pdu()->get();
+
+  // Select scheduled LCIDs and update UE buffer state
+  bwp_pdsch_slot.dl.data.emplace_back();
+  // NOTE: ue.h_dl->tbs() has to be converted from bits to bytes
+  bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back());
+  if (segmented_ccch_pdu) {
+    logger.error("SCHED: Insufficient resources to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
   }
 
   // Generate PUCCH

@@ -61,7 +61,8 @@ public:
   struct pdu_builder {
     pdu_builder() = default;
     explicit pdu_builder(uint32_t cc_, ue_buffer_manager& parent_) : cc(cc_), parent(&parent_) {}
-    bool alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu, bool reset_buf_states = false);
+    bool     alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu);
+    uint32_t pending_bytes(uint32_t lcid) const { return parent->get_dl_tx(lcid); }
 
   private:
     uint32_t           cc     = SRSRAN_MAX_CARRIERS;
@@ -182,8 +183,10 @@ public:
   /// Build PDU with MAC CEs and MAC SDUs
   bool build_pdu(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu, bool reset_buf_states = false)
   {
-    return ue->pdu_builder.alloc_subpdus(rem_bytes, pdu, reset_buf_states);
+    return ue->pdu_builder.alloc_subpdus(rem_bytes, pdu);
   }
+
+  bool get_pending_bytes(uint32_t lcid) const { return ue->pdu_builder.pending_bytes(lcid); }
 
   /// Channel Information Getters
   uint32_t dl_cqi() const { return ue->dl_cqi; }
