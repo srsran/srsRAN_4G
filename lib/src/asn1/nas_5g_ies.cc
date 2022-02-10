@@ -42,6 +42,34 @@ SRSASN_CODE registration_type_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* registration_type_5gs_t::registration_type_type_::to_string() const
+{
+  switch (value) {
+    case registration_type_type_::initial_registration:
+      return "Initial Registration";
+    case registration_type_type_::mobility_registration_updating:
+      return "Mobility Registration Updating";
+    case registration_type_type_::periodic_registration_updating:
+      return "Periodic Registration Updating";
+    case registration_type_type_::emergency_registration:
+      return "Emergency Registration";
+    case registration_type_type_::reserved:
+      return "Reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* registration_type_5gs_t::follow_on_request_bit_type_::to_string() const
+{
+  switch (value) {
+    case follow_on_request_bit_type_::no_follow_on_request_pending:
+      return "no_follow_on_request_pending ";
+    case follow_on_request_bit_type_::follow_on_request_pending:
+      return "follow_on_request_pending";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: key set identifier
 // Reference: 9.11.3.32
 SRSASN_CODE key_set_identifier_t::pack(asn1::bit_ref& bref)
@@ -60,6 +88,26 @@ SRSASN_CODE key_set_identifier_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* key_set_identifier_t::security_context_flag_type_::to_string() const
+{
+  switch (value) {
+    case security_context_flag_type_::native_security_context:
+      return "native security context";
+    case security_context_flag_type_::mapped_security_context:
+      return "mapped security context";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* key_set_identifier_t::nas_key_set_identifier_type_::to_string() const
+{
+  switch (value) {
+    case nas_key_set_identifier_type_::no_key_is_available_or_reserved:
+      return "no key is available or reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: 5GS mobile identity
 // Reference: 9.11.3.4
 SRSASN_CODE mobile_identity_5gs_t::pack(asn1::bit_ref& bref)
@@ -180,7 +228,7 @@ SRSASN_CODE mobile_identity_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-const char* mobile_identity_5gs_t::identity_types_::to_string()
+const char* mobile_identity_5gs_t::identity_types_::to_string() const
 {
   switch (value) {
     case identity_types_::no_identity:
@@ -1173,6 +1221,17 @@ SRSASN_CODE ue_usage_setting_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* ue_usage_setting_t::UE_usage_setting_type_::to_string() const
+{
+  switch (value) {
+    case UE_usage_setting_type_::voice_centric:
+      return "voice centric";
+    case UE_usage_setting_type_::data_centric:
+      return "data centric ";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: 5GS DRX parameters
 // Reference: 9.11.3.2A
 SRSASN_CODE drx_parameters_5gs_t::pack(asn1::bit_ref& bref)
@@ -1213,6 +1272,23 @@ SRSASN_CODE drx_parameters_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* drx_parameters_5gs_t::drx_value_type_::to_string() const
+{
+  switch (value) {
+    case drx_value_type_::drx_value_not_specified:
+      return "DRX value not specified";
+    case drx_value_type_::drx_cycle_parameter_t_32:
+      return "DRX cycle parameter T 32 ";
+    case drx_value_type_::drx_cycle_parameter_t_64:
+      return "DRX cycle parameter T 64 ";
+    case drx_value_type_::drx_cycle_parameter_t_128:
+      return "DRX cycle parameter T 128 ";
+    case drx_value_type_::drx_cycle_parameter_t_256:
+      return "DRX cycle parameter T 256 ";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: EPS NAS message container
 // Reference: 9.11.3.24
 SRSASN_CODE eps_nas_message_container_t::pack(asn1::bit_ref& bref)
@@ -1300,6 +1376,31 @@ SRSASN_CODE payload_container_type_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* payload_container_type_t::Payload_container_type_type_::to_string() const
+{
+  switch (value) {
+    case Payload_container_type_type_::n1_sm_information:
+      return "N1 SM information";
+    case Payload_container_type_type_::sms:
+      return "SMS";
+    case Payload_container_type_type_::lte_positioning_protocol_lpp_message_container:
+      return "LTE Positioning Protocol LPP message container";
+    case Payload_container_type_type_::sor_transparent_container:
+      return "SOR transparent container";
+    case Payload_container_type_type_::ue_policy_container:
+      return "UE policy container";
+    case Payload_container_type_type_::ue_parameters_update_transparent_container:
+      return "UE parameters update transparent container";
+    case Payload_container_type_type_::location_services_message_container:
+      return "Location services message container";
+    case Payload_container_type_type_::c_io_t_user_data_container:
+      return "CIoT user data container";
+    case Payload_container_type_type_::multiple_payloads:
+      return "Multiple payloads";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Payload container
 // Reference: 9.11.3.39
 SRSASN_CODE payload_container_t::pack(asn1::bit_ref& bref)
@@ -1395,6 +1496,58 @@ SRSASN_CODE update_type_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* update_type_5gs_t::SMS_requested_type_::to_string() const
+{
+  switch (value) {
+    case SMS_requested_type_::sms_over_nas_not_supported:
+      return "SMS over NAS not supported";
+    case SMS_requested_type_::sms_over_nas_supported:
+      return "SMS over NAS supported";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* update_type_5gs_t::NG_RAN_RCU_type_::to_string() const
+{
+  switch (value) {
+    case NG_RAN_RCU_type_::ue_radio_capability_update_not_needed:
+      return "UE radio capability update not needed";
+    case NG_RAN_RCU_type_::ue_radio_capability_update_needed:
+      return "UE radio capability update needed";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* update_type_5gs_t::PNB_5GS_CIoT_type_::to_string() const
+{
+  switch (value) {
+    case PNB_5GS_CIoT_type_::no_additional_information:
+      return "no additional information";
+    case PNB_5GS_CIoT_type_::control_plane_c_io_t_5gs_optimization:
+      return "control plane CIoT 5GS optimization";
+    case PNB_5GS_CIoT_type_::user_plane_c_io_t_5gs_optimization:
+      return "user plane CIoT 5GS optimization";
+    case PNB_5GS_CIoT_type_::reserved:
+      return "reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* update_type_5gs_t::PNB_EPS_CIoT_type_::to_string() const
+{
+  switch (value) {
+    case PNB_EPS_CIoT_type_::no_additional_information:
+      return "no additional information";
+    case PNB_EPS_CIoT_type_::control_plane_c_io_t_eps_optimization:
+      return "control plane CIoT EPS optimization";
+    case PNB_EPS_CIoT_type_::user_plane_c_io_t_eps_optimization:
+      return "user plane CIoT EPS optimization";
+    case PNB_EPS_CIoT_type_::reserved:
+      return "reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Mobile station classmark 2
 // Reference: 9.11.3.31C
 SRSASN_CODE mobile_station_classmark_2_t::pack(asn1::bit_ref& bref)
@@ -1615,6 +1768,84 @@ SRSASN_CODE extended_drx_parameters_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* extended_drx_parameters_t::Paging_Time_Window_type_::to_string() const
+{
+  switch (value) {
+    case Paging_Time_Window_type_::seconds_0:
+      return "seconds_0";
+    case Paging_Time_Window_type_::second_1:
+      return "second_1";
+    case Paging_Time_Window_type_::seconds_2:
+      return "seconds_2";
+    case Paging_Time_Window_type_::seconds_3:
+      return "seconds_3";
+    case Paging_Time_Window_type_::seconds_4:
+      return "seconds_4";
+    case Paging_Time_Window_type_::seconds_5:
+      return "seconds_5";
+    case Paging_Time_Window_type_::seconds_6:
+      return "seconds_6";
+    case Paging_Time_Window_type_::seconds_7:
+      return "seconds_7";
+    case Paging_Time_Window_type_::seconds_8:
+      return "seconds_8";
+    case Paging_Time_Window_type_::seconds_9:
+      return "seconds_9";
+    case Paging_Time_Window_type_::seconds_10:
+      return "seconds_10";
+    case Paging_Time_Window_type_::seconds_12:
+      return "seconds_12";
+    case Paging_Time_Window_type_::seconds_14:
+      return "seconds_14";
+    case Paging_Time_Window_type_::seconds_16:
+      return "seconds_16";
+    case Paging_Time_Window_type_::seconds_18:
+      return "seconds_18";
+    case Paging_Time_Window_type_::seconds_20:
+      return "seconds_20";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* extended_drx_parameters_t::eDRX_value_type_::to_string() const
+{
+  switch (value) {
+    case eDRX_value_type_::second_1_28:
+      return "second_1_28";
+    case eDRX_value_type_::second_2_56:
+      return "second_2_56";
+    case eDRX_value_type_::second_3_84:
+      return "second_3_84";
+    case eDRX_value_type_::second_5_12:
+      return "second_5_12";
+    case eDRX_value_type_::second_6_4:
+      return "second_6_4";
+    case eDRX_value_type_::second_7_68:
+      return "second_7_68";
+    case eDRX_value_type_::second_8_96:
+      return "second_8_96";
+    case eDRX_value_type_::second_10_24:
+      return "second_10_24";
+    case eDRX_value_type_::second_11_52:
+      return "second_11_52";
+    case eDRX_value_type_::second_12_8:
+      return "second_12_8";
+    case eDRX_value_type_::second_14_08:
+      return "second_14_08";
+    case eDRX_value_type_::second_15_36:
+      return "second_15_36";
+    case eDRX_value_type_::second_16_64:
+      return "second_16_64";
+    case eDRX_value_type_::second_17_92:
+      return "second_17_92";
+    case eDRX_value_type_::second_19_20:
+      return "second_19_20";
+    case eDRX_value_type_::second_20_48:
+      return "second_20_48";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: GPRS timer 3
 // Reference: 9.11.2.5
 SRSASN_CODE gprs_timer_3_t::pack(asn1::bit_ref& bref)
@@ -1652,6 +1883,29 @@ SRSASN_CODE gprs_timer_3_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* gprs_timer_3_t::Unit_type_::to_string() const
+{
+  switch (value) {
+    case Unit_type_::value_is_incremented_in_multiples_of_10_minutes:
+      return "value is incremented in multiples of 10 minutes";
+    case Unit_type_::value_is_incremented_in_multiples_of_1_hour:
+      return "value is incremented in multiples of 1 hour";
+    case Unit_type_::value_is_incremented_in_multiples_of_10_hours:
+      return "value is incremented in multiples of 10 hours";
+    case Unit_type_::value_is_incremented_in_multiples_of_2_seconds:
+      return "value is incremented in multiples of 2 seconds";
+    case Unit_type_::value_is_incremented_in_multiples_of_30_seconds:
+      return "value is incremented in multiples of 30 seconds";
+    case Unit_type_::value_is_incremented_in_multiples_of_1_minute:
+      return "value is incremented in multiples of 1 minute";
+    case Unit_type_::value_is_incremented_in_multiples_of_320_hours:
+      return "value is incremented in multiples of 320 hours";
+    case Unit_type_::value_indicates_that_the_timer_is_deactivated:
+      return "value indicates that the timer is deactivated";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: UE radio capability ID
 // Reference: 9.11.3.68
 SRSASN_CODE ue_radio_capability_id_t::pack(asn1::bit_ref& bref)
@@ -1847,6 +2101,27 @@ SRSASN_CODE nb_n1_mode_drx_parameters_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* nb_n1_mode_drx_parameters_t::nb_n1_mode_drx_value_type_::to_string() const
+{
+  switch (value) {
+    case nb_n1_mode_drx_value_type_::drx_value_not_specified:
+      return "DRX value not specified";
+    case nb_n1_mode_drx_value_type_::drx_cycle_parameter_t_32:
+      return "DRX cycle parameter T 32";
+    case nb_n1_mode_drx_value_type_::drx_cycle_parameter_t_64:
+      return "DRX cycle parameter T 64";
+    case nb_n1_mode_drx_value_type_::drx_cycle_parameter_t_128:
+      return "DRX cycle parameter T 128";
+    case nb_n1_mode_drx_value_type_::drx_cycle_parameter_t_256:
+      return "DRX cycle parameter T 256";
+    case nb_n1_mode_drx_value_type_::drx_cycle_parameter_t_512:
+      return "DRX cycle parameter T 512";
+    case nb_n1_mode_drx_value_type_::drx_cycle_parameter_t_1024:
+      return "DRX cycle parameter T 1024";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: 5GS registration result
 // Reference: 9.11.3.6
 SRSASN_CODE registration_result_5gs_t::pack(asn1::bit_ref& bref)
@@ -1893,6 +2168,54 @@ SRSASN_CODE registration_result_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* registration_result_5gs_t::Emergency_registered_type_::to_string() const
+{
+  switch (value) {
+    case Emergency_registered_type_::not_registered_for_emergency_services:
+      return "Not registered for emergency services";
+    case Emergency_registered_type_::registered_for_emergency_services:
+      return "Registered for emergency services";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* registration_result_5gs_t::NSSAA_to_be_performed_type_::to_string() const
+{
+  switch (value) {
+    case NSSAA_to_be_performed_type_::nssaa_is_not_to_be_performed:
+      return "NSSAA is not to be performed";
+    case NSSAA_to_be_performed_type_::nssaa_is_to_be_performed:
+      return "NSSAA is to be performed";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* registration_result_5gs_t::SMS_allowed_type_::to_string() const
+{
+  switch (value) {
+    case SMS_allowed_type_::sms_over_nas_not_allowed:
+      return "SMS over NAS not allowed";
+    case SMS_allowed_type_::sms_over_nas_allowed:
+      return "SMS over NAS allowed";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* registration_result_5gs_t::registration_result_type_::to_string() const
+{
+  switch (value) {
+    case registration_result_type_::access_3_gpp:
+      return "access 3GPP";
+    case registration_result_type_::non_3_gpp_access:
+      return "Non-3GPP access";
+    case registration_result_type_::access_3_gpp_and_non_3_gpp_access:
+      return "access 3GPP and non-3GPP access";
+    case registration_result_type_::reserved:
+      return "reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: PLMN list
 // Reference: 9.11.3.45
 SRSASN_CODE plmn_list_t::pack(asn1::bit_ref& bref)
@@ -1961,6 +2284,21 @@ SRSASN_CODE tracking_area_identity_list_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* tracking_area_identity_list_5gs_t::type_of_list_type_::to_string() const
+{
+  switch (value) {
+    case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_non_consecutive_tac_values:
+      return "list of TACs belonging to one PLMN or SNPN, with non-consecutive TAC values";
+    case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values:
+      return "list of TACs belonging to one PLMN or SNPN, with consecutive TAC values";
+    case type_of_list_type_::list_of_ta_is_belonging_to_different_plm_ns:
+      return "list of TAIs belonging to different PLMNs ";
+    case type_of_list_type_::reserved:
+      return "Reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Rejected NSSAI
 // Reference: 9.11.3.46
 SRSASN_CODE rejected_nssai_t::pack(asn1::bit_ref& bref)
@@ -2423,6 +2761,21 @@ SRSASN_CODE nssai_inclusion_mode_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* nssai_inclusion_mode_t::NSSAI_inclusion_mode_type_::to_string() const
+{
+  switch (value) {
+    case NSSAI_inclusion_mode_type_::nssai_inclusion_mode_a:
+      return "NSSAI inclusion mode A";
+    case NSSAI_inclusion_mode_type_::nssai_inclusion_mode_b:
+      return "NSSAI inclusion mode B";
+    case NSSAI_inclusion_mode_type_::nssai_inclusion_mode_c:
+      return "NSSAI inclusion mode C";
+    case NSSAI_inclusion_mode_type_::nssai_inclusion_mode_d:
+      return "NSSAI inclusion mode D";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Operator-defined access category definitions
 // Reference: 9.11.3.38
 SRSASN_CODE operator_defined_access_category_definitions_t::pack(asn1::bit_ref& bref)
@@ -2491,6 +2844,17 @@ SRSASN_CODE ue_radio_capability_id_deletion_indication_t::unpack(asn1::cbit_ref&
   return SRSASN_SUCCESS;
 }
 
+const char* ue_radio_capability_id_deletion_indication_t::Deletion_request_type_::to_string() const
+{
+  switch (value) {
+    case Deletion_request_type_::ue_radio_capability_id_deletion_not_requested:
+      return "UE radio capability ID deletion not requested";
+    case Deletion_request_type_::network_assigned_ue_radio_capability_i_ds_deletion_requested:
+      return "Network-assigned UE radio capability IDs deletion requested";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Ciphering key data
 // Reference: 9.11.3.18C
 SRSASN_CODE ciphering_key_data_t::pack(asn1::bit_ref& bref)
@@ -2615,6 +2979,97 @@ SRSASN_CODE cause_5gmm_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* cause_5gmm_t::cause_5gmm_type_::to_string() const
+{
+  switch (value) {
+    case cause_5gmm_type_::illegal_ue:
+      return "Illegal UE";
+    case cause_5gmm_type_::pei_not_accepted:
+      return "PEI not accepted";
+    case cause_5gmm_type_::illegal_me:
+      return "Illegal ME";
+    case cause_5gmm_type_::services_not_allowed_5gs:
+      return "Services not allowed 5GS";
+    case cause_5gmm_type_::ue_identity_cannot_be_derived_by_the_network:
+      return "UE identity cannot be derived by the network";
+    case cause_5gmm_type_::implicitly_de_registered:
+      return "Implicitly de-registered";
+    case cause_5gmm_type_::plmn_not_allowed:
+      return "PLMN not allowed";
+    case cause_5gmm_type_::tracking_area_not_allowed:
+      return "Tracking area not allowed";
+    case cause_5gmm_type_::roaming_not_allowed_in_this_tracking_area:
+      return "Roaming not allowed in this tracking area";
+    case cause_5gmm_type_::no_suitable_cells_in_tracking_area:
+      return "No suitable cells in tracking area";
+    case cause_5gmm_type_::mac_failure:
+      return "MAC failure";
+    case cause_5gmm_type_::synch_failure:
+      return "Synch failure";
+    case cause_5gmm_type_::congestion:
+      return "Congestion";
+    case cause_5gmm_type_::ue_security_capabilities_mismatch:
+      return "UE security capabilities mismatch";
+    case cause_5gmm_type_::security_mode_rejected_unspecified:
+      return "Security mode rejected, unspecified";
+    case cause_5gmm_type_::non_5g_authentication_unacceptable:
+      return "Non-5G authentication unacceptable";
+    case cause_5gmm_type_::n1_mode_not_allowed:
+      return "N1 mode not allowed";
+    case cause_5gmm_type_::restricted_service_area:
+      return "Restricted service area";
+    case cause_5gmm_type_::redirection_to_epc_required:
+      return "Redirection to EPC required";
+    case cause_5gmm_type_::ladn_not_available:
+      return "LADN not available";
+    case cause_5gmm_type_::no_network_slices_available:
+      return "No network slices available";
+    case cause_5gmm_type_::maximum_number_of_pdu_sessions_reached_:
+      return "Maximum number of PDU sessions reached  ";
+    case cause_5gmm_type_::insufficient_resources_for_specific_slice_and_dnn:
+      return "Insufficient resources for specific slice and DNN";
+    case cause_5gmm_type_::insufficient_resources_for_specific_slice:
+      return "Insufficient resources for specific slice ";
+    case cause_5gmm_type_::ng_ksi_already_in_use:
+      return "ngKSI already in use";
+    case cause_5gmm_type_::non_3_gpp_access_to_5gcn_not_allowed:
+      return "Non-3GPP access to 5GCN not allowed";
+    case cause_5gmm_type_::serving_network_not_authorized:
+      return "Serving network not authorized";
+    case cause_5gmm_type_::temporarily_not_authorized_for_this_snpn:
+      return "Temporarily not authorized for this SNPN ";
+    case cause_5gmm_type_::permanently_not_authorized_for_this_snpn:
+      return "Permanently not authorized for this SNPN";
+    case cause_5gmm_type_::not_authorized_for_this_cag_or_authorized_for_cag_cells_only:
+      return "Not authorized for this CAG or authorized for CAG cells only";
+    case cause_5gmm_type_::wireline_access_area_not_allowed:
+      return "Wireline access area not allowed";
+    case cause_5gmm_type_::payload_was_not_forwarded:
+      return "Payload was not forwarded";
+    case cause_5gmm_type_::dnn_not_supported_or_not_subscribed_in_the_slice:
+      return "DNN not supported or not subscribed in the slice";
+    case cause_5gmm_type_::insufficient_user_plane_resources_for_the_pdu_session:
+      return "Insufficient user-plane resources for the PDU session";
+    case cause_5gmm_type_::semantically_incorrect_message:
+      return "Semantically incorrect message";
+    case cause_5gmm_type_::invalid_mandatory_information:
+      return "Invalid mandatory information";
+    case cause_5gmm_type_::message_type_non_existent_or_not_implemented:
+      return "Message type non-existent or not implemented";
+    case cause_5gmm_type_::message_type_not_compatible_with_the_protocol_state:
+      return "Message type not compatible with the protocol state";
+    case cause_5gmm_type_::information_element_non_existent_or_not_implemented:
+      return "Information element non-existent or not implemented";
+    case cause_5gmm_type_::conditional_ie_error:
+      return "Conditional IE error";
+    case cause_5gmm_type_::message_not_compatible_with_the_protocol_state:
+      return "Message not compatible with the protocol state";
+    case cause_5gmm_type_::protocol_error_unspecified:
+      return "Protocol error, unspecified";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: De-registration type
 // Reference: 9.11.3.20
 SRSASN_CODE de_registration_type_t::pack(asn1::bit_ref& bref)
@@ -2635,6 +3090,41 @@ SRSASN_CODE de_registration_type_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* de_registration_type_t::switch_off_type_::to_string() const
+{
+  switch (value) {
+    case switch_off_type_::normal_de_registration:
+      return "Normal de-registration";
+    case switch_off_type_::switch_off:
+      return "Switch Off";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* de_registration_type_t::re_registration_required_type_::to_string() const
+{
+  switch (value) {
+    case re_registration_required_type_::re_registration_not_required:
+      return "re-registration not required";
+    case re_registration_required_type_::re_registration_required:
+      return "re-registration required";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* de_registration_type_t::access_type_type_::to_string() const
+{
+  switch (value) {
+    case access_type_type_::access_3_gpp:
+      return "access 3GPP";
+    case access_type_type_::non_3_gpp_access:
+      return "Non-3GPP access";
+    case access_type_type_::access_3_gpp_and_non_3_gpp_access:
+      return "access 3GPP and non-3GPP access";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Spare half octet
 // Reference: 9.5
 SRSASN_CODE spare_half_octet_t::pack(asn1::bit_ref& bref)
@@ -2669,6 +3159,37 @@ SRSASN_CODE service_type_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* service_type_t::Service_type_value_type_::to_string() const
+{
+  switch (value) {
+    case Service_type_value_type_::signalling:
+      return "signalling";
+    case Service_type_value_type_::data:
+      return "data";
+    case Service_type_value_type_::mobile_terminated_services:
+      return "mobile terminated services";
+    case Service_type_value_type_::emergency_services:
+      return "emergency services";
+    case Service_type_value_type_::emergency_services_fallback:
+      return "emergency services fallback";
+    case Service_type_value_type_::high_priority_access:
+      return "high priority access";
+    case Service_type_value_type_::elevated_signalling:
+      return "elevated signalling";
+    case Service_type_value_type_::unused_shall_be_interpreted_as_signalling:
+      return "unused shall be interpreted as signalling";
+    case Service_type_value_type_::unused_shall_be_interpreted_as_signalling_1:
+      return "unused shall be interpreted as signalling_1";
+    case Service_type_value_type_::unused_shall_be_interpreted_as_data:
+      return "unused shall be interpreted as data";
+    case Service_type_value_type_::unused_shall_be_interpreted_as_data_1:
+      return "unused shall be interpreted as data_1";
+    case Service_type_value_type_::unused_shall_be_interpreted_as_data_2:
+      return "unused shall be interpreted as data_2";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Configuration update indication
 // Reference: 9.11.3.18
 SRSASN_CODE configuration_update_indication_t::pack(asn1::bit_ref& bref)
@@ -2689,6 +3210,21 @@ SRSASN_CODE configuration_update_indication_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* configuration_update_indication_t::control_plane_service_type_value_type_::to_string() const
+{
+  switch (value) {
+    case control_plane_service_type_value_type_::mobile_originating_request:
+      return "mobile originating request";
+    case control_plane_service_type_value_type_::mobile_terminating_request:
+      return "mobile terminating request";
+    case control_plane_service_type_value_type_::emergency_services:
+      return "emergency services";
+    case control_plane_service_type_value_type_::emergency_services_fallback:
+      return "emergency services fallback";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Network name
 // Reference: 9.11.3.35
 SRSASN_CODE network_name_t::pack(asn1::bit_ref& bref)
@@ -2797,6 +3333,21 @@ SRSASN_CODE daylight_saving_time_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* daylight_saving_time_t::value_type_::to_string() const
+{
+  switch (value) {
+    case value_type_::no_adjustment_for_daylight_saving_time:
+      return "No adjustment for Daylight Saving Time";
+    case value_type_::hour_1_adjustment_for_daylight_saving_time:
+      return "hour 1 adjustment for Daylight Saving Time";
+    case value_type_::hours_2_adjustment_for_daylight_saving_time:
+      return "hours 2 adjustment for Daylight Saving Time";
+    case value_type_::reserved:
+      return "Reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: SMS indication
 // Reference: 9.11.3.50A
 SRSASN_CODE sms_indication_t::pack(asn1::bit_ref& bref)
@@ -2837,6 +3388,17 @@ SRSASN_CODE additional_configuration_indication_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* additional_configuration_indication_t::SCMR_type_::to_string() const
+{
+  switch (value) {
+    case SCMR_type_::no_additional_information:
+      return "no additional information";
+    case SCMR_type_::release_of_n1_nas_signalling_connection_not_required:
+      return "release of N1 NAS signalling connection not required";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: ABBA
 // Reference: 9.11.3.10
 SRSASN_CODE abba_t::pack(asn1::bit_ref& bref)
@@ -3022,6 +3584,27 @@ SRSASN_CODE identity_type_5gs_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* identity_type_5gs_t::identity_types_::to_string() const
+{
+  switch (value) {
+    case identity_types_::suci:
+      return "SUCI";
+    case identity_types_::guti_5g:
+      return "5G-GUTI";
+    case identity_types_::imei:
+      return "IMEI";
+    case identity_types_::s_tmsi_5g:
+      return "5G-S-TMSI";
+    case identity_types_::imeisv:
+      return "IMEISV";
+    case identity_types_::mac_address:
+      return "MAC address";
+    case identity_types_::eui_64:
+      return "EUI-64";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: security algorithms
 // Reference: 9.11.3.34
 SRSASN_CODE security_algorithms_t::pack(asn1::bit_ref& bref)
@@ -3040,6 +3623,52 @@ SRSASN_CODE security_algorithms_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* security_algorithms_t::integrity_protection_algorithm_type_::to_string() const
+{
+  switch (value) {
+    case integrity_protection_algorithm_type_::ia0_5g:
+      return "IA0-5G";
+    case integrity_protection_algorithm_type_::ia1_128_5g:
+      return "IA1-128-5G";
+    case integrity_protection_algorithm_type_::ia2_128_5g:
+      return "IA2-128-5G";
+    case integrity_protection_algorithm_type_::ia3_128_5g:
+      return "IA3-128-5G";
+    case integrity_protection_algorithm_type_::ia4_5g:
+      return "IA4-5G";
+    case integrity_protection_algorithm_type_::ia5_5g:
+      return "IA5-5G";
+    case integrity_protection_algorithm_type_::ia6_5g:
+      return "IA6-5G";
+    case integrity_protection_algorithm_type_::ia7_5g:
+      return "IA7-5G";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* security_algorithms_t::ciphering_algorithm_type_::to_string() const
+{
+  switch (value) {
+    case ciphering_algorithm_type_::ea0_5g:
+      return "EA0-5G";
+    case ciphering_algorithm_type_::ea1_128_5g:
+      return "EA1-128-5G";
+    case ciphering_algorithm_type_::ea2_128_5g:
+      return "EA2-128-5G";
+    case ciphering_algorithm_type_::ea3_128_5g:
+      return "EA3-128-5G";
+    case ciphering_algorithm_type_::ea4_5g:
+      return "EA4-5G";
+    case ciphering_algorithm_type_::ea5_5g:
+      return "EA5-5G";
+    case ciphering_algorithm_type_::ea6_5g:
+      return "EA6-5G";
+    case ciphering_algorithm_type_::ea7_5g:
+      return "EA7-5G";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: IMEISV request
 // Reference: 9.11.3.28
 SRSASN_CODE imeisv_request_t::pack(asn1::bit_ref& bref)
@@ -3060,6 +3689,17 @@ SRSASN_CODE imeisv_request_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* imeisv_request_t::imeisv_request_type_::to_string() const
+{
+  switch (value) {
+    case imeisv_request_type_::imeisv_not_requested:
+      return "IMEISV not requested ";
+    case imeisv_request_type_::imeisv_requested:
+      return "IMEISV requested ";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: EPS NAS security algorithms
 // Reference: 9.11.3.25
 SRSASN_CODE eps_nas_security_algorithms_t::pack(asn1::bit_ref& bref)
@@ -3087,6 +3727,52 @@ SRSASN_CODE eps_nas_security_algorithms_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* eps_nas_security_algorithms_t::integrity_protection_algorithm_type_::to_string() const
+{
+  switch (value) {
+    case integrity_protection_algorithm_type_::eia0:
+      return "EIA0";
+    case integrity_protection_algorithm_type_::eia1_128:
+      return "EIA1-128";
+    case integrity_protection_algorithm_type_::eia2_128:
+      return "EIA2-128";
+    case integrity_protection_algorithm_type_::eia3_128:
+      return "EIA3-128";
+    case integrity_protection_algorithm_type_::eia4:
+      return "EIA4";
+    case integrity_protection_algorithm_type_::eia5:
+      return "EIA5";
+    case integrity_protection_algorithm_type_::eia6:
+      return "EIA6";
+    case integrity_protection_algorithm_type_::eia7:
+      return "EIA7";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* eps_nas_security_algorithms_t::ciphering_algorithm_type_::to_string() const
+{
+  switch (value) {
+    case ciphering_algorithm_type_::eea0:
+      return "EEA0";
+    case ciphering_algorithm_type_::eea1_128:
+      return "EEA1-128";
+    case ciphering_algorithm_type_::eea2_128:
+      return "EEA2-128";
+    case ciphering_algorithm_type_::eea3_128:
+      return "EEA3-128";
+    case ciphering_algorithm_type_::eea4:
+      return "EEA4";
+    case ciphering_algorithm_type_::eea5:
+      return "EEA5";
+    case ciphering_algorithm_type_::eea6:
+      return "EEA6";
+    case ciphering_algorithm_type_::eea7:
+      return "EEA7";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Additional 5G security information
 // Reference: 9.11.3.12
 SRSASN_CODE additional_5g_security_information_t::pack(asn1::bit_ref& bref)
@@ -3287,6 +3973,17 @@ SRSASN_CODE access_type_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* access_type_t::Access_type_value_type_::to_string() const
+{
+  switch (value) {
+    case Access_type_value_type_::access_3_gpp:
+      return "access_3GPP";
+    case Access_type_value_type_::non_3_gpp_access:
+      return "Non_3GPP_access";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: PDU session identity 2
 // Reference: 9.11.3.41
 SRSASN_CODE pdu_session_identity_2_t::pack(asn1::bit_ref& bref)
@@ -3323,6 +4020,27 @@ SRSASN_CODE request_type_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* request_type_t::Request_type_value_type_::to_string() const
+{
+  switch (value) {
+    case Request_type_value_type_::initial_request:
+      return "initial request";
+    case Request_type_value_type_::existing_pdu_session:
+      return "existing PDU session";
+    case Request_type_value_type_::initial_emergency_request:
+      return "initial emergency request";
+    case Request_type_value_type_::existing_emergency_pdu_session:
+      return "existing emergency PDU session";
+    case Request_type_value_type_::modification_request:
+      return "modification request";
+    case Request_type_value_type_::ma_pdu_request:
+      return "MA PDU request";
+    case Request_type_value_type_::reserved:
+      return "reserved ";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: S-NSSAI
 // Reference: 9.11.2.8
 SRSASN_CODE s_nssai_t::pack(asn1::bit_ref& bref)
@@ -3394,6 +4112,23 @@ SRSASN_CODE s_nssai_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* s_nssai_t::SST_type_::to_string() const
+{
+  switch (value) {
+    case SST_type_::sst:
+      return "SST";
+    case SST_type_::sst_and_mapped_hplmn_sst:
+      return "SST and mapped HPLMN SST";
+    case SST_type_::sst_and_sd:
+      return "SST and SD";
+    case SST_type_::sst_sd_and_mapped_hplmn_sst:
+      return "SST, SD and mapped HPLMN SST";
+    case SST_type_::sst_sd_mapped_hplmn_sst_and_mapped_hplmn_sd:
+      return "SST, SD, mapped HPLMN SST and mapped HPLMN SD";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: DNN
 // Reference: 9.11.2.1B
 SRSASN_CODE dnn_t::pack(asn1::bit_ref& bref)
@@ -3481,6 +4216,15 @@ SRSASN_CODE ma_pdu_session_information_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* ma_pdu_session_information_t::MA_PDU_session_information_value_type_::to_string() const
+{
+  switch (value) {
+    case MA_PDU_session_information_value_type_::ma_pdu_session_network_upgrade_is_allowed:
+      return "MA PDU session network upgrade is allowed";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Release assistance indication
 // Reference: 9.11.3.46A
 SRSASN_CODE release_assistance_indication_t::pack(asn1::bit_ref& bref)
@@ -3501,6 +4245,21 @@ SRSASN_CODE release_assistance_indication_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* release_assistance_indication_t::Downlink_data_expected_type_::to_string() const
+{
+  switch (value) {
+    case Downlink_data_expected_type_::no_information_regarding_ddx_is_conveyed:
+      return "No information regarding DDX is conveyed";
+    case Downlink_data_expected_type_::no_further_uplink_and_no_further_downlink_data:
+      return "No further uplink and no further downlink data";
+    case Downlink_data_expected_type_::only_a_single_downlink_data_transmission:
+      return "Only a single downlink data transmission";
+    case Downlink_data_expected_type_::reserved:
+      return "reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Integrity protection maximum data rate
 // Reference: 9.11.4.7
 SRSASN_CODE integrity_protection_maximum_data_rate_t::pack(asn1::bit_ref& bref)
@@ -3519,6 +4278,32 @@ SRSASN_CODE integrity_protection_maximum_data_rate_t::unpack(asn1::cbit_ref& bre
   return SRSASN_SUCCESS;
 }
 
+const char* integrity_protection_maximum_data_rate_t::max_data_rate_UPIP_uplink_type_::to_string() const
+{
+  switch (value) {
+    case max_data_rate_UPIP_uplink_type_::kbps_64:
+      return "kbps 64";
+    case max_data_rate_UPIP_uplink_type_::null:
+      return "NULL";
+    case max_data_rate_UPIP_uplink_type_::full_data_rate:
+      return "Full data rate";
+    default:
+      return "Invalid Choice";
+  }
+}
+const char* integrity_protection_maximum_data_rate_t::max_data_rate_UPIP_downlink_type_::to_string() const
+{
+  switch (value) {
+    case max_data_rate_UPIP_downlink_type_::kbps_64:
+      return "kbps 64";
+    case max_data_rate_UPIP_downlink_type_::null:
+      return "NULL";
+    case max_data_rate_UPIP_downlink_type_::full_data_rate:
+      return "Full data rate";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: PDU session type
 // Reference: 9.11.4.11
 SRSASN_CODE pdu_session_type_t::pack(asn1::bit_ref& bref)
@@ -3539,6 +4324,25 @@ SRSASN_CODE pdu_session_type_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* pdu_session_type_t::PDU_session_type_value_type_::to_string() const
+{
+  switch (value) {
+    case PDU_session_type_value_type_::ipv4:
+      return "ipv4";
+    case PDU_session_type_value_type_::ipv6:
+      return "ipv6";
+    case PDU_session_type_value_type_::ipv4v6:
+      return "ipv4v6";
+    case PDU_session_type_value_type_::unstructured:
+      return "Unstructured";
+    case PDU_session_type_value_type_::ethernet:
+      return "Ethernet";
+    case PDU_session_type_value_type_::reserved:
+      return "reserved ";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: SSC mode
 // Reference: 9.11.4.16
 SRSASN_CODE ssc_mode_t::pack(asn1::bit_ref& bref)
@@ -3559,6 +4363,27 @@ SRSASN_CODE ssc_mode_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* ssc_mode_t::SSC_mode_value_type_::to_string() const
+{
+  switch (value) {
+    case SSC_mode_value_type_::ssc_mode_1:
+      return "SSC mode 1";
+    case SSC_mode_value_type_::ssc_mode_2:
+      return "SSC mode 2";
+    case SSC_mode_value_type_::ssc_mode_3:
+      return "SSC mode 3";
+    case SSC_mode_value_type_::unused_or_ssc_mode_1:
+      return "unused or SSC mode 1";
+    case SSC_mode_value_type_::unused_or_ssc_mode_2:
+      return "unused or SSC mode 2";
+    case SSC_mode_value_type_::unused_or_ssc_mode_3:
+      return "unused or SSC mode 3";
+    case SSC_mode_value_type_::reserved:
+      return "reserved";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: 5GSM capability
 // Reference: 9.11.4.1
 SRSASN_CODE capability_5gsm_t::pack(asn1::bit_ref& bref)
@@ -3921,6 +4746,19 @@ SRSASN_CODE ethernet_header_compression_configuration_t::unpack(asn1::cbit_ref& 
   return SRSASN_SUCCESS;
 }
 
+const char* ethernet_header_compression_configuration_t::CID_Length_type_::to_string() const
+{
+  switch (value) {
+    case CID_Length_type_::ethernet_header_compression_not_used:
+      return "Ethernet header compression not used";
+    case CID_Length_type_::bits_7:
+      return "bits_7";
+    case CID_Length_type_::bits_15:
+      return "bits_15";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: PDU address
 // Reference: 9.11.4.10
 SRSASN_CODE pdu_address_t::pack(asn1::bit_ref& bref)
@@ -3999,6 +4837,19 @@ SRSASN_CODE pdu_address_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* pdu_address_t::PDU_session_type_value_type_::to_string() const
+{
+  switch (value) {
+    case PDU_session_type_value_type_::ipv4:
+      return "ipv4";
+    case PDU_session_type_value_type_::ipv6:
+      return "ipv6";
+    case PDU_session_type_value_type_::ipv4v6:
+      return "ipv4v6";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: QoS rules
 // Reference: 9.11.4.13
 SRSASN_CODE qo_s_rules_t::pack(asn1::bit_ref& bref)
@@ -4075,6 +4926,65 @@ SRSASN_CODE session_ambr_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* session_ambr_t::unit_session_AMBR_type_::to_string() const
+{
+  switch (value) {
+    case unit_session_AMBR_type_::not_used:
+      return "not used";
+    case unit_session_AMBR_type_::inc_by_1_kbps:
+      return "inc by 1 Kbps";
+    case unit_session_AMBR_type_::inc_by_4_kbps:
+      return "inc by 4 Kbps";
+    case unit_session_AMBR_type_::inc_by_16_kbps:
+      return "inc by 16 Kbps";
+    case unit_session_AMBR_type_::inc_by_64_kbps:
+      return "inc by 64 Kbps";
+    case unit_session_AMBR_type_::inc_by_256_kbps:
+      return "inc by 256 kbps";
+    case unit_session_AMBR_type_::inc_by_1_mbps:
+      return "inc by 1 Mbps";
+    case unit_session_AMBR_type_::inc_by_4_mbps:
+      return "inc by 4 Mbps";
+    case unit_session_AMBR_type_::inc_by_16_mbps:
+      return "inc by 16 Mbps";
+    case unit_session_AMBR_type_::inc_by_64_mbps:
+      return "inc by 64 Mbps";
+    case unit_session_AMBR_type_::inc_by_256_mbps:
+      return "inc by 256 Mbps";
+    case unit_session_AMBR_type_::inc_by_1_gbps:
+      return "inc by 1 Gbps";
+    case unit_session_AMBR_type_::inc_by_4_gbps:
+      return "inc by 4 Gbps";
+    case unit_session_AMBR_type_::inc_by_16_gbps:
+      return "inc by 16 Gbps";
+    case unit_session_AMBR_type_::inc_by_64_gbps:
+      return "inc by 64 Gbps";
+    case unit_session_AMBR_type_::inc_by_256_gbps:
+      return "inc by 256 Gbps";
+    case unit_session_AMBR_type_::inc_by_1_tbps:
+      return "inc by 1 Tbps";
+    case unit_session_AMBR_type_::inc_by_4_tbps:
+      return "inc by 4 Tbps";
+    case unit_session_AMBR_type_::inc_by_16_tbps:
+      return "inc by 16 Tbps";
+    case unit_session_AMBR_type_::inc_by_64_tbps:
+      return "inc by 64 Tbps";
+    case unit_session_AMBR_type_::inc_by_256_tbps:
+      return "inc by 256 Tbps";
+    case unit_session_AMBR_type_::inc_by_1_pbps:
+      return "inc by 1 Pbps";
+    case unit_session_AMBR_type_::inc_by_4_pbps:
+      return "inc by 4 Pbps";
+    case unit_session_AMBR_type_::inc_by_16_pbps:
+      return "inc by 16 Pbps";
+    case unit_session_AMBR_type_::inc_by_64_pbps:
+      return "inc by 64 Pbps";
+    case unit_session_AMBR_type_::inc_by_256_pbps:
+      return "inc by 256 Pbps";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: 5GSM cause
 // Reference: 9.11.4.2
 SRSASN_CODE cause_5gsm_t::pack(asn1::bit_ref& bref)
@@ -4184,7 +5094,6 @@ const char* cause_5gsm_t::cause_value_type_::to_string() const
       return "Invalid Choice";
   }
 }
-
 // IE: GPRS timer
 // Reference: 9.11.2.3
 SRSASN_CODE gprs_timer_t::pack(asn1::bit_ref& bref)
@@ -4203,6 +5112,21 @@ SRSASN_CODE gprs_timer_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* gprs_timer_t::Unit_type_::to_string() const
+{
+  switch (value) {
+    case Unit_type_::value_is_incremented_in_multiples_of_2_seconds:
+      return "value is incremented in multiples of 2 seconds ";
+    case Unit_type_::value_is_incremented_in_multiples_of_1_minute:
+      return "value is incremented in multiples of 1 minute";
+    case Unit_type_::value_is_incremented_in_multiples_of_decihours:
+      return "value is incremented in multiples of decihours";
+    case Unit_type_::value_indicates_that_the_timer_is_deactivated:
+      return "value indicates that the timer is deactivated";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Always-on PDU session indication
 // Reference: 9.11.4.3
 SRSASN_CODE always_on_pdu_session_indication_t::pack(asn1::bit_ref& bref)
@@ -4350,6 +5274,17 @@ SRSASN_CODE network_feature_support_5gsm_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* network_feature_support_5gsm_t::EPT_S1_type_::to_string() const
+{
+  switch (value) {
+    case EPT_S1_type_::ethernet_pdn_type_in_s1_mode_not_supported:
+      return "Ethernet PDN type in S1 mode not supported";
+    case EPT_S1_type_::ethernet_pdn_type_in_s1_mode_supported:
+      return "Ethernet PDN type in S1 mode supported";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Serving PLMN rate control
 // Reference: 9.11.4.20
 SRSASN_CODE serving_plmn_rate_control_t::pack(asn1::bit_ref& bref)
@@ -4481,6 +5416,17 @@ SRSASN_CODE congestion_re_attempt_indicator_5gsm_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+const char* congestion_re_attempt_indicator_5gsm_t::abo_type_::to_string() const
+{
+  switch (value) {
+    case abo_type_::the_back_off_timer_is_applied_in_the_registered_plmn:
+      return "The back-off timer is applied in the registered PLMN";
+    case abo_type_::the_back_off_timer_is_applied_in_all_plm_ns:
+      return "The back-off timer is applied in all PLMNs";
+    default:
+      return "Invalid Choice";
+  }
+}
 // IE: Re-attempt indicator
 // Reference: 9.11.4.17
 SRSASN_CODE re_attempt_indicator_t::pack(asn1::bit_ref& bref)
