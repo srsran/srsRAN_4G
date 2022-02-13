@@ -65,6 +65,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   string mcc;
   string mnc;
   string enb_id;
+  string cfr_mode;
   bool   use_standard_lte_rates = false;
 
   // Command line only options
@@ -220,6 +221,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.hst.period_s",      bpo::value<float>(&args->phy.ul_channel_args.hst_period_s)->default_value(7.2f),            "HST simulation period in seconds")
     ("channel.ul.hst.fd_hz",         bpo::value<float>(&args->phy.ul_channel_args.hst_fd_hz)->default_value(+750.0f),            "Doppler frequency in Hz")
     ("channel.ul.hst.init_time_s",   bpo::value<float>(&args->phy.ul_channel_args.hst_init_time_s)->default_value(0),            "Initial time in seconds")
+
+    /* CFR section */
+    ("cfr.enable", bpo::value<bool>(&args->phy.cfr_args.enable)->default_value(args->phy.cfr_args.enable), "CFR enable")
+    ("cfr.mode", bpo::value<string>(&cfr_mode)->default_value("manual"), "CFR mode")
+    ("cfr.manual_thres", bpo::value<float>(&args->phy.cfr_args.manual_thres)->default_value(args->phy.cfr_args.manual_thres), "Fixed manual clipping threshold for CFR manual mode")
+    ("cfr.strength", bpo::value<float>(&args->phy.cfr_args.strength)->default_value(args->phy.cfr_args.strength), "CFR ratio between amplitude-limited vs original signal (0 to 1)")
+    ("cfr.auto_target_papr", bpo::value<float>(&args->phy.cfr_args.auto_target_papr)->default_value(args->phy.cfr_args.auto_target_papr), "Signal PAPR target (in dB) in CFR auto modes")
+    ("cfr.ema_alpha", bpo::value<float>(&args->phy.cfr_args.ema_alpha)->default_value(args->phy.cfr_args.ema_alpha), "Alpha coefficient for the power average in auto_ema mode (0 to 1)")
 
       /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")
@@ -378,6 +387,20 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
+  // convert CFR mode
+  if (!cfr_mode.empty()) {
+    if (cfr_mode == "manual") {
+      args->phy.cfr_args.mode = SRSRAN_CFR_THR_MANUAL;
+    } else if (cfr_mode == "auto_cma") {
+      args->phy.cfr_args.mode = SRSRAN_CFR_THR_AUTO_CMA;
+    } else if (cfr_mode == "auto_ema") {
+      args->phy.cfr_args.mode = SRSRAN_CFR_THR_AUTO_EMA;
+    } else {
+      cout << "Error, invalid CFR mode: " << cfr_mode << endl;
+      exit(1);
+    }
+  }
+
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if (!vm.count("log.rf_level")) {
@@ -474,6 +497,9 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
       cout << "Enter t to restart trace." << endl;
     }
     metrics->toggle_print(do_metrics);
+  } else if (cmd[0] == "m") {
+    // Trigger cell measurements
+    control->cmd_cell_measure();
   } else if (cmd[0] == "sleep") {
     if (cmd.size() != 2) {
       cout << "Usage: " << cmd[0] << " [number of seconds]" << endl;
@@ -516,6 +542,7 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
   } else {
     cout << "Available commands: " << endl;
     cout << "          t: starts console trace" << endl;
+    cout << "          m: downlink signal measurements" << endl;
     cout << "          q: quit srsenb" << endl;
     cout << "  cell_gain: set relative cell gain" << endl;
     cout << "      sleep: pauses the commmand line operation for a given time in seconds" << endl;

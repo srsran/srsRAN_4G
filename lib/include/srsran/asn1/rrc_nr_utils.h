@@ -90,7 +90,10 @@ void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 /***************************
  *      PHY Config
  **************************/
-bool make_phy_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* prach_cfg);
+bool make_phy_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type,
+                       srsran_duplex_mode_t                   duplex_mode,
+                       srsran_prach_cfg_t*                    prach_cfg);
+bool fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type);
 
 bool make_phy_tdd_cfg(const asn1::rrc_nr::tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_duplex_config_nr_t*                  srsran_duplex_config_nr);
@@ -133,6 +136,17 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
 bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& nzp_csi_rs_res,
                                   srsran_csi_rs_nzp_resource_t*         csi_rs_nzp_resource);
 bool make_phy_carrier_cfg(const asn1::rrc_nr::freq_info_dl_s& freq_info_dl, srsran_carrier_nr_t* carrier_nr);
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb);
+void fill_ssb_pos_in_burst(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& ssb_pos,
+                           phy_cfg_nr_t::ssb_cfg_t*                           out_ssb);
+bool fill_ssb_pattern_scs(const srsran_carrier_nr_t&   carrier,
+                          srsran_ssb_pattern_t*        pattern,
+                          srsran_subcarrier_spacing_t* ssb_scs);
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      srsran_ssb_cfg_t*                                  out_ssb);
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       ssb);
@@ -141,11 +155,12 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
 bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl);
 bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell,
                                     srsran_duplex_config_nr_t*                     duplex_cfg);
-void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
+bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
 bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch);
 bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch);
 void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch);
 bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
+bool fill_phy_pucch_hl_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
 bool fill_phy_pusch_cfg_common(const asn1::rrc_nr::pusch_cfg_common_s& pusch_cfg, srsran_sch_hl_cfg_nr_t* pusch);
 void fill_phy_carrier_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
                           srsran_carrier_nr_t*                               carrier_nr);

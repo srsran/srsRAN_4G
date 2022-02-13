@@ -75,7 +75,7 @@ typedef struct {
   gw_args_t        gw;
   uint32_t         sync_queue_size; // Max allowed difference between PHY and Stack clocks (in TTI)
   bool             have_tti_time_stats;
-  bool             attach_on_nr;
+  bool             sa_mode;
 } stack_args_t;
 
 class ue_stack_base

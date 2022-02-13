@@ -41,9 +41,19 @@ struct phy_cell_cfg_t {
   uint32_t      root_seq_idx;
   uint32_t      num_ra_preambles;
   float         gain_db;
+  bool          dl_measure;
 };
 
 typedef std::vector<phy_cell_cfg_t> phy_cell_cfg_list_t;
+
+struct cfr_args_t {
+  bool              enable           = false;
+  srsran_cfr_mode_t mode             = SRSRAN_CFR_THR_MANUAL;
+  float             manual_thres     = 0.5f;
+  float             strength         = 1.0f;
+  float             auto_target_papr = 8.0f;
+  float             ema_alpha        = 1.0f / (float)SRSRAN_CP_NORM_NSYMB;
+};
 
 struct phy_args_t {
   std::string            type;
@@ -65,6 +75,7 @@ struct phy_args_t {
   bool                    extended_cp         = false;
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;
+  cfr_args_t              cfr_args;
 };
 
 struct phy_cfg_t {
@@ -78,6 +89,8 @@ struct phy_cfg_t {
   asn1::rrc::pusch_cfg_common_s  pusch_cnfg;
   asn1::rrc::pucch_cfg_common_s  pucch_cnfg;
   asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
+
+  srsran_cfr_cfg_t cfr_config;
 };
 
 } // namespace srsenb

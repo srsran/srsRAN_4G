@@ -111,10 +111,11 @@ void make_mac_rach_cfg(const rach_cfg_common_s& asn1_type, rach_cfg_nr_t* rach_c
 
 int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)
 {
-  rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
+  rlc_config_t rlc_cfg = {};
   rlc_cfg.rat          = srsran_rat_t::nr;
   switch (asn1_type.type().value) {
     case rlc_cfg_c::types_opts::am:
+      rlc_cfg = rlc_config_t::default_rlc_am_nr_config();
       if (asn1_type.am().dl_am_rlc.sn_field_len_present && asn1_type.am().ul_am_rlc.sn_field_len_present &&
           asn1_type.am().dl_am_rlc.sn_field_len != asn1_type.am().ul_am_rlc.sn_field_len) {
         asn1::log_warning("NR RLC sequence number length is not the same in uplink and downlink");
@@ -135,6 +136,7 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_
       }
       break;
     case rlc_cfg_c::types_opts::um_bi_dir:
+      rlc_cfg                       = rlc_config_t::default_rlc_um_nr_config();
       rlc_cfg.rlc_mode              = rlc_mode_t::um;
       rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.to_number();
       rlc_cfg.um_nr.bearer_id       = bearer_id;
@@ -279,14 +281,22 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
-bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* prach_cfg)
+bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type,
+                       srsran_duplex_mode_t     duplex_mode,
+                       srsran_prach_cfg_t*      prach_cfg)
 {
   prach_cfg->is_nr            = true;
   prach_cfg->config_idx       = asn1_type.rach_cfg_generic.prach_cfg_idx;
   prach_cfg->zero_corr_zone   = (uint32_t)asn1_type.rach_cfg_generic.zero_correlation_zone_cfg;
-  prach_cfg->num_ra_preambles = 64;    // Hard-coded
-  prach_cfg->hs_flag          = false; // Hard-coded
-  prach_cfg->tdd_config       = {};    // Hard-coded
+  prach_cfg->num_ra_preambles = 64;
+  if (asn1_type.total_nof_ra_preambs_present) {
+    prach_cfg->num_ra_preambles = asn1_type.total_nof_ra_preambs;
+  }
+  prach_cfg->hs_flag    = false; // Hard-coded
+  prach_cfg->tdd_config = {};
+  if (duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    prach_cfg->tdd_config.configured = true;
+  }
 
   // As the current PRACH is based on LTE, the freq-offset shall be subtracted 1 for aligning with NR bandwidth
   // For example. A 52 PRB cell with an freq_offset of 1 will match a LTE 50 PRB cell with freq_offset of 0
@@ -296,11 +306,12 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
     return false;
   }
 
-  switch (prach_cfg->root_seq_idx = asn1_type.prach_root_seq_idx.type()) {
+  switch (asn1_type.prach_root_seq_idx.type().value) {
     case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839:
       prach_cfg->root_seq_idx = (uint32_t)asn1_type.prach_root_seq_idx.l839();
       break;
     case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l139:
+      prach_cfg->root_seq_idx = (uint32_t)asn1_type.prach_root_seq_idx.l139();
     default:
       asn1::log_error("Not-implemented option for prach_root_seq_idx type %s",
                       asn1_type.prach_root_seq_idx.type().to_string());
@@ -309,6 +320,40 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
 
   return true;
 };
+
+bool fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
+{
+  asn1_type = {};
+  // rach-ConfigGeneric
+  asn1_type.rach_cfg_generic.prach_cfg_idx             = prach_cfg.config_idx;
+  asn1_type.rach_cfg_generic.msg1_fdm.value            = rach_cfg_generic_s::msg1_fdm_opts::one;
+  asn1_type.rach_cfg_generic.msg1_freq_start           = prach_cfg.freq_offset;
+  asn1_type.rach_cfg_generic.zero_correlation_zone_cfg = prach_cfg.zero_corr_zone;
+  asn1_type.rach_cfg_generic.preamb_rx_target_pwr      = -110;
+  asn1_type.rach_cfg_generic.preamb_trans_max.value    = rach_cfg_generic_s::preamb_trans_max_opts::n7;
+  asn1_type.rach_cfg_generic.pwr_ramp_step.value       = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
+  asn1_type.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
+
+  // totalNumberOfRA-Preambles
+  if (prach_cfg.num_ra_preambles != 64) {
+    asn1_type.total_nof_ra_preambs_present = true;
+    asn1_type.total_nof_ra_preambs         = prach_cfg.num_ra_preambles;
+  }
+
+  // ssb-perRACH-OccasionAndCB-PreamblesPerSSB
+  asn1_type.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  if (not asn1::number_to_enum(asn1_type.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(),
+                               prach_cfg.num_ra_preambles)) {
+    asn1::log_error("Invalid number of RA preambles=%d", prach_cfg.num_ra_preambles);
+    return false;
+  }
+
+  asn1_type.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
+  asn1_type.prach_root_seq_idx.set_l839()        = prach_cfg.root_seq_idx;
+  asn1_type.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
+
+  return true;
+}
 
 bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_duplex_config_nr_t*    in_srsran_duplex_config_nr)
@@ -1501,6 +1546,91 @@ static inline void make_ssb_positions_in_burst(const bitstring_t&               
   }
 }
 
+void fill_ssb_pos_in_burst(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
+{
+  auto& ssb_pos = cfg.ssb_positions_in_burst;
+
+  out_ssb->position_in_burst = {};
+  uint32_t N                 = ssb_pos.in_one_group.length();
+  for (uint32_t i = 0; i < N; ++i) {
+    out_ssb->position_in_burst[i] = ssb_pos.in_one_group.get(i);
+  }
+  if (ssb_pos.group_presence_present) {
+    for (uint32_t i = 1; i < ssb_pos.group_presence.length(); ++i) {
+      if (ssb_pos.group_presence.get(i)) {
+        std::copy(out_ssb->position_in_burst.begin(),
+                  out_ssb->position_in_burst.begin() + N,
+                  out_ssb->position_in_burst.begin() + i * N);
+      }
+    }
+  }
+}
+
+bool fill_ssb_pattern_scs(const srsran_carrier_nr_t&   carrier,
+                          srsran_ssb_pattern_t*        pattern,
+                          srsran_subcarrier_spacing_t* ssb_scs)
+{
+  srsran::srsran_band_helper bands;
+  uint16_t                   band = bands.get_band_from_dl_freq_Hz(carrier.ssb_center_freq_hz);
+  if (band == UINT16_MAX) {
+    asn1::log_error("Invalid band for SSB frequency %.3f MHz", carrier.ssb_center_freq_hz);
+    return false;
+  }
+
+  // TODO: Generalize conversion for other SCS
+  *pattern = bands.get_ssb_pattern(band, srsran_subcarrier_spacing_15kHz);
+  if (*pattern == SRSRAN_SSB_PATTERN_A) {
+    *ssb_scs = carrier.scs;
+  } else {
+    // try to optain SSB pattern for same band with 30kHz SCS
+    *pattern = bands.get_ssb_pattern(band, srsran_subcarrier_spacing_30kHz);
+    if (*pattern == SRSRAN_SSB_PATTERN_B || *pattern == SRSRAN_SSB_PATTERN_C) {
+      // SSB SCS is 30 kHz
+      *ssb_scs = srsran_subcarrier_spacing_30kHz;
+    } else {
+      asn1::log_error("Can't derive SSB pattern from band %d", band);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      srsran_ssb_cfg_t*                                  out_ssb)
+{
+  *out_ssb = {};
+
+  out_ssb->center_freq_hz = carrier.dl_center_frequency_hz;
+  out_ssb->ssb_freq_hz    = carrier.ssb_center_freq_hz;
+  if (not fill_ssb_pattern_scs(carrier, &out_ssb->pattern, &out_ssb->scs)) {
+    return false;
+  }
+
+  out_ssb->duplex_mode = SRSRAN_DUPLEX_MODE_FDD;
+  if (serv_cell_cfg.tdd_ul_dl_cfg_common_present) {
+    out_ssb->duplex_mode = SRSRAN_DUPLEX_MODE_TDD;
+  }
+
+  out_ssb->periodicity_ms = serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+  return true;
+}
+
+// SA case
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb)
+{
+  // Derive SSB pattern and SCS
+  if (not fill_ssb_pattern_scs(carrier, &out_ssb->pattern, &out_ssb->scs)) {
+    return false;
+  }
+  fill_ssb_pos_in_burst(serv_cell_cfg, out_ssb);
+  out_ssb->periodicity_ms = (uint32_t)serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+
+  return true;
+}
+
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       out_ssb)
@@ -1697,7 +1827,7 @@ bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch
   return true;
 }
 
-void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
+bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
 {
   if (pdcch_cfg.common_ctrl_res_set_present) {
     pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
@@ -1705,12 +1835,19 @@ void fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
   }
   for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
     pdcch->search_space_present[ss.search_space_id] = true;
-    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
+    if (not make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id])) {
+      asn1::log_error("Failed to convert SearchSpace Configuration");
+      return false;
+    }
     if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
-      pdcch->ra_search_space_present = true;
-      pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
+      pdcch->ra_search_space_present     = true;
+      pdcch->ra_search_space             = pdcch->search_space[ss.search_space_id];
+      pdcch->ra_search_space.type        = srsran_search_space_type_common_1;
+      pdcch->ra_search_space.nof_formats = 1;
+      pdcch->ra_search_space.formats[0]  = srsran_dci_format_nr_1_0;
     }
   }
+  return true;
 }
 
 void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch)
@@ -1747,9 +1884,7 @@ bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch
   }
 
   // iterate over the sets of resourceSetToAddModList
-  for (size_t n = 0; n < pucch_cfg.res_set_to_add_mod_list.size() and
-                     pucch_cfg.res_set_to_add_mod_list.size() <= SRSRAN_PUCCH_NR_MAX_NOF_SETS;
-       n++) {
+  for (size_t n = 0; n < pucch_cfg.res_set_to_add_mod_list.size(); n++) {
     auto& res_set                = pucch_cfg.res_set_to_add_mod_list[n];
     pucch->sets[n].nof_resources = res_set.res_list.size();
     if (res_set.max_payload_size_present) {
@@ -1794,6 +1929,32 @@ bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch
       if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
         return false;
       }
+    }
+  }
+
+  // configure scheduling request resources
+  return fill_phy_pucch_hl_cfg(pucch_cfg, pucch);
+}
+
+bool fill_phy_pucch_hl_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  for (size_t n = 0; n < pucch_cfg.sched_request_res_to_add_mod_list.size(); n++) {
+    // fill each sr_resource's cnf
+    auto&                          asn_sr_res = pucch_cfg.sched_request_res_to_add_mod_list[n];
+    srsran_pucch_nr_sr_resource_t* sr_res     = &pucch->sr_resources[asn_sr_res.sched_request_res_id];
+    make_phy_sr_resource(asn_sr_res, sr_res);
+
+    // get the pucch_resource from pucch_cfg.res_to_add_mod_list and copy it into the sr_resouce.resource
+    const auto& asn1_pucch_resource = pucch_cfg.res_to_add_mod_list[asn_sr_res.res];
+    auto&       pucch_resource      = sr_res->resource;
+    uint32_t    format2_rate        = 0;
+    if (pucch_cfg.format2_present and
+        pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+        pucch_cfg.format2.setup().max_code_rate_present) {
+      format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
+    }
+    if (not make_phy_res_config(asn1_pucch_resource, format2_rate, &pucch_resource)) {
+      return false;
     }
   }
 

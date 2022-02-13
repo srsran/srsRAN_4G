@@ -72,7 +72,6 @@ struct sched_nr_bwp_cfg_t {
   srsran_sch_hl_cfg_nr_t   pdsch           = {};
   srsran_sch_hl_cfg_nr_t   pusch           = {};
   srsran_pucch_nr_hl_cfg_t pucch           = {};
-  srsran_prach_cfg_t       prach           = {};
   srsran_harq_ack_cfg_hl_t harq_ack        = {};
   uint32_t                 rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
   uint32_t                 numerology_idx  = 0;

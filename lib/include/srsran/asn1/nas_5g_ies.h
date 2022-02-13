@@ -284,42 +284,42 @@ public:
 
   guti_5g_s& set_guti_5g()
   {
-    set(identity_types::guti_5g);  
+    set(identity_types::guti_5g);
     choice_container = srslog::detail::any{guti_5g_s()};
     return *srslog::detail::any_cast<guti_5g_s>(&choice_container);
   }
 
   imei_s& set_imei()
   {
-    set(identity_types::imei);  
+    set(identity_types::imei);
     choice_container = srslog::detail::any{imei_s()};
     return *srslog::detail::any_cast<imei_s>(&choice_container);
   }
 
   s_tmsi_5g_s& set_s_tmsi_5g()
   {
-    set(identity_types::s_tmsi_5g);  
+    set(identity_types::s_tmsi_5g);
     choice_container = srslog::detail::any{s_tmsi_5g_s()};
     return *srslog::detail::any_cast<s_tmsi_5g_s>(&choice_container);
   }
 
   imeisv_s& set_imeisv()
   {
-    set(identity_types::imeisv);  
+    set(identity_types::imeisv);
     choice_container = srslog::detail::any{imeisv_s()};
     return *srslog::detail::any_cast<imeisv_s>(&choice_container);
   }
 
   mac_address_s& set_mac_address()
   {
-    set(identity_types::mac_address);  
+    set(identity_types::mac_address);
     choice_container = srslog::detail::any{mac_address_s()};
     return *srslog::detail::any_cast<mac_address_s>(&choice_container);
   }
 
   eui_64_s& set_eui_64()
   {
-    set(identity_types::eui_64);  
+    set(identity_types::eui_64);
     choice_container = srslog::detail::any{eui_64_s()};
     return *srslog::detail::any_cast<eui_64_s>(&choice_container);
   }
@@ -438,8 +438,6 @@ public:
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 }; // s_nssai_t
-
-
 
 // IE: NSSAI
 // Reference: 9.11.3.37
@@ -1588,11 +1586,6 @@ public:
 class time_zone_t
 {
 public:
-  uint8_t year;
-  uint8_t month;
-  uint8_t day;
-  uint8_t hour;
-  uint8_t second;
   uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1605,6 +1598,12 @@ public:
 class time_zone_and_time_t
 {
 public:
+  uint8_t year;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
   uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -2285,8 +2284,8 @@ public:
   bool                        si6_lla                = false;
   PDU_session_type_value_type pdu_session_type_value = PDU_session_type_value_type_::options::ipv4;
   std::array<uint8_t, 4>      ipv4;
-  std::array<uint8_t, 16>     ipv6;
-  std::array<uint8_t, 16>     smf_i_pv6_link_local_address;
+  std::array<uint8_t, 8>      ipv6;
+  std::array<uint8_t, 8>      smf_i_pv6_link_local_address;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2407,7 +2406,7 @@ public:
       protocol_error_unspecified                                              = 0b01101111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<cause_value_type_, 8> cause_value_type;
 

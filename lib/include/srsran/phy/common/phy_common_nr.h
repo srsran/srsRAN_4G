@@ -358,7 +358,7 @@ typedef enum SRSRAN_API {
   SRSRAN_SSB_PATTERN_D,     // FR2, 120 kHz SCS
   SRSRAN_SSB_PATTERN_E,     // FR2, 240 kHz SCS
   SRSRAN_SSB_PATTERN_INVALID,
-} srsran_ssb_patern_t;
+} srsran_ssb_pattern_t;
 
 typedef enum SRSRAN_API {
   SRSRAN_DUPLEX_MODE_FDD = 0, // Paired
@@ -741,14 +741,14 @@ SRSRAN_API int srsran_coreset_to_str(srsran_coreset_t* coreset, char* str, uint3
  * @param pattern
  * @return a string describing the SSB pattern
  */
-SRSRAN_API const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern);
+SRSRAN_API const char* srsran_ssb_pattern_to_str(srsran_ssb_pattern_t pattern);
 
 /**
  * @brief Convert string to SSB pattern
  * @param str String to convert
  * @return The pattern, SRSRAN_SSB_PATTERN_INVALID if string is invalid
  */
-SRSRAN_API srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str);
+SRSRAN_API srsran_ssb_pattern_t srsran_ssb_pattern_fom_str(const char* str);
 
 /**
  * @brief Compares if two NR carrier structures are equal

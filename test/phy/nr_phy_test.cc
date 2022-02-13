@@ -194,7 +194,6 @@ test_bench::args_t::args_t(int argc, char** argv)
   cell_list[0].carrier = phy_cfg.carrier;
   cell_list[0].rf_port = 0;
   cell_list[0].cell_id = 0;
-  cell_list[0].pdcch   = phy_cfg.pdcch;
 
   ue_stack.rnti = rnti;
 

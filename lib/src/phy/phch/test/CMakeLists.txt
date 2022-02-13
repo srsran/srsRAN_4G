@@ -690,6 +690,9 @@ add_nr_test(pusch_nr_ack2_csi4_test pusch_nr_test -p 50 -m 20 -A 2 -C 4)
 add_nr_test(pusch_nr_ack4_csi4_test pusch_nr_test -p 50 -m 20 -A 4 -C 4)
 add_nr_test(pusch_nr_ack20_csi4_test pusch_nr_test -p 50 -m 20 -A 20 -C 4)
 
+add_executable(pusch_nr_bler_test EXCLUDE_FROM_ALL pusch_nr_bler_test.c)
+target_link_libraries(pusch_nr_bler_test srsran_phy)
+# this is just for performance evaluation, not for unit testing
 
 add_executable(pdcch_nr_test pdcch_nr_test.c)
 target_link_libraries(pdcch_nr_test srsran_phy)

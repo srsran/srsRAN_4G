@@ -20,6 +20,7 @@
  */
 
 #include "srsran/support/emergency_handlers.h"
+#include "srsran/config.h"
 #include "srsran/support/srsran_assert.h"
 
 namespace {
@@ -38,7 +39,7 @@ static constexpr unsigned    max_handlers = 12;
 static handler_instance      registered_handlers[max_handlers];
 static std::atomic<unsigned> num_handlers;
 
-void add_emergency_cleanup_handler(emergency_cleanup_callback callback, void* data)
+int add_emergency_cleanup_handler(emergency_cleanup_callback callback, void* data)
 {
   // Reserve a slot in the array.
   auto pos = num_handlers.fetch_add(1);
@@ -46,13 +47,25 @@ void add_emergency_cleanup_handler(emergency_cleanup_callback callback, void* da
   // Check if we have space in the array.
   if (pos >= max_handlers) {
     srsran_assert(0, "Exceeded the emergency cleanup handler registered limit");
-    return;
+    return SRSRAN_ERROR;
   }
 
   // Order is important here: write last the callback member as it is used to signal that the handler is valid when
   // reading the array.
   registered_handlers[pos].data.store(data);
   registered_handlers[pos].callback.store(callback);
+
+  return pos;
+}
+
+void remove_emergency_cleanup_handler(int id)
+{
+  if (id < 0 || static_cast<unsigned>(id) >= num_handlers) {
+    srsran_assert(0, "Invalid emergency handler id");
+    return;
+  }
+
+  registered_handlers[id].callback.store(nullptr);
 }
 
 void execute_emergency_cleanup_handlers()

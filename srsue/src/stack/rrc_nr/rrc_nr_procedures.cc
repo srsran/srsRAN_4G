@@ -107,7 +107,10 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
     }
   }
 
-  rrc_handle.send_rrc_reconfig_complete();
+  // only send reconfig complete in SA mode
+  if (rrc_handle.rrc_eutra == nullptr) {
+    rrc_handle.send_rrc_reconfig_complete();
+  }
 
   // Handle NAS messages
   if (rrc_nr_reconf.crit_exts.rrc_recfg().non_crit_ext.ded_nas_msg_list.size() > 0) {
@@ -151,12 +154,16 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& resu
   if (result.is_success()) {
     Info("Finished %s successfully", name());
     srsran::console("RRC NR reconfiguration successful.\n");
-    rrc_handle.rrc_eutra->nr_rrc_con_reconfig_complete(true);
+    if (rrc_handle.rrc_eutra) {
+      rrc_handle.rrc_eutra->nr_rrc_con_reconfig_complete(true);
+    }
   } else {
     // 5.3.5.8.2 Inability to comply with RRCReconfiguration
     switch (initiator) {
       case reconf_initiator_t::mcg_srb1:
-        rrc_handle.rrc_eutra->nr_notify_reconfiguration_failure();
+        if (rrc_handle.rrc_eutra) {
+          rrc_handle.rrc_eutra->nr_notify_reconfiguration_failure();
+        }
         break;
       default:
         Warning("Reconfiguration failure not implemented for initiator %d", initiator);
@@ -221,9 +228,6 @@ proc_outcome_t rrc_nr::setup_request_proc::step()
 
   if (state == state_t::config_serving_cell) {
     // TODO: start serving cell config and start T300
-
-    rrc_handle.phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
-    rrc_handle.phy->set_config(rrc_handle.phy_cfg);
 
     // start T300
     rrc_handle.t300.run();
@@ -431,12 +435,36 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
     // Transition to cell selection ignoring the cell search result
     state = state_t::phy_cell_select;
 
+    // until cell selection is done, update PHY config to take the last found PCI
+    rrc_handle.phy_cfg.carrier.pci = result.pci;
+
     phy_interface_rrc_nr::cell_select_args_t cs_args = {};
     cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
     cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
 
-    // until cell selection is done, update PHY config to take the last found PCI
-    rrc_handle.phy_cfg.carrier.pci = result.pci;
+    {
+      // Coreset0 configuration
+      srsran::phy_cfg_nr_t& phy_cfg = rrc_handle.phy_cfg;
+
+      // Get pointA and SSB absolute frequencies
+      double pointA_abs_freq_Hz =
+          phy_cfg.carrier.dl_center_frequency_hz -
+          phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
+      double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
+      // Calculate integer SSB to pointA frequency offset in Hz
+      uint32_t ssb_pointA_freq_offset_Hz =
+          (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+
+      if (srsran_coreset_zero(phy_cfg.carrier.pci,
+                              ssb_pointA_freq_offset_Hz,
+                              phy_cfg.ssb.scs,
+                              phy_cfg.carrier.scs,
+                              6,
+                              &phy_cfg.pdcch.coreset[0])) {
+        fprintf(stderr, "Error generating coreset0\n");
+      }
+      phy_cfg.pdcch.coreset_present[0] = true;
+    }
 
     // Until SI acquisition is implemented, provide hard-coded SIB for now
     uint8_t msg[] = {0x74, 0x81, 0x01, 0x70, 0x10, 0x40, 0x04, 0x02, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x33, 0x60, 0x38,

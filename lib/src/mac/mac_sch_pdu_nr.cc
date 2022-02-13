@@ -107,7 +107,8 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
 
 void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
-  lcid = lcid_;
+  // Use CCCH_SIZE_48 when SDU len fits
+  lcid = (lcid_ == CCCH_SIZE_64 && len_ == sizeof_ce(CCCH_SIZE_48, true)) ? CCCH_SIZE_48 : lcid_;
   sdu.set_storage_to(const_cast<uint8_t*>(payload_));
   header_length = is_ul_ccch() ? 1 : 2;
   sdu_length    = len_;

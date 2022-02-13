@@ -845,6 +845,38 @@ TEST(
     free(z);
     srsran_cfo_free(&srsran_cfo);)
 
+// This test compares the clipping method used for the CFR module in its default configuration to the original CFR
+// algorithm. The original algorithm can still be used by defining CFR_PEAK_EXTRACTION in the CFR module.
+TEST(
+    srsran_vec_gen_clip_env, MALLOC(cf_t, x); MALLOC(float, x_abs); MALLOC(float, env); float thres = 0.5f;
+    float alpha = 0.5f;
+    cf_t  gold  = 0.0f;
+
+    for (int i = 0; i < block_size; i++) {
+      x[i]     = RANDOM_F();
+      env[i]   = 0.0f;
+      x_abs[i] = cabsf(x[i]);
+    }
+
+    // current implementation generates an amplitude envelope which is then multiplied with the signal
+    TEST_CALL(srsran_vec_gen_clip_env(x_abs, thres, alpha, env, block_size))
+
+    // Recreates the original method for clipping the signal, skipping the low-pass filtering
+    for (int i = 0; i < block_size; i++) {
+      if (x_abs[i] <= thres) {
+        gold = x[i];
+      } else {
+        cf_t peak = x[i] - (thres * x[i] / x_abs[i]); // extract the peak
+        gold      = x[i] - alpha * peak;              // subtract the peak from the signal, scaled by alpha
+      }
+      // Compare the two clipping methods by applying the envelope to x and determining the error
+      mse += cabsf(gold - env[i] * x[i]);
+    } if (isnormal(mse)) { mse /= block_size; }
+
+    free(x);
+    free(x_abs);
+    free(env);)
+
 int main(int argc, char** argv)
 {
   char     func_names[MAX_FUNCTIONS][32];
@@ -1021,6 +1053,10 @@ int main(int argc, char** argv)
 
     passed[func_count][size_count] =
         test_srsran_cfo_correct_change(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] =
+        test_srsran_vec_gen_clip_env(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     sizes[size_count] = block_size;

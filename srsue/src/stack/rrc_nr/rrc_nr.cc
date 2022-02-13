@@ -21,7 +21,6 @@
 
 #include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsran/common/band_helper.h"
-#include "srsran/common/phy_cfg_nr_default.h"
 #include "srsran/common/security.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_pdcp_interfaces.h"
@@ -32,6 +31,7 @@
 using namespace asn1::rrc_nr;
 using namespace asn1;
 using namespace srsran;
+
 namespace srsue {
 
 const static char* rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
@@ -44,7 +44,9 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   setup_req_proc(*this),
   cell_selector(*this),
   meas_cells(task_sched_)
-{}
+{
+  set_phy_default_config();
+}
 
 rrc_nr::~rrc_nr() = default;
 
@@ -79,7 +81,34 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   t310 = task_sched.get_unique_timer();
   t311 = task_sched.get_unique_timer();
 
-  plmn_is_selected = true; // short-cut SA test
+  if (rrc_eutra == nullptr) {
+    // SA mode
+    plmn_is_selected = true;
+
+    // setup inital HARQ config
+    srsran::dl_harq_cfg_nr_t harq_cfg = {};
+    harq_cfg.nof_procs                = 8;
+    mac->set_config(harq_cfg);
+
+    // Setup SRB0
+    logical_channel_config_t lch = {};
+    mac->setup_lcid(lch);
+
+    // Carrier config
+    srsran::srsran_band_helper bands;
+    phy_cfg.carrier.dl_center_frequency_hz = bands.nr_arfcn_to_freq(args.dl_nr_arfcn);
+    phy_cfg.carrier.ul_center_frequency_hz = bands.nr_arfcn_to_freq(bands.get_ul_arfcn_from_dl_arfcn(args.dl_nr_arfcn));
+    phy_cfg.carrier.ssb_center_freq_hz     = bands.nr_arfcn_to_freq(args.ssb_nr_arfcn);
+    phy_cfg.carrier.nof_prb                = args.nof_prb;
+    phy_cfg.carrier.max_mimo_layers        = 1;
+    phy_cfg.carrier.scs                    = args.scs;
+    phy_cfg.duplex.mode                    = bands.get_duplex_mode(bands.get_band_from_dl_arfcn(args.dl_nr_arfcn));
+
+    // SSB configuration
+    phy_cfg.ssb.periodicity_ms       = 10;
+    phy_cfg.ssb.position_in_burst[0] = true;
+    phy_cfg.ssb.scs                  = args.ssb_scs;
+  }
 
   running               = true;
   sim_measurement_timer = task_sched.get_unique_timer();
@@ -89,26 +118,6 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
 void rrc_nr::stop()
 {
   running = false;
-}
-
-void rrc_nr::init_core_less()
-{
-  logger.info("Creating dummy DRB on LCID=%d", args.coreless.drb_lcid);
-  srsran::rlc_config_t rlc_cnfg = srsran::rlc_config_t::default_rlc_um_nr_config(6);
-  rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
-
-  srsran::pdcp_config_t pdcp_cnfg{args.coreless.drb_lcid,
-                                  srsran::PDCP_RB_IS_DRB,
-                                  srsran::SECURITY_DIRECTION_DOWNLINK,
-                                  srsran::SECURITY_DIRECTION_UPLINK,
-                                  srsran::PDCP_SN_LEN_18,
-                                  srsran::pdcp_t_reordering_t::ms500,
-                                  srsran::pdcp_discard_timer_t::ms100,
-                                  false,
-                                  srsran_rat_t::nr};
-
-  pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
-  return;
 }
 
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m)
@@ -132,7 +141,7 @@ const char* rrc_nr::get_rb_name(uint32_t lcid)
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
   logger.debug("Handling Timer Expired");
-  if (timeout_id == sim_measurement_timer.id()) {
+  if (timeout_id == sim_measurement_timer.id() && rrc_eutra != nullptr) {
     logger.debug("Triggered simulated measurement");
 
     phy_meas_nr_t              sim_meas = {};
@@ -232,7 +241,6 @@ void rrc_nr::run_tti(uint32_t tti) {}
 // PDCP interface
 void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 {
-  printf("RRC received PDU\n");
   logger.debug("RX PDU, LCID: %d", lcid);
   switch (static_cast<nr_srb>(lcid)) {
     case nr_srb::srb0:
@@ -320,8 +328,13 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       task_sched.defer_task([this, smc]() { handle_security_mode_command(smc); });
       break;
     }
+    case dl_dcch_msg_type_c::c1_c_::types::rrc_release: {
+      rrc_release_s rrc_release = c1->rrc_release();
+      task_sched.defer_task([this, rrc_release]() { handle_rrc_release(rrc_release); });
+      break;
+    }
     default:
-      logger.error("The provided DL-DCCH message type is not recognized or supported");
+      logger.error("The provided DL-DCCH message type is not recognized or supported.");
       break;
   }
 }
@@ -354,14 +367,35 @@ void rrc_nr::decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu)
   }
 }
 
+void rrc_nr::set_phy_default_config()
+{
+  phy_cfg = {};
+
+  // uses default values provided in 38.311 TS 138 331 V16.6 page 361
+  if (make_phy_beta_offsets({}, &phy_cfg.pusch.beta_offsets) == false) {
+    logger.warning("Couldn't set default beta_offsets config");
+  }
+
+  // no default value provided, asume factor 1.0
+  uci_on_pusch_s uci_on_pusch = {};
+  uci_on_pusch.scaling        = uci_on_pusch_s::scaling_opts::f1;
+  if (make_phy_pusch_scaling(uci_on_pusch, &phy_cfg.pusch.scaling) == false) {
+    logger.warning("Couldn't set default scaling config");
+  }
+
+  // no default value specified, use dynamic
+  phys_cell_group_cfg_s phys_cell_group_cfg   = {};
+  phys_cell_group_cfg.pdsch_harq_ack_codebook = phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value;
+  if (make_phy_harq_ack_cfg(phys_cell_group_cfg, &phy_cfg.harq_ack) == false) {
+    logger.warning("Couldn't set default HARQ ack config");
+  }
+}
+
 void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
-  logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
-
   meas_cells.serving_cell().set_sib1(sib1);
-  
-  // TODO: config basic config and remove early exit
-  return;
+
+  logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
 
   // clang-format off
   // unhandled fields:
@@ -432,6 +466,8 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
 
   // Apply RACH Config Common
   if (not make_phy_rach_cfg(sib1.serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(),
+                            sib1.serving_cell_cfg_common.tdd_ul_dl_cfg_common_present ? SRSRAN_DUPLEX_MODE_TDD
+                                                                                      : SRSRAN_DUPLEX_MODE_FDD,
                             &phy_cfg.prach)) {
     logger.warning("Could not set phy rach config.");
     return;
@@ -447,6 +483,7 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   // Apply SSB Config
   fill_phy_ssb_cfg(sib1.serving_cell_cfg_common, &phy_cfg.ssb);
 
+  phy_cfg_state = PHY_CFG_STATE_SA_SIB_CFG;
   if (not phy->set_config(phy_cfg)) {
     logger.warning("Could not set phy config.");
     return;
@@ -470,94 +507,11 @@ int rrc_nr::write_sdu(srsran::unique_byte_buffer_t sdu)
 
 bool rrc_nr::is_connected()
 {
-  return false;
+  return state == RRC_NR_STATE_CONNECTED;
 }
 
 int rrc_nr::connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t dedicated_info_nas_)
 {
-  // TODO:
-  // Assume cell has been found and SSB with MIB has been decoded
-  srsran::phy_cfg_nr_default_t::reference_cfg_t cfg = {};
-  cfg.carrier = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_CARRIER_CUSTOM_10MHZ;
-  cfg.duplex  = srsran::phy_cfg_nr_default_t::reference_cfg_t::R_DUPLEX_FDD;
-  phy_cfg     = srsran::phy_cfg_nr_default_t{srsran::phy_cfg_nr_default_t::reference_cfg_t{cfg}};
-
-  // Carrier configuration
-  phy_cfg.ssb.periodicity_ms             = 10;
-  phy_cfg.carrier.ssb_center_freq_hz     = 1842.05e6;
-  phy_cfg.carrier.dl_center_frequency_hz = 1842.5e6;
-  phy_cfg.carrier.ul_center_frequency_hz = 1747.5e6;
-
-  // PRACH configuration
-  phy_cfg.prach.num_ra_preambles = 8;
-  phy_cfg.prach.config_idx       = 0;
-  phy_cfg.prach.root_seq_idx     = 1;
-  phy_cfg.prach.zero_corr_zone   = 0;
-  phy_cfg.prach.is_nr            = true;
-  phy_cfg.prach.freq_offset      = 1;
-
-  srsran::rach_cfg_nr_t rach_cfg        = {};
-  rach_cfg.prach_ConfigurationIndex     = 0;
-  rach_cfg.preambleTransMax             = 7;
-  rach_cfg.ra_responseWindow            = 10;
-  rach_cfg.ra_ContentionResolutionTimer = 64;
-  mac->set_config(rach_cfg);
-
-  srsran::dl_harq_cfg_nr_t harq_cfg = {};
-  harq_cfg.nof_procs                = 8;
-  mac->set_config(harq_cfg);
-
-  // Setup SRB0
-  logical_channel_config_t lch = {};
-  mac->setup_lcid(lch);
-
-  // Coreset0 configuration
-  // Get pointA and SSB absolute frequencies
-  double pointA_abs_freq_Hz = phy_cfg.carrier.dl_center_frequency_hz -
-                              phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
-  double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
-  // Calculate integer SSB to pointA frequency offset in Hz
-  uint32_t ssb_pointA_freq_offset_Hz =
-      (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-
-  if (srsran_coreset_zero(phy_cfg.carrier.pci,
-                          ssb_pointA_freq_offset_Hz,
-                          phy_cfg.ssb.scs,
-                          phy_cfg.carrier.scs,
-                          6,
-                          &phy_cfg.pdcch.coreset[0])) {
-    fprintf(stderr, "Error generating coreset0\n");
-  }
-  phy_cfg.pdcch.coreset_present[0] = true;
-
-  // RAR SS
-  phy_cfg.pdcch.ra_search_space_present           = true;
-  phy_cfg.pdcch.ra_search_space.coreset_id        = 0;
-  phy_cfg.pdcch.ra_search_space.duration          = 1;
-  phy_cfg.pdcch.ra_search_space.type              = srsran_search_space_type_common_1;
-  phy_cfg.pdcch.ra_search_space.nof_formats       = 1;
-  phy_cfg.pdcch.ra_search_space.formats[1]        = srsran_dci_format_nr_1_0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[0] = 0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[1] = 0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[2] = 1;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[3] = 0;
-  phy_cfg.pdcch.ra_search_space.nof_candidates[4] = 0;
-
-  // common1 SS
-  phy_cfg.pdcch.search_space_present[0]           = true;
-  phy_cfg.pdcch.search_space[0].coreset_id        = 0;
-  phy_cfg.pdcch.search_space[0].duration          = 1;
-  phy_cfg.pdcch.search_space[0].nof_candidates[0] = 0;
-  phy_cfg.pdcch.search_space[0].nof_candidates[1] = 0;
-  phy_cfg.pdcch.search_space[0].nof_candidates[2] = 1;
-  phy_cfg.pdcch.search_space[0].nof_candidates[3] = 0;
-  phy_cfg.pdcch.search_space[0].nof_candidates[4] = 0;
-  phy_cfg.pdcch.search_space[0].type              = srsran_search_space_type_common_1;
-  phy_cfg.pdcch.search_space[0].nof_formats       = 2;
-  phy_cfg.pdcch.search_space[0].formats[0]        = srsran_dci_format_nr_0_0;
-  phy_cfg.pdcch.search_space[0].formats[1]        = srsran_dci_format_nr_1_0;
-  phy_cfg.pdcch.search_space_present[1]           = false;
-
   if (not setup_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
     logger.error("Failed to initiate setup request procedure");
     return SRSRAN_ERROR;
@@ -640,7 +594,10 @@ void rrc_nr::send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg)
   }
 
   asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-  msg.pack(bref);
+  if (msg.pack(bref) != SRSASN_SUCCESS) {
+    logger.error("Coulnd't pack UL-CCCH message.");
+    return;
+  }
   bref.align_bytes_zero();
   pdu->N_bytes = (uint32_t)bref.distance_bytes(pdu->msg);
   pdu->set_timestamp();
@@ -1340,7 +1297,6 @@ bool rrc_nr::apply_dl_common_cfg(const asn1::rrc_nr::dl_cfg_common_s& dl_cfg_com
         }
         if (pdcch_cfg_common.ra_search_space_present) {
           if (phy_cfg.pdcch.search_space_present[pdcch_cfg_common.ra_search_space] == true) {
-            // phy_cfg.pdcch.ra_rnti                 = 0x16; //< Supposed to be deduced from PRACH configuration
             phy_cfg.pdcch.ra_search_space         = phy_cfg.pdcch.search_space[pdcch_cfg_common.ra_search_space];
             phy_cfg.pdcch.ra_search_space_present = true;
             phy_cfg.pdcch.ra_search_space.type    = srsran_search_space_type_common_1;
@@ -1410,7 +1366,8 @@ bool rrc_nr::apply_ul_common_cfg(const asn1::rrc_nr::ul_cfg_common_s& ul_cfg_com
         mac->set_config(rach_cfg_nr);
 
         // Make the RACH configuration for PHY
-        if (not make_phy_rach_cfg(ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), &phy_cfg.prach)) {
+        if (not make_phy_rach_cfg(
+                ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(), SRSRAN_DUPLEX_MODE_FDD, &phy_cfg.prach)) {
           logger.warning("Error parsing rach_cfg_common");
           return false;
         }
@@ -1623,9 +1580,11 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
           logger.warning("Option beta_offsets not of type semi_static");
           return false;
         }
-        if (make_phy_pusch_scaling(pusch_cfg.uci_on_pusch.setup(), &phy_cfg.pusch.scaling) == false) {
-          logger.warning("Warning while building scaling structure");
-          return false;
+        if (pusch_cfg.uci_on_pusch_present) {
+          if (make_phy_pusch_scaling(pusch_cfg.uci_on_pusch.setup(), &phy_cfg.pusch.scaling) == false) {
+            logger.warning("Warning while building scaling structure");
+            return false;
+          }
         }
       } else {
         logger.warning("Option beta_offsets not present");
@@ -1646,14 +1605,14 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
   update_sp_cell_cfg(sp_cell_cfg);
 
-  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
-
   return true;
 }
 
 bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
+  // NSA specific handling to defer CSI, SR, SRS config until after RA (see TS 38.331, Section 5.3.5.3)
   srsran_csi_hl_cfg_t prev_csi = phy_cfg.csi;
+
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
@@ -1691,20 +1650,22 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         return false;
       }
       if (recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common_present) {
-        logger.info("TDD UL DL config present, using TDD");
+        logger.debug("TDD UL DL config present, using TDD");
         srsran_duplex_config_nr_t duplex;
-        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex) == true) {
-          phy_cfg.duplex = duplex;
+        if (make_phy_tdd_cfg(recfg_with_sync.sp_cell_cfg_common.tdd_ul_dl_cfg_common, &duplex)) {
+          phy_cfg.duplex                      = duplex;
+          phy_cfg.prach.tdd_config.configured = true;
         } else {
           logger.warning("Warning while building duplex structure");
           return false;
         }
       } else {
-        logger.info("TDD UL DL config not present, using FDD");
+        logger.debug("TDD UL DL config not present, using FDD");
       }
     }
   } else {
-    logger.warning("Reconfig with sync not present");
+    // for SA this is not sent
+    logger.debug("Reconfig with sync not present");
   }
 
   // Dedicated config
@@ -1796,7 +1757,7 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
         mac->set_config(dl_harq_cfg_nr);
       }
     } else {
-      logger.warning("Option pdsch_serving_cell_cfg not present");
+      logger.debug("Option pdsch_serving_cell_cfg not present");
     }
 
     if (sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present) {
@@ -1818,10 +1779,17 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   }
 
   // Configure PHY
-  // Note: CSI config is deferred to when RA is complete. See TS 38.331, Section 5.3.5.3
-  srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
-  current_phycfg.csi                  = prev_csi;
-  phy->set_config(current_phycfg);
+  if (sp_cell_cfg.recfg_with_sync_present) {
+    // defer CSI config until after RA complete
+    srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
+    current_phycfg.csi                  = prev_csi;
+    phy_cfg_state                       = PHY_CFG_STATE_NSA_APPLY_SP_CELL;
+    phy->set_config(current_phycfg);
+  } else {
+    // apply full config immediately
+    phy_cfg_state = PHY_CFG_STATE_SA_FULL_CFG;
+    phy->set_config(phy_cfg);
+  }
 
   return true;
 }
@@ -1841,8 +1809,6 @@ bool rrc_nr::apply_phy_cell_group_cfg(const phys_cell_group_cfg_s& phys_cell_gro
 bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
   update_cell_group_cfg(cell_group_cfg);
-
-  phy_cfg_state = PHY_CFG_STATE_APPLY_SP_CELL;
 
   return true;
 }
@@ -2051,10 +2017,7 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   cell_group.to_json(js);
   logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
 
-  // Must enter CONNECT before stopping T300
   state = RRC_NR_STATE_CONNECTED;
-  // t300.stop();
-  // t302.stop();
   srsran::console("RRC Connected\n");
 
   // defer transmission of Setup Complete until PHY reconfiguration has been completed
@@ -2126,6 +2089,11 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
   pdcp->enable_encryption(lcid, DIRECTION_TXRX);
 }
 
+void rrc_nr::handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release)
+{
+  logger.info("RRC Release not handled yet");
+}
+
 // Security helper used by Security Mode Command and Mobility handling routines
 void rrc_nr::generate_as_keys()
 {
@@ -2146,14 +2114,23 @@ void rrc_nr::protocol_failure() {}
 // MAC interface
 void rrc_nr::ra_completed()
 {
-  logger.info("RA completed. Applying remaining CSI configuration.");
-  phy->set_config(phy_cfg);
-  phy_cfg_state = PHY_CFG_STATE_RA_COMPLETED;
+  logger.info("RA completed.");
+  if (rrc_eutra) {
+    logger.debug("Applying remaining CSI configuration.");
+    phy_cfg_state = PHY_CFG_STATE_NSA_RA_COMPLETED;
+    phy->set_config(phy_cfg);
+  } else {
+    phy_cfg_state = PHY_CFG_STATE_NONE;
+  }
 }
 
 void rrc_nr::ra_problem()
 {
-  rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);
+  if (rrc_eutra) {
+    rrc_eutra->nr_scg_failure_information(scg_failure_cause_t::random_access_problem);
+  } else {
+    // TODO: handle RA problem
+  }
 }
 
 void rrc_nr::release_pucch_srs() {}
@@ -2171,8 +2148,6 @@ void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_resul
 
 void rrc_nr::set_phy_config_complete(bool status)
 {
-  logger.info("set_phy_config_complete() status=%d", status);
-
   // inform procedures if they are running
   if (conn_setup_proc.is_busy()) {
     conn_setup_proc.trigger(status);
@@ -2186,12 +2161,18 @@ void rrc_nr::set_phy_config_complete(bool status)
     case PHY_CFG_STATE_NONE:
       logger.warning("PHY configuration completed without a clear state.");
       break;
-    case PHY_CFG_STATE_APPLY_SP_CELL:
+    case PHY_CFG_STATE_SA_SIB_CFG:
+      logger.info("PHY configuration with SIB parameters completed.");
+      break;
+    case PHY_CFG_STATE_SA_FULL_CFG:
+      logger.info("PHY configuration completed.");
+      break;
+    case PHY_CFG_STATE_NSA_APPLY_SP_CELL:
       // Start RA procedure
       logger.info("PHY configuration completed. Starting RA procedure.");
       mac->start_ra_procedure();
       break;
-    case PHY_CFG_STATE_RA_COMPLETED:
+    case PHY_CFG_STATE_NSA_RA_COMPLETED:
       logger.info("Remaining CSI configuration completed.");
       break;
   }

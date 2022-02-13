@@ -151,6 +151,8 @@ public:
   // eNodeB command interface
   void cmd_cell_gain(uint32_t cell_id, float gain) override;
 
+  void cmd_cell_measure() override;
+
   void toggle_padding() override;
 
   void tti_clock() override;

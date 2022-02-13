@@ -80,17 +80,16 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
 
   du_cfg = std::make_unique<du_config_manager>(cfg);
   for (uint32_t i = 0; i < cfg.cell_list.size(); ++i) {
-    du_cfg->add_cell();
+    int ret = du_cfg->add_cell();
+    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure NR cell %d", i);
   }
 
   // Generate cell config structs
-  cell_ctxt.reset(new cell_ctxt_t{});
-  if (cfg.is_standalone) {
-    std::unique_ptr<cell_group_cfg_s> master_cell_group{new cell_group_cfg_s{}};
-    int                               ret = fill_master_cell_cfg_from_enb_cfg(cfg, 0, *master_cell_group);
-    srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure MasterCellGroup");
-    cell_ctxt->master_cell_group = std::move(master_cell_group);
-  }
+  cell_ctxt                                           = std::make_unique<cell_ctxt_t>();
+  std::unique_ptr<cell_group_cfg_s> master_cell_group = std::make_unique<cell_group_cfg_s>();
+  int                               ret               = fill_master_cell_cfg_from_enb_cfg(cfg, 0, *master_cell_group);
+  srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure MasterCellGroup");
+  cell_ctxt->master_cell_group = std::move(master_cell_group);
 
   // derived
   slot_dur_ms = 1;
@@ -99,20 +98,6 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
     logger.error("Couldn't generate SIB messages.");
     return SRSRAN_ERROR;
   }
-
-  // Fill base ASN1 cell config.
-  int ret = fill_sp_cell_cfg_from_enb_cfg(cfg, UE_PSCELL_CC_IDX, base_sp_cell_cfg);
-  srsran_assert(ret == SRSRAN_SUCCESS, "Failed to configure cell");
-
-  const pdcch_cfg_common_s* asn1_pdcch;
-  if (not cfg.is_standalone) {
-    // Fill rrc_nr_cfg with UE-specific search spaces and coresets
-    asn1_pdcch =
-        &base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
-  } else {
-    asn1_pdcch = &du_cfg->cell(0).serv_cell_cfg_common().dl_cfg_common.init_dl_bwp.pdcch_cfg_common.setup();
-  }
-  srsran_assert(check_nr_phy_cell_cfg_valid(cfg.cell_list[0].phy_cell) == SRSRAN_SUCCESS, "Invalid PhyCell Config");
 
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
@@ -197,15 +182,14 @@ int rrc_nr::add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer
 {
   if (users.contains(rnti) == 0) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
-    users.insert(rnti, std::unique_ptr<ue>(new ue(this, rnti, pcell_cc_idx, start_msg3_timer)));
+    users.insert(rnti, std::make_unique<ue>(this, rnti, pcell_cc_idx, start_msg3_timer));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     logger.info("Added new user rnti=0x%x", rnti);
     return SRSRAN_SUCCESS;
-  } else {
-    logger.error("Adding user rnti=0x%x (already exists)", rnti);
-    return SRSRAN_ERROR;
   }
+  logger.error("Adding user rnti=0x%x (already exists)", rnti);
+  return SRSRAN_ERROR;
 }
 
 /* @brief PUBLIC function, gets called by mac_nr::rach_detected
@@ -296,16 +280,17 @@ void rrc_nr::config_phy()
 {
   srsenb::phy_interface_rrc_nr::common_cfg_t common_cfg = {};
   common_cfg.carrier                                    = cfg.cell_list[0].phy_cell.carrier;
-  common_cfg.pdcch                                      = cfg.cell_list[0].phy_cell.pdcch;
-  common_cfg.prach                                      = cfg.cell_list[0].phy_cell.prach;
-  common_cfg.duplex_mode                                = cfg.cell_list[0].duplex_mode;
-  common_cfg.ssb                                        = {};
-  common_cfg.ssb.center_freq_hz                         = cfg.cell_list[0].phy_cell.dl_freq_hz;
-  common_cfg.ssb.ssb_freq_hz                            = cfg.cell_list[0].ssb_freq_hz;
-  common_cfg.ssb.scs                                    = cfg.cell_list[0].ssb_scs;
-  common_cfg.ssb.pattern                                = cfg.cell_list[0].ssb_pattern;
-  common_cfg.ssb.duplex_mode                            = cfg.cell_list[0].duplex_mode;
-  common_cfg.ssb.periodicity_ms = du_cfg->cell(0).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
+  fill_phy_pdcch_cfg_common(du_cfg->cell(0), &common_cfg.pdcch);
+  bool ret = srsran::fill_phy_pdcch_cfg(
+      cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &common_cfg.pdcch);
+  srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
+  srsran::make_phy_rach_cfg(du_cfg->cell(0).serv_cell_cfg_common().ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(),
+                            cfg.cell_list[0].duplex_mode,
+                            &common_cfg.prach);
+  common_cfg.duplex_mode = cfg.cell_list[0].duplex_mode;
+  ret                    = srsran::fill_phy_ssb_cfg(
+      cfg.cell_list[0].phy_cell.carrier, du_cfg->cell(0).serv_cell_cfg_common(), &common_cfg.ssb);
+  srsran_assert(ret, "Failed to generate PHY config");
   if (phy->set_common_cfg(common_cfg) < SRSRAN_SUCCESS) {
     logger.error("Couldn't set common PHY config");
     return;
@@ -325,7 +310,10 @@ void rrc_nr::config_mac()
   sched_nr_cell_cfg_t&             cell = sched_cells_cfg[cc];
 
   // Derive cell config from rrc_nr_cfg_t
-  cell.bwps[0].pdcch          = cfg.cell_list[cc].phy_cell.pdcch;
+  fill_phy_pdcch_cfg_common(du_cfg->cell(cc), &cell.bwps[0].pdcch);
+  bool ret = srsran::fill_phy_pdcch_cfg(
+      cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &cell.bwps[0].pdcch);
+  srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
   cell.pci                    = cfg.cell_list[cc].phy_cell.carrier.pci;
   cell.nof_layers             = cfg.cell_list[cc].phy_cell.carrier.max_mimo_layers;
   cell.dl_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
@@ -341,20 +329,17 @@ void rrc_nr::config_mac()
   cell.dl_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().dl_cfg_common;
   cell.ul_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().ul_cfg_common;
   cell.ss_pbch_block_power = du_cfg->cell(cc).serv_cell_cfg_common().ss_pbch_block_pwr;
+  bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded,
+                                                         &cell.bwps[0].pdsch);
+  srsran_assert(valid_cfg, "Invalid NR cell configuration.");
+  cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
+  cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
+  cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
   if (not cfg.is_standalone) {
-    const serving_cell_cfg_common_s& serv_cell = base_sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
+    const serving_cell_cfg_common_s& serv_cell =
+        cell_ctxt->master_cell_group->sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
     // Derive cell config from ASN1
-    bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(base_sp_cell_cfg.sp_cell_cfg_ded, &cell.bwps[0].pdsch);
-    srsran_assert(valid_cfg, "Invalid NR cell configuration.");
-    cell.ssb_positions_in_burst.in_one_group.set(0, true);
-    cell.ssb_periodicity_ms = serv_cell.ssb_periodicity_serving_cell.to_number();
-    cell.ssb_scs            = serv_cell.ssb_subcarrier_spacing;
-  } else {
-    cell.bwps[0].pdsch.p_zp_csi_rs_set = {};
-    bzero(cell.bwps[0].pdsch.nzp_csi_rs_sets, sizeof(cell.bwps[0].pdsch.nzp_csi_rs_sets));
-    cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
-    cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
-    cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
+    cell.ssb_scs = serv_cell.ssb_subcarrier_spacing;
   }
 
   // Set SIB1 and SI messages
@@ -365,8 +350,8 @@ void rrc_nr::config_mac()
       cell.sibs[i].period_rf       = 16; // SIB1 is always 16 rf
       cell.sibs[i].si_window_slots = 160;
     } else {
-      cell.sibs[i].period_rf       = cell_ctxt->sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
-      cell.sibs[i].si_window_slots = cell_ctxt->sib1.si_sched_info.si_win_len.to_number();
+      cell.sibs[i].period_rf = du_cfg->cell(0).sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
+      cell.sibs[i].si_window_slots = du_cfg->cell(0).sib1.si_sched_info.si_win_len.to_number();
     }
   }
 
@@ -384,23 +369,22 @@ int32_t rrc_nr::generate_sibs()
   }
 
   // SIB1 packing
-  fill_sib1_from_enb_cfg(cfg, 0, cell_ctxt->sib1);
-  si_sched_info_s::sched_info_list_l_& sched_info = cell_ctxt->sib1.si_sched_info.sched_info_list;
+  const si_sched_info_s::sched_info_list_l_& sched_info = du_cfg->cell(0).sib1.si_sched_info.sched_info_list;
 
   // SI messages packing
   cell_ctxt->sibs.resize(1);
   sib2_s& sib2                             = cell_ctxt->sibs[0].set_sib2();
-  sib2.cell_resel_info_common.q_hyst.value = asn1::rrc_nr::sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
+  sib2.cell_resel_info_common.q_hyst.value = sib2_s::cell_resel_info_common_s_::q_hyst_opts::db5;
 
   // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
   // all SIBs in a SI message msg[i] share the same periodicity
   const uint32_t nof_messages =
-      cell_ctxt->sib1.si_sched_info_present ? cell_ctxt->sib1.si_sched_info.sched_info_list.size() : 0;
+      du_cfg->cell(0).sib1.si_sched_info_present ? du_cfg->cell(0).sib1.si_sched_info.sched_info_list.size() : 0;
   cell_ctxt->sib_buffer.reserve(nof_messages + 1);
   asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
   // Copy SIB1 to first SI message
-  msg[0].msg.set_c1().set_sib_type1() = cell_ctxt->sib1;
+  msg[0].msg.set_c1().set_sib_type1() = du_cfg->cell(0).sib1;
 
   // Copy rest of SIBs
   for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
@@ -443,10 +427,10 @@ int32_t rrc_nr::generate_sibs()
 
 int rrc_nr::read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer)
 {
-  if (cell_ctxt->mib_buffer == nullptr || buffer.get_tailroom() < cell_ctxt->mib_buffer->N_bytes) {
+  if (du_cfg->cell(0).packed_mib == nullptr || buffer.get_tailroom() < du_cfg->cell(0).packed_mib->N_bytes) {
     return SRSRAN_ERROR;
   }
-  buffer = *cell_ctxt->mib_buffer;
+  buffer = *du_cfg->cell(0).packed_mib;
   return SRSRAN_SUCCESS;
 }
 

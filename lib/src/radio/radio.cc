@@ -112,10 +112,29 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   rx_channel_mapping.set_config(nof_channels_x_dev, nof_antennas);
 
   // Init and start Radios
-  for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
-    if (not open_dev(device_idx, args.device_name, device_args_list[device_idx])) {
-      logger.error("Error opening RF device %d", device_idx);
+  if (args.device_name != "file" || device_args_list[0] != "auto") {
+    // regular RF device
+    for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
+      if (not open_dev(device_idx, args.device_name, device_args_list[device_idx])) {
+        logger.error("Error opening RF device %d", device_idx);
+        return SRSRAN_ERROR;
+      }
+    }
+  } else {
+    // file-based RF device abstraction using pre-opened FILE* objects
+    if (args.rx_files == nullptr && args.tx_files == nullptr) {
+      logger.error("File-based RF device abstraction requested, but no files provided");
       return SRSRAN_ERROR;
+    }
+    for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
+      if (not open_dev(device_idx,
+                       &args.rx_files[device_idx * nof_channels_x_dev],
+                       &args.tx_files[device_idx * nof_channels_x_dev],
+                       nof_channels_x_dev,
+                       args.srate_hz)) {
+        logger.error("Error opening RF device %d", device_idx);
+        return SRSRAN_ERROR;
+      }
     }
   }
 
@@ -467,6 +486,29 @@ bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name,
 
   if (srsran_rf_open_devname(rf_device, dev_name, dev_args, nof_channels_x_dev)) {
     logger.error("Error opening RF device");
+    return false;
+  }
+
+  // Suppress radio stdout
+  srsran_rf_suppress_stdout(rf_device);
+
+  // Register handler for processing O/U/L
+  srsran_rf_register_error_handler(rf_device, rf_msg_callback, this);
+
+  // Get device info
+  rf_info[device_idx] = *srsran_rf_get_info(rf_device);
+
+  return true;
+}
+
+bool radio::open_dev(const uint32_t &device_idx, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
+{
+  srsran_rf_t* rf_device = &rf_devices[device_idx];
+
+  srsran::console("Opening %d channels in RF device abstraction\n");
+
+  if (srsran_rf_open_file(rf_device, rx_files, tx_files, nof_channels, base_srate)) {
+    logger.error("Error opening RF device abstraction");
     return false;
   }
 

@@ -775,7 +775,7 @@ int nas_5g::send_configuration_update_complete()
                      pdu->N_bytes - SEQ_5G_OFFSET,
                      &pdu->msg[MAC_5G_OFFSET]);
 
-  logger.error("Sending Configuration Update Complete");
+  logger.info("Sending Configuration Update Complete");
   rrc_nr->write_sdu(std::move(pdu));
   ctxt_base.tx_count++;
   return SRSRAN_SUCCESS;

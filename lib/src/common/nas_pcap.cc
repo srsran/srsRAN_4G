@@ -35,7 +35,14 @@ static void emergency_cleanup_handler(void* data)
 
 nas_pcap::nas_pcap()
 {
-  add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+  emergency_handler_id = add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+}
+
+nas_pcap::~nas_pcap()
+{
+  if (emergency_handler_id > 0) {
+    remove_emergency_cleanup_handler(emergency_handler_id);
+  }
 }
 
 void nas_pcap::enable()

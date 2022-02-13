@@ -108,21 +108,21 @@ void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
     double rx_rate_mbps = (nof_tti > 0) ? ((metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
     double tx_rate_mbps = (nof_tti > 0) ? ((metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
 
-    logger.info("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
-                it->first,
-                rx_rate_mbps,
-                rx_rate_mbps_real_time,
-                tx_rate_mbps,
-                tx_rate_mbps_real_time);
+    logger.debug("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
+                 it->first,
+                 rx_rate_mbps,
+                 rx_rate_mbps_real_time,
+                 tx_rate_mbps,
+                 tx_rate_mbps_real_time);
     m.bearer[it->first] = metrics;
   }
 
   // Add multicast metrics
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
-    logger.info("MCH_LCID=%d, rx_rate_mbps=%4.2f",
-                it->first,
-                (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs.count());
+    logger.debug("MCH_LCID=%d, rx_rate_mbps=%4.2f",
+                 it->first,
+                 (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs.count());
     m.bearer[it->first] = metrics;
   }
 

@@ -175,7 +175,7 @@ uint32_t srsran_band_helper::get_abs_freq_ssb_arfcn(uint16_t                    
   return find_lower_bound_abs_freq_ssb(band, scs, freq_point_a_hz + coreset0_offset_hz);
 }
 
-srsran_ssb_patern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs)
+srsran_ssb_pattern_t srsran_band_helper::get_ssb_pattern(uint16_t band, srsran_subcarrier_spacing_t scs)
 {
   // Look for the given band and SCS
   for (const nr_band_ss_raster& ss_raster : nr_band_ss_raster_table) {

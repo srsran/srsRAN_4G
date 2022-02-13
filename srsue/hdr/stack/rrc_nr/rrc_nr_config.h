@@ -27,21 +27,19 @@
 
 namespace srsue {
 
-// Expert arguments to create GW without proper RRC
-struct core_less_args_t {
-  std::string ip_addr;
-  uint8_t     drb_lcid;
-};
-
 struct rrc_nr_args_t {
-  core_less_args_t      coreless;
-  uint32_t              sim_nr_meas_pci;
-  bool                  pdcp_short_sn_support;
-  std::string           supported_bands_nr_str;
-  std::vector<uint32_t> supported_bands_nr;
-  std::vector<uint32_t> supported_bands_eutra;
-  std::string           log_level;
-  uint32_t              log_hex_limit;
+  uint32_t                    sim_nr_meas_pci;
+  bool                        pdcp_short_sn_support;
+  std::string                 supported_bands_nr_str;
+  std::vector<uint32_t>       supported_bands_nr;
+  std::vector<uint32_t>       supported_bands_eutra;
+  uint32_t                    dl_nr_arfcn;
+  uint32_t                    ssb_nr_arfcn;
+  uint32_t                    nof_prb;
+  srsran_subcarrier_spacing_t scs;
+  srsran_subcarrier_spacing_t ssb_scs;
+  std::string                 log_level;
+  uint32_t                    log_hex_limit;
 };
 
 } // namespace srsue

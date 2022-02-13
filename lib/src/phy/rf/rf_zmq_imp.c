@@ -66,7 +66,7 @@ typedef struct {
   pthread_mutex_t rx_gain_mutex;
 } rf_zmq_handler_t;
 
-void update_rates(rf_zmq_handler_t* handler, double srate);
+static void update_rates(rf_zmq_handler_t* handler, double srate);
 
 /*
  * Static Atributes
@@ -970,8 +970,7 @@ int rf_zmq_send_timed_multi(void*  h,
         }
 
         // Scale according to current gain
-        // TODO: document baseband scaling for ZMQ with gain settings, etc. before enabling
-        // srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
+         srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
 
         // Finally, transmit baseband
         int n = rf_zmq_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);

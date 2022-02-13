@@ -145,6 +145,9 @@ target_link_libraries(ssb_measure_test srsran_phy)
 add_executable(ssb_decode_test ssb_decode_test.c)
 target_link_libraries(ssb_decode_test srsran_phy)
 
+add_executable(ssb_grid_test ssb_grid_test.c)
+target_link_libraries(ssb_grid_test srsran_phy)
+
 # For 1.0 GHz and 3.5 GHz Center frequencies
 foreach (CELL_FREQ 1000000 3500000)
   # For each supported Cell/Carrier subcarrier spacing
@@ -164,6 +167,10 @@ foreach (CELL_FREQ 1000000 3500000)
 
           # Test SSB PBCH decoding
           add_nr_test(ssb_decode_test_${CELL_FREQ}000_${CELL_SCS}_${SSB_FREQ}000_${SSB_SCS}_${SSB_PATTERN} ssb_decode_test
+                  -F ${CELL_FREQ}000 -S ${CELL_SCS} -f ${SSB_FREQ}000 -s ${SSB_SCS} -P ${SSB_PATTERN})
+
+          # Test SSB grid put/get decoding
+          add_nr_test(ssb_grid_test_${CELL_FREQ}000_${CELL_SCS}_${SSB_FREQ}000_${SSB_SCS}_${SSB_PATTERN} ssb_grid_test
                   -F ${CELL_FREQ}000 -S ${CELL_SCS} -f ${SSB_FREQ}000 -s ${SSB_SCS} -P ${SSB_PATTERN})
         endforeach ()
       endforeach ()

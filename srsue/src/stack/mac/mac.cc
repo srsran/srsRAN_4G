@@ -677,11 +677,11 @@ void mac::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
     dl_avg_ret /= dl_avg_ret_count;
   }
 
-  Info("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f",
-       rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
-       dl_avg_ret,
-       tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,
-       ul_harq.at(PCELL_CC_IDX)->get_average_retx());
+  Debug("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f",
+        rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
+        dl_avg_ret,
+        tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,
+        ul_harq.at(PCELL_CC_IDX)->get_average_retx());
 
   metrics[PCELL_CC_IDX].ul_buffer = (int)bsr_procedure.get_buffer_state();
   memcpy(m, metrics, sizeof(mac_metrics_t) * SRSRAN_MAX_CARRIERS);

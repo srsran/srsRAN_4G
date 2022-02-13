@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 // NR parameters
-static srsran_ssb_patern_t         ssb_pattern = SRSRAN_SSB_PATTERN_C;
+static srsran_ssb_pattern_t        ssb_pattern = SRSRAN_SSB_PATTERN_C;
 static srsran_subcarrier_spacing_t ssb_scs     = srsran_subcarrier_spacing_30kHz;
 static srsran_duplex_mode_t        duplex_mode = SRSRAN_DUPLEX_MODE_TDD;
 

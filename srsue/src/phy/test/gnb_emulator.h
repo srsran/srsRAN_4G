@@ -42,7 +42,7 @@ public:
     double                      srate_hz;
     srsran_carrier_nr_t         carrier;
     srsran_subcarrier_spacing_t ssb_scs;
-    srsran_ssb_patern_t         ssb_pattern;
+    srsran_ssb_pattern_t        ssb_pattern;
     uint32_t                    ssb_periodicity_ms;
     srsran_duplex_mode_t        duplex_mode;
     srsran::channel::args_t     channel;

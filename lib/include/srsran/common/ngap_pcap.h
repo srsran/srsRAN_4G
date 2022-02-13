@@ -31,7 +31,7 @@ class ngap_pcap
 {
 public:
   ngap_pcap();
-  ~ngap_pcap()                      = default;
+  ~ngap_pcap();
   ngap_pcap(const ngap_pcap& other) = delete;
   ngap_pcap& operator=(const ngap_pcap& other) = delete;
   ngap_pcap(ngap_pcap&& other)                 = delete;
@@ -45,7 +45,8 @@ public:
 private:
   bool        enable_write = false;
   std::string filename;
-  FILE*       pcap_file = nullptr;
+  FILE*       pcap_file            = nullptr;
+  int         emergency_handler_id = -1;
 };
 
 } // namespace srsran

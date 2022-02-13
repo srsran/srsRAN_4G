@@ -1016,7 +1016,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     parse_opt_field(cell_cfg.phy_cell.rf_port, cellroot, "rf_port");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.carrier.pci, cellroot, "pci"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.cell_id, cellroot, "cell_id"));
-    HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.root_seq_idx, cellroot, "root_seq_idx"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.prach_root_seq_idx, cellroot, "root_seq_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
 
     cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
@@ -1099,9 +1099,9 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     if (it->ul_arfcn != 0) {
       // Check if ul_arfcn is valid for the given band
       bool                  ul_arfcn_valid = false;
-      std::vector<uint32_t> bands          = band_helper.get_bands_nr(it->ul_arfcn);
-      for (uint32_t band_idx = 0; band_idx < bands.size(); band_idx++) {
-        if (bands.at(band_idx) == it->band) {
+      std::vector<uint32_t> ul_bands       = band_helper.get_bands_nr(it->ul_arfcn);
+      for (uint32_t band_idx = 0; band_idx < ul_bands.size(); band_idx++) {
+        if (ul_bands.at(band_idx) == it->band) {
           ul_arfcn_valid = true;
         }
       }
@@ -1159,6 +1159,30 @@ int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell)
     return SRSRAN_ERROR;
   }
 
+  return SRSRAN_SUCCESS;
+}
+
+// Parse the relevant CFR configuration params
+int parse_cfr_args(all_args_t* args, srsran_cfr_cfg_t* cfr_config)
+{
+  cfr_config->cfr_enable  = args->phy.cfr_args.enable;
+  cfr_config->cfr_mode    = args->phy.cfr_args.mode;
+  cfr_config->alpha       = args->phy.cfr_args.strength;
+  cfr_config->manual_thr  = args->phy.cfr_args.manual_thres;
+  cfr_config->max_papr_db = args->phy.cfr_args.auto_target_papr;
+  cfr_config->ema_alpha   = args->phy.cfr_args.ema_alpha;
+
+  if (!srsran_cfr_params_valid(cfr_config)) {
+    fprintf(stderr,
+            "Invalid CFR parameters: cfr_mode=%d, alpha=%.2f, manual_thr=%.2f, \n "
+            "max_papr_db=%.2f, ema_alpha=%.2f\n",
+            cfr_config->cfr_mode,
+            cfr_config->alpha,
+            cfr_config->manual_thr,
+            cfr_config->max_papr_db,
+            cfr_config->ema_alpha);
+    return SRSRAN_ERROR;
+  }
   return SRSRAN_SUCCESS;
 }
 
@@ -1279,6 +1303,12 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
       rrc_cfg_->endc_cfg.ssb_ssc           = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::khz15;
       rrc_cfg_->endc_cfg.act_from_b1_event = true; // ENDC will only be activated from B1 measurment
     }
+  }
+
+  // Parse CFR args
+  if (parse_cfr_args(args_, &phy_cfg_->cfr_config) < SRSRAN_SUCCESS) {
+    fprintf(stderr, "Error parsing CFR configuration\n");
+    return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;
@@ -1572,12 +1602,8 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
 
     // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
 
-    // PRACH
-    cfg.phy_cell.prach.hs_flag = phy_cfg_->prach_cnfg.prach_cfg_info.high_speed_flag;
-
     // PDSCH
-    cfg.phy_cell.pdsch.rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
-    cfg.phy_cell.pdsch.p_b      = phy_cfg_->pdsch_cnfg.p_b;
+    cfg.pdsch_rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
   }
   rrc_nr_cfg_->enb_id = args_->enb.enb_id;
   rrc_nr_cfg_->mcc    = args_->stack.s1ap.mcc;

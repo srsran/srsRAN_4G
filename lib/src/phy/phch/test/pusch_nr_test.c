@@ -165,7 +165,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  // Set PDSCH grant without considering any procedure
+  // Set PUSCH grant without considering any procedure
   pusch_cfg.grant.nof_dmrs_cdm_groups_without_data = 1; // No need for MIMO
   pusch_cfg.grant.nof_layers                       = carrier.max_mimo_layers;
   pusch_cfg.grant.dci_format                       = srsran_dci_format_nr_1_0;
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
 
       pusch_cfg.grant.dci_format = srsran_dci_format_nr_0_0;
       if (srsran_ra_nr_fill_tb(&pusch_cfg, &pusch_cfg.grant, mcs, &pusch_cfg.grant.tb[0]) < SRSRAN_SUCCESS) {
-        ERROR("Error filing tb");
+        ERROR("Error filling tb");
         goto clean_exit;
       }
 
@@ -279,10 +279,12 @@ int main(int argc, char** argv)
       // Check symbols Mean Square Error (MSE)
       uint32_t nof_re = srsran_ra_dl_nr_slot_nof_re(&pusch_cfg, &pusch_cfg.grant);
       if (nof_re * pusch_cfg.grant.nof_layers > 0) {
-        float mse = 0.0f;
+        float mse     = 0.0f;
+        float mse_tmp = 0.0f;
         for (uint32_t i = 0; i < pusch_cfg.grant.nof_layers; i++) {
           for (uint32_t j = 0; j < nof_re; j++) {
-            mse += cabsf(pusch_tx.d[i][j] - pusch_rx.d[i][j]);
+            mse_tmp = cabsf(pusch_tx.d[i][j] - pusch_rx.d[i][j]);
+            mse += mse_tmp * mse_tmp;
           }
         }
         mse = mse / (nof_re * pusch_cfg.grant.nof_layers);

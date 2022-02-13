@@ -61,6 +61,7 @@ extern "C" {
 
 #include "srsran/phy/channel/ch_awgn.h"
 
+#include "srsran/phy/cfr/cfr.h"
 #include "srsran/phy/dft/dft.h"
 #include "srsran/phy/dft/dft_precoding.h"
 #include "srsran/phy/dft/ofdm.h"

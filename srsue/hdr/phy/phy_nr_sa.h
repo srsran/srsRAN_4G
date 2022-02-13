@@ -68,7 +68,12 @@ public:
   bool           start_cell_search(const cell_search_args_t& req) final;
   bool           start_cell_select(const cell_select_args_t& req) final;
 
-  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final { return workers.get_metrics(*m); };
+  void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final
+  {
+    if (rat == srsran::srsran_rat_t::nr) {
+      return workers.get_metrics(*m);
+    }
+  };
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
 
 private:

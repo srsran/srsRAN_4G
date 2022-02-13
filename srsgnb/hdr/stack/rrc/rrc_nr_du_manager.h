@@ -40,6 +40,12 @@ public:
   asn1::rrc_nr::sib1_s         sib1;
   srsran::unique_byte_buffer_t packed_sib1;
 
+  asn1::rrc_nr::subcarrier_spacing_e ssb_scs;
+  srsran_ssb_pattern_t               ssb_pattern;
+  double                             ssb_center_freq_hz;
+  double                             dl_freq_hz;
+  bool                               is_standalone;
+
   const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg_common() const
   {
     return sib1.serving_cell_cfg_common;
@@ -71,6 +77,8 @@ private:
 
   std::vector<std::unique_ptr<du_cell_config> > cells;
 };
+
+void fill_phy_pdcch_cfg_common(const du_cell_config& cell, srsran_pdcch_cfg_nr_t* pdcch);
 
 } // namespace srsenb
 

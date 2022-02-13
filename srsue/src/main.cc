@@ -69,6 +69,7 @@ string config_file;
 static int parse_args(all_args_t* args, int argc, char* argv[])
 {
   bool use_standard_lte_rates = false;
+  std::string scs_khz, ssb_scs_khz; // temporary value to store integer
 
   // Command line only options
   bpo::options_description general("General options");
@@ -131,9 +132,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("rat.eutra.ul_freq",      bpo::value<float>(&args->phy.ul_freq)->default_value(-1),            "Uplink Frequency (if positive overrides EARFCN)")
     ("rat.eutra.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_lte_carriers)->default_value(1), "Number of carriers")
     
-    ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("78"),  "Supported NR bands")
+    ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("3"),   "Supported NR bands")
     ("rat.nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(0),                   "Number of NR carriers")
-    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(52),                  "Maximum NR carrier bandwidth in PRB")
+    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(52),                   "Maximum NR carrier bandwidth in PRB")
+    ("rat.nr.dl_nr_arfcn",  bpo::value<uint32_t>(&args->stack.rrc_nr.dl_nr_arfcn)->default_value(368500),         "DL ARFCN of NR cell")
+    ("rat.nr.ssb_nr_arfcn", bpo::value<uint32_t>(&args->stack.rrc_nr.ssb_nr_arfcn)->default_value(368410),        "SSB ARFCN of NR cell")
+    ("rat.nr.nof_prb",      bpo::value<uint32_t>(&args->stack.rrc_nr.nof_prb)->default_value(52),                 "Actual NR carrier bandwidth in PRB")
+    ("rat.nr.scs",          bpo::value<string>(&scs_khz)->default_value("15"),                                    "PDSCH subcarrier spacing in kHz")
+    ("rat.nr.ssb_scs",      bpo::value<string>(&ssb_scs_khz)->default_value("15"),                                "SSB subcarrier spacing in kHz")
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000),                       "Hex value of the featureGroupIndicators field in the"
                                                                                                                                  "UECapabilityInformation message. Default 0xe6041000")
@@ -628,6 +634,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   srsran_use_standard_symbol_size(use_standard_lte_rates);
+
+  args->stack.rrc_nr.scs     = srsran_subcarrier_spacing_from_str(scs_khz.c_str());
+  args->stack.rrc_nr.ssb_scs = srsran_subcarrier_spacing_from_str(ssb_scs_khz.c_str());
+  if (args->stack.rrc_nr.scs == srsran_subcarrier_spacing_invalid ||
+      args->stack.rrc_nr.ssb_scs == srsran_subcarrier_spacing_invalid) {
+    cout << "Invalid subcarrier spacing config" << endl;
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }

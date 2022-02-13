@@ -112,7 +112,8 @@ protected:
   srslog::basic_logger&                   logger;
   std::atomic<bool>                       running = {false};
   static_blocking_queue<pcap_pdu_t, 1024> queue;
-  uint16_t                                ue_id = 0;
+  uint16_t                                ue_id                = 0;
+  int                                     emergency_handler_id = -1;
 
 private:
   void pack_and_queue(uint8_t* payload,

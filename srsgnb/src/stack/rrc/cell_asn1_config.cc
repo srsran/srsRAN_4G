@@ -508,32 +508,6 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   return SRSRAN_SUCCESS;
 }
 
-/// Fill InitDlBwp with gNB config
-int fill_pdcch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_s& pdcch_cfg)
-{
-  auto& cell_cfg = cfg.cell_list.at(cc);
-  for (uint32_t ss_idx = 1; ss_idx < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ss_idx++) {
-    if (cell_cfg.phy_cell.pdcch.search_space_present[ss_idx]) {
-      auto& search_space_cfg = cell_cfg.phy_cell.pdcch.search_space[ss_idx];
-      if (search_space_cfg.type != srsran_search_space_type_ue) {
-        // Only add UE-specific search spaces at this stage
-        continue;
-      }
-
-      // Add UE-specific SearchSpace
-      pdcch_cfg.search_spaces_to_add_mod_list.push_back({});
-      set_search_space_from_phy_cfg(search_space_cfg, pdcch_cfg.search_spaces_to_add_mod_list.back());
-
-      // Add CORESET associated with SearchSpace
-      uint32_t coreset_id  = search_space_cfg.coreset_id;
-      auto&    coreset_cfg = cell_cfg.phy_cell.pdcch.coreset[coreset_id];
-      pdcch_cfg.ctrl_res_set_to_add_mod_list.push_back({});
-      set_coreset_from_phy_cfg(coreset_cfg, pdcch_cfg.ctrl_res_set_to_add_mod_list.back());
-    }
-  }
-  return SRSRAN_SUCCESS;
-}
-
 void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg_s& out)
 {
   out.dmrs_dl_for_pdsch_map_type_a_present = true;
@@ -580,8 +554,8 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
 /// Fill InitDlBwp with gNB config
 int fill_init_dl_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_ded_s& init_dl_bwp)
 {
-  init_dl_bwp.pdcch_cfg_present = true;
-  HANDLE_ERROR(fill_pdcch_cfg_from_enb_cfg(cfg, cc, init_dl_bwp.pdcch_cfg.set_setup()));
+  init_dl_bwp.pdcch_cfg_present     = true;
+  init_dl_bwp.pdcch_cfg.set_setup() = cfg.cell_list[cc].pdcch_cfg_ded;
 
   init_dl_bwp.pdsch_cfg_present = true;
   fill_pdsch_cfg_from_enb_cfg(cfg, cc, init_dl_bwp.pdsch_cfg.set_setup());
@@ -755,23 +729,7 @@ int fill_serv_cell_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_ce
   return SRSRAN_SUCCESS;
 }
 
-int fill_pdcch_cfg_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& pdcch_cfg_common)
-{
-  pdcch_cfg_common.common_ctrl_res_set_present = true;
-  set_coreset_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.coreset[1], pdcch_cfg_common.common_ctrl_res_set);
-
-  pdcch_cfg_common.common_search_space_list.push_back({});
-  set_search_space_from_phy_cfg(cfg.cell_list[cc].phy_cell.pdcch.search_space[1],
-                                pdcch_cfg_common.common_search_space_list.back());
-  pdcch_cfg_common.ra_search_space_present = true;
-  pdcch_cfg_common.ra_search_space         = cfg.cell_list[cc].phy_cell.pdcch.ra_search_space.id;
-
-  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-    pdcch_cfg_common.ext = false;
-  }
-
-  return SRSRAN_SUCCESS;
-}
+void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& out);
 
 /// Fill FrequencyInfoDL with gNB config
 int fill_freq_info_dl_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_info_dl_s& freq_info_dl)
@@ -803,9 +761,8 @@ int fill_freq_info_dl_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_in
 int fill_init_dl_bwp_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_common_s& init_dl_bwp)
 {
   init_dl_bwp.pdcch_cfg_common_present = true;
-  HANDLE_ERROR(fill_pdcch_cfg_common_from_enb_cfg(cfg, cc, init_dl_bwp.pdcch_cfg_common.set_setup()));
+  fill_pdcch_cfg_common(cfg, cc, init_dl_bwp.pdcch_cfg_common.set_setup());
   // TODO: ADD missing fields
-
   return SRSRAN_SUCCESS;
 }
 
@@ -848,11 +805,48 @@ int fill_freq_info_ul_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, freq_in
   return SRSRAN_SUCCESS;
 }
 
+int fill_rach_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, rach_cfg_common_s& rach)
+{
+  // rach-ConfigGeneric
+  rach.rach_cfg_generic.prach_cfg_idx = 0;
+  if (cfg.cell_list[cc].duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    // Note: Give more time margin to fit RAR
+    rach.rach_cfg_generic.prach_cfg_idx = 8;
+  }
+  rach.rach_cfg_generic.msg1_fdm.value            = rach_cfg_generic_s::msg1_fdm_opts::one;
+  rach.rach_cfg_generic.msg1_freq_start           = 1; // zero not supported with current PRACH implementation
+  rach.rach_cfg_generic.zero_correlation_zone_cfg = 0;
+  rach.rach_cfg_generic.preamb_rx_target_pwr      = -110;
+  rach.rach_cfg_generic.preamb_trans_max.value    = rach_cfg_generic_s::preamb_trans_max_opts::n7;
+  rach.rach_cfg_generic.pwr_ramp_step.value       = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
+  rach.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
+
+  // totalNumberOfRA-Preambles
+  if (cfg.cell_list[cc].num_ra_preambles != 64) {
+    rach.total_nof_ra_preambs_present = true;
+    rach.total_nof_ra_preambs         = cfg.cell_list[cc].num_ra_preambles;
+  }
+
+  // ssb-perRACH-OccasionAndCB-PreamblesPerSSB
+  rach.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  if (not asn1::number_to_enum(rach.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(),
+                               cfg.cell_list[cc].num_ra_preambles)) {
+    get_logger(cfg).error("Invalid number of RA preambles=%d", cfg.cell_list[cc].num_ra_preambles);
+    return -1;
+  }
+
+  rach.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
+  rach.prach_root_seq_idx.set_l839()        = cfg.cell_list[cc].prach_root_seq_idx;
+  rach.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
+
+  return SRSRAN_SUCCESS;
+}
+
 /// Fill InitUlBwp with gNB config
 int fill_init_ul_bwp_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_ul_common_s& init_ul_bwp)
 {
   init_ul_bwp.rach_cfg_common_present = true;
-  set_rach_cfg_common(cfg.cell_list[cc].phy_cell.prach, init_ul_bwp.rach_cfg_common.set_setup());
+  HANDLE_ERROR(fill_rach_cfg_common(cfg, cc, init_ul_bwp.rach_cfg_common.set_setup()));
 
   // TODO: Add missing fields
 
@@ -880,7 +874,7 @@ int fill_serv_cell_common_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, ser
 {
   auto& cell_cfg = cfg.cell_list.at(cc);
 
-  serv_common.ss_pbch_block_pwr               = cell_cfg.phy_cell.pdsch.rs_power;
+  serv_common.ss_pbch_block_pwr               = cell_cfg.pdsch_rs_power;
   serv_common.n_timing_advance_offset_present = true;
   serv_common.n_timing_advance_offset         = serving_cell_cfg_common_s::n_timing_advance_offset_opts::n0;
   serv_common.n_timing_advance_offset_present = true;
@@ -935,7 +929,9 @@ int fill_recfg_with_sync_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, recf
 /// Fill spCellConfig with gNB config
 int fill_sp_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, sp_cell_cfg_s& sp_cell)
 {
-  sp_cell.recfg_with_sync_present = true;
+  if (not cfg.is_standalone) {
+    sp_cell.recfg_with_sync_present = true;
+  }
   HANDLE_ERROR(fill_recfg_with_sync_from_enb_cfg(cfg, cc, sp_cell.recfg_with_sync));
 
   sp_cell.sp_cell_cfg_ded_present = true;
@@ -1063,7 +1059,6 @@ int fill_master_cell_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1
   // spCellConfig -- Need M
   out.sp_cell_cfg_present = true;
   fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
-  out.sp_cell_cfg.recfg_with_sync_present = false;
 
   return SRSRAN_SUCCESS;
 }
@@ -1095,26 +1090,26 @@ int fill_mib_from_enb_cfg(const rrc_cell_cfg_nr_t& cell_cfg, asn1::rrc_nr::mib_s
   return SRSRAN_SUCCESS;
 }
 
-void fill_pdcch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdcch_cfg_common_s& cfg)
+// Called for SA and NSA
+void fill_pdcch_cfg_common(const rrc_nr_cfg_t& cfg, uint32_t cc, pdcch_cfg_common_s& out)
 {
-  cfg.ctrl_res_set_zero_present   = true; // may be disabled later if called by sib1 generation
-  cfg.ctrl_res_set_zero           = 0;
-  cfg.common_ctrl_res_set_present = false;
+  auto& cell_cfg = cfg.cell_list[cc];
 
-  cfg.search_space_zero_present = true;
-  cfg.search_space_zero         = 0;
+  out.ctrl_res_set_zero_present = false;
+  out.search_space_zero_present = false;
 
-  cfg.common_search_space_list.resize(1);
-  set_search_space_from_phy_cfg(cell_cfg.phy_cell.pdcch.search_space[1], cfg.common_search_space_list[0]);
+  out.common_ctrl_res_set_present = cell_cfg.pdcch_cfg_common.common_ctrl_res_set_present;
+  out.common_ctrl_res_set         = cell_cfg.pdcch_cfg_common.common_ctrl_res_set;
+  out.common_search_space_list    = cell_cfg.pdcch_cfg_common.common_search_space_list;
 
-  cfg.search_space_sib1_present           = true;
-  cfg.search_space_sib1                   = 0;
-  cfg.search_space_other_sys_info_present = true;
-  cfg.search_space_other_sys_info         = 1;
-  cfg.paging_search_space_present         = true;
-  cfg.paging_search_space                 = 1;
-  cfg.ra_search_space_present             = true;
-  cfg.ra_search_space                     = 1;
+  out.search_space_sib1_present           = true;
+  out.search_space_sib1                   = 0;
+  out.search_space_other_sys_info_present = true;
+  out.search_space_other_sys_info         = 1;
+  out.paging_search_space_present         = true;
+  out.paging_search_space                 = 1;
+  out.ra_search_space_present             = true;
+  out.ra_search_space                     = 1;
 }
 
 void fill_pdsch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdsch_cfg_common_s& cfg)
@@ -1124,78 +1119,84 @@ void fill_pdsch_cfg_common(const rrc_cell_cfg_nr_t& cell_cfg, pdsch_cfg_common_s
   cfg.pdsch_time_domain_alloc_list[0].start_symbol_and_len = 40;
 }
 
-void fill_init_dl_bwp(const rrc_cell_cfg_nr_t& cell_cfg, bwp_dl_common_s& cfg)
+// Called for SA
+void fill_init_dl_bwp(const rrc_nr_cfg_t& cfg, uint32_t cc, bwp_dl_common_s& out)
 {
-  cfg.generic_params.location_and_bw    = 14025;
-  cfg.generic_params.subcarrier_spacing = (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
+  auto& cell_cfg = cfg.cell_list[cc];
 
-  cfg.pdcch_cfg_common_present = true;
-  fill_pdcch_cfg_common(cell_cfg, cfg.pdcch_cfg_common.set_setup());
-  cfg.pdsch_cfg_common_present = true;
-  fill_pdsch_cfg_common(cell_cfg, cfg.pdsch_cfg_common.set_setup());
+  out.generic_params.location_and_bw    = 14025;
+  out.generic_params.subcarrier_spacing = (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
+
+  out.pdcch_cfg_common_present = true;
+  fill_pdcch_cfg_common(cfg, cc, out.pdcch_cfg_common.set_setup());
+  out.pdsch_cfg_common_present = true;
+  fill_pdsch_cfg_common(cell_cfg, out.pdsch_cfg_common.set_setup());
 }
 
-void fill_dl_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, dl_cfg_common_sib_s& cfg)
+void fill_dl_cfg_common_sib(const rrc_nr_cfg_t& cfg, uint32_t cc, dl_cfg_common_sib_s& out)
 {
+  auto& cell_cfg = cfg.cell_list[cc];
+
   uint32_t scs_hz = SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs);
   uint32_t prb_bw = scs_hz * SRSRAN_NRE;
 
   srsran::srsran_band_helper band_helper;
-  cfg.freq_info_dl.freq_band_list.resize(1);
-  cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
-  cfg.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
+  out.freq_info_dl.freq_band_list.resize(1);
+  out.freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
+  out.freq_info_dl.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
   double   ssb_freq_start                                     = cell_cfg.ssb_freq_hz - SRSRAN_SSB_BW_SUBC * scs_hz / 2;
   double   offset_point_a_hz         = ssb_freq_start - band_helper.nr_arfcn_to_freq(cell_cfg.dl_absolute_freq_point_a);
   uint32_t offset_point_a_prbs       = offset_point_a_hz / prb_bw;
-  cfg.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
-  cfg.freq_info_dl.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
-  cfg.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
+  out.freq_info_dl.offset_to_point_a = offset_point_a_prbs;
+  out.freq_info_dl.scs_specific_carrier_list.resize(1);
+  out.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
+  out.freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
-  cfg.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
+  out.freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
 
-  fill_init_dl_bwp(cell_cfg, cfg.init_dl_bwp);
+  fill_init_dl_bwp(cfg, cc, out.init_dl_bwp);
   // disable InitialBWP-Only fields
-  cfg.init_dl_bwp.pdcch_cfg_common.setup().ctrl_res_set_zero_present = false;
-  cfg.init_dl_bwp.pdcch_cfg_common.setup().search_space_zero_present = false;
+  out.init_dl_bwp.pdcch_cfg_common.setup().ctrl_res_set_zero_present = false;
+  out.init_dl_bwp.pdcch_cfg_common.setup().search_space_zero_present = false;
 
-  cfg.bcch_cfg.mod_period_coeff.value = bcch_cfg_s::mod_period_coeff_opts::n4;
+  out.bcch_cfg.mod_period_coeff.value = bcch_cfg_s::mod_period_coeff_opts::n4;
 
-  cfg.pcch_cfg.default_paging_cycle.value = paging_cycle_opts::rf128;
-  cfg.pcch_cfg.nand_paging_frame_offset.set_one_t();
-  cfg.pcch_cfg.ns.value = pcch_cfg_s::ns_opts::one;
+  out.pcch_cfg.default_paging_cycle.value = paging_cycle_opts::rf128;
+  out.pcch_cfg.nand_paging_frame_offset.set_one_t();
+  out.pcch_cfg.ns.value = pcch_cfg_s::ns_opts::one;
 }
 
-void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib_s& cfg)
+void fill_ul_cfg_common_sib(const rrc_nr_cfg_t& cfg, uint32_t cc, ul_cfg_common_sib_s& out)
 {
+  auto&                      cell_cfg = cfg.cell_list[cc];
   srsran::srsran_band_helper band_helper;
 
-  cfg.freq_info_ul.freq_band_list.resize(1);
-  cfg.freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
-  cfg.freq_info_ul.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
+  out.freq_info_ul.freq_band_list.resize(1);
+  out.freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
+  out.freq_info_ul.freq_band_list[0].freq_band_ind_nr         = cell_cfg.band;
 
-  cfg.freq_info_ul.absolute_freq_point_a_present = true;
-  cfg.freq_info_ul.absolute_freq_point_a =
+  out.freq_info_ul.absolute_freq_point_a_present = true;
+  out.freq_info_ul.absolute_freq_point_a =
       band_helper.get_abs_freq_point_a_arfcn(cell_cfg.phy_cell.carrier.nof_prb, cell_cfg.ul_arfcn);
 
-  cfg.freq_info_ul.scs_specific_carrier_list.resize(1);
-  cfg.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
-  cfg.freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing =
+  out.freq_info_ul.scs_specific_carrier_list.resize(1);
+  out.freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg.phy_cell.carrier.offset_to_carrier;
+  out.freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
-  cfg.freq_info_ul.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
+  out.freq_info_ul.scs_specific_carrier_list[0].carrier_bw = cell_cfg.phy_cell.carrier.nof_prb;
 
-  cfg.freq_info_ul.p_max_present = true;
-  cfg.freq_info_ul.p_max         = 10;
+  out.freq_info_ul.p_max_present = true;
+  out.freq_info_ul.p_max         = 10;
 
-  cfg.init_ul_bwp.generic_params.location_and_bw = 14025;
-  cfg.init_ul_bwp.generic_params.subcarrier_spacing.value =
+  out.init_ul_bwp.generic_params.location_and_bw = 14025;
+  out.init_ul_bwp.generic_params.subcarrier_spacing.value =
       (subcarrier_spacing_opts::options)cell_cfg.phy_cell.carrier.scs;
 
-  cfg.init_ul_bwp.rach_cfg_common_present = true;
-  set_rach_cfg_common(cell_cfg.phy_cell.prach, cfg.init_ul_bwp.rach_cfg_common.set_setup());
+  out.init_ul_bwp.rach_cfg_common_present = true;
+  fill_rach_cfg_common(cfg, cc, out.init_ul_bwp.rach_cfg_common.set_setup());
 
-  cfg.init_ul_bwp.pusch_cfg_common_present = true;
-  pusch_cfg_common_s& pusch                = cfg.init_ul_bwp.pusch_cfg_common.set_setup();
+  out.init_ul_bwp.pusch_cfg_common_present = true;
+  pusch_cfg_common_s& pusch                = out.init_ul_bwp.pusch_cfg_common.set_setup();
   pusch.pusch_time_domain_alloc_list.resize(1);
   pusch.pusch_time_domain_alloc_list[0].k2_present           = true;
   pusch.pusch_time_domain_alloc_list[0].k2                   = 4;
@@ -1204,39 +1205,41 @@ void fill_ul_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, ul_cfg_common_sib
   pusch.p0_nominal_with_grant_present                        = true;
   pusch.p0_nominal_with_grant                                = -76;
 
-  cfg.init_ul_bwp.pucch_cfg_common_present = true;
-  pucch_cfg_common_s& pucch                = cfg.init_ul_bwp.pucch_cfg_common.set_setup();
+  out.init_ul_bwp.pucch_cfg_common_present = true;
+  pucch_cfg_common_s& pucch                = out.init_ul_bwp.pucch_cfg_common.set_setup();
   pucch.pucch_res_common_present           = true;
   pucch.pucch_res_common                   = 11;
   pucch.pucch_group_hop.value              = pucch_cfg_common_s::pucch_group_hop_opts::neither;
   pucch.p0_nominal_present                 = true;
   pucch.p0_nominal                         = -90;
 
-  cfg.time_align_timer_common.value = time_align_timer_opts::infinity;
+  out.time_align_timer_common.value = time_align_timer_opts::infinity;
 }
 
-int fill_serv_cell_cfg_common_sib(const rrc_cell_cfg_nr_t& cell_cfg, serving_cell_cfg_common_sib_s& cfg)
+int fill_serv_cell_cfg_common_sib(const rrc_nr_cfg_t& cfg, uint32_t cc, serving_cell_cfg_common_sib_s& out)
 {
-  fill_dl_cfg_common_sib(cell_cfg, cfg.dl_cfg_common);
+  auto& cell_cfg = cfg.cell_list[cc];
 
-  cfg.ul_cfg_common_present = true;
-  fill_ul_cfg_common_sib(cell_cfg, cfg.ul_cfg_common);
+  fill_dl_cfg_common_sib(cfg, cc, out.dl_cfg_common);
 
-  cfg.ssb_positions_in_burst.in_one_group.from_number(0x80);
+  out.ul_cfg_common_present = true;
+  fill_ul_cfg_common_sib(cfg, cc, out.ul_cfg_common);
 
-  cfg.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
+  out.ssb_positions_in_burst.in_one_group.from_number(0x80);
+
+  out.ssb_periodicity_serving_cell.value = serving_cell_cfg_common_sib_s::ssb_periodicity_serving_cell_opts::ms10;
 
   // The time advance offset is not supported by the current PHY
-  cfg.n_timing_advance_offset_present = true;
-  cfg.n_timing_advance_offset         = serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0;
+  out.n_timing_advance_offset_present = true;
+  out.n_timing_advance_offset         = serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0;
 
   // TDD UL-DL config
   if (cell_cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-    cfg.tdd_ul_dl_cfg_common_present = true;
-    fill_tdd_ul_dl_config_common(cell_cfg, cfg.tdd_ul_dl_cfg_common);
+    out.tdd_ul_dl_cfg_common_present = true;
+    fill_tdd_ul_dl_config_common(cell_cfg, out.tdd_ul_dl_cfg_common);
   }
 
-  cfg.ss_pbch_block_pwr = cell_cfg.phy_cell.pdsch.rs_power;
+  out.ss_pbch_block_pwr = cell_cfg.pdsch_rs_power;
 
   return SRSRAN_SUCCESS;
 }
@@ -1283,7 +1286,7 @@ int fill_sib1_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, asn1::rrc_nr::s
   //  sib1.si_sched_info.sched_info_list[0].sib_map_info[0].value_tag         = 0;
 
   sib1.serving_cell_cfg_common_present = true;
-  HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cell_cfg, sib1.serving_cell_cfg_common));
+  HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cfg, cc, sib1.serving_cell_cfg_common));
 
   sib1.ue_timers_and_consts_present    = true;
   sib1.ue_timers_and_consts.t300.value = ue_timers_and_consts_s::t300_opts::ms1000;

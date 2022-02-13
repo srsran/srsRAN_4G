@@ -65,6 +65,9 @@ struct rf_args_t {
 
   std::array<rf_args_band_t, SRSRAN_MAX_CARRIERS> ch_rx_bands;
   std::array<rf_args_band_t, SRSRAN_MAX_CARRIERS> ch_tx_bands;
+
+  FILE** rx_files;  // Array of pre-opened FILE* for rx instead of a real device
+  FILE** tx_files;  // Array of pre-opened FILE* for tx instead of a real device
 };
 
 class srsran_gw_config_t

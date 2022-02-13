@@ -70,7 +70,6 @@ public:
            const rrc_nr_args_t&        args_);
 
   void stop();
-  void init_core_less();
 
   void get_metrics(rrc_nr_metrics_t& m);
 
@@ -152,11 +151,13 @@ private:
   void send_security_mode_complete();
 
   // helpers
+  void set_phy_default_config();
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
   void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
   void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
   void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
+  void handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release);
   void generate_as_keys();
 
   srsran::task_sched_handle task_sched;
@@ -193,7 +194,7 @@ private:
   uint32_t                            sim_measurement_carrier_freq_r15;
   srsran::timer_handler::unique_timer sim_measurement_timer;
 
-  rrc_nr_state_t     state = RRC_NR_STATE_IDLE;
+  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
 
   uint8_t transaction_id = 0;
 
@@ -205,8 +206,10 @@ private:
   // Stores the state of the PHY configuration setting
   enum {
     PHY_CFG_STATE_NONE = 0,
-    PHY_CFG_STATE_APPLY_SP_CELL,
-    PHY_CFG_STATE_RA_COMPLETED,
+    PHY_CFG_STATE_SA_SIB_CFG,
+    PHY_CFG_STATE_SA_FULL_CFG,
+    PHY_CFG_STATE_NSA_APPLY_SP_CELL,
+    PHY_CFG_STATE_NSA_RA_COMPLETED,
   } phy_cfg_state;
 
   rrc_nr_args_t args = {};
@@ -260,9 +263,9 @@ private:
   class setup_request_proc;
 
   srsran::proc_t<cell_selection_proc, rrc_cell_search_result_t> cell_selector;
-  srsran::proc_t<connection_setup_proc>                     conn_setup_proc;
-  srsran::proc_t<connection_reconf_no_ho_proc>              conn_recfg_proc;
-  srsran::proc_t<setup_request_proc>                        setup_req_proc;
+  srsran::proc_t<connection_setup_proc>                         conn_setup_proc;
+  srsran::proc_t<connection_reconf_no_ho_proc>                  conn_recfg_proc;
+  srsran::proc_t<setup_request_proc>                            setup_req_proc;
 
   srsran::proc_manager_list_t callback_list;
 };

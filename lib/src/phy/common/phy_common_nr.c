@@ -784,7 +784,7 @@ int srsran_coreset0_ssb_offset(uint32_t idx, srsran_subcarrier_spacing_t ssb_scs
   return entry->offset_rb;
 }
 
-const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern)
+const char* srsran_ssb_pattern_to_str(srsran_ssb_pattern_t pattern)
 {
   switch (pattern) {
     case SRSRAN_SSB_PATTERN_A:
@@ -804,7 +804,7 @@ const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern)
   return "Invalid";
 }
 
-srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str)
+srsran_ssb_pattern_t srsran_ssb_pattern_fom_str(const char* str)
 {
   if (str == NULL) {
     return SRSRAN_SSB_PATTERN_INVALID;

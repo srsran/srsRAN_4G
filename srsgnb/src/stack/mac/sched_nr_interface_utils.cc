@@ -80,11 +80,13 @@ srsran::phy_cfg_nr_t get_common_ue_phy_cfg(const sched_nr_cell_cfg_t& cfg)
     srsran_sanity_check(success, "Failed to convert Cell TDDConfig to UEPHYConfig");
   }
 
-  ue_phy_cfg.pdcch                          = cfg.bwps[0].pdcch;
-  ue_phy_cfg.pdsch                          = cfg.bwps[0].pdsch;
-  ue_phy_cfg.pusch                          = cfg.bwps[0].pusch;
-  ue_phy_cfg.pucch                          = cfg.bwps[0].pucch;
-  ue_phy_cfg.prach                          = cfg.bwps[0].prach;
+  ue_phy_cfg.pdcch = cfg.bwps[0].pdcch;
+  ue_phy_cfg.pdsch = cfg.bwps[0].pdsch;
+  ue_phy_cfg.pusch = cfg.bwps[0].pusch;
+  ue_phy_cfg.pucch = cfg.bwps[0].pucch;
+  srsran::make_phy_rach_cfg(cfg.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup(),
+                            cfg.tdd_ul_dl_cfg_common.has_value() ? SRSRAN_DUPLEX_MODE_TDD : SRSRAN_DUPLEX_MODE_FDD,
+                            &ue_phy_cfg.prach);
   ue_phy_cfg.harq_ack                       = cfg.bwps[0].harq_ack;
   ue_phy_cfg.csi                            = {}; // disable CSI until RA is complete
   ue_phy_cfg.carrier.pci                    = cfg.pci;
