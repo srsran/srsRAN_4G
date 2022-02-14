@@ -16,6 +16,8 @@
 #include "srsran/config.h"
 #include "srsran/phy/rf/rf.h"
 
+extern rf_dev_t srsran_rf_dev_skiq;
+
 SRSRAN_API int rf_skiq_open(char* args, void** handler);
 
 SRSRAN_API int rf_skiq_open_multi(char* args, void** handler, uint32_t nof_rx_antennas);

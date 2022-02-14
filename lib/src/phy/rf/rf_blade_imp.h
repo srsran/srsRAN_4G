@@ -10,10 +10,15 @@
  *
  */
 
+#ifndef SRSRAN_RF_BLADE_IMP_H_
+#define SRSRAN_RF_BLADE_IMP_H_
+
 #include "srsran/config.h"
 #include "srsran/phy/rf/rf.h"
 
 #define DEVNAME "bladerf"
+
+extern rf_dev_t srsran_rf_dev_blade;
 
 SRSRAN_API int rf_blade_open(char* args, void** handler);
 
@@ -90,3 +95,5 @@ SRSRAN_API int rf_blade_send_timed(void*  h,
                                    bool   blocking,
                                    bool   is_start_of_burst,
                                    bool   is_end_of_burst);
+
+#endif /* SRSRAN_RF_BLADE_IMP_H_ */

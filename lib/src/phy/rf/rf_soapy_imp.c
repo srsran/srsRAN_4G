@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "rf_helper.h"
+#include "rf_plugin.h"
 #include "rf_soapy_imp.h"
 #include "srsran/phy/common/phy_common.h"
 #include "srsran/phy/utils/debug.h"
@@ -994,3 +995,44 @@ int rf_soapy_send_timed_multi(void*  h,
 
   return n;
 }
+
+rf_dev_t srsran_rf_dev_soapy = {"soapy",
+                                rf_soapy_devname,
+                                rf_soapy_start_rx_stream,
+                                rf_soapy_stop_rx_stream,
+                                rf_soapy_flush_buffer,
+                                rf_soapy_has_rssi,
+                                rf_soapy_get_rssi,
+                                rf_soapy_suppress_stdout,
+                                rf_soapy_register_error_handler,
+                                rf_soapy_open,
+                                rf_soapy_open_multi,
+                                rf_soapy_close,
+                                rf_soapy_set_rx_srate,
+                                rf_soapy_set_rx_gain,
+                                rf_soapy_set_rx_gain_ch,
+                                rf_soapy_set_tx_gain,
+                                rf_soapy_set_tx_gain_ch,
+                                rf_soapy_get_rx_gain,
+                                rf_soapy_get_tx_gain,
+                                rf_soapy_get_info,
+                                rf_soapy_set_rx_freq,
+                                rf_soapy_set_tx_srate,
+                                rf_soapy_set_tx_freq,
+                                rf_soapy_get_time,
+                                NULL,
+                                rf_soapy_recv_with_time,
+                                rf_soapy_recv_with_time_multi,
+                                rf_soapy_send_timed,
+                                .srsran_rf_send_timed_multi = rf_soapy_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_soapy;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */

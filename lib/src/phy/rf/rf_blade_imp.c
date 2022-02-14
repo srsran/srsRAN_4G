@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "rf_blade_imp.h"
+#include "rf_plugin.h"
 #include "srsran/phy/common/timestamp.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
@@ -535,3 +536,44 @@ int rf_blade_send_timed(void*       h,
 
   return nsamples;
 }
+
+rf_dev_t srsran_rf_dev_blade = {"bladeRF",
+                                rf_blade_devname,
+                                rf_blade_start_rx_stream,
+                                rf_blade_stop_rx_stream,
+                                rf_blade_flush_buffer,
+                                rf_blade_has_rssi,
+                                rf_blade_get_rssi,
+                                rf_blade_suppress_stdout,
+                                rf_blade_register_error_handler,
+                                rf_blade_open,
+                                .srsran_rf_open_multi = rf_blade_open_multi,
+                                rf_blade_close,
+                                rf_blade_set_rx_srate,
+                                rf_blade_set_rx_gain,
+                                rf_blade_set_rx_gain_ch,
+                                rf_blade_set_tx_gain,
+                                rf_blade_set_tx_gain_ch,
+                                rf_blade_get_rx_gain,
+                                rf_blade_get_tx_gain,
+                                rf_blade_get_info,
+                                rf_blade_set_rx_freq,
+                                rf_blade_set_tx_srate,
+                                rf_blade_set_tx_freq,
+                                rf_blade_get_time,
+                                NULL,
+                                rf_blade_recv_with_time,
+                                rf_blade_recv_with_time_multi,
+                                rf_blade_send_timed,
+                                .srsran_rf_send_timed_multi = rf_blade_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_blade;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */

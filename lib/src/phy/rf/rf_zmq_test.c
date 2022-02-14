@@ -234,6 +234,7 @@ int param_test(const char* args_param, const int num_channels)
 
 int main()
 {
+  srsran_rf_load_plugins();
 //  // two Rx ports
 //  if (param_test("rx_port=ipc://dl0,rx_port1=ipc://dl1", 2)) {
 //    fprintf(stderr, "Param test failed!\n");

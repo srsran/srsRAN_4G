@@ -29,6 +29,8 @@ extern "C" {
 #define DEVNAME_E3X0 "uhd_e3x0"
 #define DEVNAME_UNKNOWN "uhd_unknown"
 
+extern rf_dev_t srsran_rf_dev_uhd;
+
 SRSRAN_API int rf_uhd_open(char* args, void** handler);
 
 SRSRAN_API int rf_uhd_open_multi(char* args, void** handler, uint32_t nof_channels);

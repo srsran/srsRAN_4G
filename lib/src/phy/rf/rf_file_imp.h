@@ -23,6 +23,8 @@
 #define PARAM_LEN (128)
 #define PARAM_LEN_SHORT (PARAM_LEN / 2)
 
+extern rf_dev_t srsran_rf_dev_file;
+
 SRSRAN_API const char* rf_file_devname(void* h);
 
 SRSRAN_API int rf_file_start_rx_stream(void* h, bool now);

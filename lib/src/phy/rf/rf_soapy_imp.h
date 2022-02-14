@@ -20,6 +20,8 @@
 #include <stdint.h>
 #define DEVNAME_SOAPY "soapy"
 
+extern rf_dev_t srsran_rf_dev_soapy;
+
 SRSRAN_API int rf_soapy_open(char* args, void** handler);
 
 SRSRAN_API int rf_soapy_open_multi(char* args, void** handler, uint32_t num_requested_channels);

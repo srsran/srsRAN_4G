@@ -57,6 +57,7 @@ option(DISABLE_SIMD          "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA       "Autodetect supported ISA extensions"      ON)
 
 option(ENABLE_GUI            "Enable GUI (using srsGUI)"                ON)
+option(ENABLE_RF_PLUGINS     "Enable RF plugins"                        ON)
 option(ENABLE_UHD            "Enable UHD"                               ON)
 option(ENABLE_BLADERF        "Enable BladeRF"                           ON)
 option(ENABLE_SOAPYSDR       "Enable SoapySDR"                          ON)

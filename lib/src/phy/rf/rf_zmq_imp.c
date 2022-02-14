@@ -12,6 +12,7 @@
 
 #include "rf_zmq_imp.h"
 #include "rf_helper.h"
+#include "rf_plugin.h"
 #include "rf_zmq_imp_trx.h"
 #include <math.h>
 #include <srsran/phy/common/phy_common.h>
@@ -983,3 +984,44 @@ clean_exit:
 
   return ret;
 }
+
+rf_dev_t srsran_rf_dev_zmq = {"zmq",
+                              rf_zmq_devname,
+                              rf_zmq_start_rx_stream,
+                              rf_zmq_stop_rx_stream,
+                              rf_zmq_flush_buffer,
+                              rf_zmq_has_rssi,
+                              rf_zmq_get_rssi,
+                              rf_zmq_suppress_stdout,
+                              rf_zmq_register_error_handler,
+                              rf_zmq_open,
+                              .srsran_rf_open_multi = rf_zmq_open_multi,
+                              rf_zmq_close,
+                              rf_zmq_set_rx_srate,
+                              rf_zmq_set_rx_gain,
+                              rf_zmq_set_rx_gain_ch,
+                              rf_zmq_set_tx_gain,
+                              rf_zmq_set_tx_gain_ch,
+                              rf_zmq_get_rx_gain,
+                              rf_zmq_get_tx_gain,
+                              rf_zmq_get_info,
+                              rf_zmq_set_rx_freq,
+                              rf_zmq_set_tx_srate,
+                              rf_zmq_set_tx_freq,
+                              rf_zmq_get_time,
+                              NULL,
+                              rf_zmq_recv_with_time,
+                              rf_zmq_recv_with_time_multi,
+                              rf_zmq_send_timed,
+                              .srsran_rf_send_timed_multi = rf_zmq_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_zmq;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */
