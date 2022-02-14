@@ -320,6 +320,62 @@ int rlc_am_nr_control_pdu_test3()
   return SRSRAN_SUCCESS;
 }
 
+// Status PDU for 12bit SN with ACK_SN=2065, NACK_SN=273, SO_START=2, SO_END=5, NACK_SN=275
+// E1 and E2 bit set on first NACK, neither E1 or E2 on the second.
+int rlc_am_nr_control_pdu_test4()
+{
+  test_delimit_logger      delimiter("Control PDU test 4");
+  const int                len = 11;
+  std::array<uint8_t, len> tv  = {0x08, 0x11, 0x80, 0x11, 0x1c, 0x00, 0x02, 0x00, 0x05, 0x11, 0x30};
+  srsran::byte_buffer_t    pdu = make_pdu_and_log(tv);
+
+  TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
+
+  // unpack PDU
+  rlc_am_nr_status_pdu_t status_pdu = {};
+  TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
+  TESTASSERT(status_pdu.ack_sn == 2065);
+  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
+  TESTASSERT(status_pdu.nacks[0].has_so == true);
+  TESTASSERT(status_pdu.nacks[0].so_start == 2);
+  TESTASSERT(status_pdu.nacks[0].so_end == 5);
+  TESTASSERT(status_pdu.nacks[1].nack_sn == 275);
+  TESTASSERT(status_pdu.nacks[1].has_so == false);
+
+  // reset status PDU
+  pdu.clear();
+
+  // pack again
+  TESTASSERT(rlc_am_nr_write_status_pdu(status_pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &pdu) == SRSRAN_SUCCESS);
+  TESTASSERT(pdu.N_bytes == tv.size());
+
+  write_pdu_to_pcap(4, pdu.msg, pdu.N_bytes);
+  TESTASSERT(memcmp(pdu.msg, tv.data(), pdu.N_bytes) == 0);
+
+  return SRSRAN_SUCCESS;
+}
+
+// Malformed Status PDU, with E1 still set at the end of the PDU
+// 12bit SN with ACK_SN=2065, NACK_SN=273, SO_START=2, SO_END=5, NACK_SN=275, SO_START=5, SO_END=0xFFFF
+// E1 and E2 bit set on first NACK, only E2 on second.
+int rlc_am_nr_control_pdu_test5()
+{
+  test_delimit_logger      delimiter("Control PDU test 5");
+  const int                len = 15;
+  std::array<uint8_t, len> tv  = {
+      0x08, 0x11, 0x80, 0x11, 0x1c, 0x00, 0x02, 0x00, 0x05, 0x11, 0x3c, 0x00, 0x05, 0xFF, 0xFF};
+  srsran::byte_buffer_t pdu = make_pdu_and_log(tv);
+
+  TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
+
+  // unpack PDU
+  rlc_am_nr_status_pdu_t status_pdu = {};
+  TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == 0);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   static const struct option long_options[] = {{"pcap", no_argument, nullptr, 'p'}, {nullptr, 0, nullptr, 0}};
@@ -388,6 +444,16 @@ int main(int argc, char** argv)
 
   if (rlc_am_nr_control_pdu_test3()) {
     fprintf(stderr, "rlc_am_nr_control_pdu_test3() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (rlc_am_nr_control_pdu_test4()) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test4() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (rlc_am_nr_control_pdu_test5()) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test5() failed.\n");
     return SRSRAN_ERROR;
   }
 

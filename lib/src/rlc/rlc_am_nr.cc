@@ -169,7 +169,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
     return 0;
   }
 
-  // Copy SDU into PDU info
+  // Copy SDU into TX window SDU info
   memcpy(tx_pdu.sdu_buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
   tx_pdu.sdu_buf->N_bytes = tx_sdu->N_bytes;
 
@@ -461,17 +461,21 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx,
                 expected_hdr_len,
                 retx_payload_len);
 
-  // Update SI, if necessary
-  rlc_nr_si_field_t si = rlc_nr_si_field_t::full_sdu;
+  // Log RETX info
+  RlcDebug("SDU%scan be fully re-transmitted. SN=%d, nof_bytes=%d, expected_hdr_len=%d, "
+           "current_so=%d, so_start=%d, so_end=%d",
+           retx.is_segment ? " segment " : " ",
+           retx.sn,
+           nof_bytes,
+           expected_hdr_len,
+           retx.current_so,
+           retx.so_start,
+           retx.so_end);
+
+  // Update & write header
+  uint32_t          current_so = 0;
+  rlc_nr_si_field_t si         = rlc_nr_si_field_t::full_sdu;
   if (retx.is_segment) {
-    RlcDebug("SDU segment can be fully transmitted. SN=%d, nof_bytes=%d, expected_hdr_len=%d, "
-             "current_so=%d, so_start=%d, so_end=%d",
-             retx.sn,
-             nof_bytes,
-             expected_hdr_len,
-             retx.current_so,
-             retx.so_start,
-             retx.so_end);
     if (retx.current_so == 0) {
       si = rlc_nr_si_field_t::first_segment;
     } else if ((retx.current_so + retx_payload_len) < tx_pdu.sdu_buf->N_bytes) {
@@ -479,17 +483,15 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx,
     } else {
       si = rlc_nr_si_field_t::last_segment;
     }
+    current_so = retx.current_so;
   }
-
-  // Update & write header
   rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
-  new_header.si                     = si;
   new_header.p                      = 0;
-  if (retx.is_segment) {
-    new_header.so = retx.current_so;
-  }
-  uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(new_header, payload);
+  new_header.si                     = si;
+  new_header.so                     = current_so;
+  uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, payload);
 
+  // Write payload into PDU
   uint32_t pdu_bytes             = 0;
   uint32_t retx_pdu_payload_size = 0;
   if (not retx.is_segment) {
@@ -504,6 +506,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx,
   srsran_assert(pdu_bytes <= nof_bytes, "Error calculating hdr_len and pdu_payload_len");
   memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[retx.current_so], retx_pdu_payload_size);
 
+  // Update RETX queue and log
   retx_queue.pop();
   RlcHexInfo(tx_window[retx.sn].sdu_buf->msg,
              tx_window[retx.sn].sdu_buf->N_bytes,
@@ -548,7 +551,6 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, ui
 
   } else {
     RlcDebug("Creating SDU segment from SDU segment. SN=%d, current_so=%d, so_start=%d, so_end=%d",
-             __FUNCTION__,
              retx.sn,
              retx.current_so,
              retx.so_start,
@@ -862,7 +864,7 @@ uint32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
   return (sn - st.tx_next_ack) % mod_nr;
 }
 
-bool rlc_am_nr_tx::inside_tx_window(uint32_t sn)
+bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
 {
   // TX_Next_Ack <= SN < TX_Next_Ack + AM_Window_Size
   return tx_mod_base_nr(sn) < RLC_AM_NR_WINDOW_SIZE;
@@ -871,7 +873,7 @@ bool rlc_am_nr_tx::inside_tx_window(uint32_t sn)
 /*
  * Debug Helpers
  */
-void rlc_am_nr_tx::debug_state()
+void rlc_am_nr_tx::debug_state() const
 {
   RlcDebug("TX entity state: Tx_Next %d, Rx_Next_Ack %d, POLL_SN %d, PDU_WITHOUT_POLL %d, BYTE_WITHOUT_POLL %d",
            st.tx_next,
@@ -1304,13 +1306,13 @@ uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
 }
 
 void rlc_am_nr_rx::insert_received_segment(rlc_amd_rx_pdu_nr                                   segment,
-                                           std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list)
+                                           std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list) const
 {
   segment_list.insert(std::move(segment));
 }
 
 bool rlc_am_nr_rx::have_all_segments_been_received(
-    const std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list)
+    const std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list) const
 {
   if (segment_list.empty()) {
     return false;
@@ -1335,7 +1337,7 @@ bool rlc_am_nr_rx::have_all_segments_been_received(
 /*
  * Debug Helpers
  */
-void rlc_am_nr_rx::debug_state()
+void rlc_am_nr_rx::debug_state() const
 {
   RlcDebug("RX entity state: Rx_Next %d, Rx_Next_Status_Trigger %d, Rx_Highest_Status %d, Rx_Next_Highest",
            st.rx_next,

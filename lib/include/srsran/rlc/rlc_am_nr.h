@@ -127,7 +127,7 @@ public:
 
   void stop() final;
 
-  bool inside_tx_window(uint32_t sn);
+  bool inside_tx_window(uint32_t sn) const;
 
 private:
   rlc_am*       parent = nullptr;
@@ -165,7 +165,7 @@ public:
   uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
 
   // Debug Helper
-  void debug_state();
+  void debug_state() const;
 };
 
 /****************************************************************************
@@ -221,9 +221,8 @@ public:
   int  handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
-  void insert_received_segment(rlc_amd_rx_pdu_nr                                   segment,
-                               std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list);
-  bool have_all_segments_been_received(const std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list);
+  void insert_received_segment(rlc_amd_rx_pdu_nr segment, rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
+  bool have_all_segments_been_received(const rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
 
   // Metrics
   uint32_t get_sdu_rx_latency_ms() final;
@@ -233,7 +232,7 @@ public:
   void timer_expired(uint32_t timeout_id);
 
   // Helpers
-  void debug_state();
+  void debug_state() const;
 
 private:
   rlc_am*           parent = nullptr;

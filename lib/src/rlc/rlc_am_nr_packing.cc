@@ -211,6 +211,10 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
         ptr++;
       }
       status->N_nack++;
+      if ((ptr - payload) > nof_bytes) {
+        fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
+        return 0;
+      }
     }
   }
 
