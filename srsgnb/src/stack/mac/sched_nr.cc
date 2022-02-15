@@ -295,6 +295,9 @@ int sched_nr::config(const sched_args_t& sched_cfg, srsran::const_span<sched_nr_
   cfg    = sched_params_t{sched_cfg};
   logger = &srslog::fetch_basic_logger(sched_cfg.logger_name);
 
+  // Initiate UE memory pool
+  ue_pool.reset(new srsran::circular_stack_pool<SRSENB_MAX_UES>(8, sizeof(ue), 4));
+
   // Initiate Common Sched Configuration
   cfg.cells.reserve(cell_list.size());
   for (uint32_t cc = 0; cc < cell_list.size(); ++cc) {
@@ -333,7 +336,7 @@ void sched_nr::ue_rem(uint16_t rnti)
   });
 }
 
-int sched_nr::add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u)
+int sched_nr::add_ue_impl(uint16_t rnti, sched_nr_impl::unique_ue_ptr u)
 {
   logger->info("SCHED: New user rnti=0x%x, cc=%d", rnti, cfg.cells[0].cc);
   return ue_db.insert(rnti, std::move(u)).has_value() ? SRSRAN_SUCCESS : SRSRAN_ERROR;
@@ -342,6 +345,8 @@ int sched_nr::add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u)
 int sched_nr::ue_cfg_impl(uint16_t rnti, const ue_cfg_t& uecfg)
 {
   if (not ue_db.contains(rnti)) {
+    // create user object
+    unique_ue_ptr u = srsran::make_pool_obj_with_fallback<ue>(*ue_pool, rnti, rnti, uecfg, cfg);
     return add_ue_impl(rnti, std::make_unique<ue>(rnti, uecfg, cfg));
   }
   ue_db[rnti]->set_cfg(uecfg);
@@ -416,7 +421,8 @@ void sched_nr::get_metrics(mac_metrics_t& metrics)
 int sched_nr::dl_rach_info(const rar_info_t& rar_info)
 {
   // create user object outside of sched main thread
-  std::unique_ptr<ue> u = std::make_unique<ue>(rar_info.temp_crnti, rar_info.cc, cfg);
+  unique_ue_ptr u =
+      srsran::make_pool_obj_with_fallback<ue>(*ue_pool, rar_info.temp_crnti, rar_info.temp_crnti, rar_info.cc, cfg);
 
   // enqueue UE creation event + RACH handling
   auto add_ue = [this, rar_info, u = std::move(u)](event_manager::logger& ev_logger) mutable {

@@ -17,6 +17,7 @@
 #include "sched_nr_interface.h"
 #include "sched_nr_ue.h"
 #include "srsran/adt/pool/cached_alloc.h"
+#include "srsran/adt/pool/circular_stack_pool.h"
 #include "srsran/common/slot_point.h"
 #include <array>
 extern "C" {
@@ -61,7 +62,7 @@ public:
 
 private:
   int ue_cfg_impl(uint16_t rnti, const ue_cfg_t& cfg);
-  int add_ue_impl(uint16_t rnti, std::unique_ptr<sched_nr_impl::ue> u);
+  int add_ue_impl(uint16_t rnti, sched_nr_impl::unique_ue_ptr u);
 
   // args
   sched_nr_impl::sched_params_t cfg;
@@ -74,6 +75,8 @@ private:
   using slot_cc_worker = sched_nr_impl::cc_worker;
   std::vector<std::unique_ptr<sched_nr_impl::cc_worker> > cc_workers;
 
+  // UE Database
+  std::unique_ptr<srsran::circular_stack_pool<SRSENB_MAX_UES> > ue_pool;
   using ue_map_t = sched_nr_impl::ue_map_t;
   ue_map_t ue_db;
 
