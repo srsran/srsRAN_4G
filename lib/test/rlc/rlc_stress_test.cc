@@ -488,6 +488,8 @@ void stress_test(stress_test_args_t args)
       cnfg_ = rlc_config_t::default_rlc_um_nr_config(6);
     } else if (args.mode == "UM12") {
       cnfg_ = rlc_config_t::default_rlc_um_nr_config(12);
+    } else if (args.mode == "AM12") {
+      cnfg_ = rlc_config_t::default_rlc_am_nr_config();
     } else {
       cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
       exit(-1);
