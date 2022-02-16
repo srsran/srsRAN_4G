@@ -63,7 +63,7 @@ const char* registration_type_5gs_t::follow_on_request_bit_type_::to_string() co
 {
   switch (value) {
     case follow_on_request_bit_type_::no_follow_on_request_pending:
-      return "no_follow_on_request_pending ";
+      return "no_follow_on_request_pending";
     case follow_on_request_bit_type_::follow_on_request_pending:
       return "follow_on_request_pending";
     default:
@@ -1227,7 +1227,7 @@ const char* ue_usage_setting_t::UE_usage_setting_type_::to_string() const
     case UE_usage_setting_type_::voice_centric:
       return "voice centric";
     case UE_usage_setting_type_::data_centric:
-      return "data centric ";
+      return "data centric";
     default:
       return "Invalid Choice";
   }
@@ -1278,13 +1278,13 @@ const char* drx_parameters_5gs_t::drx_value_type_::to_string() const
     case drx_value_type_::drx_value_not_specified:
       return "DRX value not specified";
     case drx_value_type_::drx_cycle_parameter_t_32:
-      return "DRX cycle parameter T 32 ";
+      return "DRX cycle parameter T 32";
     case drx_value_type_::drx_cycle_parameter_t_64:
-      return "DRX cycle parameter T 64 ";
+      return "DRX cycle parameter T 64";
     case drx_value_type_::drx_cycle_parameter_t_128:
-      return "DRX cycle parameter T 128 ";
+      return "DRX cycle parameter T 128";
     case drx_value_type_::drx_cycle_parameter_t_256:
-      return "DRX cycle parameter T 256 ";
+      return "DRX cycle parameter T 256";
     default:
       return "Invalid Choice";
   }
@@ -2292,7 +2292,7 @@ const char* tracking_area_identity_list_5gs_t::type_of_list_type_::to_string() c
     case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values:
       return "list of TACs belonging to one PLMN or SNPN, with consecutive TAC values";
     case type_of_list_type_::list_of_ta_is_belonging_to_different_plm_ns:
-      return "list of TAIs belonging to different PLMNs ";
+      return "list of TAIs belonging to different PLMNs";
     case type_of_list_type_::reserved:
       return "Reserved";
     default:
@@ -3025,11 +3025,11 @@ const char* cause_5gmm_t::cause_5gmm_type_::to_string() const
     case cause_5gmm_type_::no_network_slices_available:
       return "No network slices available";
     case cause_5gmm_type_::maximum_number_of_pdu_sessions_reached_:
-      return "Maximum number of PDU sessions reached  ";
+      return "Maximum number of PDU sessions reached";
     case cause_5gmm_type_::insufficient_resources_for_specific_slice_and_dnn:
       return "Insufficient resources for specific slice and DNN";
     case cause_5gmm_type_::insufficient_resources_for_specific_slice:
-      return "Insufficient resources for specific slice ";
+      return "Insufficient resources for specific slice";
     case cause_5gmm_type_::ng_ksi_already_in_use:
       return "ngKSI already in use";
     case cause_5gmm_type_::non_3_gpp_access_to_5gcn_not_allowed:
@@ -3037,7 +3037,7 @@ const char* cause_5gmm_t::cause_5gmm_type_::to_string() const
     case cause_5gmm_type_::serving_network_not_authorized:
       return "Serving network not authorized";
     case cause_5gmm_type_::temporarily_not_authorized_for_this_snpn:
-      return "Temporarily not authorized for this SNPN ";
+      return "Temporarily not authorized for this SNPN";
     case cause_5gmm_type_::permanently_not_authorized_for_this_snpn:
       return "Permanently not authorized for this SNPN";
     case cause_5gmm_type_::not_authorized_for_this_cag_or_authorized_for_cag_cells_only:
@@ -3693,9 +3693,9 @@ const char* imeisv_request_t::imeisv_request_type_::to_string() const
 {
   switch (value) {
     case imeisv_request_type_::imeisv_not_requested:
-      return "IMEISV not requested ";
+      return "IMEISV not requested";
     case imeisv_request_type_::imeisv_requested:
-      return "IMEISV requested ";
+      return "IMEISV requested";
     default:
       return "Invalid Choice";
   }
@@ -4036,7 +4036,7 @@ const char* request_type_t::Request_type_value_type_::to_string() const
     case Request_type_value_type_::ma_pdu_request:
       return "MA PDU request";
     case Request_type_value_type_::reserved:
-      return "reserved ";
+      return "reserved";
     default:
       return "Invalid Choice";
   }
@@ -4338,7 +4338,7 @@ const char* pdu_session_type_t::PDU_session_type_value_type_::to_string() const
     case PDU_session_type_value_type_::ethernet:
       return "Ethernet";
     case PDU_session_type_value_type_::reserved:
-      return "reserved ";
+      return "reserved";
     default:
       return "Invalid Choice";
   }
@@ -5116,7 +5116,7 @@ const char* gprs_timer_t::Unit_type_::to_string() const
 {
   switch (value) {
     case Unit_type_::value_is_incremented_in_multiples_of_2_seconds:
-      return "value is incremented in multiples of 2 seconds ";
+      return "value is incremented in multiples of 2 seconds";
     case Unit_type_::value_is_incremented_in_multiples_of_1_minute:
       return "value is incremented in multiples of 1 minute";
     case Unit_type_::value_is_incremented_in_multiples_of_decihours:
