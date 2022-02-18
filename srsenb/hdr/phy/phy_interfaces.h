@@ -50,6 +50,7 @@ struct phy_args_t {
   std::string            type;
   srsran::phy_log_args_t log;
 
+  float                   rx_gain_offset      = 62;
   float                   max_prach_offset_us = 10;
   uint32_t                pusch_max_its       = 10;
   uint32_t                nr_pusch_max_its    = 10;

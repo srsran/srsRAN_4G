@@ -61,6 +61,15 @@ extern "C" {
 // Proportional moving average
 #define SRSRAN_VEC_PMA(average1, n1, average2, n2) (((average1) * (n1) + (average2) * (n2)) / ((n1) + (n2)))
 
+// Safe Proportional moving average
+#ifdef __cplusplus
+#define SRSRAN_VEC_SAFE_PMA(average1, n1, average2, n2)                                                                \
+  (std::isnormal((n1) + (n2)) ? SRSRAN_VEC_PMA(average1, n1, average2, n2) : (0))
+#else
+#define SRSRAN_VEC_SAFE_PMA(average1, n1, average2, n2)                                                                \
+  (isnormal((n1) + (n2)) ? SRSRAN_VEC_PMA(average1, n1, average2, n2) : (0))
+#endif
+
 // Exponential moving average
 #define SRSRAN_VEC_EMA(data, average, alpha) ((alpha) * (data) + (1 - alpha) * (average))
 

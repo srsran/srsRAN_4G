@@ -221,6 +221,10 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // Pass PDU to lower layers
   metrics.num_tx_pdus++;
   metrics.num_tx_pdu_bytes += sdu->N_bytes;
+  // Count TX'd bytes as if they were ACK'd if RLC is UM
+  if (rlc->rb_is_um(lcid)) {
+    metrics.num_tx_acked_bytes = metrics.num_tx_pdu_bytes;
+  }
   rlc->write_sdu(lcid, std::move(sdu));
 }
 

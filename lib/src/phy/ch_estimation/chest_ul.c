@@ -347,13 +347,16 @@ static void chest_ul_estimate(srsran_chest_ul_t*     q,
   }
 
   // Estimate received pilot power
+  float signal_power = srsran_vec_avg_power_cf(q->pilot_recv_signal, nslots * nrefs_sym);
   if (isnormal(res->noise_estimate)) {
-    res->snr = srsran_vec_avg_power_cf(q->pilot_recv_signal, nslots * nrefs_sym) / res->noise_estimate;
+    res->snr = signal_power / res->noise_estimate;
   } else {
     res->snr = NAN;
   }
 
   // Convert measurements in logarithm scale
+  res->rsrp               = signal_power;
+  res->rsrp_dBfs          = srsran_convert_power_to_dB(signal_power);
   res->snr_db             = srsran_convert_power_to_dB(res->snr);
   res->noise_estimate_dbm = srsran_convert_power_to_dBm(res->noise_estimate);
 }

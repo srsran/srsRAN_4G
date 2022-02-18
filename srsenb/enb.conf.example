@@ -387,7 +387,7 @@ nr_pdsch_mcs=28
 # rlf_release_timer_ms: Time taken by eNB to release UE context after it detects a RLF
 # rlf_min_ul_snr_estim: SNR threshold in dB below which the enb is notified with RLF ko
 # s1_setup_max_retries: Maximum amount of retries to setup the S1AP connection. If this value is exceeded, an alarm is written to the log. -1 means infinity.
-#
+# rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
 #####################################################################
 [expert]
 #pusch_max_its        = 8 # These are half iterations
@@ -423,3 +423,4 @@ nr_pdsch_mcs=28
 #rlf_release_timer_ms = 4000
 #rlf_min_ul_snr_estim = -2
 #s1_setup_max_retries = -1
+#rx_gain_offset = 62

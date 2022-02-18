@@ -184,7 +184,8 @@ static int get_pucch(srsran_enb_ul_t* q, srsran_ul_sf_cfg_t* ul_sf, srsran_pucch
       ERROR("Error estimating PUCCH DMRS");
       return SRSRAN_ERROR;
     }
-    pucch_res.snr_db = q->chest_res.snr_db;
+    pucch_res.snr_db  = q->chest_res.snr_db;
+    pucch_res.rsrp_db = q->chest_res.rsrp_dBfs;
 
     ret = srsran_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);
     if (ret < SRSRAN_SUCCESS) {

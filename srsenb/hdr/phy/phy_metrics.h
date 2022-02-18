@@ -20,28 +20,22 @@ namespace srsenb {
 // PHY metrics per user
 
 struct ul_metrics_t {
-  float n;
-  float pusch_sinr;
-  // Initialize this member with an invalid value as this field is optional.
-  float pusch_rssi = std::numeric_limits<float>::quiet_NaN();
-  // Initialize this member with an invalid value as this field is optional.
-  int64_t pusch_tpc = 0;
+  float   n;
+  float   pusch_sinr;
+  float   pusch_rssi;
+  int64_t pusch_tpc;
   float   pucch_sinr;
-  // Initialize this member with an invalid value as this field is optional.
-  float pucch_rssi = std::numeric_limits<float>::quiet_NaN();
-  // Initialize this member with an invalid value as this field is optional.
-  float pucch_ni = std::numeric_limits<float>::quiet_NaN();
-  float rssi;
-  float turbo_iters;
-  float mcs;
-  int   n_samples;
-  int   n_samples_pucch;
+  float   pucch_rssi;
+  float   pucch_ni;
+  float   turbo_iters;
+  float   mcs;
+  int     n_samples;
+  int     n_samples_pucch;
 };
 
 struct dl_metrics_t {
   float mcs;
-  // Initialize this member with an invalid value as this field is optional.
-  int64_t pucch_tpc = 0;
+  int64_t pucch_tpc;
   int     n_samples;
 };
 
