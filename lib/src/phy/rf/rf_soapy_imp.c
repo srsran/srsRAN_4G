@@ -26,8 +26,8 @@
 #include <SoapySDR/Formats.h>
 #include <SoapySDR/Logger.h>
 #include <SoapySDR/Time.h>
-#include <SoapySDR/Version.h>
 #include <SoapySDR/Types.h>
+#include <SoapySDR/Version.h>
 
 #define HAVE_ASYNC_THREAD 0
 
@@ -854,7 +854,7 @@ int rf_soapy_recv_with_time_multi(void*    h,
 int rf_soapy_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
 {
   void* data_multi[SRSRAN_MAX_PORTS] = {NULL};
-  data_multi[0] = data;
+  data_multi[0]                      = data;
   return rf_soapy_recv_with_time_multi(h, data_multi, nsamples, blocking, secs, frac_secs);
 }
 

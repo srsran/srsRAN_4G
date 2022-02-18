@@ -19,7 +19,7 @@
 static srsran_rf_plugin_t plugin_uhd = {"libsrsran_rf_uhd.so", NULL, NULL};
 #else
 #include "rf_uhd_imp.h"
-static srsran_rf_plugin_t plugin_uhd = {"", NULL, &srsran_rf_dev_uhd};
+static srsran_rf_plugin_t plugin_uhd   = {"", NULL, &srsran_rf_dev_uhd};
 #endif
 #endif
 
@@ -49,7 +49,7 @@ static srsran_rf_plugin_t plugin_soapy = {"", NULL, &srsran_rf_dev_soapy};
 static srsran_rf_plugin_t plugin_zmq = {"libsrsran_rf_zmq.so", NULL, NULL};
 #else
 #include "rf_zmq_imp.h"
-static srsran_rf_plugin_t plugin_zmq = {"", NULL, &srsran_rf_dev_zmq};
+static srsran_rf_plugin_t plugin_zmq   = {"", NULL, &srsran_rf_dev_zmq};
 #endif
 #endif
 
@@ -63,7 +63,7 @@ static srsran_rf_plugin_t plugin_file = {"", NULL, &srsran_rf_dev_file};
 static srsran_rf_plugin_t plugin_skiq = {"libsrsran_rf_skiq.so", NULL, NULL};
 #else
 #include "rf_skiq_imp.h"
-static srsran_rf_plugin_t plugin_skiq = {"", NULL, &srsran_rf_dev_skiq};
+static srsran_rf_plugin_t plugin_skiq  = {"", NULL, &srsran_rf_dev_skiq};
 #endif
 #endif
 
@@ -84,7 +84,6 @@ static rf_dev_t srsran_rf_dev_dummy = {
 static srsran_rf_plugin_t plugin_dummy = {"", NULL, &srsran_rf_dev_dummy};
 
 #endif
-
 
 /**
  * Collection of all currently available RF plugins

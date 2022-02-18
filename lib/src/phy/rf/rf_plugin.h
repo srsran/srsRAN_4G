@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-SRSRAN_API int register_plugin(rf_dev_t **rf_api);
+SRSRAN_API int register_plugin(rf_dev_t** rf_api);
 
 #ifdef __cplusplus
 }

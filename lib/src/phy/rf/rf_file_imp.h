@@ -129,6 +129,7 @@ SRSRAN_API int rf_file_send_timed_multi(void*  h,
  * @param[in] base_srate Sample rate of RX and TX files
  * @return SRSRAN_SUCCESS on success, otherwise error code
  */
-SRSRAN_API int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
+SRSRAN_API int
+rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
 
 #endif // SRSRAN_RF_FILE_IMP_H
