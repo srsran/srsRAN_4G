@@ -187,7 +187,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
   hdr.sn                     = st.tx_next;
   tx_pdu.header              = hdr;
-  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr);
+  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr, rb_name);
 
   // Write header
   uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu.get());
@@ -245,7 +245,7 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
   hdr.sn                     = st.tx_next;
   hdr.so                     = 0;
   tx_pdu.header              = hdr;
-  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr);
+  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr, rb_name);
 
   // Write header
   uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(hdr, payload);
@@ -347,7 +347,7 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
   hdr.sn                     = st.tx_next;
   hdr.so                     = last_byte;
   tx_pdu.header              = hdr;
-  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr);
+  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr, rb_name);
 
   // Write header
   uint32_t hdr_len = rlc_am_nr_write_data_pdu_header(hdr, payload);
@@ -520,7 +520,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx,
              tx_window[retx.sn].retx_count + 1,
              cfg.max_retx_thresh);
   RlcHexInfo(payload, nof_bytes, "retx PDU SN=%d (%d B)", retx.sn, nof_bytes);
-  log_rlc_am_nr_pdu_header_to_string(logger.debug, new_header);
+  log_rlc_am_nr_pdu_header_to_string(logger.debug, new_header, rb_name);
 
   debug_state();
   return pdu_bytes;
@@ -589,11 +589,11 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, ui
   hdr.si                     = si;
   uint32_t hdr_len           = rlc_am_nr_write_data_pdu_header(hdr, payload);
   if (hdr_len >= nof_bytes || hdr_len != expected_hdr_len) {
-    log_rlc_am_nr_pdu_header_to_string(logger.error, hdr);
+    log_rlc_am_nr_pdu_header_to_string(logger.error, hdr, rb_name);
     RlcError("Error writing AMD PDU header. nof_bytes=%d, hdr_len=%d", nof_bytes, hdr_len);
     return 0;
   }
-  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr);
+  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr, rb_name);
 
   // Copy SDU segment into payload
   srsran_assert((hdr_len + retx_pdu_payload_size) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
@@ -670,7 +670,7 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     RlcDebug("generated status PDU. Bytes:%d", pdu_len);
-    log_rlc_am_nr_status_pdu_to_string(logger.info, "%s tx status PDU - %s", &tx_status, rb_name);
+    log_rlc_am_nr_status_pdu_to_string(logger.info, "tx status PDU - %s", &tx_status, rb_name);
     pdu_len = rlc_am_nr_write_status_pdu(tx_status, rlc_am_nr_sn_size_t::size12bits, payload);
   } else {
     RlcInfo("cannot tx status PDU - %d bytes available, %d bytes required", nof_bytes, pdu_len);
@@ -689,7 +689,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   rlc_am_nr_status_pdu_t status = {};
   RlcHexDebug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
   rlc_am_nr_read_status_pdu(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &status);
-  log_rlc_am_nr_status_pdu_to_string(logger.info, "%s Rx Status PDU: %s", &status, parent->rb_name);
+  log_rlc_am_nr_status_pdu_to_string(logger.info, "Rx Status PDU: %s", &status, parent->rb_name);
   // Local variables for handling Status PDU will be updated with lock
   /*
    * - if the SN of the corresponding RLC SDU falls within the range
@@ -934,7 +934,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   uint32_t hdr_len = rlc_am_nr_read_data_pdu_header(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &header);
 
   RlcHexInfo(payload, nof_bytes, "Rx data PDU SN=%d (%d B)", header.sn, nof_bytes);
-  log_rlc_am_nr_pdu_header_to_string(logger.debug, header);
+  log_rlc_am_nr_pdu_header_to_string(logger.debug, header, rb_name);
 
   // Check whether SDU is within Rx Window
   if (!inside_rx_window(header.sn)) {

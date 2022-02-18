@@ -122,6 +122,7 @@ template <typename... Args>
 void log_rlc_am_nr_status_pdu_to_string(srslog::log_channel&    log_ch,
                                         const char*             fmt_str,
                                         rlc_am_nr_status_pdu_t* status,
+                                        const std::string&      rb_name,
                                         Args&&... args)
 {
   if (not log_ch.enabled()) {
@@ -146,14 +147,17 @@ void log_rlc_am_nr_status_pdu_to_string(srslog::log_channel&    log_ch,
 /*
  * Log NR AMD PDUs
  */
-inline void log_rlc_am_nr_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_am_nr_pdu_header_t& header)
+inline void log_rlc_am_nr_pdu_header_to_string(srslog::log_channel&          log_ch,
+                                               const rlc_am_nr_pdu_header_t& header,
+                                               const std::string&            rb_name)
 {
   if (not log_ch.enabled()) {
     return;
   }
   fmt::memory_buffer buffer;
   fmt::format_to(buffer,
-                 "[{}, P={}, SI={}, SN_SIZE={}, SN={}, SO={}",
+                 "{}: [{}, P={}, SI={}, SN_SIZE={}, SN={}, SO={}",
+                 rb_name,
                  rlc_dc_field_text[header.dc],
                  (header.p ? "1" : "0"),
                  to_string_short(header.si),
