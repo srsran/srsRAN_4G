@@ -163,6 +163,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   // insert newly assigned SN into window and use reference for in-place operations
   // NOTE: from now on, we can't return from this function anymore before increasing tx_next
   rlc_amd_tx_pdu_nr& tx_pdu = tx_window.add_pdu(st.tx_next);
+  tx_pdu.pdcp_sn            = tx_sdu->md.pdcp_sn;
   tx_pdu.sdu_buf            = srsran::make_byte_buffer();
   if (tx_pdu.sdu_buf == nullptr) {
     RlcError("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -707,14 +708,20 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
   for (uint32_t sn = st.tx_next_ack; sn < stop_sn; sn++) {
     if (tx_window.has_sn(sn)) {
+      notify_info_vec.push_back(tx_window[sn].pdcp_sn);
       tx_window.remove_pdu(sn);
       st.tx_next_ack = sn + 1;
-      // TODO notify PDCP
     } else {
       RlcError("Missing ACKed SN from TX window");
       break;
     }
   }
+
+  // Notify PDCP
+  if (not notify_info_vec.empty()) {
+    parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
+  }
+  notify_info_vec.clear();
 
   // Process N_acks
   for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {

@@ -258,6 +258,14 @@ int basic_test()
   TESTASSERT_EQ(5, st.tx_next_ack);
   TESTASSERT_EQ(0, tx1->get_tx_window_size());
 
+  // Check PDCP notifications
+  TESTASSERT_EQ(5, tester.notified_counts.size());
+  for (uint16_t i = 0; i < tester.sdus.size(); i++) {
+    TESTASSERT_EQ(1, tester.sdus[i]->N_bytes);
+    TESTASSERT_EQ(i, *(tester.sdus[i]->msg));
+    TESTASSERT_EQ(1, tester.notified_counts[i]);
+  }
+
   // Check statistics
   rlc_bearer_metrics_t metrics1 = rlc1.get_metrics();
   rlc_bearer_metrics_t metrics2 = rlc2.get_metrics();

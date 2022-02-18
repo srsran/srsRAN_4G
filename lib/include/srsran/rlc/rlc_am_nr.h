@@ -16,6 +16,7 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/timers.h"
+#include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/rlc/rlc_am_base.h"
 #include "srsran/rlc/rlc_am_data_structs.h"
 #include "srsran/rlc/rlc_am_nr_packing.h"
@@ -72,7 +73,7 @@ struct rlc_am_nr_tx_state_t {
 
 struct rlc_amd_tx_pdu_nr {
   const uint32_t         rlc_sn     = INVALID_RLC_SN;
-  const uint32_t         pdcp_sn    = INVALID_RLC_SN;
+  uint32_t               pdcp_sn    = INVALID_RLC_SN;
   rlc_am_nr_pdu_header_t header     = {};
   unique_byte_buffer_t   sdu_buf    = nullptr;
   uint32_t               retx_count = 0;
@@ -152,6 +153,7 @@ private:
   // Queues and buffers
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
   uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  pdcp_sn_vector_t notify_info_vec;
 
   // Helper constants
   uint32_t min_hdr_size = 2;
