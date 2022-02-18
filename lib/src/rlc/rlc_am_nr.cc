@@ -229,8 +229,10 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
 
   // Sanity check: can this SDU be sent considering header overhead?
   if (nof_bytes <= min_hdr_size) { // Small header as SO is not present
-    RlcError("cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d",
-             nof_bytes);
+    RlcError("cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d, "
+             "min_hdr_size=%d",
+             nof_bytes,
+             min_hdr_size);
     return 0;
   }
 
@@ -296,9 +298,11 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
   }
 
   // Sanity check: can this SDU be sent considering header overhead?
-  if ((max_hdr_size + 1) < nof_bytes) { // Larger header size, as SO is present
-    RlcError("cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d",
-             nof_bytes);
+  if (nof_bytes <= max_hdr_size) { // Larger header size, as SO is present
+    RlcError("cannot build new sdu_segment, there are not enough bytes allocated to tx header plus data. nof_bytes=%d, "
+             "max_header_size=%d",
+             nof_bytes,
+             max_hdr_size);
     return 0;
   }
 
