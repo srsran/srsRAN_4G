@@ -26,7 +26,7 @@ struct handler_instance {
 
 // Handlers are added in a thread safe manner without using locks to avoid possible issues if a signal is emitted while
 // modifying the callback array.
-static constexpr unsigned    max_handlers = 12;
+static constexpr unsigned    max_handlers = 256;
 static handler_instance      registered_handlers[max_handlers];
 static std::atomic<unsigned> num_handlers;
 
