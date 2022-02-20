@@ -194,16 +194,36 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
     // reset number of acks
     status->N_nack = 0;
 
-    if (e1) {
+    while (e1 != 0) {
       // E1 flag set, read a NACK_SN
       rlc_status_nack_t nack = {};
       nack.nack_sn           = (*ptr & 0xff) << 4;
       ptr++;
+
+      e1         = *ptr & 0x08;
+      uint8_t e2 = *ptr & 0x04;
+
       // uint8_t len2 = (*ptr & 0xF0) >> 4;
       nack.nack_sn |= (*ptr & 0xF0) >> 4;
       status->nacks[status->N_nack] = nack;
 
+      ptr++;
+      if (e2 != 0) {
+        status->nacks[status->N_nack].has_so   = true;
+        status->nacks[status->N_nack].so_start = (*ptr) << 8;
+        ptr++;
+        status->nacks[status->N_nack].so_start |= (*ptr);
+        ptr++;
+        status->nacks[status->N_nack].so_end = (*ptr) << 8;
+        ptr++;
+        status->nacks[status->N_nack].so_end |= (*ptr);
+        ptr++;
+      }
       status->N_nack++;
+      if ((ptr - payload) > nof_bytes) {
+        fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
+        return 0;
+      }
     }
   }
 
@@ -233,17 +253,41 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
     ptr++;
 
     // write E1 flag in octet 3
-    *ptr = (status_pdu.N_nack > 0) ? 0x80 : 0x00;
+    if (status_pdu.N_nack > 0) {
+      *ptr = 0x80;
+    } else {
+      *ptr = 0x00;
+    }
     ptr++;
 
     if (status_pdu.N_nack > 0) {
-      // write first 8 bit of NACK_SN
-      *ptr = (status_pdu.nacks[0].nack_sn >> 4) & 0xff;
-      ptr++;
+      for (uint32_t i = 0; i < status_pdu.N_nack; i++) {
+        // write first 8 bit of NACK_SN
+        *ptr = (status_pdu.nacks[i].nack_sn >> 4) & 0xff;
+        ptr++;
 
-      // write remaining 4 bits of NACK_SN
-      *ptr = (status_pdu.nacks[0].nack_sn & 0x0f) << 4;
-      ptr++;
+        // write remaining 4 bits of NACK_SN
+        *ptr = (status_pdu.nacks[i].nack_sn & 0x0f) << 4;
+        // Set E1 if necessary
+        if (i < (uint32_t)(status_pdu.N_nack - 1)) {
+          *ptr |= 0x08;
+        }
+
+        if (status_pdu.nacks[i].has_so) {
+          // Set E2
+          *ptr |= 0x04;
+
+          ptr++;
+          (*ptr) = status_pdu.nacks[i].so_start >> 8;
+          ptr++;
+          (*ptr) = status_pdu.nacks[i].so_start;
+          ptr++;
+          (*ptr) = status_pdu.nacks[i].so_end >> 8;
+          ptr++;
+          (*ptr) = status_pdu.nacks[i].so_end;
+        }
+        ptr++;
+      }
     }
   } else {
     // 18bit SN

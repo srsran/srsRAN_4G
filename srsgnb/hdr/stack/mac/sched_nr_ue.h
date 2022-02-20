@@ -31,6 +31,7 @@
 #include "srsran/adt/circular_map.h"
 #include "srsran/adt/move_callback.h"
 #include "srsran/adt/pool/cached_alloc.h"
+#include "srsran/adt/pool/pool_interface.h"
 
 namespace srsenb {
 
@@ -214,7 +215,8 @@ private:
   ue_carrier* ue = nullptr;
 };
 
-using ue_map_t      = rnti_map_t<std::unique_ptr<ue> >;
+using unique_ue_ptr = srsran::unique_pool_ptr<ue>;
+using ue_map_t      = rnti_map_t<unique_ue_ptr>;
 using slot_ue_map_t = rnti_map_t<slot_ue>;
 
 } // namespace sched_nr_impl

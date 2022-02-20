@@ -314,6 +314,7 @@ struct rlc_amd_retx_t {
   bool     is_segment;
   uint32_t so_start;
   uint32_t so_end;
+  uint32_t current_so;
 };
 
 template <std::size_t WINDOW_SIZE>

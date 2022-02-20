@@ -116,6 +116,22 @@ private:
   srslog::basic_logger&                               logger;
 };
 
+template <typename T, size_t N, typename... Args>
+unique_pool_ptr<T> make_pool_obj_with_fallback(circular_stack_pool<N>& pool, size_t key, Args&&... args)
+{
+  void* block = pool.allocate(key, sizeof(T), alignof(T));
+  if (block == nullptr) {
+    // allocated with "new" as a fallback
+    return unique_pool_ptr<T>(new T(std::forward<Args>(args)...), std::default_delete<T>());
+  }
+  // allocation using memory pool was successful
+  new (block) T(std::forward<Args>(args)...);
+  return unique_pool_ptr<T>(static_cast<T*>(block), [key, &pool](T* ptr) {
+    ptr->~T();
+    pool.deallocate(key, ptr);
+  });
+}
+
 } // namespace srsran
 
 #endif // SRSRAN_CIRCULAR_MAP_STACK_POOL_H

@@ -83,7 +83,7 @@ struct rlc_amd_tx_pdu_nr {
   const uint32_t         rlc_sn     = INVALID_RLC_SN;
   const uint32_t         pdcp_sn    = INVALID_RLC_SN;
   rlc_am_nr_pdu_header_t header     = {};
-  unique_byte_buffer_t   buf        = nullptr;
+  unique_byte_buffer_t   sdu_buf    = nullptr;
   uint32_t               retx_count = 0;
   struct pdu_segment {
     uint32_t so          = 0;
@@ -113,12 +113,14 @@ public:
   void empty_queue() final;
 
   // Data PDU helpers
-  int build_new_sdu_segment(unique_byte_buffer_t tx_sdu,
-                            rlc_amd_tx_pdu_nr&   tx_pdu,
-                            uint8_t*             payload,
-                            uint32_t             nof_bytes);
-  int build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
-  int build_retx_pdu(unique_byte_buffer_t& tx_pdu, uint32_t nof_bytes);
+  uint32_t build_new_pdu(uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  bool     is_retx_segmentation_required(const rlc_amd_retx_t& retx, uint32_t nof_bytes);
+  uint32_t get_retx_expected_hdr_len(const rlc_amd_retx_t& retx);
 
   // Buffer State
   bool     has_data() final;
@@ -134,7 +136,7 @@ public:
 
   void stop() final;
 
-  bool inside_tx_window(uint32_t sn);
+  bool inside_tx_window(uint32_t sn) const;
 
 private:
   rlc_am*       parent = nullptr;
@@ -158,7 +160,7 @@ private:
 
   // Queues and buffers
   pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
-  rlc_amd_tx_sdu_nr_t                sdu_under_segmentation;
+  uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
 
   // Helper constants
   uint32_t min_hdr_size = 2;
@@ -170,6 +172,9 @@ public:
   void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
   uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
+
+  // Debug Helper
+  void debug_state() const;
 };
 
 /****************************************************************************
@@ -225,7 +230,8 @@ public:
   int  handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
-  bool have_all_segments_been_received(const std::list<rlc_amd_rx_pdu_nr>& segment_list);
+  void insert_received_segment(rlc_amd_rx_pdu_nr segment, rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
+  bool have_all_segments_been_received(const rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
 
   // Metrics
   uint32_t get_sdu_rx_latency_ms() final;
@@ -235,7 +241,7 @@ public:
   void timer_expired(uint32_t timeout_id);
 
   // Helpers
-  void debug_state();
+  void debug_state() const;
 
 private:
   rlc_am*           parent = nullptr;

@@ -37,8 +37,8 @@ target_link_libraries(rlc_am_nr_test srsran_rlc srsran_phy srsran_common)
 add_nr_test(rlc_am_nr_test rlc_am_nr_test)
 
 add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
-target_link_libraries(rlc_am_nr_pdu_test srsran_rlc srsran_phy)
-add_nr_test(rlc_am_nr_pdu_test rlc_am_nr_pdu_test)
+target_link_libraries(rlc_am_nr_pdu_test srsran_rlc srsran_phy srsran_mac srsran_common )
+add_nr_test(rlc_am_nr_pdu_test rlc_am_nr_pdu_test )
 
 add_executable(rlc_stress_test rlc_stress_test.cc)
 target_link_libraries(rlc_stress_test srsran_rlc srsran_mac srsran_phy srsran_common ${Boost_LIBRARIES} ${ATOMIC_LIBS})
@@ -48,6 +48,7 @@ add_lte_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_
 
 add_nr_test(rlc_um6_nr_stress_test rlc_stress_test --rat NR --mode=UM6 --loglevel 1)
 add_nr_test(rlc_um12_nr_stress_test rlc_stress_test --rat NR --mode=UM12 --loglevel 1) 
+#add_nr_test(rlc_am12_nr_stress_test rlc_stress_test --rat NR --mode=AM12 --loglevel 1) 
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srsran_rlc srsran_phy srsran_common)

@@ -79,11 +79,9 @@ void copy_if_present_helper(type_storage<T, MinSize, AlignSize>&       lhs,
 {
   if (lhs_present and rhs_present) {
     lhs.get() = rhs.get();
-  }
-  if (lhs_present) {
+  } else if (lhs_present) {
     lhs.destroy();
-  }
-  if (rhs_present) {
+  } else if (rhs_present) {
     lhs.copy_ctor(rhs);
   }
 }
@@ -96,11 +94,9 @@ void move_if_present_helper(type_storage<T, MinSize, AlignSize>& lhs,
 {
   if (lhs_present and rhs_present) {
     lhs.move_assign(std::move(rhs));
-  }
-  if (lhs_present) {
+  } else if (lhs_present) {
     lhs.destroy();
-  }
-  if (rhs_present) {
+  } else if (rhs_present) {
     lhs.move_ctor(std::move(rhs));
   }
 }
