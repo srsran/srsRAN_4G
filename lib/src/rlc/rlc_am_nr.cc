@@ -197,7 +197,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // Update TX Next
-  st.tx_next = (st.tx_next + 1) % MOD;
+  st.tx_next = (st.tx_next + 1) % mod_nr;
 
   memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
   RlcDebug("wrote RLC PDU - %d bytes", tx_sdu->N_bytes);
@@ -374,8 +374,8 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
     RlcInfo("grant is large enough for full SDU."
             "Removing current SDU info");
     sdu_under_segmentation_sn = INVALID_RLC_SN;
-    // SDU is fully TX'ed. Increment TX_NEXt
-    st.tx_next++;
+    // SDU is fully TX'ed. Increment TX_NEXT
+    st.tx_next = (st.tx_next + 1) % mod_nr;
   }
 
   return hdr_len + segment_payload_len;
@@ -710,7 +710,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (tx_window.has_sn(sn)) {
       notify_info_vec.push_back(tx_window[sn].pdcp_sn);
       tx_window.remove_pdu(sn);
-      st.tx_next_ack = sn + 1;
+      st.tx_next_ack = (sn + 1) % mod_nr;
     } else {
       RlcError("Missing ACKed SN from TX window");
       break;
@@ -978,7 +978,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   // 5.2.3.2.3 Actions when an AMD PDU is placed in the reception buffer
   // Update Rx_Next_Highest
   if (rx_mod_base_nr(header.sn) >= rx_mod_base_nr(st.rx_next_highest)) {
-    st.rx_next_highest = (header.sn + 1) % MOD;
+    st.rx_next_highest = (header.sn + 1) % mod_nr;
   }
 
   // Update RX_Highest_Status
@@ -1203,7 +1203,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     // make sure we don't exceed grant size (FIXME)
     rlc_am_nr_write_status_pdu(*status, rlc_am_nr_sn_size_t::size12bits, &tmp_buf);
     // TODO
-    i = (i + 1) % MOD;
+    i = (i + 1) % mod_nr;
   }
 
   if (max_len != UINT32_MAX) {
