@@ -459,10 +459,6 @@ bool mac::is_valid_rnti_unprotected(uint16_t rnti)
     logger.info("RACH ignored as eNB is being shutdown");
     return false;
   }
-  if (ue_db.full()) {
-    logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
-    return false;
-  }
   if (not ue_db.has_space(rnti)) {
     logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
     return false;
@@ -482,6 +478,10 @@ uint16_t mac::allocate_ue(uint32_t enb_cc_idx)
     // Pre-check if rnti is valid
     {
       srsran::rwlock_read_guard read_lock(rwlock);
+      if (ue_db.full()) {
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
+        return SRSRAN_INVALID_RNTI;
+      }
       if (not is_valid_rnti_unprotected(rnti)) {
         continue;
       }
