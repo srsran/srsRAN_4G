@@ -19,7 +19,9 @@
 
 namespace srsran {
 
-const uint32_t INVALID_RLC_SN = 0xFFFFFFFF;
+const uint32_t RLC_AM_NR_WINDOW_SIZE_12BIT = 4096;
+const uint32_t RLC_AM_NR_WINDOW_SIZE_18BIT = 262144;
+const uint32_t INVALID_RLC_SN              = 0xFFFFFFFF;
 
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {
@@ -82,7 +84,7 @@ typedef struct {
   uint32_t                     ack_sn; ///< SN of the next not received RLC Data PDU
   uint16_t                     N_nack; ///< number of NACKs
   uint8_t           nack_range;        ///< number of consecutively lost RLC SDUs starting from and including NACK_SN
-  rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
+  rlc_status_nack_t nacks[RLC_AM_NR_WINDOW_SIZE_12BIT];
 } rlc_am_nr_status_pdu_t;
 
 /****************************************************************************

@@ -1149,7 +1149,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 {
   std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
   if (not lock.owns_lock()) {
-    return SRSRAN_ERROR;
+    return 0;
   }
 
   status->N_nack = 0;
