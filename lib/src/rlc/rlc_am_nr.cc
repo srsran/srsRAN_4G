@@ -497,17 +497,15 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx,
   uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, payload);
 
   // Write payload into PDU
-  uint32_t pdu_bytes             = 0;
   uint32_t retx_pdu_payload_size = 0;
   if (not retx.is_segment) {
     // RETX full SDU
     retx_pdu_payload_size = tx_window[retx.sn].sdu_buf->N_bytes;
-    pdu_bytes             = hdr_len + tx_window[retx.sn].sdu_buf->N_bytes;
   } else {
     // RETX SDU segment
-    uint32_t retx_pdu_payload_size = (retx.so_end - retx.current_so);
-    pdu_bytes                      = hdr_len + retx_pdu_payload_size;
+    retx_pdu_payload_size = (retx.so_end - retx.current_so);
   }
+  uint32_t pdu_bytes = hdr_len + retx_pdu_payload_size;
   srsran_assert(pdu_bytes <= nof_bytes, "Error calculating hdr_len and pdu_payload_len");
   memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[retx.current_so], retx_pdu_payload_size);
 
@@ -520,7 +518,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx,
              tx_window[retx.sn].sdu_buf->N_bytes,
              tx_window[retx.sn].retx_count + 1,
              cfg.max_retx_thresh);
-  RlcHexInfo(payload, nof_bytes, "retx PDU SN=%d (%d B)", retx.sn, nof_bytes);
+  RlcHexInfo(payload, pdu_bytes, "RETX PDU SN=%d (%d B)", retx.sn, pdu_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger.debug, new_header, rb_name);
 
   debug_state();
