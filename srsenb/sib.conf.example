@@ -1,3 +1,12 @@
+#####################################################################
+# sib1 configuration options (See TS 36.331)
+#
+# additional_plmns: A list of additional PLMN identities.
+#     mcc: MCC
+#     mnc: MNC
+#     cell_reserved_for_oper:  One of "reserved" or "notReserved", default is "notReserved"
+#
+#####################################################################
 sib1 =
 {
     intra_freq_reselection = "Allowed";
