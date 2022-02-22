@@ -66,7 +66,7 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 bool rlc_am_nr_tx::has_data()
 {
   return do_status() ||                  // if we have a status PDU to transmit
-         tx_sdu_queue.get_n_sdus() != 1; // or if there is a SDU queued up for transmission
+         tx_sdu_queue.get_n_sdus() != 0; // or if there is a SDU queued up for transmission
 }
 
 /**
