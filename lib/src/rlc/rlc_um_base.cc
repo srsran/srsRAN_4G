@@ -298,7 +298,18 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
 
 void rlc_um_base::rlc_um_base_tx::discard_sdu(uint32_t discard_sn)
 {
-  RlcWarning("RLC UM: Discard SDU not implemented yet.");
+  std::lock_guard<std::mutex> lock(mutex);
+
+  bool discarded = tx_sdu_queue.apply_first([&discard_sn, this](unique_byte_buffer_t& sdu) {
+    if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
+      tx_sdu_queue.queue.pop_func(sdu);
+      sdu = nullptr;
+    }
+    return false;
+  });
+
+  // Discard fails when the PDCP PDU is already in Tx window.
+  RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
 }
 
 bool rlc_um_base::rlc_um_base_tx::sdu_queue_is_full()

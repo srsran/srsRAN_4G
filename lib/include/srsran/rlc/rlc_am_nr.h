@@ -97,7 +97,6 @@ public:
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
   void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) final;
 
-  void discard_sdu(uint32_t discard_sn) final;
   bool sdu_queue_is_full() final;
   void reestablish() final;
 

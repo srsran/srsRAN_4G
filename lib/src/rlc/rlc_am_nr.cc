@@ -856,8 +856,6 @@ void rlc_am_nr_tx::reestablish()
   stop();
 }
 
-void rlc_am_nr_tx::discard_sdu(uint32_t discard_sn) {}
-
 bool rlc_am_nr_tx::sdu_queue_is_full()
 {
   return false;

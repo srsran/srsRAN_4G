@@ -235,6 +235,25 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   return SRSRAN_SUCCESS;
 }
 
+void rlc_am::rlc_am_base_tx::discard_sdu(uint32_t discard_sn)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  if (!tx_enabled) {
+    return;
+  }
+  bool discarded = tx_sdu_queue.apply_first([&discard_sn, this](unique_byte_buffer_t& sdu) {
+    if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
+      tx_sdu_queue.queue.pop_func(sdu);
+      sdu = nullptr;
+    }
+    return false;
+  });
+
+  // Discard fails when the PDCP PDU is already in Tx window.
+  RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
+}
+
 void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
 {
   bsr_callback = callback;
