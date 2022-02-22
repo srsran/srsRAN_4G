@@ -26,18 +26,11 @@
 #include <pthread.h>
 #include <random>
 
-#define LOG_HEX_LIMIT (-1)
-
 #define MIN_SDU_SIZE (5)
 #define MAX_SDU_SIZE (1500)
 
 #include "srsran/common/mac_pcap.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
-
-namespace bpo = boost::program_options;
-
-#define MIN_SDU_SIZE (5)
-#define MAX_SDU_SIZE (1500)
 
 /***********************
  * MAC tester class
@@ -240,10 +233,10 @@ void stress_test(stress_test_args_t args)
 {
   auto& log1 = srslog::fetch_basic_logger("RLC_1", false);
   log1.set_level(static_cast<srslog::basic_levels>(args.log_level));
-  log1.set_hex_dump_max_size(LOG_HEX_LIMIT);
+  log1.set_hex_dump_max_size(args.log_hex_limit);
   auto& log2 = srslog::fetch_basic_logger("RLC_2", false);
   log2.set_level(static_cast<srslog::basic_levels>(args.log_level));
-  log2.set_hex_dump_max_size(LOG_HEX_LIMIT);
+  log2.set_hex_dump_max_size(args.log_hex_limit);
 
   srsran::rlc_pcap pcap;
   uint32_t         lcid = 1;

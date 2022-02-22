@@ -220,7 +220,7 @@ public:
     int_dist(args_.min_sdu_size, args_.max_sdu_size),
     mt19937(seed_)
   {
-    logger.set_level(srslog::basic_levels::error);
+    logger.set_level(static_cast<srslog::basic_levels>(args.log_level));
     logger.set_hex_dump_max_size(args_.log_hex_limit);
   }
 
