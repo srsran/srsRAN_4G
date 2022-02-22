@@ -26,12 +26,10 @@
 #include <pthread.h>
 #include <random>
 
-#define MIN_SDU_SIZE (5)
-#define MAX_SDU_SIZE (1500)
-
 #include "srsran/common/mac_pcap.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
 
+static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 /***********************
  * MAC tester class
  ***********************/
@@ -80,7 +78,7 @@ void mac_dummy::run_tx_tti(srsue::rlc_interface_mac*                  tx_rlc,
     // Create PDU unique buffer
     srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     if (!pdu) {
-      printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
+      printf("Fatal Error: Could not allocate PDU in %s\n", __FUNCTION__);
       exit(-1);
     }
 
@@ -135,7 +133,7 @@ void mac_dummy::run_rx_tti(srsue::rlc_interface_mac*                  tx_rlc,
       rx_rlc->write_pdu(lcid, pdu->msg, pdu_len);
 
       // Write PCAP
-      write_pdu_to_pcap(is_dl, 4, pdu->msg, pdu_len); // Only handles NR rat
+      write_pdu_to_pcap(pcap_handle, is_dl, 4, pdu->msg, pdu_len); // Only handles NR rat
       if (is_dl) {
         pcap->write_dl_ccch(pdu->msg, pdu_len);
       } else {

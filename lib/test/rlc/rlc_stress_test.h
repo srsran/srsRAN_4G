@@ -27,11 +27,12 @@
 
 #include "srsran/common/mac_pcap.h"
 #include "srsran/mac/mac_sch_pdu_nr.h"
-static std::unique_ptr<srsran::mac_pcap> pcap_handle = nullptr;
 
-namespace bpo = boost::program_options;
-
-inline int write_pdu_to_pcap(const bool is_dl, const uint32_t lcid, const uint8_t* payload, const uint32_t len)
+inline int write_pdu_to_pcap(const std::unique_ptr<srsran::mac_pcap>& pcap_handle,
+                             const bool                               is_dl,
+                             const uint32_t                           lcid,
+                             const uint8_t*                           payload,
+                             const uint32_t                           len)
 {
   const uint32_t PCAP_CRNTI = 0x1001;
   const uint32_t PCAP_TTI   = 666;
@@ -78,6 +79,7 @@ typedef struct {
 
 void parse_args(stress_test_args_t* args, int argc, char* argv[])
 {
+  namespace bpo = boost::program_options;
   // Command line only options
   bpo::options_description general("General options");
 
