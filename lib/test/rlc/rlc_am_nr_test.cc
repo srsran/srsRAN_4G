@@ -883,6 +883,108 @@ int retx_segment_test()
   return SRSRAN_SUCCESS;
 }
 
+// This test checks the correct functioning of RLC discard functionality
+int discard_test()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+
+  auto&  test_logger = srslog::fetch_basic_logger("TESTER  ");
+  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config())) {
+    return SRSRAN_ERROR;
+  }
+
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config())) {
+    return SRSRAN_ERROR;
+  }
+
+  // Test discarding the single SDU from the queue
+  {
+    uint32_t num_tx_sdus = 1;
+    for (uint32_t i = 0; i < num_tx_sdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes = 5;
+      for (uint32_t k = 0; k < sdu->N_bytes; ++k) {
+        sdu->msg[k] = i; // Write the index into the buffer
+      }
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+    }
+  }
+  rlc1.discard_sdu(0); // Try to discard PDCP_SN=0
+  TESTASSERT(rlc1.has_data() == false);
+
+  // Test discarding two SDUs in the middle (SN=3) and end (SN=9) of the queue and read PDUs after
+  {
+    uint32_t num_tx_sdus = 10;
+    for (uint32_t i = 0; i < num_tx_sdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes = 7;
+      for (uint32_t k = 0; k < sdu->N_bytes; ++k) {
+        sdu->msg[k] = i; // Write the index into the buffer
+      }
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+    }
+  }
+  TESTASSERT(rlc1.get_buffer_state() == 90); // 10 * (2B Header + 7B Payload)
+  rlc1.discard_sdu(3);                       // Try to discard PDCP_SN=3
+  TESTASSERT(rlc1.has_data() == true);
+  TESTASSERT(rlc1.get_buffer_state() == 81);
+  rlc1.discard_sdu(9); // Try to discard PDCP_SN=9
+  TESTASSERT(rlc1.has_data() == true);
+  TESTASSERT(rlc1.get_buffer_state() == 72);
+
+  {
+    uint32_t num_tx_sdus = 8;
+    for (uint32_t i = 0; i < num_tx_sdus; ++i) {
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+      uint32_t             len = rlc1.read_pdu(pdu->msg, 50); // sufficient space to read without segmentation
+      pdu->N_bytes             = len;
+      TESTASSERT((2 + 7) == len);
+      // Check that we don't have any SN gaps
+      rlc_am_nr_pdu_header_t header = {};
+      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &header);
+      TESTASSERT(header.sn == i);
+    }
+  }
+  TESTASSERT(rlc1.has_data() == false);
+
+  srslog::fetch_basic_logger("TEST").info("Received %zd SDUs", tester.sdus.size());
+
+  // Test discarding non-existing SDU from the queue
+  {
+    uint32_t num_tx_sdus = 3;
+    for (uint32_t i = 0; i < num_tx_sdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes = 7;
+      for (uint32_t k = 0; k < sdu->N_bytes; ++k) {
+        sdu->msg[k] = i; // Write the index into the buffer
+      }
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+    }
+  }
+  TESTASSERT(rlc1.get_buffer_state() == 27); // 3 * (2B Header + 7B Payload)
+  rlc1.discard_sdu(8);                       // Try to discard PDCP_SN=8, which doesn't exist
+  TESTASSERT(rlc1.get_buffer_state() == 27); // 3 * (2B Header + 7B Payload)
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -914,5 +1016,6 @@ int main()
   TESTASSERT(basic_segmentation_test() == SRSRAN_SUCCESS);
   TESTASSERT(segment_retx_test() == SRSRAN_SUCCESS);
   TESTASSERT(retx_segment_test() == SRSRAN_SUCCESS);
+  TESTASSERT(discard_test() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }
