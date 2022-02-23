@@ -346,19 +346,30 @@ static void chest_ul_estimate(srsran_chest_ul_t*     q,
     }
   }
 
-  // Estimate received pilot power
-  float signal_power = srsran_vec_avg_power_cf(q->pilot_recv_signal, nslots * nrefs_sym);
+  // Measure reference signal RE average power
+  cf_t  corr     = srsran_vec_acc_cc(q->pilot_recv_signal, nslots * nrefs_sym) / (nslots * nrefs_sym);
+  float rsrp_avg = __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+
+  // Measure EPRE
+  float epre = srsran_vec_avg_power_cf(q->pilot_recv_signal, nslots * nrefs_sym);
+
+  // RSRP shall not be greater than EPRE
+  rsrp_avg = SRSRAN_MIN(rsrp_avg, epre);
+
+  // Calculate SNR
   if (isnormal(res->noise_estimate)) {
-    res->snr = signal_power / res->noise_estimate;
+    res->snr = rsrp_avg / res->noise_estimate;
   } else {
     res->snr = NAN;
   }
 
-  // Convert measurements in logarithm scale
-  res->rsrp               = signal_power;
-  res->rsrp_dBfs          = srsran_convert_power_to_dB(signal_power);
-  res->snr_db             = srsran_convert_power_to_dB(res->snr);
-  res->noise_estimate_dbm = srsran_convert_power_to_dBm(res->noise_estimate);
+  // Set EPRE and RSRP
+  res->epre                = epre;
+  res->epre_dBfs           = srsran_convert_power_to_dB(res->epre);
+  res->rsrp                = rsrp_avg;
+  res->rsrp_dBfs           = srsran_convert_power_to_dB(res->rsrp);
+  res->snr_db              = srsran_convert_power_to_dB(res->snr);
+  res->noise_estimate_dbFs = srsran_convert_power_to_dBm(res->noise_estimate);
 }
 
 int srsran_chest_ul_estimate_pusch(srsran_chest_ul_t*     q,
@@ -473,15 +484,12 @@ int srsran_chest_ul_estimate_pucch(srsran_chest_ul_t*     q,
     srsran_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
   }
 
-  // Measure power
-  float rsrp_avg = 0.0f;
-  for (int ns = 0; ns < SRSRAN_NOF_SLOTS_PER_SF; ns++) {
-    for (int i = 0; i < n_rs; i++) {
-      cf_t corr = srsran_vec_acc_cc(q->pilot_estimates, SRSRAN_NOF_SLOTS_PER_SF * SRSRAN_NRE * n_rs) / (SRSRAN_NRE);
-      rsrp_avg += __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
-    }
-  }
-  rsrp_avg /= SRSRAN_NOF_SLOTS_PER_SF * n_rs;
+  // Measure reference signal RE average power
+  cf_t corr = srsran_vec_acc_cc(q->pilot_estimates, SRSRAN_NOF_SLOTS_PER_SF * SRSRAN_NRE * n_rs) /
+              (SRSRAN_NOF_SLOTS_PER_SF * SRSRAN_NRE * n_rs);
+  float rsrp_avg = __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+
+  // Measure EPRE
   float epre = srsran_vec_avg_power_cf(q->pilot_estimates, SRSRAN_NOF_SLOTS_PER_SF * SRSRAN_NRE * n_rs);
 
   // RSRP shall not be greater than EPRE
@@ -556,7 +564,7 @@ int srsran_chest_ul_estimate_pucch(srsran_chest_ul_t*     q,
     if (fpclassify(res->noise_estimate) == FP_ZERO) {
       res->noise_estimate = FLT_MIN;
     }
-    res->noise_estimate_dbm = srsran_convert_power_to_dBm(res->noise_estimate);
+    res->noise_estimate_dbFs = srsran_convert_power_to_dBm(res->noise_estimate);
 
     // Estimate SINR
     if (isnormal(res->noise_estimate)) {

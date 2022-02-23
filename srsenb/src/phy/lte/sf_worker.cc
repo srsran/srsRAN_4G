@@ -278,6 +278,8 @@ uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
       m->ul.pusch_rssi = SRSRAN_VEC_SAFE_PMA(m->ul.pusch_rssi, m->ul.n_samples, m_->ul.pusch_rssi, m_->ul.n_samples);
       m->ul.pucch_rssi =
           SRSRAN_VEC_SAFE_PMA(m->ul.pucch_rssi, m->ul.n_samples_pucch, m_->ul.pucch_rssi, m_->ul.n_samples_pucch);
+      m->ul.pucch_ni =
+          SRSRAN_VEC_SAFE_PMA(m->ul.pucch_ni, m->ul.n_samples_pucch, m_->ul.pucch_ni, m_->ul.n_samples_pucch);
       m->ul.turbo_iters = SRSRAN_VEC_SAFE_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
       m->ul.n_samples += m_->ul.n_samples;
       m->ul.n_samples_pucch += m_->ul.n_samples_pucch;

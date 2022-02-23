@@ -75,7 +75,8 @@ typedef struct SRSRAN_API {
   srsran_uci_value_t uci_data;
   float              dmrs_correlation;
   float              snr_db;
-  float              rsrp_db;
+  float              rssi_dbFs;
+  float              ni_dbFs;
   float              correlation;
   bool               detected;
 

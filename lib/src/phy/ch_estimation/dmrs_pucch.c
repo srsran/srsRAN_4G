@@ -283,7 +283,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   res->epre               = epre;
   res->epre_dBfs          = srsran_convert_power_to_dB(epre);
   res->noise_estimate     = SRSRAN_MAX(epre - rsrp, 1e-6f);
-  res->noise_estimate_dbm = srsran_convert_power_to_dB(res->noise_estimate);
+  res->noise_estimate_dbFs = srsran_convert_power_to_dB(res->noise_estimate);
   res->snr                = rsrp / res->noise_estimate;
   res->snr_db             = srsran_convert_power_to_dB(res->snr);
 
@@ -458,7 +458,7 @@ int srsran_dmrs_pucch_format2_estimate(const srsran_pucch_nr_t*            q,
   res->epre               = epre;
   res->epre_dBfs          = srsran_convert_power_to_dB(epre);
   res->noise_estimate     = SRSRAN_MAX(epre - rsrp, 1e-6f);
-  res->noise_estimate_dbm = srsran_convert_power_to_dB(res->noise_estimate);
+  res->noise_estimate_dbFs = srsran_convert_power_to_dB(res->noise_estimate);
   res->snr                = rsrp / res->noise_estimate;
   res->snr_db             = srsran_convert_power_to_dB(res->snr);
 
