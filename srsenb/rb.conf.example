@@ -37,7 +37,6 @@
 // }
 
 qci_config = (
-
 {
   qci=7;
   pdcp_config = {
@@ -91,5 +90,4 @@ qci_config = (
     dl_max_retx_thresh = 32;
   };
 }
-
 );

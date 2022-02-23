@@ -460,7 +460,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   if (!config_exists(args->enb_files.rb_config, "rb.conf")) {
-    cout << "Failed to read DRB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
+    cout << "Failed to read RB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
     exit(1);
   }
 

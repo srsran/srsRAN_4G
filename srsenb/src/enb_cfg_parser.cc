@@ -635,6 +635,22 @@ int field_qci::parse(libconfig::Setting& root)
   return 0;
 }
 
+int field_five_qi::parse(libconfig::Setting& root)
+{
+  uint32_t nof_five_qi = (uint32_t)root.getLength();
+
+  for (uint32_t i = 0; i < nof_five_qi; i++) {
+    libconfig::Setting& q = root[i];
+
+    uint32_t five_qi = q["five_qi"];
+
+    rrc_nr_cfg_five_qi_t five_qi_cfg;
+
+    cfg.insert(std::make_pair(five_qi, five_qi_cfg));
+  }
+
+  return 0;
+}
 namespace rr_sections {
 
 int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
@@ -1223,15 +1239,15 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   }
 
   try {
-    if (drb_sections::parse_drb(args_, rrc_cfg_) != SRSRAN_SUCCESS) {
-      fprintf(stderr, "Error parsing DRB configuration\n");
+    if (rb_sections::parse_rb(args_, rrc_cfg_, rrc_nr_cfg_) != SRSRAN_SUCCESS) {
+      fprintf(stderr, "Error parsing RB configuration\n");
       return SRSRAN_ERROR;
     }
   } catch (const SettingTypeException& stex) {
-    fprintf(stderr, "Error parsing DRB configuration: %s\n", stex.getPath());
+    fprintf(stderr, "Error parsing RB configuration: %s\n", stex.getPath());
     return SRSRAN_ERROR;
   } catch (const ConfigException& cex) {
-    fprintf(stderr, "Error parsing DRB configuration\n");
+    fprintf(stderr, "Error parsing RB configuration\n");
     return SRSRAN_ERROR;
   }
 
@@ -2102,9 +2118,9 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
 
 } // namespace sib_sections
 
-namespace drb_sections {
+namespace rb_sections {
 
-int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
+int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 {
   parser::section srb1("srb1_config");
   bool            srb1_present = false;
@@ -2125,11 +2141,15 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
 
+  parser::section five_qi("five_qi_config");
+  five_qi.add_field(new field_five_qi(rrc_nr_cfg_->five_qi_cfg));
+
   // Run parser with two sections
   parser p(args_->enb_files.rb_config);
   p.add_section(&srb1);
   p.add_section(&srb2);
   p.add_section(&qci);
+  p.add_section(&five_qi);
 
   int ret = p.parse();
   if (not srb1_present) {
@@ -2142,6 +2162,6 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   return ret;
 }
 
-} // namespace drb_sections
+} // namespace rb_sections
 
 } // namespace srsenb

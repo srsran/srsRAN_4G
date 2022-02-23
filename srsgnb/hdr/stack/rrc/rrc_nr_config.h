@@ -45,6 +45,12 @@ struct rrc_cell_cfg_nr_t {
 
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
 
+struct rrc_nr_cfg_five_qi_t {
+  bool                     configured = false;
+  asn1::rrc_nr::pdcp_cfg_s pdcp_cfg;
+  asn1::rrc_nr::rlc_cfg_c  rlc_cfg;
+};
+
 struct rrc_nr_cfg_t {
   rrc_cell_list_nr_t cell_list;
   uint32_t           inactivity_timeout_ms = 100000;
@@ -52,6 +58,8 @@ struct rrc_nr_cfg_t {
   uint16_t           mcc;
   uint16_t           mnc;
   bool               is_standalone;
+
+  std::map<uint32_t, rrc_nr_cfg_five_qi_t> five_qi_cfg;
 
   std::array<srsran::CIPHERING_ALGORITHM_ID_NR_ENUM, srsran::CIPHERING_ALGORITHM_ID_NR_N_ITEMS> nea_preference_list;
   std::array<srsran::INTEGRITY_ALGORITHM_ID_NR_ENUM, srsran::INTEGRITY_ALGORITHM_ID_NR_N_ITEMS> nia_preference_list;
