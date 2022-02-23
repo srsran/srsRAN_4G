@@ -358,7 +358,7 @@ static void chest_ul_estimate(srsran_chest_ul_t*     q,
 
   // Calculate SNR
   if (isnormal(res->noise_estimate)) {
-    res->snr = rsrp_avg / res->noise_estimate;
+    res->snr = epre / res->noise_estimate;
   } else {
     res->snr = NAN;
   }
@@ -568,7 +568,7 @@ int srsran_chest_ul_estimate_pucch(srsran_chest_ul_t*     q,
 
     // Estimate SINR
     if (isnormal(res->noise_estimate)) {
-      res->snr    = res->rsrp / res->noise_estimate;
+      res->snr    = res->epre / res->noise_estimate;
       res->snr_db = srsran_convert_power_to_dB(res->snr);
     } else {
       res->snr    = NAN;
