@@ -76,7 +76,7 @@ struct rlc_amd_tx_pdu_nr {
   uint32_t               pdcp_sn    = INVALID_RLC_SN;
   rlc_am_nr_pdu_header_t header     = {};
   unique_byte_buffer_t   sdu_buf    = nullptr;
-  uint32_t               retx_count = 0;
+  uint32_t               retx_count = RETX_COUNT_NOT_STARTED;
   struct pdu_segment {
     uint32_t so          = 0;
     uint32_t retx_count  = 0;
@@ -135,6 +135,7 @@ private:
 
   uint32_t        mod_nr = 4096;
   inline uint32_t tx_mod_base_nr(uint32_t sn) const;
+  void            check_sn_reached_max_retx(uint32_t sn);
 
   /****************************************************************************
    * Configurable parameters

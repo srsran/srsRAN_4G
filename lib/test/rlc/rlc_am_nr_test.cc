@@ -883,6 +883,74 @@ int retx_segment_test()
   return SRSRAN_SUCCESS;
 }
 
+// This test checks whether RLC informs upper layer when max retransmission has been reached
+int max_retx_test()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  int           len = 0;
+
+  auto&  test_logger = srslog::fetch_basic_logger("TESTER  ");
+  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
+
+  const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_nr_config();
+  if (not rlc1.configure(rlc_cfg)) {
+    return SRSRAN_ERROR;
+  }
+
+  // Push 2 SDUs into RLC1
+  const uint32_t       n_sdus = 2;
+  unique_byte_buffer_t sdu_bufs[n_sdus];
+  for (uint32_t i = 0; i < n_sdus; i++) {
+    sdu_bufs[i]             = srsran::make_byte_buffer();
+    sdu_bufs[i]->msg[0]     = i; // Write the index into the buffer
+    sdu_bufs[i]->N_bytes    = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->md.pdcp_sn = i; // PDCP SN for notifications
+    rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read 2 PDUs from RLC1 (1 byte each)
+  const uint32_t n_pdus = 2;
+  byte_buffer_t  pdu_bufs[n_pdus];
+  for (uint32_t i = 0; i < n_pdus; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
+    pdu_bufs[i].N_bytes = len;
+  }
+
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  // Fake status PDU that ack SN=1 and nack SN=0
+  rlc_am_nr_status_pdu_t fake_status = {};
+  fake_status.ack_sn                 = 2; // delivered up to SN=1
+  fake_status.N_nack                 = 1; // one SN was lost
+  fake_status.nacks[0].nack_sn       = 0; // it was SN=0 that was lost
+
+  // pack into PDU
+  byte_buffer_t status_pdu;
+  rlc_am_nr_write_status_pdu(fake_status, rlc_cfg.am_nr.tx_sn_field_length, &status_pdu);
+
+  // Exceed the number of tolerated retransmissions by one additional retransmission
+  // to trigger notification of the higher protocol layers. Note that the initial transmission
+  // (before starting retransmissions) does not count. See TS 38.322 Sec. 5.3.2
+  for (uint32_t retx_count = 0; retx_count < rlc_cfg.am_nr.max_retx_thresh + 1; ++retx_count) {
+    // we've not yet reached max attempts
+    TESTASSERT(tester.max_retx_triggered == false);
+
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+
+    byte_buffer_t pdu_buf;
+    len = rlc1.read_pdu(pdu_buf.msg, 3); // 2 byte header + 1 byte payload
+  }
+
+  // Now maxRetx should have been triggered
+  TESTASSERT(tester.max_retx_triggered == true);
+
+  return SRSRAN_SUCCESS;
+}
+
 // This test checks the correct functioning of RLC discard functionality
 int discard_test()
 {
@@ -1016,6 +1084,7 @@ int main()
   TESTASSERT(basic_segmentation_test() == SRSRAN_SUCCESS);
   TESTASSERT(segment_retx_test() == SRSRAN_SUCCESS);
   TESTASSERT(retx_segment_test() == SRSRAN_SUCCESS);
+  TESTASSERT(max_retx_test() == SRSRAN_SUCCESS);
   TESTASSERT(discard_test() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }

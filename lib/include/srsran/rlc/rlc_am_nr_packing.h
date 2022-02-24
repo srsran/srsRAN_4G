@@ -22,6 +22,7 @@ namespace srsran {
 const uint32_t RLC_AM_NR_WINDOW_SIZE_12BIT = 4096;
 const uint32_t RLC_AM_NR_WINDOW_SIZE_18BIT = 262144;
 const uint32_t INVALID_RLC_SN              = 0xFFFFFFFF;
+const uint32_t RETX_COUNT_NOT_STARTED      = 0xFFFFFFFF;
 
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {

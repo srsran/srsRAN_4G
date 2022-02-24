@@ -747,14 +747,23 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
               retx.so_end          = segm->so + segm->payload_len;
             }
           }
+
+          // TODO: Handle retx_count for segments
+
         } else {
           // NACK'ing full SDU.
           // add to retx queue if it's not already there
           if (not retx_queue.has_sn(nack_sn)) {
-            // increment Retx counter and inform upper layers if needed
-            pdu.retx_count++;
+            // Increment retx_count and inform upper layers if needed
+            if (pdu.retx_count == RETX_COUNT_NOT_STARTED) {
+              // Set retx_count = 0 on first RE-transmission (38.322 Sec. 5.3.2)
+              pdu.retx_count = 0;
+            } else {
+              // Increment otherwise
+              pdu.retx_count++;
+            }
 
-            // check_sn_reached_max_retx(nack_sn);
+            check_sn_reached_max_retx(nack_sn);
             rlc_amd_retx_t& retx = retx_queue.push();
             retx.sn              = nack_sn;
             retx.is_segment      = false;
@@ -774,6 +783,30 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    *   - if t-PollRetransmit is running:
    *     - stop and reset t-PollRetransmit.
    */
+}
+
+/**
+ * Helper to check if a SN has reached the max reTx threshold
+ *
+ * Caller _must_ hold the mutex when calling the function.
+ * If the retx has been reached for a SN the upper layers (i.e. RRC/PDCP) will be informed.
+ * The SN is _not_ removed from the Tx window, so retransmissions of that SN can still occur.
+ *
+ *
+ * @param  sn The SN of the PDU to check
+ */
+void rlc_am_nr_tx::check_sn_reached_max_retx(uint32_t sn)
+{
+  if (tx_window[sn].retx_count == cfg.max_retx_thresh) {
+    RlcWarning("Signaling max number of reTx=%d for SN=%d", tx_window[sn].retx_count, sn);
+    parent->rrc->max_retx_attempted();
+    srsran::pdcp_sn_vector_t pdcp_sns;
+    pdcp_sns.push_back(tx_window[sn].pdcp_sn);
+    parent->pdcp->notify_failure(parent->lcid, pdcp_sns);
+
+    std::lock_guard<std::mutex> lock(parent->metrics_mutex);
+    parent->metrics.num_lost_pdus++;
+  }
 }
 
 uint32_t rlc_am_nr_tx::get_buffer_state()
