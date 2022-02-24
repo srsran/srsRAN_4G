@@ -183,7 +183,7 @@ class field_qci final : public parser::field_itf
 {
 public:
   explicit field_qci(std::map<uint32_t, rrc_cfg_qci_t>& cfg_) : cfg(cfg_) {}
-  const char* get_name() override { return "field_cqi"; }
+  const char* get_name() override { return "field_qci"; }
 
   int parse(Setting& root) override;
 
@@ -195,7 +195,7 @@ class field_five_qi final : public parser::field_itf
 {
 public:
   explicit field_five_qi(std::map<uint32_t, rrc_nr_cfg_five_qi_t>& cfg_) : cfg(cfg_) {}
-  const char* get_name() override { return "field_5qi"; }
+  const char* get_name() override { return "field_five_qi"; }
 
   int parse(Setting& root) override;
 

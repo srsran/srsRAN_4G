@@ -638,13 +638,77 @@ int field_qci::parse(libconfig::Setting& root)
 int field_five_qi::parse(libconfig::Setting& root)
 {
   uint32_t nof_five_qi = (uint32_t)root.getLength();
-
   for (uint32_t i = 0; i < nof_five_qi; i++) {
     libconfig::Setting& q = root[i];
 
     uint32_t five_qi = q["five_qi"];
 
     rrc_nr_cfg_five_qi_t five_qi_cfg;
+
+    // Parse PDCP section
+    if (!q.exists("pdcp_nr_config")) {
+      fprintf(stderr, "Error section pdcp_nr_config not found for 5qi=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+    libconfig::Setting&       pdcp_nr  = q["pdcp_nr_config"];
+    asn1::rrc_nr::pdcp_cfg_s* pdcp_cfg = &five_qi_cfg.pdcp_cfg;
+
+    // Get PDCP-NR DRB configs
+    if (!pdcp_nr.exists("drb")) {
+      fprintf(stderr, "Error section drb not found for 5QI=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+    libconfig::Setting&               drb     = pdcp_nr["drb"];
+    asn1::rrc_nr::pdcp_cfg_s::drb_s_* drb_cfg = &pdcp_cfg->drb;
+    pdcp_cfg->drb_present                     = true;
+
+    // Discard timer
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_e_> discard_timer("discard_timer",
+                                                                                             &drb_cfg->discard_timer);
+    if (discard_timer.parse(drb) == -1) {
+      drb_cfg->discard_timer_present = false;
+    } else {
+      drb_cfg->discard_timer_present = true;
+    }
+
+    // PDCP SN size UL
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_e_> pdcp_sn_size_ul(
+        "pdcp_sn_size_ul", &drb_cfg->pdcp_sn_size_ul);
+    if (pdcp_sn_size_ul.parse(drb) == SRSRAN_ERROR) {
+      drb_cfg->pdcp_sn_size_ul_present = false;
+    } else {
+      drb_cfg->pdcp_sn_size_ul_present = true;
+    }
+
+    // PDCP SN size DL
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_e_> pdcp_sn_size_dl(
+        "pdcp_sn_size_dl", &drb_cfg->pdcp_sn_size_dl);
+    if (pdcp_sn_size_dl.parse(drb) == SRSRAN_ERROR) {
+      drb_cfg->pdcp_sn_size_dl_present = false;
+    } else {
+      drb_cfg->pdcp_sn_size_dl_present = true;
+    }
+
+    parser::field<bool> status_report_required("status_report_required", &drb_cfg->status_report_required_present);
+    status_report_required.parse(drb);
+
+    parser::field<bool> out_of_order_delivery("out_of_order_delivery", &drb_cfg->out_of_order_delivery_present);
+    out_of_order_delivery.parse(drb);
+
+    parser::field<bool> integrity_protection("integrity_protection", &drb_cfg->integrity_protection_present);
+    integrity_protection.parse(drb);
+
+    drb_cfg->hdr_compress.set_not_used();
+    // Finish DRB config
+
+    // t_Reordering
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::t_reordering_e_> t_reordering("t_reordering",
+                                                                                   &pdcp_cfg->t_reordering);
+    if (t_reordering.parse(pdcp_nr) == SRSRAN_ERROR) {
+      pdcp_cfg->t_reordering_present = false;
+    } else {
+      pdcp_cfg->t_reordering_present = true;
+    }
 
     cfg.insert(std::make_pair(five_qi, five_qi_cfg));
   }
