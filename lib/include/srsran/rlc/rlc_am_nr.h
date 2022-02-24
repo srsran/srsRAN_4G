@@ -79,7 +79,6 @@ struct rlc_amd_tx_pdu_nr {
   uint32_t               retx_count = RETX_COUNT_NOT_STARTED;
   struct pdu_segment {
     uint32_t so          = 0;
-    uint32_t retx_count  = 0;
     uint32_t payload_len = 0;
   };
   std::list<pdu_segment> segment_list;

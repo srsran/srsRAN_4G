@@ -225,6 +225,7 @@ public:
     rlc_cnfg.rat                     = srsran_rat_t::nr;
     rlc_cnfg.rlc_mode                = rlc_mode_t::am;
     rlc_cnfg.am_nr.t_status_prohibit = 8;
+    rlc_cnfg.am_nr.max_retx_thresh   = 4;
     rlc_cnfg.am_nr.t_reassembly      = 35;
     rlc_cnfg.am_nr.poll_pdu          = 4;
     return rlc_cnfg;

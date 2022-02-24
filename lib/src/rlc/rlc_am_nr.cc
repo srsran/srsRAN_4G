@@ -723,11 +723,13 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   // Process N_acks
   for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
+    // TODO: Possibly loop NACK range
     if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
       auto     nack    = status.nacks[nack_idx];
       uint32_t nack_sn = nack.nack_sn;
       if (tx_window.has_sn(nack_sn)) {
-        auto& pdu = tx_window[nack_sn];
+        auto& pdu           = tx_window[nack_sn];
+        bool  retx_enqueued = false;
 
         if (nack.has_so) {
           // NACK'ing missing bytes in SDU segment.
@@ -739,38 +741,44 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                segm != pdu.segment_list.end();
                segm++) {
             if (segm->so >= nack.so_start && segm->so < nack.so_end) {
+              // TODO: Check if this segment is not already queued for retransmission
               rlc_amd_retx_t& retx = retx_queue.push();
               retx.sn              = nack_sn;
               retx.is_segment      = true;
               retx.so_start        = segm->so;
               retx.current_so      = segm->so;
               retx.so_end          = segm->so + segm->payload_len;
+              retx_enqueued        = true;
             }
           }
-
-          // TODO: Handle retx_count for segments
-
         } else {
           // NACK'ing full SDU.
           // add to retx queue if it's not already there
           if (not retx_queue.has_sn(nack_sn)) {
-            // Increment retx_count and inform upper layers if needed
-            if (pdu.retx_count == RETX_COUNT_NOT_STARTED) {
-              // Set retx_count = 0 on first RE-transmission (38.322 Sec. 5.3.2)
-              pdu.retx_count = 0;
-            } else {
-              // Increment otherwise
-              pdu.retx_count++;
-            }
-
-            check_sn_reached_max_retx(nack_sn);
             rlc_amd_retx_t& retx = retx_queue.push();
             retx.sn              = nack_sn;
             retx.is_segment      = false;
             retx.so_start        = 0;
             retx.current_so      = 0;
             retx.so_end          = pdu.sdu_buf->N_bytes;
+            retx_enqueued        = true;
           }
+        }
+
+        if (retx_enqueued) {
+          // Increment retx_count
+          if (pdu.retx_count == RETX_COUNT_NOT_STARTED) {
+            // Set retx_count = 0 on first RE-transmission (38.322 Sec. 5.3.2)
+            pdu.retx_count = 0;
+          } else {
+            // Increment otherwise
+            pdu.retx_count++;
+          }
+
+          // Inform upper layers if needed
+          check_sn_reached_max_retx(nack_sn);
+
+          RlcInfo("Schedule SN=%d for retx", nack_sn);
         }
       }
     }
