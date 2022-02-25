@@ -303,8 +303,8 @@ private:
 struct rlc_amd_retx_t {
   uint32_t sn;
   bool     is_segment;
-  uint32_t so_start;
-  uint32_t so_end;
+  uint32_t so_start; // offset to first byte of this segment
+  uint32_t so_end;   // offset to first byte beyond the end of this segment
   uint32_t current_so;
 };
 

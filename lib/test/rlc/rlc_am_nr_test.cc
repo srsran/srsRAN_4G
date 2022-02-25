@@ -981,38 +981,75 @@ int max_retx_lost_segments_test()
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // Read 4 PDUs from RLC1 (max 15 byte each)
+  // Read 2*2=4 PDUs from RLC1 and limit to 15 byte to force segmentation in two parts:
+  // Segment 1: 2 byte header + 13 byte payload; space fully used
+  // Segment 2: 4 byte header + 7 byte payload; space not fully used, 4 bytes left over
   const uint32_t n_pdus = 4;
   byte_buffer_t  pdu_bufs[n_pdus];
   for (uint32_t i = 0; i < n_pdus; i++) {
-    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 15); // 2 byte header + 13 byte payload
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 15);
     pdu_bufs[i].N_bytes = len;
   }
 
   TESTASSERT(0 == rlc1.get_buffer_state());
 
-  // Fake status PDU that ack SN=1 and nack SN=0
-  rlc_am_nr_status_pdu_t fake_status = {};
-  fake_status.ack_sn                 = 2; // delivered up to SN=1
-  fake_status.N_nack                 = 1; // one SN was lost
-  fake_status.nacks[0].nack_sn       = 0; // it was SN=0 that was lost
+  // Fake status PDU that ack SN=1 and nack {SN=0 segment 0, SN=0 segment 1}
+  rlc_am_nr_status_pdu_t status_lost_both_segments = {};
+  status_lost_both_segments.ack_sn                 = 2;    // delivered up to SN=1
+  status_lost_both_segments.N_nack                 = 2;    // two segments lost
+  status_lost_both_segments.nacks[0].nack_sn       = 0;    // it was SN=0 that was lost
+  status_lost_both_segments.nacks[0].has_so        = true; // this NACKs a segment
+  status_lost_both_segments.nacks[0].so_start      = 0;    // segment starts at (and includes) byte 0
+  status_lost_both_segments.nacks[0].so_end        = 12;   // segment ends at (and includes) byte 12
+  status_lost_both_segments.nacks[1].nack_sn       = 0;    // it was SN=0 that was lost
+  status_lost_both_segments.nacks[1].has_so        = true; // this NACKs a segment
+  status_lost_both_segments.nacks[1].so_start      = 13;   // segment starts at (and includes) byte 13
+  status_lost_both_segments.nacks[1].so_end        = 19;   // segment ends at (and includes) byte 19
 
   // pack into PDU
-  byte_buffer_t status_pdu;
-  rlc_am_nr_write_status_pdu(fake_status, rlc_cfg.am_nr.tx_sn_field_length, &status_pdu);
+  byte_buffer_t status_pdu_lost_both_segments;
+  rlc_am_nr_write_status_pdu(
+      status_lost_both_segments, rlc_cfg.am_nr.tx_sn_field_length, &status_pdu_lost_both_segments);
+
+  // Fake status PDU that ack SN=1 and nack {SN=0 segment 2}
+  rlc_am_nr_status_pdu_t status_lost_second_segment = {};
+  status_lost_second_segment.ack_sn                 = 2;    // delivered up to SN=1
+  status_lost_second_segment.N_nack                 = 1;    // one SN was lost
+  status_lost_second_segment.nacks[0].nack_sn       = 0;    // it was SN=0 that was lost
+  status_lost_second_segment.nacks[0].has_so        = true; // this NACKs a segment
+  status_lost_second_segment.nacks[0].so_start      = 13;   // segment starts at (and includes) byte 13
+  status_lost_second_segment.nacks[0].so_end        = 19;   // segment ends at (and includes) byte 19
+
+  // pack into PDU
+  byte_buffer_t status_pdu_lost_second_segment;
+  rlc_am_nr_write_status_pdu(
+      status_lost_second_segment, rlc_cfg.am_nr.tx_sn_field_length, &status_pdu_lost_second_segment);
 
   // Exceed the number of tolerated retransmissions by one additional retransmission
   // to trigger notification of the higher protocol layers. Note that the initial transmission
   // (before starting retransmissions) does not count. See TS 38.322 Sec. 5.3.2
   for (uint32_t retx_count = 0; retx_count < rlc_cfg.am_nr.max_retx_thresh + 1; ++retx_count) {
+    byte_buffer_t pdu_buf;
+
     // we've not yet reached max attempts
     TESTASSERT(tester.max_retx_triggered == false);
 
-    // Write status PDU to RLC1
-    rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+    if (retx_count < rlc_cfg.am_nr.max_retx_thresh / 2) {
+      // Send NACK for segment 1 and segment 2
+      // Although two segments, this must count as one retransmission,
+      // because both segments NACK the same SDU in the same status message.
+      rlc1.write_pdu(status_pdu_lost_both_segments.msg, status_pdu_lost_both_segments.N_bytes);
 
-    byte_buffer_t pdu_buf;
-    len = rlc1.read_pdu(pdu_buf.msg, 3); // 2 byte header + 1 byte payload
+      // read the retransmitted PDUs
+      len = rlc1.read_pdu(pdu_buf.msg, 15); // 2 byte header + 13 byte payload
+      len = rlc1.read_pdu(pdu_buf.msg, 15); // 4 byte header + 7 byte payload
+    } else {
+      // Send NACK for segment 2 (assume at least segment 1 was finally received)
+      rlc1.write_pdu(status_pdu_lost_second_segment.msg, status_pdu_lost_second_segment.N_bytes);
+
+      // read the retransmitted PDUs
+      len = rlc1.read_pdu(pdu_buf.msg, 15); // 4 byte header + 7 byte payload
+    }
   }
 
   // Now maxRetx should have been triggered
