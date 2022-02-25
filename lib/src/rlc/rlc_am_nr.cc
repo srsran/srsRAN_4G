@@ -746,7 +746,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           for (std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator segm = pdu.segment_list.begin();
                segm != pdu.segment_list.end();
                segm++) {
-            if (segm->so >= nack.so_start && segm->so < nack.so_end) {
+            if (segm->so >= nack.so_start && segm->so <= nack.so_end) {
               // TODO: Check if this segment is not already queued for retransmission
               rlc_amd_retx_t& retx = retx_queue.push();
               retx.sn              = nack_sn;
@@ -1230,7 +1230,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
             status->nacks[status->N_nack].nack_sn  = i;
             status->nacks[status->N_nack].has_so   = true;
             status->nacks[status->N_nack].so_start = last_so;
-            status->nacks[status->N_nack].so_end   = segm->header.so;
+            status->nacks[status->N_nack].so_end   = segm->header.so - 1; // set to last missing byte
             status->N_nack++;
           }
           if (segm->header.si == rlc_nr_si_field_t::last_segment) {

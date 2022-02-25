@@ -790,11 +790,11 @@ int retx_segment_test()
     TESTASSERT_EQ(1, status_check.nacks[0].nack_sn);     // Lost SDU on SN=1.
     TESTASSERT_EQ(true, status_check.nacks[0].has_so);   // Lost SDU on SN=1.
     TESTASSERT_EQ(0, status_check.nacks[0].so_start);    // Lost SDU on SN=1.
-    TESTASSERT_EQ(1, status_check.nacks[0].so_end);      // Lost SDU on SN=1.
+    TESTASSERT_EQ(0, status_check.nacks[0].so_end);      // Lost SDU on SN=1.
     TESTASSERT_EQ(2, status_check.nacks[1].nack_sn);     // Lost SDU on SN=1.
     TESTASSERT_EQ(true, status_check.nacks[1].has_so);   // Lost SDU on SN=1.
     TESTASSERT_EQ(1, status_check.nacks[1].so_start);    // Lost SDU on SN=1.
-    TESTASSERT_EQ(2, status_check.nacks[1].so_end);      // Lost SDU on SN=1.
+    TESTASSERT_EQ(1, status_check.nacks[1].so_end);      // Lost SDU on SN=1.
     TESTASSERT_EQ(3, status_check.nacks[2].nack_sn);     // Lost SDU on SN=1.
     TESTASSERT_EQ(true, status_check.nacks[2].has_so);   // Lost SDU on SN=1.
     TESTASSERT_EQ(2, status_check.nacks[2].so_start);    // Lost SDU on SN=1.
