@@ -725,7 +725,12 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Process N_nacks
   std::set<uint32_t> retx_sn_set; // Set of PDU SNs added for retransmission (no duplicates)
   for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
-    // TODO: Possibly loop NACK range
+    if (status.nacks[nack_idx].has_nack_range) {
+      RlcError("Handling NACK ranges is not yet implemented. Ignoring NACK across %d SDU(s) starting from SN=%d",
+               status.nacks[nack_idx].nack_range,
+               status.nacks[nack_idx].nack_sn);
+      continue;
+    }
     if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
       auto     nack    = status.nacks[nack_idx];
       uint32_t nack_sn = nack.nack_sn;

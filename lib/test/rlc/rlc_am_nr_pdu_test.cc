@@ -376,6 +376,63 @@ int rlc_am_nr_control_pdu_test5()
   return SRSRAN_SUCCESS;
 }
 
+// Status PDU for 12bit SN with ACK_SN=2065,
+// NACK range0: 3 full SDUs, NACK_SN=273..275
+// NACK range1: missing segment sequence across 4 SDUs
+//              starting at NACK_SN=276, SO_START=2,
+//              ending at NACK_SN=279, SO_END=5
+// E1 and E3 bit set on first NACK, E2 and E3 bit set on the second.
+int rlc_am_nr_control_pdu_test_nack_range()
+{
+  test_delimit_logger      delimiter("Control PDU test NACK range");
+  const int                len = 13;
+  std::array<uint8_t, len> tv  = {0x08,  // D/C | CPT | ACK_SN_upper
+                                 0x11,  // ACK_SN_lower
+                                 0x80,  // E1 | R
+                                 0x11,  // NACK_SN_upper
+                                 0x1a,  // NACK_SN_lower | E1 | E2 | E3 | R
+                                 0x03,  // NACK_range
+                                 0x11,  // NACK_SN_upper
+                                 0x46,  // NACK_SN_lower | E1 | E2 | E3 | R
+                                 0x00,  // SO_START_upper
+                                 0x02,  // SO_START_lower
+                                 0x00,  // SO_END_upper
+                                 0x05,  // SO_END_lower
+                                 0x04}; // NACK_range
+  srsran::byte_buffer_t    pdu = make_pdu_and_log(tv);
+
+  TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
+
+  // unpack PDU
+  rlc_am_nr_status_pdu_t status_pdu = {};
+  TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
+  TESTASSERT(status_pdu.ack_sn == 2065);
+  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
+  TESTASSERT(status_pdu.nacks[0].has_so == false);
+  TESTASSERT(status_pdu.nacks[0].has_nack_range == true);
+  TESTASSERT(status_pdu.nacks[0].nack_range == 3);
+
+  TESTASSERT(status_pdu.nacks[1].nack_sn == 276);
+  TESTASSERT(status_pdu.nacks[1].has_so == true);
+  TESTASSERT(status_pdu.nacks[1].so_start == 2);
+  TESTASSERT(status_pdu.nacks[1].so_end == 5);
+  TESTASSERT(status_pdu.nacks[1].has_nack_range == true);
+  TESTASSERT(status_pdu.nacks[1].nack_range == 4);
+
+  // reset status PDU
+  pdu.clear();
+
+  // pack again
+  TESTASSERT(rlc_am_nr_write_status_pdu(status_pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &pdu) == SRSRAN_SUCCESS);
+  TESTASSERT(pdu.N_bytes == tv.size());
+
+  write_pdu_to_pcap(4, pdu.msg, pdu.N_bytes);
+  TESTASSERT(memcmp(pdu.msg, tv.data(), pdu.N_bytes) == 0);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   static const struct option long_options[] = {{"pcap", no_argument, nullptr, 'p'}, {nullptr, 0, nullptr, 0}};
@@ -454,6 +511,11 @@ int main(int argc, char** argv)
 
   if (rlc_am_nr_control_pdu_test5()) {
     fprintf(stderr, "rlc_am_nr_control_pdu_test5() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (rlc_am_nr_control_pdu_test_nack_range()) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test_nack_range() failed.\n");
     return SRSRAN_ERROR;
   }
 

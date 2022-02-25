@@ -191,10 +191,15 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
       nack.nack_sn           = (*ptr & 0xff) << 4;
       ptr++;
 
-      e1         = *ptr & 0x08;
-      uint8_t e2 = *ptr & 0x04;
+      e1         = *ptr & 0x08; // 1 = further NACKs follow
+      uint8_t e2 = *ptr & 0x04; // 1 = set of {so_start, so_end} follows
+      uint8_t e3 = *ptr & 0x02; // 1 = NACK range follows (i.e. NACK across multiple SNs)
 
-      // uint8_t len2 = (*ptr & 0xF0) >> 4;
+      // sanity check for reserved bits
+      if ((*ptr & 0x01) != 0) {
+        fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+        return 0;
+      }
       nack.nack_sn |= (*ptr & 0xF0) >> 4;
       status->nacks[status->N_nack] = nack;
 
@@ -208,6 +213,11 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
         status->nacks[status->N_nack].so_end = (*ptr) << 8;
         ptr++;
         status->nacks[status->N_nack].so_end |= (*ptr);
+        ptr++;
+      }
+      if (e3 != 0) {
+        status->nacks[status->N_nack].has_nack_range = true;
+        status->nacks[status->N_nack].nack_range     = (*ptr);
         ptr++;
       }
       status->N_nack++;
@@ -267,8 +277,15 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
         if (status_pdu.nacks[i].has_so) {
           // Set E2
           *ptr |= 0x04;
+        }
 
-          ptr++;
+        if (status_pdu.nacks[i].has_nack_range) {
+          // Set E3
+          *ptr |= 0x02;
+        }
+
+        ptr++;
+        if (status_pdu.nacks[i].has_so) {
           (*ptr) = status_pdu.nacks[i].so_start >> 8;
           ptr++;
           (*ptr) = status_pdu.nacks[i].so_start;
@@ -276,8 +293,12 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
           (*ptr) = status_pdu.nacks[i].so_end >> 8;
           ptr++;
           (*ptr) = status_pdu.nacks[i].so_end;
+          ptr++;
         }
-        ptr++;
+        if (status_pdu.nacks[i].has_nack_range) {
+          (*ptr) = status_pdu.nacks[i].nack_range;
+          ptr++;
+        }
       }
     }
   } else {
