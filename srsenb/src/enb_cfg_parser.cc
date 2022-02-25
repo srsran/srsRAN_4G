@@ -710,9 +710,104 @@ int field_five_qi::parse(libconfig::Setting& root)
       pdcp_cfg->t_reordering_present = true;
     }
 
+    // Parse RLC section
+    if (!q.exists("rlc_config")) {
+      fprintf(stderr, "Error section rlc_config not found for 5qi=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+    libconfig::Setting&      rlc     = q["rlc_config"];
+    asn1::rrc_nr::rlc_cfg_c* rlc_cfg = &five_qi_cfg.rlc_cfg;
+    if (rlc.exists("um_uni_dir_ul") || rlc.exists("um_uni_dir_dl")) {
+      // Sanity check: RLC UM uni-directional is not supported.
+      fprintf(stderr, "Error uni-directional UM not supported. 5QI=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+
+    if (rlc.exists("am")) {
+      rlc_cfg->set_am();
+    } else if (rlc.exists("um_bi_dir")) {
+      rlc_cfg->set_um_bi_dir();
+    } else {
+      fprintf(stderr, "Invalid combination of UL/DL UM/AM for 5QI=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+
+    // Parse RLC-AM section
+    if (rlc_cfg->type() == asn1::rrc_nr::rlc_cfg_c::types::am) {
+      libconfig::Setting&        rlc_am    = rlc["am"];
+      libconfig::Setting&        rlc_am_ul = rlc_am["ul_am"];
+      libconfig::Setting&        rlc_am_dl = rlc_am["dl_am"];
+      asn1::rrc_nr::ul_am_rlc_s& ul_am_cfg = rlc_cfg->am().ul_am_rlc;
+      asn1::rrc_nr::dl_am_rlc_s& dl_am_cfg = rlc_cfg->am().dl_am_rlc;
+
+      // RLC AM UL
+      // SN length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_am_e> rlc_sn_size_ul("sn_field_len", &ul_am_cfg.sn_field_len);
+      if (rlc_sn_size_ul.parse(rlc_am_ul) == SRSRAN_ERROR) {
+        ul_am_cfg.sn_field_len_present = false;
+      } else {
+        ul_am_cfg.sn_field_len_present = true;
+      }
+      // t-PollRetx
+      field_asn1_enum_number<asn1::rrc_nr::t_poll_retx_e> rlc_t_poll_retx("t_poll_retx", &ul_am_cfg.t_poll_retx);
+      rlc_t_poll_retx.parse(rlc_am_ul);
+      // pollPDU
+      field_asn1_enum_number<asn1::rrc_nr::poll_pdu_e> rlc_poll_pdu("poll_pdu", &ul_am_cfg.poll_pdu);
+      rlc_poll_pdu.parse(rlc_am_ul);
+      // pollBYTE
+      field_asn1_enum_number<asn1::rrc_nr::poll_byte_e> rlc_poll_bytes("poll_byte", &ul_am_cfg.poll_byte);
+      rlc_poll_bytes.parse(rlc_am_ul);
+      // maxRetxThreshold
+      field_asn1_enum_number<asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_e_> rlc_max_retx_thres(
+          "max_retx_thres", &ul_am_cfg.max_retx_thres);
+      rlc_max_retx_thres.parse(rlc_am_ul);
+
+      // RLC AM DL
+      // SN length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_am_e> rlc_sn_size_dl("sn_field_len", &dl_am_cfg.sn_field_len);
+      if (rlc_sn_size_dl.parse(rlc_am_dl) == SRSRAN_ERROR) {
+        dl_am_cfg.sn_field_len_present = false;
+      } else {
+        dl_am_cfg.sn_field_len_present = true;
+      }
+      // t-reassembly
+      field_asn1_enum_number<asn1::rrc_nr::t_reassembly_e> rlc_t_reassembly("t_reassembly", &dl_am_cfg.t_reassembly);
+      rlc_t_reassembly.parse(rlc_am_dl);
+      // t-statusProhibit
+      field_asn1_enum_number<asn1::rrc_nr::t_status_prohibit_e> rlc_status_prohibit("t_status_prohibit",
+                                                                                    &dl_am_cfg.t_status_prohibit);
+      rlc_status_prohibit.parse(rlc_am_dl);
+    } else if (rlc_cfg->type() == asn1::rrc_nr::rlc_cfg_c::types::um_bi_dir) {
+      libconfig::Setting&        rlc_um    = rlc["um_bi_dir"];
+      libconfig::Setting&        rlc_um_ul = rlc_um["ul_um"];
+      libconfig::Setting&        rlc_um_dl = rlc_um["dl_um"];
+      asn1::rrc_nr::ul_um_rlc_s& ul_um_cfg = rlc_cfg->um_bi_dir().ul_um_rlc;
+      asn1::rrc_nr::dl_um_rlc_s& dl_um_cfg = rlc_cfg->um_bi_dir().dl_um_rlc;
+
+      // RLC UM UL
+      // SN field length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_um_e> rlc_sn_size_ul("sn_field_len", &ul_um_cfg.sn_field_len);
+      if (rlc_sn_size_ul.parse(rlc_um_ul) == SRSRAN_ERROR) {
+        ul_um_cfg.sn_field_len_present = false;
+      } else {
+        ul_um_cfg.sn_field_len_present = true;
+      }
+
+      // RLC UM DL
+      // SN field length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_um_e> rlc_sn_size_dl("sn_field_len", &dl_um_cfg.sn_field_len);
+      if (rlc_sn_size_dl.parse(rlc_um_dl) == SRSRAN_ERROR) {
+        dl_um_cfg.sn_field_len_present = false;
+      } else {
+        dl_um_cfg.sn_field_len_present = true;
+      }
+      // t-reassembly
+      field_asn1_enum_number<asn1::rrc_nr::t_reassembly_e> rlc_t_reassembly_dl("t_reassembly", &dl_um_cfg.t_reassembly);
+      rlc_t_reassembly_dl.parse(rlc_um_dl);
+    }
+
     cfg.insert(std::make_pair(five_qi, five_qi_cfg));
   }
-
   return 0;
 }
 namespace rr_sections {
