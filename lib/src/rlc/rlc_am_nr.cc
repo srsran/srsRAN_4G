@@ -751,7 +751,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
               retx.so_end          = segm->so + segm->payload_len;
               retx_sn_set.insert(nack_sn);
               RlcInfo(
-                  "Schedule PDU segment SN=%d, so_start=%d, so_end=%d for retx", retx.sn, retx.so_start, retx.so_end);
+                  "Scheduled RETX of SDU segment SN=%d, so_start=%d, so_end=%d", retx.sn, retx.so_start, retx.so_end);
             }
           }
         } else {
@@ -765,7 +765,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
             retx.current_so      = 0;
             retx.so_end          = pdu.sdu_buf->N_bytes;
             retx_sn_set.insert(nack_sn);
-            RlcInfo("Schedule PDU SN=%d for retx", retx.sn);
+            RlcInfo("Scheduled RETX of SDU SN=%d", retx.sn);
           }
         }
       } // TX window containts NACK SN
@@ -773,8 +773,8 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   }     // NACK loop
 
   // Process retx_count and inform upper layers if needed
-  for (auto retx_sn_it = retx_sn_set.begin(); retx_sn_it != retx_sn_set.end(); retx_sn_it++) {
-    auto& pdu = tx_window[*retx_sn_it];
+  for (uint32_t retx_sn : retx_sn_set) {
+    auto& pdu = tx_window[retx_sn];
     // Increment retx_count
     if (pdu.retx_count == RETX_COUNT_NOT_STARTED) {
       // Set retx_count = 0 on first RE-transmission of associated SDU (38.322 Sec. 5.3.2)
@@ -785,7 +785,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     }
 
     // Inform upper layers if needed
-    check_sn_reached_max_retx(*retx_sn_it);
+    check_sn_reached_max_retx(retx_sn);
   }
 
   /**

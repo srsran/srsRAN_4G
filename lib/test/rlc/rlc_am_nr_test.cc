@@ -895,6 +895,7 @@ int max_retx_lost_sdu_test()
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
+  test_delimit_logger delimiter("max retx lost SDU");
 
   const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_nr_config();
   if (not rlc1.configure(rlc_cfg)) {
@@ -964,6 +965,7 @@ int max_retx_lost_segments_test()
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
+  test_delimit_logger delimiter("max retx lost SDU segment");
 
   const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_nr_config();
   if (not rlc1.configure(rlc_cfg)) {
