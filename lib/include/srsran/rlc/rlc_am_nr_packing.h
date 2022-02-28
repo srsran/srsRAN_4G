@@ -113,10 +113,16 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
                                    const uint32_t            nof_bytes,
                                    const rlc_am_nr_sn_size_t sn_size,
                                    rlc_am_nr_status_pdu_t*   status);
+uint32_t
+rlc_am_nr_read_status_pdu_12bit_sn(const uint8_t* payload, const uint32_t nof_bytes, rlc_am_nr_status_pdu_t* status);
+uint32_t
+rlc_am_nr_read_status_pdu_18bit_sn(const uint8_t* payload, const uint32_t nof_bytes, rlc_am_nr_status_pdu_t* status);
 
 int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
                                    const rlc_am_nr_sn_size_t     sn_size,
                                    byte_buffer_t*                pdu);
+int32_t rlc_am_nr_write_status_pdu_12bit_sn(const rlc_am_nr_status_pdu_t& status_pdu, byte_buffer_t* pdu);
+int32_t rlc_am_nr_write_status_pdu_18bit_sn(const rlc_am_nr_status_pdu_t& status_pdu, byte_buffer_t* pdu);
 
 /**
  * Logs Status PDU into provided log channel, using fmt_str as format string

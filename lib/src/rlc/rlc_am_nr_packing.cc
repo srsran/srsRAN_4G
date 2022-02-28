@@ -141,6 +141,11 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
   return len;
 }
 
+/****************************************************************************
+ * Status PDU pack/unpack helper functions
+ * Ref: 3GPP TS 38.322 v16.2.0 Section 6.2.2.5
+ ***************************************************************************/
+
 uint32_t
 rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status)
 {
@@ -151,6 +156,16 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
                                    const uint32_t            nof_bytes,
                                    const rlc_am_nr_sn_size_t sn_size,
                                    rlc_am_nr_status_pdu_t*   status)
+{
+  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
+    return rlc_am_nr_read_status_pdu_12bit_sn(payload, nof_bytes, status);
+  } else { // 18bit SN
+    return rlc_am_nr_read_status_pdu_18bit_sn(payload, nof_bytes, status);
+  }
+}
+
+uint32_t
+rlc_am_nr_read_status_pdu_12bit_sn(const uint8_t* payload, const uint32_t nof_bytes, rlc_am_nr_status_pdu_t* status)
 {
   uint8_t* ptr = const_cast<uint8_t*>(payload);
 
@@ -163,68 +178,151 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
     return 0;
   }
 
-  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
-    status->ack_sn = (*ptr & 0x0F) << 8; // first 4 bits SN
+  status->ack_sn = (*ptr & 0x0F) << 8; // first 4 bits SN
+  ptr++;
+
+  status->ack_sn |= (*ptr & 0xFF); // last 8 bits SN
+  ptr++;
+
+  // read E1 flag
+  uint8_t e1 = *ptr & 0x80;
+
+  // sanity check for reserved bits
+  if ((*ptr & 0x7f) != 0) {
+    fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+    return 0;
+  }
+
+  // all good, continue with next byte depending on E1
+  ptr++;
+
+  // reset number of acks
+  status->N_nack = 0;
+
+  while (e1 != 0) {
+    // E1 flag set, read a NACK_SN
+    rlc_status_nack_t nack = {};
+    nack.nack_sn           = (*ptr & 0xff) << 4;
     ptr++;
 
-    status->ack_sn |= (*ptr & 0xFF); // last 8 bits SN
-    ptr++;
-
-    // read E1 flag
-    uint8_t e1 = *ptr & 0x80;
+    e1         = *ptr & 0x08; // 1 = further NACKs follow
+    uint8_t e2 = *ptr & 0x04; // 1 = set of {so_start, so_end} follows
+    uint8_t e3 = *ptr & 0x02; // 1 = NACK range follows (i.e. NACK across multiple SNs)
 
     // sanity check for reserved bits
-    if ((*ptr & 0x7f) != 0) {
+    if ((*ptr & 0x01) != 0) {
       fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
       return 0;
     }
+    nack.nack_sn |= (*ptr & 0xF0) >> 4;
+    status->nacks[status->N_nack] = nack;
 
-    // all good, continue with next byte depending on E1
     ptr++;
-
-    // reset number of acks
-    status->N_nack = 0;
-
-    while (e1 != 0) {
-      // E1 flag set, read a NACK_SN
-      rlc_status_nack_t nack = {};
-      nack.nack_sn           = (*ptr & 0xff) << 4;
+    if (e2 != 0) {
+      status->nacks[status->N_nack].has_so   = true;
+      status->nacks[status->N_nack].so_start = (*ptr) << 8;
       ptr++;
-
-      e1         = *ptr & 0x08; // 1 = further NACKs follow
-      uint8_t e2 = *ptr & 0x04; // 1 = set of {so_start, so_end} follows
-      uint8_t e3 = *ptr & 0x02; // 1 = NACK range follows (i.e. NACK across multiple SNs)
-
-      // sanity check for reserved bits
-      if ((*ptr & 0x01) != 0) {
-        fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
-        return 0;
-      }
-      nack.nack_sn |= (*ptr & 0xF0) >> 4;
-      status->nacks[status->N_nack] = nack;
-
+      status->nacks[status->N_nack].so_start |= (*ptr);
       ptr++;
-      if (e2 != 0) {
-        status->nacks[status->N_nack].has_so   = true;
-        status->nacks[status->N_nack].so_start = (*ptr) << 8;
-        ptr++;
-        status->nacks[status->N_nack].so_start |= (*ptr);
-        ptr++;
-        status->nacks[status->N_nack].so_end = (*ptr) << 8;
-        ptr++;
-        status->nacks[status->N_nack].so_end |= (*ptr);
-        ptr++;
-      }
-      if (e3 != 0) {
-        status->nacks[status->N_nack].has_nack_range = true;
-        status->nacks[status->N_nack].nack_range     = (*ptr);
-        ptr++;
-      }
-      status->N_nack++;
-      if (uint32_t(ptr - payload) > nof_bytes) {
-        fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
-        return 0;
-      }
+      status->nacks[status->N_nack].so_end = (*ptr) << 8;
+      ptr++;
+      status->nacks[status->N_nack].so_end |= (*ptr);
+      ptr++;
+    }
+    if (e3 != 0) {
+      status->nacks[status->N_nack].has_nack_range = true;
+      status->nacks[status->N_nack].nack_range     = (*ptr);
+      ptr++;
+    }
+    status->N_nack++;
+    if (uint32_t(ptr - payload) > nof_bytes) {
+      fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
+      return 0;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+uint32_t
+rlc_am_nr_read_status_pdu_18bit_sn(const uint8_t* payload, const uint32_t nof_bytes, rlc_am_nr_status_pdu_t* status)
+{
+  uint8_t* ptr = const_cast<uint8_t*>(payload);
+
+  // fixed part
+  status->cpt = (rlc_am_nr_control_pdu_type_t)((*ptr >> 4) & 0x07); // 3 bits CPT
+
+  // sanity check
+  if (status->cpt != rlc_am_nr_control_pdu_type_t::status_pdu) {
+    fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+    return 0;
+  }
+
+  status->ack_sn = (*ptr & 0x0F) << 14; // upper 4 bits of SN
+  ptr++;
+
+  status->ack_sn |= (*ptr & 0xFF) << 6; // center 8 bits of SN
+  ptr++;
+
+  status->ack_sn |= (*ptr & 0xFC) >> 2; // lower 6 bits of SN
+
+  // read E1 flag
+  uint8_t e1 = *ptr & 0x02;
+
+  // sanity check for reserved bits
+  if ((*ptr & 0x01) != 0) {
+    fprintf(stderr, "Malformed PDU, reserved bit is set.\n");
+    return 0;
+  }
+
+  // all good, continue with next byte depending on E1
+  ptr++;
+
+  // reset number of acks
+  status->N_nack = 0;
+
+  while (e1 != 0) {
+    // E1 flag set, read a NACK_SN
+    rlc_status_nack_t nack = {};
+
+    nack.nack_sn = (*ptr & 0xFF) << 10; // upper 8 bits of SN
+    ptr++;
+    nack.nack_sn |= (*ptr & 0xFF) << 2; // center 8 bits of SN
+    ptr++;
+    nack.nack_sn |= (*ptr & 0xC0) >> 6; // lower 2 bits of SN
+
+    e1         = *ptr & 0x20; // 1 = further NACKs follow
+    uint8_t e2 = *ptr & 0x10; // 1 = set of {so_start, so_end} follows
+    uint8_t e3 = *ptr & 0x08; // 1 = NACK range follows (i.e. NACK across multiple SNs)
+
+    // sanity check for reserved bits
+    if ((*ptr & 0x07) != 0) {
+      fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+      return 0;
+    }
+    status->nacks[status->N_nack] = nack;
+
+    ptr++;
+    if (e2 != 0) {
+      status->nacks[status->N_nack].has_so   = true;
+      status->nacks[status->N_nack].so_start = (*ptr) << 8;
+      ptr++;
+      status->nacks[status->N_nack].so_start |= (*ptr);
+      ptr++;
+      status->nacks[status->N_nack].so_end = (*ptr) << 8;
+      ptr++;
+      status->nacks[status->N_nack].so_end |= (*ptr);
+      ptr++;
+    }
+    if (e3 != 0) {
+      status->nacks[status->N_nack].has_nack_range = true;
+      status->nacks[status->N_nack].nack_range     = (*ptr);
+      ptr++;
+    }
+    status->N_nack++;
+    if (uint32_t(ptr - payload) > nof_bytes) {
+      fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
+      return 0;
     }
   }
 
@@ -241,74 +339,133 @@ int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
                                    const rlc_am_nr_sn_size_t     sn_size,
                                    byte_buffer_t*                pdu)
 {
+  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
+    return rlc_am_nr_write_status_pdu_12bit_sn(status_pdu, pdu);
+  } else { // 18bit SN
+    return rlc_am_nr_write_status_pdu_18bit_sn(status_pdu, pdu);
+  }
+}
+
+int32_t rlc_am_nr_write_status_pdu_12bit_sn(const rlc_am_nr_status_pdu_t& status_pdu, byte_buffer_t* pdu)
+{
   uint8_t* ptr = pdu->msg;
 
   // fixed header part
   *ptr = 0; ///< 1 bit D/C field and 3bit CPT are all zero
 
-  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
-    // write first 4 bit of ACK_SN
-    *ptr |= (status_pdu.ack_sn >> 8) & 0x0f; // 4 bit ACK_SN
-    ptr++;
-    *ptr = status_pdu.ack_sn & 0xff; // remaining 8 bit of SN
-    ptr++;
+  // write first 4 bit of ACK_SN
+  *ptr |= (status_pdu.ack_sn >> 8) & 0x0f; // 4 bit ACK_SN
+  ptr++;
+  *ptr = status_pdu.ack_sn & 0xff; // remaining 8 bit of SN
+  ptr++;
 
-    // write E1 flag in octet 3
-    if (status_pdu.N_nack > 0) {
-      *ptr = 0x80;
-    } else {
-      *ptr = 0x00;
-    }
-    ptr++;
+  // write E1 flag in octet 3
+  if (status_pdu.N_nack > 0) {
+    *ptr = 0x80;
+  } else {
+    *ptr = 0x00;
+  }
+  ptr++;
 
-    if (status_pdu.N_nack > 0) {
-      for (uint32_t i = 0; i < status_pdu.N_nack; i++) {
-        // write first 8 bit of NACK_SN
-        *ptr = (status_pdu.nacks[i].nack_sn >> 4) & 0xff;
+  if (status_pdu.N_nack > 0) {
+    for (uint32_t i = 0; i < status_pdu.N_nack; i++) {
+      // write first 8 bit of NACK_SN
+      *ptr = (status_pdu.nacks[i].nack_sn >> 4) & 0xff;
+      ptr++;
+
+      // write remaining 4 bits of NACK_SN
+      *ptr = (status_pdu.nacks[i].nack_sn & 0x0f) << 4;
+      // Set E1 if necessary
+      if (i < (uint32_t)(status_pdu.N_nack - 1)) {
+        *ptr |= 0x08;
+      }
+
+      if (status_pdu.nacks[i].has_so) {
+        // Set E2
+        *ptr |= 0x04;
+      }
+
+      if (status_pdu.nacks[i].has_nack_range) {
+        // Set E3
+        *ptr |= 0x02;
+      }
+
+      ptr++;
+      if (status_pdu.nacks[i].has_so) {
+        (*ptr) = status_pdu.nacks[i].so_start >> 8;
         ptr++;
-
-        // write remaining 4 bits of NACK_SN
-        *ptr = (status_pdu.nacks[i].nack_sn & 0x0f) << 4;
-        // Set E1 if necessary
-        if (i < (uint32_t)(status_pdu.N_nack - 1)) {
-          *ptr |= 0x08;
-        }
-
-        if (status_pdu.nacks[i].has_so) {
-          // Set E2
-          *ptr |= 0x04;
-        }
-
-        if (status_pdu.nacks[i].has_nack_range) {
-          // Set E3
-          *ptr |= 0x02;
-        }
-
+        (*ptr) = status_pdu.nacks[i].so_start;
         ptr++;
-        if (status_pdu.nacks[i].has_so) {
-          (*ptr) = status_pdu.nacks[i].so_start >> 8;
-          ptr++;
-          (*ptr) = status_pdu.nacks[i].so_start;
-          ptr++;
-          (*ptr) = status_pdu.nacks[i].so_end >> 8;
-          ptr++;
-          (*ptr) = status_pdu.nacks[i].so_end;
-          ptr++;
-        }
-        if (status_pdu.nacks[i].has_nack_range) {
-          (*ptr) = status_pdu.nacks[i].nack_range;
-          ptr++;
-        }
+        (*ptr) = status_pdu.nacks[i].so_end >> 8;
+        ptr++;
+        (*ptr) = status_pdu.nacks[i].so_end;
+        ptr++;
+      }
+      if (status_pdu.nacks[i].has_nack_range) {
+        (*ptr) = status_pdu.nacks[i].nack_range;
+        ptr++;
       }
     }
-  } else {
-    // 18bit SN
-    *ptr |= (status_pdu.ack_sn >> 14) & 0x0f; // 4 bit ACK_SN
-    ptr++;
-    *ptr = status_pdu.ack_sn >> 8; // bit 3 - 10 of SN
-    ptr++;
-    *ptr = (status_pdu.ack_sn & 0xff); // remaining 6 bit of SN
-    ptr++;
+  }
+
+  pdu->N_bytes = ptr - pdu->msg;
+
+  return SRSRAN_SUCCESS;
+}
+
+int32_t rlc_am_nr_write_status_pdu_18bit_sn(const rlc_am_nr_status_pdu_t& status_pdu, byte_buffer_t* pdu)
+{
+  uint8_t* ptr = pdu->msg;
+
+  // fixed header part
+  *ptr = 0; ///< 1 bit D/C field and 3bit CPT are all zero
+
+  *ptr |= (status_pdu.ack_sn >> 14) & 0x0F; // upper 4 bits of SN
+  ptr++;
+  *ptr = (status_pdu.ack_sn >> 6) & 0xFF; // center 8 bits of SN
+  ptr++;
+  *ptr = (status_pdu.ack_sn << 2) & 0xFC; // lower 6 bits of SN
+
+  // set E1 flag if necessary
+  if (status_pdu.N_nack > 0) {
+    *ptr |= 0x02;
+  }
+  ptr++;
+
+  if (status_pdu.N_nack > 0) {
+    for (uint32_t i = 0; i < status_pdu.N_nack; i++) {
+      *ptr = (status_pdu.nacks[i].nack_sn >> 10) & 0xFF; // upper 8 bits of SN
+      ptr++;
+      *ptr = (status_pdu.nacks[i].nack_sn >> 2) & 0xFF; // center 8 bits of SN
+      ptr++;
+      *ptr = (status_pdu.nacks[i].nack_sn << 6) & 0xC0; // lower 2 bits of SN
+
+      if (i < (uint32_t)(status_pdu.N_nack - 1)) {
+        *ptr |= 0x20; // Set E1
+      }
+      if (status_pdu.nacks[i].has_so) {
+        *ptr |= 0x10; // Set E2
+      }
+      if (status_pdu.nacks[i].has_nack_range) {
+        *ptr |= 0x08; // Set E3
+      }
+
+      ptr++;
+      if (status_pdu.nacks[i].has_so) {
+        (*ptr) = status_pdu.nacks[i].so_start >> 8;
+        ptr++;
+        (*ptr) = status_pdu.nacks[i].so_start;
+        ptr++;
+        (*ptr) = status_pdu.nacks[i].so_end >> 8;
+        ptr++;
+        (*ptr) = status_pdu.nacks[i].so_end;
+        ptr++;
+      }
+      if (status_pdu.nacks[i].has_nack_range) {
+        (*ptr) = status_pdu.nacks[i].nack_range;
+        ptr++;
+      }
+    }
   }
 
   pdu->N_bytes = ptr - pdu->msg;
