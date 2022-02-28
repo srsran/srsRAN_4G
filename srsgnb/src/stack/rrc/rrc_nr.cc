@@ -94,6 +94,17 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   config_mac();
 
   logger.info("Number of 5QI %d", cfg.five_qi_cfg.size());
+  for (const std::pair<const uint32_t, rrc_nr_cfg_five_qi_t>& five_qi_cfg : cfg.five_qi_cfg) {
+    logger.info("5QI configuration. 5QI=%d", five_qi_cfg.first);
+    if (logger.info.enabled()) {
+      asn1::json_writer js{};
+      five_qi_cfg.second.pdcp_cfg.to_json(js);
+      logger.info("PDCP NR configuration: %s", js.to_string().c_str());
+      js = {};
+      five_qi_cfg.second.rlc_cfg.to_json(js);
+      logger.info("RLC NR configuration: %s", js.to_string().c_str());
+    }
+  }
   logger.info("NIA preference list: NIA%d, NIA%d, NIA%d",
               cfg.nia_preference_list[0],
               cfg.nia_preference_list[1],
