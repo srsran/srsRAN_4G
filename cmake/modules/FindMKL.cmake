@@ -49,7 +49,7 @@ set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR} ${MKL_FFTW_INCLUDE_DIR})
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set MKL_FOUND to TRUE
 # if all listed variables are TRUE
-find_package_handle_standard_args(mkl  DEFAULT_MSG
+find_package_handle_standard_args(MKL  DEFAULT_MSG
                                   MKL_LIBRARIES MKL_CORE MKL_ILP MKL_SEQ MKL_INCLUDE_DIRS)
 
 if(MKL_FOUND)
