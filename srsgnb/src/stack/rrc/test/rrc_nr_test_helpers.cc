@@ -100,7 +100,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   complete_ies.guami_type.value   = rrc_setup_complete_ies_s::guami_type_opts::native;
   std::string NAS_msg_str = "7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F11080010134"
                             "7B80801001002E02F0702F0201015200F11000006418010174000090530101";
-  auto& ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
+  auto&       ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
 
   {
     pdu = srsran::make_byte_buffer();
