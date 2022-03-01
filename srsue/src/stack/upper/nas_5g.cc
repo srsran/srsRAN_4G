@@ -836,11 +836,8 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
   logger.info("Handling Authentication Request");
   ctxt_base.rx_count++;
   // Generate authentication response using RAND, AUTN & KSI-ASME
-  uint16 mcc, mnc;
-  mcc = rrc_nr->get_mcc();
-  mnc = rrc_nr->get_mnc();
   plmn_id_t plmn_id;
-  plmn_id.from_number(mcc, mnc);
+  usim->get_home_plmn_id(&plmn_id);
 
   if (authentication_request.authentication_parameter_rand_present == false) {
     logger.error("authentication_parameter_rand_present is not present");
