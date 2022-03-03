@@ -968,7 +968,8 @@ void rrc_nr::ue::handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_rees
   // compute config and create SRB1 for new user
   asn1::rrc_nr::radio_bearer_cfg_s dummy_radio_bearer_cfg; // just to compute difference, it's never sent to UE
   compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, dummy_radio_bearer_cfg);
-  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, dummy_radio_bearer_cfg, next_cell_group_cfg);
+  fill_cellgroup_with_radio_bearer_cfg(
+      parent->cfg, old_rnti, *parent->bearer_mapper, dummy_radio_bearer_cfg, next_cell_group_cfg);
 
   // send RRC Reestablishment message and restore bearer configuration
   send_connection_reest(old_ue->sec_ctx.get_ncc());
@@ -1061,7 +1062,8 @@ void rrc_nr::ue::send_rrc_setup()
 
   // - Setup masterCellGroup
   // - Derive master cell group config bearers
-  fill_cellgroup_with_radio_bearer_cfg(parent->cfg, setup_ies.radio_bearer_cfg, next_cell_group_cfg);
+  fill_cellgroup_with_radio_bearer_cfg(
+      parent->cfg, rnti, *parent->bearer_mapper, setup_ies.radio_bearer_cfg, next_cell_group_cfg);
   // - Pack masterCellGroup into container
   srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(next_cell_group_cfg, __FUNCTION__);
   if (pdu == nullptr) {
@@ -1209,7 +1211,8 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     // Fill masterCellGroup
     cell_group_cfg_s master_cell_group;
     master_cell_group.cell_group_id = 0;
-    fill_cellgroup_with_radio_bearer_cfg(parent->cfg, ies.radio_bearer_cfg, master_cell_group);
+    fill_cellgroup_with_radio_bearer_cfg(
+        parent->cfg, rnti, *parent->bearer_mapper, ies.radio_bearer_cfg, master_cell_group);
 
     // Pack masterCellGroup into container
     srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);

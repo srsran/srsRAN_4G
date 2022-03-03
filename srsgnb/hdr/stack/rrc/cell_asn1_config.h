@@ -15,6 +15,7 @@
 
 #include "rrc_nr_config.h"
 #include "srsran/asn1/rrc_nr.h"
+#include "srsran/common/bearer_manager.h"
 #include "srsran/common/common_nr.h"
 
 namespace srsenb {
@@ -44,6 +45,8 @@ bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
 
 /// Apply radioBearerConfig updates to CellGroupConfig
 void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
+                                          uint32_t                                rnti,
+                                          const enb_bearer_manager&               bearer_mapper,
                                           const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
                                           asn1::rrc_nr::cell_group_cfg_s&         out);
 
