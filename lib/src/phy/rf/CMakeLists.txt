@@ -118,25 +118,38 @@ if(RF_FOUND)
   # Top-level RF library
   add_library(srsran_rf_object OBJECT ${SOURCES_RF})
   set_property(TARGET srsran_rf_object PROPERTY POSITION_INDEPENDENT_CODE 1)
+  set(TOP_RF_LIBS)
   if (ENABLE_RF_PLUGINS)
+    # Build as shared library with optional RF plugins (optional dependencies)
     if (DYNAMIC_PLUGINS)
       add_dependencies(srsran_rf_object ${DYNAMIC_PLUGINS})
     endif (DYNAMIC_PLUGINS)
     add_library(srsran_rf SHARED $<TARGET_OBJECTS:srsran_rf_object>)
     target_link_libraries(srsran_rf dl)
+    list(APPEND TOP_RF_LIBS srsran_rf)
+
     # Add $ORIGIN (i.e. current location of this library) to rpath of srsran_rf.
     # This ensures that it will find the plugins that reside in the same directory as the library
     set_target_properties(srsran_rf PROPERTIES BUILD_RPATH "\$ORIGIN/")
     set_target_properties(srsran_rf PROPERTIES INSTALL_RPATH "\$ORIGIN/")
   else (ENABLE_RF_PLUGINS)
-    # Without RF plugins, we aggregate everything in a static library (builtin plugins)
+    # Build as static library with built-in RF plugins (mandatory dependencies)
     add_library(srsran_rf STATIC $<TARGET_OBJECTS:srsran_rf_object>)
     target_link_libraries(srsran_rf ${STATIC_PLUGINS})
+    list(APPEND TOP_RF_LIBS srsran_rf)
+
+    # Also build as shared library with built-in RF plugins (mandatory dependencies)
+    add_library(srsran_rf_shared SHARED $<TARGET_OBJECTS:srsran_rf_object>)
+    target_link_libraries(srsran_rf_shared ${STATIC_PLUGINS})
+    list(APPEND TOP_RF_LIBS srsran_rf_shared)
+    set_target_properties(srsran_rf_shared PROPERTIES OUTPUT_NAME srsran_rf)
   endif (ENABLE_RF_PLUGINS)
 
-  target_link_libraries(srsran_rf srsran_rf_utils srsran_phy)
-  set_target_properties(srsran_rf PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
-  install(TARGETS srsran_rf DESTINATION ${LIBRARY_DIR})
+  foreach (TOP_RF_LIB ${TOP_RF_LIBS})
+    target_link_libraries(${TOP_RF_LIB} srsran_rf_utils srsran_phy)
+    set_target_properties(${TOP_RF_LIB} PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
+    install(TARGETS ${TOP_RF_LIB} DESTINATION ${LIBRARY_DIR})
+  endforeach ()
 
   # Tests
   if (UHD_FOUND AND UHD_ENABLE_CUSTOM_RFNOC)
