@@ -30,4 +30,4 @@ find_package(Threads REQUIRED)
 
 add_library(srslog STATIC ${SOURCES})
 target_link_libraries(srslog ${CMAKE_THREAD_LIBS_INIT})
-INSTALL(TARGETS srslog DESTINATION ${LIBRARY_DIR})
+install(TARGETS srslog DESTINATION ${LIBRARY_DIR} OPTIONAL)

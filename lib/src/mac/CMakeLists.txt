@@ -10,6 +10,6 @@ SET(SOURCES pdu.cc pdu_queue.cc mac_sch_pdu_nr.cc mac_rar_pdu_nr.cc)
 
 add_library(srsran_mac STATIC ${SOURCES})
 target_link_libraries(srsran_mac srsran_common)
-INSTALL(TARGETS srsran_mac DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_mac DESTINATION ${LIBRARY_DIR} OPTIONAL)
 
 add_subdirectory(test)

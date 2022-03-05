@@ -20,4 +20,4 @@ set(SOURCES rlc.cc
 
 add_library(srsran_rlc STATIC ${SOURCES})
 target_link_libraries(srsran_rlc srsran_common ${ATOMIC_LIBS})
-INSTALL(TARGETS srsran_rlc DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_rlc DESTINATION ${LIBRARY_DIR} OPTIONAL)
