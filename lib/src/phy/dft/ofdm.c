@@ -702,7 +702,8 @@ int srsran_ofdm_set_cfr(srsran_ofdm_t* q, srsran_cfr_cfg_t* cfr)
   q->cfg.cfr_tx_cfg.symbol_sz = q->cfg.symbol_sz;
   q->cfg.cfr_tx_cfg.symbol_bw = q->nof_re;
 
-  // in the DL, the DC carrier is empty but still counts when designing the filter BW
+  // in the LTE DL, the DC carrier is empty but still counts when designing the filter BW
+  // in the LTE UL, the DC carrier is used
   q->cfg.cfr_tx_cfg.dc_sc = (!q->cfg.keep_dc) && (!isnormal(q->cfg.freq_shift_f));
   if (q->cfg.cfr_tx_cfg.cfr_enable) {
     if (srsran_cfr_init(&q->tx_cfr, &q->cfg.cfr_tx_cfg) < SRSRAN_SUCCESS) {

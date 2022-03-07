@@ -99,6 +99,8 @@ typedef struct SRSRAN_API {
 
   srsran_ra_ul_pusch_hopping_t hopping;
 
+  srsran_cfr_cfg_t cfr_config;
+
   cf_t* out_buffer;
   cf_t* refsignal;
   cf_t* srs_signal;
@@ -111,6 +113,8 @@ SRSRAN_API int srsran_ue_ul_init(srsran_ue_ul_t* q, cf_t* out_buffer, uint32_t m
 SRSRAN_API void srsran_ue_ul_free(srsran_ue_ul_t* q);
 
 SRSRAN_API int srsran_ue_ul_set_cell(srsran_ue_ul_t* q, srsran_cell_t cell);
+
+SRSRAN_API int srsran_ue_ul_set_cfr(srsran_ue_ul_t* q, const srsran_cfr_cfg_t* cfr);
 
 SRSRAN_API int srsran_ue_ul_pregen_signals(srsran_ue_ul_t* q, srsran_ue_ul_cfg_t* cfg);
 

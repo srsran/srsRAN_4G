@@ -378,18 +378,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  // convert CFR mode
-  if (!cfr_mode.empty()) {
-    if (cfr_mode == "manual") {
-      args->phy.cfr_args.mode = SRSRAN_CFR_THR_MANUAL;
-    } else if (cfr_mode == "auto_cma") {
-      args->phy.cfr_args.mode = SRSRAN_CFR_THR_AUTO_CMA;
-    } else if (cfr_mode == "auto_ema") {
-      args->phy.cfr_args.mode = SRSRAN_CFR_THR_AUTO_EMA;
-    } else {
-      cout << "Error, invalid CFR mode: " << cfr_mode << endl;
-      exit(1);
-    }
+  // parse the CFR mode string
+  args->phy.cfr_args.mode = srsran_cfr_str2mode(cfr_mode.c_str());
+  if (args->phy.cfr_args.mode == SRSRAN_CFR_THR_INVALID) {
+    cout << "Error, invalid CFR mode: " << cfr_mode << endl;
+    exit(1);
   }
 
   // Apply all_level to any unset layers

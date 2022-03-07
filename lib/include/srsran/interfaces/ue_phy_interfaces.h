@@ -26,6 +26,15 @@
 
 namespace srsue {
 
+struct cfr_args_t {
+  bool              enable           = false;
+  srsran_cfr_mode_t mode             = SRSRAN_CFR_THR_MANUAL;
+  float             manual_thres     = 2.0f;
+  float             strength         = 1.0f;
+  float             auto_target_papr = 7.0f;
+  float             ema_alpha        = 1.0f / (float)SRSRAN_CP_NORM_NSYMB;
+};
+
 struct phy_args_t {
   std::string            type = "lte";
   srsran::phy_log_args_t log;
@@ -96,6 +105,8 @@ struct phy_args_t {
 
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;
+
+  cfr_args_t cfr_args; ///< Stores user-defined CFR configuration
 };
 
 /* RAT agnostic Interface MAC -> PHY */

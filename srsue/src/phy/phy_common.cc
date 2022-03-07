@@ -56,6 +56,14 @@ void phy_common::init(phy_args_t*                  _args,
     ul_channel = srsran::channel_ptr(
         new srsran::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant, logger));
   }
+
+  // Init the CFR config struct with the CFR args
+  cfr_config.cfr_enable  = args->cfr_args.enable;
+  cfr_config.cfr_mode    = args->cfr_args.mode;
+  cfr_config.alpha       = args->cfr_args.strength;
+  cfr_config.manual_thr  = args->cfr_args.manual_thres;
+  cfr_config.max_papr_db = args->cfr_args.auto_target_papr;
+  cfr_config.ema_alpha   = args->cfr_args.ema_alpha;
 }
 
 void phy_common::set_ue_dl_cfg(srsran_ue_dl_cfg_t* ue_dl_cfg)

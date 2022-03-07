@@ -284,6 +284,33 @@ int ue::parse_args(const all_args_t& args_)
     args.stack.nas_5g.pdu_session_cfgs.push_back({args.stack.nas.apn_name});
   }
 
+  // Validate the CFR args
+  srsran_cfr_cfg_t cfr_test_cfg = {};
+  cfr_test_cfg.cfr_enable       = args.phy.cfr_args.enable;
+  cfr_test_cfg.cfr_mode         = args.phy.cfr_args.mode;
+  cfr_test_cfg.alpha            = args.phy.cfr_args.strength;
+  cfr_test_cfg.manual_thr       = args.phy.cfr_args.manual_thres;
+  cfr_test_cfg.max_papr_db      = args.phy.cfr_args.auto_target_papr;
+  cfr_test_cfg.ema_alpha        = args.phy.cfr_args.ema_alpha;
+
+  if (!srsran_cfr_params_valid(&cfr_test_cfg)) {
+    srsran::console("Invalid CFR parameters: cfr_mode=%d, alpha=%.2f, manual_thr=%.2f, \n "
+                    "max_papr_db=%.2f, ema_alpha=%.2f\n",
+                    cfr_test_cfg.cfr_mode,
+                    cfr_test_cfg.alpha,
+                    cfr_test_cfg.manual_thr,
+                    cfr_test_cfg.max_papr_db,
+                    cfr_test_cfg.ema_alpha);
+
+    logger.error("Invalid CFR parameters: cfr_mode=%d, alpha=%.2f, manual_thr=%.2f, max_papr_db=%.2f, ema_alpha=%.2f\n",
+                 cfr_test_cfg.cfr_mode,
+                 cfr_test_cfg.alpha,
+                 cfr_test_cfg.manual_thr,
+                 cfr_test_cfg.max_papr_db,
+                 cfr_test_cfg.ema_alpha);
+    return SRSRAN_ERROR;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
