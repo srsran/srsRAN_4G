@@ -1,5 +1,7 @@
 // All times are in ms. Use -1 for infinity, where available
 
+// 4G Section
+
 // srb1_config = {
 //   rlc_config = {
 //     ul_am = {
@@ -91,3 +93,57 @@ qci_config = (
   };
 }
 );
+
+// 5G Section
+five_qi_config = (
+{
+  five_qi=7;
+  pdcp_nr_config = {
+    drb = {
+      discard_timer = 50;
+      pdcp_sn_size_ul = 12;
+      pdcp_sn_size_dl = 12;
+    };
+    t_reordering = 50;
+  };
+  rlc_config = {
+    am = {
+      ul_am = {
+        sn_field_len = 12;
+        t_poll_retx = 50;
+        poll_pdu = 4;
+        poll_byte = 3000;
+        max_retx_thres = 4;
+      };
+      dl_am = {
+        sn_field_len = 12;
+        t_reassembly = 50;
+        t_status_prohibit = 50;
+      };
+    };
+  };
+},
+{
+  five_qi=9;
+  pdcp_nr_config = {
+    drb = {
+      discard_timer = 50;
+      pdcp_sn_size_ul = 12;
+      pdcp_sn_size_dl = 12;
+    };
+    t_reordering = 50;
+  };
+  rlc_config = {
+    um_bi_dir = {
+      ul_um = {
+        sn_field_len = 12;
+      };
+      dl_um = {
+        sn_field_len = 12;
+        t_reassembly = 50;
+      };
+    };
+  };
+}
+);
+
