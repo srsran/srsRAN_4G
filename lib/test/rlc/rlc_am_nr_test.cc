@@ -147,10 +147,10 @@ int retx_segmentation_required_checker_test()
 
   // Test full SDU retx
   {
-    uint32_t       nof_bytes = 8;
-    rlc_amd_retx_t retx      = {};
-    retx.sn                  = 0;
-    retx.is_segment          = false;
+    uint32_t          nof_bytes = 8;
+    rlc_amd_retx_nr_t retx      = {};
+    retx.sn                     = 0;
+    retx.is_segment             = false;
 
     tx->is_retx_segmentation_required(retx, nof_bytes);
     TESTASSERT_EQ(false, tx->is_retx_segmentation_required(retx, nof_bytes));
@@ -158,8 +158,8 @@ int retx_segmentation_required_checker_test()
 
   // Test SDU retx segmentation required
   {
-    uint32_t       nof_bytes = 4;
-    rlc_amd_retx_t retx;
+    uint32_t          nof_bytes = 4;
+    rlc_amd_retx_nr_t retx;
     retx.sn         = 0;
     retx.is_segment = false;
 
@@ -169,12 +169,12 @@ int retx_segmentation_required_checker_test()
 
   // Test full SDU segment retx
   {
-    uint32_t       nof_bytes = 40;
-    rlc_amd_retx_t retx      = {};
-    retx.sn                  = 0;
-    retx.is_segment          = true;
-    retx.so_start            = 4;
-    retx.so_end              = 6;
+    uint32_t          nof_bytes = 40;
+    rlc_amd_retx_nr_t retx      = {};
+    retx.sn                     = 0;
+    retx.is_segment             = true;
+    retx.so_start               = 4;
+    retx.so_end                 = 6;
 
     tx->is_retx_segmentation_required(retx, nof_bytes);
     TESTASSERT_EQ(false, tx->is_retx_segmentation_required(retx, nof_bytes));
@@ -182,12 +182,12 @@ int retx_segmentation_required_checker_test()
 
   // Test SDU segment retx segmentation required
   {
-    uint32_t       nof_bytes = 4;
-    rlc_amd_retx_t retx      = {};
-    retx.sn                  = 0;
-    retx.is_segment          = true;
-    retx.so_start            = 4;
-    retx.so_end              = 6;
+    uint32_t          nof_bytes = 4;
+    rlc_amd_retx_nr_t retx      = {};
+    retx.sn                     = 0;
+    retx.is_segment             = true;
+    retx.so_start               = 4;
+    retx.so_end                 = 6;
 
     tx->is_retx_segmentation_required(retx, nof_bytes);
     TESTASSERT_EQ(true, tx->is_retx_segmentation_required(retx, nof_bytes));

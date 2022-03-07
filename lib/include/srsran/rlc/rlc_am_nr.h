@@ -107,10 +107,10 @@ public:
   uint32_t build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  bool     is_retx_segmentation_required(const rlc_amd_retx_t& retx, uint32_t nof_bytes);
-  uint32_t get_retx_expected_hdr_len(const rlc_amd_retx_t& retx);
+  uint32_t build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  bool     is_retx_segmentation_required(const rlc_amd_retx_nr_t& retx, uint32_t nof_bytes);
+  uint32_t get_retx_expected_hdr_len(const rlc_amd_retx_nr_t& retx);
 
   // Buffer State
   bool     has_data() final;
@@ -150,7 +150,7 @@ private:
   rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
 
   // Queues and buffers
-  pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
+  pdu_retx_queue<rlc_amd_retx_nr_t, RLC_AM_WINDOW_SIZE> retx_queue;
   uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
   pdcp_sn_vector_t notify_info_vec;
 

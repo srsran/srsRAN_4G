@@ -300,7 +300,7 @@ private:
   uint32_t                                count = 0;
 };
 
-struct rlc_amd_retx_t {
+struct rlc_amd_retx_lte_t {
   uint32_t sn;
   bool     is_segment;
   uint32_t so_start; // offset to first byte of this segment
@@ -308,21 +308,29 @@ struct rlc_amd_retx_t {
   uint32_t current_so;
 };
 
-template <std::size_t WINDOW_SIZE>
+struct rlc_amd_retx_nr_t {
+  uint32_t sn;
+  bool     is_segment;
+  uint32_t so_start; // offset to first byte of this segment
+  uint32_t so_end;   // offset to first byte beyond the end of this segment
+  uint32_t current_so;
+};
+
+template <class T, std::size_t WINDOW_SIZE>
 class pdu_retx_queue
 {
 public:
-  rlc_amd_retx_t& push()
+  T& push()
   {
     assert(not full());
-    rlc_amd_retx_t& p = buffer[wpos];
+    T& p              = buffer[wpos];
     wpos              = (wpos + 1) % WINDOW_SIZE;
     return p;
   }
 
   void pop() { rpos = (rpos + 1) % WINDOW_SIZE; }
 
-  rlc_amd_retx_t& front()
+  T& front()
   {
     assert(not empty());
     return buffer[rpos];
@@ -349,9 +357,9 @@ public:
   bool   full() const { return size() == WINDOW_SIZE - 1; }
 
 private:
-  std::array<rlc_amd_retx_t, WINDOW_SIZE> buffer;
-  size_t                                  wpos = 0;
-  size_t                                  rpos = 0;
+  std::array<T, WINDOW_SIZE> buffer;
+  size_t                     wpos = 0;
+  size_t                     rpos = 0;
 };
 
 } // namespace srsran

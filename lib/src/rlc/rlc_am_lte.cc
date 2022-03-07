@@ -223,7 +223,7 @@ void rlc_am_lte_tx::get_buffer_state_nolock(uint32_t& n_bytes_newtx, uint32_t& n
 
   // Bytes needed for retx
   if (not retx_queue.empty()) {
-    rlc_amd_retx_t& retx = retx_queue.front();
+    rlc_amd_retx_lte_t& retx = retx_queue.front();
     RlcDebug("Buffer state - retx - SN=%d, Segment: %s, %d:%d",
              retx.sn,
              retx.is_segment ? "true" : "false",
@@ -353,11 +353,11 @@ void rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
 
   RlcInfo("Schedule SN=%d for retx", pdu.rlc_sn);
 
-  rlc_amd_retx_t& retx = retx_queue.push();
-  retx.is_segment      = false;
-  retx.so_start        = 0;
-  retx.so_end          = pdu.buf->N_bytes;
-  retx.sn              = pdu.rlc_sn;
+  rlc_amd_retx_lte_t& retx = retx_queue.push();
+  retx.is_segment          = false;
+  retx.so_start            = 0;
+  retx.so_end              = pdu.buf->N_bytes;
+  retx.sn                  = pdu.rlc_sn;
 }
 
 /****************************************************************************
@@ -443,7 +443,7 @@ int rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
     return -1;
   }
 
-  rlc_amd_retx_t retx = retx_queue.front();
+  rlc_amd_retx_lte_t retx = retx_queue.front();
 
   // Sanity check - drop any retx SNs not present in tx_window
   while (not tx_window.has_sn(retx.sn)) {
@@ -516,7 +516,7 @@ int rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
   return (ptr - payload) + tx_window[retx.sn].buf->N_bytes;
 }
 
-int rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx)
+int rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_lte_t retx)
 {
   if (tx_window[retx.sn].buf == NULL) {
     RlcError("In build_segment: retx.sn=%d has null buffer", retx.sn);
@@ -956,7 +956,7 @@ void rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
             pdu.retx_count++;
             check_sn_reached_max_retx(i);
 
-            rlc_amd_retx_t& retx = retx_queue.push();
+            rlc_amd_retx_lte_t& retx = retx_queue.push();
             srsran_expect(tx_window[i].rlc_sn == i, "Incorrect RLC SN=%d!=%d being accessed", tx_window[i].rlc_sn, i);
             retx.sn         = i;
             retx.is_segment = false;
@@ -1080,7 +1080,7 @@ void rlc_am_lte_tx::debug_state()
   RlcDebug("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d", vt_a, vt_ms, vt_s, poll_sn);
 }
 
-int rlc_am_lte_tx::required_buffer_size(const rlc_amd_retx_t& retx)
+int rlc_am_lte_tx::required_buffer_size(const rlc_amd_retx_lte_t& retx)
 {
   if (!retx.is_segment) {
     if (tx_window.has_sn(retx.sn)) {

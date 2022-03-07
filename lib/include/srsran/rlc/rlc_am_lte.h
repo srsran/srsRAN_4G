@@ -79,11 +79,11 @@ private:
 
   int  build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
   int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-  int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
+  int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_lte_t retx);
   int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
   void update_notification_ack_info(uint32_t rlc_sn);
 
-  int  required_buffer_size(const rlc_amd_retx_t& retx);
+  int  required_buffer_size(const rlc_amd_retx_lte_t& retx);
   void retransmit_pdu(uint32_t sn);
 
   // Helpers
@@ -137,7 +137,7 @@ private:
 
   // Tx windows
   rlc_ringbuffer_t<rlc_amd_tx_pdu<rlc_amd_pdu_header_t>, RLC_AM_WINDOW_SIZE> tx_window;
-  pdu_retx_queue<RLC_AM_WINDOW_SIZE>                                         retx_queue;
+  pdu_retx_queue<rlc_amd_retx_lte_t, RLC_AM_WINDOW_SIZE>                     retx_queue;
   pdcp_sn_vector_t                                                           notify_info_vec;
 
   // Mutexes
