@@ -52,16 +52,26 @@ bool ue_bearer_manager_impl::has_active_radio_bearer(uint32_t eps_bearer_id)
   return bearers.count(eps_bearer_id) > 0;
 }
 
-ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_radio_bearer(uint32_t eps_bearer_id)
+ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_radio_bearer(uint32_t eps_bearer_id) const
 {
   auto it = bearers.find(eps_bearer_id);
   return it != bearers.end() ? it->second : invalid_rb;
 }
 
-ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_eps_bearer_id_for_lcid(uint32_t lcid)
+ue_bearer_manager_impl::radio_bearer_t ue_bearer_manager_impl::get_eps_bearer_id_for_lcid(uint32_t lcid) const
 {
   auto lcid_it = lcid_to_eps_bearer_id.find(lcid);
   return lcid_it != lcid_to_eps_bearer_id.end() ? bearers.at(lcid_it->second) : invalid_rb;
+}
+
+bool ue_bearer_manager_impl::set_five_qi(uint32_t eps_bearer_id, uint16_t five_qi)
+{
+  auto it = bearers.find(eps_bearer_id);
+  if (it == bearers.end()) {
+    return false;
+  }
+  it->second.five_qi = five_qi;
+  return true;
 }
 
 } // namespace detail
@@ -176,7 +186,7 @@ bool enb_bearer_manager::has_active_radio_bearer(uint16_t rnti, uint32_t eps_bea
   return user_it->second.has_active_radio_bearer(eps_bearer_id);
 }
 
-enb_bearer_manager::radio_bearer_t enb_bearer_manager::get_lcid_bearer(uint16_t rnti, uint32_t lcid)
+enb_bearer_manager::radio_bearer_t enb_bearer_manager::get_lcid_bearer(uint16_t rnti, uint32_t lcid) const
 {
   auto user_it = users_map.find(rnti);
   if (user_it == users_map.end()) {
@@ -192,6 +202,15 @@ enb_bearer_manager::radio_bearer_t enb_bearer_manager::get_radio_bearer(uint16_t
     return srsran::detail::ue_bearer_manager_impl::invalid_rb;
   }
   return user_it->second.get_radio_bearer(eps_bearer_id);
+}
+
+bool enb_bearer_manager::set_five_qi(uint16_t rnti, uint32_t eps_bearer_id, uint16_t five_qi)
+{
+  auto user_it = users_map.find(rnti);
+  if (user_it == users_map.end()) {
+    return false;
+  }
+  return user_it->second.set_five_qi(eps_bearer_id, five_qi);
 }
 
 } // namespace srsenb

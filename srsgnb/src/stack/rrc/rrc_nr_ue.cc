@@ -1354,6 +1354,7 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t                pdu_session_id,
 
   parent->bearer_mapper->add_eps_bearer(
       rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid); // TODO: configurable bearer id <-> lcid mapping
+  parent->bearer_mapper->set_five_qi(rnti, lcid - 3, five_qi);
 
   logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
 }
