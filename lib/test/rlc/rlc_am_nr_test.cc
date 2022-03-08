@@ -174,7 +174,7 @@ int retx_segmentation_required_checker_test()
     retx.sn                     = 0;
     retx.is_segment             = true;
     retx.so_start               = 4;
-    retx.so_end                 = 6;
+    retx.segment_length         = 2;
 
     tx->is_retx_segmentation_required(retx, nof_bytes);
     TESTASSERT_EQ(false, tx->is_retx_segmentation_required(retx, nof_bytes));
@@ -187,7 +187,7 @@ int retx_segmentation_required_checker_test()
     retx.sn                     = 0;
     retx.is_segment             = true;
     retx.so_start               = 4;
-    retx.so_end                 = 6;
+    retx.segment_length         = 2;
 
     tx->is_retx_segmentation_required(retx, nof_bytes);
     TESTASSERT_EQ(true, tx->is_retx_segmentation_required(retx, nof_bytes));

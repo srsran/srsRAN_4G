@@ -311,8 +311,8 @@ struct rlc_amd_retx_lte_t {
 struct rlc_amd_retx_nr_t {
   uint32_t sn;
   bool     is_segment;
-  uint32_t so_start; // offset to first byte of this segment
-  uint32_t so_end;   // offset to first byte beyond the end of this segment
+  uint32_t so_start;       // offset to first byte of this segment
+  uint32_t segment_length; // number of bytes contained in this segment
   uint32_t current_so;
 };
 
