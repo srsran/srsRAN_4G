@@ -122,7 +122,7 @@ public:
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
   // Polling
-  uint8_t get_pdu_poll();
+  uint8_t get_pdu_poll(bool is_retx);
 
   void stop() final;
 
@@ -146,13 +146,13 @@ private:
    * Tx state variables
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
-  struct rlc_am_nr_tx_state_t                             st = {};
+  struct rlc_am_nr_tx_state_t                              st = {};
   std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window;
 
   // Queues, buffers and container
   std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue;
-  uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
-  pdcp_sn_vector_t notify_info_vec;
+  uint32_t               sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  pdcp_sn_vector_t       notify_info_vec;
   rlc_am_nr_status_pdu_t tx_status;
 
   // Helper constants
@@ -168,8 +168,8 @@ private:
 
 public:
   // Getters/Setters
-  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.
-  rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
+  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }        // This should only be used for testing.
+  rlc_am_nr_tx_state_t get_tx_state() { return st; }                      // This should only be used for testing.
   uint32_t             get_tx_window_size() { return tx_window->size(); } // This should only be used for testing.
 
   // Debug Helper
@@ -283,8 +283,8 @@ private:
 
 public:
   // Getters/Setters
-  void set_rx_state(const rlc_am_nr_rx_state_t& st_) { st = st_; }       // This should only be used for testing.
-  rlc_am_nr_rx_state_t get_rx_state() { return st; }                     // This should only be used for testing.
+  void set_rx_state(const rlc_am_nr_rx_state_t& st_) { st = st_; }        // This should only be used for testing.
+  rlc_am_nr_rx_state_t get_rx_state() { return st; }                      // This should only be used for testing.
   uint32_t             get_rx_window_size() { return rx_window->size(); } // This should only be used for testing.
 };
 
