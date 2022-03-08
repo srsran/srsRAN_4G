@@ -79,7 +79,7 @@ public:
   void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
 
   // NGAP interface
-  void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
+  void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid, uint32_t five_qi);
 
   /* TS 38.331 - 5.3.4 Initial AS security activation */
   void send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu);

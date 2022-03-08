@@ -102,7 +102,8 @@ public:
   int  establish_rrc_bearer(uint16_t                rnti,
                             uint16_t                pdu_session_id,
                             srsran::const_byte_span nas_pdu,
-                            uint32_t                lcid) final;
+                            uint32_t                lcid,
+                            uint32_t                five_qi) final;
   int  release_bearers(uint16_t rnti) final;
   void release_user(uint16_t rnti) final;
   void write_dl_info(uint16_t rnti, srsran::unique_byte_buffer_t sdu) final;

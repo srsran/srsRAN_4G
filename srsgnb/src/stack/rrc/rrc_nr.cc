@@ -648,14 +648,18 @@ int rrc_nr::start_security_mode_procedure(uint16_t rnti, srsran::unique_byte_buf
   user_it->second->send_security_mode_command(std::move(nas_pdu));
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+int rrc_nr::establish_rrc_bearer(uint16_t                rnti,
+                                 uint16_t                pdu_session_id,
+                                 srsran::const_byte_span nas_pdu,
+                                 uint32_t                lcid,
+                                 uint32_t                five_qi)
 {
   if (not users.contains(rnti)) {
     logger.error("Establishing RRC bearers for inexistent rnti=0x%x", rnti);
     return SRSRAN_ERROR;
   }
 
-  users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid);
+  users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid, five_qi);
 
   // TODO: verify whether this is the best place where to call the RRCReconfig
   users[rnti]->send_rrc_reconfiguration();

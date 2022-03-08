@@ -92,9 +92,13 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
               teid_in,
               addr_in.to_string());
 
+  uint16_t five_qi = pdu_ses_res_setup_req_trans->qos_flow_setup_request_list.value[0]
+                         .qos_flow_level_qos_params.qos_characteristics.non_dynamic5_qi()
+                         .five_qi;
+
   // QoS parameter mapping in config in LTE enb
   if (su_req.pdu_session_nas_pdu.size() > 0) {
-    if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
+    if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid, five_qi) ==
         SRSRAN_SUCCESS) {
       parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_in, addr_in);
       return proc_outcome_t::success;

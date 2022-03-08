@@ -1316,7 +1316,10 @@ void rrc_nr::ue::handle_ul_information_transfer(const asn1::rrc_nr::ul_info_tran
   parent->ngap->write_pdu(rnti, msg.crit_exts.ul_info_transfer().ded_nas_msg);
 }
 
-void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+void rrc_nr::ue::establish_eps_bearer(uint32_t                pdu_session_id,
+                                      srsran::const_byte_span nas_pdu,
+                                      uint32_t                lcid,
+                                      uint32_t                five_qi)
 {
   // Enqueue NAS PDU
   srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
@@ -1343,18 +1346,9 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byt
   drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add.resize(1);
   drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add[0] = 1;
 
-  drb.drb_id                               = 1;
-  drb.pdcp_cfg_present                     = true;
-  drb.pdcp_cfg.drb_present                 = true;
-  drb.pdcp_cfg.drb.discard_timer_present   = true;
-  drb.pdcp_cfg.drb.discard_timer.value     = pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
-  drb.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
-  drb.pdcp_cfg.drb.pdcp_sn_size_ul.value   = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_opts::len18bits;
-  drb.pdcp_cfg.drb.pdcp_sn_size_dl_present = true;
-  drb.pdcp_cfg.drb.pdcp_sn_size_dl.value   = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::len18bits;
-  drb.pdcp_cfg.drb.hdr_compress.set_not_used();
-  drb.pdcp_cfg.t_reordering_present = true;
-  drb.pdcp_cfg.t_reordering.value   = asn1::rrc_nr::pdcp_cfg_s::t_reordering_opts::ms0;
+  drb.drb_id           = 1;
+  drb.pdcp_cfg_present = true;
+  drb.pdcp_cfg         = parent->cfg.five_qi_cfg[five_qi].pdcp_cfg;
 
   next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
 
