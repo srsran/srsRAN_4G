@@ -40,7 +40,7 @@
 
 qci_config = (
 {
-  qci=7;
+  qci = 7;
   pdcp_config = {
     discard_timer = -1;                
     pdcp_sn_size = 12;                  
@@ -65,7 +65,7 @@ qci_config = (
   };
 },
 {
-  qci=9;
+  qci = 9;
   pdcp_config = {
     discard_timer = 150;
     status_report_required = true;
@@ -97,12 +97,34 @@ qci_config = (
 // 5G Section
 five_qi_config = (
 {
-  five_qi=7;
+  five_qi = 7;
   pdcp_nr_config = {
     drb = {
       discard_timer = 50;
-      pdcp_sn_size_ul = 12;
-      pdcp_sn_size_dl = 12;
+      pdcp_sn_size_ul = 18;
+      pdcp_sn_size_dl = 18;
+    };
+    t_reordering = 50;
+  };
+  rlc_config = {
+    um_bi_dir = {
+      ul_um = {
+        sn_field_len = 12;
+      };
+      dl_um = {
+        sn_field_len = 12;
+        t_reassembly = 50;
+      };
+    };
+  };
+},
+{
+  five_qi = 9;
+  pdcp_nr_config = {
+    drb = {
+      discard_timer = 50;
+      pdcp_sn_size_ul = 18;
+      pdcp_sn_size_dl = 18;
     };
     t_reordering = 50;
   };
@@ -119,28 +141,6 @@ five_qi_config = (
         sn_field_len = 12;
         t_reassembly = 50;
         t_status_prohibit = 50;
-      };
-    };
-  };
-},
-{
-  five_qi=9;
-  pdcp_nr_config = {
-    drb = {
-      discard_timer = 50;
-      pdcp_sn_size_ul = 12;
-      pdcp_sn_size_dl = 12;
-    };
-    t_reordering = 50;
-  };
-  rlc_config = {
-    um_bi_dir = {
-      ul_um = {
-        sn_field_len = 12;
-      };
-      dl_um = {
-        sn_field_len = 12;
-        t_reassembly = 50;
       };
     };
   };
