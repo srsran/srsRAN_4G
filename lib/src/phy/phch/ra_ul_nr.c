@@ -473,7 +473,27 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
 // Implements TS 38.213 Table 9.2.1-1: PUCCH resource sets before dedicated PUCCH resource configuration
 static int ra_ul_nr_pucch_resource_default(uint32_t r_pucch, srsran_pucch_nr_resource_t* resource)
 {
-  ERROR("Not implemented");
+  // From BWP config
+  uint32_t N_size_bwp = 52;
+
+  // From row of index 11
+  uint32_t rb_offset_bwp = 0;
+  uint32_t N_cs          = 2;
+  uint32_t cs_v[2]       = {0, 6};
+
+  resource->start_symbol_idx = 0;
+  resource->nof_symbols      = 14;
+
+  if (r_pucch / 8 == 0) {
+    resource->starting_prb         = rb_offset_bwp + SRSRAN_FLOOR(r_pucch, N_cs);
+    resource->second_hop_prb       = N_size_bwp - 1 - resource->starting_prb;
+    resource->initial_cyclic_shift = cs_v[r_pucch % N_cs];
+  } else {
+    resource->second_hop_prb       = rb_offset_bwp + SRSRAN_FLOOR(r_pucch - 8, N_cs);
+    resource->starting_prb         = N_size_bwp - 1 - resource->second_hop_prb;
+    resource->initial_cyclic_shift = cs_v[(r_pucch - 8) % N_cs];
+  }
+
   return SRSRAN_ERROR;
 }
 
@@ -623,7 +643,8 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
   if (!pucch_cfg->enabled) {
-    uint32_t r_pucch = (2 * uci_cfg->pucch.n_cce_0) + 2 * uci_cfg->pucch.resource_id;
+    uint32_t N_cce   = SRSRAN_FLOOR(52, 6);
+    uint32_t r_pucch = ((2 * uci_cfg->pucch.n_cce_0) / N_cce) + 2 * uci_cfg->pucch.resource_id;
     return ra_ul_nr_pucch_resource_default(r_pucch, resource);
   }
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);

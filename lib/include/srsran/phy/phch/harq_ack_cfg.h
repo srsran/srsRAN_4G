@@ -33,6 +33,7 @@ typedef struct {
   uint32_t pid;        ///< HARQ process identifier
   uint16_t rnti;
   uint32_t pucch_resource_id;
+  uint32_t n_cce;
 } srsran_harq_ack_resource_t;
 
 /**
