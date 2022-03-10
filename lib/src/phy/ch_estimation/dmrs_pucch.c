@@ -111,43 +111,58 @@ int srsran_dmrs_pucch_format1_put(const srsran_pucch_nr_t*            q,
     return SRSRAN_ERROR;
   }
 
-  uint32_t n_pucch = dmrs_pucch_format1_n_pucch(resource, 0);
-  if (n_pucch == 0) {
-    ERROR("Error getting number of symbols");
-    return SRSRAN_ERROR;
-  }
-
+  // First symbol index
   uint32_t l_prime = resource->start_symbol_idx;
-  for (uint32_t m = 0; m < n_pucch; m++) {
-    // Clause 6.4.1.3.1.2 specifies l=0,2,4...
-    uint32_t l = m * 2;
 
-    // Get start of the sequence in resource grid
-    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
-
-    // Get Alpha index
-    uint32_t alpha_idx = 0;
-    if (srsran_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
-        SRSRAN_SUCCESS) {
-      ERROR("Calculating alpha");
-    }
-
-    // get r_uv sequence from LUT object
-    const cf_t* r_uv = srsran_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
-    if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence");
+  // Clause 6.4.1.3.1.2 specifies l=0,2,4...
+  for (uint32_t m_prime = 0, l = 0; m_prime < (resource->intra_slot_hopping ? 2 : 1); m_prime++) {
+    // Get number of symbols carrying DMRS
+    uint32_t n_pucch = dmrs_pucch_format1_n_pucch(resource, m_prime);
+    if (n_pucch == 0) {
+      ERROR("Error getting number of symbols");
       return SRSRAN_ERROR;
     }
 
-    // Get w_i_m
-    cf_t w_i_m = srsran_pucch_nr_format1_w(q, n_pucch, resource->time_domain_occ, m);
+    // Get the starting PRB
+    uint32_t starting_prb = (m_prime == 0) ? resource->starting_prb : resource->second_hop_prb;
 
-    // Compute z(n) = w(i) * r_uv(n)
-    cf_t z[SRSRAN_NRE];
-    srsran_vec_sc_prod_ccc(r_uv, w_i_m, z, SRSRAN_NRE);
+    for (uint32_t m = 0; m < n_pucch; m++, l += 2) {
+      // Get start of the sequence in resource grid
+      cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + starting_prb) * SRSRAN_NRE];
 
-    // Put z in the grid
-    srsran_vec_cf_copy(slot_symbols_ptr, z, SRSRAN_NRE);
+      // Get Alpha index
+      uint32_t alpha_idx = 0;
+      if (srsran_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
+          SRSRAN_SUCCESS) {
+        ERROR("Calculating alpha");
+      }
+
+      // get r_uv sequence from LUT object
+      const cf_t* r_uv = srsran_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
+      if (r_uv == NULL) {
+        ERROR("Getting r_uv sequence");
+        return SRSRAN_ERROR;
+      }
+
+      // Get w_i_m
+      cf_t w_i_m = srsran_pucch_nr_format1_w(q, n_pucch, resource->time_domain_occ, m);
+
+      // Compute z(n) = w(i) * r_uv(n)
+      cf_t z[SRSRAN_NRE];
+      srsran_vec_sc_prod_ccc(r_uv, w_i_m, z, SRSRAN_NRE);
+
+      if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+        printf("[PUCCH Format 1 DMRS TX] m_prime=%d; m=%d; w_i_m=%+.3f%+.3f; z=",
+               m_prime,
+               m,
+               __real__ w_i_m,
+               __imag__ w_i_m);
+        srsran_vec_fprint_c(stdout, z, SRSRAN_NRE);
+      }
+
+      // Put z in the grid
+      srsran_vec_cf_copy(slot_symbols_ptr, z, SRSRAN_NRE);
+    }
   }
 
   return SRSRAN_SUCCESS;
@@ -177,50 +192,71 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
     return SRSRAN_ERROR;
   }
 
-  uint32_t n_pucch = dmrs_pucch_format1_n_pucch(resource, 0);
-  if (n_pucch == 0) {
-    ERROR("Error getting number of symbols");
-    return SRSRAN_ERROR;
-  }
+  uint32_t start_rb_idx[SRSRAN_PUCCH_NR_FORMAT1_N_MAX];
+  uint32_t symbol_idx[SRSRAN_PUCCH_NR_FORMAT1_N_MAX];
+  cf_t     ce[SRSRAN_PUCCH_NR_FORMAT1_N_MAX][SRSRAN_NRE];
 
-  cf_t ce[SRSRAN_PUCCH_NR_FORMAT1_N_MAX][SRSRAN_NRE];
-
-  // Prevent ce[m] overflow
-  assert(n_pucch <= SRSRAN_PUCCH_NR_FORMAT1_N_MAX);
-
+  // First symbol index
   uint32_t l_prime = resource->start_symbol_idx;
-  for (uint32_t m = 0; m < n_pucch; m++) {
-    // Clause 6.4.1.3.1.2 specifies l=0,2,4...
-    uint32_t l = m * 2;
 
-    // Get start of the sequence in resource grid
-    const cf_t* slot_symbols_ptr =
-        &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
-
-    // Get Alpha index
-    uint32_t alpha_idx = 0;
-    if (srsran_pucch_nr_alpha_idx(&q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
-        SRSRAN_SUCCESS) {
-      ERROR("Calculating alpha");
-    }
-
-    // get r_uv sequence from LUT object
-    const cf_t* r_uv = srsran_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
-    if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence");
+  uint32_t n_pucch_sum = 0;
+  for (uint32_t m_prime = 0, l = 0; m_prime < (resource->intra_slot_hopping ? 2 : 1); m_prime++) {
+    // Get number of symbols carrying DMRS
+    uint32_t n_pucch = dmrs_pucch_format1_n_pucch(resource, m_prime);
+    if (n_pucch == 0) {
+      ERROR("Error getting number of symbols");
       return SRSRAN_ERROR;
     }
 
-    // Get w_i_m
-    cf_t w_i_m = srsran_pucch_nr_format1_w(q, n_pucch, resource->time_domain_occ, m);
+    // Prevent ce[m] overflow
+    assert(n_pucch <= SRSRAN_PUCCH_NR_FORMAT1_N_MAX);
 
-    // Compute z(n) = w(i) * r_uv(n)
-    cf_t z[SRSRAN_NRE];
-    srsran_vec_sc_prod_ccc(r_uv, w_i_m, z, SRSRAN_NRE);
+    // Get the starting PRB
+    uint32_t starting_prb     = (m_prime == 0) ? resource->starting_prb : resource->second_hop_prb;
+    start_rb_idx[n_pucch_sum] = starting_prb;
 
-    // TODO: can ce[m] overflow?
-    // Calculate least square estimates for this symbol
-    srsran_vec_prod_conj_ccc(slot_symbols_ptr, z, ce[m], SRSRAN_NRE);
+    for (uint32_t m = 0; m < n_pucch; m++, l += 2) { // Clause 6.4.1.3.1.2 specifies l=0,2,4...
+      symbol_idx[n_pucch_sum] = l + l_prime;
+
+      // Get start of the sequence in resource grid
+      const cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + starting_prb) * SRSRAN_NRE];
+
+      // Get Alpha index
+      uint32_t alpha_idx = 0;
+      if (srsran_pucch_nr_alpha_idx(&q->carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
+          SRSRAN_SUCCESS) {
+        ERROR("Calculating alpha");
+      }
+
+      // get r_uv sequence from LUT object
+      const cf_t* r_uv = srsran_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
+      if (r_uv == NULL) {
+        ERROR("Getting r_uv sequence");
+        return SRSRAN_ERROR;
+      }
+
+      // Get w_i_m
+      cf_t w_i_m = srsran_pucch_nr_format1_w(q, n_pucch, resource->time_domain_occ, m);
+
+      // Compute z(n) = w(i) * r_uv(n)
+      cf_t z[SRSRAN_NRE];
+      srsran_vec_sc_prod_ccc(r_uv, w_i_m, z, SRSRAN_NRE);
+
+      if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+        INFO("[PUCCH Format 1 DMRS RX] m_prime=%d; m=%d; w_i_m=%+.3f%+.3f", m_prime, m, __real__ w_i_m, __imag__ w_i_m);
+        srsran_vec_fprint_c(stdout, z, SRSRAN_NRE);
+      }
+
+      // TODO: can ce[m] overflow?
+      // Calculate least square estimates for this symbol
+      srsran_vec_prod_conj_ccc(slot_symbols_ptr, z, ce[n_pucch_sum], SRSRAN_NRE);
+
+      if (SRSRAN_DEBUG_ENABLED && get_srsran_verbose_level() >= SRSRAN_VERBOSE_INFO && !is_handler_registered()) {
+        printf("[PUCCH Format 1 DMRS RX] ce[%d]=", n_pucch_sum);
+        srsran_vec_fprint_c(stdout, ce[n_pucch_sum], SRSRAN_NRE);
+      }
+      n_pucch_sum++;
+    }
   }
 
   // Perform measurements
@@ -228,7 +264,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   float epre                                = 0.0f;
   float ta_err                              = 0.0f;
   cf_t  corr[SRSRAN_PUCCH_NR_FORMAT1_N_MAX] = {};
-  for (uint32_t m = 0; m < n_pucch; m++) {
+  for (uint32_t m = 0; m < n_pucch_sum; m++) {
     corr[m] = srsran_vec_acc_cc(ce[m], SRSRAN_NRE) / SRSRAN_NRE;
     rsrp += SRSRAN_CSQABS(corr[m]);
     epre += srsran_vec_avg_power_cf(ce[m], SRSRAN_NRE);
@@ -236,9 +272,9 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   }
 
   // Average measurements
-  rsrp /= n_pucch;
-  epre /= n_pucch;
-  ta_err /= n_pucch;
+  rsrp /= n_pucch_sum;
+  epre /= n_pucch_sum;
+  ta_err /= n_pucch_sum;
 
   // Set power measures
   rsrp                    = SRSRAN_MIN(rsrp, epre);
@@ -262,16 +298,16 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   }
 
   // Measure CFO
-  if (n_pucch > 1) {
+  if (n_pucch_sum > 1) {
     float cfo_avg_hz = 0.0f;
-    for (uint32_t m = 0; m < n_pucch - 1; m++) {
+    for (uint32_t m = 0; m < n_pucch_sum - 1; m++) {
       uint32_t l0         = resource->start_symbol_idx + m * 2;
       uint32_t l1         = resource->start_symbol_idx + (m + 1) * 2;
       float    time_diff  = srsran_symbol_distance_s(l0, l1, q->carrier.scs);
       float    phase_diff = cargf(corr[m + 1] * conjf(corr[m]));
 
       if (isnormal(time_diff)) {
-        cfo_avg_hz += phase_diff / (2.0f * M_PI * time_diff * (n_pucch - 1));
+        cfo_avg_hz += phase_diff / (2.0f * M_PI * time_diff * (n_pucch_sum - 1));
       }
     }
     res->cfo_hz = cfo_avg_hz;
@@ -283,11 +319,10 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
   // ... Not implemented
 
   // Interpolates between DMRS symbols
-  for (uint32_t m = 0; m < n_pucch; m++) {
-    uint32_t l      = m * 2 + 1;
-    cf_t*    ce_ptr = &res->ce[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
+  for (uint32_t m = 0; m < n_pucch_sum; m++) {
+    cf_t* ce_ptr = &res->ce[m * SRSRAN_NRE];
 
-    if (m != n_pucch - 1) {
+    if (m != n_pucch_sum - 1) {
       // If it is not the last symbol with DMRS, average between
       srsran_vec_sum_ccc(ce[m], ce[m + 1], ce_ptr, SRSRAN_NRE);
       srsran_vec_sc_prod_cfc(ce_ptr, 0.5f, ce_ptr, SRSRAN_NRE);
@@ -297,7 +332,7 @@ int srsran_dmrs_pucch_format1_estimate(const srsran_pucch_nr_t*            q,
       srsran_vec_sub_ccc(ce_ptr, ce[m - 1], ce_ptr, SRSRAN_NRE);
       srsran_vec_sc_prod_cfc(ce_ptr, 0.5f, ce_ptr, SRSRAN_NRE);
     } else {
-      // Simply copy the
+      // Simply copy the estimated channel
       srsran_vec_cf_copy(ce_ptr, ce[m], SRSRAN_NRE);
     }
   }
