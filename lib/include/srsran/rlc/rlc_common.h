@@ -34,6 +34,8 @@ namespace srsran {
 #define RLC_MAX_SDU_SIZE ((1 << 11) - 1) // Length of LI field is 11bits
 #define RLC_AM_MIN_DATA_PDU_SIZE (3)     // AMD PDU with 10 bit SN (length of LI field is 11 bits) (No LI)
 
+#define RLC_AM_NR_WINDOW_SIZE 2048
+
 #define RlcDebug(fmt, ...) logger.debug("%s: " fmt, rb_name, ##__VA_ARGS__)
 #define RlcInfo(fmt, ...) logger.info("%s: " fmt, rb_name, ##__VA_ARGS__)
 #define RlcWarning(fmt, ...) logger.warning("%s: " fmt, rb_name, ##__VA_ARGS__)

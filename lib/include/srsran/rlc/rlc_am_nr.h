@@ -147,10 +147,10 @@ private:
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_tx_state_t                             st = {};
-  rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
+  rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_NR_WINDOW_SIZE> tx_window;
 
   // Queues and buffers
-  pdu_retx_queue<rlc_amd_retx_nr_t, RLC_AM_WINDOW_SIZE> retx_queue;
+  pdu_retx_queue<rlc_amd_retx_nr_t, RLC_AM_NR_WINDOW_SIZE> retx_queue;
   uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
   pdcp_sn_vector_t notify_info_vec;
 
@@ -158,6 +158,12 @@ private:
   uint32_t min_hdr_size = 2;
   uint32_t so_size      = 2;
   uint32_t max_hdr_size = 4;
+
+  /****************************************************************************
+   * Tx constants
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+   ***************************************************************************/
+  inline uint32_t tx_window_size() const;
 
 public:
   // Getters/Setters
@@ -240,11 +246,11 @@ private:
   rlc_am_nr_tx*     tx     = nullptr;
   byte_buffer_pool* pool   = nullptr;
 
-  uint32_t mod_nr = 4096;
+  uint32_t mod_nr = cardinality(rlc_am_nr_sn_size_t());
   uint32_t rx_mod_base_nr(uint32_t sn) const;
 
   // RX Window
-  rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_WINDOW_SIZE> rx_window;
+  rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_NR_WINDOW_SIZE> rx_window;
 
   // Mutexes
   std::mutex mutex;
@@ -263,10 +269,16 @@ private:
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
-   * Tx state variables
+   * Rx state variables
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_rx_state_t st = {};
+
+  /****************************************************************************
+   * Rx constants
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+   ***************************************************************************/
+  inline uint32_t rx_window_size() const;
 
 public:
   // Getters/Setters

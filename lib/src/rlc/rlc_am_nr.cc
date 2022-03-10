@@ -20,8 +20,6 @@
 #include <iostream>
 #include <set>
 
-#define RLC_AM_NR_WINDOW_SIZE 2048
-
 namespace srsran {
 
 const static uint32_t max_tx_queue_size = 256;
@@ -41,11 +39,6 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
   cfg     = cfg_.am_nr;
   rb_name = parent->rb_name;
 
-  if (cfg.tx_sn_field_length != rlc_am_nr_sn_size_t::size12bits) {
-    RlcWarning("RLC AM NR only supports 12 bit SN length.");
-    return false;
-  }
-
   if (cfg_.tx_queue_length > max_tx_queue_size) {
     RlcError("configuring tx queue length of %d PDUs too big. Maximum value is %d.",
              cfg_.tx_queue_length,
@@ -53,7 +46,7 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
     return false;
   }
 
-  mod_nr = cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits ? 4096 : 262144;
+  mod_nr = cardinality(cfg.tx_sn_field_length);
 
   min_hdr_size = cfg.tx_sn_field_length == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
   max_hdr_size = min_hdr_size + so_size;
@@ -186,7 +179,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
   hdr.p                      = get_pdu_poll();
   hdr.si                     = rlc_nr_si_field_t::full_sdu;
-  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
   tx_pdu.header              = hdr;
   log_rlc_am_nr_pdu_header_to_string(logger.info, hdr, rb_name);
@@ -243,7 +236,7 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
   hdr.p                      = get_pdu_poll();
   hdr.si                     = rlc_nr_si_field_t::first_segment;
-  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
   hdr.so                     = 0;
   tx_pdu.header              = hdr;
@@ -345,7 +338,7 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
   hdr.p                      = get_pdu_poll();
   hdr.si                     = si;
-  hdr.sn_size                = rlc_am_nr_sn_size_t::size12bits;
+  hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
   hdr.so                     = last_byte;
   tx_pdu.header              = hdr;
@@ -673,7 +666,7 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     RlcDebug("generated status PDU. Bytes:%d", pdu_len);
     log_rlc_am_nr_status_pdu_to_string(logger.info, "tx status PDU - %s", &tx_status, rb_name);
-    pdu_len = rlc_am_nr_write_status_pdu(tx_status, rlc_am_nr_sn_size_t::size12bits, payload);
+    pdu_len = rlc_am_nr_write_status_pdu(tx_status, cfg.tx_sn_field_length, payload);
   } else {
     RlcInfo("cannot tx status PDU - %d bytes available, %d bytes required", nof_bytes, pdu_len);
     pdu_len = 0;
@@ -690,7 +683,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   rlc_am_nr_status_pdu_t status = {};
   RlcHexDebug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
-  rlc_am_nr_read_status_pdu(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &status);
+  rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
   log_rlc_am_nr_status_pdu_to_string(logger.info, "Rx Status PDU: %s", &status, parent->rb_name);
   // Local variables for handling Status PDU will be updated with lock
   /*
@@ -925,10 +918,15 @@ uint32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
   return (sn - st.tx_next_ack) % mod_nr;
 }
 
+uint32_t rlc_am_nr_tx::tx_window_size() const
+{
+  return cardinality(cfg.tx_sn_field_length) / 2;
+}
+
 bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
 {
   // TX_Next_Ack <= SN < TX_Next_Ack + AM_Window_Size
-  return tx_mod_base_nr(sn) < RLC_AM_NR_WINDOW_SIZE;
+  return tx_mod_base_nr(sn) < tx_window_size();
 }
 
 /*
@@ -970,7 +968,7 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
     RlcInfo("configured reassembly timer. t-Reassembly=%d ms", cfg.t_reassembly);
   }
 
-  mod_nr = (cfg.rx_sn_field_length == rlc_am_nr_sn_size_t::size12bits) ? 4096 : 262144;
+  mod_nr = cardinality(cfg.rx_sn_field_length);
 
   RlcDebug("RLC AM NR configured rx entity.");
 
@@ -987,15 +985,15 @@ void rlc_am_nr_rx::reestablish()
 void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   // Get AMD PDU Header
-  rlc_am_nr_pdu_header_t header = {};
-  uint32_t hdr_len = rlc_am_nr_read_data_pdu_header(payload, nof_bytes, rlc_am_nr_sn_size_t::size12bits, &header);
+  rlc_am_nr_pdu_header_t header  = {};
+  uint32_t               hdr_len = rlc_am_nr_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
 
   RlcHexInfo(payload, nof_bytes, "Rx data PDU SN=%d (%d B)", header.sn, nof_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger.debug, header, rb_name);
 
   // Check whether SDU is within Rx Window
   if (!inside_rx_window(header.sn)) {
-    RlcInfo("SN=%d outside rx window [%d:%d] - discarding", header.sn, st.rx_next, st.rx_next + RLC_AM_NR_WINDOW_SIZE);
+    RlcInfo("SN=%d outside rx window [%d:%d] - discarding", header.sn, st.rx_next, st.rx_next + rx_window_size());
     return;
   }
 
@@ -1041,7 +1039,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
    */
   if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_highest_status)) {
     uint32_t sn_upd     = 0;
-    uint32_t window_top = st.rx_next + RLC_AM_WINDOW_SIZE;
+    uint32_t window_top = st.rx_next + RLC_AM_NR_WINDOW_SIZE;
     for (sn_upd = st.rx_highest_status; sn_upd < window_top; ++sn_upd) {
       if (rx_window.has_sn(sn_upd)) {
         if (not rx_window[sn_upd].fully_received) {
@@ -1063,7 +1061,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
    */
   if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
     uint32_t sn_upd     = 0;
-    uint32_t window_top = st.rx_next + RLC_AM_WINDOW_SIZE;
+    uint32_t window_top = st.rx_next + RLC_AM_NR_WINDOW_SIZE;
     for (sn_upd = st.rx_next; sn_upd < window_top; ++sn_upd) {
       if (rx_window.has_sn(sn_upd)) {
         if (not rx_window[sn_upd].fully_received) {
@@ -1253,7 +1251,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     }
 
     // make sure we don't exceed grant size (FIXME)
-    rlc_am_nr_write_status_pdu(*status, rlc_am_nr_sn_size_t::size12bits, &tmp_buf);
+    rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);
     // TODO
     i = (i + 1) % mod_nr;
   }
@@ -1301,7 +1299,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      *   - start t-Reassembly;
      *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
-    for (uint32_t tmp_sn = st.rx_next_status_trigger; tmp_sn < st.rx_next_status_trigger + RLC_AM_WINDOW_SIZE;
+    for (uint32_t tmp_sn = st.rx_next_status_trigger; tmp_sn < st.rx_next_status_trigger + RLC_AM_NR_WINDOW_SIZE;
          tmp_sn++) {
       if (not rx_window.has_sn(tmp_sn)) {
         st.rx_highest_status = tmp_sn;
@@ -1347,10 +1345,15 @@ uint32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
   return (sn - st.rx_next) % mod_nr;
 }
 
+uint32_t rlc_am_nr_rx::rx_window_size() const
+{
+  return cardinality(cfg.rx_sn_field_length) / 2;
+}
+
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
 {
   // RX_Next <= SN < RX_Next + AM_Window_Size
-  return rx_mod_base_nr(sn) < RLC_AM_NR_WINDOW_SIZE;
+  return rx_mod_base_nr(sn) < rx_window_size();
 }
 
 /*

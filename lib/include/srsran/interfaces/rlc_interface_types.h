@@ -69,6 +69,15 @@ inline uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
   constexpr static uint16_t options[] = {12, 18};
   return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
+/**
+ * @brief Value range of the serial numbers
+ * @param sn_size Length of the serial number field in bits
+ * @return cardianlity
+ */
+inline uint32_t cardinality(const rlc_am_nr_sn_size_t& sn_size)
+{
+  return (1 << to_number(sn_size));
+}
 
 struct rlc_am_config_t {
   /****************************************************************************
@@ -219,11 +228,20 @@ public:
     rlc_cnfg.am.t_poll_retx       = 5;
     return rlc_cnfg;
   }
-  static rlc_config_t default_rlc_am_nr_config()
+  static rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
   {
-    rlc_config_t rlc_cnfg            = {};
-    rlc_cnfg.rat                     = srsran_rat_t::nr;
-    rlc_cnfg.rlc_mode                = rlc_mode_t::am;
+    rlc_config_t rlc_cnfg = {};
+    rlc_cnfg.rat          = srsran_rat_t::nr;
+    rlc_cnfg.rlc_mode     = rlc_mode_t::am;
+    if (sn_size == 12) {
+      rlc_cnfg.am_nr.tx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size12bits;
+      rlc_cnfg.am_nr.rx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size12bits;
+    } else if (sn_size == 18) {
+      rlc_cnfg.am_nr.tx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size18bits;
+      rlc_cnfg.am_nr.rx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size18bits;
+    } else {
+      return {};
+    }
     rlc_cnfg.am_nr.t_status_prohibit = 8;
     rlc_cnfg.am_nr.max_retx_thresh   = 4;
     rlc_cnfg.am_nr.t_reassembly      = 35;
