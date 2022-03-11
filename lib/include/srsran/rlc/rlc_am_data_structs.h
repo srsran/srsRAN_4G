@@ -203,6 +203,7 @@ struct rlc_ringbuffer_base {
   virtual T&     operator[](size_t sn)     = 0;
   virtual size_t size() const              = 0;
   virtual bool   empty() const             = 0;
+  virtual bool   full() const              = 0;
   virtual void   clear()                   = 0;
   virtual bool   has_sn(uint32_t sn) const = 0;
 };
@@ -224,6 +225,7 @@ struct rlc_ringbuffer_t : public rlc_ringbuffer_base<T> {
   }
   T&     operator[](size_t sn) override { return window[sn]; }
   size_t size() const override { return window.size(); }
+  bool   full() const override { return window.full(); }
   bool   empty() const override { return window.empty(); }
   void   clear() override { window.clear(); }
 
@@ -354,8 +356,8 @@ public:
   T& push() override
   {
     assert(not full());
-    T& p              = buffer[wpos];
-    wpos              = (wpos + 1) % WINDOW_SIZE;
+    T& p = buffer[wpos];
+    wpos = (wpos + 1) % WINDOW_SIZE;
     return p;
   }
 

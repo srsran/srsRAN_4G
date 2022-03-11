@@ -493,6 +493,7 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
            retx.segment_length);
 
   // Update & write header
+  uint32_t          retx_sn    = retx.sn;
   uint32_t          current_so = 0;
   rlc_nr_si_field_t si         = rlc_nr_si_field_t::full_sdu;
   if (retx.is_segment) {
@@ -506,10 +507,8 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
     current_so = retx.current_so;
   }
   rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
-  new_header.p                      = get_pdu_poll(true, 0);
   new_header.si                     = si;
   new_header.so                     = current_so;
-  uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, payload);
 
   // Write payload into PDU
   uint32_t retx_pdu_payload_size = 0;
@@ -520,9 +519,12 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
     // RETX SDU segment
     retx_pdu_payload_size = (retx.so_start + retx.segment_length - retx.current_so);
   }
+  retx_queue->pop();
+  new_header.p       = get_pdu_poll(true, 0);
+  uint32_t hdr_len   = rlc_am_nr_write_data_pdu_header(new_header, payload);
   uint32_t pdu_bytes = hdr_len + retx_pdu_payload_size;
   srsran_assert(pdu_bytes <= nof_bytes, "Error calculating hdr_len and pdu_payload_len");
-  memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[retx.current_so], retx_pdu_payload_size);
+  memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[current_so], retx_pdu_payload_size);
 
   // Update RETX queue and log
   retx_queue->pop();
@@ -533,7 +535,7 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
              (*tx_window)[retx.sn].sdu_buf->N_bytes,
              (*tx_window)[retx.sn].retx_count + 1,
              cfg.max_retx_thresh);
-  RlcHexInfo(payload, pdu_bytes, "RETX PDU SN=%d (%d B)", retx.sn, pdu_bytes);
+  RlcHexInfo(payload, pdu_bytes, "RETX PDU SN=%d (%d B)", retx_sn, pdu_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger.debug, new_header, rb_name);
 
   debug_state();
@@ -927,13 +929,16 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(bool is_retx, uint32_t sdu_bytes)
       poll = 1;
     }
   }
+
   /*
-   * - if both the transmission buffer and the retransmission buffer becomes empty (excluding transmitted RLC SDUs
-or RLC SDU segments awaiting acknowledgements) after the transmission of the AMD PDU; or
+   * - if both the transmission buffer and the retransmission buffer becomes empty
+   *   (excluding transmitted RLC SDUs or RLC SDU segments awaiting acknowledgements)
+   *   after the transmission of the AMD PDU; or
    * - if no new RLC SDU can be transmitted after the transmission of the AMD PDU (e.g. due to window stalling);
    *   - include a poll in the AMD PDU as described below.
    */
-  if (tx_sdu_queue.is_empty() && retx_queue->empty()) {
+
+  if ((tx_sdu_queue.is_empty() && retx_queue->empty()) || tx_window->full()) {
     poll = 1;
   }
 

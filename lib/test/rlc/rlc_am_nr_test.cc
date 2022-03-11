@@ -411,7 +411,21 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
 
     rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
 
+    TESTASSERT_EQ(3, rlc2.get_buffer_state()); // Status report shoud be required, as the TX buffers are now empty.
+  }
+  {
+    // Double check status report
+    byte_buffer_t status_buf;
+    int           len  = rlc2.read_pdu(status_buf.msg, 3);
+    status_buf.N_bytes = len;
+
     TESTASSERT_EQ(0, rlc2.get_buffer_state());
+
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
+    TESTASSERT_EQ(5, status_check.ack_sn); // 5 is the next expected SN.
+    TESTASSERT_EQ(0, status_check.N_nack); // All PDUs are acked now
   }
 
   // Check statistics
@@ -420,8 +434,9 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
 
   uint32_t total_tx_pdu_bytes1 = (NBUFS + 1) * data_pdu_size;                    // (NBUFS + 1 RETX) * PDU size
   uint32_t total_rx_pdu_bytes1 = 2 * status_pdu_ack_size + status_pdu_nack_size; // Two status PDU (one with a NACK)
-  uint32_t total_tx_pdu_bytes2 = total_rx_pdu_bytes1;                            // Two status PDU (one with a NACK)
-  uint32_t total_rx_pdu_bytes2 = (NBUFS)*data_pdu_size;                          // (NBUFS - 1 Lost + 1 RETX) * PDU size
+  uint32_t total_tx_pdu_bytes2 =
+      3 * status_pdu_ack_size + status_pdu_nack_size;   // Three status PDU (one with a NACK, two without)
+  uint32_t total_rx_pdu_bytes2 = (NBUFS)*data_pdu_size; // (NBUFS - 1 Lost + 1 RETX) * PDU size
 
   // SDU metrics
   TESTASSERT_EQ(5, metrics1.num_tx_sdus);
@@ -443,9 +458,9 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
   TESTASSERT_EQ(5, metrics2.num_rx_sdu_bytes);
   TESTASSERT_EQ(0, metrics2.num_lost_sdus);
   // SDU metrics
-  TESTASSERT_EQ(2, metrics2.num_tx_pdus);                        // Two status PDUs
+  TESTASSERT_EQ(3, metrics2.num_tx_pdus);                        // Three status PDUs
   TESTASSERT_EQ(5, metrics2.num_rx_pdus);                        // 5 PDUs (6 tx'ed, but one was lost)
-  TESTASSERT_EQ(total_tx_pdu_bytes2, metrics2.num_tx_pdu_bytes); // Two status PDU (one with a NACK)
+  TESTASSERT_EQ(total_tx_pdu_bytes2, metrics2.num_tx_pdu_bytes); // Three status PDU (one with a NACK, two without)
   TESTASSERT_EQ(total_rx_pdu_bytes2, metrics2.num_rx_pdu_bytes); // (NBUFS - 1 Lost + 1 RETX) * PDU size
   TESTASSERT_EQ(0, metrics2.num_lost_sdus);                      // No lost SDUs
   return SRSRAN_SUCCESS;
@@ -1421,6 +1436,7 @@ int poll_test_poll_retx()
   }
   return SRSRAN_SUCCESS;
 }
+
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -1463,10 +1479,5 @@ int main()
   TESTASSERT(poll_test_poll_pdu() == SRSRAN_SUCCESS);
   TESTASSERT(poll_test_poll_byte() == SRSRAN_SUCCESS);
   TESTASSERT(poll_test_poll_retx() == SRSRAN_SUCCESS);
-  // Test p bit *not* set on RETX with PollPDU
-  // Test p bit *not* set on RETX with PollBYTE
-  // Test p bit set on empty TX queue and empty retx queue
-  // Test p bit *not* set on empty TX queue and empty retx queue
-  // Test p bit set on window stall
   return SRSRAN_SUCCESS;
 }
