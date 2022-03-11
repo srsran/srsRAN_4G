@@ -1316,6 +1316,111 @@ int poll_test_poll_byte()
   return SRSRAN_SUCCESS;
 }
 
+// Test p bit set on RETXes
+int poll_test_poll_retx()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("poll test retx");
+
+  srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
+
+  rlc_config_t rlc_cnfg            = {};
+  rlc_cnfg.rat                     = srsran_rat_t::nr;
+  rlc_cnfg.rlc_mode                = rlc_mode_t::am;
+  rlc_cnfg.am_nr.poll_pdu          = 4;
+  rlc_cnfg.am_nr.poll_byte         = 3000;
+  rlc_cnfg.am_nr.t_status_prohibit = 8;
+  rlc_cnfg.am_nr.max_retx_thresh   = 8;
+  rlc_cnfg.am_nr.t_reassembly      = 35;
+
+  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  if (not rlc1.configure(rlc_cnfg)) {
+    return SRSRAN_ERROR;
+  }
+
+  // pollPDU == 4
+  {
+    uint32_t num_tx_sdus = 5;
+    for (uint32_t i = 0; i < num_tx_sdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes    = 1;
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+    }
+  }
+  {
+    // Read 3 PDUs and NACK the second one
+    uint32_t num_tx_pdus = 3;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+      TESTASSERT(pdu != nullptr);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+      rlc_am_nr_pdu_header_t hdr;
+      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &hdr);
+      TESTASSERT_EQ(0, hdr.p);
+    }
+  }
+  {
+    unique_byte_buffer_t status_pdu = srsran::make_byte_buffer();
+    TESTASSERT(status_pdu != nullptr);
+    rlc_am_nr_status_pdu_t status = {};
+    status.ack_sn                 = 2;
+    status.N_nack                 = 1;
+    status.nacks[0].nack_sn       = 1; // SN=1 needs RETX
+    rlc_am_nr_write_status_pdu(status, rlc_cnfg.am_nr.tx_sn_field_length, status_pdu.get());
+    rlc1.write_pdu(status_pdu->msg, status_pdu->N_bytes);
+  }
+  {
+    // Read 2 PDUs,
+    uint32_t num_tx_pdus = 3;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+      TESTASSERT(pdu != nullptr);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+      TESTASSERT_EQ(3, pdu->N_bytes);
+      rlc_am_nr_pdu_header_t hdr;
+      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &hdr);
+      if (i == 0) {
+        TESTASSERT_EQ(0, hdr.p); // No poll since pollPDU is not incremented for RETX
+        TESTASSERT_EQ(1, hdr.sn);
+      } else {
+        TESTASSERT_EQ(1, hdr.p); // poll set because of pollPDU for SN=3 and empty buffer on SN=4
+      }
+    }
+  }
+  {
+    unique_byte_buffer_t status_pdu = srsran::make_byte_buffer();
+    TESTASSERT(status_pdu != nullptr);
+    rlc_am_nr_status_pdu_t status = {};
+    status.ack_sn                 = 4;
+    status.N_nack                 = 1;
+    status.nacks[0].nack_sn       = 1; // SN=1 needs RETX
+    rlc_am_nr_write_status_pdu(status, rlc_cnfg.am_nr.tx_sn_field_length, status_pdu.get());
+    rlc1.write_pdu(status_pdu->msg, status_pdu->N_bytes);
+  }
+  {
+    // Read 1 RETX PDU. Empty retx buffer, so poll should be set
+    uint32_t num_tx_pdus = 1;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+      TESTASSERT(pdu != nullptr);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+      TESTASSERT_EQ(3, pdu->N_bytes);
+      rlc_am_nr_pdu_header_t hdr;
+      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &hdr);
+      if (i == 0) {
+        TESTASSERT_EQ(1, hdr.p); // Poll set because of empty retx buffer
+        TESTASSERT_EQ(1, hdr.sn);
+      }
+    }
+  }
+  return SRSRAN_SUCCESS;
+}
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -1357,6 +1462,7 @@ int main()
   TESTASSERT(discard_test(sns) == SRSRAN_SUCCESS);                // Fixme
   TESTASSERT(poll_test_poll_pdu() == SRSRAN_SUCCESS);
   TESTASSERT(poll_test_poll_byte() == SRSRAN_SUCCESS);
+  TESTASSERT(poll_test_poll_retx() == SRSRAN_SUCCESS);
   // Test p bit *not* set on RETX with PollPDU
   // Test p bit *not* set on RETX with PollBYTE
   // Test p bit set on empty TX queue and empty retx queue

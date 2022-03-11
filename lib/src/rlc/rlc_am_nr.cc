@@ -920,12 +920,11 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(bool is_retx, uint32_t sdu_bytes)
   if (!is_retx) {
     st.pdu_without_poll++;
     st.byte_without_poll += sdu_bytes;
-    if (cfg.poll_pdu > 0) {
-      if (st.pdu_without_poll >= (uint32_t)cfg.poll_pdu || st.byte_without_poll >= (uint32_t)cfg.poll_byte) {
-        poll                 = 1;
-        st.pdu_without_poll  = 0;
-        st.byte_without_poll = 0;
-      }
+    if (cfg.poll_pdu > 0 && st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
+      poll = 1;
+    }
+    if (cfg.poll_byte > 0 && st.byte_without_poll >= (uint32_t)cfg.poll_byte) {
+      poll = 1;
     }
   }
   /*
@@ -936,6 +935,16 @@ or RLC SDU segments awaiting acknowledgements) after the transmission of the AMD
    */
   if (tx_sdu_queue.is_empty() && retx_queue->empty()) {
     poll = 1;
+  }
+
+  /*
+   * - If poll bit is included:
+   *     - set PDU_WITHOUT_POLL to 0;
+   *     - set BYTE_WITHOUT_POLL to 0.
+   */
+  if (poll == 1) {
+    st.pdu_without_poll  = 0;
+    st.byte_without_poll = 0;
   }
   return poll;
 }
