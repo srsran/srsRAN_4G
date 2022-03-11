@@ -64,9 +64,9 @@ inline std::string to_string(const rlc_am_nr_sn_size_t& sn_size)
   constexpr static const char* options[] = {"12 bits", "18 bits"};
   return enum_to_text(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
-inline uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
+constexpr uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
 {
-  constexpr static uint16_t options[] = {12, 18};
+  constexpr uint16_t options[] = {12, 18};
   return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
 /**
@@ -74,7 +74,7 @@ inline uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
  * @param sn_size Length of the serial number field in bits
  * @return cardianlity
  */
-inline uint32_t cardinality(const rlc_am_nr_sn_size_t& sn_size)
+constexpr uint32_t cardinality(const rlc_am_nr_sn_size_t& sn_size)
 {
   return (1 << to_number(sn_size));
 }

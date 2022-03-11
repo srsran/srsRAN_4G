@@ -132,7 +132,7 @@ private:
   rlc_am*       parent = nullptr;
   rlc_am_nr_rx* rx     = nullptr;
 
-  uint32_t        mod_nr = 4096;
+  uint32_t        mod_nr = cardinality(rlc_am_nr_sn_size_t());
   inline uint32_t tx_mod_base_nr(uint32_t sn) const;
   void            check_sn_reached_max_retx(uint32_t sn);
 
@@ -147,10 +147,14 @@ private:
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_tx_state_t                             st = {};
-  rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_NR_WINDOW_SIZE> tx_window;
+  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window =
+      std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> >(
+          new rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, cardinality(rlc_am_nr_sn_size_t()) / 2>);
 
   // Queues and buffers
-  pdu_retx_queue<rlc_amd_retx_nr_t, RLC_AM_NR_WINDOW_SIZE> retx_queue;
+  std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue =
+      std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> >(
+          new pdu_retx_queue<rlc_amd_retx_nr_t, cardinality(rlc_am_nr_sn_size_t()) / 2>);
   uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
   pdcp_sn_vector_t notify_info_vec;
 
@@ -169,7 +173,7 @@ public:
   // Getters/Setters
   void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
-  uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
+  uint32_t             get_tx_window_size() { return tx_window->size(); } // This should only be used for testing.
 
   // Debug Helper
   void debug_state() const;
@@ -250,7 +254,9 @@ private:
   uint32_t rx_mod_base_nr(uint32_t sn) const;
 
   // RX Window
-  rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_NR_WINDOW_SIZE> rx_window;
+  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> > rx_window =
+      std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> >(
+          new rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, cardinality(rlc_am_nr_sn_size_t()) / 2>);
 
   // Mutexes
   std::mutex mutex;
@@ -284,7 +290,7 @@ public:
   // Getters/Setters
   void set_rx_state(const rlc_am_nr_rx_state_t& st_) { st = st_; }       // This should only be used for testing.
   rlc_am_nr_rx_state_t get_rx_state() { return st; }                     // This should only be used for testing.
-  uint32_t             get_rx_window_size() { return rx_window.size(); } // This should only be used for testing.
+  uint32_t             get_rx_window_size() { return rx_window->size(); } // This should only be used for testing.
 };
 
 } // namespace srsran

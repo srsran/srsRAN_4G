@@ -195,25 +195,39 @@ public:
   const_iterator end() const { return list.end(); }
 };
 
+template <class T>
+struct rlc_ringbuffer_base {
+  virtual ~rlc_ringbuffer_base()           = default;
+  virtual T&     add_pdu(size_t sn)        = 0;
+  virtual void   remove_pdu(size_t sn)     = 0;
+  virtual T&     operator[](size_t sn)     = 0;
+  virtual size_t size() const              = 0;
+  virtual bool   empty() const             = 0;
+  virtual void   clear()                   = 0;
+  virtual bool   has_sn(uint32_t sn) const = 0;
+};
+
 template <class T, std::size_t WINDOW_SIZE>
-struct rlc_ringbuffer_t {
-  T& add_pdu(size_t sn)
+struct rlc_ringbuffer_t : public rlc_ringbuffer_base<T> {
+  ~rlc_ringbuffer_t() = default;
+
+  T& add_pdu(size_t sn) override
   {
     srsran_expect(not has_sn(sn), "The same SN=%zd should not be added twice", sn);
     window.overwrite(sn, T(sn));
     return window[sn];
   }
-  void remove_pdu(size_t sn)
+  void remove_pdu(size_t sn) override
   {
     srsran_expect(has_sn(sn), "The removed SN=%zd is not in the window", sn);
     window.erase(sn);
   }
-  T&     operator[](size_t sn) { return window[sn]; }
-  size_t size() const { return window.size(); }
-  bool   empty() const { return window.empty(); }
-  void   clear() { window.clear(); }
+  T&     operator[](size_t sn) override { return window[sn]; }
+  size_t size() const override { return window.size(); }
+  bool   empty() const override { return window.empty(); }
+  void   clear() override { window.clear(); }
 
-  bool has_sn(uint32_t sn) const { return window.contains(sn); }
+  bool has_sn(uint32_t sn) const override { return window.contains(sn); }
 
   // Return the sum data bytes of all active PDUs (check PDU is non-null)
   uint32_t get_buffered_bytes()
@@ -316,11 +330,28 @@ struct rlc_amd_retx_nr_t {
   uint32_t current_so;
 };
 
-template <class T, std::size_t WINDOW_SIZE>
-class pdu_retx_queue
+template <class T>
+class pdu_retx_queue_base
 {
 public:
-  T& push()
+  virtual ~pdu_retx_queue_base()           = default;
+  virtual T&     push()                    = 0;
+  virtual void   pop()                     = 0;
+  virtual T&     front()                   = 0;
+  virtual void   clear()                   = 0;
+  virtual bool   has_sn(uint32_t sn) const = 0;
+  virtual size_t size() const              = 0;
+  virtual bool   empty() const             = 0;
+  virtual bool   full() const              = 0;
+};
+
+template <class T, std::size_t WINDOW_SIZE>
+class pdu_retx_queue : public pdu_retx_queue_base<T>
+{
+public:
+  ~pdu_retx_queue() = default;
+
+  T& push() override
   {
     assert(not full());
     T& p              = buffer[wpos];
@@ -328,21 +359,21 @@ public:
     return p;
   }
 
-  void pop() { rpos = (rpos + 1) % WINDOW_SIZE; }
+  void pop() override { rpos = (rpos + 1) % WINDOW_SIZE; }
 
-  T& front()
+  T& front() override
   {
     assert(not empty());
     return buffer[rpos];
   }
 
-  void clear()
+  void clear() override
   {
     wpos = 0;
     rpos = 0;
   }
 
-  bool has_sn(uint32_t sn) const
+  bool has_sn(uint32_t sn) const override
   {
     for (size_t i = rpos; i != wpos; i = (i + 1) % WINDOW_SIZE) {
       if (buffer[i].sn == sn) {
@@ -352,9 +383,9 @@ public:
     return false;
   }
 
-  size_t size() const { return (wpos >= rpos) ? wpos - rpos : WINDOW_SIZE + wpos - rpos; }
-  bool   empty() const { return wpos == rpos; }
-  bool   full() const { return size() == WINDOW_SIZE - 1; }
+  size_t size() const override { return (wpos >= rpos) ? wpos - rpos : WINDOW_SIZE + wpos - rpos; }
+  bool   empty() const override { return wpos == rpos; }
+  bool   full() const override { return size() == WINDOW_SIZE - 1; }
 
 private:
   std::array<T, WINDOW_SIZE> buffer;
