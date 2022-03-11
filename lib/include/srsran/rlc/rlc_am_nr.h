@@ -122,7 +122,7 @@ public:
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
   // Polling
-  uint8_t get_pdu_poll(bool is_retx);
+  uint8_t get_pdu_poll(bool is_retx, uint32_t sdu_bytes);
 
   void stop() final;
 

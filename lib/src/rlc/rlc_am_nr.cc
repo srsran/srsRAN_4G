@@ -195,7 +195,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(false);
+  hdr.p                      = get_pdu_poll(false, tx_sdu->N_bytes);
   hdr.si                     = rlc_nr_si_field_t::full_sdu;
   hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
@@ -249,10 +249,12 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
     return 0;
   }
 
+  uint32_t segment_payload_len = nof_bytes - min_hdr_size;
+
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(false);
+  hdr.p                      = get_pdu_poll(false, segment_payload_len);
   hdr.si                     = rlc_nr_si_field_t::first_segment;
   hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
@@ -268,7 +270,6 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
   }
 
   // Copy PDU to payload
-  uint32_t segment_payload_len = nof_bytes - hdr_len;
   srsran_assert((hdr_len + segment_payload_len) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
   memcpy(&payload[hdr_len], tx_pdu.sdu_buf->msg, segment_payload_len);
 
@@ -354,7 +355,7 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(false);
+  hdr.p                      = get_pdu_poll(false, segment_payload_len);
   hdr.si                     = si;
   hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
@@ -505,7 +506,7 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
     current_so = retx.current_so;
   }
   rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
-  new_header.p                      = get_pdu_poll(true);
+  new_header.p                      = get_pdu_poll(true, 0);
   new_header.si                     = si;
   new_header.so                     = current_so;
   uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, payload);
@@ -598,7 +599,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
 
   // Write header
   rlc_am_nr_pdu_header_t hdr = tx_pdu.header;
-  hdr.p                      = get_pdu_poll(true);
+  hdr.p                      = get_pdu_poll(true, 0);
   hdr.so                     = retx.current_so;
   hdr.si                     = si;
   uint32_t hdr_len           = rlc_am_nr_write_data_pdu_header(hdr, payload);
@@ -905,16 +906,25 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
  * Check whether the polling bit needs to be set, as specified in
  * TS 38.322, section 5.3.3.2
  */
-uint8_t rlc_am_nr_tx::get_pdu_poll(bool is_retx)
+uint8_t rlc_am_nr_tx::get_pdu_poll(bool is_retx, uint32_t sdu_bytes)
 {
+  /* For each AMD PDU or AMD PDU segment that has not been previoulsy tranmitted:
+   * - increment PDU_WITHOUT_POLL by one;
+   * - increment BYTE_WITHOUT_POLL by every new byte of Data field element that it maps to the Data field of the AMD
+   * PDU;
+   *   - if PDU_WITHOUT_POLL >= pollPDU; or
+   *   - if BYTE_WITHOUT_POLL >= pollByte:
+   *   	- include a poll in the AMD PDU as described below.
+   */
   uint8_t poll = 0;
   if (!is_retx) {
+    st.pdu_without_poll++;
+    st.byte_without_poll += sdu_bytes;
     if (cfg.poll_pdu > 0) {
-      if (st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
-        poll                = 1;
-        st.pdu_without_poll = 0;
-      } else {
-        st.pdu_without_poll++;
+      if (st.pdu_without_poll >= (uint32_t)cfg.poll_pdu || st.byte_without_poll >= (uint32_t)cfg.poll_byte) {
+        poll                 = 1;
+        st.pdu_without_poll  = 0;
+        st.byte_without_poll = 0;
       }
     }
   }
