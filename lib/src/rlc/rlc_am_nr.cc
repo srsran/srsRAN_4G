@@ -51,16 +51,16 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
     case rlc_am_nr_sn_size_t::size12bits:
       min_hdr_size = 2;
       tx_window    = std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> >(
-          new rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, cardinality(rlc_am_nr_sn_size_t::size12bits) / 2>);
+          new rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, am_window_size(rlc_am_nr_sn_size_t::size12bits)>);
       retx_queue = std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> >(
-          new pdu_retx_queue<rlc_amd_retx_nr_t, cardinality(rlc_am_nr_sn_size_t::size12bits) / 2>);
+          new pdu_retx_queue<rlc_amd_retx_nr_t, am_window_size(rlc_am_nr_sn_size_t::size12bits)>);
       break;
     case rlc_am_nr_sn_size_t::size18bits:
       min_hdr_size = 3;
       tx_window    = std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> >(
-          new rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, cardinality(rlc_am_nr_sn_size_t::size18bits) / 2>);
+          new rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, am_window_size(rlc_am_nr_sn_size_t::size18bits)>);
       retx_queue = std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> >(
-          new pdu_retx_queue<rlc_amd_retx_nr_t, cardinality(rlc_am_nr_sn_size_t::size18bits) / 2>);
+          new pdu_retx_queue<rlc_amd_retx_nr_t, am_window_size(rlc_am_nr_sn_size_t::size18bits)>);
       break;
     default:
       RlcError("attempt to configure unsupported tx_sn_field_length %s", to_string(cfg.tx_sn_field_length));
@@ -943,7 +943,7 @@ uint32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
 
 uint32_t rlc_am_nr_tx::tx_window_size() const
 {
-  return cardinality(cfg.tx_sn_field_length) / 2;
+  return am_window_size(cfg.tx_sn_field_length);
 }
 
 bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
@@ -995,11 +995,11 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   switch (cfg.rx_sn_field_length) {
     case rlc_am_nr_sn_size_t::size12bits:
       rx_window = std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> >(
-          new rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, cardinality(rlc_am_nr_sn_size_t::size12bits) / 2>);
+          new rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, am_window_size(rlc_am_nr_sn_size_t::size12bits)>);
       break;
     case rlc_am_nr_sn_size_t::size18bits:
       rx_window = std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> >(
-          new rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, cardinality(rlc_am_nr_sn_size_t::size18bits) / 2>);
+          new rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, am_window_size(rlc_am_nr_sn_size_t::size18bits)>);
       break;
     default:
       RlcError("attempt to configure unsupported rx_sn_field_length %s", to_string(cfg.rx_sn_field_length));
@@ -1383,7 +1383,7 @@ uint32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
 
 uint32_t rlc_am_nr_rx::rx_window_size() const
 {
-  return cardinality(cfg.rx_sn_field_length) / 2;
+  return am_window_size(cfg.rx_sn_field_length);
 }
 
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)

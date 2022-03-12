@@ -147,14 +147,10 @@ private:
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_tx_state_t                             st = {};
-  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window =
-      std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> >(
-          new rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, cardinality(rlc_am_nr_sn_size_t()) / 2>);
+  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window;
 
   // Queues and buffers
-  std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue =
-      std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> >(
-          new pdu_retx_queue<rlc_amd_retx_nr_t, cardinality(rlc_am_nr_sn_size_t()) / 2>);
+  std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue;
   uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
   pdcp_sn_vector_t notify_info_vec;
 
@@ -254,9 +250,7 @@ private:
   uint32_t rx_mod_base_nr(uint32_t sn) const;
 
   // RX Window
-  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> > rx_window =
-      std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> >(
-          new rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, cardinality(rlc_am_nr_sn_size_t()) / 2>);
+  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> > rx_window;
 
   // Mutexes
   std::mutex mutex;

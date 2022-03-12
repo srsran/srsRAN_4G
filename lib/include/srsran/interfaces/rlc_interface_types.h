@@ -78,6 +78,14 @@ constexpr uint32_t cardinality(const rlc_am_nr_sn_size_t& sn_size)
 {
   return (1 << to_number(sn_size));
 }
+/****************************************************************************
+ * Tx constants
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+ ***************************************************************************/
+constexpr uint32_t am_window_size(const rlc_am_nr_sn_size_t& sn_size)
+{
+  return cardinality(sn_size) / 2;
+}
 
 struct rlc_am_config_t {
   /****************************************************************************
