@@ -1075,7 +1075,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
    */
   if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_highest_status)) {
     uint32_t sn_upd     = 0;
-    uint32_t window_top = st.rx_next + RLC_AM_NR_WINDOW_SIZE;
+    uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
     for (sn_upd = st.rx_highest_status; sn_upd < window_top; ++sn_upd) {
       if (rx_window->has_sn(sn_upd)) {
         if (not(*rx_window)[sn_upd].fully_received) {
@@ -1097,7 +1097,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
    */
   if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
     uint32_t sn_upd     = 0;
-    uint32_t window_top = st.rx_next + RLC_AM_NR_WINDOW_SIZE;
+    uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
     for (sn_upd = st.rx_next; sn_upd < window_top; ++sn_upd) {
       if (rx_window->has_sn(sn_upd)) {
         if (not(*rx_window)[sn_upd].fully_received) {
@@ -1335,7 +1335,8 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      *   - start t-Reassembly;
      *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
-    for (uint32_t tmp_sn = st.rx_next_status_trigger; tmp_sn < st.rx_next_status_trigger + RLC_AM_NR_WINDOW_SIZE;
+    for (uint32_t tmp_sn = st.rx_next_status_trigger;
+         tmp_sn < st.rx_next_status_trigger + am_window_size(cfg.rx_sn_field_length);
          tmp_sn++) {
       if (not rx_window->has_sn(tmp_sn)) {
         st.rx_highest_status = tmp_sn;
