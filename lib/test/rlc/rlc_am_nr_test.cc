@@ -225,9 +225,6 @@ int basic_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
   rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
 
-  // before configuring entity
-  TESTASSERT_EQ(0, rlc1.get_buffer_state());
-
   if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
     return -1;
   }
@@ -235,6 +232,9 @@ int basic_test(rlc_am_nr_sn_size_t sn_size)
   if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
     return -1;
   }
+
+  // after configuring entity
+  TESTASSERT_EQ(0, rlc1.get_buffer_state());
 
   basic_test_tx(&rlc1, pdu_bufs, sn_size);
 
@@ -332,9 +332,6 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
   uint32_t           data_pdu_size       = header_size + payload_size;
   uint32_t           expect_buffer_state = NBUFS * data_pdu_size;
 
-  // before configuring entity
-  TESTASSERT(0 == rlc1.get_buffer_state());
-
   if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
     return -1;
   }
@@ -342,6 +339,9 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
   if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
     return -1;
   }
+
+  // after configuring entity
+  TESTASSERT(0 == rlc1.get_buffer_state());
 
   basic_test_tx(&rlc1, pdu_bufs, sn_size);
 
@@ -469,9 +469,6 @@ int basic_segmentation_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
   rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
 
-  // before configuring entity
-  TESTASSERT_EQ(0, rlc1.get_buffer_state());
-
   if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
     return -1;
   }
@@ -479,6 +476,9 @@ int basic_segmentation_test(rlc_am_nr_sn_size_t sn_size)
   if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
     return -1;
   }
+
+  // after configuring entity
+  TESTASSERT_EQ(0, rlc1.get_buffer_state());
 
   // Push 1 SDU into RLC1
   unique_byte_buffer_t sdu;
@@ -557,9 +557,6 @@ int segment_retx_test()
   rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
   rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
 
-  // before configuring entity
-  TESTASSERT_EQ(0, rlc1.get_buffer_state());
-
   if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config())) {
     return -1;
   }
@@ -567,6 +564,9 @@ int segment_retx_test()
   if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config())) {
     return -1;
   }
+
+  // after configuring entity
+  TESTASSERT_EQ(0, rlc1.get_buffer_state());
 
   // Push 5 SDUs into RLC1
   unique_byte_buffer_t sdu_bufs[NBUFS];
@@ -728,9 +728,6 @@ int retx_segment_test()
   rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
   rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
 
-  // before configuring entity
-  TESTASSERT(0 == rlc1.get_buffer_state());
-
   if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config())) {
     return -1;
   }
@@ -738,6 +735,9 @@ int retx_segment_test()
   if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config())) {
     return -1;
   }
+
+  // after configuring entity
+  TESTASSERT(0 == rlc1.get_buffer_state());
 
   int n_sdu_bufs = 5;
   int n_pdu_bufs = 15;

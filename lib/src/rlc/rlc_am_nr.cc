@@ -854,6 +854,11 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   std::lock_guard<std::mutex> lock(mutex);
   RlcDebug("buffer state - do_status=%s", do_status() ? "yes" : "no");
 
+  if (!tx_enabled) {
+    RlcError("get_buffer_state() failed: TX is not enabled.");
+    return;
+  }
+
   // Bytes needed for status report
   if (do_status()) {
     n_bytes_prio += rx->get_status_pdu_length();
