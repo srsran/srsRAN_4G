@@ -676,8 +676,8 @@ uint32_t rlc_am_nr_tx::get_retx_expected_hdr_len(const rlc_amd_retx_nr_t& retx)
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
 {
   RlcInfo("generating status PDU. Bytes available:%d", nof_bytes);
-  rlc_am_nr_status_pdu_t tx_status;
-  int                    pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
+  tx_status.reset();
+  int pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
     RlcDebug("deferred status PDU. Cause: Failed to acquire rx lock");
     pdu_len = 0;
@@ -1285,6 +1285,8 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
         }
       }
     }
+
+    // TODO: add check to not exceed status->N_nack >= RLC_AM_NR_MAX_NACKS
 
     // make sure we don't exceed grant size (FIXME)
     rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);

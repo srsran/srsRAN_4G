@@ -78,13 +78,23 @@ struct rlc_amd_tx_sdu_nr_t {
 };
 
 ///< AM NR Status PDU header (perhaps merge with LTE version)
-typedef struct {
-  rlc_am_nr_control_pdu_type_t cpt;
-  uint32_t                     ack_sn; ///< SN of the next not received RLC Data PDU
-  uint16_t                     N_nack; ///< number of NACKs
-  uint8_t           nack_range;        ///< number of consecutively lost RLC SDUs starting from and including NACK_SN
-  rlc_status_nack_t            nacks[RLC_AM_NR_MAX_NACKS];
-} rlc_am_nr_status_pdu_t;
+struct rlc_am_nr_status_pdu_t {
+  rlc_am_nr_control_pdu_type_t   cpt;
+  uint32_t                       ack_sn; ///< SN of the next not received RLC Data PDU
+  uint16_t                       N_nack; ///< number of NACKs
+  std::vector<rlc_status_nack_t> nacks;
+
+  rlc_am_nr_status_pdu_t() :
+    cpt(rlc_am_nr_control_pdu_type_t::status_pdu), ack_sn(INVALID_RLC_SN), N_nack(0), nacks(RLC_AM_NR_TYP_NACKS)
+  {}
+  void reset()
+  {
+    cpt    = rlc_am_nr_control_pdu_type_t::status_pdu;
+    ack_sn = INVALID_RLC_SN;
+    N_nack = 0;
+    nacks.clear();
+  }
+};
 
 /****************************************************************************
  * Header pack/unpack helper functions for NR
