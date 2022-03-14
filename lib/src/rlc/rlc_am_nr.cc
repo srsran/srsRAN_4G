@@ -771,14 +771,13 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   RlcHexDebug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
   rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
   log_rlc_am_nr_status_pdu_to_string(logger.info, "RX status PDU: %s", &status, parent->rb_name);
-  // Local variables for handling Status PDU will be updated with lock
+
   /*
    * - if the SN of the corresponding RLC SDU falls within the range
    *   TX_Next_Ack <= SN < = the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer:
    *   - consider the RLC SDU or the RLC SDU segment for which a negative acknowledgement was received for
    *     retransmission.
    */
-  // Process ACKs
   uint32_t stop_sn = status.nacks.size() == 0
                          ? status.ack_sn
                          : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
@@ -787,6 +786,8 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     info_state();
     return;
   }
+
+  // Process ACKs
   for (uint32_t sn = st.tx_next_ack; tx_mod_base_nr(sn) < tx_mod_base_nr(stop_sn); sn = (sn + 1) % mod_nr) {
     if (tx_window->has_sn(sn)) {
       notify_info_vec.push_back((*tx_window)[sn].pdcp_sn);
@@ -933,6 +934,11 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    *   - if t-PollRetransmit is running:
    *     - stop and reset t-PollRetransmit.
    */
+  if (st.poll_sn <= status.ack_sn) {
+    if (poll_retransmit_timer.is_running()) {
+      poll_retransmit_timer.stop();
+    }
+  }
 }
 
 /**
