@@ -32,7 +32,9 @@ const static uint32_t so_end_of_sdu     = 0xFFFF;
 /***************************************************************************
  *  Tx subclass implementation
  ***************************************************************************/
-rlc_am_nr_tx::rlc_am_nr_tx(rlc_am* parent_) : parent(parent_), rlc_am_base_tx(parent_->logger) {}
+rlc_am_nr_tx::rlc_am_nr_tx(rlc_am* parent_) :
+  parent(parent_), rlc_am_base_tx(parent_->logger), poll_retransmit_timer(parent->timers->get_unique_timer())
+{}
 
 bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 {
@@ -72,6 +74,19 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
   // make sure Tx queue is empty before attempting to resize
   empty_queue_no_lock();
   tx_sdu_queue.resize(cfg_.tx_queue_length);
+
+  // Check timers are valid
+  if (not poll_retransmit_timer.is_valid()) {
+    RlcError("Configuring TX: timers not configured");
+    return false;
+  }
+
+  // Configure t_poll_retransmission timer
+  if (cfg.t_poll_retx > 0) {
+    poll_retransmit_timer.set(static_cast<uint32_t>(cfg.t_poll_retx),
+                              [this](uint32_t timerid) { timer_expired(timerid); });
+    RlcInfo("configured poll retransmission timer. t-pollRetransmission=%d ms", cfg.t_poll_retx);
+  }
 
   tx_enabled = true;
 
@@ -1111,6 +1126,17 @@ void rlc_am_nr_tx::empty_queue_no_lock()
   }
 }
 void rlc_am_nr_tx::stop() {}
+
+void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
+{
+  std::unique_lock<std::mutex> lock(mutex);
+
+  // Status Prohibit
+  if (poll_retransmit_timer.is_valid() && poll_retransmit_timer.id() == timeout_id) {
+    RlcDebug("Status prohibit timer expired after %dms", poll_retransmit_timer.duration());
+    return;
+  }
+}
 
 /*
  * Window helpers

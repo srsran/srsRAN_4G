@@ -98,6 +98,7 @@ public:
 
   bool sdu_queue_is_full() final;
   void reestablish() final;
+  void stop() final;
 
   int  write_sdu(unique_byte_buffer_t sdu);
   void empty_queue() final;
@@ -125,8 +126,10 @@ public:
   // Polling
   uint8_t get_pdu_poll(bool is_retx, uint32_t sdu_bytes);
 
-  void stop() final;
+  // Timers
+  void timer_expired(uint32_t timeout_id);
 
+  // Window helpers
   bool inside_tx_window(uint32_t sn) const;
 
 private:
@@ -165,6 +168,12 @@ private:
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
    ***************************************************************************/
   inline uint32_t tx_window_size() const;
+
+  /****************************************************************************
+   * TX timers
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
+   ***************************************************************************/
+  srsran::timer_handler::unique_timer poll_retransmit_timer;
 
 public:
   // Getters/Setters
