@@ -1134,6 +1134,32 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
   // Status Prohibit
   if (poll_retransmit_timer.is_valid() && poll_retransmit_timer.id() == timeout_id) {
     RlcDebug("Status prohibit timer expired after %dms", poll_retransmit_timer.duration());
+    /*
+     * - if both the transmission buffer and the retransmission buffer are empty
+     *   (excluding transmitted RLC SDU or RLC SDU segment awaiting acknowledgements); or
+     * - if no new RLC SDU or RLC SDU segment can be transmitted (e.g. due to window stalling):
+     *   - consider the RLC SDU with the highest SN among the RLC SDUs submitted to lower layer for
+     *   retransmission; or
+     *   - consider any RLC SDU which has not been positively acknowledged for retransmission.
+     * - include a poll in an AMD PDU as described in section 5.3.3.2.
+     */
+    if ((tx_sdu_queue.is_empty() && retx_queue.empty()) || tx_window.full()) {
+      if (tx_window.empty()) {
+        // Nothing to RETX
+        return;
+      }
+      // Fully RETX first RLC SDU that has not been acked
+      if (tx_window.has_sn(st.tx_next_ack)) {
+        RlcError("TX window not empty, but TX_NEXT_ACK not in TX_WINDOW");
+        return;
+      }
+      rlc_amd_retx_nr_t& retx = retx_queue.push();
+      retx.sn                 = st.tx_next_ack;
+      retx.is_segment         = false;
+      retx.so_start           = 0;
+      retx.segment_length     = tx_window[st.tx_next_ack].sdu_buf->N_bytes;
+      retx.current_so         = 0;
+    }
     return;
   }
 }
