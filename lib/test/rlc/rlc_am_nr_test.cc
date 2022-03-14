@@ -1226,8 +1226,8 @@ int discard_test(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
-// This test checks the correct functioning of RLC TX polling bit setting
-int poll_test_poll_pdu()
+// Test p bit set on new TX with PollPDU
+int poll_pdu()
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -1280,7 +1280,7 @@ int poll_test_poll_pdu()
 }
 
 // Test p bit set on new TX with PollBYTE
-int poll_test_poll_byte()
+int poll_byte()
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -1331,8 +1331,8 @@ int poll_test_poll_byte()
   return SRSRAN_SUCCESS;
 }
 
-// Test p bit set on RETXes
-int poll_test_poll_retx()
+// Test p bit set on RETXes that cause an empty retx queue.
+int poll_retx()
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -1476,8 +1476,8 @@ int main()
   TESTASSERT(max_retx_lost_sdu_test(sns) == SRSRAN_SUCCESS);      // Fixme
   TESTASSERT(max_retx_lost_segments_test(sns) == SRSRAN_SUCCESS); // Fixme
   TESTASSERT(discard_test(sns) == SRSRAN_SUCCESS);                // Fixme
-  TESTASSERT(poll_test_poll_pdu() == SRSRAN_SUCCESS);
-  TESTASSERT(poll_test_poll_byte() == SRSRAN_SUCCESS);
-  TESTASSERT(poll_test_poll_retx() == SRSRAN_SUCCESS);
+  TESTASSERT(poll_pdu() == SRSRAN_SUCCESS);
+  TESTASSERT(poll_byte() == SRSRAN_SUCCESS);
+  TESTASSERT(poll_retx() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }

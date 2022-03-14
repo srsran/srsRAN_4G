@@ -492,7 +492,7 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
            retx.so_start,
            retx.segment_length);
 
-  // Update & write header
+  // Get RETX SN, current SO and SI
   uint32_t          retx_sn    = retx.sn;
   uint32_t          current_so = 0;
   rlc_nr_si_field_t si         = rlc_nr_si_field_t::full_sdu;
@@ -506,11 +506,8 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
     }
     current_so = retx.current_so;
   }
-  rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
-  new_header.si                     = si;
-  new_header.so                     = current_so;
 
-  // Write payload into PDU
+  // Get RETX PDU payload size
   uint32_t retx_pdu_payload_size = 0;
   if (not retx.is_segment) {
     // RETX full SDU
@@ -519,15 +516,24 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t& retx, uint8
     // RETX SDU segment
     retx_pdu_payload_size = (retx.so_start + retx.segment_length - retx.current_so);
   }
+
+  // Update RETX queue. This must be done before calculating
+  // the polling bit, to make sure the poll bit is calculated correctly
   retx_queue->pop();
-  new_header.p       = get_pdu_poll(true, 0);
-  uint32_t hdr_len   = rlc_am_nr_write_data_pdu_header(new_header, payload);
+
+  // Write header to payload
+  rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
+  new_header.si                     = si;
+  new_header.so                     = current_so;
+  new_header.p                      = get_pdu_poll(true, 0);
+  uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, payload);
+
+  // Write SDU/SDU segment to payload
   uint32_t pdu_bytes = hdr_len + retx_pdu_payload_size;
   srsran_assert(pdu_bytes <= nof_bytes, "Error calculating hdr_len and pdu_payload_len");
   memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[current_so], retx_pdu_payload_size);
 
-  // Update RETX queue and log
-  retx_queue->pop();
+  // Log RETX
   RlcHexInfo((*tx_window)[retx.sn].sdu_buf->msg,
              (*tx_window)[retx.sn].sdu_buf->N_bytes,
              "Original SDU SN=%d (%d B) (attempt %d/%d)",
