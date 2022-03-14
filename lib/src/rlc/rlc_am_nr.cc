@@ -214,7 +214,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(false, tx_sdu->N_bytes);
+  hdr.p                      = get_pdu_poll(st.tx_next, false, tx_sdu->N_bytes);
   hdr.si                     = rlc_nr_si_field_t::full_sdu;
   hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
@@ -273,7 +273,7 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(false, segment_payload_len);
+  hdr.p                      = get_pdu_poll(st.tx_next, false, segment_payload_len);
   hdr.si                     = rlc_nr_si_field_t::first_segment;
   hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
@@ -374,7 +374,7 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(false, segment_payload_len);
+  hdr.p                      = get_pdu_poll(st.tx_next, false, segment_payload_len);
   hdr.si                     = si;
   hdr.sn_size                = cfg.tx_sn_field_length;
   hdr.sn                     = st.tx_next;
@@ -542,7 +542,7 @@ rlc_am_nr_tx::build_retx_pdu_without_segmentation(const rlc_amd_retx_nr_t retx, 
   rlc_am_nr_pdu_header_t new_header = tx_pdu.header;
   new_header.si                     = si;
   new_header.so                     = retx.current_so;
-  new_header.p                      = get_pdu_poll(true, 0);
+  new_header.p                      = get_pdu_poll(retx.sn, true, 0);
   uint32_t hdr_len                  = rlc_am_nr_write_data_pdu_header(new_header, payload);
 
   // Write SDU/SDU segment to payload
@@ -624,7 +624,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
 
   // Write header
   rlc_am_nr_pdu_header_t hdr = tx_pdu.header;
-  hdr.p                      = get_pdu_poll(true, 0);
+  hdr.p                      = get_pdu_poll(retx.sn, true, 0);
   hdr.so                     = retx.current_so;
   hdr.si                     = si;
   uint32_t hdr_len           = rlc_am_nr_write_data_pdu_header(hdr, payload);
@@ -1051,7 +1051,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
  * Check whether the polling bit needs to be set, as specified in
  * TS 38.322, section 5.3.3.2
  */
-uint8_t rlc_am_nr_tx::get_pdu_poll(bool is_retx, uint32_t sdu_bytes)
+uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes)
 {
   /* For each AMD PDU or AMD PDU segment that has not been previoulsy tranmitted:
    * - increment PDU_WITHOUT_POLL by one;
@@ -1093,6 +1093,18 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(bool is_retx, uint32_t sdu_bytes)
   if (poll == 1) {
     st.pdu_without_poll  = 0;
     st.byte_without_poll = 0;
+    /*
+     * - set POLL_SN to the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer;
+     * - if t-PollRetransmit is not running:
+     *   - start t-PollRetransmit.
+     * - else:
+     *   - restart t-PollRetransmit.
+     */
+    if (sn > st.poll_sn) {
+      st.poll_sn = sn;
+      poll_retransmit_timer.stop();
+      poll_retransmit_timer.run();
+    }
   }
   return poll;
 }
@@ -1143,21 +1155,21 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
      *   - consider any RLC SDU which has not been positively acknowledged for retransmission.
      * - include a poll in an AMD PDU as described in section 5.3.3.2.
      */
-    if ((tx_sdu_queue.is_empty() && retx_queue.empty()) || tx_window.full()) {
-      if (tx_window.empty()) {
+    if ((tx_sdu_queue.is_empty() && retx_queue->empty()) || tx_window->full()) {
+      if (tx_window->empty()) {
         // Nothing to RETX
         return;
       }
       // Fully RETX first RLC SDU that has not been acked
-      if (tx_window.has_sn(st.tx_next_ack)) {
+      if (tx_window->has_sn(st.tx_next_ack)) {
         RlcError("TX window not empty, but TX_NEXT_ACK not in TX_WINDOW");
         return;
       }
-      rlc_amd_retx_nr_t& retx = retx_queue.push();
+      rlc_amd_retx_nr_t& retx = retx_queue->push();
       retx.sn                 = st.tx_next_ack;
       retx.is_segment         = false;
       retx.so_start           = 0;
-      retx.segment_length     = tx_window[st.tx_next_ack].sdu_buf->N_bytes;
+      retx.segment_length     = (*tx_window)[st.tx_next_ack].sdu_buf->N_bytes;
       retx.current_so         = 0;
     }
     return;

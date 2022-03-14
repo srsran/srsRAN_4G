@@ -124,7 +124,7 @@ public:
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
   // Polling
-  uint8_t get_pdu_poll(bool is_retx, uint32_t sdu_bytes);
+  uint8_t get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes);
 
   // Timers
   void timer_expired(uint32_t timeout_id);
