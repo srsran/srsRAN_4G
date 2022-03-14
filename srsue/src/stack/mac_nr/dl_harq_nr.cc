@@ -26,6 +26,14 @@ dl_harq_entity_nr::dl_harq_entity_nr(uint8_t                  cc_idx_,
   // Init broadcast HARQ process
   bcch_proc.init(-1);
   pthread_rwlock_init(&rwlock, NULL);
+
+  // Create default number of processes
+  for (uint32_t i = 0; i < cfg.nof_procs; i++) {
+    harq_procs[i] = std::unique_ptr<dl_harq_process_nr>(new dl_harq_process_nr(this));
+    if (!harq_procs.at(i)->init(i)) {
+      logger.error("Error while initializing DL-HARQ process %d", i);
+    }
+  }
 }
 
 dl_harq_entity_nr::~dl_harq_entity_nr()
@@ -42,17 +50,19 @@ int32_t dl_harq_entity_nr::set_config(const srsran::dl_harq_cfg_nr_t& cfg_)
     return SRSRAN_ERROR;
   }
 
-  // clear old processees
-  for (auto& proc : harq_procs) {
-    proc = nullptr;
-  }
-
-  // Allocate and init configured HARQ processes
-  for (uint32_t i = 0; i < cfg.nof_procs; i++) {
-    harq_procs[i] = std::unique_ptr<dl_harq_process_nr>(new dl_harq_process_nr(this));
-    if (!harq_procs.at(i)->init(i)) {
-      logger.error("Error while initializing DL-HARQ process %d", i);
-      return SRSRAN_ERROR;
+  if (cfg_.nof_procs < cfg.nof_procs) {
+    // clear old processes if not needed
+    for (uint32_t i = cfg.nof_procs - 1; i < cfg_.nof_procs; i++) {
+      harq_procs[i] = nullptr;
+    }
+  } else {
+    // Add new processes
+    for (uint32_t i = cfg.nof_procs; i < cfg_.nof_procs; i++) {
+      harq_procs[i] = std::unique_ptr<dl_harq_process_nr>(new dl_harq_process_nr(this));
+      if (!harq_procs.at(i)->init(i)) {
+        logger.error("Error while initializing DL-HARQ process %d", i);
+        return SRSRAN_ERROR;
+      }
     }
   }
 
