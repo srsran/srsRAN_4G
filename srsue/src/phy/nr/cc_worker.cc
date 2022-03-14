@@ -669,24 +669,9 @@ bool cc_worker::work_ul()
     phy.set_ul_metrics(ul_m);
 
   } else if (srsran_uci_nr_total_bits(&uci_data.cfg) > 0) {
-    // Currently, default PUCCH is not supported, in this case log it and pretend no UCI was available
-    if (not cfg.pucch.enabled) {
-      if (logger.info.enabled()) {
-        std::array<char, 512> str;
-        srsran_uci_nr_info(&uci_data, str.data(), str.size());
-        logger.info(
-            "PUCCH: No PUCCH resource to transmit UCI cc=%d, %s, tti_tx=%d", cc_idx, str.data(), ul_slot_cfg.idx);
-      }
-
-      // No NR signal shall be transmitted
-      srsran_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
-
-      return true;
-    }
-
     // Get PUCCH resource
     srsran_pucch_nr_resource_t resource = {};
-    if (srsran_ra_ul_nr_pucch_resource(&cfg.pucch, &uci_data.cfg, &resource) < SRSRAN_SUCCESS) {
+    if (srsran_ra_ul_nr_pucch_resource(&cfg.pucch, &uci_data.cfg, cfg.carrier.nof_prb, &resource) < SRSRAN_SUCCESS) {
       ERROR("Selecting PUCCH resource");
       return false;
     }

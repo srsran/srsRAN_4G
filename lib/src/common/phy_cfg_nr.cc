@@ -321,7 +321,7 @@ bool phy_cfg_nr_t::get_pucch_uci_cfg(const srsran_slot_cfg_t&      slot_cfg,
                                      srsran_pucch_nr_resource_t&   resource) const
 {
   // Select PUCCH resource
-  if (srsran_ra_ul_nr_pucch_resource(&pucch, &uci_cfg, &resource) < SRSRAN_SUCCESS) {
+  if (srsran_ra_ul_nr_pucch_resource(&pucch, &uci_cfg, carrier.nof_prb, &resource) < SRSRAN_SUCCESS) {
     ERROR("Selecting PUCCH resource");
     return false;
   }
