@@ -103,10 +103,6 @@ void phy_nr_sa::init_background()
   }
   workers.init(args, sync, stack);
 
-  // Set fix Tx and Rx sampling rates
-  radio->set_tx_srate(args.srate_hz);
-  radio->set_rx_srate(args.srate_hz);
-
   is_configured = true;
 }
 
