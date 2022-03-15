@@ -254,6 +254,7 @@ public:
     rlc_cnfg.am_nr.max_retx_thresh   = 4;
     rlc_cnfg.am_nr.t_reassembly      = 35;
     rlc_cnfg.am_nr.poll_pdu          = 4;
+    rlc_cnfg.am_nr.t_poll_retx       = 45;
     return rlc_cnfg;
   }
   static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)

@@ -1004,11 +1004,13 @@ int segment_retx_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
   rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
 
-  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+  auto rlc_cnfg              = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  rlc_cnfg.am_nr.t_poll_retx = -1;
+  if (not rlc1.configure(rlc_cnfg)) {
     return -1;
   }
 
-  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+  if (not rlc2.configure(rlc_cnfg)) {
     return -1;
   }
 
@@ -1465,11 +1467,13 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
   rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
 
-  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+  auto rlc_cnfg              = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  rlc_cnfg.am_nr.t_poll_retx = -1;
+  if (not rlc1.configure(rlc_cnfg)) {
     return -1;
   }
 
-  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+  if (not rlc2.configure(rlc_cnfg)) {
     return -1;
   }
 
@@ -2289,6 +2293,143 @@ int poll_retx()
   return SRSRAN_SUCCESS;
 }
 
+// This test checks whether re-transmissions are triggered correctly in case the t-PollRetranmission expires.
+// It checks if the poll retx timer is re-armed upon receiving an ACK for POLL_SN
+bool poll_retx_expiry()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("poll test retx expiry");
+
+  srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);
+
+  rlc_config_t rlc_cnfg = rlc_config_t::default_rlc_am_nr_config();
+
+  rlc_cnfg.am_nr.t_poll_retx       = 65;
+  rlc_cnfg.am_nr.poll_pdu          = -1;
+  rlc_cnfg.am_nr.poll_byte         = -1;
+  rlc_cnfg.am_nr.max_retx_thresh   = 6;
+  rlc_cnfg.am_nr.t_status_prohibit = 55;
+
+  rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  if (not rlc1.configure(rlc_cnfg)) {
+    return SRSRAN_ERROR;
+  }
+
+  rlc_am rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  if (not rlc2.configure(rlc_cnfg)) {
+    return SRSRAN_ERROR;
+  }
+
+  unsigned hdr_no_so   = 2;
+  unsigned hdr_with_so = 4;
+  // [I] SRB1 Tx SDU (135 B, tx_sdu_queue_len=1)
+  // [I] SRB1 Tx PDU SN=3 (91 B)
+  // [I] SRB1 Tx PDU SN=4 (48 B)
+  {
+    // TX a single SDU
+    unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+    TESTASSERT(sdu != nullptr);
+    sdu->N_bytes = 135;
+    for (uint32_t k = 0; k < sdu->N_bytes; ++k) {
+      sdu->msg[k] = 0; // Write the index into the buffer
+    }
+    sdu->md.pdcp_sn = 0;
+    rlc1.write_sdu(std::move(sdu));
+
+    // Read two PDUs. The last PDU should trigger polling, as it
+    // is the last SDU segment in the buffer.
+    unique_byte_buffer_t pdu1 = srsran::make_byte_buffer();
+    TESTASSERT(pdu1 != nullptr);
+    pdu1->N_bytes = rlc1.read_pdu(pdu1->msg, 91); // 91 bytes PDU, 89 bytes payload
+
+    unique_byte_buffer_t pdu2 = srsran::make_byte_buffer();
+    TESTASSERT(pdu2 != nullptr);
+    pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, 50); // 50 bytes PDU, 46 bytes payload
+
+    // Deliver PDU2 to RLC2. PDU1 is lost
+    rlc2.write_pdu(pdu2->msg, pdu2->N_bytes);
+
+    // Double-check polling status in PDUs
+    rlc_am_nr_pdu_header_t hdr1 = {};
+    rlc_am_nr_read_data_pdu_header(pdu1.get(), srsran::rlc_am_nr_sn_size_t::size12bits, &hdr1);
+    rlc_am_nr_pdu_header_t hdr2 = {};
+    rlc_am_nr_read_data_pdu_header(pdu2.get(), srsran::rlc_am_nr_sn_size_t::size12bits, &hdr2);
+    TESTASSERT_EQ(0, hdr1.p);
+    TESTASSERT_EQ(1, hdr2.p);
+  }
+
+  // Step timers until t-PollRetransmit timer expires on RLC1
+  // t-Reordering timer also will expire on RLC2, so we can get an status report.
+  // [I] SRB1 Schedule SN=3 for reTx
+  for (int cnt = 0; cnt < 65; cnt++) {
+    timers.step_all();
+  }
+
+  uint32_t status_size = rlc2.get_buffer_state();
+  TESTASSERT_EQ(9, status_size);
+
+  // Read status PDU from RLC2
+  unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
+  TESTASSERT(status_buf != nullptr);
+  int len             = rlc2.read_pdu(status_buf->msg, status_size);
+  status_buf->N_bytes = len;
+
+  TESTASSERT(0 == rlc2.get_buffer_state());
+
+  // Assert status is correct
+  rlc_am_nr_status_pdu_t status_check(rlc_am_nr_sn_size_t::size12bits);
+  rlc_am_nr_read_status_pdu(status_buf.get(), rlc_am_nr_sn_size_t::size12bits, &status_check);
+  TESTASSERT(status_check.ack_sn == 1);       // SN=1 is first SN missing without a NACK
+  TESTASSERT(status_check.nacks.size() == 1); // 1 PDU lost
+
+  // [I] SRB1 Retx PDU segment SN=3 [so=0] (83 B) (attempt 2/6)
+  {
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    TESTASSERT(pdu != nullptr);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 83);
+  }
+
+  // [I] SRB1 Retx PDU segment SN=3 [so=79] (14 B) (attempt 2/6)
+  {
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    TESTASSERT(pdu != nullptr);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 79);
+  }
+
+  // Deliver status PDU after ReTX to RLC1. This should restart t-PollRetransmission
+  TESTASSERT_EQ(false, rlc1.has_data());
+  rlc1.write_pdu(status_buf->msg, status_buf->N_bytes);
+  TESTASSERT_EQ(true, rlc1.has_data());
+
+  // [I] SRB1 Retx PDU segment SN=3 [so=0] (83 B) (attempt 3/6) (received a NACK and retx...)
+  // [I] SRB1 Retx PDU segment SN=3 [so=79] (14 B) (attempt 3/6)
+  {
+    unique_byte_buffer_t pdu1 = srsran::make_byte_buffer();
+    TESTASSERT(pdu1 != nullptr);
+    pdu1->N_bytes = rlc1.read_pdu(pdu1->msg, 83);
+
+    unique_byte_buffer_t pdu2 = srsran::make_byte_buffer();
+    TESTASSERT(pdu2 != nullptr);
+    pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, 14);
+  }
+
+  TESTASSERT_EQ(false, rlc1.has_data());
+
+  // Step timers until t-PollRetransmission timer expires on RLC1
+  // [I] SRB1 Schedule SN=3 for reTx
+  for (int cnt = 0; cnt < 66; cnt++) {
+    timers.step_all();
+  }
+  TESTASSERT_EQ(true, rlc1.has_data());
+  srslog::fetch_basic_logger("TEST").info("t-Poll Retransmssion successfully restarted.");
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -2333,5 +2474,6 @@ int main()
   TESTASSERT(poll_pdu() == SRSRAN_SUCCESS);
   TESTASSERT(poll_byte() == SRSRAN_SUCCESS);
   TESTASSERT(poll_retx() == SRSRAN_SUCCESS);
+  TESTASSERT(poll_retx_expiry() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }
