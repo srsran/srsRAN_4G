@@ -324,6 +324,11 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       task_sched.defer_task([this, rrc_release]() { handle_rrc_release(rrc_release); });
       break;
     }
+    case dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry: {
+      ue_cap_enquiry_s rrc_cap_enquiry = c1->ue_cap_enquiry();
+      task_sched.defer_task([this, rrc_cap_enquiry]() { handle_ue_cap_enquiry(rrc_cap_enquiry); });
+      break;
+    }
     default:
       logger.error("The provided DL-DCCH message type is not recognized or supported.");
       break;
@@ -1894,7 +1899,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     if (sdap_cfg.sdap_hdr_dl == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::present ||
         sdap_cfg.sdap_hdr_ul == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::present) {
       logger.error("SDAP currently not supported.");
-      return false;
+      //      return false;
     }
     // TODO: configure SDAP accordingly
     uint32_t pdu_session_id = drb_cfg.cn_assoc.sdap_cfg().pdu_session;
@@ -2083,6 +2088,30 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
 void rrc_nr::handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release)
 {
   logger.info("RRC Release not handled yet");
+}
+
+void rrc_nr::handle_ue_cap_enquiry(const asn1::rrc_nr::ue_cap_enquiry_s& ue_cap_enquiry)
+{
+  transaction_id = ue_cap_enquiry.rrc_transaction_id;
+
+  logger.info("Received UECapabilityEnquiry");
+
+  // Send UECapabilityInformation
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         ue_cap_info = ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_ue_cap_info();
+
+  ue_cap_info.ue_cap_rat_container_list_present = true;
+  ue_cap_rat_container_s nr_cap                 = {};
+
+  nr_cap.rat_type = rat_type_e::nr;
+  nr_cap.ue_cap_rat_container.from_string(
+      "E1A01000074F5A03020000C0A0241262C001206A0609B00C39F30C7942C0E098040623809506C4DD608D21A08107CA01165B262A87813E43"
+      "9F40CF88E3C639F30C7942C0E070F09C0013C0070004F0001601C00140A836036B04690D04083E500892D931541439F11C78C73E618F2858"
+      "1C0E1E04FE0000003F80000000A00E05");
+
+  ue_cap_info.ue_cap_rat_container_list.push_back(nr_cap);
+
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
 // Security helper used by Security Mode Command and Mobility handling routines
