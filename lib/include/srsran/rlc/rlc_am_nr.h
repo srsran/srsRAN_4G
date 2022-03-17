@@ -168,9 +168,9 @@ private:
 
 public:
   // Getters/Setters
-  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }        // This should only be used for testing.
-  rlc_am_nr_tx_state_t get_tx_state() { return st; }                      // This should only be used for testing.
-  uint32_t             get_tx_window_size() { return tx_window->size(); } // This should only be used for testing.
+  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }   // This should only be used for testing.
+  rlc_am_nr_tx_state_t get_tx_state() { return st; }                 // This should only be used for testing.
+  uint32_t get_tx_window_utilization() { return tx_window->size(); } // This should only be used for testing.
 
   // Debug Helper
   void debug_state() const;

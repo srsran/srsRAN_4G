@@ -262,7 +262,7 @@ int basic_test(rlc_am_nr_sn_size_t sn_size)
   // Check TX_NEXT_ACK
   rlc_am_nr_tx_state_t st = tx1->get_tx_state();
   TESTASSERT_EQ(5, st.tx_next_ack);
-  TESTASSERT_EQ(0, tx1->get_tx_window_size());
+  TESTASSERT_EQ(0, tx1->get_tx_window_utilization());
 
   // Check PDCP notifications
   TESTASSERT_EQ(5, tester.notified_counts.size());
