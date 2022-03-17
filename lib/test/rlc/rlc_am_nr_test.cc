@@ -315,6 +315,7 @@ int basic_test(rlc_am_nr_sn_size_t sn_size)
  * Test the loss of a single PDU.
  * NACK should be visible in the status report.
  * Retx after NACK should be present too.
+ * No further status reports shall be issued.
  */
 int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
 {
@@ -336,7 +337,8 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
     return -1;
   }
 
-  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+  rlc_config_t rlc2_config = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  if (not rlc2.configure(rlc2_config)) {
     return -1;
   }
 
@@ -426,6 +428,15 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
     TESTASSERT_EQ(5, status_check.ack_sn); // 5 is the next expected SN.
     TESTASSERT_EQ(0, status_check.N_nack); // All PDUs are acked now
+  }
+
+  {
+    // rlc2 should not issue further status PDUs as time passes (even after expiry of t_status_prohibit)
+    int32_t checktime = 2 * rlc2_config.am_nr.t_status_prohibit;
+    for (int cnt = 0; cnt < checktime; cnt++) {
+      timers.step_all();
+      TESTASSERT_EQ(0, rlc2.get_buffer_state());
+    }
   }
 
   // Check statistics

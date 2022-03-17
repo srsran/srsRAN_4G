@@ -1343,6 +1343,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     if (status_prohibit_timer.is_valid()) {
       status_prohibit_timer.run();
     }
+    do_status = false;
   }
   return tmp_buf.N_bytes;
 }
