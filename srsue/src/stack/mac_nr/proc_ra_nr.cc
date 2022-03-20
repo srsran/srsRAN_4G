@@ -224,10 +224,13 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
         // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
         phy->set_rar_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
 
+        // Apply TA CMD
+        current_ta = subpdu.get_ta();
+        phy->set_timeadv_rar(tb.rx_slot_idx, current_ta);
+
         // reset all parameters that are used before rar
         rar_rnti = SRSRAN_INVALID_RNTI;
         mac.msg3_prepare();
-        current_ta = subpdu.get_ta();
 
         // Set Backoff parameter
         if (subpdu.has_backoff()) {

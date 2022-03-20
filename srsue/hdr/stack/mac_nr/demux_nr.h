@@ -15,6 +15,7 @@
 
 #include "mac_nr_interfaces.h"
 #include "srsran/common/block_queue.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 
 namespace srsue {
@@ -35,7 +36,7 @@ public:
   demux_nr(srslog::basic_logger& logger_);
   ~demux_nr();
 
-  int32_t init(rlc_interface_mac* rlc_);
+  int32_t init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_);
 
   void process_pdus(); /// Called by MAC to process received PDUs
 
@@ -51,6 +52,7 @@ private:
 
   srslog::basic_logger& logger;
   rlc_interface_mac*    rlc = nullptr;
+  phy_interface_mac_nr* phy = nullptr;
 
   uint64_t received_crueid = 0;
 

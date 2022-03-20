@@ -258,6 +258,12 @@ public:
                           const float    preamble_received_target_power,
                           const float    ta_base_sec = 0.0f) = 0;
 
+  /// Apply TA command after RAR
+  virtual void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) = 0;
+
+  /// Apply TA command after MAC CE
+  virtual void set_timeadv(uint32_t tti, uint32_t ta_cmd) = 0;
+
   /**
    * @brief Query PHY if there is a valid PUCCH SR resource configured for a given SR identifier
    * @param sr_id SR identifier

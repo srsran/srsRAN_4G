@@ -230,6 +230,16 @@ void phy_nr_sa::send_prach(const uint32_t prach_occasion,
   workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
 }
 
+void phy_nr_sa::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)
+{
+  sync.add_ta_cmd_rar(tti, ta_cmd);
+}
+
+void phy_nr_sa::set_timeadv(uint32_t tti, uint32_t ta_cmd)
+{
+  sync.add_ta_cmd_new(tti, ta_cmd);
+}
+
 int phy_nr_sa::set_rar_grant(uint32_t                                       rar_slot_idx,
                              std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                              uint16_t                                       rnti,

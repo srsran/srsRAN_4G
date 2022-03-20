@@ -65,7 +65,7 @@ int mac_nr::init(const mac_nr_args_t&  args_,
     return SRSRAN_ERROR;
   }
 
-  if (demux.init(rlc) != SRSRAN_SUCCESS) {
+  if (demux.init(rlc, phy) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize demux unit.");
     return SRSRAN_ERROR;
   }

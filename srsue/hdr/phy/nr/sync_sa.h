@@ -79,6 +79,9 @@ public:
 
   void worker_end(const worker_context_t& w_ctx, const bool& tx_enable, srsran::rf_buffer_t& buffer) override;
 
+  void add_ta_cmd_rar(uint32_t tti, uint32_t ta_cmd);
+  void add_ta_cmd_new(uint32_t tti, uint32_t ta_cmd);
+
 private:
   stack_interface_phy_nr*      stack = nullptr; ///< Stand-Alone RRC interface
   srsran::radio_interface_phy* radio = nullptr; ///< Radio object
@@ -106,6 +109,9 @@ private:
   cell_search::ret_t cs_ret;
   cell_search        searcher;
   slot_sync          slot_synchronizer;
+
+  // Time Aligment Controller, internal thread safe
+  ta_control ta;
 
   // FSM States
   bool wait_idle();

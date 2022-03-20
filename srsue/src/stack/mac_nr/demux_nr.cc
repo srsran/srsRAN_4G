@@ -21,9 +21,10 @@ demux_nr::demux_nr(srslog::basic_logger& logger_) : logger(logger_) {}
 
 demux_nr::~demux_nr() {}
 
-int32_t demux_nr::init(rlc_interface_mac* rlc_)
+int32_t demux_nr::init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_)
 {
   rlc = rlc_;
+  phy = phy_;
   return SRSRAN_SUCCESS;
 }
 
@@ -104,7 +105,8 @@ void demux_nr::handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byt
         logger.info("DRX CE not implemented.");
         break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::TA_CMD:
-        logger.info("Timing Advance CE not implemented.");
+        logger.info("Received TA=%d.", subpdu.get_ta().ta_command);
+        phy->set_timeadv(0, subpdu.get_ta().ta_command);
         break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
         received_crueid = subpdu.get_ue_con_res_id_ce_packed();

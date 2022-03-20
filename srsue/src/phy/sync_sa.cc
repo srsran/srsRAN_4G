@@ -16,7 +16,7 @@
 namespace srsue {
 namespace nr {
 sync_sa::sync_sa(srslog::basic_logger& logger_, worker_pool& workers_) :
-  logger(logger_), workers(workers_), slot_synchronizer(logger_), searcher(logger_), srsran::thread("SYNC")
+  logger(logger_), workers(workers_), slot_synchronizer(logger_), searcher(logger_), ta(logger_), srsran::thread("SYNC")
 {}
 
 sync_sa::~sync_sa()
@@ -78,8 +78,19 @@ bool sync_sa::reset()
 {
   // Wait worker pool to finish any processing
   tti_semaphore.wait_all();
+  ta.set_base_sec(0);
 
   return true;
+}
+
+void sync_sa::add_ta_cmd_rar(uint32_t tti_, uint32_t ta_cmd)
+{
+  ta.add_ta_cmd_rar(tti_, ta_cmd);
+}
+
+void sync_sa::add_ta_cmd_new(uint32_t tti_, uint32_t ta_cmd)
+{
+  ta.add_ta_cmd_new(tti_, ta_cmd);
 }
 
 void sync_sa::cell_go_idle()
@@ -293,6 +304,8 @@ void sync_sa::run_state_cell_camping()
   context.last       = true; // Set last if standalone
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
   context.tx_time.copy(last_rx_time);
+  // Apply current TA
+  context.tx_time.sub((double)ta.get_sec());
 
   nr_worker->set_context(context);
 
