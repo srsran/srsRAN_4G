@@ -866,12 +866,58 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
     timers.step_all();
   }
 
+  // After the t-Reassembly expires:
+  // - RX_Highest_Status is updated to the SN of the first RLC SDU with SN >= RX_Next_Status_Trigger, i.e., SN=2
+  // - Because RX_Next_Highest> RX_Highest_Status +1:
+  //   - t-Reassembly is restarted, and
+  //   - RX_Next_Status_Trigger is set to RX_Next_Highest.
   {
     // Double check rx state
     rlc_am_nr_rx_state_t st = rx2->get_rx_state();
     TESTASSERT_EQ(1, st.rx_next);
-    TESTASSERT_EQ(1, st.rx_highest_status);
-    TESTASSERT_EQ(2, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reordering was started
+    TESTASSERT_EQ(2, st.rx_highest_status);
+    TESTASSERT_EQ(5, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reordering was started
+    TESTASSERT_EQ(5, st.rx_next_highest);        // Highest SN received + 1
+  }
+
+  // t-reassembly has expired. Becuse RX_Highest_Status is 2
+  // There should be an ACK of SN=2 and a NACK of SN=1
+  TESTASSERT_EQ(9, rlc2.get_buffer_state()); // 3 bytes for fixed header (ACK+E1) + 6 for NACK with SO = 9.
+  {
+    // Read status PDU from RLC2
+    byte_buffer_t status_buf;
+    int           len  = rlc2.read_pdu(status_buf.msg, 9);
+    status_buf.N_bytes = len;
+
+    TESTASSERT_EQ(0, rlc2.get_buffer_state());
+
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
+    TESTASSERT_EQ(2, status_check.ack_sn);             // 5 is the next expected SN.
+    TESTASSERT_EQ(1, status_check.N_nack);             // We lost one PDU.
+    TESTASSERT_EQ(1, status_check.nacks[0].nack_sn);   // Lost SDU on SN=1.
+    TESTASSERT_EQ(true, status_check.nacks[0].has_so); // It's a segment.
+    TESTASSERT_EQ(0, status_check.nacks[0].so_start);  // First byte missing is 0.
+    TESTASSERT_EQ(0, status_check.nacks[0].so_end);    // Last byte of the segment.
+  }
+
+  // Step timers until reassambly timeout expires
+  for (int cnt = 0; cnt < 35; cnt++) {
+    timers.step_all();
+  }
+
+  // After the t-Reassembly expires:
+  // - RX_Highest_Status is updated to the SN of the first RLC SDU with SN >= RX_Next_Status_Trigger, i.e., SN=2
+  // - Because RX_Next_Highest> RX_Highest_Status +1:
+  //   - t-Reassembly is restarted, and
+  //   - RX_Next_Status_Trigger is set to RX_Next_Highest.
+  {
+    // Double check rx state
+    rlc_am_nr_rx_state_t st = rx2->get_rx_state();
+    TESTASSERT_EQ(1, st.rx_next);
+    TESTASSERT_EQ(5, st.rx_highest_status);
+    TESTASSERT_EQ(5, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reordering was started
     TESTASSERT_EQ(5, st.rx_next_highest);        // Highest SN received + 1
   }
 
@@ -953,7 +999,7 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
 
   uint32_t data_pdu_size       = header_size + payload_size;
   uint32_t total_tx_pdu_bytes1 = 5 * pdu_size_first + 10 * pdu_size_continued + pdu_size_first + 2 * pdu_size_continued;
-  uint32_t total_rx_pdu_bytes1 = 2 * status_pdu_ack_size + 3 * (status_pdu_nack_size + status_pdu_so_size);
+  uint32_t total_rx_pdu_bytes1 = 3 * status_pdu_ack_size + 4 * (status_pdu_nack_size + status_pdu_so_size);
   uint32_t total_tx_pdu_bytes2 = total_rx_pdu_bytes1;
   uint32_t total_rx_pdu_bytes2 = 4 * pdu_size_first + 8 * pdu_size_continued + pdu_size_first + 2 * pdu_size_continued;
 
@@ -965,15 +1011,15 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   TESTASSERT_EQ(0, metrics1.num_lost_sdus);
 
   // PDU metrics
-  TESTASSERT_EQ(15 + 3, metrics1.num_tx_pdus);  // 15 PDUs + 3 re-transmissions
-  TESTASSERT_EQ(2, metrics1.num_rx_pdus);       // Two status PDU
+  TESTASSERT_EQ(15 + 3, metrics1.num_tx_pdus); // 15 PDUs + 3 re-transmissions
+  TESTASSERT_EQ(2, metrics1.num_rx_pdus);      // Two status PDU
   TESTASSERT_EQ(total_tx_pdu_bytes1,
                 metrics1.num_tx_pdu_bytes); // 3 Bytes * 5 (5 PDUs without SO) + 10 * 5 (10 PDUs with SO)
                                             // 3 (1 retx no SO) + 2 * 5 (2 retx with SO) = 78
   TESTASSERT_EQ(total_rx_pdu_bytes1,
-                metrics1.num_rx_pdu_bytes);     // Two status PDU. One with just an ack (3 bytes)
-                                                // Another with 3 NACKs all with SO. (3 + 3*6 bytes) = 24
-  TESTASSERT_EQ(0, metrics1.num_lost_sdus);     // No lost SDUs
+                metrics1.num_rx_pdu_bytes); // Two status PDU. One with just an ack (3 bytes)
+                                            // Another with 3 NACKs all with SO. (3 + 3*6 bytes) = 24
+  TESTASSERT_EQ(0, metrics1.num_lost_sdus); // No lost SDUs
 
   // PDU metrics
   TESTASSERT_EQ(0, metrics2.num_tx_sdus);
@@ -982,15 +1028,15 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   TESTASSERT_EQ(15, metrics2.num_rx_sdu_bytes); // 5 SDUs, 3 bytes each
   TESTASSERT_EQ(0, metrics2.num_lost_sdus);
   // SDU metrics
-  TESTASSERT_EQ(2, metrics2.num_tx_pdus);       // Two status PDUs
-  TESTASSERT_EQ(15, metrics2.num_rx_pdus);      // 15 PDUs (18 tx'ed, but three were lost)
-  TESTASSERT_EQ(total_tx_pdu_bytes2,
-                metrics2.num_tx_pdu_bytes); // Two status PDU. One with just an ack (3 bytes)
-                                            // Another with 3 NACKs all with SO. (3 + 3*6 bytes) = 24
-  TESTASSERT_EQ(total_rx_pdu_bytes2,
-                metrics2.num_rx_pdu_bytes);     // 3 Bytes * 4 (5-1 PDUs without SO) + 8 * 5 (10-2 PDUs with SO)
-                                                // 3 (1 retx no SO) + 2 * 5 (2 retx with SO) = 65 bytes
-  TESTASSERT_EQ(0, metrics2.num_lost_sdus);     // No lost SDUs
+  TESTASSERT_EQ(3, metrics2.num_tx_pdus);   // 3 status PDUs
+  TESTASSERT_EQ(15, metrics2.num_rx_pdus);  // 15 PDUs (18 tx'ed, but three were lost)
+  TESTASSERT_EQ(total_tx_pdu_bytes2,        // Three status PDU. One with just an ack
+                metrics2.num_tx_pdu_bytes); // Another with 1 NACK with SO.
+                                            // Another with 3 NACKs all with SO.
+  TESTASSERT_EQ(total_rx_pdu_bytes2,        // 3 Bytes (header + data size, without SO) * 5 (N PDUs without SO)
+                metrics2.num_rx_pdu_bytes); // 5 bytes (header + data size, with SO) * 10 (N PDUs with SO)
+                                            // = 81 bytes
+  TESTASSERT_EQ(0, metrics2.num_lost_sdus); // No lost SDUs
 
   // Check state
   rlc_am_nr_rx_state_t state2_rx = rx2->get_rx_state();
@@ -1248,7 +1294,7 @@ int discard_test(rlc_am_nr_sn_size_t sn_size)
     }
   }
   TESTASSERT(rlc1.get_buffer_state() == num_tx_sdus * (header_size + payload_size)); // 10 * (2B Header + 7B Payload)
-  rlc1.discard_sdu(3);                       // Try to discard PDCP_SN=3
+  rlc1.discard_sdu(3);                                                               // Try to discard PDCP_SN=3
   TESTASSERT(rlc1.has_data() == true);
   TESTASSERT(rlc1.get_buffer_state() == (num_tx_sdus - 1) * (header_size + payload_size));
   rlc1.discard_sdu(9); // Try to discard PDCP_SN=9
@@ -1288,7 +1334,7 @@ int discard_test(rlc_am_nr_sn_size_t sn_size)
     }
   }
   TESTASSERT(rlc1.get_buffer_state() == num_tx_sdus * (header_size + payload_size)); // 3 * (2B Header + 7B Payload)
-  rlc1.discard_sdu(8);                       // Try to discard PDCP_SN=8, which doesn't exist
+  rlc1.discard_sdu(8); // Try to discard PDCP_SN=8, which doesn't exist
   TESTASSERT(rlc1.get_buffer_state() == num_tx_sdus * (header_size + payload_size)); // 3 * (2B Header + 7B Payload)
 
   return SRSRAN_SUCCESS;
