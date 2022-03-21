@@ -178,7 +178,7 @@ inline void log_rlc_am_nr_pdu_header_to_string(srslog::log_channel&          log
                  rlc_dc_field_text[header.dc],
                  (header.p ? "1" : "0"),
                  to_string_short(header.si),
-                 header.sn,
+                 to_string(header.sn_size),
                  header.sn,
                  header.so);
   fmt::format_to(buffer, "]");
