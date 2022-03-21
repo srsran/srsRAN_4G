@@ -94,11 +94,6 @@ const char* srsran_rf_get_devname(srsran_rf_t* rf)
 
 int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uint32_t nof_channels)
 {
-  if (srsran_rf_load_plugins() != SRSRAN_SUCCESS) {
-    ERROR("Failed to load RF plugins");
-    return SRSRAN_ERROR;
-  }
-
   rf->thread_gain_run = false;
 
   bool no_rf_devs_detected = true;
@@ -481,4 +476,12 @@ int srsran_rf_load_plugins()
 
 #endif /* ENABLE_RF_PLUGINS */
   return SRSRAN_SUCCESS;
+}
+
+// Search and load plugins when this library is loaded (shared) or right before main (static)
+void __attribute__((constructor)) init()
+{
+  if (srsran_rf_load_plugins() != SRSRAN_SUCCESS) {
+    ERROR("Failed to load RF plugins");
+  }
 }
