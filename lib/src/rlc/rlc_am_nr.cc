@@ -1108,57 +1108,69 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   debug_state();
 
   // 5.2.3.2.3 Actions when an AMD PDU is placed in the reception buffer
-  // Update Rx_Next_Highest
+  /*
+   * - if x >= RX_Next_Highest
+   *   - update RX_Next_Highest to x+ 1.
+   */
   if (rx_mod_base_nr(header.sn) >= rx_mod_base_nr(st.rx_next_highest)) {
     st.rx_next_highest = (header.sn + 1) % mod_nr;
   }
 
-  // Update RX_Highest_Status
   /*
-   * - if x = RX_Highest_Status,
-   *   - update RX_Highest_Status to the SN of the first RLC SDU with SN > current RX_Highest_Status for which not
-   * all bytes have been received.
+   * - if all bytes of the RLC SDU with SN = x are received:
    */
-  if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_highest_status)) {
-    uint32_t sn_upd     = 0;
-    uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
-    for (sn_upd = st.rx_highest_status; sn_upd < window_top; ++sn_upd) {
-      if (rx_window->has_sn(sn_upd)) {
-        if (not(*rx_window)[sn_upd].fully_received) {
-          break; // first SDU not fully received
-        }
-      } else {
-        break; // first SDU not fully received
-      }
-    }
-    // Update to the SN of the first SDU with missing bytes.
-    // If it not exists, update to the end of the rx_window.
-    st.rx_highest_status = sn_upd;
-  }
+  if (rx_window->has_sn(header.sn) && (*rx_window)[header.sn].fully_received) {
+    /*
+     * - reassemble the RLC SDU from AMD PDU(s) with SN = x, remove RLC headers when doing so and deliver
+     *   the reassembled RLC SDU to upper layer;
+     */
+    write_to_upper_layers(parent->lcid, std::move((*rx_window)[header.sn].buf));
 
-  /*
-   * - if x = RX_Next:
-   *   - update RX_Next to the SN of the first RLC SDU with SN > current RX_Next for which not all bytes
-   *     have been received.
-   */
-  if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
-    uint32_t sn_upd     = 0;
-    uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
-    for (sn_upd = st.rx_next; sn_upd < window_top; ++sn_upd) {
-      if (rx_window->has_sn(sn_upd)) {
-        if (not(*rx_window)[sn_upd].fully_received) {
+    /*
+     * - if x = RX_Highest_Status,
+     *   - update RX_Highest_Status to the SN of the first RLC SDU with SN > current RX_Highest_Status for which not
+     * all bytes have been received.
+     */
+    if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_highest_status)) {
+      uint32_t sn_upd     = 0;
+      uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
+      for (sn_upd = (st.rx_highest_status + 1) % mod_nr; sn_upd < window_top; ++sn_upd) {
+        if (rx_window->has_sn(sn_upd)) {
+          if (not(*rx_window)[sn_upd].fully_received) {
+            break; // first SDU not fully received
+          }
+        } else {
           break; // first SDU not fully received
         }
-        // RX_Next serves as the lower edge of the receiving window
-        // As such, we remove any SDU from the window if we update this value
-        rx_window->remove_pdu(sn_upd);
-      } else {
-        break; // first SDU not fully received
       }
+      // Update to the SN of the first SDU with missing bytes.
+      // If it not exists, update to the end of the rx_window.
+      st.rx_highest_status = sn_upd;
     }
-    // Update to the SN of the first SDU with missing bytes.
-    // If it not exists, update to the end of the rx_window.
-    st.rx_next = sn_upd;
+    /*
+     * - if x = RX_Next:
+     *   - update RX_Next to the SN of the first RLC SDU with SN > current RX_Next for which not all bytes
+     *     have been received.
+     */
+    if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
+      uint32_t sn_upd     = 0;
+      uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
+      for (sn_upd = st.rx_next; sn_upd < window_top; ++sn_upd) {
+        if (rx_window->has_sn(sn_upd)) {
+          if (not(*rx_window)[sn_upd].fully_received) {
+            break; // first SDU not fully received
+          }
+          // RX_Next serves as the lower edge of the receiving window
+          // As such, we remove any SDU from the window if we update this value
+          rx_window->remove_pdu(sn_upd);
+        } else {
+          break; // first SDU not fully received
+        }
+      }
+      // Update to the SN of the first SDU with missing bytes.
+      // If it not exists, update to the end of the rx_window.
+      st.rx_next = sn_upd;
+    }
   }
 
   if (reassembly_timer.is_running()) {
@@ -1171,7 +1183,17 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
      *   to RX_Next + AM_Window_Size:
      * - stop and reset t-Reassembly.
      */
-  } else {
+    bool stop_reassembly_timer = false;
+    if (st.rx_next_status_trigger == st.rx_next) {
+      stop_reassembly_timer = true;
+    }
+    if (stop_reassembly_timer) {
+      reassembly_timer.stop();
+    }
+  }
+
+  if (not reassembly_timer.is_running()) {
+    // if t-Reassembly is not running (includes the case t-Reassembly is stopped due to actions above):
     /*
      * - if RX_Next_Highest> RX_Next +1; or
      * - if RX_Next_Highest = RX_Next + 1 and there is at least one missing byte segment of the SDU associated
@@ -1183,8 +1205,8 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (st.rx_next_highest > st.rx_next + 1) {
       restart_reassembly_timer = true;
     }
-    if (st.rx_next_highest == st.rx_next + 1 && rx_window->has_sn(st.rx_next + 1) &&
-        not(*rx_window)[st.rx_next + 1].fully_received) {
+    if (st.rx_next_highest == st.rx_next + 1 && rx_window->has_sn(st.rx_next) &&
+        not(*rx_window)[st.rx_next].fully_received) {
       restart_reassembly_timer = true;
     }
     if (restart_reassembly_timer) {
@@ -1219,7 +1241,6 @@ int rlc_am_nr_rx::handle_full_data_sdu(const rlc_am_nr_pdu_header_t& header, con
   memcpy(rx_sdu.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
   rx_sdu.buf->N_bytes   = nof_bytes - hdr_len;
   rx_sdu.fully_received = true;
-  write_to_upper_layers(parent->lcid, std::move((*rx_window)[header.sn].buf));
   return SRSRAN_SUCCESS;
 }
 
@@ -1274,7 +1295,6 @@ int rlc_am_nr_rx::handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header,
       memcpy(&rx_sdu.buf->msg[rx_sdu.buf->N_bytes], it.buf->msg, it.buf->N_bytes);
       rx_sdu.buf->N_bytes += it.buf->N_bytes;
     }
-    write_to_upper_layers(parent->lcid, std::move((*rx_window)[header.sn].buf));
   }
   return SRSRAN_SUCCESS;
 }
@@ -1293,10 +1313,16 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   status->ack_sn = st.rx_next; // Start with the lower end of the window
   byte_buffer_t tmp_buf;
 
+  /*
+   * - for the RLC SDUs with SN such that RX_Next <= SN < RX_Highest_Status that has not been completely
+   *   received yet, in increasing SN order of RLC SDUs and increasing byte segment order within RLC SDUs,
+   *   starting with SN = RX_Next up to the point where the resulting STATUS PDU still fits to the total size of RLC
+   *   PDU(s) indicated by lower layer:
+   */
   uint32_t i = status->ack_sn;
-  while (rx_mod_base_nr(i) <= rx_mod_base_nr(st.rx_highest_status)) {
-    if ((rx_window->has_sn(i) && (*rx_window)[i].fully_received) || i == st.rx_highest_status) {
-      // only update ACK_SN if this SN has been fully received, or if we reached the maximum possible SN
+  for (i = st.rx_next; rx_mod_base_nr(i) < rx_mod_base_nr(st.rx_highest_status); i = (i + 1) % mod_nr) {
+    if ((rx_window->has_sn(i) && (*rx_window)[i].fully_received)) {
+      // only update ACK_SN if this SN has been fully received
       status->ack_sn = i;
     } else {
       if (not rx_window->has_sn(i)) {
@@ -1331,14 +1357,17 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
         }
       }
     }
-
-    // TODO: add check to not exceed status->N_nack >= RLC_AM_NR_MAX_NACKS
-
     // make sure we don't exceed grant size (FIXME)
     rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);
-    // TODO
-    i = (i + 1) % mod_nr;
   }
+  /*
+   * - set the ACK_SN to the SN of the next not received RLC SDU which is not
+   * indicated as missing in the resulting STATUS PDU.
+   */
+  // FIXME as we do not check the size of status report, the next not received
+  // RLC SDU has the same SN as RX_HIGHEST_STATUS
+  status->ack_sn = st.rx_highest_status;
+  rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);
 
   if (max_len != UINT32_MAX) {
     // UINT32_MAX is used just to query the status PDU length
@@ -1387,7 +1416,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
     for (uint32_t tmp_sn = st.rx_next_status_trigger;
          tmp_sn < st.rx_next_status_trigger + am_window_size(cfg.rx_sn_field_length);
          tmp_sn++) {
-      if (not rx_window->has_sn(tmp_sn)) {
+      if (not rx_window->has_sn(tmp_sn) || not(*rx_window)[tmp_sn].fully_received) {
         st.rx_highest_status = tmp_sn;
         break;
       }

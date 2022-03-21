@@ -57,7 +57,6 @@ int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS], rlc_am_nr_sn_size_
 
 /*
  * Test the limits of the TX/RX window checkers
- *
  */
 int window_checker_test(rlc_am_nr_sn_size_t sn_size)
 {
@@ -825,11 +824,25 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   // Write 15 - 3 PDUs into RLC2
   for (int i = 0; i < n_pdu_bufs; i++) {
     if (i != 3 && i != 7 && i != 11) {
-      rlc2.write_pdu(pdu_bufs[i]->msg, pdu_bufs[i]->N_bytes); // Lose first segment of RLC_SN=1.
+      // Lose first segment of RLC_SN=1.
+      // Lose middle segment of RLC_SN=2.
+      // Lose last segment of RLC_SN=3.
+      rlc2.write_pdu(pdu_bufs[i]->msg, pdu_bufs[i]->N_bytes);
     }
   }
 
+  {
+    // Double check rx state
+    rlc_am_nr_rx_state_t st = rx2->get_rx_state();
+    TESTASSERT_EQ(1, st.rx_next);
+    TESTASSERT_EQ(1, st.rx_highest_status);
+    TESTASSERT_EQ(2, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reordering was started
+    TESTASSERT_EQ(5, st.rx_next_highest);        // Highest SN received + 1
+  }
+
   // Only after t-reassembly has expired, will the status report include NACKs.
+  // RX_Highest_Status will be updated to to the SN
+  // of the first RLC SDU with SN >= RX_Next_Status_Trigger
   TESTASSERT_EQ(3, rlc2.get_buffer_state());
   {
     // Read status PDU from RLC2
@@ -851,6 +864,15 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   // Step timers until reassambly timeout expires
   for (int cnt = 0; cnt < 35; cnt++) {
     timers.step_all();
+  }
+
+  {
+    // Double check rx state
+    rlc_am_nr_rx_state_t st = rx2->get_rx_state();
+    TESTASSERT_EQ(1, st.rx_next);
+    TESTASSERT_EQ(1, st.rx_highest_status);
+    TESTASSERT_EQ(2, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reordering was started
+    TESTASSERT_EQ(5, st.rx_next_highest);        // Highest SN received + 1
   }
 
   // t-reassembly has expired. There should be a NACK in the status report.
