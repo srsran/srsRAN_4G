@@ -1064,6 +1064,8 @@ void rlc_am_nr_rx::reestablish()
 
 void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   // Get AMD PDU Header
   rlc_am_nr_pdu_header_t header  = {};
   uint32_t               hdr_len = rlc_am_nr_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
@@ -1487,7 +1489,7 @@ bool rlc_am_nr_rx::have_all_segments_been_received(
  */
 void rlc_am_nr_rx::debug_state() const
 {
-  RlcDebug("RX entity state: Rx_Next %d, Rx_Next_Status_Trigger %d, Rx_Highest_Status %d, Rx_Next_Highest",
+  RlcDebug("RX entity state: Rx_Next=%d, Rx_Next_Status_Trigger=%d, Rx_Highest_Status=%d, Rx_Next_Highest=%d",
            st.rx_next,
            st.rx_next_status_trigger,
            st.rx_highest_status,
