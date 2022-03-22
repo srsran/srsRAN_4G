@@ -761,7 +761,8 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
-  test_delimit_logger delimiter("retx segment PDU (%d bit SN)", to_number(sn_size));
+  std::string         str = "retx segment PDU (" + std::to_string(to_number(sn_size)) + " bit SN)";
+  test_delimit_logger delimiter(str.c_str());
 
   rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
   rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
@@ -882,11 +883,15 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
 
   // t-reassembly has expired. Becuse RX_Highest_Status is 2
   // There should be an ACK of SN=2 and a NACK of SN=1
-  TESTASSERT_EQ(9, rlc2.get_buffer_state()); // 3 bytes for fixed header (ACK+E1) + 6 for NACK with SO = 9.
+  constexpr uint32_t status_pdu_ack_size  = 3;
+  uint32_t           status_pdu_nack_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  constexpr uint32_t status_pdu_so_size   = 4;
+  TESTASSERT_EQ(status_pdu_ack_size + status_pdu_nack_size + status_pdu_so_size,
+                rlc2.get_buffer_state()); // 3 bytes for fixed header (ACK+E1) + 6 for NACK with SO = 9.
   {
     // Read status PDU from RLC2
     byte_buffer_t status_buf;
-    int           len  = rlc2.read_pdu(status_buf.msg, 9);
+    int           len  = rlc2.read_pdu(status_buf.msg, status_pdu_ack_size + status_pdu_nack_size + status_pdu_so_size);
     status_buf.N_bytes = len;
 
     TESTASSERT_EQ(0, rlc2.get_buffer_state());
@@ -923,9 +928,6 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
 
   // t-reassembly has expired. There should be a NACK in the status report.
   // There should be 3 NACKs with SO_start and SO_end
-  constexpr uint32_t status_pdu_ack_size  = 3;
-  uint32_t           status_pdu_nack_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
-  constexpr uint32_t status_pdu_so_size   = 4;
   TESTASSERT_EQ(status_pdu_ack_size + 3 * (status_pdu_nack_size + status_pdu_so_size), rlc2.get_buffer_state());
   {
     // Read status PDU from RLC2
@@ -999,8 +1001,8 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
 
   uint32_t data_pdu_size       = header_size + payload_size;
   uint32_t total_tx_pdu_bytes1 = 5 * pdu_size_first + 10 * pdu_size_continued + pdu_size_first + 2 * pdu_size_continued;
-  uint32_t total_rx_pdu_bytes1 = 3 * status_pdu_ack_size + 4 * (status_pdu_nack_size + status_pdu_so_size);
-  uint32_t total_tx_pdu_bytes2 = total_rx_pdu_bytes1;
+  uint32_t total_rx_pdu_bytes1 = 2 * status_pdu_ack_size + 3 * (status_pdu_nack_size + status_pdu_so_size);
+  uint32_t total_tx_pdu_bytes2 = 3 * status_pdu_ack_size + 4 * (status_pdu_nack_size + status_pdu_so_size);
   uint32_t total_rx_pdu_bytes2 = 4 * pdu_size_first + 8 * pdu_size_continued + pdu_size_first + 2 * pdu_size_continued;
 
   // SDU metrics
