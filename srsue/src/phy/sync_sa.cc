@@ -93,6 +93,11 @@ void sync_sa::add_ta_cmd_new(uint32_t tti_, uint32_t ta_cmd)
   ta.add_ta_cmd_new(tti_, ta_cmd);
 }
 
+void sync_sa::add_ta_offset(uint32_t ta_offset)
+{
+  ta.add_ta_offset(ta_offset);
+}
+
 void sync_sa::cell_go_idle()
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);

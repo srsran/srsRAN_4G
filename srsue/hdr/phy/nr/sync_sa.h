@@ -81,6 +81,7 @@ public:
 
   void add_ta_cmd_rar(uint32_t tti, uint32_t ta_cmd);
   void add_ta_cmd_new(uint32_t tti, uint32_t ta_cmd);
+  void add_ta_offset(uint32_t ta_offset);
 
 private:
   stack_interface_phy_nr*      stack = nullptr; ///< Stand-Alone RRC interface

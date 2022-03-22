@@ -486,6 +486,26 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   // Apply SSB Config
   fill_phy_ssb_cfg(sib1.serving_cell_cfg_common, &phy_cfg.ssb);
 
+  // Apply n-TimingAdvanceOffset
+  if (sib1.serving_cell_cfg_common.n_timing_advance_offset_present) {
+    switch (sib1.serving_cell_cfg_common.n_timing_advance_offset.value) {
+      case serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0:
+        phy_cfg.t_offset = 0;
+        break;
+      case serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n25600:
+        phy_cfg.t_offset = 25600;
+        break;
+      case serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n39936:
+        phy_cfg.t_offset = 39936;
+        break;
+      default:
+        logger.error("Invalid n_ta_offset option");
+        break;
+    }
+  } else {
+    phy_cfg.t_offset = 25600;
+  }
+
   phy_cfg_state = PHY_CFG_STATE_SA_SIB_CFG;
   if (not phy->set_config(phy_cfg)) {
     logger.warning("Could not set phy config.");
