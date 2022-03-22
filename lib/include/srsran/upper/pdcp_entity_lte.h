@@ -33,7 +33,7 @@ namespace srsran {
 class undelivered_sdus_queue
 {
 public:
-  explicit undelivered_sdus_queue(srsran::task_sched_handle task_sched);
+  explicit undelivered_sdus_queue(srsran::task_sched_handle task_sched, uint32_t sn_mod);
 
   bool            empty() const { return count == 0; }
   bool            is_full() const { return count >= capacity; }
@@ -73,8 +73,9 @@ public:
 private:
   const static uint32_t capacity   = 4096;
   const static uint32_t invalid_sn = -1;
+  uint32_t              sn_mod     = 0;
 
-  static uint32_t increment_sn(uint32_t sn) { return (sn + 1) % capacity; }
+  uint32_t increment_sn(uint32_t sn) { return (sn + 1) % sn_mod; }
 
   struct sdu_data {
     srsran::unique_byte_buffer_t sdu;

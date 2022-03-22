@@ -91,7 +91,7 @@ bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
   logger.info("Status Report Required: %s", cfg.status_report_required ? "True" : "False");
 
   if (is_drb() and not rlc->rb_is_um(lcid)) {
-    undelivered_sdus = std::unique_ptr<undelivered_sdus_queue>(new undelivered_sdus_queue(task_sched));
+    undelivered_sdus = std::unique_ptr<undelivered_sdus_queue>(new undelivered_sdus_queue(task_sched, maximum_pdcp_sn));
     rx_counts_info.reserve(reordering_window);
   }
 
@@ -858,7 +858,7 @@ void pdcp_entity_lte::reset_metrics()
 /****************************************************************************
  * Undelivered SDUs queue helpers
  ***************************************************************************/
-undelivered_sdus_queue::undelivered_sdus_queue(srsran::task_sched_handle task_sched)
+undelivered_sdus_queue::undelivered_sdus_queue(srsran::task_sched_handle task_sched, uint32_t sn_mod) : sn_mod(sn_mod)
 {
   for (auto& e : sdus) {
     e.discard_timer = task_sched.get_unique_timer();
