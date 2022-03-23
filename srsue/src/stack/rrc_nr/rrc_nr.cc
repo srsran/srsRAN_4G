@@ -45,6 +45,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
                  mac_interface_rrc_nr*       mac_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
+                 sdap_interface_rrc*         sdap_,
                  gw_interface_rrc*           gw_,
                  nas_5g_interface_rrc_nr*    nas_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_,
@@ -56,6 +57,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   phy       = phy_;
   rlc       = rlc_;
   pdcp      = pdcp_;
+  sdap      = sdap_;
   gw        = gw_;
   nas       = nas_;
   mac       = mac_;
@@ -1896,12 +1898,18 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
   } else if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::sdap_cfg) {
     const auto& sdap_cfg = drb_cfg.cn_assoc.sdap_cfg();
-    if (sdap_cfg.sdap_hdr_dl == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::present ||
-        sdap_cfg.sdap_hdr_ul == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::present) {
-      logger.error("SDAP currently not supported.");
-      //      return false;
+
+    sdap_interface_rrc::bearer_cfg_t sdap_bearer_cfg = {};
+    sdap_bearer_cfg.add_downlink_header = sdap_cfg.sdap_hdr_dl.value == sdap_cfg_s::sdap_hdr_dl_opts::present;
+    sdap_bearer_cfg.add_uplink_header   = sdap_cfg.sdap_hdr_ul.value == sdap_cfg_s::sdap_hdr_ul_opts::present;
+    sdap_bearer_cfg.is_data             = true;
+    sdap_bearer_cfg.qfi                 = sdap_cfg.mapped_qos_flows_to_add[0];
+
+    if (not sdap->set_bearer_cfg(lcid, sdap_bearer_cfg)) {
+      logger.error("Configuring SDAP");
+      return false;
     }
-    // TODO: configure SDAP accordingly
+
     uint32_t pdu_session_id = drb_cfg.cn_assoc.sdap_cfg().pdu_session;
     // Register PDU session as "EPS bearer" in bearer manager
     stack->add_eps_bearer(pdu_session_id, srsran::srsran_rat_t::nr, lcid);

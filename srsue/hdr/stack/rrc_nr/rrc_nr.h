@@ -28,6 +28,7 @@
 #include "srsran/interfaces/ue_nas_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/interfaces/ue_sdap_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
@@ -52,6 +53,7 @@ public:
            mac_interface_rrc_nr*       mac_,
            rlc_interface_rrc*          rlc_,
            pdcp_interface_rrc*         pdcp_,
+           sdap_interface_rrc*         sdap_,
            gw_interface_rrc*           gw_,
            nas_5g_interface_rrc_nr*    nas_,
            rrc_eutra_interface_rrc_nr* rrc_eutra_,
@@ -170,6 +172,7 @@ private:
   mac_interface_rrc_nr*       mac       = nullptr;
   rlc_interface_rrc*          rlc       = nullptr;
   pdcp_interface_rrc*         pdcp      = nullptr;
+  sdap_interface_rrc*         sdap      = nullptr;
   gw_interface_rrc*           gw        = nullptr;
   nas_5g_interface_rrc_nr*    nas       = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;

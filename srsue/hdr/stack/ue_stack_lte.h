@@ -36,6 +36,7 @@
 #include "ue_stack_base.h"
 #include "upper/nas.h"
 #include "upper/nas_5g.h"
+#include "upper/sdap.h"
 #include "upper/usim.h"
 #include <functional>
 #include <pthread.h>
@@ -45,6 +46,28 @@
 namespace srsue {
 
 class phy_interface_stack_lte;
+
+class sdap_pdcp_adapter : public pdcp_interface_sdap_nr, public gw_interface_pdcp
+{
+public:
+  sdap_pdcp_adapter(pdcp* parent_pdcp_, sdap* parent_sdap_) : parent_pdcp(parent_pdcp_), parent_sdap(parent_sdap_) {}
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final
+  {
+    parent_pdcp->write_sdu(lcid, std::move(pdu));
+  }
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final
+  {
+    parent_sdap->write_pdu(lcid, std::move(pdu));
+  }
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final
+  {
+    // not implemented
+  }
+
+private:
+  pdcp* parent_pdcp;
+  sdap* parent_sdap;
+};
 
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
@@ -230,6 +253,10 @@ private:
   srsue::nas                 nas;
   srsue::nas_5g              nas_5g;
   std::unique_ptr<usim_base> usim;
+
+  // SDAP only applies to NR
+  srsue::sdap       sdap;
+  sdap_pdcp_adapter sdap_pdcp;
 
   ue_bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
 

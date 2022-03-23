@@ -59,6 +59,13 @@ public:
   virtual bool is_lcid_enabled(uint32_t lcid)                                          = 0;
 };
 
+// SDAP interface
+class pdcp_interface_sdap_nr
+{
+public:
+  virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
+};
+
 // STACK interface for GW (based on EPS-bearer IDs)
 class stack_interface_gw
 {
