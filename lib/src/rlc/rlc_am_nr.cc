@@ -1415,20 +1415,22 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      *   - start t-Reassembly;
      *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
-    for (uint32_t tmp_sn = st.rx_next_status_trigger;
-         tmp_sn < st.rx_next_status_trigger + am_window_size(cfg.rx_sn_field_length);
-         tmp_sn++) {
-      if (not rx_window->has_sn(tmp_sn) || not(*rx_window)[tmp_sn].fully_received) {
-        st.rx_highest_status = tmp_sn;
+    for (uint32_t sn = st.rx_next_status_trigger; rx_mod_base_nr(sn) <= rx_mod_base_nr(st.rx_next_highest);
+         sn          = (sn + 1) % mod_nr) {
+      if (not rx_window->has_sn(sn) || (rx_window->has_sn(sn) && not(*rx_window)[sn].fully_received)) {
+        st.rx_highest_status = sn;
         break;
       }
     }
     bool restart_reassembly_timer = false;
-    if (st.rx_next_highest > st.rx_highest_status + 1) {
+    if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_highest_status + 1)) {
       restart_reassembly_timer = true;
     }
-    if (st.rx_next_highest == st.rx_highest_status + 1 && not(*rx_window)[st.rx_next_highest].fully_received) {
-      restart_reassembly_timer = true;
+    if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_highest_status + 1)) {
+      if (not rx_window->has_sn(st.rx_next_highest) ||
+          (rx_window->has_sn(st.rx_next_highest) && not(*rx_window)[st.rx_next_highest].fully_received)) {
+        restart_reassembly_timer = true;
+      }
     }
     if (restart_reassembly_timer) {
       reassembly_timer.run();
