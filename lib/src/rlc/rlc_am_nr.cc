@@ -1001,9 +1001,10 @@ bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
  */
 void rlc_am_nr_tx::debug_state() const
 {
-  RlcDebug("TX entity state: Tx_Next %d, Rx_Next_Ack %d, POLL_SN %d, PDU_WITHOUT_POLL %d, BYTE_WITHOUT_POLL %d",
-           st.tx_next,
+  RlcDebug("TX window state: SDUs %d", tx_window->size());
+  RlcDebug("TX entity state: Tx_Next_Ack=%d, Tx_Next=%d, POLL_SN=%d, PDU_WITHOUT_POLL=%d, BYTE_WITHOUT_POLL=%d",
            st.tx_next_ack,
+           st.tx_next,
            st.poll_sn,
            st.pdu_without_poll,
            st.byte_without_poll);
@@ -1519,6 +1520,7 @@ bool rlc_am_nr_rx::have_all_segments_been_received(
  */
 void rlc_am_nr_rx::debug_state() const
 {
+  RlcDebug("RX window state: SDUs %d", rx_window->size());
   RlcDebug("RX entity state: Rx_Next=%d, Rx_Next_Status_Trigger=%d, Rx_Highest_Status=%d, Rx_Next_Highest=%d",
            st.rx_next,
            st.rx_next_status_trigger,
