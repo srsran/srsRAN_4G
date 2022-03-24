@@ -1415,13 +1415,15 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      *   - start t-Reassembly;
      *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
-    for (uint32_t sn = st.rx_next_status_trigger; rx_mod_base_nr(sn) <= rx_mod_base_nr(st.rx_next_highest);
-         sn          = (sn + 1) % mod_nr) {
-      if (not rx_window->has_sn(sn) || (rx_window->has_sn(sn) && not(*rx_window)[sn].fully_received)) {
-        st.rx_highest_status = sn;
+    uint32_t sn_upd = {};
+    for (sn_upd = st.rx_next_status_trigger; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
+         sn_upd = (sn_upd + 1) % mod_nr) {
+      if (not rx_window->has_sn(sn_upd) || (rx_window->has_sn(sn_upd) && not(*rx_window)[sn_upd].fully_received)) {
         break;
       }
     }
+    st.rx_highest_status = sn_upd;
+
     bool restart_reassembly_timer = false;
     if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_highest_status + 1)) {
       restart_reassembly_timer = true;
@@ -1443,6 +1445,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      *   triggered, but the STATUS report shall be triggered after RX_Highest_Status is updated.
      */
     do_status = true;
+    debug_state();
     return;
   }
 }
