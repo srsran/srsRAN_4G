@@ -877,7 +877,7 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_rx_state_t st = rx2->get_rx_state();
     TESTASSERT_EQ(1, st.rx_next);
     TESTASSERT_EQ(2, st.rx_highest_status);
-    TESTASSERT_EQ(5, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reordering was started
+    TESTASSERT_EQ(5, st.rx_next_status_trigger); // Rx_Next_Highest + 1, when the t-Reassembly was started
     TESTASSERT_EQ(5, st.rx_next_highest);        // Highest SN received + 1
   }
 

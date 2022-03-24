@@ -1320,8 +1320,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
    *   starting with SN = RX_Next up to the point where the resulting STATUS PDU still fits to the total size of RLC
    *   PDU(s) indicated by lower layer:
    */
-  uint32_t i = status->ack_sn;
-  for (i = st.rx_next; rx_mod_base_nr(i) < rx_mod_base_nr(st.rx_highest_status); i = (i + 1) % mod_nr) {
+  for (uint32_t i = st.rx_next; rx_mod_base_nr(i) < rx_mod_base_nr(st.rx_highest_status); i = (i + 1) % mod_nr) {
     if ((rx_window->has_sn(i) && (*rx_window)[i].fully_received)) {
       // only update ACK_SN if this SN has been fully received
       status->ack_sn = i;
@@ -1358,6 +1357,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
         }
       }
     }
+    // TODO: add check to not exceed status->N_nack >= RLC_AM_NR_MAX_NACKS
     // make sure we don't exceed grant size (FIXME)
     rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);
   }
