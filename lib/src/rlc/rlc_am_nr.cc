@@ -1132,9 +1132,9 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
      * all bytes have been received.
      */
     if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_highest_status)) {
-      uint32_t sn_upd     = 0;
-      uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
-      for (sn_upd = (st.rx_highest_status + 1) % mod_nr; sn_upd < window_top; ++sn_upd) {
+      uint32_t sn_upd = 0;
+      for (sn_upd = (st.rx_highest_status + 1) % mod_nr; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
+           sn_upd = (sn_upd + 1) % mod_nr) {
         if (rx_window->has_sn(sn_upd)) {
           if (not(*rx_window)[sn_upd].fully_received) {
             break; // first SDU not fully received
@@ -1155,7 +1155,8 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
       uint32_t sn_upd     = 0;
       uint32_t window_top = st.rx_next + am_window_size(cfg.rx_sn_field_length);
-      for (sn_upd = st.rx_next; sn_upd < window_top; ++sn_upd) {
+      for (sn_upd = st.rx_next; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
+           sn_upd = (sn_upd + 1) % mod_nr) {
         if (rx_window->has_sn(sn_upd)) {
           if (not(*rx_window)[sn_upd].fully_received) {
             break; // first SDU not fully received
