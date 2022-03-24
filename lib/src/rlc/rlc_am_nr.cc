@@ -762,7 +762,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           // NACK'ing missing bytes in SDU segment.
           // Retransmit all SDU segments within those missing bytes.
           if (pdu.segment_list.empty()) {
-            RlcError("Received NACK with SO, but there is no segment information");
+            RlcError("Received NACK with SO, but there is no segment information. SN=%d", nack_sn);
           }
           for (std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator segm = pdu.segment_list.begin();
                segm != pdu.segment_list.end();
@@ -1326,9 +1326,11 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
       // only update ACK_SN if this SN has been fully received
       status->ack_sn = i;
     } else {
+      status->nacks[status->N_nack] = {};
       if (not rx_window->has_sn(i)) {
         // No segment received, NACK the whole SDU
         status->nacks[status->N_nack].nack_sn = i;
+        status->nacks[status->N_nack].has_so  = false;
         status->N_nack++;
       } else if (not(*rx_window)[i].fully_received) {
         // Some segments were received, but not all.
