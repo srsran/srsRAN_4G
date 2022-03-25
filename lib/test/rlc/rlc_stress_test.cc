@@ -229,6 +229,17 @@ void rlc_tester::run_thread()
 
 void stress_test(stress_test_args_t args)
 {
+  auto log_sink =
+      (args.log_filename == "stdout") ? srslog::create_stdout_sink() : srslog::create_file_sink(args.log_filename);
+  if (!log_sink) {
+    return;
+  }
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return;
+  }
+  srslog::set_default_sink(*log_sink);
+
   auto& log1 = srslog::fetch_basic_logger("RLC_1", false);
   log1.set_level(static_cast<srslog::basic_levels>(args.log_level));
   log1.set_hex_dump_max_size(args.log_hex_limit);

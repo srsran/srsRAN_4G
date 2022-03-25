@@ -73,6 +73,7 @@ typedef struct {
   uint32_t    nof_pdu_tti;
   uint32_t    max_retx;
   int32_t     log_hex_limit;
+  std::string log_filename;
   uint32_t    min_sdu_size;
   uint32_t    max_sdu_size;
 } stress_test_args_t;
@@ -102,6 +103,7 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
       ("pdu_cut_rate",  bpo::value<float>(&args->pdu_cut_rate)->default_value(0.0), "Rate at which RLC PDUs are chopped in length")
       ("pdu_duplicate_rate",  bpo::value<float>(&args->pdu_duplicate_rate)->default_value(0.0), "Rate at which RLC PDUs are duplicated")
       ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value((int)srslog::basic_levels::debug), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
+      ("log_filename",  bpo::value<std::string>(&args->log_filename)->default_value("stdout"), "Filename to save log to")
       ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
       ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
       ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
