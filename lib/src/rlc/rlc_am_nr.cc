@@ -1429,8 +1429,8 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       restart_reassembly_timer = true;
     }
     if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_highest_status + 1)) {
-      if (not rx_window->has_sn(st.rx_next_highest) ||
-          (rx_window->has_sn(st.rx_next_highest) && not(*rx_window)[st.rx_next_highest].fully_received)) {
+      if (not rx_window->has_sn(st.rx_highest_status) ||
+          (rx_window->has_sn(st.rx_highest_status) && not(*rx_window)[st.rx_highest_status].fully_received)) {
         restart_reassembly_timer = true;
       }
     }
