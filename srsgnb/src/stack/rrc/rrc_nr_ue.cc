@@ -1506,7 +1506,7 @@ int rrc_nr::ue::update_mac(const cell_group_cfg_s& cell_group_config, bool is_co
 void rrc_nr::ue::deactivate_bearers()
 {
   // Iterate over the bearers (MAC LC CH) and set each of them to IDLE
-  for (uint32_t lcid = 0; lcid < SCHED_NR_MAX_LCID; ++lcid) {
+  for (uint32_t lcid = 1; lcid < SCHED_NR_MAX_LCID; ++lcid) {
     uecfg.lc_ch_to_rem.push_back(lcid);
   }
 
