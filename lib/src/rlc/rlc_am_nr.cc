@@ -1189,6 +1189,15 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (st.rx_next_status_trigger == st.rx_next) {
       stop_reassembly_timer = true;
     }
+    // TODO: Finish this condition
+    //    if (rx_mod_base_nr(st.rx_next_status_trigger) == rx_mod_base_nr(st.rx_next + 1)) {
+    //      if (not (*rx_window)[st.rx_next].has_segment_gap) {
+    //        stop_reassembly_timer = true;
+    //      }
+    //    }
+    if (not inside_rx_window(st.rx_next_status_trigger)) {
+      stop_reassembly_timer = true;
+    }
     if (stop_reassembly_timer) {
       reassembly_timer.stop();
     }
@@ -1204,12 +1213,15 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
      *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
     bool restart_reassembly_timer = false;
-    if (st.rx_next_highest > st.rx_next + 1) {
+    if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_next + 1)) {
       restart_reassembly_timer = true;
     }
-    if (st.rx_next_highest == st.rx_next + 1 && rx_window->has_sn(st.rx_next) &&
-        not(*rx_window)[st.rx_next].fully_received) {
-      restart_reassembly_timer = true;
+    if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_next + 1)) {
+      // TODO: Replace this condition by
+      // if ((*rx_window)[st.rx_next].has_segment_gap) {
+      if (rx_window->has_sn(st.rx_next) && not(*rx_window)[st.rx_next].fully_received) {
+        restart_reassembly_timer = true;
+      }
     }
     if (restart_reassembly_timer) {
       reassembly_timer.run();
@@ -1425,12 +1437,16 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       }
     }
     st.rx_highest_status = sn_upd;
+    srsran_assert(rx_mod_base_nr(st.rx_next) < rx_mod_base_nr(sn_upd),
+                  "Error: rx_highest_status assigned outside receive window");
 
     bool restart_reassembly_timer = false;
     if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_highest_status + 1)) {
       restart_reassembly_timer = true;
     }
     if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_highest_status + 1)) {
+      // TODO: Replace this condition "not(*rx_window)[st.rx_highest_status].fully_received" by
+      // if ((*rx_window)[st.rx_next].has_segment_gap) {
       if (not rx_window->has_sn(st.rx_highest_status) ||
           (rx_window->has_sn(st.rx_highest_status) && not(*rx_window)[st.rx_highest_status].fully_received)) {
         restart_reassembly_timer = true;
