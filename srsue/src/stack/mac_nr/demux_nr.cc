@@ -38,6 +38,11 @@ void demux_nr::push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti)
   pdu_queue.push(std::move(pdu));
 }
 
+void demux_nr::push_bcch(srsran::unique_byte_buffer_t pdu)
+{
+  bcch_queue.push(std::move(pdu));
+}
+
 /* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will
  * remain in buffer until demultiplex_pending_pdu() is called.
  * This features is provided to enable the Random Access Procedure to decide
@@ -55,6 +60,13 @@ void demux_nr::push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tt
 
 void demux_nr::process_pdus()
 {
+  // Handle first BCCH
+  while (not bcch_queue.empty()) {
+    srsran::unique_byte_buffer_t pdu = bcch_queue.wait_pop();
+    logger.debug(pdu->msg, pdu->N_bytes, "Handling MAC BCCH PDU (%d B)", pdu->N_bytes);
+    rlc->write_pdu_bcch_dlsch(pdu->msg, pdu->N_bytes);
+  }
+  // Then user PDUs
   while (not pdu_queue.empty()) {
     srsran::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
     handle_pdu(rx_pdu, std::move(pdu));

@@ -197,6 +197,9 @@ public:
 
   // RRC informs MAC about new UE identity for contention-free RA
   virtual bool set_crnti(const uint16_t crnti) = 0;
+
+  // RRC informs MAC to start/stop search for BCCH messages
+  virtual void bcch_search(bool enabled) = 0;
 };
 
 struct phy_args_nr_t {

@@ -109,6 +109,7 @@ public:
   /// RRC
   void rrc_ra_problem();
   void rrc_ra_completed();
+  void bcch_search(bool enabled);
 
   /// stack interface
   void process_pdus();
@@ -148,6 +149,9 @@ private:
   mac_nr_args_t         args = {};
 
   std::atomic<bool> started = {false};
+
+  // Boolean to determine if need to decode SI-RNTI
+  bool search_bcch = false;
 
   ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
   bool    contention_res_successful;

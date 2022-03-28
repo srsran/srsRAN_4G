@@ -158,8 +158,7 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t t
 
 bool mac_nr::is_si_opportunity()
 {
-  // TODO: ask RRC if we need SI
-  return false;
+  return search_bcch;
 }
 
 bool mac_nr::is_paging_opportunity()
@@ -445,6 +444,11 @@ void mac_nr::set_config(const srsran::rach_cfg_nr_t& rach_cfg)
 void mac_nr::set_contention_id(uint64_t ue_identity)
 {
   rntis.set_contention_id(ue_identity);
+}
+
+void mac_nr::bcch_search(bool enabled)
+{
+  search_bcch = enabled;
 }
 
 bool mac_nr::set_crnti(const uint16_t c_rnti_)

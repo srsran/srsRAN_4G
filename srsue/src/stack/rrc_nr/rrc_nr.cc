@@ -391,6 +391,11 @@ void rrc_nr::set_phy_default_config()
 
 void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
+  if (meas_cells.serving_cell().has_sib1()) {
+    logger.info("SIB1 already processed");
+    return;
+  }
+
   meas_cells.serving_cell().set_sib1(sib1);
 
   logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
@@ -486,6 +491,9 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
     logger.warning("Could not set phy config.");
     return;
   }
+
+  // Notify cell selector of successful SIB1 reception
+  cell_selector.trigger(true);
 }
 
 void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}

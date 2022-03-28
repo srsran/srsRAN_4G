@@ -93,6 +93,7 @@ class demux_interface_harq_nr
 {
 public:
   /// Inform demux unit about a newly decoded TB.
+  virtual void     push_bcch(srsran::unique_byte_buffer_t pdu)                         = 0;
   virtual void     push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti)            = 0;
   virtual void     push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti) = 0;
   virtual uint64_t get_received_crueid()                                               = 0;

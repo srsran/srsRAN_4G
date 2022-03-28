@@ -229,8 +229,7 @@ void dl_harq_entity_nr::dl_harq_process_nr::tb_decoded(const mac_nr_grant_dl_t& 
 
   if (acked and result.payload != nullptr) {
     if (is_bcch) {
-      logger.warning("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH) not implemented", grant.tbs);
-      reset();
+      harq_entity->demux_unit->push_bcch(std::move(result.payload));
     } else {
       if (grant.rnti == harq_entity->mac->get_temp_crnti()) {
         logger.debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI) not implemented",

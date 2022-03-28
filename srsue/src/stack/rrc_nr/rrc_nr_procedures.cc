@@ -384,12 +384,12 @@ proc_outcome_t rrc_nr::cell_selection_proc::init()
   return proc_outcome_t::yield;
 }
 
-// Skipping SI acquisition procedure
 proc_outcome_t rrc_nr::cell_selection_proc::step()
 {
   switch (state) {
     case state_t::phy_cell_search:
     case state_t::phy_cell_select:
+    case state_t::sib_acquire:
       // Waits for cell select/search to complete
       return proc_outcome_t::yield;
   }
@@ -400,84 +400,97 @@ proc_outcome_t rrc_nr::cell_selection_proc::step()
 proc_outcome_t
 rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_nr::cell_search_result_t& result)
 {
-  if (result.cell_found) {
-    // Convert Cell measurement in Text
-    std::array<char, 512> csi_info_str = {};
-    srsran_csi_meas_info_short(&result.measurements, csi_info_str.data(), (uint32_t)csi_info_str.size());
-
-    // Unpack MIB and convert to text
-    srsran_mib_nr_t       mib          = {};
-    std::array<char, 512> mib_info_str = {};
-    if (srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib) == SRSASN_SUCCESS) {
-      // Convert to text
-      srsran_pbch_msg_nr_mib_info(&mib, mib_info_str.data(), (uint32_t)mib_info_str.size());
-    } else {
-      // It could be the PBCH does not carry MIB
-      strcpy(mib_info_str.data(), "No MIB found");
-    }
-
-    // Logs the PCI, cell measurements and decoded MIB
-    Info("Cell search found ARFCN=%d PCI=%d %s %s",
-         result.ssb_arfcn,
-         result.pci,
-         csi_info_str.data(),
-         mib_info_str.data());
-
-    // Transition to cell selection ignoring the cell search result
-    state = state_t::phy_cell_select;
-
-    // until cell selection is done, update PHY config to take the last found PCI
-    rrc_handle.phy_cfg.carrier.pci = result.pci;
-
-    phy_interface_rrc_nr::cell_select_args_t cs_args = {};
-    cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
-    cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
-
-    {
-      // Coreset0 configuration
-      srsran::phy_cfg_nr_t& phy_cfg = rrc_handle.phy_cfg;
-
-      // Get pointA and SSB absolute frequencies
-      double pointA_abs_freq_Hz =
-          phy_cfg.carrier.dl_center_frequency_hz -
-          phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
-      double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
-      // Calculate integer SSB to pointA frequency offset in Hz
-      uint32_t ssb_pointA_freq_offset_Hz =
-          (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
-
-      if (srsran_coreset_zero(phy_cfg.carrier.pci,
-                              ssb_pointA_freq_offset_Hz,
-                              phy_cfg.ssb.scs,
-                              phy_cfg.carrier.scs,
-                              6,
-                              &phy_cfg.pdcch.coreset[0])) {
-        fprintf(stderr, "Error generating coreset0\n");
-      }
-      phy_cfg.pdcch.coreset_present[0] = true;
-    }
-
-    // Until SI acquisition is implemented, provide hard-coded SIB for now
-    uint8_t msg[] = {0x74, 0x81, 0x01, 0x70, 0x10, 0x40, 0x04, 0x02, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x33, 0x60, 0x38,
-                     0x05, 0x01, 0x00, 0x40, 0x1a, 0x00, 0x00, 0x06, 0x6c, 0x6d, 0x92, 0x21, 0xf3, 0x70, 0x40, 0x20,
-                     0x00, 0x00, 0x80, 0x80, 0x00, 0x41, 0x06, 0x80, 0xa0, 0x90, 0x9c, 0x20, 0x08, 0x55, 0x19, 0x40,
-                     0x00, 0x00, 0x33, 0xa1, 0xc6, 0xd9, 0x22, 0x40, 0x00, 0x00, 0x20, 0xb8, 0x94, 0x63, 0xc0, 0x09,
-                     0x28, 0x44, 0x1b, 0x7e, 0xad, 0x8e, 0x1d, 0x00, 0x9e, 0x2d, 0xa3, 0x0a};
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    memcpy(pdu->msg, msg, sizeof(msg));
-    pdu->N_bytes = sizeof(msg);
-    rrc_handle.write_pdu_bcch_dlsch(std::move(pdu));
-
-    if (not rrc_handle.phy->start_cell_select(cs_args)) {
-      Error("Could not set start cell search.");
-      return proc_outcome_t::error;
-    }
-    return proc_outcome_t::yield;
-  } else {
+  if (!result.cell_found) {
     Info("Cell search did not find any cell.");
+    return proc_outcome_t::error;
   }
 
-  return proc_outcome_t::error;
+  // Convert Cell measurement in Text
+  std::array<char, 512> csi_info_str = {};
+  srsran_csi_meas_info_short(&result.measurements, csi_info_str.data(), (uint32_t)csi_info_str.size());
+
+  // Unpack MIB and convert to text
+  srsran_mib_nr_t       mib          = {};
+  std::array<char, 512> mib_info_str = {};
+  if (srsran_pbch_msg_nr_mib_unpack(&result.pbch_msg, &mib) == SRSASN_SUCCESS) {
+    // Convert to text
+    srsran_pbch_msg_nr_mib_info(&mib, mib_info_str.data(), (uint32_t)mib_info_str.size());
+  } else {
+    // It could be the PBCH does not carry MIB
+    strcpy(mib_info_str.data(), "No MIB found");
+    Error("No MIB found\n");
+    return proc_outcome_t::error;
+  }
+
+  // Check unsupported settings
+  if (mib.cell_barred) {
+    Error("Cell barred");
+    return proc_outcome_t::error;
+  }
+  if (mib.scs_common != srsran_subcarrier_spacing_15kHz) {
+    Error("Unsupported SCS %s", srsran_subcarrier_spacing_to_str(mib.scs_common));
+    return proc_outcome_t::error;
+  }
+  // TODO: calculate SSB offset
+  if (mib.ssb_offset != 6) {
+    Error("Unsupported SSB offset %d", mib.ssb_offset);
+    return proc_outcome_t::error;
+  }
+
+  // Logs the PCI, cell measurements and decoded MIB
+  Info("Cell search found ARFCN=%d PCI=%d %s %s",
+       result.ssb_arfcn,
+       result.pci,
+       csi_info_str.data(),
+       mib_info_str.data());
+
+  // Apply MIB settings
+  srsran::phy_cfg_nr_t& phy_cfg = rrc_handle.phy_cfg;
+  phy_cfg.pdsch.typeA_pos       = mib.dmrs_typeA_pos;
+  phy_cfg.pdsch.scs_cfg         = mib.scs_common;
+  phy_cfg.carrier.pci           = result.pci;
+
+  // Get pointA and SSB absolute frequencies
+  double pointA_abs_freq_Hz = phy_cfg.carrier.dl_center_frequency_hz -
+                              phy_cfg.carrier.nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs) / 2;
+  double ssb_abs_freq_Hz = phy_cfg.carrier.ssb_center_freq_hz;
+  // Calculate integer SSB to pointA frequency offset in Hz
+  uint32_t ssb_pointA_freq_offset_Hz =
+      (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
+
+  // Create coreset0
+  if (srsran_coreset_zero(phy_cfg.carrier.pci,
+                          ssb_pointA_freq_offset_Hz,
+                          phy_cfg.ssb.scs,
+                          phy_cfg.carrier.scs,
+                          mib.coreset0_idx,
+                          &phy_cfg.pdcch.coreset[0])) {
+    Error("Error generating coreset0");
+    return proc_outcome_t::error;
+  }
+  phy_cfg.pdcch.coreset_present[0] = true;
+
+  // Create SearchSpace0
+  make_phy_search_space0_cfg(&phy_cfg.pdcch.search_space[0]);
+  phy_cfg.pdcch.search_space_present[0] = true;
+
+  // Update PHY configuration
+  if (not rrc_handle.phy->set_config(phy_cfg)) {
+    Error("Setting PHY configuration");
+    return proc_outcome_t::error;
+  }
+
+  phy_interface_rrc_nr::cell_select_args_t cs_args = {};
+  cs_args.carrier                                  = rrc_handle.phy_cfg.carrier;
+  cs_args.ssb_cfg                                  = rrc_handle.phy_cfg.get_ssb_cfg();
+
+  // Transition to cell selection ignoring the cell search result
+  state = state_t::phy_cell_select;
+  if (not rrc_handle.phy->start_cell_select(cs_args)) {
+    Error("Could not set start cell search.");
+    return proc_outcome_t::error;
+  }
+  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::cell_select_result_t& event)
@@ -497,7 +510,24 @@ proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::ce
   rrc_search_result = rrc_nr::rrc_cell_search_result_t::same_cell;
 
   // PHY is now camping on serving cell
-  Info("Cell search completed.");
+  Info("Cell selection completed. Starting SIB1 acquisition");
+
+  // Transition to cell selection ignoring the cell search result
+  state = state_t::sib_acquire;
+  rrc_handle.mac->bcch_search(true);
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t rrc_nr::cell_selection_proc::react(const bool sib1_found)
+{
+  if (state != state_t::sib_acquire) {
+    Warning("Received unexpected cell select result");
+    return proc_outcome_t::yield;
+  }
+
+  Info("SIB1 acquired successfully");
+  rrc_handle.mac->bcch_search(false);
+
   return proc_outcome_t::success;
 }
 

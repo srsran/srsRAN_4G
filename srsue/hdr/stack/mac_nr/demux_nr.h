@@ -40,6 +40,7 @@ public:
   void process_pdus(); /// Called by MAC to process received PDUs
 
   // HARQ interface
+  void     push_bcch(srsran::unique_byte_buffer_t pdu);
   void     push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti);
   void     push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti);
   uint64_t get_received_crueid();
@@ -55,6 +56,7 @@ private:
 
   ///< currently only DCH PDUs supported (add BCH, PCH, etc)
   srsran::block_queue<srsran::unique_byte_buffer_t> pdu_queue;
+  srsran::block_queue<srsran::unique_byte_buffer_t> bcch_queue;
 
   srsran::mac_sch_pdu_nr rx_pdu;
   srsran::mac_sch_pdu_nr rx_pdu_tcrnti;

@@ -41,6 +41,7 @@ class dummy_mac : public mac_interface_rrc_nr
   int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg) { return SRSRAN_SUCCESS; }
   int  set_config(const srsran::phr_cfg_nr_t& phr_cfg) { return SRSRAN_SUCCESS; }
   int  remove_tag_config(const uint32_t tag_id) { return SRSRAN_SUCCESS; }
+  void bcch_search(bool) {}
 
   void start_ra_procedure() {}
 
