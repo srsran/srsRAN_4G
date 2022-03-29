@@ -1220,6 +1220,7 @@ void rlc_am_nr_tx::debug_state() const
            st.pdu_without_poll,
            st.byte_without_poll);
 }
+
 void rlc_am_nr_tx::info_state() const
 {
   RlcInfo("TX window state: SDUs %d", tx_window->size());
@@ -1229,6 +1230,11 @@ void rlc_am_nr_tx::info_state() const
           st.poll_sn,
           st.pdu_without_poll,
           st.byte_without_poll);
+}
+
+void rlc_am_nr_tx::debug_window() const
+{
+  RlcDebug("TX window state: Tx_Next_Ack=%d, Tx_Next=%d, SDUs=%d", st.tx_next_ack, st.tx_next, tx_window->size());
 }
 /****************************************************************************
  * Rx subclass implementation

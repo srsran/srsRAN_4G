@@ -181,9 +181,10 @@ public:
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                 // This should only be used for testing.
   uint32_t get_tx_window_utilization() { return tx_window->size(); } // This should only be used for testing.
 
-  // Debug Helper
+  // Debug Helpers
   void debug_state() const;
   void info_state() const;
+  void debug_window() const;
 };
 
 /****************************************************************************
