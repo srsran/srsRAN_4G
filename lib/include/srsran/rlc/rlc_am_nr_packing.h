@@ -82,17 +82,16 @@ struct rlc_amd_tx_sdu_nr_t {
 struct rlc_am_nr_status_pdu_t {
   rlc_am_nr_control_pdu_type_t   cpt;
   uint32_t                       ack_sn; ///< SN of the next not received RLC Data PDU
-  uint16_t                       N_nack; ///< number of NACKs
   std::vector<rlc_status_nack_t> nacks;
 
-  rlc_am_nr_status_pdu_t() :
-    cpt(rlc_am_nr_control_pdu_type_t::status_pdu), ack_sn(INVALID_RLC_SN), N_nack(0), nacks(RLC_AM_NR_TYP_NACKS)
-  {}
+  rlc_am_nr_status_pdu_t() : cpt(rlc_am_nr_control_pdu_type_t::status_pdu), ack_sn(INVALID_RLC_SN), nacks(0)
+  {
+    nacks.reserve(RLC_AM_NR_TYP_NACKS);
+  }
   void reset()
   {
     cpt    = rlc_am_nr_control_pdu_type_t::status_pdu;
     ack_sn = INVALID_RLC_SN;
-    N_nack = 0;
     nacks.clear();
   }
 };
@@ -147,10 +146,10 @@ void log_rlc_am_nr_status_pdu_to_string(srslog::log_channel&    log_ch,
     return;
   }
   fmt::memory_buffer buffer;
-  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
-  if (status->N_nack > 0) {
+  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->nacks.size());
+  if (status->nacks.size() > 0) {
     fmt::format_to(buffer, ", NACK_SN = ");
-    for (uint32_t i = 0; i < status->N_nack; ++i) {
+    for (uint32_t i = 0; i < status->nacks.size(); ++i) {
       if (status->nacks[i].has_so) {
         fmt::format_to(
             buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);

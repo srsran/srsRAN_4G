@@ -719,7 +719,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    *     retransmission.
    */
   // Process ACKs
-  uint32_t stop_sn = status.N_nack == 0
+  uint32_t stop_sn = status.nacks.size() == 0
                          ? status.ack_sn
                          : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
   if (stop_sn > st.tx_next) {
@@ -745,7 +745,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   // Process N_nacks
   std::set<uint32_t> retx_sn_set; // Set of PDU SNs added for retransmission (no duplicates)
-  for (uint32_t nack_idx = 0; nack_idx < status.N_nack; nack_idx++) {
+  for (uint32_t nack_idx = 0; nack_idx < status.nacks.size(); nack_idx++) {
     if (status.nacks[nack_idx].has_nack_range) {
       RlcError("Handling NACK ranges is not yet implemented. Ignoring NACK across %d SDU(s) starting from SN=%d",
                status.nacks[nack_idx].nack_range,
@@ -1322,7 +1322,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     return 0;
   }
 
-  status->N_nack = 0;
+  status->nacks.clear();
   status->ack_sn = st.rx_next; // Start with the lower end of the window
   byte_buffer_t tmp_buf;
 
@@ -1337,12 +1337,12 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
       // only update ACK_SN if this SN has been fully received
       status->ack_sn = i;
     } else {
-      status->nacks[status->N_nack] = {};
       if (not rx_window->has_sn(i)) {
         // No segment received, NACK the whole SDU
-        status->nacks[status->N_nack].nack_sn = i;
-        status->nacks[status->N_nack].has_so  = false;
-        status->N_nack++;
+        rlc_status_nack_t nack;
+        nack.nack_sn = i;
+        nack.has_so  = false;
+        status->nacks.push_back(nack);
       } else if (not(*rx_window)[i].fully_received) {
         // Some segments were received, but not all.
         // NACK non consecutive missing bytes
@@ -1351,11 +1351,12 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
         for (auto segm = (*rx_window)[i].segments.begin(); segm != (*rx_window)[i].segments.end(); segm++) {
           if (segm->header.so != last_so) {
             // Some bytes were not received
-            status->nacks[status->N_nack].nack_sn  = i;
-            status->nacks[status->N_nack].has_so   = true;
-            status->nacks[status->N_nack].so_start = last_so;
-            status->nacks[status->N_nack].so_end   = segm->header.so - 1; // set to last missing byte
-            status->N_nack++;
+            rlc_status_nack_t nack;
+            nack.nack_sn  = i;
+            nack.has_so   = true;
+            nack.so_start = last_so;
+            nack.so_end   = segm->header.so - 1; // set to last missing byte
+            status->nacks.push_back(nack);
           }
           if (segm->header.si == rlc_nr_si_field_t::last_segment) {
             last_segment_rx = true;
@@ -1363,11 +1364,12 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
           last_so = segm->header.so + segm->buf->N_bytes;
         }
         if (not last_segment_rx) {
-          status->nacks[status->N_nack].nack_sn  = i;
-          status->nacks[status->N_nack].has_so   = true;
-          status->nacks[status->N_nack].so_start = last_so;
-          status->nacks[status->N_nack].so_end   = so_end_of_sdu;
-          status->N_nack++;
+          rlc_status_nack_t nack;
+          nack.nack_sn  = i;
+          nack.has_so   = true;
+          nack.so_start = last_so;
+          nack.so_end   = so_end_of_sdu;
+          status->nacks.push_back(nack);
         }
       }
     }

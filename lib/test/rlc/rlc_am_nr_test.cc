@@ -393,7 +393,7 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_status_pdu_t status_check = {};
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
     TESTASSERT_EQ(5, status_check.ack_sn);           // 5 is the next expected SN.
-    TESTASSERT_EQ(1, status_check.N_nack);           // We lost one PDU.
+    TESTASSERT_EQ(1, status_check.nacks.size());     // We lost one PDU.
     TESTASSERT_EQ(3, status_check.nacks[0].nack_sn); // Lost PDU SN=3.
 
     // Write status PDU to RLC1
@@ -426,7 +426,7 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_status_pdu_t status_check = {};
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
     TESTASSERT_EQ(5, status_check.ack_sn); // 5 is the next expected SN.
-    TESTASSERT_EQ(0, status_check.N_nack); // All PDUs are acked now
+    TESTASSERT_EQ(0, status_check.nacks.size()); // All PDUs are acked now
   }
 
   {
@@ -664,7 +664,7 @@ int segment_retx_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_status_pdu_t status_check = {};
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
     TESTASSERT_EQ(5, status_check.ack_sn);           // 5 is the next expected SN.
-    TESTASSERT_EQ(1, status_check.N_nack);           // We lost one PDU.
+    TESTASSERT_EQ(1, status_check.nacks.size());     // We lost one PDU.
     TESTASSERT_EQ(3, status_check.nacks[0].nack_sn); // Lost PDU SN=3.
 
     // Write status PDU to RLC1
@@ -900,7 +900,7 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_status_pdu_t status_check = {};
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
     TESTASSERT_EQ(2, status_check.ack_sn);             // 5 is the next expected SN.
-    TESTASSERT_EQ(1, status_check.N_nack);             // We lost one PDU.
+    TESTASSERT_EQ(1, status_check.nacks.size());       // We lost one PDU.
     TESTASSERT_EQ(1, status_check.nacks[0].nack_sn);   // Lost SDU on SN=1.
     TESTASSERT_EQ(true, status_check.nacks[0].has_so); // It's a segment.
     TESTASSERT_EQ(0, status_check.nacks[0].so_start);  // First byte missing is 0.
@@ -941,7 +941,7 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
     rlc_am_nr_status_pdu_t status_check = {};
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
     TESTASSERT_EQ(5, status_check.ack_sn);               // 5 is the next expected SN.
-    TESTASSERT_EQ(3, status_check.N_nack);               // We lost one PDU.
+    TESTASSERT_EQ(3, status_check.nacks.size());         // We lost one PDU.
     TESTASSERT_EQ(1, status_check.nacks[0].nack_sn);     // Lost SDU on SN=1.
     TESTASSERT_EQ(true, status_check.nacks[0].has_so);   // Lost SDU on SN=1.
     TESTASSERT_EQ(0, status_check.nacks[0].so_start);    // Lost SDU on SN=1.
@@ -1094,8 +1094,9 @@ int max_retx_lost_sdu_test(rlc_am_nr_sn_size_t sn_size)
   // Fake status PDU that ack SN=1 and nack SN=0
   rlc_am_nr_status_pdu_t fake_status = {};
   fake_status.ack_sn                 = 2; // delivered up to SN=1
-  fake_status.N_nack                 = 1; // one SN was lost
-  fake_status.nacks[0].nack_sn       = 0; // it was SN=0 that was lost
+  rlc_status_nack_t nack;                 // one SN was lost
+  nack.nack_sn = 0;                       // it was SN=0 that was lost
+  fake_status.nacks.push_back(nack);
 
   // pack into PDU
   byte_buffer_t status_pdu;
@@ -1174,15 +1175,25 @@ int max_retx_lost_segments_test(rlc_am_nr_sn_size_t sn_size)
   // Fake status PDU that ack SN=1 and nack {SN=0 segment 0, SN=0 segment 1}
   rlc_am_nr_status_pdu_t status_lost_both_segments = {};
   status_lost_both_segments.ack_sn                 = 2;    // delivered up to SN=1
-  status_lost_both_segments.N_nack                 = 2;    // two segments lost
-  status_lost_both_segments.nacks[0].nack_sn       = 0;    // it was SN=0 that was lost
-  status_lost_both_segments.nacks[0].has_so        = true; // this NACKs a segment
-  status_lost_both_segments.nacks[0].so_start      = 0;    // segment starts at (and includes) byte 0
-  status_lost_both_segments.nacks[0].so_end        = 12;   // segment ends at (and includes) byte 12
-  status_lost_both_segments.nacks[1].nack_sn       = 0;    // it was SN=0 that was lost
-  status_lost_both_segments.nacks[1].has_so        = true; // this NACKs a segment
-  status_lost_both_segments.nacks[1].so_start      = 13;   // segment starts at (and includes) byte 13
-  status_lost_both_segments.nacks[1].so_end        = 19;   // segment ends at (and includes) byte 19
+
+  // two segments lost
+  {
+    rlc_status_nack_t nack;
+    nack.nack_sn  = 0;    // it was SN=0 that was lost
+    nack.has_so   = true; // this NACKs a segment
+    nack.so_start = 0;    // segment starts at (and includes) byte 0
+    nack.so_end   = 12;   // segment ends at (and includes) byte 12
+    status_lost_both_segments.nacks.push_back(nack);
+  }
+
+  {
+    rlc_status_nack_t nack;
+    nack.nack_sn  = 0;    // it was SN=0 that was lost
+    nack.has_so   = true; // this NACKs a segment
+    nack.so_start = 13;   // segment starts at (and includes) byte 13
+    nack.so_end   = 19;   // segment ends at (and includes) byte 19
+    status_lost_both_segments.nacks.push_back(nack);
+  }
 
   // pack into PDU
   byte_buffer_t status_pdu_lost_both_segments;
@@ -1191,12 +1202,17 @@ int max_retx_lost_segments_test(rlc_am_nr_sn_size_t sn_size)
 
   // Fake status PDU that ack SN=1 and nack {SN=0 segment 1}
   rlc_am_nr_status_pdu_t status_lost_second_segment = {};
-  status_lost_second_segment.ack_sn                 = 2;    // delivered up to SN=1
-  status_lost_second_segment.N_nack                 = 1;    // one SN was lost
-  status_lost_second_segment.nacks[0].nack_sn       = 0;    // it was SN=0 that was lost
-  status_lost_second_segment.nacks[0].has_so        = true; // this NACKs a segment
-  status_lost_second_segment.nacks[0].so_start      = 13;   // segment starts at (and includes) byte 13
-  status_lost_second_segment.nacks[0].so_end        = 19;   // segment ends at (and includes) byte 19
+  status_lost_second_segment.ack_sn                 = 2; // delivered up to SN=1
+
+  // one SN was lost
+  {
+    rlc_status_nack_t nack;
+    nack.nack_sn  = 0;    // it was SN=0 that was lost
+    nack.has_so   = true; // this NACKs a segment
+    nack.so_start = 13;   // segment starts at (and includes) byte 13
+    nack.so_end   = 19;   // segment ends at (and includes) byte 19
+    status_lost_second_segment.nacks.push_back(nack);
+  }
 
   // pack into PDU
   byte_buffer_t status_pdu_lost_second_segment;
@@ -1501,8 +1517,11 @@ int poll_retx()
     TESTASSERT(status_pdu != nullptr);
     rlc_am_nr_status_pdu_t status = {};
     status.ack_sn                 = 2;
-    status.N_nack                 = 1;
-    status.nacks[0].nack_sn       = 1; // SN=1 needs RETX
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn = 1; // SN=1 needs RETX
+      status.nacks.push_back(nack);
+    }
     rlc_am_nr_write_status_pdu(status, rlc_cnfg.am_nr.tx_sn_field_length, status_pdu.get());
     rlc1.write_pdu(status_pdu->msg, status_pdu->N_bytes);
   }
@@ -1529,8 +1548,11 @@ int poll_retx()
     TESTASSERT(status_pdu != nullptr);
     rlc_am_nr_status_pdu_t status = {};
     status.ack_sn                 = 4;
-    status.N_nack                 = 1;
-    status.nacks[0].nack_sn       = 1; // SN=1 needs RETX
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn = 1; // SN=1 needs RETX
+      status.nacks.push_back(nack);
+    }
     rlc_am_nr_write_status_pdu(status, rlc_cnfg.am_nr.tx_sn_field_length, status_pdu.get());
     rlc1.write_pdu(status_pdu->msg, status_pdu->N_bytes);
   }

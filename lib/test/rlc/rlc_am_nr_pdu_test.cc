@@ -236,7 +236,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test1()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
-  TESTASSERT(status_pdu.N_nack == 0);
+  TESTASSERT(status_pdu.nacks.size() == 0);
 
   // reset status PDU
   pdu.clear();
@@ -266,7 +266,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test2()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
-  TESTASSERT(status_pdu.N_nack == 1);
+  TESTASSERT(status_pdu.nacks.size() == 1);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
 
   // reset status PDU
@@ -299,7 +299,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test3()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
-  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks.size() == 2);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
   TESTASSERT(status_pdu.nacks[0].so_start == 2);
   TESTASSERT(status_pdu.nacks[0].so_end == 5);
@@ -335,7 +335,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test4()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
-  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks.size() == 2);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
   TESTASSERT(status_pdu.nacks[0].has_so == true);
   TESTASSERT(status_pdu.nacks[0].so_start == 2);
@@ -407,7 +407,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test_nack_range()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
-  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks.size() == 2);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
   TESTASSERT(status_pdu.nacks[0].has_so == false);
   TESTASSERT(status_pdu.nacks[0].has_nack_range == true);
@@ -448,7 +448,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test1()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
-  TESTASSERT(status_pdu.N_nack == 0);
+  TESTASSERT(status_pdu.nacks.size() == 0);
 
   // reset status PDU
   pdu.clear();
@@ -479,7 +479,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test2()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
-  TESTASSERT(status_pdu.N_nack == 1);
+  TESTASSERT(status_pdu.nacks.size() == 1);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 222822);
 
   // reset status PDU
@@ -530,7 +530,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test3()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
-  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks.size() == 2);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 222822);
   TESTASSERT(status_pdu.nacks[0].has_so == true);
   TESTASSERT(status_pdu.nacks[0].so_start == 2);
@@ -582,7 +582,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test4()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
-  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks.size() == 2);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 222822);
   TESTASSERT(status_pdu.nacks[0].has_so == true);
   TESTASSERT(status_pdu.nacks[0].so_start == 2);
@@ -674,7 +674,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test_nack_range()
   rlc_am_nr_status_pdu_t status_pdu = {};
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 200977);
-  TESTASSERT(status_pdu.N_nack == 2);
+  TESTASSERT(status_pdu.nacks.size() == 2);
   TESTASSERT(status_pdu.nacks[0].nack_sn == 69905);
   TESTASSERT(status_pdu.nacks[0].has_so == false);
   TESTASSERT(status_pdu.nacks[0].has_nack_range == true);
