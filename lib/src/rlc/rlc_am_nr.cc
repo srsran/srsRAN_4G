@@ -1436,8 +1436,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       }
     }
     st.rx_highest_status = sn_upd;
-    srsran_assert(rx_mod_base_nr(st.rx_next) < rx_mod_base_nr(sn_upd),
-                  "Error: rx_highest_status assigned outside receive window");
+    srsran_assert(inside_rx_window(st.rx_highest_status), "Error: rx_highest_status assigned outside rx window");
 
     bool restart_reassembly_timer = false;
     if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_highest_status + 1)) {
