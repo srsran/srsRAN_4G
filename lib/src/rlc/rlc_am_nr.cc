@@ -96,8 +96,8 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 
 bool rlc_am_nr_tx::has_data()
 {
-  return do_status() ||                  // if we have a status PDU to transmit
-         tx_sdu_queue.get_n_sdus() != 0; // or if there is a SDU queued up for transmission
+  return do_status() ||                                          // if we have a status PDU to transmit
+         tx_sdu_queue.get_n_sdus() != 0 || !retx_queue->empty(); // or if there is a SDU queued up for transmission
 }
 
 /**
@@ -1111,11 +1111,15 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
      * - else:
      *   - restart t-PollRetransmit.
      */
-    if (sn > st.poll_sn) {
+    if (tx_mod_base_nr(sn) > tx_mod_base_nr(st.poll_sn)) {
       st.poll_sn = sn;
+    }
+    if (poll_retransmit_timer.is_running()) {
       poll_retransmit_timer.stop();
+    }
+    if (cfg.t_poll_retx > 0) {
       poll_retransmit_timer.run();
-      RlcInfo("Setting POLL_SN=%d", sn);
+      RlcInfo("Started t-PollRetransmit. POLL_SN=%d", sn);
     }
   }
   return poll;
@@ -1157,7 +1161,8 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
 
   // Status Prohibit
   if (poll_retransmit_timer.is_valid() && poll_retransmit_timer.id() == timeout_id) {
-    RlcDebug("Status prohibit timer expired after %dms", poll_retransmit_timer.duration());
+    RlcDebug("Poll retransmission timer expired after %dms", poll_retransmit_timer.duration());
+    debug_state();
     /*
      * - if both the transmission buffer and the retransmission buffer are empty
      *   (excluding transmitted RLC SDU or RLC SDU segment awaiting acknowledgements); or
@@ -1173,8 +1178,8 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
         return;
       }
       // Fully RETX first RLC SDU that has not been acked
-      if (tx_window->has_sn(st.tx_next_ack)) {
-        RlcError("TX window not empty, but TX_NEXT_ACK not in TX_WINDOW");
+      if (not tx_window->has_sn(st.tx_next_ack)) {
+        RlcError("TX window not empty, but TX_NEXT_ACK=%d not in TX_WINDOW", st.tx_next_ack);
         return;
       }
       rlc_amd_retx_nr_t& retx = retx_queue->push();
@@ -1212,7 +1217,6 @@ bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
  */
 void rlc_am_nr_tx::debug_state() const
 {
-  RlcDebug("TX window state: SDUs %d", tx_window->size());
   RlcDebug("TX entity state: Tx_Next_Ack=%d, Tx_Next=%d, POLL_SN=%d, PDU_WITHOUT_POLL=%d, BYTE_WITHOUT_POLL=%d",
            st.tx_next_ack,
            st.tx_next,
