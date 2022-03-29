@@ -1255,6 +1255,7 @@ int rlc_am_nr_rx::handle_full_data_sdu(const rlc_am_nr_pdu_header_t& header, con
   memcpy(rx_sdu.buf->msg, payload + hdr_len, nof_bytes - hdr_len); // Don't copy header
   rx_sdu.buf->N_bytes   = nof_bytes - hdr_len;
   rx_sdu.fully_received = true;
+  rx_sdu.has_gap        = false;
   return SRSRAN_SUCCESS;
 }
 
@@ -1296,7 +1297,7 @@ int rlc_am_nr_rx::handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header,
   insert_received_segment(std::move(pdu_segment), rx_sdu.segments);
 
   // Check weather all segments have been received
-  rx_sdu.fully_received = have_all_segments_been_received(rx_sdu.segments);
+  update_segment_inventory(rx_sdu);
   if (rx_sdu.fully_received) {
     RlcInfo("Fully received segmented SDU. SN=%d.", header.sn);
     rx_sdu.buf = srsran::make_byte_buffer();
@@ -1305,6 +1306,7 @@ int rlc_am_nr_rx::handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header,
       rx_window->remove_pdu(header.sn);
       return SRSRAN_ERROR;
     }
+    // Assemble SDU from segments
     for (const auto& it : rx_sdu.segments) {
       memcpy(&rx_sdu.buf->msg[rx_sdu.buf->N_bytes], it.buf->msg, it.buf->N_bytes);
       rx_sdu.buf->N_bytes += it.buf->N_bytes;
@@ -1515,27 +1517,34 @@ void rlc_am_nr_rx::insert_received_segment(rlc_amd_rx_pdu_nr                    
   segment_list.insert(std::move(segment));
 }
 
-bool rlc_am_nr_rx::have_all_segments_been_received(
-    const std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list) const
+void rlc_am_nr_rx::update_segment_inventory(rlc_amd_rx_sdu_nr_t& rx_sdu) const
 {
-  if (segment_list.empty()) {
-    return false;
+  if (rx_sdu.segments.empty()) {
+    rx_sdu.fully_received = false;
+    rx_sdu.has_gap        = false;
+    return;
   }
 
-  // Check if we have received the last segment
-  if (segment_list.rbegin()->header.si != rlc_nr_si_field_t::last_segment) {
-    return false;
-  }
-
-  // Check if all segments have been received
+  // Check for gaps and if all segments have been received
   uint32_t next_byte = 0;
-  for (const auto& it : segment_list) {
+  for (const auto& it : rx_sdu.segments) {
     if (it.header.so != next_byte) {
-      return false;
+      // Found gap: set flags and return
+      rx_sdu.has_gap        = true;
+      rx_sdu.fully_received = false;
+      return;
+    }
+    if (it.header.si == rlc_nr_si_field_t::last_segment) {
+      // Reached last segment without any gaps: set flags and return
+      rx_sdu.has_gap        = false;
+      rx_sdu.fully_received = true;
+      return;
     }
     next_byte += it.buf->N_bytes;
   }
-  return true;
+  // No gaps, but last segment not yet received
+  rx_sdu.has_gap        = false;
+  rx_sdu.fully_received = false;
 }
 
 /*

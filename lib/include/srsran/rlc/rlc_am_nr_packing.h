@@ -61,6 +61,7 @@ struct rlc_amd_rx_pdu_nr_cmp {
 struct rlc_amd_rx_sdu_nr_t {
   uint32_t             rlc_sn         = 0;
   bool                 fully_received = false;
+  bool                 has_gap        = false;
   unique_byte_buffer_t buf;
   using segment_list_t = std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>;
   segment_list_t segments;

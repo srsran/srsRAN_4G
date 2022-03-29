@@ -230,7 +230,12 @@ public:
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
   void insert_received_segment(rlc_amd_rx_pdu_nr segment, rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
-  bool have_all_segments_been_received(const rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
+  /**
+   * @brief update_segment_inventory This function updates the flags has_gap and fully_received of an SDU
+   * according to the current inventory of received SDU segments
+   * @param rx_sdu The SDU to operate on
+   */
+  void update_segment_inventory(rlc_amd_rx_sdu_nr_t& rx_sdu) const;
 
   // Metrics
   uint32_t get_sdu_rx_latency_ms() final;
