@@ -1189,12 +1189,11 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (st.rx_next_status_trigger == st.rx_next) {
       stop_reassembly_timer = true;
     }
-    // TODO: Finish this condition
-    //    if (rx_mod_base_nr(st.rx_next_status_trigger) == rx_mod_base_nr(st.rx_next + 1)) {
-    //      if (not (*rx_window)[st.rx_next].has_segment_gap) {
-    //        stop_reassembly_timer = true;
-    //      }
-    //    }
+    if (rx_mod_base_nr(st.rx_next_status_trigger) == rx_mod_base_nr(st.rx_next + 1)) {
+      if (not(*rx_window)[st.rx_next].has_gap) {
+        stop_reassembly_timer = true;
+      }
+    }
     if (not inside_rx_window(st.rx_next_status_trigger)) {
       stop_reassembly_timer = true;
     }
@@ -1217,9 +1216,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
       restart_reassembly_timer = true;
     }
     if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_next + 1)) {
-      // TODO: Replace this condition by
-      // if ((*rx_window)[st.rx_next].has_segment_gap) {
-      if (rx_window->has_sn(st.rx_next) && not(*rx_window)[st.rx_next].fully_received) {
+      if (rx_window->has_sn(st.rx_next) && (*rx_window)[st.rx_next].has_gap) {
         restart_reassembly_timer = true;
       }
     }
@@ -1447,10 +1444,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       restart_reassembly_timer = true;
     }
     if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_highest_status + 1)) {
-      // TODO: Replace this condition "not(*rx_window)[st.rx_highest_status].fully_received" by
-      // if ((*rx_window)[st.rx_next].has_segment_gap) {
-      if (not rx_window->has_sn(st.rx_highest_status) ||
-          (rx_window->has_sn(st.rx_highest_status) && not(*rx_window)[st.rx_highest_status].fully_received)) {
+      if (rx_window->has_sn(st.rx_highest_status) && (*rx_window)[st.rx_highest_status].has_gap) {
         restart_reassembly_timer = true;
       }
     }
