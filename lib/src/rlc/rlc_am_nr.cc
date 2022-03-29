@@ -270,6 +270,11 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
 
   uint32_t segment_payload_len = nof_bytes - min_hdr_size;
 
+  // Save SDU currently being segmented
+  // This needs to be done before calculating the polling bit
+  // To make sure we check correctly that the buffers are empty.
+  sdu_under_segmentation_sn = st.tx_next;
+
   // Prepare header
   rlc_am_nr_pdu_header_t hdr = {};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
@@ -291,9 +296,6 @@ uint32_t rlc_am_nr_tx::build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t*
   // Copy PDU to payload
   srsran_assert((hdr_len + segment_payload_len) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
   memcpy(&payload[hdr_len], tx_pdu.sdu_buf->msg, segment_payload_len);
-
-  // Save SDU currently being segmented
-  sdu_under_segmentation_sn = st.tx_next;
 
   // Store Segment Info
   rlc_amd_tx_pdu_nr::pdu_segment segment_info;
@@ -368,7 +370,8 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
             "SDU bytes left %d, nof_bytes %d, ",
             segment_payload_full_len,
             nof_bytes);
-    si = rlc_nr_si_field_t::last_segment;
+    si                        = rlc_nr_si_field_t::last_segment;
+    sdu_under_segmentation_sn = INVALID_RLC_SN;
   }
 
   // Prepare header
@@ -405,7 +408,6 @@ uint32_t rlc_am_nr_tx::build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu,
   } else {
     RlcInfo("grant is large enough for full SDU."
             "Removing current SDU info");
-    sdu_under_segmentation_sn = INVALID_RLC_SN;
     // SDU is fully TX'ed. Increment TX_NEXT
     st.tx_next = (st.tx_next + 1) % mod_nr;
   }
@@ -1073,9 +1075,11 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
     st.byte_without_poll += sdu_bytes;
     if (cfg.poll_pdu > 0 && st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
       poll = 1;
+      RlcInfo("Setting poll bit due to PollPDU. SN=%d", sn);
     }
     if (cfg.poll_byte > 0 && st.byte_without_poll >= (uint32_t)cfg.poll_byte) {
       poll = 1;
+      RlcInfo("Setting poll bit due to PollBYTE. SN=%d", sn);
     }
   }
 
@@ -1086,8 +1090,9 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
    * - if no new RLC SDU can be transmitted after the transmission of the AMD PDU (e.g. due to window stalling);
    *   - include a poll in the AMD PDU as described below.
    */
-
-  if ((tx_sdu_queue.is_empty() && retx_queue->empty()) || tx_window->full()) {
+  if ((tx_sdu_queue.is_empty() && retx_queue->empty() && sdu_under_segmentation_sn == INVALID_RLC_SN) ||
+      tx_window->full()) {
+    RlcInfo("Setting poll bit due to empty buffers/inablity to TX. SN=%d", sn);
     poll = 1;
   }
 
@@ -1110,6 +1115,7 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
       st.poll_sn = sn;
       poll_retransmit_timer.stop();
       poll_retransmit_timer.run();
+      RlcInfo("Setting POLL_SN=%d", sn);
     }
   }
   return poll;
