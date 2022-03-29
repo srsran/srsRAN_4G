@@ -1927,6 +1927,14 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
   } else if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::sdap_cfg) {
     const auto& sdap_cfg = drb_cfg.cn_assoc.sdap_cfg();
 
+    // Check supported configuration
+    if (sdap_cfg.sdap_hdr_dl.value == sdap_cfg_s::sdap_hdr_dl_opts::present || !sdap_cfg.default_drb ||
+        sdap_cfg.mapped_qos_flows_to_add.size() != 1) {
+      logger.error(
+          "Configuring SDAP: only UL headder is supported. Default DRB must be set and number of QoS flows must be 1");
+      return false;
+    }
+
     sdap_interface_rrc::bearer_cfg_t sdap_bearer_cfg = {};
     sdap_bearer_cfg.add_downlink_header = sdap_cfg.sdap_hdr_dl.value == sdap_cfg_s::sdap_hdr_dl_opts::present;
     sdap_bearer_cfg.add_uplink_header   = sdap_cfg.sdap_hdr_ul.value == sdap_cfg_s::sdap_hdr_ul_opts::present;
