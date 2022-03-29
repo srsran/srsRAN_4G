@@ -707,7 +707,8 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     return;
   }
 
-  rlc_am_nr_status_pdu_t status = {};
+  std::lock_guard<std::mutex> lock(mutex);
+  rlc_am_nr_status_pdu_t      status = {};
   RlcHexDebug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
   rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
   log_rlc_am_nr_status_pdu_to_string(logger.info, "Rx Status PDU: %s", &status, parent->rb_name);
