@@ -65,8 +65,8 @@ public:
   }
 
 private:
-  pdcp* parent_pdcp;
-  sdap* parent_sdap;
+  pdcp* parent_pdcp = nullptr;
+  sdap* parent_sdap = nullptr;
 };
 
 class ue_stack_lte final : public ue_stack_base,

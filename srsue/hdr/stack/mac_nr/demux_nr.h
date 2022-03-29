@@ -56,7 +56,7 @@ private:
 
   uint64_t received_crueid = 0;
 
-  ///< currently only DCH PDUs supported (add BCH, PCH, etc)
+  ///< currently only DCH & BCH PDUs supported (add PCH, etc)
   srsran::block_queue<srsran::unique_byte_buffer_t> pdu_queue;
   srsran::block_queue<srsran::unique_byte_buffer_t> bcch_queue;
 
