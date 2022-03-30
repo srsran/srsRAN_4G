@@ -1461,6 +1461,7 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
      */
     do_status = true;
     debug_state();
+    debug_window();
     return;
   }
 }
@@ -1547,11 +1548,16 @@ void rlc_am_nr_rx::update_segment_inventory(rlc_amd_rx_sdu_nr_t& rx_sdu) const
  */
 void rlc_am_nr_rx::debug_state() const
 {
-  RlcDebug("RX window state: SDUs %d", rx_window->size());
   RlcDebug("RX entity state: Rx_Next=%d, Rx_Next_Status_Trigger=%d, Rx_Highest_Status=%d, Rx_Next_Highest=%d",
            st.rx_next,
            st.rx_next_status_trigger,
            st.rx_highest_status,
            st.rx_next_highest);
+}
+
+void rlc_am_nr_rx::debug_window() const
+{
+  RlcDebug(
+      "RX window state: Rx_Next=%d, Rx_Next_Highest=%d, SDUs %d", st.rx_next, st.rx_next_highest, rx_window->size());
 }
 } // namespace srsran

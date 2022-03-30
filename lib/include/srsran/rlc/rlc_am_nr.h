@@ -246,6 +246,7 @@ public:
 
   // Helpers
   void debug_state() const;
+  void debug_window() const;
 
 private:
   rlc_am*           parent = nullptr;
