@@ -780,6 +780,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
       break;
     }
   }
+  RlcDebug("Processed status report ACKs. ACK_SN=%d. Tx_Next_Ack=%d", status.ack_sn, st.tx_next_ack);
 
   // Notify PDCP
   if (not notify_info_vec.empty()) {
@@ -796,8 +797,9 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                status.nacks[nack_idx].nack_sn);
       continue;
     }
-    RlcDebug("Handling NACK for SN=%d", status.nacks[nack_idx].nack_sn);
-    if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
+    if (tx_mod_base_nr(st.tx_next_ack) <= tx_mod_base_nr(status.nacks[nack_idx].nack_sn) &&
+        tx_mod_base_nr(status.nacks[nack_idx].nack_sn) <= tx_mod_base_nr(st.tx_next)) {
+      RlcDebug("Handling NACK for SN=%d", status.nacks[nack_idx].nack_sn);
       auto     nack    = status.nacks[nack_idx];
       uint32_t nack_sn = nack.nack_sn;
       if (tx_window->has_sn(nack_sn)) {
@@ -1401,13 +1403,16 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
    *   starting with SN = RX_Next up to the point where the resulting STATUS PDU still fits to the total size of RLC
    *   PDU(s) indicated by lower layer:
    */
+  RlcDebug("Generating status PDU");
   for (uint32_t i = st.rx_next; rx_mod_base_nr(i) < rx_mod_base_nr(st.rx_highest_status); i = (i + 1) % mod_nr) {
     if ((rx_window->has_sn(i) && (*rx_window)[i].fully_received)) {
       // only update ACK_SN if this SN has been fully received
       status->ack_sn = i;
+      RlcDebug("Updating ACK_SN. ACK_SN=%d", i);
     } else {
       if (not rx_window->has_sn(i)) {
         // No segment received, NACK the whole SDU
+        RlcDebug("Updating NACK for full SDU. NACK SN=%d", i);
         rlc_status_nack_t nack;
         nack.nack_sn = i;
         nack.has_so  = false;
@@ -1415,6 +1420,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
       } else if (not(*rx_window)[i].fully_received) {
         // Some segments were received, but not all.
         // NACK non consecutive missing bytes
+        RlcDebug("Updating NACK for partial SDU. NACK SN=%d", i);
         uint32_t last_so         = 0;
         bool     last_segment_rx = false;
         for (auto segm = (*rx_window)[i].segments.begin(); segm != (*rx_window)[i].segments.end(); segm++) {
@@ -1426,6 +1432,11 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
             nack.so_start = last_so;
             nack.so_end   = segm->header.so - 1; // set to last missing byte
             status->nacks.push_back(nack);
+            RlcDebug("First/middle segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d",
+                     nack.nack_sn,
+                     nack.so_start,
+                     nack.so_end);
+            srsran_assert(nack.so_start <= nack.so_end, "Error: SO_start > SO_end. NACK_SN=%d", nack.nack_sn);
           }
           if (segm->header.si == rlc_nr_si_field_t::last_segment) {
             last_segment_rx = true;
@@ -1439,6 +1450,9 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
           nack.so_start = last_so;
           nack.so_end   = so_end_of_sdu;
           status->nacks.push_back(nack);
+          RlcDebug(
+              "Final segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d", nack.nack_sn, nack.so_start, nack.so_end);
+          srsran_assert(nack.so_start <= nack.so_end, "Error: SO_start > SO_end. NACK_SN=%d", nack.nack_sn);
         }
       }
     }
@@ -1507,6 +1521,10 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       }
     }
     st.rx_highest_status = sn_upd;
+    if (not inside_rx_window(st.rx_highest_status)) {
+      RlcError("Rx_Highest_Status not inside RX window");
+      debug_state();
+    }
     srsran_assert(inside_rx_window(st.rx_highest_status), "Error: rx_highest_status assigned outside rx window");
 
     bool restart_reassembly_timer = false;
