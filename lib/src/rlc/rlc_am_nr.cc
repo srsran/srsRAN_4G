@@ -1156,8 +1156,8 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
      */
     if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
       uint32_t sn_upd     = 0;
-      // we just completed SDU with x = RX_Next; start search from RX_Next+1
-      for (sn_upd = (st.rx_next + 1) % mod_nr; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
+      // move rx_next forward and remove all fully received SDUs from rx_window
+      for (sn_upd = (st.rx_next) % mod_nr; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
            sn_upd = (sn_upd + 1) % mod_nr) {
         if (rx_window->has_sn(sn_upd)) {
           if (not(*rx_window)[sn_upd].fully_received) {
