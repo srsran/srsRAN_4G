@@ -796,6 +796,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                status.nacks[nack_idx].nack_sn);
       continue;
     }
+    RlcDebug("Handling NACK for SN=%d", status.nacks[nack_idx].nack_sn);
     if (st.tx_next_ack <= status.nacks[nack_idx].nack_sn && status.nacks[nack_idx].nack_sn <= st.tx_next) {
       auto     nack    = status.nacks[nack_idx];
       uint32_t nack_sn = nack.nack_sn;
@@ -808,22 +809,32 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           if (pdu.segment_list.empty()) {
             RlcError("Received NACK with SO, but there is no segment information. SN=%d", nack_sn);
           }
-          for (std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator segm = pdu.segment_list.begin();
-               segm != pdu.segment_list.end();
-               segm++) {
-            if (segm->so >= nack.so_start && segm->so <= nack.so_end) {
-              // TODO: Check if this segment is not already queued for retransmission
+          bool segment_found = false;
+          for (const rlc_amd_tx_pdu_nr::pdu_segment& segm : pdu.segment_list) {
+            if (segm.so >= nack.so_start && segm.so <= nack.so_end) {
+              // FIXME: Check if this segment is not already queued for retransmission
               rlc_amd_retx_nr_t& retx = retx_queue->push();
               retx.sn                 = nack_sn;
               retx.is_segment         = true;
-              retx.so_start           = segm->so;
-              retx.current_so         = segm->so;
-              retx.segment_length     = segm->payload_len;
+              retx.so_start           = segm.so;
+              retx.current_so         = segm.so;
+              retx.segment_length     = segm.payload_len;
               retx_sn_set.insert(nack_sn);
               RlcInfo("Scheduled RETX of SDU segment SN=%d, so_start=%d, segment_length=%d",
                       retx.sn,
                       retx.so_start,
                       retx.segment_length);
+              segment_found = true;
+            }
+          }
+          if (!segment_found) {
+            RlcWarning("Could not find segment for NACK_SN=%d. SO_start=%d, SO_end=%d",
+                       status.nacks[nack_idx].nack_sn,
+                       nack.so_start,
+                       nack.so_end);
+            for (const rlc_amd_tx_pdu_nr::pdu_segment& segm : pdu.segment_list) {
+              RlcDebug(
+                  "Segments for SN=%d. SO=%d, SO_end=%d", status.nacks[nack_idx].nack_sn, segm.so, segm.payload_len);
             }
           }
         } else {
@@ -838,11 +849,26 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
             retx.segment_length     = pdu.sdu_buf->N_bytes;
             retx_sn_set.insert(nack_sn);
             RlcInfo("Scheduled RETX of SDU SN=%d", retx.sn);
+          } else {
+            RlcInfo("RETX queue already has NACK_SN. SDU SN=%d, Tx_Next_Ack=%d, Tx_Next=%d",
+                    status.nacks[nack_idx].nack_sn,
+                    st.tx_next_ack,
+                    st.tx_next);
           }
         }
+      } else {
+        RlcInfo("TX window does not contain NACK_SN. SDU SN=%d, Tx_Next_Ack=%d, Tx_Next=%d",
+                status.nacks[nack_idx].nack_sn,
+                st.tx_next_ack,
+                st.tx_next);
       } // TX window containts NACK SN
-    }   // NACK SN within expected range
-  }     // NACK loop
+    } else {
+      RlcInfo("RETX not in expected range. SDU SN=%d, Tx_Next_Ack=%d, Tx_Next=%d",
+              status.nacks[nack_idx].nack_sn,
+              st.tx_next_ack,
+              st.tx_next);
+    } // NACK SN within expected range
+  }   // NACK loop
 
   // Process retx_count and inform upper layers if needed
   for (uint32_t retx_sn : retx_sn_set) {
