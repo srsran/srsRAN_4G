@@ -216,6 +216,39 @@ int test_dl_nas_transport()
   return 0;
 }
 
+// DL NAS transport with AMF-UE-NGAP-ID larger than 32bit
+int test_dl_nas_transport2()
+{
+  uint8_t ngap_msg[] = {0x00, 0x04, 0x40, 0x42, 0x00, 0x00, 0x03, 0x00, 0x0a, 0x00, 0x06, 0x80, 0x03, 0x03,
+                        0xcf, 0x37, 0xd0, 0x00, 0x55, 0x00, 0x02, 0x00, 0x01, 0x00, 0x26, 0x00, 0x2b, 0x2a,
+                        0x7e, 0x00, 0x56, 0x00, 0x02, 0x00, 0x00, 0x21, 0xbc, 0x8d, 0xe5, 0x61, 0xf5, 0xb4,
+                        0xa7, 0x05, 0x8f, 0xdb, 0xe2, 0x3b, 0x4e, 0x21, 0xda, 0x45, 0x20, 0x10, 0x5a, 0xb8,
+                        0xd1, 0xdb, 0x13, 0x76, 0x80, 0x00, 0x1b, 0x1a, 0x8d, 0x3c, 0x98, 0x4c, 0x01, 0x06};
+  // 00044042000003000a0006800303cf37d00055000200010026002b2a7e00560002000021bc8de561f5b4a7058fdbe23b4e21da4520105ab8d1db137680001b1a8d3c984c0106
+
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
+  ngap_pdu_c pdu;
+  TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
+
+  // Check Fields
+  TESTASSERT(pdu.type().value == ngap_pdu_c::types_opts::init_msg);
+  TESTASSERT(pdu.init_msg().proc_code == ASN1_NGAP_ID_DL_NAS_TRANSPORT);
+  TESTASSERT(pdu.init_msg().crit.value == crit_opts::ignore);
+  TESTASSERT(pdu.init_msg().value.type().value == ngap_elem_procs_o::init_msg_c::types_opts::dl_nas_transport);
+
+  auto& dl_nas = pdu.init_msg().value.dl_nas_transport();
+  // Field 0
+  TESTASSERT_EQ(12948813776, dl_nas->amf_ue_ngap_id.value);
+
+  // ...
+  // Field 2
+  TESTASSERT(dl_nas->nas_pdu.value.size() == 42);
+
+  TESTASSERT(ceil(bref.distance(ngap_msg) / 8.0) == sizeof(ngap_msg));
+  TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
+  return 0;
+}
+
 int test_ul_ran_status_transfer()
 {
   uint8_t ngap_msg[] = {0x00, 0x2e, 0x40, 0x3c, 0x00, 0x00, 0x04, 0x00, 0x0a, 0x00, 0x02, 0x00, 0x01, 0x00, 0x55, 0x00,
@@ -346,6 +379,7 @@ int main()
   test_ngsetup_response();
   test_init_ue_msg();
   test_dl_nas_transport();
+  test_dl_nas_transport2();
   test_ul_ran_status_transfer();
   test_ue_context_release();
   test_ue_context_release_complete();
