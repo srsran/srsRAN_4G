@@ -153,6 +153,10 @@ void mac_nr::update_buffer_states()
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
 {
+  if (proc_ra.has_temp_crnti() && has_crnti() == false) {
+    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", proc_ra.get_temp_crnti());
+    return {proc_ra.get_temp_crnti(), srsran_rnti_type_c};
+  }
   return {rntis.get_crnti(), srsran_rnti_type_c};
 }
 

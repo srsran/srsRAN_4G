@@ -196,15 +196,15 @@ void cc_worker::decode_pdcch_ul()
   }
 
   // Search for grants
-  int n_dl =
+  int n_ul =
       srsran_ue_dl_nr_find_ul_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
-  if (n_dl < SRSRAN_SUCCESS) {
+  if (n_ul < SRSRAN_SUCCESS) {
     logger.error("Error decoding UL NR-PDCCH");
     return;
   }
 
   // Iterate over all received grants
-  for (int i = 0; i < n_dl; i++) {
+  for (int i = 0; i < n_ul; i++) {
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
