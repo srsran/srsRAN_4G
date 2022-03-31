@@ -620,6 +620,51 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
   srsran_assert((hdr_len + retx_pdu_payload_size) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
   memcpy(&payload[hdr_len], tx_pdu.sdu_buf->msg, retx_pdu_payload_size);
 
+  // Store PDU segment info into tx_window
+  RlcDebug("Updating RETX segment info. SN=%d, is_segment=%s", retx.sn, retx.is_segment ? "true" : "false");
+  if (!retx.is_segment) {
+    // Retx is already a segment
+    rlc_amd_tx_pdu_nr::pdu_segment seg1 = {};
+    seg1.so                             = retx.current_so;
+    seg1.payload_len                    = retx_pdu_payload_size;
+    rlc_amd_tx_pdu_nr::pdu_segment seg2 = {};
+    seg2.so                             = retx.current_so + retx_pdu_payload_size;
+    seg2.payload_len                    = retx.segment_length - retx_pdu_payload_size;
+    tx_pdu.segment_list.push_back(seg1);
+    tx_pdu.segment_list.push_back(seg2);
+    RlcDebug("New segment: SN=%d, SO=%d len=%d", retx.sn, seg1.so, seg1.payload_len);
+    RlcDebug("New segment: SN=%d, SO=%d len=%d", retx.sn, seg2.so, seg2.payload_len);
+  } else {
+    RlcDebug("Segmenting retx! it is a segment already. SN=%d", retx.sn);
+    // Find current segment in segment list.
+    std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator it;
+    for (it = tx_pdu.segment_list.begin(); it != tx_pdu.segment_list.end(); ++it) {
+      if (it->so == retx.current_so) {
+        break;
+      }
+    }
+    if (it != tx_pdu.segment_list.end()) {
+      rlc_amd_tx_pdu_nr::pdu_segment seg1                          = {};
+      seg1.so                                                      = retx.current_so;
+      seg1.payload_len                                             = retx_pdu_payload_size;
+      rlc_amd_tx_pdu_nr::pdu_segment seg2                          = {};
+      seg2.so                                                      = retx.current_so + retx_pdu_payload_size;
+      seg2.payload_len                                             = retx.segment_length - retx_pdu_payload_size;
+      std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator begin_it = tx_pdu.segment_list.erase(it);
+      if (begin_it == tx_pdu.segment_list.end()) {
+        RlcError("Could not modify segment list. SN=%d, SO=%d len=%d", retx.sn, retx.current_so, retx.segment_length);
+      } else {
+        std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator insert_it  = tx_pdu.segment_list.insert(begin_it, seg1);
+        std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator insert_it2 = tx_pdu.segment_list.insert(insert_it, seg2);
+        RlcDebug("Old segment SN=%d, SO=%d len=%d", retx.sn, retx.current_so, retx.segment_length);
+        RlcDebug("New segment SN=%d, SO=%d len=%d", retx.sn, seg1.so, seg1.payload_len);
+        RlcDebug("New segment SN=%d, SO=%d len=%d", retx.sn, seg2.so, seg2.payload_len);
+      }
+    } else {
+      RlcDebug("Could not find segment. SN=%d, SO=%d length=%d", retx.sn, retx.current_so, retx.segment_length);
+    }
+  }
+
   // Update retx queue
   retx.is_segment = true;
   retx.current_so = retx.current_so + retx_pdu_payload_size;
@@ -649,8 +694,6 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
     return 0;
   }
 
-  // Update SDU segment info
-  // TODO
   return hdr_len + retx_pdu_payload_size;
 }
 
@@ -691,7 +734,7 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     RlcDebug("generated status PDU. Bytes:%d", pdu_len);
-    log_rlc_am_nr_status_pdu_to_string(logger.info, "tx status PDU - %s", &tx_status, rb_name);
+    log_rlc_am_nr_status_pdu_to_string(logger.info, "TX status PDU - %s", &tx_status, rb_name);
     pdu_len = rlc_am_nr_write_status_pdu(tx_status, cfg.tx_sn_field_length, payload);
   } else {
     RlcInfo("cannot tx status PDU - %d bytes available, %d bytes required", nof_bytes, pdu_len);
@@ -711,7 +754,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   rlc_am_nr_status_pdu_t      status = {};
   RlcHexDebug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
   rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
-  log_rlc_am_nr_status_pdu_to_string(logger.info, "Rx Status PDU: %s", &status, parent->rb_name);
+  log_rlc_am_nr_status_pdu_to_string(logger.info, "RX status PDU: %s", &status, parent->rb_name);
   // Local variables for handling Status PDU will be updated with lock
   /*
    * - if the SN of the corresponding RLC SDU falls within the range
