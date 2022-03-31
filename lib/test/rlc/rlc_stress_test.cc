@@ -201,7 +201,7 @@ void rlc_tester::run_thread()
     if (pdu == nullptr) {
       printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
       // backoff for a bit
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
       continue;
     }
     pdu->md.pdcp_sn = pdcp_sn;
