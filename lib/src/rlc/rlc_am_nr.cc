@@ -663,6 +663,9 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
     } else {
       RlcDebug("Could not find segment. SN=%d, SO=%d length=%d", retx.sn, retx.current_so, retx.segment_length);
     }
+    for (auto it : tx_pdu.segment_list) {
+      RlcDebug("Changed segments! SN=%d, SO=%d length=%d", retx.sn, it.so, it.payload_len);
+    }
   }
 
   // Update retx queue
@@ -843,14 +846,29 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           // NACK'ing full SDU.
           // add to retx queue if it's not already there
           if (not retx_queue->has_sn(nack_sn)) {
-            rlc_amd_retx_nr_t& retx = retx_queue->push();
-            retx.sn                 = nack_sn;
-            retx.is_segment         = false;
-            retx.so_start           = 0;
-            retx.current_so         = 0;
-            retx.segment_length     = pdu.sdu_buf->N_bytes;
-            retx_sn_set.insert(nack_sn);
-            RlcInfo("Scheduled RETX of SDU SN=%d", retx.sn);
+            // Have we segmented the SDU alreaty?
+            if ((*tx_window)[nack_sn].segment_list.empty()) {
+              rlc_amd_retx_nr_t& retx = retx_queue->push();
+              retx.sn                 = nack_sn;
+              retx.is_segment         = false;
+              retx.so_start           = 0;
+              retx.current_so         = 0;
+              retx.segment_length     = pdu.sdu_buf->N_bytes;
+              retx_sn_set.insert(nack_sn);
+              RlcInfo("Scheduled RETX of SDU SN=%d", retx.sn);
+            } else {
+              RlcInfo("Scheduled RETX of SDU SN=%d", nack_sn);
+              retx_sn_set.insert(nack_sn);
+              for (auto segm : (*tx_window)[nack_sn].segment_list) {
+                rlc_amd_retx_nr_t& retx = retx_queue->push();
+                retx.sn                 = nack_sn;
+                retx.is_segment         = true;
+                retx.so_start           = segm.so;
+                retx.current_so         = segm.so;
+                retx.segment_length     = segm.payload_len;
+                RlcInfo("Scheduled RETX of SDU Segment. SN=%d, SO=%d, len=%d", retx.sn, segm.so, segm.payload_len);
+              }
+            }
           } else {
             RlcInfo("RETX queue already has NACK_SN. SDU SN=%d, Tx_Next_Ack=%d, Tx_Next=%d",
                     status.nacks[nack_idx].nack_sn,

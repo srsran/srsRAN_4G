@@ -246,6 +246,9 @@ public:
   // RRC interface
   void max_retx_attempted() final
   {
+    fprintf(
+        stderr,
+        "Maximum number of RLC retransmission reached. Consider increasing threshold or lowering channel drop rate.");
     logger.error(
         "Maximum number of RLC retransmission reached. Consider increasing threshold or lowering channel drop rate.");
     std::this_thread::sleep_for(std::chrono::seconds(1));
