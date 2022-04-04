@@ -276,9 +276,11 @@ void stress_test(stress_test_args_t args)
     } else if (args.mode == "UM12") {
       cnfg_ = srsran::rlc_config_t::default_rlc_um_nr_config(12);
     } else if (args.mode == "AM12") {
-      cnfg_ = srsran::rlc_config_t::default_rlc_am_nr_config(12);
+      cnfg_                       = srsran::rlc_config_t::default_rlc_am_nr_config(12);
+      cnfg_.am_nr.max_retx_thresh = args.max_retx;
     } else if (args.mode == "AM18") {
-      cnfg_ = srsran::rlc_config_t::default_rlc_am_nr_config(18);
+      cnfg_                       = srsran::rlc_config_t::default_rlc_am_nr_config(18);
+      cnfg_.am_nr.max_retx_thresh = args.max_retx;
     } else {
       std::cout << "Unsupported RLC mode " << args.mode << ", exiting." << std::endl;
       exit(-1);

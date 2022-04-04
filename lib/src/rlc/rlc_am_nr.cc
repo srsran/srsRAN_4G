@@ -846,7 +846,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           // NACK'ing full SDU.
           // add to retx queue if it's not already there
           if (not retx_queue->has_sn(nack_sn)) {
-            // Have we segmented the SDU alreaty?
+            // Have we segmented the SDU already?
             if ((*tx_window)[nack_sn].segment_list.empty()) {
               rlc_amd_retx_nr_t& retx = retx_queue->push();
               retx.sn                 = nack_sn;
