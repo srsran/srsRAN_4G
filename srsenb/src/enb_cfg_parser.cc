@@ -776,6 +776,7 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
     parse_default_field(cell.allowed_meas_bw, root[i], "allowed_meas_bw", 6u);
     asn1_parsers::default_number_to_enum(
         cell.cell_individual_offset, root[i], "cell_individual_offset", asn1::rrc::q_offset_range_opts::db0);
+    parse_default_field(cell.tac, root[i], "tac", -1);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell.allowed_meas_bw), "Invalid measurement Bandwidth");
   }
   return 0;
@@ -1347,7 +1348,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 
   // Create dedicated cell configuration from RRC configuration
   for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {
-    auto&          cfg          = *it;
+    cell_cfg_t&    cfg          = *it;
     phy_cell_cfg_t phy_cell_cfg = {};
     phy_cell_cfg.cell           = cell_cfg_;
     phy_cell_cfg.cell.id        = cfg.pci;
@@ -1393,6 +1394,13 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
         return SRSRAN_ERROR;
       } else {
         scell_it++;
+      }
+    }
+
+    for (meas_cell_cfg_t& meas_cell : cfg.meas_cfg.meas_cells) {
+      if (meas_cell.tac < 0) {
+        // if meas cell TAC was not set, use current cell TAC.
+        meas_cell.tac = cfg.tac;
       }
     }
 

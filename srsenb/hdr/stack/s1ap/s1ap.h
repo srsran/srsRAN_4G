@@ -81,6 +81,7 @@ public:
   bool is_mme_connected() override;
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
+                        uint16_t                     target_tac,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
                         srsran::unique_byte_buffer_t rrc_container,
@@ -107,7 +108,7 @@ public:
 
   // Stack interface
   bool
-  handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srsran::s1ap_pcap* pcap_);
 
 private:
@@ -212,6 +213,7 @@ private:
       struct ts1_reloc_prep_expired {};
       ho_prep_proc_t(s1ap::ue* ue_);
       srsran::proc_outcome_t init(uint32_t                     target_eci_,
+                                  uint16_t                     target_tac_,
                                   srsran::plmn_id_t            target_plmn_,
                                   srsran::span<uint32_t>       fwd_erabs,
                                   srsran::unique_byte_buffer_t rrc_container,
@@ -228,6 +230,7 @@ private:
       s1ap*     s1ap_ptr = nullptr;
 
       uint32_t                     target_eci = 0;
+      uint16_t                     target_tac = 0;
       srsran::plmn_id_t            target_plmn;
       srsran::unique_byte_buffer_t rrc_container;
       const asn1::s1ap::ho_cmd_s*  ho_cmd_msg = nullptr;
@@ -260,7 +263,7 @@ private:
     bool was_uectxtrelease_requested() const { return release_requested; }
 
     void
-    set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
+                   set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
     s1ap_proc_id_t get_state() const { return current_state; }
 
     ue_ctxt_t ctxt      = {};
@@ -268,6 +271,7 @@ private:
 
   private:
     bool send_ho_required(uint32_t                     target_eci_,
+                          uint16_t                     target_tac_,
                           srsran::plmn_id_t            target_plmn_,
                           srsran::span<uint32_t>       fwd_erabs,
                           srsran::unique_byte_buffer_t rrc_container,

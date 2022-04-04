@@ -118,6 +118,7 @@ void fill_erab_failed_setup_list(OutList& output_list, const s1ap::erab_item_lis
 s1ap::ue::ho_prep_proc_t::ho_prep_proc_t(s1ap::ue* ue_) : ue_ptr(ue_), s1ap_ptr(ue_->s1ap_ptr) {}
 
 srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                     target_eci_,
+                                                      uint16_t                     target_tac_,
                                                       srsran::plmn_id_t            target_plmn_,
                                                       srsran::span<uint32_t>       fwd_erabs,
                                                       srsran::unique_byte_buffer_t rrc_container_,
@@ -125,11 +126,12 @@ srsran::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                  
 {
   ho_cmd_msg  = nullptr;
   target_eci  = target_eci_;
+  target_tac  = target_tac_;
   target_plmn = target_plmn_;
 
   procInfo("Sending HandoverRequired to MME id=%d", ue_ptr->ctxt.mme_ue_s1ap_id.value());
   if (not ue_ptr->send_ho_required(
-          target_eci, target_plmn, fwd_erabs, std::move(rrc_container_), has_direct_fwd_path)) {
+          target_eci, target_tac, target_plmn, fwd_erabs, std::move(rrc_container_), has_direct_fwd_path)) {
     procError("Failed to send HORequired to cell 0x%x", target_eci);
     return srsran::proc_outcome_t::error;
   }
@@ -1821,6 +1823,7 @@ void s1ap::ue::get_erab_addr(uint16_t erab_id, transp_addr_t& transp_addr, asn1:
 
 bool s1ap::send_ho_required(uint16_t                     rnti,
                             uint32_t                     target_eci,
+                            uint16_t                     target_tac,
                             srsran::plmn_id_t            target_plmn,
                             srsran::span<uint32_t>       fwd_erabs,
                             srsran::unique_byte_buffer_t rrc_container,
@@ -1835,7 +1838,8 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
   }
 
   // launch procedure
-  if (not u->ho_prep_proc.launch(target_eci, target_plmn, fwd_erabs, std::move(rrc_container), has_direct_fwd_path)) {
+  if (not u->ho_prep_proc.launch(
+          target_eci, target_tac, target_plmn, fwd_erabs, std::move(rrc_container), has_direct_fwd_path)) {
     logger.error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x", u->ctxt.rnti);
     return false;
   }
@@ -2101,6 +2105,7 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
+                                uint16_t                     target_tac,
                                 srsran::plmn_id_t            target_plmn,
                                 srsran::span<uint32_t>       fwd_erabs,
                                 srsran::unique_byte_buffer_t rrc_container,
@@ -2131,7 +2136,7 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   // set PLMN and TAI of target
   // NOTE: Only HO without TAU supported.
   uint16_t tmp16;
-  tmp16 = htons(s1ap_ptr->args.tac);
+  tmp16 = htons(target_tac);
   memcpy(targetenb.sel_tai.tac.data(), &tmp16, sizeof(uint16_t));
   target_plmn.to_s1ap_plmn_bytes(targetenb.sel_tai.plm_nid.data());
   // NOTE: Only HO to different Macro eNB is supported.

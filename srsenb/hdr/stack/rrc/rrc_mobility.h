@@ -57,7 +57,8 @@ private:
                               asn1::rrc::meas_cfg_s* diff_meas_cfg);
 
   // Handover from source cell
-  bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
+  bool
+  start_ho_preparation(uint32_t target_eci, uint16_t target_tac, uint8_t measobj_id, bool fwd_direct_path_available);
 
   // Handover to target cell
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
@@ -81,6 +82,7 @@ private:
   // events
   struct ho_meas_report_ev {
     uint32_t                                target_eci      = 0;
+    uint16_t                                target_tac      = 0;
     const asn1::rrc::meas_obj_to_add_mod_s* meas_obj        = nullptr;
     bool                                    direct_fwd_path = false;
   };
