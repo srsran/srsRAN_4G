@@ -85,7 +85,6 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
   if (cfg.t_poll_retx > 0) {
     poll_retransmit_timer.set(static_cast<uint32_t>(cfg.t_poll_retx),
                               [this](uint32_t timerid) { timer_expired(timerid); });
-    RlcInfo("configured poll retransmission timer. t-pollRetransmission=%d ms", cfg.t_poll_retx);
   }
 
   tx_enabled = true;
@@ -936,7 +935,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    *   - if t-PollRetransmit is running:
    *     - stop and reset t-PollRetransmit.
    */
-  if (st.poll_sn <= status.ack_sn) {
+  if (tx_mod_base_nr(st.poll_sn) <= tx_mod_base_nr(status.ack_sn)) {
     if (poll_retransmit_timer.is_running()) {
       poll_retransmit_timer.stop();
     }
@@ -1075,11 +1074,11 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
     st.byte_without_poll += sdu_bytes;
     if (cfg.poll_pdu > 0 && st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
       poll = 1;
-      RlcInfo("Setting poll bit due to PollPDU. SN=%d", sn);
+      RlcDebug("Setting poll bit due to PollPDU. SN=%d", sn);
     }
     if (cfg.poll_byte > 0 && st.byte_without_poll >= (uint32_t)cfg.poll_byte) {
       poll = 1;
-      RlcInfo("Setting poll bit due to PollBYTE. SN=%d", sn);
+      RlcDebug("Setting poll bit due to PollBYTE. SN=%d", sn);
     }
   }
 
@@ -1092,7 +1091,7 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
    */
   if ((tx_sdu_queue.is_empty() && retx_queue->empty() && sdu_under_segmentation_sn == INVALID_RLC_SN) ||
       tx_window->full()) {
-    RlcInfo("Setting poll bit due to empty buffers/inablity to TX. SN=%d", sn);
+    RlcDebug("Setting poll bit due to empty buffers/inablity to TX. SN=%d", sn);
     poll = 1;
   }
 
@@ -1114,11 +1113,13 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
     if (tx_mod_base_nr(sn) > tx_mod_base_nr(st.poll_sn)) {
       st.poll_sn = sn;
     }
-    if (poll_retransmit_timer.is_running()) {
-      poll_retransmit_timer.stop();
-    }
     if (cfg.t_poll_retx > 0) {
-      poll_retransmit_timer.run();
+      if (not poll_retransmit_timer.is_running()) {
+        poll_retransmit_timer.run();
+      } else {
+        poll_retransmit_timer.stop();
+        poll_retransmit_timer.run();
+      }
       RlcInfo("Started t-PollRetransmit. POLL_SN=%d", sn);
     }
   }
@@ -1173,13 +1174,9 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
      * - include a poll in an AMD PDU as described in section 5.3.3.2.
      */
     if ((tx_sdu_queue.is_empty() && retx_queue->empty()) || tx_window->full()) {
-      if (tx_window->empty()) {
-        // Nothing to RETX
-        return;
-      }
       // Fully RETX first RLC SDU that has not been acked
       if (not tx_window->has_sn(st.tx_next_ack)) {
-        RlcError("TX window not empty, but TX_NEXT_ACK=%d not in TX_WINDOW", st.tx_next_ack);
+        RlcError("Tx_Next_Ack not in tx_widow. Tx_Next_Ack=%d, tx_window_size=%d", st.tx_next_ack, tx_window->size());
         return;
       }
       rlc_amd_retx_nr_t& retx = retx_queue->push();
