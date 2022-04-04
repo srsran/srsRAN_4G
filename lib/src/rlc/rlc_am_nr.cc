@@ -71,7 +71,7 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 
   tx_enabled = true;
 
-  RlcDebug("RLC AM NR tx entity configured.");
+  RlcDebug("RLC AM NR configured tx entity.");
   return true;
 }
 
@@ -1034,7 +1034,6 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   // Configure t_reassembly timer
   if (cfg.t_reassembly > 0) {
     reassembly_timer.set(static_cast<uint32_t>(cfg.t_reassembly), [this](uint32_t timerid) { timer_expired(timerid); });
-    RlcInfo("configured reassembly timer. t-Reassembly=%d ms", cfg.t_reassembly);
   }
 
   mod_nr = cardinality(cfg.rx_sn_field_length);
@@ -1155,7 +1154,7 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
      *     have been received.
      */
     if (rx_mod_base_nr(header.sn) == rx_mod_base_nr(st.rx_next)) {
-      uint32_t sn_upd     = 0;
+      uint32_t sn_upd = 0;
       // move rx_next forward and remove all fully received SDUs from rx_window
       for (sn_upd = (st.rx_next) % mod_nr; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
            sn_upd = (sn_upd + 1) % mod_nr) {

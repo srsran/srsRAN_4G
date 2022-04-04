@@ -77,14 +77,30 @@ bool rlc_am::configure(const rlc_config_t& cfg_)
     return false;
   }
 
-  RlcInfo("configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-          "t_reordering=%d, t_status_prohibit=%d",
-          cfg.am.t_poll_retx,
-          cfg.am.poll_pdu,
-          cfg.am.poll_byte,
-          cfg.am.max_retx_thresh,
-          cfg.am.t_reordering,
-          cfg.am.t_status_prohibit);
+  if (cfg.rat == srsran_rat_t::lte) {
+    RlcInfo("AM LTE configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+            "t_reordering=%d, t_status_prohibit=%d",
+            cfg.am.t_poll_retx,
+            cfg.am.poll_pdu,
+            cfg.am.poll_byte,
+            cfg.am.max_retx_thresh,
+            cfg.am.t_reordering,
+            cfg.am.t_status_prohibit);
+  } else if (cfg.rat == srsran_rat_t::nr) {
+    RlcInfo("AM NR configured - tx_sn_field_length=%d, rx_sn_field_length=%d, "
+            "t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, "
+            "max_retx_thresh=%d, t_reassembly=%d, t_status_prohibit=%d",
+            to_number(cfg.am_nr.tx_sn_field_length),
+            to_number(cfg.am_nr.rx_sn_field_length),
+            cfg.am_nr.t_poll_retx,
+            cfg.am_nr.poll_pdu,
+            cfg.am_nr.poll_byte,
+            cfg.am_nr.max_retx_thresh,
+            cfg.am_nr.t_reassembly,
+            cfg.am_nr.t_status_prohibit);
+  } else {
+    RlcError("Invalid RAT at entity configuration");
+  }
   return true;
 }
 
