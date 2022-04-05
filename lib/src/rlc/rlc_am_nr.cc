@@ -644,22 +644,19 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
       }
     }
     if (it != tx_pdu.segment_list.end()) {
-      rlc_amd_tx_pdu_nr::pdu_segment seg1                          = {};
-      seg1.so                                                      = retx.current_so;
-      seg1.payload_len                                             = retx_pdu_payload_size;
-      rlc_amd_tx_pdu_nr::pdu_segment seg2                          = {};
-      seg2.so                                                      = retx.current_so + retx_pdu_payload_size;
-      seg2.payload_len                                             = retx.segment_length - retx_pdu_payload_size;
-      std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator begin_it = tx_pdu.segment_list.erase(it);
-      if (begin_it == tx_pdu.segment_list.end()) {
-        RlcError("Could not modify segment list. SN=%d, SO=%d len=%d", retx.sn, retx.current_so, retx.segment_length);
-      } else {
-        std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator insert_it  = tx_pdu.segment_list.insert(begin_it, seg1);
-        std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator insert_it2 = tx_pdu.segment_list.insert(insert_it, seg2);
-        RlcDebug("Old segment SN=%d, SO=%d len=%d", retx.sn, retx.current_so, retx.segment_length);
-        RlcDebug("New segment SN=%d, SO=%d len=%d", retx.sn, seg1.so, seg1.payload_len);
-        RlcDebug("New segment SN=%d, SO=%d len=%d", retx.sn, seg2.so, seg2.payload_len);
-      }
+      rlc_amd_tx_pdu_nr::pdu_segment seg1 = {};
+      seg1.so                             = it->so;
+      seg1.payload_len                    = retx_pdu_payload_size;
+      rlc_amd_tx_pdu_nr::pdu_segment seg2 = {};
+      seg2.so                             = it->so + retx_pdu_payload_size;
+      seg2.payload_len                    = it->payload_len - retx_pdu_payload_size;
+
+      std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator begin_it   = tx_pdu.segment_list.erase(it);
+      std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator insert_it  = tx_pdu.segment_list.insert(begin_it, seg2);
+      std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator insert_it2 = tx_pdu.segment_list.insert(insert_it, seg1);
+      RlcDebug("Old segment SN=%d, SO=%d len=%d", retx.sn, retx.current_so, retx.segment_length);
+      RlcDebug("New segment SN=%d, SO=%d len=%d", retx.sn, seg1.so, seg1.payload_len);
+      RlcDebug("New segment SN=%d, SO=%d len=%d", retx.sn, seg2.so, seg2.payload_len);
     } else {
       RlcDebug("Could not find segment. SN=%d, SO=%d length=%d", retx.sn, retx.current_so, retx.segment_length);
     }
