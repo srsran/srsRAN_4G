@@ -477,6 +477,182 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
 }
 
 /*
+ * Test the loss of a single PDU with NACK duplicate
+ * NACK should be visible in the status report.
+ *
+ * Retx after NACK should be present too.
+ * No further status reports shall be issued.
+ */
+int lost_pdu_duplicated_nack_test(rlc_am_nr_sn_size_t sn_size)
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  byte_buffer_t pdu_bufs[NBUFS];
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  test_delimit_logger delimiter("lost PDU with NACK duplicate (%d bit SN)", to_number(sn_size));
+
+  constexpr uint32_t payload_size        = 1;
+  uint32_t           header_size         = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  uint32_t           data_pdu_size       = header_size + payload_size;
+  uint32_t           expect_buffer_state = NBUFS * data_pdu_size;
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+    return -1;
+  }
+
+  rlc_config_t rlc2_config = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  if (not rlc2.configure(rlc2_config)) {
+    return -1;
+  }
+
+  // after configuring entity
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  basic_test_tx(&rlc1, pdu_bufs, sn_size);
+
+  // Write 5 PDUs into RLC2
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 3) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes); // Don't write RLC_SN=3.
+    }
+  }
+
+  // Only after t-reassembly has expired, will the status report include NACKs.
+  TESTASSERT_EQ(3, rlc2.get_buffer_state());
+  {
+    // Read status PDU from RLC2
+    byte_buffer_t status_buf;
+    int           len  = rlc2.read_pdu(status_buf.msg, 5);
+    status_buf.N_bytes = len;
+
+    TESTASSERT(0 == rlc2.get_buffer_state());
+
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
+    TESTASSERT_EQ(3, status_check.ack_sn); // 3 is the next expected SN (i.e. the lost packet.)
+
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+    // Write duplicated status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+    // Check there is nothing pending in RLC1
+    TESTASSERT_EQ(0, rlc1.get_buffer_state());
+  }
+
+  // Step timers until reassambly timeout expires
+  for (int cnt = 0; cnt < 35; cnt++) {
+    timers.step_all();
+  }
+
+  // t-reassembly has expired. There should be a NACK in the status report.
+  constexpr uint32_t status_pdu_ack_size  = 3;
+  uint32_t           status_pdu_nack_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  TESTASSERT_EQ(status_pdu_ack_size + status_pdu_nack_size, rlc2.get_buffer_state());
+  {
+    // Read status PDU from RLC2
+    byte_buffer_t status_buf;
+    uint32_t      len  = rlc2.read_pdu(status_buf.msg, status_pdu_ack_size + status_pdu_nack_size);
+    status_buf.N_bytes = len;
+
+    TESTASSERT_EQ(0, rlc2.get_buffer_state());
+
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
+    TESTASSERT_EQ(5, status_check.ack_sn);           // 5 is the next expected SN.
+    TESTASSERT_EQ(1, status_check.nacks.size());     // We lost one PDU.
+    TESTASSERT_EQ(3, status_check.nacks[0].nack_sn); // Lost PDU SN=3.
+
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+    // Write duplicated status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+    // Check there is only one Retx of SN=3
+    TESTASSERT_EQ(data_pdu_size, rlc1.get_buffer_state());
+  }
+
+  {
+    // Check correct re-transmission
+    byte_buffer_t retx_buf;
+    uint32_t      len = rlc1.read_pdu(retx_buf.msg, data_pdu_size);
+    retx_buf.N_bytes  = len;
+    TESTASSERT_EQ(data_pdu_size, len);
+
+    rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
+
+    TESTASSERT_EQ(3, rlc2.get_buffer_state()); // Status report shoud be required, as the TX buffers are now empty.
+  }
+  {
+    // Double check status report
+    byte_buffer_t status_buf;
+    int           len  = rlc2.read_pdu(status_buf.msg, 3);
+    status_buf.N_bytes = len;
+
+    TESTASSERT_EQ(0, rlc2.get_buffer_state());
+
+    // Assert status is correct
+    rlc_am_nr_status_pdu_t status_check = {};
+    rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
+    TESTASSERT_EQ(5, status_check.ack_sn);       // 5 is the next expected SN.
+    TESTASSERT_EQ(0, status_check.nacks.size()); // All PDUs are acked now
+  }
+
+  {
+    // rlc2 should not issue further status PDUs as time passes (even after expiry of t_status_prohibit)
+    int32_t checktime = 2 * rlc2_config.am_nr.t_status_prohibit;
+    for (int cnt = 0; cnt < checktime; cnt++) {
+      timers.step_all();
+      TESTASSERT_EQ(0, rlc2.get_buffer_state());
+    }
+  }
+
+  // Check statistics
+  rlc_bearer_metrics_t metrics1 = rlc1.get_metrics();
+  rlc_bearer_metrics_t metrics2 = rlc2.get_metrics();
+
+  uint32_t total_tx_pdu_bytes1 = (NBUFS + 1) * data_pdu_size;                        // (NBUFS + 1 RETX) * PDU size
+  uint32_t total_rx_pdu_bytes1 = 4 * status_pdu_ack_size + 2 * status_pdu_nack_size; // 4 status PDU (2 with a NACK)
+  uint32_t total_tx_pdu_bytes2 =
+      3 * status_pdu_ack_size + status_pdu_nack_size;   // Three status PDU (one with a NACK, two without)
+  uint32_t total_rx_pdu_bytes2 = (NBUFS)*data_pdu_size; // (NBUFS - 1 Lost + 1 RETX) * PDU size
+
+  // SDU metrics
+  TESTASSERT_EQ(5, metrics1.num_tx_sdus);
+  TESTASSERT_EQ(0, metrics1.num_rx_sdus);
+  TESTASSERT_EQ(5, metrics1.num_tx_sdu_bytes);
+  TESTASSERT_EQ(0, metrics1.num_rx_sdu_bytes);
+  TESTASSERT_EQ(0, metrics1.num_lost_sdus);
+  // PDU metrics
+  TESTASSERT_EQ(5 + 1, metrics1.num_tx_pdus);                    // One re-transmission
+  TESTASSERT_EQ(4, metrics1.num_rx_pdus);                        // 4 status PDUs
+  TESTASSERT_EQ(total_tx_pdu_bytes1, metrics1.num_tx_pdu_bytes); // (NBUFS + 1 RETX) * PDU size
+  TESTASSERT_EQ(total_rx_pdu_bytes1, metrics1.num_rx_pdu_bytes); // Two status PDU (one with a NACK)
+  TESTASSERT_EQ(0, metrics1.num_lost_sdus);                      // No lost SDUs
+
+  // PDU metrics
+  TESTASSERT_EQ(0, metrics2.num_tx_sdus);
+  TESTASSERT_EQ(5, metrics2.num_rx_sdus);
+  TESTASSERT_EQ(0, metrics2.num_tx_sdu_bytes);
+  TESTASSERT_EQ(5, metrics2.num_rx_sdu_bytes);
+  TESTASSERT_EQ(0, metrics2.num_lost_sdus);
+  // SDU metrics
+  TESTASSERT_EQ(3, metrics2.num_tx_pdus);                        // Three status PDUs
+  TESTASSERT_EQ(5, metrics2.num_rx_pdus);                        // 5 PDUs (6 tx'ed, but one was lost)
+  TESTASSERT_EQ(total_tx_pdu_bytes2, metrics2.num_tx_pdu_bytes); // Three status PDU (one with a NACK, two without)
+  TESTASSERT_EQ(total_rx_pdu_bytes2, metrics2.num_rx_pdu_bytes); // (NBUFS - 1 Lost + 1 RETX) * PDU size
+  TESTASSERT_EQ(0, metrics2.num_lost_sdus);                      // No lost SDUs
+  return SRSRAN_SUCCESS;
+}
+
+/*
  * Test the basic segmentation of a single SDU.
  * A single SDU of 3 bytes is segmented into 3 PDUs
  */
@@ -1606,6 +1782,7 @@ int main()
     TESTASSERT(retx_segmentation_required_checker_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(basic_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(lost_pdu_test(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(lost_pdu_duplicated_nack_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(basic_segmentation_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(segment_retx_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(retx_segment_test(sn_size) == SRSRAN_SUCCESS);
