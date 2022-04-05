@@ -109,6 +109,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
     perror("Could not create socket\n");
     return -1;
   }
+  srslog::fetch_basic_logger(LOGSERVICE).debug("Opened %s socket=%d", net_utils::protocol_to_string(protocol), fd);
 
   if (protocol == protocol_type::SCTP) {
     // Sets the data_io_event to be able to use sendrecv_info
@@ -191,7 +192,12 @@ bool bind_addr(int fd, const sockaddr_in& addr_in)
 
   if (bind(fd, (struct sockaddr*)&addr_in, sizeof(addr_in)) != 0) {
     srslog::fetch_basic_logger(LOGSERVICE)
-        .error("Failed to bind on address %s: %s errno %d", get_ip(addr_in).c_str(), strerror(errno), errno);
+        .error("Failed to bind on address %s:%d. Socket=%d, strerror=%s, errno=%d",
+               get_ip(addr_in).c_str(),
+               get_port(addr_in),
+               fd,
+               strerror(errno),
+               errno);
     perror("bind()");
     return false;
   }
@@ -297,9 +303,15 @@ bool unique_socket::open_socket(net_utils::addr_family   ip_type,
 void unique_socket::close()
 {
   if (sockfd >= 0) {
-    ::close(sockfd);
+    if (::close(sockfd) == -1) {
+      srslog::fetch_basic_logger(LOGSERVICE).error("Socket=%d could not be closed.", sockfd);
+    } else {
+      srslog::fetch_basic_logger(LOGSERVICE).debug("Socket=%d was closed.", sockfd);
+    }
     sockfd = -1;
     addr   = {};
+  } else {
+    srslog::fetch_basic_logger(LOGSERVICE).debug("Socket=%d could not be closed.", sockfd);
   }
 }
 
