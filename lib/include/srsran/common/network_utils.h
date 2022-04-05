@@ -74,10 +74,14 @@ public:
   std::string            get_ip() const { return net_utils::get_ip(addr); }
   net_utils::socket_type get_family() const { return net_utils::get_addr_family(sockfd); }
 
+  bool open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
   bool bind_addr(const char* bind_addr_str, int port);
   bool connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
   bool start_listen();
-  bool open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
+  bool reuse_addr();
+  bool sctp_subscribe_to_events();
+  bool sctp_set_rto_opts();
+  bool sctp_set_init_msg_opts();
   int  get_socket() const { return sockfd; };
 
 protected:
