@@ -618,7 +618,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
 
   // Copy SDU segment into payload
   srsran_assert((hdr_len + retx_pdu_payload_size) <= nof_bytes, "Error calculating hdr_len and segment_payload_len");
-  memcpy(&payload[hdr_len], tx_pdu.sdu_buf->msg, retx_pdu_payload_size);
+  memcpy(&payload[hdr_len], &tx_pdu.sdu_buf->msg[retx.current_so], retx_pdu_payload_size);
 
   // Store PDU segment info into tx_window
   RlcDebug("Updating RETX segment info. SN=%d, is_segment=%s", retx.sn, retx.is_segment ? "true" : "false");
