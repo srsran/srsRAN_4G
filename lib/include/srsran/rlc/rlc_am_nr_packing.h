@@ -150,11 +150,24 @@ void log_rlc_am_nr_status_pdu_to_string(srslog::log_channel&    log_ch,
   if (status->nacks.size() > 0) {
     fmt::format_to(buffer, ", NACK_SN = ");
     for (uint32_t i = 0; i < status->nacks.size(); ++i) {
-      if (status->nacks[i].has_so) {
-        fmt::format_to(
-            buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+      if (status->nacks[i].has_nack_range) {
+        if (status->nacks[i].has_so) {
+          fmt::format_to(buffer,
+                         "[{} {}:{} r{}]",
+                         status->nacks[i].nack_sn,
+                         status->nacks[i].so_start,
+                         status->nacks[i].so_end,
+                         status->nacks[i].nack_range);
+        } else {
+          fmt::format_to(buffer, "[{} r{}]", status->nacks[i].nack_sn, status->nacks[i].nack_range);
+        }
       } else {
-        fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
+        if (status->nacks[i].has_so) {
+          fmt::format_to(
+              buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+        } else {
+          fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
+        }
       }
     }
   }
