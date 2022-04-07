@@ -87,6 +87,7 @@ private:
   uint32_t                       packed_size_; ///< Stores the current packed size; sync on each change of nacks_
 
   void refresh_packed_size();
+  uint32_t nack_size(const rlc_status_nack_t& nack) const;
 
 public:
   rlc_am_nr_control_pdu_type_t          cpt;         ///< CPT header
@@ -99,6 +100,7 @@ public:
   void                                  push_nack(const rlc_status_nack_t& nack);
   const std::vector<rlc_status_nack_t>& get_nacks() const { return nacks_; }
   uint32_t                              get_packed_size() const { return packed_size; }
+  bool                                  trim(uint32_t max_packed_size);
 };
 
 /****************************************************************************

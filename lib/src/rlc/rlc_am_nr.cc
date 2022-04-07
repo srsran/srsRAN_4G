@@ -1414,8 +1414,6 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 
   status->reset();
 
-  byte_buffer_t tmp_buf;
-
   /*
    * - for the RLC SDUs with SN such that RX_Next <= SN < RX_Highest_Status that has not been completely
    *   received yet, in increasing SN order of RLC SDUs and increasing byte segment order within RLC SDUs,
@@ -1425,9 +1423,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
   RlcDebug("Generating status PDU");
   for (uint32_t i = st.rx_next; rx_mod_base_nr(i) < rx_mod_base_nr(st.rx_highest_status); i = (i + 1) % mod_nr) {
     if ((rx_window->has_sn(i) && (*rx_window)[i].fully_received)) {
-      // only update ACK_SN if this SN has been fully received
-      status->ack_sn = i;
-      RlcDebug("Updating ACK_SN. ACK_SN=%d", i);
+      RlcDebug("SDU SN=%d is fully received", i);
     } else {
       if (not rx_window->has_sn(i)) {
         // No segment received, NACK the whole SDU
@@ -1475,18 +1471,25 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
         }
       }
     }
-    // TODO: add check to not exceed status->N_nack >= RLC_AM_NR_MAX_NACKS
-    // make sure we don't exceed grant size (FIXME)
-    rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);
-  }
+  } // NACK loop
+
   /*
    * - set the ACK_SN to the SN of the next not received RLC SDU which is not
    * indicated as missing in the resulting STATUS PDU.
    */
-  // FIXME as we do not check the size of status report, the next not received
-  // RLC SDU has the same SN as RX_HIGHEST_STATUS
   status->ack_sn = st.rx_highest_status;
-  rlc_am_nr_write_status_pdu(*status, cfg.rx_sn_field_length, &tmp_buf);
+
+  // trim PDU if necessary
+  if (status->packed_size > max_len) {
+    RlcInfo("Trimming status PDU with %d NACKs and packed_size=%d into max_len=%d",
+            status->nacks.size(),
+            status->packed_size,
+            max_len);
+    log_rlc_am_nr_status_pdu_to_string(logger.debug, "Untrimmed status PDU - %s", status, rb_name);
+    if (not status->trim(max_len)) {
+      RlcError("Failed to trim status PDU into provided space: max_len=%d", max_len);
+    }
+  }
 
   if (max_len != UINT32_MAX) {
     // UINT32_MAX is used just to query the status PDU length
@@ -1495,7 +1498,8 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     }
     do_status = false;
   }
-  return tmp_buf.N_bytes;
+
+  return status->packed_size;
 }
 
 uint32_t rlc_am_nr_rx::get_status_pdu_length()

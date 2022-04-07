@@ -23,15 +23,21 @@ void rlc_am_nr_status_pdu_t::refresh_packed_size()
 {
   uint32_t packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
   for (auto nack : nacks_) {
-    packed_size += sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
-                                                              : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
-    if (nack.has_so) {
-      packed_size += rlc_am_nr_status_pdu_sizeof_nack_so;
-    }
-    if (nack.has_nack_range) {
-      packed_size += rlc_am_nr_status_pdu_sizeof_nack_range;
-    }
+    packed_size += nack_size(nack);
   }
+}
+
+uint32_t rlc_am_nr_status_pdu_t::nack_size(const rlc_status_nack_t& nack) const
+{
+  uint32_t result = sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
+                                                               : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
+  if (nack.has_so) {
+    result += rlc_am_nr_status_pdu_sizeof_nack_so;
+  }
+  if (nack.has_nack_range) {
+    result += rlc_am_nr_status_pdu_sizeof_nack_range;
+  }
+  return result;
 }
 
 rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) :
@@ -57,14 +63,31 @@ void rlc_am_nr_status_pdu_t::reset()
 void rlc_am_nr_status_pdu_t::push_nack(const rlc_status_nack_t& nack)
 {
   nacks_.push_back(nack);
-  packed_size_ += sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
-                                                             : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
-  if (nack.has_so) {
-    packed_size_ += rlc_am_nr_status_pdu_sizeof_nack_so;
+  packed_size_ += nack_size(nack);
+}
+
+bool rlc_am_nr_status_pdu_t::trim(uint32_t max_packed_size)
+{
+  if (max_packed_size >= packed_size_) {
+    // no trimming required
+    return true;
   }
-  if (nack.has_nack_range) {
-    packed_size_ += rlc_am_nr_status_pdu_sizeof_nack_range;
+  if (max_packed_size <= rlc_am_nr_status_pdu_sizeof_header_ack_sn) {
+    // too little space for smallest possible status PDU (only header + ACK).
+    return false;
   }
+
+  // remove NACKs (starting from the back) until it fits into given space
+  // note: when removing a NACK for a segment, we have to remove all other NACKs with the same SN as well,
+  // see TS 38.322 Sec. 5.3.4:
+  //   "set the ACK_SN to the SN of the next not received RLC SDU
+  //   which is not indicated as missing in the resulting STATUS PDU."
+  while (nacks_.size() > 0 && (max_packed_size >= packed_size_ || nacks_.back().nack_sn == ack_sn)) {
+    packed_size_ -= nack_size(nacks_.back());
+    ack_sn = nacks_.back().nack_sn;
+    nacks_.pop_back();
+  }
+  return true;
 }
 
 /****************************************************************************
