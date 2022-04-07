@@ -78,22 +78,27 @@ struct rlc_amd_tx_sdu_nr_t {
   explicit rlc_amd_tx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
 };
 
-///< AM NR Status PDU header (perhaps merge with LTE version)
-struct rlc_am_nr_status_pdu_t {
-  rlc_am_nr_control_pdu_type_t   cpt;
-  uint32_t                       ack_sn; ///< SN of the next not received RLC Data PDU
-  std::vector<rlc_status_nack_t> nacks;
+///< AM NR Status PDU header
+class rlc_am_nr_status_pdu_t
+{
+private:
+  rlc_am_nr_sn_size_t            sn_size;      ///< Stored SN size required to compute the packed size
+  std::vector<rlc_status_nack_t> nacks_;       ///< Internal NACK container; keep in sync with packed_size_
+  uint32_t                       packed_size_; ///< Stores the current packed size; sync on each change of nacks_
 
-  rlc_am_nr_status_pdu_t() : cpt(rlc_am_nr_control_pdu_type_t::status_pdu), ack_sn(INVALID_RLC_SN), nacks(0)
-  {
-    nacks.reserve(RLC_AM_NR_TYP_NACKS);
-  }
-  void reset()
-  {
-    cpt    = rlc_am_nr_control_pdu_type_t::status_pdu;
-    ack_sn = INVALID_RLC_SN;
-    nacks.clear();
-  }
+  void refresh_packed_size();
+
+public:
+  rlc_am_nr_control_pdu_type_t          cpt;         ///< CPT header
+  uint32_t                              ack_sn;      ///< SN of the next not received RLC Data PDU
+  const std::vector<rlc_status_nack_t>& nacks;       ///< Read-only reference to NACKs
+  const uint32_t&                       packed_size; ///< Read-only reference to packed size
+
+  rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size);
+  void                                  reset();
+  void                                  push_nack(const rlc_status_nack_t& nack);
+  const std::vector<rlc_status_nack_t>& get_nacks() const { return nacks_; }
+  uint32_t                              get_packed_size() const { return packed_size; }
 };
 
 /****************************************************************************
@@ -113,6 +118,16 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, u
 uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, byte_buffer_t* pdu);
 
 uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header);
+
+/****************************************************************************
+ * Status PDU pack/unpack helper functions for NR
+ * Ref: 3GPP TS 38.322 v16.2.0 Section 6.2.2.5
+ ***************************************************************************/
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_header_ack_sn        = 3; // header fixed part and ACK SN
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn = 2; // NACK SN and extension fields (12 bit SN)
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn = 3; // NACK SN and extension fields (18 bit SN)
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_so              = 4; // NACK segment offsets (start and end)
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_range           = 1; // NACK range (nof consecutively lost SDUs)
 
 uint32_t
 rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status);

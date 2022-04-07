@@ -724,15 +724,16 @@ uint32_t rlc_am_nr_tx::get_retx_expected_hdr_len(const rlc_amd_retx_nr_t& retx)
 uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes)
 {
   RlcInfo("generating status PDU. Bytes available:%d", nof_bytes);
-  tx_status.reset();
-  int pdu_len = rx->get_status_pdu(&tx_status, nof_bytes);
+  rlc_am_nr_status_pdu_t status(cfg.rx_sn_field_length); // carries status of RX entity, hence use SN length of RX
+  status.reset();
+  int pdu_len = rx->get_status_pdu(&status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
     RlcDebug("deferred status PDU. Cause: Failed to acquire rx lock");
     pdu_len = 0;
   } else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     RlcDebug("generated status PDU. Bytes:%d", pdu_len);
-    log_rlc_am_nr_status_pdu_to_string(logger.info, "TX status PDU - %s", &tx_status, rb_name);
-    pdu_len = rlc_am_nr_write_status_pdu(tx_status, cfg.tx_sn_field_length, payload);
+    log_rlc_am_nr_status_pdu_to_string(logger.info, "TX status PDU - %s", &status, rb_name);
+    pdu_len = rlc_am_nr_write_status_pdu(status, cfg.tx_sn_field_length, payload);
   } else {
     RlcInfo("cannot tx status PDU - %d bytes available, %d bytes required", nof_bytes, pdu_len);
     pdu_len = 0;
@@ -748,7 +749,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   std::lock_guard<std::mutex> lock(mutex);
-  rlc_am_nr_status_pdu_t      status = {};
+  rlc_am_nr_status_pdu_t      status(cfg.tx_sn_field_length);
   RlcHexDebug(payload, nof_bytes, "%s Rx control PDU", parent->rb_name);
   rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
   log_rlc_am_nr_status_pdu_to_string(logger.info, "RX status PDU: %s", &status, parent->rb_name);
@@ -1408,11 +1409,11 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 {
   std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
   if (not lock.owns_lock()) {
-    return 0;
+    return SRSRAN_ERROR;
   }
 
-  status->nacks.clear();
-  status->ack_sn = st.rx_next; // Start with the lower end of the window
+  status->reset();
+
   byte_buffer_t tmp_buf;
 
   /*
@@ -1430,15 +1431,15 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
     } else {
       if (not rx_window->has_sn(i)) {
         // No segment received, NACK the whole SDU
-        RlcDebug("Updating NACK for full SDU. NACK SN=%d", i);
+        RlcDebug("Adding NACK for full SDU. NACK SN=%d", i);
         rlc_status_nack_t nack;
         nack.nack_sn = i;
         nack.has_so  = false;
-        status->nacks.push_back(nack);
+        status->push_nack(nack);
       } else if (not(*rx_window)[i].fully_received) {
         // Some segments were received, but not all.
         // NACK non consecutive missing bytes
-        RlcDebug("Updating NACK for partial SDU. NACK SN=%d", i);
+        RlcDebug("Adding NACKs for segmented SDU. NACK SN=%d", i);
         uint32_t last_so         = 0;
         bool     last_segment_rx = false;
         for (auto segm = (*rx_window)[i].segments.begin(); segm != (*rx_window)[i].segments.end(); segm++) {
@@ -1449,7 +1450,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
             nack.has_so   = true;
             nack.so_start = last_so;
             nack.so_end   = segm->header.so - 1; // set to last missing byte
-            status->nacks.push_back(nack);
+            status->push_nack(nack);
             RlcDebug("First/middle segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d",
                      nack.nack_sn,
                      nack.so_start,
@@ -1460,14 +1461,14 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
             last_segment_rx = true;
           }
           last_so = segm->header.so + segm->buf->N_bytes;
-        }
+        } // Segment loop
         if (not last_segment_rx) {
           rlc_status_nack_t nack;
           nack.nack_sn  = i;
           nack.has_so   = true;
           nack.so_start = last_so;
           nack.so_end   = so_end_of_sdu;
-          status->nacks.push_back(nack);
+          status->push_nack(nack);
           RlcDebug(
               "Final segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d", nack.nack_sn, nack.so_start, nack.so_end);
           srsran_assert(nack.so_start <= nack.so_end, "Error: SO_start > SO_end. NACK_SN=%d", nack.nack_sn);
@@ -1499,8 +1500,10 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 
 uint32_t rlc_am_nr_rx::get_status_pdu_length()
 {
-  rlc_am_nr_status_pdu_t tmp_status;
-  return get_status_pdu(&tmp_status, UINT32_MAX);
+  rlc_am_nr_status_pdu_t tmp_status(cfg.rx_sn_field_length);
+  tmp_status.reset();
+  get_status_pdu(&tmp_status, UINT32_MAX);
+  return tmp_status.get_packed_size();
 }
 
 bool rlc_am_nr_rx::get_do_status()

@@ -233,7 +233,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test1()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
   TESTASSERT(status_pdu.nacks.size() == 0);
@@ -263,7 +263,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test2()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
   TESTASSERT(status_pdu.nacks.size() == 1);
@@ -296,7 +296,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test3()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
   TESTASSERT(status_pdu.nacks.size() == 2);
@@ -332,7 +332,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test4()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
   TESTASSERT(status_pdu.nacks.size() == 2);
@@ -370,7 +370,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test5()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == 0);
 
   return SRSRAN_SUCCESS;
@@ -404,7 +404,7 @@ int rlc_am_nr_control_pdu_12bit_sn_test_nack_range()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size12bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 2065);
   TESTASSERT(status_pdu.nacks.size() == 2);
@@ -445,7 +445,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test1()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size18bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
   TESTASSERT(status_pdu.nacks.size() == 0);
@@ -476,7 +476,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test2()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size18bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
   TESTASSERT(status_pdu.nacks.size() == 1);
@@ -527,7 +527,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test3()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size18bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
   TESTASSERT(status_pdu.nacks.size() == 2);
@@ -579,7 +579,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test4()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size18bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 235929);
   TESTASSERT(status_pdu.nacks.size() == 2);
@@ -635,7 +635,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test5()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size18bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == 0);
 
   return SRSRAN_SUCCESS;
@@ -671,7 +671,7 @@ int rlc_am_nr_control_pdu_18bit_sn_test_nack_range()
   TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
 
   // unpack PDU
-  rlc_am_nr_status_pdu_t status_pdu = {};
+  rlc_am_nr_status_pdu_t status_pdu(srsran::rlc_am_nr_sn_size_t::size18bits);
   TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srsran::rlc_am_nr_sn_size_t::size18bits, &status_pdu) == SRSRAN_SUCCESS);
   TESTASSERT(status_pdu.ack_sn == 200977);
   TESTASSERT(status_pdu.nacks.size() == 2);

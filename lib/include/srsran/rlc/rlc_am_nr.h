@@ -153,7 +153,6 @@ private:
   std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue;
   uint32_t               sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
   pdcp_sn_vector_t       notify_info_vec;
-  rlc_am_nr_status_pdu_t tx_status;
 
   // Helper constants
   uint32_t min_hdr_size = 2;

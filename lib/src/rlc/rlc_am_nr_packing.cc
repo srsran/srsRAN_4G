@@ -16,6 +16,58 @@
 namespace srsran {
 
 /****************************************************************************
+ * Container implementation for pack/unpack functions
+ ***************************************************************************/
+
+void rlc_am_nr_status_pdu_t::refresh_packed_size()
+{
+  uint32_t packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
+  for (auto nack : nacks_) {
+    packed_size += sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
+                                                              : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
+    if (nack.has_so) {
+      packed_size += rlc_am_nr_status_pdu_sizeof_nack_so;
+    }
+    if (nack.has_nack_range) {
+      packed_size += rlc_am_nr_status_pdu_sizeof_nack_range;
+    }
+  }
+}
+
+rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) :
+  sn_size(sn_size),
+  nacks_(0),
+  packed_size_(rlc_am_nr_status_pdu_sizeof_header_ack_sn),
+  cpt(rlc_am_nr_control_pdu_type_t::status_pdu),
+  ack_sn(INVALID_RLC_SN),
+  nacks(nacks_),
+  packed_size(packed_size_)
+{
+  nacks_.reserve(RLC_AM_NR_TYP_NACKS);
+}
+
+void rlc_am_nr_status_pdu_t::reset()
+{
+  cpt    = rlc_am_nr_control_pdu_type_t::status_pdu;
+  ack_sn = INVALID_RLC_SN;
+  nacks_.clear();
+  packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
+}
+
+void rlc_am_nr_status_pdu_t::push_nack(const rlc_status_nack_t& nack)
+{
+  nacks_.push_back(nack);
+  packed_size_ += sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
+                                                             : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
+  if (nack.has_so) {
+    packed_size_ += rlc_am_nr_status_pdu_sizeof_nack_so;
+  }
+  if (nack.has_nack_range) {
+    packed_size_ += rlc_am_nr_status_pdu_sizeof_nack_range;
+  }
+}
+
+/****************************************************************************
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 38.322 v15.3.0 Section 6.2.2.4
  ***************************************************************************/
@@ -231,7 +283,7 @@ rlc_am_nr_read_status_pdu_12bit_sn(const uint8_t* payload, const uint32_t nof_by
       nack.nack_range     = (*ptr);
       ptr++;
     }
-    status->nacks.push_back(nack);
+    status->push_nack(nack);
     if (uint32_t(ptr - payload) > nof_bytes) {
       fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
       return 0;
@@ -313,7 +365,7 @@ rlc_am_nr_read_status_pdu_18bit_sn(const uint8_t* payload, const uint32_t nof_by
       nack.nack_range     = (*ptr);
       ptr++;
     }
-    status->nacks.push_back(nack);
+    status->push_nack(nack);
     if (uint32_t(ptr - payload) > nof_bytes) {
       fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
       return 0;
