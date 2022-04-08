@@ -147,6 +147,11 @@ void test_rrc_sa_connection()
 
   rrc_nr rrc_obj(&task_sched);
 
+  // Dummy RLC/PDCP configs
+  asn1::rrc_nr::rlc_cfg_c rlc_cfg;
+  rlc_cfg.set_um_bi_dir();
+  rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly = t_reassembly_e::ms50;
+
   // set cfg
   rrc_nr_cfg_t rrc_cfg_nr;
   rrc_cfg_nr.cell_list.emplace_back();
@@ -158,6 +163,9 @@ void test_rrc_sa_connection()
   rrc_cfg_nr.cell_list[0].duplex_mode              = SRSRAN_DUPLEX_MODE_FDD;
   rrc_cfg_nr.is_standalone                         = true;
   rrc_cfg_nr.enb_id                                = 0x19B;
+  rrc_cfg_nr.five_qi_cfg[9].configured             = true;
+  rrc_cfg_nr.five_qi_cfg[9].rlc_cfg                = rlc_cfg;
+  rrc_cfg_nr.five_qi_cfg[9].pdcp_cfg               = {};
   srsran::string_to_mcc("001", &rrc_cfg_nr.mcc);
   srsran::string_to_mnc("01", &rrc_cfg_nr.mnc);
   set_derived_nr_cell_params(rrc_cfg_nr.is_standalone, rrc_cfg_nr.cell_list[0]);
