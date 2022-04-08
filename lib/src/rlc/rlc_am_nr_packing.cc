@@ -51,7 +51,7 @@ bool rlc_am_nr_status_pdu_t::trim(uint32_t max_packed_size)
     // no trimming required
     return true;
   }
-  if (max_packed_size <= rlc_am_nr_status_pdu_sizeof_header_ack_sn) {
+  if (max_packed_size < rlc_am_nr_status_pdu_sizeof_header_ack_sn) {
     // too little space for smallest possible status PDU (only header + ACK).
     return false;
   }
@@ -61,7 +61,7 @@ bool rlc_am_nr_status_pdu_t::trim(uint32_t max_packed_size)
   // see TS 38.322 Sec. 5.3.4:
   //   "set the ACK_SN to the SN of the next not received RLC SDU
   //   which is not indicated as missing in the resulting STATUS PDU."
-  while (nacks_.size() > 0 && (max_packed_size >= packed_size_ || nacks_.back().nack_sn == ack_sn)) {
+  while (nacks_.size() > 0 && (max_packed_size < packed_size_ || nacks_.back().nack_sn == ack_sn)) {
     packed_size_ -= nack_size(nacks_.back());
     ack_sn = nacks_.back().nack_sn;
     nacks_.pop_back();

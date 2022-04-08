@@ -433,6 +433,232 @@ int rlc_am_nr_control_pdu_12bit_sn_test_nack_range()
   return SRSRAN_SUCCESS;
 }
 
+// Test status PDU for correct trimming and estimation of packed size
+// 1) Test init, copy and reset
+// 2) Test step-wise growth and trimming of status PDU while covering several corner cases
+int rlc_am_nr_control_pdu_test_trimming(rlc_am_nr_sn_size_t sn_size)
+{
+  test_delimit_logger delimiter("Control PDU ({} bit SN) test trimming", to_number(sn_size));
+
+  // status PDU with no NACKs
+  {
+    constexpr uint32_t     min_size = 3;
+    srsran::byte_buffer_t  pdu;
+    rlc_am_nr_status_pdu_t status_pdu(sn_size);
+
+    status_pdu.ack_sn = 99;
+    TESTASSERT_EQ(status_pdu.packed_size, min_size); // minimum size
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, min_size);
+
+    rlc_am_nr_status_pdu_t status_pdu_copy = status_pdu;
+    TESTASSERT_EQ(status_pdu_copy.ack_sn, 99);
+    TESTASSERT_EQ(status_pdu_copy.packed_size, min_size); // minimum size
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu_copy, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, min_size);
+
+    status_pdu.reset();
+
+    status_pdu.ack_sn = 77;
+    TESTASSERT_EQ(status_pdu.packed_size, min_size); // should still have minimum size
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, min_size);
+
+    TESTASSERT_EQ(status_pdu_copy.ack_sn, 99);            // shouldn't have changed
+    TESTASSERT_EQ(status_pdu_copy.packed_size, min_size); // minimum size
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu_copy, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, min_size);
+  }
+
+  // status PDU with multiple NACKs
+  // expect: ACK=77, NACKs=[12][14][17 50:99][17 150:199][17 250:299][19][21 333:111 r5][27 444:666 r3]
+  {
+    constexpr uint32_t     min_size      = 3;
+    const uint32_t         nack_size     = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+    constexpr uint32_t     so_size       = 4;
+    constexpr uint32_t     range_size    = 1;
+    uint32_t               expected_size = min_size;
+    srsran::byte_buffer_t  pdu;
+    rlc_am_nr_status_pdu_t status_pdu(sn_size);
+
+    status_pdu.ack_sn = 77;
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn = 12;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn = 14;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn  = 17;
+      nack.has_so   = true;
+      nack.so_start = 50;
+      nack.so_end   = 99;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size + so_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn  = 17;
+      nack.has_so   = true;
+      nack.so_start = 150;
+      nack.so_end   = 199;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size + so_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn  = 17;
+      nack.has_so   = true;
+      nack.so_start = 250;
+      nack.so_end   = 299;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size + so_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn = 19;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn        = 21;
+      nack.has_so         = true;
+      nack.so_start       = 333;
+      nack.so_end         = 111;
+      nack.has_nack_range = true;
+      nack.nack_range     = 5;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size + so_size + range_size;
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+    {
+      rlc_status_nack_t nack;
+      nack.nack_sn        = 27;
+      nack.has_so         = true;
+      nack.so_start       = 444;
+      nack.so_end         = 666;
+      nack.has_nack_range = true;
+      nack.nack_range     = 3;
+      status_pdu.push_nack(nack);
+    }
+    expected_size += nack_size + so_size + range_size;
+    TESTASSERT_EQ(status_pdu.ack_sn, 77);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=77, NACKs=[12][14][17 50:99][17 150:199][17 250:299][19][21 333:111 r5][27 444:666 r3]
+
+    // create a copy, check content
+    rlc_am_nr_status_pdu_t status_pdu_copy = status_pdu;
+    TESTASSERT_EQ(status_pdu_copy.ack_sn, 77);
+    TESTASSERT_EQ(status_pdu_copy.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu_copy, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=77, NACKs=[12][14][17 50:99][17 150:199][17 250:299][19][21 333:111 r5][27 444:666 r3]
+
+    // trim to much larger size: nothing should change
+    TESTASSERT_EQ(status_pdu.trim(expected_size * 2), true);
+    TESTASSERT_EQ(status_pdu.ack_sn, 77);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // trim to exact size: nothing should change
+    TESTASSERT_EQ(status_pdu.trim(expected_size), true);
+    TESTASSERT_EQ(status_pdu.ack_sn, 77);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // trim to (expected_size - 1): this should remove the last NACK and update ACK accordingly
+    TESTASSERT_EQ(status_pdu.trim(expected_size - 1), true);
+    expected_size -= nack_size + so_size + range_size;
+    TESTASSERT_EQ(status_pdu.ack_sn, 27);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=27, NACKs=[12][14][17 50:99][17 150:199][17 250:299][19][21 333:111 r5]
+
+    // trim to (expected_size - last two NACKs): this should remove the last NACK and update ACK accordingly
+    TESTASSERT_EQ(status_pdu.trim(expected_size - (2 * nack_size + so_size + range_size)), true);
+    expected_size -= 2 * nack_size + so_size + range_size;
+    TESTASSERT_EQ(status_pdu.ack_sn, 19);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=19, NACKs=[12][14][17 50:99][17 150:199][17 250:299]
+
+    // trim to (expected_size - 1): this should remove the last NACK and all other NACKs with the same SN
+    TESTASSERT_EQ(status_pdu.trim(expected_size - 1), true);
+    expected_size -= 3 * (nack_size + so_size);
+    TESTASSERT_EQ(status_pdu.ack_sn, 17);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=17, NACKs=[12][14]
+
+    // trim to impossible size = 1: this should report a failure without changes of the PDU
+    TESTASSERT_EQ(status_pdu.trim(1), false);
+    TESTASSERT_EQ(status_pdu.ack_sn, 17);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=17, NACKs=[12][14]
+
+    // trim to minimum size: this should remove all NACKs and update ACK to the SN of the first NACK
+    expected_size = min_size;
+    TESTASSERT_EQ(status_pdu.trim(expected_size), true);
+    TESTASSERT_EQ(status_pdu.ack_sn, 12);
+    TESTASSERT_EQ(status_pdu.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+
+    // current state: ACK=12, NACKs empty
+
+    // check the copy again - should be unchanged if not a shallow copy
+    TESTASSERT_EQ(status_pdu_copy.ack_sn, 77);
+    TESTASSERT_EQ(status_pdu_copy.packed_size, expected_size);
+    TESTASSERT_EQ(rlc_am_nr_write_status_pdu(status_pdu_copy, sn_size, &pdu), SRSRAN_SUCCESS);
+    TESTASSERT_EQ(pdu.N_bytes, expected_size);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 ///< Control PDU tests (18bit SN)
 // Status PDU for 18bit SN with ACK_SN=235929=0x39999=0b11 1001 1001 1001 1001 and no further NACK_SN (E1 bit not set)
 int rlc_am_nr_control_pdu_18bit_sn_test1()
@@ -786,6 +1012,11 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
+  if (rlc_am_nr_control_pdu_test_trimming(rlc_am_nr_sn_size_t::size12bits)) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test_trimming(size12bits) failed.\n");
+    return SRSRAN_ERROR;
+  }
+
   if (rlc_am_nr_control_pdu_18bit_sn_test1()) {
     fprintf(stderr, "rlc_am_nr_control_pdu_18bit_sn_test1() failed.\n");
     return SRSRAN_ERROR;
@@ -813,6 +1044,11 @@ int main(int argc, char** argv)
 
   if (rlc_am_nr_control_pdu_18bit_sn_test_nack_range()) {
     fprintf(stderr, "rlc_am_nr_control_pdu_18bit_sn_test_nack_range() failed.\n");
+    return SRSRAN_ERROR;
+  }
+
+  if (rlc_am_nr_control_pdu_test_trimming(rlc_am_nr_sn_size_t::size18bits)) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test_trimming(size18bits) failed.\n");
     return SRSRAN_ERROR;
   }
 
