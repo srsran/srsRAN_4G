@@ -742,6 +742,12 @@ int basic_segmentation_test(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
+// This tests correct behaviour of the following flow:
+// - Transmit 5 SDUs as whole PDUs
+// - Loose 3rd PDU
+// - Receive NACK for missing PDU
+// - Retransmit lost PDU in 3 segments
+// - Check metrics and state
 int segment_retx_test(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester;
@@ -929,6 +935,16 @@ int segment_retx_test(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
+// This tests correct behaviour of the following flow:
+// - Transmit 5 SDUs as whole PDUs
+// - Loose 3rd PDU
+// - Receive NACK for missing PDU
+// - Retransmit lost PDU in 3 segments
+// - Loose first and last segment
+// - Receive NACKs for missing segments
+// - Receive duplicate of previous NACKs
+// - Retransmit missing segments again, but only once!
+// - Check metrics and state
 int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester;
