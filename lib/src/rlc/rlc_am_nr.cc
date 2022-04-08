@@ -725,7 +725,6 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
 {
   RlcInfo("generating status PDU. Bytes available:%d", nof_bytes);
   rlc_am_nr_status_pdu_t status(cfg.rx_sn_field_length); // carries status of RX entity, hence use SN length of RX
-  status.reset();
   int pdu_len = rx->get_status_pdu(&status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
     RlcDebug("deferred status PDU. Cause: Failed to acquire rx lock");
@@ -1505,7 +1504,6 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 uint32_t rlc_am_nr_rx::get_status_pdu_length()
 {
   rlc_am_nr_status_pdu_t tmp_status(cfg.rx_sn_field_length);
-  tmp_status.reset();
   get_status_pdu(&tmp_status, UINT32_MAX);
   return tmp_status.get_packed_size();
 }
