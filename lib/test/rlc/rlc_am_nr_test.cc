@@ -1097,8 +1097,6 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
   }
 
   // t-reassembly has expired. There should be another NACK in the status report.
-  // constexpr uint32_t status_pdu_ack_size  = 3;
-  // uint32_t           status_pdu_nack_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
   constexpr uint32_t status_pdu_so_size = 4;
   TESTASSERT_EQ(status_pdu_ack_size + 2 * status_pdu_nack_size + 2 * status_pdu_so_size, rlc2.get_buffer_state());
   {
