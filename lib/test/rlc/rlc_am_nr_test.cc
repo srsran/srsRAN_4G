@@ -64,7 +64,7 @@ int window_checker_test(rlc_am_nr_sn_size_t sn_size)
   timer_handler timers(8);
 
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_delimit_logger delimiter("window checkers (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("window checkers ({} bit SN)", to_number(sn_size));
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   rlc_am_nr_tx* tx = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
@@ -128,7 +128,7 @@ int retx_segmentation_required_checker_test(rlc_am_nr_sn_size_t sn_size)
   timer_handler timers(8);
 
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_delimit_logger delimiter("retx segmentation required checkers (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("retx segmentation required checkers ({} bit SN)", to_number(sn_size));
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
 
   rlc_am_nr_tx* tx = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
@@ -215,7 +215,7 @@ int basic_test(rlc_am_nr_sn_size_t sn_size)
   byte_buffer_t pdu_bufs[NBUFS];
 
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_delimit_logger delimiter("basic tx/rx (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("basic tx/rx ({} bit SN)", to_number(sn_size));
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
@@ -325,7 +325,7 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
-  test_delimit_logger delimiter("lost PDU (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("lost PDU ({} bit SN)", to_number(sn_size));
 
   constexpr uint32_t payload_size        = 1;
   uint32_t           header_size         = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
@@ -492,7 +492,7 @@ int lost_pdu_duplicated_nack_test(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
-  test_delimit_logger delimiter("lost PDU with NACK duplicate (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("lost PDU with NACK duplicate ({} bit SN)", to_number(sn_size));
 
   constexpr uint32_t payload_size        = 1;
   uint32_t           header_size         = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
@@ -661,7 +661,7 @@ int basic_segmentation_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am_tester       tester;
   timer_handler       timers(8);
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
-  test_delimit_logger delimiter("basic segmentation (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("basic segmentation ({} bit SN)", to_number(sn_size));
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
@@ -751,7 +751,7 @@ int segment_retx_test(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
-  test_delimit_logger delimiter("segment retx PDU (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("segment retx PDU ({} bit SN)", to_number(sn_size));
 
   rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
   rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
@@ -938,7 +938,7 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
-  test_delimit_logger delimiter("segment retx PDU and loose some segments (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("segment retx PDU and loose some segments ({} bit SN)", to_number(sn_size));
 
   rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
   rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
@@ -1501,7 +1501,7 @@ int max_retx_lost_sdu_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
-  test_delimit_logger delimiter("max retx lost SDU (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("max retx lost SDU ({} bit SN)", to_number(sn_size));
 
   const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
   if (not rlc1.configure(rlc_cfg)) {
@@ -1576,7 +1576,7 @@ int max_retx_lost_segments_test(rlc_am_nr_sn_size_t sn_size)
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
-  test_delimit_logger delimiter("max retx lost SDU segment (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("max retx lost SDU segment ({} bit SN)", to_number(sn_size));
 
   const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
   if (not rlc1.configure(rlc_cfg)) {
@@ -1703,7 +1703,7 @@ int discard_test(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
-  test_delimit_logger delimiter("discard test (%d bit SN)", to_number(sn_size));
+  test_delimit_logger delimiter("discard test ({} bit SN)", to_number(sn_size));
 
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
   srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);
