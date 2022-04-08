@@ -19,27 +19,6 @@ namespace srsran {
  * Container implementation for pack/unpack functions
  ***************************************************************************/
 
-void rlc_am_nr_status_pdu_t::refresh_packed_size()
-{
-  uint32_t packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
-  for (auto nack : nacks_) {
-    packed_size += nack_size(nack);
-  }
-}
-
-uint32_t rlc_am_nr_status_pdu_t::nack_size(const rlc_status_nack_t& nack) const
-{
-  uint32_t result = sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
-                                                               : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
-  if (nack.has_so) {
-    result += rlc_am_nr_status_pdu_sizeof_nack_so;
-  }
-  if (nack.has_nack_range) {
-    result += rlc_am_nr_status_pdu_sizeof_nack_range;
-  }
-  return result;
-}
-
 rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) :
   sn_size(sn_size),
   nacks_(0),
@@ -88,6 +67,27 @@ bool rlc_am_nr_status_pdu_t::trim(uint32_t max_packed_size)
     nacks_.pop_back();
   }
   return true;
+}
+
+void rlc_am_nr_status_pdu_t::refresh_packed_size()
+{
+  uint32_t packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
+  for (auto nack : nacks_) {
+    packed_size += nack_size(nack);
+  }
+}
+
+uint32_t rlc_am_nr_status_pdu_t::nack_size(const rlc_status_nack_t& nack) const
+{
+  uint32_t result = sn_size == rlc_am_nr_sn_size_t::size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
+                                                               : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
+  if (nack.has_so) {
+    result += rlc_am_nr_status_pdu_sizeof_nack_so;
+  }
+  if (nack.has_nack_range) {
+    result += rlc_am_nr_status_pdu_sizeof_nack_range;
+  }
+  return result;
 }
 
 /****************************************************************************
