@@ -811,18 +811,24 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
           bool segment_found = false;
           for (const rlc_amd_tx_pdu_nr::pdu_segment& segm : pdu.segment_list) {
             if (segm.so >= nack.so_start && segm.so <= nack.so_end) {
-              // FIXME: Check if this segment is not already queued for retransmission
-              rlc_amd_retx_nr_t& retx = retx_queue->push();
-              retx.sn                 = nack_sn;
-              retx.is_segment         = true;
-              retx.so_start           = segm.so;
-              retx.current_so         = segm.so;
-              retx.segment_length     = segm.payload_len;
-              retx_sn_set.insert(nack_sn);
-              RlcInfo("Scheduled RETX of SDU segment SN=%d, so_start=%d, segment_length=%d",
-                      retx.sn,
-                      retx.so_start,
-                      retx.segment_length);
+              if (not retx_queue->has_sn(nack_sn, segm.so)) {
+                rlc_amd_retx_nr_t& retx = retx_queue->push();
+                retx.sn                 = nack_sn;
+                retx.is_segment         = true;
+                retx.so_start           = segm.so;
+                retx.current_so         = segm.so;
+                retx.segment_length     = segm.payload_len;
+                retx_sn_set.insert(nack_sn);
+                RlcInfo("Scheduled RETX of SDU segment SN=%d, so_start=%d, segment_length=%d",
+                        retx.sn,
+                        retx.so_start,
+                        retx.segment_length);
+              } else {
+                RlcInfo("Skip already scheduled RETX of SDU segment SN=%d, so_start=%d, segment_length=%d",
+                        nack_sn,
+                        segm.so,
+                        segm.payload_len);
+              }
               segment_found = true;
             }
           }

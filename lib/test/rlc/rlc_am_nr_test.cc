@@ -1110,7 +1110,7 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
     // Write status PDU duplicate to RLC1
-    // rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
     // Check there are two Retx segments
     TESTASSERT_EQ(header_size + payload_size, rlc1.get_buffer_state()); // Fixme: get_buffer_state()
@@ -1151,11 +1151,14 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
 
   uint32_t data_pdu_size       = header_size + payload_size;
   uint32_t total_tx_pdu_bytes1 = NBUFS * data_pdu_size + 2 * pdu_size_first + 3 * pdu_size_continued;
-  uint32_t total_rx_pdu_bytes1 = status_pdu_ack_size +                             // ACK, no NACK
-                                 (status_pdu_ack_size + status_pdu_nack_size) +    // ACK + NACK full SDU
-                                 (status_pdu_ack_size + 2 * status_pdu_nack_size + // ACK + NACK two segments
-                                  2 * status_pdu_so_size);
-  uint32_t total_tx_pdu_bytes2 = total_rx_pdu_bytes1;
+  uint32_t total_rx_pdu_bytes1 = status_pdu_ack_size +                                 // ACK, no NACK
+                                 (status_pdu_ack_size + status_pdu_nack_size) +        // ACK + NACK full SDU
+                                 2 * (status_pdu_ack_size + 2 * status_pdu_nack_size + // 2 * (ACK + NACK two segments)
+                                      2 * status_pdu_so_size);
+  uint32_t total_tx_pdu_bytes2 = status_pdu_ack_size +                                 // ACK, no NACK
+                                 (status_pdu_ack_size + status_pdu_nack_size) +        // ACK + NACK full SDU
+                                 1 * (status_pdu_ack_size + 2 * status_pdu_nack_size + // 1 * (ACK + NACK two segments)
+                                      2 * status_pdu_so_size);
   uint32_t total_rx_pdu_bytes2 = (NBUFS - 1) * data_pdu_size + pdu_size_first + 2 * pdu_size_continued;
 
   // SDU metrics
@@ -1166,7 +1169,7 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
   TESTASSERT_EQ(0, metrics1.num_lost_sdus);
   // PDU metrics
   TESTASSERT_EQ(5 + 3 + 2, metrics1.num_tx_pdus); // 5 + (3 + 2) re-transmissions
-  TESTASSERT_EQ(3, metrics1.num_rx_pdus);         // 3 status PDU
+  TESTASSERT_EQ(4, metrics1.num_rx_pdus);         // 4 status PDU
   TESTASSERT_EQ(total_tx_pdu_bytes1, metrics1.num_tx_pdu_bytes);
   TESTASSERT_EQ(total_rx_pdu_bytes1, metrics1.num_rx_pdu_bytes);
   TESTASSERT_EQ(0, metrics1.num_lost_sdus); // No lost SDUs
