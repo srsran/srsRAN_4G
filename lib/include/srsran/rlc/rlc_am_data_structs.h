@@ -316,20 +316,45 @@ private:
   uint32_t                                count = 0;
 };
 
-struct rlc_amd_retx_lte_t {
-  uint32_t sn;
-  bool     is_segment;
-  uint32_t so_start; // offset to first byte of this segment
-  uint32_t so_end;   // offset to first byte beyond the end of this segment
-  uint32_t current_so;
+struct rlc_amd_retx_base_t {
+  const static uint32_t invalid_rlc_sn = std::numeric_limits<uint32_t>::max();
+
+  uint32_t sn;         ///< sequence number
+  bool     is_segment; ///< flag whether this is a segment or not
+  uint32_t so_start;   ///< offset to first byte of this segment
+  // so_end or segment_length are different for LTE and NR, hence are defined in subclasses
+  uint32_t current_so; ///< stores progressing SO during segmentation of this object
+
+  rlc_amd_retx_base_t() : sn(invalid_rlc_sn), is_segment(false), so_start(0), current_so(0) {}
+  virtual ~rlc_amd_retx_base_t() = default;
+
+  /**
+   * @brief overlaps implements a check whether the range of this retransmission object includes
+   * the given segment offset
+   * @param so the segment offset to check
+   * @return true if the segment offset is covered by the retransmission object. Otherwise false
+   */
+  virtual bool overlaps(uint32_t so) const = 0;
 };
 
-struct rlc_amd_retx_nr_t {
-  uint32_t sn;
-  bool     is_segment;
-  uint32_t so_start;       // offset to first byte of this segment
-  uint32_t segment_length; // number of bytes contained in this segment
-  uint32_t current_so;
+struct rlc_amd_retx_lte_t : public rlc_amd_retx_base_t {
+  uint32_t so_end; ///< offset to first byte beyond the end of this segment
+
+  rlc_amd_retx_lte_t() : rlc_amd_retx_base_t(), so_end(0) {}
+  bool overlaps(uint32_t segment_offset) const override
+  {
+    return (segment_offset >= so_start) && (segment_offset < so_end);
+  }
+};
+
+struct rlc_amd_retx_nr_t : public rlc_amd_retx_base_t {
+  uint32_t segment_length; ///< number of bytes contained in this segment
+
+  rlc_amd_retx_nr_t() : rlc_amd_retx_base_t(), segment_length(0) {}
+  bool overlaps(uint32_t segment_offset) const override
+  {
+    return (segment_offset >= so_start) && (segment_offset < current_so + segment_length);
+  }
 };
 
 template <class T>
@@ -341,10 +366,12 @@ public:
   virtual void   pop()                     = 0;
   virtual T&     front()                   = 0;
   virtual void   clear()                   = 0;
-  virtual bool   has_sn(uint32_t sn) const = 0;
   virtual size_t size() const              = 0;
   virtual bool   empty() const             = 0;
   virtual bool   full() const              = 0;
+
+  virtual bool has_sn(uint32_t sn) const              = 0;
+  virtual bool has_sn(uint32_t sn, uint32_t so) const = 0;
 };
 
 template <class T, std::size_t WINDOW_SIZE>
@@ -380,6 +407,18 @@ public:
     for (size_t i = rpos; i != wpos; i = (i + 1) % WINDOW_SIZE) {
       if (buffer[i].sn == sn) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  bool has_sn(uint32_t sn, uint32_t so) const override
+  {
+    for (size_t i = rpos; i != wpos; i = (i + 1) % WINDOW_SIZE) {
+      if (buffer[i].sn == sn) {
+        if (buffer[i].overlaps(so)) {
+          return true;
+        }
       }
     }
     return false;
