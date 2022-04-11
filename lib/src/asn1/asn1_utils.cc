@@ -186,7 +186,7 @@ SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_pt
       n_bits = 0;
     } else {
       auto mask = static_cast<uint8_t>((1u << (8u - offset)) - 1u);
-      val += ((uint32_t)((*ptr) & mask)) << (n_bits - 8 + offset);
+      val += static_cast<T>((*ptr) & mask) << (n_bits - 8 + offset);
       n_bits -= 8 - offset;
       offset = 0;
       ptr++;
