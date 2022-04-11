@@ -623,7 +623,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
   // Store PDU segment info into tx_window
   RlcDebug("Updating RETX segment info. SN=%d, is_segment=%s", retx.sn, retx.is_segment ? "true" : "false");
   if (!retx.is_segment) {
-    // Retx is already a segment
+    // Retx is not a segment yet
     rlc_amd_tx_pdu_nr::pdu_segment seg1 = {};
     seg1.so                             = retx.current_so;
     seg1.payload_len                    = retx_pdu_payload_size;
@@ -635,7 +635,7 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
     RlcDebug("New segment: SN=%d, SO=%d len=%d", retx.sn, seg1.so, seg1.payload_len);
     RlcDebug("New segment: SN=%d, SO=%d len=%d", retx.sn, seg2.so, seg2.payload_len);
   } else {
-    RlcDebug("Segmenting retx! it is a segment already. SN=%d", retx.sn);
+    // Retx is already a segment
     // Find current segment in segment list.
     std::list<rlc_amd_tx_pdu_nr::pdu_segment>::iterator it;
     for (it = tx_pdu.segment_list.begin(); it != tx_pdu.segment_list.end(); ++it) {
@@ -662,9 +662,6 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
       }
     } else {
       RlcDebug("Could not find segment. SN=%d, SO=%d length=%d", retx.sn, retx.current_so, retx.segment_length);
-    }
-    for (auto it : tx_pdu.segment_list) {
-      RlcDebug("Changed segments! SN=%d, SO=%d length=%d", retx.sn, it.so, it.payload_len);
     }
   }
 
