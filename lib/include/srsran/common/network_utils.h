@@ -80,8 +80,8 @@ public:
   bool start_listen();
   bool reuse_addr();
   bool sctp_subscribe_to_events();
-  bool sctp_set_rto_opts();
-  bool sctp_set_init_msg_opts();
+  bool sctp_set_rto_opts(int rto_max);
+  bool sctp_set_init_msg_opts(int max_init_attempts, int max_init_timeo);
   int  get_socket() const { return sockfd; };
 
 protected:

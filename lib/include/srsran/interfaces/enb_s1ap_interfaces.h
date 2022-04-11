@@ -29,11 +29,14 @@ struct s1ap_args_t {
   std::string gtp_advertise_addr;
   std::string s1c_bind_addr;
   uint16_t    s1c_bind_port;
-  bool        s1c_reuse_addr;
   std::string enb_name;
   uint32_t    ts1_reloc_prep_timeout;
   uint32_t    ts1_reloc_overall_timeout;
   int32_t     max_s1_setup_retries;
+  bool        sctp_reuse_addr;
+  int32_t     sctp_rto_max;
+  int32_t     sctp_init_max_attempts;
+  int32_t     sctp_max_init_timeo;
 };
 
 // S1AP interface for RRC

@@ -640,9 +640,20 @@ bool ngap::connect_amf()
   }
   logger.info("SCTP socket opened. fd=%d", amf_socket.fd());
 
-  amf_socket.sctp_subscribe_to_events();
-  amf_socket.sctp_set_rto_opts();
-  amf_socket.sctp_set_init_msg_opts();
+  if (not amf_socket.sctp_subscribe_to_events()) {
+    amf_socket.close();
+    return false;
+  }
+
+  if (not amf_socket.sctp_set_rto_opts(5000)) {
+    amf_socket.close();
+    return false;
+  }
+
+  if (not amf_socket.sctp_set_init_msg_opts(3, 6000)) {
+    amf_socket.close();
+    return false;
+  }
 
   // Bind socket
   if (not amf_socket.bind_addr(args.ngc_bind_addr.c_str(), 0)) {

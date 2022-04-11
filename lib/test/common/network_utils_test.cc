@@ -127,8 +127,8 @@ int test_sctp_bind_error()
   TESTASSERT(sock.open_socket(srsran::net_utils::addr_family::ipv4,
                               srsran::net_utils::socket_type::seqpacket,
                               srsran::net_utils::protocol_type::SCTP));
-  TESTASSERT(sock.bind_addr("1.1.1.1", 8000)); // Bogus IP address
-                                               // should not be able to bind
+  TESTASSERT(not sock.bind_addr("1.1.1.1", 8000)); // Bogus IP address
+                                                   // should not be able to bind
 
   srsran::unique_socket sock2;
   TESTASSERT(sock2.open_socket(srsran::net_utils::addr_family::ipv4,

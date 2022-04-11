@@ -111,9 +111,6 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
   }
   srslog::fetch_basic_logger(LOGSERVICE).debug("Opened %s socket=%d", net_utils::protocol_to_string(protocol), fd);
 
-  if (protocol == protocol_type::SCTP) {
-  }
-
   return fd;
 }
 
@@ -237,13 +234,12 @@ bool sctp_subscribe_to_events(int fd)
   return true;
 }
 
-bool sctp_set_rto_opts(int fd)
+/*
+ * Modify SCTP default parameters for quicker detection of broken links.
+ * Changes to the maximum re-transmission timeout (rto_max).
+ */
+bool sctp_set_rto_opts(int fd, int rto_max)
 {
-  /*
-   * Modify SCTP default parameters for quicker detection of broken links.
-   * This includes changes to the SCTP_INITMSG parameters (to control the timeout of the connect() syscall)
-   * And changes to the maximum re-transmission timeout (rto_max), for quicker detection of broken links.
-   */
   // Set RTO_MAX to quickly detect broken links.
   sctp_rtoinfo rto_opts;
   socklen_t    rto_sz    = sizeof(sctp_rtoinfo);
@@ -254,7 +250,7 @@ bool sctp_set_rto_opts(int fd)
     return false;
   }
 
-  rto_opts.srto_max = 6000; // 6 seconds
+  rto_opts.srto_max = rto_max;
 
   srslog::fetch_basic_logger(LOGSERVICE)
       .debug("Setting RTO_INFO options on SCTP socket. Association %d, Initial RTO %d, Minimum RTO %d, Maximum RTO %d",
@@ -271,7 +267,11 @@ bool sctp_set_rto_opts(int fd)
   return true;
 }
 
-bool sctp_set_init_msg_opts(int fd)
+/*
+ * Modify SCTP default parameters for quicker detection of broken links.
+ * Changes to the SCTP_INITMSG parameters (to control the timeout of the connect() syscall)
+ */
+bool sctp_set_init_msg_opts(int fd, int init_max_attempts, int max_init_timeo)
 {
   // Set SCTP INITMSG options to reduce blocking timeout of connect()
   sctp_initmsg init_opts;
@@ -282,8 +282,8 @@ bool sctp_set_init_msg_opts(int fd)
     return false;
   }
 
-  init_opts.sinit_max_attempts   = 3;
-  init_opts.sinit_max_init_timeo = 5000; // 5 seconds
+  init_opts.sinit_max_attempts   = init_max_attempts;
+  init_opts.sinit_max_init_timeo = max_init_timeo;
 
   srslog::fetch_basic_logger(LOGSERVICE)
       .debug("Setting SCTP_INITMSG options on SCTP socket. Max attempts %d, Max init attempts timeout %d",
@@ -372,14 +372,14 @@ bool unique_socket::sctp_subscribe_to_events()
   return net_utils::sctp_subscribe_to_events(sockfd);
 }
 
-bool unique_socket::sctp_set_rto_opts()
+bool unique_socket::sctp_set_rto_opts(int rto_max)
 {
-  return net_utils::sctp_set_rto_opts(sockfd);
+  return net_utils::sctp_set_rto_opts(sockfd, rto_max);
 }
 
-bool unique_socket::sctp_set_init_msg_opts()
+bool unique_socket::sctp_set_init_msg_opts(int max_init_attempts, int max_init_timeo)
 {
-  return net_utils::sctp_set_init_msg_opts(sockfd);
+  return net_utils::sctp_set_init_msg_opts(sockfd, max_init_attempts, max_init_timeo);
 }
 
 /***************************************************************

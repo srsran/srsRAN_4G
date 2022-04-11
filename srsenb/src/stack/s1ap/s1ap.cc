@@ -498,16 +498,28 @@ bool s1ap::connect_mme()
   }
 
   // Set SO_REUSE_ADDR if necessary
-  if (args.s1c_reuse_addr) {
+  if (args.sctp_reuse_addr) {
     if (not mme_socket.reuse_addr()) {
       mme_socket.close();
       return false;
     }
   }
 
-  mme_socket.sctp_subscribe_to_events();
-  mme_socket.sctp_set_rto_opts();
-  mme_socket.sctp_set_init_msg_opts();
+  // Subscribe to shutdown events
+  if (not mme_socket.sctp_subscribe_to_events()) {
+    mme_socket.close();
+    return false;
+  }
+
+  // Set SRTO_MAX
+  if (not mme_socket.sctp_set_rto_opts(args.sctp_rto_max)) {
+    return false;
+  }
+
+  // Set SCTP init options
+  if (not mme_socket.sctp_set_init_msg_opts(args.sctp_init_max_attempts, args.sctp_max_init_timeo)) {
+    return false;
+  }
 
   // Bind socket
   if (not mme_socket.bind_addr(args.s1c_bind_addr.c_str(), args.s1c_bind_port)) {
