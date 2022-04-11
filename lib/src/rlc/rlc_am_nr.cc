@@ -773,6 +773,21 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
   log_rlc_am_nr_status_pdu_to_string(logger.info, "RX status PDU: %s", &status, parent->rb_name);
 
+  /**
+   * Section 5.3.3.3: Reception of a STATUS report
+   * - if the STATUS report comprises a positive or negative acknowledgement for the RLC SDU with sequence
+   *   number equal to POLL_SN:
+   *   - if t-PollRetransmit is running:
+   *     - stop and reset t-PollRetransmit.
+   *
+   */
+  if (tx_mod_base_nr(st.poll_sn) <= tx_mod_base_nr(status.ack_sn)) {
+    if (poll_retransmit_timer.is_running()) {
+      RlcDebug("Received ACK or NACK for POLL_SN=%d. Stopping t-PollRetransmit", st.poll_sn);
+      poll_retransmit_timer.stop();
+    }
+  }
+
   /*
    * - if the SN of the corresponding RLC SDU falls within the range
    *   TX_Next_Ack <= SN < = the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer:
@@ -800,12 +815,6 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     }
   }
   RlcDebug("Processed status report ACKs. ACK_SN=%d. Tx_Next_Ack=%d", status.ack_sn, st.tx_next_ack);
-
-  // Notify PDCP
-  if (not notify_info_vec.empty()) {
-    parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
-  }
-  notify_info_vec.clear();
 
   // Process N_nacks
   std::set<uint32_t> retx_sn_set; // Set of PDU SNs added for retransmission (no duplicates)
@@ -928,18 +937,11 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     check_sn_reached_max_retx(retx_sn);
   }
 
-  /**
-   * Section 5.3.3.3: Reception of a STATUS report
-   * - if the STATUS report comprises a positive or negative acknowledgement for the RLC SDU with sequence
-   *   number equal to POLL_SN:
-   *   - if t-PollRetransmit is running:
-   *     - stop and reset t-PollRetransmit.
-   */
-  if (tx_mod_base_nr(st.poll_sn) <= tx_mod_base_nr(status.ack_sn)) {
-    if (poll_retransmit_timer.is_running()) {
-      poll_retransmit_timer.stop();
-    }
+  // Notify PDCP
+  if (not notify_info_vec.empty()) {
+    parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
   }
+  notify_info_vec.clear();
 }
 
 /**
@@ -1174,11 +1176,22 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
      * - include a poll in an AMD PDU as described in section 5.3.3.2.
      */
     if ((tx_sdu_queue.is_empty() && retx_queue->empty()) || tx_window->full()) {
-      // Fully RETX first RLC SDU that has not been acked
-      if (not tx_window->has_sn(st.tx_next_ack)) {
-        RlcError("Tx_Next_Ack not in tx_widow. Tx_Next_Ack=%d, tx_window_size=%d", st.tx_next_ack, tx_window->size());
+      if (tx_window->empty()) {
+        RlcError("t-PollRetransmit expired, but the tx_window is empty. POLL_SN=%d, Tx_Next_Ack=%d, tx_window_size=%d",
+                 st.poll_sn,
+                 st.tx_next_ack,
+                 tx_window->size());
         return;
       }
+      if (not tx_window->has_sn(st.tx_next_ack)) {
+        RlcError("t-PollRetransmit expired, but Tx_Next_Ack is not in the tx_widow. POLL_SN=%d, Tx_Next_Ack=%d, "
+                 "tx_window_size=%d",
+                 st.poll_sn,
+                 st.tx_next_ack,
+                 tx_window->size());
+        return;
+      }
+      // Fully RETX first RLC SDU that has not been acked
       rlc_amd_retx_nr_t& retx = retx_queue->push();
       retx.sn                 = st.tx_next_ack;
       retx.is_segment         = false;
