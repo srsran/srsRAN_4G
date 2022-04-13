@@ -1133,6 +1133,10 @@ bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
     return false;
   }
 
+  s1_setup_proc_t::s1setupresult res;
+  res.success = false;
+  s1setup_proc.trigger(res);
+
   std::string cause = get_cause(msg->cause.value);
   logger.error("S1 Setup Failure. Cause: %s", cause.c_str());
   srsran::console("S1 Setup Failure. Cause: %s\n", cause.c_str());
