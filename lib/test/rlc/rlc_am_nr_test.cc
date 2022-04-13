@@ -2077,7 +2077,7 @@ int discard_test(rlc_am_nr_sn_size_t sn_size)
 }
 
 // Test p bit set on new TX with PollPDU
-int poll_pdu()
+int poll_pdu(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -2087,14 +2087,16 @@ int poll_pdu()
 
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
 
-  rlc_config_t rlc_cnfg            = {};
-  rlc_cnfg.rat                     = srsran_rat_t::nr;
-  rlc_cnfg.rlc_mode                = rlc_mode_t::am;
-  rlc_cnfg.am_nr.poll_pdu          = 4;
-  rlc_cnfg.am_nr.poll_byte         = 3000;
-  rlc_cnfg.am_nr.t_status_prohibit = 8;
-  rlc_cnfg.am_nr.max_retx_thresh   = 8;
-  rlc_cnfg.am_nr.t_reassembly      = 35;
+  rlc_config_t rlc_cnfg             = {};
+  rlc_cnfg.rat                      = srsran_rat_t::nr;
+  rlc_cnfg.rlc_mode                 = rlc_mode_t::am;
+  rlc_cnfg.am_nr.tx_sn_field_length = sn_size; // Number of bits used for tx (UL) sequence number
+  rlc_cnfg.am_nr.rx_sn_field_length = sn_size; // Number of bits used for rx (DL) sequence number
+  rlc_cnfg.am_nr.poll_pdu           = 4;
+  rlc_cnfg.am_nr.poll_byte          = 3000;
+  rlc_cnfg.am_nr.t_status_prohibit  = 8;
+  rlc_cnfg.am_nr.max_retx_thresh    = 8;
+  rlc_cnfg.am_nr.t_reassembly       = 35;
 
   // Test p bit set on new TX with PollPDU
   {
@@ -2113,12 +2115,13 @@ int poll_pdu()
       rlc1.write_sdu(std::move(sdu));
     }
     uint32_t num_tx_pdus = 6;
+    uint32_t pdu_size    = sn_size == rlc_am_nr_sn_size_t::size12bits ? 3 : 4;
     for (uint32_t i = 0; i < num_tx_pdus; ++i) {
       unique_byte_buffer_t pdu = srsran::make_byte_buffer();
       TESTASSERT(pdu != nullptr);
-      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, pdu_size);
       rlc_am_nr_pdu_header_t hdr;
-      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size18bits, &hdr);
+      rlc_am_nr_read_data_pdu_header(pdu.get(), sn_size, &hdr);
       if (i != 3 && i != 5) { // P bit set for PollPDU and for empty TX queue
         TESTASSERT_EQ(0, hdr.p);
       } else {
@@ -2130,7 +2133,7 @@ int poll_pdu()
 }
 
 // Test p bit set on new TX with PollBYTE
-int poll_byte()
+int poll_byte(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -2140,14 +2143,16 @@ int poll_byte()
 
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
 
-  rlc_config_t rlc_cnfg            = {};
-  rlc_cnfg.rat                     = srsran_rat_t::nr;
-  rlc_cnfg.rlc_mode                = rlc_mode_t::am;
-  rlc_cnfg.am_nr.poll_pdu          = 4;
-  rlc_cnfg.am_nr.poll_byte         = 3000;
-  rlc_cnfg.am_nr.t_status_prohibit = 8;
-  rlc_cnfg.am_nr.max_retx_thresh   = 8;
-  rlc_cnfg.am_nr.t_reassembly      = 35;
+  rlc_config_t rlc_cnfg             = {};
+  rlc_cnfg.rat                      = srsran_rat_t::nr;
+  rlc_cnfg.rlc_mode                 = rlc_mode_t::am;
+  rlc_cnfg.am_nr.tx_sn_field_length = sn_size; // Number of bits used for tx (UL) sequence number
+  rlc_cnfg.am_nr.rx_sn_field_length = sn_size; // Number of bits used for rx (DL) sequence number
+  rlc_cnfg.am_nr.poll_pdu           = 4;
+  rlc_cnfg.am_nr.poll_byte          = 3000;
+  rlc_cnfg.am_nr.t_status_prohibit  = 8;
+  rlc_cnfg.am_nr.max_retx_thresh    = 8;
+  rlc_cnfg.am_nr.t_reassembly       = 35;
 
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_cnfg)) {
@@ -2163,11 +2168,13 @@ int poll_byte()
     sdu->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu));
   }
-  uint32_t num_tx_pdus = num_tx_sdus;
+  uint32_t num_tx_pdus    = num_tx_sdus;
+  uint32_t small_pdu_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 3 : 4;
+  uint32_t large_pdu_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 3001 : 3002;
   for (uint32_t i = 0; i < num_tx_pdus; ++i) {
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     TESTASSERT(pdu != nullptr);
-    uint32_t nof_bytes = i == 0 ? 3001 : 3;
+    uint32_t nof_bytes = i == 0 ? large_pdu_size : small_pdu_size;
     pdu->N_bytes       = rlc1.read_pdu(pdu->msg, nof_bytes);
     TESTASSERT_EQ(nof_bytes, pdu->N_bytes);
     rlc_am_nr_pdu_header_t hdr;
@@ -2182,7 +2189,7 @@ int poll_byte()
 }
 
 // Test p bit set on RETXes that cause an empty retx queue.
-int poll_retx()
+int poll_retx(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -2192,14 +2199,16 @@ int poll_retx()
 
   srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
 
-  rlc_config_t rlc_cnfg            = {};
-  rlc_cnfg.rat                     = srsran_rat_t::nr;
-  rlc_cnfg.rlc_mode                = rlc_mode_t::am;
-  rlc_cnfg.am_nr.poll_pdu          = 4;
-  rlc_cnfg.am_nr.poll_byte         = 3000;
-  rlc_cnfg.am_nr.t_status_prohibit = 8;
-  rlc_cnfg.am_nr.max_retx_thresh   = 8;
-  rlc_cnfg.am_nr.t_reassembly      = 35;
+  rlc_config_t rlc_cnfg             = {};
+  rlc_cnfg.rat                      = srsran_rat_t::nr;
+  rlc_cnfg.rlc_mode                 = rlc_mode_t::am;
+  rlc_cnfg.am_nr.tx_sn_field_length = sn_size; // Number of bits used for tx (UL) sequence number
+  rlc_cnfg.am_nr.rx_sn_field_length = sn_size; // Number of bits used for rx (DL) sequence number
+  rlc_cnfg.am_nr.poll_pdu           = 4;
+  rlc_cnfg.am_nr.poll_byte          = 3000;
+  rlc_cnfg.am_nr.t_status_prohibit  = 8;
+  rlc_cnfg.am_nr.max_retx_thresh    = 8;
+  rlc_cnfg.am_nr.t_reassembly       = 35;
 
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_cnfg)) {
@@ -2221,12 +2230,13 @@ int poll_retx()
   {
     // Read 3 PDUs and NACK the second one
     uint32_t num_tx_pdus = 3;
+    uint32_t pdu_size    = sn_size == rlc_am_nr_sn_size_t::size12bits ? 3 : 4;
     for (uint32_t i = 0; i < num_tx_pdus; ++i) {
       unique_byte_buffer_t pdu = srsran::make_byte_buffer();
       TESTASSERT(pdu != nullptr);
-      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, pdu_size);
       rlc_am_nr_pdu_header_t hdr;
-      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &hdr);
+      rlc_am_nr_read_data_pdu_header(pdu.get(), sn_size, &hdr);
       TESTASSERT_EQ(0, hdr.p);
     }
   }
@@ -2246,13 +2256,14 @@ int poll_retx()
   {
     // Read 2 PDUs,
     uint32_t num_tx_pdus = 3;
+    uint32_t pdu_size    = sn_size == rlc_am_nr_sn_size_t::size12bits ? 3 : 4;
     for (uint32_t i = 0; i < num_tx_pdus; ++i) {
       unique_byte_buffer_t pdu = srsran::make_byte_buffer();
       TESTASSERT(pdu != nullptr);
-      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
-      TESTASSERT_EQ(3, pdu->N_bytes);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, pdu_size);
+      TESTASSERT_EQ(pdu_size, pdu->N_bytes);
       rlc_am_nr_pdu_header_t hdr;
-      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &hdr);
+      rlc_am_nr_read_data_pdu_header(pdu.get(), sn_size, &hdr);
       if (i == 0) {
         TESTASSERT_EQ(0, hdr.p); // No poll since pollPDU is not incremented for RETX
         TESTASSERT_EQ(1, hdr.sn);
@@ -2277,13 +2288,14 @@ int poll_retx()
   {
     // Read 1 RETX PDU. Empty retx buffer, so poll should be set
     uint32_t num_tx_pdus = 1;
+    uint32_t pdu_size    = sn_size == rlc_am_nr_sn_size_t::size12bits ? 3 : 4;
     for (uint32_t i = 0; i < num_tx_pdus; ++i) {
       unique_byte_buffer_t pdu = srsran::make_byte_buffer();
       TESTASSERT(pdu != nullptr);
-      pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
-      TESTASSERT_EQ(3, pdu->N_bytes);
+      pdu->N_bytes = rlc1.read_pdu(pdu->msg, pdu_size);
+      TESTASSERT_EQ(pdu_size, pdu->N_bytes);
       rlc_am_nr_pdu_header_t hdr;
-      rlc_am_nr_read_data_pdu_header(pdu.get(), rlc_am_nr_sn_size_t::size12bits, &hdr);
+      rlc_am_nr_read_data_pdu_header(pdu.get(), sn_size, &hdr);
       if (i == 0) {
         TESTASSERT_EQ(1, hdr.p); // Poll set because of empty retx buffer
         TESTASSERT_EQ(1, hdr.sn);
@@ -2295,7 +2307,7 @@ int poll_retx()
 
 // This test checks whether re-transmissions are triggered correctly in case the t-PollRetranmission expires.
 // It checks if the poll retx timer is re-armed upon receiving an ACK for POLL_SN
-bool poll_retx_expiry()
+bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -2308,11 +2320,13 @@ bool poll_retx_expiry()
 
   rlc_config_t rlc_cnfg = rlc_config_t::default_rlc_am_nr_config();
 
-  rlc_cnfg.am_nr.t_poll_retx       = 65;
-  rlc_cnfg.am_nr.poll_pdu          = -1;
-  rlc_cnfg.am_nr.poll_byte         = -1;
-  rlc_cnfg.am_nr.max_retx_thresh   = 6;
-  rlc_cnfg.am_nr.t_status_prohibit = 55;
+  rlc_cnfg.am_nr.tx_sn_field_length = sn_size; // Number of bits used for tx (UL) sequence number
+  rlc_cnfg.am_nr.rx_sn_field_length = sn_size; // Number of bits used for rx (DL) sequence number
+  rlc_cnfg.am_nr.t_poll_retx        = 65;
+  rlc_cnfg.am_nr.poll_pdu           = -1;
+  rlc_cnfg.am_nr.poll_byte          = -1;
+  rlc_cnfg.am_nr.max_retx_thresh    = 6;
+  rlc_cnfg.am_nr.t_status_prohibit  = 55;
 
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_cnfg)) {
@@ -2326,9 +2340,9 @@ bool poll_retx_expiry()
 
   unsigned hdr_no_so   = 2;
   unsigned hdr_with_so = 4;
-  // [I] SRB1 Tx SDU (135 B, tx_sdu_queue_len=1)
-  // [I] SRB1 Tx PDU SN=3 (91 B)
-  // [I] SRB1 Tx PDU SN=4 (48 B)
+  // Tx SDU with 135 B of data
+  // Read it in two PDU segments, so=0 (89B of data)
+  // and so=89 (46B of data)
   {
     // TX a single SDU
     unique_byte_buffer_t sdu = srsran::make_byte_buffer();
@@ -2342,22 +2356,24 @@ bool poll_retx_expiry()
 
     // Read two PDUs. The last PDU should trigger polling, as it
     // is the last SDU segment in the buffer.
-    unique_byte_buffer_t pdu1 = srsran::make_byte_buffer();
+    uint32_t             pdu1_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 91 : 92;
+    unique_byte_buffer_t pdu1      = srsran::make_byte_buffer();
     TESTASSERT(pdu1 != nullptr);
-    pdu1->N_bytes = rlc1.read_pdu(pdu1->msg, 91); // 91 bytes PDU, 89 bytes payload
+    pdu1->N_bytes = rlc1.read_pdu(pdu1->msg, pdu1_size); // 91 bytes PDU, 89 bytes payload
 
-    unique_byte_buffer_t pdu2 = srsran::make_byte_buffer();
+    uint32_t             pdu2_size = sn_size == rlc_am_nr_sn_size_t::size12bits ? 50 : 51;
+    unique_byte_buffer_t pdu2      = srsran::make_byte_buffer();
     TESTASSERT(pdu2 != nullptr);
-    pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, 50); // 50 bytes PDU, 46 bytes payload
+    pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, pdu2_size); // 50 bytes PDU, 46 bytes payload
 
     // Deliver PDU2 to RLC2. PDU1 is lost
     rlc2.write_pdu(pdu2->msg, pdu2->N_bytes);
 
     // Double-check polling status in PDUs
     rlc_am_nr_pdu_header_t hdr1 = {};
-    rlc_am_nr_read_data_pdu_header(pdu1.get(), srsran::rlc_am_nr_sn_size_t::size12bits, &hdr1);
+    rlc_am_nr_read_data_pdu_header(pdu1.get(), sn_size, &hdr1);
     rlc_am_nr_pdu_header_t hdr2 = {};
-    rlc_am_nr_read_data_pdu_header(pdu2.get(), srsran::rlc_am_nr_sn_size_t::size12bits, &hdr2);
+    rlc_am_nr_read_data_pdu_header(pdu2.get(), sn_size, &hdr2);
     TESTASSERT_EQ(0, hdr1.p);
     TESTASSERT_EQ(1, hdr2.p);
   }
@@ -2386,27 +2402,32 @@ bool poll_retx_expiry()
   TESTASSERT(status_check.ack_sn == 1);       // SN=1 is first SN missing without a NACK
   TESTASSERT(status_check.nacks.size() == 1); // 1 PDU lost
 
-  // [I] SRB1 Retx PDU segment SN=3 [so=0] (83 B) (attempt 2/6)
+  // Fully RETX first RLC SDU that has not been acked
+  test_logger.info("buf=%d", rlc1.get_buffer_state());
+  TESTASSERT((135 + 2) == rlc1.get_buffer_state());
+
+  // Retx first SDU segment (81B of data)
   {
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     TESTASSERT(pdu != nullptr);
     pdu->N_bytes = rlc1.read_pdu(pdu->msg, 83);
   }
 
-  // [I] SRB1 Retx PDU segment SN=3 [so=79] (14 B) (attempt 2/6)
+  // Retx second SDU segment (54B of data)
   {
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     TESTASSERT(pdu != nullptr);
-    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 79);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 58);
   }
 
   // Deliver status PDU after ReTX to RLC1. This should restart t-PollRetransmission
+  // It NACKs SDU segment 0:81 and partially 81:135
   TESTASSERT_EQ(false, rlc1.has_data());
   rlc1.write_pdu(status_buf->msg, status_buf->N_bytes);
   TESTASSERT_EQ(true, rlc1.has_data());
 
-  // [I] SRB1 Retx PDU segment SN=3 [so=0] (83 B) (attempt 3/6) (received a NACK and retx...)
-  // [I] SRB1 Retx PDU segment SN=3 [so=79] (14 B) (attempt 3/6)
+  // [I] SRB1 Retx SDU segment (81 B of data)
+  // [I] SRB1 Retx PDU segment (10 B of data)
   {
     unique_byte_buffer_t pdu1 = srsran::make_byte_buffer();
     TESTASSERT(pdu1 != nullptr);
@@ -2417,7 +2438,8 @@ bool poll_retx_expiry()
     pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, 14);
   }
 
-  TESTASSERT_EQ(false, rlc1.has_data());
+  TESTASSERT_EQ(true, rlc1.has_data());       // We still have 44 bytes of data
+  TESTASSERT_EQ(48, rlc1.get_buffer_state()); // We still have 44 bytes of data
 
   // Step timers until t-PollRetransmission timer expires on RLC1
   // [I] SRB1 Schedule SN=3 for reTx
@@ -2425,7 +2447,7 @@ bool poll_retx_expiry()
     timers.step_all();
   }
   TESTASSERT_EQ(true, rlc1.has_data());
-  srslog::fetch_basic_logger("TEST").info("t-Poll Retransmssion successfully restarted.");
+  srslog::fetch_basic_logger("TEST").info("t-PollRetransmssion successfully restarted.");
 
   return SRSRAN_SUCCESS;
 }
@@ -2470,10 +2492,10 @@ int main()
     TESTASSERT(max_retx_lost_sdu_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(max_retx_lost_segments_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(discard_test(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(poll_pdu(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(poll_byte(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(poll_retx(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(poll_retx_expiry(sn_size) == SRSRAN_SUCCESS);
   }
-  TESTASSERT(poll_pdu() == SRSRAN_SUCCESS);
-  TESTASSERT(poll_byte() == SRSRAN_SUCCESS);
-  TESTASSERT(poll_retx() == SRSRAN_SUCCESS);
-  TESTASSERT(poll_retx_expiry() == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }

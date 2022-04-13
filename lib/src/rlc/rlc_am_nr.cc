@@ -1162,7 +1162,7 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
 {
   std::unique_lock<std::mutex> lock(mutex);
 
-  // Status Prohibit
+  // t-PollRetransmit
   if (poll_retransmit_timer.is_valid() && poll_retransmit_timer.id() == timeout_id) {
     RlcDebug("Poll retransmission timer expired after %dms", poll_retransmit_timer.duration());
     debug_state();
