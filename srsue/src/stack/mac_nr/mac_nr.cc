@@ -103,6 +103,16 @@ void mac_nr::reset()
   proc_sr.reset();
   proc_ra.reset();
   mux.reset();
+  for (const auto& cc : dl_harq) {
+    if (cc != nullptr) {
+      cc->reset();
+    }
+  }
+  for (const auto& cc : ul_harq) {
+    if (cc != nullptr) {
+      cc->reset();
+    }
+  }
 }
 
 void mac_nr::run_tti(const uint32_t tti)
