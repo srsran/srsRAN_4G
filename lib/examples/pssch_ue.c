@@ -294,7 +294,7 @@ int main(int argc, char** argv)
   cf_t*    equalized_sf_buffer = srsran_vec_malloc(sizeof(cf_t) * sf_n_re);
 
   // RX
-  srsran_ofdm_t     fft[SRSRAN_MAX_PORTS];
+  srsran_ofdm_t     fft[SRSRAN_MAX_PORTS] = {};
   srsran_ofdm_cfg_t ofdm_cfg = {};
   ofdm_cfg.nof_prb           = cell_sl.nof_prb;
   ofdm_cfg.cp                = SRSRAN_CP_NORM;
