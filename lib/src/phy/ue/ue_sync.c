@@ -330,8 +330,7 @@ int srsran_ue_sync_set_cell(srsran_ue_sync_t* q, srsran_cell_t cell)
     q->cell     = cell;
     q->fft_size = srsran_symbol_sz(q->cell.nof_prb);
     q->sf_len   = SRSRAN_SF_LEN(q->fft_size);
-    srsran_sync_set_cp(&q->sfind, q->cell.cp);
-    srsran_sync_set_cp(&q->strack, q->cell.cp);
+
     if (cell.id == 1000) {
       /* If the cell is unkown, we search PSS/SSS in 5 ms */
       q->nof_recv_sf = 5;
@@ -367,6 +366,10 @@ int srsran_ue_sync_set_cell(srsran_ue_sync_t* q, srsran_cell_t cell)
         }
       }
 
+      // Set CP for find and track objects
+      srsran_sync_set_cp(&q->sfind, cell.cp);
+      srsran_sync_set_cp(&q->strack, cell.cp);
+
       // When Cell ID is 1000, ue_sync receives nof_avg_find_frames frames in find state and does not go to tracking
       // state and is used to search a cell
       if (cell.id == 1000) {
@@ -384,9 +387,6 @@ int srsran_ue_sync_set_cell(srsran_ue_sync_t* q, srsran_cell_t cell)
         srsran_sync_set_cfo_ema_alpha(&q->strack, 0.1);
 
       } else {
-        q->sfind.cp  = cell.cp;
-        q->strack.cp = cell.cp;
-
         srsran_sync_set_frame_type(&q->sfind, cell.frame_type);
         srsran_sync_set_frame_type(&q->strack, cell.frame_type);
 
