@@ -675,7 +675,7 @@ srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interfac
 
   fmt::memory_buffer buff;
   rar_pdu.to_string(buff);
-  logger.info("DL %s", srsran::to_c_str(buff));
+  logger.info("%s", srsran::to_c_str(buff));
 
   return rar_pdu_buffer.get();
 }
