@@ -201,6 +201,7 @@ private:
   // Stores the state of the PHY configuration setting
   enum {
     PHY_CFG_STATE_NONE = 0,
+    PHY_CFG_STATE_SA_MIB_CFG,
     PHY_CFG_STATE_SA_SIB_CFG,
     PHY_CFG_STATE_SA_FULL_CFG,
     PHY_CFG_STATE_NSA_APPLY_SP_CELL,

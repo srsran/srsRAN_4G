@@ -2225,6 +2225,9 @@ void rrc_nr::set_phy_config_complete(bool status)
     case PHY_CFG_STATE_NONE:
       logger.warning("PHY configuration completed without a clear state.");
       break;
+    case PHY_CFG_STATE_SA_MIB_CFG:
+      logger.info("PHY configuration with MIB parameters completed.");
+      break;
     case PHY_CFG_STATE_SA_SIB_CFG:
       logger.info("PHY configuration with SIB parameters completed.");
       break;

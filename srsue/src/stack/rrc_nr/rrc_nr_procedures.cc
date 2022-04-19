@@ -474,7 +474,11 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
   make_phy_search_space0_cfg(&phy_cfg.pdcch.search_space[0]);
   phy_cfg.pdcch.search_space_present[0] = true;
 
+  // Set dummy offset to pass PRACH config check, real value is provided in SIB1
+  phy_cfg.prach.freq_offset = 1;
+
   // Update PHY configuration
+  rrc_handle.phy_cfg_state = PHY_CFG_STATE_SA_MIB_CFG;
   if (not rrc_handle.phy->set_config(phy_cfg)) {
     Error("Setting PHY configuration");
     return proc_outcome_t::error;
