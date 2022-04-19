@@ -339,7 +339,10 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uint16_t rnti = alloc_ue(enb_cc_idx);
 
     // Log this event.
-    ++detected_rachs[enb_cc_idx];
+    {
+      srsran::rwlock_write_guard lock(rwmutex);
+      ++detected_rachs[enb_cc_idx];
+    }
 
     // Trigger scheduler RACH
     srsenb::sched_nr_interface::rar_info_t rar_info = {};
