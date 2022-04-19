@@ -76,7 +76,7 @@ public:
     } else {
       integrity_direction = direction;
     }
-    logger.debug("LCID=%d, integrity=%s", lcid, srsran_direction_text[integrity_direction]);
+    logger.debug("Enabled integrity. LCID=%d, integrity=%s", lcid, srsran_direction_text[integrity_direction]);
   }
 
   void enable_encryption(srsran_direction_t direction = DIRECTION_TXRX)
@@ -89,7 +89,7 @@ public:
     } else {
       encryption_direction = direction;
     }
-    logger.debug("LCID=%d, encryption=%s", lcid, srsran_direction_text[integrity_direction]);
+    logger.debug("Enabled encryption. LCID=%d, encryption=%s", lcid, srsran_direction_text[integrity_direction]);
   }
 
   void enable_security_timed(srsran_direction_t direction, uint32_t sn)
