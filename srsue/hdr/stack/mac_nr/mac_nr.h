@@ -154,7 +154,7 @@ private:
   std::atomic<bool> started = {false};
 
   // Boolean to determine if need to decode SI-RNTI
-  bool search_bcch = false;
+  std::atomic<bool> search_bcch = {false};
 
   ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
   bool    contention_res_successful;
