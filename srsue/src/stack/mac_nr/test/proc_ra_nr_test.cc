@@ -66,6 +66,8 @@ public:
     crnti = c_rnti;
     return true;
   }
+  void set_temp_crnti(uint16_t c_rnti) {}
+  void set_crnti_to_temp() {}
 
   bool msg3_is_transmitted() { return true; }
   void msg3_flush() {}

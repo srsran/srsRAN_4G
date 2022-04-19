@@ -92,6 +92,8 @@ public:
   uint16_t get_crnti();
   uint16_t get_temp_crnti();
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
+  void     set_temp_crnti(uint16_t temp_crnti);
+  void     set_crnti_to_temp();
 
   /// procedure sr nr interface
   void start_ra() { proc_ra.start_by_mac(); }
@@ -130,6 +132,7 @@ private:
   bool is_paging_opportunity();
 
   bool has_crnti();
+  bool has_temp_crnti();
   bool is_valid_crnti(const uint16_t crnti);
 
   std::vector<srsran::logical_channel_config_t> logical_channels; // stores the raw configs provide by upper layers
