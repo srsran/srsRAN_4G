@@ -24,7 +24,7 @@ struct ngap_ue_ctxt_t {
 
   uint16_t                   rnti           = SRSRAN_INVALID_RNTI;
   uint32_t                   ran_ue_ngap_id = invalid_gnb_id;
-  srsran::optional<uint32_t> amf_ue_ngap_id;
+  srsran::optional<uint64_t> amf_ue_ngap_id;
   uint32_t                   gnb_cc_idx     = 0;
   struct timeval             init_timestamp = {};
 
