@@ -11,11 +11,11 @@ if(NOT SOAPYSDR_FOUND)
   pkg_check_modules (SOAPYSDR_PKG SoapySDR)
 
   find_path(SOAPYSDR_INCLUDE_DIRS 
-    NAMES Device.h
+    NAMES SoapySDR/Device.h
     HINTS $ENV{SOAPY_DIR}/include
     PATHS ${SOAPYSDR_PKG_INCLUDE_DIRS}
-          /usr/include/SoapySDR
-          /usr/local/include/SoapySDR
+          /usr/include
+          /usr/local/include
   )
 
   find_library(SOAPYSDR_LIBRARIES 
