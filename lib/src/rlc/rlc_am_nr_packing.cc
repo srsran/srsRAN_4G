@@ -19,14 +19,7 @@ namespace srsran {
  * Container implementation for pack/unpack functions
  ***************************************************************************/
 
-rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) :
-  sn_size(sn_size),
-  nacks_(0),
-  packed_size_(rlc_am_nr_status_pdu_sizeof_header_ack_sn),
-  cpt(rlc_am_nr_control_pdu_type_t::status_pdu),
-  ack_sn(INVALID_RLC_SN),
-  nacks(nacks_),
-  packed_size(packed_size_)
+rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) : sn_size(sn_size)
 {
   nacks_.reserve(RLC_AM_NR_TYP_NACKS);
 }
