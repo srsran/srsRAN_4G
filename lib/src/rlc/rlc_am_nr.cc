@@ -1191,13 +1191,28 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
                  tx_window->size());
         return;
       }
-      // Fully RETX first RLC SDU that has not been acked
+      // RETX first RLC SDU that has not been ACKed
+      // or first SDU segment of the first RLC SDU
+      // that has not been acked
       rlc_amd_retx_nr_t& retx = retx_queue->push();
       retx.sn                 = st.tx_next_ack;
-      retx.is_segment         = false;
-      retx.so_start           = 0;
-      retx.segment_length     = (*tx_window)[st.tx_next_ack].sdu_buf->N_bytes;
-      retx.current_so         = 0;
+      if ((*tx_window)[st.tx_next_ack].segment_list.empty()) {
+        // Full SDU
+        retx.is_segment     = false;
+        retx.so_start       = 0;
+        retx.segment_length = (*tx_window)[st.tx_next_ack].sdu_buf->N_bytes;
+        retx.current_so     = 0;
+      } else {
+        // To make sure we do not mess up the segment list
+        // We RETX an SDU segment instead of the full SDU
+        // if the SDU has been segmented before.
+        // As we cannot know which segments have been ACKed before
+        // we simply RETX the first one.
+        retx.is_segment     = true;
+        retx.so_start       = 0;
+        retx.current_so     = 0;
+        retx.segment_length = (*tx_window)[st.tx_next_ack].segment_list.begin()->payload_len;
+      }
     }
     return;
   }
