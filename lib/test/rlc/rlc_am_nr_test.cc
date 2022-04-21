@@ -1229,7 +1229,7 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
   uint32_t expected_buffer_state = (header_size + payload_size) * NBUFS;
   TESTASSERT_EQ(expected_buffer_state, rlc1.get_buffer_state());
 
-  // Read 5 PDUs from RLC1 (1 byte each)
+  // Read 5 PDUs from RLC1 (each with a full SDU)
   for (int i = 0; i < NBUFS; i++) {
     uint32_t len        = rlc1.read_pdu(pdu_bufs[i].msg, header_size + payload_size);
     pdu_bufs[i].N_bytes = len;
