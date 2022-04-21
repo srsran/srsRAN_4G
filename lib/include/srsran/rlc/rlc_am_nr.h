@@ -156,9 +156,9 @@ private:
   pdcp_sn_vector_t notify_info_vec;
 
   // Helper constants
-  uint32_t min_hdr_size = 2;
+  uint32_t min_hdr_size = 2; // Pre-initialized for 12 bit SN, updated by configure()
   uint32_t so_size      = 2;
-  uint32_t max_hdr_size = 4;
+  uint32_t max_hdr_size = 4; // Pre-initialized for 12 bit SN, updated by configure()
 
   /****************************************************************************
    * Tx constants
