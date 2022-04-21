@@ -114,7 +114,6 @@ private:
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
 
-  int pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
   int pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
   int pack_secondary_cell_group_sp_cell_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
@@ -149,7 +148,7 @@ private:
 
   int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
-  int add_drb();
+  int add_drb(uint32_t five_qi);
 
   bool init_pucch();
 

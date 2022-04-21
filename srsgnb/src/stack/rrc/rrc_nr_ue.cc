@@ -163,55 +163,6 @@ int rrc_nr::ue::send_dl_dcch(srsran::nr_srb srb, const asn1::rrc_nr::dl_dcch_msg
   return SRSRAN_SUCCESS;
 }
 
-int rrc_nr::ue::pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
-{
-  // RLC for DRB1 (with fixed LCID)
-  cell_group_cfg_pack.rlc_bearer_to_add_mod_list.resize(1);
-  auto& rlc_bearer                       = cell_group_cfg_pack.rlc_bearer_to_add_mod_list[0];
-  rlc_bearer.lc_ch_id                    = drb1_lcid;
-  rlc_bearer.served_radio_bearer_present = true;
-  rlc_bearer.served_radio_bearer.set_drb_id();
-  rlc_bearer.served_radio_bearer.drb_id() = 1;
-  rlc_bearer.rlc_cfg_present              = true;
-
-#ifdef USE_RLC_AM_NR
-  rlc_bearer.rlc_cfg.set_am();
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
-
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_opts::ms500;
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.poll_pdu          = poll_pdu_opts::p8;
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.poll_byte         = poll_byte_opts::infinity;
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_opts::t8;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.t_reassembly      = t_reassembly_opts::ms50;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_opts::ms50;
-#else
-  rlc_bearer.rlc_cfg.set_um_bi_dir();
-  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
-#endif
-
-  // MAC logical channel config
-  rlc_bearer.mac_lc_ch_cfg_present                    = true;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params_present = true;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.prio    = 11;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate =
-      asn1::rrc_nr::lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::kbps0;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur =
-      asn1::rrc_nr::lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::ms100;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present      = true;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group              = 6;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.sched_request_id_present = true;
-  rlc_bearer.mac_lc_ch_cfg.ul_specific_params.sched_request_id         = 0;
-
-  return SRSRAN_SUCCESS;
-}
-
 int rrc_nr::ue::pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack)
 {
   // mac-CellGroup-Config for BSR and SR
@@ -624,7 +575,6 @@ int rrc_nr::ue::pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_second
 {
   auto& cell_group_cfg_pack = cell_group_cfg;
 
-  pack_secondary_cell_group_rlc_cfg(cell_group_cfg_pack);
   pack_secondary_cell_group_mac_cfg(cell_group_cfg_pack);
   pack_secondary_cell_group_sp_cell_cfg(cell_group_cfg_pack);
 
@@ -700,7 +650,7 @@ int rrc_nr::ue::pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_beare
 int rrc_nr::ue::handle_sgnb_addition_request(uint16_t eutra_rnti_, const sgnb_addition_req_params_t& req_params)
 {
   // Add DRB1 to RLC and PDCP
-  if (add_drb() != SRSRAN_SUCCESS) {
+  if (add_drb(req_params.five_qi) != SRSRAN_SUCCESS) {
     parent->logger.error("Failed to configure DRB");
     parent->rrc_eutra->sgnb_addition_reject(eutra_rnti_);
     return SRSRAN_ERROR;
@@ -773,10 +723,16 @@ void rrc_nr::ue::crnti_ce_received()
  * The function sets and configures all relavant fields for the DRB configuration (MAC, RLC, PDCP) in the
  * cellGroupConfig and also adds the bearer to the local RLC and PDCP entities.
  *
+ * @param  int 5QI of the DRB to be added
  * @return int SRSRAN_SUCCESS on success
  */
-int rrc_nr::ue::add_drb()
+int rrc_nr::ue::add_drb(uint32_t five_qi)
 {
+  if (parent->cfg.five_qi_cfg.find(five_qi) == parent->cfg.five_qi_cfg.end()) {
+    parent->logger.error("No bearer config for 5QI %d present. Aborting DRB addition.", five_qi);
+    return SRSRAN_ERROR;
+  }
+
   // RLC for DRB1 (with fixed LCID) inside cell_group_cfg
   auto& cell_group_cfg_pack = cell_group_cfg;
 
@@ -787,21 +743,7 @@ int rrc_nr::ue::add_drb()
   rlc_bearer.served_radio_bearer.set_drb_id();
   rlc_bearer.served_radio_bearer.drb_id() = 1;
   rlc_bearer.rlc_cfg_present              = true;
-
-#ifdef USE_RLC_AM_NR
-  rlc_bearer.rlc_cfg.set_am();
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.am().ul_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.am().dl_am_rlc.sn_field_len         = sn_field_len_am_opts::size12;
-#else
-  rlc_bearer.rlc_cfg.set_um_bi_dir();
-  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len         = sn_field_len_um_opts::size12;
-  rlc_bearer.rlc_cfg.um_bi_dir().dl_um_rlc.t_reassembly         = t_reassembly_opts::ms50;
-#endif
+  rlc_bearer.rlc_cfg                      = parent->cfg.five_qi_cfg[five_qi].rlc_cfg;
 
   // add RLC bearer
   srsran::rlc_config_t rlc_cfg;
@@ -838,17 +780,7 @@ int rrc_nr::ue::add_drb()
   drb_item.cn_assoc_present                     = true;
   drb_item.cn_assoc.set_eps_bearer_id()         = 5;
   drb_item.pdcp_cfg_present                     = true;
-  drb_item.pdcp_cfg.ciphering_disabled_present  = true;
-  drb_item.pdcp_cfg.drb_present                 = true;
-  drb_item.pdcp_cfg.drb.pdcp_sn_size_dl_present = true;
-  drb_item.pdcp_cfg.drb.pdcp_sn_size_dl         = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::len18bits;
-  drb_item.pdcp_cfg.drb.pdcp_sn_size_ul_present = true;
-  drb_item.pdcp_cfg.drb.pdcp_sn_size_ul         = asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_opts::len18bits;
-  drb_item.pdcp_cfg.drb.discard_timer_present   = true;
-  drb_item.pdcp_cfg.drb.discard_timer           = asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_opts::ms100;
-  drb_item.pdcp_cfg.drb.hdr_compress.set_not_used();
-  drb_item.pdcp_cfg.t_reordering_present = true;
-  drb_item.pdcp_cfg.t_reordering         = asn1::rrc_nr::pdcp_cfg_s::t_reordering_opts::ms0;
+  drb_item.pdcp_cfg                             = parent->cfg.five_qi_cfg[five_qi].pdcp_cfg;
 
   // Add DRB1 to PDCP
   srsran::pdcp_config_t pdcp_cnfg = srsran::make_drb_pdcp_config_t(drb_item.drb_id, false, drb_item.pdcp_cfg);

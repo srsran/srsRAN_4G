@@ -310,8 +310,27 @@ void rrc::ue::rrc_endc::start_sgnb_addition()
 {
   // Start EN-DC activation using EPS bearer of EUTRA DRB1
   rrc_nr_interface_rrc::sgnb_addition_req_params_t params = {};
-  params.eps_bearer_id =
-      rrc_enb->bearer_manager.get_lcid_bearer(rrc_ue->rnti, drb_to_lcid((lte_drb)eutra_drb_id)).eps_bearer_id;
+
+  const auto& drb_list = rrc_ue->bearer_list.get_established_drbs();
+  if (drb_list.size() > 0) {
+    // move first establised DRB to NR cell
+    const auto& drb1      = drb_list[0];
+    const auto& erab_list = rrc_ue->bearer_list.get_erabs();
+    auto        erab_it   = erab_list.find(drb1.eps_bearer_id);
+    if (erab_it != erab_list.end()) {
+      params.eps_bearer_id = drb1.eps_bearer_id;
+      params.five_qi       = erab_it->second.qos_params.qci; // use QCI as 5QI
+    } else {
+      logger.error("Couldn't find ERAB config for DRB%d. Aborting SgNB addition for E-UTRA rnti=0x%x",
+                   drb1.drb_id,
+                   rrc_ue->rnti);
+      return;
+    }
+  } else {
+    logger.error("No LTE DRB established. Aborting SgNB addition for E-UTRA rnti=0x%x", rrc_ue->rnti);
+    return;
+  }
+
   logger.info("Triggering SgNB addition for E-UTRA rnti=0x%x", rrc_ue->rnti);
   rrc_enb->rrc_nr->sgnb_addition_request(rrc_ue->rnti, params);
 

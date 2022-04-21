@@ -30,6 +30,7 @@ class rrc_nr_interface_rrc
 public:
   struct sgnb_addition_req_params_t {
     uint32_t eps_bearer_id;
+    uint32_t five_qi;
     // add configuration check
     // E-RAB Parameters, Tunnel address (IP address, TEID)
     // QCI, security, etc
