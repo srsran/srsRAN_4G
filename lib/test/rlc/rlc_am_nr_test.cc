@@ -2338,8 +2338,11 @@ bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
     return SRSRAN_ERROR;
   }
 
-  unsigned hdr_no_so   = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
-  unsigned hdr_with_so = sn_size == rlc_am_nr_sn_size_t::size12bits ? 4 : 5;
+  unsigned hdr_no_so         = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  unsigned hdr_with_so       = sn_size == rlc_am_nr_sn_size_t::size12bits ? 4 : 5;
+  unsigned ack_size          = 3;
+  unsigned nack_size_no_so   = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  unsigned nack_size_with_so = sn_size == rlc_am_nr_sn_size_t::size12bits ? (2 + 4) : (3 + 4);
   // Tx SDU with 135 B of data
   // Read it in two PDU segments, so=0 (89B of data)
   // and so=89 (46B of data)
@@ -2396,11 +2399,11 @@ bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
     TESTASSERT(pdu != nullptr);
     pdu->N_bytes = rlc1.read_pdu(pdu->msg, 81 + hdr_no_so);
   }
-  // Second SDU segment (7B of data)
+  // Second SDU segment (8B of data)
   {
     unique_byte_buffer_t pdu = srsran::make_byte_buffer();
     TESTASSERT(pdu != nullptr);
-    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 7 + hdr_with_so);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 8 + hdr_with_so);
   }
   TESTASSERT_EQ(0, rlc1.get_buffer_state());
 
@@ -2408,7 +2411,7 @@ bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
   // ACK=1, NACKs=1
   // NACK_SN[0].sn=0, NACK_SN[0].so_start=0, NACK_SN[0].so_end=89
   uint32_t status_size = rlc2.get_buffer_state();
-  TESTASSERT_EQ(9, status_size);
+  TESTASSERT_EQ(ack_size + nack_size_with_so, status_size);
 
   // Read status PDU from RLC2
   unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
@@ -2435,15 +2438,15 @@ bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
   TESTASSERT_EQ(true, rlc1.has_data());
 
   // [I] SRB1 Retx SDU segment (81 B of data)
-  // [I] SRB1 Retx PDU segment (10 B of data)
+  // [I] SRB1 Retx PDU segment (8 B of data)
   {
     unique_byte_buffer_t pdu1 = srsran::make_byte_buffer();
     TESTASSERT(pdu1 != nullptr);
-    pdu1->N_bytes = rlc1.read_pdu(pdu1->msg, 83);
+    pdu1->N_bytes = rlc1.read_pdu(pdu1->msg, 81 + hdr_no_so);
 
     unique_byte_buffer_t pdu2 = srsran::make_byte_buffer();
     TESTASSERT(pdu2 != nullptr);
-    pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, 14);
+    pdu2->N_bytes = rlc1.read_pdu(pdu2->msg, 8 + hdr_with_so);
   }
 
   TESTASSERT_EQ(false, rlc1.has_data()); // We don't have any more data
@@ -2453,7 +2456,7 @@ bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
   for (int cnt = 0; cnt < 66; cnt++) {
     timers.step_all();
   }
-  TESTASSERT_EQ(true, rlc1.has_data());
+  TESTASSERT_EQ(81 + hdr_no_so, rlc1.get_buffer_state());
   srslog::fetch_basic_logger("TEST").info("t-PollRetransmssion successfully restarted.");
 
   return SRSRAN_SUCCESS;
