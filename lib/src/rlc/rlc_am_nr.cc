@@ -785,7 +785,11 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (poll_retransmit_timer.is_running()) {
       RlcDebug("Received ACK or NACK for POLL_SN=%d. Stopping t-PollRetransmit", st.poll_sn);
       poll_retransmit_timer.stop();
+    } else {
+      RlcDebug("Received ACK or NACK for POLL_SN=%d. t-PollRetransmit already stopped", st.poll_sn);
     }
+  } else {
+    RlcDebug("POLL_SN=%d > ACK_SN=%d. Not stopping t-PollRetransmit ", st.poll_sn, status.ack_sn);
   }
 
   /*
@@ -1062,6 +1066,11 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
  */
 uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes)
 {
+  RlcDebug("Checking poll bit requirements for PDU. SN=%d, retx=%s, sdu_bytes=%d, POLL_SN=%d",
+           sn,
+           is_retx ? "true" : "false",
+           sdu_bytes,
+           st.poll_sn);
   /* For each AMD PDU or AMD PDU segment that has not been previoulsy tranmitted:
    * - increment PDU_WITHOUT_POLL by one;
    * - increment BYTE_WITHOUT_POLL by every new byte of Data field element that it maps to the Data field of the AMD
@@ -1076,11 +1085,11 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
     st.byte_without_poll += sdu_bytes;
     if (cfg.poll_pdu > 0 && st.pdu_without_poll >= (uint32_t)cfg.poll_pdu) {
       poll = 1;
-      RlcDebug("Setting poll bit due to PollPDU. SN=%d", sn);
+      RlcDebug("Setting poll bit due to PollPDU. SN=%d, POLL_SN=%d", sn, st.poll_sn);
     }
     if (cfg.poll_byte > 0 && st.byte_without_poll >= (uint32_t)cfg.poll_byte) {
       poll = 1;
-      RlcDebug("Setting poll bit due to PollBYTE. SN=%d", sn);
+      RlcDebug("Setting poll bit due to PollBYTE. SN=%d, POLL_SN=%d", sn, st.poll_sn);
     }
   }
 
@@ -1093,7 +1102,7 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
    */
   if ((tx_sdu_queue.is_empty() && retx_queue->empty() && sdu_under_segmentation_sn == INVALID_RLC_SN) ||
       tx_window->full()) {
-    RlcDebug("Setting poll bit due to empty buffers/inablity to TX. SN=%d", sn);
+    RlcDebug("Setting poll bit due to empty buffers/inablity to TX. SN=%d, POLL_SN=%d", sn, st.poll_sn);
     poll = 1;
   }
 
@@ -1112,8 +1121,11 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
      * - else:
      *   - restart t-PollRetransmit.
      */
-    if (tx_mod_base_nr(sn) > tx_mod_base_nr(st.poll_sn)) {
+    if (!is_retx) {
+      // This is not an RETX, but a new transmission
+      // As such it should be the highest SN submitted to the lower layers
       st.poll_sn = sn;
+      RlcDebug("Setting new POLL_SN. POLL_SN=%d", sn);
     }
     if (cfg.t_poll_retx > 0) {
       if (not poll_retransmit_timer.is_running()) {
@@ -1122,7 +1134,7 @@ uint8_t rlc_am_nr_tx::get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes
         poll_retransmit_timer.stop();
         poll_retransmit_timer.run();
       }
-      RlcInfo("Started t-PollRetransmit. POLL_SN=%d", sn);
+      RlcInfo("Started t-PollRetransmit. POLL_SN=%d", st.poll_sn);
     }
   }
   return poll;
