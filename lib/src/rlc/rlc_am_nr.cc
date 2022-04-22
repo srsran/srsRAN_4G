@@ -768,7 +768,8 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                          ? status.ack_sn
                          : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
   if (tx_mod_base_nr(stop_sn) > tx_mod_base_nr(st.tx_next)) {
-    RlcError("Received ACK or NACK larger than TX_NEXT. Ignoring status report");
+    RlcError("Received ACK or NACK with SN=%d larger than TX_NEXT=%d. Ignoring status report", stop_sn, st.tx_next);
+    info_state();
     return;
   }
   for (uint32_t sn = st.tx_next_ack; tx_mod_base_nr(sn) < tx_mod_base_nr(stop_sn); sn = (sn + 1) % mod_nr) {
