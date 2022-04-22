@@ -370,6 +370,9 @@ public:
   virtual bool   empty() const             = 0;
   virtual bool   full() const              = 0;
 
+  virtual T&       operator[](size_t idx)       = 0;
+  virtual const T& operator[](size_t idx) const = 0;
+
   virtual bool has_sn(uint32_t sn) const              = 0;
   virtual bool has_sn(uint32_t sn, uint32_t so) const = 0;
 };
@@ -394,6 +397,18 @@ public:
   {
     assert(not empty());
     return buffer[rpos];
+  }
+
+  T& operator[](size_t idx) override
+  {
+    srsran_assert(idx < size(), "Out-of-bounds access to element idx=%zd", idx);
+    return buffer[(rpos + idx) % WINDOW_SIZE];
+  }
+
+  const T& operator[](size_t idx) const override
+  {
+    srsran_assert(idx < size(), "Out-of-bounds access to element idx=%zd", idx);
+    return buffer[(rpos + idx) % WINDOW_SIZE];
   }
 
   void clear() override

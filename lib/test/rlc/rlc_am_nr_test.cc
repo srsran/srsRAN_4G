@@ -1367,8 +1367,7 @@ int segment_retx_and_loose_segments_test(rlc_am_nr_sn_size_t sn_size)
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
     // Check there are two Retx segments (a first one and a continued one)
-    TESTASSERT_EQ(pdu_size_first, rlc1.get_buffer_state()); // Fixme: get_buffer_state()
-    // TESTASSERT_EQ(pdu_size_first + pdu_size_continued, rlc1.get_buffer_state()); // Should be this
+    TESTASSERT_EQ(pdu_size_first + pdu_size_continued, rlc1.get_buffer_state());
   }
 
   {
@@ -1656,8 +1655,7 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
     // Check there are 3 Retx segments (a first one and two continued ones)
-    TESTASSERT_EQ(pdu_size_first, rlc1.get_buffer_state()); // Fixme: get_buffer_state()
-    // TESTASSERT_EQ(pdu_size_first + 2 * pdu_size_continued, rlc1.get_buffer_state()); // Should be this
+    TESTASSERT_EQ(pdu_size_first + 2 * pdu_size_continued, rlc1.get_buffer_state());
   }
 
   {

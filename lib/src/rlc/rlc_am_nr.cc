@@ -968,8 +968,9 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
   }
 
   // Bytes needed for retx
-  if (not retx_queue->empty()) {
-    rlc_amd_retx_nr_t& retx = retx_queue->front();
+  size_t n_retx = retx_queue->size();
+  for (size_t i = 0; i < n_retx; i++) {
+    rlc_amd_retx_nr_t& retx = (*retx_queue)[i];
     RlcDebug("buffer state - retx - SN=%d, Segment: %s, %d:%d",
              retx.sn,
              retx.is_segment ? "true" : "false",
@@ -979,8 +980,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
       int req_bytes     = retx.segment_length;
       int hdr_req_bytes = (retx.is_segment && retx.current_so != 0) ? max_hdr_size : min_hdr_size;
       if (req_bytes <= 0) {
-        RlcError("in get_buffer_state(): Removing retx with SN=%d from queue", retx.sn);
-        retx_queue->pop();
+        RlcError("buffer state - retx - invalid length=%d for SN=%d", req_bytes, retx.sn);
       } else {
         n_bytes_prio += (req_bytes + hdr_req_bytes);
         RlcDebug("buffer state - retx: %d bytes", n_bytes_prio);
