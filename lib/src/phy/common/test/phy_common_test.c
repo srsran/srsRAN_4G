@@ -16,6 +16,9 @@ int srsran_default_rates_test()
 {
   // Verify calculated sample rates for all valid PRB sizes.
   // By default we use the reduced 3/4 sampling to save bandwidth on the fronthaul.
+#ifdef FORCE_STANDARD_RATE
+  srsran_use_standard_symbol_size(false);
+#endif
   TESTASSERT(srsran_sampling_freq_hz(6) == 1920000);
   TESTASSERT(srsran_sampling_freq_hz(15) == 3840000);
   TESTASSERT(srsran_sampling_freq_hz(25) == 5760000);
