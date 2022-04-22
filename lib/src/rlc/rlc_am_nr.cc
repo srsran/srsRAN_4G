@@ -977,7 +977,7 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
              retx.so_start + retx.segment_length - 1);
     if (tx_window->has_sn(retx.sn)) {
       int req_bytes     = retx.segment_length;
-      int hdr_req_bytes = retx.is_segment ? max_hdr_size : min_hdr_size; // Segmentation not supported yet
+      int hdr_req_bytes = (retx.is_segment && retx.current_so != 0) ? max_hdr_size : min_hdr_size;
       if (req_bytes <= 0) {
         RlcError("in get_buffer_state(): Removing retx with SN=%d from queue", retx.sn);
         retx_queue->pop();
