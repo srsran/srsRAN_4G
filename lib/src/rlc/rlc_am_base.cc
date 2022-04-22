@@ -79,17 +79,18 @@ bool rlc_am::configure(const rlc_config_t& cfg_)
 
   if (cfg.rat == srsran_rat_t::lte) {
     RlcInfo("AM LTE configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-            "t_reordering=%d, t_status_prohibit=%d",
+            "t_reordering=%d, t_status_prohibit=%d, tx_queue_length=%d",
             cfg.am.t_poll_retx,
             cfg.am.poll_pdu,
             cfg.am.poll_byte,
             cfg.am.max_retx_thresh,
             cfg.am.t_reordering,
-            cfg.am.t_status_prohibit);
+            cfg.am.t_status_prohibit,
+            cfg.tx_queue_length);
   } else if (cfg.rat == srsran_rat_t::nr) {
     RlcInfo("AM NR configured - tx_sn_field_length=%d, rx_sn_field_length=%d, "
             "t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, "
-            "max_retx_thresh=%d, t_reassembly=%d, t_status_prohibit=%d",
+            "max_retx_thresh=%d, t_reassembly=%d, t_status_prohibit=%di, tx_queue_length=%d",
             to_number(cfg.am_nr.tx_sn_field_length),
             to_number(cfg.am_nr.rx_sn_field_length),
             cfg.am_nr.t_poll_retx,
@@ -97,7 +98,8 @@ bool rlc_am::configure(const rlc_config_t& cfg_)
             cfg.am_nr.poll_byte,
             cfg.am_nr.max_retx_thresh,
             cfg.am_nr.t_reassembly,
-            cfg.am_nr.t_status_prohibit);
+            cfg.am_nr.t_status_prohibit,
+            cfg.tx_queue_length);
   } else {
     RlcError("Invalid RAT at entity configuration");
   }

@@ -101,6 +101,7 @@ public:
 
   int  write_sdu(unique_byte_buffer_t sdu);
   void empty_queue() final;
+  void empty_queue_no_lock();
 
   // Data PDU helpers
   uint32_t build_new_pdu(uint8_t* payload, uint32_t nof_bytes);
@@ -151,8 +152,8 @@ private:
 
   // Queues, buffers and container
   std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue;
-  uint32_t               sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
-  pdcp_sn_vector_t       notify_info_vec;
+  uint32_t         sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  pdcp_sn_vector_t notify_info_vec;
 
   // Helper constants
   uint32_t min_hdr_size = 2;

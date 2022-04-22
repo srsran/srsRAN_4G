@@ -69,6 +69,10 @@ bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 
   max_hdr_size = min_hdr_size + so_size;
 
+  // make sure Tx queue is empty before attempting to resize
+  empty_queue_no_lock();
+  tx_sdu_queue.resize(cfg_.tx_queue_length);
+
   tx_enabled = true;
 
   RlcDebug("RLC AM NR configured tx entity.");
@@ -725,7 +729,7 @@ uint32_t rlc_am_nr_tx::build_status_pdu(byte_buffer_t* payload, uint32_t nof_byt
 {
   RlcInfo("generating status PDU. Bytes available:%d", nof_bytes);
   rlc_am_nr_status_pdu_t status(cfg.rx_sn_field_length); // carries status of RX entity, hence use SN length of RX
-  int pdu_len = rx->get_status_pdu(&status, nof_bytes);
+  int                    pdu_len = rx->get_status_pdu(&status, nof_bytes);
   if (pdu_len == SRSRAN_ERROR) {
     RlcDebug("deferred status PDU. Cause: Failed to acquire rx lock");
     pdu_len = 0;
@@ -1063,8 +1067,19 @@ bool rlc_am_nr_tx::sdu_queue_is_full()
   return false;
 }
 
-void rlc_am_nr_tx::empty_queue() {}
+void rlc_am_nr_tx::empty_queue()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  empty_queue_no_lock();
+}
 
+void rlc_am_nr_tx::empty_queue_no_lock()
+{
+  // deallocate all SDUs in transmit queue
+  while (tx_sdu_queue.size() > 0) {
+    unique_byte_buffer_t buf = tx_sdu_queue.read();
+  }
+}
 void rlc_am_nr_tx::stop() {}
 
 /*
