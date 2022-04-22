@@ -410,10 +410,18 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
     retx_buf.N_bytes  = len;
     TESTASSERT_EQ(data_pdu_size, len);
 
+    // Polling bit on the RETX should be required, as the buffers are not empty.
     rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
 
-    TESTASSERT_EQ(3, rlc2.get_buffer_state()); // Status report shoud be required, as the TX buffers are now empty.
+    TESTASSERT_EQ(0, rlc2.get_buffer_state()); // t-StatusProhibit is still running
   }
+
+  // Step timers until t-StatusProhibit expires
+  for (int cnt = 0; cnt < 8; cnt++) {
+    timers.step_all();
+  }
+  TESTASSERT_EQ(3, rlc2.get_buffer_state()); // t-StatusProhibit no longer running
+
   {
     // Double check status report
     byte_buffer_t status_buf;
@@ -425,7 +433,7 @@ int lost_pdu_test(rlc_am_nr_sn_size_t sn_size)
     // Assert status is correct
     rlc_am_nr_status_pdu_t status_check(sn_size);
     rlc_am_nr_read_status_pdu(&status_buf, sn_size, &status_check);
-    TESTASSERT_EQ(5, status_check.ack_sn); // 5 is the next expected SN.
+    TESTASSERT_EQ(5, status_check.ack_sn);       // 5 is the next expected SN.
     TESTASSERT_EQ(0, status_check.nacks.size()); // All PDUs are acked now
   }
 
@@ -588,8 +596,15 @@ int lost_pdu_duplicated_nack_test(rlc_am_nr_sn_size_t sn_size)
 
     rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
 
-    TESTASSERT_EQ(3, rlc2.get_buffer_state()); // Status report shoud be required, as the TX buffers are now empty.
+    TESTASSERT_EQ(0, rlc2.get_buffer_state()); // Status report shoud be required, as the TX buffers are now empty.
   }
+
+  // Step timers until t-StatusProhibit expires
+  for (int cnt = 0; cnt < 8; cnt++) {
+    timers.step_all();
+  }
+  TESTASSERT_EQ(3, rlc2.get_buffer_state()); // t-StatusProhibit no longer running
+
   {
     // Double check status report
     byte_buffer_t status_buf;
@@ -765,8 +780,15 @@ int lost_pdus_trimmed_nack_test(rlc_am_nr_sn_size_t sn_size)
     rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
 
     expected_size = status_pdu_ack_size + 1 * status_pdu_nack_size;
-    TESTASSERT_EQ(expected_size, rlc2.get_buffer_state()); // Status report should now include the chopped NACK
+    TESTASSERT_EQ(0, rlc2.get_buffer_state()); // Status report should now include the chopped NACK
   }
+
+  // Step timers until t-StatusProhibit expires
+  for (int cnt = 0; cnt < 8; cnt++) {
+    timers.step_all();
+  }
+  TESTASSERT_EQ(expected_size, rlc2.get_buffer_state()); // t-StatusProhibit no longer running
+
   {
     // Double check status report
     byte_buffer_t status_buf;
@@ -801,8 +823,13 @@ int lost_pdus_trimmed_nack_test(rlc_am_nr_sn_size_t sn_size)
     rlc2.write_pdu(retx_buf.msg, retx_buf.N_bytes);
 
     expected_size = status_pdu_ack_size;
-    TESTASSERT_EQ(expected_size, rlc2.get_buffer_state()); // Status report should have no NACKs
+    TESTASSERT_EQ(0, rlc2.get_buffer_state()); // Status report should have no NACKs
   }
+  // Step timers until t-StatusProhibit expires
+  for (int cnt = 0; cnt < 8; cnt++) {
+    timers.step_all();
+  }
+  TESTASSERT_EQ(expected_size, rlc2.get_buffer_state()); // t-StatusProhibit no longer running
   {
     // Double check status report
     byte_buffer_t status_buf;
@@ -1762,9 +1789,9 @@ int max_retx_lost_sdu_test(rlc_am_nr_sn_size_t sn_size)
 
   // Fake status PDU that ack SN=1 and nack SN=0
   rlc_am_nr_status_pdu_t fake_status(sn_size);
-  fake_status.ack_sn                 = 2; // delivered up to SN=1
-  rlc_status_nack_t nack;                 // one SN was lost
-  nack.nack_sn = 0;                       // it was SN=0 that was lost
+  fake_status.ack_sn = 2; // delivered up to SN=1
+  rlc_status_nack_t nack; // one SN was lost
+  nack.nack_sn = 0;       // it was SN=0 that was lost
   fake_status.push_nack(nack);
 
   // pack into PDU
@@ -2185,7 +2212,7 @@ int poll_retx()
     unique_byte_buffer_t status_pdu = srsran::make_byte_buffer();
     TESTASSERT(status_pdu != nullptr);
     rlc_am_nr_status_pdu_t status(rlc_am_nr_sn_size_t::size12bits);
-    status.ack_sn                 = 2;
+    status.ack_sn = 2;
     {
       rlc_status_nack_t nack;
       nack.nack_sn = 1; // SN=1 needs RETX
@@ -2216,7 +2243,7 @@ int poll_retx()
     unique_byte_buffer_t status_pdu = srsran::make_byte_buffer();
     TESTASSERT(status_pdu != nullptr);
     rlc_am_nr_status_pdu_t status(rlc_am_nr_sn_size_t::size12bits);
-    status.ack_sn                 = 4;
+    status.ack_sn = 4;
     {
       rlc_status_nack_t nack;
       nack.nack_sn = 1; // SN=1 needs RETX

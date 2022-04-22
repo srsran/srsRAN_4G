@@ -1207,7 +1207,6 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (header.p) {
     RlcInfo("status packet requested through polling bit");
     do_status = true;
-    status_prohibit_timer.stop();
   }
 
   debug_state();
