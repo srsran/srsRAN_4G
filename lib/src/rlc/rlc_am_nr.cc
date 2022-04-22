@@ -988,7 +988,36 @@ void rlc_am_nr_tx::get_buffer_state(uint32_t& n_bytes_new, uint32_t& n_bytes_pri
     }
   }
 
-  // Bytes needed for tx SDUs
+  // Bytes needed for tx of the rest of the SDU that is currently under segmentation (if any)
+  if (sdu_under_segmentation_sn != INVALID_RLC_SN) {
+    if (tx_window->has_sn(sdu_under_segmentation_sn)) {
+      rlc_amd_tx_pdu_nr& seg_pdu = (*tx_window)[sdu_under_segmentation_sn];
+      if (not seg_pdu.segment_list.empty()) {
+        // obtain amount of already transmitted Bytes
+        const rlc_amd_tx_pdu_nr::pdu_segment& seg       = seg_pdu.segment_list.back();
+        uint32_t                              last_byte = seg.so + seg.payload_len;
+        if (last_byte <= seg_pdu.sdu_buf->N_bytes) {
+          // compute remaining bytes pending for transmission
+          uint32_t remaining_bytes = seg_pdu.sdu_buf->N_bytes - last_byte;
+          n_bytes_new += remaining_bytes + max_hdr_size;
+        } else {
+          RlcError(
+              "buffer state - last segment of SDU under segmentation exceeds SDU len. SDU len=%d B, last_byte=%d B",
+              seg_pdu.sdu_buf->N_bytes,
+              last_byte);
+        }
+      } else {
+        RlcError("buffer state - SDU under segmentation has empty segment list. Ignoring SN=%d",
+                 sdu_under_segmentation_sn);
+      }
+    } else {
+      sdu_under_segmentation_sn = INVALID_RLC_SN;
+      RlcError("buffer state - SDU under segmentation does not exist in tx_window. Aborting segmentation SN=%d",
+               sdu_under_segmentation_sn);
+    }
+  }
+
+  // Bytes needed for tx SDUs in queue
   uint32_t n_sdus = tx_sdu_queue.get_n_sdus();
   n_bytes_new += tx_sdu_queue.size_bytes();
 
