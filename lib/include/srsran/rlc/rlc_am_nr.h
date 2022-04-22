@@ -174,6 +174,7 @@ public:
 
   // Debug Helper
   void debug_state() const;
+  void info_state() const;
 };
 
 /****************************************************************************

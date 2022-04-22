@@ -1143,6 +1143,16 @@ void rlc_am_nr_tx::debug_state() const
            st.pdu_without_poll,
            st.byte_without_poll);
 }
+void rlc_am_nr_tx::info_state() const
+{
+  RlcInfo("TX window state: SDUs %d", tx_window->size());
+  RlcInfo("TX entity state: Tx_Next_Ack=%d, Tx_Next=%d, POLL_SN=%d, PDU_WITHOUT_POLL=%d, BYTE_WITHOUT_POLL=%d",
+          st.tx_next_ack,
+          st.tx_next,
+          st.poll_sn,
+          st.pdu_without_poll,
+          st.byte_without_poll);
+}
 /****************************************************************************
  * Rx subclass implementation
  ***************************************************************************/
