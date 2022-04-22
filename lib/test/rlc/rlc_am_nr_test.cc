@@ -1492,7 +1492,7 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   }
 
   uint32_t expected_buffer_state = (header_size + payload_size) * n_sdu_bufs;
-  TESTASSERT(expected_buffer_state == rlc1.get_buffer_state());
+  TESTASSERT_EQ(expected_buffer_state, rlc1.get_buffer_state());
 
   constexpr uint32_t so_size            = 2;
   constexpr uint32_t segment_size       = 1;
@@ -1502,6 +1502,16 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   // Read 15 PDUs from RLC1
   std::vector<unique_byte_buffer_t> pdu_bufs(n_pdu_bufs);
   for (int i = 0; i < n_pdu_bufs; i++) {
+    // First also test buffer state
+    uint32_t remaining_total_bytes = (payload_size * n_sdu_bufs) - (i * segment_size);
+    uint32_t remaining_full_sdus   = remaining_total_bytes / payload_size;
+    uint32_t remaining_seg_bytes   = remaining_total_bytes % payload_size;
+
+    uint32_t buffer_state_full_sdus = (header_size + payload_size) * remaining_full_sdus;
+    uint32_t buffer_state_seg_sdu   = remaining_seg_bytes == 0 ? 0 : (header_size + so_size + remaining_seg_bytes);
+    expected_buffer_state           = buffer_state_full_sdus + buffer_state_seg_sdu;
+    TESTASSERT_EQ(expected_buffer_state, rlc1.get_buffer_state());
+
     pdu_bufs[i] = srsran::make_byte_buffer();
     if (i == 0 || i == 3 || i == 6 || i == 9 || i == 12) {
       // First segment, no SO
@@ -1661,6 +1671,14 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   {
     // Re-transmit the 3 lost segments
     for (int i = 0; i < 3; i++) {
+      // First also test buffer state
+      uint32_t remaining_segments = 3 - i;
+      expected_buffer_state       = remaining_segments * (header_size + so_size + segment_size);
+      if (i == 0) { // subtract so_size, because in this setup the first retx is a "first_segment" without SO.
+        expected_buffer_state -= so_size;
+      }
+      TESTASSERT_EQ(expected_buffer_state, rlc1.get_buffer_state());
+
       byte_buffer_t retx_buf;
       uint32_t      len = 0;
       if (i == 0) {
