@@ -701,6 +701,8 @@ void rrc_nr::send_rrc_reconfig_complete()
 
 int rrc_nr::send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg)
 {
+  transaction_id = msg.rrc_transaction_id;
+
   ue_cap_enquiry_ies_s ue_cap_enquiry_ies = msg.crit_exts.ue_cap_enquiry();
 
   asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
@@ -773,6 +775,7 @@ int rrc_nr::send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg)
       ue_cap.feature_sets.feature_sets_dl_per_cc.push_back(feature_set_dl_per_cc);
       ue_cap.feature_sets.feature_sets_ul_per_cc.push_back(feature_set_ul_per_cc);
 
+#if 1
       ue_cap_rat_container.ue_cap_rat_container.resize(512);
       asn1::bit_ref bref_pack(ue_cap_rat_container.ue_cap_rat_container.data(),
                               ue_cap_rat_container.ue_cap_rat_container.size());
@@ -782,6 +785,15 @@ int rrc_nr::send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg)
         return SRSRAN_ERROR;
       }
       ue_cap_rat_container.ue_cap_rat_container.resize(bref_pack.distance_bytes());
+#else
+      // hard-coded capabilities from third-party
+      ue_cap_rat_container.ue_cap_rat_container.from_string("E1A01000074F5A03020000C0A0241262C001206A0609B00C39F30C7942"
+                                                            "C0E098040623809506C4DD608D21A08107CA01165B262A87813E43"
+                                                            "9F40CF88E3C639F30C7942C0E070F09C0013C0070004F0001601C00140"
+                                                            "A836036B04690D04083E500892D931541439F11C78C73E618F2858"
+                                                            "1C0E1E04FE0000003F80000000A00E05");
+#endif
+
       ue_cap_info.ue_cap_rat_container_list.push_back(ue_cap_rat_container);
     }
   }
@@ -2227,30 +2239,6 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
 void rrc_nr::handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release)
 {
   logger.info("RRC Release not handled yet");
-}
-
-void rrc_nr::handle_ue_cap_enquiry(const asn1::rrc_nr::ue_cap_enquiry_s& ue_cap_enquiry)
-{
-  transaction_id = ue_cap_enquiry.rrc_transaction_id;
-
-  logger.info("Received UECapabilityEnquiry");
-
-  // Send UECapabilityInformation
-  ul_dcch_msg_s ul_dcch_msg;
-  auto&         ue_cap_info = ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_ue_cap_info();
-
-  ue_cap_info.ue_cap_rat_container_list_present = true;
-  ue_cap_rat_container_s nr_cap                 = {};
-
-  nr_cap.rat_type = rat_type_e::nr;
-  nr_cap.ue_cap_rat_container.from_string(
-      "E1A01000074F5A03020000C0A0241262C001206A0609B00C39F30C7942C0E098040623809506C4DD608D21A08107CA01165B262A87813E43"
-      "9F40CF88E3C639F30C7942C0E070F09C0013C0070004F0001601C00140A836036B04690D04083E500892D931541439F11C78C73E618F2858"
-      "1C0E1E04FE0000003F80000000A00E05");
-
-  ue_cap_info.ue_cap_rat_container_list.push_back(nr_cap);
-
-  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
 // Security helper used by Security Mode Command and Mobility handling routines

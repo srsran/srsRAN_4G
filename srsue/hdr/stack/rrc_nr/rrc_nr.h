@@ -153,7 +153,6 @@ private:
   void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
   void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
   void handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release);
-  void handle_ue_cap_enquiry(const asn1::rrc_nr::ue_cap_enquiry_s& ue_cap_enquiry);
   void generate_as_keys();
 
   srsran::task_sched_handle task_sched;
