@@ -719,6 +719,12 @@ int rrc_nr::send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg)
       ue_nr_cap_s ue_cap;
       ue_cap.access_stratum_release = access_stratum_release_opts::rel15;
 
+      // RLC params
+      ue_cap.rlc_params_present                  = true;
+      ue_cap.rlc_params.am_with_short_sn_present = true;
+      ue_cap.rlc_params.um_with_short_sn_present = true;
+      ue_cap.rlc_params.um_with_long_sn_present  = true;
+
       // PDCP parameters
       ue_cap.pdcp_params.supported_rohc_profiles.profile0x0000 = false;
       ue_cap.pdcp_params.supported_rohc_profiles.profile0x0001 = false;
