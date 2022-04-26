@@ -176,6 +176,10 @@ uint32_t rlc_am_nr_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
  */
 uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
+  if (nof_bytes <= min_hdr_size) {
+    RlcInfo("Not enough bytes for payload plus header. nof_bytes=%d", nof_bytes);
+    return 0;
+  }
   // Read new SDU from TX queue
   unique_byte_buffer_t tx_sdu;
   RlcDebug("Reading from RLC SDU queue. Queue size %d", tx_sdu_queue.size());
