@@ -138,10 +138,10 @@ file_max_size = -1
 #####################################################################
 [usim]
 mode = soft
-algo = xor
-#opc  = 63BFA50EE6523365FF14C1F45F88737D
+algo = milenage
+opc  = 63BFA50EE6523365FF14C1F45F88737D
 k    = 00112233445566778899aabbccddeeff
-imsi = 001010123456789
+imsi = 001010123456780
 imei = 353490069873319
 #reader =
 #pin  = 1234
