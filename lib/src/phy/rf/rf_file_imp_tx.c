@@ -81,7 +81,7 @@ static int _rf_file_tx_baseband(rf_file_tx_t* q, cf_t* buffer, uint32_t nsamples
   size_t ret = fwrite(buf, (size_t)sample_sz, (size_t)nsamples, q->file);
   if (ret < (size_t)nsamples) {
     rf_file_error(q->id,
-                  "[file] Error: transmitter expected %d bytes and sent %d. %s.\n",
+                  "[file] Error: transmitter expected %d bytes and sent %zd. %s.\n",
                   NSAMPLES2NBYTES(nsamples),
                   ret,
                   strerror(errno));
