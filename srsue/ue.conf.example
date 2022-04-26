@@ -6,18 +6,19 @@
 # RF configuration
 #
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
-# tx_gain: Transmit gain (dB). 
+# tx_gain: Transmit gain (dB).
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
+# srate: Optional fixed sampling rate (Hz), corresponding to cell bandwidth. Must be set for 5G-SA.
 #
 # nof_antennas:       Number of antennas per carrier (all carriers have the same number of antennas)
-# device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
-# device_args:        Arguments for the device driver. Options are "auto" or any string. 
+# device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF"
+# device_args:        Arguments for the device driver. Options are "auto" or any string.
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
 #                     Default for bladeRF: ""
 # device_args_2:      Arguments for the RF device driver 2.
 # device_args_3:      Arguments for the RF device driver 3.
 # time_adv_nsamples:  Transmission time advance (in number of samples) to compensate for RF delay
-#                     from antenna to timestamp insertion. 
+#                     from antenna to timestamp insertion.
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 # continuous_tx:      Transmit samples continuously to the radio or on bursts (auto/yes/no).
 #                     Default is auto (yes for UHD, no for rest)
@@ -26,6 +27,7 @@
 freq_offset = 0
 tx_gain = 80
 #rx_gain = 40
+#srate = 11.52e6
 
 #nof_antennas = 1
 
@@ -45,10 +47,10 @@ tx_gain = 80
 
 #####################################################################
 # EUTRA RAT configuration
-# 
+#
 # dl_earfcn:   Downlink EARFCN list.
 #
-# Optional parameters: 
+# Optional parameters:
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn
 # nof_carriers:       Number of carriers
@@ -59,8 +61,8 @@ dl_earfcn = 3350
 
 #####################################################################
 # NR RAT configuration
-# 
-# Optional parameters: 
+#
+# Optional parameters:
 # bands:           List of support NR bands seperated by a comma (default 78)
 # nof_carriers:    Number of NR carriers (must be at least 1 for NR support)
 #####################################################################
@@ -71,19 +73,19 @@ dl_earfcn = 3350
 #####################################################################
 # Packet capture configuration
 #
-# Packet capture is supported at the MAC, MAC_NR, and NAS layer. 
-# MAC-layer packets are captured to file a the compact format decoded 
-# by the Wireshark. For decoding, use the UDP dissector and the UDP 
-# heuristic dissection. Edit the preferences (Edit > Preferences > 
-# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with 
+# Packet capture is supported at the MAC, MAC_NR, and NAS layer.
+# MAC-layer packets are captured to file a the compact format decoded
+# by the Wireshark. For decoding, use the UDP dissector and the UDP
+# heuristic dissection. Edit the preferences (Edit > Preferences >
+# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with
 # Protocol=udp. Further, enable the heuristic dissection in UDP under:
 # Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
 # Using the same filename for mac_filename and mac_nr_filename writes both
-# MAC-LTE and MAC-NR to the same file allowing a better analysis. 
+# MAC-LTE and MAC-NR to the same file allowing a better analysis.
 # NAS-layer packets are dissected with DLT=148, and Protocol = nas-eps.
 #
-# enable:            Enable packet captures of layers (mac/mac_nr/nas/none) multiple option list 
+# enable:            Enable packet captures of layers (mac/mac_nr/nas/none) multiple option list
 # mac_filename:      File path to use for MAC packet capture
 # mac_nr_filename:   File path to use for MAC NR packet capture
 # nas_filename:      File path to use for NAS packet capture
@@ -141,7 +143,7 @@ algo = xor
 k    = 00112233445566778899aabbccddeeff
 imsi = 001010123456789
 imei = 353490069873319
-#reader = 
+#reader =
 #pin  = 1234
 
 #####################################################################
@@ -303,18 +305,18 @@ enable = false
 #
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
 # prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
-#                       Default is to use tx_gain in [rf] section. 
-# cqi_max:              Upper bound on the maximum CQI to be reported. Default 15. 
+#                       Default is to use tx_gain in [rf] section.
+# cqi_max:              Upper bound on the maximum CQI to be reported. Default 15.
 # cqi_fixed:            Fixes the reported CQI to a constant value. Default disabled.
 # snr_ema_coeff:        Sets the SNR exponential moving average coefficient (Default 0.1)
 # snr_estim_alg:        Sets the noise estimation algorithm. (Default refs)
-#                          Options: pss:   use difference between received and known pss signal, 
+#                          Options: pss:   use difference between received and known pss signal,
 #                                   refs:  use difference between noise references and noiseless (after filtering)
 #                                   empty: use empty subcarriers in the boarder of pss/sss signal
 # pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
 # pdsch_meas_evm:       Measure PDSCH EVM, increases CPU load (default false)
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 3)
-# equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
+# equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any
 #                       non-negative real number to indicate a regularized zf coefficient.
 #                       Default is MMSE.
 # correct_sync_error:   Channel estimator measures and pre-compensates time synchronization error. Increases CPU usage,
@@ -322,7 +324,7 @@ enable = false
 # sfo_ema:              EMA coefficient to average sample offsets used to compute SFO
 # sfo_correct_period:   Period in ms to correct sample time to adjust for SFO
 # sss_algorithm:        Selects the SSS estimation algorithm. Can choose between
-#                       {full, partial, diff}. 
+#                       {full, partial, diff}.
 # estimator_fil_auto:   The channel estimator smooths the channel estimate with an adaptative filter.
 # estimator_fil_stddev: Sets the channel estimator smooth gaussian filter standard deviation.
 # estimator_fil_order:  Sets the channel estimator smooth gaussian filter order (even values perform better).
