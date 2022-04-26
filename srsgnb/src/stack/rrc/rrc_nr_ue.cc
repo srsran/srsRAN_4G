@@ -1083,7 +1083,7 @@ int rrc_nr::ue::update_as_security(uint32_t lcid, bool enable_integrity = true, 
     return SRSRAN_ERROR;
   }
 
-  // FIXME: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
+  // TODO: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
   // When we start using PDCP-NR we can avoid this step.
   srsran::nr_as_security_config_t tmp_cnfg  = sec_ctx.get_as_sec_cfg();
   srsran::as_security_config_t    pdcp_cnfg = {};
