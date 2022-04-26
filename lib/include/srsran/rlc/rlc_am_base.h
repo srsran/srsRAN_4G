@@ -134,13 +134,13 @@ public:
     virtual void     get_buffer_state(uint32_t& tx_queue, uint32_t& prio_tx_queue) = 0;
     virtual void     reestablish()                                                 = 0;
     virtual void     empty_queue()                                                 = 0;
-    virtual bool     sdu_queue_is_full()                                           = 0;
     virtual bool     has_data()                                                    = 0;
     virtual void     stop()                                                        = 0;
 
     void set_bsr_callback(bsr_callback_t callback);
 
     int              write_sdu(unique_byte_buffer_t sdu);
+    bool             sdu_queue_is_full();
     virtual void     discard_sdu(uint32_t pdcp_sn);
     virtual uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
 

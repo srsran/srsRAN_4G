@@ -272,6 +272,11 @@ void rlc_am::rlc_am_base_tx::discard_sdu(uint32_t discard_sn)
   RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
 }
 
+bool rlc_am::rlc_am_base_tx::sdu_queue_is_full()
+{
+  return tx_sdu_queue.is_full();
+}
+
 void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
 {
   bsr_callback = callback;

@@ -1154,11 +1154,6 @@ void rlc_am_nr_tx::reestablish()
   stop();
 }
 
-bool rlc_am_nr_tx::sdu_queue_is_full()
-{
-  return false;
-}
-
 void rlc_am_nr_tx::empty_queue()
 {
   std::lock_guard<std::mutex> lock(mutex);

@@ -268,11 +268,6 @@ void rlc_am_lte_tx::get_buffer_state_nolock(uint32_t& n_bytes_newtx, uint32_t& n
   }
 }
 
-bool rlc_am_lte_tx::sdu_queue_is_full()
-{
-  return tx_sdu_queue.is_full();
-}
-
 uint32_t rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
