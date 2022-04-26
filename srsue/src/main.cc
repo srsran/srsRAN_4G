@@ -68,8 +68,9 @@ string config_file;
 
 static int parse_args(all_args_t* args, int argc, char* argv[])
 {
-  bool use_standard_lte_rates = false;
+  bool        use_standard_lte_rates = false;
   std::string scs_khz, ssb_scs_khz; // temporary value to store integer
+  std::string cfr_mode;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -247,6 +248,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.hst.period_s",      bpo::value<float>(&args->phy.ul_channel_args.hst_period_s)->default_value(7.2f),            "HST simulation period in seconds")
     ("channel.ul.hst.fd_hz",         bpo::value<float>(&args->phy.ul_channel_args.hst_fd_hz)->default_value(+750.0f),            "Doppler frequency in Hz")
     ("channel.ul.hst.init_time_s",   bpo::value<float>(&args->phy.ul_channel_args.hst_init_time_s)->default_value(0),            "Initial time in seconds")
+
+    /* CFR section */
+    ("cfr.enable", bpo::value<bool>(&args->phy.cfr_args.enable)->default_value(args->phy.cfr_args.enable), "CFR enable")
+    ("cfr.mode", bpo::value<string>(&cfr_mode)->default_value("manual"), "CFR mode")
+    ("cfr.manual_thres", bpo::value<float>(&args->phy.cfr_args.manual_thres)->default_value(args->phy.cfr_args.manual_thres), "Fixed manual clipping threshold for CFR manual mode")
+    ("cfr.strength", bpo::value<float>(&args->phy.cfr_args.strength)->default_value(args->phy.cfr_args.strength), "CFR ratio between amplitude-limited vs original signal (0 to 1)")
+    ("cfr.auto_target_papr", bpo::value<float>(&args->phy.cfr_args.auto_target_papr)->default_value(args->phy.cfr_args.auto_target_papr), "Signal PAPR target (in dB) in CFR auto modes")
+    ("cfr.ema_alpha", bpo::value<float>(&args->phy.cfr_args.ema_alpha)->default_value(args->phy.cfr_args.ema_alpha), "Alpha coefficient for the power average in auto_ema mode (0 to 1)")
 
     /* PHY section */
     ("phy.worker_cpu_mask",
@@ -555,6 +564,13 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     return SRSRAN_ERROR;
   } else {
     args->stack.usim.using_op = vm.count("usim.op");
+  }
+
+  // parse the CFR mode string
+  args->phy.cfr_args.mode = srsran_cfr_str2mode(cfr_mode.c_str());
+  if (args->phy.cfr_args.mode == SRSRAN_CFR_THR_INVALID) {
+    cout << "Error, invalid CFR mode: " << cfr_mode << endl;
+    exit(1);
   }
 
   // Apply all_level to any unset layers

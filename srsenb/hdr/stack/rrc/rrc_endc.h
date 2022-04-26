@@ -110,7 +110,6 @@ private:
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
   // fixed ENDC variables
-  const uint32_t eutra_drb_id = 1; // The DRB ID that converted to NR
   const uint32_t lcid_drb_nr  = 4;
 
   // internal events

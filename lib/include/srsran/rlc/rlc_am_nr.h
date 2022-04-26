@@ -25,6 +25,7 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
 #include "srsran/common/timers.h"
+#include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/rlc/rlc_am_base.h"
 #include "srsran/rlc/rlc_am_data_structs.h"
 #include "srsran/rlc/rlc_am_nr_packing.h"
@@ -81,13 +82,12 @@ struct rlc_am_nr_tx_state_t {
 
 struct rlc_amd_tx_pdu_nr {
   const uint32_t         rlc_sn     = INVALID_RLC_SN;
-  const uint32_t         pdcp_sn    = INVALID_RLC_SN;
+  uint32_t               pdcp_sn    = INVALID_RLC_SN;
   rlc_am_nr_pdu_header_t header     = {};
   unique_byte_buffer_t   sdu_buf    = nullptr;
-  uint32_t               retx_count = 0;
+  uint32_t               retx_count = RETX_COUNT_NOT_STARTED;
   struct pdu_segment {
     uint32_t so          = 0;
-    uint32_t retx_count  = 0;
     uint32_t payload_len = 0;
   };
   std::list<pdu_segment> segment_list;
@@ -105,22 +105,23 @@ public:
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
   void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) final;
 
-  void discard_sdu(uint32_t discard_sn) final;
   bool sdu_queue_is_full() final;
   void reestablish() final;
+  void stop() final;
 
   int  write_sdu(unique_byte_buffer_t sdu);
   void empty_queue() final;
+  void empty_queue_no_lock();
 
   // Data PDU helpers
   uint32_t build_new_pdu(uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_new_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_continuation_sdu_segment(rlc_amd_tx_pdu_nr& tx_pdu, uint8_t* payload, uint32_t nof_bytes);
   uint32_t build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_pdu_without_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  uint32_t build_retx_pdu_with_segmentation(rlc_amd_retx_t& retx, uint8_t* payload, uint32_t nof_bytes);
-  bool     is_retx_segmentation_required(const rlc_amd_retx_t& retx, uint32_t nof_bytes);
-  uint32_t get_retx_expected_hdr_len(const rlc_amd_retx_t& retx);
+  uint32_t build_retx_pdu_without_segmentation(rlc_amd_retx_nr_t retx, uint8_t* payload, uint32_t nof_bytes);
+  uint32_t build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx, uint8_t* payload, uint32_t nof_bytes);
+  bool     is_retx_segmentation_required(const rlc_amd_retx_nr_t& retx, uint32_t nof_bytes);
+  uint32_t get_retx_expected_hdr_len(const rlc_amd_retx_nr_t& retx);
 
   // Buffer State
   bool     has_data() final;
@@ -132,18 +133,21 @@ public:
   uint32_t build_status_pdu(byte_buffer_t* payload, uint32_t nof_bytes);
 
   // Polling
-  uint8_t get_pdu_poll();
+  uint8_t get_pdu_poll(uint32_t sn, bool is_retx, uint32_t sdu_bytes);
 
-  void stop() final;
+  // Timers
+  void timer_expired(uint32_t timeout_id);
 
+  // Window helpers
   bool inside_tx_window(uint32_t sn) const;
 
 private:
   rlc_am*       parent = nullptr;
   rlc_am_nr_rx* rx     = nullptr;
 
-  uint32_t        mod_nr = 4096;
+  uint32_t        mod_nr = cardinality(rlc_am_nr_sn_size_t());
   inline uint32_t tx_mod_base_nr(uint32_t sn) const;
+  void            check_sn_reached_max_retx(uint32_t sn);
 
   /****************************************************************************
    * Configurable parameters
@@ -155,26 +159,41 @@ private:
    * Tx state variables
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
-  struct rlc_am_nr_tx_state_t                             st = {};
-  rlc_ringbuffer_t<rlc_amd_tx_pdu_nr, RLC_AM_WINDOW_SIZE> tx_window;
+  struct rlc_am_nr_tx_state_t                              st = {};
+  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window;
 
-  // Queues and buffers
-  pdu_retx_queue<RLC_AM_WINDOW_SIZE> retx_queue;
-  uint32_t sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  // Queues, buffers and container
+  std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue;
+  uint32_t         sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
+  pdcp_sn_vector_t notify_info_vec;
 
   // Helper constants
-  uint32_t min_hdr_size = 2;
+  uint32_t min_hdr_size = 2; // Pre-initialized for 12 bit SN, updated by configure()
   uint32_t so_size      = 2;
-  uint32_t max_hdr_size = 4;
+  uint32_t max_hdr_size = 4; // Pre-initialized for 12 bit SN, updated by configure()
+
+  /****************************************************************************
+   * Tx constants
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+   ***************************************************************************/
+  inline uint32_t tx_window_size() const;
+
+  /****************************************************************************
+   * TX timers
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
+   ***************************************************************************/
+  srsran::timer_handler::unique_timer poll_retransmit_timer;
 
 public:
   // Getters/Setters
-  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }       // This should only be used for testing.
-  rlc_am_nr_tx_state_t get_tx_state() { return st; }                     // This should only be used for testing.
-  uint32_t             get_tx_window_size() { return tx_window.size(); } // This should only be used for testing.
+  void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }   // This should only be used for testing.
+  rlc_am_nr_tx_state_t get_tx_state() { return st; }                 // This should only be used for testing.
+  uint32_t get_tx_window_utilization() { return tx_window->size(); } // This should only be used for testing.
 
-  // Debug Helper
+  // Debug Helpers
   void debug_state() const;
+  void info_state() const;
+  void debug_window() const;
 };
 
 /****************************************************************************
@@ -231,7 +250,12 @@ public:
   bool inside_rx_window(uint32_t sn);
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
   void insert_received_segment(rlc_amd_rx_pdu_nr segment, rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
-  bool have_all_segments_been_received(const rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
+  /**
+   * @brief update_segment_inventory This function updates the flags has_gap and fully_received of an SDU
+   * according to the current inventory of received SDU segments
+   * @param rx_sdu The SDU to operate on
+   */
+  void update_segment_inventory(rlc_amd_rx_sdu_nr_t& rx_sdu) const;
 
   // Metrics
   uint32_t get_sdu_rx_latency_ms() final;
@@ -242,17 +266,18 @@ public:
 
   // Helpers
   void debug_state() const;
+  void debug_window() const;
 
 private:
   rlc_am*           parent = nullptr;
   rlc_am_nr_tx*     tx     = nullptr;
   byte_buffer_pool* pool   = nullptr;
 
-  uint32_t mod_nr = 4096;
+  uint32_t mod_nr = cardinality(rlc_am_nr_sn_size_t());
   uint32_t rx_mod_base_nr(uint32_t sn) const;
 
   // RX Window
-  rlc_ringbuffer_t<rlc_amd_rx_sdu_nr_t, RLC_AM_WINDOW_SIZE> rx_window;
+  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> > rx_window;
 
   // Mutexes
   std::mutex mutex;
@@ -271,16 +296,22 @@ private:
   rlc_am_nr_config_t cfg = {};
 
   /****************************************************************************
-   * Tx state variables
+   * Rx state variables
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.1
    ***************************************************************************/
   struct rlc_am_nr_rx_state_t st = {};
 
+  /****************************************************************************
+   * Rx constants
+   * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+   ***************************************************************************/
+  inline uint32_t rx_window_size() const;
+
 public:
   // Getters/Setters
-  void set_rx_state(const rlc_am_nr_rx_state_t& st_) { st = st_; }       // This should only be used for testing.
-  rlc_am_nr_rx_state_t get_rx_state() { return st; }                     // This should only be used for testing.
-  uint32_t             get_rx_window_size() { return rx_window.size(); } // This should only be used for testing.
+  void set_rx_state(const rlc_am_nr_rx_state_t& st_) { st = st_; }        // This should only be used for testing.
+  rlc_am_nr_rx_state_t get_rx_state() { return st; }                      // This should only be used for testing.
+  uint32_t             get_rx_window_size() { return rx_window->size(); } // This should only be used for testing.
 };
 
 } // namespace srsran

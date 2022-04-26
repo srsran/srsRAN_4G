@@ -182,7 +182,7 @@ int fill_csi_report_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_me
     csi_report.group_based_beam_report.set_disabled();
     // Skip CQI table (optional)
     csi_report.cqi_table_present = true;
-    csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
+    csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table1;
     csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
 
     if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
@@ -527,6 +527,11 @@ void fill_pdsch_cfg_from_enb_cfg(const rrc_nr_cfg_t& cfg, uint32_t cc, pdsch_cfg
   out.prb_bundling_type.static_bundling().bundle_size_present = true;
   out.prb_bundling_type.static_bundling().bundle_size =
       pdsch_cfg_s::prb_bundling_type_c_::static_bundling_s_::bundle_size_opts::wideband;
+
+  // MCS Table
+  // NOTE: For Table 1 or QAM64, set false and comment value
+  // out.mcs_table_present = true;
+  // out.mcs_table.value = pdsch_cfg_s::mcs_table_opts::qam256;
 
   // ZP-CSI
   out.zp_csi_rs_res_to_add_mod_list.resize(1);
@@ -982,20 +987,17 @@ void fill_srb(const rrc_nr_cfg_t& cfg, srsran::nr_srb srb_id, asn1::rrc_nr::rlc_
 }
 
 /// Fill DRB with parameters derived from cfg
-void fill_drb(const rrc_nr_cfg_t& cfg, uint32_t lcid, srsran::nr_drb drb_id, asn1::rrc_nr::rlc_bearer_cfg_s& out)
+void fill_drb(const rrc_nr_cfg_t&                       cfg,
+              const enb_bearer_manager::radio_bearer_t& rb,
+              srsran::nr_drb                            drb_id,
+              asn1::rrc_nr::rlc_bearer_cfg_s&           out)
 {
-  out.lc_ch_id                         = lcid;
+  out.lc_ch_id                         = rb.lcid;
   out.served_radio_bearer_present      = true;
   out.served_radio_bearer.set_drb_id() = (uint8_t)drb_id;
 
-  out.rlc_cfg_present        = true;
-  auto& ul_um                = out.rlc_cfg.set_um_bi_dir().ul_um_rlc;
-  ul_um.sn_field_len_present = true;
-  ul_um.sn_field_len.value   = sn_field_len_um_opts::size12;
-  auto& dl_um                = out.rlc_cfg.um_bi_dir().dl_um_rlc;
-  dl_um.sn_field_len_present = true;
-  dl_um.sn_field_len.value   = sn_field_len_um_opts::size12;
-  dl_um.t_reassembly.value   = t_reassembly_opts::ms50;
+  out.rlc_cfg_present = true;
+  out.rlc_cfg         = cfg.five_qi_cfg.at(rb.five_qi).rlc_cfg;
 
   // MAC logical channel config
   out.mac_lc_ch_cfg_present                    = true;
@@ -1323,6 +1325,8 @@ bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&       cfg,
 }
 
 void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
+                                          const uint32_t                          rnti,
+                                          const enb_bearer_manager&               bearer_mapper,
                                           const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
                                           asn1::rrc_nr::cell_group_cfg_s&         out)
 {
@@ -1337,8 +1341,9 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
   // Add DRBs
   for (const drb_to_add_mod_s& drb : bearers.drb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});
-    uint32_t lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
-    fill_drb(cfg, lcid, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
+    uint32_t                           lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
+    enb_bearer_manager::radio_bearer_t rb   = bearer_mapper.get_lcid_bearer(rnti, lcid);
+    fill_drb(cfg, rb, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
   }
 
   // Release DRBs

@@ -55,6 +55,8 @@ public:
   {
     return -1;
   }
+  void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) final {}
+  void set_timeadv(uint32_t tti, uint32_t ta_cmd) final {}
 
 private:
   uint32_t prach_occasion                 = 0;
@@ -73,6 +75,8 @@ public:
     crnti = c_rnti;
     return true;
   }
+  void set_temp_crnti(uint16_t c_rnti) {}
+  void set_crnti_to_temp() {}
 
   bool msg3_is_transmitted() { return true; }
   void msg3_flush() {}

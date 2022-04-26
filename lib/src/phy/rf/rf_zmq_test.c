@@ -102,12 +102,11 @@ void enb_tx_function(const char* tx_args, bool timed_tx)
   // send data subframe per subframe
   uint32_t num_txed_samples = 0;
 
-
   // initial transmission without ts
   void* data_ptr[SRSRAN_MAX_PORTS] = {NULL};
-  cf_t tx_buffer[NOF_RX_ANT][SF_LEN];
+  cf_t  tx_buffer[NOF_RX_ANT][SF_LEN];
   for (int c = 0; c < NOF_RX_ANT; c++) {
-    memcpy(&tx_buffer[c], &enb_tx_buffer[c][num_txed_samples], SF_LEN * sizeof (cf_t));
+    memcpy(&tx_buffer[c], &enb_tx_buffer[c][num_txed_samples], SF_LEN * sizeof(cf_t));
     data_ptr[c] = &tx_buffer[c][0];
   }
   int ret = srsran_rf_send_multi(&enb_radio, (void**)data_ptr, SF_LEN, true, true, false);
@@ -125,7 +124,7 @@ void enb_tx_function(const char* tx_args, bool timed_tx)
 
     // prepare data buffer
     for (int c = 0; c < NOF_RX_ANT; c++) {
-      memcpy(&tx_buffer[c], &enb_tx_buffer[c][num_txed_samples], SF_LEN * sizeof (cf_t));
+      memcpy(&tx_buffer[c], &enb_tx_buffer[c][num_txed_samples], SF_LEN * sizeof(cf_t));
       data_ptr[c] = &tx_buffer[c][0];
     }
 
@@ -243,34 +242,34 @@ int param_test(const char* args_param, const int num_channels)
 
 int main()
 {
-//  // two Rx ports
-//  if (param_test("rx_port=ipc://dl0,rx_port1=ipc://dl1", 2)) {
-//    fprintf(stderr, "Param test failed!\n");
-//    return SRSRAN_ERROR;
-//  }
+  //  // two Rx ports
+  //  if (param_test("rx_port=ipc://dl0,rx_port1=ipc://dl1", 2)) {
+  //    fprintf(stderr, "Param test failed!\n");
+  //    return SRSRAN_ERROR;
+  //  }
 
-//  // multiple rx ports, no channel index provided
-//  if (param_test("rx_port=ipc://dl0,rx_port=ipc://dl1,rx_port=ipc://dl2,rx_port=ipc://dl3,base_srate=1.92e6", 4)) {
-//    fprintf(stderr, "Param test failed!\n");
-//    return SRSRAN_ERROR;
-//  }
+  //  // multiple rx ports, no channel index provided
+  //  if (param_test("rx_port=ipc://dl0,rx_port=ipc://dl1,rx_port=ipc://dl2,rx_port=ipc://dl3,base_srate=1.92e6", 4)) {
+  //    fprintf(stderr, "Param test failed!\n");
+  //    return SRSRAN_ERROR;
+  //  }
 
-//  // One Rx, one Tx and all generic options
-//  if (param_test("rx_port0=tcp://"
-//                 "localhost:2000,rx_format=sc16,tx_format=sc16,tx_type=pub,rx_type=sub,base_srate=1.92e6,id=test",
-//                 1)) {
-//    fprintf(stderr, "Param test failed!\n");
-//    return SRSRAN_ERROR;
-//  }
+  //  // One Rx, one Tx and all generic options
+  //  if (param_test("rx_port0=tcp://"
+  //                 "localhost:2000,rx_format=sc16,tx_format=sc16,tx_type=pub,rx_type=sub,base_srate=1.92e6,id=test",
+  //                 1)) {
+  //    fprintf(stderr, "Param test failed!\n");
+  //    return SRSRAN_ERROR;
+  //  }
 
-//  // 1 port, 2 antennas, MIMO freq config
-//  if (param_test(
-//          "tx_port0=tcp://*:2001,tx_port1=tcp://*:2003,rx_port0=tcp://localhost:2000,rx_port1=tcp://"
-//          "localhost:2002,id=ue,base_srate=23.04e6,tx_freq0=2510e6,tx_freq1=2510e6,rx_freq0=2630e6,,rx_freq1=2630e6",
-//          2)) {
-//    fprintf(stderr, "Param test failed!\n");
-//    return SRSRAN_ERROR;
-//  }
+  //  // 1 port, 2 antennas, MIMO freq config
+  //  if (param_test(
+  //          "tx_port0=tcp://*:2001,tx_port1=tcp://*:2003,rx_port0=tcp://localhost:2000,rx_port1=tcp://"
+  //          "localhost:2002,id=ue,base_srate=23.04e6,tx_freq0=2510e6,tx_freq1=2510e6,rx_freq0=2630e6,,rx_freq1=2630e6",
+  //          2)) {
+  //    fprintf(stderr, "Param test failed!\n");
+  //    return SRSRAN_ERROR;
+  //  }
 
 #if NOF_RX_ANT == 1
   // single tx, single rx with continuous transmissions (no timed tx) using IPC transport

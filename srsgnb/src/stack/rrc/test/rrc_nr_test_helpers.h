@@ -115,6 +115,11 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
                                    pdcp_nr_rrc_tester&     pdcp,
                                    uint16_t                rnti);
 
+void test_rrc_nr_ue_capability_enquiry(srsran::task_scheduler& task_sched,
+                                       rrc_nr&                 rrc_obj,
+                                       pdcp_nr_rrc_tester&     pdcp,
+                                       uint16_t                rnti);
+
 void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                                  rrc_nr&                 rrc_obj,
                                  pdcp_nr_rrc_tester&     pdcp,

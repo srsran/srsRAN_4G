@@ -54,7 +54,8 @@ struct phy_cfg_nr_t {
   srsran_harq_ack_cfg_hl_t  harq_ack = {};
   srsran_csi_hl_cfg_t       csi      = {};
   srsran_carrier_nr_t       carrier  = {};
-  ssb_cfg_t                 ssb;
+  ssb_cfg_t                 ssb      = {};
+  uint32_t                  t_offset = 0; ///< n-TimingAdvanceOffset
 
   phy_cfg_nr_t() {}
 

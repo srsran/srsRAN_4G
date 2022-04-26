@@ -112,10 +112,6 @@ void phy_nr_sa::init_background()
   }
   workers.init(args, sync, stack);
 
-  // Set fix Tx and Rx sampling rates
-  radio->set_tx_srate(args.srate_hz);
-  radio->set_rx_srate(args.srate_hz);
-
   is_configured = true;
 }
 
@@ -243,6 +239,16 @@ void phy_nr_sa::send_prach(const uint32_t prach_occasion,
   workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
 }
 
+void phy_nr_sa::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)
+{
+  sync.add_ta_cmd_rar(tti, ta_cmd);
+}
+
+void phy_nr_sa::set_timeadv(uint32_t tti, uint32_t ta_cmd)
+{
+  sync.add_ta_cmd_new(tti, ta_cmd);
+}
+
 int phy_nr_sa::set_rar_grant(uint32_t                                       rar_slot_idx,
                              std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
                              uint16_t                                       rnti,
@@ -260,6 +266,9 @@ bool phy_nr_sa::set_config(const srsran::phy_cfg_nr_t& cfg)
   cmd_worker.add_cmd([this]() {
     // Set UE configuration
     bool ret = workers.set_config(config_nr);
+
+    // Pass n_ta_offset to sync
+    sync.add_ta_offset(config_nr.t_offset);
 
     // Notify PHY config completion
     if (stack != nullptr) {

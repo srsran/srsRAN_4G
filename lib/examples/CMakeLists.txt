@@ -66,7 +66,7 @@ endif(SRSGUI_FOUND)
 
 if (ZEROMQ_FOUND)
   add_executable(zmq_remote_rx zmq_remote_rx.c)
-  target_link_libraries(zmq_remote_rx srsran_phy srsran_rf)
+  target_link_libraries(zmq_remote_rx srsran_phy srsran_rf ${ZEROMQ_LIBRARIES})
 endif (ZEROMQ_FOUND)
 
 #################################################################

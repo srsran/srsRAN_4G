@@ -311,7 +311,7 @@ ngap::ue* ngap::user_list::find_ue_gnbid(uint32_t gnbid)
   return (it != users.end()) ? it->second.get() : nullptr;
 }
 
-ngap::ue* ngap::user_list::find_ue_amfid(uint32_t amfid)
+ngap::ue* ngap::user_list::find_ue_amfid(uint64_t amfid)
 {
   auto it = std::find_if(users.begin(), users.end(), [amfid](const user_list::pair_type& v) {
     return v.second->ctxt.amf_ue_ngap_id == amfid;
@@ -767,7 +767,7 @@ bool ngap::sctp_send_ngap_pdu(const asn1::ngap::ngap_pdu_c& tx_pdu, uint32_t rnt
  * @param amf_id amf_ue_ngap_id value stored in NGAP message
  * @return pointer to user if it has been found
  */
-ngap::ue* ngap::handle_ngapmsg_ue_id(uint32_t gnb_id, uint32_t amf_id)
+ngap::ue* ngap::handle_ngapmsg_ue_id(uint32_t gnb_id, uint64_t amf_id)
 {
   ue*     user_ptr     = users.find_ue_gnbid(gnb_id);
   ue*     user_amf_ptr = nullptr;

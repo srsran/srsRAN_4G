@@ -37,8 +37,33 @@
 
 namespace srsenb {
 
-// TS 38.413 - Section 8.3 - UE Context Management Procedures
+/*
+ * TS 38.413 - Section 8.2 - PDU Session Management Procedures
+ */
+// TS 38.413 - Section 8.2.1 PDU Session Resource Setup
+class ngap_ue_pdu_session_res_setup_proc
+{
+public:
+  explicit ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
+                                              rrc_interface_ngap_nr*    rrc_,
+                                              ngap_ue_ctxt_t*           ue_ctxt,
+                                              ngap_ue_bearer_manager*   bearer_manager,
+                                              srslog::basic_logger&     logger_);
+  srsran::proc_outcome_t init(const asn1::ngap::pdu_session_res_setup_request_s& msg);
+  srsran::proc_outcome_t step();
+  static const char*     name() { return "UE PDU Session Resource Setup"; }
 
+private:
+  ngap_ue_ctxt_t*           ue_ctxt;
+  ngap_interface_ngap_proc* parent;
+  ngap_ue_bearer_manager*   bearer_manager;
+  rrc_interface_ngap_nr*    rrc = nullptr;
+  srslog::basic_logger&     logger;
+};
+
+/*
+ * TS 38.413 - Section 8.3 - UE Context Management Procedures
+ */
 // TS 38.413 - Section 8.3.1 - Initial Context Setup
 class ngap_ue_initial_context_setup_proc
 {
@@ -77,39 +102,6 @@ private:
   ngap_interface_ngap_proc* parent         = nullptr;
   rrc_interface_ngap_nr*    rrc            = nullptr;
   ngap_ue_bearer_manager*   bearer_manager = nullptr;
-  srslog::basic_logger&     logger;
-};
-
-// TS 38.413 - Section 8.3.4 - UE Context Modification
-class ngap_ue_ue_context_modification_proc
-{
-public:
-  explicit ngap_ue_ue_context_modification_proc(ngap_interface_ngap_proc* parent_, srslog::basic_logger& logger_);
-  srsran::proc_outcome_t init();
-  srsran::proc_outcome_t step();
-  static const char*     name() { return "UE Context Modification"; }
-
-private:
-  ngap_interface_ngap_proc* parent;
-};
-
-class ngap_ue_pdu_session_res_setup_proc
-{
-public:
-  explicit ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
-                                              rrc_interface_ngap_nr*    rrc_,
-                                              ngap_ue_ctxt_t*           ue_ctxt,
-                                              ngap_ue_bearer_manager*   bearer_manager,
-                                              srslog::basic_logger&     logger_);
-  srsran::proc_outcome_t init(const asn1::ngap::pdu_session_res_setup_request_s& msg);
-  srsran::proc_outcome_t step();
-  static const char*     name() { return "UE PDU Session Resource Setup"; }
-
-private:
-  ngap_ue_ctxt_t*           ue_ctxt;
-  ngap_interface_ngap_proc* parent;
-  ngap_ue_bearer_manager*   bearer_manager;
-  rrc_interface_ngap_nr*    rrc = nullptr;
   srslog::basic_logger&     logger;
 };
 

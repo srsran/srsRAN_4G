@@ -102,14 +102,26 @@ int rrc_nr::init(const rrc_nr_cfg_t&         cfg_,
   config_phy(); // if PHY is not yet initialized, config will be stored and applied on initialization
   config_mac();
 
-  logger.debug("NIA preference list: NIA%d, NIA%d, NIA%d",
-               cfg.nia_preference_list[0],
-               cfg.nia_preference_list[1],
-               cfg.nia_preference_list[2]);
-  logger.debug("NEA preference list: NEA%d, NEA%d, NEA%d",
-               cfg.nea_preference_list[0],
-               cfg.nea_preference_list[1],
-               cfg.nea_preference_list[2]);
+  logger.info("Number of 5QI %d", cfg.five_qi_cfg.size());
+  for (const std::pair<const uint32_t, rrc_nr_cfg_five_qi_t>& five_qi_cfg : cfg.five_qi_cfg) {
+    logger.info("5QI configuration. 5QI=%d", five_qi_cfg.first);
+    if (logger.info.enabled()) {
+      asn1::json_writer js{};
+      five_qi_cfg.second.pdcp_cfg.to_json(js);
+      logger.info("PDCP NR configuration: %s", js.to_string().c_str());
+      js = {};
+      five_qi_cfg.second.rlc_cfg.to_json(js);
+      logger.info("RLC NR configuration: %s", js.to_string().c_str());
+    }
+  }
+  logger.info("NIA preference list: NIA%d, NIA%d, NIA%d",
+              cfg.nia_preference_list[0],
+              cfg.nia_preference_list[1],
+              cfg.nia_preference_list[2]);
+  logger.info("NEA preference list: NEA%d, NEA%d, NEA%d",
+              cfg.nea_preference_list[0],
+              cfg.nea_preference_list[1],
+              cfg.nea_preference_list[2]);
   running = true;
 
   return SRSRAN_SUCCESS;
@@ -551,6 +563,9 @@ void rrc_nr::handle_ul_dcch(uint16_t rnti, uint32_t lcid, srsran::const_byte_spa
     case ul_dcch_msg_type_c::c1_c_::types_opts::rrc_reest_complete:
       u.handle_rrc_reestablishment_complete(ul_dcch_msg.msg.c1().rrc_reest_complete());
       break;
+    case ul_dcch_msg_type_c::c1_c_::types_opts::ue_cap_info:
+      u.handle_ue_capability_information(ul_dcch_msg.msg.c1().ue_cap_info());
+      break;
     default:
       log_rx_pdu_fail(rnti, srb_to_lcid(lte_srb::srb0), pdu, "Unsupported UL-CCCH message type", false);
       // TODO Remove user
@@ -645,14 +660,18 @@ int rrc_nr::start_security_mode_procedure(uint16_t rnti, srsran::unique_byte_buf
   user_it->second->send_security_mode_command(std::move(nas_pdu));
   return SRSRAN_SUCCESS;
 }
-int rrc_nr::establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+int rrc_nr::establish_rrc_bearer(uint16_t                rnti,
+                                 uint16_t                pdu_session_id,
+                                 srsran::const_byte_span nas_pdu,
+                                 uint32_t                lcid,
+                                 uint32_t                five_qi)
 {
   if (not users.contains(rnti)) {
     logger.error("Establishing RRC bearers for inexistent rnti=0x%x", rnti);
     return SRSRAN_ERROR;
   }
 
-  users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid);
+  users[rnti]->establish_eps_bearer(pdu_session_id, nas_pdu, lcid, five_qi);
 
   // TODO: verify whether this is the best place where to call the RRCReconfig
   users[rnti]->send_rrc_reconfiguration();

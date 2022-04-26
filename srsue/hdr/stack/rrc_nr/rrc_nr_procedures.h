@@ -34,7 +34,7 @@ namespace srsue {
 class rrc_nr::cell_selection_proc
 {
 public:
-  enum class state_t { phy_cell_search, phy_cell_select };
+  enum class state_t { phy_cell_search, phy_cell_select, sib_acquire };
 
   using cell_selection_complete_ev = srsran::proc_result_t<rrc_cell_search_result_t>;
   explicit cell_selection_proc(rrc_nr& parent_);
@@ -42,6 +42,7 @@ public:
   srsran::proc_outcome_t step();
   srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_search_result_t& event);
   srsran::proc_outcome_t react(const rrc_interface_phy_nr::cell_select_result_t& event);
+  srsran::proc_outcome_t react(const bool sib1_found);
 
   void then(const cell_selection_complete_ev& proc_result) const;
 

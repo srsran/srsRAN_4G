@@ -56,6 +56,8 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
   cc_idx = cc_idx_;
   phy    = phy_;
 
+  srsran_cfr_cfg_t cfr_config = phy->get_cfr_config();
+
   signal_buffer_max_samples = 3 * SRSRAN_SF_LEN_PRB(max_prb);
 
   for (uint32_t i = 0; i < phy->args->nof_rx_ant; i++) {
@@ -78,6 +80,11 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
 
   if (srsran_ue_ul_init(&ue_ul, signal_buffer_tx[0], max_prb)) {
     Error("Initiating UE UL");
+    return;
+  }
+
+  if (srsran_ue_ul_set_cfr(&ue_ul, &cfr_config) < SRSRAN_SUCCESS) {
+    Error("Setting the CFR");
     return;
   }
 

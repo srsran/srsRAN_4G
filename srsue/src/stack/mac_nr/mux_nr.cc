@@ -85,7 +85,7 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   // Pack normal UL data PDU
   int32_t remaining_len = tx_pdu.get_remaing_len(); // local variable to reserve space for CEs
 
-  if (add_bsr_ce == sbsr_ce) {
+  if (!msg3_is_pending() && add_bsr_ce == sbsr_ce) {
     // reserve space for SBSR
     remaining_len -= 2;
   }

@@ -37,6 +37,7 @@
 #include "srsran/interfaces/ue_nas_interfaces.h"
 #include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
+#include "srsran/interfaces/ue_sdap_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
@@ -61,6 +62,7 @@ public:
            mac_interface_rrc_nr*       mac_,
            rlc_interface_rrc*          rlc_,
            pdcp_interface_rrc*         pdcp_,
+           sdap_interface_rrc*         sdap_,
            gw_interface_rrc*           gw_,
            nas_5g_interface_rrc_nr*    nas_,
            rrc_eutra_interface_rrc_nr* rrc_eutra_,
@@ -145,6 +147,7 @@ private:
   void send_setup_request(srsran::nr_establishment_cause_t cause);
   void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
   void send_rrc_reconfig_complete();
+  int  send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg);
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc_nr::ul_dcch_msg_s& msg);
@@ -155,6 +158,7 @@ private:
   void handle_sib1(const asn1::rrc_nr::sib1_s& sib1);
   bool handle_rrc_setup(const asn1::rrc_nr::rrc_setup_s& setup);
   void handle_rrc_reconfig(const asn1::rrc_nr::rrc_recfg_s& reconfig);
+  void handle_ue_capability_enquiry(const asn1::rrc_nr::ue_cap_enquiry_s& ue_cap_enquiry);
   void handle_dl_info_transfer(const asn1::rrc_nr::dl_info_transfer_s& dl_info_transfer);
   void handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_s& smc);
   void handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release);
@@ -178,6 +182,7 @@ private:
   mac_interface_rrc_nr*       mac       = nullptr;
   rlc_interface_rrc*          rlc       = nullptr;
   pdcp_interface_rrc*         pdcp      = nullptr;
+  sdap_interface_rrc*         sdap      = nullptr;
   gw_interface_rrc*           gw        = nullptr;
   nas_5g_interface_rrc_nr*    nas       = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
@@ -206,6 +211,7 @@ private:
   // Stores the state of the PHY configuration setting
   enum {
     PHY_CFG_STATE_NONE = 0,
+    PHY_CFG_STATE_SA_MIB_CFG,
     PHY_CFG_STATE_SA_SIB_CFG,
     PHY_CFG_STATE_SA_FULL_CFG,
     PHY_CFG_STATE_NSA_APPLY_SP_CELL,

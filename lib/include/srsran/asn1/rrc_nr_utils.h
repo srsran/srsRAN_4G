@@ -103,6 +103,7 @@ bool make_phy_tdd_cfg(const srsran_duplex_config_nr_t&      srsran_duplex_config
 bool make_phy_harq_ack_cfg(const asn1::rrc_nr::phys_cell_group_cfg_s& phys_cell_group_cfg,
                            srsran_harq_ack_cfg_hl_t*                  srsran_ue_dl_nr_harq_ack_cfg);
 bool make_phy_coreset_cfg(const asn1::rrc_nr::ctrl_res_set_s& ctrl_res_set, srsran_coreset_t* srsran_coreset);
+void make_phy_search_space0_cfg(srsran_search_space_t* in_srsran_search_space);
 bool make_phy_search_space_cfg(const asn1::rrc_nr::search_space_s& search_space,
                                srsran_search_space_t*              srsran_search_space);
 bool make_phy_csi_report(const asn1::rrc_nr::csi_report_cfg_s& csi_report_cfg,

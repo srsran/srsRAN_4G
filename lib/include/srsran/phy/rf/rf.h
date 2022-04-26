@@ -72,6 +72,73 @@ typedef struct {
 
 typedef void (*srsran_rf_error_handler_t)(void* arg, srsran_rf_error_t error);
 
+/* RF frontend API */
+typedef struct {
+  const char* name;
+  const char* (*srsran_rf_devname)(void* h);
+  int (*srsran_rf_start_rx_stream)(void* h, bool now);
+  int (*srsran_rf_stop_rx_stream)(void* h);
+  void (*srsran_rf_flush_buffer)(void* h);
+  bool (*srsran_rf_has_rssi)(void* h);
+  float (*srsran_rf_get_rssi)(void* h);
+  void (*srsran_rf_suppress_stdout)(void* h);
+  void (*srsran_rf_register_error_handler)(void* h, srsran_rf_error_handler_t error_handler, void* arg);
+  int (*srsran_rf_open)(char* args, void** h);
+  int (*srsran_rf_open_multi)(char* args, void** h, uint32_t nof_channels);
+  int (*srsran_rf_close)(void* h);
+  double (*srsran_rf_set_rx_srate)(void* h, double freq);
+  int (*srsran_rf_set_rx_gain)(void* h, double gain);
+  int (*srsran_rf_set_rx_gain_ch)(void* h, uint32_t ch, double gain);
+  int (*srsran_rf_set_tx_gain)(void* h, double gain);
+  int (*srsran_rf_set_tx_gain_ch)(void* h, uint32_t ch, double gain);
+  double (*srsran_rf_get_rx_gain)(void* h);
+  double (*srsran_rf_get_tx_gain)(void* h);
+  srsran_rf_info_t* (*srsran_rf_get_info)(void* h);
+  double (*srsran_rf_set_rx_freq)(void* h, uint32_t ch, double freq);
+  double (*srsran_rf_set_tx_srate)(void* h, double freq);
+  double (*srsran_rf_set_tx_freq)(void* h, uint32_t ch, double freq);
+  void (*srsran_rf_get_time)(void* h, time_t* secs, double* frac_secs);
+  void (*srsran_rf_sync_pps)(void* h);
+  int (*srsran_rf_recv_with_time)(void*    h,
+                                  void*    data,
+                                  uint32_t nsamples,
+                                  bool     blocking,
+                                  time_t*  secs,
+                                  double*  frac_secs);
+  int (*srsran_rf_recv_with_time_multi)(void*    h,
+                                        void**   data,
+                                        uint32_t nsamples,
+                                        bool     blocking,
+                                        time_t*  secs,
+                                        double*  frac_secs);
+  int (*srsran_rf_send_timed)(void*  h,
+                              void*  data,
+                              int    nsamples,
+                              time_t secs,
+                              double frac_secs,
+                              bool   has_time_spec,
+                              bool   blocking,
+                              bool   is_start_of_burst,
+                              bool   is_end_of_burst);
+  int (*srsran_rf_send_timed_multi)(void*  h,
+                                    void** data,
+                                    int    nsamples,
+                                    time_t secs,
+                                    double frac_secs,
+                                    bool   has_time_spec,
+                                    bool   blocking,
+                                    bool   is_start_of_burst,
+                                    bool   is_end_of_burst);
+} rf_dev_t;
+
+typedef struct {
+  const char* plugin_name;
+  void*       dl_handle;
+  rf_dev_t*   rf_api;
+} srsran_rf_plugin_t;
+
+SRSRAN_API int srsran_rf_load_plugins();
+
 SRSRAN_API int srsran_rf_open(srsran_rf_t* h, char* args);
 
 SRSRAN_API int srsran_rf_open_multi(srsran_rf_t* h, char* args, uint32_t nof_channels);

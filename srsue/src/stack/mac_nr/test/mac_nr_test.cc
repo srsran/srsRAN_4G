@@ -61,6 +61,9 @@ public:
   bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
   void clear_pending_grants() override {}
 
+  void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) final{};
+  void set_timeadv(uint32_t tti, uint32_t ta_cmd) final{};
+
 private:
   uint32_t prach_occasion                 = 0;
   uint32_t preamble_index                 = 0;

@@ -282,9 +282,11 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
     const enb_cell_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
     if (meas_it != meas_list_cfg.end()) {
       meas_ev.target_eci      = meas_it->eci;
+      meas_ev.target_tac      = meas_it->tac;
       meas_ev.direct_fwd_path = meas_it->direct_forward_path_available;
     } else if (c != nullptr) {
       meas_ev.target_eci = (rrc_enb->cfg.enb_id << 8u) + c->cell_cfg.cell_id;
+      meas_ev.target_tac = pcell->cell_common->cell_cfg.tac;
     } else {
       logger.warning("The PCI=%d inside the MeasReport is not recognized.", e.pci);
       continue;
@@ -305,6 +307,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
  *              - This struct goes in a transparent container to the S1AP
  */
 bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
+                                                 uint16_t target_tac,
                                                  uint8_t  measobj_id,
                                                  bool     fwd_direct_path_available)
 {
@@ -414,7 +417,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   }
 
   return rrc_enb->s1ap->send_ho_required(
-      rrc_ue->rnti, target_eci, target_plmn, fwd_erabs, std::move(buffer), fwd_direct_path_available);
+      rrc_ue->rnti, target_eci, target_tac, target_plmn, fwd_erabs, std::move(buffer), fwd_direct_path_available);
 }
 
 /**
@@ -662,7 +665,8 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_mea
   logger.info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", rrc_ue->rnti, ev.target_eci);
   report = ev;
 
-  if (not parent_fsm()->start_ho_preparation(report.target_eci, report.meas_obj->meas_obj_id, ev.direct_fwd_path)) {
+  if (not parent_fsm()->start_ho_preparation(
+          report.target_eci, report.target_tac, report.meas_obj->meas_obj_id, ev.direct_fwd_path)) {
     trigger(srsran::failure_ev{});
   }
 }

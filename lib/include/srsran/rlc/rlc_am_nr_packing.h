@@ -28,7 +28,8 @@
 
 namespace srsran {
 
-const uint32_t INVALID_RLC_SN = 0xFFFFFFFF;
+const uint32_t INVALID_RLC_SN              = 0xFFFFFFFF;
+const uint32_t RETX_COUNT_NOT_STARTED      = 0xFFFFFFFF;
 
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {
@@ -69,6 +70,7 @@ struct rlc_amd_rx_pdu_nr_cmp {
 struct rlc_amd_rx_sdu_nr_t {
   uint32_t             rlc_sn         = 0;
   bool                 fully_received = false;
+  bool                 has_gap        = false;
   unique_byte_buffer_t buf;
   using segment_list_t = std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>;
   segment_list_t segments;
@@ -85,14 +87,43 @@ struct rlc_amd_tx_sdu_nr_t {
   explicit rlc_amd_tx_sdu_nr_t(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}
 };
 
-///< AM NR Status PDU header (perhaps merge with LTE version)
-typedef struct {
-  rlc_am_nr_control_pdu_type_t cpt;
-  uint32_t                     ack_sn; ///< SN of the next not received RLC Data PDU
-  uint16_t                     N_nack; ///< number of NACKs
-  uint8_t           nack_range;        ///< number of consecutively lost RLC SDUs starting from and including NACK_SN
-  rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
-} rlc_am_nr_status_pdu_t;
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_header_ack_sn        = 3; ///< header fixed part and ACK SN
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn = 2; ///< NACK SN and extension fields (12 bit SN)
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn = 3; ///< NACK SN and extension fields (18 bit SN)
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_so              = 4; ///< NACK segment offsets (start and end)
+constexpr uint32_t rlc_am_nr_status_pdu_sizeof_nack_range           = 1; ///< NACK range (nof consecutively lost SDUs)
+
+/// AM NR Status PDU header
+class rlc_am_nr_status_pdu_t
+{
+private:
+  /// Stored SN size required to compute the packed size
+  rlc_am_nr_sn_size_t sn_size = rlc_am_nr_sn_size_t::nulltype;
+  /// Internal NACK container; keep in sync with packed_size_
+  std::vector<rlc_status_nack_t> nacks_ = {};
+  /// Stores the current packed size; sync on each change of nacks_
+  uint32_t packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
+
+  void refresh_packed_size();
+  uint32_t nack_size(const rlc_status_nack_t& nack) const;
+
+public:
+  /// CPT header
+  rlc_am_nr_control_pdu_type_t cpt = rlc_am_nr_control_pdu_type_t::status_pdu;
+  /// SN of the next not received RLC Data PDU
+  uint32_t ack_sn = INVALID_RLC_SN;
+  /// Read-only reference to NACKs
+  const std::vector<rlc_status_nack_t>& nacks = nacks_;
+  /// Read-only reference to packed size
+  const uint32_t& packed_size = packed_size_;
+
+  rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size);
+  void                                  reset();
+  void                                  push_nack(const rlc_status_nack_t& nack);
+  const std::vector<rlc_status_nack_t>& get_nacks() const { return nacks_; }
+  uint32_t                              get_packed_size() const { return packed_size; }
+  bool                                  trim(uint32_t max_packed_size);
+};
 
 /****************************************************************************
  * Header pack/unpack helper functions for NR
@@ -112,6 +143,10 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
 
 uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header);
 
+/****************************************************************************
+ * Status PDU pack/unpack helper functions for NR
+ * Ref: 3GPP TS 38.322 v16.2.0 Section 6.2.2.5
+ ***************************************************************************/
 uint32_t
 rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status);
 
@@ -119,10 +154,16 @@ uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
                                    const uint32_t            nof_bytes,
                                    const rlc_am_nr_sn_size_t sn_size,
                                    rlc_am_nr_status_pdu_t*   status);
+uint32_t
+rlc_am_nr_read_status_pdu_12bit_sn(const uint8_t* payload, const uint32_t nof_bytes, rlc_am_nr_status_pdu_t* status);
+uint32_t
+rlc_am_nr_read_status_pdu_18bit_sn(const uint8_t* payload, const uint32_t nof_bytes, rlc_am_nr_status_pdu_t* status);
 
 int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
                                    const rlc_am_nr_sn_size_t     sn_size,
                                    byte_buffer_t*                pdu);
+int32_t rlc_am_nr_write_status_pdu_12bit_sn(const rlc_am_nr_status_pdu_t& status_pdu, byte_buffer_t* pdu);
+int32_t rlc_am_nr_write_status_pdu_18bit_sn(const rlc_am_nr_status_pdu_t& status_pdu, byte_buffer_t* pdu);
 
 /**
  * Logs Status PDU into provided log channel, using fmt_str as format string
@@ -131,21 +172,35 @@ template <typename... Args>
 void log_rlc_am_nr_status_pdu_to_string(srslog::log_channel&    log_ch,
                                         const char*             fmt_str,
                                         rlc_am_nr_status_pdu_t* status,
+                                        const std::string&      rb_name,
                                         Args&&... args)
 {
   if (not log_ch.enabled()) {
     return;
   }
   fmt::memory_buffer buffer;
-  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
-  if (status->N_nack > 0) {
+  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->nacks.size());
+  if (status->nacks.size() > 0) {
     fmt::format_to(buffer, ", NACK_SN = ");
-    for (uint32_t i = 0; i < status->N_nack; ++i) {
-      if (status->nacks[i].has_so) {
-        fmt::format_to(
-            buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+    for (uint32_t i = 0; i < status->nacks.size(); ++i) {
+      if (status->nacks[i].has_nack_range) {
+        if (status->nacks[i].has_so) {
+          fmt::format_to(buffer,
+                         "[{} {}:{} r{}]",
+                         status->nacks[i].nack_sn,
+                         status->nacks[i].so_start,
+                         status->nacks[i].so_end,
+                         status->nacks[i].nack_range);
+        } else {
+          fmt::format_to(buffer, "[{} r{}]", status->nacks[i].nack_sn, status->nacks[i].nack_range);
+        }
       } else {
-        fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
+        if (status->nacks[i].has_so) {
+          fmt::format_to(
+              buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+        } else {
+          fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
+        }
       }
     }
   }
@@ -155,18 +210,21 @@ void log_rlc_am_nr_status_pdu_to_string(srslog::log_channel&    log_ch,
 /*
  * Log NR AMD PDUs
  */
-inline void log_rlc_am_nr_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_am_nr_pdu_header_t& header)
+inline void log_rlc_am_nr_pdu_header_to_string(srslog::log_channel&          log_ch,
+                                               const rlc_am_nr_pdu_header_t& header,
+                                               const std::string&            rb_name)
 {
   if (not log_ch.enabled()) {
     return;
   }
   fmt::memory_buffer buffer;
   fmt::format_to(buffer,
-                 "[{}, P={}, SI={}, SN_SIZE={}, SN={}, SO={}",
+                 "{}: [{}, P={}, SI={}, SN_SIZE={}, SN={}, SO={}",
+                 rb_name,
                  rlc_dc_field_text[header.dc],
                  (header.p ? "1" : "0"),
                  to_string_short(header.si),
-                 header.sn,
+                 to_string(header.sn_size),
                  header.sn,
                  header.so);
   fmt::format_to(buffer, "]");

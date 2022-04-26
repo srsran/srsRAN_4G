@@ -30,6 +30,8 @@
 
 #define DEVNAME_ZMQ "ZeroMQ"
 
+extern rf_dev_t srsran_rf_dev_zmq;
+
 SRSRAN_API int rf_zmq_open(char* args, void** handler);
 
 SRSRAN_API int rf_zmq_open_multi(char* args, void** handler, uint32_t nof_channels);

@@ -32,6 +32,7 @@
 #include "srsran/rlc/rlc.h"
 #include "srsran/upper/pdcp.h"
 #include "upper/nas.h"
+#include "upper/sdap.h"
 #include "upper/usim.h"
 
 #include "srsran/common/buffer_pool.h"
@@ -144,6 +145,7 @@ private:
   std::unique_ptr<rrc_nr>       rrc;
   std::unique_ptr<srsran::rlc>  rlc;
   std::unique_ptr<srsran::pdcp> pdcp;
+  std::unique_ptr<srsue::sdap>  sdap;
 
   // RAT-specific interfaces
   phy_interface_stack_nr* phy = nullptr;

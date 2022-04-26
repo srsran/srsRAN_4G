@@ -49,7 +49,7 @@ typedef struct SRSRAN_API {
   cf_t*    ce;
   uint32_t nof_re;
   float    noise_estimate;
-  float    noise_estimate_dbm;
+  float    noise_estimate_dbFs;
   float    rsrp;
   float    rsrp_dBfs;
   float    epre;

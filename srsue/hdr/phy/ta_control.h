@@ -104,6 +104,19 @@ public:
                 next_base_sec * 1e6f);
   }
 
+  void add_ta_offset(uint32_t ta_offset)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+
+    // Assuming numerology 0
+    next_base_nta = ta_offset / 64;
+
+    // Update base in seconds
+    next_base_sec = static_cast<float>(next_base_nta) * SRSRAN_LTE_TS;
+
+    logger.info("PHY:   Set TA offset: n_ta_offset: %d, ta_usec: %.1f", next_base_nta, next_base_sec * 1e6f);
+  }
+
   /**
    * Increments (delta) the next base time according to time alignment command from a Random Access Response (RAR).
    *

@@ -315,6 +315,8 @@ public:
     }
   }
 
+  srsran_cfr_cfg_t get_cfr_config() { return cfr_config; }
+
 private:
   std::mutex meas_mutex;
 
@@ -331,6 +333,8 @@ private:
   std::array<float, SRSRAN_MAX_CARRIERS> avg_snr_db      = {};
   std::array<float, SRSRAN_MAX_CARRIERS> avg_noise       = {};
   std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrp_neigh  = {};
+
+  srsran_cfr_cfg_t cfr_config = {};
 
   static constexpr uint32_t pcell_report_period = 20;
 

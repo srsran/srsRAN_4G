@@ -30,9 +30,10 @@ demux_nr::demux_nr(srslog::basic_logger& logger_) : logger(logger_) {}
 
 demux_nr::~demux_nr() {}
 
-int32_t demux_nr::init(rlc_interface_mac* rlc_)
+int32_t demux_nr::init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_)
 {
   rlc = rlc_;
+  phy = phy_;
   return SRSRAN_SUCCESS;
 }
 
@@ -45,6 +46,11 @@ uint64_t demux_nr::get_received_crueid()
 void demux_nr::push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti)
 {
   pdu_queue.push(std::move(pdu));
+}
+
+void demux_nr::push_bcch(srsran::unique_byte_buffer_t pdu)
+{
+  bcch_queue.push(std::move(pdu));
 }
 
 /* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will
@@ -64,6 +70,13 @@ void demux_nr::push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tt
 
 void demux_nr::process_pdus()
 {
+  // Handle first BCCH
+  while (not bcch_queue.empty()) {
+    srsran::unique_byte_buffer_t pdu = bcch_queue.wait_pop();
+    logger.debug(pdu->msg, pdu->N_bytes, "Handling MAC BCCH PDU (%d B)", pdu->N_bytes);
+    rlc->write_pdu_bcch_dlsch(pdu->msg, pdu->N_bytes);
+  }
+  // Then user PDUs
   while (not pdu_queue.empty()) {
     srsran::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
     handle_pdu(rx_pdu, std::move(pdu));
@@ -101,7 +114,8 @@ void demux_nr::handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byt
         logger.info("DRX CE not implemented.");
         break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::TA_CMD:
-        logger.info("Timing Advance CE not implemented.");
+        logger.info("Received TA=%d.", subpdu.get_ta().ta_command);
+        phy->set_timeadv(0, subpdu.get_ta().ta_command);
         break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
         received_crueid = subpdu.get_ue_con_res_id_ce_packed();

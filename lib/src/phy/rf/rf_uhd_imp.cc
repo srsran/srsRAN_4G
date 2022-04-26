@@ -29,6 +29,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 
 #include "rf_helper.h"
+#include "rf_plugin.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 
@@ -1544,3 +1545,44 @@ int rf_uhd_send_timed_multi(void*  h,
 
   return nsamples;
 }
+
+rf_dev_t srsran_rf_dev_uhd = {"UHD",
+                              rf_uhd_devname,
+                              rf_uhd_start_rx_stream,
+                              rf_uhd_stop_rx_stream,
+                              rf_uhd_flush_buffer,
+                              rf_uhd_has_rssi,
+                              rf_uhd_get_rssi,
+                              rf_uhd_suppress_stdout,
+                              rf_uhd_register_error_handler,
+                              rf_uhd_open,
+                              rf_uhd_open_multi,
+                              rf_uhd_close,
+                              rf_uhd_set_rx_srate,
+                              rf_uhd_set_rx_gain,
+                              rf_uhd_set_rx_gain_ch,
+                              rf_uhd_set_tx_gain,
+                              rf_uhd_set_tx_gain_ch,
+                              rf_uhd_get_rx_gain,
+                              rf_uhd_get_tx_gain,
+                              rf_uhd_get_info,
+                              rf_uhd_set_rx_freq,
+                              rf_uhd_set_tx_srate,
+                              rf_uhd_set_tx_freq,
+                              rf_uhd_get_time,
+                              rf_uhd_sync_pps,
+                              rf_uhd_recv_with_time,
+                              rf_uhd_recv_with_time_multi,
+                              rf_uhd_send_timed,
+                              rf_uhd_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_uhd;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */

@@ -117,7 +117,11 @@ public:
     sec_mod_proc_started = true;
     return SRSRAN_SUCCESS;
   }
-  int establish_rrc_bearer(uint16_t rnti, uint16_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid)
+  int establish_rrc_bearer(uint16_t                rnti,
+                           uint16_t                pdu_session_id,
+                           srsran::const_byte_span nas_pdu,
+                           uint32_t                lcid,
+                           uint32_t                five_qi)
   {
     rrc_logger.info("Establish RRC bearer");
     return SRSRAN_SUCCESS;

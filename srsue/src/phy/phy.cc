@@ -470,7 +470,7 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
   if (cc_idx >= args.nof_lte_carriers) {
     srsran::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                     cc_idx);
-    return false;
+    return true;
   }
 
   Info("Setting configuration");

@@ -109,7 +109,7 @@ void test_rrc_nr_connection_establishment(srsran::task_scheduler& task_sched,
   complete_ies.guami_type.value   = rrc_setup_complete_ies_s::guami_type_opts::native;
   std::string NAS_msg_str = "7E01280E534C337E004109000BF200F110800101347B80802E02F07071002D7E004109000BF200F11080010134"
                             "7B80801001002E02F0702F0201015200F11000006418010174000090530101";
-  auto& ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
+  auto&       ded_nas_msg = complete_ies.ded_nas_msg.from_string(NAS_msg_str);
 
   {
     pdu = srsran::make_byte_buffer();
@@ -257,6 +257,41 @@ void test_rrc_nr_security_mode_cmd(srsran::task_scheduler& task_sched,
   rrc_obj.write_pdu(rnti, 1, std::move(pdu));
 }
 
+void test_rrc_nr_ue_capability_enquiry(srsran::task_scheduler& task_sched,
+                                       rrc_nr&                 rrc_obj,
+                                       pdcp_nr_rrc_tester&     pdcp,
+                                       uint16_t                rnti)
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  {
+    asn1::cbit_ref bref{pdcp.last_sdu->data(), pdcp.last_sdu->size()};
+    TESTASSERT_SUCCESS(dl_dcch_msg.unpack(bref));
+  }
+
+  // Check if unpacked message is correct (ueCapabilityEnquiry | gNB -> UE)
+  TESTASSERT_EQ(dl_dcch_msg_type_c::types_opts::c1, dl_dcch_msg.msg.type().value);
+  TESTASSERT_EQ(dl_dcch_msg_type_c::c1_c_::types_opts::ue_cap_enquiry, dl_dcch_msg.msg.c1().type().value);
+  TESTASSERT_EQ(ue_cap_enquiry_s::crit_exts_c_::types_opts::ue_cap_enquiry,
+                dl_dcch_msg.msg.c1().ue_cap_enquiry().crit_exts.type().value);
+
+  // Send response (ueCapabilityInformation | UE -> gNB)
+  ul_dcch_msg_s ul_dcch_msg;
+  auto&         ue_capability_information      = ul_dcch_msg.msg.set_c1().set_ue_cap_info();
+  ue_capability_information.rrc_transaction_id = dl_dcch_msg.msg.c1().ue_cap_enquiry().rrc_transaction_id;
+  ue_capability_information.crit_exts.set_ue_cap_info();
+
+  srsran::unique_byte_buffer_t pdu;
+  {
+    pdu = srsran::make_byte_buffer();
+    asn1::bit_ref bref{pdu->data(), pdu->get_tailroom()};
+    TESTASSERT_SUCCESS(ul_dcch_msg.pack(bref));
+    pdu->N_bytes = bref.distance_bytes();
+  }
+
+  // send message to RRC
+  rrc_obj.write_pdu(rnti, 1, std::move(pdu));
+}
+
 void test_rrc_nr_reconfiguration(srsran::task_scheduler& task_sched,
                                  rrc_nr&                 rrc_obj,
                                  pdcp_nr_rrc_tester&     pdcp,
@@ -323,13 +358,13 @@ void test_rrc_nr_2nd_reconfiguration(srsran::task_scheduler& task_sched,
   asn1::unbounded_octstring<false> NAS_msg;
   NAS_msg.from_string("c574defc80ba722bffb8eacb6f8a163e3222cf1542ac529f6980bb15e0bf12d9f2b29f11fb458ec9");
 
-  // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
-  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, srsran::srb_to_lcid(srsran::nr_srb::srb1));
-
   // Test whether there exists the SRB1 initiated in the Connection Establishment
   // We test this as the SRB1 was set up in a different function
   TESTASSERT_EQ(rnti, pdcp.last_sdu_rnti);
   TESTASSERT_EQ(srsran::srb_to_lcid(srsran::nr_srb::srb1), pdcp.last_sdu_lcid);
+
+  // STEP 2 -  Trigger and send RRCReconfiguration command (gNB -> UE)
+  rrc_obj.establish_rrc_bearer(rnti, 1, NAS_msg, 4, 9);
 
   dl_dcch_msg_s dl_dcch_msg;
   {

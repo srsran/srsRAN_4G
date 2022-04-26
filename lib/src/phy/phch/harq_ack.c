@@ -88,6 +88,7 @@ static int harq_ack_gen_ack_type2(const srsran_harq_ack_cfg_hl_t* cfg,
         if (ack->present) {
           // Load ACK resource data into UCI info
           uci_cfg->pucch.resource_id = ack_info->cc[c].m[m].resource.pucch_resource_id;
+          uci_cfg->pucch.n_cce_0     = ack_info->cc[c].m[m].resource.n_cce;
           uci_cfg->pucch.rnti        = ack_info->cc[c].m[m].resource.rnti;
 
           if (V_DL_CDAI <= V_temp) {
@@ -183,6 +184,7 @@ int srsran_harq_ack_resource(const srsran_harq_ack_cfg_hl_t* cfg,
   pdsch_ack_resource->v_dai_dl          = dci_dl->dai;
   pdsch_ack_resource->rnti              = dci_dl->ctx.rnti;
   pdsch_ack_resource->pucch_resource_id = dci_dl->pucch_resource;
+  pdsch_ack_resource->n_cce             = dci_dl->ctx.location.ncce;
   pdsch_ack_resource->pid               = dci_dl->pid;
 
   return SRSRAN_SUCCESS;

@@ -49,6 +49,7 @@ public:
   uint16_t get_rar_rnti();
   bool     has_temp_crnti();
   uint16_t get_temp_crnti();
+  void     set_crnti_to_temp();
   void     received_contention_resolution(bool is_successful);
 
   // PHY interfaces
@@ -73,8 +74,6 @@ private:
 
   int        ra_window_length = -1, ra_window_start = -1;
   uint16_t   rar_rnti   = SRSRAN_INVALID_RNTI;
-  uint16_t   temp_crnti = SRSRAN_INVALID_RNTI;
-  uint16_t   transmitted_crnti = SRSRAN_INVALID_RNTI;
   std::mutex mutex;
 
   srsran::rach_cfg_nr_t rach_cfg   = {};

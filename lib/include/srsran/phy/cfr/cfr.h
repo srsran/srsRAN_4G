@@ -29,12 +29,14 @@
 #define CFR_EMA_INIT_AVG_PWR 0.1
 
 /**
- * @brief CFR manual threshold or PAPR limiting with Moving Average or EMA power averaging
+ * @brief CFR manual threshold or PAPR limiting with CMA or EMA power averaging
  */
 typedef enum SRSRAN_API {
-  SRSRAN_CFR_THR_MANUAL   = 1,
-  SRSRAN_CFR_THR_AUTO_CMA = 2,
-  SRSRAN_CFR_THR_AUTO_EMA = 3
+  SRSRAN_CFR_THR_INVALID,
+  SRSRAN_CFR_THR_MANUAL,
+  SRSRAN_CFR_THR_AUTO_CMA,
+  SRSRAN_CFR_THR_AUTO_EMA,
+  SRSRAN_CFR_NOF_MODES
 } srsran_cfr_mode_t;
 
 /**
@@ -123,5 +125,15 @@ SRSRAN_API int srsran_cfr_set_threshold(srsran_cfr_t* q, float thres);
  * @return SRSRAN_SUCCESS if successful, SRSRAN_ERROR or SRSRAN_ERROR_INVALID_INPUTS otherwise
  */
 SRSRAN_API int srsran_cfr_set_papr(srsran_cfr_t* q, float papr);
+
+/**
+ * @brief Converts a string representing a CFR mode from the config files into srsran_cfr_mode_t type
+ *
+ * @param[in]  mode_str   the cfr.mode string coming from the config file
+ * @return SRSRAN_CFR_THR_INVALID if mode_str is empty,
+ * SRSRAN_CFR_THR_INVALID if mode_str is not recognised,
+ * otherwise it returns the corresponding srsran_cfr_mode_t value.
+ */
+SRSRAN_API srsran_cfr_mode_t srsran_cfr_str2mode(const char* mode_str);
 
 #endif // SRSRAN_CFR_H

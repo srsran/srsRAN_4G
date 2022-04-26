@@ -36,8 +36,19 @@ int ue_buffer_manager::get_dl_tx_total() const
   return total_bytes;
 }
 
-void ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
+/**
+ * @brief Allocates LCIDs and update US buffer states depending on available resources and checks if there is SRB0/CCCH
+ MAC PDU segmentation
+
+ * @param rem_bytes TBS to be filled with MAC CEs and MAC SDUs [in bytes]
+ * @param reset_buf_states If true, when there is SRB0/CCCH MAC PDU segmentation, restore the UE buffers and scheduled
+ LCIDs as before running this function
+ * @return true if there is no SRB0/CCCH MAC PDU segmentation, false otherwise
+ */
+bool ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_interface::dl_pdu_t& pdu)
 {
+  // First step: allocate MAC CEs until resources allow
+  srsran::deque<ce_t> restore_ces;
   for (ce_t ce : parent->pending_ces) {
     if (ce.cc == cc) {
       // Note: This check also avoids thread collisions across UE carriers
@@ -51,13 +62,21 @@ void ue_buffer_manager::pdu_builder::alloc_subpdus(uint32_t rem_bytes, sched_nr_
     }
   }
 
+  // Second step: allocate the remaining LCIDs (LCIDs for MAC CEs are addressed above)
   for (uint32_t lcid = 0; rem_bytes > 0 and is_lcid_valid(lcid); ++lcid) {
     uint32_t pending_lcid_bytes = parent->get_dl_tx_total(lcid);
+    // Return false if the TBS is too small to store the entire CCCH buffer without segmentation
+    if (lcid == srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH and pending_lcid_bytes > rem_bytes) {
+      pdu.subpdus.push_back(lcid);
+      return false;
+    }
     if (pending_lcid_bytes > 0) {
       rem_bytes -= std::min(rem_bytes, pending_lcid_bytes);
       pdu.subpdus.push_back(lcid);
     }
   }
+
+  return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -81,6 +81,9 @@ public:
   /** TS 38.331 - 5.3.8 Connection Release */
   void send_rrc_release();
 
+  /* TS 38.331 - 5.6.1 UE capability transfer */
+  void handle_ue_capability_information(const asn1::rrc_nr::ue_cap_info_s& msg);
+
   /** TS 38.331 - 5.7.1 DL information transfer */
   void send_dl_information_transfer(srsran::unique_byte_buffer_t sdu);
 
@@ -88,13 +91,16 @@ public:
   void handle_ul_information_transfer(const asn1::rrc_nr::ul_info_transfer_s& msg);
 
   // NGAP interface
-  void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid);
+  void establish_eps_bearer(uint32_t pdu_session_id, srsran::const_byte_span nas_pdu, uint32_t lcid, uint32_t five_qi);
 
   /* TS 38.331 - 5.3.4 Initial AS security activation */
   void send_security_mode_command(srsran::unique_byte_buffer_t nas_pdu);
 
   /* TS 38.331 - 5.3.5 RRC reconfiguration */
   void send_rrc_reconfiguration();
+
+  /* TS 38.331 - 5.6.1 UE capability transfer */
+  int send_ue_capability_enquiry();
 
 private:
   int send_dl_ccch(const asn1::rrc_nr::dl_ccch_msg_s& dl_ccch_msg);
@@ -123,7 +129,6 @@ private:
   int pack_rrc_reconfiguration(asn1::dyn_octstring& packed_rrc_reconfig);
   int pack_secondary_cell_group_cfg(asn1::dyn_octstring& packed_secondary_cell_config);
 
-  int pack_secondary_cell_group_rlc_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
   int pack_secondary_cell_group_mac_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
 
   int pack_secondary_cell_group_sp_cell_cfg(asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg_pack);
@@ -158,7 +163,7 @@ private:
 
   int pack_nr_radio_bearer_config(asn1::dyn_octstring& packed_nr_bearer_config);
 
-  int add_drb();
+  int add_drb(uint32_t five_qi);
 
   bool init_pucch();
 

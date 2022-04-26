@@ -73,10 +73,27 @@ inline std::string to_string(const rlc_am_nr_sn_size_t& sn_size)
   constexpr static const char* options[] = {"12 bits", "18 bits"};
   return enum_to_text(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
-inline uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
+constexpr uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
 {
-  constexpr static uint16_t options[] = {12, 18};
+  constexpr uint16_t options[] = {12, 18};
   return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
+}
+/**
+ * @brief Value range of the serial numbers
+ * @param sn_size Length of the serial number field in bits
+ * @return cardianlity
+ */
+constexpr uint32_t cardinality(const rlc_am_nr_sn_size_t& sn_size)
+{
+  return (1 << to_number(sn_size));
+}
+/****************************************************************************
+ * Tx constants
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+ ***************************************************************************/
+constexpr uint32_t am_window_size(const rlc_am_nr_sn_size_t& sn_size)
+{
+  return cardinality(sn_size) / 2;
 }
 
 struct rlc_am_config_t {
@@ -228,14 +245,25 @@ public:
     rlc_cnfg.am.t_poll_retx       = 5;
     return rlc_cnfg;
   }
-  static rlc_config_t default_rlc_am_nr_config()
+  static rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
   {
-    rlc_config_t rlc_cnfg            = {};
-    rlc_cnfg.rat                     = srsran_rat_t::nr;
-    rlc_cnfg.rlc_mode                = rlc_mode_t::am;
+    rlc_config_t rlc_cnfg = {};
+    rlc_cnfg.rat          = srsran_rat_t::nr;
+    rlc_cnfg.rlc_mode     = rlc_mode_t::am;
+    if (sn_size == 12) {
+      rlc_cnfg.am_nr.tx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size12bits;
+      rlc_cnfg.am_nr.rx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size12bits;
+    } else if (sn_size == 18) {
+      rlc_cnfg.am_nr.tx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size18bits;
+      rlc_cnfg.am_nr.rx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size18bits;
+    } else {
+      return {};
+    }
     rlc_cnfg.am_nr.t_status_prohibit = 8;
+    rlc_cnfg.am_nr.max_retx_thresh   = 4;
     rlc_cnfg.am_nr.t_reassembly      = 35;
     rlc_cnfg.am_nr.poll_pdu          = 4;
+    rlc_cnfg.am_nr.t_poll_retx       = 45;
     return rlc_cnfg;
   }
   static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)

@@ -56,6 +56,8 @@ ue_stack_lte::ue_stack_lte() :
   rrc_nr(&task_sched),
   pdcp(&task_sched, "PDCP"),
   pdcp_nr(&task_sched, "PDCP-NR"),
+  sdap("SDAP-NR"),
+  sdap_pdcp(&pdcp_nr, &sdap),
   nas(srslog::fetch_basic_logger("NAS", false), &task_sched),
   nas_5g(srslog::fetch_basic_logger("NAS5G", false), &task_sched),
   thread("STACK"),
@@ -217,8 +219,14 @@ int ue_stack_lte::init(const stack_args_t& args_)
 
   mac.init(phy, &rlc, &rrc);
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
+
+  if (!args.sa_mode) {
+    pdcp.init(&rlc, &rrc, gw);
+  } else {
+    pdcp.init(&rlc, &rrc, &sdap_pdcp);
+    sdap.init(&sdap_pdcp, gw);
+  }
 
   mac_nr_args_t mac_nr_args = {};
   mac_nr.init(mac_nr_args, phy_nr, &rlc_nr, &rrc_nr);
@@ -228,6 +236,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
               &mac_nr,
               &rlc_nr,
               &pdcp_nr,
+              &sdap,
               gw,
               &nas_5g,
               args.sa_mode ? nullptr : &rrc,
@@ -409,12 +418,17 @@ void ue_stack_lte::remove_eps_bearer(uint8_t eps_bearer_id)
 void ue_stack_lte::write_sdu(uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu)
 {
   auto bearer = bearers.get_radio_bearer(eps_bearer_id);
+
   auto task   = [this, eps_bearer_id, bearer](srsran::unique_byte_buffer_t& sdu) {
     // route SDU to PDCP entity
     if (bearer.rat == srsran_rat_t::lte) {
       pdcp.write_sdu(bearer.lcid, std::move(sdu));
     } else if (bearer.rat == srsran_rat_t::nr) {
-      pdcp_nr.write_sdu(bearer.lcid, std::move(sdu));
+      if (args.sa_mode) {
+        sdap.write_sdu(bearer.lcid, std::move(sdu));
+      } else {
+        pdcp_nr.write_sdu(bearer.lcid, std::move(sdu));
+      }
     } else {
       stack_logger.warning("Can't deliver SDU for EPS bearer %d. Dropping it.", eps_bearer_id);
     }

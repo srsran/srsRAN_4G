@@ -163,7 +163,7 @@ private:
 
     ue*            find_ue_rnti(uint16_t rnti);
     ue*            find_ue_gnbid(uint32_t gnbid);
-    ue*            find_ue_amfid(uint32_t amfid);
+    ue*            find_ue_amfid(uint64_t amfid);
     ue*            add_user(value_type user);
     void           erase(ue* ue_ptr);
     iterator       begin() { return users.begin(); }
@@ -199,7 +199,7 @@ private:
     ngap* ngap_ptr = nullptr;
   };
 
-  ue* handle_ngapmsg_ue_id(uint32_t gnb_id, uint32_t amf_id);
+  ue* handle_ngapmsg_ue_id(uint32_t gnb_id, uint64_t amf_id);
 
   srsran::proc_t<ng_setup_proc_t> ngsetup_proc;
 

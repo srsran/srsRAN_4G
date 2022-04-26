@@ -43,6 +43,7 @@ struct meas_cell_cfg_t {
   asn1::rrc::q_offset_range_e cell_individual_offset;
   uint32_t                    allowed_meas_bw;
   bool                        direct_forward_path_available;
+  int                         tac;
 };
 
 // neigh measurement Cell info

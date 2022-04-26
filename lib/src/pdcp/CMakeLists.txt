@@ -25,4 +25,4 @@ set(SOURCES pdcp.cc
 
 add_library(srsran_pdcp STATIC ${SOURCES})
 target_link_libraries(srsran_pdcp srsran_common srsran_asn1 ${ATOMIC_LIBS})
-INSTALL(TARGETS srsran_pdcp DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_pdcp DESTINATION ${LIBRARY_DIR} OPTIONAL)

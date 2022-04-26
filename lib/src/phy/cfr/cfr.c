@@ -162,6 +162,10 @@ int srsran_cfr_init(srsran_cfr_t* q, srsran_cfr_cfg_t* cfg)
     ERROR("Error, invalid configuration");
     goto clean_exit;
   }
+  if (cfg->cfr_mode == SRSRAN_CFR_THR_INVALID) {
+    ERROR("Error, invalid CFR mode");
+    goto clean_exit;
+  }
   if (cfg->cfr_mode == SRSRAN_CFR_THR_MANUAL && cfg->manual_thr <= 0) {
     ERROR("Error, invalid configuration for manual threshold");
     goto clean_exit;
@@ -330,6 +334,9 @@ bool srsran_cfr_params_valid(srsran_cfr_cfg_t* cfr_conf)
   if (cfr_conf == NULL) {
     return false;
   }
+  if (cfr_conf->cfr_mode == SRSRAN_CFR_THR_INVALID) {
+    return false;
+  }
   if (cfr_conf->alpha < 0 || cfr_conf->alpha > 1) {
     return false;
   }
@@ -373,4 +380,23 @@ int srsran_cfr_set_papr(srsran_cfr_t* q, float papr)
   q->cfg.max_papr_db = papr;
   q->max_papr_lin    = srsran_convert_dB_to_power(q->cfg.max_papr_db);
   return SRSRAN_SUCCESS;
+}
+
+srsran_cfr_mode_t srsran_cfr_str2mode(const char* mode_str)
+{
+  srsran_cfr_mode_t ret;
+  if (strcmp(mode_str, "")) {
+    if (!strcmp(mode_str, "manual")) {
+      ret = SRSRAN_CFR_THR_MANUAL;
+    } else if (!strcmp(mode_str, "auto_cma")) {
+      ret = SRSRAN_CFR_THR_AUTO_CMA;
+    } else if (!strcmp(mode_str, "auto_ema")) {
+      ret = SRSRAN_CFR_THR_AUTO_EMA;
+    } else {
+      ret = SRSRAN_CFR_THR_INVALID; // mode_str is not recognised
+    }
+  } else {
+    ret = SRSRAN_CFR_THR_INVALID; // mode_str is empty
+  }
+  return ret;
 }

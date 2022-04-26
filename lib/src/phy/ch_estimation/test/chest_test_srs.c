@@ -159,12 +159,12 @@ int srs_test_context_run(srs_test_context_t* q)
   INFO("RESULTS: tti=%d; snr_db=%+.1f; noise_estimate_dbm=%+.1f; ta_us=%+.1f;",
        ul_sf_cfg.tti,
        q->chest_ul_res.snr_db,
-       q->chest_ul_res.noise_estimate_dbm,
+       q->chest_ul_res.noise_estimate_dbFs,
        q->chest_ul_res.ta_us);
 
   // Assert SRS measurements
   TESTASSERT(fabsf(q->chest_ul_res.snr_db - snr_db) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
-  TESTASSERT(fabsf(q->chest_ul_res.noise_estimate_dbm - n0_dbm) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
+  TESTASSERT(fabsf(q->chest_ul_res.noise_estimate_dbFs - n0_dbm) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
   TESTASSERT(fabsf(q->chest_ul_res.ta_us) < CHEST_TEST_SRS_TA_US_TOLERANCE);
 
   return SRSRAN_SUCCESS;

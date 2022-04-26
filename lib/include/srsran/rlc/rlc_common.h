@@ -43,6 +43,9 @@ namespace srsran {
 #define RLC_MAX_SDU_SIZE ((1 << 11) - 1) // Length of LI field is 11bits
 #define RLC_AM_MIN_DATA_PDU_SIZE (3)     // AMD PDU with 10 bit SN (length of LI field is 11 bits) (No LI)
 
+#define RLC_AM_NR_TYP_NACKS 512  // Expected number of NACKs in status PDU before expanding space by alloc
+#define RLC_AM_NR_MAX_NACKS 2048 // Maximum number of NACKs in status PDU
+
 #define RlcDebug(fmt, ...) logger.debug("%s: " fmt, rb_name, ##__VA_ARGS__)
 #define RlcInfo(fmt, ...) logger.info("%s: " fmt, rb_name, ##__VA_ARGS__)
 #define RlcWarning(fmt, ...) logger.warning("%s: " fmt, rb_name, ##__VA_ARGS__)
@@ -171,17 +174,21 @@ public:
 
 // NACK helper (for LTE and NR)
 struct rlc_status_nack_t {
-  uint32_t nack_sn;
-  bool     has_so;
-  uint16_t so_start;
-  uint16_t so_end;
+  uint32_t nack_sn;        // Sequence Number (SN) of first missing SDU
+  bool     has_so;         // NACKs continuous sequence of bytes [so_start..so_end]
+  uint16_t so_start;       // First missing byte in SDU with SN=nack_sn
+  uint16_t so_end;         // Last missing byte in SDU with SN=nack_sn or SN=nack_sn+nack_range-1 if has_nack_range.
+  bool     has_nack_range; // NACKs continuous sequence of SDUs
+  uint8_t  nack_range;     // Number of SDUs being NACKed (including SN=nack_sn)
 
   rlc_status_nack_t()
   {
-    has_so   = false;
-    nack_sn  = 0;
-    so_start = 0;
-    so_end   = 0;
+    has_so         = false;
+    nack_sn        = 0;
+    so_start       = 0;
+    so_end         = 0;
+    has_nack_range = false;
+    nack_range     = 0;
   }
 };
 

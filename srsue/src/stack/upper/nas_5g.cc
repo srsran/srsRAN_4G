@@ -585,9 +585,8 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.request_type.request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
 
   ul_nas_msg.s_nssai_present = true;
-  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst_and_sd;
+  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
   ul_nas_msg.s_nssai.sst     = 1;
-  ul_nas_msg.s_nssai.sd      = 0;
 
   ul_nas_msg.dnn_present = true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
@@ -845,11 +844,8 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
   logger.info("Handling Authentication Request");
   ctxt_base.rx_count++;
   // Generate authentication response using RAND, AUTN & KSI-ASME
-  uint16 mcc, mnc;
-  mcc = rrc_nr->get_mcc();
-  mnc = rrc_nr->get_mnc();
   plmn_id_t plmn_id;
-  plmn_id.from_number(mcc, mnc);
+  usim->get_home_plmn_id(&plmn_id);
 
   if (authentication_request.authentication_parameter_rand_present == false) {
     logger.error("authentication_parameter_rand_present is not present");

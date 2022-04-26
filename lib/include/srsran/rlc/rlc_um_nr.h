@@ -62,6 +62,7 @@ private:
 
     bool     configure(const rlc_config_t& cfg, std::string rb_name);
     uint32_t build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes);
+    void     discard_sdu(uint32_t discard_sn);
     uint32_t get_buffer_state();
 
   private:

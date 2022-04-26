@@ -512,6 +512,21 @@ bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s& phys_cell_group_cfg,
   return true;
 }
 
+void make_phy_search_space0_cfg(srsran_search_space_t* in_srsran_search_space)
+{
+  in_srsran_search_space->id                = 0;
+  in_srsran_search_space->coreset_id        = 0;
+  in_srsran_search_space->type              = srsran_search_space_type_common_0;
+  in_srsran_search_space->nof_candidates[0] = 0;
+  in_srsran_search_space->nof_candidates[1] = 0;
+  in_srsran_search_space->nof_candidates[2] = 4;
+  in_srsran_search_space->nof_candidates[3] = 2;
+  in_srsran_search_space->nof_candidates[4] = 0;
+  in_srsran_search_space->nof_formats       = 1;
+  in_srsran_search_space->formats[0]        = srsran_dci_format_nr_1_0;
+  in_srsran_search_space->duration          = 1;
+}
+
 bool make_phy_search_space_cfg(const search_space_s& search_space, srsran_search_space_t* in_srsran_search_space)
 {
   srsran_search_space_t srsran_search_space = {};

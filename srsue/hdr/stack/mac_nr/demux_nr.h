@@ -24,6 +24,7 @@
 
 #include "mac_nr_interfaces.h"
 #include "srsran/common/block_queue.h"
+#include "srsran/interfaces/ue_nr_interfaces.h"
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 
 namespace srsue {
@@ -44,11 +45,12 @@ public:
   demux_nr(srslog::basic_logger& logger_);
   ~demux_nr();
 
-  int32_t init(rlc_interface_mac* rlc_);
+  int32_t init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_);
 
   void process_pdus(); /// Called by MAC to process received PDUs
 
   // HARQ interface
+  void     push_bcch(srsran::unique_byte_buffer_t pdu);
   void     push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti);
   void     push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti);
   uint64_t get_received_crueid();
@@ -59,11 +61,13 @@ private:
 
   srslog::basic_logger& logger;
   rlc_interface_mac*    rlc = nullptr;
+  phy_interface_mac_nr* phy = nullptr;
 
   uint64_t received_crueid = 0;
 
-  ///< currently only DCH PDUs supported (add BCH, PCH, etc)
+  ///< currently only DCH & BCH PDUs supported (add PCH, etc)
   srsran::block_queue<srsran::unique_byte_buffer_t> pdu_queue;
+  srsran::block_queue<srsran::unique_byte_buffer_t> bcch_queue;
 
   srsran::mac_sch_pdu_nr rx_pdu;
   srsran::mac_sch_pdu_nr rx_pdu_tcrnti;

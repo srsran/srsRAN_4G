@@ -86,10 +86,6 @@ static bool        enable_256qam         = false;
 static float       output_file_snr       = +INFINITY;
 static bool        use_standard_lte_rate = false;
 
-// CFR type test args
-static char cfr_manual_str[]   = "manual";
-static char cfr_auto_cma_str[] = "auto_cma";
-static char cfr_auto_ema_str[] = "auto_ema";
 
 // CFR runtime control flags
 static bool cfr_thr_inc = false;
@@ -105,7 +101,7 @@ typedef struct {
 } cfr_args_t;
 
 static cfr_args_t cfr_args = {.enable           = 0,
-                              .mode             = cfr_manual_str,
+                              .mode             = "manual",
                               .manual_thres     = 1.0f,
                               .strength         = 1.0f,
                               .auto_target_papr = 8.0f,
@@ -301,14 +297,9 @@ static int parse_cfr_args()
   cfr_config.alpha       = cfr_args.strength;
   cfr_config.ema_alpha   = cfr_args.ema_alpha;
 
-  if (!strcmp(cfr_args.mode, cfr_manual_str)) {
-    cfr_config.cfr_mode = SRSRAN_CFR_THR_MANUAL;
-  } else if (!strcmp(cfr_args.mode, cfr_auto_cma_str)) {
-    cfr_config.cfr_mode = SRSRAN_CFR_THR_AUTO_CMA;
-  } else if (!strcmp(cfr_args.mode, cfr_auto_ema_str)) {
-    cfr_config.cfr_mode = SRSRAN_CFR_THR_AUTO_EMA;
-  } else {
-    ERROR("CFR mode is not recognised");
+  cfr_config.cfr_mode = srsran_cfr_str2mode(cfr_args.mode);
+  if (cfr_config.cfr_mode == SRSRAN_CFR_THR_INVALID) {
+    ERROR("CFR mode not recognised");
     return SRSRAN_ERROR;
   }
 

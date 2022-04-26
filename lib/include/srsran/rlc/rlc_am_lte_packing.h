@@ -62,7 +62,7 @@ int  rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload);
 
 uint32_t rlc_am_packed_length(rlc_amd_pdu_header_t* header);
 uint32_t rlc_am_packed_length(rlc_status_pdu_t* status);
-uint32_t rlc_am_packed_length(rlc_amd_retx_t retx);
+uint32_t rlc_am_packed_length(rlc_amd_retx_lte_t retx);
 bool     rlc_am_is_pdu_segment(uint8_t* payload);
 bool     rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status, uint32_t rx_win_min = 0);
 bool     rlc_am_start_aligned(const uint8_t fi);

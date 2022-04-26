@@ -124,18 +124,6 @@ bool proc_ra_nr::has_rar_rnti()
   return false;
 }
 
-bool proc_ra_nr::has_temp_crnti()
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  return temp_crnti != SRSRAN_INVALID_RNTI;
-}
-
-uint16_t proc_ra_nr::get_temp_crnti()
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  return temp_crnti;
-}
-
 void proc_ra_nr::received_contention_resolution(bool is_successful)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -225,18 +213,18 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
     for (auto& subpdu : pdu.get_subpdus()) {
       if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
         logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
-        temp_crnti = subpdu.get_temp_crnti();
-
-        // Save transmitted C-RNTI (if any)
-        transmitted_crnti = mac.get_crnti();
+        mac.set_temp_crnti(subpdu.get_temp_crnti());
 
         // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-        phy->set_rar_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
+        phy->set_rar_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), subpdu.get_temp_crnti(), srsran_rnti_type_ra);
+
+        // Apply TA CMD
+        current_ta = subpdu.get_ta();
+        phy->set_timeadv_rar(tb.rx_slot_idx, current_ta);
 
         // reset all parameters that are used before rar
         rar_rnti = SRSRAN_INVALID_RNTI;
         mac.msg3_prepare();
-        current_ta = subpdu.get_ta();
 
         // Set Backoff parameter
         if (subpdu.has_backoff()) {
@@ -286,12 +274,17 @@ void proc_ra_nr::ra_completion()
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
     return;
   }
+
+  // Start looking for PDCCH CRNTI
+  if (!mac.get_crnti()) {
+    // promote temp RNTI to new C-RNTI
+    mac.set_crnti_to_temp();
+    mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
+  }
+
   srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
-  if (!transmitted_crnti) {
-    mac.set_crnti(temp_crnti);
-  }
-  temp_crnti = SRSRAN_INVALID_RNTI;
+
   mac.rrc_ra_completed();
   reset();
 }
@@ -299,9 +292,9 @@ void proc_ra_nr::ra_completion()
 void proc_ra_nr::ra_error()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  temp_crnti = SRSRAN_INVALID_RNTI;
   preamble_transmission_counter++;
   contention_resolution_timer.stop();
+  mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
   uint32_t backoff_wait;
   bool     ra_procedure_completed = false; // true = (unsuccessfully) completed, false = uncompleted
 
@@ -395,10 +388,10 @@ void proc_ra_nr::reset()
 {
   state      = IDLE;
   started_by = initiators_t::initiators_t_NULLTYPE;
+  mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
   prach_send_timer.stop();
   rar_timeout_timer.stop();
   contention_resolution_timer.stop();
-  transmitted_crnti = SRSRAN_INVALID_RNTI;
 }
 
 } // namespace srsue

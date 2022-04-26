@@ -644,6 +644,181 @@ int field_qci::parse(libconfig::Setting& root)
   return 0;
 }
 
+int field_five_qi::parse(libconfig::Setting& root)
+{
+  uint32_t nof_five_qi = (uint32_t)root.getLength();
+  for (uint32_t i = 0; i < nof_five_qi; i++) {
+    libconfig::Setting& q = root[i];
+
+    uint32_t five_qi = q["five_qi"];
+
+    rrc_nr_cfg_five_qi_t five_qi_cfg;
+
+    // Parse PDCP section
+    if (!q.exists("pdcp_nr_config")) {
+      fprintf(stderr, "Error section pdcp_nr_config not found for 5qi=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+    libconfig::Setting&       pdcp_nr  = q["pdcp_nr_config"];
+    asn1::rrc_nr::pdcp_cfg_s* pdcp_cfg = &five_qi_cfg.pdcp_cfg;
+
+    // Get PDCP-NR DRB configs
+    if (!pdcp_nr.exists("drb")) {
+      fprintf(stderr, "Error section drb not found for 5QI=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+    libconfig::Setting&               drb     = pdcp_nr["drb"];
+    asn1::rrc_nr::pdcp_cfg_s::drb_s_* drb_cfg = &pdcp_cfg->drb;
+    pdcp_cfg->drb_present                     = true;
+
+    // Discard timer
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_e_> discard_timer("discard_timer",
+                                                                                             &drb_cfg->discard_timer);
+    if (discard_timer.parse(drb) == -1) {
+      drb_cfg->discard_timer_present = false;
+    } else {
+      drb_cfg->discard_timer_present = true;
+    }
+
+    // PDCP SN size UL
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_e_> pdcp_sn_size_ul(
+        "pdcp_sn_size_ul", &drb_cfg->pdcp_sn_size_ul);
+    if (pdcp_sn_size_ul.parse(drb) == SRSRAN_ERROR) {
+      drb_cfg->pdcp_sn_size_ul_present = false;
+    } else {
+      drb_cfg->pdcp_sn_size_ul_present = true;
+    }
+
+    // PDCP SN size DL
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_e_> pdcp_sn_size_dl(
+        "pdcp_sn_size_dl", &drb_cfg->pdcp_sn_size_dl);
+    if (pdcp_sn_size_dl.parse(drb) == SRSRAN_ERROR) {
+      drb_cfg->pdcp_sn_size_dl_present = false;
+    } else {
+      drb_cfg->pdcp_sn_size_dl_present = true;
+    }
+
+    parser::field<bool> status_report_required("status_report_required", &drb_cfg->status_report_required_present);
+    status_report_required.parse(drb);
+
+    parser::field<bool> out_of_order_delivery("out_of_order_delivery", &drb_cfg->out_of_order_delivery_present);
+    out_of_order_delivery.parse(drb);
+
+    parser::field<bool> integrity_protection("integrity_protection", &drb_cfg->integrity_protection_present);
+    integrity_protection.parse(drb);
+
+    drb_cfg->hdr_compress.set_not_used();
+    // Finish DRB config
+
+    // t_Reordering
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::t_reordering_e_> t_reordering("t_reordering",
+                                                                                   &pdcp_cfg->t_reordering);
+    if (t_reordering.parse(pdcp_nr) == SRSRAN_ERROR) {
+      pdcp_cfg->t_reordering_present = false;
+    } else {
+      pdcp_cfg->t_reordering_present = true;
+    }
+
+    // Parse RLC section
+    if (!q.exists("rlc_config")) {
+      fprintf(stderr, "Error section rlc_config not found for 5qi=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+    libconfig::Setting&      rlc     = q["rlc_config"];
+    asn1::rrc_nr::rlc_cfg_c* rlc_cfg = &five_qi_cfg.rlc_cfg;
+    if (rlc.exists("um_uni_dir_ul") || rlc.exists("um_uni_dir_dl")) {
+      // Sanity check: RLC UM uni-directional is not supported.
+      fprintf(stderr, "Error uni-directional UM not supported. 5QI=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+
+    if (rlc.exists("am")) {
+      rlc_cfg->set_am();
+    } else if (rlc.exists("um_bi_dir")) {
+      rlc_cfg->set_um_bi_dir();
+    } else {
+      fprintf(stderr, "Invalid combination of UL/DL UM/AM for 5QI=%d\n", five_qi);
+      return SRSRAN_ERROR;
+    }
+
+    // Parse RLC-AM section
+    if (rlc_cfg->type() == asn1::rrc_nr::rlc_cfg_c::types::am) {
+      libconfig::Setting&        rlc_am    = rlc["am"];
+      libconfig::Setting&        rlc_am_ul = rlc_am["ul_am"];
+      libconfig::Setting&        rlc_am_dl = rlc_am["dl_am"];
+      asn1::rrc_nr::ul_am_rlc_s& ul_am_cfg = rlc_cfg->am().ul_am_rlc;
+      asn1::rrc_nr::dl_am_rlc_s& dl_am_cfg = rlc_cfg->am().dl_am_rlc;
+
+      // RLC AM UL
+      // SN length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_am_e> rlc_sn_size_ul("sn_field_len", &ul_am_cfg.sn_field_len);
+      if (rlc_sn_size_ul.parse(rlc_am_ul) == SRSRAN_ERROR) {
+        ul_am_cfg.sn_field_len_present = false;
+      } else {
+        ul_am_cfg.sn_field_len_present = true;
+      }
+      // t-PollRetx
+      field_asn1_enum_number<asn1::rrc_nr::t_poll_retx_e> rlc_t_poll_retx("t_poll_retx", &ul_am_cfg.t_poll_retx);
+      rlc_t_poll_retx.parse(rlc_am_ul);
+      // pollPDU
+      field_asn1_enum_number<asn1::rrc_nr::poll_pdu_e> rlc_poll_pdu("poll_pdu", &ul_am_cfg.poll_pdu);
+      rlc_poll_pdu.parse(rlc_am_ul);
+      // pollBYTE
+      field_asn1_enum_number<asn1::rrc_nr::poll_byte_e> rlc_poll_bytes("poll_byte", &ul_am_cfg.poll_byte);
+      rlc_poll_bytes.parse(rlc_am_ul);
+      // maxRetxThreshold
+      field_asn1_enum_number<asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_e_> rlc_max_retx_thres(
+          "max_retx_thres", &ul_am_cfg.max_retx_thres);
+      rlc_max_retx_thres.parse(rlc_am_ul);
+
+      // RLC AM DL
+      // SN length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_am_e> rlc_sn_size_dl("sn_field_len", &dl_am_cfg.sn_field_len);
+      if (rlc_sn_size_dl.parse(rlc_am_dl) == SRSRAN_ERROR) {
+        dl_am_cfg.sn_field_len_present = false;
+      } else {
+        dl_am_cfg.sn_field_len_present = true;
+      }
+      // t-reassembly
+      field_asn1_enum_number<asn1::rrc_nr::t_reassembly_e> rlc_t_reassembly("t_reassembly", &dl_am_cfg.t_reassembly);
+      rlc_t_reassembly.parse(rlc_am_dl);
+      // t-statusProhibit
+      field_asn1_enum_number<asn1::rrc_nr::t_status_prohibit_e> rlc_status_prohibit("t_status_prohibit",
+                                                                                    &dl_am_cfg.t_status_prohibit);
+      rlc_status_prohibit.parse(rlc_am_dl);
+    } else if (rlc_cfg->type() == asn1::rrc_nr::rlc_cfg_c::types::um_bi_dir) {
+      libconfig::Setting&        rlc_um    = rlc["um_bi_dir"];
+      libconfig::Setting&        rlc_um_ul = rlc_um["ul_um"];
+      libconfig::Setting&        rlc_um_dl = rlc_um["dl_um"];
+      asn1::rrc_nr::ul_um_rlc_s& ul_um_cfg = rlc_cfg->um_bi_dir().ul_um_rlc;
+      asn1::rrc_nr::dl_um_rlc_s& dl_um_cfg = rlc_cfg->um_bi_dir().dl_um_rlc;
+
+      // RLC UM UL
+      // SN field length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_um_e> rlc_sn_size_ul("sn_field_len", &ul_um_cfg.sn_field_len);
+      if (rlc_sn_size_ul.parse(rlc_um_ul) == SRSRAN_ERROR) {
+        ul_um_cfg.sn_field_len_present = false;
+      } else {
+        ul_um_cfg.sn_field_len_present = true;
+      }
+
+      // RLC UM DL
+      // SN field length
+      field_asn1_enum_number<asn1::rrc_nr::sn_field_len_um_e> rlc_sn_size_dl("sn_field_len", &dl_um_cfg.sn_field_len);
+      if (rlc_sn_size_dl.parse(rlc_um_dl) == SRSRAN_ERROR) {
+        dl_um_cfg.sn_field_len_present = false;
+      } else {
+        dl_um_cfg.sn_field_len_present = true;
+      }
+      // t-reassembly
+      field_asn1_enum_number<asn1::rrc_nr::t_reassembly_e> rlc_t_reassembly_dl("t_reassembly", &dl_um_cfg.t_reassembly);
+      rlc_t_reassembly_dl.parse(rlc_um_dl);
+    }
+
+    cfg.insert(std::make_pair(five_qi, five_qi_cfg));
+  }
+  return 0;
+}
 namespace rr_sections {
 
 int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
@@ -785,6 +960,7 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
     parse_default_field(cell.allowed_meas_bw, root[i], "allowed_meas_bw", 6u);
     asn1_parsers::default_number_to_enum(
         cell.cell_individual_offset, root[i], "cell_individual_offset", asn1::rrc::q_offset_range_opts::db0);
+    parse_default_field(cell.tac, root[i], "tac", -1);
     srsran_assert(srsran::is_lte_cell_nof_prb(cell.allowed_meas_bw), "Invalid measurement Bandwidth");
   }
   return 0;
@@ -1231,15 +1407,15 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
   }
 
   try {
-    if (drb_sections::parse_drb(args_, rrc_cfg_) != SRSRAN_SUCCESS) {
-      fprintf(stderr, "Error parsing DRB configuration\n");
+    if (rb_sections::parse_rb(args_, rrc_cfg_, rrc_nr_cfg_) != SRSRAN_SUCCESS) {
+      fprintf(stderr, "Error parsing RB configuration\n");
       return SRSRAN_ERROR;
     }
   } catch (const SettingTypeException& stex) {
-    fprintf(stderr, "Error parsing DRB configuration: %s\n", stex.getPath());
+    fprintf(stderr, "Error parsing RB configuration: %s\n", stex.getPath());
     return SRSRAN_ERROR;
   } catch (const ConfigException& cex) {
-    fprintf(stderr, "Error parsing DRB configuration\n");
+    fprintf(stderr, "Error parsing RB configuration\n");
     return SRSRAN_ERROR;
   }
 
@@ -1356,7 +1532,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 
   // Create dedicated cell configuration from RRC configuration
   for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {
-    auto&          cfg          = *it;
+    cell_cfg_t&    cfg          = *it;
     phy_cell_cfg_t phy_cell_cfg = {};
     phy_cell_cfg.cell           = cell_cfg_;
     phy_cell_cfg.cell.id        = cfg.pci;
@@ -1402,6 +1578,13 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
         return SRSRAN_ERROR;
       } else {
         scell_it++;
+      }
+    }
+
+    for (meas_cell_cfg_t& meas_cell : cfg.meas_cfg.meas_cells) {
+      if (meas_cell.tac < 0) {
+        // if meas cell TAC was not set, use current cell TAC.
+        meas_cell.tac = cfg.tac;
       }
     }
 
@@ -2103,9 +2286,9 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
 
 } // namespace sib_sections
 
-namespace drb_sections {
+namespace rb_sections {
 
-int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
+int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 {
   parser::section srb1("srb1_config");
   bool            srb1_present = false;
@@ -2126,11 +2309,15 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
 
+  parser::section five_qi("five_qi_config");
+  five_qi.add_field(new field_five_qi(rrc_nr_cfg_->five_qi_cfg));
+
   // Run parser with two sections
   parser p(args_->enb_files.rb_config);
   p.add_section(&srb1);
   p.add_section(&srb2);
   p.add_section(&qci);
+  p.add_section(&five_qi);
 
   int ret = p.parse();
   if (not srb1_present) {
@@ -2143,6 +2330,6 @@ int parse_drb(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   return ret;
 }
 
-} // namespace drb_sections
+} // namespace rb_sections
 
 } // namespace srsenb

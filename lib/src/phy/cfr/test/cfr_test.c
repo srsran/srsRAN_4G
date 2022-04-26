@@ -30,13 +30,9 @@
 
 #define MAX_ACPR_DB -100
 
-// CFR type test args
-static char cfr_manual_str[]   = "manual";
-static char cfr_auto_cma_str[] = "auto_cma";
-static char cfr_auto_ema_str[] = "auto_ema";
 
 // Default CFR type
-static char* cfr_type_arg = cfr_manual_str;
+static char* cfr_mode_str = "manual";
 
 static int               nof_prb         = -1;
 static srsran_cp_t       cp              = SRSRAN_CP_NORM;
@@ -69,7 +65,7 @@ static void usage(char* prog)
   printf("\t-e extended cyclic prefix [Default Normal]\n");
   printf("\t-f Number of frames [Default %d]\n", nof_frames);
   printf("\t-r Number of repetitions [Default %d]\n", nof_repetitions);
-  printf("\t-m CFR mode: %s, %s, %s [Default %s]\n", cfr_manual_str, cfr_auto_cma_str, cfr_auto_ema_str, cfr_type_arg);
+  printf("\t-m CFR mode: manual, auto_cma, auto_ema [Default %s]\n", cfr_mode_str);
   printf("\t-d Use DC subcarrier: [Default DC empty]\n");
   printf("\t-a CFR alpha: [Default %.2f]\n", alpha);
   printf("\t-t CFR manual threshold: [Default %.2f]\n", thr_manual);
@@ -98,7 +94,7 @@ static int parse_args(int argc, char** argv)
         nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'm':
-        cfr_type_arg = argv[optind];
+        cfr_mode_str = argv[optind];
         break;
       case 'a':
         alpha = strtof(argv[optind], NULL);
@@ -149,13 +145,8 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (!strcmp(cfr_type_arg, cfr_manual_str)) {
-    cfr_mode = SRSRAN_CFR_THR_MANUAL;
-  } else if (!strcmp(cfr_type_arg, cfr_auto_cma_str)) {
-    cfr_mode = SRSRAN_CFR_THR_AUTO_CMA;
-  } else if (!strcmp(cfr_type_arg, cfr_auto_ema_str)) {
-    cfr_mode = SRSRAN_CFR_THR_AUTO_EMA;
-  } else {
+  cfr_mode = srsran_cfr_str2mode(cfr_mode_str);
+  if (cfr_mode == SRSRAN_CFR_THR_INVALID) {
     ERROR("CFR mode is not recognised");
     goto clean_exit;
   }
@@ -201,6 +192,11 @@ int main(int argc, char** argv)
     cfr_tx_cfg.manual_thr       = thr_manual;
     cfr_tx_cfg.ema_alpha        = ema_alpha;
     cfr_tx_cfg.dc_sc            = dc_empty;
+
+    if (!srsran_cfr_params_valid(&cfr_tx_cfg)) {
+      ERROR("Invalid CFR configuration");
+      goto clean_exit;
+    }
 
     if (srsran_cfr_init(&cfr, &cfr_tx_cfg)) {
       ERROR("Error initializing CFR");

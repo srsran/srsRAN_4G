@@ -37,3 +37,12 @@ target_link_libraries(sliv_test srsran_phy)
 add_test(sliv_test_14 sliv_test 14)
 add_test(sliv_test_52 sliv_test 48)
 add_test(sliv_test_52 sliv_test 52)
+
+########################################################################
+# PHY COMMON TEST
+########################################################################
+
+add_executable(phy_common_test phy_common_test.c)
+target_link_libraries(phy_common_test srsran_phy)
+
+add_test(phy_common_test phy_common_test)

@@ -86,14 +86,32 @@ bool rlc_am::configure(const rlc_config_t& cfg_)
     return false;
   }
 
-  RlcInfo("configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-          "t_reordering=%d, t_status_prohibit=%d",
-          cfg.am.t_poll_retx,
-          cfg.am.poll_pdu,
-          cfg.am.poll_byte,
-          cfg.am.max_retx_thresh,
-          cfg.am.t_reordering,
-          cfg.am.t_status_prohibit);
+  if (cfg.rat == srsran_rat_t::lte) {
+    RlcInfo("AM LTE configured - t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+            "t_reordering=%d, t_status_prohibit=%d, tx_queue_length=%d",
+            cfg.am.t_poll_retx,
+            cfg.am.poll_pdu,
+            cfg.am.poll_byte,
+            cfg.am.max_retx_thresh,
+            cfg.am.t_reordering,
+            cfg.am.t_status_prohibit,
+            cfg.tx_queue_length);
+  } else if (cfg.rat == srsran_rat_t::nr) {
+    RlcInfo("AM NR configured - tx_sn_field_length=%d, rx_sn_field_length=%d, "
+            "t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, "
+            "max_retx_thresh=%d, t_reassembly=%d, t_status_prohibit=%di, tx_queue_length=%d",
+            to_number(cfg.am_nr.tx_sn_field_length),
+            to_number(cfg.am_nr.rx_sn_field_length),
+            cfg.am_nr.t_poll_retx,
+            cfg.am_nr.poll_pdu,
+            cfg.am_nr.poll_byte,
+            cfg.am_nr.max_retx_thresh,
+            cfg.am_nr.t_reassembly,
+            cfg.am_nr.t_status_prohibit,
+            cfg.tx_queue_length);
+  } else {
+    RlcError("Invalid RAT at entity configuration");
+  }
   return true;
 }
 
@@ -242,6 +260,25 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   }
 
   return SRSRAN_SUCCESS;
+}
+
+void rlc_am::rlc_am_base_tx::discard_sdu(uint32_t discard_sn)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  if (!tx_enabled) {
+    return;
+  }
+  bool discarded = tx_sdu_queue.apply_first([&discard_sn, this](unique_byte_buffer_t& sdu) {
+    if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
+      tx_sdu_queue.queue.pop_func(sdu);
+      sdu = nullptr;
+    }
+    return false;
+  });
+
+  // Discard fails when the PDCP PDU is already in Tx window.
+  RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
 }
 
 void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)

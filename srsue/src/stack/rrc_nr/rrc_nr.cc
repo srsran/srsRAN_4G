@@ -54,6 +54,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
                  mac_interface_rrc_nr*       mac_,
                  rlc_interface_rrc*          rlc_,
                  pdcp_interface_rrc*         pdcp_,
+                 sdap_interface_rrc*         sdap_,
                  gw_interface_rrc*           gw_,
                  nas_5g_interface_rrc_nr*    nas_,
                  rrc_eutra_interface_rrc_nr* rrc_eutra_,
@@ -65,6 +66,7 @@ int rrc_nr::init(phy_interface_rrc_nr*       phy_,
   phy       = phy_;
   rlc       = rlc_;
   pdcp      = pdcp_;
+  sdap      = sdap_;
   gw        = gw_;
   nas       = nas_;
   mac       = mac_;
@@ -333,6 +335,11 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       task_sched.defer_task([this, rrc_release]() { handle_rrc_release(rrc_release); });
       break;
     }
+    case dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry: {
+      ue_cap_enquiry_s ue_cap_enquiry = c1->ue_cap_enquiry();
+      task_sched.defer_task([this, ue_cap_enquiry]() { handle_ue_capability_enquiry(ue_cap_enquiry); });
+      break;
+    }
     default:
       logger.error("The provided DL-DCCH message type is not recognized or supported.");
       break;
@@ -393,6 +400,11 @@ void rrc_nr::set_phy_default_config()
 
 void rrc_nr::handle_sib1(const sib1_s& sib1)
 {
+  if (meas_cells.serving_cell().has_sib1()) {
+    logger.info("SIB1 already processed");
+    return;
+  }
+
   meas_cells.serving_cell().set_sib1(sib1);
 
   logger.info("SIB1 received, CellID=%d", meas_cells.serving_cell().get_cell_id() & 0xfff);
@@ -483,11 +495,34 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   // Apply SSB Config
   fill_phy_ssb_cfg(sib1.serving_cell_cfg_common, &phy_cfg.ssb);
 
+  // Apply n-TimingAdvanceOffset
+  if (sib1.serving_cell_cfg_common.n_timing_advance_offset_present) {
+    switch (sib1.serving_cell_cfg_common.n_timing_advance_offset.value) {
+      case serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n0:
+        phy_cfg.t_offset = 0;
+        break;
+      case serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n25600:
+        phy_cfg.t_offset = 25600;
+        break;
+      case serving_cell_cfg_common_sib_s::n_timing_advance_offset_opts::n39936:
+        phy_cfg.t_offset = 39936;
+        break;
+      default:
+        logger.error("Invalid n_ta_offset option");
+        break;
+    }
+  } else {
+    phy_cfg.t_offset = 25600;
+  }
+
   phy_cfg_state = PHY_CFG_STATE_SA_SIB_CFG;
   if (not phy->set_config(phy_cfg)) {
     logger.warning("Could not set phy config.");
     return;
   }
+
+  // Notify cell selector of successful SIB1 reception
+  cell_selector.trigger(true);
 }
 
 void rrc_nr::write_pdu_pcch(srsran::unique_byte_buffer_t pdu) {}
@@ -671,6 +706,114 @@ void rrc_nr::send_rrc_reconfig_complete()
   auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete().crit_exts.set_rrc_recfg_complete();
 
   send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
+int rrc_nr::send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg)
+{
+  transaction_id = msg.rrc_transaction_id;
+
+  ue_cap_enquiry_ies_s ue_cap_enquiry_ies = msg.crit_exts.ue_cap_enquiry();
+
+  asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+
+  auto& ue_cap_info = ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_ue_cap_info();
+  ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = msg.rrc_transaction_id;
+
+  for (auto ue_cap_rat_request : ue_cap_enquiry_ies.ue_cap_rat_request_list) {
+    if (ue_cap_rat_request.rat_type.value == rat_type_opts::nr) {
+      ue_cap_info.ue_cap_rat_container_list_present = true;
+      ue_cap_rat_container_s ue_cap_rat_container;
+      ue_cap_rat_container.rat_type.value = rat_type_opts::nr;
+
+      ue_nr_cap_s ue_cap;
+      ue_cap.access_stratum_release = access_stratum_release_opts::rel15;
+
+      // RLC params
+      ue_cap.rlc_params_present                  = true;
+      ue_cap.rlc_params.am_with_short_sn_present = true;
+      ue_cap.rlc_params.um_with_short_sn_present = true;
+      ue_cap.rlc_params.um_with_long_sn_present  = true;
+
+      // PDCP parameters
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0000 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0001 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0002 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0003 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0004 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0006 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0101 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0102 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0103 = false;
+      ue_cap.pdcp_params.supported_rohc_profiles.profile0x0104 = false;
+      ue_cap.pdcp_params.max_num_rohc_context_sessions.value   = pdcp_params_s::max_num_rohc_context_sessions_opts::cs2;
+
+      if (args.pdcp_short_sn_support) {
+        ue_cap.pdcp_params.short_sn_present = true;
+      }
+      // PHY Parameters
+      ue_cap.phy_params.phy_params_common_present = true;
+
+      // RF Parameters
+      for (const auto band : args.supported_bands_nr) {
+        band_nr_s band_nr;
+        band_nr.band_nr = band;
+        ue_cap.rf_params.supported_band_list_nr.push_back(band_nr);
+
+        // supportedBandCombinationList
+        band_combination_s band_combination;
+        band_params_c      band_params;
+        band_params.set_nr().band_nr = band;
+        band_combination.band_list.push_back(band_params);
+        ue_cap.rf_params.supported_band_combination_list.push_back(band_combination);
+      }
+      // featureSets
+      ue_cap.feature_sets_present = true;
+      feature_set_dl_per_cc_s feature_set_dl_per_cc;
+      feature_set_ul_per_cc_s feature_set_ul_per_cc;
+
+      feature_set_dl_per_cc.supported_bw_dl.set_fr1().value = supported_bw_c::fr1_opts::mhz10;
+      feature_set_ul_per_cc.supported_bw_ul.set_fr1().value = supported_bw_c::fr1_opts::mhz10;
+
+      switch (args.scs) {
+        case srsran_subcarrier_spacing_15kHz:
+          feature_set_dl_per_cc.supported_subcarrier_spacing_dl = subcarrier_spacing_opts::khz15;
+          feature_set_ul_per_cc.supported_subcarrier_spacing_ul = subcarrier_spacing_opts::khz15;
+          break;
+        case srsran_subcarrier_spacing_30kHz:
+          feature_set_dl_per_cc.supported_subcarrier_spacing_dl = subcarrier_spacing_opts::khz30;
+          feature_set_ul_per_cc.supported_subcarrier_spacing_ul = subcarrier_spacing_opts::khz30;
+          break;
+        default:
+          logger.warning("Unsupported subcarrier spacing value");
+      }
+
+      ue_cap.feature_sets.feature_sets_dl_per_cc.push_back(feature_set_dl_per_cc);
+      ue_cap.feature_sets.feature_sets_ul_per_cc.push_back(feature_set_ul_per_cc);
+
+#if 1
+      ue_cap_rat_container.ue_cap_rat_container.resize(512);
+      asn1::bit_ref bref_pack(ue_cap_rat_container.ue_cap_rat_container.data(),
+                              ue_cap_rat_container.ue_cap_rat_container.size());
+
+      if (ue_cap.pack(bref_pack) != asn1::SRSASN_SUCCESS) {
+        logger.error("Failed to pack UE NR Capabilities in UE Capability Info");
+        return SRSRAN_ERROR;
+      }
+      ue_cap_rat_container.ue_cap_rat_container.resize(bref_pack.distance_bytes());
+#else
+      // hard-coded capabilities from third-party
+      ue_cap_rat_container.ue_cap_rat_container.from_string("E1A01000074F5A03020000C0A0241262C001206A0609B00C39F30C7942"
+                                                            "C0E098040623809506C4DD608D21A08107CA01165B262A87813E43"
+                                                            "9F40CF88E3C639F30C7942C0E070F09C0013C0070004F0001601C00140"
+                                                            "A836036B04690D04083E500892D931541439F11C78C73E618F2858"
+                                                            "1C0E1E04FE0000003F80000000A00E05");
+#endif
+
+      ue_cap_info.ue_cap_rat_container_list.push_back(ue_cap_rat_container);
+    }
+  }
+  send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+  return SRSASN_SUCCESS;
 }
 
 // EUTRA-RRC interface
@@ -1900,12 +2043,26 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     stack->add_eps_bearer(eps_bearer_id, srsran::srsran_rat_t::nr, lcid);
   } else if (drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::sdap_cfg) {
     const auto& sdap_cfg = drb_cfg.cn_assoc.sdap_cfg();
-    if (sdap_cfg.sdap_hdr_dl == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::present ||
-        sdap_cfg.sdap_hdr_ul == asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::present) {
-      logger.error("SDAP currently not supported.");
+
+    // Check supported configuration
+    if (sdap_cfg.sdap_hdr_dl.value == sdap_cfg_s::sdap_hdr_dl_opts::present || !sdap_cfg.default_drb ||
+        sdap_cfg.mapped_qos_flows_to_add.size() != 1) {
+      logger.error(
+          "Configuring SDAP: only UL headder is supported. Default DRB must be set and number of QoS flows must be 1");
       return false;
     }
-    // TODO: configure SDAP accordingly
+
+    sdap_interface_rrc::bearer_cfg_t sdap_bearer_cfg = {};
+    sdap_bearer_cfg.add_downlink_header = sdap_cfg.sdap_hdr_dl.value == sdap_cfg_s::sdap_hdr_dl_opts::present;
+    sdap_bearer_cfg.add_uplink_header   = sdap_cfg.sdap_hdr_ul.value == sdap_cfg_s::sdap_hdr_ul_opts::present;
+    sdap_bearer_cfg.is_data             = true;
+    sdap_bearer_cfg.qfi                 = sdap_cfg.mapped_qos_flows_to_add[0];
+
+    if (not sdap->set_bearer_cfg(lcid, sdap_bearer_cfg)) {
+      logger.error("Configuring SDAP");
+      return false;
+    }
+
     uint32_t pdu_session_id = drb_cfg.cn_assoc.sdap_cfg().pdu_session;
     // Register PDU session as "EPS bearer" in bearer manager
     stack->add_eps_bearer(pdu_session_id, srsran::srsran_rat_t::nr, lcid);
@@ -2040,6 +2197,11 @@ void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
   }
   callback_list.add_proc(conn_recfg_proc);
 }
+void rrc_nr::handle_ue_capability_enquiry(const ue_cap_enquiry_s& ue_cap_enquiry)
+{
+  logger.info("Received UE Capability Enquiry");
+  send_ue_capability_info(ue_cap_enquiry);
+}
 
 void rrc_nr::handle_dl_info_transfer(const dl_info_transfer_s& dl_info_transfer)
 {
@@ -2160,6 +2322,9 @@ void rrc_nr::set_phy_config_complete(bool status)
   switch (phy_cfg_state) {
     case PHY_CFG_STATE_NONE:
       logger.warning("PHY configuration completed without a clear state.");
+      break;
+    case PHY_CFG_STATE_SA_MIB_CFG:
+      logger.info("PHY configuration with MIB parameters completed.");
       break;
     case PHY_CFG_STATE_SA_SIB_CFG:
       logger.info("PHY configuration with SIB parameters completed.");

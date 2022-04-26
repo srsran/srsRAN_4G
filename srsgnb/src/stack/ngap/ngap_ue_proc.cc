@@ -25,82 +25,9 @@ using namespace srsran;
 
 namespace srsenb {
 
-ngap_ue_initial_context_setup_proc::ngap_ue_initial_context_setup_proc(ngap_interface_ngap_proc* parent_,
-                                                                       rrc_interface_ngap_nr*    rrc_,
-                                                                       ngap_ue_ctxt_t*           ue_ctxt_,
-                                                                       srslog::basic_logger&     logger_) :
-  logger(logger_), parent(parent_), rrc(rrc_), ue_ctxt(ue_ctxt_){};
-
-proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap::init_context_setup_request_s& msg)
-{
-  ue_ctxt->amf_pointer   = msg->guami.value.amf_pointer.to_number();
-  ue_ctxt->amf_set_id    = msg->guami.value.amf_set_id.to_number();
-  ue_ctxt->amf_region_id = msg->guami.value.amf_region_id.to_number();
-
-  if (msg->ue_aggregate_maximum_bit_rate_present == true) {
-    rrc->ue_set_bitrates(ue_ctxt->rnti, msg->ue_aggregate_maximum_bit_rate.value);
-  }
-  rrc->ue_set_security_cfg_capabilities(ue_ctxt->rnti, msg->ue_security_cap.value);
-  rrc->ue_set_security_cfg_key(ue_ctxt->rnti, msg->security_key.value);
-
-  if (msg->nas_pdu_present) {
-    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
-    if (pdu == nullptr) {
-      logger.error("Fatal Error: Couldn't allocate buffer in %s.", __FUNCTION__);
-      return proc_outcome_t::error;
-    }
-    memcpy(pdu->msg, msg->nas_pdu.value.data(), msg->nas_pdu.value.size());
-    pdu->N_bytes = msg->nas_pdu.value.size();
-    rrc->start_security_mode_procedure(ue_ctxt->rnti, std::move(pdu));
-  } else {
-    rrc->start_security_mode_procedure(ue_ctxt->rnti, nullptr);
-  }
-
-  return proc_outcome_t::yield;
-};
-
-proc_outcome_t ngap_ue_initial_context_setup_proc::react(bool rrc_reconf_outcome)
-{
-  if (rrc_reconf_outcome == true) {
-    parent->send_initial_ctxt_setup_response();
-    return proc_outcome_t::success;
-  }
-
-  return proc_outcome_t::error;
-}
-
-proc_outcome_t ngap_ue_initial_context_setup_proc::step()
-{
-  return proc_outcome_t::yield;
-}
-
-ngap_ue_ue_context_release_proc::ngap_ue_ue_context_release_proc(ngap_interface_ngap_proc* parent_,
-                                                                 rrc_interface_ngap_nr*    rrc_,
-                                                                 ngap_ue_ctxt_t*           ue_ctxt_,
-                                                                 ngap_ue_bearer_manager*   bearer_manager_,
-                                                                 srslog::basic_logger&     logger_) :
-  logger(logger_)
-{
-  parent         = parent_;
-  rrc            = rrc_;
-  ue_ctxt        = ue_ctxt_;
-  bearer_manager = bearer_manager_;
-};
-
-proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap::ue_context_release_cmd_s& msg)
-{
-  logger.info("Started %s", name());
-  bearer_manager->reset_pdu_sessions(ue_ctxt->rnti);
-  rrc->release_user(ue_ctxt->rnti);
-  parent->send_ue_ctxt_release_complete();
-  return proc_outcome_t::success;
-}
-
-proc_outcome_t ngap_ue_ue_context_release_proc::step()
-{
-  return proc_outcome_t::success;
-}
-
+/*
+ * TS 38.413 - Section 8.2.1 PDU Session Resource Setup
+ */
 ngap_ue_pdu_session_res_setup_proc::ngap_ue_pdu_session_res_setup_proc(ngap_interface_ngap_proc* parent_,
                                                                        rrc_interface_ngap_nr*    rrc_,
                                                                        ngap_ue_ctxt_t*           ue_ctxt_,
@@ -168,15 +95,19 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
     return proc_outcome_t::error;
   }
 
-  logger.info("Added PDU Session with LCID %d, teid_out %d, teid_in %d, addr_in %s",
+  uint16_t five_qi = pdu_ses_res_setup_req_trans->qos_flow_setup_request_list.value[0]
+                         .qos_flow_level_qos_params.qos_characteristics.non_dynamic5_qi()
+                         .five_qi;
+
+  logger.info("Added PDU Session with LCID %d, 5QI %d, teid_out %d, teid_in %d, addr_in %s",
               lcid,
+              five_qi,
               teid_out,
               teid_in,
               addr_in.to_string());
-
   // QoS parameter mapping in config in LTE enb
   if (su_req.pdu_session_nas_pdu.size() > 0) {
-    if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid) ==
+    if (rrc->establish_rrc_bearer(ue_ctxt->rnti, su_req.pdu_session_id, su_req.pdu_session_nas_pdu, lcid, five_qi) ==
         SRSRAN_SUCCESS) {
       parent->send_pdu_session_resource_setup_response(su_req.pdu_session_id, teid_in, addr_in);
       return proc_outcome_t::success;
@@ -187,6 +118,88 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
 }
 
 proc_outcome_t ngap_ue_pdu_session_res_setup_proc::step()
+{
+  return proc_outcome_t::success;
+}
+
+/*
+ * TS 38.413 - Section 8.3.1 - Initial Context Setup
+ */
+ngap_ue_initial_context_setup_proc::ngap_ue_initial_context_setup_proc(ngap_interface_ngap_proc* parent_,
+                                                                       rrc_interface_ngap_nr*    rrc_,
+                                                                       ngap_ue_ctxt_t*           ue_ctxt_,
+                                                                       srslog::basic_logger&     logger_) :
+  logger(logger_), parent(parent_), rrc(rrc_), ue_ctxt(ue_ctxt_){};
+
+proc_outcome_t ngap_ue_initial_context_setup_proc::init(const asn1::ngap::init_context_setup_request_s& msg)
+{
+  ue_ctxt->amf_pointer   = msg->guami.value.amf_pointer.to_number();
+  ue_ctxt->amf_set_id    = msg->guami.value.amf_set_id.to_number();
+  ue_ctxt->amf_region_id = msg->guami.value.amf_region_id.to_number();
+
+  if (msg->ue_aggregate_maximum_bit_rate_present == true) {
+    rrc->ue_set_bitrates(ue_ctxt->rnti, msg->ue_aggregate_maximum_bit_rate.value);
+  }
+  rrc->ue_set_security_cfg_capabilities(ue_ctxt->rnti, msg->ue_security_cap.value);
+  rrc->ue_set_security_cfg_key(ue_ctxt->rnti, msg->security_key.value);
+
+  if (msg->nas_pdu_present) {
+    srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Fatal Error: Couldn't allocate buffer in %s.", __FUNCTION__);
+      return proc_outcome_t::error;
+    }
+    memcpy(pdu->msg, msg->nas_pdu.value.data(), msg->nas_pdu.value.size());
+    pdu->N_bytes = msg->nas_pdu.value.size();
+    rrc->start_security_mode_procedure(ue_ctxt->rnti, std::move(pdu));
+  } else {
+    rrc->start_security_mode_procedure(ue_ctxt->rnti, nullptr);
+  }
+
+  return proc_outcome_t::yield;
+};
+
+proc_outcome_t ngap_ue_initial_context_setup_proc::react(bool rrc_reconf_outcome)
+{
+  if (rrc_reconf_outcome == true) {
+    parent->send_initial_ctxt_setup_response();
+    return proc_outcome_t::success;
+  }
+
+  return proc_outcome_t::error;
+}
+
+proc_outcome_t ngap_ue_initial_context_setup_proc::step()
+{
+  return proc_outcome_t::yield;
+}
+
+/*
+ * TS 38.413 - Section 8.3.2 - UE Context Release Request (NG-RAN node initiated)
+ */
+ngap_ue_ue_context_release_proc::ngap_ue_ue_context_release_proc(ngap_interface_ngap_proc* parent_,
+                                                                 rrc_interface_ngap_nr*    rrc_,
+                                                                 ngap_ue_ctxt_t*           ue_ctxt_,
+                                                                 ngap_ue_bearer_manager*   bearer_manager_,
+                                                                 srslog::basic_logger&     logger_) :
+  logger(logger_)
+{
+  parent         = parent_;
+  rrc            = rrc_;
+  ue_ctxt        = ue_ctxt_;
+  bearer_manager = bearer_manager_;
+};
+
+proc_outcome_t ngap_ue_ue_context_release_proc::init(const asn1::ngap::ue_context_release_cmd_s& msg)
+{
+  logger.info("Started %s", name());
+  bearer_manager->reset_pdu_sessions(ue_ctxt->rnti);
+  rrc->release_user(ue_ctxt->rnti);
+  parent->send_ue_ctxt_release_complete();
+  return proc_outcome_t::success;
+}
+
+proc_outcome_t ngap_ue_ue_context_release_proc::step()
 {
   return proc_outcome_t::success;
 }

@@ -32,6 +32,8 @@
 #define PARAM_LEN (128)
 #define PARAM_LEN_SHORT (PARAM_LEN / 2)
 
+extern rf_dev_t srsran_rf_dev_file;
+
 SRSRAN_API const char* rf_file_devname(void* h);
 
 SRSRAN_API int rf_file_start_rx_stream(void* h, bool now);
@@ -136,6 +138,7 @@ SRSRAN_API int rf_file_send_timed_multi(void*  h,
  * @param[in] base_srate Sample rate of RX and TX files
  * @return SRSRAN_SUCCESS on success, otherwise error code
  */
-SRSRAN_API int rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
+SRSRAN_API int
+rf_file_open_file(void** h, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
 
 #endif // SRSRAN_RF_FILE_IMP_H

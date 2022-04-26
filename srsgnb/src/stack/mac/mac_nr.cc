@@ -348,7 +348,10 @@ void mac_nr::rach_detected(const rach_info_t& rach_info)
     uint16_t rnti = alloc_ue(enb_cc_idx);
 
     // Log this event.
-    ++detected_rachs[enb_cc_idx];
+    {
+      srsran::rwlock_write_guard lock(rwmutex);
+      ++detected_rachs[enb_cc_idx];
+    }
 
     // Trigger scheduler RACH
     srsenb::sched_nr_interface::rar_info_t rar_info = {};
@@ -684,7 +687,7 @@ srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interfac
 
   fmt::memory_buffer buff;
   rar_pdu.to_string(buff);
-  logger.info("DL %s", srsran::to_c_str(buff));
+  logger.info("%s", srsran::to_c_str(buff));
 
   return rar_pdu_buffer.get();
 }

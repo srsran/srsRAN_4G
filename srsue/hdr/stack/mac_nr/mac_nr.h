@@ -101,6 +101,8 @@ public:
   uint16_t get_crnti();
   uint16_t get_temp_crnti();
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
+  void     set_temp_crnti(uint16_t temp_crnti);
+  void     set_crnti_to_temp();
 
   /// procedure sr nr interface
   void start_ra() { proc_ra.start_by_mac(); }
@@ -118,6 +120,7 @@ public:
   /// RRC
   void rrc_ra_problem();
   void rrc_ra_completed();
+  void bcch_search(bool enabled);
 
   /// stack interface
   void process_pdus();
@@ -138,6 +141,7 @@ private:
   bool is_paging_opportunity();
 
   bool has_crnti();
+  bool has_temp_crnti();
   bool is_valid_crnti(const uint16_t crnti);
 
   std::vector<srsran::logical_channel_config_t> logical_channels; // stores the raw configs provide by upper layers
@@ -157,6 +161,9 @@ private:
   mac_nr_args_t         args = {};
 
   std::atomic<bool> started = {false};
+
+  // Boolean to determine if need to decode SI-RNTI
+  std::atomic<bool> search_bcch = {false};
 
   ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
   bool    contention_res_successful;

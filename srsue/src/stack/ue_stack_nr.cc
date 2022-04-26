@@ -89,6 +89,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
             mac.get(),
             rlc.get(),
             pdcp.get(),
+            sdap.get(),
             gw,
             nullptr,
             nullptr,

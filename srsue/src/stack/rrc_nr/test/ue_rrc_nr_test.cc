@@ -50,6 +50,7 @@ class dummy_mac : public mac_interface_rrc_nr
   int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg) { return SRSRAN_SUCCESS; }
   int  set_config(const srsran::phr_cfg_nr_t& phr_cfg) { return SRSRAN_SUCCESS; }
   int  remove_tag_config(const uint32_t tag_id) { return SRSRAN_SUCCESS; }
+  void bcch_search(bool) {}
 
   void start_ra_procedure() {}
 
@@ -102,6 +103,13 @@ class dummy_pdcp : public pdcp_interface_rrc
   void send_status_report(uint32_t lcid){};
 };
 
+class dummy_sdap : public sdap_interface_pdcp_nr, public sdap_interface_gw_nr, public sdap_interface_rrc
+{
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final{};
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final{};
+  bool set_bearer_cfg(uint32_t lcid, const sdap_interface_rrc::bearer_cfg_t& cfg) final { return true; };
+};
+
 class dummy_gw : public gw_interface_rrc
 {
   void add_mch_port(uint32_t lcid, uint32_t port){};
@@ -152,6 +160,7 @@ int rrc_nr_cap_request_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -166,6 +175,7 @@ int rrc_nr_cap_request_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,
@@ -192,6 +202,7 @@ int rrc_nsa_reconfig_tdd_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -202,6 +213,7 @@ int rrc_nsa_reconfig_tdd_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,
@@ -293,6 +305,7 @@ int rrc_nsa_reconfig_fdd_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -303,6 +316,7 @@ int rrc_nsa_reconfig_fdd_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,
@@ -395,6 +409,7 @@ int rrc_nr_setup_request_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -408,6 +423,7 @@ int rrc_nr_setup_request_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,
@@ -437,6 +453,7 @@ int rrc_nr_sib1_decoding_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -447,6 +464,7 @@ int rrc_nr_sib1_decoding_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,
@@ -484,6 +502,7 @@ int rrc_nr_setup_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -494,6 +513,7 @@ int rrc_nr_setup_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,
@@ -537,6 +557,7 @@ int rrc_nr_reconfig_test()
   dummy_mac     dummy_mac;
   dummy_rlc     dummy_rlc;
   dummy_pdcp    dummy_pdcp;
+  dummy_sdap    dummy_sdap;
   dummy_gw      dummy_gw;
   dummy_nas     dummy_nas;
   dummy_eutra   dummy_eutra;
@@ -547,6 +568,7 @@ int rrc_nr_reconfig_test()
                          &dummy_mac,
                          &dummy_rlc,
                          &dummy_pdcp,
+                         &dummy_sdap,
                          &dummy_gw,
                          &dummy_nas,
                          &dummy_eutra,

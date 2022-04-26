@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-INCLUDE(FindPkgConfig)
+FIND_PACKAGE(PkgConfig REQUIRED)
 #PKG_CHECK_MODULES(SKIQ SKIQ)
 IF(NOT SKIQ_FOUND)
 
@@ -26,7 +26,7 @@ FIND_PATH(
     SKIQ_INCLUDE_DIRS
     NAMES sidekiq_api.h
     HINTS $ENV{SKIQ_DIR}/inc
-        $ENV{SKIQ_DIR}/sidekiq_core/inc
+          $ENV{SKIQ_DIR}/sidekiq_core/inc
     PATHS /usr/local/include
           /usr/include
 )

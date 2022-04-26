@@ -19,17 +19,19 @@
  *
  */
 
-#include <string.h>
-
 #include "rf_dev.h"
 #include "srsran/phy/rf/rf.h"
 #include "srsran/phy/utils/debug.h"
+#include <dlfcn.h>
+#include <string.h>
 
 int rf_get_available_devices(char** devnames, int max_strlen)
 {
   int i = 0;
-  while (available_devices[i]->name) {
-    strncpy(devnames[i], available_devices[i]->name, max_strlen);
+  while (rf_plugins[i] != NULL) {
+    if (rf_plugins[i]->rf_api != NULL) {
+      strncpy(devnames[i], rf_plugins[i]->rf_api->name, max_strlen);
+    }
     i++;
   }
   return i;
@@ -104,20 +106,22 @@ int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uin
   rf->thread_gain_run = false;
 
   bool no_rf_devs_detected = true;
-  printf("Available RF device list:");
-  for (unsigned int i = 0; available_devices[i]; i++) {
+  printf("Supported RF device list:");
+  for (unsigned int i = 0; rf_plugins[i] && rf_plugins[i]->rf_api; i++) {
     no_rf_devs_detected = false;
-    printf(" %s ", available_devices[i]->name);
+    printf(" %s", rf_plugins[i]->rf_api->name);
   }
   printf("%s\n", no_rf_devs_detected ? " <none>" : "");
 
   // Try to open the device if name is provided
   if (devname && devname[0] != '\0') {
     int i = 0;
-    while (available_devices[i] != NULL) {
-      if (!strcasecmp(available_devices[i]->name, devname)) {
-        rf->dev = available_devices[i];
-        return available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels);
+    while (rf_plugins[i] != NULL) {
+      if (rf_plugins[i]->rf_api) {
+        if (!strcasecmp(rf_plugins[i]->rf_api->name, devname)) {
+          rf->dev = rf_plugins[i]->rf_api;
+          return rf_plugins[i]->rf_api->srsran_rf_open_multi(args, &rf->handler, nof_channels);
+        }
       }
       i++;
     }
@@ -129,16 +133,16 @@ int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uin
     return SRSRAN_ERROR;
   }
 
-  // auto-mode, try to open in order of apperance in available_devices[] array
+  // auto-mode, try to open in order of apperance in rf_plugins[] array
   int i = 0;
-  while (available_devices[i] != NULL) {
-    printf("Trying to open RF device '%s'\n", available_devices[i]->name);
-    if (!available_devices[i]->srsran_rf_open_multi(args, &rf->handler, nof_channels)) {
-      rf->dev = available_devices[i];
-      printf("RF device '%s' successfully opened\n", available_devices[i]->name);
+  while (rf_plugins[i] != NULL && rf_plugins[i]->rf_api != NULL) {
+    printf("Trying to open RF device '%s'\n", rf_plugins[i]->rf_api->name);
+    if (!rf_plugins[i]->rf_api->srsran_rf_open_multi(args, &rf->handler, nof_channels)) {
+      rf->dev = rf_plugins[i]->rf_api;
+      printf("RF device '%s' successfully opened\n", rf_plugins[i]->rf_api->name);
       return SRSRAN_SUCCESS;
     }
-    printf("Unable to open RF device '%s'\n", available_devices[i]->name);
+    printf("Unable to open RF device '%s'\n", rf_plugins[i]->rf_api->name);
     i++;
   }
 
@@ -150,7 +154,7 @@ int srsran_rf_open_devname(srsran_rf_t* rf, const char* devname, char* args, uin
 
 int srsran_rf_open_file(srsran_rf_t* rf, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
 {
-  rf->dev = &dev_file;
+  rf->dev = &srsran_rf_dev_file;
 
   // file abstraction has custom "open" function with file-related args
   return rf_file_open_file(&rf->handler, rx_files, tx_files, nof_channels, base_srate);
@@ -399,4 +403,94 @@ int srsran_rf_send_timed2(srsran_rf_t* rf,
                           bool         is_end_of_burst)
 {
   return srsran_rf_send_timed3(rf, data, nsamples, secs, frac_secs, true, true, is_start_of_burst, is_end_of_burst);
+}
+
+#ifdef ENABLE_RF_PLUGINS
+static void unload_plugin(srsran_rf_plugin_t* rf_plugin)
+{
+  if (rf_plugin == NULL) {
+    return;
+  }
+  if (rf_plugin->dl_handle != NULL) {
+    rf_plugin->rf_api = NULL;
+    dlclose(rf_plugin->dl_handle);
+    rf_plugin->dl_handle = NULL;
+  }
+}
+
+static int load_plugin(srsran_rf_plugin_t* rf_plugin)
+{
+  if (rf_plugin->rf_api != NULL) {
+    // already loaded
+    return SRSRAN_SUCCESS;
+  }
+
+  rf_plugin->dl_handle = dlopen(rf_plugin->plugin_name, RTLD_NOW);
+  if (rf_plugin->dl_handle == NULL) {
+    // Not an error, if loading failed due to missing dependencies.
+    // Mark this plugin as not available and return SUCCESS.
+    INFO("Failed to load RF plugin %s: %s", rf_plugin->plugin_name, dlerror());
+    rf_plugin->rf_api = NULL;
+    return SRSRAN_SUCCESS;
+  }
+
+  // clear errors
+  dlerror();
+  char* err = NULL;
+
+  // load symbols
+  int (*register_plugin)(rf_dev_t * *rf_api) = dlsym(rf_plugin->dl_handle, "register_plugin");
+  if ((err = dlerror()) != NULL) {
+    ERROR("Error loading symbol '%s': %s", "register_plugin", err);
+    goto clean_exit;
+  }
+
+  // register plugin
+  int ret = register_plugin(&rf_plugin->rf_api);
+  if (ret != SRSRAN_SUCCESS) {
+    ERROR("Failed to register RF API for plugin %s", rf_plugin->plugin_name);
+    goto clean_exit;
+  }
+  return SRSRAN_SUCCESS;
+clean_exit:
+  unload_plugin(rf_plugin);
+  return SRSRAN_ERROR;
+}
+#endif /* ENABLE_RF_PLUGINS */
+
+int srsran_rf_load_plugins()
+{
+#ifdef ENABLE_RF_PLUGINS
+  for (unsigned int i = 0; rf_plugins[i]; i++) {
+    if (load_plugin(rf_plugins[i]) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+  }
+
+  printf("Active RF plugins:");
+  for (unsigned int i = 0; rf_plugins[i]; i++) {
+    if (rf_plugins[i]->dl_handle != NULL) {
+      printf(" %s", rf_plugins[i]->plugin_name);
+    }
+  }
+  printf("\n");
+
+  printf("Inactive RF plugins:");
+  for (unsigned int i = 0; rf_plugins[i]; i++) {
+    if (rf_plugins[i]->dl_handle == NULL) {
+      printf(" %s", rf_plugins[i]->plugin_name);
+    }
+  }
+  printf("\n");
+
+#endif /* ENABLE_RF_PLUGINS */
+  return SRSRAN_SUCCESS;
+}
+
+// Search and load plugins when this library is loaded (shared) or right before main (static)
+void __attribute__((constructor)) init()
+{
+  if (srsran_rf_load_plugins() != SRSRAN_SUCCESS) {
+    ERROR("Failed to load RF plugins");
+  }
 }

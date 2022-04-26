@@ -206,6 +206,9 @@ public:
 
   // RRC informs MAC about new UE identity for contention-free RA
   virtual bool set_crnti(const uint16_t crnti) = 0;
+
+  // RRC informs MAC to start/stop search for BCCH messages
+  virtual void bcch_search(bool enabled) = 0;
 };
 
 struct phy_args_nr_t {
@@ -263,6 +266,12 @@ public:
                           const int      preamble_index,
                           const float    preamble_received_target_power,
                           const float    ta_base_sec = 0.0f) = 0;
+
+  /// Apply TA command after RAR
+  virtual void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) = 0;
+
+  /// Apply TA command after MAC CE
+  virtual void set_timeadv(uint32_t tti, uint32_t ta_cmd) = 0;
 
   /**
    * @brief Query PHY if there is a valid PUCCH SR resource configured for a given SR identifier

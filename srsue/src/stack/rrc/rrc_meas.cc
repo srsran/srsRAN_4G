@@ -127,7 +127,6 @@ bool rrc::rrc_meas::parse_meas_config(const rrc_conn_recfg_r8_ies_s* mob_reconf_
 void rrc::rrc_meas::ho_reest_actions(const uint32_t src_earfcn, const uint32_t dst_earfcn)
 {
   meas_cfg.ho_reest_finish(src_earfcn, dst_earfcn);
-  update_phy();
 }
 
 void rrc::rrc_meas::run_tti()
@@ -233,12 +232,10 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* 
   for (auto& cell : var_meas.cell_triggered_list) {
     // report neighbour cells only
     if (cell.pci == serv_cell->get_pci() && cell.earfcn == serv_cell->get_earfcn()) {
-      logger.info("MEAS:  skipping serving cell in report neighbour=%d, pci=%d, earfcn=%d, rsrp=%+.1f, rsrq=%+.1f",
+      logger.info("MEAS:  skipping serving cell in report neighbour=%d, pci=%d, earfcn=%d",
                   neigh_list.size(),
                   cell.pci,
-                  var_meas.carrier_freq,
-                  rrc_ptr->get_cell_rsrp(var_meas.carrier_freq, cell.pci),
-                  rrc_ptr->get_cell_rsrq(var_meas.carrier_freq, cell.pci));
+                  var_meas.carrier_freq);
       continue;
     }
     if (neigh_list.size() <= var_meas.report_cfg_eutra.max_report_cells) {
@@ -776,15 +773,30 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
     }
   };
 
+  eutra_event_s::event_id_c_ event_id = report_cfg.trigger_type.event().event_id;
+
+  // For A1/A2 events, get serving cell from current carrier
+  if (event_id.type().value < eutra_event_s::event_id_c_::types::event_a3 &&
+      meas_obj.carrier_freq != serv_cell->get_earfcn()) {
+    uint32_t scell_pci = 0;
+    if (!rrc_ptr->meas_cells.get_scell_cc_idx(meas_obj.carrier_freq, scell_pci)) {
+      logger.error("MEAS:  Could not find serving cell for carrier earfcn=%d", meas_obj.carrier_freq);
+      return;
+    }
+    serv_cell = rrc_ptr->meas_cells.get_neighbour_cell_handle(meas_obj.carrier_freq, scell_pci);
+    if (!serv_cell) {
+      logger.error(
+          "MEAS:  Could not find serving cell for carrier earfcn=%d and pci=%d", meas_obj.carrier_freq, scell_pci);
+      return;
+    }
+  }
+
   double hyst = 0.5 * report_cfg.trigger_type.event().hysteresis;
   float  Ms   = is_rsrp(report_cfg.trigger_quant.value) ? serv_cell->get_rsrp() : serv_cell->get_rsrq();
-
   if (!std::isnormal(Ms)) {
     logger.debug("MEAS:  Serving cell Ms=%f invalid when evaluating triggers", Ms);
     return;
   }
-
-  eutra_event_s::event_id_c_ event_id = report_cfg.trigger_type.event().event_id;
 
   if (report_cfg.trigger_type.type() == report_cfg_eutra_s::trigger_type_c_::types::event) {
     // A1 & A2 are for serving cell only

@@ -268,6 +268,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds.")
     ("expert.rlf_min_ul_snr_estim", bpo::value<int>(&args->stack.mac.rlf_min_ul_snr_estim)->default_value(-2), "SNR threshold in dB below which the eNB is notified with rlf ko.")
     ("expert.max_s1_setup_retries", bpo::value<int32_t>(&args->stack.s1ap.max_s1_setup_retries)->default_value(-1), "Max S1 setup retries")
+    ("expert.rx_gain_offset", bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62), "RX Gain offset to add to rx_gain to calibrate RSRP readings")
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
@@ -387,18 +388,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  // convert CFR mode
-  if (!cfr_mode.empty()) {
-    if (cfr_mode == "manual") {
-      args->phy.cfr_args.mode = SRSRAN_CFR_THR_MANUAL;
-    } else if (cfr_mode == "auto_cma") {
-      args->phy.cfr_args.mode = SRSRAN_CFR_THR_AUTO_CMA;
-    } else if (cfr_mode == "auto_ema") {
-      args->phy.cfr_args.mode = SRSRAN_CFR_THR_AUTO_EMA;
-    } else {
-      cout << "Error, invalid CFR mode: " << cfr_mode << endl;
-      exit(1);
-    }
+  // parse the CFR mode string
+  args->phy.cfr_args.mode = srsran_cfr_str2mode(cfr_mode.c_str());
+  if (args->phy.cfr_args.mode == SRSRAN_CFR_THR_INVALID) {
+    cout << "Error, invalid CFR mode: " << cfr_mode << endl;
+    exit(1);
   }
 
   // Apply all_level to any unset layers
@@ -475,7 +469,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   if (!config_exists(args->enb_files.rb_config, "rb.conf")) {
-    cout << "Failed to read DRB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
+    cout << "Failed to read RB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
     exit(1);
   }
 

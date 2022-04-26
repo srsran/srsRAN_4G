@@ -59,6 +59,9 @@ public:
                   const int      preamble_index,
                   const float    preamble_received_target_power,
                   const float    ta_base_sec) final;
+  void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) final;
+  void set_timeadv(uint32_t tti, uint32_t ta_cmd) final;
+
   void set_earfcn(std::vector<uint32_t> earfcns);
   bool has_valid_sr_resource(uint32_t sr_id) final;
   void clear_pending_grants() final;

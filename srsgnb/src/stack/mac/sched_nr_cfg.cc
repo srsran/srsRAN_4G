@@ -177,7 +177,6 @@ cell_config_manager::cell_config_manager(uint32_t                   cc_,
 
 sched_params_t::sched_params_t(const sched_args_t& sched_cfg_) : sched_cfg(sched_cfg_)
 {
-  srsran_assert(sched_cfg.fixed_dl_mcs >= 0, "Dynamic DL MCS not supported");
   srsran_assert(sched_cfg.fixed_ul_mcs >= 0, "Dynamic DL MCS not supported");
 }
 

@@ -76,6 +76,7 @@ public:
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
+                        uint16_t                     target_tac,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
                         srsran::unique_byte_buffer_t rrc_container,

@@ -372,7 +372,10 @@ bool cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Save statistics only if data was provided
   if (ul_grant.data != nullptr) {
     // Save metrics stats
-    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx, 0, enb_ul.chest_res.snr_db, pusch_res.avg_iterations_block);
+    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx,
+                            enb_ul.chest_res.epre_dBfs - phy->params.rx_gain_offset,
+                            enb_ul.chest_res.snr_db,
+                            pusch_res.avg_iterations_block);
   }
   return true;
 }
@@ -460,7 +463,11 @@ int cc_worker::decode_pucch()
         }
 
         // Save metrics
-        ue_db[rnti]->metrics_ul_pucch(pucch_res.snr_db);
+        if (pucch_res.detected) {
+          ue_db[rnti]->metrics_ul_pucch(pucch_res.rssi_dbFs - phy->params.rx_gain_offset,
+                                        pucch_res.ni_dbFs - -phy->params.rx_gain_offset,
+                                        pucch_res.snr_db);
+        }
       }
     }
   }
@@ -675,15 +682,23 @@ void cc_worker::ue::metrics_dl(uint32_t mcs)
 
 void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters)
 {
+  if (isnan(rssi)) {
+    rssi = 0;
+  }
   metrics.ul.mcs         = SRSRAN_VEC_CMA((float)mcs, metrics.ul.mcs, metrics.ul.n_samples);
   metrics.ul.pusch_sinr  = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pusch_sinr, metrics.ul.n_samples);
-  metrics.ul.rssi        = SRSRAN_VEC_CMA((float)rssi, metrics.ul.rssi, metrics.ul.n_samples);
+  metrics.ul.pusch_rssi  = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pusch_rssi, metrics.ul.n_samples);
   metrics.ul.turbo_iters = SRSRAN_VEC_CMA((float)turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);
   metrics.ul.n_samples++;
 }
 
-void cc_worker::ue::metrics_ul_pucch(float sinr)
+void cc_worker::ue::metrics_ul_pucch(float rssi, float ni, float sinr)
 {
+  if (isnan(rssi)) {
+    rssi = 0;
+  }
+  metrics.ul.pucch_rssi = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pucch_rssi, metrics.ul.n_samples_pucch);
+  metrics.ul.pucch_ni   = SRSRAN_VEC_CMA((float)ni, metrics.ul.pucch_ni, metrics.ul.n_samples_pucch);
   metrics.ul.pucch_sinr = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pucch_sinr, metrics.ul.n_samples_pucch);
   metrics.ul.n_samples_pucch++;
 }
