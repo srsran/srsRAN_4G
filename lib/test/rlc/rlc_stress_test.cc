@@ -302,6 +302,10 @@ void stress_test(stress_test_args_t args)
     seed = rd();
   }
 
+  if (args.seed != 0) {
+    seed = args.seed;
+  }
+
   srsran::timer_handler timers(8);
 
   srsran::rlc rlc1(log1.id().c_str());

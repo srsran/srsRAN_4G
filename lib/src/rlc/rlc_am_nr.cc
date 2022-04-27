@@ -1224,6 +1224,11 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
         retx.current_so     = 0;
         retx.segment_length = (*tx_window)[st.tx_next_ack].segment_list.begin()->payload_len;
       }
+      RlcDebug("Retransmission because of t-PollRetransmit. RETX SN=%d, is_segment=%s, so_start=%d, segment_length=%d",
+               retx.sn,
+               retx.is_segment ? "true" : "false",
+               retx.so_start,
+               retx.segment_length);
     }
     return;
   }
@@ -1350,6 +1355,29 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (rx_window->has_sn(header.sn) && (*rx_window)[header.sn].fully_received) {
     RlcInfo("discarding duplicate SN=%d", header.sn);
     return;
+  }
+
+  // Section 5.2.3.2.2, discard segments with overlapping bytes
+  if (rx_window->has_sn(header.sn) && header.si != rlc_nr_si_field_t::full_sdu) {
+    for (const auto& segm : (*rx_window)[header.sn].segments) {
+      uint32_t segm_last_byte = segm.header.so + segm.buf->N_bytes - 1;
+      uint32_t pdu_last_byte  = header.so + nof_bytes - hdr_len - 1;
+      if ((header.so >= segm.header.so && header.so <= segm_last_byte) ||
+          (pdu_last_byte >= segm.header.so && pdu_last_byte <= segm_last_byte)) {
+        RlcInfo("Got SDU segment with duplicate bytes. Discarding.");
+        RlcInfo("Discarded SDU segment. SN=%d, SO=%d, last_byte=%d, payload=%d",
+                header.sn,
+                header.so,
+                header.so + (nof_bytes - hdr_len),
+                (nof_bytes - hdr_len));
+        RlcInfo("Overlaping with SDU segment with SN=%d, SO=%d, last_byte=%d, payload=%d",
+                header.sn,
+                segm.header.so,
+                segm_last_byte,
+                segm.buf->N_bytes);
+        return;
+      }
+    }
   }
 
   // Write to rx window either full SDU or SDU segment
@@ -1622,11 +1650,30 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
             nack.so_start = last_so;
             nack.so_end   = segm->header.so - 1; // set to last missing byte
             status->push_nack(nack);
-            RlcDebug("First/middle segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d",
-                     nack.nack_sn,
-                     nack.so_start,
-                     nack.so_end);
-            srsran_assert(nack.so_start <= nack.so_end, "Error: SO_start > SO_end. NACK_SN=%d", nack.nack_sn);
+            if (nack.so_start > nack.so_end) {
+              // Print segment list
+              for (auto segm_it = (*rx_window)[i].segments.begin(); segm_it != (*rx_window)[i].segments.end();
+                   segm_it++) {
+                RlcError("Segment: segm.header.so=%d, segm.buf.N_bytes=%d", segm_it->header.so, segm_it->buf->N_bytes);
+              }
+              RlcError("Error: SO_start=%d > SO_end=%d. NACK_SN=%d. SO_start=%d, SO_end=%d, seg.so=%d",
+                       nack.so_start,
+                       nack.so_end,
+                       nack.nack_sn,
+                       nack.so_start,
+                       nack.so_end,
+                       segm->header.so);
+              srsran_assert(nack.so_start <= nack.so_end,
+                            "Error: SO_start=%d > SO_end=%d. NACK_SN=%d",
+                            nack.so_start,
+                            nack.so_end,
+                            nack.nack_sn);
+            } else {
+              RlcDebug("First/middle segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d",
+                       nack.nack_sn,
+                       nack.so_start,
+                       nack.so_end);
+            }
           }
           if (segm->header.si == rlc_nr_si_field_t::last_segment) {
             last_segment_rx = true;
