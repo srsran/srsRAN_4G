@@ -828,9 +828,9 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   std::set<uint32_t> retx_sn_set; // Set of PDU SNs added for retransmission (no duplicates)
   for (uint32_t nack_idx = 0; nack_idx < status.nacks.size(); nack_idx++) {
     if (status.nacks[nack_idx].has_nack_range) {
-      RlcError("Handling NACK ranges is not yet implemented. Ignoring NACK across %d SDU(s) starting from SN=%d",
-               status.nacks[nack_idx].nack_range,
-               status.nacks[nack_idx].nack_sn);
+      RlcWarning("Handling NACK ranges is not yet implemented. Ignoring NACK across %d SDU(s) starting from SN=%d",
+                 status.nacks[nack_idx].nack_range,
+                 status.nacks[nack_idx].nack_sn);
       continue;
     }
     if (tx_mod_base_nr(st.tx_next_ack) <= tx_mod_base_nr(status.nacks[nack_idx].nack_sn) &&
