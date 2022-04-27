@@ -1798,6 +1798,24 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
   args_->nr_stack.mac.pcap.enable = args_->stack.mac_pcap.enable;
   args_->nr_stack.log             = args_->stack.log;
 
+  // Sanity check for unsupported/untested configuration
+  for (auto& cfg : rrc_nr_cfg_->cell_list) {
+    if (cfg.phy_cell.carrier.nof_prb != 52) {
+      ERROR("Only 10 MHz bandwidth supported.");
+      return SRSRAN_ERROR;
+    }
+    if (rrc_nr_cfg_->is_standalone) {
+      if (cfg.phy_cell.carrier.dl_center_frequency_hz != 1842.5e6) {
+        ERROR("Only DL-ARFCN 368500 supported.");
+        return SRSRAN_ERROR;
+      }
+      if (cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+        ERROR("Only FDD duplex supported in SA mode.");
+        return SRSRAN_ERROR;
+      }
+    }
+  }
+
   return SRSRAN_SUCCESS;
 }
 
