@@ -2544,8 +2544,9 @@ int rx_nack_range_test(rlc_am_nr_sn_size_t sn_size)
   nack.nack_sn           = 1;
   nack.has_nack_range    = true;
   nack.nack_range        = 3;
+  nack.has_so            = true;
   nack.so_start          = 2;
-  nack.so_end            = 1;
+  nack.so_end            = 0;
   status.push_nack(nack);
   byte_buffer_t status_pdu;
   rlc_am_nr_write_status_pdu(status, sn_size, &status_pdu);

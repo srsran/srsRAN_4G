@@ -838,10 +838,14 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
         nack.nack_sn           = range_sn;
         if (range_sn == status.nacks[nack_idx].nack_sn) {
           // First SN
+          nack.has_so   = true;
           nack.so_start = status.nacks[nack_idx].so_start;
+          nack.so_end   = so_end_of_sdu;
         } else if (range_sn == (status.nacks[nack_idx].nack_sn + status.nacks[nack_idx].nack_range - 1)) {
           // Last SN
-          nack.so_end = status.nacks[nack_idx].so_end;
+          nack.has_so   = true;
+          nack.so_start = 0;
+          nack.so_end   = status.nacks[nack_idx].so_end;
         }
         handle_nack(nack, retx_sn_set);
       }
