@@ -2462,6 +2462,99 @@ bool poll_retx_expiry(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
+int rx_nack_range_test(rlc_am_nr_sn_size_t sn_size)
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+  std::string         str = "Rx NACK range test (" + std::to_string(to_number(sn_size)) + " bit SN)";
+  test_delimit_logger delimiter(str.c_str());
+
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+  rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
+  rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
+
+  auto rlc_cnfg              = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  rlc_cnfg.am_nr.t_poll_retx = -1;
+  if (not rlc1.configure(rlc_cnfg)) {
+    return -1;
+  }
+
+  // after configuring entity
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  int n_sdu_bufs = 5;
+  int n_pdu_bufs = 15;
+
+  // Push 5 SDUs into RLC1
+  std::vector<unique_byte_buffer_t> sdu_bufs(n_sdu_bufs);
+  constexpr uint32_t                payload_size = 3; // Give the SDU the size of 3 bytes
+  uint32_t                          header_size  = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  for (int i = 0; i < n_sdu_bufs; i++) {
+    sdu_bufs[i]             = srsran::make_byte_buffer();
+    sdu_bufs[i]->msg[0]     = i;            // Write the index into the buffer
+    sdu_bufs[i]->N_bytes    = payload_size; // Give each buffer a size of 3 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;            // PDCP SN for notifications
+    rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  uint32_t expected_buffer_state = (header_size + payload_size) * n_sdu_bufs;
+  TESTASSERT_EQ(expected_buffer_state, rlc1.get_buffer_state());
+
+  constexpr uint32_t so_size            = 2;
+  constexpr uint32_t segment_size       = 1;
+  uint32_t           pdu_size_first     = header_size + segment_size;
+  uint32_t           pdu_size_continued = header_size + so_size + segment_size;
+
+  // Read 15 PDUs from RLC1
+  std::vector<unique_byte_buffer_t> pdu_bufs(n_pdu_bufs);
+  for (int i = 0; i < n_pdu_bufs; i++) {
+    // First also test buffer state
+    uint32_t remaining_total_bytes = (payload_size * n_sdu_bufs) - (i * segment_size);
+    uint32_t remaining_full_sdus   = remaining_total_bytes / payload_size;
+    uint32_t remaining_seg_bytes   = remaining_total_bytes % payload_size;
+
+    uint32_t buffer_state_full_sdus = (header_size + payload_size) * remaining_full_sdus;
+    uint32_t buffer_state_seg_sdu   = remaining_seg_bytes == 0 ? 0 : (header_size + so_size + remaining_seg_bytes);
+    expected_buffer_state           = buffer_state_full_sdus + buffer_state_seg_sdu;
+    TESTASSERT_EQ(expected_buffer_state, rlc1.get_buffer_state());
+
+    pdu_bufs[i] = srsran::make_byte_buffer();
+    if (i == 0 || i == 3 || i == 6 || i == 9 || i == 12) {
+      // First segment, no SO
+      uint32_t len         = rlc1.read_pdu(pdu_bufs[i]->msg, pdu_size_first); // 2 bytes for header + 1 byte payload
+      pdu_bufs[i]->N_bytes = len;
+      TESTASSERT_EQ(pdu_size_first, len);
+    } else {
+      // Middle or last segment, SO present
+      uint32_t len         = rlc1.read_pdu(pdu_bufs[i]->msg, pdu_size_continued); // 4 bytes for header + 1 byte payload
+      pdu_bufs[i]->N_bytes = len;
+      TESTASSERT_EQ(pdu_size_continued, len);
+    }
+  }
+
+  // Deliver dummy status report with nack range betwen PDU 6 and 10.
+  rlc_am_nr_status_pdu_t status(sn_size);
+
+  rlc_status_nack_t nack = {};
+  nack.nack_sn           = 1;
+  nack.has_nack_range    = true;
+  nack.nack_range        = 3;
+  nack.so_start          = 2;
+  nack.so_end            = 1;
+  status.push_nack(nack);
+  byte_buffer_t status_pdu;
+  rlc_am_nr_write_status_pdu(status, sn_size, &status_pdu);
+
+  rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+  TESTASSERT_EQ(0, rlc1.get_buffer_state());
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -2506,6 +2599,7 @@ int main()
     TESTASSERT(poll_byte(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(poll_retx(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(poll_retx_expiry(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(rx_nack_range_test(sn_size) == SRSRAN_SUCCESS);
   }
   return SRSRAN_SUCCESS;
 }
