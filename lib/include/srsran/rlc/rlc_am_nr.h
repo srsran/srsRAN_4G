@@ -95,6 +95,7 @@ public:
   bool     configure(const rlc_config_t& cfg_) final;
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes) final;
   void     handle_control_pdu(uint8_t* payload, uint32_t nof_bytes) final;
+  void     handle_nack(const rlc_status_nack_t& nack, std::set<uint32_t>& retx_sn_set);
 
   void reestablish() final;
   void stop() final;
