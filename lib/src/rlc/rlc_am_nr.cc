@@ -1351,6 +1351,15 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     return;
   }
 
+  // Trigger polling if poll bit is set.
+  // We do this before discarding duplicate SDUs/SDU segments
+  // Because t-PollRetransmit may transmit a PDU that was already
+  // received.
+  if (header.p) {
+    RlcInfo("status packet requested through polling bit");
+    do_status = true;
+  }
+
   // Section 5.2.3.2.2, discard duplicate PDUs
   if (rx_window->has_sn(header.sn) && (*rx_window)[header.sn].fully_received) {
     RlcInfo("discarding duplicate SN=%d", header.sn);
@@ -1391,12 +1400,6 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
     if (err != SRSRAN_SUCCESS) {
       return;
     }
-  }
-
-  // Check poll bit
-  if (header.p) {
-    RlcInfo("status packet requested through polling bit");
-    do_status = true;
   }
 
   debug_state();
