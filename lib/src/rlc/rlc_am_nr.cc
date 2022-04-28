@@ -444,12 +444,12 @@ uint32_t rlc_am_nr_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   // Sanity check - drop any retx SNs not present in tx_window
   while (not tx_window->has_sn(retx.sn)) {
-    RlcWarning("SN=%d not in tx window. Ignoring retx.", retx.sn);
+    RlcInfo("SN=%d not in tx window, probably already ACKed. Skip and remove from retx queue", retx.sn);
     retx_queue->pop();
     if (!retx_queue->empty()) {
       retx = retx_queue->front();
     } else {
-      RlcWarning("empty retx queue, cannot provide retx PDU");
+      RlcInfo("empty retx queue, cannot provide any retx PDU");
       return 0;
     }
   }
