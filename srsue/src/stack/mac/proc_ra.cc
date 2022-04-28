@@ -23,13 +23,11 @@
 
 namespace srsue {
 
-const char* state_str[] = {"RA:    INIT:   ",
-                           "RA:    PDCCH:  ",
-                           "RA:    Rx:     ",
+const char* state_str[] = {"RA:    IDLE:    ",
+                           "RA:    PDCCH:   ",
+                           "RA:    Rx:      ",
                            "RA:    Backoff: ",
-                           "RA:    ConRes: ",
-                           "RA:    WaitComplt: ",
-                           "RA:    Complt: "};
+                           "RA:    ConRes:  "};
 
 #define rError(fmt, ...) logger.error("%s" fmt, state_str[state], ##__VA_ARGS__)
 #define rInfo(fmt, ...) logger.info("%s" fmt, state_str[state], ##__VA_ARGS__)
