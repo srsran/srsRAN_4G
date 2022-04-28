@@ -95,6 +95,40 @@ qci_config = (
 );
 
 // 5G Section
+// srb1_5g_config = {
+//  rlc_config = {
+//    ul_am = {
+//      sn_field_len = 12;
+//      t_poll_retx = 50;
+//      poll_pdu = 4;
+//      poll_byte = 3000;
+//      max_retx_thres = 4;
+//    };
+//    dl_am = {
+//      sn_field_len = 12;
+//      t_reassembly = 50;
+//      t_status_prohibit = 50;
+//    };
+//  };
+// }
+
+// srb2_5g_config = {
+//  rlc_config = {
+//    ul_am = {
+//      sn_field_len = 12;
+//      t_poll_retx = 50;
+//      poll_pdu = 4;
+//      poll_byte = 3000;
+//      max_retx_thres = 4;
+//    };
+//    dl_am = {
+//      sn_field_len = 12;
+//      t_reassembly = 50;
+//      t_status_prohibit = 50;
+//    };
+//  };
+// }
+
 five_qi_config = (
 {
   five_qi = 7;
