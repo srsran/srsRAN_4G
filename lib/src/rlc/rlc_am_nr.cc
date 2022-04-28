@@ -1167,7 +1167,33 @@ void rlc_am_nr_tx::empty_queue_no_lock()
     unique_byte_buffer_t buf = tx_sdu_queue.read();
   }
 }
-void rlc_am_nr_tx::stop() {}
+
+void rlc_am_nr_tx::stop()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  stop_no_lock();
+}
+
+void rlc_am_nr_tx::stop_no_lock()
+{
+  empty_queue_no_lock();
+
+  if (parent->timers != nullptr && poll_retransmit_timer.is_valid()) {
+    poll_retransmit_timer.stop();
+  }
+
+  st = {};
+
+  sdu_under_segmentation_sn = INVALID_RLC_SN;
+
+  // Drop all messages in TX window
+  tx_window->clear();
+
+  // Drop all messages in RETX queue
+  retx_queue->clear();
+
+  tx_enabled = false;
+}
 
 void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
 {

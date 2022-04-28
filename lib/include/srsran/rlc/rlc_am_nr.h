@@ -98,6 +98,7 @@ public:
 
   void reestablish() final;
   void stop() final;
+  void stop_no_lock();
 
   int  write_sdu(unique_byte_buffer_t sdu);
   void empty_queue() final;
