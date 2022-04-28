@@ -1171,11 +1171,6 @@ void rlc_am_nr_tx::empty_queue_no_lock()
 void rlc_am_nr_tx::stop()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  stop_no_lock();
-}
-
-void rlc_am_nr_tx::stop_no_lock()
-{
   empty_queue_no_lock();
 
   if (parent->timers != nullptr && poll_retransmit_timer.is_valid()) {
@@ -1356,11 +1351,7 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
 void rlc_am_nr_rx::stop()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  stop_no_lock();
-}
 
-void rlc_am_nr_rx::stop_no_lock()
-{
   if (parent->timers != nullptr && reassembly_timer.is_valid()) {
     reassembly_timer.stop();
   }
