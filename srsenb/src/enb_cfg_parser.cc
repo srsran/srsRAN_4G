@@ -1489,7 +1489,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
                    args_->stack.mac.nof_prealloc_ues,
                    SRSENB_MAX_UES);
 
-  // Check for a forced  DL EARFCN or frequency (only valid for a single cell config (Xico's favorite feature))
+  // Check for a forced  DL EARFCN or frequency (only valid for a single cell config
   if (rrc_cfg_->cell_list.size() > 0) {
     if (rrc_cfg_->cell_list.size() == 1) {
       auto& cfg = rrc_cfg_->cell_list.at(0);
