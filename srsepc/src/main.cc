@@ -384,7 +384,7 @@ int main(int argc, char* argv[])
   cout << endl << "---  Software Radio Systems EPC  ---" << endl << endl;
   srsran_debug_handle_crash(argc, argv);
 
-  all_args_t args;
+  all_args_t args = {};
   parse_args(&args, argc, argv);
 
   // Setup logging.

@@ -29,7 +29,7 @@ struct sys_metrics_t {
   float                                        process_cpu_usage     = 0.f;
   float                                        system_mem            = 0.f;
   uint32_t                                     cpu_count             = 0;
-  std::array<float, metrics_max_supported_cpu> cpu_load;
+  std::array<float, metrics_max_supported_cpu> cpu_load              = {};
 };
 
 } // namespace srsran

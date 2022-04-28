@@ -395,7 +395,7 @@ int test_seq_of()
   cbit_ref borig2(&buf[0], sizeof(buf));
 
   uint32_t                 fixed_list_size = 33;
-  std::array<uint32_t, 33> fixed_list;
+  std::array<uint32_t, 33> fixed_list      = {};
   for (uint32_t i = 0; i < fixed_list_size; ++i) {
     fixed_list[i] = i;
   }

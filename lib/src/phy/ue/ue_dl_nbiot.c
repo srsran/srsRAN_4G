@@ -391,7 +391,7 @@ void srsran_nbiot_ue_dl_decode_sib1(srsran_nbiot_ue_dl_t* q, uint32_t current_sf
   // activate SIB1 grant and configure NPDSCH
   INFO(
       "%d.x: Activated SIB1 decoding in sfn=%d\n", current_sfn, srsran_nbiot_ue_dl_get_next_sib1_start(q, current_sfn));
-  srsran_ra_nbiot_dl_grant_t grant;
+  srsran_ra_nbiot_dl_grant_t grant = {};
   srsran_nbiot_ue_dl_get_sib1_grant(q, current_sfn, &grant);
   srsran_nbiot_ue_dl_set_grant(q, &grant);
 }
@@ -410,7 +410,7 @@ void srsran_nbiot_ue_dl_decode_sib(srsran_nbiot_ue_dl_t*    q,
   if (type == SRSRAN_NBIOT_SI_TYPE_SIB2) {
     assert(params.n == 1);
     // calculate SIB2 params
-    srsran_ra_nbiot_dl_grant_t grant;
+    srsran_ra_nbiot_dl_grant_t grant = {};
     srsran_nbiot_ue_dl_get_sib_grant(q, hfn, sfn, params, &grant);
     srsran_nbiot_ue_dl_set_grant(q, &grant);
     INFO("%d.x: Activated SIB2 reception in hfn=%d, sfn=%d",

@@ -26,6 +26,7 @@ static int test_row1()
     }
     m.nof_ports          = 1;
     m.first_symbol_idx   = 0;
+    m.first_symbol_idx2  = 0;
     m.cdm                = srsran_csi_rs_cdm_nocdm;
     m.density            = srsran_csi_rs_resource_mapping_density_three;
     m.freq_band.start_rb = carrier.start;
@@ -69,6 +70,7 @@ static int test_row2()
       }
       m.nof_ports          = 1;
       m.first_symbol_idx   = 0;
+      m.first_symbol_idx2  = 0;
       m.cdm                = srsran_csi_rs_cdm_nocdm;
       m.density            = density;
       m.freq_band.start_rb = carrier.start;

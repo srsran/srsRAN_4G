@@ -57,6 +57,7 @@ int test_add_neighbours()
   TESTASSERT(list.get_neighbour_cell_handle(0, 0) == nullptr);
 
   phy_meas_t pmeas;
+  pmeas.rat    = srsran::srsran_rat_t::lte;
   pmeas.cfo_hz = 4;
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;

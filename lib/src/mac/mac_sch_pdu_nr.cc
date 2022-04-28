@@ -325,7 +325,7 @@ mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr() const
 
 mac_sch_subpdu_nr::ue_con_res_id_t mac_sch_subpdu_nr::get_ue_con_res_id_ce()
 {
-  mac_sch_subpdu_nr::ue_con_res_id_t id;
+  mac_sch_subpdu_nr::ue_con_res_id_t id = {};
   if (!parent->is_ulsch() && lcid == CON_RES_ID) {
     const uint8_t* ptr = sdu.ptr();
     memcpy(id.data(), ptr, id.size());

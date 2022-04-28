@@ -28,7 +28,7 @@ struct rlc_sn_info_t {
 struct rlc_amd_rx_pdu {
   rlc_amd_pdu_header_t header;
   unique_byte_buffer_t buf;
-  uint32_t             rlc_sn;
+  uint32_t             rlc_sn = 0;
 
   rlc_amd_rx_pdu() = default;
   explicit rlc_amd_rx_pdu(uint32_t rlc_sn_) : rlc_sn(rlc_sn_) {}

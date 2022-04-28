@@ -173,17 +173,17 @@ void parse_args(int argc, char** argv)
 int main(int argc, char** argv)
 {
   srsran_random_t        random_h = srsran_random_init(0);
-  srsran_chest_ul_res_t  chest_res;
-  srsran_pusch_t         pusch_tx;
-  srsran_pusch_t         pusch_rx;
+  srsran_chest_ul_res_t  chest_res  = {};
+  srsran_pusch_t         pusch_tx   = {};
+  srsran_pusch_t         pusch_rx   = {};
   uint8_t*               data       = NULL;
   uint8_t*               data_rx    = NULL;
   cf_t*                  sf_symbols = NULL;
   int                    ret        = -1;
   struct timeval         t[3];
-  srsran_pusch_cfg_t     cfg;
-  srsran_softbuffer_tx_t softbuffer_tx;
-  srsran_softbuffer_rx_t softbuffer_rx;
+  srsran_pusch_cfg_t     cfg           = {};
+  srsran_softbuffer_tx_t softbuffer_tx = {};
+  srsran_softbuffer_rx_t softbuffer_rx = {};
   srsran_crc_t           crc_tb;
 
   ZERO_OBJECT(uci_data_tx);
