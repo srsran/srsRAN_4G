@@ -1353,7 +1353,29 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   return true;
 }
 
-void rlc_am_nr_rx::stop() {}
+void rlc_am_nr_rx::stop()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  stop_no_lock();
+}
+
+void rlc_am_nr_rx::stop_no_lock()
+{
+  if (parent->timers != nullptr && reassembly_timer.is_valid()) {
+    reassembly_timer.stop();
+  }
+
+  if (parent->timers != nullptr && status_prohibit_timer.is_valid()) {
+    status_prohibit_timer.stop();
+  }
+
+  st = {};
+
+  do_status = false;
+
+  // Drop all messages in RX window
+  rx_window->clear();
+}
 
 void rlc_am_nr_rx::reestablish()
 {
