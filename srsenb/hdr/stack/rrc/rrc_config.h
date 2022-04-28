@@ -76,12 +76,12 @@ struct rrc_cfg_t {
   bool                                                                                    meas_cfg_present = false;
   srsran_cell_t                                                                           cell;
   cell_list_t                                                                             cell_list;
-  uint32_t  num_nr_cells = 0; /// number of configured NR cells (used to configure RF)
-  uint32_t  max_mac_dl_kos;
-  uint32_t  max_mac_ul_kos;
-  uint32_t  rlf_release_timer_ms;
-  srb_cfg_t srb1_cfg;
-  srb_cfg_t srb2_cfg;
+  uint32_t       num_nr_cells = 0; /// number of configured NR cells (used to configure RF)
+  uint32_t       max_mac_dl_kos;
+  uint32_t       max_mac_ul_kos;
+  uint32_t       rlf_release_timer_ms;
+  srb_cfg_t      srb1_cfg;
+  srb_cfg_t      srb2_cfg;
   rrc_endc_cfg_t endc_cfg;
 };
 

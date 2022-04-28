@@ -635,6 +635,71 @@ int field_qci::parse(libconfig::Setting& root)
   return 0;
 }
 
+int field_5g_srb::parse(libconfig::Setting& root)
+{
+  // Parse RLC AM section
+  asn1::rrc_nr::rlc_cfg_c* rlc_cfg = &cfg.rlc_cfg;
+  if (root.exists("ul_am") && root.exists("dl_am")) {
+    rlc_cfg->set_am();
+    cfg.present = true;
+  }
+
+  // RLC-UM Should not exist section
+  if (root.exists("ul_um") || root.exists("dl_um")) {
+    ERROR("Error SRBs must be AM.");
+    return SRSRAN_ERROR;
+  }
+
+  // Parse RLC-AM section
+  if (root.exists("ul_am")) {
+    asn1::rrc_nr::ul_am_rlc_s& ul_am_rlc = rlc_cfg->am().ul_am_rlc;
+
+    field_asn1_enum_number<asn1::rrc_nr::t_poll_retx_e> t_poll_retx("t_poll_retx", &ul_am_rlc.t_poll_retx);
+    if (t_poll_retx.parse(root["ul_am"])) {
+      ERROR("Error can't find t_poll_retx in section ul_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<asn1::rrc_nr::poll_pdu_e> poll_pdu("poll_pdu", &ul_am_rlc.poll_pdu);
+    if (poll_pdu.parse(root["ul_am"])) {
+      ERROR("Error can't find poll_pdu in section ul_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<asn1::rrc_nr::poll_byte_e> poll_byte("poll_byte", &ul_am_rlc.poll_byte);
+    if (poll_byte.parse(root["ul_am"])) {
+      ERROR("Error can't find poll_byte in section ul_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh",
+                                                                                         &ul_am_rlc.max_retx_thres);
+    if (max_retx_thresh.parse(root["ul_am"])) {
+      ERROR("Error can't find max_retx_thresh in section ul_am");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  if (root.exists("dl_am")) {
+    asn1::rrc_nr::dl_am_rlc_s& dl_am_rlc = rlc_cfg->am().dl_am_rlc;
+
+    field_asn1_enum_number<asn1::rrc_nr::t_reassembly_e> t_reassembly("t_reassembly", &dl_am_rlc.t_reassembly);
+    if (t_reassembly.parse(root["dl_am"])) {
+      ERROR("Error can't find t_reordering in section dl_am");
+      return SRSRAN_ERROR;
+    }
+
+    field_asn1_enum_number<asn1::rrc_nr::t_status_prohibit_e> t_status_prohibit("t_status_prohibit",
+                                                                                &dl_am_rlc.t_status_prohibit);
+    if (t_status_prohibit.parse(root["dl_am"])) {
+      ERROR("Error can't find t_status_prohibit in section dl_am");
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return 0;
+}
+
 int field_five_qi::parse(libconfig::Setting& root)
 {
   uint32_t nof_five_qi = (uint32_t)root.getLength();
