@@ -3649,6 +3649,8 @@ typedef struct {
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_request_msg(
     LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* deact_eps_bearer_context_req,
+    uint8                                                        sec_hdr_type,
+    uint32                                                       count,
     LIBLTE_BYTE_MSG_STRUCT*                                      msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_deactivate_eps_bearer_context_request_msg(
     LIBLTE_BYTE_MSG_STRUCT*                                      msg,

@@ -442,6 +442,9 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
       action->tb[0].rv            = grant.tb[0].rv;
       srsran_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
     }
+  } else if (grant.is_pdcch_order) {
+    // if the grant is a PDCCH order then there is no associated PDSCH
+    action->tb[0].enabled = false;
   } else if (!(grant.rnti == SRSRAN_SIRNTI && cc_idx != 0)) {
     // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
     if (grant.rnti == uernti.get_crnti() && ra_procedure.is_contention_resolution()) {

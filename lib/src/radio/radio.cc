@@ -505,7 +505,7 @@ bool radio::open_dev(const uint32_t &device_idx, FILE** rx_files, FILE** tx_file
 {
   srsran_rf_t* rf_device = &rf_devices[device_idx];
 
-  srsran::console("Opening %d channels in RF device abstraction\n");
+  srsran::console("Opening channels idx %d in RF device abstraction\n", device_idx);
 
   if (srsran_rf_open_file(rf_device, rx_files, tx_files, nof_channels, base_srate)) {
     logger.error("Error opening RF device abstraction");

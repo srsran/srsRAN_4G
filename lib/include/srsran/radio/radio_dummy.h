@@ -171,7 +171,7 @@ public:
     }
 
     // Create receiver ring buffers
-    rx_ring_buffers.resize(args_.nof_carriers * args_.nof_antennas);
+    rx_ring_buffers.resize(args_.nof_carriers * (size_t)args_.nof_antennas);
     for (auto& rb : rx_ring_buffers) {
       if (srsran_ringbuffer_init(&rb, (int)sizeof(cf_t) * TEMP_BUFFER_SZ) != SRSRAN_SUCCESS) {
         perror("init softbuffer");
@@ -179,7 +179,7 @@ public:
     }
 
     // Create transmitter ring buffers
-    tx_ring_buffers.resize(args_.nof_carriers * args_.nof_antennas);
+    tx_ring_buffers.resize(args_.nof_carriers * (size_t)args_.nof_antennas);
     for (auto& rb : tx_ring_buffers) {
       if (srsran_ringbuffer_init(&rb, (int)sizeof(cf_t) * TEMP_BUFFER_SZ) != SRSRAN_SUCCESS) {
         perror("init softbuffer");

@@ -166,7 +166,7 @@ int rrc_nr_cap_request_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
 
   rrc_nr_args.supported_bands_eutra.push_back(7);
   rrc_nr_args.supported_bands_nr.push_back(78);
@@ -208,7 +208,7 @@ int rrc_nsa_reconfig_tdd_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
   TESTASSERT(rrc_nr.init(&dummy_phy,
                          &dummy_mac,
                          &dummy_rlc,
@@ -311,7 +311,7 @@ int rrc_nsa_reconfig_fdd_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
   TESTASSERT(rrc_nr.init(&dummy_phy,
                          &dummy_mac,
                          &dummy_rlc,
@@ -415,7 +415,7 @@ int rrc_nr_setup_request_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
 
   rrc_nr_args.supported_bands_nr.push_back(78);
 
@@ -459,7 +459,7 @@ int rrc_nr_sib1_decoding_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
   TESTASSERT(rrc_nr.init(&dummy_phy,
                          &dummy_mac,
                          &dummy_rlc,
@@ -508,7 +508,7 @@ int rrc_nr_setup_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
   TESTASSERT(rrc_nr.init(&dummy_phy,
                          &dummy_mac,
                          &dummy_rlc,
@@ -563,7 +563,7 @@ int rrc_nr_reconfig_test()
   dummy_eutra   dummy_eutra;
   dummy_sim     dummy_sim;
   dummy_stack   dummy_stack;
-  rrc_nr_args_t rrc_nr_args;
+  rrc_nr_args_t rrc_nr_args = {};
   TESTASSERT(rrc_nr.init(&dummy_phy,
                          &dummy_mac,
                          &dummy_rlc,

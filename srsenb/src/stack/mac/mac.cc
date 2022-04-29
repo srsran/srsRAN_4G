@@ -468,10 +468,6 @@ bool mac::is_valid_rnti_unprotected(uint16_t rnti)
     logger.info("RACH ignored as eNB is being shutdown");
     return false;
   }
-  if (ue_db.full()) {
-    logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
-    return false;
-  }
   if (not ue_db.has_space(rnti)) {
     logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
     return false;
@@ -491,6 +487,10 @@ uint16_t mac::allocate_ue(uint32_t enb_cc_idx)
     // Pre-check if rnti is valid
     {
       srsran::rwlock_read_guard read_lock(rwlock);
+      if (ue_db.full()) {
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
+        return SRSRAN_INVALID_RNTI;
+      }
       if (not is_valid_rnti_unprotected(rnti)) {
         continue;
       }
@@ -785,17 +785,20 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
     // Copy PDCCH order grants
     for (uint32_t i = 0; i < sched_result.po.size(); i++) {
-      // Copy dci info
-      dl_sched_res->pdsch[n].dci = sched_result.po[i].dci;
-
-      if (pcap) {
-        pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+      uint16_t rnti = sched_result.po[i].dci.rnti;
+      if (ue_db.contains(rnti)) {
+        // Copy dci info
+        dl_sched_res->pdsch[n].dci = sched_result.po[i].dci;
+        if (pcap) {
+          pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
+        if (pcap_net) {
+          pcap_net->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
+        n++;
+      } else {
+        logger.warning("Invalid PDCCH order scheduling result. User 0x%x does not exist", rnti);
       }
-      if (pcap_net) {
-        pcap_net->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
-      }
-
-      n++;
     }
 
     dl_sched_res->nof_grants = n;

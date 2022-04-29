@@ -708,7 +708,6 @@ public:
 class dnn_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> dnn_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);

@@ -1156,7 +1156,7 @@ bool make_phy_pusch_scaling(const uci_on_pusch_s& uci_on_pusch, float* in_scalin
 bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_res,
                                  srsran_csi_rs_zp_resource_t*         out_zp_csi_rs_resource)
 {
-  srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
+  srsran_csi_rs_zp_resource_t zp_csi_rs_resource = {};
   zp_csi_rs_resource.id = zp_csi_rs_res.zp_csi_rs_res_id;
   switch (zp_csi_rs_res.res_map.freq_domain_alloc.type()) {
     case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
@@ -1321,7 +1321,7 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
 bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& asn1_nzp_csi_rs_res,
                                   srsran_csi_rs_nzp_resource_t*         out_csi_rs_nzp_resource)
 {
-  srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+  srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource = {};
   csi_rs_nzp_resource.id = asn1_nzp_csi_rs_res.nzp_csi_rs_res_id;
   switch (asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.type()) {
     case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:

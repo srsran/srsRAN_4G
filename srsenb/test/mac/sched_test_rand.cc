@@ -137,7 +137,7 @@ void sched_tester::before_sched()
   for (auto& it : ue_db) {
     uint16_t            rnti = it.first;
     srsenb::sched_ue*   user = it.second.get();
-    tester_user_results d;
+    tester_user_results d    = {};
     tti_data.ue_data.insert(std::make_pair(rnti, d));
 
     // NOTE: ACK might have just cleared the harq for tti_info.tti_params.tti_tx_ul

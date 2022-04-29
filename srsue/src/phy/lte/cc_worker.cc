@@ -284,6 +284,9 @@ bool cc_worker::work_dl_regular()
 
       // Set RNTI
       ue_dl_cfg.cfg.pdsch.rnti = dci_dl.rnti;
+    } else {
+      ue_dl_cfg.cfg.pdsch.rnti            = dci_dl.rnti;
+      ue_dl_cfg.cfg.pdsch.grant.tb[0].tbs = 0;
     }
     // Generate MAC grant
     mac_interface_phy_lte::mac_grant_dl_t mac_grant = {};

@@ -53,7 +53,7 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
   rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
 
   uint16_t                  rnti = 0x46;
-  sched_interface::ue_cfg_t ue_cfg;
+  sched_interface::ue_cfg_t ue_cfg = {};
   ue_cfg.supported_cc_list.resize(1);
   ue_cfg.supported_cc_list[0].active     = true;
   ue_cfg.supported_cc_list[0].enb_cc_idx = 0;

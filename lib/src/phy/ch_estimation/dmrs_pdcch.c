@@ -437,7 +437,7 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
   // For each CORESET symbol
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     // Temporal least square estimates
-    cf_t     tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE];
+    cf_t     tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE] = {};
     uint32_t nof_pilots = 0;
 
     // For each RB in the CORESET

@@ -68,7 +68,6 @@ public:
   void stop();
 
   uint32_t read_pdu(uint8_t* payload, uint32_t nof_bytes);
-  bool     sdu_queue_is_full();
 
   bool     has_data();
   uint32_t get_buffer_state();
