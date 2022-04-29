@@ -417,7 +417,7 @@ bool ngap::handle_ngap_rx_pdu(srsran::byte_buffer_t* pdu)
     case ngap_pdu_c::types_opts::unsuccessful_outcome:
       return handle_unsuccessful_outcome(rx_pdu.unsuccessful_outcome());
     default:
-      logger.error("Unhandled PDU type %d", rx_pdu.type().value);
+      logger.warning("Unhandled PDU type %d", rx_pdu.type().value);
       return false;
   }
 
@@ -438,7 +438,7 @@ bool ngap::handle_initiating_message(const asn1::ngap::init_msg_s& msg)
     case ngap_elem_procs_o::init_msg_c::types_opts::paging:
       return handle_paging(msg.value.paging());
     default:
-      logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
+      logger.warning("Unhandled initiating message: %s", msg.value.type().to_string());
   }
   return true;
 }
