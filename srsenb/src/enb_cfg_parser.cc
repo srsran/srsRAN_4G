@@ -654,6 +654,14 @@ int field_5g_srb::parse(libconfig::Setting& root)
   if (root.exists("ul_am")) {
     asn1::rrc_nr::ul_am_rlc_s& ul_am_rlc = rlc_cfg->am().ul_am_rlc;
 
+    // SN length
+    field_asn1_enum_number<asn1::rrc_nr::sn_field_len_am_e> rlc_sn_size_ul("sn_field_len", &ul_am_rlc.sn_field_len);
+    if (rlc_sn_size_ul.parse(root["ul_am"]) == SRSRAN_ERROR) {
+      ul_am_rlc.sn_field_len_present = false;
+    } else {
+      ul_am_rlc.sn_field_len_present = true;
+    }
+
     field_asn1_enum_number<asn1::rrc_nr::t_poll_retx_e> t_poll_retx("t_poll_retx", &ul_am_rlc.t_poll_retx);
     if (t_poll_retx.parse(root["ul_am"])) {
       ERROR("Error can't find t_poll_retx in section ul_am");
@@ -682,6 +690,14 @@ int field_5g_srb::parse(libconfig::Setting& root)
 
   if (root.exists("dl_am")) {
     asn1::rrc_nr::dl_am_rlc_s& dl_am_rlc = rlc_cfg->am().dl_am_rlc;
+
+    // SN length
+    field_asn1_enum_number<asn1::rrc_nr::sn_field_len_am_e> rlc_sn_size_ul("sn_field_len", &dl_am_rlc.sn_field_len);
+    if (rlc_sn_size_ul.parse(root["dl_am"]) == SRSRAN_ERROR) {
+      dl_am_rlc.sn_field_len_present = false;
+    } else {
+      dl_am_rlc.sn_field_len_present = true;
+    }
 
     field_asn1_enum_number<asn1::rrc_nr::t_reassembly_e> t_reassembly("t_reassembly", &dl_am_rlc.t_reassembly);
     if (t_reassembly.parse(root["dl_am"])) {
