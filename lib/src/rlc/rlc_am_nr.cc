@@ -23,7 +23,6 @@
 namespace srsran {
 
 const static uint32_t max_tx_queue_size = 256;
-const static uint32_t so_end_of_sdu     = 0xFFFF;
 
 /****************************************************************************
  * RLC AM NR entity
@@ -838,7 +837,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
             // First SN
             nack.has_so   = true;
             nack.so_start = status.nacks[nack_idx].so_start;
-            nack.so_end   = so_end_of_sdu;
+            nack.so_end   = rlc_status_nack_t::so_end_of_sdu;
           } else if (range_sn == (status.nacks[nack_idx].nack_sn + status.nacks[nack_idx].nack_range - 1)) {
             // Last SN
             nack.has_so = true;
@@ -1743,7 +1742,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
           nack.nack_sn  = i;
           nack.has_so   = true;
           nack.so_start = last_so;
-          nack.so_end   = so_end_of_sdu;
+          nack.so_end   = rlc_status_nack_t::so_end_of_sdu;
           status->push_nack(nack);
           RlcDebug(
               "Final segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d", nack.nack_sn, nack.so_start, nack.so_end);

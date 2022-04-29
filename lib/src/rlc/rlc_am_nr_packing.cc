@@ -32,10 +32,85 @@ void rlc_am_nr_status_pdu_t::reset()
   packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
 }
 
+static bool is_continuous_sequence(const rlc_status_nack_t& left, const rlc_status_nack_t& right)
+{
+  // SN must be continuous
+  if (right.nack_sn != left.has_nack_range ? left.nack_sn + left.nack_range : left.nack_sn + 1) {
+    return false;
+  }
+
+  // Segments on left side (if present) must reach the end of sdu
+  if (left.has_so && left.so_end != rlc_status_nack_t::so_end_of_sdu) {
+    return false;
+  }
+
+  // Segments on right side (if present) must start from the beginning
+  if (right.has_so && right.so_start != 0) {
+    return false;
+  }
+
+  return true;
+}
+
 void rlc_am_nr_status_pdu_t::push_nack(const rlc_status_nack_t& nack)
 {
-  nacks_.push_back(nack);
-  packed_size_ += nack_size(nack);
+  if (nacks_.size() == 0) {
+    nacks_.push_back(nack);
+    packed_size_ += nack_size(nack);
+    return;
+  }
+
+  rlc_status_nack_t& prev = nacks_.back();
+  if (is_continuous_sequence(prev, nack) == false) {
+    nacks_.push_back(nack);
+    packed_size_ += nack_size(nack);
+    return;
+  }
+
+  // expand previous NACK
+  // subtract size of previous NACK (add updated size later)
+  packed_size_ -= nack_size(prev);
+
+  // enable and update NACK range
+  if (nack.has_nack_range == true) {
+    if (prev.has_nack_range == true) {
+      // [NACK range][NACK range]
+      prev.nack_range += nack.nack_range;
+    } else {
+      // [NACK SDU][NACK range]
+      prev.nack_range     = nack.nack_range + 1;
+      prev.has_nack_range = true;
+    }
+  } else {
+    if (prev.has_nack_range == true) {
+      // [NACK range][NACK SDU]
+      prev.nack_range++;
+    } else {
+      // [NACK SDU][NACK SDU]
+      prev.nack_range     = 2;
+      prev.has_nack_range = true;
+    }
+  }
+
+  // enable and update segment offsets (if required)
+  if (nack.has_so == true) {
+    if (prev.has_so == false) {
+      // [NACK SDU][NACK segm]
+      prev.has_so   = true;
+      prev.so_start = 0;
+    }
+    // [NACK SDU][NACK segm] or [NACK segm][NACK segm]
+    prev.so_end = nack.so_end;
+  } else {
+    if (prev.has_so == true) {
+      // [NACK segm][NACK SDU]
+      prev.so_end = rlc_status_nack_t::so_end_of_sdu;
+    }
+    // [NACK segm][NACK SDU] or [NACK SDU][NACK SDU]
+  }
+
+  // add updated size
+  packed_size_ += nack_size(prev);
 }
 
 bool rlc_am_nr_status_pdu_t::trim(uint32_t max_packed_size)

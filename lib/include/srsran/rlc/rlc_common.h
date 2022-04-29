@@ -165,6 +165,8 @@ public:
 
 // NACK helper (for LTE and NR)
 struct rlc_status_nack_t {
+  const static uint16_t so_end_of_sdu = 0xFFFF;
+
   uint32_t nack_sn;        // Sequence Number (SN) of first missing SDU
   bool     has_so;         // NACKs continuous sequence of bytes [so_start..so_end]
   uint16_t so_start;       // First missing byte in SDU with SN=nack_sn
