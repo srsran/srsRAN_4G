@@ -1061,6 +1061,9 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
       logger.error("Failed to build RLC config");
       return false;
     }
+  } else if (not is_drb) {
+    logger.error("Using default RLC configs for SRB%d", srb_id);
+    rlc_cfg = rlc_config_t::default_rlc_am_nr_config();
   } else {
     logger.error("In RLC bearer cfg does not contain rlc cfg");
     return false;

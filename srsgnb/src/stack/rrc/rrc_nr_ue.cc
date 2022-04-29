@@ -1409,13 +1409,24 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
   // Add/Mod RLC radio bearers
   for (const rlc_bearer_cfg_s& rb : cell_group_diff.rlc_bearer_to_add_mod_list) {
     srsran::rlc_config_t rlc_cfg;
-    uint8_t rb_id = rb.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::drb_id
-                        ? rb.served_radio_bearer.drb_id()
-                        : rb.served_radio_bearer.srb_id();
-    if (srsran::make_rlc_config_t(rb.rlc_cfg, rb_id, &rlc_cfg) != SRSRAN_SUCCESS) {
-      logger.error("Failed to build RLC config");
-      // TODO: HANDLE
-      return SRSRAN_ERROR;
+    uint8_t              rb_id = 0;
+    if (rb.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::srb_id) {
+      rb_id = rb.served_radio_bearer.srb_id();
+      if (not rb.rlc_cfg_present) {
+        rlc_cfg = srsran::rlc_config_t::default_rlc_am_nr_config();
+      }
+    } else {
+      rb_id = rb.served_radio_bearer.drb_id();
+      if (not rb.rlc_cfg_present) {
+        logger.error("No RLC config for DRB");
+        // TODO: HANDLE
+        return SRSRAN_ERROR;
+      }
+      if (srsran::make_rlc_config_t(rb.rlc_cfg, rb_id, &rlc_cfg) != SRSRAN_SUCCESS) {
+        logger.error("Failed to build RLC config");
+        // TODO: HANDLE
+        return SRSRAN_ERROR;
+      }
     }
     parent->rlc->add_bearer(rnti, rb.lc_ch_id, rlc_cfg);
   }
