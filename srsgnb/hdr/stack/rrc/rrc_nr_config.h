@@ -65,6 +65,9 @@ struct rrc_nr_cfg_t {
   uint16_t           mnc;
   bool               is_standalone;
 
+  srb_5g_cfg_t srb1_cfg;
+  srb_5g_cfg_t srb2_cfg;
+
   std::map<uint32_t, rrc_nr_cfg_five_qi_t> five_qi_cfg;
 
   std::array<srsran::CIPHERING_ALGORITHM_ID_NR_ENUM, srsran::CIPHERING_ALGORITHM_ID_NR_N_ITEMS> nea_preference_list;
