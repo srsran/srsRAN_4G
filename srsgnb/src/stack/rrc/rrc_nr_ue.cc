@@ -1414,6 +1414,12 @@ int rrc_nr::ue::update_rlc_bearers(const asn1::rrc_nr::cell_group_cfg_s& cell_gr
       rb_id = rb.served_radio_bearer.srb_id();
       if (not rb.rlc_cfg_present) {
         rlc_cfg = srsran::rlc_config_t::default_rlc_am_nr_config();
+      } else {
+        if (srsran::make_rlc_config_t(rb.rlc_cfg, rb_id, &rlc_cfg) != SRSRAN_SUCCESS) {
+          logger.error("Failed to build RLC config");
+          // TODO: HANDLE
+          return SRSRAN_ERROR;
+        }
       }
     } else {
       rb_id = rb.served_radio_bearer.drb_id();
