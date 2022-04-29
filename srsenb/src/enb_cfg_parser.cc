@@ -672,7 +672,7 @@ int field_5g_srb::parse(libconfig::Setting& root)
       return SRSRAN_ERROR;
     }
 
-    field_asn1_enum_number<asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh",
+    field_asn1_enum_number<asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thres",
                                                                                          &ul_am_rlc.max_retx_thres);
     if (max_retx_thresh.parse(root["ul_am"])) {
       ERROR("Error can't find max_retx_thresh in section ul_am");
@@ -2416,6 +2416,22 @@ int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
   parser::section qci("qci_config");
   qci.add_field(new field_qci(rrc_cfg_->qci_cfg));
 
+  parser::section srb1_5g("srb1_5g_config");
+  bool            srb1_5g_present = false;
+  srb1_5g.set_optional(&srb1_5g_present);
+
+  parser::section srb1_5g_rlc_cfg("rlc_config");
+  srb1_5g.add_subsection(&srb1_5g_rlc_cfg);
+  srb1_5g_rlc_cfg.add_field(new field_5g_srb(rrc_nr_cfg_->srb1_cfg));
+
+  parser::section srb2_5g("srb2_5g_config");
+  bool            srb2_5g_present = false;
+  srb2_5g.set_optional(&srb2_5g_present);
+
+  parser::section srb2_5g_rlc_cfg("rlc_config");
+  srb2_5g.add_subsection(&srb2_5g_rlc_cfg);
+  srb2_5g_rlc_cfg.add_field(new field_5g_srb(rrc_nr_cfg_->srb2_cfg));
+
   parser::section five_qi("five_qi_config");
   five_qi.add_field(new field_five_qi(rrc_nr_cfg_->five_qi_cfg));
 
@@ -2424,6 +2440,8 @@ int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
   p.add_section(&srb1);
   p.add_section(&srb2);
   p.add_section(&qci);
+  p.add_section(&srb1_5g);
+  p.add_section(&srb2_5g);
   p.add_section(&five_qi);
 
   int ret = p.parse();
@@ -2433,6 +2451,8 @@ int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
   if (not srb2_present) {
     rrc_cfg_->srb2_cfg.rlc_cfg.set_default_value();
   }
+  rrc_nr_cfg_->srb1_cfg.present = srb1_5g_present;
+  rrc_nr_cfg_->srb2_cfg.present = srb1_5g_present;
 
   return ret;
 }
