@@ -1,33 +1,42 @@
 name: C/C++ CI
 on: push
 jobs:
-  x86_ubuntu18_build:
-    name: Build and test on x86 Ubuntu 18.04
+  x86_ubuntu_build:
+    name: Build on x86
+    runs-on: ${{ matrix.os }}
     strategy:
-        matrix:
-          compiler: [gcc, clang]
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v1
-      - name: Build srsRAN on x86 Ubuntu 18.04
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
-          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest
-          
-  aarch64_ubuntu18_build:
-    runs-on: ubuntu-18.04
-    name: Build on aarch64
-    strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-20.04, ubuntu-18.04]
         compiler: [gcc, clang]
     steps:
-    - uses: actions/checkout@v1
-    - name: Build srsRAN on aarch64
+    - uses: actions/checkout@v3
+    - name: Build srsRAN on x86 ${{ matrix.os }}
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
+        mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest
+
+  aarch64_ubuntu_build:
+    name: Build on aarch64
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04]
+        compiler: [gcc, clang]
+        include:
+          - os: ubuntu-20.04
+            distro: ubuntu20.04
+          - os: ubuntu-18.04
+            distro: ubuntu18.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build srsRAN on aarch64 ${{ matrix.os }}
       uses: uraimo/run-on-arch-action@master
       with:
-        architecture: aarch64
-        distribution: ubuntu18.04
+        arch: aarch64
+        distro: ${{ matrix.distro }}
         run: |
           export CTEST_PARALLEL_LEVEL=$(nproc --all)
           apt update
