@@ -19,7 +19,8 @@ namespace srsran {
  * Container implementation for pack/unpack functions
  ***************************************************************************/
 
-rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) : sn_size(sn_size)
+rlc_am_nr_status_pdu_t::rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size) :
+  sn_size(sn_size), mod_nr(cardinality(sn_size))
 {
   nacks_.reserve(RLC_AM_NR_TYP_NACKS);
 }
@@ -32,10 +33,10 @@ void rlc_am_nr_status_pdu_t::reset()
   packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
 }
 
-static bool is_continuous_sequence(const rlc_status_nack_t& left, const rlc_status_nack_t& right)
+bool rlc_am_nr_status_pdu_t::is_continuous_sequence(const rlc_status_nack_t& left, const rlc_status_nack_t& right) const
 {
   // SN must be continuous
-  if (right.nack_sn != left.has_nack_range ? left.nack_sn + left.nack_range : left.nack_sn + 1) {
+  if (right.nack_sn != ((left.has_nack_range ? left.nack_sn + left.nack_range : (left.nack_sn + 1)) % mod_nr)) {
     return false;
   }
 
