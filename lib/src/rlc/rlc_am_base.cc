@@ -90,7 +90,7 @@ bool rlc_am::configure(const rlc_config_t& cfg_)
   } else if (cfg.rat == srsran_rat_t::nr) {
     RlcInfo("AM NR configured - tx_sn_field_length=%d, rx_sn_field_length=%d, "
             "t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, "
-            "max_retx_thresh=%d, t_reassembly=%d, t_status_prohibit=%di, tx_queue_length=%d",
+            "max_retx_thresh=%d, t_reassembly=%d, t_status_prohibit=%d, tx_queue_length=%d",
             to_number(cfg.am_nr.tx_sn_field_length),
             to_number(cfg.am_nr.rx_sn_field_length),
             cfg.am_nr.t_poll_retx,
