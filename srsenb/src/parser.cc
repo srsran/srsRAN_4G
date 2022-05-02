@@ -109,7 +109,7 @@ int parser::section::parse(Setting& root)
       *enabled_value = false;
       return 0;
     } else {
-      std::cerr << "Error in section " << name.c_str() << ". " << ex.getPath() << " not found." << std::endl;
+      std::cerr << "Error section " << name.c_str() << " not found." << std::endl;
       return -1;
     }
   }
