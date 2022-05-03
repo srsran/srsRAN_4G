@@ -801,9 +801,9 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                          ? status.ack_sn
                          : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
 
-  if (tx_mod_base_nr(stop_sn) < tx_mod_base_nr(st.tx_next_ack)) {
+  if (tx_mod_base_nr(status.ack_sn) < tx_mod_base_nr(st.tx_next_ack)) {
     RlcInfo(
-        "Received ACK or NACK with SN=%d smaller than TX_NEXT_ACK=%d. Ignoring status report", stop_sn, st.tx_next_ack);
+        "Received ACK with SN=%d smaller than TX_NEXT_ACK=%d. Ignoring status report", status.ack_sn, st.tx_next_ack);
     info_state();
     return;
   }
@@ -1277,9 +1277,9 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
 /*
  * Window helpers
  */
-uint32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
+int32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
 {
-  return (sn - st.tx_next_ack) % mod_nr;
+  return ((int32_t)sn - (int32_t)st.tx_next_ack) % mod_nr;
 }
 
 uint32_t rlc_am_nr_tx::tx_window_size() const
@@ -1290,7 +1290,7 @@ uint32_t rlc_am_nr_tx::tx_window_size() const
 bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
 {
   // TX_Next_Ack <= SN < TX_Next_Ack + AM_Window_Size
-  return tx_mod_base_nr(sn) < tx_window_size();
+  return tx_mod_base_nr(sn) < (int32_t)tx_window_size();
 }
 
 /*
@@ -1870,37 +1870,8 @@ void rlc_am_nr_rx::write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu
 }
 
 /*
- * Window Helpers
+ * Segment Helpers
  */
-uint32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
-{
-  return (sn - st.rx_next) % mod_nr;
-}
-
-uint32_t rlc_am_nr_rx::rx_window_size() const
-{
-  return am_window_size(cfg.rx_sn_field_length);
-}
-
-bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
-{
-  // RX_Next <= SN < RX_Next + AM_Window_Size
-  return rx_mod_base_nr(sn) < rx_window_size();
-}
-
-/*
- * Metrics
- */
-uint32_t rlc_am_nr_rx::get_sdu_rx_latency_ms()
-{
-  return 0;
-}
-
-uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
-{
-  return 0;
-}
-
 void rlc_am_nr_rx::insert_received_segment(rlc_amd_rx_pdu_nr                                   segment,
                                            std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>& segment_list) const
 {
@@ -1938,6 +1909,25 @@ void rlc_am_nr_rx::update_segment_inventory(rlc_amd_rx_sdu_nr_t& rx_sdu) const
 }
 
 /*
+ * Window Helpers
+ */
+int32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
+{
+  return ((int32_t)sn - (int32_t)st.rx_next) % mod_nr;
+}
+
+uint32_t rlc_am_nr_rx::rx_window_size() const
+{
+  return am_window_size(cfg.rx_sn_field_length);
+}
+
+bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
+{
+  // RX_Next <= SN < RX_Next + AM_Window_Size
+  return rx_mod_base_nr(sn) < (int32_t)rx_window_size();
+}
+
+/*
  * Debug Helpers
  */
 void rlc_am_nr_rx::debug_state() const
@@ -1953,5 +1943,18 @@ void rlc_am_nr_rx::debug_window() const
 {
   RlcDebug(
       "RX window state: Rx_Next=%d, Rx_Next_Highest=%d, SDUs %d", st.rx_next, st.rx_next_highest, rx_window->size());
+}
+
+/*
+ * Metrics
+ */
+uint32_t rlc_am_nr_rx::get_sdu_rx_latency_ms()
+{
+  return 0;
+}
+
+uint32_t rlc_am_nr_rx::get_rx_buffered_bytes()
+{
+  return 0;
 }
 } // namespace srsran
