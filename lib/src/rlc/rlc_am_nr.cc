@@ -1176,7 +1176,28 @@ void rlc_am_nr_tx::empty_queue_no_lock()
     unique_byte_buffer_t buf = tx_sdu_queue.read();
   }
 }
-void rlc_am_nr_tx::stop() {}
+
+void rlc_am_nr_tx::stop()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  empty_queue_no_lock();
+
+  if (parent->timers != nullptr && poll_retransmit_timer.is_valid()) {
+    poll_retransmit_timer.stop();
+  }
+
+  st = {};
+
+  sdu_under_segmentation_sn = INVALID_RLC_SN;
+
+  // Drop all messages in TX window
+  tx_window->clear();
+
+  // Drop all messages in RETX queue
+  retx_queue->clear();
+
+  tx_enabled = false;
+}
 
 void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
 {
@@ -1336,7 +1357,25 @@ bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
   return true;
 }
 
-void rlc_am_nr_rx::stop() {}
+void rlc_am_nr_rx::stop()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  if (parent->timers != nullptr && reassembly_timer.is_valid()) {
+    reassembly_timer.stop();
+  }
+
+  if (parent->timers != nullptr && status_prohibit_timer.is_valid()) {
+    status_prohibit_timer.stop();
+  }
+
+  st = {};
+
+  do_status = false;
+
+  // Drop all messages in RX window
+  rx_window->clear();
+}
 
 void rlc_am_nr_rx::reestablish()
 {

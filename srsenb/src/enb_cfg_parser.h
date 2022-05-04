@@ -51,6 +51,8 @@ int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell);
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_cfg_nr_, phy_cfg_t* phy_cfg_);
 int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_);
 int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_);
+bool        is_valid_arfcn(uint32_t band, uint32_t dl_arfcn);
+std::string valid_arfcns_to_string(uint32_t band);
 
 } // namespace enb_conf_sections
 

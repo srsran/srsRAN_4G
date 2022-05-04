@@ -235,8 +235,8 @@ public:
 
   void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) final;
 
-  void stop();
-  void reestablish();
+  void reestablish() final;
+  void stop() final;
 
   // Status PDU
   bool     get_do_status();
