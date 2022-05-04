@@ -2836,6 +2836,76 @@ int rx_nack_range_with_so_test(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
+int out_of_order_status(rlc_am_nr_sn_size_t sn_size)
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  byte_buffer_t pdu_bufs[NBUFS];
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("out of order status report ({} bit SN)", to_number(sn_size));
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+    return -1;
+  }
+  TESTASSERT_EQ(0, rlc1.get_buffer_state());
+
+  basic_test_tx(&rlc1, pdu_bufs, sn_size);
+
+  // Status 1, ACKS SN=2, NACKsStatus is correct
+  rlc_am_nr_status_pdu_t status1(sn_size);
+  status1.ack_sn = 2;
+  {
+    rlc_status_nack_t nack = {};
+    nack.nack_sn           = 3;
+    status1.push_nack(nack);
+  }
+
+  // Status 2, ACKS SN=4, no NACK
+  rlc_am_nr_status_pdu_t status2(sn_size);
+  status2.ack_sn = 3;
+  {
+    rlc_status_nack_t nack = {};
+    nack.nack_sn           = 4;
+    status2.push_nack(nack);
+  }
+
+  // pack into PDU
+  byte_buffer_t status1_pdu;
+  rlc_am_nr_write_status_pdu(status1, sn_size, &status1_pdu);
+
+  // pack into PDU
+  byte_buffer_t status2_pdu;
+  rlc_am_nr_write_status_pdu(status2, sn_size, &status2_pdu);
+
+  // Write status 2 to RLC1
+  rlc1.write_pdu(status2_pdu.msg, status2_pdu.N_bytes);
+
+  // Check TX_NEXT_ACK
+  {
+    rlc_am_nr_tx_state_t st = tx1->get_tx_state();
+    TESTASSERT_EQ(4, st.tx_next_ack);
+    TESTASSERT_EQ(1, tx1->get_tx_window_utilization());
+  }
+  // Write status 2 to RLC1
+  rlc1.write_pdu(status1_pdu.msg, status1_pdu.N_bytes);
+
+  // Check TX_NEXT_ACK
+  {
+    rlc_am_nr_tx_state_t st = tx1->get_tx_state();
+    TESTASSERT_EQ(4, st.tx_next_ack);
+    TESTASSERT_EQ(1, tx1->get_tx_window_utilization());
+  }
+  // Check statistics
+  rlc_bearer_metrics_t metrics1 = rlc1.get_metrics();
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -2883,6 +2953,7 @@ int main()
     TESTASSERT(poll_retx_expiry(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(rx_nack_range_no_so_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(rx_nack_range_with_so_test(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(out_of_order_status(sn_size) == SRSRAN_SUCCESS);
   }
   return SRSRAN_SUCCESS;
 }
