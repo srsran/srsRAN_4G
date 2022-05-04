@@ -136,9 +136,9 @@ private:
   rlc_am*       parent = nullptr;
   rlc_am_nr_rx* rx     = nullptr;
 
-  uint32_t       mod_nr = cardinality(rlc_am_nr_sn_size_t());
-  inline int32_t tx_mod_base_nr(uint32_t sn) const;
-  void           check_sn_reached_max_retx(uint32_t sn);
+  uint32_t        mod_nr = cardinality(rlc_am_nr_sn_size_t());
+  inline uint32_t tx_mod_base_nr(uint32_t sn) const;
+  void            check_sn_reached_max_retx(uint32_t sn);
 
   /****************************************************************************
    * Configurable parameters
@@ -266,7 +266,7 @@ private:
   byte_buffer_pool* pool   = nullptr;
 
   uint32_t mod_nr = cardinality(rlc_am_nr_sn_size_t());
-  int32_t  rx_mod_base_nr(uint32_t sn) const;
+  uint32_t rx_mod_base_nr(uint32_t sn) const;
 
   // RX Window
   std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> > rx_window;

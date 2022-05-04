@@ -772,25 +772,6 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
   rlc_am_nr_read_status_pdu(payload, nof_bytes, cfg.tx_sn_field_length, &status);
   log_rlc_am_nr_status_pdu_to_string(logger.info, "RX status PDU: %s", &status, parent->rb_name);
 
-  /**
-   * Section 5.3.3.3: Reception of a STATUS report
-   * - if the STATUS report comprises a positive or negative acknowledgement for the RLC SDU with sequence
-   *   number equal to POLL_SN:
-   *   - if t-PollRetransmit is running:
-   *     - stop and reset t-PollRetransmit.
-   *
-   */
-  if (tx_mod_base_nr(st.poll_sn) <= tx_mod_base_nr(status.ack_sn)) {
-    if (poll_retransmit_timer.is_running()) {
-      RlcDebug("Received ACK or NACK for POLL_SN=%d. Stopping t-PollRetransmit", st.poll_sn);
-      poll_retransmit_timer.stop();
-    } else {
-      RlcDebug("Received ACK or NACK for POLL_SN=%d. t-PollRetransmit already stopped", st.poll_sn);
-    }
-  } else {
-    RlcDebug("POLL_SN=%d > ACK_SN=%d. Not stopping t-PollRetransmit ", st.poll_sn, status.ack_sn);
-  }
-
   /*
    * - if the SN of the corresponding RLC SDU falls within the range
    *   TX_Next_Ack <= SN < = the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer:
@@ -801,16 +782,40 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
                          ? status.ack_sn
                          : status.nacks[0].nack_sn; // Stop processing ACKs at the first NACK, if it exists.
 
-  if (tx_mod_base_nr(status.ack_sn) < tx_mod_base_nr(st.tx_next_ack)) {
-    RlcInfo(
-        "Received ACK with SN=%d smaller than TX_NEXT_ACK=%d. Ignoring status report", status.ack_sn, st.tx_next_ack);
+  if (not inside_tx_window(status.ack_sn)) {
+    RlcInfo("Received ACK with SN outside of TX_WINDOW, ignoring status report. ACK_SN=%d, TX_NEXT_ACK=%d.",
+            status.ack_sn,
+            st.tx_next_ack);
     info_state();
     return;
   }
   if (tx_mod_base_nr(stop_sn) > tx_mod_base_nr(st.tx_next)) {
-    RlcInfo("Received ACK or NACK with SN=%d larger than TX_NEXT=%d. Ignoring status report", stop_sn, st.tx_next);
+    RlcWarning(
+        "Received ACK or NACK with SN larger than TX_NEXT, ignoring status report.  SN=%d, TX_NEXT_ACK=%d, TX_NEXT=%d",
+        stop_sn,
+        st.tx_next_ack,
+        st.tx_next);
     info_state();
     return;
+  }
+
+  /**
+   * Section 5.3.3.3: Reception of a STATUS report
+   * - if the STATUS report comprises a positive or negative acknowledgement for the RLC SDU with sequence
+   *   number equal to POLL_SN:
+   *   - if t-PollRetransmit is running:
+   *     - stop and reset t-PollRetransmit.
+   *
+   */
+  if (tx_mod_base_nr(st.poll_sn) <= tx_mod_base_nr(stop_sn)) {
+    if (poll_retransmit_timer.is_running()) {
+      RlcDebug("Received ACK or NACK for POLL_SN=%d. Stopping t-PollRetransmit", st.poll_sn);
+      poll_retransmit_timer.stop();
+    } else {
+      RlcDebug("Received ACK or NACK for POLL_SN=%d. t-PollRetransmit already stopped", st.poll_sn);
+    }
+  } else {
+    RlcDebug("POLL_SN=%d > ACK_SN=%d. Not stopping t-PollRetransmit ", st.poll_sn, status.ack_sn);
   }
 
   // Process ACKs
@@ -1277,9 +1282,9 @@ void rlc_am_nr_tx::timer_expired(uint32_t timeout_id)
 /*
  * Window helpers
  */
-int32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
+uint32_t rlc_am_nr_tx::tx_mod_base_nr(uint32_t sn) const
 {
-  return ((int32_t)sn - (int32_t)st.tx_next_ack) % mod_nr;
+  return (sn - st.tx_next_ack) % mod_nr;
 }
 
 uint32_t rlc_am_nr_tx::tx_window_size() const
@@ -1290,7 +1295,7 @@ uint32_t rlc_am_nr_tx::tx_window_size() const
 bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
 {
   // TX_Next_Ack <= SN < TX_Next_Ack + AM_Window_Size
-  return tx_mod_base_nr(sn) < (int32_t)tx_window_size();
+  return tx_mod_base_nr(sn) < tx_window_size();
 }
 
 /*
@@ -1911,9 +1916,9 @@ void rlc_am_nr_rx::update_segment_inventory(rlc_amd_rx_sdu_nr_t& rx_sdu) const
 /*
  * Window Helpers
  */
-int32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
+uint32_t rlc_am_nr_rx::rx_mod_base_nr(uint32_t sn) const
 {
-  return ((int32_t)sn - (int32_t)st.rx_next) % mod_nr;
+  return (sn - st.rx_next) % mod_nr;
 }
 
 uint32_t rlc_am_nr_rx::rx_window_size() const
@@ -1924,7 +1929,7 @@ uint32_t rlc_am_nr_rx::rx_window_size() const
 bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
 {
   // RX_Next <= SN < RX_Next + AM_Window_Size
-  return rx_mod_base_nr(sn) < (int32_t)rx_window_size();
+  return rx_mod_base_nr(sn) < rx_window_size();
 }
 
 /*
