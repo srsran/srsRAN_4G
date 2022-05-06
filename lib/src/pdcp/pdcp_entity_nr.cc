@@ -92,8 +92,9 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
   // Log SDU
   logger.info(sdu->msg,
               sdu->N_bytes,
-              "TX %s SDU, integrity=%s, encryption=%s",
+              "TX %s SDU (%dB), integrity=%s, encryption=%s",
               rb_name.c_str(),
+              sdu->N_bytes,
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
 
@@ -130,7 +131,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
   write_data_header(sdu, tx_next);
 
   // Append MAC-I
-  if (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX)) {
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     append_mac(sdu, mac);
   }
   // Set meta-data for RLC AM
@@ -138,8 +139,9 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
 
   logger.info(sdu->msg,
               sdu->N_bytes,
-              "TX %s PDU, HFN=%d, SN=%d, integrity=%s, encryption=%s",
+              "TX %s PDU (%dB), HFN=%d, SN=%d, integrity=%s, encryption=%s",
               rb_name.c_str(),
+              sdu->N_bytes,
               HFN(tx_next),
               SN(tx_next),
               srsran_direction_text[integrity_direction],
