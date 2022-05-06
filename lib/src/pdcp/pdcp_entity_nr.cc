@@ -121,7 +121,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
 
   // Integrity protection
   uint8_t mac[4] = {};
-  if (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX)) {
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
   }
   // Ciphering
