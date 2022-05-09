@@ -19,8 +19,8 @@
 
 namespace srsran {
 
-const uint32_t INVALID_RLC_SN              = 0xFFFFFFFF;
-const uint32_t RETX_COUNT_NOT_STARTED      = 0xFFFFFFFF;
+const uint32_t INVALID_RLC_SN         = 0xFFFFFFFF;
+const uint32_t RETX_COUNT_NOT_STARTED = 0xFFFFFFFF;
 
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {
@@ -97,7 +97,7 @@ private:
   /// Stores the current packed size; sync on each change of nacks_
   uint32_t packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
 
-  void refresh_packed_size();
+  void     refresh_packed_size();
   uint32_t nack_size(const rlc_status_nack_t& nack) const;
 
 public:
