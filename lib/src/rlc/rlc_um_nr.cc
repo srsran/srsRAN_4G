@@ -81,7 +81,7 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::get_buffer_state()
   std::lock_guard<std::mutex> lock(mutex);
 
   // Bytes needed for tx SDUs
-  uint32_t n_sdus  = tx_sdu_queue.size();
+  uint32_t n_sdus  = tx_sdu_queue.get_n_sdus();
   uint32_t n_bytes = tx_sdu_queue.size_bytes();
   if (tx_sdu) {
     n_sdus++;
@@ -101,7 +101,6 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::get_buffer_state()
   if (bsr_callback) {
     bsr_callback(parent->get_lcid(), n_bytes, 0);
   }
-
   return n_bytes;
 }
 
@@ -147,7 +146,12 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8
   // Select segmentation information and header size
   if (tx_sdu == nullptr) {
     // Read a new SDU
-    tx_sdu  = tx_sdu_queue.read();
+    do {
+      tx_sdu = tx_sdu_queue.read();
+    } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
+    if (tx_sdu == nullptr) {
+      return 0;
+    }
     next_so = 0;
 
     // Check for full SDU case
