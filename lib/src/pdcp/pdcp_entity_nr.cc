@@ -73,6 +73,11 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
               cfg.t_reordering,
               rlc_mode == rlc_mode_t::UM ? "UM" : "AM",
               to_string(cfg.rat));
+
+  // disable discard timer if using UM
+  if (rlc_mode == rlc_mode_t::UM) {
+    cfg.discard_timer = pdcp_discard_timer_t::infinity;
+  }
   return true;
 }
 
