@@ -26,7 +26,6 @@
 #include <map>
 
 namespace srsran {
-
 /****************************************************************************
  * NR PDCP Entity
  * PDCP entity for 5G NR
@@ -104,6 +103,11 @@ private:
   // COUNT overflow protection
   bool tx_overflow = false;
   bool rx_overflow = false;
+
+  enum class rlc_mode_t {
+    UM,
+    AM,
+  } rlc_mode;
 };
 
 /*

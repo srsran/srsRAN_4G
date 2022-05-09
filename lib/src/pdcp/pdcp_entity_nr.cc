@@ -56,6 +56,8 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
   rb_name     = cfg.get_rb_name();
   window_size = 1 << (cfg.sn_len - 1);
 
+  rlc_mode = rlc->rb_is_um(lcid) ? rlc_mode_t::UM : rlc_mode_t::AM;
+
   // Timers
   reordering_timer = task_sched.get_unique_timer();
 
@@ -64,11 +66,12 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
     reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
   }
   active = true;
-  logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RAT=%s",
+  logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RLC=%s, RAT=%s",
               rb_name,
               cfg.sn_len,
               cfg.discard_timer,
               cfg.t_reordering,
+              rlc_mode == rlc_mode_t::UM ? "UM" : "AM",
               to_string(cfg.rat));
   return true;
 }
