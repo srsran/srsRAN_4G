@@ -2726,7 +2726,7 @@ int rx_nack_range_no_so_test(rlc_am_nr_sn_size_t sn_size)
 
   // Deliver dummy status report with nack range betwen PDU 6 and 10.
   rlc_am_nr_status_pdu_t status(sn_size);
-  status.ack_sn          = 16;
+  status.ack_sn          = 5;
   rlc_status_nack_t nack = {};
   nack.nack_sn           = 1;
   nack.has_nack_range    = true;
@@ -2818,7 +2818,7 @@ int rx_nack_range_with_so_test(rlc_am_nr_sn_size_t sn_size)
 
   // Deliver dummy status report with nack range betwen PDU 6 and 10.
   rlc_am_nr_status_pdu_t status(sn_size);
-  status.ack_sn = 16;
+  status.ack_sn = 5;
 
   rlc_status_nack_t nack = {};
   nack.nack_sn           = 1;
