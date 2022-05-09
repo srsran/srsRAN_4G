@@ -2726,7 +2726,7 @@ int rx_nack_range_no_so_test(rlc_am_nr_sn_size_t sn_size)
 
   // Deliver dummy status report with nack range betwen PDU 6 and 10.
   rlc_am_nr_status_pdu_t status(sn_size);
-
+  status.ack_sn          = 16;
   rlc_status_nack_t nack = {};
   nack.nack_sn           = 1;
   nack.has_nack_range    = true;
@@ -2818,6 +2818,7 @@ int rx_nack_range_with_so_test(rlc_am_nr_sn_size_t sn_size)
 
   // Deliver dummy status report with nack range betwen PDU 6 and 10.
   rlc_am_nr_status_pdu_t status(sn_size);
+  status.ack_sn = 16;
 
   rlc_status_nack_t nack = {};
   nack.nack_sn           = 1;
@@ -2856,21 +2857,21 @@ int out_of_order_status(rlc_am_nr_sn_size_t sn_size)
 
   basic_test_tx(&rlc1, pdu_bufs, sn_size);
 
-  // Status 1, ACKS SN=2, NACKsStatus is correct
+  // Status 1, ACK SN=2, NACK_SN = 1
   rlc_am_nr_status_pdu_t status1(sn_size);
   status1.ack_sn = 2;
   {
     rlc_status_nack_t nack = {};
-    nack.nack_sn           = 3;
+    nack.nack_sn           = 1;
     status1.push_nack(nack);
   }
 
-  // Status 2, ACKS SN=4, no NACK
+  // Status 2, ACK SN=5, NACK SN = 3
   rlc_am_nr_status_pdu_t status2(sn_size);
-  status2.ack_sn = 3;
+  status2.ack_sn = 5;
   {
     rlc_status_nack_t nack = {};
-    nack.nack_sn           = 4;
+    nack.nack_sn           = 3;
     status2.push_nack(nack);
   }
 
@@ -2888,17 +2889,17 @@ int out_of_order_status(rlc_am_nr_sn_size_t sn_size)
   // Check TX_NEXT_ACK
   {
     rlc_am_nr_tx_state_t st = tx1->get_tx_state();
-    TESTASSERT_EQ(4, st.tx_next_ack);
-    TESTASSERT_EQ(1, tx1->get_tx_window_utilization());
+    TESTASSERT_EQ(3, st.tx_next_ack);                   // SN=3 was nacked on status report 2
+    TESTASSERT_EQ(2, tx1->get_tx_window_utilization()); // 2 PDUs still in TX_WINDOW
   }
-  // Write status 2 to RLC1
+  // Write status 1 to RLC1
   rlc1.write_pdu(status1_pdu.msg, status1_pdu.N_bytes);
 
   // Check TX_NEXT_ACK
   {
     rlc_am_nr_tx_state_t st = tx1->get_tx_state();
-    TESTASSERT_EQ(4, st.tx_next_ack);
-    TESTASSERT_EQ(1, tx1->get_tx_window_utilization());
+    TESTASSERT_EQ(3, st.tx_next_ack);
+    TESTASSERT_EQ(2, tx1->get_tx_window_utilization());
   }
   // Check statistics
   rlc_bearer_metrics_t metrics1 = rlc1.get_metrics();
