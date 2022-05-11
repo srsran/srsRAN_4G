@@ -180,6 +180,7 @@ public:
   void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }   // This should only be used for testing.
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                 // This should only be used for testing.
   uint32_t get_tx_window_utilization() { return tx_window->size(); } // This should only be used for testing.
+  size_t get_retx_queue_size() const { return retx_queue->size(); } // This should only be used for testing.
 
   // Debug Helpers
   void debug_state() const;
