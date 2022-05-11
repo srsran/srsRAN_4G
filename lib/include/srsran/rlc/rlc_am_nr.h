@@ -154,7 +154,7 @@ private:
   std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window;
 
   // Queues, buffers and container
-  std::unique_ptr<pdu_retx_queue_base<rlc_amd_retx_nr_t> > retx_queue;
+  pdu_retx_queue_list<rlc_amd_retx_nr_t> retx_queue;
   uint32_t         sdu_under_segmentation_sn = INVALID_RLC_SN; // SN of the SDU currently being segmented.
   pdcp_sn_vector_t notify_info_vec;
 
@@ -180,7 +180,7 @@ public:
   void set_tx_state(const rlc_am_nr_tx_state_t& st_) { st = st_; }   // This should only be used for testing.
   rlc_am_nr_tx_state_t get_tx_state() { return st; }                 // This should only be used for testing.
   uint32_t get_tx_window_utilization() { return tx_window->size(); } // This should only be used for testing.
-  size_t get_retx_queue_size() const { return retx_queue->size(); } // This should only be used for testing.
+  size_t   get_retx_queue_size() const { return retx_queue.size(); } // This should only be used for testing.
 
   // Debug Helpers
   void debug_state() const;
