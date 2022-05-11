@@ -125,6 +125,12 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_
         default:
           break;
       }
+      rlc_cfg.am_nr.t_poll_retx       = asn1_type.am().ul_am_rlc.t_poll_retx.to_number();
+      rlc_cfg.am_nr.poll_pdu          = asn1_type.am().ul_am_rlc.poll_pdu.to_number();
+      rlc_cfg.am_nr.poll_byte         = asn1_type.am().ul_am_rlc.poll_byte.to_number();
+      rlc_cfg.am_nr.max_retx_thresh   = asn1_type.am().ul_am_rlc.max_retx_thres.to_number();
+      rlc_cfg.am_nr.t_reassembly      = asn1_type.am().dl_am_rlc.t_reassembly.to_number();
+      rlc_cfg.am_nr.t_status_prohibit = asn1_type.am().dl_am_rlc.t_status_prohibit.to_number();
       break;
     case rlc_cfg_c::types_opts::um_bi_dir:
       rlc_cfg                       = rlc_config_t::default_rlc_um_nr_config();
@@ -148,6 +154,7 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_
         default:
           break;
       }
+      rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.to_number();
       break;
     case rlc_cfg_c::types_opts::um_uni_dir_dl:
       asn1::log_warning("NR RLC type %s is not supported", asn1_type.type().to_string());
