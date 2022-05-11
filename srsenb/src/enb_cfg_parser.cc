@@ -644,7 +644,7 @@ int field_5g_srb::parse(libconfig::Setting& root)
     cfg.present = true;
   }
 
-  // RLC-UM Should not exist section
+  // RLC-UM must not exist in this section
   if (root.exists("ul_um") || root.exists("dl_um")) {
     ERROR("Error SRBs must be AM.");
     return SRSRAN_ERROR;

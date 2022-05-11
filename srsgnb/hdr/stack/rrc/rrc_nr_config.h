@@ -46,8 +46,7 @@ struct rrc_cell_cfg_nr_t {
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
 
 struct srb_5g_cfg_t {
-  int                     enb_dl_max_retx_thres = -1;
-  bool                    present               = false;
+  bool                    present = false;
   asn1::rrc_nr::rlc_cfg_c rlc_cfg;
 };
 
