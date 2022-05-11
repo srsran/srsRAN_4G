@@ -170,7 +170,7 @@ uint32_t rlc_am::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   uint32_t read_bytes = tx_base->read_pdu(payload, nof_bytes);
 
   std::lock_guard<std::mutex> lock(metrics_mutex);
-  metrics.num_tx_pdus++;
+  metrics.num_tx_pdus += read_bytes > 0 ? 1 : 0;
   metrics.num_tx_pdu_bytes += read_bytes;
   return read_bytes;
 }
