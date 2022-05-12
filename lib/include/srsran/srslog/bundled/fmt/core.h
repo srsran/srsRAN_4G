@@ -8,7 +8,8 @@
 #ifndef FMT_CORE_H_
 #define FMT_CORE_H_
 
-#include <cstdio>  // std::FILE
+#include <array>
+#include <cstdio> // std::FILE
 #include <cstring>
 #include <functional>
 #include <iterator>
