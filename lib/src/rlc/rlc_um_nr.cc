@@ -150,7 +150,7 @@ uint32_t rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8
       tx_sdu = tx_sdu_queue.read();
     } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
     if (tx_sdu == nullptr) {
-      RlcInfo("Cannot build any PDU: tx_sdu_queue has no non-null SDU.");
+      RlcDebug("Cannot build any PDU, tx_sdu_queue has no non-null SDU.");
       return 0;
     }
     next_so = 0;
