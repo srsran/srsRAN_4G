@@ -202,7 +202,11 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   if (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX)) {
     bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
     if (!is_valid) {
+      logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rb_name.c_str());
+      rrc->notify_pdcp_integrity_error(lcid);
       return; // Invalid packet, drop.
+    } else {
+      logger.debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
     }
   }
 

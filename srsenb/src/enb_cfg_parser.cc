@@ -743,15 +743,6 @@ int field_five_qi::parse(libconfig::Setting& root)
     asn1::rrc_nr::pdcp_cfg_s::drb_s_* drb_cfg = &pdcp_cfg->drb;
     pdcp_cfg->drb_present                     = true;
 
-    // Discard timer
-    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_e_> discard_timer("discard_timer",
-                                                                                             &drb_cfg->discard_timer);
-    if (discard_timer.parse(drb) == -1) {
-      drb_cfg->discard_timer_present = false;
-    } else {
-      drb_cfg->discard_timer_present = true;
-    }
-
     // PDCP SN size UL
     field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_e_> pdcp_sn_size_ul(
         "pdcp_sn_size_ul", &drb_cfg->pdcp_sn_size_ul);
@@ -768,6 +759,15 @@ int field_five_qi::parse(libconfig::Setting& root)
       drb_cfg->pdcp_sn_size_dl_present = false;
     } else {
       drb_cfg->pdcp_sn_size_dl_present = true;
+    }
+
+    // Discard timer
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_e_> discard_timer("discard_timer",
+                                                                                             &drb_cfg->discard_timer);
+    if (discard_timer.parse(drb) == -1) {
+      drb_cfg->discard_timer_present = false;
+    } else {
+      drb_cfg->discard_timer_present = true;
     }
 
     parser::field<bool> status_report_required("status_report_required", &drb_cfg->status_report_required_present);

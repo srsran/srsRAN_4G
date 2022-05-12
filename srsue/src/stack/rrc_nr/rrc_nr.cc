@@ -1995,6 +1995,7 @@ bool rrc_nr::apply_drb_release(const uint8_t drb)
 
 bool rrc_nr::apply_srb_add_mod(const srb_to_add_mod_s& srb_cfg)
 {
+  logger.debug("Applying SRB Add/Mod to SRB%d", srb_cfg.srb_id);
   if (srb_cfg.pdcp_cfg_present) {
     logger.error("Cannot add SRB - only default configuration supported.");
     return false;
@@ -2008,6 +2009,7 @@ bool rrc_nr::apply_srb_add_mod(const srb_to_add_mod_s& srb_cfg)
 
 bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 {
+  logger.debug("Applying DRB Add/Mod to DRB%d", drb_cfg.drb_id);
   if (!drb_cfg.pdcp_cfg_present) {
     logger.error("Cannot add DRB - incomplete configuration");
     return false;
@@ -2071,14 +2073,25 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
                    drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number());
   }
 
+  if (not security_is_activated) {
+    logger.error("Trying to setup DRB%d, but security is not activated", drb_cfg.drb_id);
+    return false;
+  }
   srsran::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
 
+  // Use already configured sec config, if no other sec config present in the RadioBearerConfig
+  pdcp->config_security(lcid, sec_cfg);
+  pdcp->enable_encryption(lcid, DIRECTION_TXRX);
+  if (drb_cfg.pdcp_cfg.drb.integrity_protection_present) {
+    pdcp->enable_integrity(lcid, DIRECTION_TXRX);
+  }
   return true;
 }
 
 bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 {
+  logger.debug("Applying Security config");
   if (security_cfg.key_to_use_present) {
     if (security_cfg.key_to_use.value != security_cfg_s::key_to_use_opts::options::secondary) {
       logger.warning("Only secondary key supported yet");
@@ -2149,6 +2162,8 @@ bool rrc_nr::apply_radio_bearer_cfg(const radio_bearer_cfg_s& radio_bearer_cfg)
     if (apply_security_cfg(radio_bearer_cfg.security_cfg) == false) {
       return false;
     }
+  } else {
+    logger.debug("No Security Config Present");
   }
   return true;
 }

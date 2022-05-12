@@ -1392,7 +1392,7 @@ int rrc_nr::ue::update_pdcp_bearers(const asn1::rrc_nr::radio_bearer_cfg_s& radi
     parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
 
     if (sec_ctx.is_as_sec_cfg_valid()) {
-      update_as_security(rlc_bearer->lc_ch_id, false, false);
+      update_as_security(rlc_bearer->lc_ch_id, drb.pdcp_cfg.drb.integrity_protection_present, true);
     }
   }
 

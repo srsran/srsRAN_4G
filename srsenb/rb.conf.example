@@ -134,9 +134,11 @@ five_qi_config = (
   five_qi = 7;
   pdcp_nr_config = {
     drb = {
-      discard_timer = 50;
       pdcp_sn_size_ul = 18;
       pdcp_sn_size_dl = 18;
+      discard_timer = 50;
+      integrity_protection = false;
+      status_report = false;
     };
     t_reordering = 50;
   };
@@ -156,9 +158,11 @@ five_qi_config = (
   five_qi = 9;
   pdcp_nr_config = {
     drb = {
-      discard_timer = 50;
       pdcp_sn_size_ul = 18;
       pdcp_sn_size_dl = 18;
+      discard_timer = 50;
+      integrity_protection = false;
+      status_report = false;
     };
     t_reordering = 50;
   };
