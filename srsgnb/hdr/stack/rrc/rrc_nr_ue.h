@@ -187,6 +187,7 @@ private:
   sched_nr_interface::ue_cfg_t uecfg{};
 
   const uint32_t drb1_lcid = 4;
+  uint32_t       drb1_five_qi = 0; /// selected by 5GC
 
   // Security helper
   srsgnb::nr_security_context sec_ctx;

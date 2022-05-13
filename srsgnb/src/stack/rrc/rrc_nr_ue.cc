@@ -925,6 +925,7 @@ void rrc_nr::ue::handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_rees
 
   // Reestablish E-RABs of old rnti later, during ConnectionReconfiguration
   // bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
+  drb1_five_qi = old_ue->drb1_five_qi;
 
   // remove old RNTI
   old_ue->deactivate_bearers();
@@ -1270,6 +1271,7 @@ void rrc_nr::ue::handle_rrc_reestablishment_complete(const asn1::rrc_nr::rrc_ree
   for (const auto& drb : next_radio_bearer_cfg.drb_to_add_mod_list) {
     uint16_t lcid = drb1_lcid;
     parent->bearer_mapper->add_eps_bearer(rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid);
+    parent->bearer_mapper->set_five_qi(rnti, lcid - 3, drb1_five_qi);
 
     logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
   }
@@ -1361,6 +1363,9 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t                pdu_session_id,
   parent->bearer_mapper->add_eps_bearer(
       rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid); // TODO: configurable bearer id <-> lcid mapping
   parent->bearer_mapper->set_five_qi(rnti, lcid - 3, five_qi);
+
+  // store 5QI for possible reestablishment of DRB
+  drb1_five_qi = five_qi;
 
   logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
 }
