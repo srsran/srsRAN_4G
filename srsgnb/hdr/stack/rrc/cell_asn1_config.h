@@ -44,11 +44,11 @@ bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
                                    asn1::rrc_nr::radio_bearer_cfg_s&       diff);
 
 /// Apply radioBearerConfig updates to CellGroupConfig
-void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
-                                          uint32_t                                rnti,
-                                          const enb_bearer_manager&               bearer_mapper,
-                                          const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
-                                          asn1::rrc_nr::cell_group_cfg_s&         out);
+int fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
+                                         uint32_t                                rnti,
+                                         const enb_bearer_manager&               bearer_mapper,
+                                         const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
+                                         asn1::rrc_nr::cell_group_cfg_s&         out);
 
 } // namespace srsenb
 
