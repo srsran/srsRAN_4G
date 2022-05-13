@@ -332,6 +332,9 @@ public:
     constexpr static void (Derived::*react_fn)(SrcState&, const Event&) = ReactFn;
     constexpr static bool (Derived::*guard_fn)(SrcState&, const Event&) = GuardFn;
 
+    // ignore warning "never nullptr" for template specialization w/wo defaults for ReactFn or GuardFn
+    _Pragma("GCC diagnostic push");                  // save current diagnostic config
+    _Pragma("GCC diagnostic ignored \"-Waddress\""); // ignore -Waddress
     static bool react(derived_view* f, src_state_t& s, const event_t& ev)
     {
       if (guard_fn == nullptr or (f->*guard_fn)(s, ev)) {
@@ -342,6 +345,7 @@ public:
       }
       return false;
     }
+    _Pragma("GCC diagnostic pop"); // restore diagnostic config
 
     template <typename SrcState2, typename Event2>
     using is_match = std::is_same<type_list<SrcState2, Event2>, type_list<src_state_t, event_t> >;
@@ -363,6 +367,9 @@ public:
     constexpr static void (Derived::*react_fn)(const Event&) = ReactFn;
     constexpr static bool (Derived::*guard_fn)(const Event&) = GuardFn;
 
+    // ignore warning "never nullptr" for template specialization w/wo defaults for ReactFn or GuardFn
+    _Pragma("GCC diagnostic push");                  // save current diagnostic config
+    _Pragma("GCC diagnostic ignored \"-Waddress\""); // ignore -Waddress
     template <typename SrcState>
     static bool react(derived_view* f, SrcState& s, const event_t& ev)
     {
@@ -374,6 +381,7 @@ public:
       }
       return false;
     }
+    _Pragma("GCC diagnostic pop"); // restore diagnostic config
 
     template <typename SrcState2, typename Event2>
     using is_match = std::is_same<Event2, event_t>;
