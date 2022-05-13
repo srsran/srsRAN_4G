@@ -119,16 +119,22 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
 
   // Perform header compression TODO
 
-  // Integrity protection
+  // Write PDCP header info
+  write_data_header(sdu, tx_next);
+
+  // TS 38.323, section 5.9: Integrity protection
+  // The data unit that is integrity protected is the PDU header
+  // and the data part of the PDU before ciphering.
   uint8_t mac[4] = {};
   if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
   }
-  // Ciphering
-  cipher_encrypt(sdu->msg, sdu->N_bytes, tx_next, sdu->msg);
 
-  // Write PDCP header info
-  write_data_header(sdu, tx_next);
+  // TS 38.323, section 5.8: Ciphering
+  // The data unit that is ciphered is the MAC-I and the
+  // data part of the PDCP Data PDU except the
+  // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+  cipher_encrypt(sdu->msg, sdu->N_bytes, tx_next, sdu->msg);
 
   // Append MAC-I
   if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
