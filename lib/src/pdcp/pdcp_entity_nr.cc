@@ -180,11 +180,11 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Extract RCVD_SN from header
   uint32_t rcvd_sn = read_data_header(pdu);
-  discard_data_header(pdu); // TODO: Check wheather the header is part of integrity check.
 
-  // Extract MAC
+  // Extract MAC-I
+  // Allways extract from SRBs, only extract from DRBs if integrity is enabled
   uint8_t mac[4] = {};
-  if (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX)) {
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     extract_mac(pdu, mac);
   }
 
@@ -201,11 +201,16 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   logger.debug("RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
 
-  // Decripting
+  // TS 38.323, section 5.8: Deciphering
+  // The data unit that is ciphered is the MAC-I and the
+  // data part of the PDCP Data PDU except the
+  // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
   cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
 
-  // Integrity check
-  if (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX)) {
+  // TS 38.323, section 5.9: Integrity verification
+  // The data unit that is integrity protected is the PDU header
+  // and the data part of the PDU before ciphering.
+  if (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX) {
     bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
     if (!is_valid) {
       logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rb_name.c_str());
@@ -215,6 +220,9 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
       logger.debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
     }
   }
+
+  // After checking the integrity, we can discard the header.
+  discard_data_header(pdu);
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv) {
