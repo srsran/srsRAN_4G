@@ -251,6 +251,11 @@ bool ngap::ue::send_ue_context_release_request(asn1::ngap::cause_c cause)
     return false;
   }
 
+  if (not ctxt.amf_ue_ngap_id.has_value()) {
+    logger.warning("Can't send release request. User 0x%x has no AMF UE Id.", ctxt.rnti);
+    return false;
+  }
+
   if (was_ue_context_release_requested()) {
     // let timeout auto-remove user.
     return false;
