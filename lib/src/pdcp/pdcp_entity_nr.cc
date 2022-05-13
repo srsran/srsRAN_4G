@@ -129,17 +129,20 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
   if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
   }
+  // Append MAC-I
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    append_mac(sdu, mac);
+  }
 
   // TS 38.323, section 5.8: Ciphering
   // The data unit that is ciphered is the MAC-I and the
   // data part of the PDCP Data PDU except the
   // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
-  cipher_encrypt(sdu->msg, sdu->N_bytes, tx_next, sdu->msg);
-
-  // Append MAC-I
-  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
-    append_mac(sdu, mac);
+  if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
+    cipher_encrypt(
+        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_next, &sdu->msg[cfg.hdr_len_bytes]);
   }
+
   // Set meta-data for RLC AM
   sdu->md.pdcp_sn = tx_next;
 
@@ -181,13 +184,6 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // Extract RCVD_SN from header
   uint32_t rcvd_sn = read_data_header(pdu);
 
-  // Extract MAC-I
-  // Allways extract from SRBs, only extract from DRBs if integrity is enabled
-  uint8_t mac[4] = {};
-  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
-    extract_mac(pdu, mac);
-  }
-
   // Calculate RCVD_COUNT
   uint32_t rcvd_hfn, rcvd_count;
   if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
@@ -205,8 +201,17 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // The data unit that is ciphered is the MAC-I and the
   // data part of the PDCP Data PDU except the
   // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
-  cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
+  if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
+    cipher_decrypt(
+        &pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, rcvd_count, &pdu->msg[cfg.hdr_len_bytes]);
+  }
 
+  // Extract MAC-I
+  // Allways extract from SRBs, only extract from DRBs if integrity is enabled
+  uint8_t mac[4] = {};
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    extract_mac(pdu, mac);
+  }
   // TS 38.323, section 5.9: Integrity verification
   // The data unit that is integrity protected is the PDU header
   // and the data part of the PDU before ciphering.
