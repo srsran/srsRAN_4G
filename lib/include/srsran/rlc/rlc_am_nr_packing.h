@@ -28,8 +28,8 @@
 
 namespace srsran {
 
-const uint32_t INVALID_RLC_SN              = 0xFFFFFFFF;
-const uint32_t RETX_COUNT_NOT_STARTED      = 0xFFFFFFFF;
+const uint32_t INVALID_RLC_SN         = 0xFFFFFFFF;
+const uint32_t RETX_COUNT_NOT_STARTED = 0xFFFFFFFF;
 
 ///< AM NR PDU header
 struct rlc_am_nr_pdu_header_t {
@@ -99,12 +99,14 @@ class rlc_am_nr_status_pdu_t
 private:
   /// Stored SN size required to compute the packed size
   rlc_am_nr_sn_size_t sn_size = rlc_am_nr_sn_size_t::nulltype;
+  /// Stored modulus to determine continuous sequences across SN overflows
+  uint32_t mod_nr = cardinality(rlc_am_nr_sn_size_t::nulltype);
   /// Internal NACK container; keep in sync with packed_size_
   std::vector<rlc_status_nack_t> nacks_ = {};
   /// Stores the current packed size; sync on each change of nacks_
   uint32_t packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
 
-  void refresh_packed_size();
+  void     refresh_packed_size();
   uint32_t nack_size(const rlc_status_nack_t& nack) const;
 
 public:
@@ -118,8 +120,9 @@ public:
   const uint32_t& packed_size = packed_size_;
 
   rlc_am_nr_status_pdu_t(rlc_am_nr_sn_size_t sn_size);
-  void                                  reset();
-  void                                  push_nack(const rlc_status_nack_t& nack);
+  void reset();
+  bool is_continuous_sequence(const rlc_status_nack_t& left, const rlc_status_nack_t& right) const;
+  void push_nack(const rlc_status_nack_t& nack);
   const std::vector<rlc_status_nack_t>& get_nacks() const { return nacks_; }
   uint32_t                              get_packed_size() const { return packed_size; }
   bool                                  trim(uint32_t max_packed_size);

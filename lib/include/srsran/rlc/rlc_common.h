@@ -174,6 +174,8 @@ public:
 
 // NACK helper (for LTE and NR)
 struct rlc_status_nack_t {
+  const static uint16_t so_end_of_sdu = 0xFFFF;
+
   uint32_t nack_sn;        // Sequence Number (SN) of first missing SDU
   bool     has_so;         // NACKs continuous sequence of bytes [so_start..so_end]
   uint16_t so_start;       // First missing byte in SDU with SN=nack_sn
@@ -190,6 +192,15 @@ struct rlc_status_nack_t {
     has_nack_range = false;
     nack_range     = 0;
   }
+
+  bool equals(const rlc_status_nack_t& other) const
+  {
+    return nack_sn == other.nack_sn && has_so == other.has_so && so_start == other.so_start && so_end == other.so_end &&
+           has_nack_range == other.has_nack_range && nack_range == other.nack_range;
+  }
+
+  bool operator==(const rlc_status_nack_t& other) const { return equals(other); }
+  bool operator!=(const rlc_status_nack_t& other) const { return not equals(other); }
 };
 
 // STATUS PDU

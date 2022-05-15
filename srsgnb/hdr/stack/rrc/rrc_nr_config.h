@@ -54,6 +54,11 @@ struct rrc_cell_cfg_nr_t {
 
 typedef std::vector<rrc_cell_cfg_nr_t> rrc_cell_list_nr_t;
 
+struct srb_5g_cfg_t {
+  bool                    present = false;
+  asn1::rrc_nr::rlc_cfg_c rlc_cfg;
+};
+
 struct rrc_nr_cfg_five_qi_t {
   bool                     configured = false;
   asn1::rrc_nr::pdcp_cfg_s pdcp_cfg;
@@ -67,6 +72,9 @@ struct rrc_nr_cfg_t {
   uint16_t           mcc;
   uint16_t           mnc;
   bool               is_standalone;
+
+  srb_5g_cfg_t srb1_cfg;
+  srb_5g_cfg_t srb2_cfg;
 
   std::map<uint32_t, rrc_nr_cfg_five_qi_t> five_qi_cfg;
 

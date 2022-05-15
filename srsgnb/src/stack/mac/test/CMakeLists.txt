@@ -20,7 +20,7 @@
 
 set_directory_properties(PROPERTIES LABELS "sched;nr")
 
-add_library(sched_nr_test_suite sched_nr_common_test.cc sched_nr_ue_ded_test_suite.cc sched_nr_sim_ue.cc)
+add_library(sched_nr_test_suite STATIC sched_nr_common_test.cc sched_nr_ue_ded_test_suite.cc sched_nr_sim_ue.cc)
 target_link_libraries(sched_nr_test_suite srsgnb_mac srsran_common rrc_nr_asn1)
 
 add_executable(sched_nr_parallel_test sched_nr_parallel_test.cc)

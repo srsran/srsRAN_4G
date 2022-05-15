@@ -202,6 +202,18 @@ private:
   std::map<uint32_t, rrc_cfg_qci_t>& cfg;
 };
 
+class field_5g_srb final : public parser::field_itf
+{
+public:
+  explicit field_5g_srb(srb_5g_cfg_t& cfg_) : cfg(cfg_) {}
+  const char* get_name() override { return "field_5g_srb"; }
+
+  int parse(Setting& root) override;
+
+private:
+  srb_5g_cfg_t& cfg;
+};
+
 class field_five_qi final : public parser::field_itf
 {
 public:

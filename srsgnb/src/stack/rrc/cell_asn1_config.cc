@@ -956,19 +956,35 @@ void fill_srb(const rrc_nr_cfg_t& cfg, srsran::nr_srb srb_id, asn1::rrc_nr::rlc_
   out.served_radio_bearer_present      = true;
   out.served_radio_bearer.set_srb_id() = (uint8_t)srb_id;
 
-  out.rlc_cfg_present           = true;
-  auto& ul_am                   = out.rlc_cfg.set_am().ul_am_rlc;
-  ul_am.sn_field_len_present    = true;
-  ul_am.sn_field_len.value      = asn1::rrc_nr::sn_field_len_am_opts::size12;
-  ul_am.t_poll_retx.value       = asn1::rrc_nr::t_poll_retx_opts::ms45;
-  ul_am.poll_pdu.value          = asn1::rrc_nr::poll_pdu_opts::infinity;
-  ul_am.poll_byte.value         = asn1::rrc_nr::poll_byte_opts::infinity;
-  ul_am.max_retx_thres.value    = asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_opts::t8;
-  auto& dl_am                   = out.rlc_cfg.am().dl_am_rlc;
-  dl_am.sn_field_len_present    = true;
-  dl_am.sn_field_len.value      = asn1::rrc_nr::sn_field_len_am_opts::size12;
-  dl_am.t_reassembly.value      = t_reassembly_opts::ms35;
-  dl_am.t_status_prohibit.value = asn1::rrc_nr::t_status_prohibit_opts::ms0;
+  if (srb_id == srsran::nr_srb::srb1) {
+    if (cfg.srb1_cfg.present) {
+      out.rlc_cfg_present = true;
+      out.rlc_cfg         = cfg.srb1_cfg.rlc_cfg;
+    } else {
+      out.rlc_cfg_present = false;
+    }
+  } else if (srb_id == srsran::nr_srb::srb2) {
+    if (cfg.srb2_cfg.present) {
+      out.rlc_cfg_present = true;
+      out.rlc_cfg         = cfg.srb2_cfg.rlc_cfg;
+    } else {
+      out.rlc_cfg_present = false;
+    }
+  } else {
+    out.rlc_cfg_present           = true;
+    auto& ul_am                   = out.rlc_cfg.set_am().ul_am_rlc;
+    ul_am.sn_field_len_present    = true;
+    ul_am.sn_field_len.value      = asn1::rrc_nr::sn_field_len_am_opts::size12;
+    ul_am.t_poll_retx.value       = asn1::rrc_nr::t_poll_retx_opts::ms45;
+    ul_am.poll_pdu.value          = asn1::rrc_nr::poll_pdu_opts::infinity;
+    ul_am.poll_byte.value         = asn1::rrc_nr::poll_byte_opts::infinity;
+    ul_am.max_retx_thres.value    = asn1::rrc_nr::ul_am_rlc_s::max_retx_thres_opts::t8;
+    auto& dl_am                   = out.rlc_cfg.am().dl_am_rlc;
+    dl_am.sn_field_len_present    = true;
+    dl_am.sn_field_len.value      = asn1::rrc_nr::sn_field_len_am_opts::size12;
+    dl_am.t_reassembly.value      = t_reassembly_opts::ms35;
+    dl_am.t_status_prohibit.value = asn1::rrc_nr::t_status_prohibit_opts::ms0;
+  }
 
   // mac-LogicalChannelConfig -- Cond LCH-Setup
   out.mac_lc_ch_cfg_present                    = true;

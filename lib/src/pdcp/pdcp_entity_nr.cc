@@ -73,6 +73,12 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
     reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
   }
   active = true;
+  logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RAT=%s",
+              rb_name,
+              cfg.sn_len,
+              cfg.discard_timer,
+              cfg.t_reordering,
+              to_string(cfg.rat));
   return true;
 }
 

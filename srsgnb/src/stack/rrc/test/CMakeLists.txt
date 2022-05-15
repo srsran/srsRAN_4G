@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_library(rrc_nr_test_helpers rrc_nr_test_helpers.cc)
+add_library(rrc_nr_test_helpers STATIC rrc_nr_test_helpers.cc)
 
 add_executable(rrc_nr_test rrc_nr_test.cc)
 target_link_libraries(rrc_nr_test srsgnb_rrc srsgnb_rrc_config_utils srsran_common rrc_nr_asn1 rrc_nr_test_helpers srsgnb_mac ${ATOMIC_LIBS})

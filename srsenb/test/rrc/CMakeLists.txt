@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_library(test_helpers test_helpers.cc)
+add_library(test_helpers STATIC test_helpers.cc)
 target_link_libraries(test_helpers srsenb_rrc srsenb_common rrc_asn1 rrc_nr_asn1 s1ap_asn1 srsran_common enb_cfg_parser ${LIBCONFIGPP_LIBRARIES})
 
 add_executable(rrc_meascfg_test rrc_meascfg_test.cc)
