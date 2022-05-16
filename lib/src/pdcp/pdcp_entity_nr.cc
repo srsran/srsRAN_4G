@@ -213,7 +213,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 
   // Extract MAC-I
-  // Allways extract from SRBs, only extract from DRBs if integrity is enabled
+  // Always extract from SRBs, only extract from DRBs if integrity is enabled
   uint8_t mac[4] = {};
   if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     extract_mac(pdu, mac);
@@ -258,7 +258,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // TODO if out-of-order configured, submit to upper layer
 
   if (rcvd_count == rx_deliv) {
-    // Deliver to upper layers in ascending order of associeted COUNT
+    // Deliver to upper layers in ascending order of associated COUNT
     deliver_all_consecutive_counts();
   }
 
@@ -289,7 +289,7 @@ void pdcp_entity_nr::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
  * Packing / Unpacking Helpers
  */
 
-// Deliver all consecutivly associated COUNTs.
+// Deliver all consecutively associated COUNTs.
 // Update RX_NEXT after submitting to higher layers
 void pdcp_entity_nr::deliver_all_consecutive_counts()
 {
@@ -323,7 +323,7 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
   parent->logger.info("Reordering timer expired. Re-order queue size=%d", parent->reorder_queue.size());
 
-  // Deliver all PDCP SDU(s) with associeted COUNT value(s) < RX_REORD
+  // Deliver all PDCP SDU(s) with associated COUNT value(s) < RX_REORD
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = parent->reorder_queue.begin();
        it != parent->reorder_queue.end() && it->first < parent->rx_reord;
        parent->reorder_queue.erase(it++)) {
@@ -331,7 +331,7 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
     parent->pass_to_upper_layers(std::move(it->second));
   }
 
-  // Deliver all PDCP SDU(s) consecutivly associeted COUNT value(s) starting from RX_REORD
+  // Deliver all PDCP SDU(s) consecutively associated COUNT value(s) starting from RX_REORD
   parent->deliver_all_consecutive_counts();
 
   if (parent->rx_deliv < parent->rx_next) {
