@@ -49,7 +49,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   }
 
   // Test if the number of RX packets
-  TESTASSERT(gw_rx->rx_count == n_sdus_exp);
+  TESTASSERT_EQ(gw_rx->rx_count, n_sdus_exp);
   srsran::unique_byte_buffer_t sdu_act = srsran::make_byte_buffer();
   gw_rx->get_last_pdu(sdu_act);
   TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
@@ -74,7 +74,9 @@ int test_rx_all(srslog::basic_logger& logger)
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 12)
    */
   {
-    std::vector<uint32_t> test1_counts(2);                     // Test two packets
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("RX COUNT [4095,4096], 12 bit SN");
+    std::vector<uint32_t>       test1_counts(2);               // Test two packets
     std::iota(test1_counts.begin(), test1_counts.end(), 4095); // Starting at COUNT 4095
     std::vector<pdcp_test_event_t> test1_pdus =
         gen_expected_pdus_vector(tst_sdu1, test1_counts, srsran::PDCP_SN_LEN_12, sec_cfg, logger);
@@ -88,7 +90,9 @@ int test_rx_all(srslog::basic_logger& logger)
    * Packet that wraparound should be dropped, so only one packet should be received at the GW.
    */
   {
-    std::vector<uint32_t> test2_counts(2);                           // Test two packets
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("RX COUNT [4294967295,0], 12 bit SN");
+    std::vector<uint32_t>       test2_counts(2);                     // Test two packets
     std::iota(test2_counts.begin(), test2_counts.end(), 4294967295); // Starting at COUNT 4294967295
     std::vector<pdcp_test_event_t> test2_pdus =
         gen_expected_pdus_vector(tst_sdu1, test2_counts, srsran::PDCP_SN_LEN_12, sec_cfg, logger);
@@ -102,7 +106,9 @@ int test_rx_all(srslog::basic_logger& logger)
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 18)
    */
   {
-    std::vector<uint32_t> test3_counts(2);                       // Test two packets
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("RX COUNT [262144,262145], 12 bit SN");
+    std::vector<uint32_t>       test3_counts(2);                 // Test two packets
     std::iota(test3_counts.begin(), test3_counts.end(), 262144); // Starting at COUNT 262144
     std::vector<pdcp_test_event_t> test3_pdus =
         gen_expected_pdus_vector(tst_sdu1, test3_counts, srsran::PDCP_SN_LEN_18, sec_cfg, logger);
@@ -116,7 +122,9 @@ int test_rx_all(srslog::basic_logger& logger)
    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
    */
   {
-    std::vector<uint32_t> test4_counts(2);                           // Test two packets
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("RX COUNT [4294967295,4294967296], 18 bit SN");
+    std::vector<uint32_t>       test4_counts(2);                     // Test two packets
     std::iota(test4_counts.begin(), test4_counts.end(), 4294967295); // Starting at COUNT 4294967295
     std::vector<pdcp_test_event_t> test4_pdus =
         gen_expected_pdus_vector(tst_sdu1, test4_counts, srsran::PDCP_SN_LEN_18, sec_cfg, logger);
@@ -130,6 +138,8 @@ int test_rx_all(srslog::basic_logger& logger)
    * Test reception of two out-of-order packets, starting at COUNT 0.
    */
   {
+    auto&                          test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger    delimiter("RX out-of-order COUNT [1,0], 12 bit SN");
     std::vector<pdcp_test_event_t> test5_pdus;
     pdcp_initial_state             test5_init_state = {};
 
@@ -154,6 +164,8 @@ int test_rx_all(srslog::basic_logger& logger)
    * Test reception of two out-of-order packets, starting at COUNT 0.
    */
   {
+    auto&                          test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger    delimiter("RX out-of-order COUNT [1,0], 18 bit SN");
     std::vector<pdcp_test_event_t> test6_pdus;
     pdcp_initial_state             test6_init_state = {};
 
@@ -178,6 +190,8 @@ int test_rx_all(srslog::basic_logger& logger)
    * Test Reception of one out-of-order packet.
    */
   {
+    auto&                          test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger    delimiter("RX out-of-order COUNT [1,0] t_reordering expired, 12 bit SN");
     std::vector<pdcp_test_event_t> test7_pdus;
     pdcp_initial_state             test7_init_state = {};
 
@@ -197,6 +211,7 @@ int test_rx_all(srslog::basic_logger& logger)
    * Test reception of two duplicate PDUs, with COUNT 0.
    */
   {
+    srsran::test_delimit_logger    delimiter("RX duplicate COUNTs [0,0], 12 bit SN");
     std::vector<pdcp_test_event_t> test8_pdus;
     pdcp_initial_state             test8_init_state = {};
 

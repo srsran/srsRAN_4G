@@ -176,10 +176,16 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
 
+  if (rx_overflow) {
+    logger.warning("Rx PDCP COUNTs have overflowed. Discarding SDU.");
+    return;
+  }
+
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     return;
   }
+  logger.debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
 
   // Extract RCVD_SN from header
   uint32_t rcvd_sn = read_data_header(pdu);
@@ -195,7 +201,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
-  logger.debug("RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
+  logger.debug("Estimated RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
 
   // TS 38.323, section 5.8: Deciphering
   // The data unit that is ciphered is the MAC-I and the
@@ -265,6 +271,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     rx_reord = rx_next;
     reordering_timer.run();
   }
+  logger.debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
 }
 
 // Notification of delivery/failure
