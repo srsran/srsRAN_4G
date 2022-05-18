@@ -324,13 +324,13 @@ srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::r
   // Stop T300
   rrc_handle.t300.stop();
 
-  // Apply the Radio Bearer configuration
-  if (!rrc_handle.apply_radio_bearer_cfg(radio_bearer_cfg_)) {
+  // Apply the Cell Group configuration
+  if (!rrc_handle.update_cell_group_cfg(cell_group_)) {
     return proc_outcome_t::error;
   }
 
-  // Apply the Cell Group configuration
-  if (!rrc_handle.update_cell_group_cfg(cell_group_)) {
+  // Apply the Radio Bearer configuration
+  if (!rrc_handle.apply_radio_bearer_cfg(radio_bearer_cfg_)) {
     return proc_outcome_t::error;
   }
 
