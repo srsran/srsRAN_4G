@@ -2467,6 +2467,12 @@ int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
   if (not srb2_present) {
     rrc_cfg_->srb2_cfg.rlc_cfg.set_default_value();
   }
+
+  if (!srb1_5g_present || !srb2_5g_present) {
+    fprintf(stderr, "Optional 5G SRB configuration is not supported yet.\n");
+    fprintf(stderr, "Please specify 5G SRB1 and SRB2 configuration.\n");
+    return SRSRAN_ERROR;
+  }
   rrc_nr_cfg_->srb1_cfg.present = srb1_5g_present;
   rrc_nr_cfg_->srb2_cfg.present = srb1_5g_present;
 
