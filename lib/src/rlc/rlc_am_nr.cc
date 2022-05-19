@@ -609,7 +609,10 @@ uint32_t rlc_am_nr_tx::build_retx_pdu_with_segmentation(rlc_amd_retx_nr_t& retx,
 
   // Sanity check: are there enough bytes for header plus data?
   if (nof_bytes <= expected_hdr_len) {
-    RlcError("called %s, but there are not enough bytes for data plus header. SN=%d", __FUNCTION__, retx.sn);
+    RlcInfo("Not enough bytes for RETX payload plus header. SN=%d, nof_bytes=%d, hdr_len=%d",
+            retx.sn,
+            nof_bytes,
+            expected_hdr_len);
     return 0;
   }
 
