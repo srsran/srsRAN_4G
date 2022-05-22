@@ -117,18 +117,18 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
   if (sec_cfg.integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
     for (uint8_t i = 0; i < 4; i++) {
       if (mac[i] != mac_exp[i]) {
-        logger.error(mac_exp, 4, "MAC mismatch (expected)");
-        logger.error(mac, 4, "MAC mismatch (found)");
         is_valid = false;
         break;
       }
     }
     srslog::log_channel& channel = is_valid ? logger.debug : logger.warning;
-    channel("Integrity check input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
+    channel("Integrity check input - COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
             count,
             cfg.bearer_id,
             cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
     channel(k_int, 32, "Integrity check key:");
+    channel(mac_exp, 4, "MAC %s (expected):", is_valid ? "match" : "mismatch");
+    channel(mac, 4, "MAC %s (found):", is_valid ? "match" : "mismatch");
     channel(msg, msg_len, "Integrity check input msg (Bytes=%" PRIu32 "):", msg_len);
   }
 

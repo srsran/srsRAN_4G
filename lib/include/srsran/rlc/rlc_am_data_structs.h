@@ -27,6 +27,7 @@
 #include "srsran/adt/intrusive_list.h"
 #include "srsran/common/buffer_pool.h"
 #include <array>
+#include <list>
 #include <vector>
 
 namespace srsran {
@@ -456,6 +457,89 @@ private:
   std::array<T, WINDOW_SIZE> buffer;
   size_t                     wpos = 0;
   size_t                     rpos = 0;
+};
+
+template <class T>
+class pdu_retx_queue_list
+{
+  std::list<T> queue;
+
+public:
+  ~pdu_retx_queue_list() = default;
+  T& push()
+  {
+    queue.emplace_back();
+    return queue.back();
+  }
+
+  void pop()
+  {
+    if (not queue.empty()) {
+      queue.pop_front();
+    }
+  }
+
+  T& front()
+  {
+    assert(not queue.empty());
+    return queue.front();
+  }
+
+  const std::list<T>& get_inner_queue() const { return queue; }
+
+  void   clear() { queue.clear(); }
+  size_t size() const { return queue.size(); }
+  bool   empty() const { return queue.empty(); }
+
+  bool has_sn(uint32_t sn) const
+  {
+    if (queue.empty()) {
+      return false;
+    }
+    for (auto elem : queue) {
+      if (elem.sn == sn) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  bool has_sn(uint32_t sn, uint32_t so) const
+  {
+    if (queue.empty()) {
+      return false;
+    }
+    for (auto elem : queue) {
+      if (elem.sn == sn) {
+        if (elem.overlaps(so)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  /**
+   * @brief remove_sn removes SN from queue and returns after first match
+   * @param sn sequence number to be removed from queue
+   * @return true if one element was removed, false if no element to remove was found
+   */
+  bool remove_sn(uint32_t sn)
+  {
+    if (queue.empty()) {
+      return false;
+    }
+    auto iter = queue.begin();
+    while (iter != queue.end()) {
+      if (iter->sn == sn) {
+        iter = queue.erase(iter);
+        return true;
+      } else {
+        ++iter;
+      }
+    }
+    return false;
+  }
 };
 
 } // namespace srsran

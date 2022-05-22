@@ -74,122 +74,152 @@ int test_tx_all(srslog::basic_logger& logger)
    * TX Test 1: PDCP Entity with SN LEN = 12
    * TX_NEXT = 0.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   * Output:  {0x80, 0x00, 0x8f, 0xe3, 0xc7, 0x1b, 0xad, 0x14}
    */
-  n_packets                                         = 1;
-  srsran::unique_byte_buffer_t pdu_exp_count0_len12 = srsran::make_byte_buffer();
-  pdu_exp_count0_len12->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
-  TESTASSERT(
-      test_tx(
-          n_packets, normal_init_state, srsran::PDCP_SN_LEN_12, n_packets, std::move(pdu_exp_count0_len12), logger) ==
-      0);
-
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT 0, 12 bit SN");
+    n_packets                                         = 1;
+    srsran::unique_byte_buffer_t pdu_exp_count0_len12 = srsran::make_byte_buffer();
+    pdu_exp_count0_len12->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
+    TESTASSERT(
+        test_tx(
+            n_packets, normal_init_state, srsran::PDCP_SN_LEN_12, n_packets, std::move(pdu_exp_count0_len12), logger) ==
+        0);
+  }
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
    * TX_NEXT = 2048.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
+   * Output: {0x88, 0x00, 0x8d, 0x2c, 0xe5, 0x38, 0xc0, 0x42}
    */
-  n_packets                                            = 2049;
-  srsran::unique_byte_buffer_t pdu_exp_count2048_len12 = srsran::make_byte_buffer();
-  pdu_exp_count2048_len12->append_bytes(pdu1_count2048_snlen12, sizeof(pdu1_count2048_snlen12));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srsran::PDCP_SN_LEN_12,
-                     n_packets,
-                     std::move(pdu_exp_count2048_len12),
-                     logger) == 0);
-
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT 2048, 12 bit SN");
+    n_packets                                            = 2049;
+    srsran::unique_byte_buffer_t pdu_exp_count2048_len12 = srsran::make_byte_buffer();
+    pdu_exp_count2048_len12->append_bytes(pdu1_count2048_snlen12, sizeof(pdu1_count2048_snlen12));
+    TESTASSERT(test_tx(n_packets,
+                       normal_init_state,
+                       srsran::PDCP_SN_LEN_12,
+                       n_packets,
+                       std::move(pdu_exp_count2048_len12),
+                       logger) == 0);
+  }
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
    * TX_NEXT = 4096.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
+   * Output: {0x80, 0x00, 0x97, 0xbe, 0xee, 0x62, 0xf5, 0xe0}
    */
-  n_packets                                            = 4097;
-  srsran::unique_byte_buffer_t pdu_exp_count4096_len12 = srsran::make_byte_buffer();
-  pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srsran::PDCP_SN_LEN_12,
-                     n_packets,
-                     std::move(pdu_exp_count4096_len12),
-                     logger) == 0);
-
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT 4096, 12 bit SN");
+    n_packets                                            = 4097;
+    srsran::unique_byte_buffer_t pdu_exp_count4096_len12 = srsran::make_byte_buffer();
+    pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
+    TESTASSERT(test_tx(n_packets,
+                       normal_init_state,
+                       srsran::PDCP_SN_LEN_12,
+                       n_packets,
+                       std::move(pdu_exp_count4096_len12),
+                       logger) == 0);
+  }
   /*
    * TX Test 4: PDCP Entity with SN LEN = 18
    * TX_NEXT = 0.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80, 0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   * Output: {0x80, 0x00, 0x00, 0x8f, 0xe3, 0x37, 0x33, 0xd5, 0x64}
    */
-  n_packets                                         = 1;
-  srsran::unique_byte_buffer_t pdu_exp_count0_len18 = srsran::make_byte_buffer();
-  pdu_exp_count0_len18->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
-  TESTASSERT(
-      test_tx(
-          n_packets, normal_init_state, srsran::PDCP_SN_LEN_18, n_packets, std::move(pdu_exp_count0_len18), logger) ==
-      0);
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT 0, 18 bit SN");
+    n_packets                                         = 1;
+    srsran::unique_byte_buffer_t pdu_exp_count0_len18 = srsran::make_byte_buffer();
+    pdu_exp_count0_len18->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
+    TESTASSERT(
+        test_tx(
+            n_packets, normal_init_state, srsran::PDCP_SN_LEN_18, n_packets, std::move(pdu_exp_count0_len18), logger) ==
+        0);
+  }
 
   /*
    * TX Test 5: PDCP Entity with SN LEN = 18
    * TX_NEXT = 131072.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x82, 0x00, 0x00}, Ciphered Text {0x15, 0x01}, MAC-I {0xf4, 0xb0, 0xfc, 0xc5}
+   * Output: {0x82, 0x00, 0x00, 0x15, 0x01, 0x99, 0x97, 0xe0, 0x4e}
    */
-  n_packets                                           = 131073;
-  srsran::unique_byte_buffer_t pdu_exp_sn131072_len18 = srsran::make_byte_buffer();
-  pdu_exp_sn131072_len18->append_bytes(pdu1_count131072_snlen18, sizeof(pdu1_count131072_snlen18));
-  TESTASSERT(
-      test_tx(
-          n_packets, normal_init_state, srsran::PDCP_SN_LEN_18, n_packets, std::move(pdu_exp_sn131072_len18), logger) ==
-      0);
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT 131072, 18 bit SN");
+    n_packets                                           = 131073;
+    srsran::unique_byte_buffer_t pdu_exp_sn131072_len18 = srsran::make_byte_buffer();
+    pdu_exp_sn131072_len18->append_bytes(pdu1_count131072_snlen18, sizeof(pdu1_count131072_snlen18));
+    TESTASSERT(test_tx(n_packets,
+                       normal_init_state,
+                       srsran::PDCP_SN_LEN_18,
+                       n_packets,
+                       std::move(pdu_exp_sn131072_len18),
+                       logger) == 0);
+  }
 
   /*
    * TX Test 6: PDCP Entity with SN LEN = 18
    * TX_NEXT = 262144.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80, 0x00, 0x00}, Ciphered Text {0xc2, 0x47}, MAC-I {0xa8, 0xdd, 0xc0, 0x73}
+   * Output: {0x80, 0x00, 0x00, 0xc2, 0x47, 0xc2, 0xee, 0x46, 0xd9}
    */
-  n_packets                                              = 262145;
-  srsran::unique_byte_buffer_t pdu_exp_count262144_len18 = srsran::make_byte_buffer();
-  pdu_exp_count262144_len18->append_bytes(pdu1_count262144_snlen18, sizeof(pdu1_count262144_snlen18));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srsran::PDCP_SN_LEN_18,
-                     n_packets,
-                     std::move(pdu_exp_count262144_len18),
-                     logger) == 0);
-
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT 262144, 18 bit SN");
+    n_packets                                              = 262145;
+    srsran::unique_byte_buffer_t pdu_exp_count262144_len18 = srsran::make_byte_buffer();
+    pdu_exp_count262144_len18->append_bytes(pdu1_count262144_snlen18, sizeof(pdu1_count262144_snlen18));
+    TESTASSERT(test_tx(n_packets,
+                       normal_init_state,
+                       srsran::PDCP_SN_LEN_18,
+                       n_packets,
+                       std::move(pdu_exp_count262144_len18),
+                       logger) == 0);
+  }
   /*
    * TX Test 7: PDCP Entity with SN LEN = 12
    * Test TX at COUNT wraparound.
-   * Should print a warning and drop all packets after wraparound.
+   * Should print a warning and drop all packets after wrap around.
    */
-  n_packets                                                  = 5;
-  srsran::unique_byte_buffer_t pdu_exp_count4294967295_len12 = srsran::make_byte_buffer();
-  pdu_exp_count4294967295_len12->append_bytes(pdu1_count4294967295_snlen12, sizeof(pdu1_count4294967295_snlen12));
-  TESTASSERT(test_tx(n_packets,
-                     near_wraparound_init_state,
-                     srsran::PDCP_SN_LEN_12,
-                     1,
-                     std::move(pdu_exp_count4294967295_len12),
-                     logger) == 0);
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT wrap arround, 12 bit SN");
+    n_packets                                                  = 5;
+    srsran::unique_byte_buffer_t pdu_exp_count4294967295_len12 = srsran::make_byte_buffer();
+    pdu_exp_count4294967295_len12->append_bytes(pdu1_count4294967295_snlen12, sizeof(pdu1_count4294967295_snlen12));
+    TESTASSERT(test_tx(n_packets,
+                       near_wraparound_init_state,
+                       srsran::PDCP_SN_LEN_12,
+                       1,
+                       std::move(pdu_exp_count4294967295_len12),
+                       logger) == 0);
+  }
 
   /*
    * TX Test 8: PDCP Entity with SN LEN = 18
    * Test TX at COUNT wraparound.
    * Should print a warning and drop all packets after wraparound.
    */
-  n_packets                                                  = 5;
-  srsran::unique_byte_buffer_t pdu_exp_count4294967295_len18 = srsran::make_byte_buffer();
-  pdu_exp_count4294967295_len18->append_bytes(pdu1_count4294967295_snlen18, sizeof(pdu1_count4294967295_snlen18));
-  TESTASSERT(test_tx(n_packets,
-                     near_wraparound_init_state,
-                     srsran::PDCP_SN_LEN_18,
-                     1,
-                     std::move(pdu_exp_count4294967295_len18),
-                     logger) == 0);
-  return 0;
+  {
+    auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
+    srsran::test_delimit_logger delimiter("TX COUNT wrap arround, 12 bit SN");
+    n_packets                                                  = 5;
+    srsran::unique_byte_buffer_t pdu_exp_count4294967295_len18 = srsran::make_byte_buffer();
+    pdu_exp_count4294967295_len18->append_bytes(pdu1_count4294967295_snlen18, sizeof(pdu1_count4294967295_snlen18));
+    TESTASSERT(test_tx(n_packets,
+                       near_wraparound_init_state,
+                       srsran::PDCP_SN_LEN_18,
+                       1,
+                       std::move(pdu_exp_count4294967295_len18),
+                       logger) == 0);
+  }
+  return SRSRAN_SUCCESS;
 }
 
 // Setup all tests

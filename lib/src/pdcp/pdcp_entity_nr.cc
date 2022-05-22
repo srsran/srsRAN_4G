@@ -41,15 +41,6 @@ pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
   encryption_direction = DIRECTION_NONE;
 }
 
-pdcp_entity_nr::~pdcp_entity_nr() {}
-
-// Reestablishment procedure: 38.323 5.2
-void pdcp_entity_nr::reestablish()
-{
-  logger.info("Re-establish %s with bearer ID: %d", rb_name.c_str(), cfg.bearer_id);
-  // TODO
-}
-
 bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
 {
   if (active) {
@@ -65,6 +56,8 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
   rb_name     = cfg.get_rb_name();
   window_size = 1 << (cfg.sn_len - 1);
 
+  rlc_mode = rlc->rb_is_um(lcid) ? rlc_mode_t::UM : rlc_mode_t::AM;
+
   // Timers
   reordering_timer = task_sched.get_unique_timer();
 
@@ -73,13 +66,26 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
     reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
   }
   active = true;
-  logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RAT=%s",
+  logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RLC=%s, RAT=%s",
               rb_name,
               cfg.sn_len,
               cfg.discard_timer,
               cfg.t_reordering,
+              rlc_mode == rlc_mode_t::UM ? "UM" : "AM",
               to_string(cfg.rat));
+
+  // disable discard timer if using UM
+  if (rlc_mode == rlc_mode_t::UM) {
+    cfg.discard_timer = pdcp_discard_timer_t::infinity;
+  }
   return true;
+}
+
+// Reestablishment procedure: 38.323 5.2
+void pdcp_entity_nr::reestablish()
+{
+  logger.info("Re-establish %s with bearer ID: %d", rb_name.c_str(), cfg.bearer_id);
+  // TODO
 }
 
 // Used to stop/pause the entity (called on RRC conn release)
@@ -95,8 +101,9 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
   // Log SDU
   logger.info(sdu->msg,
               sdu->N_bytes,
-              "TX %s SDU, integrity=%s, encryption=%s",
+              "TX %s SDU (%dB), integrity=%s, encryption=%s",
               rb_name.c_str(),
+              sdu->N_bytes,
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
 
@@ -121,21 +128,42 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
 
   // Perform header compression TODO
 
-  // Integrity protection
-  uint8_t mac[4];
-  integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
-
-  // Ciphering
-  cipher_encrypt(sdu->msg, sdu->N_bytes, tx_next, sdu->msg);
-
   // Write PDCP header info
   write_data_header(sdu, tx_next);
 
+  // TS 38.323, section 5.9: Integrity protection
+  // The data unit that is integrity protected is the PDU header
+  // and the data part of the PDU before ciphering.
+  uint8_t mac[4] = {};
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
+  }
   // Append MAC-I
-  append_mac(sdu, mac);
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    append_mac(sdu, mac);
+  }
+
+  // TS 38.323, section 5.8: Ciphering
+  // The data unit that is ciphered is the MAC-I and the
+  // data part of the PDCP Data PDU except the
+  // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+  if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
+    cipher_encrypt(
+        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_next, &sdu->msg[cfg.hdr_len_bytes]);
+  }
 
   // Set meta-data for RLC AM
   sdu->md.pdcp_sn = tx_next;
+
+  logger.info(sdu->msg,
+              sdu->N_bytes,
+              "TX %s PDU (%dB), HFN=%d, SN=%d, integrity=%s, encryption=%s",
+              rb_name.c_str(),
+              sdu->N_bytes,
+              HFN(tx_next),
+              SN(tx_next),
+              srsran_direction_text[integrity_direction],
+              srsran_direction_text[encryption_direction]);
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers
@@ -157,18 +185,19 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
 
+  if (rx_overflow) {
+    logger.warning("Rx PDCP COUNTs have overflowed. Discarding SDU.");
+    return;
+  }
+
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     return;
   }
+  logger.debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
 
   // Extract RCVD_SN from header
   uint32_t rcvd_sn = read_data_header(pdu);
-  discard_data_header(pdu); // TODO: Check wheather the header is part of integrity check.
-
-  // Extract MAC
-  uint8_t mac[4];
-  extract_mac(pdu, mac);
 
   // Calculate RCVD_COUNT
   uint32_t rcvd_hfn, rcvd_count;
@@ -181,16 +210,39 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
-  logger.debug("RCVD_HFN %u RCVD_SN %u, RCVD_COUNT %u", rcvd_hfn, rcvd_sn, rcvd_count);
+  logger.debug("Estimated RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
 
-  // Decripting
-  cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
-
-  // Integrity check
-  bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
-  if (!is_valid) {
-    return; // Invalid packet, drop.
+  // TS 38.323, section 5.8: Deciphering
+  // The data unit that is ciphered is the MAC-I and the
+  // data part of the PDCP Data PDU except the
+  // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+  if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
+    cipher_decrypt(
+        &pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, rcvd_count, &pdu->msg[cfg.hdr_len_bytes]);
   }
+
+  // Extract MAC-I
+  // Always extract from SRBs, only extract from DRBs if integrity is enabled
+  uint8_t mac[4] = {};
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    extract_mac(pdu, mac);
+  }
+  // TS 38.323, section 5.9: Integrity verification
+  // The data unit that is integrity protected is the PDU header
+  // and the data part of the PDU before ciphering.
+  if (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX) {
+    bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
+    if (!is_valid) {
+      logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rb_name.c_str());
+      rrc->notify_pdcp_integrity_error(lcid);
+      return; // Invalid packet, drop.
+    } else {
+      logger.debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
+    }
+  }
+
+  // After checking the integrity, we can discard the header.
+  discard_data_header(pdu);
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv) {
@@ -215,7 +267,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // TODO if out-of-order configured, submit to upper layer
 
   if (rcvd_count == rx_deliv) {
-    // Deliver to upper layers in ascending order of associeted COUNT
+    // Deliver to upper layers in ascending order of associated COUNT
     deliver_all_consecutive_counts();
   }
 
@@ -228,6 +280,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     rx_reord = rx_next;
     reordering_timer.run();
   }
+  logger.debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
 }
 
 // Notification of delivery/failure
@@ -245,7 +298,7 @@ void pdcp_entity_nr::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
  * Packing / Unpacking Helpers
  */
 
-// Deliver all consecutivly associated COUNTs.
+// Deliver all consecutively associated COUNTs.
 // Update RX_NEXT after submitting to higher layers
 void pdcp_entity_nr::deliver_all_consecutive_counts()
 {
@@ -277,9 +330,9 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
 // Reordering Timer Callback (t-reordering)
 void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
-  parent->logger.debug("Reordering timer expired");
+  parent->logger.info("Reordering timer expired. Re-order queue size=%d", parent->reorder_queue.size());
 
-  // Deliver all PDCP SDU(s) with associeted COUNT value(s) < RX_REORD
+  // Deliver all PDCP SDU(s) with associated COUNT value(s) < RX_REORD
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = parent->reorder_queue.begin();
        it != parent->reorder_queue.end() && it->first < parent->rx_reord;
        parent->reorder_queue.erase(it++)) {
@@ -287,7 +340,7 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
     parent->pass_to_upper_layers(std::move(it->second));
   }
 
-  // Deliver all PDCP SDU(s) consecutivly associeted COUNT value(s) starting from RX_REORD
+  // Deliver all PDCP SDU(s) consecutively associated COUNT value(s) starting from RX_REORD
   parent->deliver_all_consecutive_counts();
 
   if (parent->rx_deliv < parent->rx_next) {

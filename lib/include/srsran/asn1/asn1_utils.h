@@ -202,8 +202,12 @@ public:
   {
     size_ = nof_items;
     cap_  = nof_items;
-    data_ = new T[cap_];
-    std::copy(ptr, ptr + size_, data_);
+    if (ptr != NULL) {
+      data_ = new T[cap_];
+      std::copy(ptr, ptr + size_, data_);
+    } else {
+      data_ = NULL;
+    }
   }
   ~dyn_array()
   {

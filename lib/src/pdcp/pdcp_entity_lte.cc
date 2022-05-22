@@ -343,6 +343,8 @@ void pdcp_entity_lte::handle_srb_pdu(srsran::unique_byte_buffer_t pdu)
       logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rb_name.c_str());
       rrc->notify_pdcp_integrity_error(lcid);
       return; // Discard
+    } else {
+      logger.debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
     }
   }
 

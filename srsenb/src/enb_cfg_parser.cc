@@ -752,15 +752,6 @@ int field_five_qi::parse(libconfig::Setting& root)
     asn1::rrc_nr::pdcp_cfg_s::drb_s_* drb_cfg = &pdcp_cfg->drb;
     pdcp_cfg->drb_present                     = true;
 
-    // Discard timer
-    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_e_> discard_timer("discard_timer",
-                                                                                             &drb_cfg->discard_timer);
-    if (discard_timer.parse(drb) == -1) {
-      drb_cfg->discard_timer_present = false;
-    } else {
-      drb_cfg->discard_timer_present = true;
-    }
-
     // PDCP SN size UL
     field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::pdcp_sn_size_ul_e_> pdcp_sn_size_ul(
         "pdcp_sn_size_ul", &drb_cfg->pdcp_sn_size_ul);
@@ -777,6 +768,15 @@ int field_five_qi::parse(libconfig::Setting& root)
       drb_cfg->pdcp_sn_size_dl_present = false;
     } else {
       drb_cfg->pdcp_sn_size_dl_present = true;
+    }
+
+    // Discard timer
+    field_asn1_enum_number<asn1::rrc_nr::pdcp_cfg_s::drb_s_::discard_timer_e_> discard_timer("discard_timer",
+                                                                                             &drb_cfg->discard_timer);
+    if (discard_timer.parse(drb) == -1) {
+      drb_cfg->discard_timer_present = false;
+    } else {
+      drb_cfg->discard_timer_present = true;
     }
 
     parser::field<bool> status_report_required("status_report_required", &drb_cfg->status_report_required_present);
@@ -2475,6 +2475,12 @@ int parse_rb(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
   }
   if (not srb2_present) {
     rrc_cfg_->srb2_cfg.rlc_cfg.set_default_value();
+  }
+
+  if (!srb1_5g_present || !srb2_5g_present) {
+    fprintf(stderr, "Optional 5G SRB configuration is not supported yet.\n");
+    fprintf(stderr, "Please specify 5G SRB1 and SRB2 configuration.\n");
+    return SRSRAN_ERROR;
   }
   rrc_nr_cfg_->srb1_cfg.present = srb1_5g_present;
   rrc_nr_cfg_->srb2_cfg.present = srb1_5g_present;

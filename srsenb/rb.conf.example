@@ -95,48 +95,50 @@ qci_config = (
 );
 
 // 5G Section
-// srb1_5g_config = {
-//  rlc_config = {
-//    ul_am = {
-//      sn_field_len = 12;
-//      t_poll_retx = 50;
-//      poll_pdu = 4;
-//      poll_byte = 3000;
-//      max_retx_thres = 4;
-//    };
-//    dl_am = {
-//      sn_field_len = 12;
-//      t_reassembly = 50;
-//      t_status_prohibit = 50;
-//    };
-//  };
-// }
+srb1_5g_config = {
+ rlc_config = {
+   ul_am = {
+     sn_field_len = 12;
+     t_poll_retx = 45;
+     poll_pdu = -1;
+     poll_byte = -1;
+     max_retx_thres = 8;
+   };
+   dl_am = {
+     sn_field_len = 12;
+     t_reassembly = 35;
+     t_status_prohibit = 10;
+   };
+ };
+}
 
-// srb2_5g_config = {
-//  rlc_config = {
-//    ul_am = {
-//      sn_field_len = 12;
-//      t_poll_retx = 50;
-//      poll_pdu = 4;
-//      poll_byte = 3000;
-//      max_retx_thres = 4;
-//    };
-//    dl_am = {
-//      sn_field_len = 12;
-//      t_reassembly = 50;
-//      t_status_prohibit = 50;
-//    };
-//  };
-// }
+srb2_5g_config = {
+ rlc_config = {
+   ul_am = {
+     sn_field_len = 12;
+     t_poll_retx = 45;
+     poll_pdu = -1;
+     poll_byte = -1;
+     max_retx_thres = 8;
+   };
+   dl_am = {
+     sn_field_len = 12;
+     t_reassembly = 35;
+     t_status_prohibit = 10;
+   };
+ };
+}
 
 five_qi_config = (
 {
   five_qi = 7;
   pdcp_nr_config = {
     drb = {
-      discard_timer = 50;
       pdcp_sn_size_ul = 18;
       pdcp_sn_size_dl = 18;
+      discard_timer = 50;
+      integrity_protection = false;
+      status_report = false;
     };
     t_reordering = 50;
   };
@@ -156,9 +158,11 @@ five_qi_config = (
   five_qi = 9;
   pdcp_nr_config = {
     drb = {
-      discard_timer = 50;
       pdcp_sn_size_ul = 18;
       pdcp_sn_size_dl = 18;
+      discard_timer = 50;
+      integrity_protection = false;
+      status_report = false;
     };
     t_reordering = 50;
   };
