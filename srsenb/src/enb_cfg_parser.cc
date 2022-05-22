@@ -2164,7 +2164,13 @@ int parse_sib7(std::string filename, sib_type7_s* data)
   parser::section sib7("sib7");
 
   sib7.add_field(new parser::field<uint8>("t_resel_geran", &data->t_resel_geran));
-  // TODO: t_resel_geran_sf
+
+  parser::section t_resel_geran_sf("t_resel_geran_sf");
+  sib7.add_subsection(&t_resel_geran_sf);
+  t_resel_geran_sf.set_optional(&data->t_resel_geran_sf_present);
+
+  t_resel_geran_sf.add_field(make_asn1_enum_number_str_parser("sf_medium", &data->t_resel_geran_sf.sf_medium));
+  t_resel_geran_sf.add_field(make_asn1_enum_number_str_parser("sf_high", &data->t_resel_geran_sf.sf_high));
 
   data->carrier_freqs_info_list_present = true;
   parser::section geran_neigh("carrier_freqs_info_list");

@@ -143,6 +143,9 @@ sib3 =
 # Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
 #
 # t_resel_geran: Cell reselection timer (seconds)
+# t_resel_geran_sf: Optional speed dependent ScalingFactor for t_resel_geran.
+#     sf_medium: Scaling factor if the UE is in Medium Mobility state, one of "0.25", "0.5", "0.75" or "1.0".
+#     sf_high: Scaling factor if the UE is in High Mobility state, one of "0.25", "0.5", "0.75" or "1.0".
 # carrier_freqs_info_list: A list of carrier frequency groups.
 #     cell_resel_prio: Absolute priority of the carrier frequency group
 #     ncc_permitted: 8-bit bitmap of NCC carriers permitted for monitoring
