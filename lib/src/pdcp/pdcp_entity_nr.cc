@@ -55,6 +55,9 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
     if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
       reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
     }
+  } else if (rlc_mode == rlc_mode_t::UM) {
+    logger.warning("%s possible PDCP-NR misconfiguration: using infinite re-ordering timer with RLC UM bearer.",
+                   rb_name);
   }
 
   active = true;
