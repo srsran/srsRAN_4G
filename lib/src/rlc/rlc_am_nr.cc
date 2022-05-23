@@ -175,6 +175,13 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
     RlcInfo("Not enough bytes for payload plus header. nof_bytes=%d", nof_bytes);
     return 0;
   }
+
+  // do not build any more PDU if window is already full
+  if (tx_window->size() >= RLC_AM_WINDOW_SIZE) {
+    RlcInfo("Cannot build data PDU - Tx window full.");
+    return 0;
+  }
+
   // Read new SDU from TX queue
   unique_byte_buffer_t tx_sdu;
   RlcDebug("Reading from RLC SDU queue. Queue size %d", tx_sdu_queue.size());

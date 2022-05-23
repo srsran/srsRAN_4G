@@ -690,8 +690,8 @@ int rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // do not build any more PDU if window is already full
-  if (tx_sdu == NULL && tx_window.size() >= RLC_AM_WINDOW_SIZE) {
-    RlcInfo("Tx window full.");
+  if (tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+    RlcInfo("Cannot build data PDU - Tx window full.");
     return 0;
   }
 
