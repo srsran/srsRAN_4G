@@ -138,6 +138,56 @@ sib3 =
 };
 
 #####################################################################
+# sib6 configuration options (See TS 36.331)
+# Contains UTRA neighbor information for inter-rat handover.
+# Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
+#
+# t_resel_utra: Cell reselection timer (seconds)
+# t_resel_utra_sf: Optional speed dependent ScalingFactor for t_resel_utra.
+#     sf_medium: Scaling factor if the UE is in Medium Mobility state, one of "0.25", "0.5", "0.75" or "1.0".
+#     sf_high: Scaling factor if the UE is in High Mobility state, one of "0.25", "0.5", "0.75" or "1.0".
+# carrier_freq_list_utra_fdd / carrier_freq_list_utra_tdd: A list of carrier frequencies of UTRA FDD / TDD.
+#     carrier_freq: The UARFCN for the UTRA carrier frequency.
+#     cell_resel_prio: Optional absolute priority of the carrier frequency group.
+#     thresh_x_high: Srclev threshold (dB) to select to a higher-priority RAT/Frequency.
+#     thresh_x_low: Srclev threshold (dB) to select to a lower-priority RAT/Frequency.
+#     q_rx_lev_min: Minimum receive level in UTRA cell, ([field_val] * 2) + 1 = [level in dBm].
+#     p_max_utra: The maximum allowed transmission power on the (uplink) carrier frequency.
+#     q_qual_min: Minimum required quality leve in UTRA cell, applicable only for FDD cells.
+#
+#####################################################################
+sib6 =
+{
+    t_resel_utra = 1;
+    t_resel_utra_sf = {
+        sf_medium = "0.25";
+        sf_high = "1.0";
+    }
+    carrier_freq_list_utra_fdd =
+    (
+        {
+            carrier_freq = 9613;
+            cell_resel_prio = 6;
+            thresh_x_high = 3;
+            thresh_x_low = 2;
+            q_rx_lev_min = -50;
+            p_max_utra = 4;
+            q_qual_min = -10;
+        }
+    );
+    carrier_freq_list_utra_tdd =
+    (
+        {
+            carrier_freq = 9505;
+            thresh_x_high = 1;
+            thresh_x_low = 2;
+            q_rx_lev_min = -50;
+            p_max_utra = -3;
+        }
+    );
+};
+
+#####################################################################
 # sib7 configuration options (See TS 36.331)
 # Contains GERAN neighbor information for CSFB and inter-rat handover.
 # Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
