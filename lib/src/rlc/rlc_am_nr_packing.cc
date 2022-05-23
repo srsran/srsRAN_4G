@@ -342,6 +342,12 @@ rlc_am_nr_read_status_pdu_12bit_sn(const uint8_t* payload, const uint32_t nof_by
   ptr++;
 
   while (e1 != 0) {
+    // check buffer headroom
+    if (uint32_t(ptr - payload) >= nof_bytes) {
+      fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
+      return 0;
+    }
+
     // E1 flag set, read a NACK_SN
     rlc_status_nack_t nack = {};
     nack.nack_sn           = (*ptr & 0xff) << 4;
@@ -376,10 +382,6 @@ rlc_am_nr_read_status_pdu_12bit_sn(const uint8_t* payload, const uint32_t nof_by
       ptr++;
     }
     status->push_nack(nack);
-    if (uint32_t(ptr - payload) > nof_bytes) {
-      fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
-      return 0;
-    }
   }
 
   return SRSRAN_SUCCESS;
@@ -421,6 +423,12 @@ rlc_am_nr_read_status_pdu_18bit_sn(const uint8_t* payload, const uint32_t nof_by
   ptr++;
 
   while (e1 != 0) {
+    // check buffer headroom
+    if (uint32_t(ptr - payload) >= nof_bytes) {
+      fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
+      return 0;
+    }
+
     // E1 flag set, read a NACK_SN
     rlc_status_nack_t nack = {};
 
@@ -458,10 +466,6 @@ rlc_am_nr_read_status_pdu_18bit_sn(const uint8_t* payload, const uint32_t nof_by
       ptr++;
     }
     status->push_nack(nack);
-    if (uint32_t(ptr - payload) > nof_bytes) {
-      fprintf(stderr, "Malformed PDU, trying to read more bytes than it is available\n");
-      return 0;
-    }
   }
 
   return SRSRAN_SUCCESS;
