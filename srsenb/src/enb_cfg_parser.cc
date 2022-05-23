@@ -133,7 +133,7 @@ int field_intra_neigh_cell_list::parse(libconfig::Setting& root)
 int field_intra_black_cell_list::parse(libconfig::Setting& root)
 {
   data->intra_freq_black_cell_list.resize((uint32_t)root.getLength());
-  data->intra_freq_black_cell_list_present = data->intra_freq_neigh_cell_list.size() > 0;
+  data->intra_freq_black_cell_list_present = data->intra_freq_black_cell_list.size() > 0;
   for (uint32_t i = 0; i < data->intra_freq_black_cell_list.size() && i < ASN1_RRC_MAX_CELL_BLACK; i++) {
     if (not parse_enum_by_number(data->intra_freq_black_cell_list[i].range, "range", root[i])) {
       fprintf(stderr, "Missing field range in black_cell=%d\n", i);
