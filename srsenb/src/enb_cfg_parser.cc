@@ -166,7 +166,7 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     field_asn1_bitstring_number<asn1::fixed_bitstring<8>, uint8_t> ncc_permitted(
         "ncc_permitted", &data->carrier_freqs_info_list[i].common_info.ncc_permitted);
     if (ncc_permitted.parse(root[i])) {
-      ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_lsit=%d", i);
+      ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_list=%d", i);
       return SRSRAN_ERROR;
     }
 
