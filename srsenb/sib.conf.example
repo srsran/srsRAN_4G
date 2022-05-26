@@ -138,6 +138,71 @@ sib3 =
 };
 
 #####################################################################
+# sib5 configuration options (See TS 36.331)
+# Contains information relevant for inter-frequency cell re-selection.
+# Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
+#
+# inter_freq_carrier_freq_list: A list of neighbouring inter-frequencies.
+#     dl_carrier_freq: The EARFCN for the EUTRA carrier frequency.
+#     q_rx_lev_min: Minimum received RSRP level in the E-UTRA cell, ([field_val] * 2) = [level in dBm].
+#     p_max: Optional maximum allowed transmission power for the neighbouring E-UTRA cells on this carrier frequency.
+#     t_resel_eutra: Cell reselection timer (seconds).
+#     t_resel_eutra_sf: Optional speed dependent ScalingFactor for t_resel_eutra.
+#         sf_medium: Scaling factor if the UE is in Medium Mobility state, one of "0.25", "0.5", "0.75" or "1.0".
+#         sf_high: Scaling factor if the UE is in High Mobility state, one of "0.25", "0.5", "0.75" or "1.0".
+#     thresh_x_high: Srclev threshold (dB) to select to a higher-priority RAT/Frequency.
+#     thresh_x_low: Srclev threshold (dB) to select to a lower-priority RAT/Frequency.
+#     allowed_meas_bw: Maximum allowed measurement bandwidth on a carrier frequency .
+#     presence_ant_port_1: whether all the neighbouring cells use Antenna Port 1.
+#     cell_resel_prio: Optional absolute priority of the carrier frequency group.
+#     neigh_cell_cfg: Information related to MBSFN and TDD UL/DL configuration of neighbour cells.
+#     q_offset_freq: Frequency specific offset for equal priority E-UTRAN frequencies.
+#     inter_freq_neigh_cell_list: A List of inter-frequency neighbouring cells with specific cell re-selection parameters.
+#         phys_cell_id: Physical layer identity of the cell.
+#         q_offset_cell: Cell spcific offset.
+#     inter_freq_black_cell_list: A List of blacklisted inter-frequency neighbouring cells.
+#         start: The lowest physical cell identity in the range.
+#         range: The number of physical cell identities in the range.
+#
+#####################################################################
+sib5 =
+{
+    inter_freq_carrier_freq_list =
+    (
+        {
+            dl_carrier_freq = 1450;
+            q_rx_lev_min = -70;
+            t_resel_eutra = 2;
+            t_resel_eutra_sf = {
+                sf_medium = "0.25";
+                sf_high = "1.0";
+            };
+            thresh_x_high = 3;
+            thresh_x_low = 2;
+            allowed_meas_bw = 75;
+            presence_ant_port_1 = True;
+            cell_resel_prio = 4;
+            neigh_cell_cfg = 2;
+            q_offset_freq = -6;
+            inter_freq_neigh_cell_list =
+            (
+                {
+                    phys_cell_id = 500;
+                    q_offset_cell = 2;
+                }
+            );
+            inter_freq_black_cell_list =
+            (
+                {
+                    start = 123;
+                    range = 4;
+                }
+            );
+        }
+    );
+};
+
+#####################################################################
 # sib6 configuration options (See TS 36.331)
 # Contains UTRA neighbor information for inter-rat handover.
 # Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted

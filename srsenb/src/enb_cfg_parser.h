@@ -63,6 +63,7 @@ int parse_sib1(std::string filename, asn1::rrc::sib_type1_s* data);
 int parse_sib2(std::string filename, asn1::rrc::sib_type2_s* data);
 int parse_sib3(std::string filename, asn1::rrc::sib_type3_s* data);
 int parse_sib4(std::string filename, asn1::rrc::sib_type4_s* data);
+int parse_sib5(std::string filename, asn1::rrc::sib_type5_s* data);
 int parse_sib6(std::string filename, asn1::rrc::sib_type6_s* data);
 int parse_sib7(std::string filename, asn1::rrc::sib_type7_s* data);
 int parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
@@ -148,6 +149,39 @@ public:
 
 private:
   asn1::rrc::sib_type4_s* data;
+};
+
+class field_inter_freq_carrier_freq_list final : public parser::field_itf
+{
+public:
+  explicit field_inter_freq_carrier_freq_list(asn1::rrc::sib_type5_s* data_) { data = data_; }
+  int         parse(Setting& root) override;
+  const char* get_name() override { return "inter_freq_carrier_freq_list"; }
+
+private:
+  asn1::rrc::sib_type5_s* data;
+};
+
+class field_inter_freq_neigh_cell_list final : public parser::field_itf
+{
+public:
+  explicit field_inter_freq_neigh_cell_list(asn1::rrc::inter_freq_carrier_freq_info_s* data_) { data = data_; }
+  int         parse(Setting& root) override;
+  const char* get_name() override { return "inter_freq_neigh_cell_list"; }
+
+private:
+  asn1::rrc::inter_freq_carrier_freq_info_s* data;
+};
+
+class field_inter_freq_black_cell_list final : public parser::field_itf
+{
+public:
+  explicit field_inter_freq_black_cell_list(asn1::rrc::inter_freq_carrier_freq_info_s* data_) { data = data_; }
+  int         parse(Setting& root) override;
+  const char* get_name() override { return "inter_freq_black_cell_list"; }
+
+private:
+  asn1::rrc::inter_freq_carrier_freq_info_s* data;
 };
 
 class field_carrier_freq_list_utra_fdd final : public parser::field_itf
