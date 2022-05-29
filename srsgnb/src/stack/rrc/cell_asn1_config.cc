@@ -1340,11 +1340,11 @@ bool compute_diff_radio_bearer_cfg(const rrc_nr_cfg_t&       cfg,
          diff.drb_to_add_mod_list.size() > 0;
 }
 
-void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
-                                          const uint32_t                          rnti,
-                                          const enb_bearer_manager&               bearer_mapper,
-                                          const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
-                                          asn1::rrc_nr::cell_group_cfg_s&         out)
+int fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                     cfg,
+                                         const uint32_t                          rnti,
+                                         const enb_bearer_manager&               bearer_mapper,
+                                         const asn1::rrc_nr::radio_bearer_cfg_s& bearers,
+                                         asn1::rrc_nr::cell_group_cfg_s&         out)
 {
   out.rlc_bearer_to_add_mod_list.clear();
   out.rlc_bearer_to_release_list.clear();
@@ -1359,13 +1359,19 @@ void fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                   
     out.rlc_bearer_to_add_mod_list.push_back({});
     uint32_t                           lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
     enb_bearer_manager::radio_bearer_t rb   = bearer_mapper.get_lcid_bearer(rnti, lcid);
-    fill_drb(cfg, rb, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
+    if (rb.is_valid() and cfg.five_qi_cfg.find(rb.five_qi) != cfg.five_qi_cfg.end()) {
+      fill_drb(cfg, rb, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
+    } else {
+      return SRSRAN_ERROR;
+    }
   }
 
   // Release DRBs
   for (uint8_t drb_id : bearers.drb_to_release_list) {
     out.rlc_bearer_to_release_list.push_back(drb_id);
   }
+
+  return SRSRAN_SUCCESS;
 }
 
 } // namespace srsenb

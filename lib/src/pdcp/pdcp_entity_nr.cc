@@ -58,13 +58,17 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
 
   rlc_mode = rlc->rb_is_um(lcid) ? rlc_mode_t::UM : rlc_mode_t::AM;
 
-  // Timers
-  reordering_timer = task_sched.get_unique_timer();
-
-  // configure timer
-  if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
-    reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
+  // t-Reordering timer
+  if (cfg.t_reordering != pdcp_t_reordering_t::infinity) {
+    reordering_timer = task_sched.get_unique_timer();
+    if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
+      reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
+    }
+  } else if (rlc_mode == rlc_mode_t::UM) {
+    logger.warning("%s possible PDCP-NR misconfiguration: using infinite re-ordering timer with RLC UM bearer.",
+                   rb_name);
   }
+
   active = true;
   logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RLC=%s, RAT=%s",
               rb_name,
@@ -276,10 +280,13 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     reordering_timer.stop();
   }
 
-  if (not reordering_timer.is_running() and rx_deliv < rx_next) {
-    rx_reord = rx_next;
-    reordering_timer.run();
+  if (cfg.t_reordering != pdcp_t_reordering_t::infinity) {
+    if (not reordering_timer.is_running() and rx_deliv < rx_next) {
+      rx_reord = rx_next;
+      reordering_timer.run();
+    }
   }
+
   logger.debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
 }
 

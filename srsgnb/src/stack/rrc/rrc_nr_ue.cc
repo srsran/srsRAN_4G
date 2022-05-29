@@ -909,8 +909,13 @@ void rrc_nr::ue::handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_rees
   // compute config and create SRB1 for new user
   asn1::rrc_nr::radio_bearer_cfg_s dummy_radio_bearer_cfg; // just to compute difference, it's never sent to UE
   compute_diff_radio_bearer_cfg(parent->cfg, radio_bearer_cfg, next_radio_bearer_cfg, dummy_radio_bearer_cfg);
-  fill_cellgroup_with_radio_bearer_cfg(
-      parent->cfg, old_rnti, *parent->bearer_mapper, dummy_radio_bearer_cfg, next_cell_group_cfg);
+  if (fill_cellgroup_with_radio_bearer_cfg(
+          parent->cfg, old_rnti, *parent->bearer_mapper, dummy_radio_bearer_cfg, next_cell_group_cfg) !=
+      SRSRAN_SUCCESS) {
+    logger.error("Couldn't fill cellGroupCfg during RRC Reestablishment");
+    send_rrc_reject(max_wait_time_secs);
+    return;
+  }
 
   // send RRC Reestablishment message and restore bearer configuration
   send_connection_reest(old_ue->sec_ctx.get_ncc());
@@ -929,6 +934,7 @@ void rrc_nr::ue::handle_rrc_reestablishment_request(const asn1::rrc_nr::rrc_rees
 
   // Reestablish E-RABs of old rnti later, during ConnectionReconfiguration
   // bearer_list.reestablish_bearers(std::move(old_ue->bearer_list));
+  drb1_five_qi = old_ue->drb1_five_qi;
 
   // remove old RNTI
   old_ue->deactivate_bearers();
@@ -948,11 +954,13 @@ void rrc_nr::ue::send_connection_reest(uint8_t ncc)
   // set NCC
   reest.next_hop_chaining_count = ncc;
 
-  // add PDCP bearers
-  update_pdcp_bearers(next_radio_bearer_cfg, next_cell_group_cfg);
-
   // add RLC bearers
   update_rlc_bearers(next_cell_group_cfg);
+
+  // add PDCP bearers
+  // this is done after updating the RLC bearers,
+  // so the PDCP can query the RLC mode
+  update_pdcp_bearers(next_radio_bearer_cfg, next_cell_group_cfg);
 
   // add MAC bearers
   update_mac(next_cell_group_cfg, false);
@@ -1003,8 +1011,14 @@ void rrc_nr::ue::send_rrc_setup()
 
   // - Setup masterCellGroup
   // - Derive master cell group config bearers
-  fill_cellgroup_with_radio_bearer_cfg(
-      parent->cfg, rnti, *parent->bearer_mapper, setup_ies.radio_bearer_cfg, next_cell_group_cfg);
+  if (fill_cellgroup_with_radio_bearer_cfg(
+          parent->cfg, rnti, *parent->bearer_mapper, setup_ies.radio_bearer_cfg, next_cell_group_cfg) !=
+      SRSRAN_SUCCESS) {
+    logger.error("Couldn't fill cellGroupCfg during RRC Setup");
+    send_rrc_reject(max_wait_time_secs);
+    return;
+  }
+
   // - Pack masterCellGroup into container
   srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(next_cell_group_cfg, __FUNCTION__);
   if (pdu == nullptr) {
@@ -1019,11 +1033,13 @@ void rrc_nr::ue::send_rrc_setup()
     logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
   }
 
-  // add PDCP bearers
-  update_pdcp_bearers(setup_ies.radio_bearer_cfg, next_cell_group_cfg);
-
   // add RLC bearers
   update_rlc_bearers(next_cell_group_cfg);
+
+  // add PDCP bearers
+  // this is done after updating the RLC bearers,
+  // so the PDCP can query the RLC mode
+  update_pdcp_bearers(next_radio_bearer_cfg, next_cell_group_cfg);
 
   // add MAC bearers
   update_mac(next_cell_group_cfg, false);
@@ -1146,8 +1162,12 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     // Fill masterCellGroup
     cell_group_cfg_s master_cell_group;
     master_cell_group.cell_group_id = 0;
-    fill_cellgroup_with_radio_bearer_cfg(
-        parent->cfg, rnti, *parent->bearer_mapper, ies.radio_bearer_cfg, master_cell_group);
+    if (fill_cellgroup_with_radio_bearer_cfg(
+            parent->cfg, rnti, *parent->bearer_mapper, ies.radio_bearer_cfg, master_cell_group) != SRSRAN_SUCCESS) {
+      logger.error("Couldn't fill cellGroupCfg during RRC Reconfiguration");
+      parent->ngap->user_release_request(rnti, asn1::ngap::cause_radio_network_opts::radio_res_not_available);
+      return;
+    }
 
     // Pack masterCellGroup into container
     srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(master_cell_group, __FUNCTION__);
@@ -1171,6 +1191,8 @@ void rrc_nr::ue::send_rrc_reconfiguration()
     update_rlc_bearers(master_cell_group);
 
     // add PDCP bearers
+    // this is done after updating the RLC bearers,
+    // so the PDCP can query the RLC mode
     update_pdcp_bearers(ies.radio_bearer_cfg, master_cell_group);
   }
 
@@ -1258,6 +1280,7 @@ void rrc_nr::ue::handle_rrc_reestablishment_complete(const asn1::rrc_nr::rrc_ree
   for (const auto& drb : next_radio_bearer_cfg.drb_to_add_mod_list) {
     uint16_t lcid = drb1_lcid;
     parent->bearer_mapper->add_eps_bearer(rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid);
+    parent->bearer_mapper->set_five_qi(rnti, lcid - 3, drb1_five_qi);
 
     logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
   }
@@ -1310,6 +1333,11 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t                pdu_session_id,
                                       uint32_t                lcid,
                                       uint32_t                five_qi)
 {
+  if (parent->cfg.five_qi_cfg.find(five_qi) == parent->cfg.five_qi_cfg.end()) {
+    parent->logger.error("No bearer config for 5QI %d present. Aborting DRB addition.", five_qi);
+    return;
+  }
+
   // Enqueue NAS PDU
   srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (pdu == nullptr) {
@@ -1344,6 +1372,9 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t                pdu_session_id,
   parent->bearer_mapper->add_eps_bearer(
       rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid); // TODO: configurable bearer id <-> lcid mapping
   parent->bearer_mapper->set_five_qi(rnti, lcid - 3, five_qi);
+
+  // store 5QI for possible reestablishment of DRB
+  drb1_five_qi = five_qi;
 
   logger.info("Established EPS bearer for LCID %u and RNTI 0x%x", lcid, rnti);
 }
