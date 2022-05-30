@@ -102,6 +102,11 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
               srsran_direction_text[integrity_direction],
               srsran_direction_text[encryption_direction]);
 
+  if (rlc->sdu_queue_is_full(lcid)) {
+    logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rb_name.c_str());
+    return;
+  }
+
   // Check for COUNT overflow
   if (tx_overflow) {
     logger.warning("TX_NEXT has overflowed. Dropping packet");
