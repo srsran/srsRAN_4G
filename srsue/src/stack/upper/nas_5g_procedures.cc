@@ -11,7 +11,7 @@
  */
 
 #include "srsue/hdr/stack/upper/nas_5g_procedures.h"
-
+#include "srsran/common/standard_streams.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -77,7 +77,10 @@ srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::react(
 srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::react(
     const srsran::nas_5g::pdu_session_establishment_reject_t& session_est_reject)
 {
-  logger.info("PDU Session Establishment Reject with cause: %s", session_est_reject.cause_5gsm.cause_value.to_string());
+  logger.error("PDU Session Establishment Reject with cause: %s",
+               session_est_reject.cause_5gsm.cause_value.to_string());
+  srsran::console("PDU Session Establishment Reject with cause: %s\n",
+                  session_est_reject.cause_5gsm.cause_value.to_string());
   return srsran::proc_outcome_t::error;
 }
 
