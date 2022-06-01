@@ -239,13 +239,19 @@ int rlc_am::rlc_am_base_tx::write_sdu(unique_byte_buffer_t sdu)
   uint32_t                                 nof_bytes = sdu->N_bytes;
   srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
   if (ret) {
-    RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, tx_sdu_queue.size());
+    RlcHexInfo(msg_ptr,
+               nof_bytes,
+               "Tx SDU (%d B, PDCP_SN=%ld tx_sdu_queue_len=%d)",
+               nof_bytes,
+               sdu_pdcp_sn,
+               tx_sdu_queue.size());
   } else {
     // in case of fail, the try_write returns back the sdu
     RlcHexWarning(ret.error()->msg,
                   ret.error()->N_bytes,
-                  "[Dropped SDU] Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                  "[Dropped SDU] Tx SDU (%d B, PDCP_SN=%ld, tx_sdu_queue_len=%d)",
                   ret.error()->N_bytes,
+                  sdu_pdcp_sn,
                   tx_sdu_queue.size());
     return SRSRAN_ERROR;
   }

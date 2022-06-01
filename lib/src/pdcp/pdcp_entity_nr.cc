@@ -200,6 +200,15 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   uint32_t rcvd_sn = read_data_header(pdu);
 
   // Calculate RCVD_COUNT
+  /*
+   *- if RCVD_SN < SN(RX_DELIV) – Window_Size:
+   *  - RCVD_HFN = HFN(RX_DELIV) + 1.
+   *- else if RCVD_SN >= SN(RX_DELIV) + Window_Size:
+   *  - RCVD_HFN = HFN(RX_DELIV) – 1.
+   *- else:
+   *  - RCVD_HFN = HFN(RX_DELIV);
+   *- RCVD_COUNT = [RCVD_HFN, RCVD_SN].
+   */
   uint32_t rcvd_hfn, rcvd_count;
   if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
     rcvd_hfn = HFN(rx_deliv) + 1;
@@ -227,6 +236,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     extract_mac(pdu, mac);
   }
+
   // TS 38.323, section 5.9: Integrity verification
   // The data unit that is integrity protected is the PDU header
   // and the data part of the PDU before ciphering.
@@ -245,6 +255,11 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   discard_data_header(pdu);
 
   // Check valid rcvd_count
+  /*
+   * - if RCVD_COUNT < RX_DELIV; or
+   * - if the PDCP Data PDU with COUNT = RCVD_COUNT has been received before:
+   *   - discard the PDCP Data PDU;
+   */
   if (rcvd_count < rx_deliv) {
     logger.debug("Out-of-order after time-out, duplicate or COUNT wrap-around");
     logger.debug("RCVD_COUNT %u, RCVD_COUNT %u", rcvd_count, rx_deliv);
@@ -253,6 +268,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Check if PDU has been received
   if (reorder_queue.find(rcvd_count) != reorder_queue.end()) {
+    logger.debug("Duplicate PDU, dropping.");
     return; // PDU already present, drop.
   }
 
@@ -274,12 +290,14 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // Handle reordering timers
   if (reordering_timer.is_running() and rx_deliv >= rx_reord) {
     reordering_timer.stop();
+    logger.debug("Stopped t-Reordering - RX_DELIV=%d, RX_REORD=%ld", rx_deliv, rx_reord);
   }
 
   if (cfg.t_reordering != pdcp_t_reordering_t::infinity) {
     if (not reordering_timer.is_running() and rx_deliv < rx_next) {
       rx_reord = rx_next;
       reordering_timer.run();
+      logger.debug("Started t-Reordering - RX_REORD=%ld, RX_DELIV=%ld, RX_NEXT=%ld", rx_reord, rx_deliv, rx_next);
     }
   }
 
@@ -333,7 +351,8 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
 // Reordering Timer Callback (t-reordering)
 void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
-  parent->logger.info("Reordering timer expired. Re-order queue size=%d", parent->reorder_queue.size());
+  parent->logger.info(
+      "Reordering timer expired. RX_REORD=%u, re-order queue size=%ld", parent->rx_reord, parent->reorder_queue.size());
 
   // Deliver all PDCP SDU(s) with associated COUNT value(s) < RX_REORD
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = parent->reorder_queue.begin();
@@ -347,6 +366,10 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
   parent->deliver_all_consecutive_counts();
 
   if (parent->rx_deliv < parent->rx_next) {
+    parent->logger.debug("Updating RX_REORD to %ld. Old RX_REORD=%ld, RX_DELIV=%ld",
+                         parent->rx_next,
+                         parent->rx_reord,
+                         parent->rx_deliv);
     parent->rx_reord = parent->rx_next;
     parent->reordering_timer.run();
   }
@@ -355,7 +378,7 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 // Discard Timer Callback (discardTimer)
 void pdcp_entity_nr::discard_callback::operator()(uint32_t timer_id)
 {
-  parent->logger.debug("Discard timer expired for PDU with SN = %d", discard_sn);
+  parent->logger.debug("Discard timer expired for PDU with SN=%d", discard_sn);
 
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
