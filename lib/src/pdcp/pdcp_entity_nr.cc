@@ -308,6 +308,11 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 void pdcp_entity_nr::notify_delivery(const pdcp_sn_vector_t& pdcp_sns)
 {
   logger.debug("Received delivery notification from RLC. Nof SNs=%ld", pdcp_sns.size());
+  for (uint32_t sn : pdcp_sns) {
+    // Remove timer from map
+    logger.debug("Stopping discard timer for SN=%ld", sn);
+    discard_timers_map.erase(sn);
+  }
 }
 
 void pdcp_entity_nr::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
