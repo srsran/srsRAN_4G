@@ -367,6 +367,9 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
     parent->pass_to_upper_layers(std::move(it->second));
   }
 
+  // Update RX_DELIV to the first PDCP SDU not delivered to the upper layers
+  parent->rx_deliv = parent->rx_reord;
+
   // Deliver all PDCP SDU(s) consecutively associated COUNT value(s) starting from RX_REORD
   parent->deliver_all_consecutive_counts();
 
