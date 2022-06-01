@@ -270,6 +270,7 @@ void rlc_am::rlc_am_base_tx::discard_sdu(uint32_t discard_sn)
     if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
       tx_sdu_queue.queue.pop_func(sdu);
       sdu = nullptr;
+      return true;
     }
     return false;
   });
