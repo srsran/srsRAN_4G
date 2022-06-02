@@ -199,15 +199,16 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // Extract RCVD_SN from header
   uint32_t rcvd_sn = read_data_header(pdu);
 
-  // Calculate RCVD_COUNT
   /*
-   *- if RCVD_SN < SN(RX_DELIV) – Window_Size:
-   *  - RCVD_HFN = HFN(RX_DELIV) + 1.
-   *- else if RCVD_SN >= SN(RX_DELIV) + Window_Size:
-   *  - RCVD_HFN = HFN(RX_DELIV) – 1.
-   *- else:
-   *  - RCVD_HFN = HFN(RX_DELIV);
-   *- RCVD_COUNT = [RCVD_HFN, RCVD_SN].
+   * Calculate RCVD_COUNT:
+   *
+   * - if RCVD_SN < SN(RX_DELIV) – Window_Size:
+   *   - RCVD_HFN = HFN(RX_DELIV) + 1.
+   * - else if RCVD_SN >= SN(RX_DELIV) + Window_Size:
+   *   - RCVD_HFN = HFN(RX_DELIV) – 1.
+   * - else:
+   *   - RCVD_HFN = HFN(RX_DELIV);
+   * - RCVD_COUNT = [RCVD_HFN, RCVD_SN].
    */
   uint32_t rcvd_hfn, rcvd_count;
   if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
@@ -221,25 +222,33 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   logger.debug("Estimated RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
 
-  // TS 38.323, section 5.8: Deciphering
-  // The data unit that is ciphered is the MAC-I and the
-  // data part of the PDCP Data PDU except the
-  // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+  /*
+   * TS 38.323, section 5.8: Deciphering
+   *
+   * The data unit that is ciphered is the MAC-I and the
+   * data part of the PDCP Data PDU except the
+   * SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+   */
   if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(
         &pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, rcvd_count, &pdu->msg[cfg.hdr_len_bytes]);
   }
 
-  // Extract MAC-I
-  // Always extract from SRBs, only extract from DRBs if integrity is enabled
+  /*
+   * Extract MAC-I:
+   * Always extract from SRBs, only extract from DRBs if integrity is enabled
+   */
   uint8_t mac[4] = {};
   if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
     extract_mac(pdu, mac);
   }
 
-  // TS 38.323, section 5.9: Integrity verification
-  // The data unit that is integrity protected is the PDU header
-  // and the data part of the PDU before ciphering.
+  /*
+   * TS 38.323, section 5.9: Integrity verification
+   *
+   * The data unit that is integrity protected is the PDU header
+   * and the data part of the PDU before ciphering.
+   */
   if (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX) {
     bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
     if (!is_valid) {
@@ -254,8 +263,9 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // After checking the integrity, we can discard the header.
   discard_data_header(pdu);
 
-  // Check valid rcvd_count
   /*
+   * Check valid rcvd_count:
+   *
    * - if RCVD_COUNT < RX_DELIV; or
    * - if the PDCP Data PDU with COUNT = RCVD_COUNT has been received before:
    *   - discard the PDCP Data PDU;
@@ -268,7 +278,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Check if PDU has been received
   if (reorder_queue.find(rcvd_count) != reorder_queue.end()) {
-    logger.debug("Duplicate PDU, dropping.");
+    logger.debug("Duplicate PDU, dropping");
     return; // PDU already present, drop.
   }
 
