@@ -13,7 +13,7 @@
 #include <numeric>
 
 /*
- * Genric function to test transmission of in-sequence packets
+ * Generic class to test transmission of in-sequence packets
  */
 class test_tx_helper
 {
@@ -203,7 +203,7 @@ int test_tx_all(srslog::basic_logger& logger)
    */
   {
     auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
-    srsran::test_delimit_logger delimiter("TX COUNT 0, 12 bit SN");
+    srsran::test_delimit_logger delimiter("Stop discard timers upon RLC notification, 12 bit SN");
     test_tx_helper              tx_helper(srsran::PDCP_SN_LEN_12, logger);
     n_packets                                         = 1;
     srsran::unique_byte_buffer_t pdu_exp_count0_len12 = srsran::make_byte_buffer();

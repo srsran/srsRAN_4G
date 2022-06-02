@@ -13,7 +13,7 @@
 #include <numeric>
 
 /*
- * Genric function to test reception of in-sequence packets
+ * Generic class to test reception of in-sequence packets
  */
 class test_rx_helper
 {
@@ -50,9 +50,9 @@ public:
   {
     pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
-    // Generate test message and encript/decript SDU.
+    // Generate test message and encrypt/decrypt SDU.
     for (pdcp_test_event_t& event : events) {
-      // Decript and integrity check the PDU
+      // Decrypt and integrity check the PDU
       pdcp_rx.write_pdu(std::move(event.pkt));
       for (uint32_t i = 0; i < event.ticks; ++i) {
         stack.run_tti();
