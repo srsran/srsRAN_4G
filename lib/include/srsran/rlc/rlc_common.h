@@ -179,7 +179,7 @@ struct rlc_status_nack_t {
     has_so         = false;
     nack_sn        = 0;
     so_start       = 0;
-    so_end         = 0;
+    so_end         = so_end_of_sdu;
     has_nack_range = false;
     nack_range     = 0;
   }
