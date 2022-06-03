@@ -14,7 +14,7 @@ sudo -v || exit
 #Check if outbound interface was specified
 if [ ! $# -eq 1 ]
   then
-    echo "Usage :'sudo ./if_masq.sh <Interface Name>' "
+    echo "Usage :'sudo ./srsepc_if_masq.sh <Interface Name>' "
     exit
 fi
 
