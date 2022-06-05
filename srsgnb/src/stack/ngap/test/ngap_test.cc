@@ -228,8 +228,9 @@ void run_ng_initial_ue(ngap& ngap_obj, amf_dummy& amf, rrc_nr_dummy& rrc)
   container->ran_ue_ngap_id.value = 0x1;
   container->nas_pdu_present      = true;
 
-  // Set allowed NSSAI (FIXME)
+  // Set allowed NSSAI
   container->allowed_nssai.value.resize(1);
+  container->allowed_nssai.value[0].s_nssai.sst.from_number(1);
 
   // Set security key
   uint8_t sec_key[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,

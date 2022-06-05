@@ -192,7 +192,7 @@ uint32_t rlc_am_nr_tx::build_new_pdu(uint8_t* payload, uint32_t nof_bytes)
   } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
 
   if (tx_sdu != nullptr) {
-    RlcDebug("Read RLC SDU - %d bytes", tx_sdu->N_bytes);
+    RlcDebug("Read RLC SDU - RLC_SN=%d, PDCP_SN=%d, %d bytes", st.tx_next, tx_sdu->md.pdcp_sn, tx_sdu->N_bytes);
   } else {
     RlcDebug("No SDUs left in the tx queue.");
     return 0;
