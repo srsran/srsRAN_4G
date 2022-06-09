@@ -199,8 +199,9 @@ add_executable(pdcch_test pdcch_test.c)
 target_link_libraries(pdcch_test srsran_phy)
 
 foreach (nof_prb 6 15 25 50 75 100)
-    # Currently, the ARM platforms srsRAN has been tested are not capable of running 100PRB. So, skip 100 PRB in ARM
-    if (HAVE_NEON AND (${nof_prb} EQUAL 100))
+    # Currently, the ARM and SSE platforms srsRAN has been tested are not capable of running 100PRB. So, skip 100 PRB in
+    # ARM and SSE.
+    if ((HAVE_NEON OR NOT HAVE_AVX2) AND (${nof_prb} EQUAL 100))
         continue()
     endif ()
     foreach (nof_ports 1 2)
