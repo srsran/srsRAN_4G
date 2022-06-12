@@ -2079,7 +2079,8 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
   srsran::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
-
+  pdcp->config_security(lcid, sec_cfg);
+  pdcp->enable_encryption(lcid);
   return true;
 }
 
