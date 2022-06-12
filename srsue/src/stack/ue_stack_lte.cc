@@ -42,6 +42,7 @@ ue_stack_lte::ue_stack_lte() :
   rrc_logger(srslog::fetch_basic_logger("RRC", false)),
   usim_logger(srslog::fetch_basic_logger("USIM", false)),
   nas_logger(srslog::fetch_basic_logger("NAS", false)),
+  nas5g_logger(srslog::fetch_basic_logger("NAS5G", false)),
   mac_nr_logger(srslog::fetch_basic_logger("MAC-NR")),
   rrc_nr_logger(srslog::fetch_basic_logger("RRC-NR", false)),
   rlc_nr_logger(srslog::fetch_basic_logger("RLC-NR", false)),
@@ -128,6 +129,8 @@ int ue_stack_lte::init(const stack_args_t& args_)
   nas_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
   nas_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
 
+  nas5g_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
+  nas5g_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
   mac_nr_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
   mac_nr_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rrc_nr_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
