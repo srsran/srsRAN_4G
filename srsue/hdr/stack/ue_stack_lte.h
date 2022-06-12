@@ -215,6 +215,7 @@ private:
   srslog::basic_logger& rrc_logger;
   srslog::basic_logger& usim_logger;
   srslog::basic_logger& nas_logger;
+  srslog::basic_logger& nas5g_logger;
 
   // UE NR stack logging
   srslog::basic_logger& mac_nr_logger;
