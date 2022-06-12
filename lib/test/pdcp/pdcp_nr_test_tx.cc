@@ -121,7 +121,6 @@ int test_tx_all(srslog::basic_logger& logger)
     auto&                       test_logger = srslog::fetch_basic_logger("TESTER  ");
     srsran::test_delimit_logger delimiter("TX COUNT 4096, 12 bit SN");
     test_tx_helper              tx_helper(srsran::PDCP_SN_LEN_12, logger);
-    n_packets                                            = 2049;
     n_packets                                            = 4097;
     srsran::unique_byte_buffer_t pdu_exp_count4096_len12 = srsran::make_byte_buffer();
     pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
