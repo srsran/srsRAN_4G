@@ -949,6 +949,11 @@ void rrc_nr::rrc_release()
   pdcp->reset();
   mac->reset();
   lcid_drb.clear();
+
+  // Apply actions only applicable in SA mode
+  if (rrc_eutra == nullptr) {
+    stack->reset_eps_bearers();
+  }
 }
 
 int rrc_nr::get_nr_capabilities(srsran::byte_buffer_t* nr_caps_pdu)
@@ -2261,9 +2266,12 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
   pdcp->enable_encryption(lcid, DIRECTION_TXRX);
 }
 
-void rrc_nr::handle_rrc_release(const asn1::rrc_nr::rrc_release_s& rrc_release)
+void rrc_nr::handle_rrc_release(const asn1::rrc_nr::rrc_release_s& msg)
 {
-  logger.info("RRC Release not handled yet");
+  logger.info("Received RRC Release");
+  srsran::console("Received RRC Release\n");
+
+  rrc_release();
 }
 
 // Security helper used by Security Mode Command and Mobility handling routines
