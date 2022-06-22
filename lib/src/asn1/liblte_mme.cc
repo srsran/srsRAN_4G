@@ -319,6 +319,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_mobile_id_ie(uint8** ie_ptr, LIBLTE_MME_MOBI
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            id;
+  uint32*           id32;
   uint32            length;
   uint32            i;
   bool              odd = false;
@@ -338,22 +339,35 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_mobile_id_ie(uint8** ie_ptr, LIBLTE_MME_MOBI
     } else if (LIBLTE_MME_MOBILE_ID_TYPE_IMEISV == mobile_id->type_of_id) {
       id  = mobile_id->imeisv;
       odd = false;
+    } else if (LIBLTE_MME_MOBILE_ID_TYPE_TMSI == mobile_id->type_of_id) {
+      id32 = &mobile_id->tmsi;
+      odd  = false;
     } else {
       // TODO: Not handling these IDs
       return (err);
     }
 
-    id[0] = **ie_ptr >> 4;
-    *ie_ptr += 1;
-    for (i = 0; i < 7; i++) {
-      id[i * 2 + 1] = (*ie_ptr)[i] & 0x0F;
-      id[i * 2 + 2] = (*ie_ptr)[i] >> 4;
-    }
-    if (odd) {
-      *ie_ptr += 7;
+    if (mobile_id->type_of_id != LIBLTE_MME_MOBILE_ID_TYPE_TMSI) {
+      id[0] = **ie_ptr >> 4;
+      *ie_ptr += 1;
+      for (i = 0; i < 7; i++) {
+        id[i * 2 + 1] = (*ie_ptr)[i] & 0x0F;
+        id[i * 2 + 2] = (*ie_ptr)[i] >> 4;
+      }
+      if (odd) {
+        *ie_ptr += 7;
+      } else {
+        id[i * 2 + 1] = (*ie_ptr)[i] & 0xF;
+        *ie_ptr += 8;
+      }
     } else {
-      id[i * 2 + 1] = (*ie_ptr)[i] & 0xF;
-      *ie_ptr += 8;
+      *ie_ptr += 1;
+      uint32 tmsi = 0;
+      for (i = 0; i < 4; i++) {
+        tmsi += ((*ie_ptr)[i] & 0xFF) << ((3 - i) * 8);
+      }
+      *id32 = tmsi;
+      *ie_ptr += 4;
     }
 
     err = LIBLTE_SUCCESS;
@@ -1380,12 +1394,13 @@ liblte_mme_unpack_eps_network_feature_support_ie(uint8** ie_ptr, LIBLTE_MME_EPS_
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (ie_ptr != NULL && eps_nfs != NULL) {
+    int ie_len        = *ie_ptr[0];
     eps_nfs->esrps    = ((*ie_ptr)[1] >> 5) & 0x01;
     eps_nfs->cs_lcs   = (LIBLTE_MME_CS_LCS_ENUM)(((*ie_ptr)[1] >> 3) & 0x03);
     eps_nfs->epc_lcs  = ((*ie_ptr)[1] >> 2) & 0x01;
     eps_nfs->emc_bs   = ((*ie_ptr)[1] >> 1) & 0x01;
     eps_nfs->ims_vops = (*ie_ptr)[1] & 0x01;
-    *ie_ptr += 2;
+    *ie_ptr += (ie_len + 1);
 
     err = LIBLTE_SUCCESS;
   }
