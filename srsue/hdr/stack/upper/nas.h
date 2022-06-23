@@ -132,6 +132,8 @@ private:
 
   uint8_t transaction_id = 0;
 
+  bool supported_ims_vops = false;
+
   // timers
   srsran::task_sched_handle           task_sched;
   srsran::timer_handler::unique_timer t3402;          // started when attach attempt counter reached 5
@@ -187,6 +189,7 @@ private:
   void parse_emm_information(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_detach_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_emm_status(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_activate_default_eps_bearer_context_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_deactivate_eps_bearer_context_request(srsran::unique_byte_buffer_t pdu);
   void parse_activate_test_mode(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
@@ -204,17 +207,23 @@ private:
   void send_esm_information_response(const uint8 proc_transaction_id);
   void send_authentication_response(const uint8_t* res, const size_t res_len);
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
-  void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg);
+  void   gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg, bool ims = false);
   void send_security_mode_reject(uint8_t cause);
   void send_attach_request();
   void send_detach_request(bool switch_off);
   void send_detach_accept();
+  void send_activate_default_eps_bearer_context_accept(const uint8_t& proc_transtion_id, const uint8_t& eps_bearer_id);
   void send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
                                                          const uint8_t& eps_bearer_id);
   void send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
   void send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
   void send_activate_test_mode_complete();
   void send_close_ue_test_loop_complete();
+  void   send_conn_request();
+
+  bool set_up_gw(srsran::srsran_apn_type                                            srsran_apn_type,
+                 std::string                                                        apn_protocol,
+                 LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT& request);
 
   // Airplane mode simulator helpers
   void start_airplane_mode_sim();

@@ -1319,7 +1319,8 @@ int nas_5g::add_pdu_session(uint16_t                      pdu_session_id,
     return SRSRAN_ERROR;
   }
 
-  if (gw->setup_if_addr(pdu_session_id, pdu_session_type, ip_addr, ipv6_if_id, err_str)) {
+  if (gw->setup_if_addr(
+          pdu_session_id, srsran::srsran_apn_type::Internet, pdu_session_type, ip_addr, ipv6_if_id, err_str)) {
     logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str ? err_str : "");
     srsran::console("%s\n", gw_setup_failure_str.c_str());
     return SRSRAN_ERROR;

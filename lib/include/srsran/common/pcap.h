@@ -34,6 +34,7 @@
 #define S1AP_LTE_DLT 150
 #define NAS_5G_DLT 151
 #define NGAP_5G_DLT 152
+#define GW_DLT 154
 
 /* This structure gets written to the start of the file */
 typedef struct pcap_hdr_s {
@@ -196,6 +197,12 @@ typedef struct NGAP_Context_Info_s {
   unsigned char dummy;
 } NGAP_Context_Info_t;
 
+/* Context information for every GW packet */
+typedef struct GW_Context_Info_s {
+  // No Context yet
+  unsigned char dummy;
+} GW_Context_Info_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -226,6 +233,9 @@ int LTE_PCAP_NGAP_WritePDU(FILE* fd, NGAP_Context_Info_t* context, const unsigne
 /* Write an individual NR MAC PDU (PCAP packet header + UDP header + nr-mac-context + mac-pdu) */
 int NR_PCAP_MAC_UDP_WritePDU(FILE* fd, mac_nr_context_info_t* context, const unsigned char* PDU, unsigned int length);
 int NR_PCAP_PACK_MAC_CONTEXT_TO_BUFFER(mac_nr_context_info_t* context, uint8_t* buffer, unsigned int length);
+
+/* Write an individual User Plane PDU (PCAP packet header + up-pdu) */
+int LTE_PCAP_GW_Write_PDU(FILE* fd, GW_Context_Info_t* context, const unsigned char* PDU, unsigned int length);
 
 #ifdef __cplusplus
 }

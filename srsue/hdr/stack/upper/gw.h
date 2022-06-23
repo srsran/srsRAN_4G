@@ -47,6 +47,7 @@ struct gw_args_t {
   std::string netns;
   std::string tun_dev_name;
   std::string tun_dev_netmask;
+  std::string tun_dev_name_ims;
 };
 
 class gw : public gw_interface_stack, public srsran::thread
@@ -64,10 +65,20 @@ public:
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
   // NAS interface
-  int  setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
+  int  setup_if_addr(uint32_t                eps_bearer_id,
+                     srsran::srsran_apn_type srsran_apn_type,
+                     uint8_t                 pdn_type,
+                     uint32_t                ip_addr,
+                     uint8_t*                ipv6_if_addr,
+                     char*                   err_str);
+  void setup_route(uint32_t pcscf_addr, srsran::srsran_apn_type srsran_apn_type);
+  void setup_route_v6(uint8_t pcscf_addr[16], srsran::srsran_apn_type srsran_apn_type);
+  void send_router_solicitation(srsran::srsran_apn_type srsran_apn_type);
+  int  update_ipv6_prefix(int lcid, struct in6_addr* prefix, uint8_t* prefix_len);
   int  deactivate_eps_bearer(const uint32_t eps_bearer_id);
   int  apply_traffic_flow_template(const uint8_t& eps_bearer_id, const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
   void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms);
+  void start_pcap(srsran::gw_pcap* pcap_);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -83,35 +94,53 @@ private:
   std::atomic<bool> running    = {false};
   std::atomic<bool> run_enable = {false};
   int32_t           netns_fd   = 0;
-  int32_t           tun_fd     = 0;
-  struct ifreq      ifr        = {};
-  int32_t           sock       = 0;
-  std::atomic<bool> if_up      = {false};
+  int32_t           tun_fd_inet = 0;
+  int32_t           tun_fd_ims  = 0;
+  struct ifreq      ifr_inet    = {};
+  struct ifreq      ifr_ims     = {};
+  int32_t           sock_inet   = 0;
+  int32_t           sock_ims    = 0;
+  std::atomic<bool> if_up_inet  = {false};
+  std::atomic<bool> if_up_ims   = {false};
 
   static const int NOT_ASSIGNED          = -1;
-  int32_t          default_eps_bearer_id = NOT_ASSIGNED;
+  int32_t          default_eps_bearer_id_inet = NOT_ASSIGNED;
+  int32_t          default_eps_bearer_id_ims  = NOT_ASSIGNED;
   std::mutex       gw_mutex;
 
   srslog::basic_logger& logger;
+  srsran::gw_pcap*      pcap = nullptr;
 
-  uint32_t current_ip_addr = 0;
-  uint8_t  current_if_id[8];
+  uint32_t current_ip_addr_inet = 0;
+  uint32_t current_ip_addr_ims  = 0;
+  uint8_t  current_if_id_ims[8];
+  uint8_t  current_if_id_inet[8];
 
-  uint32_t                                       ul_tput_bytes = 0;
-  uint32_t                                       dl_tput_bytes = 0;
+  uint32_t                                       ul_tput_bytes     = 0;
+  uint32_t                                       dl_tput_bytes     = 0;
+  uint32_t                                       ims_ul_tput_bytes = 0;
+  uint32_t                                       ims_dl_tput_bytes = 0;
   std::chrono::high_resolution_clock::time_point metrics_tp; // stores time when last metrics have been taken
 
-  void run_thread();
-  int  init_if(char* err_str);
-  int  setup_if_addr4(uint32_t ip_addr, char* err_str);
-  int  setup_if_addr6(uint8_t* ipv6_if_id, char* err_str);
-  bool find_ipv6_addr(struct in6_addr* in6_out);
-  void del_ipv6_addr(struct in6_addr* in6p);
+  void          run_thread();
+  int           init_if(srsran::srsran_apn_type srsran_apn_type, char* err_str);
+  int           setup_if_addr4(uint32_t ip_addr, srsran::srsran_apn_type srsran_apn_type, char* err_str);
+  int           setup_if_addr6(uint8_t* ipv6_if_id, srsran::srsran_apn_type srsran_apn_type, char* err_str);
+  bool          find_ipv6_addr(srsran::srsran_apn_type srsran_apn_type, struct in6_addr* in6_out);
+  void          del_ipv6_addr(srsran::srsran_apn_type srsran_apn_type, struct in6_addr* in6p);
+  struct ifreq& fetch_right_ifr(srsran::srsran_apn_type srsran_apn_type);
+  std::string   fetch_interface_name(srsran::srsran_apn_type srsran_apn_type);
+  int32_t&      fetch_right_tun_fd(srsran::srsran_apn_type srsran_apn_type);
 
   // MBSFN
   int                mbsfn_sock_fd                   = 0;  // Sink UDP socket file descriptor
   struct sockaddr_in mbsfn_sock_addr                 = {}; // Target address
   uint32_t           mbsfn_ports[SRSRAN_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
+
+  // IMS Interface
+  int                ims_sock_fd                   = 0;  // Sink UDP socket file descriptor
+  struct sockaddr_in ims_sock_addr                 = {}; // Target address
+  uint16_t           ims_ports[SRSRAN_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
 
   // TFT
   tft_pdu_matcher tft_matcher;

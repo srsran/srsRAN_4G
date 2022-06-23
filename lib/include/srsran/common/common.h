@@ -101,6 +101,14 @@ inline std::string to_string(const srsran_rat_t& type)
   return enum_to_text(options, (uint32_t)srsran_rat_t::nulltype, (uint32_t)type);
 }
 
+// Two types of APN, for Internet and IMS
+enum class srsran_apn_type { Internet, IMS, nulltype };
+inline std::string to_string(const srsran_apn_type& srsran_apn_type)
+{
+  constexpr static const char* options[] = {"Internet", "IMS"};
+  return enum_to_text(options, (uint32_t)srsran_apn_type::nulltype, (uint32_t)srsran_apn_type);
+}
+
 } // namespace srsran
 
 #endif // SRSRAN_COMMON_H

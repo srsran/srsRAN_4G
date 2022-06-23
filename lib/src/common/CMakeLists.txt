@@ -19,36 +19,37 @@
 #
 
 set(SOURCES arch_select.cc
-            enb_events.cc
-            backtrace.c
-            byte_buffer.cc
-            band_helper.cc
-            bearer_manager.cc
-            buffer_pool.cc
-            crash_handler.cc
-            gen_mch_tables.c
-            liblte_security.cc
-            mac_pcap.cc
-            mac_pcap_base.cc
-            nas_pcap.cc
-            network_utils.cc
-            mac_pcap_net.cc
-            pcap.c
-            phy_cfg_nr.cc
-            phy_cfg_nr_default.cc
-            rrc_common.cc
-            rlc_pcap.cc
-            s1ap_pcap.cc
-            ngap_pcap.cc
-            security.cc
-            standard_streams.cc
-            thread_pool.cc
-            threads.c
-            tti_sync_cv.cc
-            time_prof.cc
-            version.c
-            zuc.cc
-            s3g.cc)
+    enb_events.cc
+    backtrace.c
+    byte_buffer.cc
+    band_helper.cc
+    bearer_manager.cc
+    buffer_pool.cc
+    crash_handler.cc
+    gen_mch_tables.c
+    liblte_security.cc
+    mac_pcap.cc
+    mac_pcap_base.cc
+    nas_pcap.cc
+    network_utils.cc
+    mac_pcap_net.cc
+    pcap.c
+    phy_cfg_nr.cc
+    phy_cfg_nr_default.cc
+    rrc_common.cc
+    rlc_pcap.cc
+    s1ap_pcap.cc
+    ngap_pcap.cc
+    security.cc
+    standard_streams.cc
+    thread_pool.cc
+    threads.c
+    tti_sync_cv.cc
+    time_prof.cc
+    version.c
+    zuc.cc
+    s3g.cc
+    gw_pcap.cc)
 
 # Avoid warnings caused by libmbedtls about deprecated functions
 set_source_files_properties(security.cc PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)

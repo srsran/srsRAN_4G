@@ -24,6 +24,7 @@
 
 #include "srsran/asn1/liblte_mme.h"
 #include "srsran/common/byte_buffer.h"
+#include "srsran/common/gw_pcap.h"
 
 namespace srsue {
 
@@ -34,8 +35,27 @@ public:
    * Informs GW about new EPS default bearer being created after attach accept
    * along with the assigned IP address.
    */
-  virtual int
-  setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) = 0;
+  virtual int setup_if_addr(uint32_t                eps_bearer_id,
+                            srsran::srsran_apn_type srsran_apn_type,
+                            uint8_t                 pdn_type,
+                            uint32_t                ip_addr,
+                            uint8_t*                ipv6_if_id,
+                            char*                   err_str) = 0;
+
+  /**
+   * @brief Set the up route object
+   *
+   * @param ip_addr
+   * @param pcscf_addr
+   */
+  virtual void setup_route(uint32_t pcscf_addr, srsran::srsran_apn_type srsran_apn_type)       = 0;
+  virtual void setup_route_v6(uint8_t pcscf_addr[16], srsran::srsran_apn_type srsran_apn_type) = 0;
+
+  /**
+   * @brief send route solicitiation for IMCPv6
+   *
+   */
+  virtual void send_router_solicitation(srsran::srsran_apn_type srsran_apn_type) = 0;
 
   /**
    * Inform GW about the deactivation of a EPS bearer, e.g. during
@@ -80,7 +100,10 @@ public:
 };
 
 class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, public gw_interface_pdcp
-{};
+{
+public:
+  virtual void start_pcap(srsran::gw_pcap* pcap_) = 0;
+};
 
 } // namespace srsue
 

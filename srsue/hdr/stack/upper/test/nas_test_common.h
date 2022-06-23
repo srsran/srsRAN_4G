@@ -206,7 +206,12 @@ public:
 
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
-  int setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str)
+  int setup_if_addr(uint32_t                eps_bearer_id,
+                    srsran::srsran_apn_type srsran_apn_type,
+                    uint8_t                 pdn_type,
+                    uint32_t                ip_addr,
+                    uint8_t*                ipv6_if_id,
+                    char*                   err_str)
   {
     return SRSRAN_SUCCESS;
   }
@@ -218,6 +223,9 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
   void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) {}
+  void setup_route(uint32_t pcscf_addr, srsran::srsran_apn_type srsran_apn_type) {}
+  void setup_route_v6(uint8_t pcscf_addr[16], srsran::srsran_apn_type srsran_apn_type) {}
+  void send_router_solicitation(srsran::srsran_apn_type srsran_apn_type) {}
 };
 
 } // namespace srsran

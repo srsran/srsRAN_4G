@@ -46,6 +46,11 @@ public:
   std::string    eea;
   nas_sim_args_t sim;
 
+  // IMS
+  bool        ims_enable;
+  std::string ims_apn_name;
+  std::string ims_apn_protocol;
+
   // 5G args
   std::string    ia5g;
   std::string    ea5g;

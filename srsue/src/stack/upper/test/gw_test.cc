@@ -57,7 +57,12 @@ int gw_test()
     perror("inet_pton");
     return SRSRAN_ERROR;
   }
-  rtn = gw.setup_if_addr(eps_bearer_id, LIBLTE_MME_PDN_TYPE_IPV4, htonl(in_addr.s_addr), nullptr, err_str);
+  rtn = gw.setup_if_addr(eps_bearer_id,
+                         srsran::srsran_apn_type::Internet,
+                         LIBLTE_MME_PDN_TYPE_IPV4,
+                         htonl(in_addr.s_addr),
+                         nullptr,
+                         err_str);
 
   if (rtn != SRSRAN_SUCCESS) {
     srslog::fetch_basic_logger("TEST", false)

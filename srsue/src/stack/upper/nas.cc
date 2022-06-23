@@ -28,6 +28,7 @@
 #include <unistd.h>
 
 #include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/network_utils.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/interfaces/ue_gw_interfaces.h"
 #include "srsran/interfaces/ue_rrc_interfaces.h"
@@ -572,6 +573,9 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       parse_detach_request(lcid, std::move(pdu));
       break;
+    case LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST:
+      parse_activate_default_eps_bearer_context_request(lcid, std::move(pdu));
+      break;
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST:
       parse_activate_dedicated_eps_bearer_context_request(lcid, std::move(pdu));
       break;
@@ -593,6 +597,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_INACTIVE);
       break;
     default:
+      srsran::console_stderr("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       logger.error("Not handling NAS message with MSG_TYPE=%02X", msg_type);
       return;
   }
@@ -818,7 +823,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       ; // Do nothing;
     }
     if (attach_accept.eps_network_feature_support_present) {
-      ; // Do nothing;
+      supported_ims_vops = attach_accept.eps_network_feature_support.ims_vops;
     }
     if (attach_accept.additional_update_result_present) {
       ; // Do nothing;
@@ -841,127 +846,9 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       logger.error("Failed to attach -- Mismatch between PDN protocol and PDN type in attach accept.");
       return;
     }
-    if (("ipv4v6" == cfg.apn_protocol &&
-         LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) ||
-        ("ipv4v6" == cfg.apn_protocol &&
-         LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type)) {
-      logger.warning("Requested IPv4v6, but only received a single PDN address.");
-      logger.warning("EMM Cause: %d", attach_accept.emm_cause);
-    }
-    if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
-      ip_addr = 0;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24u;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16u;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8u;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[3];
 
-      logger.info("Network attach successful. APN: %s, IP: %u.%u.%u.%u",
-                  act_def_eps_bearer_context_req.apn.apn,
-                  act_def_eps_bearer_context_req.pdn_addr.addr[0],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[1],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[2],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[3]);
-
-      srsran::console("Network attach successful. IP: %u.%u.%u.%u\n",
-                      act_def_eps_bearer_context_req.pdn_addr.addr[0],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[1],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[2],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[3]);
-
-      // Setup GW
-      char* err_str = nullptr;
-      if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
-                            LIBLTE_MME_PDN_TYPE_IPV4,
-                            ip_addr,
-                            nullptr,
-                            err_str)) {
-        logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str ? err_str : "");
-        srsran::console("%s\n", gw_setup_failure_str.c_str());
-      }
-    } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
-      memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
-      logger.info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x",
-                  act_def_eps_bearer_context_req.apn.apn,
-                  act_def_eps_bearer_context_req.pdn_addr.addr[0],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[1],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[2],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[3],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[4],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[5],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[6],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[7]);
-
-      srsran::console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
-                      act_def_eps_bearer_context_req.pdn_addr.addr[0],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[1],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[2],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[3],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[4],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[5],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[6],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[7]);
-      // Setup GW
-      char* err_str = nullptr;
-      if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
-                            LIBLTE_MME_PDN_TYPE_IPV6,
-                            0,
-                            ipv6_if_id,
-                            err_str)) {
-        logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str);
-        srsran::console("%s\n", gw_setup_failure_str.c_str());
-      }
-    } else if (LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
-      memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
-      // IPv6
-      logger.info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x",
-                  act_def_eps_bearer_context_req.apn.apn,
-                  act_def_eps_bearer_context_req.pdn_addr.addr[0],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[1],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[2],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[3],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[4],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[5],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[6],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[7]);
-      srsran::console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
-                      act_def_eps_bearer_context_req.pdn_addr.addr[0],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[1],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[2],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[3],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[4],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[5],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[6],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[7]);
-      // IPv4
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[8] << 24u;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[9] << 16u;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[10] << 8u;
-      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[11];
-
-      logger.info("Network attach successful. APN: %s, IP: %u.%u.%u.%u",
-                  act_def_eps_bearer_context_req.apn.apn,
-                  act_def_eps_bearer_context_req.pdn_addr.addr[8],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[9],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[10],
-                  act_def_eps_bearer_context_req.pdn_addr.addr[11]);
-
-      srsran::console("Network attach successful. IP: %u.%u.%u.%u\n",
-                      act_def_eps_bearer_context_req.pdn_addr.addr[8],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[9],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[10],
-                      act_def_eps_bearer_context_req.pdn_addr.addr[11]);
-
-      char* err_str = nullptr;
-      if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
-                            LIBLTE_MME_PDN_TYPE_IPV4V6,
-                            ip_addr,
-                            ipv6_if_id,
-                            err_str)) {
-        logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str);
-        srsran::console("%s\n", gw_setup_failure_str.c_str());
-      }
-    } else {
-      logger.error("PDN type not IPv4, IPv6 nor IPv4v6");
+    if (!set_up_gw(srsran::srsran_apn_type::Internet, cfg.apn_protocol, act_def_eps_bearer_context_req)) {
+      logger.error("Failed to setup interface.");
       return;
     }
 
@@ -1013,6 +900,15 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
       // send attach complete
       send_attach_complete(transaction_id, bearer.eps_bearer_id);
+
+      // If ims_vops is supported and IMS_APN is enabled, try to setup IMS bearer
+      if (supported_ims_vops == true && cfg.ims_enable == true) {
+        logger.info("requesting IMS APN");
+        send_conn_request();
+      } else if (supported_ims_vops == true && cfg.ims_enable == true) {
+        logger.warning("Network not supports IMS over PS");
+        srsran::console("Network not supports IMS over PS. Disabled the IMS PDN request.");
+      }
     } else {
       // bearer already exists (perhaps the attach complete got lost and this is a retx?)
       // TODO: what are we supposed to do in this case?
@@ -1346,6 +1242,131 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 }
 
+void nas::parse_activate_default_eps_bearer_context_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+{
+  // skip the first 6 bytes which are seucrity related
+  uint8_t sec_hdr_type = (pdu->msg[0] & 0xF0) >> 4;
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
+    uint32_t hdr_len = 6;
+    for (uint32_t i = 0; i < pdu->N_bytes - hdr_len; i++) {
+      pdu->msg[i] = pdu->msg[i + hdr_len];
+    }
+    pdu->resize(pdu->N_bytes - hdr_len);
+  }
+
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
+  liblte_mme_unpack_activate_default_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &request);
+
+  logger.info("Received Activate Default EPS bearer context request (eps_bearer_id=%d, proc_id=%d, qci=%02x)",
+              request.eps_bearer_id,
+              request.proc_transaction_id,
+              request.eps_qos.qci);
+  ctxt_base.rx_count++;
+
+  if (eps_bearer.find(request.eps_bearer_id) != eps_bearer.end()) {
+    // new eps_bearer_id
+    logger.error("IMS EPS bearer already exists (%d). Removing it.", request.eps_bearer_id);
+
+    // remove bearer
+    eps_bearer_map_t::iterator it = eps_bearer.find(request.eps_bearer_id);
+    eps_bearer.erase(it);
+  }
+
+  eps_bearer_t bearer  = {};
+  bearer.type          = DEFAULT_EPS_BEARER;
+  bearer.eps_bearer_id = request.eps_bearer_id;
+
+  // Set up GW
+  set_up_gw(srsran_apn_type::IMS, cfg.ims_apn_protocol, request);
+
+  // Search for DNS entry in protocol config options
+  if (request.protocol_cnfg_opts_present) {
+    for (uint32_t i = 0; i < request.protocol_cnfg_opts.N_opts; i++) {
+      if (request.protocol_cnfg_opts.opt[i].id == LIBLTE_MME_ADDITIONAL_PARAMETERS_DL_DNS_SERVER_IPV4_ADDRESS) {
+        uint32_t dns_addr = 0;
+        dns_addr |= request.protocol_cnfg_opts.opt[i].contents[0] << 24u;
+        dns_addr |= request.protocol_cnfg_opts.opt[i].contents[1] << 16u;
+        dns_addr |= request.protocol_cnfg_opts.opt[i].contents[2] << 8u;
+        dns_addr |= request.protocol_cnfg_opts.opt[i].contents[3];
+        logger.info("DNS: %u.%u.%u.%u",
+                    request.protocol_cnfg_opts.opt[i].contents[0],
+                    request.protocol_cnfg_opts.opt[i].contents[1],
+                    request.protocol_cnfg_opts.opt[i].contents[2],
+                    request.protocol_cnfg_opts.opt[i].contents[3]);
+      } else if (request.protocol_cnfg_opts.opt[i].id == LIBLTE_MME_ADDITIONAL_PARAMETERS_DL_P_CSCF_IPV4_ADDRESS) {
+        // save P-CSCF address
+        uint32_t pcscf_addr = 0;
+        pcscf_addr |= request.protocol_cnfg_opts.opt[i].contents[0] << 24u;
+        pcscf_addr |= request.protocol_cnfg_opts.opt[i].contents[1] << 16u;
+        pcscf_addr |= request.protocol_cnfg_opts.opt[i].contents[2] << 8u;
+        pcscf_addr |= request.protocol_cnfg_opts.opt[i].contents[3];
+        logger.info("P-CSCF IPv4: %u.%u.%u.%u",
+                    request.protocol_cnfg_opts.opt[i].contents[0],
+                    request.protocol_cnfg_opts.opt[i].contents[1],
+                    request.protocol_cnfg_opts.opt[i].contents[2],
+                    request.protocol_cnfg_opts.opt[i].contents[3]);
+        srsran::console("P-CSCF IPv4: %u.%u.%u.%u\n",
+                        request.protocol_cnfg_opts.opt[i].contents[0],
+                        request.protocol_cnfg_opts.opt[i].contents[1],
+                        request.protocol_cnfg_opts.opt[i].contents[2],
+                        request.protocol_cnfg_opts.opt[i].contents[3]);
+        // save this to /tmp/.pcscf
+        FILE* p_fd;
+        p_fd = fopen("/tmp/.pcscf", "w");
+        if (p_fd != NULL) {
+          fprintf(p_fd,
+                  "%u.%u.%u.%u",
+                  request.protocol_cnfg_opts.opt[i].contents[0],
+                  request.protocol_cnfg_opts.opt[i].contents[1],
+                  request.protocol_cnfg_opts.opt[i].contents[2],
+                  request.protocol_cnfg_opts.opt[i].contents[3]);
+          fclose(p_fd);
+        }
+
+        // Add ip route
+        gw->setup_route(pcscf_addr, srsran_apn_type::IMS);
+      } else if (request.protocol_cnfg_opts.opt[i].id == LIBLTE_MME_ADDITIONAL_PARAMETERS_DL_P_CSCF_IPV6_ADDRESS) {
+        uint8_t pcscf_addr_v6[16] = {};
+        memcpy(pcscf_addr_v6, request.protocol_cnfg_opts.opt[i].contents, 16);
+        struct in6_addr addr = srsran::bytes_to_ipv6(pcscf_addr_v6);
+        char            astring[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &addr, astring, INET6_ADDRSTRLEN);
+        logger.info("P-CSCF IPv6: %s", astring);
+        srsran::console("P-CSCF IPv6: %s\n", astring);
+        // save this to /tmp/.pcscf
+        FILE* p_fd;
+        p_fd = fopen("/tmp/.pcscf", "w");
+        if (p_fd != NULL) {
+          fprintf(p_fd, "%s", astring);
+          fclose(p_fd);
+        }
+        // add ip route
+        gw->setup_route_v6(pcscf_addr_v6, srsran_apn_type::IMS);
+      }
+    }
+  }
+  //
+  if (eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+    // bearer added successfully
+    attach_attempt_counter = 0; // reset according to 5.5.1.1
+    // state.set_registered(emm_state_t::registered_substate_t::volte_service);
+
+    // send attach complete
+    send_activate_default_eps_bearer_context_accept(request.proc_transaction_id, bearer.eps_bearer_id);
+    // send_attach_complete(transaction_id, bearer.eps_bearer_id);
+  } else {
+    // bearer already exists (perhaps the attach complete got lost and this is a retx?)
+    // TODO: what are we supposed to do in this case?
+    logger.error("Error adding EPS bearer.");
+  }
+
+  // if pdn_type is IPv6 or IPv4v6, seend a route solication
+  if (request.pdn_addr.pdn_type == LIBLTE_MME_PDN_TYPE_IPV6 ||
+      request.pdn_addr.pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
+    gw->send_router_solicitation(srsran_apn_type::IMS);
+  }
+}
+
 void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
@@ -1667,7 +1688,7 @@ void nas::gen_service_request(srsran::unique_byte_buffer_t& msg)
   ctxt_base.tx_count++;
 }
 
-void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
+void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg, bool ims)
 {
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
 
@@ -1678,20 +1699,26 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
   pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
   pdn_con_req.request_type        = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
   pdn_con_req.apn_present         = false;
+  std::string apn_protocol        = cfg.apn_protocol;
+
+  // IMS
+  if (ims) {
+    apn_protocol = cfg.ims_apn_protocol;
+  }
 
   // Set PDN protocol type
-  if (cfg.apn_protocol == "ipv4" || cfg.apn_protocol.empty()) {
+  if (apn_protocol == "ipv4" || apn_protocol.empty()) {
     logger.debug("Requesting IPv4 PDN protocol");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
-  } else if (cfg.apn_protocol == "ipv6") {
+  } else if (apn_protocol == "ipv6") {
     logger.debug("Requesting IPv6 PDN protocol");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV6;
-  } else if (cfg.apn_protocol == "ipv4v6") {
+  } else if (apn_protocol == "ipv4v6") {
     logger.debug("Requesting IPv4v6 PDN protocol");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4V6;
   } else {
     logger.warning("Unsupported PDN prtocol. Defaulting to IPv4");
-    srsran::console("Unsupported PDN prtocol: %s. Defaulting to IPv4\n", cfg.apn_protocol.c_str());
+    srsran::console("Unsupported PDN prtocol: %s. Defaulting to IPv4\n", apn_protocol.c_str());
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   }
 
@@ -1706,6 +1733,71 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
 
   pdn_con_req.protocol_cnfg_opts_present = false;
   pdn_con_req.device_properties_present  = false;
+
+  // For IMS
+  if (ims) {
+    pdn_con_req.esm_info_transfer_flag_present = false;
+
+    // apn
+    pdn_con_req.apn_present = true;
+    int len                 = std::min((int)cfg.ims_apn_name.length(), LIBLTE_STRING_LEN - 1);
+    strncpy(pdn_con_req.apn.apn, cfg.ims_apn_name.c_str(), len);
+    pdn_con_req.apn.apn[len] = '\0';
+
+    // PCO
+    int n_opts = 0;
+    // added some PCO (protocol control options.
+    // Ref: https://www.sharetechnote.com/html/Handbook_LTE_ProtocolConfigurationOption.html
+    pdn_con_req.protocol_cnfg_opts_present = true;
+    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT opt;
+    if (apn_protocol == "ipv4" || apn_protocol.empty()) {
+      // P-CSCF IPv4 addr server 0x000C
+      opt.opt[n_opts].id  = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_P_CSCF_IPV4_ADDRESS_REQUEST;
+      opt.opt[n_opts].len = 0;
+      n_opts += 1;
+    } else if (apn_protocol == "ipv6") {
+      // P-CSCF IPv6 addr server 0x0001
+      opt.opt[n_opts].id  = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_P_CSCF_IPV6_ADDRESS_REQUEST;
+      opt.opt[n_opts].len = 0;
+      n_opts += 1;
+    } else if (apn_protocol == "ipv4v6") {
+      // P-CSCF IPv4 addr server 0x000C
+      opt.opt[n_opts].id  = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_P_CSCF_IPV4_ADDRESS_REQUEST;
+      opt.opt[n_opts].len = 0;
+      n_opts += 1;
+      // P-CSCF IPv6 addr server 0x0001
+      opt.opt[n_opts].id  = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_P_CSCF_IPV6_ADDRESS_REQUEST;
+      opt.opt[n_opts].len = 0;
+      n_opts += 1;
+    }
+    // IM CN Subsystem Signaling
+    // Ref: http://www.ipt.etsi.org/iptlib/iptLib/BaseDocs/3GPP23.228.htm Sec 4.2.6.2
+    opt.opt[n_opts].id  = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_IM_CN_SUBSYSTEM_SIGNALLING_FLAG;
+    opt.opt[n_opts].len = 0;
+    n_opts += 1;
+    // IPCP 0x8021
+    opt.opt[n_opts].id  = LIBLTE_MME_CONFIGURATION_PROTOCOL_OPTIONS_IPCP;
+    opt.opt[n_opts].len = 16;
+
+    // uint8 ipcp[LIBLTE_MME_MAX_PROTOCOL_CONFIG_LEN] =
+    // {0x03, 0x00, 0x00, 0x10, 0x81, 0x06, 0x00, 0x00, 0x00, 0x00, 0x83, 0x06, 0x00, 0x00, 0x00, 0x00};
+    uint8 ipcp[LIBLTE_MME_MAX_PROTOCOL_CONFIG_LEN] = {
+        0x01, 0x00, 0x00, 0x10, 0x81, 0x06, 0x00, 0x00, 0x00, 0x00, 0x83, 0x06, 0x00, 0x00, 0x00, 0x00};
+    memcpy(opt.opt[n_opts].contents, ipcp, LIBLTE_MME_MAX_PROTOCOL_CONFIG_LEN * sizeof(uint8));
+    n_opts += 1;
+    // UE address allocation via NAS signalling 0x000A
+    opt.opt[n_opts].id  = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_IP_ADDRESS_ALLOCATION_VIA_NAS_SIGNALLING;
+    opt.opt[n_opts].len = 0;
+    n_opts += 1;
+    // Protocol or Container ID: MS support of Local address in TFT indicator (0x0011)
+    opt.opt[n_opts].id  = 0x0011;
+    opt.opt[n_opts].len = 0;
+    n_opts += 1;
+    opt.N_opts = n_opts;
+
+    pdn_con_req.protocol_cnfg_opts         = opt;
+    pdn_con_req.protocol_cnfg_opts_present = true;
+  }
 
   // Pack the message
   liblte_mme_pack_pdn_connectivity_request_msg(&pdn_con_req, msg);
@@ -1742,6 +1834,45 @@ void nas::send_attach_request()
 
   gen_attach_request(pdu);
   rrc->write_sdu(std::move(pdu));
+}
+
+void nas::send_conn_request()
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+
+  gen_pdn_connectivity_request((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), true);
+
+  // shift right all bytes in pdu->msg 6 bytes for making room for security header
+  for (int i = pdu->N_bytes; i >= 0; i--) {
+    pdu->msg[i + 6] = pdu->msg[i];
+  }
+  pdu->N_bytes += 6;
+  for (int i = 0; i < 6; i++) {
+    pdu->msg[i] = 0;
+  }
+  uint8* msg_ptr = pdu->msg;
+  *msg_ptr       = current_sec_hdr << 4 | LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT;
+  msg_ptr++;
+  // MAC will fill later
+  msg_ptr += 4;
+  // Sequence Number
+  *msg_ptr = ctxt_base.tx_count & 0xFF;
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  if (apply_security_config(pdu, current_sec_hdr)) {
+    logger.error("Error applying NAS security.");
+    return;
+  }
+
+  rrc->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
 }
 
 void nas::send_detach_request(bool switch_off)
@@ -2134,6 +2265,50 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
   chap_id++;
 }
 
+void nas::send_activate_default_eps_bearer_context_accept(const uint8_t& proc_transtion_id,
+                                                          const uint8_t& eps_bearer_id)
+{
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept = {};
+  act_def_eps_bearer_context_accept.eps_bearer_id                                                    = eps_bearer_id;
+  act_def_eps_bearer_context_accept.proc_transaction_id        = proc_transtion_id;
+  act_def_eps_bearer_context_accept.protocol_cnfg_opts_present = false;
+
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return;
+  }
+
+  // pack up
+  liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
+                                                                 (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+
+  // Write NAS pcap
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  if (current_sec_hdr >= LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) {
+    // move all
+    for (int i = pdu->N_bytes; i >= 0; i--) {
+      pdu->msg[i + 6] = pdu->msg[i];
+    }
+    pdu->msg[0] = (current_sec_hdr << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+    // MAC will be filled in later
+    // Sequence Number
+    pdu->msg[5] = ctxt_base.tx_count & 0xFF;
+    pdu->N_bytes += 6;
+  }
+  if (apply_security_config(pdu, current_sec_hdr)) {
+    logger.error("Error applying NAS security.");
+    return;
+  }
+
+  logger.info("Sending Active default EPS bearer context accept");
+  rrc->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
+}
+
 void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
                                                             const uint8_t& eps_bearer_id)
 {
@@ -2305,6 +2480,135 @@ void nas::send_close_ue_test_loop_complete()
   rrc->write_sdu(std::move(pdu));
 
   ctxt_base.tx_count++;
+}
+
+bool nas::set_up_gw(srsran::srsran_apn_type                                            srsran_apn_type,
+                    std::string                                                        apn_protocol,
+                    LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT& request)
+{
+  if ((apn_protocol == "ipv4" && LIBLTE_MME_PDN_TYPE_IPV6 == request.pdn_addr.pdn_type) ||
+      (apn_protocol == "ipv6" && LIBLTE_MME_PDN_TYPE_IPV4 == request.pdn_addr.pdn_type)) {
+    logger.error("Failed to attach -- Mismatch between PDN protocol and PDN type in attach accept.");
+    return false;
+  }
+  if (("ipv4v6" == apn_protocol && LIBLTE_MME_PDN_TYPE_IPV4 == request.pdn_addr.pdn_type) ||
+      ("ipv4v6" == apn_protocol && LIBLTE_MME_PDN_TYPE_IPV6 == request.pdn_addr.pdn_type)) {
+    logger.warning("Requested IPv4v6, but only received a single PDN address.");
+    logger.warning("EMM Cause: %d", request.esm_cause);
+  }
+  if (LIBLTE_MME_PDN_TYPE_IPV4 == request.pdn_addr.pdn_type) {
+    ip_addr = 0;
+    ip_addr |= request.pdn_addr.addr[0] << 24u;
+    ip_addr |= request.pdn_addr.addr[1] << 16u;
+    ip_addr |= request.pdn_addr.addr[2] << 8u;
+    ip_addr |= request.pdn_addr.addr[3];
+
+    logger.info("Network attach successful. APN: %s, IP: %u.%u.%u.%u",
+                request.apn.apn,
+                request.pdn_addr.addr[0],
+                request.pdn_addr.addr[1],
+                request.pdn_addr.addr[2],
+                request.pdn_addr.addr[3]);
+
+    srsran::console("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
+                    request.apn.apn,
+                    request.pdn_addr.addr[0],
+                    request.pdn_addr.addr[1],
+                    request.pdn_addr.addr[2],
+                    request.pdn_addr.addr[3]);
+
+    // Setup GW
+    char* err_str = nullptr;
+    // TODO: pass the interfacename
+    if (gw->setup_if_addr(
+            request.eps_bearer_id, srsran_apn_type, LIBLTE_MME_PDN_TYPE_IPV4, ip_addr, nullptr, err_str)) {
+      logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str ? err_str : "");
+      srsran::console("%s -%s %d\n", gw_setup_failure_str.c_str(), err_str ? err_str : "", __LINE__);
+    }
+  } else if (LIBLTE_MME_PDN_TYPE_IPV6 == request.pdn_addr.pdn_type) {
+    memcpy(ipv6_if_id, request.pdn_addr.addr, 8);
+    logger.info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x",
+                request.apn.apn,
+                request.pdn_addr.addr[0],
+                request.pdn_addr.addr[1],
+                request.pdn_addr.addr[2],
+                request.pdn_addr.addr[3],
+                request.pdn_addr.addr[4],
+                request.pdn_addr.addr[5],
+                request.pdn_addr.addr[6],
+                request.pdn_addr.addr[7]);
+
+    srsran::console("Network attach successful. APN: %s, IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                    request.apn.apn,
+                    request.pdn_addr.addr[0],
+                    request.pdn_addr.addr[1],
+                    request.pdn_addr.addr[2],
+                    request.pdn_addr.addr[3],
+                    request.pdn_addr.addr[4],
+                    request.pdn_addr.addr[5],
+                    request.pdn_addr.addr[6],
+                    request.pdn_addr.addr[7]);
+    // Setup GW
+    char* err_str = nullptr;
+    if (gw->setup_if_addr(request.eps_bearer_id, srsran_apn_type, LIBLTE_MME_PDN_TYPE_IPV6, 0, ipv6_if_id, err_str)) {
+      logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str);
+      srsran::console("%s %d\n", gw_setup_failure_str.c_str(), __LINE__);
+    }
+  } else if (LIBLTE_MME_PDN_TYPE_IPV4V6 == request.pdn_addr.pdn_type) {
+    memcpy(ipv6_if_id, request.pdn_addr.addr, 8);
+    // IPv6
+    logger.info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x",
+                request.apn.apn,
+                request.pdn_addr.addr[0],
+                request.pdn_addr.addr[1],
+                request.pdn_addr.addr[2],
+                request.pdn_addr.addr[3],
+                request.pdn_addr.addr[4],
+                request.pdn_addr.addr[5],
+                request.pdn_addr.addr[6],
+                request.pdn_addr.addr[7]);
+    srsran::console("Network attach successful. APN: %s, IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                    request.apn.apn,
+                    request.pdn_addr.addr[0],
+                    request.pdn_addr.addr[1],
+                    request.pdn_addr.addr[2],
+                    request.pdn_addr.addr[3],
+                    request.pdn_addr.addr[4],
+                    request.pdn_addr.addr[5],
+                    request.pdn_addr.addr[6],
+                    request.pdn_addr.addr[7]);
+    // IPv4
+    ip_addr |= request.pdn_addr.addr[8] << 24u;
+    ip_addr |= request.pdn_addr.addr[9] << 16u;
+    ip_addr |= request.pdn_addr.addr[10] << 8u;
+    ip_addr |= request.pdn_addr.addr[11];
+
+    logger.info("Network attach successful. APN: %s, IP: %u.%u.%u.%u",
+                request.apn.apn,
+                request.pdn_addr.addr[8],
+                request.pdn_addr.addr[9],
+                request.pdn_addr.addr[10],
+                request.pdn_addr.addr[11]);
+
+    srsran::console("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
+                    request.apn.apn,
+                    request.pdn_addr.addr[8],
+                    request.pdn_addr.addr[9],
+                    request.pdn_addr.addr[10],
+                    request.pdn_addr.addr[11]);
+
+    char* err_str = nullptr;
+    // TODO: pass the interface name
+    if (gw->setup_if_addr(
+            request.eps_bearer_id, srsran_apn_type, LIBLTE_MME_PDN_TYPE_IPV4V6, ip_addr, ipv6_if_id, err_str)) {
+      logger.error("%s - %s", gw_setup_failure_str.c_str(), err_str);
+      srsran::console("%s %d\n", gw_setup_failure_str.c_str(), __LINE__);
+    }
+  } else {
+    logger.error("PDN type not IPv4, IPv6 nor IPv4v6");
+    return false;
+  }
+  return true;
 }
 
 /*******************************************************************************

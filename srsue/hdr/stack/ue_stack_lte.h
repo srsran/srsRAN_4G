@@ -235,6 +235,7 @@ private:
   srsran::mac_pcap mac_pcap;
   srsran::mac_pcap mac_nr_pcap;
   srsran::nas_pcap nas_pcap;
+  srsran::gw_pcap  gw_pcap;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy    = nullptr;

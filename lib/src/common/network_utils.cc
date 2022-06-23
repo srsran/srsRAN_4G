@@ -657,4 +657,20 @@ make_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue,
   return socket_manager_itf::recv_callback_t(recvfrom_pdu_task(logger, queue, std::move(rx_callback)));
 }
 
+struct in_addr bytes_to_ip(uint32_t addr)
+{
+  struct in_addr addr_;
+  addr_.s_addr = htonl(addr);
+  return addr_;
+}
+
+struct in6_addr bytes_to_ipv6(uint8_t addrv6[16])
+{
+  // check the size of addrv6
+  // assert(sizeof(addrv6) / sizeof(addrv6[0]) == 16);
+  struct in6_addr addr_;
+  memcpy(addr_.s6_addr, addrv6, 16);
+  return addr_;
+}
+
 } // namespace srsran

@@ -146,6 +146,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
     args.pkt_trace.mac_pcap.enable    = false;
     args.pkt_trace.mac_nr_pcap.enable = false;
     args.pkt_trace.mac_nr_pcap.enable = false;
+    args.pkt_trace.gw_pcap.enable     = false;
   }
 
   for (auto& pcap : pcap_list) {
@@ -157,10 +158,13 @@ int ue_stack_lte::init(const stack_args_t& args_)
       args.pkt_trace.mac_nr_pcap.enable = true;
     } else if (pcap == "nas" || pcap == "NAS") {
       args.pkt_trace.nas_pcap.enable = true;
+    } else if (pcap == "gw" || pcap == "GW") {
+      args.pkt_trace.gw_pcap.enable = true;
     } else if (pcap == "none" || pcap == "NONE") {
       args.pkt_trace.mac_pcap.enable    = false;
       args.pkt_trace.mac_nr_pcap.enable = false;
       args.pkt_trace.mac_nr_pcap.enable = false;
+      args.pkt_trace.gw_pcap.enable     = false;
     } else {
       stack_logger.error("Unknown PCAP option %s", pcap.c_str());
     }
@@ -204,6 +208,15 @@ int ue_stack_lte::init(const stack_args_t& args_)
       stack_logger.info("Open nas pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
     } else {
       stack_logger.error("Can not open pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
+    }
+  }
+
+  if (args.pkt_trace.gw_pcap.enable) {
+    if (gw_pcap.open(args.pkt_trace.gw_pcap.filename.c_str()) == SRSRAN_SUCCESS) {
+      gw->start_pcap(&gw_pcap);
+      stack_logger.info("Open gateway pcap file %s", args.pkt_trace.gw_pcap.filename.c_str());
+    } else {
+      stack_logger.error("Can not open pcap file %s", args.pkt_trace.gw_pcap.filename.c_str());
     }
   }
 
@@ -285,6 +298,9 @@ void ue_stack_lte::stop_impl()
   }
   if (args.pkt_trace.nas_pcap.enable) {
     nas_pcap.close();
+  }
+  if (args.pkt_trace.gw_pcap.enable) {
+    gw_pcap.close();
   }
 
   task_sched.stop();

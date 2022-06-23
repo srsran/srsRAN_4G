@@ -27,6 +27,8 @@ namespace srsue {
 struct gw_metrics_t {
   double dl_tput_mbps;
   double ul_tput_mbps;
+  double ims_dl_tput_mbps;
+  double ims_ul_tput_mbps;
 };
 
 } // namespace srsue

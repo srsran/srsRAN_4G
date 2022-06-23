@@ -160,11 +160,15 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("nas.force_imsi_attach", bpo::value<bool>(&args->stack.nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
     ("nas.eia",               bpo::value<string>(&args->stack.nas.eia)->default_value("1,2,3"),  "List of integrity algorithms included in UE capabilities")
     ("nas.eea",               bpo::value<string>(&args->stack.nas.eea)->default_value("0,1,2,3"),  "List of ciphering algorithms included in UE capabilities")
+    ("nas.ims_enable",        bpo::value<bool>(&args->stack.nas.ims_enable)->default_value(false),  "Wheter enable IMS APN for VoLTE service")
+    ("nas.ims_apn",           bpo::value<string>(&args->stack.nas.ims_apn_name)->default_value("ims"),  "Set IMS APN")
+    ("nas.ims_apn_protocol",  bpo::value<string>(&args->stack.nas.ims_apn_protocol)->default_value("ipv4v6"),  "Set IMS APN protocol")
 
-    ("pcap.enable", bpo::value<string>(&args->stack.pkt_trace.enable)->default_value("none"), "Enable (MAC, MAC_NR, NAS) packet captures for wireshark")
+    ("pcap.enable", bpo::value<string>(&args->stack.pkt_trace.enable)->default_value("none"), "Enable (MAC, MAC_NR, NAS, GW) packet captures for wireshark")
     ("pcap.mac_filename", bpo::value<string>(&args->stack.pkt_trace.mac_pcap.filename)->default_value("/tmp/ue_mac.pcap"), "MAC layer capture filename")
     ("pcap.mac_nr_filename", bpo::value<string>(&args->stack.pkt_trace.mac_nr_pcap.filename)->default_value("/tmp/ue_mac_nr.pcap"), "MAC_NR layer capture filename")
     ("pcap.nas_filename", bpo::value<string>(&args->stack.pkt_trace.nas_pcap.filename)->default_value("/tmp/ue_nas.pcap"), "NAS layer capture filename")
+    ("pcap.gw_filename", bpo::value<string>(&args->stack.pkt_trace.gw_pcap.filename)->default_value("/tmp/ue_gw.pcap"), "Gateway layer capture filename")
     
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
@@ -208,6 +212,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("gw.netns", bpo::value<string>(&args->gw.netns)->default_value(""), "Network namespace to for TUN device (empty for default netns)")
     ("gw.ip_devname", bpo::value<string>(&args->gw.tun_dev_name)->default_value("tun_srsue"), "Name of the tun_srsue device")
     ("gw.ip_netmask", bpo::value<string>(&args->gw.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the tun_srsue device")
+    ("gw.ims_ip_devname", bpo::value<string>(&args->gw.tun_dev_name_ims)->default_value("tun_srsue_ims"), "Name of the tun_srsue_ims device")
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable",            bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false),                 "Enable/Disable internal Downlink channel emulator")

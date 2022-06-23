@@ -202,6 +202,21 @@ inline socket_manager& get_rx_io_manager()
   return io;
 }
 
+/**
+ * @brief convert bytes to IPv4 address
+ *
+ * @param addr
+ * @return struct in_addr
+ */
+struct in_addr bytes_to_ip(uint32_t addr);
+/**
+ * @brief convert bytes to IPv6 address
+ *
+ * @param addrv6
+ * @return struct in6_addr
+ */
+struct in6_addr bytes_to_ipv6(uint8_t addrv6[16]);
+
 } // namespace srsran
 
 #endif // SRSRAN_RX_SOCKET_HANDLER_H

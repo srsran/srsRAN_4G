@@ -133,7 +133,8 @@ bool ue_stack_nr::switch_on()
     perror("inet_pton");
     return false;
   }
-  if (gw->setup_if_addr(5, LIBLTE_MME_PDN_TYPE_IPV4, htonl(in_addr.s_addr), nullptr, err_str)) {
+  if (gw->setup_if_addr(
+          5, srsran_apn_type::Internet, LIBLTE_MME_PDN_TYPE_IPV4, htonl(in_addr.s_addr), nullptr, err_str)) {
     printf("Error configuring TUN interface\n");
   }
   return true;
