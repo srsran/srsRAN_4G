@@ -1922,7 +1922,7 @@ int parse_sib2(std::string filename, sib_type2_s* data)
 
   acbarring_data.add_field(
       make_asn1_enum_number_str_parser("factor", &data->ac_barr_info.ac_barr_for_mo_data.ac_barr_factor));
-  acbarring_data.add_field(make_asn1_enum_number_parser("fime", &data->ac_barr_info.ac_barr_for_mo_data.ac_barr_time));
+  acbarring_data.add_field(make_asn1_enum_number_parser("time", &data->ac_barr_info.ac_barr_for_mo_data.ac_barr_time));
   acbarring_data.add_field(make_asn1_bitstring_number_parser(
       "for_special_ac", &data->ac_barr_info.ac_barr_for_mo_data.ac_barr_for_special_ac));
 
