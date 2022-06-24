@@ -18,6 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+find_package(SCTP REQUIRED)
+
 set(SOURCES arch_select.cc
     enb_events.cc
     backtrace.c

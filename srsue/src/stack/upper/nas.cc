@@ -1359,12 +1359,6 @@ void nas::parse_activate_default_eps_bearer_context_request(uint32_t lcid, srsra
     // TODO: what are we supposed to do in this case?
     logger.error("Error adding EPS bearer.");
   }
-
-  // if pdn_type is IPv6 or IPv4v6, seend a route solication
-  if (request.pdn_addr.pdn_type == LIBLTE_MME_PDN_TYPE_IPV6 ||
-      request.pdn_addr.pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
-    gw->send_router_solicitation(srsran_apn_type::IMS);
-  }
 }
 
 void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, unique_byte_buffer_t pdu)

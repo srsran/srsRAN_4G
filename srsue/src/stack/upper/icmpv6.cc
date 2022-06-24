@@ -83,12 +83,13 @@ int icmpv6::send_router_solicitation(std::string itf_name)
   // send to all router address
   allrouter.sin6_family   = AF_INET6;
   allrouter.sin6_port     = 0;
-  allrouter.sin6_scope_id = if_nametoindex(tun_dev_name);
+  allrouter.sin6_scope_id = if_nametoindex(itf_name.c_str());
   allrouter.sin6_flowinfo = htonl(0);
   if (inet_pton(AF_INET6, allrouter_str, &(allrouter.sin6_addr)) <= 0) {
     srsran::console("[UE ICMPv6] failed to send router solicitation: %s (L-%d)\n", strerror(errno), __LINE__);
     return SRSRAN_ERROR;
   }
+  usleep(1000 * 1000);
   // send it
   ssize_t rst = sendto(sock_fd, rs->msg, rs->N_bytes, 0, (struct sockaddr*)&allrouter, sizeof(allrouter));
   if (rst <= -1) {

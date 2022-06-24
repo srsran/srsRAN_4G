@@ -33,7 +33,6 @@ private:
   struct sockaddr_in6 allrouter;
   int                 ttl           = 255;
   const char*         allrouter_str = "ff02::2";
-  char*               tun_dev_name;
   int                 recev_router_advertisement(struct in6_addr* prefix, uint8_t* prefix_len);
 
 public:

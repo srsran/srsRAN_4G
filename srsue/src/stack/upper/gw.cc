@@ -290,7 +290,7 @@ void gw::write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
   NAS interface
 *******************************************************************************/
 int gw::setup_if_addr(uint32_t                eps_bearer_id,
-                      srsran::srsran_apn_type srsran_apn_type,
+                      srsran::srsran_apn_type apn_type,
                       uint8_t                 pdn_type,
                       uint32_t                ip_addr,
                       uint8_t*                ipv6_if_addr,
@@ -306,14 +306,14 @@ int gw::setup_if_addr(uint32_t                eps_bearer_id,
   }
 
   if (pdn_type == LIBLTE_MME_PDN_TYPE_IPV4 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
-    err = setup_if_addr4(ip_addr, srsran_apn_type, err_str);
+    err = setup_if_addr4(ip_addr, apn_type, err_str);
     if (err != SRSRAN_SUCCESS) {
       srsran::console("failed to set addr4 %s\n", err_str);
       return err;
     }
   }
   if (pdn_type == LIBLTE_MME_PDN_TYPE_IPV6 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
-    err = setup_if_addr6(ipv6_if_addr, srsran_apn_type, err_str);
+    err = setup_if_addr6(ipv6_if_addr, apn_type, err_str);
     if (err != SRSRAN_SUCCESS) {
       srsran::console("failed to set addr6 %s\n", err_str);
       return err;
@@ -321,7 +321,7 @@ int gw::setup_if_addr(uint32_t                eps_bearer_id,
   }
 
   // set bearer id
-  if (srsran_apn_type == srsran::srsran_apn_type::IMS) {
+  if (apn_type == srsran::srsran_apn_type::IMS) {
     default_eps_bearer_id_ims = static_cast<int>(eps_bearer_id);
   } else {
     default_eps_bearer_id_inet = static_cast<int>(eps_bearer_id);
@@ -330,6 +330,10 @@ int gw::setup_if_addr(uint32_t                eps_bearer_id,
   // Setup a thread to receive packets from the TUN device
   run_enable = true;
   start(GW_THREAD_PRIO);
+
+  if (pdn_type == LIBLTE_MME_PDN_TYPE_IPV6 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
+    send_router_solicitation(apn_type);
+  }
 
   return SRSRAN_SUCCESS;
 }
@@ -1027,20 +1031,15 @@ void gw::setup_route_v6(uint8_t pcscf_addr[16], srsran::srsran_apn_type srsran_a
   int rc              = ioctl(fd, SIOCADDRT, &rt_msg);
   if (rc == -1) {
     srsran::console("Setup IPv6 route failed: %s\n", strerror(errno));
+    logger.error("Setup IPv6 route failed: %s\n", strerror(errno));
   } else {
-    srsran::console("Setup IPv6 route successed\n");
+    logger.info("Setup IPv6 route successed");
   }
   close(fd);
 }
 void gw::send_router_solicitation(srsran::srsran_apn_type srsran_apn_type)
 {
   srsue::icmpv6 icmp;
-  // srsran::unique_byte_buffer_t pdu = icmp.gen_router_solicitation();
-  // if (apn_name == IMS_APN) {
-  //   write_pdu(4, std::move(pdu));
-  // } else {
-  //   write_pdu(3, std::move(pdu));
-  // }
   icmp.send_router_solicitation(fetch_interface_name(srsran_apn_type));
 }
 
