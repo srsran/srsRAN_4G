@@ -423,7 +423,7 @@ void gw::run_thread()
     }
 
     if (N_bytes == -1 && errno == EAGAIN) {
-      usleep(100);
+      usleep(1000 * 100);
       continue;
     }
 
@@ -433,6 +433,7 @@ void gw::run_thread()
       break;
     } else {
       logger.debug("Read %d bytes from TUN fd=%d, idx=%d", N_bytes, tun_fd_, idx);
+      srsran::console("Read %04d bytes from TUN fd=%d, idx=%d, bearer_id=%d\n", N_bytes, tun_fd_, idx, eps_bearer_id_);
     }
 
     {
