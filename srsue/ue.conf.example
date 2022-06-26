@@ -84,6 +84,7 @@ dl_earfcn = 3350
 # Using the same filename for mac_filename and mac_nr_filename writes both
 # MAC-LTE and MAC-NR to the same file allowing a better analysis.
 # NAS-layer packets are dissected with DLT=148, and Protocol = nas-eps.
+# Add DLT=154 with Protocol=udp to DLT_USER for GW packets.
 #
 # enable:            Enable packet captures of layers (mac/mac_nr/nas/gw/none) multiple option list
 # mac_filename:      File path to use for MAC packet capture

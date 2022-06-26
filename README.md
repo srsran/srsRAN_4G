@@ -5,6 +5,8 @@ srsRAN
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsran/srsRAN.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsran/srsRAN/context:cpp)
 [![Coverity](https://scan.coverity.com/projects/23045/badge.svg)](https://scan.coverity.com/projects/srsran)
 
+*For the changes refers [README_New](README_New.md).
+
 srsRAN is a 4G/5G software radio suite developed by [SRS](http://www.srs.io).
 
 See the [srsRAN project pages](https://www.srsran.com) for information, guides and project news.
