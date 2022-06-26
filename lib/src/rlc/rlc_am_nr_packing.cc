@@ -149,9 +149,9 @@ bool rlc_am_nr_status_pdu_t::trim(uint32_t max_packed_size)
 
 void rlc_am_nr_status_pdu_t::refresh_packed_size()
 {
-  uint32_t packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
+  packed_size_ = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
   for (auto nack : nacks_) {
-    packed_size += nack_size(nack);
+    packed_size_ += nack_size(nack);
   }
 }
 
