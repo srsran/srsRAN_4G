@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -75,6 +75,7 @@ public:
   void get_metrics(std::vector<phy_metrics_t>& metrics) override;
 
   void cmd_cell_gain(uint32_t cell_id, float gain_db) override;
+  void cmd_cell_measure() override;
 
   void radio_overflow() override{};
   void radio_failure() override{};

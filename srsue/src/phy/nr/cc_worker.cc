@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -54,6 +54,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state& phy_sta
   srsran_ssb_args_t ssb_args = {};
   ssb_args.enable_measure    = true;
   ssb_args.enable_decode     = true;
+  ssb_args.enable_search     = true;
   if (srsran_ssb_init(&ssb, &ssb_args) < SRSRAN_SUCCESS) {
     ERROR("Error initiating SSB");
     return;
@@ -165,6 +166,14 @@ void cc_worker::decode_pdcch_dl()
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
+    if (logger.debug.enabled()) {
+      // log coreset info
+      srsran_coreset_t*     coreset = &ue_dl.cfg.coreset[dci_rx[i].ctx.coreset_id];
+      std::array<char, 512> coreset_str;
+      srsran_coreset_to_str(coreset, coreset_str.data(), coreset_str.size());
+      logger.info("PDCCH: coreset=%d, %s", cc_idx, coreset_str.data());
+    }
+
     // Enqueue UL grants
     phy.set_dl_pending_grant(cfg, dl_slot_cfg, dci_rx[i]);
   }
@@ -196,15 +205,15 @@ void cc_worker::decode_pdcch_ul()
   }
 
   // Search for grants
-  int n_dl =
+  int n_ul =
       srsran_ue_dl_nr_find_ul_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
-  if (n_dl < SRSRAN_SUCCESS) {
+  if (n_ul < SRSRAN_SUCCESS) {
     logger.error("Error decoding UL NR-PDCCH");
     return;
   }
 
   // Iterate over all received grants
-  for (int i = 0; i < n_dl; i++) {
+  for (int i = 0; i < n_ul; i++) {
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
@@ -396,6 +405,7 @@ bool cc_worker::measure_csi()
           logger.error("PBCH-MIB: NR SFN (%d) does not match current SFN (%d)",
                        mib.sfn,
                        dl_slot_cfg.idx / SRSRAN_NSLOTS_PER_FRAME_NR(cfg.carrier.scs));
+          dl_slot_cfg.idx = mib.sfn * SRSRAN_NSLOTS_PER_FRAME_NR(cfg.carrier.scs);
         }
 
         // Log MIB information
@@ -671,7 +681,7 @@ bool cc_worker::work_ul()
   } else if (srsran_uci_nr_total_bits(&uci_data.cfg) > 0) {
     // Get PUCCH resource
     srsran_pucch_nr_resource_t resource = {};
-    if (srsran_ra_ul_nr_pucch_resource(&cfg.pucch, &uci_data.cfg, &resource) < SRSRAN_SUCCESS) {
+    if (srsran_ra_ul_nr_pucch_resource(&cfg.pucch, &uci_data.cfg, cfg.carrier.nof_prb, &resource) < SRSRAN_SUCCESS) {
       ERROR("Selecting PUCCH resource");
       return false;
     }

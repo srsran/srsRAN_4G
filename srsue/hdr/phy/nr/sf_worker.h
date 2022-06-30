@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -75,7 +75,6 @@ private:
   state&                                         phy_state;
   srslog::basic_logger&                          logger;
   srsran::rf_timestamp_t                         tx_time     = {};
-  uint32_t                                       tti_rx      = 0;
   cf_t*                                          prach_ptr   = nullptr;
   float                                          prach_power = 0;
   srsran::phy_common_interface::worker_context_t context     = {};

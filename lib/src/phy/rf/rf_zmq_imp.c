@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,6 +21,7 @@
 
 #include "rf_zmq_imp.h"
 #include "rf_helper.h"
+#include "rf_plugin.h"
 #include "rf_zmq_imp_trx.h"
 #include <math.h>
 #include <srsran/phy/common/phy_common.h>
@@ -66,7 +67,7 @@ typedef struct {
   pthread_mutex_t rx_gain_mutex;
 } rf_zmq_handler_t;
 
-void update_rates(rf_zmq_handler_t* handler, double srate);
+static void update_rates(rf_zmq_handler_t* handler, double srate);
 
 /*
  * Static Atributes
@@ -794,7 +795,7 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
             for (int j = 0; j < decim_factor; j++, n++) {
               avg += ptr[n];
             }
-            dst[i] = avg;
+            dst[i] = avg; // divide by decim_factor later via scale
           }
 
           rf_zmq_info(handler->id,
@@ -810,6 +811,10 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
     pthread_mutex_lock(&handler->rx_gain_mutex);
     float scale = srsran_convert_dB_to_amplitude(handler->rx_gain);
     pthread_mutex_unlock(&handler->rx_gain_mutex);
+    // scale shall also incorporate decim_factor
+    if (decim_factor > 0) {
+      scale = scale / decim_factor;
+    }
     for (uint32_t c = 0; c < handler->nof_channels; c++) {
       if (buffers[c]) {
         srsran_vec_sc_prod_cfc(buffers[c], scale, buffers[c], nsamples);
@@ -966,8 +971,7 @@ int rf_zmq_send_timed_multi(void*  h,
         }
 
         // Scale according to current gain
-        // TODO: document baseband scaling for ZMQ with gain settings, etc. before enabling
-        // srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
+        srsran_vec_sc_prod_cfc(buf, tx_gain, buf, nsamples_baseband);
 
         // Finally, transmit baseband
         int n = rf_zmq_tx_baseband(&handler->transmitter[i], buf, nsamples_baseband);
@@ -989,3 +993,44 @@ clean_exit:
 
   return ret;
 }
+
+rf_dev_t srsran_rf_dev_zmq = {"zmq",
+                              rf_zmq_devname,
+                              rf_zmq_start_rx_stream,
+                              rf_zmq_stop_rx_stream,
+                              rf_zmq_flush_buffer,
+                              rf_zmq_has_rssi,
+                              rf_zmq_get_rssi,
+                              rf_zmq_suppress_stdout,
+                              rf_zmq_register_error_handler,
+                              rf_zmq_open,
+                              .srsran_rf_open_multi = rf_zmq_open_multi,
+                              rf_zmq_close,
+                              rf_zmq_set_rx_srate,
+                              rf_zmq_set_rx_gain,
+                              rf_zmq_set_rx_gain_ch,
+                              rf_zmq_set_tx_gain,
+                              rf_zmq_set_tx_gain_ch,
+                              rf_zmq_get_rx_gain,
+                              rf_zmq_get_tx_gain,
+                              rf_zmq_get_info,
+                              rf_zmq_set_rx_freq,
+                              rf_zmq_set_tx_srate,
+                              rf_zmq_set_tx_freq,
+                              rf_zmq_get_time,
+                              NULL,
+                              rf_zmq_recv_with_time,
+                              rf_zmq_recv_with_time_multi,
+                              rf_zmq_send_timed,
+                              .srsran_rf_send_timed_multi = rf_zmq_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_zmq;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */

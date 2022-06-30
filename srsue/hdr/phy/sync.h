@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -77,7 +77,7 @@ public:
 
   // RRC interface for controling the SYNC state
   bool                                     cell_search_init();
-  rrc_interface_phy_lte::cell_search_ret_t cell_search_start(phy_cell_t* cell);
+  rrc_interface_phy_lte::cell_search_ret_t cell_search_start(phy_cell_t* cell, int earfcn);
   bool                                     cell_select_init(phy_cell_t cell);
   bool                                     cell_select_start(phy_cell_t cell);
   bool                                     cell_is_camping();

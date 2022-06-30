@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,6 +22,7 @@
 #include "srsran/common/crash_handler.h"
 #include "srsran/common/gen_mch_tables.h"
 #include "srsran/srsran.h"
+#include <getopt.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
@@ -52,6 +53,12 @@ static char* output_file_name = NULL;
 #define PAGE_UP 53
 #define PAGE_DOWN 54
 
+#define CFR_THRES_UP_KEY 't'
+#define CFR_THRES_DN_KEY 'g'
+
+#define CFR_THRES_STEP 0.05f
+#define CFR_PAPR_STEP 0.1f
+
 static srsran_cell_t cell = {
     25,                // nof_prb
     1,                 // nof_ports
@@ -79,6 +86,27 @@ static bool        enable_256qam         = false;
 static float       output_file_snr       = +INFINITY;
 static bool        use_standard_lte_rate = false;
 
+
+// CFR runtime control flags
+static bool cfr_thr_inc = false;
+static bool cfr_thr_dec = false;
+
+typedef struct {
+  int   enable;
+  char* mode;
+  float manual_thres;
+  float strength;
+  float auto_target_papr;
+  float ema_alpha;
+} cfr_args_t;
+
+static cfr_args_t cfr_args = {.enable           = 0,
+                              .mode             = "manual",
+                              .manual_thres     = 1.0f,
+                              .strength         = 1.0f,
+                              .auto_target_papr = 8.0f,
+                              .ema_alpha        = 1.0f / (float)SRSRAN_CP_NORM_NSYMB};
+
 static bool                    null_file_sink = false;
 static srsran_filesink_t       fsink;
 static srsran_ofdm_t           ifft[SRSRAN_MAX_PORTS];
@@ -94,6 +122,7 @@ static srsran_softbuffer_tx_t* softbuffers[SRSRAN_MAX_CODEWORDS];
 static srsran_regs_t           regs;
 static srsran_dci_dl_t         dci_dl;
 static int                     rvidx[SRSRAN_MAX_CODEWORDS] = {0, 0};
+static srsran_cfr_cfg_t        cfr_config                  = {};
 
 static cf_t *   sf_buffer[SRSRAN_MAX_PORTS] = {NULL}, *output_buffer[SRSRAN_MAX_PORTS] = {NULL};
 static uint32_t sf_n_re, sf_n_samples;
@@ -143,14 +172,28 @@ static void usage(char* prog)
   printf("\t-s output file SNR [Default %f]\n", output_file_snr);
   printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
   printf("\t-Q Use standard LTE sample rates (default %s)\n", use_standard_lte_rate ? "enabled" : "disabled");
+  printf("CFR Options:\n");
+  printf("\t--enable_cfr       Enable the CFR (default %s)\n", cfr_args.enable ? "enabled" : "disabled");
+  printf("\t--cfr_mode         CFR mode: manual, auto_cma, auto_ema. (default %s)\n", cfr_args.mode);
+  printf("\t--cfr_manual_thres CFR manual threshold (default %.2f)\n", cfr_args.manual_thres);
+  printf("\t--cfr_strength     CFR strength (default %.2f)\n", cfr_args.strength);
+  printf("\t--cfr_auto_papr    CFR PAPR target for auto modes (default %.2f)\n", cfr_args.auto_target_papr);
+  printf("\t--cfr_ema_alpha    CFR alpha parameter for EMA mode (default %.2f)\n", cfr_args.ema_alpha);
   printf("\n");
   printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
+struct option cfr_opts[] = {{"enable_cfr", no_argument, &cfr_args.enable, 1},
+                            {"cfr_mode", required_argument, NULL, 'C'},
+                            {"cfr_manual_thres", required_argument, NULL, 'T'},
+                            {"cfr_strength", required_argument, NULL, 'S'},
+                            {"cfr_auto_papr", required_argument, NULL, 'P'},
+                            {"cfr_ema_alpha", required_argument, NULL, 'e'},
+                            {0, 0, 0, 0}};
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "IadglfmoncpqvutxbwMsBQ")) != -1) {
+  while ((opt = getopt_long(argc, argv, "IadglfmoncpqvutxbwMsBQ", cfr_opts, NULL)) != -1) {
     switch (opt) {
       case 'I':
         rf_dev = argv[optind];
@@ -215,6 +258,24 @@ static void parse_args(int argc, char** argv)
       case 'E':
         cell.cp = SRSRAN_CP_EXT;
         break;
+      case 'C':
+        cfr_args.mode = optarg;
+        break;
+      case 'T':
+        cfr_args.manual_thres = strtof(optarg, NULL);
+        break;
+      case 'S':
+        cfr_args.strength = strtof(optarg, NULL);
+        break;
+      case 'P':
+        cfr_args.auto_target_papr = strtof(optarg, NULL);
+        break;
+      case 'e':
+        cfr_args.ema_alpha = strtof(optarg, NULL);
+        break;
+      case 0:
+        /* getopt_long() set a variable, keep going */
+        break;
       default:
         usage(argv[0]);
         exit(-1);
@@ -226,6 +287,27 @@ static void parse_args(int argc, char** argv)
     exit(-1);
   }
 #endif
+}
+
+static int parse_cfr_args()
+{
+  cfr_config.cfr_enable  = cfr_args.enable;
+  cfr_config.manual_thr  = cfr_args.manual_thres;
+  cfr_config.max_papr_db = cfr_args.auto_target_papr;
+  cfr_config.alpha       = cfr_args.strength;
+  cfr_config.ema_alpha   = cfr_args.ema_alpha;
+
+  cfr_config.cfr_mode = srsran_cfr_str2mode(cfr_args.mode);
+  if (cfr_config.cfr_mode == SRSRAN_CFR_THR_INVALID) {
+    ERROR("CFR mode not recognised");
+    return SRSRAN_ERROR;
+  }
+
+  if (!srsran_cfr_params_valid(&cfr_config)) {
+    ERROR("Invalid CFR parameters");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
 }
 
 static void base_init()
@@ -325,6 +407,10 @@ static void base_init()
     }
 
     srsran_ofdm_set_normalize(&ifft[i], true);
+    if (srsran_ofdm_set_cfr(&ifft[i], &cfr_config)) {
+      ERROR("Error setting CFR object");
+      exit(-1);
+    }
   }
 
   if (srsran_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSRAN_CP_EXT, sf_buffer[0], output_buffer[0], cell.nof_prb)) {
@@ -333,6 +419,10 @@ static void base_init()
   }
   srsran_ofdm_set_non_mbsfn_region(&ifft_mbsfn, 2);
   srsran_ofdm_set_normalize(&ifft_mbsfn, true);
+  if (srsran_ofdm_set_cfr(&ifft_mbsfn, &cfr_config)) {
+    ERROR("Error setting CFR object");
+    exit(-1);
+  }
 
   if (srsran_pbch_init(&pbch)) {
     ERROR("Error creating PBCH object");
@@ -483,6 +573,8 @@ static int update_radl()
 {
   ZERO_OBJECT(dci_dl);
 
+  int ret = SRSRAN_ERROR;
+
   /* Configure cell and PDSCH in function of the transmission mode */
   switch (transmission_mode) {
     case SRSRAN_TM1:
@@ -505,7 +597,7 @@ static int update_radl()
       break;
     default:
       ERROR("Transmission mode not implemented.");
-      exit(-1);
+      goto exit;
   }
 
   dci_dl.rnti                    = UE_CRNTI;
@@ -526,7 +618,80 @@ static int update_radl()
     SRSRAN_DCI_TB_DISABLE(dci_dl.tb[1]);
   }
 
+  // Increase the CFR threshold or target PAPR
+  if (cfr_thr_inc) {
+    cfr_thr_inc = false; // Reset the flag
+    if (cfr_config.cfr_enable && cfr_config.cfr_mode == SRSRAN_CFR_THR_MANUAL) {
+      cfr_config.manual_thr += CFR_THRES_STEP;
+      for (int i = 0; i < cell.nof_ports; i++) {
+        if (srsran_cfr_set_threshold(&ifft[i].tx_cfr, cfr_config.manual_thr) < SRSRAN_SUCCESS) {
+          ERROR("Setting the CFR");
+          goto exit;
+        }
+      }
+      if (srsran_cfr_set_threshold(&ifft_mbsfn.tx_cfr, cfr_config.manual_thr) < SRSRAN_SUCCESS) {
+        ERROR("Setting the CFR");
+        goto exit;
+      }
+      printf("CFR Thres. set to %.3f\n", cfr_config.manual_thr);
+    } else if (cfr_config.cfr_enable && cfr_config.cfr_mode != SRSRAN_CFR_THR_MANUAL) {
+      cfr_config.max_papr_db += CFR_PAPR_STEP;
+      for (int i = 0; i < cell.nof_ports; i++) {
+        if (srsran_cfr_set_papr(&ifft[i].tx_cfr, cfr_config.max_papr_db) < SRSRAN_SUCCESS) {
+          ERROR("Setting the CFR");
+          goto exit;
+        }
+      }
+      if (srsran_cfr_set_papr(&ifft_mbsfn.tx_cfr, cfr_config.max_papr_db) < SRSRAN_SUCCESS) {
+        ERROR("Setting the CFR");
+        goto exit;
+      }
+      printf("CFR target PAPR set to %.3f\n", cfr_config.max_papr_db);
+    }
+  }
+
+  // Decrease the CFR threshold or target PAPR
+  if (cfr_thr_dec) {
+    cfr_thr_dec = false; // Reset the flag
+    if (cfr_config.cfr_enable && cfr_config.cfr_mode == SRSRAN_CFR_THR_MANUAL) {
+      if (cfr_config.manual_thr - CFR_THRES_STEP >= 0) {
+        cfr_config.manual_thr -= CFR_THRES_STEP;
+        for (int i = 0; i < cell.nof_ports; i++) {
+          if (srsran_cfr_set_threshold(&ifft[i].tx_cfr, cfr_config.manual_thr) < SRSRAN_SUCCESS) {
+            ERROR("Setting the CFR");
+            goto exit;
+          }
+        }
+        if (srsran_cfr_set_threshold(&ifft_mbsfn.tx_cfr, cfr_config.manual_thr) < SRSRAN_SUCCESS) {
+          ERROR("Setting the CFR");
+          goto exit;
+        }
+        printf("CFR Thres. set to %.3f\n", cfr_config.manual_thr);
+      }
+    } else if (cfr_config.cfr_enable && cfr_config.cfr_mode != SRSRAN_CFR_THR_MANUAL) {
+      if (cfr_config.max_papr_db - CFR_PAPR_STEP >= 0) {
+        cfr_config.max_papr_db -= CFR_PAPR_STEP;
+        for (int i = 0; i < cell.nof_ports; i++) {
+          if (srsran_cfr_set_papr(&ifft[i].tx_cfr, cfr_config.max_papr_db) < SRSRAN_SUCCESS) {
+            ERROR("Setting the CFR");
+            goto exit;
+          }
+        }
+        if (srsran_cfr_set_papr(&ifft_mbsfn.tx_cfr, cfr_config.max_papr_db) < SRSRAN_SUCCESS) {
+          ERROR("Setting the CFR");
+          goto exit;
+        }
+        printf("CFR target PAPR set to %.3f\n", cfr_config.max_papr_db);
+      }
+    }
+  }
+
   srsran_dci_dl_fprint(stdout, &dci_dl, cell.nof_prb);
+  printf("\nCFR controls:\n");
+  printf("    Param   | INC | DEC |\n");
+  printf("------------+-----+-----+\n");
+  printf(" Thres/PAPR |  %c  |  %c  |\n", CFR_THRES_UP_KEY, CFR_THRES_DN_KEY);
+  printf("\n");
   if (transmission_mode != SRSRAN_TM1) {
     printf("\nTransmission mode key table:\n");
     printf("   Mode   |   1TB   | 2TB |\n");
@@ -535,13 +700,15 @@ static int update_radl()
     printf("      CDD |         |  z  |\n");
     printf("Multiplex | q,w,e,r | a,s |\n");
     printf("\n");
-    printf("Type new MCS index (0-28) or mode key and press Enter: ");
+    printf("Type new MCS index (0-28) or cfr/mode key and press Enter: ");
   } else {
-    printf("Type new MCS index (0-28) and press Enter: ");
+    printf("Type new MCS index (0-28) or cfr key and press Enter: ");
   }
   fflush(stdout);
+  ret = SRSRAN_SUCCESS;
 
-  return 0;
+exit:
+  return ret;
 }
 
 /* Read new MCS from stdin */
@@ -635,6 +802,12 @@ static int update_control()
           case 'x':
             transmission_mode = SRSRAN_TM2;
             break;
+          case CFR_THRES_UP_KEY:
+            cfr_thr_inc = true;
+            break;
+          case CFR_THRES_DN_KEY:
+            cfr_thr_dec = true;
+            break;
           default:
             last_mcs_idx = mcs_idx;
             mcs_idx      = strtol(input, NULL, 10);
@@ -652,9 +825,9 @@ static int update_control()
   } else if (n < 0) {
     // error
     perror("select");
-    return -1;
+    return SRSRAN_ERROR;
   } else {
-    return 0;
+    return SRSRAN_SUCCESS;
   }
 }
 
@@ -728,6 +901,10 @@ int main(int argc, char** argv)
 #endif
 
   parse_args(argc, argv);
+  if (parse_cfr_args() < SRSRAN_SUCCESS) {
+    ERROR("Error parsing CFR args");
+    exit(-1);
+  }
 
   srsran_use_standard_symbol_size(use_standard_lte_rate);
 
@@ -882,7 +1059,7 @@ int main(int argc, char** argv)
       srsran_pcfich_encode(&pcfich, &dl_sf, sf_symbols);
 
       /* Update DL resource allocation from control port */
-      if (update_control()) {
+      if (update_control() < SRSRAN_SUCCESS) {
         ERROR("Error updating parameters from control port");
       }
 
@@ -1001,7 +1178,7 @@ int main(int argc, char** argv)
         if (!null_file_sink) {
           /* Apply AWGN */
           if (output_file_snr != +INFINITY) {
-            float var = srsran_convert_dB_to_amplitude(-(output_file_snr + 3.0f));
+            float var = srsran_convert_dB_to_power(-output_file_snr);
             for (int k = 0; k < cell.nof_ports; k++) {
               srsran_ch_awgn_c(output_buffer[k], output_buffer[k], var, sf_n_samples);
             }

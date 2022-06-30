@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -221,6 +221,8 @@ typedef enum SRSRAN_API {
   srsran_coreset_bundle_size_n6,
 } srsran_coreset_bundle_size_t;
 
+uint32_t pdcch_nr_bundle_size(srsran_coreset_bundle_size_t x);
+
 typedef enum SRSRAN_API {
   srsran_coreset_precoder_granularity_contiguous = 0,
   srsran_coreset_precoder_granularity_reg_bundle
@@ -356,7 +358,7 @@ typedef enum SRSRAN_API {
   SRSRAN_SSB_PATTERN_D,     // FR2, 120 kHz SCS
   SRSRAN_SSB_PATTERN_E,     // FR2, 240 kHz SCS
   SRSRAN_SSB_PATTERN_INVALID,
-} srsran_ssb_patern_t;
+} srsran_ssb_pattern_t;
 
 typedef enum SRSRAN_API {
   SRSRAN_DUPLEX_MODE_FDD = 0, // Paired
@@ -394,8 +396,9 @@ typedef struct SRSRAN_API {
 
 #define SRSRAN_DEFAULT_CARRIER_NR                                                                                      \
   {                                                                                                                    \
-    .pci = 500, .dl_center_frequency_hz = 3.5e9, .ul_center_frequency_hz = 3.5e9, .ssb_center_freq_hz = 3.5e9,         \
-    .offset_to_carrier = 0, .scs = srsran_subcarrier_spacing_15kHz, .nof_prb = 52, .start = 0, .max_mimo_layers = 1    \
+    .pci = 500, .dl_center_frequency_hz = 117000 * 30e3, .ul_center_frequency_hz = 117000 * 30e3,                      \
+    .ssb_center_freq_hz = 3.5e9, .offset_to_carrier = 0, .scs = srsran_subcarrier_spacing_15kHz, .nof_prb = 52,        \
+    .start = 0, .max_mimo_layers = 1                                                                                   \
   }
 
 /**
@@ -714,18 +717,38 @@ SRSRAN_API int srsran_coreset_zero(uint32_t                    n_cell_id,
                                    srsran_coreset_t*           coreset);
 
 /**
+ * @brief Obtain offset in RBs between CoresetZero and SSB. See TS 38.213, Tables 13-{1,...,10}
+ * @param idx Index of 13-{1,...10} table
+ * @param ssb_scs SS/PBCH block subcarrier spacing
+ * @param pdcch_scs PDCCH subcarrier spacing
+ * @return offset in RBs, or -1 in case of invalid inputs
+ */
+SRSRAN_API int
+srsran_coreset0_ssb_offset(uint32_t idx, srsran_subcarrier_spacing_t ssb_scs, srsran_subcarrier_spacing_t pdcch_scs);
+
+/**
+ * @brief Convert Coreset to string
+ *
+ * @param coreset The coreset structure as input
+ * @param str The string to write to
+ * @param str_len Maximum string length
+ * @return SRSRAN_API
+ */
+SRSRAN_API int srsran_coreset_to_str(srsran_coreset_t* coreset, char* str, uint32_t str_len);
+
+/**
  * @brief Convert SSB pattern to string
  * @param pattern
  * @return a string describing the SSB pattern
  */
-SRSRAN_API const char* srsran_ssb_pattern_to_str(srsran_ssb_patern_t pattern);
+SRSRAN_API const char* srsran_ssb_pattern_to_str(srsran_ssb_pattern_t pattern);
 
 /**
  * @brief Convert string to SSB pattern
  * @param str String to convert
  * @return The pattern, SRSRAN_SSB_PATTERN_INVALID if string is invalid
  */
-SRSRAN_API srsran_ssb_patern_t srsran_ssb_pattern_fom_str(const char* str);
+SRSRAN_API srsran_ssb_pattern_t srsran_ssb_pattern_fom_str(const char* str);
 
 /**
  * @brief Compares if two NR carrier structures are equal

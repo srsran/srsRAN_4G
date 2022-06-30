@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -35,6 +35,14 @@ dl_harq_entity_nr::dl_harq_entity_nr(uint8_t                  cc_idx_,
   // Init broadcast HARQ process
   bcch_proc.init(-1);
   pthread_rwlock_init(&rwlock, NULL);
+
+  // Create default number of processes
+  for (uint32_t i = 0; i < cfg.nof_procs; i++) {
+    harq_procs[i] = std::unique_ptr<dl_harq_process_nr>(new dl_harq_process_nr(this));
+    if (!harq_procs.at(i)->init(i)) {
+      logger.error("Error while initializing DL-HARQ process %d", i);
+    }
+  }
 }
 
 dl_harq_entity_nr::~dl_harq_entity_nr()
@@ -51,17 +59,19 @@ int32_t dl_harq_entity_nr::set_config(const srsran::dl_harq_cfg_nr_t& cfg_)
     return SRSRAN_ERROR;
   }
 
-  // clear old processees
-  for (auto& proc : harq_procs) {
-    proc = nullptr;
-  }
-
-  // Allocate and init configured HARQ processes
-  for (uint32_t i = 0; i < cfg.nof_procs; i++) {
-    harq_procs[i] = std::unique_ptr<dl_harq_process_nr>(new dl_harq_process_nr(this));
-    if (!harq_procs.at(i)->init(i)) {
-      logger.error("Error while initializing DL-HARQ process %d", i);
-      return SRSRAN_ERROR;
+  if (cfg_.nof_procs < cfg.nof_procs) {
+    // clear old processes if not needed
+    for (uint32_t i = cfg.nof_procs - 1; i < cfg_.nof_procs; i++) {
+      harq_procs[i] = nullptr;
+    }
+  } else {
+    // Add new processes
+    for (uint32_t i = cfg.nof_procs; i < cfg_.nof_procs; i++) {
+      harq_procs[i] = std::unique_ptr<dl_harq_process_nr>(new dl_harq_process_nr(this));
+      if (!harq_procs.at(i)->init(i)) {
+        logger.error("Error while initializing DL-HARQ process %d", i);
+        return SRSRAN_ERROR;
+      }
     }
   }
 
@@ -228,12 +238,13 @@ void dl_harq_entity_nr::dl_harq_process_nr::tb_decoded(const mac_nr_grant_dl_t& 
 
   if (acked and result.payload != nullptr) {
     if (is_bcch) {
-      logger.warning("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH) not implemented", grant.tbs);
-      reset();
+      harq_entity->demux_unit->push_bcch(std::move(result.payload));
     } else {
       if (grant.rnti == harq_entity->mac->get_temp_crnti()) {
         logger.debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI) not implemented",
                      grant.tbs);
+        harq_entity->demux_unit->push_pdu_temp_crnti(std::move(result.payload), grant.tti);
+        result.ack = harq_entity->mac->received_contention_id(harq_entity->demux_unit->get_received_crueid());
       } else {
         logger.debug("Delivering PDU=%d bytes to Dissassemble and Demux unit", grant.tbs);
         harq_entity->demux_unit->push_pdu(std::move(result.payload), grant.tti);

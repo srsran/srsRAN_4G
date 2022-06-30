@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -56,6 +56,8 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
   cc_idx = cc_idx_;
   phy    = phy_;
 
+  srsran_cfr_cfg_t cfr_config = phy->get_cfr_config();
+
   signal_buffer_max_samples = 3 * SRSRAN_SF_LEN_PRB(max_prb);
 
   for (uint32_t i = 0; i < phy->args->nof_rx_ant; i++) {
@@ -78,6 +80,11 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
 
   if (srsran_ue_ul_init(&ue_ul, signal_buffer_tx[0], max_prb)) {
     Error("Initiating UE UL");
+    return;
+  }
+
+  if (srsran_ue_ul_set_cfr(&ue_ul, &cfr_config) < SRSRAN_SUCCESS) {
+    Error("Setting the CFR");
     return;
   }
 
@@ -258,24 +265,29 @@ bool cc_worker::work_dl_regular()
 
   // If found a dci for this carrier, generate a grant, pass it to MAC and decode the associated PDSCH
   if (has_dl_grant) {
-    // Read last TB from last retx for this pid
-    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
-      ue_dl_cfg.cfg.pdsch.grant.last_tbs[i] = phy->last_dl_tbs[dci_dl.pid][cc_idx][i];
-    }
-    // Generate PHY grant
-    if (srsran_ue_dl_dci_to_pdsch_grant(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, &dci_dl, &ue_dl_cfg.cfg.pdsch.grant)) {
-      Info("Converting DCI message to DL dci");
-      return false;
-    }
+    // PDCCH order has no associated PDSCH to decode
+    if (not dci_dl.is_pdcch_order) {
+      // Read last TB from last retx for this pid
+      for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
+        ue_dl_cfg.cfg.pdsch.grant.last_tbs[i] = phy->last_dl_tbs[dci_dl.pid][cc_idx][i];
+      }
+      // Generate PHY grant
+      if (srsran_ue_dl_dci_to_pdsch_grant(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, &dci_dl, &ue_dl_cfg.cfg.pdsch.grant)) {
+        Info("Converting DCI message to DL dci");
+        return false;
+      }
 
-    // Save TB for next retx
-    for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
-      phy->last_dl_tbs[dci_dl.pid][cc_idx][i] = ue_dl_cfg.cfg.pdsch.grant.last_tbs[i];
+      // Save TB for next retx
+      for (uint32_t i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
+        phy->last_dl_tbs[dci_dl.pid][cc_idx][i] = ue_dl_cfg.cfg.pdsch.grant.last_tbs[i];
+      }
+
+      // Set RNTI
+      ue_dl_cfg.cfg.pdsch.rnti = dci_dl.rnti;
+    } else {
+      ue_dl_cfg.cfg.pdsch.rnti            = dci_dl.rnti;
+      ue_dl_cfg.cfg.pdsch.grant.tb[0].tbs = 0;
     }
-
-    // Set RNTI
-    ue_dl_cfg.cfg.pdsch.rnti = dci_dl.rnti;
-
     // Generate MAC grant
     mac_interface_phy_lte::mac_grant_dl_t mac_grant = {};
     dl_phy_to_mac_grant(&ue_dl_cfg.cfg.pdsch.grant, &dci_dl, &mac_grant);
@@ -363,9 +375,14 @@ void cc_worker::dl_phy_to_mac_grant(srsran_pdsch_grant_t*                       
                                     srsue::mac_interface_phy_lte::mac_grant_dl_t* mac_grant)
 {
   /* Fill MAC dci structure */
-  mac_grant->pid  = dl_dci->pid;
-  mac_grant->rnti = dl_dci->rnti;
-  mac_grant->tti  = CURRENT_TTI;
+  mac_grant->pid            = dl_dci->pid;
+  mac_grant->rnti           = dl_dci->rnti;
+  mac_grant->tti            = CURRENT_TTI;
+  mac_grant->is_pdcch_order = dl_dci->is_pdcch_order;
+  if (dl_dci->is_pdcch_order) {
+    mac_grant->preamble_idx   = dl_dci->preamble_idx;
+    mac_grant->prach_mask_idx = dl_dci->prach_mask_idx;
+  }
 
   for (int i = 0; i < SRSRAN_MAX_CODEWORDS; i++) {
     mac_grant->tb[i].ndi         = dl_dci->tb[i].ndi;

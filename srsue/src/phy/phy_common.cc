@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -65,6 +65,14 @@ void phy_common::init(phy_args_t*                  _args,
     ul_channel = srsran::channel_ptr(
         new srsran::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant, logger));
   }
+
+  // Init the CFR config struct with the CFR args
+  cfr_config.cfr_enable  = args->cfr_args.enable;
+  cfr_config.cfr_mode    = args->cfr_args.mode;
+  cfr_config.alpha       = args->cfr_args.strength;
+  cfr_config.manual_thr  = args->cfr_args.manual_thres;
+  cfr_config.max_papr_db = args->cfr_args.auto_target_papr;
+  cfr_config.ema_alpha   = args->cfr_args.ema_alpha;
 }
 
 void phy_common::set_ue_dl_cfg(srsran_ue_dl_cfg_t* ue_dl_cfg)
@@ -682,9 +690,9 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
       return;
     }
 
-    // Only worker 0 reads the RSSI sensor
+    // Only worker 0 updates RX gain offset every 10 ms
     if (rssi_power_buffer) {
-      if (!rssi_read_cnt) {
+      if (!update_rxgain_cnt) {
         // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
         float rssi_dbm = SRSRAN_SF_LEN_PRB(cell.nof_prb) > 0
                              ? (srsran_convert_power_to_dB(
@@ -697,9 +705,9 @@ void phy_common::update_measurements(uint32_t                     cc_idx,
 
         rx_gain_offset = get_radio()->get_rx_gain() + args->rx_gain_offset;
       }
-      rssi_read_cnt++;
-      if (rssi_read_cnt >= 1000) {
-        rssi_read_cnt = 0;
+      update_rxgain_cnt++;
+      if (update_rxgain_cnt >= update_rxgain_period) {
+        update_rxgain_cnt = 0;
       }
     }
 

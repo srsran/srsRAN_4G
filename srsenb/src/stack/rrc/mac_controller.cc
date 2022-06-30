@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -277,10 +277,11 @@ void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_i
                                             const srsran::rrc_ue_capabilities_t&      uecaps)
 {
   next_sched_ue_cfg = current_sched_ue_cfg;
-  next_sched_ue_cfg.supported_cc_list.resize(1);
-  next_sched_ue_cfg.supported_cc_list[0].active = true;
   next_sched_ue_cfg.supported_cc_list[0].enb_cc_idx =
       cell_common_list.get_pci(conn_recfg.mob_ctrl_info.target_pci)->enb_cc_idx;
+  for (uint32_t i = 0; i < next_sched_ue_cfg.supported_cc_list.size(); ++i) {
+    next_sched_ue_cfg.supported_cc_list[0].active = true;
+  }
   ue_cfg_apply_conn_reconf(next_sched_ue_cfg, conn_recfg, *rrc_cfg);
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
   ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, ue_cell_list);

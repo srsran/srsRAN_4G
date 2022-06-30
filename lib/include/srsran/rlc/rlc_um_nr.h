@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -50,6 +50,9 @@ public:
   ~rlc_um_nr();
   bool configure(const rlc_config_t& cnfg);
 
+  // logging helpers
+  std::string get_rb_name() const;
+
 private:
   // Transmitter sub-class for NR
   class rlc_um_nr_tx : public rlc_um_base_tx
@@ -59,6 +62,7 @@ private:
 
     bool     configure(const rlc_config_t& cfg, std::string rb_name);
     uint32_t build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes);
+    void     discard_sdu(uint32_t discard_sn);
     uint32_t get_buffer_state();
 
   private:
@@ -108,8 +112,8 @@ private:
     uint32_t RX_Next_Highest    = 0; // the SN following the SN of the UMD PDU with the highest SN among
                                      // received UMD PDUs. It serves as the higher edge of the reassembly window.
 
-    uint32_t UM_Window_Size;
-    uint32_t mod; // Rx counter modulus
+    uint32_t UM_Window_Size = 0;
+    uint32_t mod            = 0; // Rx counter modulus
 
     // Rx window
     typedef struct {

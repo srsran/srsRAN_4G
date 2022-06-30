@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -26,7 +26,6 @@
 namespace srsran {
 
 srsran_dci_cfg_nr_t phy_cfg_nr_t::get_dci_cfg() const
-
 {
   srsran_dci_cfg_nr_t dci_cfg = {};
 
@@ -46,7 +45,8 @@ srsran_dci_cfg_nr_t phy_cfg_nr_t::get_dci_cfg() const
 
     // Iterate all configured formats
     for (uint32_t j = 0; j < pdcch.search_space[i].nof_formats; j++) {
-      if (pdcch.search_space[i].type == srsran_search_space_type_common_3 &&
+      if ((pdcch.search_space[i].type == srsran_search_space_type_common_3 or
+           pdcch.search_space[i].type == srsran_search_space_type_common_1) &&
           pdcch.search_space[i].formats[j] == srsran_dci_format_nr_0_0) {
         dci_cfg.monitor_common_0_0 = true;
       } else if (pdcch.search_space[i].type == srsran_search_space_type_ue &&
@@ -330,7 +330,7 @@ bool phy_cfg_nr_t::get_pucch_uci_cfg(const srsran_slot_cfg_t&      slot_cfg,
                                      srsran_pucch_nr_resource_t&   resource) const
 {
   // Select PUCCH resource
-  if (srsran_ra_ul_nr_pucch_resource(&pucch, &uci_cfg, &resource) < SRSRAN_SUCCESS) {
+  if (srsran_ra_ul_nr_pucch_resource(&pucch, &uci_cfg, carrier.nof_prb, &resource) < SRSRAN_SUCCESS) {
     ERROR("Selecting PUCCH resource");
     return false;
   }

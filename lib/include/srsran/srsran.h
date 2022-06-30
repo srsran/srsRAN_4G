@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -61,6 +61,7 @@ extern "C" {
 
 #include "srsran/phy/channel/ch_awgn.h"
 
+#include "srsran/phy/cfr/cfr.h"
 #include "srsran/phy/dft/dft.h"
 #include "srsran/phy/dft/dft_precoding.h"
 #include "srsran/phy/dft/ofdm.h"
@@ -122,6 +123,7 @@ extern "C" {
 #include "srsran/phy/ue/ue_dl_nr.h"
 #include "srsran/phy/ue/ue_mib.h"
 #include "srsran/phy/ue/ue_sync.h"
+#include "srsran/phy/ue/ue_sync_nr.h"
 #include "srsran/phy/ue/ue_ul.h"
 #include "srsran/phy/ue/ue_ul_nr.h"
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -215,11 +215,11 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < snr_points; i++) {
       ebno_db = SNR_MIN + i * ebno_inc;
       esno_db = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
-      var[i]  = srsran_convert_dB_to_amplitude(-esno_db);
+      var[i]  = srsran_convert_dB_to_power(-esno_db);
     }
   } else {
     esno_db    = ebno_db + srsran_convert_power_to_dB(1.0f / 3.0f);
-    var[0]     = srsran_convert_dB_to_amplitude(-esno_db);
+    var[0]     = srsran_convert_dB_to_power(-esno_db);
     snr_points = 1;
   }
   for (uint32_t i = 0; i < snr_points; i++) {

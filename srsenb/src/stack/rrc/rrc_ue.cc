@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -1145,14 +1145,14 @@ void rrc::ue::send_connection_release()
  */
 void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
-  ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
-  ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
+  set_bitrates(msg->ueaggregate_maximum_bitrate.value);
+  ue_security_cfg.set_security_capabilities(msg->ue_security_cap.value);
+  ue_security_cfg.set_security_key(msg->security_key.value);
 
   // CSFB
-  if (msg.protocol_ies.cs_fallback_ind_present) {
-    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required or
-        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
+  if (msg->cs_fallback_ind_present) {
+    if (msg->cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required or
+        msg->cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
       is_csfb = true;
     }
   }
@@ -1163,25 +1163,25 @@ void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup
 
 bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg)
 {
-  if (msg.protocol_ies.cs_fallback_ind_present) {
-    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required ||
-        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
+  if (msg->cs_fallback_ind_present) {
+    if (msg->cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required ||
+        msg->cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
       /* Remember that we are in a CSFB right now */
       is_csfb = true;
     }
   }
 
   // UEAggregateMaximumBitrate
-  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
-    set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
+  if (msg->ueaggregate_maximum_bitrate_present) {
+    set_bitrates(msg->ueaggregate_maximum_bitrate.value);
   }
 
-  if (msg.protocol_ies.ue_security_cap_present) {
-    ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
+  if (msg->ue_security_cap_present) {
+    ue_security_cfg.set_security_capabilities(msg->ue_security_cap.value);
   }
 
-  if (msg.protocol_ies.security_key_present) {
-    ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
+  if (msg->security_key_present) {
+    ue_security_cfg.set_security_key(msg->security_key.value);
 
     send_security_mode_command();
   }
@@ -1228,7 +1228,7 @@ int rrc::ue::setup_erab(uint16_t                                           erab_
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::multiple_erab_id_instances;
     return SRSRAN_ERROR;
   }
-  if (bearer_list.add_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
+  if (bearer_list.addmod_erab(erab_id, qos_params, addr, gtpu_teid_out, nas_pdu, cause) != SRSRAN_SUCCESS) {
     parent->logger.error("Couldn't add E-RAB id=%d for rnti=0x%x", erab_id, rnti);
     return SRSRAN_ERROR;
   }

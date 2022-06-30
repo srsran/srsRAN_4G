@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -35,7 +35,14 @@ static void emergency_cleanup_handler(void* data)
 
 s1ap_pcap::s1ap_pcap()
 {
-  add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+  emergency_handler_id = add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+}
+
+s1ap_pcap::~s1ap_pcap()
+{
+  if (emergency_handler_id > 0) {
+    remove_emergency_cleanup_handler(emergency_handler_id);
+  }
 }
 
 void s1ap_pcap::enable()

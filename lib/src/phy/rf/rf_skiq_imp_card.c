@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -49,21 +49,6 @@ static void* reader_thread(void* arg)
 
     switch (rx_status) {
       case skiq_rx_status_success:
-        // Check Rx index boundary
-        if (p_rx_block->rfic_control >= q->param.rx_param->gain_index_min &&
-            p_rx_block->rfic_control <= q->param.rx_param->gain_index_max) {
-          double new_rx_gain = q->rx_gain_table_db[p_rx_block->rfic_control];
-
-          // If the Rx index has changed, update gain
-          if (new_rx_gain != q->cur_rx_gain_db) {
-            SKIQ_RF_DEBUG("card %d index=%d; gain=%.2f/%.2f dB;\n",
-                          q->card,
-                          p_rx_block->rfic_control,
-                          q->rx_gain_table_db[p_rx_block->rfic_control],
-                          q->cur_rx_gain_db);
-            q->cur_rx_gain_db = new_rx_gain;
-          }
-        }
         if (curr_rx_hdl < q->nof_ports && p_rx_block != NULL && len > SKIQ_RX_HEADER_SIZE_IN_BYTES) {
           // Convert number of bytes into samples
           uint32_t nsamples = len / 4 - SKIQ_RX_HEADER_SIZE_IN_WORDS;
@@ -101,17 +86,6 @@ static void* reader_thread(void* arg)
   SKIQ_RF_INFO("Exiting reader thread!\n");
 
   return NULL;
-}
-
-int rf_skiq_card_update_gain_table(rf_skiq_card_t* q)
-{
-  for (uint8_t i = q->param.rx_param->gain_index_min; i <= q->param.rx_param->gain_index_max; i++) {
-    if (skiq_read_rx_cal_offset_by_gain_index(q->card, skiq_rx_hdl_A1, i, &q->rx_gain_table_db[i])) {
-      ERROR("Reading calibrated Rx gain index %d", i);
-      return SRSRAN_ERROR;
-    }
-  }
-  return SRSRAN_SUCCESS;
 }
 
 int rf_skiq_card_init(rf_skiq_card_t* q, uint8_t card, uint8_t nof_ports, const rf_skiq_port_opts_t* opts)
@@ -218,7 +192,13 @@ int rf_skiq_card_init(rf_skiq_card_t* q, uint8_t card, uint8_t nof_ports, const 
   // Launch thread
   if (pthread_create(&q->thread, &attr, reader_thread, q)) {
     ERROR("Error creating reader thread with attributes (Did you miss sudo?). Trying without attributes.\n");
-    return SRSRAN_ERROR;
+
+    // try to create thread without attributes
+    pthread_attr_destroy(&attr);
+    if (pthread_create(&q->thread, NULL, reader_thread, q)) {
+      ERROR("Error creating reader thread, even without thread attributes. Exiting.\n");
+      return SRSRAN_ERROR;
+    }
   }
 
   // Rename thread
@@ -286,31 +266,38 @@ double rf_skiq_card_set_tx_gain_db(rf_skiq_card_t* q, uint32_t port_idx, double 
 
 double rf_skiq_card_set_rx_gain_db(rf_skiq_card_t* q, uint32_t port_idx, double gain_db)
 {
-  // Find the nearest gain index in the table
-  int    gain_idx      = -1;
-  double gain_min_diff = INFINITY;
-  for (int i = q->param.rx_param->gain_index_min; i <= q->param.rx_param->gain_index_max; i++) {
-    double gain_diff = fabs(q->rx_gain_table_db[i] - gain_db);
-    if (gain_diff < gain_min_diff) {
-      gain_min_diff = gain_diff;
-      gain_idx      = i;
+  // From Sidekiq API doc:
+  //
+  // For Sidekiq mPCIe (skiq_mpcie), Sidekiq M.2 (skiq_m2), Sidekiq Stretch (skiq_m2_2280), Sidekiq Z2
+  //(skiq_z2), and Matchstiq Z3u (skiq_z3u) each increment of the gain index value results in approxi-
+  // mately 1 dB of gain, with approximately 76 dB of total gain available. For details on the gain table,
+  // refer to p. 37 of AD9361 Reference Manual UG-570
+
+  // Check gain range
+  if (gain_db < q->param.rx_param->gain_index_min || gain_db > q->param.rx_param->gain_index_max) {
+    ERROR("Error port %d:%d the selected gain (%.2f dB) is out of range (%d to %d dB).\n",
+          q->card,
+          port_idx,
+          gain_db,
+          q->param.rx_param->gain_index_min,
+          q->param.rx_param->gain_index_max);
+  }
+
+  // Calculate attenuation index
+  uint16_t gain_idx = (uint16_t)floor(gain_db);
+
+  if (port_idx < q->nof_ports) {
+    // Set single port gain
+    skiq_write_rx_gain(q->card, (skiq_rx_hdl_t)port_idx, gain_idx);
+  } else {
+    // Set all gains
+    for (int i = 0; i < q->nof_ports; i++) {
+      skiq_write_rx_gain(q->card, (skiq_rx_hdl_t)i, gain_idx);
     }
   }
 
-  if (gain_idx >= 0) {
-    gain_db = q->rx_gain_table_db[gain_idx];
-    if (port_idx < q->nof_ports) {
-      // Set single port gain
-      q->issued_rx_gain_db[port_idx] = gain_db;
-      skiq_write_rx_gain(q->card, (skiq_rx_hdl_t)port_idx, gain_idx);
-    } else {
-      // Set all gains
-      for (int i = 0; i < q->nof_ports; i++) {
-        q->issued_rx_gain_db[i] = gain_db;
-        skiq_write_rx_gain(q->card, (skiq_rx_hdl_t)i, gain_idx);
-      }
-    }
-  }
+  // Update current rx_gain
+  q->cur_rx_gain_db = gain_db;
 
   return gain_db;
 }
@@ -514,16 +501,6 @@ double rf_skiq_card_set_rx_freq_hz(rf_skiq_card_t* q, uint32_t port_idx, double 
   q->suspend = true;
   rf_skiq_rx_port_set_lo(&q->rx_ports[port_idx], (uint64_t)freq_hz);
   q->suspend = false;
-
-  // Update gains for only port 0
-  if (port_idx == 0) {
-    // Update gain table
-    rf_skiq_card_update_gain_table(q);
-
-    // Set previous issued gain in dB for the new tables
-    rf_skiq_card_set_rx_gain_db(q, q->nof_ports, q->issued_rx_gain_db[port_idx]);
-  }
-
   return freq_hz;
 }
 

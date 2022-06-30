@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -169,7 +169,8 @@ int srsran_pucch_nr_cfg_resource_valid(const srsran_pucch_nr_resource_t* resourc
     return SRSRAN_ERROR;
   }
 
-  if (resource->intra_slot_hopping) {
+  // Frequency hopping is only possible with Format 1
+  if (resource->intra_slot_hopping && resource->format != SRSRAN_PUCCH_NR_FORMAT_1) {
     ERROR("Intra-slot hopping is not implemented");
     return SRSRAN_ERROR;
   }

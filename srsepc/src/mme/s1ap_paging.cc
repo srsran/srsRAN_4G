@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -47,7 +47,7 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
   // Prepare reply PDU
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_PAGING);
-  asn1::s1ap::paging_ies_container& paging = tx_pdu.init_msg().value.paging().protocol_ies;
+  asn1::s1ap::paging_s& paging = tx_pdu.init_msg().value.paging();
 
   // Getting UE NAS Context
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
@@ -58,25 +58,25 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
 
   // UE Identity Index
   uint16_t ue_index = imsi % 1024;
-  paging.ue_id_idx_value.value.from_number(ue_index);
+  paging->ue_id_idx_value.value.from_number(ue_index);
 
   // UE Paging Id
-  paging.ue_paging_id.value.set_s_tmsi();
-  paging.ue_paging_id.value.s_tmsi().mmec.from_number(m_s1ap->m_s1ap_args.mme_code);
-  paging.ue_paging_id.value.s_tmsi().m_tmsi.from_number(nas_ctx->m_sec_ctx.guti.m_tmsi);
+  paging->ue_paging_id.value.set_s_tmsi();
+  paging->ue_paging_id.value.s_tmsi().mmec.from_number(m_s1ap->m_s1ap_args.mme_code);
+  paging->ue_paging_id.value.s_tmsi().m_tmsi.from_number(nas_ctx->m_sec_ctx.guti.m_tmsi);
 
   // CMDomain
-  paging.cn_domain.value = asn1::s1ap::cn_domain_opts::ps;
+  paging->cn_domain.value = asn1::s1ap::cn_domain_opts::ps;
 
   // TAI List
-  paging.tai_list.value.resize(1);
-  paging.tai_list.value[0].load_info_obj(ASN1_S1AP_ID_TAI_ITEM);
+  paging->tai_list.value.resize(1);
+  paging->tai_list.value[0].load_info_obj(ASN1_S1AP_ID_TAI_ITEM);
 
   uint32_t plmn = m_s1ap->get_plmn();
-  paging.tai_list.value[0].value.tai_item().tai.plm_nid.from_number(plmn);
+  paging->tai_list.value[0]->tai_item().tai.plm_nid.from_number(plmn);
 
   uint16_t tac = m_s1ap->m_s1ap_args.tac;
-  paging.tai_list.value[0].value.tai_item().tai.tac.from_number(tac);
+  paging->tai_list.value[0]->tai_item().tai.tac.from_number(tac);
 
   // Start T3413
   if (!nas_ctx->start_timer(T_3413)) {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,6 +24,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/common.h"
@@ -34,7 +35,6 @@
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -282,9 +282,11 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
     const enb_cell_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
     if (meas_it != meas_list_cfg.end()) {
       meas_ev.target_eci      = meas_it->eci;
+      meas_ev.target_tac      = meas_it->tac;
       meas_ev.direct_fwd_path = meas_it->direct_forward_path_available;
     } else if (c != nullptr) {
       meas_ev.target_eci = (rrc_enb->cfg.enb_id << 8u) + c->cell_cfg.cell_id;
+      meas_ev.target_tac = pcell->cell_common->cell_cfg.tac;
     } else {
       logger.warning("The PCI=%d inside the MeasReport is not recognized.", e.pci);
       continue;
@@ -305,6 +307,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srsr
  *              - This struct goes in a transparent container to the S1AP
  */
 bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
+                                                 uint16_t target_tac,
                                                  uint8_t  measobj_id,
                                                  bool     fwd_direct_path_available)
 {
@@ -325,8 +328,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     capitem.ue_category                                       = 4;
     capitem.pdcp_params.max_num_rohc_context_sessions_present = true;
     capitem.pdcp_params.max_num_rohc_context_sessions = asn1::rrc::pdcp_params_s::max_num_rohc_context_sessions_e_::cs2;
-    bzero(&capitem.pdcp_params.supported_rohc_profiles,
-          sizeof(asn1::rrc::rohc_profile_support_list_r15_s)); // TODO: why is it r15?
+    capitem.pdcp_params.supported_rohc_profiles       = {};
     capitem.phy_layer_params.ue_specific_ref_sigs_supported = false;
     capitem.phy_layer_params.ue_tx_ant_sel_supported        = false;
     capitem.rf_params.supported_band_list_eutra.resize(1);
@@ -415,7 +417,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   }
 
   return rrc_enb->s1ap->send_ho_required(
-      rrc_ue->rnti, target_eci, target_plmn, fwd_erabs, std::move(buffer), fwd_direct_path_available);
+      rrc_ue->rnti, target_eci, target_tac, target_plmn, fwd_erabs, std::move(buffer), fwd_direct_path_available);
 }
 
 /**
@@ -443,9 +445,9 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(rrc::ho_prep_result  
   }
 
   // Check if any E-RAB that was not admitted. Cancel Handover, in such case.
-  if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
+  if (msg->erab_to_release_list_ho_cmd_present) {
     get_logger().warning("E-RAB id=%d was not admitted in target eNB. Cancelling handover...",
-                         msg.protocol_ies.erab_to_release_list_ho_cmd.value[0].value.erab_item().erab_id);
+                         msg->erab_to_release_list_ho_cmd.value[0]->erab_item().erab_id);
     asn1::s1ap::cause_c cause;
     cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::no_radio_res_available_in_target_cell;
     trigger(ho_cancel_ev{cause});
@@ -631,11 +633,11 @@ rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1
   }
 
   // Setup GTPU forwarding tunnel
-  if (s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list_present) {
-    const auto& fwd_erab_list = s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list.value;
+  if (s1ap_ho_cmd->erab_subjectto_data_forwarding_list_present) {
+    const auto& fwd_erab_list = s1ap_ho_cmd->erab_subjectto_data_forwarding_list.value;
     const auto& erab_list     = rrc_ue->bearer_list.get_erabs();
     for (const auto& e : fwd_erab_list) {
-      const auto& fwd_erab = e.value.erab_data_forwarding_item();
+      const auto& fwd_erab = e->erab_data_forwarding_item();
       auto        it       = erab_list.find(fwd_erab.erab_id);
       if (it == erab_list.end()) {
         Warning("E-RAB id=%d subject to forwarding not found\n", fwd_erab.erab_id);
@@ -663,7 +665,8 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_mea
   logger.info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", rrc_ue->rnti, ev.target_eci);
   report = ev;
 
-  if (not parent_fsm()->start_ho_preparation(report.target_eci, report.meas_obj->meas_obj_id, ev.direct_fwd_path)) {
+  if (not parent_fsm()->start_ho_preparation(
+          report.target_eci, report.target_tac, report.meas_obj->meas_obj_id, ev.direct_fwd_path)) {
     trigger(srsran::failure_ev{});
   }
 }
@@ -819,7 +822,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
       rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   recfg_r8.security_cfg_ho.handov_type.intra_lte().key_change_ind = false;
   recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count =
-      ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_chaining_count;
+      (*ho_req.ho_req_msg)->security_context.value.next_hop_chaining_count;
 
   /* Prepare Handover Command to be sent via S1AP */
   srsran::unique_byte_buffer_t ho_cmd_pdu = srsran::make_byte_buffer();
@@ -872,16 +875,16 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
     // Establish GTPU Forwarding Paths
     if (ho_req.transparent_container->erab_info_list_present) {
       const auto& lst = ho_req.transparent_container->erab_info_list;
-      const auto* it  = std::find_if(
-          lst.begin(),
-          lst.end(),
-          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
-            return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
-          });
+      const auto* it =
+          std::find_if(lst.begin(),
+                       lst.end(),
+                       [&erab](const asn1::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+                         return fwd_erab->erab_info_list_item().erab_id == erab.second.id;
+                       });
       if (it == lst.end()) {
         continue;
       }
-      const auto& fwd_erab = it->value.erab_info_list_item();
+      const auto& fwd_erab = (*it)->erab_info_list_item();
 
       if (fwd_erab.dl_forwarding_present and
           fwd_erab.dl_forwarding.value == asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed) {
@@ -944,8 +947,8 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
   const cell_cfg_t&  target_cell_cfg = target_cell->cell_common->cell_cfg;
 
   // Establish ERABs/DRBs
-  for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
-    const auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
+  for (const auto& erab_item : ho_req_msg->erab_to_be_setup_list_ho_req.value) {
+    const auto& erab = erab_item->erab_to_be_setup_item_ho_req();
     if (erab.ext) {
       get_logger().warning("Not handling E-RABToBeSetupList extensions");
     }
@@ -961,7 +964,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
     uint32_t teid_out = 0;
     srsran::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     asn1::s1ap::cause_c erab_cause;
-    if (rrc_ue->bearer_list.add_erab(
+    if (rrc_ue->bearer_list.addmod_erab(
             erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, {}, erab_cause) !=
         SRSRAN_SUCCESS) {
       erabs_failed_to_setup.emplace_back();
@@ -981,13 +984,13 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
 
   // Regenerate AS Keys
   // See TS 33.401, Sec. 7.2.8.4.3
-  if (not rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg.protocol_ies.ue_security_cap.value)) {
+  if (not rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg->ue_security_cap.value)) {
     cause.set_radio_network().value =
         asn1::s1ap::cause_radio_network_opts::encryption_and_or_integrity_protection_algorithms_not_supported;
     return false;
   }
-  rrc_ue->ue_security_cfg.set_security_key(ho_req_msg.protocol_ies.security_context.value.next_hop_param);
-  rrc_ue->ue_security_cfg.set_ncc(ho_req_msg.protocol_ies.security_context.value.next_hop_chaining_count);
+  rrc_ue->ue_security_cfg.set_security_key(ho_req_msg->security_context.value.next_hop_param);
+  rrc_ue->ue_security_cfg.set_ncc(ho_req_msg->security_context.value.next_hop_chaining_count);
   rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
 
   // Save UE Capabilities
@@ -1047,7 +1050,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
 
   // Set DRBs SNs
   for (const auto& erab : erabs) {
-    const auto& erab_item = erab.value.bearers_subject_to_status_transfer_item();
+    const auto& erab_item = erab->bearers_subject_to_status_transfer_item();
     auto        erab_it   = rrc_ue->bearer_list.get_erabs().find(erab_item.erab_id);
     if (erab_it == rrc_ue->bearer_list.get_erabs().end()) {
       logger.warning("The E-RAB Id=%d is not recognized", erab_item.erab_id);

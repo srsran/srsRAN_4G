@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -69,6 +69,7 @@ protected:
   struct nas_5g_sec_ctxt {
     uint8_t  ksi;
     uint8_t  k_amf[32];
+    uint32_t k_gnb_count;
   };
 
   nas_sec_base_ctxt ctxt_base = {};
@@ -79,7 +80,7 @@ protected:
 
   // Security
   void
-       integrity_generate(uint8_t* key_128, uint32_t count, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
+  integrity_generate(uint8_t* key_128, uint32_t count, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
   bool integrity_check(srsran::byte_buffer_t* pdu);
   void cipher_encrypt(srsran::byte_buffer_t* pdu);
   void cipher_decrypt(srsran::byte_buffer_t* pdu);

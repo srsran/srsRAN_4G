@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -277,15 +277,19 @@ uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
     for (uint32_t r = 0; r < cnt; r++) {
       phy_metrics_t* m  = &metrics[r];
       phy_metrics_t* m_ = &metrics_[r];
-      m->dl.mcs         = SRSRAN_VEC_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
+      m->dl.mcs         = SRSRAN_VEC_SAFE_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
       m->dl.n_samples += m_->dl.n_samples;
-      m->ul.n          = SRSRAN_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
-      m->ul.pusch_sinr = SRSRAN_VEC_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
+      m->ul.n          = SRSRAN_VEC_SAFE_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
+      m->ul.pusch_sinr = SRSRAN_VEC_SAFE_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
       m->ul.pucch_sinr =
-          SRSRAN_VEC_PMA(m->ul.pucch_sinr, m->ul.n_samples_pucch, m_->ul.pucch_sinr, m_->ul.n_samples_pucch);
-      m->ul.mcs         = SRSRAN_VEC_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);
-      m->ul.rssi        = SRSRAN_VEC_PMA(m->ul.rssi, m->ul.n_samples, m_->ul.rssi, m_->ul.n_samples);
-      m->ul.turbo_iters = SRSRAN_VEC_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
+          SRSRAN_VEC_SAFE_PMA(m->ul.pucch_sinr, m->ul.n_samples_pucch, m_->ul.pucch_sinr, m_->ul.n_samples_pucch);
+      m->ul.mcs        = SRSRAN_VEC_SAFE_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);
+      m->ul.pusch_rssi = SRSRAN_VEC_SAFE_PMA(m->ul.pusch_rssi, m->ul.n_samples, m_->ul.pusch_rssi, m_->ul.n_samples);
+      m->ul.pucch_rssi =
+          SRSRAN_VEC_SAFE_PMA(m->ul.pucch_rssi, m->ul.n_samples_pucch, m_->ul.pucch_rssi, m_->ul.n_samples_pucch);
+      m->ul.pucch_ni =
+          SRSRAN_VEC_SAFE_PMA(m->ul.pucch_ni, m->ul.n_samples_pucch, m_->ul.pucch_ni, m_->ul.n_samples_pucch);
+      m->ul.turbo_iters = SRSRAN_VEC_SAFE_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
       m->ul.n_samples += m_->ul.n_samples;
       m->ul.n_samples_pucch += m_->ul.n_samples_pucch;
     }

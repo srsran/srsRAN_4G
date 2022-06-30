@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -56,14 +56,18 @@ if(RF_FOUND)
     endif(SRSGUI_FOUND)
 endif(RF_FOUND)
 
-add_executable(ue_dl_nr_file_test ue_dl_nr_file_test.c)
-target_link_libraries(ue_dl_nr_file_test srsran_phy pthread)
+add_executable(ue_dl_nr_file_test ue_dl_nr_file_test.cc)
+target_link_libraries(ue_dl_nr_file_test srsran_phy srsran_common pthread)
 foreach (n RANGE 0 9)
-    add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234)
-    add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234)
-    add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234)
-    add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234)
-    add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234)
-    add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234)
+    #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
+    #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
+    #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
+    #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
+    #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
+    #add_test(ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci1_rb25_n${n}_common_L1_ncce0.dat -i 1 -P 25 -n ${n} -R 1234 -l 2)
 endforeach ()
-add_test(ue_dl_nr_pci500_rb52_n4_ra_L2_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci500_rb52_n4_ra_L2_ncce0.dat -i 1 -P 52 -n 4 -R 7f)
+#add_test(ue_dl_nr_pci500_rb52_n4_ra_L2_ncce0 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci500_rb52_n4_ra_L2_ncce0.dat -i 1 -P 52 -n 4 -R 7f)
+add_test(ue_dl_nr_pci500_rb52_si_coreset0_idx6 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci500_rb52_si_coreset0_idx6_s15.36e6.dat -S -i 500 -P 52 -n 0 -R ffff -T si -c 6 -s common0 -A 368500 -a 368410)
+#add_test(ue_dl_nr_pci500_rb52_si_coreset0_idx7 ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci500_rb52_si_coreset0_idx7_s15.36e6.dat -S -i 500 -P 52 -n 0 -R ffff -T si -c 7 -s common0 -A 161200 -a 161290)
+add_test(ue_dl_nr_pci500_rb52_pdsch ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci500_rb52_rnti0x100_s15.36e6.dat -S -i 500 -P 52 -N 48 -n 1 -R 0x100 -T c -s common3 -o 1 -A 368500 -a 368410 -I -t 1 13)
+add_test(ue_dl_nr_pci500_rb52_rar ue_dl_nr_file_test -f ${CMAKE_CURRENT_SOURCE_DIR}/ue_dl_nr_pci500_rb52_rar_s15.36e6.dat -i 500 -P 52 -n 5 -R f -T ra -c 6 -S -s common1 -A 368500 -a 368410)

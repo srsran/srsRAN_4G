@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -29,7 +29,7 @@
  ***********************/
 
 namespace asn1 {
-namespace ngap_nr {
+namespace ngap {
 struct rrcestablishment_cause_opts;
 struct cause_radio_network_opts;
 using rrcestablishment_cause_e = enumerated<rrcestablishment_cause_opts, true, 1>;

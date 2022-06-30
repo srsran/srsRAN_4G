@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,6 +22,8 @@
 #include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/adt/pool/batch_mem_pool.h"
 #include "srsran/rlc/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_nr.h"
+#include "srsran/rlc/rlc_tm.h"
 #include "srsran/rlc/rlc_um_lte.h"
 #include "srsran/rlc/rlc_um_nr.h"
 
@@ -30,7 +32,11 @@ namespace srsran {
 srsran::background_mem_pool* get_bearer_pool()
 {
   static background_mem_pool pool(
-      4, std::max(std::max(sizeof(rlc_am_lte), sizeof(rlc_um_lte)), sizeof(rlc_um_nr)), 8, 8);
+      4,
+      std::max(std::max(std::max(std::max(sizeof(rlc_am), sizeof(rlc_am)), sizeof(rlc_um_lte)), sizeof(rlc_um_nr)),
+               sizeof(rlc_tm)),
+      8,
+      8);
   return &pool;
 }
 

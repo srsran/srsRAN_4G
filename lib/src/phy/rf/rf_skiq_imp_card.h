@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -32,9 +32,7 @@ typedef struct {
   rf_skiq_tx_port_t tx_ports[RF_SKIQ_MAX_PORTS_CARD];
   rf_skiq_rx_port_t rx_ports[RF_SKIQ_MAX_PORTS_CARD];
 
-  double rx_gain_table_db[UINT8_MAX + 1];
   double cur_rx_gain_db;
-  double issued_rx_gain_db[SRSRAN_MAX_PORTS];
   bool   suspend;
 
   uint64_t             start_rx_stream_ts;
@@ -48,8 +46,6 @@ typedef struct {
 int rf_skiq_card_init(rf_skiq_card_t* q, uint8_t card, uint8_t nof_ports, const rf_skiq_port_opts_t* opts);
 
 void rf_skiq_card_set_error_handler(rf_skiq_card_t* q, srsran_rf_error_handler_t error_handler, void* arg);
-
-int rf_skiq_card_update_gain_table(rf_skiq_card_t* q);
 
 double rf_skiq_card_set_tx_gain_db(rf_skiq_card_t* q, uint32_t port_idx, double gain_db);
 

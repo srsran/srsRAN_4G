@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,11 +24,11 @@
 
 #include "dummy_rx_harq_proc.h"
 #include "dummy_tx_harq_proc.h"
-#include "srsenb/hdr/stack/mac/nr/mac_nr.h"
-#include "srsenb/hdr/stack/mac/nr/sched_nr.h"
-#include "srsenb/test/common/dummy_classes_nr.h"
 #include "srsenb/test/common/rlc_test_dummy.h"
-#include "srsenb/test/mac/nr/sched_nr_cfg_generators.h"
+#include "srsgnb/hdr/stack/common/test/dummy_nr_classes.h"
+#include "srsgnb/hdr/stack/mac/mac_nr.h"
+#include "srsgnb/hdr/stack/mac/sched_nr.h"
+#include "srsgnb/src/stack/mac/test/sched_nr_cfg_generators.h"
 #include "srsran/srslog/srslog.h"
 #include <mutex>
 #include <set>
@@ -96,7 +96,9 @@ private:
   srsenb::rlc_dummy               rlc_obj;
   std::unique_ptr<srsenb::mac_nr> mac;
   srslog::basic_logger&           sched_logger;
-  bool                            autofill_sch_bsr = false;
+  bool                            autofill_sch_bsr  = false;
+  bool                            wait_preamble     = false;
+  std::atomic<bool>               enable_user_sched = {false};
 
   std::mutex metrics_mutex;
   metrics_t  metrics = {};
@@ -175,7 +177,8 @@ private:
 
   bool schedule_pdsch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
-    if (dl.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx)) == 0) {
+    if (dl.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx)) == 0 or
+        not enable_user_sched) {
       return true;
     }
 
@@ -250,7 +253,8 @@ private:
 
   bool schedule_pusch(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)
   {
-    if (ul.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx + 4)) == 0) {
+    if (ul.slots.count(SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, slot_cfg.idx + 4)) == 0 or
+        not enable_user_sched) {
       return true;
     }
 
@@ -362,7 +366,8 @@ public:
     phy_cfg(args.phy_cfg),
     ss_id(args.ss_id),
     use_dummy_mac(args.use_dummy_mac == "dummymac"),
-    sched_logger(srslog::fetch_basic_logger("MAC"))
+    sched_logger(srslog::fetch_basic_logger("MAC")),
+    wait_preamble(args.wait_preamble)
   {
     logger.set_level(srslog::str_to_basic_level(args.log_level));
     sched_logger.set_level(srslog::str_to_basic_level(args.log_level));
@@ -378,16 +383,8 @@ public:
     mac_args.sched_cfg.fixed_dl_mcs  = args.pdsch.mcs;
     mac_args.sched_cfg.fixed_ul_mcs  = args.pusch.mcs;
     mac->init(mac_args, nullptr, nullptr, &rlc_obj, &rrc_obj);
-    std::vector<srsenb::sched_nr_interface::cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
+    std::vector<srsenb::sched_nr_cell_cfg_t> cells_cfg = srsenb::get_default_cells_cfg(1, phy_cfg);
     mac->cell_cfg(cells_cfg);
-
-    // add UE to scheduler
-    if (not use_dummy_mac and not args.wait_preamble) {
-      srsenb::sched_nr_interface::ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
-      ue_cfg.ue_bearers[4].direction              = srsenb::mac_lc_ch_cfg_t::BOTH;
-
-      mac->reserve_rnti(0, ue_cfg);
-    }
 
     dl.mcs = args.pdsch.mcs;
     ul.mcs = args.pusch.mcs;
@@ -463,11 +460,33 @@ public:
 
   ~gnb_dummy_stack() = default;
 
+  void stop()
+  {
+    if (not use_dummy_mac) {
+      mac->stop();
+    }
+  }
+
   bool is_valid() const { return valid; }
+
+  void start_scheduling()
+  {
+    // add UE to scheduler
+    if (not use_dummy_mac and not wait_preamble) {
+      srsenb::sched_nr_ue_cfg_t ue_cfg = srsenb::get_default_ue_cfg(1, phy_cfg);
+      ue_cfg.lc_ch_to_add.emplace_back();
+      ue_cfg.lc_ch_to_add.back().lcid          = 4;
+      ue_cfg.lc_ch_to_add.back().cfg.direction = srsenb::mac_lc_ch_cfg_t::BOTH;
+
+      mac->reserve_rnti(0, ue_cfg);
+    }
+
+    enable_user_sched = true;
+  }
 
   int slot_indication(const srsran_slot_cfg_t& slot_cfg) override { return 0; }
 
-  int get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched) override
+  dl_sched_t* get_dl_sched(const srsran_slot_cfg_t& slot_cfg) override
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
@@ -478,53 +497,34 @@ public:
         mac->ul_bsr(rnti, 0, 100000);
       }
 
-      int ret = mac->get_dl_sched(slot_cfg, dl_sched);
+      dl_sched_t* dl_res = mac->get_dl_sched(slot_cfg);
+      if (dl_res == nullptr) {
+        return nullptr;
+      }
 
-      for (pdsch_t& pdsch : dl_sched.pdsch) {
+      for (pdsch_t& pdsch : dl_res->pdsch) {
         // Set TBS
         // Select grant and set data
         pdsch.data[0] = tx_harq_proc[slot_cfg.idx].get_tb(pdsch.sch.grant.tb[0].tbs);
         pdsch.data[1] = nullptr;
       }
 
-      return ret;
+      return dl_res;
     }
+    dl_sched_t& dl_sched = dl_scheds[slot_cfg.idx];
+    dl_sched             = {};
 
     // Check if it is TDD DL slot and PDSCH mask, if no PDSCH shall be scheduled, do not set any grant and skip
     if (not srsran_duplex_nr_is_dl(&phy_cfg.duplex, phy_cfg.carrier.scs, slot_cfg.idx)) {
-      return SRSRAN_SUCCESS;
+      return nullptr;
     }
 
     if (not schedule_pdsch(slot_cfg, dl_sched)) {
       logger.error("Error scheduling PDSCH");
-      return SRSRAN_ERROR;
+      return nullptr;
     }
 
-    // Check if the UL slot is valid, if not skip UL scheduling
-    if (not srsran_duplex_nr_is_ul(&phy_cfg.duplex, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
-      return SRSRAN_SUCCESS;
-    }
-
-    if (not schedule_pusch(slot_cfg, dl_sched)) {
-      logger.error("Error scheduling PUSCH");
-      return SRSRAN_ERROR;
-    }
-
-    // Schedule NZP-CSI-RS, iterate all NZP-CSI-RS sets
-    for (const srsran_csi_rs_nzp_set_t& set : phy_cfg.pdsch.nzp_csi_rs_sets) {
-      // For each NZP-CSI-RS resource available in the set
-      for (uint32_t i = 0; i < set.count; i++) {
-        // Select resource
-        const srsran_csi_rs_nzp_resource_t& nzp_csi_resource = set.data[i];
-
-        // Check if the resource is scheduled for this slot
-        if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
-          dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
-        }
-      }
-    }
-
-    // Schedule SSB
+    // Schedule SSB before UL
     for (uint32_t ssb_idx = 0; ssb_idx < SRSRAN_SSB_NOF_CANDIDATES; ssb_idx++) {
       if (phy_cfg.ssb.position_in_burst[ssb_idx]) {
         srsran_mib_nr_t mib = {};
@@ -543,19 +543,45 @@ public:
       }
     }
 
-    return SRSRAN_SUCCESS;
+    // Check if the UL slot is valid, if not skip UL scheduling
+    if (not srsran_duplex_nr_is_ul(&phy_cfg.duplex, phy_cfg.carrier.scs, TTI_TX(slot_cfg.idx))) {
+      return &dl_sched;
+    }
+
+    if (not schedule_pusch(slot_cfg, dl_sched)) {
+      logger.error("Error scheduling PUSCH");
+      return nullptr;
+    }
+
+    // Schedule NZP-CSI-RS, iterate all NZP-CSI-RS sets
+    for (const srsran_csi_rs_nzp_set_t& set : phy_cfg.pdsch.nzp_csi_rs_sets) {
+      // For each NZP-CSI-RS resource available in the set
+      for (uint32_t i = 0; i < set.count; i++) {
+        // Select resource
+        const srsran_csi_rs_nzp_resource_t& nzp_csi_resource = set.data[i];
+
+        // Check if the resource is scheduled for this slot
+        if (srsran_csi_rs_send(&nzp_csi_resource.periodicity, &slot_cfg)) {
+          dl_sched.nzp_csi_rs.push_back(nzp_csi_resource);
+        }
+      }
+    }
+
+    return &dl_sched;
   }
 
-  int get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched) override
+  ul_sched_t* get_ul_sched(const srsran_slot_cfg_t& slot_cfg) override
   {
     logger.set_context(slot_cfg.idx);
     sched_logger.set_context(slot_cfg.idx);
 
     if (not use_dummy_mac) {
-      int ret = mac->get_ul_sched(slot_cfg, ul_sched);
-
-      return ret;
+      ul_sched_t* ul_res = mac->get_ul_sched(slot_cfg);
+      return ul_res;
     }
+    ul_sched_t& ul_sched = ul_scheds[slot_cfg.idx];
+    ul_sched.pucch.clear();
+    ul_sched.pusch.clear();
 
     // Get ACK information
     srsran_pdsch_ack_nr_t ack     = pending_ack[slot_cfg.idx % pending_ack.size()].get_ack();
@@ -575,7 +601,7 @@ public:
     srsran_uci_cfg_nr_t uci_cfg = {};
     if (not phy_cfg.get_uci_cfg(slot_cfg, ack, uci_cfg)) {
       logger.error("Error getting UCI configuration");
-      return SRSRAN_ERROR;
+      return nullptr;
     }
 
     // Schedule PUSCH
@@ -586,15 +612,12 @@ public:
       // Put UCI configuration in PUSCH config
       if (not phy_cfg.get_pusch_uci_cfg(slot_cfg, uci_cfg, pusch.sch)) {
         logger.error("Error setting UCI configuration in PUSCH");
-        return SRSRAN_ERROR;
+        return nullptr;
       }
 
       ul_sched.pusch.push_back(pusch);
-      return SRSRAN_SUCCESS;
-    }
-
-    // If any UCI information is triggered, schedule PUCCH
-    if (uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) {
+    } else if ((uci_cfg.ack.count > 0 || uci_cfg.nof_csi > 0 || uci_cfg.o_sr > 0) and enable_user_sched) {
+      // If any UCI information is triggered, schedule PUCCH
       ul_sched.pucch.emplace_back();
 
       uci_cfg.pucch.rnti = rnti;
@@ -604,7 +627,7 @@ public:
       pucch.candidates.back().uci_cfg = uci_cfg;
       if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
         logger.error("Error getting UCI CFG");
-        return SRSRAN_ERROR;
+        return nullptr;
       }
 
       // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
@@ -620,15 +643,12 @@ public:
         pucch.candidates.back().uci_cfg = uci_cfg;
         if (not phy_cfg.get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
           logger.error("Error getting UCI CFG");
-          return SRSRAN_ERROR;
+          return nullptr;
         }
       }
-
-      return SRSRAN_SUCCESS;
     }
 
-    // Otherwise no UL scheduling
-    return SRSRAN_SUCCESS;
+    return &ul_sched;
   }
 
   int pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) override
@@ -730,6 +750,10 @@ public:
     }
     return metrics;
   }
+
+private:
+  srsran::circular_array<dl_sched_t, TTIMOD_SZ> dl_scheds;
+  srsran::circular_array<ul_sched_t, TTIMOD_SZ> ul_scheds;
 };
 
 #endif // SRSRAN_DUMMY_GNB_STACK_H

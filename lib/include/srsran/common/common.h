@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -89,7 +89,7 @@ inline const char* enum_to_text(const char* const array[], uint32_t nof_types, u
 }
 
 template <class ItemType>
-ItemType enum_to_number(ItemType* array, uint32_t nof_types, uint32_t enum_val)
+constexpr ItemType enum_to_number(ItemType* array, uint32_t nof_types, uint32_t enum_val)
 {
   return enum_val >= nof_types ? -1 : array[enum_val];
 }

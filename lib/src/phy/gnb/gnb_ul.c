@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -317,7 +317,7 @@ int srsran_gnb_ul_get_pucch(srsran_gnb_ul_t*                    q,
     meas->epre       = q->chest_pucch.epre;
     meas->epre_dB    = q->chest_pucch.epre_dBfs;
     meas->n0         = q->chest_pucch.noise_estimate;
-    meas->n0_dB      = q->chest_pucch.noise_estimate_dbm;
+    meas->n0_dB      = q->chest_pucch.noise_estimate_dbFs;
     meas->snr_dB     = q->chest_pucch.snr_db;
     meas->cfo_hz     = q->chest_pucch.cfo_hz;
     meas->cfo_hz_max = NAN; // Unavailable

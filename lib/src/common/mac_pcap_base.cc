@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -35,10 +35,15 @@ static void emergency_cleanup_handler(void* data)
 
 mac_pcap_base::mac_pcap_base() : logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_MAC")
 {
-  add_emergency_cleanup_handler(emergency_cleanup_handler, this);
+  emergency_handler_id = add_emergency_cleanup_handler(emergency_cleanup_handler, this);
 }
 
-mac_pcap_base::~mac_pcap_base() {}
+mac_pcap_base::~mac_pcap_base()
+{
+  if (emergency_handler_id > 0) {
+    remove_emergency_cleanup_handler(emergency_handler_id);
+  }
+}
 
 void mac_pcap_base::enable(bool enable_)
 {

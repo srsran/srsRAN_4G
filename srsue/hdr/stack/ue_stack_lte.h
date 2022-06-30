@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -29,7 +29,7 @@
 #include "mac/mac.h"
 #include "mac_nr/mac_nr.h"
 #include "rrc/rrc.h"
-#include "rrc/rrc_nr.h"
+#include "rrc_nr/rrc_nr.h"
 #include "srsran/common/bearer_manager.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/multiqueue.h"
@@ -44,6 +44,8 @@
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
 #include "upper/nas.h"
+#include "upper/nas_5g.h"
+#include "upper/sdap.h"
 #include "upper/usim.h"
 #include <functional>
 #include <pthread.h>
@@ -53,6 +55,28 @@
 namespace srsue {
 
 class phy_interface_stack_lte;
+
+class sdap_pdcp_adapter : public pdcp_interface_sdap_nr, public gw_interface_pdcp
+{
+public:
+  sdap_pdcp_adapter(pdcp* parent_pdcp_, sdap* parent_sdap_) : parent_pdcp(parent_pdcp_), parent_sdap(parent_sdap_) {}
+  void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final
+  {
+    parent_pdcp->write_sdu(lcid, std::move(pdu));
+  }
+  void write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final
+  {
+    parent_sdap->write_pdu(lcid, std::move(pdu));
+  }
+  void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t pdu) final
+  {
+    // not implemented
+  }
+
+private:
+  pdcp* parent_pdcp = nullptr;
+  sdap* parent_sdap = nullptr;
+};
 
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
@@ -132,8 +156,11 @@ public:
 
   void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
+  // RRC interface for NR PHY
+  void cell_search_found_cell(const cell_search_result_t& result) final;
+  void cell_select_completed(const cell_select_result_t& result) final;
+
   // MAC Interface for NR PHY
-  int  sf_indication(const uint32_t tti) final { return SRSRAN_SUCCESS; }
   void tb_decoded(const uint32_t                              cc_idx,
                   const mac_nr_grant_dl_t&                    grant,
                   mac_interface_phy_nr::tb_action_dl_result_t result) final
@@ -151,11 +178,6 @@ public:
                     mac_interface_phy_nr::tb_action_ul_t* action) final
   {
     mac_nr.new_grant_ul(cc_idx, grant, action);
-  }
-
-  void run_tti(const uint32_t tti) final
-  {
-    // ignored, timing will be handled by EUTRA
   }
 
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) final
@@ -238,7 +260,12 @@ private:
   srsran::pdcp               pdcp_nr;
   srsue::rrc_nr              rrc_nr;
   srsue::nas                 nas;
+  srsue::nas_5g              nas_5g;
   std::unique_ptr<usim_base> usim;
+
+  // SDAP only applies to NR
+  srsue::sdap       sdap;
+  sdap_pdcp_adapter sdap_pdcp;
 
   ue_bearer_manager bearers; // helper to manage mapping between EPS and radio bearers
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -29,6 +29,8 @@
 #include "srsran/phy/rf/rf.h"
 
 #define DEVNAME_ZMQ "ZeroMQ"
+
+extern rf_dev_t srsran_rf_dev_zmq;
 
 SRSRAN_API int rf_zmq_open(char* args, void** handler);
 

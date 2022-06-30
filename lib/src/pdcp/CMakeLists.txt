@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -25,4 +25,4 @@ set(SOURCES pdcp.cc
 
 add_library(srsran_pdcp STATIC ${SOURCES})
 target_link_libraries(srsran_pdcp srsran_common srsran_asn1 ${ATOMIC_LIBS})
-INSTALL(TARGETS srsran_pdcp DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_pdcp DESTINATION ${LIBRARY_DIR} OPTIONAL)

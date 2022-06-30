@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -302,6 +302,11 @@ int nas_5g::send_registration_request()
     }
   }
 
+  if (has_sec_ctxt) {
+    set_k_gnb_count(ctxt_base.tx_count);
+    ctxt_base.tx_count++;
+  }
+
   state.set_registered_initiated();
 
   return SRSRAN_SUCCESS;
@@ -462,6 +467,7 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
 
+  has_sec_ctxt = true;
   logger.info("Sending Security Mode Complete");
   rrc_nr->write_sdu(std::move(pdu));
   ctxt_base.tx_count++;
@@ -579,9 +585,8 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.request_type.request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
 
   ul_nas_msg.s_nssai_present = true;
-  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst_and_sd;
+  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
   ul_nas_msg.s_nssai.sst     = 1;
-  ul_nas_msg.s_nssai.sd      = 0;
 
   ul_nas_msg.dnn_present = true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
@@ -769,7 +774,7 @@ int nas_5g::send_configuration_update_complete()
                      pdu->N_bytes - SEQ_5G_OFFSET,
                      &pdu->msg[MAC_5G_OFFSET]);
 
-  logger.error("Sending Configuration Update Complete");
+  logger.info("Sending Configuration Update Complete");
   rrc_nr->write_sdu(std::move(pdu));
   ctxt_base.tx_count++;
   return SRSRAN_SUCCESS;
@@ -807,6 +812,7 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
 int nas_5g::handle_registration_reject(registration_reject_t& registration_reject)
 {
   logger.info("Handling Registration Reject");
+  has_sec_ctxt = false;
   ctxt_base.rx_count++;
   state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
 
@@ -835,14 +841,11 @@ int nas_5g::handle_registration_reject(registration_reject_t& registration_rejec
 
 int nas_5g::handle_authentication_request(authentication_request_t& authentication_request)
 {
-  logger.info("Handling Registration Request");
+  logger.info("Handling Authentication Request");
   ctxt_base.rx_count++;
   // Generate authentication response using RAND, AUTN & KSI-ASME
-  uint16 mcc, mnc;
-  mcc = rrc_nr->get_mcc();
-  mnc = rrc_nr->get_mnc();
   plmn_id_t plmn_id;
-  plmn_id.from_number(mcc, mnc);
+  usim->get_home_plmn_id(&plmn_id);
 
   if (authentication_request.authentication_parameter_rand_present == false) {
     logger.error("authentication_parameter_rand_present is not present");
@@ -854,6 +857,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
     return SRSRAN_ERROR;
   }
 
+  initial_sec_command = true;
   uint8_t res_star[16];
 
   logger.info(authentication_request.authentication_parameter_rand.rand.data(),
@@ -882,10 +886,10 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
     logger.info(res_star, 16, "Generated res_star (%d):", 16);
 
   } else if (auth_result == AUTH_FAILED) {
-    logger.error("Network authentication failure.");
+    logger.error("Network authentication failure");
     send_authentication_failure(cause_5gmm_t::cause_5gmm_type::mac_failure, res_star);
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
-    logger.error("Network authentication synchronization failure.");
+    logger.error("Network authentication synchronization failure");
     send_authentication_failure(cause_5gmm_t::cause_5gmm_type::synch_failure, res_star);
   } else {
     logger.error("Unhandled authentication failure cause");
@@ -897,6 +901,7 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 int nas_5g::handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject)
 {
   logger.info("Handling Authentication Reject");
+  has_sec_ctxt = false;
   ctxt_base.rx_count++;
   state.set_deregistered(mm5g_state_t::deregistered_substate_t::plmn_search);
   return SRSRAN_SUCCESS;
@@ -920,6 +925,7 @@ int nas_5g::handle_service_accept(srsran::nas_5g::service_accept_t& service_acce
 int nas_5g::handle_service_reject(srsran::nas_5g::service_reject_t& service_reject)
 {
   logger.info("Handling Service Reject");
+  has_sec_ctxt = false;
   ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
@@ -941,10 +947,8 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
     return SRSRAN_ERROR;
   }
 
-  initial_sec_command = false; // TODO
-
   if (initial_sec_command) {
-    ctxt_base.rx_count  = 0;
+    set_k_gnb_count(0);
     ctxt_base.tx_count  = 0;
     initial_sec_command = false;
   }
@@ -1113,6 +1117,27 @@ void nas_5g::get_metrics(nas_5g_metrics_t& metrics)
 {
   metrics.nof_active_pdu_sessions = num_of_est_pdu_sessions();
   metrics.state                   = state.get_state();
+}
+
+int nas_5g::get_k_amf(as_key_t& k_amf)
+{
+  if (not has_sec_ctxt) {
+    logger.error("K_amf requested before a valid NAS security context was established");
+    return SRSRAN_ERROR;
+  }
+
+  std::copy(std::begin(ctxt_5g.k_amf), std::end(ctxt_5g.k_amf), k_amf.begin());
+  return SRSRAN_SUCCESS;
+}
+
+uint32_t nas_5g::get_ul_nas_count()
+{
+  return ctxt_5g.k_gnb_count;
+}
+
+void nas_5g::set_k_gnb_count(uint32_t count)
+{
+  ctxt_5g.k_gnb_count = count;
 }
 
 /*******************************************************************************

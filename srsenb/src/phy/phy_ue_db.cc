@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -793,7 +793,7 @@ int phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lt
       // Check that eNb Cell/Carrier is active for the given RNTI
       if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
         ret = SRSRAN_ERROR;
-        srslog::fetch_basic_logger("PHY").error("Error setting grant for rnti=0x%x, cc=%d\n", rnti, enb_cc_idx);
+        srslog::fetch_basic_logger("PHY").info("Error setting grant for rnti=0x%x, cc=%d", rnti, enb_cc_idx);
         continue;
       }
       // Rise Grant available flag

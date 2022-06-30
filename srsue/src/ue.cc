@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -26,7 +26,9 @@
 #include "srsran/radio/radio.h"
 #include "srsran/radio/radio_null.h"
 #include "srsran/srsran.h"
+#include "srsue/hdr/phy/dummy_phy.h"
 #include "srsue/hdr/phy/phy.h"
+#include "srsue/hdr/phy/phy_nr_sa.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include <algorithm>
@@ -69,15 +71,9 @@ int ue::init(const all_args_t& args_)
     return SRSRAN_ERROR;
   }
 
-  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW")));
+  std::unique_ptr<gw> gw_ptr(new gw(srslog::fetch_basic_logger("GW", false)));
   if (!gw_ptr) {
     srsran::console("Error creating a GW instance.\n");
-    return SRSRAN_ERROR;
-  }
-
-  std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy);
-  if (!lte_phy) {
-    srsran::console("Error creating LTE PHY instance.\n");
     return SRSRAN_ERROR;
   }
 
@@ -85,18 +81,6 @@ int ue::init(const all_args_t& args_)
   if (!lte_radio) {
     srsran::console("Error creating radio multi instance.\n");
     return SRSRAN_ERROR;
-  }
-
-  // init layers
-  if (lte_radio->init(args.rf, lte_phy.get())) {
-    srsran::console("Error initializing radio.\n");
-    return SRSRAN_ERROR;
-  }
-
-  // from here onwards do not exit immediately if something goes wrong as sub-layers may already use interfaces
-  if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
-    srsran::console("Error initializing PHY.\n");
-    ret = SRSRAN_ERROR;
   }
 
   srsue::phy_args_nr_t phy_args_nr = {};
@@ -107,14 +91,69 @@ int ue::init(const all_args_t& args_)
   phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
   phy_args_nr.log                  = args.phy.log;
   phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
-  if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
-    srsran::console("Error initializing NR PHY.\n");
-    ret = SRSRAN_ERROR;
-  }
+  phy_args_nr.srate_hz             = args.rf.srate_hz;
 
-  if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
-    srsran::console("Error initializing stack.\n");
-    ret = SRSRAN_ERROR;
+  // init layers
+  if (args.phy.nof_lte_carriers == 0) {
+    // SA mode
+    std::unique_ptr<srsue::phy_nr_sa> nr_phy = std::unique_ptr<srsue::phy_nr_sa>(new srsue::phy_nr_sa("PHY-SA"));
+    if (!nr_phy) {
+      srsran::console("Error creating NR PHY instance.\n");
+      return SRSRAN_ERROR;
+    }
+
+    // In SA mode, pass the NR SA phy to the radio
+    if (lte_radio->init(args.rf, nr_phy.get())) {
+      srsran::console("Error initializing radio.\n");
+      return SRSRAN_ERROR;
+    }
+    if (nr_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
+      srsran::console("Error initializing PHY NR SA.\n");
+      ret = SRSRAN_ERROR;
+    }
+
+    std::unique_ptr<srsue::dummy_phy> dummy_lte_phy = std::unique_ptr<srsue::dummy_phy>(new srsue::dummy_phy);
+    if (!dummy_lte_phy) {
+      srsran::console("Error creating dummy LTE PHY instance.\n");
+      return SRSRAN_ERROR;
+    }
+
+    // In SA mode, pass NR PHY pointer to stack
+    args.stack.sa_mode = true;
+    if (lte_stack->init(args.stack, dummy_lte_phy.get(), nr_phy.get(), gw_ptr.get())) {
+      srsran::console("Error initializing stack.\n");
+      ret = SRSRAN_ERROR;
+    }
+    phy       = std::move(nr_phy);
+    dummy_phy = std::move(dummy_lte_phy);
+  } else {
+    // LTE or NSA mode
+    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy);
+    if (!lte_phy) {
+      srsran::console("Error creating LTE PHY instance.\n");
+      return SRSRAN_ERROR;
+    }
+
+    if (lte_radio->init(args.rf, lte_phy.get())) {
+      srsran::console("Error initializing radio.\n");
+      return SRSRAN_ERROR;
+    }
+    // from here onwards do not exit immediately if something goes wrong as sub-layers may already use interfaces
+    if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
+      srsran::console("Error initializing PHY.\n");
+      ret = SRSRAN_ERROR;
+    }
+    if (args.phy.nof_nr_carriers > 0) {
+      if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
+        srsran::console("Error initializing NR PHY.\n");
+        ret = SRSRAN_ERROR;
+      }
+    }
+    if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
+      srsran::console("Error initializing stack.\n");
+      ret = SRSRAN_ERROR;
+    }
+    phy = std::move(lte_phy);
   }
 
   if (gw_ptr->init(args.gw, lte_stack.get())) {
@@ -125,7 +164,6 @@ int ue::init(const all_args_t& args_)
   // move ownership
   stack   = std::move(lte_stack);
   gw_inst = std::move(gw_ptr);
-  phy     = std::move(lte_phy);
   radio   = std::move(lte_radio);
 
   if (phy) {
@@ -133,7 +171,6 @@ int ue::init(const all_args_t& args_)
     phy->wait_initialize();
     srsran::console("done!\n");
   }
-
   return ret;
 }
 
@@ -242,6 +279,47 @@ int ue::parse_args(const all_args_t& args_)
   // Consider Carrier Aggregation support if more than one
   args.stack.rrc.support_ca = (args.phy.nof_lte_carriers > 1);
 
+  // Make sure fix sampling rate is set for SA mode
+  if (args.phy.nof_lte_carriers == 0 and not std::isnormal(args.rf.srate_hz)) {
+    srsran::console("Error. NR Standalone PHY requires a fixed RF sampling rate.\n");
+    return SRSRAN_ERROR;
+  }
+
+  // SA params
+  if (args.phy.nof_lte_carriers == 0 && args.phy.nof_nr_carriers > 0) {
+    // Update NAS-5G args
+    args.stack.nas_5g.ia5g = args.stack.nas.eia;
+    args.stack.nas_5g.ea5g = args.stack.nas.eea;
+    args.stack.nas_5g.pdu_session_cfgs.push_back({args.stack.nas.apn_name});
+  }
+
+  // Validate the CFR args
+  srsran_cfr_cfg_t cfr_test_cfg = {};
+  cfr_test_cfg.cfr_enable       = args.phy.cfr_args.enable;
+  cfr_test_cfg.cfr_mode         = args.phy.cfr_args.mode;
+  cfr_test_cfg.alpha            = args.phy.cfr_args.strength;
+  cfr_test_cfg.manual_thr       = args.phy.cfr_args.manual_thres;
+  cfr_test_cfg.max_papr_db      = args.phy.cfr_args.auto_target_papr;
+  cfr_test_cfg.ema_alpha        = args.phy.cfr_args.ema_alpha;
+
+  if (!srsran_cfr_params_valid(&cfr_test_cfg)) {
+    srsran::console("Invalid CFR parameters: cfr_mode=%d, alpha=%.2f, manual_thr=%.2f, \n "
+                    "max_papr_db=%.2f, ema_alpha=%.2f\n",
+                    cfr_test_cfg.cfr_mode,
+                    cfr_test_cfg.alpha,
+                    cfr_test_cfg.manual_thr,
+                    cfr_test_cfg.max_papr_db,
+                    cfr_test_cfg.ema_alpha);
+
+    logger.error("Invalid CFR parameters: cfr_mode=%d, alpha=%.2f, manual_thr=%.2f, max_papr_db=%.2f, ema_alpha=%.2f\n",
+                 cfr_test_cfg.cfr_mode,
+                 cfr_test_cfg.alpha,
+                 cfr_test_cfg.manual_thr,
+                 cfr_test_cfg.max_papr_db,
+                 cfr_test_cfg.ema_alpha);
+    return SRSRAN_ERROR;
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -304,7 +382,7 @@ void ue::start_plot()
 
 bool ue::get_metrics(ue_metrics_t* m)
 {
-  bzero(m, sizeof(ue_metrics_t));
+  *m = {};
   phy->get_metrics(srsran::srsran_rat_t::lte, &m->phy);
   phy->get_metrics(srsran::srsran_rat_t::nr, &m->phy_nr);
   radio->get_metrics(&m->rf);

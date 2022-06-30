@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -62,6 +62,7 @@
 #define SRSRAN_ERROR_OUT_OF_BOUNDS -5
 #define SRSRAN_ERROR_CANT_START -6
 #define SRSRAN_ERROR_ALREADY_STARTED -7
+#define SRSRAN_ERROR_RX_EOF -8
 
 // cf_t definition
 typedef _Complex float cf_t;

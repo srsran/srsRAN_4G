@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -58,7 +58,7 @@ typedef struct {
  *
  *  Reference: 3GPP TS 36.211 version 13.2.0 Release 13 Sec. 10.2.4
  */
-typedef struct SRS_API {
+typedef struct SRSRAN_API {
   srsran_nbiot_cell_t cell;
 
   uint32_t frame_idx;

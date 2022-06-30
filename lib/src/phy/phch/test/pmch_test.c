@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -143,7 +143,8 @@ int main(int argc, char** argv)
   srsran_chest_dl_res_t chest_dl_res;
   srsran_pmch_t         pmch;
   srsran_pmch_cfg_t     pmch_cfg;
-  srsran_ofdm_t         ifft_mbsfn[SRSRAN_MAX_PORTS], fft_mbsfn[SRSRAN_MAX_PORTS];
+  srsran_ofdm_t         ifft_mbsfn[SRSRAN_MAX_PORTS] = {};
+  srsran_ofdm_t         fft_mbsfn[SRSRAN_MAX_PORTS]  = {};
 
   parse_args(argc, argv);
   /* Initialise to zeros */

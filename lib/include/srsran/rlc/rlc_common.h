@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -23,10 +23,13 @@
 #define SRSRAN_RLC_COMMON_H
 
 #include "srsran/adt/circular_buffer.h"
+#include "srsran/adt/circular_map.h"
+#include "srsran/adt/intrusive_list.h"
 #include "srsran/interfaces/rlc_interface_types.h"
 #include "srsran/rlc/bearer_mem_pool.h"
 #include "srsran/rlc/rlc_metrics.h"
-#include <stdlib.h>
+#include <cstdlib>
+#include <list>
 
 namespace srsran {
 
@@ -35,9 +38,23 @@ namespace srsran {
  * Ref: 3GPP TS 36.322 v10.0.0
  ***************************************************************************/
 
+#define MOD 1024
 #define RLC_AM_WINDOW_SIZE 512
 #define RLC_MAX_SDU_SIZE ((1 << 11) - 1) // Length of LI field is 11bits
 #define RLC_AM_MIN_DATA_PDU_SIZE (3)     // AMD PDU with 10 bit SN (length of LI field is 11 bits) (No LI)
+
+#define RLC_AM_NR_TYP_NACKS 512  // Expected number of NACKs in status PDU before expanding space by alloc
+#define RLC_AM_NR_MAX_NACKS 2048 // Maximum number of NACKs in status PDU
+
+#define RlcDebug(fmt, ...) logger.debug("%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcInfo(fmt, ...) logger.info("%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcWarning(fmt, ...) logger.warning("%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcError(fmt, ...) logger.error("%s: " fmt, rb_name, ##__VA_ARGS__)
+
+#define RlcHexDebug(msg, bytes, fmt, ...) logger.debug(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexInfo(msg, bytes, fmt, ...) logger.info(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexWarning(msg, bytes, fmt, ...) logger.warning(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
+#define RlcHexError(msg, bytes, fmt, ...) logger.error(msg, bytes, "%s: " fmt, rb_name, ##__VA_ARGS__)
 
 typedef enum {
   RLC_FI_FIELD_START_AND_END_ALIGNED = 0,
@@ -157,17 +174,21 @@ public:
 
 // NACK helper (for LTE and NR)
 struct rlc_status_nack_t {
-  uint32_t nack_sn;
-  bool     has_so;
-  uint16_t so_start;
-  uint16_t so_end;
+  uint32_t nack_sn;        // Sequence Number (SN) of first missing SDU
+  bool     has_so;         // NACKs continuous sequence of bytes [so_start..so_end]
+  uint16_t so_start;       // First missing byte in SDU with SN=nack_sn
+  uint16_t so_end;         // Last missing byte in SDU with SN=nack_sn or SN=nack_sn+nack_range-1 if has_nack_range.
+  bool     has_nack_range; // NACKs continuous sequence of SDUs
+  uint8_t  nack_range;     // Number of SDUs being NACKed (including SN=nack_sn)
 
   rlc_status_nack_t()
   {
-    has_so   = false;
-    nack_sn  = 0;
-    so_start = 0;
-    so_end   = 0;
+    has_so         = false;
+    nack_sn        = 0;
+    so_start       = 0;
+    so_end         = 0;
+    has_nack_range = false;
+    nack_range     = 0;
   }
 };
 
@@ -184,27 +205,6 @@ struct rlc_status_pdu_t {
   }
 };
 
-/** RLC AM NR structs */
-
-///< AM NR PDU header
-typedef struct {
-  rlc_dc_field_t      dc;      ///< Data/Control (D/C) field
-  uint8_t             p;       ///< Polling bit
-  rlc_nr_si_field_t   si;      ///< Segmentation info
-  rlc_am_nr_sn_size_t sn_size; ///< Sequence number size (12 or 18 bits)
-  uint32_t            sn;      ///< Sequence number
-  uint16_t            so;      ///< Sequence offset
-} rlc_am_nr_pdu_header_t;
-
-///< AM NR Status PDU header (perhaps merge with LTE version)
-typedef struct {
-  rlc_am_nr_control_pdu_type_t cpt;
-  uint32_t                     ack_sn; ///< SN of the next not received RLC Data PDU
-  uint16_t                     N_nack; ///< number of NACKs
-  uint8_t           nack_range;        ///< number of consecutively lost RLC SDUs starting from and including NACK_SN
-  rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
-} rlc_am_nr_status_pdu_t;
-
 typedef std::function<void(uint32_t, uint32_t, uint32_t)> bsr_callback_t;
 
 /****************************************************************************
@@ -214,6 +214,7 @@ typedef std::function<void(uint32_t, uint32_t, uint32_t)> bsr_callback_t;
 class rlc_common
 {
 public:
+  explicit rlc_common(srslog::basic_logger& logger_) : logger(logger_) {}
   virtual ~rlc_common()                            = default;
   virtual bool configure(const rlc_config_t& cnfg) = 0;
   virtual void stop()                              = 0;
@@ -267,8 +268,8 @@ public:
     }
   }
 
-  virtual rlc_mode_t get_mode()   = 0;
-  virtual uint32_t   get_bearer() = 0;
+  virtual rlc_mode_t get_mode() = 0;
+  virtual uint32_t   get_lcid() = 0;
 
   virtual rlc_bearer_metrics_t get_metrics()   = 0;
   virtual void                 reset_metrics() = 0;
@@ -290,6 +291,10 @@ public:
 
   void* operator new(size_t sz) { return allocate_rlc_bearer(sz); }
   void  operator delete(void* p) { return deallocate_rlc_bearer(p); }
+
+protected:
+  std::string           rb_name = {};
+  srslog::basic_logger& logger;
 
 private:
   bool suspended = false;

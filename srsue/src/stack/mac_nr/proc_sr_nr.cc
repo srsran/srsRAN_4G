@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -54,8 +54,11 @@ void proc_sr_nr::reset_nolock()
 
 int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
 {
-  // disable by default
-  cfg.enabled = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    // disable by default
+    cfg.enabled = false;
+  }
 
   if (cfg_.num_items != 1) {
     logger.error("Only one SR config supported. Disabling SR.");
@@ -78,8 +81,11 @@ int32_t proc_sr_nr::set_config(const srsran::sr_cfg_nr_t& cfg_)
     logger.info("SR:    Disabling procedure");
   }
 
-  // store config
-  cfg = cfg_;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    // store config
+    cfg = cfg_;
+  }
 
   return SRSRAN_SUCCESS;
 }

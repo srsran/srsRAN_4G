@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -30,6 +30,7 @@ namespace srsenb {
 /// MAC metrics per user
 struct mac_ue_metrics_t {
   uint16_t rnti;
+  uint32_t pci;
   uint32_t nof_tti;
   uint32_t cc_idx;
   int      tx_pkts;
@@ -44,16 +45,18 @@ struct mac_ue_metrics_t {
   float    dl_ri;
   float    dl_pmi;
   float    phr;
+  float    dl_cqi_offset;
+  float    ul_snr_offset;
 
   // NR-only UL PHY metrics
-  float    pusch_sinr;
-  float    pucch_sinr;
-  float    ul_rssi;
-  float    fec_iters;
-  float    dl_mcs;
-  int      dl_mcs_samples;
-  float    ul_mcs;
-  int      ul_mcs_samples;
+  float pusch_sinr;
+  float pucch_sinr;
+  float ul_rssi;
+  float fec_iters;
+  float dl_mcs;
+  int   dl_mcs_samples;
+  float ul_mcs;
+  int   ul_mcs_samples;
 };
 /// MAC misc information for each cc.
 struct mac_cc_info_t {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -404,7 +404,7 @@ int test_seq_of()
   cbit_ref borig2(&buf[0], sizeof(buf));
 
   uint32_t                 fixed_list_size = 33;
-  std::array<uint32_t, 33> fixed_list;
+  std::array<uint32_t, 33> fixed_list      = {};
   for (uint32_t i = 0; i < fixed_list_size; ++i) {
     fixed_list[i] = i;
   }
@@ -653,6 +653,21 @@ int test_big_integers()
   return 0;
 }
 
+void test_varlength_field_pack()
+{
+  uint8_t buffer[128];
+  bit_ref bref(&buffer[0], sizeof(buffer));
+  TESTASSERT_EQ(SRSRAN_SUCCESS, bref.pack(0, 1));
+  TESTASSERT_EQ(1, bref.distance());
+  {
+    varlength_field_pack_guard guard(bref);
+    TESTASSERT_EQ(0, bref.distance());
+    bref.pack(0, 8);
+    TESTASSERT_EQ(1, bref.distance_bytes());
+  }
+  TESTASSERT_EQ(17, bref.distance()); // accounts for length determinant and 1 byte of data
+}
+
 int main()
 {
   // Setup the log spy to intercept error and warning log entries.
@@ -681,6 +696,7 @@ int main()
   TESTASSERT(test_copy_ptr() == 0);
   TESTASSERT(test_enum() == 0);
   TESTASSERT(test_big_integers() == 0);
+  test_varlength_field_pack();
   //  TESTASSERT(test_json_writer()==0);
 
   srslog::flush();

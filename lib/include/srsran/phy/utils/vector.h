@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -69,6 +69,15 @@ extern "C" {
 
 // Proportional moving average
 #define SRSRAN_VEC_PMA(average1, n1, average2, n2) (((average1) * (n1) + (average2) * (n2)) / ((n1) + (n2)))
+
+// Safe Proportional moving average
+#ifdef __cplusplus
+#define SRSRAN_VEC_SAFE_PMA(average1, n1, average2, n2)                                                                \
+  (std::isnormal((n1) + (n2)) ? SRSRAN_VEC_PMA(average1, n1, average2, n2) : (0))
+#else
+#define SRSRAN_VEC_SAFE_PMA(average1, n1, average2, n2)                                                                \
+  (isnormal((n1) + (n2)) ? SRSRAN_VEC_PMA(average1, n1, average2, n2) : (0))
+#endif
 
 // Exponential moving average
 #define SRSRAN_VEC_EMA(data, average, alpha) ((alpha) * (data) + (1 - alpha) * (average))
@@ -171,6 +180,9 @@ SRSRAN_API void srsran_vec_sub_ccc(const cf_t* x, const cf_t* y, cf_t* z, const 
 SRSRAN_API void srsran_vec_sub_sss(const int16_t* x, const int16_t* y, int16_t* z, const uint32_t len);
 SRSRAN_API void srsran_vec_sub_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint32_t len);
 
+/* sum a scalar to all elements of a vector */
+SRSRAN_API void srsran_vec_sc_sum_fff(const float* x, float h, float* z, uint32_t len);
+
 /* scalar product */
 SRSRAN_API void srsran_vec_sc_prod_cfc(const cf_t* x, const float h, cf_t* z, const uint32_t len);
 SRSRAN_API void srsran_vec_sc_prod_fcc(const float* x, const cf_t h, cf_t* z, const uint32_t len);
@@ -230,6 +242,7 @@ SRSRAN_API void srsran_vec_conj_cc(const cf_t* x, cf_t* y, const uint32_t len);
 SRSRAN_API float srsran_vec_avg_power_cf(const cf_t* x, const uint32_t len);
 SRSRAN_API float srsran_vec_avg_power_sf(const int16_t* x, const uint32_t len);
 SRSRAN_API float srsran_vec_avg_power_bf(const int8_t* x, const uint32_t len);
+SRSRAN_API float srsran_vec_avg_power_ff(const float* x, const uint32_t len);
 
 /* Correlation between complex vectors x and y */
 SRSRAN_API float srsran_vec_corr_ccc(const cf_t* x, cf_t* y, const uint32_t len);
@@ -357,6 +370,36 @@ SRSRAN_API cf_t srsran_vec_gen_sine(cf_t amplitude, float freq, cf_t* z, int len
 SRSRAN_API void srsran_vec_apply_cfo(const cf_t* x, float cfo, cf_t* z, int len);
 
 SRSRAN_API float srsran_vec_estimate_frequency(const cf_t* x, int len);
+
+/*!
+ * @brief Generates an amplitude envelope that, multiplied point-wise with a vector, results in clipping
+ * by a specified amplitude threshold.
+ * @param[in]  x_abs     Absolute value vector of the signal to be clipped
+ * @param[in]  thres     Clipping threshold
+ * @param[out] clip_env  The generated clipping envelope
+ * @param[in]  len       Length of the vector.
+ */
+SRSRAN_API void
+srsran_vec_gen_clip_env(const float* x_abs, const float thres, const float alpha, float* env, const int len);
+
+/*!
+ * @brief Calculates the PAPR of a complex vector
+ * @param[in]  in  Input vector
+ * @param[in]  len Vector length.
+ */
+SRSRAN_API float srsran_vec_papr_c(const cf_t* in, const int len);
+
+/*!
+ * @brief Calculates the ACPR of a signal using its baseband spectrum
+ * @attention The spectrum passed by x_f needs to be in FFT form
+ * @param[in]  x_f          Spectrum of the signal
+ * @param[in]  win_pos_len  Channel frequency window for the positive side of the spectrum
+ * @param[in]  win_neg_len  Channel frequency window for the negative side of the spectrum
+ * @param[in]  len          Length of the x_f vector
+ * @returns    The ACPR in linear form
+ */
+SRSRAN_API float
+srsran_vec_acpr_c(const cf_t* x_f, const uint32_t win_pos_len, const uint32_t win_neg_len, const uint32_t len);
 
 #ifdef __cplusplus
 }

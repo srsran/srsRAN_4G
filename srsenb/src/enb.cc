@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,9 +21,9 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
-#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/hdr/x2_adapter.h"
 #include "srsenb/src/enb_cfg_parser.h"
+#include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsran/build_info.h"
 #include "srsran/common/enb_events.h"
 #include "srsran/radio/radio_null.h"
@@ -226,6 +226,11 @@ bool enb::get_metrics(enb_metrics_t* m)
 void enb::cmd_cell_gain(uint32_t cell_id, float gain)
 {
   phy->cmd_cell_gain(cell_id, gain);
+}
+
+void enb::cmd_cell_measure()
+{
+  phy->cmd_cell_measure();
 }
 
 std::string enb::get_build_mode()

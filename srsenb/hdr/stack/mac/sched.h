@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -80,12 +80,15 @@ public:
   int dl_sched(uint32_t tti, uint32_t enb_cc_idx, dl_sched_res_t& sched_result) final;
   int ul_sched(uint32_t tti, uint32_t enb_cc_idx, ul_sched_res_t& sched_result) final;
 
+  int set_pdcch_order(uint32_t enb_cc_idx, dl_sched_po_info_t pdcch_order_info) final;
+
   /* Custom functions
    */
   void                                 set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
   std::array<int, SRSRAN_MAX_CARRIERS> get_enb_ue_cc_map(uint16_t rnti) final;
   std::array<int, SRSRAN_MAX_CARRIERS> get_enb_ue_activ_cc_map(uint16_t rnti) final;
   int                                  ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;
+  int                                  metrics_read(uint16_t rnti, mac_ue_metrics_t& metrics);
 
   class carrier_sched;
 

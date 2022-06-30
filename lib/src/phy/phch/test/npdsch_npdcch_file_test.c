@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -222,8 +222,8 @@ int main(int argc, char** argv)
 
       // add some noise to the signal
       if (snr != -1.0) {
-        float nstd = powf(10.0f, -snr / 20.0f);
-        srsran_ch_awgn_c(buff_ptrs[0], buff_ptrs[0], nstd, nread);
+        float var = srsran_convert_dB_to_power(-snr);
+        srsran_ch_awgn_c(buff_ptrs[0], buff_ptrs[0], var, nread);
       }
 
       // try to decode

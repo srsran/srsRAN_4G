@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -21,6 +21,3 @@
 set(SOURCES gtpu.cc pdcp.cc rlc.cc)
 add_library(srsenb_upper STATIC ${SOURCES})
 target_link_libraries(srsenb_upper srsran_asn1 srsran_gtpu)
-
-set(SOURCES sdap.cc)
-add_library(srsgnb_upper STATIC ${SOURCES})

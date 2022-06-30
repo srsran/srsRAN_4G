@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -35,6 +35,15 @@
 
 namespace srsue {
 
+struct cfr_args_t {
+  bool              enable           = false;
+  srsran_cfr_mode_t mode             = SRSRAN_CFR_THR_MANUAL;
+  float             manual_thres     = 2.0f;
+  float             strength         = 1.0f;
+  float             auto_target_papr = 7.0f;
+  float             ema_alpha        = 1.0f / (float)SRSRAN_CP_NORM_NSYMB;
+};
+
 struct phy_args_t {
   std::string            type = "lte";
   srsran::phy_log_args_t log;
@@ -45,6 +54,7 @@ struct phy_args_t {
   std::map<uint32_t, uint32_t> ul_earfcn_map;    // Map linking DL EARFCN and UL EARFCN
 
   int force_N_id_2 = -1; // Cell identity within the identity group (PSS) to filter.
+  int force_N_id_1 = -1; // Cell identity group (SSS) to filter.
 
   float dl_freq = -1.0f;
   float ul_freq = -1.0f;
@@ -60,7 +70,7 @@ struct phy_args_t {
 
   uint32_t    nof_lte_carriers             = 1;
   uint32_t    nof_nr_carriers              = 0;
-  uint32_t    nr_max_nof_prb               = 106;
+  uint32_t    nr_max_nof_prb               = 52;
   uint32_t    nof_rx_ant                   = 1;
   std::string equalizer_mode               = "mmse";
   int         cqi_max                      = 15;
@@ -105,7 +115,7 @@ struct phy_args_t {
   srsran::channel::args_t dl_channel_args;
   srsran::channel::args_t ul_channel_args;
 
-  srsran::vnf_args_t vnf_args;
+  cfr_args_t cfr_args; ///< Stores user-defined CFR configuration
 };
 
 /* RAT agnostic Interface MAC -> PHY */
@@ -167,7 +177,7 @@ public:
   virtual void meas_stop()                                                       = 0;
 
   /* Cell search and selection procedures */
-  virtual bool cell_search()                = 0;
+  virtual bool cell_search(int earfcn)      = 0;
   virtual bool cell_select(phy_cell_t cell) = 0;
   virtual bool cell_is_camping()            = 0;
 };

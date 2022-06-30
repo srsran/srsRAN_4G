@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -21,13 +21,8 @@
 add_subdirectory(mac)
 add_subdirectory(rrc)
 add_subdirectory(s1ap)
-add_subdirectory(ngap)
 add_subdirectory(upper)
 
 set(SOURCES enb_stack_lte.cc)
 
 add_library(srsenb_stack STATIC ${SOURCES})
-target_link_libraries(srsenb_stack)
-
-add_library(srsgnb_stack STATIC gnb_stack_nr.cc)
-target_link_libraries(srsgnb_stack srsue_upper)

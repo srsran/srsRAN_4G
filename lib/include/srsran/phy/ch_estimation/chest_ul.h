@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -49,7 +49,7 @@ typedef struct SRSRAN_API {
   cf_t*    ce;
   uint32_t nof_re;
   float    noise_estimate;
-  float    noise_estimate_dbm;
+  float    noise_estimate_dbFs;
   float    rsrp;
   float    rsrp_dBfs;
   float    epre;

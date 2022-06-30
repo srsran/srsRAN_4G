@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,7 +24,9 @@
 
 #include "phy_metrics.h"
 #include "srsran/adt/circular_array.h"
+#include "srsran/common/block_queue.h"
 #include "srsran/common/gen_mch_tables.h"
+#include "srsran/common/threads.h"
 #include "srsran/common/tti_sempahore.h"
 #include "srsran/interfaces/phy_common_interface.h"
 #include "srsran/interfaces/phy_interface_types.h"
@@ -53,6 +55,37 @@ public:
   virtual void out_of_sync() = 0;
 
   virtual void set_cfo(float cfo) = 0;
+};
+
+class phy_cmd_proc : public srsran::thread
+{
+public:
+  phy_cmd_proc() : thread("PHY_CMD") { start(); }
+
+  ~phy_cmd_proc() { stop(); }
+
+  void add_cmd(std::function<void(void)> cmd) { cmd_queue.push(cmd); }
+
+  void stop()
+  {
+    if (running) {
+      add_cmd([this]() { running = false; });
+      wait_thread_finish();
+    }
+  }
+
+private:
+  void run_thread()
+  {
+    std::function<void(void)> cmd;
+    while (running) {
+      cmd = cmd_queue.wait_pop();
+      cmd();
+    }
+  }
+  bool running = true;
+  // Queue for commands
+  srsran::block_queue<std::function<void(void)> > cmd_queue;
 };
 
 /* Subclass that manages variables common to all workers */
@@ -282,6 +315,8 @@ public:
     }
   }
 
+  srsran_cfr_cfg_t get_cfr_config() { return cfr_config; }
+
 private:
   std::mutex meas_mutex;
 
@@ -299,8 +334,12 @@ private:
   std::array<float, SRSRAN_MAX_CARRIERS> avg_noise       = {};
   std::array<float, SRSRAN_MAX_CARRIERS> avg_rsrp_neigh  = {};
 
+  srsran_cfr_cfg_t cfr_config = {};
+
   static constexpr uint32_t pcell_report_period = 20;
-  uint32_t                  rssi_read_cnt       = 0;
+
+  static constexpr uint32_t update_rxgain_period = 10;
+  uint32_t                  update_rxgain_cnt    = 0;
 
   rsrp_insync_itf* insync_itf = nullptr;
 

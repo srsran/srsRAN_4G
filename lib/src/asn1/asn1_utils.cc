@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -153,7 +153,7 @@ SRSASN_CODE bit_ref::pack(uint64_t val, uint32_t n_bits)
   uint64_t mask;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("pack: Buffer size limit was achieved");
       return SRSASN_ERROR_ENCODE_FAIL;
     }
     mask             = ((1ul << n_bits) - 1ul);
@@ -185,7 +185,7 @@ SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_pt
   val = 0;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("unpack_bits: Buffer size limit was achieved");
       return SRSASN_ERROR_DECODE_FAIL;
     }
     if ((uint32_t)(8 - offset) > n_bits) {
@@ -249,7 +249,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
   if (offset == 0) {
     // Aligned case
     if (ptr + n_bytes > max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("unpack_bytes (aligned): Buffer size limit was achieved");
       return SRSASN_ERROR_DECODE_FAIL;
     }
     memcpy(buf, ptr, n_bytes);
@@ -257,7 +257,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
   } else {
     // Unaligned case
     if (ptr + n_bytes >= max_ptr) {
-      log_error("Buffer size limit was achieved");
+      log_error("unpack_bytes (unaligned): Buffer size limit was achieved");
       return SRSASN_ERROR_DECODE_FAIL;
     }
     for (uint32_t i = 0; i < n_bytes; ++i) {
@@ -273,7 +273,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::align_bytes()
   if (offset == 0)
     return SRSASN_SUCCESS;
   if (ptr >= max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("align_bytes: Buffer size limit was achieved");
     return SRSASN_ERROR_DECODE_FAIL;
   }
   offset = 0;
@@ -289,7 +289,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::advance_bits(uint32_t n_bits)
   uint32_t bytes_offset   = floorf((offset + n_bits) / 8.0f);
 
   if (ptr + bytes_required > max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("advance_bytes: Buffer size limit was achieved");
     return SRSASN_ERROR_DECODE_FAIL;
   }
   ptr += bytes_offset;
@@ -315,7 +315,7 @@ SRSASN_CODE bit_ref::pack_bytes(const uint8_t* buf, uint32_t n_bytes)
     return SRSASN_SUCCESS;
   }
   if (ptr + n_bytes >= max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("pack_bytes: Buffer size limit was achieved");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   if (offset == 0) {
@@ -335,7 +335,7 @@ SRSASN_CODE bit_ref::align_bytes_zero()
   if (offset == 0)
     return SRSASN_SUCCESS;
   if (ptr >= max_ptr) {
-    log_error("Buffer size limit was achieved");
+    log_error("align_bytes_zero: Buffer size limit was achieved");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   auto mask = static_cast<uint8_t>(256u - (1u << (8u - offset)));
@@ -1421,10 +1421,15 @@ SRSASN_CODE ext_groups_unpacker_guard::unpack(cbit_ref& bref)
      Open Field
 *********************/
 
-varlength_field_pack_guard::varlength_field_pack_guard(bit_ref& bref, bool align_)
+varlength_field_pack_guard::varlength_field_pack_guard(bit_ref& bref, bool align_) :
+  buffer_ptr(srsran::make_buffer_pool_obj<byte_array_t>())
 {
+  if (buffer_ptr == nullptr) {
+    // failed to allocate from global byte buffer pool. Fallback to malloc
+    buffer_ptr = std::unique_ptr<byte_array_t>(new byte_array_t());
+  }
   brefstart    = bref;
-  bref         = bit_ref(&buffer[0], sizeof(buffer));
+  bref         = bit_ref(buffer_ptr->data(), buffer_ptr->size());
   bref_tracker = &bref;
   align        = align_;
 }
@@ -1432,16 +1437,15 @@ varlength_field_pack_guard::varlength_field_pack_guard(bit_ref& bref, bool align
 varlength_field_pack_guard::~varlength_field_pack_guard()
 {
   // fill the spare bits
-  const bit_ref bref0    = bit_ref(&buffer[0], sizeof(buffer));
-  uint32_t      leftover = 7 - ((bref_tracker->distance(bref0) - (uint32_t)1) % (uint32_t)8);
+  uint32_t leftover = 7 - ((bref_tracker->distance() - (uint32_t)1) % (uint32_t)8);
   bref_tracker->pack(0, leftover);
 
   // check how many bytes were written in total
-  uint32_t nof_bytes = bref_tracker->distance(bref0) / (uint32_t)8;
-  if (nof_bytes > sizeof(buffer)) {
+  uint32_t nof_bytes = bref_tracker->distance() / (uint32_t)8;
+  if (nof_bytes > buffer_ptr->size()) {
     log_error("The packed variable sized field is too long for the reserved buffer (%zd > %zd)",
               (size_t)nof_bytes,
-              sizeof(buffer));
+              buffer_ptr->size());
   }
 
   // go back in time to pack length
@@ -1449,7 +1453,7 @@ varlength_field_pack_guard::~varlength_field_pack_guard()
 
   // pack encoded bytes
   for (uint32_t i = 0; i < nof_bytes; ++i) {
-    brefstart.pack(buffer[i], 8);
+    brefstart.pack((*buffer_ptr)[i], 8);
   }
   *bref_tracker = brefstart;
 }
@@ -1559,6 +1563,51 @@ void json_writer::end_array()
 std::string json_writer::to_string() const
 {
   return std::string(buffer.data(), buffer.size());
+}
+
+/************************
+   General Layer Types
+************************/
+
+uint32_t detail::base_empty_obj_set::idx_to_id(uint32_t idx)
+{
+  asn1::log_error("object set is empty\n");
+  return 0;
+}
+bool detail::base_empty_obj_set::is_id_valid(const uint32_t& id)
+{
+  asn1::log_error("object set is empty\n");
+  return false;
+}
+crit_e detail::base_empty_obj_set::get_crit(const uint32_t& id)
+{
+  return {};
+}
+presence_e detail::base_empty_obj_set::get_presence(const uint32_t& id)
+{
+  return {};
+}
+
+void detail::empty_obj_set_item_c::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.end_obj();
+}
+SRSASN_CODE detail::empty_obj_set_item_c::pack(bit_ref& bref) const
+{
+  varlength_field_pack_guard varlen_scope(bref, true);
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE detail::empty_obj_set_item_c::unpack(cbit_ref& bref)
+{
+  varlength_field_unpack_guard varlen_scope(bref, true);
+  return SRSASN_SUCCESS;
+}
+
+const char* detail::empty_obj_set_item_c::types_opts::to_string() const
+{
+  log_error("The enum value=0 of type protocol_ies_empty_o::value_c::types is not valid.");
+  return "";
 }
 
 } // namespace asn1

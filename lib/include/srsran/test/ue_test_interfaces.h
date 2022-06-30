@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -85,7 +85,7 @@ class phy_dummy_interface : public phy_interface_rrc_lte
   void meas_stop() override {}
 
   /* Cell search and selection procedures */
-  bool cell_search() override { return true; }
+  bool cell_search(int earfcn) override { return true; }
   bool cell_select(phy_cell_t cell) override { return true; }
   bool cell_is_camping() override { return false; }
 };

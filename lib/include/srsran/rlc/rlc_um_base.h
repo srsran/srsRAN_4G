@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -57,7 +57,7 @@ public:
   bool is_mrb();
 
   rlc_mode_t get_mode();
-  uint32_t   get_bearer();
+  uint32_t   get_lcid() final;
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu);
@@ -163,14 +163,12 @@ protected:
   };
 
   // Common variables needed by parent class
-  srsue::rrc_interface_rlc*  rrc  = nullptr;
-  srsue::pdcp_interface_rlc* pdcp = nullptr;
-  srslog::basic_logger&      logger;
+  srsue::rrc_interface_rlc*  rrc    = nullptr;
+  srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srsran::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
   rlc_config_t               cfg    = {};
-  std::string                rb_name;
-  byte_buffer_pool*          pool = nullptr;
+  byte_buffer_pool*          pool   = nullptr;
   std::string                get_rb_name(srsue::rrc_interface_rlc* rrc, uint32_t lcid, bool is_mrb);
 
   // Rx and Tx objects

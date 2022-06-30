@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -27,7 +27,7 @@
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_s1ap.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
 
 namespace srsenb {
@@ -76,6 +76,7 @@ public:
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
+                        uint16_t                     target_tac,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
                         srsran::unique_byte_buffer_t rrc_container,

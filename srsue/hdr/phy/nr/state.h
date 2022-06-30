@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -312,13 +312,20 @@ public:
 
   void clear_pending_grants()
   {
-    // Scope mutex to protect read/write the list
-    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
-
     // Clear all PDSCH assignments and PUSCH grants
-    pending_dl_grant = {};
-    pending_ul_grant = {};
-    pending_ack      = {};
+    // Scope mutex to protect read/write each list
+    {
+      std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+      pending_ul_grant = {};
+    }
+    {
+      std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
+      pending_dl_grant = {};
+    }
+    {
+      std::lock_guard<std::mutex> lock(pending_ack_mutex);
+      pending_ack = {};
+    }
   }
 
   void get_pending_sr(const srsran::phy_cfg_nr_t& cfg, const uint32_t& tti, srsran_uci_data_nr_t& uci_data)
@@ -368,6 +375,16 @@ public:
     n = srsran_csi_reports_quantify(uci_data.cfg.csi, csi_measurements.data(), uci_data.value.csi);
     if (n > SRSRAN_SUCCESS) {
       uci_data.cfg.nof_csi = n;
+    }
+
+    // Set fix wideband CQI if it is not zero nor greater than 15
+    if (args.fix_wideband_cqi != 0 && args.fix_wideband_cqi < 15) {
+      for (uint32_t i = 0; i < uci_data.cfg.nof_csi; i++) {
+        if (uci_data.cfg.csi[i].cfg.quantity == SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI &&
+            uci_data.cfg.csi[i].cfg.freq_cfg == SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {
+          uci_data.value.csi[i].wideband_cri_ri_pmi_cqi.cqi = args.fix_wideband_cqi;
+        }
+      }
     }
 
     uci_data.cfg.pucch.rnti = stack->get_ul_sched_rnti_nr(slot_cfg.idx).id;

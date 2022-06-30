@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -90,6 +90,7 @@ public:
   bool is_mme_connected() override;
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
+                        uint16_t                     target_tac,
                         srsran::plmn_id_t            target_plmn,
                         srsran::span<uint32_t>       fwd_erabs,
                         srsran::unique_byte_buffer_t rrc_container,
@@ -116,7 +117,7 @@ public:
 
   // Stack interface
   bool
-  handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srsran::s1ap_pcap* pcap_);
 
 private:
@@ -131,6 +132,7 @@ private:
   rrc_interface_s1ap*         rrc = nullptr;
   s1ap_args_t                 args;
   srslog::basic_logger&       logger;
+  srslog::log_channel&        alarms_channel;
   srsran::task_sched_handle   task_sched;
   srsran::task_queue_handle   mme_task_queue;
   srsran::socket_manager_itf* rx_socket_handler;
@@ -220,6 +222,7 @@ private:
       struct ts1_reloc_prep_expired {};
       ho_prep_proc_t(s1ap::ue* ue_);
       srsran::proc_outcome_t init(uint32_t                     target_eci_,
+                                  uint16_t                     target_tac_,
                                   srsran::plmn_id_t            target_plmn_,
                                   srsran::span<uint32_t>       fwd_erabs,
                                   srsran::unique_byte_buffer_t rrc_container,
@@ -236,6 +239,7 @@ private:
       s1ap*     s1ap_ptr = nullptr;
 
       uint32_t                     target_eci = 0;
+      uint16_t                     target_tac = 0;
       srsran::plmn_id_t            target_plmn;
       srsran::unique_byte_buffer_t rrc_container;
       const asn1::s1ap::ho_cmd_s*  ho_cmd_msg = nullptr;
@@ -262,16 +266,21 @@ private:
     bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
     bool send_ue_cap_info_indication(srsran::unique_byte_buffer_t ue_radio_cap);
 
+    /// TS 36.413 8.4.5 - Handover Cancellation
+    void send_ho_cancel(const asn1::s1ap::cause_c& cause);
+
     bool was_uectxtrelease_requested() const { return release_requested; }
 
     void
-    set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
+                   set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
+    s1ap_proc_id_t get_state() const { return current_state; }
 
     ue_ctxt_t ctxt      = {};
     uint16_t  stream_id = 1;
 
   private:
     bool send_ho_required(uint32_t                     target_eci_,
+                          uint16_t                     target_tac_,
                           srsran::plmn_id_t            target_plmn_,
                           srsran::span<uint32_t>       fwd_erabs,
                           srsran::unique_byte_buffer_t rrc_container,
@@ -335,8 +344,9 @@ private:
     srsran::proc_outcome_t init();
     srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
     srsran::proc_outcome_t react(const s1setupresult& event);
-    void                   then(const srsran::proc_state_t& result) const;
+    void                   then(const srsran::proc_state_t& result);
     const char*            name() const { return "MME Connection"; }
+    uint16_t               connect_count = 0;
 
   private:
     srsran::proc_outcome_t start_mme_connection();

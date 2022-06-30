@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -231,7 +231,13 @@ int rf_skiq_tx_port_init(rf_skiq_tx_port_t* q, uint8_t card, skiq_tx_hdl_t hdl, 
   // Launch thread
   if (pthread_create(&q->thread, &attr, writer_thread, q)) {
     ERROR("Error creating writer thread with attributes (Did you miss sudo?). Trying without attributes.\n");
-    return SRSRAN_ERROR;
+
+    // try to create thread without attributes
+    pthread_attr_destroy(&attr);
+    if (pthread_create(&q->thread, NULL, writer_thread, q)) {
+      ERROR("Error creating writer thread, even without thread attributes. Exiting.\n");
+      return SRSRAN_ERROR;
+    }
   }
 
   // Rename thread

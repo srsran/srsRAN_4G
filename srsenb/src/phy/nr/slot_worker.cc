@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,6 +22,14 @@
 #include "srsenb/hdr/phy/nr/slot_worker.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/common.h"
+
+//#define DEBUG_WRITE_FILE
+
+#ifdef DEBUG_WRITE_FILE
+FILE*           f;
+static uint32_t num_slots     = 0;
+static uint32_t slots_to_dump = 10;
+#endif
 
 namespace srsenb {
 namespace nr {
@@ -81,19 +89,26 @@ bool slot_worker::init(const args_t& args)
   }
 
   // Prepare UL arguments
-  srsran_gnb_ul_args_t ul_args = {};
-  ul_args.pusch.measure_time   = true;
-  ul_args.pusch.measure_evm    = true;
-  ul_args.pusch.max_layers     = args.nof_rx_ports;
-  ul_args.pusch.max_prb        = args.nof_max_prb;
-  ul_args.nof_max_prb          = args.nof_max_prb;
-  ul_args.pusch_min_snr_dB     = args.pusch_min_snr_dB;
+  srsran_gnb_ul_args_t ul_args   = {};
+  ul_args.pusch.measure_time     = true;
+  ul_args.pusch.measure_evm      = true;
+  ul_args.pusch.max_layers       = args.nof_rx_ports;
+  ul_args.pusch.sch.max_nof_iter = args.pusch_max_its;
+  ul_args.pusch.max_prb          = args.nof_max_prb;
+  ul_args.nof_max_prb            = args.nof_max_prb;
+  ul_args.pusch_min_snr_dB       = args.pusch_min_snr_dB;
 
   // Initialise UL
   if (srsran_gnb_ul_init(&gnb_ul, rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
     logger.error("Error gNb DL init");
     return false;
   }
+
+#ifdef DEBUG_WRITE_FILE
+  const char* filename = "nr_baseband.dat";
+  printf("Opening %s to dump baseband\n", filename);
+  f = fopen(filename, "w");
+#endif
 
   return true;
 }
@@ -151,13 +166,13 @@ void slot_worker::set_context(const srsran::phy_common_interface::worker_context
 
 bool slot_worker::work_ul()
 {
-  stack_interface_phy_nr::ul_sched_t ul_sched = {};
-  if (stack.get_ul_sched(ul_slot_cfg, ul_sched) < SRSRAN_SUCCESS) {
+  stack_interface_phy_nr::ul_sched_t* ul_sched = stack.get_ul_sched(ul_slot_cfg);
+  if (ul_sched == nullptr) {
     logger.error("Error retrieving UL scheduling");
     return false;
   }
 
-  if (ul_sched.pucch.empty() && ul_sched.pusch.empty()) {
+  if (ul_sched->pucch.empty() && ul_sched->pusch.empty()) {
     // early exit if nothing has been scheduled
     return true;
   }
@@ -169,7 +184,7 @@ bool slot_worker::work_ul()
   }
 
   // For each PUCCH...
-  for (stack_interface_phy_nr::pucch_t& pucch : ul_sched.pucch) {
+  for (stack_interface_phy_nr::pucch_t& pucch : ul_sched->pucch) {
     srsran::bounded_vector<stack_interface_phy_nr::pucch_info_t, stack_interface_phy_nr::MAX_PUCCH_CANDIDATES>
         pucch_info(pucch.candidates.size());
 
@@ -220,7 +235,7 @@ bool slot_worker::work_ul()
   }
 
   // For each PUSCH...
-  for (stack_interface_phy_nr::pusch_t& pusch : ul_sched.pusch) {
+  for (stack_interface_phy_nr::pusch_t& pusch : ul_sched->pusch) {
     // Prepare PUSCH
     stack_interface_phy_nr::pusch_info_t pusch_info = {};
     pusch_info.uci_cfg                              = pusch.sch.uci;
@@ -274,25 +289,23 @@ bool slot_worker::work_dl()
   sync.wait(this);
 
   // Retrieve Scheduling for the current processing DL slot
-  stack_interface_phy_nr::dl_sched_t dl_sched      = {};
-  bool                               dl_sched_fail = stack.get_dl_sched(dl_slot_cfg, dl_sched) < SRSRAN_SUCCESS;
+  const stack_interface_phy_nr::dl_sched_t* dl_sched_ptr = stack.get_dl_sched(dl_slot_cfg);
 
   // Releases synchronization lock and allow next worker to retrieve scheduling results
   sync.release();
 
-  // Abort if the scheduling failed
-  if (dl_sched_fail) {
-    logger.error("Error retrieving DL scheduling");
+  // Abort DL processing if the scheduling returned an invalid pointer
+  if (dl_sched_ptr == nullptr) {
     return false;
   }
 
   if (srsran_gnb_dl_base_zero(&gnb_dl) < SRSRAN_SUCCESS) {
-    logger.error("Error zeroeing RE grid");
+    logger.error("Error zeroing RE grid");
     return false;
   }
 
   // Encode PDCCH for DL transmissions
-  for (const stack_interface_phy_nr::pdcch_dl_t& pdcch : dl_sched.pdcch_dl) {
+  for (const stack_interface_phy_nr::pdcch_dl_t& pdcch : dl_sched_ptr->pdcch_dl) {
     // Set PDCCH configuration, including DCI dedicated
     if (srsran_gnb_dl_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error setting DL configuration");
@@ -314,7 +327,7 @@ bool slot_worker::work_dl()
   }
 
   // Encode PDCCH for UL transmissions
-  for (const stack_interface_phy_nr::pdcch_ul_t& pdcch : dl_sched.pdcch_ul) {
+  for (const stack_interface_phy_nr::pdcch_ul_t& pdcch : dl_sched_ptr->pdcch_ul) {
     // Set PDCCH configuration, including DCI dedicated
     if (srsran_gnb_dl_set_pdcch_config(&gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
       logger.error("PDCCH: Error setting DL configuration");
@@ -336,7 +349,7 @@ bool slot_worker::work_dl()
   }
 
   // Encode PDSCH
-  for (stack_interface_phy_nr::pdsch_t& pdsch : dl_sched.pdsch) {
+  for (const stack_interface_phy_nr::pdsch_t& pdsch : dl_sched_ptr->pdsch) {
     // convert MAC to PHY buffer data structures
     uint8_t* data[SRSRAN_MAX_TB] = {};
     for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
@@ -367,7 +380,7 @@ bool slot_worker::work_dl()
   }
 
   // Put NZP-CSI-RS
-  for (srsran_csi_rs_nzp_resource_t& nzp_csi_rs : dl_sched.nzp_csi_rs) {
+  for (const srsran_csi_rs_nzp_resource_t& nzp_csi_rs : dl_sched_ptr->nzp_csi_rs) {
     if (srsran_gnb_dl_nzp_csi_rs_put(&gnb_dl, &dl_slot_cfg, &nzp_csi_rs) < SRSRAN_SUCCESS) {
       logger.error("NZP-CSI-RS: Error putting signal");
       return false;
@@ -378,7 +391,7 @@ bool slot_worker::work_dl()
   srsran_gnb_dl_gen_signal(&gnb_dl);
 
   // Add SSB to the baseband signal
-  for (const stack_interface_phy_nr::ssb_t& ssb : dl_sched.ssb) {
+  for (const stack_interface_phy_nr::ssb_t& ssb : dl_sched_ptr->ssb) {
     if (srsran_gnb_dl_add_ssb(&gnb_dl, &ssb.pbch_msg, dl_slot_cfg.idx) < SRSRAN_SUCCESS) {
       logger.error("SSB: Error putting signal");
       return false;
@@ -417,6 +430,16 @@ void slot_worker::work_imp()
   }
 
   common.worker_end(context, true, tx_rf_buffer);
+
+#ifdef DEBUG_WRITE_FILE
+  if (num_slots++ < slots_to_dump) {
+    printf("Writing slot %d\n", dl_slot_cfg.idx);
+    fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
+  } else if (num_slots == slots_to_dump) {
+    printf("Baseband signaled dump finished. Please close app.\n");
+    fclose(f);
+  }
+#endif
 }
 
 bool slot_worker::set_common_cfg(const srsran_carrier_nr_t&   carrier,

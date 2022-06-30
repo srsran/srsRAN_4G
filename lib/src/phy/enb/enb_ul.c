@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -193,7 +193,9 @@ static int get_pucch(srsran_enb_ul_t* q, srsran_ul_sf_cfg_t* ul_sf, srsran_pucch
       ERROR("Error estimating PUCCH DMRS");
       return SRSRAN_ERROR;
     }
-    pucch_res.snr_db = q->chest_res.snr_db;
+    pucch_res.snr_db    = q->chest_res.snr_db;
+    pucch_res.rssi_dbFs = q->chest_res.epre_dBfs;
+    pucch_res.ni_dbFs   = q->chest_res.noise_estimate_dbFs;
 
     ret = srsran_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);
     if (ret < SRSRAN_SUCCESS) {
@@ -214,7 +216,7 @@ static int get_pucch(srsran_enb_ul_t* q, srsran_ul_sf_cfg_t* ul_sf, srsran_pucch
 
       // Compares correlation value, it stores the PUCCH result with the greatest correlation
       if (i == 0 || pucch_res.correlation > res->correlation) {
-        // Copy measurements only if PUCCH was decoded succesfully
+        // Copy measurements only if PUCCH was decoded successfully
         if (cfg->meas_ta_en) {
           pucch_res.ta_valid = !(isnan(q->chest_res.ta_us) || isinf(q->chest_res.ta_us));
           pucch_res.ta_us    = q->chest_res.ta_us;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -50,7 +50,7 @@ proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...");
   state = state_t::phy_cell_search;
-  if (not rrc_ptr->phy_ctrl->start_cell_search(rrc_ptr->cell_searcher)) {
+  if (not rrc_ptr->phy_ctrl->start_cell_search(rrc_ptr->cell_searcher, rrc_ptr->cell_search_earfcn)) {
     Warning("Failed to initiate Cell Search.");
     return proc_outcome_t::error;
   }
@@ -1265,11 +1265,14 @@ proc_outcome_t rrc::go_idle_proc::step()
 
 void rrc::go_idle_proc::then(const srsran::proc_state_t& result)
 {
-  if (rrc_ptr->nas->is_registered() and not rrc_ptr->cell_reselector.launch()) {
-    rrc_ptr->logger.error("Failed to initiate a Cell Reselection procedure...");
-    return;
+  // only start cell reselection if no RRC redirect is present (redirect will trigger a cell search)
+  if (rrc_ptr->cell_search_earfcn < 0) {
+    if (rrc_ptr->nas->is_registered() and not rrc_ptr->cell_reselector.launch()) {
+      rrc_ptr->logger.error("Failed to initiate a Cell Reselection procedure...");
+      return;
+    }
+    rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
   }
-  rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
 }
 
 /**************************************
@@ -1371,7 +1374,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 {
   // Save Current RNTI before MAC Reset
   uint16_t crnti             = rrc_ptr->mac->get_crnti();
-  size_t nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
+  size_t   nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
 
   // 5.3.7.1 - Conditions for Reestablishment procedure
   if (not rrc_ptr->security_is_activated or rrc_ptr->state != RRC_STATE_CONNECTED or crnti == SRSRAN_INVALID_RNTI) {
@@ -1393,9 +1396,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
-       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
-           ? "Reconfiguration failure"
-           : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
+       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail ? "Reconfiguration failure"
+       : cause == asn1::rrc::reest_cause_opts::ho_fail        ? "Handover failure"
+                                                              : "Other failure",
        reest_rnti,
        reest_source_pci,
        reest_cellid);
@@ -1561,6 +1564,8 @@ srsran::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_co
   // 1> perform the measurement related actions as specified in 5.5.6.1;
   rrc_ptr->measurements->ho_reest_actions(rrc_ptr->get_serving_cell()->get_earfcn(),
                                           rrc_ptr->get_serving_cell()->get_earfcn());
+  // Update PHY measurements after HO Reestablishment actions.
+  rrc_ptr->measurements->update_phy();
 
   // 1> submit the RRCConnectionReestablishmentComplete message to lower layers for transmission, upon which the
   //    procedure ends;
@@ -1744,11 +1749,7 @@ srsran::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // perform the measurement related actions as specified in 5.5.6.1;
   rrc_ptr->measurements->ho_reest_actions(ho_src_cell.earfcn, target_earfcn);
 
-  // if the RRCConnectionReconfiguration message includes the measConfig:
-  if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.earfcn)) {
-    Error("Parsing measurementConfig. TODO: Send ReconfigurationReject");
-    return proc_outcome_t::yield; // wait for t304 expiry
-  }
+  // Do not update PHY measurements here since it will be updated after the HO procedure finishes
 
   // Note: We delay the enqueuing of RRC Reconf Complete message to avoid that the message goes in an UL grant
   //       directed at the old RNTI.
@@ -1785,6 +1786,12 @@ srsran::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
   if (ev.success) {
     Info("Random Access completed. Applying final configuration and finishing procedure");
 
+    // if the RRCConnectionReconfiguration message includes the measConfig:
+    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.earfcn)) {
+      Error("Parsing measurementConfig. TODO: Send ReconfigurationReject");
+      return proc_outcome_t::yield; // wait for t304 expiry
+    }
+
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
     rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
@@ -1802,6 +1809,8 @@ void rrc::ho_proc::then(const srsran::proc_state_t& result)
   srsran::console("HO %ssuccessful\n", result.is_success() ? "" : "un");
 
   rrc_ptr->t304.stop();
+
+  rrc_ptr->measurements->update_phy();
 }
 
 } // namespace srsue

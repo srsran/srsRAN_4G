@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -32,13 +32,11 @@
 
 namespace srsue {
 
-const char* state_str[] = {"RA:    INIT:   ",
-                           "RA:    PDCCH:  ",
-                           "RA:    Rx:     ",
+const char* state_str[] = {"RA:    IDLE:    ",
+                           "RA:    PDCCH:   ",
+                           "RA:    Rx:      ",
                            "RA:    Backoff: ",
-                           "RA:    ConRes: ",
-                           "RA:    WaitComplt: ",
-                           "RA:    Complt: "};
+                           "RA:    ConRes:  "};
 
 #define rError(fmt, ...) logger.error("%s" fmt, state_str[state], ##__VA_ARGS__)
 #define rInfo(fmt, ...) logger.info("%s" fmt, state_str[state], ##__VA_ARGS__)
@@ -159,8 +157,11 @@ void ra_proc::state_pdcch_setup()
     ra_tti  = info.tti_ra;
     ra_rnti = 1 + (ra_tti % 10) + (10 * info.f_id);
     rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d", sel_preamble.load(), ra_rnti, info.tti_ra, info.f_id);
-    srsran::console(
-        "Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble.load(), info.tti_ra, ra_rnti);
+    srsran::console("Random Access Transmission%s: seq=%d, tti=%d, ra-rnti=0x%x\n",
+                    (started_by_pdcch) ? " (PDCCH order)" : "",
+                    sel_preamble.load(),
+                    info.tti_ra,
+                    ra_rnti);
     rar_window_st = ra_tti + 3;
     rntis->set_rar_rnti(ra_rnti);
     state = RESPONSE_RECEPTION;
@@ -525,7 +526,7 @@ void ra_proc::start_pdcch_order()
     rInfo("Starting PRACH by PDCCH order");
     initialization();
   } else {
-    logger.warning("Trying to start PRACH by MAC order in invalid state (%s)", state_str[state]);
+    logger.warning("Trying to start PRACH by PDCCH order in invalid state (%s)", state_str[state]);
   }
 }
 

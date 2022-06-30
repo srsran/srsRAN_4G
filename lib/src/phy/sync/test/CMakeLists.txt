@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -95,13 +95,13 @@ add_executable(psss_file_test psss_file_test.c)
 target_link_libraries(psss_file_test srsran_phy)
 
 # SL TM 2
-add_test(sync_sl_test_tm2_p6_c_0 sync_sl_test -p 6 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e6.dat)
-add_test(sync_sl_test_tm2_p15_c_84 sync_sl_test -p 15 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p15_c84_s3.84e6.dat)
-add_test(sync_sl_test_tm2_p25_c_168 sync_sl_test -p 25 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e6.dat)
-add_test(sync_sl_test_tm2_p50_c_252 sync_sl_test -p 50 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e6.dat)
-add_test(sync_sl_test_tm2_p100_c_335 sync_sl_test -p 100 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
+add_test(sync_sl_test_tm2_p6_c_0 sync_sl_test -p 6 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e6.dat)
+add_test(sync_sl_test_tm2_p15_c_84 sync_sl_test -p 15 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm2_p15_c84_s3.84e6.dat)
+add_test(sync_sl_test_tm2_p25_c_168 sync_sl_test -p 25 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e6.dat)
+add_test(sync_sl_test_tm2_p50_c_252 sync_sl_test -p 50 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e6.dat)
+add_test(sync_sl_test_tm2_p100_c_335 sync_sl_test -p 100 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
 # Sample offset
-add_test(sync_sl_test_tm2_p25_c_168_so sync_sl_test -p 25 -d -o 300 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e6.dat)
+add_test(sync_sl_test_tm2_p25_c_168_so sync_sl_test -p 25 -d -o 300 -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e6.dat)
 # Self-test
 add_test(sync_sl_test_tm2_self_test_p25_c_168 sync_sl_test -p 25 -c 168 -d)
 # Self-test with frequency offset
@@ -110,13 +110,13 @@ add_test(sync_sl_test_tm2_self_test_p25_c_168_fo sync_sl_test -p 25 -c 168 -d -f
 add_test(sync_sl_test_tm2_self_test_p25_c_168_fo_so sync_sl_test -p 25 -c 168 -d -f 100 -o 3600)
 
 # SL TM 4
-add_test(sync_sl_test_tm4_p6_c_0 sync_sl_test -p 6 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p6_c0_size6_num1_cshift0_s1.92e6.dat)
-add_test(sync_sl_test_tm4_p15_c_84 sync_sl_test -p 15 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p15_c84_size5_num3_cshift0_s3.84e6.dat)
-add_test(sync_sl_test_tm4_p25_c_168 sync_sl_test -p 25 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p25_c168_size5_num5_cshift0_s7.68e6.dat)
-add_test(sync_sl_test_tm4_p50_c_252 sync_sl_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p50_c252_size10_num5_cshift0_s15.36e6.dat)
-#add_test(sync_sl_test_tm4_p100_c_335 sync_sl_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
+add_test(sync_sl_test_tm4_p6_c_0 sync_sl_test -p 6 -t 4 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm4_p6_c0_size6_num1_cshift0_s1.92e6.dat)
+add_test(sync_sl_test_tm4_p15_c_84 sync_sl_test -p 15 -t 4 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm4_p15_c84_size5_num3_cshift0_s3.84e6.dat)
+add_test(sync_sl_test_tm4_p25_c_168 sync_sl_test -p 25 -t 4 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm4_p25_c168_size5_num5_cshift0_s7.68e6.dat)
+add_test(sync_sl_test_tm4_p50_c_252 sync_sl_test -p 50 -t 4 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm4_p50_c252_size10_num5_cshift0_s15.36e6.dat)
+#add_test(sync_sl_test_tm4_p100_c_335 sync_sl_test -p 100 -t 4 -d -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
 # Sample offset
-add_test(sync_sl_test_tm4_p25_c_168_so sync_sl_test -p 25 -t 4 -d -o 300 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p25_c168_size5_num5_cshift0_s7.68e6.dat )
+add_test(sync_sl_test_tm4_p25_c_168_so sync_sl_test -p 25 -t 4 -d -o 300 -i ${CMAKE_CURRENT_SOURCE_DIR}/../../phch/test/signal_sidelink_ideal_tm4_p25_c168_size5_num5_cshift0_s7.68e6.dat )
 # Self-test
 add_test(sync_sl_test_self_test_tm4_p25_c_168 sync_sl_test -p 25 -t 4 -c 168 -d)
 # Self-test with frequency offset
@@ -145,6 +145,9 @@ target_link_libraries(ssb_measure_test srsran_phy)
 add_executable(ssb_decode_test ssb_decode_test.c)
 target_link_libraries(ssb_decode_test srsran_phy)
 
+add_executable(ssb_grid_test ssb_grid_test.c)
+target_link_libraries(ssb_grid_test srsran_phy)
+
 # For 1.0 GHz and 3.5 GHz Center frequencies
 foreach (CELL_FREQ 1000000 3500000)
   # For each supported Cell/Carrier subcarrier spacing
@@ -165,6 +168,10 @@ foreach (CELL_FREQ 1000000 3500000)
           # Test SSB PBCH decoding
           add_nr_test(ssb_decode_test_${CELL_FREQ}000_${CELL_SCS}_${SSB_FREQ}000_${SSB_SCS}_${SSB_PATTERN} ssb_decode_test
                   -F ${CELL_FREQ}000 -S ${CELL_SCS} -f ${SSB_FREQ}000 -s ${SSB_SCS} -P ${SSB_PATTERN})
+
+          # Test SSB grid put/get decoding
+          add_nr_test(ssb_grid_test_${CELL_FREQ}000_${CELL_SCS}_${SSB_FREQ}000_${SSB_SCS}_${SSB_PATTERN} ssb_grid_test
+                  -F ${CELL_FREQ}000 -S ${CELL_SCS} -f ${SSB_FREQ}000 -s ${SSB_SCS} -P ${SSB_PATTERN})
         endforeach ()
       endforeach ()
     endforeach ()
@@ -176,4 +183,6 @@ target_link_libraries(ssb_file_test srsran_phy)
 
 # File test 1
 # Captured with command: lib/examples/usrp_capture -a type=x300,clock=external,sampling_rate=46.08e6,rx_subdev_spec=B:0 -g 20 -r 46.08e6 -n 460800  -f 3502.8e6 -o /tmp/n78.fo35028.fs2304M.data
-add_nr_test(ssb_file_test ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/n78.fo35028.fs4608M.data -v -r 46.08e6 -f 3502.8e6 -F 3512.64e6 -n 460800 -A 500 357802 2 0 1 0)
+add_nr_test(ssb_file_test_tdd ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/n78.fo35028.fs4608M.data -v -r 46.08e6 -f 3502.8e6 -F 3512.64e6 -n 460800 -A 500 357802 2 0 1 0)
+# Capture with third-party gNB on band n3 (FDD) 15kHz SSB SCS, f_s=15.36e6, f_c=1842.5e6, f_c_ssb=1842.05e6, PCI=500
+add_nr_test(ssb_file_test_fdd ssb_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../../ue/test/ue_dl_nr_pci500_rb52_si_coreset0_idx6_s15.36e6.dat -v -r 15.36e6 -f 1842.5e6 -F 1842.05e6 -n 15360 -d fdd -s 15 -A 500 2200 0 0 0 0)

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -29,7 +29,7 @@
 #include "srsran/common/time_prof.h"
 #include "srsran/interfaces/enb_phy_interfaces.h"
 #include "srsran/interfaces/enb_rlc_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_mac.h"
 #include "srsran/srslog/event_trace.h"
 
 // #define WRITE_SIB_PCAP
@@ -250,7 +250,11 @@ void mac::get_metrics(mac_metrics_t& metrics)
       continue;
     }
     metrics.ues.emplace_back();
-    u.second->metrics_read(&metrics.ues.back());
+    auto& ue_metrics = metrics.ues.back();
+
+    u.second->metrics_read(&ue_metrics);
+    scheduler.metrics_read(u.first, ue_metrics);
+    ue_metrics.pci = (ue_metrics.cc_idx < cell_config.size()) ? cell_config[ue_metrics.cc_idx].cell.id : 0;
   }
   metrics.cc_info.resize(detected_rachs.size());
   for (unsigned cc = 0, e = detected_rachs.size(); cc != e; ++cc) {
@@ -464,10 +468,6 @@ bool mac::is_valid_rnti_unprotected(uint16_t rnti)
     logger.info("RACH ignored as eNB is being shutdown");
     return false;
   }
-  if (ue_db.full()) {
-    logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
-    return false;
-  }
   if (not ue_db.has_space(rnti)) {
     logger.info("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
     return false;
@@ -487,6 +487,10 @@ uint16_t mac::allocate_ue(uint32_t enb_cc_idx)
     // Pre-check if rnti is valid
     {
       srsran::rwlock_read_guard read_lock(rwlock);
+      if (ue_db.full()) {
+        logger.warning("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
+        return SRSRAN_INVALID_RNTI;
+      }
       if (not is_valid_rnti_unprotected(rnti)) {
         continue;
       }
@@ -521,6 +525,21 @@ uint16_t mac::allocate_ue(uint32_t enb_cc_idx)
   return rnti;
 }
 
+bool mac::is_pending_pdcch_order_prach(const uint32_t preamble_idx, uint16_t& rnti)
+{
+  for (auto it = pending_po_prachs.begin(); it != pending_po_prachs.end();) {
+    auto& pending_po_prach = *it;
+    if (pending_po_prach.preamble_idx == preamble_idx) {
+      rnti = pending_po_prach.crnti;
+      // delete pending PDCCH PRACH from vector
+      it = pending_po_prachs.erase(it);
+      return true;
+    }
+    ++it;
+  }
+  return false;
+}
+
 uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& uecfg)
 {
   uint16_t rnti = allocate_ue(uecfg.supported_cc_list[0].enb_cc_idx);
@@ -542,9 +561,14 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   auto rach_tprof_meas = rach_tprof.start();
 
   stack_task_queue.push([this, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
-    uint16_t rnti = allocate_ue(enb_cc_idx);
-    if (rnti == SRSRAN_INVALID_RNTI) {
-      return;
+    uint16_t rnti = 0;
+    // check if this is a PRACH from a PDCCH order
+    bool is_po_prach = is_pending_pdcch_order_prach(preamble_idx, rnti);
+    if (!is_po_prach) {
+      rnti = allocate_ue(enb_cc_idx);
+      if (rnti == SRSRAN_INVALID_RNTI) {
+        return;
+      }
     }
 
     rach_tprof_meas.defer_stop();
@@ -559,31 +583,47 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Log this event.
     ++detected_rachs[enb_cc_idx];
 
-    // Add new user to the scheduler so that it can RX/TX SRB0
-    sched_interface::ue_cfg_t uecfg = {};
-    uecfg.supported_cc_list.emplace_back();
-    uecfg.supported_cc_list.back().active     = true;
-    uecfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
-    uecfg.ue_bearers[0].direction             = mac_lc_ch_cfg_t::BOTH;
-    uecfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
-    if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
-      return;
-    }
+    // If this is a PRACH from a PDCCH order, the user already exists
+    if (not is_po_prach) {
+      // Add new user to the scheduler so that it can RX/TX SRB0
+      sched_interface::ue_cfg_t uecfg = {};
+      uecfg.supported_cc_list.emplace_back();
+      uecfg.supported_cc_list.back().active     = true;
+      uecfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
+      uecfg.ue_bearers[0].direction             = mac_lc_ch_cfg_t::BOTH;
+      uecfg.supported_cc_list[0].dl_cfg.tm      = SRSRAN_TM1;
+      if (ue_cfg(rnti, &uecfg) != SRSRAN_SUCCESS) {
+        return;
+      }
 
-    // Register new user in RRC
-    if (rrc_h->add_user(rnti, uecfg) == SRSRAN_ERROR) {
-      ue_rem(rnti);
-      return;
+      // Register new user in RRC
+      if (rrc_h->add_user(rnti, uecfg) == SRSRAN_ERROR) {
+        ue_rem(rnti);
+        return;
+      }
     }
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
 
-    logger.info(
-        "RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x", tti, enb_cc_idx, preamble_idx, time_adv, rnti);
-    srsran::console("RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+    auto get_pci = [this, enb_cc_idx]() {
+      srsran::rwlock_read_guard lock(rwlock);
+      return (enb_cc_idx < cell_config.size()) ? cell_config[enb_cc_idx].cell.id : 0;
+    };
+    uint32_t pci = get_pci();
+    logger.info("%sRACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+                (is_po_prach) ? "PDCCH order " : "",
+                tti,
+                enb_cc_idx,
+                pci,
+                preamble_idx,
+                time_adv,
+                rnti);
+    srsran::console("%sRACH:  tti=%d, cc=%d, pci=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+                    (is_po_prach) ? "PDCCH order " : "",
                     tti,
                     enb_cc_idx,
+                    pci,
                     preamble_idx,
                     time_adv,
                     rnti);
@@ -596,7 +636,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     return 0;
   }
 
-  trace_threshold_complete_event("mac::run_slot", "total_time", std::chrono::microseconds(100));
+  trace_threshold_complete_event("mac::get_dl_sched", "total_time", std::chrono::microseconds(100));
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
   if (do_padding) {
     add_padding();
@@ -664,7 +704,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
           tb_count++;
         }
 
-        // Count transmission if at least one TB has succesfully added
+        // Count transmission if at least one TB has successfully added
         if (tb_count > 0) {
           n++;
         }
@@ -741,6 +781,24 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
       }
 
       n++;
+    }
+
+    // Copy PDCCH order grants
+    for (uint32_t i = 0; i < sched_result.po.size(); i++) {
+      uint16_t rnti = sched_result.po[i].dci.rnti;
+      if (ue_db.contains(rnti)) {
+        // Copy dci info
+        dl_sched_res->pdsch[n].dci = sched_result.po[i].dci;
+        if (pcap) {
+          pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
+        if (pcap_net) {
+          pcap_net->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.po[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
+        n++;
+      } else {
+        logger.warning("Invalid PDCCH order scheduling result. User 0x%x does not exist", rnti);
+      }
     }
 
     dl_sched_res->nof_grants = n;
@@ -823,7 +881,6 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
     ue_db[SRSRAN_MRNTI]->metrics_tx(true, mcs.tbs);
     dl_sched_res->pdsch[0].data[0] =
         ue_db[SRSRAN_MRNTI]->generate_mch_pdu(tti % SRSRAN_FDD_NOF_HARQ, mch, mch.num_mtch_sched + 1, mcs.tbs / 8);
-
   } else {
     uint32_t current_lcid = 1;
     uint32_t mtch_index   = 0;
@@ -959,7 +1016,6 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
         } else {
           logger.warning("Invalid UL scheduling result. User 0x%x does not exist", rnti);
         }
-
       } else {
         logger.warning("Grant %d for rnti=0x%x has zero TBS", i, sched_result.pusch[i].dci.rnti);
       }
@@ -994,7 +1050,7 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   sib2  = *sib2_;
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
-  current_mcch_length     = mcch_payload_length;
+  current_mcch_length = mcch_payload_length;
 
   unique_rnti_ptr<ue> ue_ptr = make_rnti_obj<ue>(
       SRSRAN_MRNTI, SRSRAN_MRNTI, 0, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size(), softbuffer_pool.get());

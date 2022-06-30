@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -41,13 +41,17 @@ static double assert_pucch_snr_min       = 0.000;
 
 test_bench::args_t::args_t(int argc, char** argv)
 {
-  std::string              reference_cfg_str = "";
-  bpo::options_description options("Test bench options");
+  std::string              config_file;
+  std::string              reference_cfg_str;
+  bpo::options_description options;
+  bpo::options_description options_tb("Test bench options");
   bpo::options_description options_gnb_stack("gNb stack and scheduling related options");
   bpo::options_description options_gnb_phy("gNb PHY related options");
   bpo::options_description options_ue_stack("UE stack options");
-  bpo::options_description options_ue_phy("UE stack options");
+  bpo::options_description options_ue_phy("UE PHY options");
+  bpo::options_description options_ue_rf("UE RF options");
   bpo::options_description options_assertion("Test assertions");
+  bpo::options_description options_conf_file("Configuration file");
 
   uint16_t rnti = 17921;
 
@@ -55,10 +59,10 @@ test_bench::args_t::args_t(int argc, char** argv)
   gnb_stack.pusch.slots = "6,7,8,9";
 
   // clang-format off
-  options.add_options()
+  options_tb.add_options()
         ("rnti",                         bpo::value<uint16_t>(&rnti)->default_value(rnti),                                                        "UE RNTI")
         ("duration",                     bpo::value<uint64_t>(&durations_slots)->default_value(durations_slots),                                  "Test duration in slots")
-        ("lib.log.level",                bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level),                           "PHY librray log level")
+        ("lib.log.level",                bpo::value<std::string>(&phy_lib_log_level)->default_value(phy_lib_log_level),                           "PHY library log level")
         ("reference",                    bpo::value<std::string>(&reference_cfg_str)->default_value(reference_cfg_str),                           "Reference PHY configuration arguments")
         ("dl_channel.awgn_enable",       bpo::value<bool>(&dl_channel.awgn_enable)->default_value(dl_channel.awgn_enable),                        "DL Channel AWGN enable / disable")
         ("dl_channel.awgn_snr",          bpo::value<float>(&dl_channel.awgn_snr_dB)->default_value(dl_channel.awgn_snr_dB),                       "DL Channel AWGN SNR in dB")
@@ -93,10 +97,15 @@ test_bench::args_t::args_t(int argc, char** argv)
         ;
 
   options_ue_phy.add_options()
-        ("ue.phy.nof_threads",     bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),          "Number of threads")
-        ("ue.phy.log.level",       bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"), "UE PHY log level")
-        ("ue.phy.log.hex_limit",   bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),             "UE PHY log hex limit")
-        ("ue.phy.log.id_preamble", bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"),  "UE PHY log ID preamble")
+        ("ue.phy.fix_wideband_cqi", bpo::value<uint32_t>(&ue_phy.fix_wideband_cqi)->default_value(15),        "Fix wideband CQI value, set to 0 or greater than 15 to disable")
+        ("ue.phy.nof_threads",      bpo::value<uint32_t>(&ue_phy.nof_phy_threads)->default_value(1),          "Number of threads")
+        ("ue.phy.log.level",        bpo::value<std::string>(&ue_phy.log.phy_level)->default_value("warning"), "UE PHY log level")
+        ("ue.phy.log.hex_limit",    bpo::value<int>(&ue_phy.log.phy_hex_limit)->default_value(0),             "UE PHY log hex limit")
+        ("ue.phy.log.id_preamble",  bpo::value<std::string>(&ue_phy.log.id_preamble)->default_value(" UE/"),  "UE PHY log ID preamble")
+        ;
+
+  options_ue_rf.add_options()
+        ("ue.rf.log.level",       bpo::value<std::string>(&ue_radio_log_level)->default_value("warning"), "UE RF log level")
         ;
 
   options_ue_stack.add_options()
@@ -114,14 +123,21 @@ test_bench::args_t::args_t(int argc, char** argv)
       ("assert.pucch.snr.min",     bpo::value<double>(&assert_pucch_snr_min)->default_value(assert_pucch_snr_min),         "PUCCH DMRS minimum SNR allowed threshold")
       ;
 
-  options.add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack).add(options_ue_phy).add_options()
+  options_conf_file.add_options()
+      ("config_file", bpo::value<std::string>(&config_file), "Configuration file")
+      ;
+  bpo::positional_options_description p;
+  p.add("config_file", -1);
+
+  options.add(options_tb).add(options_assertion).add(options_gnb_stack).add(options_gnb_phy).add(options_ue_stack)
+      .add(options_ue_phy).add(options_ue_rf).add(options_conf_file).add_options()
         ("help",                      "Show this message")
         ;
   // clang-format on
 
   bpo::variables_map vm;
   try {
-    bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
+    bpo::store(bpo::command_line_parser(argc, argv).options(options).positional(p).run(), vm);
     bpo::notify(vm);
 
     // Apply the High Speed Train args to the DL channel as well
@@ -136,14 +152,35 @@ test_bench::args_t::args_t(int argc, char** argv)
   // help option was given or error - print usage and exit
   if (vm.count("help")) {
     std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
-    std::cout << options << std::endl << std::endl;
-    return;
+    std::cout << options_tb << std::endl << options_assertion << std::endl;
+    std::cout << options_gnb_phy << std::endl << options_gnb_stack << std::endl;
+    std::cout << options_ue_phy << std::endl << options_ue_stack << std::endl;
+    exit(0);
+  }
+
+  // if config file given
+  if (vm.count("config_file") != 0U) {
+    std::cout << "Reading configuration file " << config_file << "..." << std::endl;
+    std::ifstream conf(config_file.c_str(), std::ios::in);
+    if (conf.fail()) {
+      std::cout << "Failed to read configuration file " << config_file << " - exiting" << std::endl;
+      exit(1);
+    }
+
+    // parse config file and handle errors gracefully
+    try {
+      bpo::store(bpo::parse_config_file(conf, options), vm);
+      bpo::notify(vm);
+    } catch (const boost::program_options::error& e) {
+      std::cerr << e.what() << std::endl;
+      exit(1);
+    }
   }
 
   // Load default reference configuration
   phy_cfg = srsran::phy_cfg_nr_default_t(srsran::phy_cfg_nr_default_t::reference_cfg_t(reference_cfg_str));
 
-  // Calulate the DL signal power from the number of PRBs
+  // Calculate the DL signal power from the number of PRBs
   dl_channel.awgn_signal_power_dBfs = srsran_gnb_dl_get_maximum_signal_power_dBfs(phy_cfg.carrier.nof_prb);
 
   // Reverses the Doppler shift for the UL
@@ -151,12 +188,12 @@ test_bench::args_t::args_t(int argc, char** argv)
 
   // Calculate sampling rate in Hz
   srate_hz = (double)(srsran_min_symbol_sz_rb(phy_cfg.carrier.nof_prb) * SRSRAN_SUBC_SPACING_NR(phy_cfg.carrier.scs));
+  ue_phy.srate_hz = srate_hz;
 
   cell_list.resize(1);
   cell_list[0].carrier = phy_cfg.carrier;
   cell_list[0].rf_port = 0;
   cell_list[0].cell_id = 0;
-  cell_list[0].pdcch   = phy_cfg.pdcch;
 
   ue_stack.rnti = rnti;
 
@@ -173,6 +210,10 @@ test_bench::args_t::args_t(int argc, char** argv)
     gnb_stack.pusch.rb_length = phy_cfg.carrier.nof_prb;
     gnb_stack.pdsch.rb_start  = 0;
   }
+
+  // Disable RT priority in the UE PHY
+  ue_phy.workers_thread_prio   = -1;
+  ue_phy.slot_recv_thread_prio = -1;
 
   // Flag configuration as valid
   valid = true;
@@ -193,6 +234,12 @@ int main(int argc, char** argv)
 
   // Assert bench is initialised correctly
   TESTASSERT(tb.is_initialised());
+
+  // Start cell selection procedure
+  srsue::rrc_interface_phy_nr::cell_select_result_t cs_res =
+      tb.run_cell_select(args.phy_cfg.carrier, args.phy_cfg.get_ssb_cfg());
+  srsran_assert(cs_res.status == srsue::rrc_interface_phy_nr::cell_select_result_t::SUCCESSFUL,
+                "Failed to perform cell selection");
 
   // Run per TTI basis
   while (tb.run_tti()) {
@@ -274,7 +321,7 @@ int main(int argc, char** argv)
                     "EPRE (dB)",
                     metrics.gnb_stack.pucch.epre_db_avg,
                     metrics.gnb_stack.pucch.epre_db_min,
-                    metrics.gnb_stack.pucch.epre_db_min);
+                    metrics.gnb_stack.pucch.epre_db_max);
     srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
                     "RSRP (dB)",
                     metrics.gnb_stack.pucch.rsrp_db_avg,
@@ -341,7 +388,7 @@ int main(int argc, char** argv)
                     "EPRE (dB)",
                     metrics.gnb_stack.pusch.epre_db_avg,
                     metrics.gnb_stack.pusch.epre_db_min,
-                    metrics.gnb_stack.pusch.epre_db_min);
+                    metrics.gnb_stack.pusch.epre_db_max);
     srsran::console("   | %10s | %+10.2f | %+10.2f | %+10.2f |\n",
                     "RSRP (dB)",
                     metrics.gnb_stack.pusch.rsrp_db_avg,

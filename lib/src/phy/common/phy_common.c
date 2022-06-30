@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -347,9 +347,9 @@ int srsran_symbol_sz_power2(uint32_t nof_prb)
     return 256;
   } else if (nof_prb <= 25) {
     return 512;
-  } else if (nof_prb <= 50) {
+  } else if (nof_prb <= 52) {
     return 1024;
-  } else if (nof_prb <= 75) {
+  } else if (nof_prb <= 79) {
     return 1536;
   } else if (nof_prb <= 110) {
     return 2048;
@@ -370,9 +370,9 @@ int srsran_symbol_sz(uint32_t nof_prb)
       return 256;
     } else if (nof_prb <= 25) {
       return 384;
-    } else if (nof_prb <= 50) {
+    } else if (nof_prb <= 52) {
       return 768;
-    } else if (nof_prb <= 75) {
+    } else if (nof_prb <= 79) {
       return 1024;
     } else if (nof_prb <= 110) {
       return 1536;

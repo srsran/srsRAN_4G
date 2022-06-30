@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -20,6 +20,7 @@
  */
 
 #include "srsran/asn1/rrc_nr_utils.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_nr.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/config.h"
@@ -98,30 +99,47 @@ bool make_mac_phr_cfg_t(const phr_cfg_s& asn1_type, phr_cfg_nr_t* phr_cfg_nr)
   return true;
 }
 
-rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
+void make_mac_rach_cfg(const rach_cfg_common_s& asn1_type, rach_cfg_nr_t* rach_cfg_nr)
 {
-  rach_nr_cfg_t rach_nr_cfg                = {};
-  rach_nr_cfg.powerRampingStep             = asn1_type.rach_cfg_generic.pwr_ramp_step.to_number();
-  rach_nr_cfg.ra_responseWindow            = asn1_type.rach_cfg_generic.ra_resp_win.to_number();
-  rach_nr_cfg.prach_ConfigurationIndex     = asn1_type.rach_cfg_generic.prach_cfg_idx;
-  rach_nr_cfg.PreambleReceivedTargetPower  = asn1_type.rach_cfg_generic.preamb_rx_target_pwr;
-  rach_nr_cfg.preambleTransMax             = asn1_type.rach_cfg_generic.preamb_trans_max.to_number();
-  rach_nr_cfg.ra_ContentionResolutionTimer = asn1_type.ra_contention_resolution_timer.to_number();
-  return rach_nr_cfg;
+  rach_cfg_nr->powerRampingStep             = asn1_type.rach_cfg_generic.pwr_ramp_step.to_number();
+  rach_cfg_nr->ra_responseWindow            = asn1_type.rach_cfg_generic.ra_resp_win.to_number();
+  rach_cfg_nr->prach_ConfigurationIndex     = asn1_type.rach_cfg_generic.prach_cfg_idx;
+  rach_cfg_nr->PreambleReceivedTargetPower  = asn1_type.rach_cfg_generic.preamb_rx_target_pwr;
+  rach_cfg_nr->preambleTransMax             = asn1_type.rach_cfg_generic.preamb_trans_max.to_number();
+  rach_cfg_nr->ra_ContentionResolutionTimer = asn1_type.ra_contention_resolution_timer.to_number();
 };
 
-int make_rlc_config_t(const rlc_cfg_c& asn1_type, rlc_config_t* cfg_out)
+int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)
 {
-  rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
+  rlc_config_t rlc_cfg = {};
   rlc_cfg.rat          = srsran_rat_t::nr;
   switch (asn1_type.type().value) {
     case rlc_cfg_c::types_opts::am:
-      asn1::log_warning("NR RLC type %s is not supported", asn1_type.type().to_string());
-      return SRSRAN_ERROR;
+      rlc_cfg = rlc_config_t::default_rlc_am_nr_config();
+      if (asn1_type.am().dl_am_rlc.sn_field_len_present && asn1_type.am().ul_am_rlc.sn_field_len_present &&
+          asn1_type.am().dl_am_rlc.sn_field_len != asn1_type.am().ul_am_rlc.sn_field_len) {
+        asn1::log_warning("NR RLC sequence number length is not the same in uplink and downlink");
+        return SRSRAN_ERROR;
+      }
+      rlc_cfg.rlc_mode = rlc_mode_t::am;
+      switch (asn1_type.am().dl_am_rlc.sn_field_len.value) {
+        case asn1::rrc_nr::sn_field_len_am_opts::options::size12:
+          rlc_cfg.am_nr.tx_sn_field_length = rlc_am_nr_sn_size_t::size12bits;
+          rlc_cfg.am_nr.rx_sn_field_length = rlc_am_nr_sn_size_t::size12bits;
+          break;
+        case asn1::rrc_nr::sn_field_len_am_opts::options::size18:
+          rlc_cfg.am_nr.tx_sn_field_length = rlc_am_nr_sn_size_t::size18bits;
+          rlc_cfg.am_nr.rx_sn_field_length = rlc_am_nr_sn_size_t::size18bits;
+          break;
+        default:
+          break;
+      }
+      break;
     case rlc_cfg_c::types_opts::um_bi_dir:
+      rlc_cfg                       = rlc_config_t::default_rlc_um_nr_config();
       rlc_cfg.rlc_mode              = rlc_mode_t::um;
       rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.to_number();
-
+      rlc_cfg.um_nr.bearer_id       = bearer_id;
       if (asn1_type.um_bi_dir().dl_um_rlc.sn_field_len_present &&
           asn1_type.um_bi_dir().ul_um_rlc.sn_field_len_present &&
           asn1_type.um_bi_dir().dl_um_rlc.sn_field_len != asn1_type.um_bi_dir().ul_um_rlc.sn_field_len) {
@@ -152,6 +170,20 @@ int make_rlc_config_t(const rlc_cfg_c& asn1_type, rlc_config_t* cfg_out)
 
   *cfg_out = rlc_cfg;
   return SRSRAN_SUCCESS;
+}
+
+srsran::pdcp_config_t make_nr_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity,
+                    false,
+                    srsran_rat_t::nr);
+  return cfg;
 }
 
 srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)
@@ -249,14 +281,22 @@ srsran::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
-bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* prach_cfg)
+bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type,
+                       srsran_duplex_mode_t     duplex_mode,
+                       srsran_prach_cfg_t*      prach_cfg)
 {
   prach_cfg->is_nr            = true;
   prach_cfg->config_idx       = asn1_type.rach_cfg_generic.prach_cfg_idx;
   prach_cfg->zero_corr_zone   = (uint32_t)asn1_type.rach_cfg_generic.zero_correlation_zone_cfg;
-  prach_cfg->num_ra_preambles = 64;    // Hard-coded
-  prach_cfg->hs_flag          = false; // Hard-coded
-  prach_cfg->tdd_config       = {};    // Hard-coded
+  prach_cfg->num_ra_preambles = 64;
+  if (asn1_type.total_nof_ra_preambs_present) {
+    prach_cfg->num_ra_preambles = asn1_type.total_nof_ra_preambs;
+  }
+  prach_cfg->hs_flag    = false; // Hard-coded
+  prach_cfg->tdd_config = {};
+  if (duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
+    prach_cfg->tdd_config.configured = true;
+  }
 
   // As the current PRACH is based on LTE, the freq-offset shall be subtracted 1 for aligning with NR bandwidth
   // For example. A 52 PRB cell with an freq_offset of 1 will match a LTE 50 PRB cell with freq_offset of 0
@@ -266,11 +306,12 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
     return false;
   }
 
-  switch (prach_cfg->root_seq_idx = asn1_type.prach_root_seq_idx.type()) {
+  switch (asn1_type.prach_root_seq_idx.type().value) {
     case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l839:
       prach_cfg->root_seq_idx = (uint32_t)asn1_type.prach_root_seq_idx.l839();
       break;
     case rach_cfg_common_s::prach_root_seq_idx_c_::types_opts::l139:
+      prach_cfg->root_seq_idx = (uint32_t)asn1_type.prach_root_seq_idx.l139();
     default:
       asn1::log_error("Not-implemented option for prach_root_seq_idx type %s",
                       asn1_type.prach_root_seq_idx.type().to_string());
@@ -279,6 +320,40 @@ bool make_phy_rach_cfg(const rach_cfg_common_s& asn1_type, srsran_prach_cfg_t* p
 
   return true;
 };
+
+bool fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
+{
+  asn1_type = {};
+  // rach-ConfigGeneric
+  asn1_type.rach_cfg_generic.prach_cfg_idx             = prach_cfg.config_idx;
+  asn1_type.rach_cfg_generic.msg1_fdm.value            = rach_cfg_generic_s::msg1_fdm_opts::one;
+  asn1_type.rach_cfg_generic.msg1_freq_start           = prach_cfg.freq_offset;
+  asn1_type.rach_cfg_generic.zero_correlation_zone_cfg = prach_cfg.zero_corr_zone;
+  asn1_type.rach_cfg_generic.preamb_rx_target_pwr      = -110;
+  asn1_type.rach_cfg_generic.preamb_trans_max.value    = rach_cfg_generic_s::preamb_trans_max_opts::n7;
+  asn1_type.rach_cfg_generic.pwr_ramp_step.value       = rach_cfg_generic_s::pwr_ramp_step_opts::db4;
+  asn1_type.rach_cfg_generic.ra_resp_win.value         = rach_cfg_generic_s::ra_resp_win_opts::sl10;
+
+  // totalNumberOfRA-Preambles
+  if (prach_cfg.num_ra_preambles != 64) {
+    asn1_type.total_nof_ra_preambs_present = true;
+    asn1_type.total_nof_ra_preambs         = prach_cfg.num_ra_preambles;
+  }
+
+  // ssb-perRACH-OccasionAndCB-PreamblesPerSSB
+  asn1_type.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present = true;
+  if (not asn1::number_to_enum(asn1_type.ssb_per_rach_occasion_and_cb_preambs_per_ssb.set_one(),
+                               prach_cfg.num_ra_preambles)) {
+    asn1::log_error("Invalid number of RA preambles=%d", prach_cfg.num_ra_preambles);
+    return false;
+  }
+
+  asn1_type.ra_contention_resolution_timer.value = rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
+  asn1_type.prach_root_seq_idx.set_l839()        = prach_cfg.root_seq_idx;
+  asn1_type.restricted_set_cfg.value             = rach_cfg_common_s::restricted_set_cfg_opts::unrestricted_set;
+
+  return true;
+}
 
 bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
                       srsran_duplex_config_nr_t*    in_srsran_duplex_config_nr)
@@ -313,43 +388,103 @@ bool make_phy_tdd_cfg(const tdd_ul_dl_cfg_common_s& tdd_ul_dl_cfg_common,
   srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_dl_symbols;
   srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern1.nrof_ul_slots;
   srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern1.nrof_ul_symbols;
+
+  if (tdd_ul_dl_cfg_common.pattern2_present) {
+    switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
+        break;
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
+        srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
+        break;
+
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
+      case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
+      default:
+        asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
+                          tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
+        return false;
+    }
+
+    srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
+    srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
+    srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
+    srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
+  }
+
   // Copy and return struct
   *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
 
-  if (not tdd_ul_dl_cfg_common.pattern2_present) {
+  return true;
+}
+
+bool make_phy_tdd_cfg(const srsran_duplex_config_nr_t&      srsran_duplex_config_nr,
+                      srsran_subcarrier_spacing_t           scs,
+                      asn1::rrc_nr::tdd_ul_dl_cfg_common_s* tdd_ul_dl_cfg_common)
+{
+  if (srsran_duplex_config_nr.mode == SRSRAN_DUPLEX_MODE_FDD) {
+    return true;
+  }
+  tdd_ul_dl_cfg_common->ref_subcarrier_spacing.value = (asn1::rrc_nr::subcarrier_spacing_e::options)scs;
+
+  switch (srsran_duplex_config_nr.tdd.pattern1.period_ms) {
+    case 1:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1;
+      break;
+    case 2:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2;
+      break;
+    case 5:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5;
+      break;
+    case 10:
+      tdd_ul_dl_cfg_common->pattern1.dl_ul_tx_periodicity = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
+      break;
+    default:
+      asn1::log_warning("Invalid option for dl_ul_tx_periodicity_opts %d",
+                        srsran_duplex_config_nr.tdd.pattern1.period_ms);
+      return false;
+  }
+  tdd_ul_dl_cfg_common->pattern1.nrof_dl_slots   = srsran_duplex_config_nr.tdd.pattern1.nof_dl_slots;
+  tdd_ul_dl_cfg_common->pattern1.nrof_dl_symbols = srsran_duplex_config_nr.tdd.pattern1.nof_dl_symbols;
+  tdd_ul_dl_cfg_common->pattern1.nrof_ul_slots   = srsran_duplex_config_nr.tdd.pattern1.nof_ul_slots;
+  tdd_ul_dl_cfg_common->pattern1.nrof_ul_symbols = srsran_duplex_config_nr.tdd.pattern1.nof_ul_symbols;
+
+  if (srsran_duplex_config_nr.tdd.pattern2.period_ms == 0) {
     return true;
   }
 
-  switch (tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity) {
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 1;
+  tdd_ul_dl_cfg_common->pattern2_present = true;
+  switch (srsran_duplex_config_nr.tdd.pattern2.period_ms) {
+    case 1:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1;
       break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 2;
+    case 2:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2;
       break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 5;
+    case 5:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms5;
       break;
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10:
-      srsran_duplex_config_nr.tdd.pattern2.period_ms = 10;
+    case 10:
+      tdd_ul_dl_cfg_common->pattern2.dl_ul_tx_periodicity.value = tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms10;
       break;
-
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms1p25:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p5:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms0p625:
-    case tdd_ul_dl_pattern_s::dl_ul_tx_periodicity_opts::ms2p5:
     default:
-      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %s",
-                        tdd_ul_dl_cfg_common.pattern2.dl_ul_tx_periodicity.to_string());
+      asn1::log_warning("Invalid option for pattern2 dl_ul_tx_periodicity_opts %d",
+                        srsran_duplex_config_nr.tdd.pattern2.period_ms);
       return false;
   }
-
-  srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_dl_slots;
-  srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_dl_symbols;
-  srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots   = tdd_ul_dl_cfg_common.pattern2.nrof_ul_slots;
-  srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols = tdd_ul_dl_cfg_common.pattern2.nrof_ul_symbols;
-  // Copy and return struct
-  *in_srsran_duplex_config_nr = srsran_duplex_config_nr;
+  tdd_ul_dl_cfg_common->pattern2.nrof_dl_slots   = srsran_duplex_config_nr.tdd.pattern2.nof_dl_slots;
+  tdd_ul_dl_cfg_common->pattern2.nrof_dl_symbols = srsran_duplex_config_nr.tdd.pattern2.nof_dl_symbols;
+  tdd_ul_dl_cfg_common->pattern2.nrof_ul_slots   = srsran_duplex_config_nr.tdd.pattern2.nof_ul_slots;
+  tdd_ul_dl_cfg_common->pattern2.nrof_ul_symbols = srsran_duplex_config_nr.tdd.pattern2.nof_ul_symbols;
 
   return true;
 }
@@ -375,6 +510,21 @@ bool make_phy_harq_ack_cfg(const phys_cell_group_cfg_s& phys_cell_group_cfg,
   }
   *in_srsran_ue_dl_nr_harq_ack_cfg = srsran_ue_dl_nr_harq_ack_cfg;
   return true;
+}
+
+void make_phy_search_space0_cfg(srsran_search_space_t* in_srsran_search_space)
+{
+  in_srsran_search_space->id                = 0;
+  in_srsran_search_space->coreset_id        = 0;
+  in_srsran_search_space->type              = srsran_search_space_type_common_0;
+  in_srsran_search_space->nof_candidates[0] = 0;
+  in_srsran_search_space->nof_candidates[1] = 0;
+  in_srsran_search_space->nof_candidates[2] = 4;
+  in_srsran_search_space->nof_candidates[3] = 2;
+  in_srsran_search_space->nof_candidates[4] = 0;
+  in_srsran_search_space->nof_formats       = 1;
+  in_srsran_search_space->formats[0]        = srsran_dci_format_nr_1_0;
+  in_srsran_search_space->duration          = 1;
 }
 
 bool make_phy_search_space_cfg(const search_space_s& search_space, srsran_search_space_t* in_srsran_search_space)
@@ -490,42 +640,41 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
   }
 
   if (srsran_csi_hl_report_cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
-    srsran_csi_hl_report_cfg.periodic.period =
-        csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_number();
-    switch (csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type()) {
+    const auto& csi_periodic                 = csi_report_cfg.report_cfg_type.periodic();
+    srsran_csi_hl_report_cfg.periodic.period = csi_periodic.report_slot_cfg.type().to_number();
+    switch (csi_periodic.report_slot_cfg.type()) {
       case csi_report_periodicity_and_offset_c::types_opts::slots4:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots4();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots4();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots5:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots5();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots5();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots8:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots8();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots8();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots10:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots10();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots10();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots16:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots16();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots16();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots20:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots20();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots20();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots40:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots40();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots40();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots80:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots80();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots80();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots160:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots160();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots160();
         break;
       case csi_report_periodicity_and_offset_c::types_opts::slots320:
-        srsran_csi_hl_report_cfg.periodic.offset = csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.slots320();
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic.report_slot_cfg.slots320();
         break;
       default:
-        asn1::log_warning("Invalid option for report_slot_cfg %s",
-                          csi_report_cfg.report_cfg_type.periodic().report_slot_cfg.type().to_string());
+        asn1::log_warning("Invalid option for report_slot_cfg %s", csi_periodic.report_slot_cfg.type().to_string());
         return false;
     }
   }
@@ -609,6 +758,7 @@ bool make_phy_csi_report(const csi_report_cfg_s&     csi_report_cfg,
       asn1::log_warning("Invalid option for cqi_table %s", csi_report_cfg.cqi_table.to_string());
       return false;
   }
+
   *in_srsran_csi_hl_report_cfg = srsran_csi_hl_report_cfg;
   return true;
 }
@@ -715,6 +865,10 @@ bool make_phy_res_config(const pucch_res_s&          pucch_res,
 {
   srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {};
   srsran_pucch_nr_resource.starting_prb               = pucch_res.start_prb;
+  srsran_pucch_nr_resource.intra_slot_hopping         = pucch_res.intra_slot_freq_hop_present;
+  if (pucch_res.second_hop_prb_present) {
+    srsran_pucch_nr_resource.second_hop_prb = pucch_res.second_hop_prb;
+  }
   switch (pucch_res.format.type()) {
     case pucch_res_s::format_c_::types_opts::format0:
       srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;
@@ -1002,7 +1156,7 @@ bool make_phy_pusch_scaling(const uci_on_pusch_s& uci_on_pusch, float* in_scalin
 bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_res,
                                  srsran_csi_rs_zp_resource_t*         out_zp_csi_rs_resource)
 {
-  srsran_csi_rs_zp_resource_t zp_csi_rs_resource;
+  srsran_csi_rs_zp_resource_t zp_csi_rs_resource = {};
   zp_csi_rs_resource.id = zp_csi_rs_res.zp_csi_rs_res_id;
   switch (zp_csi_rs_res.res_map.freq_domain_alloc.type()) {
     case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
@@ -1167,7 +1321,7 @@ bool make_phy_zp_csi_rs_resource(const asn1::rrc_nr::zp_csi_rs_res_s& zp_csi_rs_
 bool make_phy_nzp_csi_rs_resource(const asn1::rrc_nr::nzp_csi_rs_res_s& asn1_nzp_csi_rs_res,
                                   srsran_csi_rs_nzp_resource_t*         out_csi_rs_nzp_resource)
 {
-  srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource;
+  srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource = {};
   csi_rs_nzp_resource.id = asn1_nzp_csi_rs_res.nzp_csi_rs_res_id;
   switch (asn1_nzp_csi_rs_res.res_map.freq_domain_alloc.type()) {
     case csi_rs_res_map_s::freq_domain_alloc_c_::types_opts::options::row1:
@@ -1407,6 +1561,91 @@ static inline void make_ssb_positions_in_burst(const bitstring_t&               
   }
 }
 
+void fill_ssb_pos_in_burst(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& cfg, phy_cfg_nr_t::ssb_cfg_t* out_ssb)
+{
+  auto& ssb_pos = cfg.ssb_positions_in_burst;
+
+  out_ssb->position_in_burst = {};
+  uint32_t N                 = ssb_pos.in_one_group.length();
+  for (uint32_t i = 0; i < N; ++i) {
+    out_ssb->position_in_burst[i] = ssb_pos.in_one_group.get(i);
+  }
+  if (ssb_pos.group_presence_present) {
+    for (uint32_t i = 1; i < ssb_pos.group_presence.length(); ++i) {
+      if (ssb_pos.group_presence.get(i)) {
+        std::copy(out_ssb->position_in_burst.begin(),
+                  out_ssb->position_in_burst.begin() + N,
+                  out_ssb->position_in_burst.begin() + i * N);
+      }
+    }
+  }
+}
+
+bool fill_ssb_pattern_scs(const srsran_carrier_nr_t&   carrier,
+                          srsran_ssb_pattern_t*        pattern,
+                          srsran_subcarrier_spacing_t* ssb_scs)
+{
+  srsran::srsran_band_helper bands;
+  uint16_t                   band = bands.get_band_from_dl_freq_Hz(carrier.ssb_center_freq_hz);
+  if (band == UINT16_MAX) {
+    asn1::log_error("Invalid band for SSB frequency %.3f MHz", carrier.ssb_center_freq_hz);
+    return false;
+  }
+
+  // TODO: Generalize conversion for other SCS
+  *pattern = bands.get_ssb_pattern(band, srsran_subcarrier_spacing_15kHz);
+  if (*pattern == SRSRAN_SSB_PATTERN_A) {
+    *ssb_scs = carrier.scs;
+  } else {
+    // try to optain SSB pattern for same band with 30kHz SCS
+    *pattern = bands.get_ssb_pattern(band, srsran_subcarrier_spacing_30kHz);
+    if (*pattern == SRSRAN_SSB_PATTERN_B || *pattern == SRSRAN_SSB_PATTERN_C) {
+      // SSB SCS is 30 kHz
+      *ssb_scs = srsran_subcarrier_spacing_30kHz;
+    } else {
+      asn1::log_error("Can't derive SSB pattern from band %d", band);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      srsran_ssb_cfg_t*                                  out_ssb)
+{
+  *out_ssb = {};
+
+  out_ssb->center_freq_hz = carrier.dl_center_frequency_hz;
+  out_ssb->ssb_freq_hz    = carrier.ssb_center_freq_hz;
+  if (not fill_ssb_pattern_scs(carrier, &out_ssb->pattern, &out_ssb->scs)) {
+    return false;
+  }
+
+  out_ssb->duplex_mode = SRSRAN_DUPLEX_MODE_FDD;
+  if (serv_cell_cfg.tdd_ul_dl_cfg_common_present) {
+    out_ssb->duplex_mode = SRSRAN_DUPLEX_MODE_TDD;
+  }
+
+  out_ssb->periodicity_ms = serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+  return true;
+}
+
+// SA case
+bool fill_phy_ssb_cfg(const srsran_carrier_nr_t&                         carrier,
+                      const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb)
+{
+  // Derive SSB pattern and SCS
+  if (not fill_ssb_pattern_scs(carrier, &out_ssb->pattern, &out_ssb->scs)) {
+    return false;
+  }
+  fill_ssb_pos_in_burst(serv_cell_cfg, out_ssb);
+  out_ssb->periodicity_ms = (uint32_t)serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+
+  return true;
+}
+
 bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
                       const asn1::rrc_nr::serving_cell_cfg_common_s& serv_cell_cfg,
                       phy_cfg_nr_t::ssb_cfg_t*                       out_ssb)
@@ -1489,32 +1728,45 @@ bool make_phy_ssb_cfg(const srsran_carrier_nr_t&                     carrier,
   return true;
 }
 
+bool make_phy_mib(const asn1::rrc_nr::mib_s& mib_cfg, srsran_mib_nr_t* mib)
+{
+  mib->sfn     = 0;
+  mib->ssb_idx = 0;
+  mib->hrf     = false;
+  mib->scs_common =
+      mib_cfg.sub_carrier_spacing_common.value == asn1::rrc_nr::mib_s::sub_carrier_spacing_common_opts::scs15or60
+          ? srsran_subcarrier_spacing_15kHz
+          : srsran_subcarrier_spacing_30kHz;
+  mib->ssb_offset             = mib_cfg.ssb_subcarrier_offset;
+  mib->dmrs_typeA_pos         = (srsran_dmrs_sch_typeA_pos_t)mib_cfg.dmrs_type_a_position.value;
+  mib->coreset0_idx           = mib_cfg.pdcch_cfg_sib1.ctrl_res_set_zero;
+  mib->ss0_idx                = mib_cfg.pdcch_cfg_sib1.search_space_zero;
+  mib->cell_barred            = mib_cfg.cell_barred.value == asn1::rrc_nr::mib_s::cell_barred_opts::barred;
+  mib->intra_freq_reselection = mib_cfg.intra_freq_resel.value == asn1::rrc_nr::mib_s::intra_freq_resel_opts::allowed;
+  return true;
+}
+
 bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_sch_hl_cfg_nr_t* sch_hl)
 {
-  if (serv_cell.csi_meas_cfg_present and
-      serv_cell.csi_meas_cfg.type().value ==
-          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+  if (serv_cell.csi_meas_cfg_present and serv_cell.csi_meas_cfg.is_setup()) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure NZP-CSI
-    if (setup.nzp_csi_rs_res_set_to_add_mod_list_present) {
-      for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
-        auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
-        uecfg_set.trs_info = nzp_set.trs_info_present;
-        uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
-        uint32_t count     = 0;
-        for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
-          auto& res = uecfg_set.data[count++];
-          if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
-            return false;
-          }
+    for (auto& nzp_set : setup.nzp_csi_rs_res_set_to_add_mod_list) {
+      auto& uecfg_set    = sch_hl->nzp_csi_rs_sets[nzp_set.nzp_csi_res_set_id];
+      uecfg_set.trs_info = nzp_set.trs_info_present;
+      uecfg_set.count    = nzp_set.nzp_csi_rs_res.size();
+      uint32_t count     = 0;
+      for (uint8_t nzp_rs_idx : nzp_set.nzp_csi_rs_res) {
+        auto& res = uecfg_set.data[count++];
+        if (not srsran::make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], &res)) {
+          return false;
         }
       }
     }
   }
 
-  if (serv_cell.init_dl_bwp.pdsch_cfg_present and
-      serv_cell.init_dl_bwp.pdsch_cfg.type() == setup_release_c<pdsch_cfg_s>::types_opts::setup) {
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present and serv_cell.init_dl_bwp.pdsch_cfg.is_setup()) {
     const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
     if (setup.p_zp_csi_rs_res_set_present) {
       auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
@@ -1534,16 +1786,27 @@ bool make_pdsch_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_
 
 bool make_csi_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_s& serv_cell, srsran_csi_hl_cfg_t* csi_hl)
 {
-  if (serv_cell.csi_meas_cfg_present and
-      serv_cell.csi_meas_cfg.type().value ==
-          setup_release_c< ::asn1::rrc_nr::csi_meas_cfg_s>::types_opts::options::setup) {
+  if (serv_cell.csi_meas_cfg_present and serv_cell.csi_meas_cfg.is_setup()) {
     auto& setup = serv_cell.csi_meas_cfg.setup();
 
     // Configure CSI-Report
-    if (setup.csi_report_cfg_to_add_mod_list_present) {
-      for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
-        const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
-        if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+    for (uint32_t i = 0; i < setup.csi_report_cfg_to_add_mod_list.size(); ++i) {
+      const auto& csi_rep = setup.csi_report_cfg_to_add_mod_list[i];
+      if (not make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+        return false;
+      }
+      if (csi_rep.report_cfg_type.type().value == csi_report_cfg_s::report_cfg_type_c_::types_opts::periodic) {
+        const auto&                 pucch_setup = serv_cell.ul_cfg.init_ul_bwp.pucch_cfg.setup();
+        srsran_pucch_nr_resource_t& resource    = csi_hl->reports[i].periodic.resource;
+        uint32_t    pucch_resource_id           = csi_rep.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res;
+        const auto& asn1_resource               = pucch_setup.res_to_add_mod_list[pucch_resource_id];
+        uint32_t    format2_rate                = 0;
+        if (pucch_setup.format2_present and
+            pucch_setup.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+            pucch_setup.format2.setup().max_code_rate_present) {
+          format2_rate = pucch_setup.format2.setup().max_code_rate.to_number();
+        }
+        if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
           return false;
         }
       }
@@ -1567,18 +1830,14 @@ bool make_duplex_cfg_from_serv_cell(const asn1::rrc_nr::serving_cell_cfg_common_
 
 bool fill_phy_pdcch_cfg(const asn1::rrc_nr::pdcch_cfg_s& pdcch_cfg, srsran_pdcch_cfg_nr_t* pdcch)
 {
-  if (pdcch_cfg.ctrl_res_set_to_add_mod_list_present) {
-    for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
-      pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
-      make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
-    }
+  for (const ctrl_res_set_s& coreset : pdcch_cfg.ctrl_res_set_to_add_mod_list) {
+    pdcch->coreset_present[coreset.ctrl_res_set_id] = true;
+    make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset.ctrl_res_set_id]);
   }
 
-  if (pdcch_cfg.search_spaces_to_add_mod_list_present) {
-    for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
-      pdcch->search_space_present[ss.search_space_id] = true;
-      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
-    }
+  for (const search_space_s& ss : pdcch_cfg.search_spaces_to_add_mod_list) {
+    pdcch->search_space_present[ss.search_space_id] = true;
+    make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
   }
   return true;
 }
@@ -1589,47 +1848,225 @@ bool fill_phy_pdcch_cfg_common(const asn1::rrc_nr::pdcch_cfg_common_s& pdcch_cfg
     pdcch->coreset_present[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id] = true;
     make_phy_coreset_cfg(pdcch_cfg.common_ctrl_res_set, &pdcch->coreset[pdcch_cfg.common_ctrl_res_set.ctrl_res_set_id]);
   }
-  if (pdcch_cfg.common_search_space_list_present) {
-    for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
-      pdcch->search_space_present[ss.search_space_id] = true;
-      make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id]);
-      if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
-        pdcch->ra_search_space_present = true;
-        pdcch->ra_search_space         = pdcch->search_space[ss.search_space_id];
+  for (const search_space_s& ss : pdcch_cfg.common_search_space_list) {
+    pdcch->search_space_present[ss.search_space_id] = true;
+    if (not make_phy_search_space_cfg(ss, &pdcch->search_space[ss.search_space_id])) {
+      asn1::log_error("Failed to convert SearchSpace Configuration");
+      return false;
+    }
+    if (pdcch_cfg.ra_search_space_present and pdcch_cfg.ra_search_space == ss.search_space_id) {
+      pdcch->ra_search_space_present     = true;
+      pdcch->ra_search_space             = pdcch->search_space[ss.search_space_id];
+      pdcch->ra_search_space.type        = srsran_search_space_type_common_1;
+      pdcch->ra_search_space.nof_formats = 1;
+      pdcch->ra_search_space.formats[0]  = srsran_dci_format_nr_1_0;
+    }
+  }
+  return true;
+}
+
+void fill_phy_pucch_cfg_common(const asn1::rrc_nr::pucch_cfg_common_s& pucch_cfg, srsran_pucch_nr_common_cfg_t* pucch)
+{
+  if (pucch_cfg.pucch_res_common_present) {
+    pucch->resource_common = pucch_cfg.pucch_res_common;
+  }
+  if (pucch_cfg.hop_id_present) {
+    pucch->hopping_id_present = true;
+    pucch->hopping_id         = pucch_cfg.hop_id;
+  }
+  if (pucch_cfg.p0_nominal_present) {
+    pucch->p0_nominal = pucch_cfg.p0_nominal;
+  }
+
+  switch (pucch_cfg.pucch_group_hop) {
+    case pucch_cfg_common_s::pucch_group_hop_opts::enable:
+      pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_ENABLE;
+      break;
+    case pucch_cfg_common_s::pucch_group_hop_opts::disable:
+      pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_DISABLE;
+      break;
+    default:
+      pucch->group_hopping = SRSRAN_PUCCH_NR_GROUP_HOPPING_NEITHER;
+      break;
+  }
+}
+
+bool fill_phy_pucch_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  // sanity check to avoid pucch->sets[n] goes out of bound
+  if (pucch_cfg.res_set_to_add_mod_list.size() > SRSRAN_PUCCH_NR_MAX_NOF_SETS) {
+    return false;
+  }
+
+  // iterate over the sets of resourceSetToAddModList
+  for (size_t n = 0; n < pucch_cfg.res_set_to_add_mod_list.size(); n++) {
+    auto& res_set                = pucch_cfg.res_set_to_add_mod_list[n];
+    pucch->sets[n].nof_resources = res_set.res_list.size();
+    if (res_set.max_payload_size_present) {
+      pucch->sets[n].max_payload_size = res_set.max_payload_size;
+    }
+    // NOTE:  res_set.pucch_res_set_id does not have a corresponding field in the PHY struct
+
+    // for each set, iterate over the elements (an element is an index). For each of the element or index, find the
+    // corresponding pucch_res_s object in the pucch_cfg.res_to_add_mod_list
+    for (size_t res_idx = 0; res_idx < res_set.res_list.size(); res_idx++) {
+      size_t pucch_resource_id = res_set.res_list[res_idx];
+
+      // Find the pucch_res_s object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      size_t m = 0;
+      while (m <= pucch_cfg.res_to_add_mod_list.size()) {
+        if (m == pucch_cfg.res_to_add_mod_list.size()) {
+          // if we get here, the list pucch_cfg.res_to_add_mod_list does not contain any object corresponding to
+          // pucch_resource_id
+          return false;
+        }
+        if (pucch_cfg.res_to_add_mod_list[m].pucch_res_id == pucch_resource_id) {
+          break; // item found, exit the loop
+        }
+        m++;
       }
+
+      // Below is the object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      const auto& asn1_resource = pucch_cfg.res_to_add_mod_list[m];
+
+      // sanity check to avoid pucch->sets[n].resources[res_idx] goes out of bound;
+      if (res_idx >= SRSRAN_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET) {
+        return false;
+      }
+
+      auto&    resource     = pucch->sets[n].resources[res_idx];
+      uint32_t format2_rate = 0;
+      if (pucch_cfg.format2_present and
+          pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+          pucch_cfg.format2.setup().max_code_rate_present) {
+        format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
+      }
+      if (not make_phy_res_config(asn1_resource, format2_rate, &resource)) {
+        return false;
+      }
+    }
+  }
+
+  // configure scheduling request resources
+  return fill_phy_pucch_hl_cfg(pucch_cfg, pucch);
+}
+
+bool fill_phy_pucch_hl_cfg(const asn1::rrc_nr::pucch_cfg_s& pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  for (size_t n = 0; n < pucch_cfg.sched_request_res_to_add_mod_list.size(); n++) {
+    // fill each sr_resource's cnf
+    auto&                          asn_sr_res = pucch_cfg.sched_request_res_to_add_mod_list[n];
+    srsran_pucch_nr_sr_resource_t* sr_res     = &pucch->sr_resources[asn_sr_res.sched_request_res_id];
+    make_phy_sr_resource(asn_sr_res, sr_res);
+
+    // get the pucch_resource from pucch_cfg.res_to_add_mod_list and copy it into the sr_resouce.resource
+    const auto& asn1_pucch_resource = pucch_cfg.res_to_add_mod_list[asn_sr_res.res];
+    auto&       pucch_resource      = sr_res->resource;
+    uint32_t    format2_rate        = 0;
+    if (pucch_cfg.format2_present and
+        pucch_cfg.format2.type().value == asn1::setup_release_c<pucch_format_cfg_s>::types_opts::setup and
+        pucch_cfg.format2.setup().max_code_rate_present) {
+      format2_rate = pucch_cfg.format2.setup().max_code_rate.to_number();
+    }
+    if (not make_phy_res_config(asn1_pucch_resource, format2_rate, &pucch_resource)) {
+      return false;
     }
   }
 
   return true;
 }
 
-} // namespace srsran
-
-namespace srsenb {
-
-int set_sched_cell_cfg_sib1(srsenb::sched_interface::cell_cfg_t* sched_cfg, const asn1::rrc_nr::sib1_s& sib1)
+bool fill_phy_pdsch_cfg_common(const asn1::rrc_nr::pdsch_cfg_common_s& pdsch_cfg, srsran_sch_hl_cfg_nr_t* pdsch)
 {
-  bzero(sched_cfg, sizeof(srsenb::sched_interface::cell_cfg_t));
-
-  // set SIB1 and SIB2+ period
-  sched_cfg->sibs[0].period_rf = 16; // SIB1 is always 16 rf
-  for (uint32_t i = 0; i < sib1.si_sched_info.sched_info_list.size(); i++) {
-    sched_cfg->sibs[i + 1].period_rf = sib1.si_sched_info.sched_info_list[i].si_periodicity.to_number();
+  for (uint32_t i = 0; i < pdsch_cfg.pdsch_time_domain_alloc_list.size(); i++) {
+    srsran_sch_time_ra_t common_time_ra;
+    if (make_phy_common_time_ra(pdsch_cfg.pdsch_time_domain_alloc_list[i], &common_time_ra) == true) {
+      pdsch->common_time_ra[i]  = common_time_ra;
+      pdsch->nof_common_time_ra = i + 1;
+    } else {
+      asn1::log_warning("Warning while building common_time_ra structure");
+      return false;
+    }
   }
-
-  // si-WindowLength
-  sched_cfg->si_window_ms = sib1.si_sched_info.si_win_len.to_number();
-
-  // setup PRACH
-  if (not sib1.si_sched_info.si_request_cfg.rach_occasions_si_present) {
-    asn1::log_warning("rach_occasions_si option not present");
-    return SRSRAN_ERROR;
-  }
-  sched_cfg->prach_rar_window = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win.to_number();
-  sched_cfg->prach_freq_offset = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.msg1_freq_start;
-  sched_cfg->maxharq_msg3tx    = sib1.si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.preamb_trans_max;
-
-  return SRSRAN_SUCCESS;
+  return true;
 }
 
-} // namespace srsenb
+bool fill_phy_pusch_cfg_common(const asn1::rrc_nr::pusch_cfg_common_s& pusch_cfg, srsran_sch_hl_cfg_nr_t* pusch)
+{
+  for (uint32_t i = 0; i < pusch_cfg.pusch_time_domain_alloc_list.size(); i++) {
+    srsran_sch_time_ra_t common_time_ra;
+    if (make_phy_common_time_ra(pusch_cfg.pusch_time_domain_alloc_list[i], &common_time_ra) == true) {
+      pusch->common_time_ra[i]  = common_time_ra;
+      pusch->nof_common_time_ra = i + 1;
+    } else {
+      asn1::log_warning("Warning while building common_time_ra structure");
+      return false;
+    }
+  }
+  return true;
+}
+
+void fill_phy_carrier_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                          srsran_carrier_nr_t*                               out_carrier_nr)
+{
+  // TODO: Currently ony one carrier is supported
+  auto& freq_info_dl                = serv_cell_cfg.dl_cfg_common.freq_info_dl;
+  out_carrier_nr->offset_to_carrier = freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
+  out_carrier_nr->scs     = make_subcarrier_spacing(freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing);
+  out_carrier_nr->nof_prb = freq_info_dl.scs_specific_carrier_list[0].carrier_bw;
+
+  auto&                      freq_info_ul = serv_cell_cfg.ul_cfg_common.freq_info_ul;
+  srsran::srsran_band_helper bands;
+  out_carrier_nr->ul_center_frequency_hz = bands.get_center_freq_from_abs_freq_point_a(
+      freq_info_ul.scs_specific_carrier_list[0].carrier_bw, freq_info_ul.absolute_freq_point_a);
+}
+
+void fill_phy_ssb_cfg(const asn1::rrc_nr::serving_cell_cfg_common_sib_s& serv_cell_cfg,
+                      phy_cfg_nr_t::ssb_cfg_t*                           out_ssb)
+{
+  out_ssb->periodicity_ms = serv_cell_cfg.ssb_periodicity_serving_cell.to_number();
+
+  if (serv_cell_cfg.ssb_positions_in_burst.group_presence_present) {
+    make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.group_presence, out_ssb->position_in_burst);
+  } else {
+    make_ssb_positions_in_burst(serv_cell_cfg.ssb_positions_in_burst.in_one_group, out_ssb->position_in_burst);
+  }
+}
+
+/**************************
+ *     Asn1 Obj Id
+ *************************/
+
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::srb_to_add_mod_s, srb_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::drb_to_add_mod_s, drb_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_obj_to_add_mod_s, meas_obj_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::report_cfg_to_add_mod_s, report_cfg_id);
+ASN1_OBJ_ID_DEFINE(asn1::rrc_nr::meas_id_to_add_mod_s, meas_id);
+
+} // namespace srsran
+
+namespace asn1 {
+
+namespace rrc_nr {
+
+bool operator==(const srb_to_add_mod_s& lhs, const srb_to_add_mod_s& rhs)
+{
+  if (lhs.srb_id != rhs.srb_id or lhs.pdcp_cfg_present != rhs.pdcp_cfg_present) {
+    return false;
+  }
+  // TODO: check remaining fields
+  return true;
+}
+bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs)
+{
+  if (lhs.drb_id != rhs.drb_id or lhs.pdcp_cfg_present != rhs.pdcp_cfg_present or
+      lhs.cn_assoc_present != rhs.cn_assoc_present) {
+    return false;
+  }
+  // TODO: check remaining fields
+  return true;
+}
+
+} // namespace rrc_nr
+
+} // namespace asn1

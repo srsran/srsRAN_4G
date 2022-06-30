@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,8 +22,6 @@
 #include "srsran/common/common.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/srsran.h"
-
-#include "srsran/interfaces/enb_rrc_interfaces.h"
 
 #ifndef SRSRAN_ENB_INTERFACES_H
 #define SRSRAN_ENB_INTERFACES_H

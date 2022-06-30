@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -40,11 +40,10 @@ public:
 
   virtual std::string get_type() = 0;
 
-  virtual int init(const phy_args_t& args_) = 0;
-
   virtual void stop() = 0;
 
   virtual void wait_initialize() = 0;
+  virtual bool is_initialized()  = 0;
   virtual void start_plot()      = 0;
 
   virtual void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) = 0;

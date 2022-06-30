@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -39,11 +39,10 @@ public:
     preamble_index                 = preamble_index_;
     preamble_received_target_power = preamble_received_target_power_;
   }
-  int tx_request(const tx_request_t& request) override { return 0; }
-  int set_ul_grant(uint32_t rar_slot_idx,
-                   std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS>,
-                   uint16_t           rnti,
-                   srsran_rnti_type_t rnti_type) override
+  int set_rar_grant(uint32_t rar_slot_idx,
+                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS>,
+                    uint16_t           rnti,
+                    srsran_rnti_type_t rnti_type) override
   {
     return 0;
   }
@@ -56,6 +55,9 @@ public:
   }
   bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
   void clear_pending_grants() override {}
+
+  void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) final{};
+  void set_timeadv(uint32_t tti, uint32_t ta_cmd) final{};
 
 private:
   uint32_t prach_occasion                 = 0;

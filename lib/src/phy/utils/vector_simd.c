@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -718,6 +718,36 @@ void srsran_vec_sub_fff_simd(const float* x, const float* y, float* z, const int
 
   for (; i < len; i++) {
     z[i] = x[i] - y[i];
+  }
+}
+
+void srsran_vec_sc_sum_fff_simd(const float* x, float h, float* z, int len)
+{
+  int i = 0;
+
+#if SRSRAN_SIMD_F_SIZE
+  const simd_f_t hh = srsran_simd_f_set1(h);
+  if (SRSRAN_IS_ALIGNED(x) && SRSRAN_IS_ALIGNED(z)) {
+    for (; i < len - SRSRAN_SIMD_F_SIZE + 1; i += SRSRAN_SIMD_F_SIZE) {
+      simd_f_t xx = srsran_simd_f_load(&x[i]);
+
+      simd_f_t zz = srsran_simd_f_add(xx, hh);
+
+      srsran_simd_f_store(&z[i], zz);
+    }
+  } else {
+    for (; i < len - SRSRAN_SIMD_F_SIZE + 1; i += SRSRAN_SIMD_F_SIZE) {
+      simd_f_t xx = srsran_simd_f_loadu(&x[i]);
+
+      simd_f_t zz = srsran_simd_f_add(xx, hh);
+
+      srsran_simd_f_storeu(&z[i], zz);
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = x[i] + h;
   }
 }
 

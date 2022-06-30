@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -171,6 +171,13 @@ void sched_ue::set_sr()
 void sched_ue::unset_sr()
 {
   sr = false;
+}
+
+void sched_ue::metrics_read(mac_ue_metrics_t& metrics)
+{
+  sched_ue_cell& pcell  = cells[cfg.supported_cc_list[0].enb_cc_idx];
+  metrics.ul_snr_offset = pcell.get_ul_snr_offset();
+  metrics.dl_cqi_offset = pcell.get_dl_cqi_offset();
 }
 
 tti_point prev_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
@@ -741,8 +748,9 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
-    logger.error("SCHED: DL CQI does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
+    logger.error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
                  "Consider increasing initial CQI value.",
+                 cells[enb_cc_idx].get_dl_cqi(),
                  req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }

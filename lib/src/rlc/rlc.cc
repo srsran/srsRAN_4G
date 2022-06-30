@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,7 +21,7 @@
 
 #include "srsran/rlc/rlc.h"
 #include "srsran/common/rwlock_guard.h"
-#include "srsran/rlc/rlc_am_lte.h"
+#include "srsran/rlc/rlc_am_base.h"
 #include "srsran/rlc/rlc_tm.h"
 #include "srsran/rlc/rlc_um_lte.h"
 #include "srsran/rlc/rlc_um_nr.h"
@@ -108,21 +108,21 @@ void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
     double rx_rate_mbps = (nof_tti > 0) ? ((metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
     double tx_rate_mbps = (nof_tti > 0) ? ((metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
 
-    logger.info("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
-                it->first,
-                rx_rate_mbps,
-                rx_rate_mbps_real_time,
-                tx_rate_mbps,
-                tx_rate_mbps_real_time);
+    logger.debug("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
+                 it->first,
+                 rx_rate_mbps,
+                 rx_rate_mbps_real_time,
+                 tx_rate_mbps,
+                 tx_rate_mbps_real_time);
     m.bearer[it->first] = metrics;
   }
 
   // Add multicast metrics
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
-    logger.info("MCH_LCID=%d, rx_rate_mbps=%4.2f",
-                it->first,
-                (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs.count());
+    logger.debug("MCH_LCID=%d, rx_rate_mbps=%4.2f",
+                 it->first,
+                 (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs.count());
     m.bearer[it->first] = metrics;
   }
 
@@ -392,7 +392,7 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   rwlock_write_guard lock(rwlock);
 
   if (valid_lcid(lcid)) {
-    logger.error("LCID %d already exists", lcid);
+    logger.warning("LCID %d already exists", lcid);
     return SRSRAN_ERROR;
   }
 
@@ -405,7 +405,10 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     case rlc_mode_t::am:
       switch (cnfg.rat) {
         case srsran_rat_t::lte:
-          rlc_entity = std::unique_ptr<rlc_common>(new rlc_am_lte(logger, lcid, pdcp, rrc, timers));
+          rlc_entity = std::unique_ptr<rlc_common>(new rlc_am(cnfg.rat, logger, lcid, pdcp, rrc, timers));
+          break;
+        case srsran_rat_t::nr:
+          rlc_entity = std::unique_ptr<rlc_common>(new rlc_am(cnfg.rat, logger, lcid, pdcp, rrc, timers));
           break;
         default:
           logger.error("AM not supported for this RAT");
@@ -467,6 +470,7 @@ int rlc::add_bearer_mrb(uint32_t lcid)
       logger.error("Error configuring RLC entity.");
       return SRSRAN_ERROR;
     }
+    rlc_entity->set_bsr_callback(bsr_callback);
     if (rlc_array_mrb.count(lcid) == 0) {
       if (not rlc_array_mrb.insert(rlc_map_pair_t(lcid, std::move(rlc_entity))).second) {
         logger.error("Error inserting RLC entity in to array.");

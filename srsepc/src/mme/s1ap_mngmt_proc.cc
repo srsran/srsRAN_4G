@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -126,36 +126,35 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
  */
 bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg, enb_ctx_t* enb_ctx)
 {
-
   uint8_t  enb_id_bits[32];
   uint32_t plmn = 0;
   uint16_t tac, bplmn;
 
   uint32_t tmp32 = 0;
 
-  const asn1::s1ap::s1_setup_request_ies_container& s1_req = msg.protocol_ies;
+  const asn1::s1ap::s1_setup_request_s& s1_req = msg;
 
   // eNB Name
-  enb_ctx->enb_name_present = s1_req.enbname_present;
-  if (s1_req.enbname_present) {
-    enb_ctx->enb_name = s1_req.enbname.value.to_string();
+  enb_ctx->enb_name_present = s1_req->enbname_present;
+  if (s1_req->enbname_present) {
+    enb_ctx->enb_name = s1_req->enbname.value.to_string();
   }
 
   // eNB Id
-  enb_ctx->enb_id = s1_req.global_enb_id.value.enb_id.macro_enb_id().to_number();
+  enb_ctx->enb_id = s1_req->global_enb_id.value.enb_id.macro_enb_id().to_number();
 
   // PLMN Id
-  ((uint8_t*)&plmn)[1] = s1_req.global_enb_id.value.plm_nid[0];
-  ((uint8_t*)&plmn)[2] = s1_req.global_enb_id.value.plm_nid[1];
-  ((uint8_t*)&plmn)[3] = s1_req.global_enb_id.value.plm_nid[2];
+  ((uint8_t*)&plmn)[1] = s1_req->global_enb_id.value.plm_nid[0];
+  ((uint8_t*)&plmn)[2] = s1_req->global_enb_id.value.plm_nid[1];
+  ((uint8_t*)&plmn)[3] = s1_req->global_enb_id.value.plm_nid[2];
 
   enb_ctx->plmn = ntohl(plmn);
   srsran::s1ap_plmn_to_mccmnc(enb_ctx->plmn, &enb_ctx->mcc, &enb_ctx->mnc);
 
   // SupportedTAs
-  enb_ctx->nof_supported_ta = s1_req.supported_tas.value.size();
+  enb_ctx->nof_supported_ta = s1_req->supported_tas.value.size();
   for (uint16_t i = 0; i < enb_ctx->nof_supported_ta; i++) {
-    const asn1::s1ap::supported_tas_item_s& tas = s1_req.supported_tas.value[i];
+    const asn1::s1ap::supported_tas_item_s& tas = s1_req->supported_tas.value[i];
     // TAC
     ((uint8_t*)&enb_ctx->tacs[i])[0] = tas.tac[0];
     ((uint8_t*)&enb_ctx->tacs[i])[1] = tas.tac[1];
@@ -172,7 +171,7 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request
   }
 
   // Default Paging DRX
-  enb_ctx->drx.value = s1_req.default_paging_drx.value;
+  enb_ctx->drx.value = s1_req->default_paging_drx.value;
 
   return true;
 }
@@ -182,10 +181,10 @@ bool s1ap_mngmt_proc::send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
 
-  asn1::s1ap::s1_setup_fail_ies_container& s1_fail = tx_pdu.unsuccessful_outcome().value.s1_setup_fail().protocol_ies;
+  asn1::s1ap::s1_setup_fail_s& s1_fail = tx_pdu.unsuccessful_outcome().value.s1_setup_fail();
 
-  s1_fail.cause.value.set(asn1::s1ap::cause_c::types_opts::misc);
-  s1_fail.cause.value.misc().value = cause;
+  s1_fail->cause.value.set(asn1::s1ap::cause_c::types_opts::misc);
+  s1_fail->cause.value.misc().value = cause;
 
   m_s1ap->s1ap_tx_pdu(tx_pdu, enb_sri);
   return true;
@@ -198,20 +197,20 @@ bool s1ap_mngmt_proc::send_s1_setup_response(const s1ap_args_t& s1ap_args, struc
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
 
-  asn1::s1ap::s1_setup_resp_ies_container& s1_resp = tx_pdu.successful_outcome().value.s1_setup_resp().protocol_ies;
+  asn1::s1ap::s1_setup_resp_s& s1_resp = tx_pdu.successful_outcome().value.s1_setup_resp();
 
   // MME Name
-  s1_resp.mm_ename_present = true;
-  s1_resp.mm_ename.value.from_string(s1ap_args.mme_name);
+  s1_resp->mm_ename_present = true;
+  s1_resp->mm_ename.value.from_string(s1ap_args.mme_name);
 
   // Served GUMEIs
-  s1_resp.served_gummeis.value.resize(1); // TODO Only one served GUMMEI supported
+  s1_resp->served_gummeis.value.resize(1); // TODO Only one served GUMMEI supported
 
   uint32_t plmn = 0;
   srsran::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
   plmn = htonl(plmn);
 
-  asn1::s1ap::served_gummeis_item_s& serv_gummei = s1_resp.served_gummeis.value[0];
+  asn1::s1ap::served_gummeis_item_s& serv_gummei = s1_resp->served_gummeis.value[0];
 
   serv_gummei.served_plmns.resize(1);
   serv_gummei.served_plmns[0][0] = ((uint8_t*)&plmn)[1];
@@ -224,7 +223,7 @@ bool s1ap_mngmt_proc::send_s1_setup_response(const s1ap_args_t& s1ap_args, struc
   serv_gummei.served_mmecs.resize(1); // Only one MMEC served
   serv_gummei.served_mmecs[0].from_number(s1ap_args.mme_code);
 
-  s1_resp.relative_mme_capacity.value = 255;
+  s1_resp->relative_mme_capacity.value = 255;
 
   if (!m_s1ap->s1ap_tx_pdu(tx_pdu, enb_sri)) {
     m_logger.error("Error sending S1 Setup Response.");

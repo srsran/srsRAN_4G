@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -371,7 +371,10 @@ void mac::mch_decoded(uint32_t len, bool crc)
 
 void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSRAN_MAX_CODEWORDS])
 {
-  if (SRSRAN_RNTI_ISRAR(grant.rnti)) {
+  if (grant.is_pdcch_order) {
+    ra_procedure.set_config_ded(grant.preamble_idx, grant.prach_mask_idx);
+    ra_procedure.start_pdcch_order();
+  } else if (SRSRAN_RNTI_ISRAR(grant.rnti)) {
     if (ack[0]) {
       ra_procedure.tb_decoded_ok(cc_idx, grant.tti);
     }
@@ -439,6 +442,9 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
       action->tb[0].rv            = grant.tb[0].rv;
       srsran_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
     }
+  } else if (grant.is_pdcch_order) {
+    // if the grant is a PDCCH order then there is no associated PDSCH
+    action->tb[0].enabled = false;
   } else if (!(grant.rnti == SRSRAN_SIRNTI && cc_idx != 0)) {
     // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
     if (grant.rnti == uernti.get_crnti() && ra_procedure.is_contention_resolution()) {
@@ -674,11 +680,11 @@ void mac::get_metrics(mac_metrics_t m[SRSRAN_MAX_CARRIERS])
     dl_avg_ret /= dl_avg_ret_count;
   }
 
-  Info("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f",
-       rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
-       dl_avg_ret,
-       tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,
-       ul_harq.at(PCELL_CC_IDX)->get_average_retx());
+  Debug("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f",
+        rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
+        dl_avg_ret,
+        tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,
+        ul_harq.at(PCELL_CC_IDX)->get_average_retx());
 
   metrics[PCELL_CC_IDX].ul_buffer = (int)bsr_procedure.get_buffer_state();
   memcpy(m, metrics, sizeof(mac_metrics_t) * SRSRAN_MAX_CARRIERS);

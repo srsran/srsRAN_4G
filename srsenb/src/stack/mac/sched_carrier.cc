@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -25,7 +25,7 @@
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_mac.h"
 
 namespace srsenb {
 
@@ -349,6 +349,7 @@ void sched::carrier_sched::reset()
 {
   ra_sched_ptr.reset();
   bc_sched_ptr.reset();
+  pending_pdcch_orders.clear();
 }
 
 void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
@@ -411,6 +412,9 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
     /* Schedule Msg3 */
     sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
     ra_sched_ptr->ul_sched(tti_sched, sf_msg3_sched);
+
+    /* Schedule PDCCH orders */
+    pdcch_order_sched(tti_sched);
   }
 
   /* Prioritize PDCCH scheduling for DL and UL data in a RoundRobin fashion */
@@ -488,6 +492,40 @@ const sf_sched_result* sched::carrier_sched::get_sf_result(tti_point tti_rx) con
 int sched::carrier_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
   return ra_sched_ptr->dl_rach_info(rar_info);
+}
+
+int sched::carrier_sched::pdcch_order_info(dl_sched_po_info_t pdcch_order_info)
+{
+  logger.info("SCHED: New PDCCH order preamble=%d, prach_mask_idx=%d crnti=0x%x",
+              pdcch_order_info.preamble_idx,
+              pdcch_order_info.prach_mask_idx,
+              pdcch_order_info.crnti);
+
+  // create new PDCCH order
+  pending_pdcch_orders.push_back(pdcch_order_info);
+
+  return SRSRAN_SUCCESS;
+}
+
+void sched::carrier_sched::pdcch_order_sched(sf_sched* tti_sched)
+{
+  for (auto it = pending_pdcch_orders.begin(); it != pending_pdcch_orders.end();) {
+    auto& pending_pdcch_order = *it;
+
+    alloc_result ret = alloc_result::no_sch_space;
+
+    rbg_interval rbg_interv = find_empty_rbg_interval(1, tti_sched->get_dl_mask());
+    if (rbg_interv.length() == 1) {
+      ret = tti_sched->alloc_pdcch_order(pending_pdcch_order, po_aggr_level, rbg_interv);
+    }
+
+    if (ret == alloc_result::success) {
+      it = pending_pdcch_orders.erase(it);
+    } else {
+      logger.warning("SCHED: Could not allocate PDCCH order, cause=%s", to_string(ret));
+      ++it;
+    }
+  }
 }
 
 } // namespace srsenb

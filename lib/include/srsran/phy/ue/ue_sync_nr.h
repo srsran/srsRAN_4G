@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -62,7 +62,7 @@ typedef struct SRSRAN_API {
  */
 typedef struct SRSRAN_API {
   srsran_ssb_cfg_t ssb;  ///< SSB configuration
-  uint32_t         N_id; ///< Physicall cell identifier
+  uint32_t         N_id; ///< Physical cell identifier
 } srsran_ue_sync_nr_cfg_t;
 
 /**

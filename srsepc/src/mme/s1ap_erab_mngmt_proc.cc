@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -79,19 +79,19 @@ bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE);
 
-  asn1::s1ap::erab_release_cmd_ies_container& erab_rel_cmd = tx_pdu.init_msg().value.erab_release_cmd().protocol_ies;
+  asn1::s1ap::erab_release_cmd_s& erab_rel_cmd = tx_pdu.init_msg().value.erab_release_cmd();
 
   // Add MME and eNB S1AP Ids
-  erab_rel_cmd.mme_ue_s1ap_id.value = mme_ue_s1ap_id;
-  erab_rel_cmd.enb_ue_s1ap_id.value = enb_ue_s1ap_id;
+  erab_rel_cmd->mme_ue_s1ap_id.value = mme_ue_s1ap_id;
+  erab_rel_cmd->enb_ue_s1ap_id.value = enb_ue_s1ap_id;
 
   // Number of E-RABs to be setup
-  erab_rel_cmd.erab_to_be_released_list.value.resize(erabs_to_release.size());
-  for (uint32_t i = 0; i < erab_rel_cmd.erab_to_be_released_list.value.size(); i++) {
-    erab_rel_cmd.erab_to_be_released_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
-    erab_rel_cmd.erab_to_be_released_list.value[i].value.erab_item().erab_id = erabs_to_release[i];
-    erab_rel_cmd.erab_to_be_released_list.value[i].value.erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
-    erab_rel_cmd.erab_to_be_released_list.value[i].value.erab_item().cause.misc() =
+  erab_rel_cmd->erab_to_be_released_list.value.resize(erabs_to_release.size());
+  for (uint32_t i = 0; i < erab_rel_cmd->erab_to_be_released_list.value.size(); i++) {
+    erab_rel_cmd->erab_to_be_released_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+    erab_rel_cmd->erab_to_be_released_list.value[i]->erab_item().erab_id = erabs_to_release[i];
+    erab_rel_cmd->erab_to_be_released_list.value[i]->erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
+    erab_rel_cmd->erab_to_be_released_list.value[i]->erab_item().cause.misc() =
         asn1::s1ap::cause_misc_opts::unspecified;
     m_logger.info("Sending release comman to %d", erabs_to_release[i]);
   }
@@ -115,21 +115,20 @@ bool s1ap_erab_mngmt_proc::send_erab_modify_request(uint32_t                    
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
 
-  asn1::s1ap::erab_modify_request_ies_container& erab_mod_req =
-      tx_pdu.init_msg().value.erab_modify_request().protocol_ies;
+  asn1::s1ap::erab_modify_request_s& erab_mod_req = tx_pdu.init_msg().value.erab_modify_request();
 
   // Add MME and eNB S1AP Ids
-  erab_mod_req.enb_ue_s1ap_id.value = enb_ue_s1ap_id;
-  erab_mod_req.mme_ue_s1ap_id.value = mme_ue_s1ap_id;
+  erab_mod_req->enb_ue_s1ap_id.value = enb_ue_s1ap_id;
+  erab_mod_req->mme_ue_s1ap_id.value = mme_ue_s1ap_id;
 
   // Number of E-RABs to be setup
-  erab_mod_req.erab_to_be_modified_list_bearer_mod_req.value.resize(erabs_to_modify.size());
+  erab_mod_req->erab_to_be_modified_list_bearer_mod_req.value.resize(erabs_to_modify.size());
   uint32_t i = 0;
   for (auto erab_it = erabs_to_modify.begin(); erab_it != erabs_to_modify.end(); erab_it++) {
-    erab_mod_req.erab_to_be_modified_list_bearer_mod_req.value[i].load_info_obj(
+    erab_mod_req->erab_to_be_modified_list_bearer_mod_req.value[i].load_info_obj(
         ASN1_S1AP_ID_ERAB_TO_BE_MODIFIED_ITEM_BEARER_MOD_REQ);
     asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s& erab_to_mod =
-        erab_mod_req.erab_to_be_modified_list_bearer_mod_req.value[i].value.erab_to_be_modified_item_bearer_mod_req();
+        erab_mod_req->erab_to_be_modified_list_bearer_mod_req.value[i]->erab_to_be_modified_item_bearer_mod_req();
     erab_to_mod.erab_id                                               = erab_it->first;
     erab_to_mod.erab_level_qos_params.qci                             = erab_it->second;
     erab_to_mod.erab_level_qos_params.alloc_retention_prio.prio_level = 15; // lowest

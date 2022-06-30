@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -43,6 +43,7 @@ struct meas_cell_cfg_t {
   asn1::rrc::q_offset_range_e cell_individual_offset;
   uint32_t                    allowed_meas_bw;
   bool                        direct_forward_path_available;
+  int                         tac;
 };
 
 // neigh measurement Cell info
@@ -61,6 +62,7 @@ struct cell_cfg_t {
   uint32_t                            cell_id;
   uint16_t                            tac;
   uint32_t                            pci;
+  double                              tx_gain;
   uint16_t                            root_seq_idx;
   uint32_t                            dl_earfcn;
   double                              dl_freq_hz;

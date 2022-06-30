@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -22,12 +22,14 @@ set(SOURCES rlc.cc
             rlc_tm.cc
             rlc_um_base.cc
             rlc_um_lte.cc
+            rlc_um_nr.cc
             rlc_am_base.cc
             rlc_am_lte.cc
-            rlc_um_nr.cc
             rlc_am_nr.cc
+            rlc_am_lte_packing.cc
+            rlc_am_nr_packing.cc
             bearer_mem_pool.cc)
 
 add_library(srsran_rlc STATIC ${SOURCES})
 target_link_libraries(srsran_rlc srsran_common ${ATOMIC_LIBS})
-INSTALL(TARGETS srsran_rlc DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_rlc DESTINATION ${LIBRARY_DIR} OPTIONAL)

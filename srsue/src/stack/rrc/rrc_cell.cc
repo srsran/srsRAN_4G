@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -78,6 +78,12 @@ void meas_cell_eutra::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
 {
   sib13           = sib13_;
   has_valid_sib13 = true;
+}
+
+void meas_cell_nr::set_sib1(const asn1::rrc_nr::sib1_s& sib1_)
+{
+  sib1           = sib1_;
+  has_valid_sib1 = true;
 }
 
 bool meas_cell::is_sib_scheduled(uint32_t sib_index) const
@@ -178,6 +184,41 @@ uint16_t meas_cell_eutra::get_mnc() const
     }
   }
   return 0;
+}
+
+uint16_t meas_cell_nr::get_mcc() const
+{
+  uint16_t mcc = 0;
+  if (has_valid_sib1) {
+    if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
+      // PLMN ID list is nested twice
+      if (sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.size() > 0) {
+        if (sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mcc_present) {
+          if (srsran::bytes_to_mcc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mcc[0], &mcc)) {
+            // successfully read MCC
+          }
+        }
+      }
+    }
+  }
+  return mcc;
+}
+
+uint16_t meas_cell_nr::get_mnc() const
+{
+  uint16_t mnc = 0;
+  if (has_valid_sib1) {
+    if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
+      if (sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list.size() > 0) {
+        if (srsran::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mnc[0],
+                                 &mnc,
+                                 sib1.cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mnc.size())) {
+          // successfully read MNC
+        }
+      }
+    }
+  }
+  return mnc;
 }
 
 /*********************************************
@@ -400,6 +441,25 @@ int meas_cell_list<T>::set_serving_cell(phy_cell_t phy_cell, bool discard_servin
     }
   }
   return SRSRAN_SUCCESS;
+}
+
+template <class T>
+void meas_cell_list<T>::set_scell_cc_idx(uint32_t cc_idx, uint32_t earfcn, uint32_t pci)
+{
+  current_cell_pci_earfcn[cc_idx].first  = earfcn;
+  current_cell_pci_earfcn[cc_idx].second = pci;
+}
+
+template <class T>
+bool meas_cell_list<T>::get_scell_cc_idx(uint32_t earfcn, uint32_t& pci)
+{
+  for (auto& cell : current_cell_pci_earfcn) {
+    if (cell.first == earfcn) {
+      pci = cell.second;
+      return true;
+    }
+  }
+  return false;
 }
 
 template <class T>

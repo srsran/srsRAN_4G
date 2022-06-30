@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -79,6 +79,9 @@ static void dmrs_pdcch_put_symbol(const srsran_carrier_nr_t* carrier,
   // CORESET Resource Block counter
   uint32_t rb_coreset_idx = 0;
 
+  // Get CORESET offset
+  uint32_t offset_k = coreset->offset_rb * SRSRAN_NRE;
+
   // For each frequency resource (6 RB groups)
   for (uint32_t res_idx = 0; res_idx < nof_freq_res; res_idx++) {
     // Skip frequency resource if outside of the CORESET
@@ -113,7 +116,7 @@ static void dmrs_pdcch_put_symbol(const srsran_carrier_nr_t* carrier,
         uint32_t k = n * SRSRAN_NRE + 4 * k_prime + 1;
 
         // Write DMRS
-        sf_symbol[k] = rl[k_prime];
+        sf_symbol[k + offset_k] = rl[k_prime];
       }
     }
   }
@@ -434,7 +437,7 @@ int srsran_dmrs_pdcch_get_measure(const srsran_dmrs_pdcch_estimator_t* q,
   // For each CORESET symbol
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     // Temporal least square estimates
-    cf_t     tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE];
+    cf_t     tmp[DMRS_PDCCH_MAX_NOF_PILOTS_CANDIDATE] = {};
     uint32_t nof_pilots = 0;
 
     // For each RB in the CORESET

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -58,7 +58,7 @@ class gtpu_tunnel_manager
 
 public:
   // A UE should have <= 3 DRBs active, and each DRB should have two tunnels active at the same time at most
-  const static size_t MAX_TUNNELS_PER_UE = 6;
+  const static size_t MAX_TUNNELS_PER_UE = 10;
 
   enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from, inactive };
 

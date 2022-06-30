@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -157,8 +157,6 @@ private:
   // args
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
-
-  srsran::socket_manager rx_sockets;
 
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;

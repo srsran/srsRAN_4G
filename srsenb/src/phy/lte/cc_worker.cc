@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+#include <iomanip>
 
 #include "srsran/common/threads.h"
 #include "srsran/srsran.h"
@@ -86,11 +88,12 @@ FILE* f;
 
 void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
 {
-  phy                   = phy_;
-  cc_idx                = cc_idx_;
-  srsran_cell_t cell    = phy_->get_cell(cc_idx);
-  uint32_t      nof_prb = phy_->get_nof_prb(cc_idx);
-  uint32_t      sf_len  = SRSRAN_SF_LEN_PRB(nof_prb);
+  phy                         = phy_;
+  cc_idx                      = cc_idx_;
+  srsran_cell_t    cell       = phy_->get_cell(cc_idx);
+  uint32_t         nof_prb    = phy_->get_nof_prb(cc_idx);
+  uint32_t         sf_len     = SRSRAN_SF_LEN_PRB(nof_prb);
+  srsran_cfr_cfg_t cfr_config = phy_->get_cfr_config();
 
   // Init cell here
   for (uint32_t p = 0; p < phy->get_nof_ports(cc_idx); p++) {
@@ -113,6 +116,10 @@ void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
   }
   if (srsran_enb_dl_set_cell(&enb_dl, cell)) {
     ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
+    return;
+  }
+  if (srsran_enb_dl_set_cfr(&enb_dl, &cfr_config) < SRSRAN_SUCCESS) {
+    ERROR("Error setting the CFR");
     return;
   }
   if (srsran_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
@@ -260,6 +267,20 @@ void cc_worker::work_dl(const srsran_dl_sf_cfg_t&            dl_sf_cfg,
       srsran_vec_sc_prod_cfc(signal_buffer_tx[i], scale, signal_buffer_tx[i], sf_len);
     }
   }
+
+  // Measure PAPR if flag was triggered
+  bool cell_meas_flag = phy->get_cell_measure_trigger(cc_idx);
+  if (cell_meas_flag) {
+    uint32_t sf_len = SRSRAN_SF_LEN_PRB(enb_dl.cell.nof_prb);
+    for (uint32_t i = 0; i < enb_dl.cell.nof_ports; i++) {
+      // PAPR measure
+      float papr_db = 10.0f * log10(srsran_vec_papr_c(signal_buffer_tx[i], sf_len));
+      std::cout << "Cell #" << cc_idx << " port #" << i << " PAPR = " << std::setprecision(4) << papr_db << " dB "
+                << std::endl;
+    }
+    // clear measurement flag on cell
+    phy->clear_cell_measure_trigger(cc_idx);
+  }
 }
 
 bool cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
@@ -351,7 +372,10 @@ bool cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Save statistics only if data was provided
   if (ul_grant.data != nullptr) {
     // Save metrics stats
-    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx, 0, enb_ul.chest_res.snr_db, pusch_res.avg_iterations_block);
+    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx,
+                            enb_ul.chest_res.epre_dBfs - phy->params.rx_gain_offset,
+                            enb_ul.chest_res.snr_db,
+                            pusch_res.avg_iterations_block);
   }
   return true;
 }
@@ -439,7 +463,11 @@ int cc_worker::decode_pucch()
         }
 
         // Save metrics
-        ue_db[rnti]->metrics_ul_pucch(pucch_res.snr_db);
+        if (pucch_res.detected) {
+          ue_db[rnti]->metrics_ul_pucch(pucch_res.rssi_dbFs - phy->params.rx_gain_offset,
+                                        pucch_res.ni_dbFs - -phy->params.rx_gain_offset,
+                                        pucch_res.snr_db);
+        }
       }
     }
   }
@@ -643,7 +671,7 @@ void cc_worker::ue::metrics_read(phy_metrics_t* metrics_)
   if (metrics_) {
     *metrics_ = metrics;
   }
-  bzero(&metrics, sizeof(phy_metrics_t));
+  metrics = {};
 }
 
 void cc_worker::ue::metrics_dl(uint32_t mcs)
@@ -654,15 +682,23 @@ void cc_worker::ue::metrics_dl(uint32_t mcs)
 
 void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters)
 {
+  if (isnan(rssi)) {
+    rssi = 0;
+  }
   metrics.ul.mcs         = SRSRAN_VEC_CMA((float)mcs, metrics.ul.mcs, metrics.ul.n_samples);
   metrics.ul.pusch_sinr  = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pusch_sinr, metrics.ul.n_samples);
-  metrics.ul.rssi        = SRSRAN_VEC_CMA((float)rssi, metrics.ul.rssi, metrics.ul.n_samples);
+  metrics.ul.pusch_rssi  = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pusch_rssi, metrics.ul.n_samples);
   metrics.ul.turbo_iters = SRSRAN_VEC_CMA((float)turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);
   metrics.ul.n_samples++;
 }
 
-void cc_worker::ue::metrics_ul_pucch(float sinr)
+void cc_worker::ue::metrics_ul_pucch(float rssi, float ni, float sinr)
 {
+  if (isnan(rssi)) {
+    rssi = 0;
+  }
+  metrics.ul.pucch_rssi = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pucch_rssi, metrics.ul.n_samples_pucch);
+  metrics.ul.pucch_ni   = SRSRAN_VEC_CMA((float)ni, metrics.ul.pucch_ni, metrics.ul.n_samples_pucch);
   metrics.ul.pucch_sinr = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pucch_sinr, metrics.ul.n_samples_pucch);
   metrics.ul.n_samples_pucch++;
 }

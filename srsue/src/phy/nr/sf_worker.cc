@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -74,7 +74,6 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_context(const srsran::phy_common_interface::worker_context_t& w_ctx)
 {
-  tti_rx = w_ctx.sf_idx;
   logger.set_context(w_ctx.sf_idx);
   for (auto& w : cc_workers) {
     w->set_tti(w_ctx.sf_idx);

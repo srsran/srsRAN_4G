@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -69,6 +69,28 @@ static const char integrity_algorithm_id_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20
                                                                                      "128-EIA3"};
 
 typedef enum {
+  CIPHERING_ALGORITHM_ID_NR_NEA0 = 0,
+  CIPHERING_ALGORITHM_ID_NR_128_NEA1,
+  CIPHERING_ALGORITHM_ID_NR_128_NEA2,
+  CIPHERING_ALGORITHM_ID_NR_128_NEA3,
+  CIPHERING_ALGORITHM_ID_NR_N_ITEMS,
+} CIPHERING_ALGORITHM_ID_NR_ENUM;
+static const char ciphering_algorithm_id_nr_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {"NEA0",
+                                                                                        "128-NEA1",
+                                                                                        "128-NEA2",
+                                                                                        "128-NEA3"};
+typedef enum {
+  INTEGRITY_ALGORITHM_ID_NR_NIA0 = 0,
+  INTEGRITY_ALGORITHM_ID_NR_128_NIA1,
+  INTEGRITY_ALGORITHM_ID_NR_128_NIA2,
+  INTEGRITY_ALGORITHM_ID_NR_128_NIA3,
+  INTEGRITY_ALGORITHM_ID_NR_N_ITEMS,
+} INTEGRITY_ALGORITHM_ID_NR_ENUM;
+static const char integrity_algorithm_id_nr_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"NIA0",
+                                                                                        "128-NIA1",
+                                                                                        "128-NIA2",
+                                                                                        "128-NIA3"};
+typedef enum {
   SECURITY_DIRECTION_UPLINK   = 0,
   SECURITY_DIRECTION_DOWNLINK = 1,
   SECURITY_DIRECTION_N_ITEMS,
@@ -84,6 +106,7 @@ struct k_enb_context_t {
 };
 
 struct k_gnb_context_t {
+  as_key_t k_gnb;
   as_key_t sk_gnb;
 };
 
@@ -94,6 +117,15 @@ struct as_security_config_t {
   as_key_t                    k_up_enc;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+};
+
+struct nr_as_security_config_t {
+  as_key_t                       k_nr_rrc_int;
+  as_key_t                       k_nr_rrc_enc;
+  as_key_t                       k_nr_up_int;
+  as_key_t                       k_nr_up_enc;
+  INTEGRITY_ALGORITHM_ID_NR_ENUM integ_algo;
+  CIPHERING_ALGORITHM_ID_NR_ENUM cipher_algo;
 };
 
 template <typename... Args>
@@ -158,10 +190,21 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
 
 uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_network_name, uint8_t* k_seaf);
 
+uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count, as_key_t& k_gnb);
+
 uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count, uint8_t* k_enb);
+
+uint8_t security_generate_k_nb_star_common(uint8_t        fc,
+                                           const uint8_t* k_enb,
+                                           const uint32_t pci_,
+                                           const uint32_t earfcn_,
+                                           uint8_t*       k_enb_star);
 
 uint8_t
 security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci, const uint32_t earfcn, uint8_t* k_enb_star);
+
+uint8_t
+security_generate_k_gnb_star(const uint8_t* k_gnb, const uint32_t pci_, const uint32_t dl_arfcn_, uint8_t* k_gnb_star);
 
 uint8_t security_generate_nh(const uint8_t* k_asme, const uint8_t* sync, uint8_t* nh);
 

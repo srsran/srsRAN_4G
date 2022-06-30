@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -102,12 +102,12 @@ public:
   /// Called after RRCReestablishmentComplete, to add E-RABs of old rnti
   void reestablish_bearers(bearer_cfg_handler&& old_rnti_bearers);
 
-  int  add_erab(uint8_t                                            erab_id,
-                const asn1::s1ap::erab_level_qos_params_s&         qos,
-                const asn1::bounded_bitstring<1, 160, true, true>& addr,
-                uint32_t                                           teid_out,
-                srsran::const_span<uint8_t>                        nas_pdu,
-                asn1::s1ap::cause_c&                               cause);
+  int  addmod_erab(uint8_t                                            erab_id,
+                   const asn1::s1ap::erab_level_qos_params_s&         qos,
+                   const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                   uint32_t                                           teid_out,
+                   srsran::const_span<uint8_t>                        nas_pdu,
+                   asn1::s1ap::cause_c&                               cause);
   int  release_erab(uint8_t erab_id);
   void release_erabs();
   int  modify_erab(uint8_t                                    erab_id,

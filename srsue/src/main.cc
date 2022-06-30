@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -68,7 +68,9 @@ string config_file;
 
 static int parse_args(all_args_t* args, int argc, char* argv[])
 {
-  bool use_standard_lte_rates = false;
+  bool        use_standard_lte_rates = false;
+  std::string scs_khz, ssb_scs_khz; // temporary value to store integer
+  std::string cfr_mode;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -131,9 +133,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("rat.eutra.ul_freq",      bpo::value<float>(&args->phy.ul_freq)->default_value(-1),            "Uplink Frequency (if positive overrides EARFCN)")
     ("rat.eutra.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_lte_carriers)->default_value(1), "Number of carriers")
     
-    ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("78"),  "Supported NR bands")
+    ("rat.nr.bands",        bpo::value<string>(&args->stack.rrc_nr.supported_bands_nr_str)->default_value("3"),   "Supported NR bands")
     ("rat.nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(0),                   "Number of NR carriers")
-    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(106),                  "Maximum NR carrier bandwidth in PRB")
+    ("rat.nr.max_nof_prb",  bpo::value<uint32_t>(&args->phy.nr_max_nof_prb)->default_value(52),                   "Maximum NR carrier bandwidth in PRB")
+    ("rat.nr.dl_nr_arfcn",  bpo::value<uint32_t>(&args->stack.rrc_nr.dl_nr_arfcn)->default_value(368500),         "DL ARFCN of NR cell")
+    ("rat.nr.ssb_nr_arfcn", bpo::value<uint32_t>(&args->stack.rrc_nr.ssb_nr_arfcn)->default_value(368410),        "SSB ARFCN of NR cell")
+    ("rat.nr.nof_prb",      bpo::value<uint32_t>(&args->stack.rrc_nr.nof_prb)->default_value(52),                 "Actual NR carrier bandwidth in PRB")
+    ("rat.nr.scs",          bpo::value<string>(&scs_khz)->default_value("15"),                                    "PDSCH subcarrier spacing in kHz")
+    ("rat.nr.ssb_scs",      bpo::value<string>(&ssb_scs_khz)->default_value("15"),                                "SSB subcarrier spacing in kHz")
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000),                       "Hex value of the featureGroupIndicators field in the"
                                                                                                                                  "UECapabilityInformation message. Default 0xe6041000")
@@ -241,6 +248,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.hst.period_s",      bpo::value<float>(&args->phy.ul_channel_args.hst_period_s)->default_value(7.2f),            "HST simulation period in seconds")
     ("channel.ul.hst.fd_hz",         bpo::value<float>(&args->phy.ul_channel_args.hst_fd_hz)->default_value(+750.0f),            "Doppler frequency in Hz")
     ("channel.ul.hst.init_time_s",   bpo::value<float>(&args->phy.ul_channel_args.hst_init_time_s)->default_value(0),            "Initial time in seconds")
+
+    /* CFR section */
+    ("cfr.enable", bpo::value<bool>(&args->phy.cfr_args.enable)->default_value(args->phy.cfr_args.enable), "CFR enable")
+    ("cfr.mode", bpo::value<string>(&cfr_mode)->default_value("manual"), "CFR mode")
+    ("cfr.manual_thres", bpo::value<float>(&args->phy.cfr_args.manual_thres)->default_value(args->phy.cfr_args.manual_thres), "Fixed manual clipping threshold for CFR manual mode")
+    ("cfr.strength", bpo::value<float>(&args->phy.cfr_args.strength)->default_value(args->phy.cfr_args.strength), "CFR ratio between amplitude-limited vs original signal (0 to 1)")
+    ("cfr.auto_target_papr", bpo::value<float>(&args->phy.cfr_args.auto_target_papr)->default_value(args->phy.cfr_args.auto_target_papr), "Signal PAPR target (in dB) in CFR auto modes")
+    ("cfr.ema_alpha", bpo::value<float>(&args->phy.cfr_args.ema_alpha)->default_value(args->phy.cfr_args.ema_alpha), "Alpha coefficient for the power average in auto_ema mode (0 to 1)")
 
     /* PHY section */
     ("phy.worker_cpu_mask",
@@ -418,6 +433,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<int>(&args->phy.force_N_id_2)->default_value(-1),
      "Force using a specific PSS (set to -1 to allow all PSSs).")
 
+    ("phy.force_N_id_1",
+     bpo::value<int>(&args->phy.force_N_id_1)->default_value(-1),
+     "Force using a specific SSS (set to -1 to allow all SSSs).")
+
     // PHY NR args
     ("phy.nr.store_pdsch_ko",
       bpo::value<bool>(&args->phy.nr_store_pdsch_ko)->default_value(false),
@@ -477,10 +496,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
         "Calculate TTI execution statistics")
 
-    // NR params
-    ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("ue"), "VNF instance type [gnb,ue]")
-    ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface")
-    ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3334), "Bind port")
     ;
 
   // Positional options - config file location
@@ -549,6 +564,13 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     return SRSRAN_ERROR;
   } else {
     args->stack.usim.using_op = vm.count("usim.op");
+  }
+
+  // parse the CFR mode string
+  args->phy.cfr_args.mode = srsran_cfr_str2mode(cfr_mode.c_str());
+  if (args->phy.cfr_args.mode == SRSRAN_CFR_THR_INVALID) {
+    cout << "Error, invalid CFR mode: " << cfr_mode << endl;
+    exit(1);
   }
 
   // Apply all_level to any unset layers
@@ -628,6 +650,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   srsran_use_standard_symbol_size(use_standard_lte_rates);
+
+  args->stack.rrc_nr.scs     = srsran_subcarrier_spacing_from_str(scs_khz.c_str());
+  args->stack.rrc_nr.ssb_scs = srsran_subcarrier_spacing_from_str(ssb_scs_khz.c_str());
+  if (args->stack.rrc_nr.scs == srsran_subcarrier_spacing_invalid ||
+      args->stack.rrc_nr.ssb_scs == srsran_subcarrier_spacing_invalid) {
+    cout << "Invalid subcarrier spacing config" << endl;
+    return SRSRAN_ERROR;
+  }
 
   return SRSRAN_SUCCESS;
 }

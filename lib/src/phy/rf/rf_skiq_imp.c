@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,6 +24,7 @@
 #include <sidekiq_api.h>
 
 #include "rf_helper.h"
+#include "rf_plugin.h"
 #include "rf_skiq_imp.h"
 #include "rf_skiq_imp_card.h"
 
@@ -592,10 +593,6 @@ int rf_skiq_set_rx_gain_ch(void* h_, uint32_t ch, double rx_gain)
 
   rx_gain = rf_skiq_card_set_rx_gain_db(&h->cards[card_idx], port_idx, rx_gain);
 
-  if (ch == 0) {
-    h->cur_tx_gain = rx_gain;
-  }
-
   return SRSRAN_SUCCESS;
 }
 
@@ -620,12 +617,10 @@ srsran_rf_info_t* rf_skiq_get_info(void* h_)
   if (h != NULL) {
     ret = &h->info;
 
-    rf_skiq_card_update_gain_table(&h->cards[0]);
-
     ret->min_tx_gain = 0.25 * (double)h->cards[0].param.tx_param->atten_quarter_db_max;
     ret->max_tx_gain = 0.25 * (double)h->cards[0].param.tx_param->atten_quarter_db_min;
-    ret->min_rx_gain = h->cards[0].rx_gain_table_db[h->cards[0].param.rx_param[0].gain_index_min];
-    ret->max_rx_gain = h->cards[0].rx_gain_table_db[h->cards[0].param.rx_param[0].gain_index_max];
+    ret->min_rx_gain = h->cards[0].param.rx_param[0].gain_index_min;
+    ret->max_rx_gain = h->cards[0].param.rx_param[0].gain_index_max;
   }
 
   return ret;
@@ -891,7 +886,7 @@ int rf_skiq_send_timed(void*  h,
 }
 
 int rf_skiq_send_timed_multi(void*  h_,
-                             void** data_,
+                             void*  data_[SRSRAN_MAX_PORTS],
                              int    nsamples,
                              time_t secs,
                              double frac_secs,
@@ -954,3 +949,43 @@ int rf_skiq_send_timed_multi(void*  h_,
 
   return (int)rpm;
 }
+
+rf_dev_t srsran_rf_dev_skiq = {.name                             = "Sidekiq",
+                               .srsran_rf_devname                = rf_skiq_devname,
+                               .srsran_rf_start_rx_stream        = rf_skiq_start_rx_stream,
+                               .srsran_rf_stop_rx_stream         = rf_skiq_stop_rx_stream,
+                               .srsran_rf_flush_buffer           = rf_skiq_flush_buffer,
+                               .srsran_rf_has_rssi               = rf_skiq_has_rssi,
+                               .srsran_rf_get_rssi               = rf_skiq_get_rssi,
+                               .srsran_rf_suppress_stdout        = rf_skiq_suppress_stdout,
+                               .srsran_rf_register_error_handler = rf_skiq_register_error_handler,
+                               .srsran_rf_open                   = rf_skiq_open,
+                               .srsran_rf_open_multi             = rf_skiq_open_multi,
+                               .srsran_rf_close                  = rf_skiq_close,
+                               .srsran_rf_set_rx_srate           = rf_skiq_set_rx_srate,
+                               .srsran_rf_set_tx_srate           = rf_skiq_set_tx_srate,
+                               .srsran_rf_set_rx_gain            = rf_skiq_set_rx_gain,
+                               .srsran_rf_set_tx_gain            = rf_skiq_set_tx_gain,
+                               .srsran_rf_set_tx_gain_ch         = rf_skiq_set_tx_gain_ch,
+                               .srsran_rf_set_rx_gain_ch         = rf_skiq_set_rx_gain_ch,
+                               .srsran_rf_get_rx_gain            = rf_skiq_get_rx_gain,
+                               .srsran_rf_get_tx_gain            = rf_skiq_get_tx_gain,
+                               .srsran_rf_get_info               = rf_skiq_get_info,
+                               .srsran_rf_set_rx_freq            = rf_skiq_set_rx_freq,
+                               .srsran_rf_set_tx_freq            = rf_skiq_set_tx_freq,
+                               .srsran_rf_get_time               = rf_skiq_get_time,
+                               .srsran_rf_recv_with_time         = rf_skiq_recv_with_time,
+                               .srsran_rf_recv_with_time_multi   = rf_skiq_recv_with_time_multi,
+                               .srsran_rf_send_timed             = rf_skiq_send_timed,
+                               .srsran_rf_send_timed_multi       = rf_skiq_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_skiq;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */

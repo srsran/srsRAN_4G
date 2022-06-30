@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -195,6 +195,12 @@ make_sctp_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& q
  */
 socket_manager_itf::recv_callback_t
 make_sdu_handler(srslog::basic_logger& logger, srsran::task_queue_handle& queue, recvfrom_callback_t rx_callback);
+
+inline socket_manager& get_rx_io_manager()
+{
+  static socket_manager io;
+  return io;
+}
 
 } // namespace srsran
 

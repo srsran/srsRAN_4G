@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -118,11 +118,11 @@ void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
   m.dl_tput_mbps = (nof_tti > 0) ? ((dl_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
   m.ul_tput_mbps = (nof_tti > 0) ? ((ul_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
 
-  logger.info("gw_rx_rate_mbps=%4.2f (real=%4.2f), gw_tx_rate_mbps=%4.2f (real=%4.2f)",
-              m.dl_tput_mbps,
-              dl_tput_mbps_real_time,
-              m.ul_tput_mbps,
-              ul_tput_mbps_real_time);
+  logger.debug("gw_rx_rate_mbps=%4.2f (real=%4.2f), gw_tx_rate_mbps=%4.2f (real=%4.2f)",
+               m.dl_tput_mbps,
+               dl_tput_mbps_real_time,
+               m.ul_tput_mbps,
+               ul_tput_mbps_real_time);
 
   // reset counters and store time
   metrics_tp    = std::chrono::high_resolution_clock::now();

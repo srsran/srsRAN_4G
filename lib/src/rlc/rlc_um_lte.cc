@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -59,12 +59,11 @@ bool rlc_um_lte::configure(const rlc_config_t& cnfg_)
     return false;
   }
 
-  logger.info("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits",
-              rb_name.c_str(),
-              srsran::to_string(cnfg_.rlc_mode),
-              cfg.um.t_reordering,
-              srsran::to_number(cfg.um.rx_sn_field_length),
-              srsran::to_number(cfg.um.tx_sn_field_length));
+  RlcInfo("configured in %s - t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits",
+          srsran::to_string(cnfg_.rlc_mode),
+          cfg.um.t_reordering,
+          srsran::to_number(cfg.um.rx_sn_field_length),
+          srsran::to_number(cfg.um.tx_sn_field_length));
 
   rx_enabled = true;
   tx_enabled = true;
@@ -111,7 +110,7 @@ bool rlc_um_lte::rlc_um_lte_tx::configure(const rlc_config_t& cnfg_, std::string
   cfg = cnfg_;
 
   if (cfg.um.tx_mod == 0) {
-    logger.error("Error configuring %s RLC UM: tx_mod==0", rb_name.c_str());
+    RlcError("Error configuring RLC UM - tx_mod==0");
     return false;
   }
 
@@ -125,7 +124,7 @@ bool rlc_um_lte::rlc_um_lte_tx::configure(const rlc_config_t& cnfg_, std::string
 uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  rlc_umd_pdu_header_t        header;
+  rlc_umd_pdu_header_t        header = {};
   header.fi      = RLC_FI_FIELD_START_AND_END_ALIGNED;
   header.sn      = vt_us;
   header.N_li    = 0;
@@ -139,10 +138,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
   int pdu_space = SRSRAN_MIN(nof_bytes, pdu->get_tailroom());
 
   if (pdu_space <= head_len + 1) {
-    logger.info("%s Cannot build a PDU - %d bytes available, %d bytes required for header",
-                rb_name.c_str(),
-                nof_bytes,
-                head_len);
+    RlcInfo("Cannot build a PDU - %d bytes available, %d bytes required for header", nof_bytes, head_len);
     return 0;
   }
 
@@ -150,8 +146,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
   if (tx_sdu) {
     uint32_t space = pdu_space - head_len;
     to_move        = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
-    logger.debug(
-        "%s adding remainder of SDU segment - %d bytes of %d remaining", rb_name.c_str(), to_move, tx_sdu->N_bytes);
+    RlcDebug("adding remainder of SDU segment - %d bytes of %d remaining", to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li = to_move;
     pdu_ptr += to_move;
@@ -162,12 +157,11 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
 #ifdef ENABLE_TIMESTAMP
       auto latency_us = tx_sdu->get_latency_us().count();
       mean_pdu_latency_us.push(latency_us);
-      logger.debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us",
-                   rb_name.c_str(),
-                   (uint64_t)latency_us,
-                   (long)mean_pdu_latency_us.value());
+      RlcDebug("Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us",
+               (uint64_t)latency_us,
+               (long)mean_pdu_latency_us.value());
 #else
-      logger.debug("%s Complete SDU scheduled for tx.", rb_name.c_str());
+      RlcDebug("%s Complete SDU scheduled for tx.", rb_name.c_str());
 #endif
       tx_sdu.reset();
     }
@@ -177,7 +171,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
 
   // Pull SDUs from queue
   while (pdu_space > head_len + 1 && tx_sdu_queue.size() > 0) {
-    logger.debug("pdu_space=%d, head_len=%d", pdu_space, head_len);
+    RlcDebug("pdu_space=%d, head_len=%d", pdu_space, head_len);
     if (last_li > 0) {
       header.li[header.N_li++] = last_li;
     }
@@ -190,7 +184,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
     }
     tx_sdu  = tx_sdu_queue.read();
     to_move = (space >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : space;
-    logger.debug("%s adding new SDU segment - %d bytes of %d remaining", rb_name.c_str(), to_move, tx_sdu->N_bytes);
+    RlcDebug("adding new SDU segment - %d bytes of %d remaining", to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li = to_move;
     pdu_ptr += to_move;
@@ -201,12 +195,11 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
 #ifdef ENABLE_TIMESTAMP
       auto latency_us = tx_sdu->get_latency_us().count();
       mean_pdu_latency_us.push(latency_us);
-      logger.debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us",
-                   rb_name.c_str(),
-                   (uint64_t)latency_us,
-                   (long)mean_pdu_latency_us.value());
+      RlcDebug("Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us",
+               (uint64_t)latency_us,
+               (long)mean_pdu_latency_us.value());
 #else
-      logger.debug("%s Complete SDU scheduled for tx.", rb_name.c_str());
+      RlcDebug("Complete SDU scheduled for tx.");
 #endif
       tx_sdu.reset();
     }
@@ -225,7 +218,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
   rlc_um_write_data_pdu_header(&header, pdu.get());
   memcpy(payload, pdu->msg, pdu->N_bytes);
 
-  logger.info(payload, pdu->N_bytes, "%s Tx PDU SN=%d (%d B)", rb_name.c_str(), header.sn, pdu->N_bytes);
+  RlcHexInfo(payload, pdu->N_bytes, "Tx PDU SN=%d (%d B)", header.sn, pdu->N_bytes);
 
   debug_state();
 
@@ -234,7 +227,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
 
 void rlc_um_lte::rlc_um_lte_tx::debug_state()
 {
-  logger.debug("%s vt_us = %d", rb_name.c_str(), vt_us);
+  RlcDebug("vt_us = %d", vt_us);
 }
 
 void rlc_um_lte::rlc_um_lte_tx::reset()
@@ -256,14 +249,16 @@ bool rlc_um_lte::rlc_um_lte_rx::configure(const rlc_config_t& cnfg_, std::string
 {
   cfg = cnfg_;
 
+  rb_name = rb_name_;
+
   if (cfg.um.rx_mod == 0) {
-    logger.error("Error configuring %s RLC UM: rx_mod==0", rb_name.c_str());
+    RlcError("Error configuring RLC UM: rx_mod==0");
     return false;
   }
 
   // check timer
   if (not reordering_timer.is_valid()) {
-    logger.error("Configuring RLC UM RX: timers not configured");
+    RlcError("Configuring RLC UM RX: timers not configured");
     return false;
   }
 
@@ -271,8 +266,6 @@ bool rlc_um_lte::rlc_um_lte_rx::configure(const rlc_config_t& cnfg_, std::string
   if (cfg.um.t_reordering > 0) {
     reordering_timer.set(static_cast<uint32_t>(cfg.um.t_reordering), [this](uint32_t tid) { timer_expired(tid); });
   }
-
-  rb_name = rb_name_;
 
   return true;
 }
@@ -312,17 +305,17 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 {
   rlc_umd_pdu_header_t header;
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.um.rx_sn_field_length, &header);
-  logger.info(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)", rb_name.c_str(), header.sn, nof_bytes);
+  RlcHexInfo(payload, nof_bytes, "Rx data PDU SN=%d (%d B)", header.sn, nof_bytes);
 
   if (RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh - cfg.um.rx_window_size) &&
       RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ur)) {
-    logger.info("%s SN=%d outside rx window [%d:%d] - discarding", rb_name.c_str(), header.sn, vr_ur, vr_uh);
+    RlcInfo("SN=%d outside rx window [%d:%d] - discarding", header.sn, vr_ur, vr_uh);
     return;
   }
 
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it = rx_window.find(header.sn);
   if (rx_window.end() != it) {
-    logger.info("%s Discarding duplicate SN=%d", rb_name.c_str(), header.sn);
+    RlcInfo("Discarding duplicate SN=%d", header.sn);
     return;
   }
 
@@ -330,7 +323,7 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
   rlc_umd_pdu_t pdu = {};
   pdu.buf           = make_byte_buffer();
   if (!pdu.buf) {
-    logger.error("Discarting packet: no space in buffer pool");
+    RlcError("Discarding packet: no space in buffer pool");
     return;
   }
   memcpy(pdu.buf->msg, payload, nof_bytes);
@@ -348,9 +341,9 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
   }
 
   // Reassemble and deliver SDUs, while updating vr_ur
-  logger.debug("Entering Reassemble from received PDU");
+  RlcDebug("Entering Reassemble from received PDU");
   reassemble_rx_sdus();
-  logger.debug("Finished reassemble from received PDU");
+  RlcDebug("Finished reassemble from received PDU");
 
   // Update reordering variables and timers
   if (reordering_timer.is_running()) {
@@ -374,32 +367,32 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
   if (!rx_sdu) {
     rx_sdu = make_byte_buffer();
     if (!rx_sdu) {
-      logger.error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
+      RlcError("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
       return;
     }
   }
 
   // First catch up with lower edge of reordering window
   while (!inside_reordering_window(vr_ur)) {
-    logger.debug("SN=%d is not inside reordering windows", vr_ur);
+    RlcDebug("SN=%d is not inside reordering windows", vr_ur);
 
     if (rx_window.end() == rx_window.find(vr_ur)) {
-      logger.debug("SN=%d not in rx_window. Reset received SDU", vr_ur);
+      RlcDebug("SN=%d not in rx_window. Reset received SDU", vr_ur);
       rx_sdu->clear();
     } else {
       // Handle any SDU segments
       for (uint32_t i = 0; i < rx_window[vr_ur].header.N_li; i++) {
         int len = rx_window[vr_ur].header.li[i];
-        logger.debug(rx_window[vr_ur].buf->msg,
-                     len,
-                     "Handling segment %d/%d of length %d B of SN=%d",
-                     i + 1,
-                     rx_window[vr_ur].header.N_li,
-                     len,
-                     vr_ur);
+        RlcHexDebug(rx_window[vr_ur].buf->msg,
+                    len,
+                    "Handling segment %d/%d of length %d B of SN=%d",
+                    i + 1,
+                    rx_window[vr_ur].header.N_li,
+                    len,
+                    vr_ur);
         // Check if we received a middle or end segment
         if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-          logger.warning("Dropping PDU %d in reassembly due to lost start segment", vr_ur);
+          RlcWarning("Dropping PDU %d in reassembly due to lost start segment", vr_ur);
           // Advance data pointers and continue with next segment
           rx_window[vr_ur].buf->msg += len;
           rx_window[vr_ur].buf->N_bytes -= len;
@@ -414,18 +407,13 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         rx_window[vr_ur].buf->N_bytes -= len;
         if ((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) ||
             (vr_ur != ((vr_ur_in_rx_sdu + 1) % cfg.um.rx_mod))) {
-          logger.warning("Dropping remainder of lost PDU (lower edge middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)",
-                         vr_ur,
-                         vr_ur_in_rx_sdu);
+          RlcWarning("Dropping remainder of lost PDU (lower edge middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)",
+                     vr_ur,
+                     vr_ur_in_rx_sdu);
           rx_sdu->clear();
           metrics.num_lost_pdus++;
         } else {
-          logger.info(rx_sdu->msg,
-                      rx_sdu->N_bytes,
-                      "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)",
-                      rb_name.c_str(),
-                      vr_ur,
-                      i);
+          RlcHexInfo(rx_sdu->msg, rx_sdu->N_bytes, "Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", vr_ur, i);
           rx_sdu->set_timestamp();
           metrics.num_rx_sdus++;
           metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
@@ -436,7 +424,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
           }
           rx_sdu = make_byte_buffer();
           if (!rx_sdu) {
-            logger.error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
+            RlcError("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
             return;
           }
         }
@@ -445,22 +433,21 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
 
       // Handle last segment
       if (rx_sdu->N_bytes > 0 || rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        logger.info("Writing last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d",
-                    vr_ur,
-                    rx_sdu->N_bytes,
-                    rx_window[vr_ur].buf->N_bytes);
+        RlcInfo("Writing last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d",
+                vr_ur,
+                rx_sdu->N_bytes,
+                rx_window[vr_ur].buf->N_bytes);
 
         memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
         rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
         vr_ur_in_rx_sdu = vr_ur;
         if (rlc_um_end_aligned(rx_window[vr_ur].header.fi)) {
           if (pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-            logger.warning("Dropping remainder of lost PDU (lower edge last segments)");
+            RlcWarning("Dropping remainder of lost PDU (lower edge last segments)");
             rx_sdu->clear();
             metrics.num_lost_pdus++;
           } else {
-            logger.info(
-                rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rb_name.c_str(), vr_ur);
+            RlcHexInfo(rx_sdu->msg, rx_sdu->N_bytes, "Rx SDU vr_ur=%d (lower edge last segments)", vr_ur);
             rx_sdu->set_timestamp();
             metrics.num_rx_sdus++;
             metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
@@ -471,7 +458,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
             }
             rx_sdu = make_byte_buffer();
             if (!rx_sdu) {
-              logger.error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
+              RlcError("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
               return;
             }
           }
@@ -488,10 +475,10 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
 
   // Now update vr_ur until we reach an SN we haven't yet received
   while (rx_window.end() != rx_window.find(vr_ur)) {
-    logger.debug("Reassemble loop for vr_ur=%d", vr_ur);
+    RlcDebug("Reassemble loop for vr_ur=%d", vr_ur);
 
     if (not pdu_belongs_to_rx_sdu()) {
-      logger.info("PDU SN=%d lost, stop reassambling SDU (vr_ur_in_rx_sdu=%d)", vr_ur_in_rx_sdu + 1, vr_ur_in_rx_sdu);
+      RlcInfo("PDU SN=%d lost, stop reassambling SDU (vr_ur_in_rx_sdu=%d)", vr_ur_in_rx_sdu + 1, vr_ur_in_rx_sdu);
       pdu_lost = false; // Reset flag to not prevent reassembling of further segments
       rx_sdu->clear();
     }
@@ -499,22 +486,22 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
     // Handle any SDU segments
     for (uint32_t i = 0; i < rx_window[vr_ur].header.N_li; i++) {
       uint16_t len = rx_window[vr_ur].header.li[i];
-      logger.debug("Handling SDU segment i=%d with len=%d of vr_ur=%d N_li=%d [%s]",
-                   i,
-                   len,
-                   vr_ur,
-                   rx_window[vr_ur].header.N_li,
-                   rlc_fi_field_text[rx_window[vr_ur].header.fi]);
+      RlcDebug("Handling SDU segment i=%d with len=%d of vr_ur=%d N_li=%d [%s]",
+               i,
+               len,
+               vr_ur,
+               rx_window[vr_ur].header.N_li,
+               rlc_fi_field_text[rx_window[vr_ur].header.fi]);
       // Check if the first part of the PDU is a middle or end segment
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        logger.info(
+        RlcHexInfo(
             rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN=%d due to lost start segment", len, vr_ur);
 
         if (rx_window[vr_ur].buf->N_bytes < len) {
-          logger.error("Dropping remaining remainder of SN=%d too (N_bytes=%u < len=%d)",
-                       vr_ur,
-                       rx_window[vr_ur].buf->N_bytes,
-                       len);
+          RlcError("Dropping remaining remainder of SN=%d too (N_bytes=%u < len=%d)",
+                   vr_ur,
+                   rx_window[vr_ur].buf->N_bytes,
+                   len);
           goto clean_up_rx_window;
         }
 
@@ -531,31 +518,31 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
 
       // Check available space in SDU
       if ((uint32_t)len > rx_sdu->get_tailroom()) {
-        logger.error("Dropping PDU %d due to buffer mis-alignment (current segment len %d B, received %d B)",
-                     vr_ur,
-                     rx_sdu->N_bytes,
-                     len);
+        RlcError("Dropping PDU %d due to buffer mis-alignment (current segment len %d B, received %d B)",
+                 vr_ur,
+                 rx_sdu->N_bytes,
+                 len);
         rx_sdu->clear();
         metrics.num_lost_pdus++;
         goto clean_up_rx_window;
       }
 
       if (not pdu_belongs_to_rx_sdu()) {
-        logger.info(rx_window[vr_ur].buf->msg, len, "Copying first %d bytes of new SDU", len);
-        logger.info("Updating vr_ur_in_rx_sdu. old=%d, new=%d", vr_ur_in_rx_sdu, vr_ur);
+        RlcHexInfo(rx_window[vr_ur].buf->msg, len, "Copying first %d bytes of new SDU", len);
+        RlcInfo("Updating vr_ur_in_rx_sdu. old=%d, new=%d", vr_ur_in_rx_sdu, vr_ur);
         vr_ur_in_rx_sdu = vr_ur;
       } else {
-        logger.info(rx_window[vr_ur].buf->msg,
-                    len,
-                    "Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, "
-                    "vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d",
-                    len,
-                    rx_sdu->N_bytes,
-                    rx_window[vr_ur].buf->N_bytes,
-                    vr_ur_in_rx_sdu,
-                    vr_ur,
-                    cfg.um.rx_mod,
-                    (vr_ur_in_rx_sdu + 1) % cfg.um.rx_mod);
+        RlcHexInfo(rx_window[vr_ur].buf->msg,
+                   len,
+                   "Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, "
+                   "vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d",
+                   len,
+                   rx_sdu->N_bytes,
+                   rx_window[vr_ur].buf->N_bytes,
+                   vr_ur_in_rx_sdu,
+                   vr_ur,
+                   cfg.um.rx_mod,
+                   (vr_ur_in_rx_sdu + 1) % cfg.um.rx_mod);
       }
 
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
@@ -565,12 +552,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
       vr_ur_in_rx_sdu = vr_ur;
 
       if (pdu_belongs_to_rx_sdu()) {
-        logger.info(rx_sdu->msg,
-                    rx_sdu->N_bytes,
-                    "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)",
-                    rb_name.c_str(),
-                    vr_ur,
-                    i);
+        RlcHexInfo(rx_sdu->msg, rx_sdu->N_bytes, "Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", vr_ur, i);
         rx_sdu->set_timestamp();
         metrics.num_rx_sdus++;
         metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
@@ -581,13 +563,13 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         }
         rx_sdu = make_byte_buffer();
         if (!rx_sdu) {
-          logger.error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
+          RlcError("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
           return;
         }
       } else {
-        logger.warning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)",
-                       vr_ur,
-                       vr_ur_in_rx_sdu);
+        RlcWarning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)",
+                   vr_ur,
+                   vr_ur_in_rx_sdu);
         // Advance data pointers and continue with next segment
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
@@ -599,7 +581,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
     // Handle last segment
     if (rx_sdu->N_bytes == 0 && rx_window[vr_ur].header.N_li == 0 &&
         !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-      logger.warning("Dropping PDU %d during last segment handling due to lost start segment", vr_ur);
+      RlcWarning("Dropping PDU %d during last segment handling due to lost start segment", vr_ur);
       rx_sdu->clear();
       metrics.num_lost_pdus++;
       goto clean_up_rx_window;
@@ -608,31 +590,30 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
     if (rx_sdu->N_bytes < SRSRAN_MAX_BUFFER_SIZE_BYTES &&
         rx_window[vr_ur].buf->N_bytes < SRSRAN_MAX_BUFFER_SIZE_BYTES &&
         rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSRAN_MAX_BUFFER_SIZE_BYTES) {
-      logger.info(rx_window[vr_ur].buf->msg,
-                  rx_window[vr_ur].buf->N_bytes,
-                  "Writing last segment in SDU buffer. Updating vr_ur=%d, vr_ur_in_rx_sdu=%d, Buffer size=%d, "
-                  "segment size=%d",
-                  vr_ur,
-                  vr_ur_in_rx_sdu,
-                  rx_sdu->N_bytes,
-                  rx_window[vr_ur].buf->N_bytes);
+      RlcHexInfo(rx_window[vr_ur].buf->msg,
+                 rx_window[vr_ur].buf->N_bytes,
+                 "Writing last segment in SDU buffer. Updating vr_ur=%d, vr_ur_in_rx_sdu=%d, Buffer size=%d, "
+                 "segment size=%d",
+                 vr_ur,
+                 vr_ur_in_rx_sdu,
+                 rx_sdu->N_bytes,
+                 rx_window[vr_ur].buf->N_bytes);
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
       rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
     } else {
-      logger.error("Out of bounds while reassembling SDU buffer in UM: sdu_len=%d, window_buffer_len=%d, vr_ur=%d",
-                   rx_sdu->N_bytes,
-                   rx_window[vr_ur].buf->N_bytes,
-                   vr_ur);
+      RlcError("Out of bounds while reassembling SDU buffer in UM: sdu_len=%d, window_buffer_len=%d, vr_ur=%d",
+               rx_sdu->N_bytes,
+               rx_window[vr_ur].buf->N_bytes,
+               vr_ur);
     }
     vr_ur_in_rx_sdu = vr_ur;
     if (rlc_um_end_aligned(rx_window[vr_ur].header.fi)) {
       if (pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        logger.warning("Dropping remainder of lost PDU (update vr_ur last segments)");
+        RlcWarning("Dropping remainder of lost PDU (update vr_ur last segments)");
         rx_sdu->clear();
         metrics.num_lost_pdus++;
       } else {
-        logger.info(
-            rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", rb_name.c_str(), vr_ur);
+        RlcHexInfo(rx_sdu->msg, rx_sdu->N_bytes, "Rx SDU vr_ur=%d (update vr_ur last segments)", vr_ur);
         rx_sdu->set_timestamp();
         metrics.num_rx_sdus++;
         metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
@@ -643,7 +624,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         }
         rx_sdu = make_byte_buffer();
         if (!rx_sdu) {
-          logger.error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
+          RlcError("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().");
           return;
         }
       }
@@ -690,9 +671,9 @@ void rlc_um_lte::rlc_um_lte_rx::timer_expired(uint32_t timeout_id)
 {
   if (reordering_timer.id() == timeout_id) {
     // 36.322 v10 Section 5.1.2.2.4
-    logger.info("%s reordering timeout expiry - updating vr_ur and reassembling", rb_name.c_str());
+    RlcInfo("%s reordering timeout expiry - updating vr_ur and reassembling", rb_name.c_str());
 
-    logger.warning("Lost PDU SN=%d", vr_ur);
+    RlcWarning("Lost PDU SN=%d", vr_ur);
 
     pdu_lost = true;
     if (rx_sdu != NULL) {
@@ -701,9 +682,9 @@ void rlc_um_lte::rlc_um_lte_rx::timer_expired(uint32_t timeout_id)
 
     while (RX_MOD_BASE(vr_ur) < RX_MOD_BASE(vr_ux)) {
       vr_ur = (vr_ur + 1) % cfg.um.rx_mod;
-      logger.debug("Entering Reassemble from timeout id=%d", timeout_id);
+      RlcDebug("Entering Reassemble from timeout id=%d", timeout_id);
       reassemble_rx_sdus();
-      logger.debug("Finished reassemble from timeout id=%d", timeout_id);
+      RlcDebug("Finished reassemble from timeout id=%d", timeout_id);
     }
 
     if (RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
@@ -721,7 +702,7 @@ void rlc_um_lte::rlc_um_lte_rx::timer_expired(uint32_t timeout_id)
 
 void rlc_um_lte::rlc_um_lte_rx::debug_state()
 {
-  logger.debug("%s vr_ur = %d, vr_ux = %d, vr_uh = %d", rb_name.c_str(), vr_ur, vr_ux, vr_uh);
+  RlcDebug("vr_ur = %d, vr_ux = %d, vr_uh = %d", vr_ur, vr_ux, vr_uh);
 }
 
 /****************************************************************************

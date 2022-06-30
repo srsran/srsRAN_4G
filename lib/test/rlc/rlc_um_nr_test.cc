@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -561,7 +561,7 @@ int rlc_um_nr_test8()
   return SRSRAN_SUCCESS;
 }
 
-// Similar to rlc_um_nr_test9() but out-of-order PDUs have SNs (from multiple SDUs)
+// Similar to rlc_um_nr_test8() but out-of-order PDUs have SNs (from multiple SDUs)
 int rlc_um_nr_test9()
 {
   rlc_um_nr_test_context1 ctxt;
@@ -621,6 +621,8 @@ int rlc_um_nr_test9()
     TESTASSERT(*(ctxt.tester.sdus[i]->msg) == i);
   }
 
+  TESTASSERT(ctxt.timers.nof_running_timers() == 0);
+
   return SRSRAN_SUCCESS;
 }
 
@@ -676,13 +678,10 @@ int main(int argc, char** argv)
     return SRSRAN_ERROR;
   }
 
-// temporarily disabling
-#if 0
   if (rlc_um_nr_test9()) {
     fprintf(stderr, "rlc_um_nr_test9() failed.\n");
     return SRSRAN_ERROR;
   }
-#endif
 
 #if PCAP
   pcap_handle->close();

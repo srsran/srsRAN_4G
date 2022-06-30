@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,7 +24,6 @@
 #include "srsran/common/s3g.h"
 #include "srsran/common/ssl.h"
 #include "srsran/config.h"
-
 #include <arpa/inet.h>
 
 #ifdef HAVE_MBEDTLS
@@ -47,6 +46,7 @@
 #define ALGO_EPS_DISTINGUISHER_UP_ENC_ALG 0x05
 #define ALGO_EPS_DISTINGUISHER_UP_INT_ALG 0x06
 
+#define FC_5G_K_GNB_STAR_DERIVATION 0x70
 #define FC_5G_ALGORITHM_KEY_DERIVATION 0x69
 #define FC_5G_KAUSF_DERIVATION 0x6A
 #define FC_5G_RES_STAR_DERIVATION 0x6B
@@ -203,6 +203,32 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
   return SRSRAN_SUCCESS;
 }
 
+uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count_, as_key_t& k_gnb)
+{
+  if (k_amf.empty()) {
+    log_error("Invalid inputs");
+    return SRSRAN_ERROR;
+  }
+
+  // NAS Count
+  std::vector<uint8_t> nas_count;
+  nas_count.resize(4);
+  nas_count[0] = (nas_count_ >> 24) & 0xFF;
+  nas_count[1] = (nas_count_ >> 16) & 0xFF;
+  nas_count[2] = (nas_count_ >> 8) & 0xFF;
+  nas_count[3] = nas_count_ & 0xFF;
+
+  // Access Type Distinguisher 3GPP access = 0x01 (TS 33501 Annex A.9)
+  std::vector<uint8_t> access_type_distinguisher = {1};
+
+  if (kdf_common(FC_5G_KGNB_KN3IWF_DERIVATION, k_amf, nas_count, access_type_distinguisher, k_gnb.data()) !=
+      SRSRAN_SUCCESS) {
+    log_error("Failed to run kdf_common");
+    return SRSRAN_ERROR;
+  }
+  return SRSRAN_SUCCESS;
+}
+
 uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count_, uint8_t* k_enb)
 {
   if (k_asme == NULL || k_enb == NULL) {
@@ -228,8 +254,27 @@ uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count_
   return SRSRAN_SUCCESS;
 }
 
+// Generate k_enb* according to TS 33.401 Appendix A.5
 uint8_t
 security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci_, const uint32_t earfcn_, uint8_t* k_enb_star)
+
+{
+  return security_generate_k_nb_star_common(FC_EPS_K_ENB_STAR_DERIVATION, k_enb, pci_, earfcn_, k_enb_star);
+}
+
+// Generate k_gnb* according to TS 33.501 Appendix A.11
+uint8_t
+security_generate_k_gnb_star(const uint8_t* k_gnb, const uint32_t pci_, const uint32_t dl_arfcn_, uint8_t* k_gnb_star)
+
+{
+  return security_generate_k_nb_star_common(FC_5G_K_GNB_STAR_DERIVATION, k_gnb, pci_, dl_arfcn_, k_gnb_star);
+}
+
+uint8_t security_generate_k_nb_star_common(uint8_t        fc,
+                                           const uint8_t* k_enb,
+                                           const uint32_t pci_,
+                                           const uint32_t earfcn_,
+                                           uint8_t*       k_enb_star)
 {
   if (k_enb == NULL || k_enb_star == NULL) {
     log_error("Invalid inputs");
@@ -244,13 +289,20 @@ security_generate_k_enb_star(const uint8_t* k_enb, const uint32_t pci_, const ui
   pci[0] = (pci_ >> 8) & 0xFF;
   pci[1] = pci_ & 0xFF;
 
-  // EARFCN
+  // ARFCN, can be two or three bytes
   std::vector<uint8_t> earfcn;
-  earfcn.resize(2);
-  earfcn[0] = (earfcn_ >> 8) & 0xFF;
-  earfcn[1] = earfcn_ & 0xFF;
+  if (earfcn_ < pow(2, 16)) {
+    earfcn.resize(2);
+    earfcn[0] = (earfcn_ >> 8) & 0xFF;
+    earfcn[1] = earfcn_ & 0xFF;
+  } else if (earfcn_ < pow(2, 24)) {
+    earfcn.resize(3);
+    earfcn[0] = (earfcn_ >> 16) & 0xFF;
+    earfcn[1] = (earfcn_ >> 8) & 0xFF;
+    earfcn[2] = earfcn_ & 0xFF;
+  }
 
-  if (kdf_common(FC_EPS_K_ENB_STAR_DERIVATION, key, pci, earfcn, k_enb_star) != SRSRAN_SUCCESS) {
+  if (kdf_common(fc, key, pci, earfcn, k_enb_star) != SRSRAN_SUCCESS) {
     log_error("Failed to run kdf_common");
     return SRSRAN_ERROR;
   }

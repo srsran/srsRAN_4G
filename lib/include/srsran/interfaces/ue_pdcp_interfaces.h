@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -66,6 +66,13 @@ class pdcp_interface_stack
 public:
   virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu, int sn = -1) = 0;
   virtual bool is_lcid_enabled(uint32_t lcid)                                          = 0;
+};
+
+// SDAP interface
+class pdcp_interface_sdap_nr
+{
+public:
+  virtual void write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu) = 0;
 };
 
 // STACK interface for GW (based on EPS-bearer IDs)

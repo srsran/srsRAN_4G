@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -78,6 +78,25 @@ void lch_ue_manager::new_tti()
         channels[lcid].Bj =
             std::min(channels[lcid].Bj + (int)(channels[lcid].cfg.pbr * tti_duration_ms), channels[lcid].bucket_size);
       }
+    }
+  }
+}
+
+void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
+{
+  if (base_type::dl_buffer_state(lcid, tx_queue, prio_tx_queue) == SRSRAN_SUCCESS) {
+    logger.debug("SCHED: rnti=0x%x DL lcid=%d buffer_state=%d,%d", rnti, lcid, tx_queue, prio_tx_queue);
+  }
+}
+
+void lch_ue_manager::ul_bsr(uint32_t lcg_id, uint32_t val)
+{
+  if (base_type::ul_bsr(lcg_id, val) == SRSRAN_SUCCESS) {
+    if (logger.debug.enabled()) {
+      fmt::memory_buffer str_buffer;
+      fmt::format_to(str_buffer, "{}", lcg_bsr);
+      logger.debug(
+          "SCHED: rnti=0x%x, lcg_id=%d, bsr=%d. Current state=%s", rnti, lcg_id, val, srsran::to_c_str(str_buffer));
     }
   }
 }
@@ -244,18 +263,34 @@ uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,
                            uint32_t                          total_tbs,
                            uint32_t                          tbidx)
 {
-  uint32_t rem_tbs = total_tbs;
+  uint32_t  rem_tbs       = total_tbs;
+  auto&     pdu           = data->pdu[tbidx];
+  uint32_t& nof_pdu_elems = data->nof_pdu_elems[tbidx];
 
   // if we do not have enough bytes to fit MAC subheader, skip MAC SDU allocation
   // NOTE: we do not account RLC header because some LCIDs (e.g. CCCH) do not need them
+  uint32_t first_pdu_idx = nof_pdu_elems;
   while (rem_tbs > MAC_MAX_HEADER_SIZE and data->nof_pdu_elems[tbidx] < sched_interface::MAX_RLC_PDU_LIST) {
     uint32_t max_sdu_bytes   = rem_tbs - get_mac_subheader_size(rem_tbs - MAC_MIN_HEADER_SIZE);
-    uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
+    uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&pdu[nof_pdu_elems], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
       break;
     }
     rem_tbs -= get_mac_sdu_and_subheader_size(alloc_sdu_bytes); // account for MAC sub-header
-    data->nof_pdu_elems[tbidx]++;
+
+    // In case the same LCID got reallocated (e.g. retx and newtx), merge with previous SDU.
+    // Otherwise, increment number of scheduled SDUs
+    uint32_t prev_same_lcid_idx = first_pdu_idx;
+    for (; prev_same_lcid_idx < nof_pdu_elems; ++prev_same_lcid_idx) {
+      if (pdu[prev_same_lcid_idx].lcid == pdu[nof_pdu_elems].lcid) {
+        pdu[prev_same_lcid_idx].nbytes += pdu[nof_pdu_elems].nbytes;
+        pdu[nof_pdu_elems].nbytes = 0;
+        break;
+      }
+    }
+    if (prev_same_lcid_idx == nof_pdu_elems) {
+      nof_pdu_elems++;
+    }
   }
 
   return total_tbs - rem_tbs;

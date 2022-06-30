@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -74,7 +74,7 @@ int mac_nr::init(const mac_nr_args_t&  args_,
     return SRSRAN_ERROR;
   }
 
-  if (demux.init(rlc) != SRSRAN_SUCCESS) {
+  if (demux.init(rlc, phy) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize demux unit.");
     return SRSRAN_ERROR;
   }
@@ -112,6 +112,16 @@ void mac_nr::reset()
   proc_sr.reset();
   proc_ra.reset();
   mux.reset();
+  for (const auto& cc : dl_harq) {
+    if (cc != nullptr) {
+      cc->reset();
+    }
+  }
+  for (const auto& cc : ul_harq) {
+    if (cc != nullptr) {
+      cc->reset();
+    }
+  }
 }
 
 void mac_nr::run_tti(const uint32_t tti)
@@ -162,13 +172,16 @@ void mac_nr::update_buffer_states()
 
 mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
 {
+  if (has_temp_crnti() && has_crnti() == false) {
+    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", rntis.get_temp_rnti());
+    return {rntis.get_temp_rnti(), srsran_rnti_type_c};
+  }
   return {rntis.get_crnti(), srsran_rnti_type_c};
 }
 
 bool mac_nr::is_si_opportunity()
 {
-  // TODO: ask RRC if we need SI
-  return false;
+  return search_bcch;
 }
 
 bool mac_nr::is_paging_opportunity()
@@ -191,9 +204,9 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t t
     return {proc_ra.get_rar_rnti(), srsran_rnti_type_ra};
   }
 
-  if (proc_ra.has_temp_crnti() && has_crnti() == false) {
-    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", proc_ra.get_temp_crnti());
-    return {proc_ra.get_temp_crnti(), srsran_rnti_type_c};
+  if (has_temp_crnti() && has_crnti() == false) {
+    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", rntis.get_temp_rnti());
+    return {rntis.get_temp_rnti(), srsran_rnti_type_c};
   }
 
   if (has_crnti()) {
@@ -205,6 +218,26 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t t
   return {SRSRAN_INVALID_RNTI, srsran_rnti_type_c};
 }
 
+bool mac_nr::has_temp_crnti()
+{
+  return rntis.get_temp_rnti() != SRSRAN_INVALID_RNTI;
+}
+
+uint16_t mac_nr::get_temp_crnti()
+{
+  return rntis.get_temp_rnti();
+}
+
+void mac_nr::set_temp_crnti(uint16_t temp_crnti)
+{
+  rntis.set_temp_rnti(temp_crnti);
+}
+
+void mac_nr::set_crnti_to_temp()
+{
+  rntis.set_crnti_to_temp();
+}
+
 bool mac_nr::has_crnti()
 {
   return rntis.get_crnti() != SRSRAN_INVALID_RNTI;
@@ -213,11 +246,6 @@ bool mac_nr::has_crnti()
 uint16_t mac_nr::get_crnti()
 {
   return rntis.get_crnti();
-}
-
-uint16_t mac_nr::get_temp_crnti()
-{
-  return proc_ra.get_temp_crnti();
 }
 
 srsran::mac_sch_subpdu_nr::lcg_bsr_t mac_nr::generate_sbsr()
@@ -305,7 +333,7 @@ void mac_nr::new_grant_dl(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant,
 
 void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result)
 {
-  logger.debug("tb_decoded(): cc_idx=%d, tti=%d, rnti=%d, pid=%d, tbs=%d, ndi=%d, rv=%d, result=%s",
+  logger.debug("tb_decoded(): cc_idx=%d, tti=%d, rnti=0x%X, pid=%d, tbs=%d, ndi=%d, rv=%d, result=%s",
                cc_idx,
                grant.tti,
                grant.rnti,
@@ -330,11 +358,16 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, t
 
     dl_harq.at(cc_idx)->tb_decoded(grant, std::move(result));
   }
+
+  // If proc ra is in contention resolution (RA connection request procedure)
+  if (proc_ra.is_contention_resolution() && grant.rnti == rntis.get_temp_rnti()) {
+    proc_ra.received_contention_resolution(contention_res_successful);
+  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
 {
-  logger.debug("new_grant_ul(): cc_idx=%d, tti=%d, rnti=%d, pid=%d, tbs=%d, ndi=%d, rv=%d, is_rar=%d",
+  logger.debug("new_grant_ul(): cc_idx=%d, tti=%d, rnti=0x%X, pid=%d, tbs=%d, ndi=%d, rv=%d, is_rar=%d",
                cc_idx,
                grant.tti,
                grant.rnti,
@@ -347,7 +380,7 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
   // Clear UL action
   *action = {};
 
-  // if proc ra is in contention resolution and c_rnti == grant.c_rnti resolve contention resolution
+  // if proc ra is in contention resolution and c_rnti == grant.c_rnti (RA connection resume procedure)
   if (proc_ra.is_contention_resolution() && grant.rnti == get_crnti()) {
     proc_ra.pdcch_to_crnti();
   }
@@ -441,7 +474,7 @@ int mac_nr::set_config(const srsran::sr_cfg_nr_t& sr_cfg)
   return proc_sr.set_config(sr_cfg);
 }
 
-void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)
+void mac_nr::set_config(const srsran::rach_cfg_nr_t& rach_cfg)
 {
   proc_ra.set_config(rach_cfg);
 }
@@ -449,6 +482,11 @@ void mac_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg)
 void mac_nr::set_contention_id(uint64_t ue_identity)
 {
   rntis.set_contention_id(ue_identity);
+}
+
+void mac_nr::bcch_search(bool enabled)
+{
+  search_bcch = enabled;
 }
 
 bool mac_nr::set_crnti(const uint16_t c_rnti_)
@@ -534,9 +572,10 @@ void mac_nr::process_pdus()
   demux.process_pdus();
 }
 
-uint64_t mac_nr::get_contention_id()
+bool mac_nr::received_contention_id(uint64_t rx_contention_id)
 {
-  return 0xdeadbeef; // TODO when rebased on PR
+  contention_res_successful = rntis.get_contention_id() == rx_contention_id;
+  return contention_res_successful;
 }
 
 // TODO same function as for mac_eutra

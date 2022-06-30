@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -30,10 +30,14 @@
 #include <stdlib.h>
 
 // NR parameters
-static uint32_t                    pci             = 1;  // Physical Cell Identifier
-static uint32_t                    carrier_nof_prb = 52; // Carrier bandwidth
-static srsran_subcarrier_spacing_t carrier_scs     = srsran_subcarrier_spacing_15kHz;
-static srsran_subcarrier_spacing_t ssb_scs         = srsran_subcarrier_spacing_30kHz;
+static uint32_t                    pci                 = 500; // Physical Cell Identifier
+static uint32_t                    carrier_nof_prb     = 52;  // Carrier bandwidth
+static srsran_subcarrier_spacing_t carrier_scs         = srsran_subcarrier_spacing_15kHz;
+static double                      center_frequency_hz = 3.5e9;
+static srsran_subcarrier_spacing_t ssb_scs             = srsran_subcarrier_spacing_15kHz;
+static double                      ssb_frequency_hz    = 3.5e9 - 960e3;
+static srsran_ssb_pattern_t        ssb_pattern         = SRSRAN_SSB_PATTERN_C;
+static srsran_duplex_mode_t        duplex_mode         = SRSRAN_DUPLEX_MODE_TDD;
 
 // Test and channel parameters
 static uint32_t nof_sf         = 1000;    // Number of subframes to test
@@ -44,7 +48,7 @@ static float    delay_max_us   = 1000.0f; // Maximum dynamic delay in microsecon
 static float    delay_period_s = 60.0f;   // Delay period in seconds
 
 // Test context
-static double   srate_hz = 0.0f; // Base-band sampling rate
+static double   srate_hz = 0.0;  // Base-band sampling rate
 static uint32_t sf_len   = 0;    // Subframe length
 static cf_t*    buffer   = NULL; // Base-band buffer
 static cf_t*    buffer2  = NULL; // Base-band buffer
@@ -108,7 +112,7 @@ static int test_context_init(test_context_t* ctx)
 
   srsran_ssb_args_t ssb_args = {};
   ssb_args.max_srate_hz      = srate_hz;
-  ssb_args.min_scs           = carrier_scs;
+  ssb_args.min_scs           = ssb_scs;
   ssb_args.enable_encode     = true;
   if (srsran_ssb_init(&ctx->ssb, &ssb_args) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -117,10 +121,11 @@ static int test_context_init(test_context_t* ctx)
   srsran_ssb_cfg_t ssb_cfg = {};
   ssb_cfg.srate_hz         = srate_hz;
   ssb_cfg.srate_hz         = srate_hz;
-  ssb_cfg.center_freq_hz   = 3.5e9;
-  ssb_cfg.ssb_freq_hz      = 3.5e9 - 960e3;
+  ssb_cfg.center_freq_hz   = center_frequency_hz;
+  ssb_cfg.ssb_freq_hz      = ssb_frequency_hz;
   ssb_cfg.scs              = ssb_scs;
-  ssb_cfg.pattern          = SRSRAN_SSB_PATTERN_C;
+  ssb_cfg.pattern          = ssb_pattern;
+  ssb_cfg.duplex_mode      = duplex_mode;
   if (srsran_ssb_set_cfg(&ctx->ssb, &ssb_cfg) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
@@ -250,10 +255,12 @@ int main(int argc, char** argv)
   int ret = SRSRAN_ERROR;
   parse_args(argc, argv);
 
-  srate_hz = (double)SRSRAN_SUBC_SPACING_NR(carrier_scs) * srsran_min_symbol_sz_rb(carrier_nof_prb);
-  sf_len   = (uint32_t)ceil(srate_hz / 1000.0);
-  buffer   = srsran_vec_cf_malloc(sf_len);
-  buffer2  = srsran_vec_cf_malloc(sf_len);
+  if (!isnormal(srate_hz)) {
+    srate_hz = (double)SRSRAN_SUBC_SPACING_NR(carrier_scs) * srsran_min_symbol_sz_rb(carrier_nof_prb);
+  }
+  sf_len  = (uint32_t)ceil(srate_hz / 1000.0);
+  buffer  = srsran_vec_cf_malloc(sf_len);
+  buffer2 = srsran_vec_cf_malloc(sf_len);
 
   test_context_t      ctx     = {};
   srsran_ue_sync_nr_t ue_sync = {};
@@ -273,7 +280,7 @@ int main(int argc, char** argv)
   ue_sync_args.min_scs                  = carrier_scs;
   ue_sync_args.recv_obj                 = &ctx;
   ue_sync_args.recv_callback            = &recv_callback;
-  ue_sync_args.disable_cfo              = false;
+  ue_sync_args.disable_cfo              = true;
   if (srsran_ue_sync_nr_init(&ue_sync, &ue_sync_args) < SRSRAN_SUCCESS) {
     ERROR("Init");
     goto clean_exit;
@@ -281,10 +288,11 @@ int main(int argc, char** argv)
 
   srsran_ue_sync_nr_cfg_t ue_sync_cfg = {};
   ue_sync_cfg.ssb.srate_hz            = srate_hz;
-  ue_sync_cfg.ssb.center_freq_hz      = 3.5e9;
-  ue_sync_cfg.ssb.ssb_freq_hz         = 3.5e9 - 960e3;
+  ue_sync_cfg.ssb.center_freq_hz      = center_frequency_hz;
+  ue_sync_cfg.ssb.ssb_freq_hz         = ssb_frequency_hz;
   ue_sync_cfg.ssb.scs                 = ssb_scs;
-  ue_sync_cfg.ssb.pattern             = SRSRAN_SSB_PATTERN_C;
+  ue_sync_cfg.ssb.pattern             = ssb_pattern;
+  ue_sync_cfg.ssb.duplex_mode         = duplex_mode;
   ue_sync_cfg.N_id                    = pci;
   if (srsran_ue_sync_nr_set_cfg(&ue_sync, &ue_sync_cfg) < SRSRAN_SUCCESS) {
     ERROR("Init");

@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -86,5 +86,3 @@ add_test(sched_cqi_test sched_cqi_test)
 add_executable(sched_phy_resource_test sched_phy_resource_test.cc)
 target_link_libraries(sched_phy_resource_test srsran_common srsenb_mac srsran_mac sched_test_common)
 add_test(sched_phy_resource_test sched_phy_resource_test)
-
-add_subdirectory(nr)

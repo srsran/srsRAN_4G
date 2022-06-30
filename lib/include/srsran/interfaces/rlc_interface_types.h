@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -73,10 +73,27 @@ inline std::string to_string(const rlc_am_nr_sn_size_t& sn_size)
   constexpr static const char* options[] = {"12 bits", "18 bits"};
   return enum_to_text(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
-inline uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
+constexpr uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
 {
-  constexpr static uint16_t options[] = {12, 18};
+  constexpr uint16_t options[] = {12, 18};
   return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
+}
+/**
+ * @brief Value range of the serial numbers
+ * @param sn_size Length of the serial number field in bits
+ * @return cardianlity
+ */
+constexpr uint32_t cardinality(const rlc_am_nr_sn_size_t& sn_size)
+{
+  return (1 << to_number(sn_size));
+}
+/****************************************************************************
+ * Tx constants
+ * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.2
+ ***************************************************************************/
+constexpr uint32_t am_window_size(const rlc_am_nr_sn_size_t& sn_size)
+{
+  return cardinality(sn_size) / 2;
 }
 
 struct rlc_am_config_t {
@@ -94,6 +111,26 @@ struct rlc_am_config_t {
   // RX configs
   int32_t t_reordering;      // Timer used by rx to detect PDU loss  (ms)
   int32_t t_status_prohibit; // Timer used by rx to prohibit tx of status PDU (ms)
+};
+
+struct rlc_am_nr_config_t {
+  /****************************************************************************
+   * Configurable parameters
+   * Ref: 3GPP TS 38.322 Section 7
+   ***************************************************************************/
+
+  rlc_am_nr_sn_size_t tx_sn_field_length; // Number of bits used for tx (UL) sequence number
+  rlc_am_nr_sn_size_t rx_sn_field_length; // Number of bits used for rx (DL) sequence number
+
+  // Timers Ref: 3GPP TS 38.322 Section 7.3
+  int32_t t_poll_retx;       // Poll retx timeout (ms)
+  int32_t t_reassembly;      // Timer used by rx to detect PDU loss  (ms)
+  int32_t t_status_prohibit; // Timer used by rx to prohibit tx of status PDU (ms)
+
+  // Configurable Parameters. Ref: 3GPP TS 38.322 Section 7.4
+  uint32_t max_retx_thresh; // Max number of retx
+  int32_t  poll_pdu;        // Insert poll bit after this many PDUs
+  int32_t  poll_byte;       // Insert poll bit after this much data (KB)
 };
 
 struct rlc_um_config_t {
@@ -120,6 +157,7 @@ struct rlc_um_nr_config_t {
 
   rlc_um_nr_sn_size_t sn_field_length; // Number of bits used for sequence number
   int32_t             t_reassembly_ms; // Timer used by rx to detect PDU loss (ms)
+  uint8_t             bearer_id;       // This is not in the 3GPP TS 38.322
 };
 
 #define RLC_TX_QUEUE_LEN (256)
@@ -130,12 +168,13 @@ public:
   srsran_rat_t       rat;
   rlc_mode_t         rlc_mode;
   rlc_am_config_t    am;
+  rlc_am_nr_config_t am_nr;
   rlc_um_config_t    um;
   rlc_um_nr_config_t um_nr;
   uint32_t           tx_queue_length;
 
   rlc_config_t() :
-    rat(srsran_rat_t::lte), rlc_mode(rlc_mode_t::tm), am(), um(), um_nr(), tx_queue_length(RLC_TX_QUEUE_LEN){};
+    rat(srsran_rat_t::lte), rlc_mode(rlc_mode_t::tm), am(), am_nr(), um(), um_nr(), tx_queue_length(RLC_TX_QUEUE_LEN){};
 
   // Factory for MCH
   static rlc_config_t mch_config()
@@ -204,6 +243,27 @@ public:
     rlc_cnfg.am.poll_byte         = 25;
     rlc_cnfg.am.poll_pdu          = 4;
     rlc_cnfg.am.t_poll_retx       = 5;
+    return rlc_cnfg;
+  }
+  static rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
+  {
+    rlc_config_t rlc_cnfg = {};
+    rlc_cnfg.rat          = srsran_rat_t::nr;
+    rlc_cnfg.rlc_mode     = rlc_mode_t::am;
+    if (sn_size == 12) {
+      rlc_cnfg.am_nr.tx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size12bits;
+      rlc_cnfg.am_nr.rx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size12bits;
+    } else if (sn_size == 18) {
+      rlc_cnfg.am_nr.tx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size18bits;
+      rlc_cnfg.am_nr.rx_sn_field_length = srsran::rlc_am_nr_sn_size_t::size18bits;
+    } else {
+      return {};
+    }
+    rlc_cnfg.am_nr.t_status_prohibit = 8;
+    rlc_cnfg.am_nr.max_retx_thresh   = 4;
+    rlc_cnfg.am_nr.t_reassembly      = 35;
+    rlc_cnfg.am_nr.poll_pdu          = 4;
+    rlc_cnfg.am_nr.t_poll_retx       = 45;
     return rlc_cnfg;
   }
   static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)

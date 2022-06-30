@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -128,11 +128,13 @@ SRSRAN_API int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
  * @brief Selects a valid PUCCH resource for transmission
  * @param pucch_cfg PUCCH configuration from upper layers
  * @param uci_cfg Uplink Control information configuration (and PDCCH context)
+ * @param N_bwp_sz Uplink BWP size in nof_prb
  * @param[out] resource Selected resource for transmitting PUCCH
  * @return SRSRAN_SUCCESS if provided configuration is valid, SRSRAN_ERROR code otherwise
  */
 SRSRAN_API int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
                                               const srsran_uci_cfg_nr_t*      uci_cfg,
+                                              uint32_t                        N_bwp_sz,
                                               srsran_pucch_nr_resource_t*     resource);
 
 /**

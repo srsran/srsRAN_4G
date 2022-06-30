@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -40,6 +40,7 @@ if (RF_FOUND AND ENABLE_SRSUE AND ENABLE_SRSENB)
     target_link_libraries(nr_phy_test
             srsue_phy
             srsran_common
+            rrc_nr_asn1
             srsran_phy
             srsran_radio
             srsenb_phy

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -38,14 +38,6 @@ public:
     preamble_index                 = preamble_index_;
     preamble_received_target_power = preamble_received_target_power_;
   }
-  int tx_request(const tx_request_t& request) override { return 0; }
-  int set_ul_grant(uint32_t rar_slot_idx,
-                   std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS>,
-                   uint16_t           rnti,
-                   srsran_rnti_type_t rnti_type) override
-  {
-    return 0;
-  }
 
   void get_last_send_prach(uint32_t* prach_occasion_, uint32_t* preamble_index_, int* preamble_received_target_power_)
   {
@@ -55,6 +47,16 @@ public:
   }
   bool has_valid_sr_resource(uint32_t sr_id) override { return false; }
   void clear_pending_grants() override {}
+
+  int set_rar_grant(uint32_t                                       rar_slot_idx,
+                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                    uint16_t                                       rnti,
+                    srsran_rnti_type_t                             rnti_type) override
+  {
+    return -1;
+  }
+  void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) final {}
+  void set_timeadv(uint32_t tti, uint32_t ta_cmd) final {}
 
 private:
   uint32_t prach_occasion                 = 0;
@@ -73,6 +75,8 @@ public:
     crnti = c_rnti;
     return true;
   }
+  void set_temp_crnti(uint16_t c_rnti) {}
+  void set_crnti_to_temp() {}
 
   bool msg3_is_transmitted() { return true; }
   void msg3_flush() {}
@@ -100,7 +104,7 @@ int proc_ra_normal_test()
   proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
 
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
-  srsran::rach_nr_cfg_t rach_cfg;
+  srsran::rach_cfg_nr_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;
   rach_cfg.prach_ConfigurationIndex     = 16;
   rach_cfg.PreambleReceivedTargetPower  = -110;
@@ -162,7 +166,7 @@ int proc_ra_timeout_test()
 
   proc_ra_nr.init(&dummy_phy, &ext_task_sched_h);
   TESTASSERT(proc_ra_nr.is_rar_opportunity(1) == false);
-  srsran::rach_nr_cfg_t rach_cfg;
+  srsran::rach_cfg_nr_t rach_cfg;
   rach_cfg.powerRampingStep             = 4;
   rach_cfg.prach_ConfigurationIndex     = 16;
   rach_cfg.PreambleReceivedTargetPower  = -110;

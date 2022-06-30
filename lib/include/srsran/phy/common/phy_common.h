@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -507,7 +507,7 @@ SRSRAN_API char* srsran_nbiot_mode_string(srsran_nbiot_mode_t mode);
  * Returns a constant string pointer with the ACK/NACK feedback mode
  *
  * @param ack_nack_feedback_mode Mode
- * @return Returns constant pointer with the text of the mode if succesful, `error` otherwise
+ * @return Returns constant pointer with the text of the mode if successful, `error` otherwise
  */
 SRSRAN_API const char* srsran_ack_nack_feedback_mode_string(srsran_ack_nack_feedback_mode_t ack_nack_feedback_mode);
 
@@ -515,7 +515,7 @@ SRSRAN_API const char* srsran_ack_nack_feedback_mode_string(srsran_ack_nack_feed
  * Returns a constant string pointer with the ACK/NACK feedback mode
  *
  * @param ack_nack_feedback_mode Mode
- * @return Returns constant pointer with the text of the mode if succesful, `error` otherwise
+ * @return Returns constant pointer with the text of the mode if successful, `error` otherwise
  */
 SRSRAN_API srsran_ack_nack_feedback_mode_t srsran_string_ack_nack_feedback_mode(const char* str);
 

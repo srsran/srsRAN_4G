@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,8 +22,8 @@
 #ifndef SRSUE_UE_STACK_BASE_H
 #define SRSUE_UE_STACK_BASE_H
 
-#include "rrc/nr/rrc_nr_config.h"
 #include "rrc/rrc_config.h"
+#include "rrc_nr/rrc_nr_config.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "upper/gw.h"
@@ -71,9 +71,11 @@ typedef struct {
   rrc_nr_args_t    rrc_nr;
   std::string      ue_category_str;
   nas_args_t       nas;
+  nas_5g_args_t    nas_5g;
   gw_args_t        gw;
   uint32_t         sync_queue_size; // Max allowed difference between PHY and Stack clocks (in TTI)
   bool             have_tti_time_stats;
+  bool             sa_mode;
 } stack_args_t;
 
 class ue_stack_base

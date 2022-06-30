@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,10 +21,10 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/test_common.h"
 #include "srsran/interfaces/enb_rrc_interface_types.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
 #include "test_helpers.h"
 
 using namespace asn1::rrc;

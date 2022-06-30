@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -191,7 +191,7 @@ public:
    * @param rnti the UE identifier in the eNb
    * @param cc_idx the eNb Cell/Carrier identifier
    * @param nof_bytes the number of grants carrierd by the PUSCH message
-   * @param crc_res the CRC check, set to true if the message was decoded succesfully
+   * @param crc_res the CRC check, set to true if the message was decoded successfully
    * @return SRSRAN_SUCCESS if no error occurs, SRSRAN_ERROR* if an error occurs
    */
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) = 0;
@@ -203,7 +203,7 @@ public:
    * @param rnti the UE identifier in the eNb
    * @param enb_cc_idx the eNb Cell/Carrier identifier
    * @param nof_bytes the number of grants carrierd by the PUSCH message
-   * @param crc_res the CRC check, set to true if the message was decoded succesfully
+   * @param crc_res the CRC check, set to true if the message was decoded successfully
    * @param ul_nof_prbs Number of PRBs allocated to grant
    * @return SRSRAN_SUCCESS if no error occurs, SRSRAN_ERROR* if an error occurs
    */

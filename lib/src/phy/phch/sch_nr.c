@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -605,6 +605,7 @@ static int sch_nr_decode(srsran_sch_nr_t*        q,
 
   // Counter of code blocks that have matched CRC
   uint32_t cb_ok = 0;
+  res->crc       = false;
 
   // For each code block...
   uint32_t j = 0;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,7 +21,8 @@
 
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
-#include "srsran/rrc/rrc_cfg_utils.h"
+#include "srsran/asn1/obj_id_cmp_utils.h"
+#include "srsran/asn1/rrc_utils.h"
 
 using namespace asn1::rrc;
 
@@ -433,8 +434,7 @@ bool apply_meascfg_updates(meas_cfg_s&             meascfg,
       for (auto it = current_meascfg.meas_id_to_add_mod_list.begin();
            it != current_meascfg.meas_id_to_add_mod_list.end();) {
         if (it->meas_obj_id == found_src_obj->meas_obj_id) {
-          auto rit = it++;
-          current_meascfg.meas_id_to_add_mod_list.erase(rit);
+          it = current_meascfg.meas_id_to_add_mod_list.erase(it);
         } else {
           ++it;
         }

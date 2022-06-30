@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,15 +24,13 @@
 
 #include "srsran/srsran.h"
 
-#include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/common/security.h"
 #include "srsran/interfaces/pdcp_interface_types.h"
 #include "srsran/interfaces/rlc_interface_types.h"
-#include "srsran/interfaces/rrc_interface_types.h"
 // EUTRA interfaces that are used unmodified
-#include "srsran/interfaces/enb_mac_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_pdcp.h"
+#include "srsran/interfaces/enb_rrc_interface_rlc.h"
 
 namespace srsenb {
 
@@ -133,6 +131,17 @@ public:
 };
 
 /*****************************
+ *      MAC internal INTERFACES
+ ****************************/
+
+class mac_interface_pdu_demux_nr
+{
+public:
+  // Called by PDU handler from Stack thread to store Msg3 content (According to O-RAN WG8 v3.0, Sec. 9.2.2.3.5 MAC)
+  virtual void store_msg3(uint16_t rnti, srsran::unique_byte_buffer_t pdu) = 0;
+};
+
+/*****************************
  *      RRC INTERFACES
  ****************************/
 class rrc_interface_phy_nr
@@ -141,13 +150,13 @@ class rrc_interface_mac_nr
 {
 public:
   // Provides MIB packed message
-  virtual int read_pdu_bcch_bch(const uint32_t tti, srsran::unique_byte_buffer_t& buffer)   = 0;
-  virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::unique_byte_buffer_t& buffer) = 0;
+  virtual int read_pdu_bcch_bch(const uint32_t tti, srsran::byte_buffer_t& buffer)   = 0;
+  virtual int read_pdu_bcch_dlsch(uint32_t sib_index, srsran::byte_buffer_t& buffer) = 0;
 
   /// User management
-  virtual int  add_user(uint16_t rnti, const sched_nr_ue_cfg_t& uecfg) = 0;
-  virtual int  update_user(uint16_t new_rnti, uint16_t old_rnti)       = 0;
-  virtual void set_activity_user(uint16_t rnti)                        = 0;
+  virtual int  add_user(uint16_t rnti, uint32_t pcell_cc_idx)    = 0;
+  virtual int  update_user(uint16_t new_rnti, uint16_t old_rnti) = 0;
+  virtual void set_activity_user(uint16_t rnti)                  = 0;
 };
 
 // NR interface is almost identical to EUTRA version
@@ -288,15 +297,15 @@ public:
     uint32_t time_adv;
   };
 
-  virtual int  slot_indication(const srsran_slot_cfg_t& slot_cfg)                            = 0;
-  virtual int  get_dl_sched(const srsran_slot_cfg_t& slot_cfg, dl_sched_t& dl_sched)         = 0;
-  virtual int  get_ul_sched(const srsran_slot_cfg_t& slot_cfg, ul_sched_t& ul_sched)         = 0;
-  virtual int  pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) = 0;
-  virtual int  pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info)       = 0;
-  virtual void rach_detected(const rach_info_t& rach_info)                                   = 0;
+  virtual int         slot_indication(const srsran_slot_cfg_t& slot_cfg)                            = 0;
+  virtual dl_sched_t* get_dl_sched(const srsran_slot_cfg_t& slot_cfg)                               = 0;
+  virtual ul_sched_t* get_ul_sched(const srsran_slot_cfg_t& slot_cfg)                               = 0;
+  virtual int         pucch_info(const srsran_slot_cfg_t& slot_cfg, const pucch_info_t& pucch_info) = 0;
+  virtual int         pusch_info(const srsran_slot_cfg_t& slot_cfg, pusch_info_t& pusch_info)       = 0;
+  virtual void        rach_detected(const rach_info_t& rach_info)                                   = 0;
 };
 
-class stack_interface_phy_nr : public mac_interface_phy_nr, public srsran::stack_interface_phy_nr
+class stack_interface_phy_nr : public mac_interface_phy_nr
 {};
 
 } // namespace srsenb

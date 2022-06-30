@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -84,8 +84,10 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
 
-    // Pop first element
-    fifo.pop_front();
+    // If the FIFO is not empty pop first element
+    if (not fifo.empty()) {
+      fifo.pop_front();
+    }
 
     // Notify release
     cvar.notify_all();

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -300,7 +300,7 @@ public:
     }
     return obj;
   }
-  bool pop_wait_until(T& obj, const std::chrono::system_clock::time_point& until) { return pop_(obj, true, &until); }
+  bool pop_wait_until(T& obj, const std::chrono::steady_clock::time_point& until) { return pop_(obj, true, &until); }
   void clear()
   {
     T obj;
@@ -414,7 +414,7 @@ protected:
     return {};
   }
 
-  bool pop_(T& obj, bool block, const std::chrono::system_clock::time_point* until = nullptr)
+  bool pop_(T& obj, bool block, const std::chrono::steady_clock::time_point* until = nullptr)
   {
     std::unique_lock<std::mutex> lock(mutex);
     if (not active) {

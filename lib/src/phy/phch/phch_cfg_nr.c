@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -260,7 +260,7 @@ uint32_t srsran_sch_cfg_nr_info(const srsran_sch_cfg_nr_t* sch_cfg, char* str, u
   // Append SCH information
   len += phch_cfg_sch_to_str(&sch_cfg->sch_cfg, &str[len], str_len - len);
 
-  // Append SCH information
+  // Append reserved RE information
   len += phch_cfg_rvd_to_str(&sch_cfg->rvd_re, &str[len], str_len - len);
 
   // UCI configuration

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -28,7 +28,7 @@
 namespace srsran {
 
 /**
- * @brief Descibes a physical layer common interface
+ * @brief Describes a physical layer common interface
  */
 class phy_common_interface
 {

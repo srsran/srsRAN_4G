@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -58,9 +58,9 @@ int srsran_enb_dl_init(srsran_enb_dl_t* q, cf_t* out_buffer[SRSRAN_MAX_PORTS], u
     ofdm_cfg.nof_prb           = max_prb;
     ofdm_cfg.cp                = SRSRAN_CP_EXT;
     ofdm_cfg.normalize         = false;
-    ofdm_cfg.in_buffer  = q->sf_symbols[0];
-    ofdm_cfg.out_buffer = out_buffer[0];
-    ofdm_cfg.sf_type    = SRSRAN_SF_MBSFN;
+    ofdm_cfg.in_buffer         = q->sf_symbols[0];
+    ofdm_cfg.out_buffer        = out_buffer[0];
+    ofdm_cfg.sf_type           = SRSRAN_SF_MBSFN;
     if (srsran_ofdm_tx_init_cfg(&q->ifft_mbsfn, &ofdm_cfg)) {
       ERROR("Error initiating FFT");
       goto clean_exit;
@@ -151,7 +151,7 @@ int srsran_enb_dl_set_cell(srsran_enb_dl_t* q, srsran_cell_t cell)
       if (q->cell.nof_prb != 0) {
         srsran_regs_free(&q->regs);
       }
-      q->cell = cell;
+      q->cell                    = cell;
       srsran_ofdm_cfg_t ofdm_cfg = {};
       ofdm_cfg.nof_prb           = q->cell.nof_prb;
       ofdm_cfg.cp                = cell.cp;
@@ -160,6 +160,7 @@ int srsran_enb_dl_set_cell(srsran_enb_dl_t* q, srsran_cell_t cell)
         ofdm_cfg.in_buffer  = q->sf_symbols[i];
         ofdm_cfg.out_buffer = q->out_buffer[i];
         ofdm_cfg.sf_type    = SRSRAN_SF_NORM;
+        ofdm_cfg.cfr_tx_cfg = q->cfr_config;
         if (srsran_ofdm_tx_init_cfg(&q->ifft[i], &ofdm_cfg)) {
           ERROR("Error initiating FFT (%d)", i);
           return SRSRAN_ERROR;
@@ -236,6 +237,31 @@ int srsran_enb_dl_set_cell(srsran_enb_dl_t* q, srsran_cell_t cell)
     ERROR("Invalid cell properties: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
+}
+
+int srsran_enb_dl_set_cfr(srsran_enb_dl_t* q, const srsran_cfr_cfg_t* cfr)
+{
+  if (q == NULL || cfr == NULL) {
+    ERROR("Error, invalid inputs");
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Copy the cfr config into the eNB
+  q->cfr_config = *cfr;
+
+  // Set the cfr for the ifft's
+  if (srsran_ofdm_set_cfr(&q->ifft_mbsfn, &q->cfr_config) < SRSRAN_SUCCESS) {
+    ERROR("Error setting the CFR for ifft_mbsfn");
+    return SRSRAN_ERROR;
+  }
+  for (int i = 0; i < SRSRAN_MAX_PORTS; i++) {
+    if (srsran_ofdm_set_cfr(&q->ifft[i], &q->cfr_config) < SRSRAN_SUCCESS) {
+      ERROR("Error setting the CFR for the IFFT (%d)", i);
+      return SRSRAN_ERROR;
+    }
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 #ifdef resolve
@@ -419,22 +445,22 @@ int srsran_enb_dl_put_pmch(srsran_enb_dl_t* q, srsran_pmch_cfg_t* pmch_cfg, uint
 
 void srsran_enb_dl_gen_signal(srsran_enb_dl_t* q)
 {
-  // TODO: PAPR control
   float norm_factor = enb_dl_get_norm_factor(q->cell.nof_prb);
 
+  // First apply the amplitude normalization, then perform the IFFT and optional CFR reduction
   if (q->dl_sf.sf_type == SRSRAN_SF_MBSFN) {
-    srsran_ofdm_tx_sf(&q->ifft_mbsfn);
-    srsran_vec_sc_prod_cfc(q->ifft_mbsfn.cfg.out_buffer,
+    srsran_vec_sc_prod_cfc(q->ifft_mbsfn.cfg.in_buffer,
                            norm_factor,
-                           q->ifft_mbsfn.cfg.out_buffer,
-                           (uint32_t)SRSRAN_SF_LEN_PRB(q->cell.nof_prb));
+                           q->ifft_mbsfn.cfg.in_buffer,
+                           SRSRAN_NOF_SLOTS_PER_SF * q->cell.nof_prb * SRSRAN_NRE * SRSRAN_CP_NSYMB(q->cell.cp));
+    srsran_ofdm_tx_sf(&q->ifft_mbsfn);
   } else {
     for (int i = 0; i < q->cell.nof_ports; i++) {
-      srsran_ofdm_tx_sf(&q->ifft[i]);
-      srsran_vec_sc_prod_cfc(q->ifft[i].cfg.out_buffer,
+      srsran_vec_sc_prod_cfc(q->ifft[i].cfg.in_buffer,
                              norm_factor,
-                             q->ifft[i].cfg.out_buffer,
-                             (uint32_t)SRSRAN_SF_LEN_PRB(q->cell.nof_prb));
+                             q->ifft[i].cfg.in_buffer,
+                             SRSRAN_NOF_SLOTS_PER_SF * q->cell.nof_prb * SRSRAN_NRE * SRSRAN_CP_NSYMB(q->cell.cp));
+      srsran_ofdm_tx_sf(&q->ifft[i]);
     }
   }
 }

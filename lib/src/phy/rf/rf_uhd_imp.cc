@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -29,6 +29,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 
 #include "rf_helper.h"
+#include "rf_plugin.h"
 #include "srsran/phy/utils/debug.h"
 #include "srsran/phy/utils/vector.h"
 
@@ -150,6 +151,7 @@ struct rf_uhd_handler_t {
   uint32_t                                nof_tx_channels     = 0;
   std::array<double, SRSRAN_MAX_CHANNELS> tx_freq             = {};
   std::array<double, SRSRAN_MAX_CHANNELS> rx_freq             = {};
+  double                                  cur_rx_gain_ch0     = 0;
 
   std::mutex                                                 tx_gain_mutex;
   std::array<std::pair<double, double>, SRSRAN_MAX_CHANNELS> tx_gain_db = {};
@@ -826,7 +828,7 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
   if (clock_src != "internal") {
     // blocks until clock source is locked
     int error = wait_sensor_locked(handler, sensor_name, true, 300, is_locked);
-    // Print Not lock error if the return was succesful, wait_sensor_locked prints the error before returning
+    // Print Not lock error if the return was successful, wait_sensor_locked prints the error before returning
     if (not is_locked and error == SRSRAN_SUCCESS) {
       ERROR(
           "Could not lock reference clock source. Sensor: %s=%s\n", sensor_name.c_str(), is_locked ? "true" : "false");
@@ -1111,6 +1113,9 @@ int rf_uhd_set_rx_gain_ch(void* h, uint32_t ch, double gain)
   if (handler->uhd->set_rx_gain(ch, gain) != UHD_ERROR_NONE) {
     return SRSRAN_ERROR;
   }
+  if (ch == 0) {
+    handler->cur_rx_gain_ch0 = gain;
+  }
   return SRSRAN_SUCCESS;
 }
 
@@ -1155,13 +1160,7 @@ int rf_uhd_set_tx_gain_ch(void* h, uint32_t ch, double gain)
 double rf_uhd_get_rx_gain(void* h)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
-  double            gain    = 0.0;
-
-  if (handler->uhd->get_rx_gain(gain) != UHD_ERROR_NONE) {
-    return SRSRAN_ERROR;
-  }
-
-  return gain;
+  return handler->cur_rx_gain_ch0;
 }
 
 double rf_uhd_get_tx_gain(void* h)
@@ -1546,3 +1545,44 @@ int rf_uhd_send_timed_multi(void*  h,
 
   return nsamples;
 }
+
+rf_dev_t srsran_rf_dev_uhd = {"UHD",
+                              rf_uhd_devname,
+                              rf_uhd_start_rx_stream,
+                              rf_uhd_stop_rx_stream,
+                              rf_uhd_flush_buffer,
+                              rf_uhd_has_rssi,
+                              rf_uhd_get_rssi,
+                              rf_uhd_suppress_stdout,
+                              rf_uhd_register_error_handler,
+                              rf_uhd_open,
+                              rf_uhd_open_multi,
+                              rf_uhd_close,
+                              rf_uhd_set_rx_srate,
+                              rf_uhd_set_rx_gain,
+                              rf_uhd_set_rx_gain_ch,
+                              rf_uhd_set_tx_gain,
+                              rf_uhd_set_tx_gain_ch,
+                              rf_uhd_get_rx_gain,
+                              rf_uhd_get_tx_gain,
+                              rf_uhd_get_info,
+                              rf_uhd_set_rx_freq,
+                              rf_uhd_set_tx_srate,
+                              rf_uhd_set_tx_freq,
+                              rf_uhd_get_time,
+                              rf_uhd_sync_pps,
+                              rf_uhd_recv_with_time,
+                              rf_uhd_recv_with_time_multi,
+                              rf_uhd_send_timed,
+                              rf_uhd_send_timed_multi};
+
+#ifdef ENABLE_RF_PLUGINS
+int register_plugin(rf_dev_t** rf_api)
+{
+  if (rf_api == NULL) {
+    return SRSRAN_ERROR;
+  }
+  *rf_api = &srsran_rf_dev_uhd;
+  return SRSRAN_SUCCESS;
+}
+#endif /* ENABLE_RF_PLUGINS */

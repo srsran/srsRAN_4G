@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -36,6 +36,7 @@ add_subdirectory(scrambling)
 add_subdirectory(ue)
 add_subdirectory(enb)
 add_subdirectory(gnb)
+add_subdirectory(cfr)
 set(srsran_srcs     $<TARGET_OBJECTS:srsran_agc>
         $<TARGET_OBJECTS:srsran_ch_estimation>
         $<TARGET_OBJECTS:srsran_phy_common>
@@ -53,8 +54,9 @@ set(srsran_srcs     $<TARGET_OBJECTS:srsran_agc>
         $<TARGET_OBJECTS:srsran_ue>
         $<TARGET_OBJECTS:srsran_enb>
         $<TARGET_OBJECTS:srsran_gnb>
+        $<TARGET_OBJECTS:srsran_cfr>
         )
 
 add_library(srsran_phy STATIC ${srsran_srcs} )
 target_link_libraries(srsran_phy pthread m ${FFT_LIBRARIES})
-INSTALL(TARGETS srsran_phy DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_phy DESTINATION ${LIBRARY_DIR} OPTIONAL)

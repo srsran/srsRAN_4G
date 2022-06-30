@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -39,9 +39,9 @@
 #ifndef SRSENB_X2_ADAPTER_H
 #define SRSENB_X2_ADAPTER_H
 
+#include "srsgnb/hdr/stack/gnb_stack_nr.h"
 #include "srsran/interfaces/enb_x2_interfaces.h"
 #include "stack/enb_stack_lte.h"
-#include "stack/gnb_stack_nr.h"
 
 namespace srsenb {
 

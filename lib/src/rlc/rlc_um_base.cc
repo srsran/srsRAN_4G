@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -30,7 +30,7 @@ rlc_um_base::rlc_um_base(srslog::basic_logger&      logger,
                          srsue::pdcp_interface_rlc* pdcp_,
                          srsue::rrc_interface_rlc*  rrc_,
                          srsran::timer_handler*     timers_) :
-  logger(logger), lcid(lcid_), pdcp(pdcp_), rrc(rrc_), timers(timers_), pool(byte_buffer_pool::get_instance())
+  rlc_common(logger), lcid(lcid_), pdcp(pdcp_), rrc(rrc_), timers(timers_), pool(byte_buffer_pool::get_instance())
 {}
 
 rlc_um_base::~rlc_um_base() {}
@@ -51,7 +51,7 @@ rlc_mode_t rlc_um_base::get_mode()
   return rlc_mode_t::um;
 }
 
-uint32_t rlc_um_base::get_bearer()
+uint32_t rlc_um_base::get_lcid()
 {
   return lcid;
 }
@@ -90,7 +90,7 @@ void rlc_um_base::empty_queue()
 void rlc_um_base::write_sdu(unique_byte_buffer_t sdu)
 {
   if (not tx_enabled || not tx) {
-    logger.debug("%s is currently deactivated. Dropping SDU (%d B)", rb_name.c_str(), sdu->N_bytes);
+    RlcDebug("RB is currently deactivated. Dropping SDU (%d B)", sdu->N_bytes);
     std::lock_guard<std::mutex> lock(metrics_mutex);
     metrics.num_lost_sdus++;
     return;
@@ -110,7 +110,7 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu)
 void rlc_um_base::discard_sdu(uint32_t discard_sn)
 {
   if (not tx_enabled || not tx) {
-    logger.debug("%s is currently deactivated. Ignoring SDU discard (SN=%u)", rb_name.c_str(), discard_sn);
+    RlcDebug("RB is currently deactivated. Ignoring SDU discard (SN=%u)", discard_sn);
     return;
   }
   tx->discard_sdu(discard_sn);
@@ -275,15 +275,10 @@ void rlc_um_base::rlc_um_base_tx::set_bsr_callback(bsr_callback_t callback)
 void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)
 {
   if (sdu) {
-    logger.info(sdu->msg,
-                sdu->N_bytes,
-                "%s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                rb_name.c_str(),
-                sdu->N_bytes,
-                tx_sdu_queue.size());
+    RlcHexInfo(sdu->msg, sdu->N_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", sdu->N_bytes, tx_sdu_queue.size());
     tx_sdu_queue.write(std::move(sdu));
   } else {
-    logger.warning("NULL SDU pointer in write_sdu()");
+    RlcWarning("NULL SDU pointer in write_sdu()");
   }
 }
 
@@ -294,26 +289,36 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
     uint32_t                                 nof_bytes = sdu->N_bytes;
     srsran::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
     if (ret) {
-      logger.info(
-          msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());
+      RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, tx_sdu_queue.size());
       return SRSRAN_SUCCESS;
     } else {
-      logger.warning(ret.error()->msg,
-                     ret.error()->N_bytes,
-                     "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                     rb_name.c_str(),
-                     ret.error()->N_bytes,
-                     tx_sdu_queue.size());
+      RlcHexWarning(ret.error()->msg,
+                    ret.error()->N_bytes,
+                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                    rb_name.c_str(),
+                    ret.error()->N_bytes,
+                    tx_sdu_queue.size());
     }
   } else {
-    logger.warning("NULL SDU pointer in write_sdu()");
+    RlcWarning("NULL SDU pointer in write_sdu()");
   }
   return SRSRAN_ERROR;
 }
 
 void rlc_um_base::rlc_um_base_tx::discard_sdu(uint32_t discard_sn)
 {
-  logger.warning("RLC UM: Discard SDU not implemented yet.");
+  std::lock_guard<std::mutex> lock(mutex);
+
+  bool discarded = tx_sdu_queue.apply_first([&discard_sn, this](unique_byte_buffer_t& sdu) {
+    if (sdu != nullptr && sdu->md.pdcp_sn == discard_sn) {
+      tx_sdu_queue.queue.pop_func(sdu);
+      sdu = nullptr;
+    }
+    return false;
+  });
+
+  // Discard fails when the PDCP PDU is already in Tx window.
+  RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
 }
 
 bool rlc_um_base::rlc_um_base_tx::sdu_queue_is_full()
@@ -326,16 +331,16 @@ uint32_t rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t 
   unique_byte_buffer_t pdu;
   {
     std::lock_guard<std::mutex> lock(mutex);
-    logger.debug("MAC opportunity - %d bytes", nof_bytes);
+    RlcDebug("MAC opportunity - %d bytes", nof_bytes);
 
     if (tx_sdu == nullptr && tx_sdu_queue.is_empty()) {
-      logger.info("No data available to be sent");
+      RlcInfo("No data available to be sent");
       return 0;
     }
 
     pdu = make_byte_buffer();
     if (!pdu || pdu->N_bytes != 0) {
-      logger.error("Failed to allocate PDU buffer");
+      RlcError("Failed to allocate PDU buffer");
       return 0;
     }
   }

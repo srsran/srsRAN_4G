@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -66,6 +66,7 @@ int test_add_neighbours()
   TESTASSERT(list.get_neighbour_cell_handle(0, 0) == nullptr);
 
   phy_meas_t pmeas;
+  pmeas.rat    = srsran::srsran_rat_t::lte;
   pmeas.cfo_hz = 4;
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;

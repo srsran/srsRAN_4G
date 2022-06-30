@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -25,7 +25,7 @@
 #include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/ue_interfaces.h"
 #include "srsran/interfaces/ue_phy_interfaces.h"
-#include "srsue/hdr/phy/ue_lte_phy_base.h"
+#include "srsue/hdr/phy/ue_phy_base.h"
 #include "srsue/hdr/ue.h"
 #include "ttcn3_interfaces.h"
 #include <srsran/phy/phch/dci.h>
@@ -35,7 +35,7 @@ using namespace srsran;
 
 namespace srsue {
 
-class lte_ttcn3_phy : public ue_lte_phy_base
+class lte_ttcn3_phy : public ue_phy_base, public phy_interface_stack_lte
 {
 public:
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) override;
@@ -51,12 +51,9 @@ public:
 
   int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, syssim_interface_phy* syssim_);
 
-  int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_) override;
-
-  // ue_phy_base interface
-  int         init(const phy_args_t& args_) override;
   void        stop() override;
   void        wait_initialize() override;
+  bool        is_initialized() override;
   void        start_plot() override;
   void        get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) override;
   std::string get_type() override;
@@ -81,7 +78,7 @@ public:
   void set_mch_period_stop(uint32_t stop) override{};
 
   // Cell search and selection procedures
-  bool cell_search() override;
+  bool cell_search(int earfcn) override;
   bool cell_select(phy_cell_t cell) override;
   bool cell_is_camping() override;
 
@@ -104,10 +101,6 @@ public:
 
   void new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant);
   void new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t, const uint8_t* data);
-
-  // Radio interface
-  void radio_overflow() override;
-  void radio_failure() override;
 
   void run_tti();
 

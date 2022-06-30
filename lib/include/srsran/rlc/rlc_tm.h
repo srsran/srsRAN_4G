@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -50,7 +50,7 @@ public:
   void empty_queue() override;
 
   rlc_mode_t get_mode() override;
-  uint32_t   get_bearer() override;
+  uint32_t   get_lcid() override;
 
   rlc_bearer_metrics_t get_metrics() override;
   void                 reset_metrics() override;
@@ -71,7 +71,6 @@ public:
 
 private:
   byte_buffer_pool*          pool = nullptr;
-  srslog::basic_logger&      logger;
   uint32_t                   lcid = 0;
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;

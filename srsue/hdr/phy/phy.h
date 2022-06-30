@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -34,53 +34,25 @@
 #include "srsran/srsran.h"
 #include "srsue/hdr/phy/lte/worker_pool.h"
 #include "srsue/hdr/phy/nr/worker_pool.h"
-#include "srsue/hdr/phy/ue_lte_phy_base.h"
-#include "srsue/hdr/phy/ue_nr_phy_base.h"
+#include "srsue/hdr/phy/ue_phy_base.h"
 #include "sync.h"
 
 namespace srsue {
 
 typedef _Complex float cf_t;
 
-class phy_cmd_proc : public srsran::thread
-{
-public:
-  phy_cmd_proc() : thread("PHY_CMD") { start(); }
-
-  ~phy_cmd_proc() { stop(); }
-
-  void add_cmd(std::function<void(void)> cmd) { cmd_queue.push(cmd); }
-
-  void stop()
-  {
-    if (running) {
-      add_cmd([this]() { running = false; });
-      wait_thread_finish();
-    }
-  }
-
-private:
-  void run_thread()
-  {
-    std::function<void(void)> cmd;
-    while (running) {
-      cmd = cmd_queue.wait_pop();
-      cmd();
-    }
-  }
-  bool running = true;
-  // Queue for commands
-  srsran::block_queue<std::function<void(void)> > cmd_queue;
-};
-
-class phy final : public ue_lte_phy_base, public ue_nr_phy_base, public srsran::thread
+class phy final : public ue_phy_base,
+                  public phy_interface_stack_lte,
+                  public phy_interface_stack_nr,
+                  public srsran::phy_interface_radio,
+                  public srsran::thread
 {
 public:
   explicit phy() :
     logger_phy(srslog::fetch_basic_logger("PHY")),
     logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
     lte_workers(MAX_WORKERS),
-    nr_workers(MAX_WORKERS),
+    nr_workers(logger_phy, MAX_WORKERS),
     common(logger_phy),
     sfsync(logger_phy, logger_phy_lib),
     prach_buffer(logger_phy),
@@ -89,16 +61,13 @@ public:
 
   ~phy() final { stop(); }
 
-  // Init defined in base class
-  int init(const phy_args_t& args_) final;
-
   // Init for LTE PHYs
-  int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_) final;
+  int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_);
 
   void stop() final;
 
   void wait_initialize() final;
-  bool is_initiated();
+  bool is_initialized() final;
 
   void get_metrics(const srsran::srsran_rat_t& rat, phy_metrics_t* m) final;
   void srsran_phy_logger(phy_logger_level_t log_level, char* str);
@@ -108,7 +77,7 @@ public:
 
   /********** RRC INTERFACE ********************/
 
-  bool cell_search() final;
+  bool cell_search(int earfcn) final;
   bool cell_select(phy_cell_t cell) final;
 
   // Sets the new PHY configuration for the given CC. The configuration is applied in the background. The notify()
@@ -172,25 +141,31 @@ public:
 
   std::string get_type() final { return "lte_soft"; }
 
-  int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_) final;
-  bool set_config(const srsran::phy_cfg_nr_t& cfg) final;
-  int  set_ul_grant(uint32_t                                       rx_tti,
-                    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                    uint16_t                                       rnti,
-                    srsran_rnti_type_t                             rnti_type) final;
-  void send_prach(const uint32_t prach_occasion,
-                  const int      preamble_index,
-                  const float    preamble_received_target_power,
-                  const float    ta_base_sec = 0.0f) final;
-  int  tx_request(const tx_request_t& request) final;
-  void set_earfcn(std::vector<uint32_t> earfcns) final;
-  bool has_valid_sr_resource(uint32_t sr_id) final;
-  void clear_pending_grants() final;
+  /********** NR INTERFACE ********************/
+  int            init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_);
+  bool           set_config(const srsran::phy_cfg_nr_t& cfg) final;
+  void           send_prach(const uint32_t prach_occasion,
+                            const int      preamble_index,
+                            const float    preamble_received_target_power,
+                            const float    ta_base_sec = 0.0f) final;
+  void           set_earfcn(std::vector<uint32_t> earfcns);
+  bool           has_valid_sr_resource(uint32_t sr_id) final;
+  void           clear_pending_grants() final;
+  int            set_rar_grant(uint32_t                                       rar_slot_idx,
+                               std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                               uint16_t                                       rnti,
+                               srsran_rnti_type_t                             rnti_type) final;
+  phy_nr_state_t get_state() override { return PHY_NR_STATE_IDLE; };
+  void           reset_nr() override{};
+  bool           start_cell_search(const cell_search_args_t& req) override { return false; };
+  bool           start_cell_select(const cell_select_args_t& req) override { return false; };
 
 private:
   void run_thread() final;
   void configure_prach_params();
   void reset();
+  bool set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool run_in_background);
+  void set_scell_cmd(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool earfcn_is_different);
 
   std::mutex              config_mutex;
   std::condition_variable config_cond;
@@ -225,6 +200,9 @@ private:
 
   // Tracks the current selected cell (last call to cell_select)
   srsran_cell_t selected_cell = {};
+
+  // Tracks the current selected EARFCN (last call to cell_select)
+  uint32_t selected_earfcn = 0;
 
   static void set_default_args(phy_args_t& args);
   bool        check_args(const phy_args_t& args);

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,393 +21,296 @@
 
 /*******************************************************************************
  *
- *                    3GPP TS ASN1 NGAP NR v15.3.0 (2019-03)
+ *                     3GPP TS ASN1 NGAP v15.3.0 (2019-03)
  *
  ******************************************************************************/
 
-#ifndef SRSASN1_NGAP_NR_H
-#define SRSASN1_NGAP_NR_H
+#ifndef SRSASN1_NGAP_H
+#define SRSASN1_NGAP_H
 
 #include "asn1_utils.h"
 #include <cstdio>
 #include <stdarg.h>
 
 namespace asn1 {
-namespace ngap_nr {
+namespace ngap {
 
 /*******************************************************************************
  *                             Constant Definitions
  ******************************************************************************/
 
-#define ASN1_NGAP_NR_ID_AMF_CFG_UPD 0
-#define ASN1_NGAP_NR_ID_AMF_STATUS_IND 1
-#define ASN1_NGAP_NR_ID_CELL_TRAFFIC_TRACE 2
-#define ASN1_NGAP_NR_ID_DEACTIV_TRACE 3
-#define ASN1_NGAP_NR_ID_DL_NAS_TRANSPORT 4
-#define ASN1_NGAP_NR_ID_DL_NON_UEASSOCIATED_NRP_PA_TRANSPORT 5
-#define ASN1_NGAP_NR_ID_DL_RAN_CFG_TRANSFER 6
-#define ASN1_NGAP_NR_ID_DL_RAN_STATUS_TRANSFER 7
-#define ASN1_NGAP_NR_ID_DL_UEASSOCIATED_NRP_PA_TRANSPORT 8
-#define ASN1_NGAP_NR_ID_ERROR_IND 9
-#define ASN1_NGAP_NR_ID_HO_CANCEL 10
-#define ASN1_NGAP_NR_ID_HO_NOTIF 11
-#define ASN1_NGAP_NR_ID_HO_PREP 12
-#define ASN1_NGAP_NR_ID_HO_RES_ALLOC 13
-#define ASN1_NGAP_NR_ID_INIT_CONTEXT_SETUP 14
-#define ASN1_NGAP_NR_ID_INIT_UE_MSG 15
-#define ASN1_NGAP_NR_ID_LOCATION_REPORT_CTRL 16
-#define ASN1_NGAP_NR_ID_LOCATION_REPORT_FAIL_IND 17
-#define ASN1_NGAP_NR_ID_LOCATION_REPORT 18
-#define ASN1_NGAP_NR_ID_NAS_NON_DELIVERY_IND 19
-#define ASN1_NGAP_NR_ID_NG_RESET 20
-#define ASN1_NGAP_NR_ID_NG_SETUP 21
-#define ASN1_NGAP_NR_ID_OVERLOAD_START 22
-#define ASN1_NGAP_NR_ID_OVERLOAD_STOP 23
-#define ASN1_NGAP_NR_ID_PAGING 24
-#define ASN1_NGAP_NR_ID_PATH_SWITCH_REQUEST 25
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_MODIFY 26
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_MODIFY_IND 27
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_RELEASE 28
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP 29
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_NOTIFY 30
-#define ASN1_NGAP_NR_ID_PRIVATE_MSG 31
-#define ASN1_NGAP_NR_ID_PWS_CANCEL 32
-#define ASN1_NGAP_NR_ID_PWS_FAIL_IND 33
-#define ASN1_NGAP_NR_ID_PWS_RESTART_IND 34
-#define ASN1_NGAP_NR_ID_RAN_CFG_UPD 35
-#define ASN1_NGAP_NR_ID_REROUTE_NAS_REQUEST 36
-#define ASN1_NGAP_NR_ID_RRC_INACTIVE_TRANSITION_REPORT 37
-#define ASN1_NGAP_NR_ID_TRACE_FAIL_IND 38
-#define ASN1_NGAP_NR_ID_TRACE_START 39
-#define ASN1_NGAP_NR_ID_UE_CONTEXT_MOD 40
-#define ASN1_NGAP_NR_ID_UE_CONTEXT_RELEASE 41
-#define ASN1_NGAP_NR_ID_UE_CONTEXT_RELEASE_REQUEST 42
-#define ASN1_NGAP_NR_ID_UE_RADIO_CAP_CHECK 43
-#define ASN1_NGAP_NR_ID_UE_RADIO_CAP_INFO_IND 44
-#define ASN1_NGAP_NR_ID_UETNLA_BINDING_RELEASE 45
-#define ASN1_NGAP_NR_ID_UL_NAS_TRANSPORT 46
-#define ASN1_NGAP_NR_ID_UL_NON_UEASSOCIATED_NRP_PA_TRANSPORT 47
-#define ASN1_NGAP_NR_ID_UL_RAN_CFG_TRANSFER 48
-#define ASN1_NGAP_NR_ID_UL_RAN_STATUS_TRANSFER 49
-#define ASN1_NGAP_NR_ID_UL_UEASSOCIATED_NRP_PA_TRANSPORT 50
-#define ASN1_NGAP_NR_ID_WRITE_REPLACE_WARNING 51
-#define ASN1_NGAP_NR_ID_SECONDARY_RAT_DATA_USAGE_REPORT 52
-#define ASN1_NGAP_NR_MAX_PRIVATE_IES 65535
-#define ASN1_NGAP_NR_MAX_PROTOCOL_EXTS 65535
-#define ASN1_NGAP_NR_MAX_PROTOCOL_IES 65535
-#define ASN1_NGAP_NR_MAXNOOF_ALLOWED_AREAS 16
-#define ASN1_NGAP_NR_MAXNOOF_ALLOWED_S_NSSAIS 8
-#define ASN1_NGAP_NR_MAXNOOF_BPLMNS 12
-#define ASN1_NGAP_NR_MAXNOOF_CELL_IDFOR_WARNING 65535
-#define ASN1_NGAP_NR_MAXNOOF_CELLIN_AO_I 256
-#define ASN1_NGAP_NR_MAXNOOF_CELLIN_EAI 65535
-#define ASN1_NGAP_NR_MAXNOOF_CELLIN_TAI 65535
-#define ASN1_NGAP_NR_MAXNOOF_CELLSING_NB 16384
-#define ASN1_NGAP_NR_MAXNOOF_CELLSINNGENB 256
-#define ASN1_NGAP_NR_MAXNOOF_CELLSIN_UE_HISTORY_INFO 16
-#define ASN1_NGAP_NR_MAXNOOF_CELLS_UE_MOVING_TRAJECTORY 16
-#define ASN1_NGAP_NR_MAXNOOF_DRBS 32
-#define ASN1_NGAP_NR_MAXNOOF_EMERGENCY_AREA_ID 65535
-#define ASN1_NGAP_NR_MAXNOOF_EA_IFOR_RESTART 256
-#define ASN1_NGAP_NR_MAXNOOF_EPLMNS 15
-#define ASN1_NGAP_NR_MAXNOOF_EPLMNS_PLUS_ONE 16
-#define ASN1_NGAP_NR_MAXNOOF_ERABS 256
-#define ASN1_NGAP_NR_MAXNOOF_ERRORS 256
-#define ASN1_NGAP_NR_MAXNOOF_FORB_TACS 4096
-#define ASN1_NGAP_NR_MAXNOOF_MULTI_CONNECT 4
-#define ASN1_NGAP_NR_MAXNOOF_MULTI_CONNECT_MINUS_ONE 3
-#define ASN1_NGAP_NR_MAXNOOF_NG_CONNS_TO_RESET 65536
-#define ASN1_NGAP_NR_MAXNOOF_PDU_SESSIONS 256
-#define ASN1_NGAP_NR_MAXNOOF_PLMNS 12
-#define ASN1_NGAP_NR_MAXNOOF_QOS_FLOWS 64
-#define ASN1_NGAP_NR_MAXNOOF_RAN_NODEIN_AO_I 64
-#define ASN1_NGAP_NR_MAXNOOF_RECOMMENDED_CELLS 16
-#define ASN1_NGAP_NR_MAXNOOF_RECOMMENDED_RAN_NODES 16
-#define ASN1_NGAP_NR_MAXNOOF_AO_I 64
-#define ASN1_NGAP_NR_MAXNOOF_SERVED_GUAMIS 256
-#define ASN1_NGAP_NR_MAXNOOF_SLICE_ITEMS 1024
-#define ASN1_NGAP_NR_MAXNOOF_TACS 256
-#define ASN1_NGAP_NR_MAXNOOF_TA_IFOR_INACTIVE 16
-#define ASN1_NGAP_NR_MAXNOOF_TA_IFOR_PAGING 16
-#define ASN1_NGAP_NR_MAXNOOF_TA_IFOR_RESTART 2048
-#define ASN1_NGAP_NR_MAXNOOF_TA_IFOR_WARNING 65535
-#define ASN1_NGAP_NR_MAXNOOF_TA_IIN_AO_I 16
-#define ASN1_NGAP_NR_MAXNOOF_TIME_PERIODS 2
-#define ASN1_NGAP_NR_MAXNOOF_TNLASSOCS 32
-#define ASN1_NGAP_NR_MAXNOOF_XN_EXT_TLAS 2
-#define ASN1_NGAP_NR_MAXNOOF_XN_GTP_TLAS 16
-#define ASN1_NGAP_NR_MAXNOOF_XN_TLAS 16
-#define ASN1_NGAP_NR_ID_ALLOWED_NSSAI 0
-#define ASN1_NGAP_NR_ID_AMF_NAME 1
-#define ASN1_NGAP_NR_ID_AMF_OVERLOAD_RESP 2
-#define ASN1_NGAP_NR_ID_AMF_SET_ID 3
-#define ASN1_NGAP_NR_ID_AMF_TNLASSOC_FAILED_TO_SETUP_LIST 4
-#define ASN1_NGAP_NR_ID_AMF_TNLASSOC_SETUP_LIST 5
-#define ASN1_NGAP_NR_ID_AMF_TNLASSOC_TO_ADD_LIST 6
-#define ASN1_NGAP_NR_ID_AMF_TNLASSOC_TO_REM_LIST 7
-#define ASN1_NGAP_NR_ID_AMF_TNLASSOC_TO_UPD_LIST 8
-#define ASN1_NGAP_NR_ID_AMF_TRAFFIC_LOAD_REDUCTION_IND 9
-#define ASN1_NGAP_NR_ID_AMF_UE_NGAP_ID 10
-#define ASN1_NGAP_NR_ID_ASSIST_DATA_FOR_PAGING 11
-#define ASN1_NGAP_NR_ID_BROADCAST_CANCELLED_AREA_LIST 12
-#define ASN1_NGAP_NR_ID_BROADCAST_COMPLETED_AREA_LIST 13
-#define ASN1_NGAP_NR_ID_CANCEL_ALL_WARNING_MSGS 14
-#define ASN1_NGAP_NR_ID_CAUSE 15
-#define ASN1_NGAP_NR_ID_CELL_ID_LIST_FOR_RESTART 16
-#define ASN1_NGAP_NR_ID_CONCURRENT_WARNING_MSG_IND 17
-#define ASN1_NGAP_NR_ID_CORE_NETWORK_ASSIST_INFO 18
-#define ASN1_NGAP_NR_ID_CRIT_DIAGNOSTICS 19
-#define ASN1_NGAP_NR_ID_DATA_CODING_SCHEME 20
-#define ASN1_NGAP_NR_ID_DEFAULT_PAGING_DRX 21
-#define ASN1_NGAP_NR_ID_DIRECT_FORWARDING_PATH_AVAILABILITY 22
-#define ASN1_NGAP_NR_ID_EMERGENCY_AREA_ID_LIST_FOR_RESTART 23
-#define ASN1_NGAP_NR_ID_EMERGENCY_FALLBACK_IND 24
-#define ASN1_NGAP_NR_ID_EUTRA_CGI 25
-#define ASN1_NGAP_NR_ID_FIVE_G_S_TMSI 26
-#define ASN1_NGAP_NR_ID_GLOBAL_RAN_NODE_ID 27
-#define ASN1_NGAP_NR_ID_GUAMI 28
-#define ASN1_NGAP_NR_ID_HANDOV_TYPE 29
-#define ASN1_NGAP_NR_ID_IMS_VOICE_SUPPORT_IND 30
-#define ASN1_NGAP_NR_ID_IDX_TO_RFSP 31
-#define ASN1_NGAP_NR_ID_INFO_ON_RECOMMENDED_CELLS_AND_RAN_NODES_FOR_PAGING 32
-#define ASN1_NGAP_NR_ID_LOCATION_REPORT_REQUEST_TYPE 33
-#define ASN1_NGAP_NR_ID_MASKED_IMEISV 34
-#define ASN1_NGAP_NR_ID_MSG_ID 35
-#define ASN1_NGAP_NR_ID_MOB_RESTRICT_LIST 36
-#define ASN1_NGAP_NR_ID_NASC 37
-#define ASN1_NGAP_NR_ID_NAS_PDU 38
-#define ASN1_NGAP_NR_ID_NAS_SECURITY_PARAMS_FROM_NGRAN 39
-#define ASN1_NGAP_NR_ID_NEW_AMF_UE_NGAP_ID 40
-#define ASN1_NGAP_NR_ID_NEW_SECURITY_CONTEXT_IND 41
-#define ASN1_NGAP_NR_ID_NGAP_MSG 42
-#define ASN1_NGAP_NR_ID_NGRAN_CGI 43
-#define ASN1_NGAP_NR_ID_NGRAN_TRACE_ID 44
-#define ASN1_NGAP_NR_ID_NR_CGI 45
-#define ASN1_NGAP_NR_ID_NRP_PA_PDU 46
-#define ASN1_NGAP_NR_ID_NOF_BROADCASTS_REQUESTED 47
-#define ASN1_NGAP_NR_ID_OLD_AMF 48
-#define ASN1_NGAP_NR_ID_OVERLOAD_START_NSSAI_LIST 49
-#define ASN1_NGAP_NR_ID_PAGING_DRX 50
-#define ASN1_NGAP_NR_ID_PAGING_ORIGIN 51
-#define ASN1_NGAP_NR_ID_PAGING_PRIO 52
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_ADMITTED_LIST 53
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_MODIFY_LIST_MOD_RES 54
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_CXT_RES 55
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_HO_ACK 56
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_PS_REQ 57
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_SU_RES 58
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_HO_LIST 59
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_LIST_CXT_REL_CPL 60
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_LIST_HO_RQD 61
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_CFM 62
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_IND 63
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_REQ 64
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_RES 65
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_NOTIFY_LIST 66
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_RELEASED_LIST_NOT 67
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_RELEASED_LIST_PS_ACK 68
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_RELEASED_LIST_PS_FAIL 69
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_RELEASED_LIST_REL_RES 70
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP_LIST_CXT_REQ 71
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP_LIST_CXT_RES 72
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP_LIST_HO_REQ 73
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP_LIST_SU_REQ 74
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SETUP_LIST_SU_RES 75
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_TO_BE_SWITCHED_DL_LIST 76
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SWITCHED_LIST 77
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_TO_RELEASE_LIST_HO_CMD 78
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_TO_RELEASE_LIST_REL_CMD 79
-#define ASN1_NGAP_NR_ID_PLMN_SUPPORT_LIST 80
-#define ASN1_NGAP_NR_ID_PWS_FAILED_CELL_ID_LIST 81
-#define ASN1_NGAP_NR_ID_RAN_NODE_NAME 82
-#define ASN1_NGAP_NR_ID_RAN_PAGING_PRIO 83
-#define ASN1_NGAP_NR_ID_RAN_STATUS_TRANSFER_TRANSPARENT_CONTAINER 84
-#define ASN1_NGAP_NR_ID_RAN_UE_NGAP_ID 85
-#define ASN1_NGAP_NR_ID_RELATIVE_AMF_CAPACITY 86
-#define ASN1_NGAP_NR_ID_REPEAT_PERIOD 87
-#define ASN1_NGAP_NR_ID_RESET_TYPE 88
-#define ASN1_NGAP_NR_ID_ROUTING_ID 89
-#define ASN1_NGAP_NR_ID_RRCESTABLISHMENT_CAUSE 90
-#define ASN1_NGAP_NR_ID_RRC_INACTIVE_TRANSITION_REPORT_REQUEST 91
-#define ASN1_NGAP_NR_ID_RRC_STATE 92
-#define ASN1_NGAP_NR_ID_SECURITY_CONTEXT 93
-#define ASN1_NGAP_NR_ID_SECURITY_KEY 94
-#define ASN1_NGAP_NR_ID_SERIAL_NUM 95
-#define ASN1_NGAP_NR_ID_SERVED_GUAMI_LIST 96
-#define ASN1_NGAP_NR_ID_SLICE_SUPPORT_LIST 97
-#define ASN1_NGAP_NR_ID_SON_CFG_TRANSFER_DL 98
-#define ASN1_NGAP_NR_ID_SON_CFG_TRANSFER_UL 99
-#define ASN1_NGAP_NR_ID_SOURCE_AMF_UE_NGAP_ID 100
-#define ASN1_NGAP_NR_ID_SOURCE_TO_TARGET_TRANSPARENT_CONTAINER 101
-#define ASN1_NGAP_NR_ID_SUPPORTED_TA_LIST 102
-#define ASN1_NGAP_NR_ID_TAI_LIST_FOR_PAGING 103
-#define ASN1_NGAP_NR_ID_TAI_LIST_FOR_RESTART 104
-#define ASN1_NGAP_NR_ID_TARGET_ID 105
-#define ASN1_NGAP_NR_ID_TARGET_TO_SOURCE_TRANSPARENT_CONTAINER 106
-#define ASN1_NGAP_NR_ID_TIME_TO_WAIT 107
-#define ASN1_NGAP_NR_ID_TRACE_ACTIVATION 108
-#define ASN1_NGAP_NR_ID_TRACE_COLLECTION_ENTITY_IP_ADDRESS 109
-#define ASN1_NGAP_NR_ID_UE_AGGREGATE_MAXIMUM_BIT_RATE 110
-#define ASN1_NGAP_NR_ID_UE_ASSOCIATED_LC_NG_CONN_LIST 111
-#define ASN1_NGAP_NR_ID_UE_CONTEXT_REQUEST 112
-#define ASN1_NGAP_NR_ID_UE_NGAP_IDS 114
-#define ASN1_NGAP_NR_ID_UE_PAGING_ID 115
-#define ASN1_NGAP_NR_ID_UE_PRESENCE_IN_AREA_OF_INTEREST_LIST 116
-#define ASN1_NGAP_NR_ID_UE_RADIO_CAP 117
-#define ASN1_NGAP_NR_ID_UE_RADIO_CAP_FOR_PAGING 118
-#define ASN1_NGAP_NR_ID_UE_SECURITY_CAP 119
-#define ASN1_NGAP_NR_ID_UNAVAILABLE_GUAMI_LIST 120
-#define ASN1_NGAP_NR_ID_USER_LOCATION_INFO 121
-#define ASN1_NGAP_NR_ID_WARNING_AREA_LIST 122
-#define ASN1_NGAP_NR_ID_WARNING_MSG_CONTENTS 123
-#define ASN1_NGAP_NR_ID_WARNING_SECURITY_INFO 124
-#define ASN1_NGAP_NR_ID_WARNING_TYPE 125
-#define ASN1_NGAP_NR_ID_ADD_UL_NGU_UP_TNL_INFO 126
-#define ASN1_NGAP_NR_ID_DATA_FORWARDING_NOT_POSSIBLE 127
-#define ASN1_NGAP_NR_ID_DL_NGU_UP_TNL_INFO 128
-#define ASN1_NGAP_NR_ID_NETWORK_INSTANCE 129
-#define ASN1_NGAP_NR_ID_PDU_SESSION_AGGREGATE_MAXIMUM_BIT_RATE 130
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_MODIFY_LIST_MOD_CFM 131
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_CXT_FAIL 132
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_LIST_CXT_REL_REQ 133
-#define ASN1_NGAP_NR_ID_PDU_SESSION_TYPE 134
-#define ASN1_NGAP_NR_ID_QOS_FLOW_ADD_OR_MODIFY_REQUEST_LIST 135
-#define ASN1_NGAP_NR_ID_QOS_FLOW_SETUP_REQUEST_LIST 136
-#define ASN1_NGAP_NR_ID_QOS_FLOW_TO_RELEASE_LIST 137
-#define ASN1_NGAP_NR_ID_SECURITY_IND 138
-#define ASN1_NGAP_NR_ID_UL_NGU_UP_TNL_INFO 139
-#define ASN1_NGAP_NR_ID_UL_NGU_UP_TNL_MODIFY_LIST 140
-#define ASN1_NGAP_NR_ID_WARNING_AREA_COORDINATES 141
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_SECONDARY_RATUSAGE_LIST 142
-#define ASN1_NGAP_NR_ID_HO_FLAG 143
-#define ASN1_NGAP_NR_ID_SECONDARY_RATUSAGE_INFO 144
-#define ASN1_NGAP_NR_ID_PDU_SESSION_RES_RELEASE_RESP_TRANSFER 145
-#define ASN1_NGAP_NR_ID_REDIRECTION_VOICE_FALLBACK 146
-#define ASN1_NGAP_NR_ID_UE_RETENTION_INFO 147
-#define ASN1_NGAP_NR_ID_S_NSSAI 148
-#define ASN1_NGAP_NR_ID_PS_CELL_INFO 149
-#define ASN1_NGAP_NR_ID_LAST_EUTRAN_PLMN_ID 150
-#define ASN1_NGAP_NR_ID_MAXIMUM_INTEGRITY_PROTECTED_DATA_RATE_DL 151
-#define ASN1_NGAP_NR_ID_ADD_DL_FORWARDING_UPTNL_INFO 152
-#define ASN1_NGAP_NR_ID_ADD_DLUPTNL_INFO_FOR_HO_LIST 153
-#define ASN1_NGAP_NR_ID_ADD_NGU_UP_TNL_INFO 154
-#define ASN1_NGAP_NR_ID_ADD_DL_QOS_FLOW_PER_TNL_INFO 155
-#define ASN1_NGAP_NR_ID_SECURITY_RESULT 156
-#define ASN1_NGAP_NR_ID_ENDC_SON_CFG_TRANSFER_DL 157
-#define ASN1_NGAP_NR_ID_ENDC_SON_CFG_TRANSFER_UL 158
+#define ASN1_NGAP_ID_AMF_CFG_UPD 0
+#define ASN1_NGAP_ID_AMF_STATUS_IND 1
+#define ASN1_NGAP_ID_CELL_TRAFFIC_TRACE 2
+#define ASN1_NGAP_ID_DEACTIV_TRACE 3
+#define ASN1_NGAP_ID_DL_NAS_TRANSPORT 4
+#define ASN1_NGAP_ID_DL_NON_UEASSOCIATED_NRP_PA_TRANSPORT 5
+#define ASN1_NGAP_ID_DL_RAN_CFG_TRANSFER 6
+#define ASN1_NGAP_ID_DL_RAN_STATUS_TRANSFER 7
+#define ASN1_NGAP_ID_DL_UEASSOCIATED_NRP_PA_TRANSPORT 8
+#define ASN1_NGAP_ID_ERROR_IND 9
+#define ASN1_NGAP_ID_HO_CANCEL 10
+#define ASN1_NGAP_ID_HO_NOTIF 11
+#define ASN1_NGAP_ID_HO_PREP 12
+#define ASN1_NGAP_ID_HO_RES_ALLOC 13
+#define ASN1_NGAP_ID_INIT_CONTEXT_SETUP 14
+#define ASN1_NGAP_ID_INIT_UE_MSG 15
+#define ASN1_NGAP_ID_LOCATION_REPORT_CTRL 16
+#define ASN1_NGAP_ID_LOCATION_REPORT_FAIL_IND 17
+#define ASN1_NGAP_ID_LOCATION_REPORT 18
+#define ASN1_NGAP_ID_NAS_NON_DELIVERY_IND 19
+#define ASN1_NGAP_ID_NG_RESET 20
+#define ASN1_NGAP_ID_NG_SETUP 21
+#define ASN1_NGAP_ID_OVERLOAD_START 22
+#define ASN1_NGAP_ID_OVERLOAD_STOP 23
+#define ASN1_NGAP_ID_PAGING 24
+#define ASN1_NGAP_ID_PATH_SWITCH_REQUEST 25
+#define ASN1_NGAP_ID_PDU_SESSION_RES_MODIFY 26
+#define ASN1_NGAP_ID_PDU_SESSION_RES_MODIFY_IND 27
+#define ASN1_NGAP_ID_PDU_SESSION_RES_RELEASE 28
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SETUP 29
+#define ASN1_NGAP_ID_PDU_SESSION_RES_NOTIFY 30
+#define ASN1_NGAP_ID_PRIVATE_MSG 31
+#define ASN1_NGAP_ID_PWS_CANCEL 32
+#define ASN1_NGAP_ID_PWS_FAIL_IND 33
+#define ASN1_NGAP_ID_PWS_RESTART_IND 34
+#define ASN1_NGAP_ID_RAN_CFG_UPD 35
+#define ASN1_NGAP_ID_REROUTE_NAS_REQUEST 36
+#define ASN1_NGAP_ID_RRC_INACTIVE_TRANSITION_REPORT 37
+#define ASN1_NGAP_ID_TRACE_FAIL_IND 38
+#define ASN1_NGAP_ID_TRACE_START 39
+#define ASN1_NGAP_ID_UE_CONTEXT_MOD 40
+#define ASN1_NGAP_ID_UE_CONTEXT_RELEASE 41
+#define ASN1_NGAP_ID_UE_CONTEXT_RELEASE_REQUEST 42
+#define ASN1_NGAP_ID_UE_RADIO_CAP_CHECK 43
+#define ASN1_NGAP_ID_UE_RADIO_CAP_INFO_IND 44
+#define ASN1_NGAP_ID_UETNLA_BINDING_RELEASE 45
+#define ASN1_NGAP_ID_UL_NAS_TRANSPORT 46
+#define ASN1_NGAP_ID_UL_NON_UEASSOCIATED_NRP_PA_TRANSPORT 47
+#define ASN1_NGAP_ID_UL_RAN_CFG_TRANSFER 48
+#define ASN1_NGAP_ID_UL_RAN_STATUS_TRANSFER 49
+#define ASN1_NGAP_ID_UL_UEASSOCIATED_NRP_PA_TRANSPORT 50
+#define ASN1_NGAP_ID_WRITE_REPLACE_WARNING 51
+#define ASN1_NGAP_ID_SECONDARY_RAT_DATA_USAGE_REPORT 52
+#define ASN1_NGAP_MAX_PRIVATE_IES 65535
+#define ASN1_NGAP_MAX_PROTOCOL_EXTS 65535
+#define ASN1_NGAP_MAX_PROTOCOL_IES 65535
+#define ASN1_NGAP_MAXNOOF_ALLOWED_AREAS 16
+#define ASN1_NGAP_MAXNOOF_ALLOWED_S_NSSAIS 8
+#define ASN1_NGAP_MAXNOOF_BPLMNS 12
+#define ASN1_NGAP_MAXNOOF_CELL_IDFOR_WARNING 65535
+#define ASN1_NGAP_MAXNOOF_CELLIN_AO_I 256
+#define ASN1_NGAP_MAXNOOF_CELLIN_EAI 65535
+#define ASN1_NGAP_MAXNOOF_CELLIN_TAI 65535
+#define ASN1_NGAP_MAXNOOF_CELLSING_NB 16384
+#define ASN1_NGAP_MAXNOOF_CELLSINNGENB 256
+#define ASN1_NGAP_MAXNOOF_CELLSIN_UE_HISTORY_INFO 16
+#define ASN1_NGAP_MAXNOOF_CELLS_UE_MOVING_TRAJECTORY 16
+#define ASN1_NGAP_MAXNOOF_DRBS 32
+#define ASN1_NGAP_MAXNOOF_EMERGENCY_AREA_ID 65535
+#define ASN1_NGAP_MAXNOOF_EA_IFOR_RESTART 256
+#define ASN1_NGAP_MAXNOOF_EPLMNS 15
+#define ASN1_NGAP_MAXNOOF_EPLMNS_PLUS_ONE 16
+#define ASN1_NGAP_MAXNOOF_ERABS 256
+#define ASN1_NGAP_MAXNOOF_ERRORS 256
+#define ASN1_NGAP_MAXNOOF_FORB_TACS 4096
+#define ASN1_NGAP_MAXNOOF_MULTI_CONNECT 4
+#define ASN1_NGAP_MAXNOOF_MULTI_CONNECT_MINUS_ONE 3
+#define ASN1_NGAP_MAXNOOF_NG_CONNS_TO_RESET 65536
+#define ASN1_NGAP_MAXNOOF_PDU_SESSIONS 256
+#define ASN1_NGAP_MAXNOOF_PLMNS 12
+#define ASN1_NGAP_MAXNOOF_QOS_FLOWS 64
+#define ASN1_NGAP_MAXNOOF_RAN_NODEIN_AO_I 64
+#define ASN1_NGAP_MAXNOOF_RECOMMENDED_CELLS 16
+#define ASN1_NGAP_MAXNOOF_RECOMMENDED_RAN_NODES 16
+#define ASN1_NGAP_MAXNOOF_AO_I 64
+#define ASN1_NGAP_MAXNOOF_SERVED_GUAMIS 256
+#define ASN1_NGAP_MAXNOOF_SLICE_ITEMS 1024
+#define ASN1_NGAP_MAXNOOF_TACS 256
+#define ASN1_NGAP_MAXNOOF_TA_IFOR_INACTIVE 16
+#define ASN1_NGAP_MAXNOOF_TA_IFOR_PAGING 16
+#define ASN1_NGAP_MAXNOOF_TA_IFOR_RESTART 2048
+#define ASN1_NGAP_MAXNOOF_TA_IFOR_WARNING 65535
+#define ASN1_NGAP_MAXNOOF_TA_IIN_AO_I 16
+#define ASN1_NGAP_MAXNOOF_TIME_PERIODS 2
+#define ASN1_NGAP_MAXNOOF_TNLASSOCS 32
+#define ASN1_NGAP_MAXNOOF_XN_EXT_TLAS 2
+#define ASN1_NGAP_MAXNOOF_XN_GTP_TLAS 16
+#define ASN1_NGAP_MAXNOOF_XN_TLAS 16
+#define ASN1_NGAP_ID_ALLOWED_NSSAI 0
+#define ASN1_NGAP_ID_AMF_NAME 1
+#define ASN1_NGAP_ID_AMF_OVERLOAD_RESP 2
+#define ASN1_NGAP_ID_AMF_SET_ID 3
+#define ASN1_NGAP_ID_AMF_TNLASSOC_FAILED_TO_SETUP_LIST 4
+#define ASN1_NGAP_ID_AMF_TNLASSOC_SETUP_LIST 5
+#define ASN1_NGAP_ID_AMF_TNLASSOC_TO_ADD_LIST 6
+#define ASN1_NGAP_ID_AMF_TNLASSOC_TO_REM_LIST 7
+#define ASN1_NGAP_ID_AMF_TNLASSOC_TO_UPD_LIST 8
+#define ASN1_NGAP_ID_AMF_TRAFFIC_LOAD_REDUCTION_IND 9
+#define ASN1_NGAP_ID_AMF_UE_NGAP_ID 10
+#define ASN1_NGAP_ID_ASSIST_DATA_FOR_PAGING 11
+#define ASN1_NGAP_ID_BROADCAST_CANCELLED_AREA_LIST 12
+#define ASN1_NGAP_ID_BROADCAST_COMPLETED_AREA_LIST 13
+#define ASN1_NGAP_ID_CANCEL_ALL_WARNING_MSGS 14
+#define ASN1_NGAP_ID_CAUSE 15
+#define ASN1_NGAP_ID_CELL_ID_LIST_FOR_RESTART 16
+#define ASN1_NGAP_ID_CONCURRENT_WARNING_MSG_IND 17
+#define ASN1_NGAP_ID_CORE_NETWORK_ASSIST_INFO 18
+#define ASN1_NGAP_ID_CRIT_DIAGNOSTICS 19
+#define ASN1_NGAP_ID_DATA_CODING_SCHEME 20
+#define ASN1_NGAP_ID_DEFAULT_PAGING_DRX 21
+#define ASN1_NGAP_ID_DIRECT_FORWARDING_PATH_AVAILABILITY 22
+#define ASN1_NGAP_ID_EMERGENCY_AREA_ID_LIST_FOR_RESTART 23
+#define ASN1_NGAP_ID_EMERGENCY_FALLBACK_IND 24
+#define ASN1_NGAP_ID_EUTRA_CGI 25
+#define ASN1_NGAP_ID_FIVE_G_S_TMSI 26
+#define ASN1_NGAP_ID_GLOBAL_RAN_NODE_ID 27
+#define ASN1_NGAP_ID_GUAMI 28
+#define ASN1_NGAP_ID_HANDOV_TYPE 29
+#define ASN1_NGAP_ID_IMS_VOICE_SUPPORT_IND 30
+#define ASN1_NGAP_ID_IDX_TO_RFSP 31
+#define ASN1_NGAP_ID_INFO_ON_RECOMMENDED_CELLS_AND_RAN_NODES_FOR_PAGING 32
+#define ASN1_NGAP_ID_LOCATION_REPORT_REQUEST_TYPE 33
+#define ASN1_NGAP_ID_MASKED_IMEISV 34
+#define ASN1_NGAP_ID_MSG_ID 35
+#define ASN1_NGAP_ID_MOB_RESTRICT_LIST 36
+#define ASN1_NGAP_ID_NASC 37
+#define ASN1_NGAP_ID_NAS_PDU 38
+#define ASN1_NGAP_ID_NAS_SECURITY_PARAMS_FROM_NGRAN 39
+#define ASN1_NGAP_ID_NEW_AMF_UE_NGAP_ID 40
+#define ASN1_NGAP_ID_NEW_SECURITY_CONTEXT_IND 41
+#define ASN1_NGAP_ID_NGAP_MSG 42
+#define ASN1_NGAP_ID_NGRAN_CGI 43
+#define ASN1_NGAP_ID_NGRAN_TRACE_ID 44
+#define ASN1_NGAP_ID_NR_CGI 45
+#define ASN1_NGAP_ID_NRP_PA_PDU 46
+#define ASN1_NGAP_ID_NOF_BROADCASTS_REQUESTED 47
+#define ASN1_NGAP_ID_OLD_AMF 48
+#define ASN1_NGAP_ID_OVERLOAD_START_NSSAI_LIST 49
+#define ASN1_NGAP_ID_PAGING_DRX 50
+#define ASN1_NGAP_ID_PAGING_ORIGIN 51
+#define ASN1_NGAP_ID_PAGING_PRIO 52
+#define ASN1_NGAP_ID_PDU_SESSION_RES_ADMITTED_LIST 53
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_MODIFY_LIST_MOD_RES 54
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_CXT_RES 55
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_HO_ACK 56
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_PS_REQ 57
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_SU_RES 58
+#define ASN1_NGAP_ID_PDU_SESSION_RES_HO_LIST 59
+#define ASN1_NGAP_ID_PDU_SESSION_RES_LIST_CXT_REL_CPL 60
+#define ASN1_NGAP_ID_PDU_SESSION_RES_LIST_HO_RQD 61
+#define ASN1_NGAP_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_CFM 62
+#define ASN1_NGAP_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_IND 63
+#define ASN1_NGAP_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_REQ 64
+#define ASN1_NGAP_ID_PDU_SESSION_RES_MODIFY_LIST_MOD_RES 65
+#define ASN1_NGAP_ID_PDU_SESSION_RES_NOTIFY_LIST 66
+#define ASN1_NGAP_ID_PDU_SESSION_RES_RELEASED_LIST_NOT 67
+#define ASN1_NGAP_ID_PDU_SESSION_RES_RELEASED_LIST_PS_ACK 68
+#define ASN1_NGAP_ID_PDU_SESSION_RES_RELEASED_LIST_PS_FAIL 69
+#define ASN1_NGAP_ID_PDU_SESSION_RES_RELEASED_LIST_REL_RES 70
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_CXT_REQ 71
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_CXT_RES 72
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_HO_REQ 73
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_SU_REQ 74
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SETUP_LIST_SU_RES 75
+#define ASN1_NGAP_ID_PDU_SESSION_RES_TO_BE_SWITCHED_DL_LIST 76
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SWITCHED_LIST 77
+#define ASN1_NGAP_ID_PDU_SESSION_RES_TO_RELEASE_LIST_HO_CMD 78
+#define ASN1_NGAP_ID_PDU_SESSION_RES_TO_RELEASE_LIST_REL_CMD 79
+#define ASN1_NGAP_ID_PLMN_SUPPORT_LIST 80
+#define ASN1_NGAP_ID_PWS_FAILED_CELL_ID_LIST 81
+#define ASN1_NGAP_ID_RAN_NODE_NAME 82
+#define ASN1_NGAP_ID_RAN_PAGING_PRIO 83
+#define ASN1_NGAP_ID_RAN_STATUS_TRANSFER_TRANSPARENT_CONTAINER 84
+#define ASN1_NGAP_ID_RAN_UE_NGAP_ID 85
+#define ASN1_NGAP_ID_RELATIVE_AMF_CAPACITY 86
+#define ASN1_NGAP_ID_REPEAT_PERIOD 87
+#define ASN1_NGAP_ID_RESET_TYPE 88
+#define ASN1_NGAP_ID_ROUTING_ID 89
+#define ASN1_NGAP_ID_RRCESTABLISHMENT_CAUSE 90
+#define ASN1_NGAP_ID_RRC_INACTIVE_TRANSITION_REPORT_REQUEST 91
+#define ASN1_NGAP_ID_RRC_STATE 92
+#define ASN1_NGAP_ID_SECURITY_CONTEXT 93
+#define ASN1_NGAP_ID_SECURITY_KEY 94
+#define ASN1_NGAP_ID_SERIAL_NUM 95
+#define ASN1_NGAP_ID_SERVED_GUAMI_LIST 96
+#define ASN1_NGAP_ID_SLICE_SUPPORT_LIST 97
+#define ASN1_NGAP_ID_SON_CFG_TRANSFER_DL 98
+#define ASN1_NGAP_ID_SON_CFG_TRANSFER_UL 99
+#define ASN1_NGAP_ID_SOURCE_AMF_UE_NGAP_ID 100
+#define ASN1_NGAP_ID_SOURCE_TO_TARGET_TRANSPARENT_CONTAINER 101
+#define ASN1_NGAP_ID_SUPPORTED_TA_LIST 102
+#define ASN1_NGAP_ID_TAI_LIST_FOR_PAGING 103
+#define ASN1_NGAP_ID_TAI_LIST_FOR_RESTART 104
+#define ASN1_NGAP_ID_TARGET_ID 105
+#define ASN1_NGAP_ID_TARGET_TO_SOURCE_TRANSPARENT_CONTAINER 106
+#define ASN1_NGAP_ID_TIME_TO_WAIT 107
+#define ASN1_NGAP_ID_TRACE_ACTIVATION 108
+#define ASN1_NGAP_ID_TRACE_COLLECTION_ENTITY_IP_ADDRESS 109
+#define ASN1_NGAP_ID_UE_AGGREGATE_MAXIMUM_BIT_RATE 110
+#define ASN1_NGAP_ID_UE_ASSOCIATED_LC_NG_CONN_LIST 111
+#define ASN1_NGAP_ID_UE_CONTEXT_REQUEST 112
+#define ASN1_NGAP_ID_UE_NGAP_IDS 114
+#define ASN1_NGAP_ID_UE_PAGING_ID 115
+#define ASN1_NGAP_ID_UE_PRESENCE_IN_AREA_OF_INTEREST_LIST 116
+#define ASN1_NGAP_ID_UE_RADIO_CAP 117
+#define ASN1_NGAP_ID_UE_RADIO_CAP_FOR_PAGING 118
+#define ASN1_NGAP_ID_UE_SECURITY_CAP 119
+#define ASN1_NGAP_ID_UNAVAILABLE_GUAMI_LIST 120
+#define ASN1_NGAP_ID_USER_LOCATION_INFO 121
+#define ASN1_NGAP_ID_WARNING_AREA_LIST 122
+#define ASN1_NGAP_ID_WARNING_MSG_CONTENTS 123
+#define ASN1_NGAP_ID_WARNING_SECURITY_INFO 124
+#define ASN1_NGAP_ID_WARNING_TYPE 125
+#define ASN1_NGAP_ID_ADD_UL_NGU_UP_TNL_INFO 126
+#define ASN1_NGAP_ID_DATA_FORWARDING_NOT_POSSIBLE 127
+#define ASN1_NGAP_ID_DL_NGU_UP_TNL_INFO 128
+#define ASN1_NGAP_ID_NETWORK_INSTANCE 129
+#define ASN1_NGAP_ID_PDU_SESSION_AGGREGATE_MAXIMUM_BIT_RATE 130
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_MODIFY_LIST_MOD_CFM 131
+#define ASN1_NGAP_ID_PDU_SESSION_RES_FAILED_TO_SETUP_LIST_CXT_FAIL 132
+#define ASN1_NGAP_ID_PDU_SESSION_RES_LIST_CXT_REL_REQ 133
+#define ASN1_NGAP_ID_PDU_SESSION_TYPE 134
+#define ASN1_NGAP_ID_QOS_FLOW_ADD_OR_MODIFY_REQUEST_LIST 135
+#define ASN1_NGAP_ID_QOS_FLOW_SETUP_REQUEST_LIST 136
+#define ASN1_NGAP_ID_QOS_FLOW_TO_RELEASE_LIST 137
+#define ASN1_NGAP_ID_SECURITY_IND 138
+#define ASN1_NGAP_ID_UL_NGU_UP_TNL_INFO 139
+#define ASN1_NGAP_ID_UL_NGU_UP_TNL_MODIFY_LIST 140
+#define ASN1_NGAP_ID_WARNING_AREA_COORDINATES 141
+#define ASN1_NGAP_ID_PDU_SESSION_RES_SECONDARY_RATUSAGE_LIST 142
+#define ASN1_NGAP_ID_HO_FLAG 143
+#define ASN1_NGAP_ID_SECONDARY_RATUSAGE_INFO 144
+#define ASN1_NGAP_ID_PDU_SESSION_RES_RELEASE_RESP_TRANSFER 145
+#define ASN1_NGAP_ID_REDIRECTION_VOICE_FALLBACK 146
+#define ASN1_NGAP_ID_UE_RETENTION_INFO 147
+#define ASN1_NGAP_ID_S_NSSAI 148
+#define ASN1_NGAP_ID_PS_CELL_INFO 149
+#define ASN1_NGAP_ID_LAST_EUTRAN_PLMN_ID 150
+#define ASN1_NGAP_ID_MAXIMUM_INTEGRITY_PROTECTED_DATA_RATE_DL 151
+#define ASN1_NGAP_ID_ADD_DL_FORWARDING_UPTNL_INFO 152
+#define ASN1_NGAP_ID_ADD_DLUPTNL_INFO_FOR_HO_LIST 153
+#define ASN1_NGAP_ID_ADD_NGU_UP_TNL_INFO 154
+#define ASN1_NGAP_ID_ADD_DL_QOS_FLOW_PER_TNL_INFO 155
+#define ASN1_NGAP_ID_SECURITY_RESULT 156
+#define ASN1_NGAP_ID_ENDC_SON_CFG_TRANSFER_DL 157
+#define ASN1_NGAP_ID_ENDC_SON_CFG_TRANSFER_UL 158
 
 /*******************************************************************************
  *                              Struct Definitions
  ******************************************************************************/
 
-// Criticality ::= ENUMERATED
-struct crit_opts {
-  enum options { reject, ignore, notify, nulltype } value;
+// INTEGER (0..4294967295) ::= INTEGER (0..4294967295)
+using ran_ue_ngap_id_t = integer<uint64_t, 0, 4294967295, false, true>;
 
-  const char* to_string() const;
-};
-typedef enumerated<crit_opts> crit_e;
+// INTEGER (0..1099511627775) ::= INTEGER (0..1099511627775)
+using amf_ue_ngap_id_t = integer<uint64_t, 0, 1099511627775, false, true>;
 
-// Presence ::= ENUMERATED
-struct presence_opts {
-  enum options { optional, conditional, mandatory, nulltype } value;
-
-  const char* to_string() const;
-};
-typedef enumerated<presence_opts> presence_e;
-
-// ProtocolIE-Field{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_field_s {
-  uint32_t                          id = 0;
-  crit_e                            crit;
-  typename ies_set_paramT_::value_c value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
-struct ngap_protocol_ies_empty_o {
-  // Value ::= OPEN TYPE
-  struct value_c {
-    struct types_opts {
-      enum options { nulltype } value;
-
-      const char* to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    types       type() const { return types::nulltype; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-  };
-
-  // members lookup methods
-  static uint32_t   idx_to_id(uint32_t idx);
-  static bool       is_id_valid(const uint32_t& id);
-  static crit_e     get_crit(const uint32_t& id);
-  static value_c    get_value(const uint32_t& id);
-  static presence_e get_presence(const uint32_t& id);
-};
 // CPTransportLayerInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using cp_transport_layer_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using cp_transport_layer_info_ext_ies_o = protocol_ies_empty_o;
 
-// ProtocolExtensionField{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-EXTENSION}}
-template <class ext_set_paramT_>
-struct protocol_ext_field_s {
-  uint32_t                        id = 0;
-  crit_e                          crit;
-  typename ext_set_paramT_::ext_c ext_value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
-// ProtocolIE-SingleContainer{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
-template <class ies_set_paramT_>
-struct protocol_ie_single_container_s {
-  uint32_t                          id = 0;
-  crit_e                            crit;
-  typename ies_set_paramT_::value_c value;
-
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        load_info_obj(const uint32_t& id_);
-};
-
-struct ngap_protocol_ext_empty_o {
-  // Extension ::= OPEN TYPE
-  struct ext_c {
-    struct types_opts {
-      enum options { nulltype } value;
-
-      const char* to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    types       type() const { return types::nulltype; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-  };
-
-  // members lookup methods
-  static uint32_t   idx_to_id(uint32_t idx);
-  static bool       is_id_valid(const uint32_t& id);
-  static crit_e     get_crit(const uint32_t& id);
-  static ext_c      get_ext(const uint32_t& id);
-  static presence_e get_presence(const uint32_t& id);
-};
 // AMF-TNLAssociationSetupItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_setup_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_setup_item_ext_ies_o = protocol_ext_empty_o;
 
 // CPTransportLayerInformation ::= CHOICE
 struct cp_transport_layer_info_c {
@@ -461,33 +364,6 @@ private:
   void destroy_();
 };
 
-// ProtocolExtensionContainer{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
-// ProtocolExtensionField
-template <class ext_set_paramT_>
-using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ext_set_paramT_>, 1, 65535, true>;
-
-template <class extT_>
-struct protocol_ext_container_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  extT_    ext;
-
-  // sequence methods
-  protocol_ext_container_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-struct protocol_ext_container_empty_l {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 using amf_tnlassoc_setup_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // AMF-TNLAssociationSetupItem ::= SEQUENCE
@@ -508,7 +384,7 @@ struct amf_tnlassoc_setup_item_s {
 using amf_tnlassoc_setup_list_l = dyn_array<amf_tnlassoc_setup_item_s>;
 
 // AMF-TNLAssociationToAddItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_to_add_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_to_add_item_ext_ies_o = protocol_ext_empty_o;
 
 // TNLAssociationUsage ::= ENUMERATED
 struct tnlassoc_usage_opts {
@@ -541,7 +417,7 @@ struct amf_tnlassoc_to_add_item_s {
 using amf_tnlassoc_to_add_list_l = dyn_array<amf_tnlassoc_to_add_item_s>;
 
 // AMF-TNLAssociationToRemoveItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_to_rem_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_to_rem_item_ext_ies_o = protocol_ext_empty_o;
 
 using amf_tnlassoc_to_rem_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -563,7 +439,7 @@ struct amf_tnlassoc_to_rem_item_s {
 using amf_tnlassoc_to_rem_list_l = dyn_array<amf_tnlassoc_to_rem_item_s>;
 
 // AMF-TNLAssociationToUpdateItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using amf_tnlassoc_to_upd_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using amf_tnlassoc_to_upd_item_ext_ies_o = protocol_ext_empty_o;
 
 using amf_tnlassoc_to_upd_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -589,7 +465,7 @@ struct amf_tnlassoc_to_upd_item_s {
 using amf_tnlassoc_to_upd_list_l = dyn_array<amf_tnlassoc_to_upd_item_s>;
 
 // S-NSSAI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using s_nssai_ext_ies_o = ngap_protocol_ext_empty_o;
+using s_nssai_ext_ies_o = protocol_ext_empty_o;
 
 using s_nssai_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -610,10 +486,10 @@ struct s_nssai_s {
 };
 
 // SliceSupportItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using slice_support_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using slice_support_item_ext_ies_o = protocol_ext_empty_o;
 
 // GUAMI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using guami_ext_ies_o = ngap_protocol_ext_empty_o;
+using guami_ext_ies_o = protocol_ext_empty_o;
 
 using slice_support_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -651,10 +527,10 @@ struct guami_s {
 };
 
 // PLMNSupportItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using plmn_support_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using plmn_support_item_ext_ies_o = protocol_ext_empty_o;
 
 // ServedGUAMIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using served_guami_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using served_guami_item_ext_ies_o = protocol_ext_empty_o;
 
 // SliceSupportList ::= SEQUENCE (SIZE (1..1024)) OF SliceSupportItem
 using slice_support_list_l = dyn_array<slice_support_item_s>;
@@ -769,23 +645,6 @@ struct amf_cfg_upd_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-// ProtocolIE-Container{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
-template <class ies_set_paramT_>
-using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<ies_set_paramT_>, 0, 65535, true>;
-
-template <class valueT_>
-struct protocol_ie_container_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  valueT_  value;
-
-  // sequence methods
-  protocol_ie_container_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 struct amf_cfg_upd_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
@@ -814,19 +673,10 @@ struct amf_cfg_upd_ies_container {
 };
 
 // AMFConfigurationUpdate ::= SEQUENCE
-struct amf_cfg_upd_s {
-  bool                      ext = false;
-  amf_cfg_upd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_cfg_upd_s = elementary_procedure_option<amf_cfg_upd_ies_container>;
 
 // Cause-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using cause_ext_ies_o = ngap_protocol_ies_empty_o;
+using cause_ext_ies_o = protocol_ies_empty_o;
 
 // CauseMisc ::= ENUMERATED
 struct cause_misc_opts {
@@ -938,7 +788,7 @@ struct cause_transport_opts {
 typedef enumerated<cause_transport_opts, true> cause_transport_e;
 
 // CriticalityDiagnostics-IE-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using crit_diagnostics_ie_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using crit_diagnostics_ie_item_ext_ies_o = protocol_ext_empty_o;
 
 // TypeOfError ::= ENUMERATED
 struct type_of_error_opts {
@@ -1063,10 +913,10 @@ struct crit_diagnostics_ie_item_s {
 };
 
 // TNLAssociationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tnlassoc_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tnlassoc_item_ext_ies_o = protocol_ext_empty_o;
 
 // CriticalityDiagnostics-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using crit_diagnostics_ext_ies_o = ngap_protocol_ext_empty_o;
+using crit_diagnostics_ext_ies_o = protocol_ext_empty_o;
 
 // CriticalityDiagnostics-IE-List ::= SEQUENCE (SIZE (1..256)) OF CriticalityDiagnostics-IE-Item
 using crit_diagnostics_ie_list_l = dyn_array<crit_diagnostics_ie_item_s>;
@@ -1100,13 +950,12 @@ using crit_diagnostics_ext_ies_container = protocol_ext_container_empty_l;
 
 // CriticalityDiagnostics ::= SEQUENCE
 struct crit_diagnostics_s {
-  bool                               ext                          = false;
-  bool                               proc_code_present            = false;
-  bool                               trigger_msg_present          = false;
-  bool                               proc_crit_present            = false;
-  bool                               ies_crit_diagnostics_present = false;
-  bool                               ie_exts_present              = false;
-  uint16_t                           proc_code                    = 0;
+  bool                               ext                 = false;
+  bool                               proc_code_present   = false;
+  bool                               trigger_msg_present = false;
+  bool                               proc_crit_present   = false;
+  bool                               ie_exts_present     = false;
+  uint16_t                           proc_code           = 0;
   trigger_msg_e                      trigger_msg;
   crit_e                             proc_crit;
   crit_diagnostics_ie_list_l         ies_crit_diagnostics;
@@ -1186,16 +1035,7 @@ struct amf_cfg_upd_ack_ies_container {
 };
 
 // AMFConfigurationUpdateAcknowledge ::= SEQUENCE
-struct amf_cfg_upd_ack_s {
-  bool                          ext = false;
-  amf_cfg_upd_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_cfg_upd_ack_s = elementary_procedure_option<amf_cfg_upd_ack_ies_container>;
 
 // TimeToWait ::= ENUMERATED
 struct time_to_wait_opts {
@@ -1270,25 +1110,16 @@ struct amf_cfg_upd_fail_ies_container {
 };
 
 // AMFConfigurationUpdateFailure ::= SEQUENCE
-struct amf_cfg_upd_fail_s {
-  bool                           ext = false;
-  amf_cfg_upd_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_cfg_upd_fail_s = elementary_procedure_option<amf_cfg_upd_fail_ies_container>;
 
 // GNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using gnb_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using gnb_id_ext_ies_o = protocol_ies_empty_o;
 
 // N3IWF-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using n3_iwf_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using n3_iwf_id_ext_ies_o = protocol_ies_empty_o;
 
 // NgENB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ng_enb_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using ng_enb_id_ext_ies_o = protocol_ies_empty_o;
 
 // GNB-ID ::= CHOICE
 struct gnb_id_c {
@@ -1341,13 +1172,13 @@ private:
 };
 
 // GlobalGNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using global_gnb_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using global_gnb_id_ext_ies_o = protocol_ext_empty_o;
 
 // GlobalN3IWF-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using global_n3_iwf_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using global_n3_iwf_id_ext_ies_o = protocol_ext_empty_o;
 
 // GlobalNgENB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using global_ng_enb_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using global_ng_enb_id_ext_ies_o = protocol_ext_empty_o;
 
 // N3IWF-ID ::= CHOICE
 struct n3_iwf_id_c {
@@ -1525,13 +1356,13 @@ struct global_ng_enb_id_s {
 };
 
 // GlobalRANNodeID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using global_ran_node_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using global_ran_node_id_ext_ies_o = protocol_ies_empty_o;
 
 // TAI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_ext_ies_o = protocol_ext_empty_o;
 
 // AMFPagingTarget-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using amf_paging_target_ext_ies_o = ngap_protocol_ies_empty_o;
+using amf_paging_target_ext_ies_o = protocol_ies_empty_o;
 
 // GlobalRANNodeID ::= CHOICE
 struct global_ran_node_id_c {
@@ -1698,7 +1529,7 @@ struct timer_approach_for_guami_removal_opts {
 typedef enumerated<timer_approach_for_guami_removal_opts, true> timer_approach_for_guami_removal_e;
 
 // UnavailableGUAMIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using unavailable_guami_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using unavailable_guami_item_ext_ies_o = protocol_ext_empty_o;
 
 using unavailable_guami_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1756,16 +1587,7 @@ struct amf_status_ind_ies_o {
 };
 
 // AMFStatusIndication ::= SEQUENCE
-struct amf_status_ind_s {
-  bool                                          ext = false;
-  protocol_ie_container_l<amf_status_ind_ies_o> protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using amf_status_ind_s = elementary_procedure_option<protocol_ie_container_l<amf_status_ind_ies_o> >;
 
 // DataForwardingAccepted ::= ENUMERATED
 struct data_forwarding_accepted_opts {
@@ -1776,10 +1598,10 @@ struct data_forwarding_accepted_opts {
 typedef enumerated<data_forwarding_accepted_opts, true> data_forwarding_accepted_e;
 
 // GTPTunnel-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using gtp_tunnel_ext_ies_o = ngap_protocol_ext_empty_o;
+using gtp_tunnel_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowItemWithDataForwarding-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_item_with_data_forwarding_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_item_with_data_forwarding_ext_ies_o = protocol_ext_empty_o;
 
 using gtp_tunnel_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1817,10 +1639,10 @@ struct qos_flow_item_with_data_forwarding_s {
 };
 
 // UPTransportLayerInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using up_transport_layer_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using up_transport_layer_info_ext_ies_o = protocol_ies_empty_o;
 
 // AdditionalDLUPTNLInformationForHOItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using add_dluptnl_info_for_ho_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using add_dluptnl_info_for_ho_item_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowListWithDataForwarding ::= SEQUENCE (SIZE (1..64)) OF QosFlowItemWithDataForwarding
 using qos_flow_list_with_data_forwarding_l = dyn_array<qos_flow_item_with_data_forwarding_s>;
@@ -1898,7 +1720,7 @@ struct add_dluptnl_info_for_ho_item_s {
 using add_dluptnl_info_for_ho_list_l = dyn_array<add_dluptnl_info_for_ho_item_s>;
 
 // AllocationAndRetentionPriority-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using alloc_and_retention_prio_ext_ies_o = ngap_protocol_ext_empty_o;
+using alloc_and_retention_prio_ext_ies_o = protocol_ext_empty_o;
 
 // Pre-emptionCapability ::= ENUMERATED
 struct pre_emption_cap_opts {
@@ -1935,7 +1757,7 @@ struct alloc_and_retention_prio_s {
 };
 
 // AllowedNSSAI-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using allowed_nssai_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using allowed_nssai_item_ext_ies_o = protocol_ext_empty_o;
 
 using allowed_nssai_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1960,10 +1782,10 @@ using allowed_nssai_l = dyn_array<allowed_nssai_item_s>;
 using allowed_tacs_l = bounded_array<fixed_octstring<3, true>, 16>;
 
 // EUTRA-CGI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using eutra_cgi_ext_ies_o = ngap_protocol_ext_empty_o;
+using eutra_cgi_ext_ies_o = protocol_ext_empty_o;
 
 // NR-CGI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using nr_cgi_ext_ies_o = ngap_protocol_ext_empty_o;
+using nr_cgi_ext_ies_o = protocol_ext_empty_o;
 
 using eutra_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -1983,7 +1805,7 @@ struct eutra_cgi_s {
 };
 
 // NGRAN-CGI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ngran_cgi_ext_ies_o = ngap_protocol_ies_empty_o;
+using ngran_cgi_ext_ies_o = protocol_ies_empty_o;
 
 using nr_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2003,13 +1825,13 @@ struct nr_cgi_s {
 };
 
 // AreaOfInterestCellItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_cell_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_cell_item_ext_ies_o = protocol_ext_empty_o;
 
 // AreaOfInterestRANNodeItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_ran_node_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_ran_node_item_ext_ies_o = protocol_ext_empty_o;
 
 // AreaOfInterestTAIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_tai_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_tai_item_ext_ies_o = protocol_ext_empty_o;
 
 // NGRAN-CGI ::= CHOICE
 struct ngran_cgi_c {
@@ -2121,7 +1943,7 @@ struct area_of_interest_tai_item_s {
 };
 
 // AreaOfInterest-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_ext_ies_o = protocol_ext_empty_o;
 
 // AreaOfInterestCellList ::= SEQUENCE (SIZE (1..256)) OF AreaOfInterestCellItem
 using area_of_interest_cell_list_l = dyn_array<area_of_interest_cell_item_s>;
@@ -2136,11 +1958,8 @@ using area_of_interest_ext_ies_container = protocol_ext_container_empty_l;
 
 // AreaOfInterest ::= SEQUENCE
 struct area_of_interest_s {
-  bool                               ext                                    = false;
-  bool                               area_of_interest_tai_list_present      = false;
-  bool                               area_of_interest_cell_list_present     = false;
-  bool                               area_of_interest_ran_node_list_present = false;
-  bool                               ie_exts_present                        = false;
+  bool                               ext             = false;
+  bool                               ie_exts_present = false;
   area_of_interest_tai_list_l        area_of_interest_tai_list;
   area_of_interest_cell_list_l       area_of_interest_cell_list;
   area_of_interest_ran_node_list_l   area_of_interest_ran_node_list;
@@ -2154,7 +1973,7 @@ struct area_of_interest_s {
 };
 
 // AreaOfInterestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using area_of_interest_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using area_of_interest_item_ext_ies_o = protocol_ext_empty_o;
 
 using area_of_interest_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2177,7 +1996,7 @@ struct area_of_interest_item_s {
 using area_of_interest_list_l = dyn_array<area_of_interest_item_s>;
 
 // RecommendedCellItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_cell_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_cell_item_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_cell_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2201,10 +2020,10 @@ struct recommended_cell_item_s {
 using recommended_cell_list_l = dyn_array<recommended_cell_item_s>;
 
 // RecommendedCellsForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_cells_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_cells_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // AssistanceDataForRecommendedCells-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using assist_data_for_recommended_cells_ext_ies_o = ngap_protocol_ext_empty_o;
+using assist_data_for_recommended_cells_ext_ies_o = protocol_ext_empty_o;
 
 // NextPagingAreaScope ::= ENUMERATED
 struct next_paging_area_scope_opts {
@@ -2215,7 +2034,7 @@ struct next_paging_area_scope_opts {
 typedef enumerated<next_paging_area_scope_opts, true> next_paging_area_scope_e;
 
 // PagingAttemptInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using paging_attempt_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using paging_attempt_info_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_cells_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2234,7 +2053,7 @@ struct recommended_cells_for_paging_s {
 };
 
 // AssistanceDataForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using assist_data_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using assist_data_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 using assist_data_for_recommended_cells_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2291,7 +2110,7 @@ struct assist_data_for_paging_s {
 };
 
 // AssociatedQosFlowItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using associated_qos_flow_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using associated_qos_flow_item_ext_ies_o = protocol_ext_empty_o;
 
 using associated_qos_flow_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2323,16 +2142,16 @@ struct associated_qos_flow_item_s {
 using associated_qos_flow_list_l = dyn_array<associated_qos_flow_item_s>;
 
 // CancelledCellsInEAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_eai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_eai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellsInEAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_eai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_eai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellsInTAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_tai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_tai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CancelledCellsInTAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cancelled_cells_in_tai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cancelled_cells_in_tai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using cancelled_cells_in_eai_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2415,22 +2234,22 @@ using cancelled_cells_in_tai_eutra_l = dyn_array<cancelled_cells_in_tai_eutra_it
 using cancelled_cells_in_tai_nr_l = dyn_array<cancelled_cells_in_tai_nr_item_s>;
 
 // CellIDCancelledEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_cancelled_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_cancelled_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CellIDCancelledNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_cancelled_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_cancelled_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaIDCancelledEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_cancelled_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_cancelled_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaIDCancelledNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_cancelled_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_cancelled_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAICancelledEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_cancelled_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_cancelled_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAICancelledNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_cancelled_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_cancelled_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_cancelled_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2535,7 +2354,7 @@ struct tai_cancelled_nr_item_s {
 };
 
 // BroadcastCancelledAreaList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using broadcast_cancelled_area_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using broadcast_cancelled_area_list_ext_ies_o = protocol_ies_empty_o;
 
 // CellIDCancelledEUTRA ::= SEQUENCE (SIZE (1..65535)) OF CellIDCancelledEUTRA-Item
 using cell_id_cancelled_eutra_l = dyn_array<cell_id_cancelled_eutra_item_s>;
@@ -2677,16 +2496,16 @@ private:
 };
 
 // CompletedCellsInEAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_eai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_eai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInEAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_eai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_eai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInTAI-EUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_tai_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_tai_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInTAI-NR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using completed_cells_in_tai_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using completed_cells_in_tai_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using completed_cells_in_eai_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2753,10 +2572,10 @@ struct completed_cells_in_tai_nr_item_s {
 };
 
 // CellIDBroadcastEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_broadcast_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_broadcast_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // CellIDBroadcastNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_id_broadcast_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_id_broadcast_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // CompletedCellsInEAI-EUTRA ::= SEQUENCE (SIZE (1..65535)) OF CompletedCellsInEAI-EUTRA-Item
 using completed_cells_in_eai_eutra_l = dyn_array<completed_cells_in_eai_eutra_item_s>;
@@ -2771,16 +2590,16 @@ using completed_cells_in_tai_eutra_l = dyn_array<completed_cells_in_tai_eutra_it
 using completed_cells_in_tai_nr_l = dyn_array<completed_cells_in_tai_nr_item_s>;
 
 // EmergencyAreaIDBroadcastEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_broadcast_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_broadcast_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyAreaIDBroadcastNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_area_id_broadcast_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_area_id_broadcast_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIBroadcastEUTRA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_broadcast_eutra_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_broadcast_eutra_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIBroadcastNR-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_broadcast_nr_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_broadcast_nr_item_ext_ies_o = protocol_ext_empty_o;
 
 using cell_id_broadcast_eutra_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -2883,7 +2702,7 @@ struct tai_broadcast_nr_item_s {
 };
 
 // BroadcastCompletedAreaList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using broadcast_completed_area_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using broadcast_completed_area_list_ext_ies_o = protocol_ies_empty_o;
 
 // CellIDBroadcastEUTRA ::= SEQUENCE (SIZE (1..65535)) OF CellIDBroadcastEUTRA-Item
 using cell_id_broadcast_eutra_l = dyn_array<cell_id_broadcast_eutra_item_s>;
@@ -3025,7 +2844,7 @@ private:
 };
 
 // BroadcastPLMNItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using broadcast_plmn_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using broadcast_plmn_item_ext_ies_o = protocol_ext_empty_o;
 
 using broadcast_plmn_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3048,7 +2867,7 @@ struct broadcast_plmn_item_s {
 using broadcast_plmn_list_l = dyn_array<broadcast_plmn_item_s>;
 
 // COUNTValueForPDCP-SN12-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using count_value_for_pdcp_sn12_ext_ies_o = ngap_protocol_ext_empty_o;
+using count_value_for_pdcp_sn12_ext_ies_o = protocol_ext_empty_o;
 
 using count_value_for_pdcp_sn12_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3068,7 +2887,7 @@ struct count_value_for_pdcp_sn12_s {
 };
 
 // COUNTValueForPDCP-SN18-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using count_value_for_pdcp_sn18_ext_ies_o = ngap_protocol_ext_empty_o;
+using count_value_for_pdcp_sn18_ext_ies_o = protocol_ext_empty_o;
 
 using count_value_for_pdcp_sn18_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3088,7 +2907,7 @@ struct count_value_for_pdcp_sn18_s {
 };
 
 // CellIDListForRestart-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using cell_id_list_for_restart_ext_ies_o = ngap_protocol_ies_empty_o;
+using cell_id_list_for_restart_ext_ies_o = protocol_ies_empty_o;
 
 // EUTRA-CGIList ::= SEQUENCE (SIZE (1..256)) OF EUTRA-CGI
 using eutra_cgi_list_l = dyn_array<eutra_cgi_s>;
@@ -3218,11 +3037,11 @@ struct cell_traffic_trace_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<fixed_octstring<8, true> >                         ngran_trace_id;
-  ie_field_s<ngran_cgi_c>                                       ngran_cgi;
-  ie_field_s<bounded_bitstring<1, 160, true, true> >            trace_collection_entity_ip_address;
+  ie_field_s<amf_ue_ngap_id_t>                       amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                       ran_ue_ngap_id;
+  ie_field_s<fixed_octstring<8, true> >              ngran_trace_id;
+  ie_field_s<ngran_cgi_c>                            ngran_cgi;
+  ie_field_s<bounded_bitstring<1, 160, true, true> > trace_collection_entity_ip_address;
 
   // sequence methods
   cell_traffic_trace_ies_container();
@@ -3232,16 +3051,7 @@ struct cell_traffic_trace_ies_container {
 };
 
 // CellTrafficTrace ::= SEQUENCE
-struct cell_traffic_trace_s {
-  bool                             ext = false;
-  cell_traffic_trace_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using cell_traffic_trace_s = elementary_procedure_option<cell_traffic_trace_ies_container>;
 
 // CellSize ::= ENUMERATED
 struct cell_size_opts {
@@ -3252,7 +3062,7 @@ struct cell_size_opts {
 typedef enumerated<cell_size_opts, true> cell_size_e;
 
 // CellType-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using cell_type_ext_ies_o = ngap_protocol_ext_empty_o;
+using cell_type_ext_ies_o = protocol_ext_empty_o;
 
 using cell_type_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3271,10 +3081,10 @@ struct cell_type_s {
 };
 
 // ExpectedUEMovingTrajectoryItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using expected_ue_moving_trajectory_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using expected_ue_moving_trajectory_item_ext_ies_o = protocol_ext_empty_o;
 
 // ExpectedUEActivityBehaviour-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using expected_ue_activity_behaviour_ext_ies_o = ngap_protocol_ext_empty_o;
+using expected_ue_activity_behaviour_ext_ies_o = protocol_ext_empty_o;
 
 using expected_ue_moving_trajectory_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3303,7 +3113,7 @@ struct source_of_ue_activity_behaviour_info_opts {
 typedef enumerated<source_of_ue_activity_behaviour_info_opts, true> source_of_ue_activity_behaviour_info_e;
 
 // TAIListForInactiveItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_list_for_inactive_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_list_for_inactive_item_ext_ies_o = protocol_ext_empty_o;
 
 // ExpectedHOInterval ::= ENUMERATED
 struct expected_ho_interv_opts {
@@ -3337,7 +3147,7 @@ struct expected_ue_activity_behaviour_s {
 };
 
 // ExpectedUEBehaviour-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using expected_ue_behaviour_ext_ies_o = ngap_protocol_ext_empty_o;
+using expected_ue_behaviour_ext_ies_o = protocol_ext_empty_o;
 
 // ExpectedUEMobility ::= ENUMERATED
 struct expected_ue_mob_opts {
@@ -3367,10 +3177,10 @@ struct tai_list_for_inactive_item_s {
 };
 
 // UEIdentityIndexValue-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ue_id_idx_value_ext_ies_o = ngap_protocol_ies_empty_o;
+using ue_id_idx_value_ext_ies_o = protocol_ies_empty_o;
 
 // CoreNetworkAssistanceInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using core_network_assist_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using core_network_assist_info_ext_ies_o = protocol_ext_empty_o;
 
 using expected_ue_behaviour_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3380,7 +3190,6 @@ struct expected_ue_behaviour_s {
   bool                                    expected_ue_activity_behaviour_present = false;
   bool                                    expected_ho_interv_present             = false;
   bool                                    expected_ue_mob_present                = false;
-  bool                                    expected_ue_moving_trajectory_present  = false;
   bool                                    ie_exts_present                        = false;
   expected_ue_activity_behaviour_s        expected_ue_activity_behaviour;
   expected_ho_interv_e                    expected_ho_interv;
@@ -3493,13 +3302,13 @@ struct core_network_assist_info_s {
 };
 
 // DRBStatusDL12-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_dl12_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_dl12_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusDL18-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_dl18_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_dl18_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusDL-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using drb_status_dl_ext_ies_o = ngap_protocol_ies_empty_o;
+using drb_status_dl_ext_ies_o = protocol_ies_empty_o;
 
 using drb_status_dl12_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3597,13 +3406,13 @@ private:
 };
 
 // DRBStatusUL12-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_ul12_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_ul12_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusUL18-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drb_status_ul18_ext_ies_o = ngap_protocol_ext_empty_o;
+using drb_status_ul18_ext_ies_o = protocol_ext_empty_o;
 
 // DRBStatusUL-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using drb_status_ul_ext_ies_o = ngap_protocol_ies_empty_o;
+using drb_status_ul_ext_ies_o = protocol_ies_empty_o;
 
 using drb_status_ul12_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3705,7 +3514,7 @@ private:
 };
 
 // DRBsSubjectToStatusTransferItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drbs_subject_to_status_transfer_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using drbs_subject_to_status_transfer_item_ext_ies_o = protocol_ext_empty_o;
 
 using drbs_subject_to_status_transfer_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3729,7 +3538,7 @@ struct drbs_subject_to_status_transfer_item_s {
 using drbs_subject_to_status_transfer_list_l = dyn_array<drbs_subject_to_status_transfer_item_s>;
 
 // DRBsToQosFlowsMappingItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using drbs_to_qos_flows_map_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using drbs_to_qos_flows_map_item_ext_ies_o = protocol_ext_empty_o;
 
 using drbs_to_qos_flows_map_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3752,7 +3561,7 @@ struct drbs_to_qos_flows_map_item_s {
 using drbs_to_qos_flows_map_list_l = dyn_array<drbs_to_qos_flows_map_item_s>;
 
 // DataForwardingResponseDRBItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using data_forwarding_resp_drb_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using data_forwarding_resp_drb_item_ext_ies_o = protocol_ext_empty_o;
 
 using data_forwarding_resp_drb_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3826,9 +3635,9 @@ struct deactiv_trace_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<fixed_octstring<8, true> >                         ngran_trace_id;
+  ie_field_s<amf_ue_ngap_id_t>          amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>          ran_ue_ngap_id;
+  ie_field_s<fixed_octstring<8, true> > ngran_trace_id;
 
   // sequence methods
   deactiv_trace_ies_container();
@@ -3838,19 +3647,10 @@ struct deactiv_trace_ies_container {
 };
 
 // DeactivateTrace ::= SEQUENCE
-struct deactiv_trace_s {
-  bool                        ext = false;
-  deactiv_trace_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using deactiv_trace_s = elementary_procedure_option<deactiv_trace_ies_container>;
 
 // ForbiddenAreaInformation-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using forbidden_area_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using forbidden_area_info_item_ext_ies_o = protocol_ext_empty_o;
 
 // ForbiddenTACs ::= SEQUENCE (SIZE (1..4096)) OF OCTET STRING (SIZE (3))
 using forbidden_tacs_l = dyn_array<fixed_octstring<3, true> >;
@@ -3859,10 +3659,10 @@ using forbidden_tacs_l = dyn_array<fixed_octstring<3, true> >;
 using not_allowed_tacs_l = bounded_array<fixed_octstring<3, true>, 16>;
 
 // RATRestrictions-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using rat_restricts_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using rat_restricts_item_ext_ies_o = protocol_ext_empty_o;
 
 // ServiceAreaInformation-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using service_area_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using service_area_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using forbidden_area_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -3902,10 +3702,8 @@ using service_area_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // ServiceAreaInformation-Item ::= SEQUENCE
 struct service_area_info_item_s {
-  bool                                     ext                      = false;
-  bool                                     allowed_tacs_present     = false;
-  bool                                     not_allowed_tacs_present = false;
-  bool                                     ie_exts_present          = false;
+  bool                                     ext             = false;
+  bool                                     ie_exts_present = false;
   fixed_octstring<3, true>                 plmn_id;
   allowed_tacs_l                           allowed_tacs;
   not_allowed_tacs_l                       not_allowed_tacs;
@@ -3963,16 +3761,11 @@ using rat_restricts_l = dyn_array<rat_restricts_item_s>;
 using service_area_info_l = dyn_array<service_area_info_item_s>;
 
 // UEAggregateMaximumBitRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_aggregate_maximum_bit_rate_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_aggregate_maximum_bit_rate_ext_ies_o = protocol_ext_empty_o;
 
 // MobilityRestrictionList ::= SEQUENCE
 struct mob_restrict_list_s {
-  bool                                                  ext                         = false;
-  bool                                                  equivalent_plmns_present    = false;
-  bool                                                  rat_restricts_present       = false;
-  bool                                                  forbidden_area_info_present = false;
-  bool                                                  service_area_info_present   = false;
-  bool                                                  ie_exts_present             = false;
+  bool                                                  ext = false;
   fixed_octstring<3, true>                              serving_plmn;
   equivalent_plmns_l                                    equivalent_plmns;
   rat_restricts_l                                       rat_restricts;
@@ -4081,21 +3874,21 @@ struct dl_nas_transport_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          old_amf_present                       = false;
-  bool                                                          ran_paging_prio_present               = false;
-  bool                                                          mob_restrict_list_present             = false;
-  bool                                                          idx_to_rfsp_present                   = false;
-  bool                                                          ue_aggregate_maximum_bit_rate_present = false;
-  bool                                                          allowed_nssai_present                 = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<printable_string<1, 150, true, true> >             old_amf;
-  ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
-  ie_field_s<mob_restrict_list_s>                               mob_restrict_list;
-  ie_field_s<integer<uint16_t, 1, 256, true, true> >            idx_to_rfsp;
-  ie_field_s<ue_aggregate_maximum_bit_rate_s>                   ue_aggregate_maximum_bit_rate;
-  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >     allowed_nssai;
+  bool                                                      old_amf_present                       = false;
+  bool                                                      ran_paging_prio_present               = false;
+  bool                                                      mob_restrict_list_present             = false;
+  bool                                                      idx_to_rfsp_present                   = false;
+  bool                                                      ue_aggregate_maximum_bit_rate_present = false;
+  bool                                                      allowed_nssai_present                 = false;
+  ie_field_s<amf_ue_ngap_id_t>                              amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                              ran_ue_ngap_id;
+  ie_field_s<printable_string<1, 150, true, true> >         old_amf;
+  ie_field_s<integer<uint16_t, 1, 256, false, true> >       ran_paging_prio;
+  ie_field_s<unbounded_octstring<true> >                    nas_pdu;
+  ie_field_s<mob_restrict_list_s>                           mob_restrict_list;
+  ie_field_s<integer<uint16_t, 1, 256, true, true> >        idx_to_rfsp;
+  ie_field_s<ue_aggregate_maximum_bit_rate_s>               ue_aggregate_maximum_bit_rate;
+  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> > allowed_nssai;
 
   // sequence methods
   dl_nas_transport_ies_container();
@@ -4105,16 +3898,7 @@ struct dl_nas_transport_ies_container {
 };
 
 // DownlinkNASTransport ::= SEQUENCE
-struct dl_nas_transport_s {
-  bool                           ext = false;
-  dl_nas_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_nas_transport_s = elementary_procedure_option<dl_nas_transport_ies_container>;
 
 // DownlinkNonUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct dl_non_ueassociated_nrp_pa_transport_ies_o {
@@ -4174,19 +3958,11 @@ struct dl_non_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // DownlinkNonUEAssociatedNRPPaTransport ::= SEQUENCE
-struct dl_non_ueassociated_nrp_pa_transport_s {
-  bool                                               ext = false;
-  dl_non_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_non_ueassociated_nrp_pa_transport_s =
+    elementary_procedure_option<dl_non_ueassociated_nrp_pa_transport_ies_container>;
 
 // XnExtTLA-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using xn_ext_tla_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using xn_ext_tla_item_ext_ies_o = protocol_ext_empty_o;
 
 // XnGTP-TLAs ::= SEQUENCE (SIZE (1..16)) OF BIT STRING (SIZE (1..160,...))
 using xn_gtp_tlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 16>;
@@ -4197,7 +3973,6 @@ using xn_ext_tla_item_ext_ies_container = protocol_ext_container_empty_l;
 struct xn_ext_tla_item_s {
   bool                                  ext               = false;
   bool                                  ipsec_tla_present = false;
-  bool                                  gtp_tlas_present  = false;
   bool                                  ie_exts_present   = false;
   bounded_bitstring<1, 160, true, true> ipsec_tla;
   xn_gtp_tlas_l                         gtp_tlas;
@@ -4217,18 +3992,17 @@ using xn_ext_tlas_l = dyn_array<xn_ext_tla_item_s>;
 using xn_tlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 16>;
 
 // XnTNLConfigurationInfo-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using xn_tnl_cfg_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using xn_tnl_cfg_info_ext_ies_o = protocol_ext_empty_o;
 
 // SONInformationReply-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using son_info_reply_ext_ies_o = ngap_protocol_ext_empty_o;
+using son_info_reply_ext_ies_o = protocol_ext_empty_o;
 
 using xn_tnl_cfg_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // XnTNLConfigurationInfo ::= SEQUENCE
 struct xn_tnl_cfg_info_s {
-  bool                              ext                                           = false;
-  bool                              xn_extended_transport_layer_addresses_present = false;
-  bool                              ie_exts_present                               = false;
+  bool                              ext             = false;
+  bool                              ie_exts_present = false;
   xn_tlas_l                         xn_transport_layer_addresses;
   xn_ext_tlas_l                     xn_extended_transport_layer_addresses;
   xn_tnl_cfg_info_ext_ies_container ie_exts;
@@ -4241,7 +4015,7 @@ struct xn_tnl_cfg_info_s {
 };
 
 // SONInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using son_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using son_info_ext_ies_o = protocol_ies_empty_o;
 
 using son_info_reply_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4269,13 +4043,13 @@ struct son_info_request_opts {
 typedef enumerated<son_info_request_opts, true> son_info_request_e;
 
 // SourceRANNodeID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using source_ran_node_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using source_ran_node_id_ext_ies_o = protocol_ext_empty_o;
 
 // TargetRANNodeID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using target_ran_node_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using target_ran_node_id_ext_ies_o = protocol_ext_empty_o;
 
 // SONConfigurationTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using son_cfg_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using son_cfg_transfer_ext_ies_o = protocol_ext_empty_o;
 
 // SONInformation ::= CHOICE
 struct son_info_c {
@@ -4452,19 +4226,10 @@ struct dl_ran_cfg_transfer_ies_container {
 };
 
 // DownlinkRANConfigurationTransfer ::= SEQUENCE
-struct dl_ran_cfg_transfer_s {
-  bool                              ext = false;
-  dl_ran_cfg_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_ran_cfg_transfer_s = elementary_procedure_option<dl_ran_cfg_transfer_ies_container>;
 
 // RANStatusTransfer-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ran_status_transfer_transparent_container_ext_ies_o = ngap_protocol_ext_empty_o;
+using ran_status_transfer_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 using ran_status_transfer_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4531,9 +4296,9 @@ struct dl_ran_status_transfer_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ran_status_transfer_transparent_container_s>       ran_status_transfer_transparent_container;
+  ie_field_s<amf_ue_ngap_id_t>                            amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                            ran_ue_ngap_id;
+  ie_field_s<ran_status_transfer_transparent_container_s> ran_status_transfer_transparent_container;
 
   // sequence methods
   dl_ran_status_transfer_ies_container();
@@ -4543,16 +4308,7 @@ struct dl_ran_status_transfer_ies_container {
 };
 
 // DownlinkRANStatusTransfer ::= SEQUENCE
-struct dl_ran_status_transfer_s {
-  bool                                 ext = false;
-  dl_ran_status_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_ran_status_transfer_s = elementary_procedure_option<dl_ran_status_transfer_ies_container>;
 
 // DownlinkUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct dl_ueassociated_nrp_pa_transport_ies_o {
@@ -4605,10 +4361,10 @@ struct dl_ueassociated_nrp_pa_transport_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        routing_id;
-  ie_field_s<unbounded_octstring<true> >                        nrp_pa_pdu;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > routing_id;
+  ie_field_s<unbounded_octstring<true> > nrp_pa_pdu;
 
   // sequence methods
   dl_ueassociated_nrp_pa_transport_ies_container();
@@ -4618,19 +4374,10 @@ struct dl_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // DownlinkUEAssociatedNRPPaTransport ::= SEQUENCE
-struct dl_ueassociated_nrp_pa_transport_s {
-  bool                                           ext = false;
-  dl_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using dl_ueassociated_nrp_pa_transport_s = elementary_procedure_option<dl_ueassociated_nrp_pa_transport_ies_container>;
 
 // PacketErrorRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using packet_error_rate_ext_ies_o = ngap_protocol_ext_empty_o;
+using packet_error_rate_ext_ies_o = protocol_ext_empty_o;
 
 // DelayCritical ::= ENUMERATED
 struct delay_crit_opts {
@@ -4641,7 +4388,7 @@ struct delay_crit_opts {
 typedef enumerated<delay_crit_opts, true> delay_crit_e;
 
 // Dynamic5QIDescriptor-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using dynamic5_qi_descriptor_ext_ies_o = ngap_protocol_ext_empty_o;
+using dynamic5_qi_descriptor_ext_ies_o = protocol_ext_empty_o;
 
 using packet_error_rate_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4695,7 +4442,7 @@ struct dl_forwarding_opts {
 typedef enumerated<dl_forwarding_opts, true> dl_forwarding_e;
 
 // E-RABInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using erab_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using erab_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using erab_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4719,7 +4466,7 @@ struct erab_info_item_s {
 using erab_info_list_l = dyn_array<erab_info_item_s>;
 
 // EPS-TAI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using eps_tai_ext_ies_o = ngap_protocol_ext_empty_o;
+using eps_tai_ext_ies_o = protocol_ext_empty_o;
 
 using eps_tai_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4748,7 +4495,7 @@ using emergency_area_id_list_l = dyn_array<fixed_octstring<3, true> >;
 using emergency_area_id_list_for_restart_l = dyn_array<fixed_octstring<3, true> >;
 
 // EmergencyFallbackIndicator-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using emergency_fallback_ind_ext_ies_o = ngap_protocol_ext_empty_o;
+using emergency_fallback_ind_ext_ies_o = protocol_ext_empty_o;
 
 // EmergencyFallbackRequestIndicator ::= ENUMERATED
 struct emergency_fallback_request_ind_opts {
@@ -4837,14 +4584,14 @@ struct error_ind_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          amf_ue_ngap_id_present   = false;
-  bool                                                          ran_ue_ngap_id_present   = false;
-  bool                                                          cause_present            = false;
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           amf_ue_ngap_id_present   = false;
+  bool                           ran_ue_ngap_id_present   = false;
+  bool                           cause_present            = false;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   error_ind_ies_container();
@@ -4854,19 +4601,10 @@ struct error_ind_ies_container {
 };
 
 // ErrorIndication ::= SEQUENCE
-struct error_ind_s {
-  bool                    ext = false;
-  error_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using error_ind_s = elementary_procedure_option<error_ind_ies_container>;
 
 // FiveG-S-TMSI-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using five_g_s_tmsi_ext_ies_o = ngap_protocol_ext_empty_o;
+using five_g_s_tmsi_ext_ies_o = protocol_ext_empty_o;
 
 using five_g_s_tmsi_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -4887,7 +4625,7 @@ struct five_g_s_tmsi_s {
 };
 
 // GBR-QosInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using gbr_qos_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using gbr_qos_info_ext_ies_o = protocol_ext_empty_o;
 
 // NotificationControl ::= ENUMERATED
 struct notif_ctrl_opts {
@@ -4971,9 +4709,9 @@ struct ho_cancel_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
+  ie_field_s<cause_c>          cause;
 
   // sequence methods
   ho_cancel_ies_container();
@@ -4983,16 +4721,7 @@ struct ho_cancel_ies_container {
 };
 
 // HandoverCancel ::= SEQUENCE
-struct ho_cancel_s {
-  bool                    ext = false;
-  ho_cancel_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_cancel_s = elementary_procedure_option<ho_cancel_ies_container>;
 
 // HandoverCancelAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct ho_cancel_ack_ies_o {
@@ -5043,10 +4772,10 @@ struct ho_cancel_ack_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ho_cancel_ack_ies_container();
@@ -5056,22 +4785,13 @@ struct ho_cancel_ack_ies_container {
 };
 
 // HandoverCancelAcknowledge ::= SEQUENCE
-struct ho_cancel_ack_s {
-  bool                        ext = false;
-  ho_cancel_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_cancel_ack_s = elementary_procedure_option<ho_cancel_ack_ies_container>;
 
 // PDUSessionResourceHandoverItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_ho_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_ho_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceToReleaseItemHOCmd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_to_release_item_ho_cmd_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_to_release_item_ho_cmd_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_ho_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5194,13 +4914,13 @@ struct ho_cmd_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          nas_security_params_from_ngran_present         = false;
-  bool                                                          pdu_session_res_to_release_list_ho_cmd_present = false;
-  bool                                                          crit_diagnostics_present                       = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<handov_type_e>                                     handov_type;
-  ie_field_s<unbounded_octstring<true> >                        nas_security_params_from_ngran;
+  bool                                   nas_security_params_from_ngran_present         = false;
+  bool                                   pdu_session_res_to_release_list_ho_cmd_present = false;
+  bool                                   crit_diagnostics_present                       = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<handov_type_e>              handov_type;
+  ie_field_s<unbounded_octstring<true> > nas_security_params_from_ngran;
   ie_field_s<dyn_seq_of<pdu_session_res_ho_item_s, 1, 256, true> > pdu_session_res_ho_list;
   ie_field_s<dyn_seq_of<pdu_session_res_to_release_item_ho_cmd_s, 1, 256, true> >
                                          pdu_session_res_to_release_list_ho_cmd;
@@ -5215,19 +4935,10 @@ struct ho_cmd_ies_container {
 };
 
 // HandoverCommand ::= SEQUENCE
-struct ho_cmd_s {
-  bool                 ext = false;
-  ho_cmd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_cmd_s = elementary_procedure_option<ho_cmd_ies_container>;
 
 // QosFlowPerTNLInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_per_tnl_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_per_tnl_info_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_per_tnl_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5247,7 +4958,7 @@ struct qos_flow_per_tnl_info_s {
 };
 
 // QosFlowPerTNLInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_per_tnl_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_per_tnl_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_per_tnl_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5266,7 +4977,7 @@ struct qos_flow_per_tnl_info_item_s {
 };
 
 // QosFlowToBeForwardedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_to_be_forwarded_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_to_be_forwarded_item_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowPerTNLInformationList ::= SEQUENCE (SIZE (1..3)) OF QosFlowPerTNLInformationItem
 using qos_flow_per_tnl_info_list_l = dyn_array<qos_flow_per_tnl_info_item_s>;
@@ -5324,11 +5035,8 @@ using qos_flow_to_be_forwarded_list_l = dyn_array<qos_flow_to_be_forwarded_item_
 
 // HandoverCommandTransfer ::= SEQUENCE
 struct ho_cmd_transfer_s {
-  bool                                                ext                                   = false;
-  bool                                                dlforwarding_up_tnl_info_present      = false;
-  bool                                                qos_flow_to_be_forwarded_list_present = false;
-  bool                                                data_forwarding_resp_drb_list_present = false;
-  bool                                                ie_exts_present                       = false;
+  bool                                                ext                              = false;
+  bool                                                dlforwarding_up_tnl_info_present = false;
   up_transport_layer_info_c                           dlforwarding_up_tnl_info;
   qos_flow_to_be_forwarded_list_l                     qos_flow_to_be_forwarded_list;
   data_forwarding_resp_drb_list_l                     data_forwarding_resp_drb_list;
@@ -5392,10 +5100,10 @@ struct ho_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ho_fail_ies_container();
@@ -5405,28 +5113,19 @@ struct ho_fail_ies_container {
 };
 
 // HandoverFailure ::= SEQUENCE
-struct ho_fail_s {
-  bool                  ext = false;
-  ho_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_fail_s = elementary_procedure_option<ho_fail_ies_container>;
 
 // UserLocationInformationEUTRA-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_location_info_eutra_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_location_info_eutra_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformationN3IWF-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_location_info_n3_iwf_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_location_info_n3_iwf_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformationNR-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_location_info_nr_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_location_info_nr_ext_ies_o = protocol_ext_empty_o;
 
 // UserLocationInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using user_location_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using user_location_info_ext_ies_o = protocol_ies_empty_o;
 
 using user_location_info_eutra_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5616,9 +5315,9 @@ struct ho_notify_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<user_location_info_c> user_location_info;
 
   // sequence methods
   ho_notify_ies_container();
@@ -5628,16 +5327,7 @@ struct ho_notify_ies_container {
 };
 
 // HandoverNotify ::= SEQUENCE
-struct ho_notify_s {
-  bool                    ext = false;
-  ho_notify_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_notify_s = elementary_procedure_option<ho_notify_ies_container>;
 
 // HandoverPreparationFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct ho_prep_fail_ies_o {
@@ -5690,11 +5380,11 @@ struct ho_prep_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ho_prep_fail_ies_container();
@@ -5704,19 +5394,10 @@ struct ho_prep_fail_ies_container {
 };
 
 // HandoverPreparationFailure ::= SEQUENCE
-struct ho_prep_fail_s {
-  bool                       ext = false;
-  ho_prep_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_prep_fail_s = elementary_procedure_option<ho_prep_fail_ies_container>;
 
 // HandoverPreparationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ho_prep_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using ho_prep_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using ho_prep_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5735,7 +5416,7 @@ struct ho_prep_unsuccessful_transfer_s {
 };
 
 // PDUSessionResourceSetupItemHOReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_ho_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_ho_req_ext_ies_o = protocol_ext_empty_o;
 
 // EventType ::= ENUMERATED
 struct event_type_opts {
@@ -5755,7 +5436,7 @@ struct event_type_opts {
 typedef enumerated<event_type_opts, true> event_type_e;
 
 // LocationReportingRequestType-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using location_report_request_type_ext_ies_o = ngap_protocol_ext_empty_o;
+using location_report_request_type_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_item_ho_req_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -5784,10 +5465,10 @@ struct report_area_opts {
 typedef enumerated<report_area_opts, true> report_area_e;
 
 // SecurityContext-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using security_context_ext_ies_o = ngap_protocol_ext_empty_o;
+using security_context_ext_ies_o = protocol_ext_empty_o;
 
 // TraceActivation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using trace_activation_ext_ies_o = ngap_protocol_ext_empty_o;
+using trace_activation_ext_ies_o = protocol_ext_empty_o;
 
 // TraceDepth ::= ENUMERATED
 struct trace_depth_opts {
@@ -5807,14 +5488,13 @@ struct trace_depth_opts {
 typedef enumerated<trace_depth_opts, true> trace_depth_e;
 
 // UESecurityCapabilities-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_security_cap_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_security_cap_ext_ies_o = protocol_ext_empty_o;
 
 using location_report_request_type_ext_ies_container = protocol_ext_container_empty_l;
 
 // LocationReportingRequestType ::= SEQUENCE
 struct location_report_request_type_s {
   bool                                           ext                                            = false;
-  bool                                           area_of_interest_list_present                  = false;
   bool                                           location_report_ref_id_to_be_cancelled_present = false;
   bool                                           ie_exts_present                                = false;
   event_type_e                                   event_type;
@@ -6034,24 +5714,24 @@ struct ho_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          core_network_assist_info_present               = false;
-  bool                                                          new_security_context_ind_present               = false;
-  bool                                                          nasc_present                                   = false;
-  bool                                                          trace_activation_present                       = false;
-  bool                                                          masked_imeisv_present                          = false;
-  bool                                                          mob_restrict_list_present                      = false;
-  bool                                                          location_report_request_type_present           = false;
-  bool                                                          rrc_inactive_transition_report_request_present = false;
-  bool                                                          redirection_voice_fallback_present             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<handov_type_e>                                     handov_type;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<ue_aggregate_maximum_bit_rate_s>                   ue_aggregate_maximum_bit_rate;
-  ie_field_s<core_network_assist_info_s>                        core_network_assist_info;
-  ie_field_s<ue_security_cap_s>                                 ue_security_cap;
-  ie_field_s<security_context_s>                                security_context;
-  ie_field_s<new_security_context_ind_e>                        new_security_context_ind;
-  ie_field_s<unbounded_octstring<true> >                        nasc;
+  bool                                        core_network_assist_info_present               = false;
+  bool                                        new_security_context_ind_present               = false;
+  bool                                        nasc_present                                   = false;
+  bool                                        trace_activation_present                       = false;
+  bool                                        masked_imeisv_present                          = false;
+  bool                                        mob_restrict_list_present                      = false;
+  bool                                        location_report_request_type_present           = false;
+  bool                                        rrc_inactive_transition_report_request_present = false;
+  bool                                        redirection_voice_fallback_present             = false;
+  ie_field_s<amf_ue_ngap_id_t>                amf_ue_ngap_id;
+  ie_field_s<handov_type_e>                   handov_type;
+  ie_field_s<cause_c>                         cause;
+  ie_field_s<ue_aggregate_maximum_bit_rate_s> ue_aggregate_maximum_bit_rate;
+  ie_field_s<core_network_assist_info_s>      core_network_assist_info;
+  ie_field_s<ue_security_cap_s>               ue_security_cap;
+  ie_field_s<security_context_s>              security_context;
+  ie_field_s<new_security_context_ind_e>      new_security_context_ind;
+  ie_field_s<unbounded_octstring<true> >      nasc;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_ho_req_s, 1, 256, true> > pdu_session_res_setup_list_ho_req;
   ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >                  allowed_nssai;
   ie_field_s<trace_activation_s>                                             trace_activation;
@@ -6071,22 +5751,13 @@ struct ho_request_ies_container {
 };
 
 // HandoverRequest ::= SEQUENCE
-struct ho_request_s {
-  bool                     ext = false;
-  ho_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_request_s = elementary_procedure_option<ho_request_ies_container>;
 
 // PDUSessionResourceAdmittedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_admitted_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_admitted_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToSetupItemHOAck-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_ho_ack_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_ho_ack_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_admitted_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6195,10 +5866,10 @@ struct ho_request_ack_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_setup_list_ho_ack_present = false;
-  bool crit_diagnostics_present                            = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >          amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >             ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_setup_list_ho_ack_present = false;
+  bool                         crit_diagnostics_present                            = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_admitted_item_s, 1, 256, true> > pdu_session_res_admitted_list;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_ho_ack_s, 1, 256, true> >
                                          pdu_session_res_failed_to_setup_list_ho_ack;
@@ -6213,19 +5884,10 @@ struct ho_request_ack_ies_container {
 };
 
 // HandoverRequestAcknowledge ::= SEQUENCE
-struct ho_request_ack_s {
-  bool                         ext = false;
-  ho_request_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_request_ack_s = elementary_procedure_option<ho_request_ack_ies_container>;
 
 // QosFlowWithCauseItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_with_cause_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_with_cause_item_ext_ies_o = protocol_ext_empty_o;
 
 // ConfidentialityProtectionResult ::= ENUMERATED
 struct confidentiality_protection_result_opts {
@@ -6261,7 +5923,7 @@ struct qos_flow_with_cause_item_s {
 };
 
 // SecurityResult-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using security_result_ext_ies_o = ngap_protocol_ext_empty_o;
+using security_result_ext_ies_o = protocol_ext_empty_o;
 
 // HandoverRequestAcknowledgeTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 struct ho_request_ack_transfer_ext_ies_o {
@@ -6317,12 +5979,9 @@ struct security_result_s {
 
 // HandoverRequestAcknowledgeTransfer ::= SEQUENCE
 struct ho_request_ack_transfer_s {
-  bool                                                        ext                                   = false;
-  bool                                                        dlforwarding_up_tnl_info_present      = false;
-  bool                                                        security_result_present               = false;
-  bool                                                        qos_flow_failed_to_setup_list_present = false;
-  bool                                                        data_forwarding_resp_drb_list_present = false;
-  bool                                                        ie_exts_present                       = false;
+  bool                                                        ext                              = false;
+  bool                                                        dlforwarding_up_tnl_info_present = false;
+  bool                                                        security_result_present          = false;
   up_transport_layer_info_c                                   dl_ngu_up_tnl_info;
   up_transport_layer_info_c                                   dlforwarding_up_tnl_info;
   security_result_s                                           security_result;
@@ -6339,10 +5998,10 @@ struct ho_request_ack_transfer_s {
 };
 
 // PDUSessionResourceItemHORqd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_item_ho_rqd_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_item_ho_rqd_ext_ies_o = protocol_ext_empty_o;
 
 // TargeteNB-ID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using targetenb_id_ext_ies_o = ngap_protocol_ext_empty_o;
+using targetenb_id_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_item_ho_rqd_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6362,7 +6021,7 @@ struct pdu_session_res_item_ho_rqd_s {
 };
 
 // TargetID-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using target_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using target_id_ext_ies_o = protocol_ies_empty_o;
 
 using targetenb_id_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6522,13 +6181,13 @@ struct ho_required_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          direct_forwarding_path_availability_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<handov_type_e>                                     handov_type;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<target_id_c>                                       target_id;
-  ie_field_s<direct_forwarding_path_availability_e>             direct_forwarding_path_availability;
+  bool                                              direct_forwarding_path_availability_present = false;
+  ie_field_s<amf_ue_ngap_id_t>                      amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                      ran_ue_ngap_id;
+  ie_field_s<handov_type_e>                         handov_type;
+  ie_field_s<cause_c>                               cause;
+  ie_field_s<target_id_c>                           target_id;
+  ie_field_s<direct_forwarding_path_availability_e> direct_forwarding_path_availability;
   ie_field_s<dyn_seq_of<pdu_session_res_item_ho_rqd_s, 1, 256, true> > pdu_session_res_list_ho_rqd;
   ie_field_s<unbounded_octstring<true> >                               source_to_target_transparent_container;
 
@@ -6540,19 +6199,10 @@ struct ho_required_ies_container {
 };
 
 // HandoverRequired ::= SEQUENCE
-struct ho_required_s {
-  bool                      ext = false;
-  ho_required_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ho_required_s = elementary_procedure_option<ho_required_ies_container>;
 
 // HandoverRequiredTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ho_required_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using ho_required_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using ho_required_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6572,7 +6222,7 @@ struct ho_required_transfer_s {
 };
 
 // HandoverResourceAllocationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ho_res_alloc_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using ho_res_alloc_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using ho_res_alloc_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6593,7 +6243,7 @@ struct ho_res_alloc_unsuccessful_transfer_s {
 };
 
 // RecommendedRANNodeItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_ran_node_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_ran_node_item_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_ran_node_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6615,10 +6265,10 @@ struct recommended_ran_node_item_s {
 using recommended_ran_node_list_l = dyn_array<recommended_ran_node_item_s>;
 
 // RecommendedRANNodesForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using recommended_ran_nodes_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using recommended_ran_nodes_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // InfoOnRecommendedCellsAndRANNodesForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using info_on_recommended_cells_and_ran_nodes_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using info_on_recommended_cells_and_ran_nodes_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 using recommended_ran_nodes_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6654,7 +6304,7 @@ struct info_on_recommended_cells_and_ran_nodes_for_paging_s {
 };
 
 // PDUSessionResourceFailedToSetupItemCxtFail-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_cxt_fail_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_cxt_fail_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_failed_to_setup_item_cxt_fail_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -6736,10 +6386,10 @@ struct init_context_setup_fail_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_setup_list_cxt_fail_present = false;
-  bool crit_diagnostics_present                              = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_setup_list_cxt_fail_present = false;
+  bool                         crit_diagnostics_present                              = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_cxt_fail_s, 1, 256, true> >
                                  pdu_session_res_failed_to_setup_list_cxt_fail;
   ie_field_s<cause_c>            cause;
@@ -6753,26 +6403,16 @@ struct init_context_setup_fail_ies_container {
 };
 
 // InitialContextSetupFailure ::= SEQUENCE
-struct init_context_setup_fail_s {
-  bool                                  ext = false;
-  init_context_setup_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_context_setup_fail_s = elementary_procedure_option<init_context_setup_fail_ies_container>;
 
 // PDUSessionResourceSetupItemCxtReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_cxt_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_cxt_req_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_item_cxt_req_ext_ies_container = protocol_ext_container_empty_l;
 
 // PDUSessionResourceSetupItemCxtReq ::= SEQUENCE
 struct pdu_session_res_setup_item_cxt_req_s {
   bool                                                 ext             = false;
-  bool                                                 nas_pdu_present = false;
   bool                                                 ie_exts_present = false;
   uint16_t                                             pdu_session_id  = 0;
   unbounded_octstring<true>                            nas_pdu;
@@ -6788,7 +6428,7 @@ struct pdu_session_res_setup_item_cxt_req_s {
 };
 
 // UERadioCapabilityForPaging-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_radio_cap_for_paging_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_radio_cap_for_paging_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupListCxtReq ::= SEQUENCE (SIZE (1..256)) OF PDUSessionResourceSetupItemCxtReq
 using pdu_session_res_setup_list_cxt_req_l = dyn_array<pdu_session_res_setup_item_cxt_req_s>;
@@ -6797,10 +6437,8 @@ using ue_radio_cap_for_paging_ext_ies_container = protocol_ext_container_empty_l
 
 // UERadioCapabilityForPaging ::= SEQUENCE
 struct ue_radio_cap_for_paging_s {
-  bool                                      ext                                     = false;
-  bool                                      ueradio_cap_for_paging_of_nr_present    = false;
-  bool                                      ueradio_cap_for_paging_of_eutra_present = false;
-  bool                                      ie_exts_present                         = false;
+  bool                                      ext             = false;
+  bool                                      ie_exts_present = false;
   unbounded_octstring<true>                 ueradio_cap_for_paging_of_nr;
   unbounded_octstring<true>                 ueradio_cap_for_paging_of_eutra;
   ue_radio_cap_for_paging_ext_ies_container ie_exts;
@@ -6930,26 +6568,26 @@ struct init_context_setup_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          old_amf_present                                = false;
-  bool                                                          ue_aggregate_maximum_bit_rate_present          = false;
-  bool                                                          core_network_assist_info_present               = false;
-  bool                                                          pdu_session_res_setup_list_cxt_req_present     = false;
-  bool                                                          trace_activation_present                       = false;
-  bool                                                          mob_restrict_list_present                      = false;
-  bool                                                          ue_radio_cap_present                           = false;
-  bool                                                          idx_to_rfsp_present                            = false;
-  bool                                                          masked_imeisv_present                          = false;
-  bool                                                          nas_pdu_present                                = false;
-  bool                                                          emergency_fallback_ind_present                 = false;
-  bool                                                          rrc_inactive_transition_report_request_present = false;
-  bool                                                          ue_radio_cap_for_paging_present                = false;
-  bool                                                          redirection_voice_fallback_present             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<printable_string<1, 150, true, true> >             old_amf;
-  ie_field_s<ue_aggregate_maximum_bit_rate_s>                   ue_aggregate_maximum_bit_rate;
-  ie_field_s<core_network_assist_info_s>                        core_network_assist_info;
-  ie_field_s<guami_s>                                           guami;
+  bool                                              old_amf_present                                = false;
+  bool                                              ue_aggregate_maximum_bit_rate_present          = false;
+  bool                                              core_network_assist_info_present               = false;
+  bool                                              pdu_session_res_setup_list_cxt_req_present     = false;
+  bool                                              trace_activation_present                       = false;
+  bool                                              mob_restrict_list_present                      = false;
+  bool                                              ue_radio_cap_present                           = false;
+  bool                                              idx_to_rfsp_present                            = false;
+  bool                                              masked_imeisv_present                          = false;
+  bool                                              nas_pdu_present                                = false;
+  bool                                              emergency_fallback_ind_present                 = false;
+  bool                                              rrc_inactive_transition_report_request_present = false;
+  bool                                              ue_radio_cap_for_paging_present                = false;
+  bool                                              redirection_voice_fallback_present             = false;
+  ie_field_s<amf_ue_ngap_id_t>                      amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                      ran_ue_ngap_id;
+  ie_field_s<printable_string<1, 150, true, true> > old_amf;
+  ie_field_s<ue_aggregate_maximum_bit_rate_s>       ue_aggregate_maximum_bit_rate;
+  ie_field_s<core_network_assist_info_s>            core_network_assist_info;
+  ie_field_s<guami_s>                               guami;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_cxt_req_s, 1, 256, true> > pdu_session_res_setup_list_cxt_req;
   ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >                   allowed_nssai;
   ie_field_s<ue_security_cap_s>                                               ue_security_cap;
@@ -6973,22 +6611,13 @@ struct init_context_setup_request_ies_container {
 };
 
 // InitialContextSetupRequest ::= SEQUENCE
-struct init_context_setup_request_s {
-  bool                                     ext = false;
-  init_context_setup_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_context_setup_request_s = elementary_procedure_option<init_context_setup_request_ies_container>;
 
 // PDUSessionResourceFailedToSetupItemCxtRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupItemCxtRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_cxt_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_cxt_res_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_failed_to_setup_item_cxt_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7093,11 +6722,11 @@ struct init_context_setup_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_setup_list_cxt_res_present           = false;
-  bool pdu_session_res_failed_to_setup_list_cxt_res_present = false;
-  bool crit_diagnostics_present                             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >               amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                  ran_ue_ngap_id;
+  bool                         pdu_session_res_setup_list_cxt_res_present           = false;
+  bool                         pdu_session_res_failed_to_setup_list_cxt_res_present = false;
+  bool                         crit_diagnostics_present                             = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_cxt_res_s, 1, 256, true> > pdu_session_res_setup_list_cxt_res;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_cxt_res_s, 1, 256, true> >
                                  pdu_session_res_failed_to_setup_list_cxt_res;
@@ -7111,16 +6740,7 @@ struct init_context_setup_resp_ies_container {
 };
 
 // InitialContextSetupResponse ::= SEQUENCE
-struct init_context_setup_resp_s {
-  bool                                  ext = false;
-  init_context_setup_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_context_setup_resp_s = elementary_procedure_option<init_context_setup_resp_ies_container>;
 
 // RRCEstablishmentCause ::= ENUMERATED
 struct rrcestablishment_cause_opts {
@@ -7228,18 +6848,18 @@ struct init_ue_msg_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                       five_g_s_tmsi_present      = false;
-  bool                                                       amf_set_id_present         = false;
-  bool                                                       ue_context_request_present = false;
-  bool                                                       allowed_nssai_present      = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                     nas_pdu;
-  ie_field_s<user_location_info_c>                           user_location_info;
-  ie_field_s<rrcestablishment_cause_e>                       rrcestablishment_cause;
-  ie_field_s<five_g_s_tmsi_s>                                five_g_s_tmsi;
-  ie_field_s<fixed_bitstring<10, false, true> >              amf_set_id;
-  ie_field_s<ue_context_request_e>                           ue_context_request;
-  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >  allowed_nssai;
+  bool                                                      five_g_s_tmsi_present      = false;
+  bool                                                      amf_set_id_present         = false;
+  bool                                                      ue_context_request_present = false;
+  bool                                                      allowed_nssai_present      = false;
+  ie_field_s<ran_ue_ngap_id_t>                              ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> >                    nas_pdu;
+  ie_field_s<user_location_info_c>                          user_location_info;
+  ie_field_s<rrcestablishment_cause_e>                      rrcestablishment_cause;
+  ie_field_s<five_g_s_tmsi_s>                               five_g_s_tmsi;
+  ie_field_s<fixed_bitstring<10, false, true> >             amf_set_id;
+  ie_field_s<ue_context_request_e>                          ue_context_request;
+  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> > allowed_nssai;
 
   // sequence methods
   init_ue_msg_ies_container();
@@ -7249,19 +6869,10 @@ struct init_ue_msg_ies_container {
 };
 
 // InitialUEMessage ::= SEQUENCE
-struct init_ue_msg_s {
-  bool                      ext = false;
-  init_ue_msg_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using init_ue_msg_s = elementary_procedure_option<init_ue_msg_ies_container>;
 
 // SliceOverloadItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using slice_overload_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using slice_overload_item_ext_ies_o = protocol_ext_empty_o;
 
 // OverloadAction ::= ENUMERATED
 struct overload_action_opts {
@@ -7279,7 +6890,7 @@ struct overload_action_opts {
 typedef enumerated<overload_action_opts, true> overload_action_e;
 
 // OverloadResponse-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using overload_resp_ext_ies_o = ngap_protocol_ies_empty_o;
+using overload_resp_ext_ies_o = protocol_ies_empty_o;
 
 using slice_overload_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7298,7 +6909,7 @@ struct slice_overload_item_s {
 };
 
 // UE-associatedLogicalNG-connectionItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_associated_lc_ng_conn_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_associated_lc_ng_conn_item_ext_ies_o = protocol_ext_empty_o;
 
 // OverloadResponse ::= CHOICE
 struct overload_resp_c {
@@ -7351,19 +6962,19 @@ private:
 };
 
 // OverloadStartNSSAIItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using overload_start_nssai_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using overload_start_nssai_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToModifyItemModCfm-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_modify_item_mod_cfm_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_modify_item_mod_cfm_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToModifyItemModRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_modify_item_mod_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_modify_item_mod_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToSetupItemPSReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_ps_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_ps_req_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceFailedToSetupItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_failed_to_setup_item_su_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_failed_to_setup_item_su_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceItemCxtRelCpl-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 struct pdu_session_res_item_cxt_rel_cpl_ext_ies_o {
@@ -7398,13 +7009,13 @@ struct pdu_session_res_item_cxt_rel_cpl_ext_ies_o {
 };
 
 // PDUSessionResourceItemCxtRelReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_item_cxt_rel_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_item_cxt_rel_req_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceModifyItemModCfm-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_item_mod_cfm_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_item_mod_cfm_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceModifyItemModInd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_item_mod_ind_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_item_mod_ind_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceModifyItemModReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 struct pdu_session_res_modify_item_mod_req_ext_ies_o {
@@ -7439,40 +7050,40 @@ struct pdu_session_res_modify_item_mod_req_ext_ies_o {
 };
 
 // PDUSessionResourceModifyItemModRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_item_mod_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_item_mod_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceNotifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_notify_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_notify_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemNot-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_not_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_not_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemPSAck-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_ps_ack_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_ps_ack_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemPSFail-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_ps_fail_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_ps_fail_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceReleasedItemRelRes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_released_item_rel_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_released_item_rel_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSecondaryRATUsageItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_secondary_ratusage_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_secondary_ratusage_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupItemSUReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_su_req_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_su_req_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSetupItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_item_su_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_item_su_res_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceSwitchedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_switched_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_switched_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceToBeSwitchedDLItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_to_be_switched_dl_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_to_be_switched_dl_item_ext_ies_o = protocol_ext_empty_o;
 
 // PDUSessionResourceToReleaseItemRelCmd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_to_release_item_rel_cmd_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_to_release_item_rel_cmd_ext_ies_o = protocol_ext_empty_o;
 
 // PrivateIE-ID ::= CHOICE
 struct private_ie_id_c {
@@ -7513,13 +7124,13 @@ private:
 using slice_overload_list_l = dyn_array<slice_overload_item_s>;
 
 // SupportedTAItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using supported_ta_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using supported_ta_item_ext_ies_o = protocol_ext_empty_o;
 
 // TAIListForPagingItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using tai_list_for_paging_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using tai_list_for_paging_item_ext_ies_o = protocol_ext_empty_o;
 
 // UE-NGAP-ID-pair-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_ngap_id_pair_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_ngap_id_pair_ext_ies_o = protocol_ext_empty_o;
 
 using ue_associated_lc_ng_conn_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7549,7 +7160,7 @@ struct ue_presence_opts {
 typedef enumerated<ue_presence_opts, true> ue_presence_e;
 
 // UEPresenceInAreaOfInterestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ue_presence_in_area_of_interest_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using ue_presence_in_area_of_interest_item_ext_ies_o = protocol_ext_empty_o;
 
 // NR-CGIListForWarning ::= SEQUENCE (SIZE (1..65535)) OF NR-CGI
 using nr_cgi_list_for_warning_l = dyn_array<nr_cgi_s>;
@@ -7644,9 +7255,8 @@ struct pdu_session_res_failed_to_setup_item_su_res_s {
 
 // PDUSessionResourceItemCxtRelCpl ::= SEQUENCE
 struct pdu_session_res_item_cxt_rel_cpl_s {
-  bool                                                                 ext             = false;
-  bool                                                                 ie_exts_present = false;
-  uint16_t                                                             pdu_session_id  = 0;
+  bool                                                                 ext            = false;
+  uint16_t                                                             pdu_session_id = 0;
   protocol_ext_container_l<pdu_session_res_item_cxt_rel_cpl_ext_ies_o> ie_exts;
   // ...
 
@@ -7708,10 +7318,8 @@ struct pdu_session_res_modify_item_mod_ind_s {
 
 // PDUSessionResourceModifyItemModReq ::= SEQUENCE
 struct pdu_session_res_modify_item_mod_req_s {
-  bool                                                                    ext             = false;
-  bool                                                                    nas_pdu_present = false;
-  bool                                                                    ie_exts_present = false;
-  uint16_t                                                                pdu_session_id  = 0;
+  bool                                                                    ext            = false;
+  uint16_t                                                                pdu_session_id = 0;
   unbounded_octstring<true>                                               nas_pdu;
   unbounded_octstring<true>                                               pdu_session_res_modify_request_transfer;
   protocol_ext_container_l<pdu_session_res_modify_item_mod_req_ext_ies_o> ie_exts;
@@ -7846,10 +7454,9 @@ using pdu_session_res_setup_item_su_req_ext_ies_container = protocol_ext_contain
 
 // PDUSessionResourceSetupItemSUReq ::= SEQUENCE
 struct pdu_session_res_setup_item_su_req_s {
-  bool                                                ext                         = false;
-  bool                                                pdu_session_nas_pdu_present = false;
-  bool                                                ie_exts_present             = false;
-  uint16_t                                            pdu_session_id              = 0;
+  bool                                                ext             = false;
+  bool                                                ie_exts_present = false;
+  uint16_t                                            pdu_session_id  = 0;
   unbounded_octstring<true>                           pdu_session_nas_pdu;
   s_nssai_s                                           s_nssai;
   unbounded_octstring<true>                           pdu_session_res_setup_request_transfer;
@@ -7931,7 +7538,7 @@ struct pdu_session_res_to_release_item_rel_cmd_s {
 };
 
 // PWSFailedCellIDList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using pws_failed_cell_id_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using pws_failed_cell_id_list_ext_ies_o = protocol_ies_empty_o;
 
 // ResetAll ::= ENUMERATED
 struct reset_all_opts {
@@ -7942,7 +7549,7 @@ struct reset_all_opts {
 typedef enumerated<reset_all_opts, true> reset_all_e;
 
 // ResetType-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using reset_type_ext_ies_o = ngap_protocol_ies_empty_o;
+using reset_type_ext_ies_o = protocol_ies_empty_o;
 
 using supported_ta_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -7998,13 +7605,13 @@ struct ue_ngap_id_pair_s {
 };
 
 // UE-NGAP-IDs-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ue_ngap_ids_ext_ies_o = ngap_protocol_ies_empty_o;
+using ue_ngap_ids_ext_ies_o = protocol_ies_empty_o;
 
 // UE-associatedLogicalNG-connectionList ::= SEQUENCE (SIZE (1..65536)) OF UE-associatedLogicalNG-connectionItem
 using ue_associated_lc_ng_conn_list_l = dyn_array<ue_associated_lc_ng_conn_item_s>;
 
 // UEPagingIdentity-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using ue_paging_id_ext_ies_o = ngap_protocol_ies_empty_o;
+using ue_paging_id_ext_ies_o = protocol_ies_empty_o;
 
 using ue_presence_in_area_of_interest_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -8024,7 +7631,7 @@ struct ue_presence_in_area_of_interest_item_s {
 };
 
 // WarningAreaList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using warning_area_list_ext_ies_o = ngap_protocol_ies_empty_o;
+using warning_area_list_ext_ies_o = protocol_ies_empty_o;
 
 // CancelAllWarningMessages ::= ENUMERATED
 struct cancel_all_warning_msgs_opts {
@@ -9013,7 +8620,7 @@ struct overload_start_ies_o {
 };
 
 // OverloadStopIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using overload_stop_ies_o = ngap_protocol_ies_empty_o;
+using overload_stop_ies_o = protocol_ies_empty_o;
 
 // PDUSessionResourceModifyConfirmIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 struct pdu_session_res_modify_confirm_ies_o {
@@ -11187,11 +10794,11 @@ struct location_report_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_presence_in_area_of_interest_list_present = false;
-  bool                                                          ps_cell_info_present                         = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  bool                             ue_presence_in_area_of_interest_list_present = false;
+  bool                             ps_cell_info_present                         = false;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<user_location_info_c> user_location_info;
   ie_field_s<dyn_seq_of<ue_presence_in_area_of_interest_item_s, 1, 64, true> > ue_presence_in_area_of_interest_list;
   ie_field_s<location_report_request_type_s>                                   location_report_request_type;
   ie_field_s<ngran_cgi_c>                                                      ps_cell_info;
@@ -11204,25 +10811,16 @@ struct location_report_ies_container {
 };
 
 // LocationReport ::= SEQUENCE
-struct location_report_s {
-  bool                          ext = false;
-  location_report_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using location_report_s = elementary_procedure_option<location_report_ies_container>;
 
 struct location_report_ctrl_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<location_report_request_type_s>                    location_report_request_type;
+  ie_field_s<amf_ue_ngap_id_t>               amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>               ran_ue_ngap_id;
+  ie_field_s<location_report_request_type_s> location_report_request_type;
 
   // sequence methods
   location_report_ctrl_ies_container();
@@ -11232,25 +10830,16 @@ struct location_report_ctrl_ies_container {
 };
 
 // LocationReportingControl ::= SEQUENCE
-struct location_report_ctrl_s {
-  bool                               ext = false;
-  location_report_ctrl_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using location_report_ctrl_s = elementary_procedure_option<location_report_ctrl_ies_container>;
 
 struct location_report_fail_ind_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
+  ie_field_s<cause_c>          cause;
 
   // sequence methods
   location_report_fail_ind_ies_container();
@@ -11260,26 +10849,17 @@ struct location_report_fail_ind_ies_container {
 };
 
 // LocationReportingFailureIndication ::= SEQUENCE
-struct location_report_fail_ind_s {
-  bool                                   ext = false;
-  location_report_fail_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using location_report_fail_ind_s = elementary_procedure_option<location_report_fail_ind_ies_container>;
 
 struct nas_non_delivery_ind_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > nas_pdu;
+  ie_field_s<cause_c>                    cause;
 
   // sequence methods
   nas_non_delivery_ind_ies_container();
@@ -11289,16 +10869,7 @@ struct nas_non_delivery_ind_ies_container {
 };
 
 // NASNonDeliveryIndication ::= SEQUENCE
-struct nas_non_delivery_ind_s {
-  bool                               ext = false;
-  nas_non_delivery_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using nas_non_delivery_ind_s = elementary_procedure_option<nas_non_delivery_ind_ies_container>;
 
 struct ng_reset_ies_container {
   template <class valueT_>
@@ -11316,16 +10887,7 @@ struct ng_reset_ies_container {
 };
 
 // NGReset ::= SEQUENCE
-struct ng_reset_s {
-  bool                   ext = false;
-  ng_reset_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_reset_s = elementary_procedure_option<ng_reset_ies_container>;
 
 struct ng_reset_ack_ies_container {
   template <class valueT_>
@@ -11345,16 +10907,7 @@ struct ng_reset_ack_ies_container {
 };
 
 // NGResetAcknowledge ::= SEQUENCE
-struct ng_reset_ack_s {
-  bool                       ext = false;
-  ng_reset_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_reset_ack_s = elementary_procedure_option<ng_reset_ack_ies_container>;
 
 struct ng_setup_fail_ies_container {
   template <class valueT_>
@@ -11375,16 +10928,7 @@ struct ng_setup_fail_ies_container {
 };
 
 // NGSetupFailure ::= SEQUENCE
-struct ng_setup_fail_s {
-  bool                        ext = false;
-  ng_setup_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_setup_fail_s = elementary_procedure_option<ng_setup_fail_ies_container>;
 
 struct ng_setup_request_ies_container {
   template <class valueT_>
@@ -11407,16 +10951,7 @@ struct ng_setup_request_ies_container {
 };
 
 // NGSetupRequest ::= SEQUENCE
-struct ng_setup_request_s {
-  bool                           ext = false;
-  ng_setup_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_setup_request_s = elementary_procedure_option<ng_setup_request_ies_container>;
 
 struct ng_setup_resp_ies_container {
   template <class valueT_>
@@ -11440,16 +10975,7 @@ struct ng_setup_resp_ies_container {
 };
 
 // NGSetupResponse ::= SEQUENCE
-struct ng_setup_resp_s {
-  bool                        ext = false;
-  ng_setup_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ng_setup_resp_s = elementary_procedure_option<ng_setup_resp_ies_container>;
 
 struct overload_start_ies_container {
   template <class valueT_>
@@ -11471,49 +10997,22 @@ struct overload_start_ies_container {
 };
 
 // OverloadStart ::= SEQUENCE
-struct overload_start_s {
-  bool                         ext = false;
-  overload_start_ies_container protocol_ies;
-  // ...
+using overload_start_s = elementary_procedure_option<overload_start_ies_container>;
 
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-struct protocol_ie_container_empty_l {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 using overload_stop_ies_container = protocol_ie_container_empty_l;
 
 // OverloadStop ::= SEQUENCE
-struct overload_stop_s {
-  bool                        ext = false;
-  overload_stop_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using overload_stop_s = elementary_procedure_option<overload_stop_ies_container>;
 
 struct pdu_session_res_modify_confirm_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_modify_list_mod_cfm_present = false;
-  bool crit_diagnostics_present                              = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_modify_list_mod_cfm_present = false;
+  bool                         crit_diagnostics_present                              = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_cfm_s, 1, 256, true> > pdu_session_res_modify_list_mod_cfm;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_modify_item_mod_cfm_s, 1, 256, true> >
                                  pdu_session_res_failed_to_modify_list_mod_cfm;
@@ -11527,24 +11026,15 @@ struct pdu_session_res_modify_confirm_ies_container {
 };
 
 // PDUSessionResourceModifyConfirm ::= SEQUENCE
-struct pdu_session_res_modify_confirm_s {
-  bool                                         ext = false;
-  pdu_session_res_modify_confirm_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_confirm_s = elementary_procedure_option<pdu_session_res_modify_confirm_ies_container>;
 
 struct pdu_session_res_modify_ind_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                 amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                 ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_ind_s, 1, 256, true> > pdu_session_res_modify_list_mod_ind;
 
   // sequence methods
@@ -11555,16 +11045,7 @@ struct pdu_session_res_modify_ind_ies_container {
 };
 
 // PDUSessionResourceModifyIndication ::= SEQUENCE
-struct pdu_session_res_modify_ind_s {
-  bool                                     ext = false;
-  pdu_session_res_modify_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_ind_s = elementary_procedure_option<pdu_session_res_modify_ind_ies_container>;
 
 struct pdu_session_res_modify_request_ies_container {
   template <class valueT_>
@@ -11572,8 +11053,8 @@ struct pdu_session_res_modify_request_ies_container {
 
   // member variables
   bool                                                                         ran_paging_prio_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                 amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                 ran_ue_ngap_id;
   ie_field_s<integer<uint16_t, 1, 256, false, true> >                          ran_paging_prio;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_req_s, 1, 256, true> > pdu_session_res_modify_list_mod_req;
 
@@ -11585,28 +11066,19 @@ struct pdu_session_res_modify_request_ies_container {
 };
 
 // PDUSessionResourceModifyRequest ::= SEQUENCE
-struct pdu_session_res_modify_request_s {
-  bool                                         ext = false;
-  pdu_session_res_modify_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_request_s = elementary_procedure_option<pdu_session_res_modify_request_ies_container>;
 
 struct pdu_session_res_modify_resp_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_modify_list_mod_res_present           = false;
-  bool pdu_session_res_failed_to_modify_list_mod_res_present = false;
-  bool user_location_info_present                            = false;
-  bool crit_diagnostics_present                              = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                   ran_ue_ngap_id;
+  bool                         pdu_session_res_modify_list_mod_res_present           = false;
+  bool                         pdu_session_res_failed_to_modify_list_mod_res_present = false;
+  bool                         user_location_info_present                            = false;
+  bool                         crit_diagnostics_present                              = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_modify_item_mod_res_s, 1, 256, true> > pdu_session_res_modify_list_mod_res;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_modify_item_mod_res_s, 1, 256, true> >
                                    pdu_session_res_failed_to_modify_list_mod_res;
@@ -11621,27 +11093,18 @@ struct pdu_session_res_modify_resp_ies_container {
 };
 
 // PDUSessionResourceModifyResponse ::= SEQUENCE
-struct pdu_session_res_modify_resp_s {
-  bool                                      ext = false;
-  pdu_session_res_modify_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_resp_s = elementary_procedure_option<pdu_session_res_modify_resp_ies_container>;
 
 struct pdu_session_res_notify_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          pdu_session_res_notify_list_present       = false;
-  bool                                                          pdu_session_res_released_list_not_present = false;
-  bool                                                          user_location_info_present                = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_notify_list_present       = false;
+  bool                         pdu_session_res_released_list_not_present = false;
+  bool                         user_location_info_present                = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_notify_item_s, 1, 256, true> >       pdu_session_res_notify_list;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_not_s, 1, 256, true> > pdu_session_res_released_list_not;
   ie_field_s<user_location_info_c>                                           user_location_info;
@@ -11654,28 +11117,19 @@ struct pdu_session_res_notify_ies_container {
 };
 
 // PDUSessionResourceNotify ::= SEQUENCE
-struct pdu_session_res_notify_s {
-  bool                                 ext = false;
-  pdu_session_res_notify_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_notify_s = elementary_procedure_option<pdu_session_res_notify_ies_container>;
 
 struct pdu_session_res_release_cmd_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ran_paging_prio_present = false;
-  bool                                                          nas_pdu_present         = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
+  bool                                                ran_paging_prio_present = false;
+  bool                                                nas_pdu_present         = false;
+  ie_field_s<amf_ue_ngap_id_t>                        amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                        ran_ue_ngap_id;
+  ie_field_s<integer<uint16_t, 1, 256, false, true> > ran_paging_prio;
+  ie_field_s<unbounded_octstring<true> >              nas_pdu;
   ie_field_s<dyn_seq_of<pdu_session_res_to_release_item_rel_cmd_s, 1, 256, true> >
       pdu_session_res_to_release_list_rel_cmd;
 
@@ -11687,16 +11141,7 @@ struct pdu_session_res_release_cmd_ies_container {
 };
 
 // PDUSessionResourceReleaseCommand ::= SEQUENCE
-struct pdu_session_res_release_cmd_s {
-  bool                                      ext = false;
-  pdu_session_res_release_cmd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_release_cmd_s = elementary_procedure_option<pdu_session_res_release_cmd_ies_container>;
 
 struct pdu_session_res_release_resp_ies_container {
   template <class valueT_>
@@ -11705,8 +11150,8 @@ struct pdu_session_res_release_resp_ies_container {
   // member variables
   bool                                                                           user_location_info_present = false;
   bool                                                                           crit_diagnostics_present   = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                  amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                     ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                   ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_rel_res_s, 1, 256, true> > pdu_session_res_released_list_rel_res;
   ie_field_s<user_location_info_c>                                               user_location_info;
   ie_field_s<crit_diagnostics_s>                                                 crit_diagnostics;
@@ -11719,29 +11164,20 @@ struct pdu_session_res_release_resp_ies_container {
 };
 
 // PDUSessionResourceReleaseResponse ::= SEQUENCE
-struct pdu_session_res_release_resp_s {
-  bool                                       ext = false;
-  pdu_session_res_release_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_release_resp_s = elementary_procedure_option<pdu_session_res_release_resp_ies_container>;
 
 struct pdu_session_res_setup_request_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ran_paging_prio_present               = false;
-  bool                                                          nas_pdu_present                       = false;
-  bool                                                          ue_aggregate_maximum_bit_rate_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
+  bool                                                ran_paging_prio_present               = false;
+  bool                                                nas_pdu_present                       = false;
+  bool                                                ue_aggregate_maximum_bit_rate_present = false;
+  ie_field_s<amf_ue_ngap_id_t>                        amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                        ran_ue_ngap_id;
+  ie_field_s<integer<uint16_t, 1, 256, false, true> > ran_paging_prio;
+  ie_field_s<unbounded_octstring<true> >              nas_pdu;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_su_req_s, 1, 256, true> > pdu_session_res_setup_list_su_req;
   ie_field_s<ue_aggregate_maximum_bit_rate_s>                                ue_aggregate_maximum_bit_rate;
 
@@ -11753,27 +11189,18 @@ struct pdu_session_res_setup_request_ies_container {
 };
 
 // PDUSessionResourceSetupRequest ::= SEQUENCE
-struct pdu_session_res_setup_request_s {
-  bool                                        ext = false;
-  pdu_session_res_setup_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_setup_request_s = elementary_procedure_option<pdu_session_res_setup_request_ies_container>;
 
 struct pdu_session_res_setup_resp_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_setup_list_su_res_present           = false;
-  bool pdu_session_res_failed_to_setup_list_su_res_present = false;
-  bool crit_diagnostics_present                            = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >              amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                 ran_ue_ngap_id;
+  bool                         pdu_session_res_setup_list_su_res_present           = false;
+  bool                         pdu_session_res_failed_to_setup_list_su_res_present = false;
+  bool                         crit_diagnostics_present                            = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_setup_item_su_res_s, 1, 256, true> > pdu_session_res_setup_list_su_res;
   ie_field_s<dyn_seq_of<pdu_session_res_failed_to_setup_item_su_res_s, 1, 256, true> >
                                  pdu_session_res_failed_to_setup_list_su_res;
@@ -11787,16 +11214,7 @@ struct pdu_session_res_setup_resp_ies_container {
 };
 
 // PDUSessionResourceSetupResponse ::= SEQUENCE
-struct pdu_session_res_setup_resp_s {
-  bool                                     ext = false;
-  pdu_session_res_setup_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_setup_resp_s = elementary_procedure_option<pdu_session_res_setup_resp_ies_container>;
 
 struct pws_cancel_request_ies_container {
   template <class valueT_>
@@ -11818,16 +11236,7 @@ struct pws_cancel_request_ies_container {
 };
 
 // PWSCancelRequest ::= SEQUENCE
-struct pws_cancel_request_s {
-  bool                             ext = false;
-  pws_cancel_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_cancel_request_s = elementary_procedure_option<pws_cancel_request_ies_container>;
 
 struct pws_cancel_resp_ies_container {
   template <class valueT_>
@@ -11849,16 +11258,7 @@ struct pws_cancel_resp_ies_container {
 };
 
 // PWSCancelResponse ::= SEQUENCE
-struct pws_cancel_resp_s {
-  bool                          ext = false;
-  pws_cancel_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_cancel_resp_s = elementary_procedure_option<pws_cancel_resp_ies_container>;
 
 struct pws_fail_ind_ies_container {
   template <class valueT_>
@@ -11876,16 +11276,7 @@ struct pws_fail_ind_ies_container {
 };
 
 // PWSFailureIndication ::= SEQUENCE
-struct pws_fail_ind_s {
-  bool                       ext = false;
-  pws_fail_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_fail_ind_s = elementary_procedure_option<pws_fail_ind_ies_container>;
 
 struct pws_restart_ind_ies_container {
   template <class valueT_>
@@ -11906,16 +11297,7 @@ struct pws_restart_ind_ies_container {
 };
 
 // PWSRestartIndication ::= SEQUENCE
-struct pws_restart_ind_s {
-  bool                          ext = false;
-  pws_restart_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pws_restart_ind_s = elementary_procedure_option<pws_restart_ind_ies_container>;
 
 struct paging_ies_container {
   template <class valueT_>
@@ -11943,24 +11325,15 @@ struct paging_ies_container {
 };
 
 // Paging ::= SEQUENCE
-struct paging_s {
-  bool                 ext = false;
-  paging_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using paging_s = elementary_procedure_option<paging_ies_container>;
 
 struct path_switch_request_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool pdu_session_res_failed_to_setup_list_ps_req_present = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_failed_to_setup_list_ps_req_present = false;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > source_amf_ue_ngap_id;
   ie_field_s<user_location_info_c>                              user_location_info;
   ie_field_s<ue_security_cap_s>                                 ue_security_cap;
@@ -11977,34 +11350,25 @@ struct path_switch_request_ies_container {
 };
 
 // PathSwitchRequest ::= SEQUENCE
-struct path_switch_request_s {
-  bool                              ext = false;
-  path_switch_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using path_switch_request_s = elementary_procedure_option<path_switch_request_ies_container>;
 
 struct path_switch_request_ack_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_security_cap_present                        = false;
-  bool                                                          new_security_context_ind_present               = false;
-  bool                                                          pdu_session_res_released_list_ps_ack_present   = false;
-  bool                                                          core_network_assist_info_present               = false;
-  bool                                                          rrc_inactive_transition_report_request_present = false;
-  bool                                                          crit_diagnostics_present                       = false;
-  bool                                                          redirection_voice_fallback_present             = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ue_security_cap_s>                                 ue_security_cap;
-  ie_field_s<security_context_s>                                security_context;
-  ie_field_s<new_security_context_ind_e>                        new_security_context_ind;
+  bool                                   ue_security_cap_present                        = false;
+  bool                                   new_security_context_ind_present               = false;
+  bool                                   pdu_session_res_released_list_ps_ack_present   = false;
+  bool                                   core_network_assist_info_present               = false;
+  bool                                   rrc_inactive_transition_report_request_present = false;
+  bool                                   crit_diagnostics_present                       = false;
+  bool                                   redirection_voice_fallback_present             = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<ue_security_cap_s>          ue_security_cap;
+  ie_field_s<security_context_s>         security_context;
+  ie_field_s<new_security_context_ind_e> new_security_context_ind;
   ie_field_s<dyn_seq_of<pdu_session_res_switched_item_s, 1, 256, true> >        pdu_session_res_switched_list;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_ps_ack_s, 1, 256, true> > pdu_session_res_released_list_ps_ack;
   ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >                     allowed_nssai;
@@ -12021,16 +11385,7 @@ struct path_switch_request_ack_ies_container {
 };
 
 // PathSwitchRequestAcknowledge ::= SEQUENCE
-struct path_switch_request_ack_s {
-  bool                                  ext = false;
-  path_switch_request_ack_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using path_switch_request_ack_s = elementary_procedure_option<path_switch_request_ack_ies_container>;
 
 struct path_switch_request_fail_ies_container {
   template <class valueT_>
@@ -12038,8 +11393,8 @@ struct path_switch_request_fail_ies_container {
 
   // member variables
   bool                                                                           crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >                  amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                     ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                                   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                                   ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_released_item_ps_fail_s, 1, 256, true> > pdu_session_res_released_list_ps_fail;
   ie_field_s<crit_diagnostics_s>                                                 crit_diagnostics;
 
@@ -12051,16 +11406,7 @@ struct path_switch_request_fail_ies_container {
 };
 
 // PathSwitchRequestFailure ::= SEQUENCE
-struct path_switch_request_fail_s {
-  bool                                   ext = false;
-  path_switch_request_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using path_switch_request_fail_s = elementary_procedure_option<path_switch_request_fail_ies_container>;
 
 template <class valueT_>
 struct private_ie_container_item_s {
@@ -12120,28 +11466,10 @@ struct ran_cfg_upd_ies_container {
 };
 
 // RANConfigurationUpdate ::= SEQUENCE
-struct ran_cfg_upd_s {
-  bool                      ext = false;
-  ran_cfg_upd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ran_cfg_upd_s = elementary_procedure_option<ran_cfg_upd_ies_container>;
 
 // RANConfigurationUpdateAcknowledge ::= SEQUENCE
-struct ran_cfg_upd_ack_s {
-  bool                                           ext = false;
-  protocol_ie_container_l<ran_cfg_upd_ack_ies_o> protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ran_cfg_upd_ack_s = elementary_procedure_option<protocol_ie_container_l<ran_cfg_upd_ack_ies_o> >;
 
 struct ran_cfg_upd_fail_ies_container {
   template <class valueT_>
@@ -12162,26 +11490,17 @@ struct ran_cfg_upd_fail_ies_container {
 };
 
 // RANConfigurationUpdateFailure ::= SEQUENCE
-struct ran_cfg_upd_fail_s {
-  bool                           ext = false;
-  ran_cfg_upd_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ran_cfg_upd_fail_s = elementary_procedure_option<ran_cfg_upd_fail_ies_container>;
 
 struct rrc_inactive_transition_report_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<rrc_state_e>                                       rrc_state;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<rrc_state_e>          rrc_state;
+  ie_field_s<user_location_info_c> user_location_info;
 
   // sequence methods
   rrc_inactive_transition_report_ies_container();
@@ -12191,29 +11510,20 @@ struct rrc_inactive_transition_report_ies_container {
 };
 
 // RRCInactiveTransitionReport ::= SEQUENCE
-struct rrc_inactive_transition_report_s {
-  bool                                         ext = false;
-  rrc_inactive_transition_report_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using rrc_inactive_transition_report_s = elementary_procedure_option<rrc_inactive_transition_report_ies_container>;
 
 struct reroute_nas_request_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          amf_ue_ngap_id_present = false;
-  bool                                                          allowed_nssai_present  = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        ngap_msg;
-  ie_field_s<fixed_bitstring<10, false, true> >                 amf_set_id;
-  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> >     allowed_nssai;
+  bool                                                      amf_ue_ngap_id_present = false;
+  bool                                                      allowed_nssai_present  = false;
+  ie_field_s<ran_ue_ngap_id_t>                              ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                              amf_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> >                    ngap_msg;
+  ie_field_s<fixed_bitstring<10, false, true> >             amf_set_id;
+  ie_field_s<dyn_seq_of<allowed_nssai_item_s, 1, 8, true> > allowed_nssai;
 
   // sequence methods
   reroute_nas_request_ies_container();
@@ -12223,25 +11533,16 @@ struct reroute_nas_request_ies_container {
 };
 
 // RerouteNASRequest ::= SEQUENCE
-struct reroute_nas_request_s {
-  bool                              ext = false;
-  reroute_nas_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using reroute_nas_request_s = elementary_procedure_option<reroute_nas_request_ies_container>;
 
 struct secondary_rat_data_usage_report_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ho_flag_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         ho_flag_present = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_secondary_ratusage_item_s, 1, 256, true> >
                         pdu_session_res_secondary_ratusage_list;
   ie_field_s<ho_flag_e> ho_flag;
@@ -12254,26 +11555,17 @@ struct secondary_rat_data_usage_report_ies_container {
 };
 
 // SecondaryRATDataUsageReport ::= SEQUENCE
-struct secondary_rat_data_usage_report_s {
-  bool                                          ext = false;
-  secondary_rat_data_usage_report_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using secondary_rat_data_usage_report_s = elementary_procedure_option<secondary_rat_data_usage_report_ies_container>;
 
 struct trace_fail_ind_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<fixed_octstring<8, true> >                         ngran_trace_id;
-  ie_field_s<cause_c>                                           cause;
+  ie_field_s<amf_ue_ngap_id_t>          amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>          ran_ue_ngap_id;
+  ie_field_s<fixed_octstring<8, true> > ngran_trace_id;
+  ie_field_s<cause_c>                   cause;
 
   // sequence methods
   trace_fail_ind_ies_container();
@@ -12283,25 +11575,16 @@ struct trace_fail_ind_ies_container {
 };
 
 // TraceFailureIndication ::= SEQUENCE
-struct trace_fail_ind_s {
-  bool                         ext = false;
-  trace_fail_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using trace_fail_ind_s = elementary_procedure_option<trace_fail_ind_ies_container>;
 
 struct trace_start_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<trace_activation_s>                                trace_activation;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<trace_activation_s> trace_activation;
 
   // sequence methods
   trace_start_ies_container();
@@ -12311,27 +11594,18 @@ struct trace_start_ies_container {
 };
 
 // TraceStart ::= SEQUENCE
-struct trace_start_s {
-  bool                      ext = false;
-  trace_start_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using trace_start_s = elementary_procedure_option<trace_start_ies_container>;
 
 struct ue_context_mod_fail_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<cause_c>                                           cause;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                           crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>   amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>   ran_ue_ngap_id;
+  ie_field_s<cause_c>            cause;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
 
   // sequence methods
   ue_context_mod_fail_ies_container();
@@ -12341,16 +11615,7 @@ struct ue_context_mod_fail_ies_container {
 };
 
 // UEContextModificationFailure ::= SEQUENCE
-struct ue_context_mod_fail_s {
-  bool                              ext = false;
-  ue_context_mod_fail_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_mod_fail_s = elementary_procedure_option<ue_context_mod_fail_ies_container>;
 
 struct ue_context_mod_request_ies_container {
   template <class valueT_>
@@ -12366,8 +11631,8 @@ struct ue_context_mod_request_ies_container {
   bool                                                          emergency_fallback_ind_present                 = false;
   bool                                                          new_amf_ue_ngap_id_present                     = false;
   bool                                                          rrc_inactive_transition_report_request_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t>                                  amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                                  ran_ue_ngap_id;
   ie_field_s<integer<uint16_t, 1, 256, false, true> >           ran_paging_prio;
   ie_field_s<fixed_bitstring<256, false, true> >                security_key;
   ie_field_s<integer<uint16_t, 1, 256, true, true> >            idx_to_rfsp;
@@ -12386,30 +11651,21 @@ struct ue_context_mod_request_ies_container {
 };
 
 // UEContextModificationRequest ::= SEQUENCE
-struct ue_context_mod_request_s {
-  bool                                 ext = false;
-  ue_context_mod_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_mod_request_s = elementary_procedure_option<ue_context_mod_request_ies_container>;
 
 struct ue_context_mod_resp_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          rrc_state_present          = false;
-  bool                                                          user_location_info_present = false;
-  bool                                                          crit_diagnostics_present   = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<rrc_state_e>                                       rrc_state;
-  ie_field_s<user_location_info_c>                              user_location_info;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                             rrc_state_present          = false;
+  bool                             user_location_info_present = false;
+  bool                             crit_diagnostics_present   = false;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<rrc_state_e>          rrc_state;
+  ie_field_s<user_location_info_c> user_location_info;
+  ie_field_s<crit_diagnostics_s>   crit_diagnostics;
 
   // sequence methods
   ue_context_mod_resp_ies_container();
@@ -12419,16 +11675,7 @@ struct ue_context_mod_resp_ies_container {
 };
 
 // UEContextModificationResponse ::= SEQUENCE
-struct ue_context_mod_resp_s {
-  bool                              ext = false;
-  ue_context_mod_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_mod_resp_s = elementary_procedure_option<ue_context_mod_resp_ies_container>;
 
 struct ue_context_release_cmd_ies_container {
   template <class valueT_>
@@ -12446,29 +11693,20 @@ struct ue_context_release_cmd_ies_container {
 };
 
 // UEContextReleaseCommand ::= SEQUENCE
-struct ue_context_release_cmd_s {
-  bool                                 ext = false;
-  ue_context_release_cmd_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_release_cmd_s = elementary_procedure_option<ue_context_release_cmd_ies_container>;
 
 struct ue_context_release_complete_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool user_location_info_present                                 = false;
-  bool info_on_recommended_cells_and_ran_nodes_for_paging_present = false;
-  bool pdu_session_res_list_cxt_rel_cpl_present                   = false;
-  bool crit_diagnostics_present                                   = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> >    amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >       ran_ue_ngap_id;
-  ie_field_s<user_location_info_c>                                 user_location_info;
+  bool                             user_location_info_present                                 = false;
+  bool                             info_on_recommended_cells_and_ran_nodes_for_paging_present = false;
+  bool                             pdu_session_res_list_cxt_rel_cpl_present                   = false;
+  bool                             crit_diagnostics_present                                   = false;
+  ie_field_s<amf_ue_ngap_id_t>     amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>     ran_ue_ngap_id;
+  ie_field_s<user_location_info_c> user_location_info;
   ie_field_s<info_on_recommended_cells_and_ran_nodes_for_paging_s> info_on_recommended_cells_and_ran_nodes_for_paging;
   ie_field_s<dyn_seq_of<pdu_session_res_item_cxt_rel_cpl_s, 1, 256, true> > pdu_session_res_list_cxt_rel_cpl;
   ie_field_s<crit_diagnostics_s>                                            crit_diagnostics;
@@ -12481,25 +11719,16 @@ struct ue_context_release_complete_ies_container {
 };
 
 // UEContextReleaseComplete ::= SEQUENCE
-struct ue_context_release_complete_s {
-  bool                                      ext = false;
-  ue_context_release_complete_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_release_complete_s = elementary_procedure_option<ue_context_release_complete_ies_container>;
 
 struct ue_context_release_request_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          pdu_session_res_list_cxt_rel_req_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  bool                         pdu_session_res_list_cxt_rel_req_present = false;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
   ie_field_s<dyn_seq_of<pdu_session_res_item_cxt_rel_req_s, 1, 256, true> > pdu_session_res_list_cxt_rel_req;
   ie_field_s<cause_c>                                                       cause;
 
@@ -12511,26 +11740,17 @@ struct ue_context_release_request_ies_container {
 };
 
 // UEContextReleaseRequest ::= SEQUENCE
-struct ue_context_release_request_s {
-  bool                                     ext = false;
-  ue_context_release_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_context_release_request_s = elementary_procedure_option<ue_context_release_request_ies_container>;
 
 struct ue_radio_cap_check_request_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_radio_cap_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        ue_radio_cap;
+  bool                                   ue_radio_cap_present = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > ue_radio_cap;
 
   // sequence methods
   ue_radio_cap_check_request_ies_container();
@@ -12540,27 +11760,18 @@ struct ue_radio_cap_check_request_ies_container {
 };
 
 // UERadioCapabilityCheckRequest ::= SEQUENCE
-struct ue_radio_cap_check_request_s {
-  bool                                     ext = false;
-  ue_radio_cap_check_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_radio_cap_check_request_s = elementary_procedure_option<ue_radio_cap_check_request_ies_container>;
 
 struct ue_radio_cap_check_resp_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          crit_diagnostics_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ims_voice_support_ind_e>                           ims_voice_support_ind;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
+  bool                                crit_diagnostics_present = false;
+  ie_field_s<amf_ue_ngap_id_t>        amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>        ran_ue_ngap_id;
+  ie_field_s<ims_voice_support_ind_e> ims_voice_support_ind;
+  ie_field_s<crit_diagnostics_s>      crit_diagnostics;
 
   // sequence methods
   ue_radio_cap_check_resp_ies_container();
@@ -12570,27 +11781,18 @@ struct ue_radio_cap_check_resp_ies_container {
 };
 
 // UERadioCapabilityCheckResponse ::= SEQUENCE
-struct ue_radio_cap_check_resp_s {
-  bool                                  ext = false;
-  ue_radio_cap_check_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_radio_cap_check_resp_s = elementary_procedure_option<ue_radio_cap_check_resp_ies_container>;
 
 struct ue_radio_cap_info_ind_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          ue_radio_cap_for_paging_present = false;
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        ue_radio_cap;
-  ie_field_s<ue_radio_cap_for_paging_s>                         ue_radio_cap_for_paging;
+  bool                                   ue_radio_cap_for_paging_present = false;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > ue_radio_cap;
+  ie_field_s<ue_radio_cap_for_paging_s>  ue_radio_cap_for_paging;
 
   // sequence methods
   ue_radio_cap_info_ind_ies_container();
@@ -12600,24 +11802,15 @@ struct ue_radio_cap_info_ind_ies_container {
 };
 
 // UERadioCapabilityInfoIndication ::= SEQUENCE
-struct ue_radio_cap_info_ind_s {
-  bool                                ext = false;
-  ue_radio_cap_info_ind_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ue_radio_cap_info_ind_s = elementary_procedure_option<ue_radio_cap_info_ind_ies_container>;
 
 struct uetnla_binding_release_request_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
+  ie_field_s<amf_ue_ngap_id_t> amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t> ran_ue_ngap_id;
 
   // sequence methods
   uetnla_binding_release_request_ies_container();
@@ -12627,26 +11820,17 @@ struct uetnla_binding_release_request_ies_container {
 };
 
 // UETNLABindingReleaseRequest ::= SEQUENCE
-struct uetnla_binding_release_request_s {
-  bool                                         ext = false;
-  uetnla_binding_release_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using uetnla_binding_release_request_s = elementary_procedure_option<uetnla_binding_release_request_ies_container>;
 
 struct ul_nas_transport_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        nas_pdu;
-  ie_field_s<user_location_info_c>                              user_location_info;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > nas_pdu;
+  ie_field_s<user_location_info_c>       user_location_info;
 
   // sequence methods
   ul_nas_transport_ies_container();
@@ -12656,16 +11840,7 @@ struct ul_nas_transport_ies_container {
 };
 
 // UplinkNASTransport ::= SEQUENCE
-struct ul_nas_transport_s {
-  bool                           ext = false;
-  ul_nas_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_nas_transport_s = elementary_procedure_option<ul_nas_transport_ies_container>;
 
 struct ul_non_ueassociated_nrp_pa_transport_ies_container {
   template <class valueT_>
@@ -12683,16 +11858,8 @@ struct ul_non_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // UplinkNonUEAssociatedNRPPaTransport ::= SEQUENCE
-struct ul_non_ueassociated_nrp_pa_transport_s {
-  bool                                               ext = false;
-  ul_non_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_non_ueassociated_nrp_pa_transport_s =
+    elementary_procedure_option<ul_non_ueassociated_nrp_pa_transport_ies_container>;
 
 struct ul_ran_cfg_transfer_ies_container {
   template <class valueT_>
@@ -12712,25 +11879,16 @@ struct ul_ran_cfg_transfer_ies_container {
 };
 
 // UplinkRANConfigurationTransfer ::= SEQUENCE
-struct ul_ran_cfg_transfer_s {
-  bool                              ext = false;
-  ul_ran_cfg_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_ran_cfg_transfer_s = elementary_procedure_option<ul_ran_cfg_transfer_ies_container>;
 
 struct ul_ran_status_transfer_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<ran_status_transfer_transparent_container_s>       ran_status_transfer_transparent_container;
+  ie_field_s<amf_ue_ngap_id_t>                            amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>                            ran_ue_ngap_id;
+  ie_field_s<ran_status_transfer_transparent_container_s> ran_status_transfer_transparent_container;
 
   // sequence methods
   ul_ran_status_transfer_ies_container();
@@ -12740,26 +11898,17 @@ struct ul_ran_status_transfer_ies_container {
 };
 
 // UplinkRANStatusTransfer ::= SEQUENCE
-struct ul_ran_status_transfer_s {
-  bool                                 ext = false;
-  ul_ran_status_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_ran_status_transfer_s = elementary_procedure_option<ul_ran_status_transfer_ies_container>;
 
 struct ul_ueassociated_nrp_pa_transport_ies_container {
   template <class valueT_>
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  ie_field_s<integer<uint64_t, 0, 1099511627775, false, true> > amf_ue_ngap_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    ran_ue_ngap_id;
-  ie_field_s<unbounded_octstring<true> >                        routing_id;
-  ie_field_s<unbounded_octstring<true> >                        nrp_pa_pdu;
+  ie_field_s<amf_ue_ngap_id_t>           amf_ue_ngap_id;
+  ie_field_s<ran_ue_ngap_id_t>           ran_ue_ngap_id;
+  ie_field_s<unbounded_octstring<true> > routing_id;
+  ie_field_s<unbounded_octstring<true> > nrp_pa_pdu;
 
   // sequence methods
   ul_ueassociated_nrp_pa_transport_ies_container();
@@ -12769,16 +11918,7 @@ struct ul_ueassociated_nrp_pa_transport_ies_container {
 };
 
 // UplinkUEAssociatedNRPPaTransport ::= SEQUENCE
-struct ul_ueassociated_nrp_pa_transport_s {
-  bool                                           ext = false;
-  ul_ueassociated_nrp_pa_transport_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using ul_ueassociated_nrp_pa_transport_s = elementary_procedure_option<ul_ueassociated_nrp_pa_transport_ies_container>;
 
 struct write_replace_warning_request_ies_container {
   template <class valueT_>
@@ -12812,16 +11952,7 @@ struct write_replace_warning_request_ies_container {
 };
 
 // WriteReplaceWarningRequest ::= SEQUENCE
-struct write_replace_warning_request_s {
-  bool                                        ext = false;
-  write_replace_warning_request_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using write_replace_warning_request_s = elementary_procedure_option<write_replace_warning_request_ies_container>;
 
 struct write_replace_warning_resp_ies_container {
   template <class valueT_>
@@ -12843,16 +11974,7 @@ struct write_replace_warning_resp_ies_container {
 };
 
 // WriteReplaceWarningResponse ::= SEQUENCE
-struct write_replace_warning_resp_s {
-  bool                                     ext = false;
-  write_replace_warning_resp_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using write_replace_warning_resp_s = elementary_procedure_option<write_replace_warning_resp_ies_container>;
 
 // NGAP-ELEMENTARY-PROCEDURES ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
 struct ngap_elem_procs_o {
@@ -13282,10 +12404,10 @@ struct init_msg_s {
 };
 
 // LastVisitedNGRANCellInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using last_visited_ngran_cell_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using last_visited_ngran_cell_info_ext_ies_o = protocol_ext_empty_o;
 
 // LastVisitedCellInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using last_visited_cell_info_ext_ies_o = ngap_protocol_ies_empty_o;
+using last_visited_cell_info_ext_ies_o = protocol_ies_empty_o;
 
 using last_visited_ngran_cell_info_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13396,7 +12518,7 @@ private:
 };
 
 // LastVisitedCellItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using last_visited_cell_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using last_visited_cell_item_ext_ies_o = protocol_ext_empty_o;
 
 using last_visited_cell_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13500,7 +12622,7 @@ private:
 };
 
 // NonDynamic5QIDescriptor-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using non_dynamic5_qi_descriptor_ext_ies_o = ngap_protocol_ext_empty_o;
+using non_dynamic5_qi_descriptor_ext_ies_o = protocol_ext_empty_o;
 
 using non_dynamic5_qi_descriptor_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13525,7 +12647,7 @@ struct non_dynamic5_qi_descriptor_s {
 };
 
 // PDUSessionAggregateMaximumBitRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_aggregate_maximum_bit_rate_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_aggregate_maximum_bit_rate_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_aggregate_maximum_bit_rate_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13545,7 +12667,7 @@ struct pdu_session_aggregate_maximum_bit_rate_s {
 };
 
 // QosFlowInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_info_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13566,7 +12688,7 @@ struct qos_flow_info_item_s {
 };
 
 // PDUSessionResourceInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_info_item_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowInformationList ::= SEQUENCE (SIZE (1..64)) OF QosFlowInformationItem
 using qos_flow_info_list_l = dyn_array<qos_flow_info_item_s>;
@@ -13575,10 +12697,9 @@ using pdu_session_res_info_item_ext_ies_container = protocol_ext_container_empty
 
 // PDUSessionResourceInformationItem ::= SEQUENCE
 struct pdu_session_res_info_item_s {
-  bool                                        ext                                = false;
-  bool                                        drbs_to_qos_flows_map_list_present = false;
-  bool                                        ie_exts_present                    = false;
-  uint16_t                                    pdu_session_id                     = 0;
+  bool                                        ext             = false;
+  bool                                        ie_exts_present = false;
+  uint16_t                                    pdu_session_id  = 0;
   qos_flow_info_list_l                        qos_flow_info_list;
   drbs_to_qos_flows_map_list_l                drbs_to_qos_flows_map_list;
   pdu_session_res_info_item_ext_ies_container ie_exts;
@@ -13594,10 +12715,10 @@ struct pdu_session_res_info_item_s {
 using pdu_session_res_info_list_l = dyn_array<pdu_session_res_info_item_s>;
 
 // QosFlowModifyConfirmItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_modify_confirm_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_modify_confirm_item_ext_ies_o = protocol_ext_empty_o;
 
 // UPTransportLayerInformationPairItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using up_transport_layer_info_pair_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using up_transport_layer_info_pair_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_modify_confirm_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13633,7 +12754,7 @@ struct up_transport_layer_info_pair_item_s {
 };
 
 // PDUSessionResourceModifyConfirmTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_confirm_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_confirm_transfer_ext_ies_o = protocol_ext_empty_o;
 
 // QosFlowModifyConfirmList ::= SEQUENCE (SIZE (1..64)) OF QosFlowModifyConfirmItem
 using qos_flow_modify_confirm_list_l = dyn_array<qos_flow_modify_confirm_item_s>;
@@ -13645,10 +12766,8 @@ using pdu_session_res_modify_confirm_transfer_ext_ies_container = protocol_ext_c
 
 // PDUSessionResourceModifyConfirmTransfer ::= SEQUENCE
 struct pdu_session_res_modify_confirm_transfer_s {
-  bool                                                      ext                                    = false;
-  bool                                                      add_ng_uuptnl_info_present             = false;
-  bool                                                      qos_flow_failed_to_modify_list_present = false;
-  bool                                                      ie_exts_present                        = false;
+  bool                                                      ext             = false;
+  bool                                                      ie_exts_present = false;
   qos_flow_modify_confirm_list_l                            qos_flow_modify_confirm_list;
   up_transport_layer_info_c                                 ulngu_up_tnl_info;
   up_transport_layer_info_pair_list_l                       add_ng_uuptnl_info;
@@ -13663,7 +12782,7 @@ struct pdu_session_res_modify_confirm_transfer_s {
 };
 
 // VolumeTimedReport-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using volume_timed_report_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using volume_timed_report_item_ext_ies_o = protocol_ext_empty_o;
 
 using volume_timed_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13685,13 +12804,13 @@ struct volume_timed_report_item_s {
 };
 
 // QoSFlowsUsageReport-Item-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qo_sflows_usage_report_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qo_sflows_usage_report_item_ext_ies_o = protocol_ext_empty_o;
 
 // VolumeTimedReportList ::= SEQUENCE (SIZE (1..2)) OF VolumeTimedReport-Item
 using volume_timed_report_list_l = dyn_array<volume_timed_report_item_s>;
 
 // PDUSessionUsageReport-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_usage_report_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_usage_report_ext_ies_o = protocol_ext_empty_o;
 
 using qo_sflows_usage_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13748,16 +12867,15 @@ struct pdu_session_usage_report_s {
 using qo_sflows_usage_report_list_l = dyn_array<qo_sflows_usage_report_item_s>;
 
 // SecondaryRATUsageInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using secondary_ratusage_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using secondary_ratusage_info_ext_ies_o = protocol_ext_empty_o;
 
 using secondary_ratusage_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // SecondaryRATUsageInformation ::= SEQUENCE
 struct secondary_ratusage_info_s {
-  bool                                      ext                                 = false;
-  bool                                      pdu_session_usage_report_present    = false;
-  bool                                      qos_flows_usage_report_list_present = false;
-  bool                                      ie_ext_present                      = false;
+  bool                                      ext                              = false;
+  bool                                      pdu_session_usage_report_present = false;
+  bool                                      ie_ext_present                   = false;
   pdu_session_usage_report_s                pdu_session_usage_report;
   qo_sflows_usage_report_list_l             qos_flows_usage_report_list;
   secondary_ratusage_info_ext_ies_container ie_ext;
@@ -13830,9 +12948,8 @@ struct pdu_session_res_modify_ind_transfer_ext_ies_container {
 
 // PDUSessionResourceModifyIndicationTransfer ::= SEQUENCE
 struct pdu_session_res_modify_ind_transfer_s {
-  bool                                                  ext                                  = false;
-  bool                                                  add_dl_qos_flow_per_tnl_info_present = false;
-  bool                                                  ie_exts_present                      = false;
+  bool                                                  ext             = false;
+  bool                                                  ie_exts_present = false;
   qos_flow_per_tnl_info_s                               dlqos_flow_per_tnl_info;
   qos_flow_per_tnl_info_list_l                          add_dl_qos_flow_per_tnl_info;
   pdu_session_res_modify_ind_transfer_ext_ies_container ie_exts;
@@ -13845,7 +12962,7 @@ struct pdu_session_res_modify_ind_transfer_s {
 };
 
 // PDUSessionResourceModifyIndicationUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_ind_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_ind_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_modify_ind_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13864,7 +12981,7 @@ struct pdu_session_res_modify_ind_unsuccessful_transfer_s {
 };
 
 // QosCharacteristics-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
-using qos_characteristics_ext_ies_o = ngap_protocol_ies_empty_o;
+using qos_characteristics_ext_ies_o = protocol_ies_empty_o;
 
 // AdditionalQosFlowInformation ::= ENUMERATED
 struct add_qos_flow_info_opts {
@@ -13939,7 +13056,7 @@ private:
 };
 
 // QosFlowLevelQosParameters-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_level_qos_params_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_level_qos_params_ext_ies_o = protocol_ext_empty_o;
 
 // ReflectiveQosAttribute ::= ENUMERATED
 struct reflective_qos_attribute_opts {
@@ -13950,7 +13067,7 @@ struct reflective_qos_attribute_opts {
 typedef enumerated<reflective_qos_attribute_opts, true> reflective_qos_attribute_e;
 
 // QosFlowAddOrModifyRequestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_add_or_modify_request_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_add_or_modify_request_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_level_qos_params_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -13976,10 +13093,10 @@ struct qos_flow_level_qos_params_s {
 };
 
 // UL-NGU-UP-TNLModifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using ul_ngu_up_tnl_modify_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using ul_ngu_up_tnl_modify_item_ext_ies_o = protocol_ext_empty_o;
 
 // UPTransportLayerInformationItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using up_transport_layer_info_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using up_transport_layer_info_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_add_or_modify_request_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14134,19 +13251,11 @@ struct pdu_session_res_modify_request_transfer_ies_container {
 };
 
 // PDUSessionResourceModifyRequestTransfer ::= SEQUENCE
-struct pdu_session_res_modify_request_transfer_s {
-  bool                                                  ext = false;
-  pdu_session_res_modify_request_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_modify_request_transfer_s =
+    elementary_procedure_option<pdu_session_res_modify_request_transfer_ies_container>;
 
 // QosFlowAddOrModifyResponseItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_add_or_modify_resp_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_add_or_modify_resp_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_add_or_modify_resp_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14201,18 +13310,14 @@ using qos_flow_add_or_modify_resp_list_l = dyn_array<qos_flow_add_or_modify_resp
 
 // PDUSessionResourceModifyResponseTransfer ::= SEQUENCE
 struct pdu_session_res_modify_resp_transfer_s {
-  bool                               ext                                           = false;
-  bool                               dl_ngu_up_tnl_info_present                    = false;
-  bool                               ul_ngu_up_tnl_info_present                    = false;
-  bool                               qos_flow_add_or_modify_resp_list_present      = false;
-  bool                               add_dl_qos_flow_per_tnl_info_present          = false;
-  bool                               qos_flow_failed_to_add_or_modify_list_present = false;
-  bool                               ie_exts_present                               = false;
-  up_transport_layer_info_c          dl_ngu_up_tnl_info;
-  up_transport_layer_info_c          ul_ngu_up_tnl_info;
-  qos_flow_add_or_modify_resp_list_l qos_flow_add_or_modify_resp_list;
-  qos_flow_per_tnl_info_list_l       add_dl_qos_flow_per_tnl_info;
-  qos_flow_list_with_cause_l         qos_flow_failed_to_add_or_modify_list;
+  bool                                                                     ext                        = false;
+  bool                                                                     dl_ngu_up_tnl_info_present = false;
+  bool                                                                     ul_ngu_up_tnl_info_present = false;
+  up_transport_layer_info_c                                                dl_ngu_up_tnl_info;
+  up_transport_layer_info_c                                                ul_ngu_up_tnl_info;
+  qos_flow_add_or_modify_resp_list_l                                       qos_flow_add_or_modify_resp_list;
+  qos_flow_per_tnl_info_list_l                                             add_dl_qos_flow_per_tnl_info;
+  qos_flow_list_with_cause_l                                               qos_flow_failed_to_add_or_modify_list;
   protocol_ext_container_l<pdu_session_res_modify_resp_transfer_ext_ies_o> ie_exts;
   // ...
 
@@ -14223,7 +13328,7 @@ struct pdu_session_res_modify_resp_transfer_s {
 };
 
 // PDUSessionResourceModifyUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_modify_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_modify_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_modify_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14277,8 +13382,7 @@ struct pdu_session_res_notify_released_transfer_ext_ies_o {
 
 // PDUSessionResourceNotifyReleasedTransfer ::= SEQUENCE
 struct pdu_session_res_notify_released_transfer_s {
-  bool                                                                         ext             = false;
-  bool                                                                         ie_exts_present = false;
+  bool                                                                         ext = false;
   cause_c                                                                      cause;
   protocol_ext_container_l<pdu_session_res_notify_released_transfer_ext_ies_o> ie_exts;
   // ...
@@ -14298,7 +13402,7 @@ struct notif_cause_opts {
 typedef enumerated<notif_cause_opts, true> notif_cause_e;
 
 // QosFlowNotifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_notify_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_notify_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_notify_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14354,10 +13458,7 @@ using qos_flow_notify_list_l = dyn_array<qos_flow_notify_item_s>;
 
 // PDUSessionResourceNotifyTransfer ::= SEQUENCE
 struct pdu_session_res_notify_transfer_s {
-  bool                                                                ext                            = false;
-  bool                                                                qos_flow_notify_list_present   = false;
-  bool                                                                qos_flow_released_list_present = false;
-  bool                                                                ie_exts_present                = false;
+  bool                                                                ext = false;
   qos_flow_notify_list_l                                              qos_flow_notify_list;
   qos_flow_list_with_cause_l                                          qos_flow_released_list;
   protocol_ext_container_l<pdu_session_res_notify_transfer_ext_ies_o> ie_exts;
@@ -14370,7 +13471,7 @@ struct pdu_session_res_notify_transfer_s {
 };
 
 // PDUSessionResourceReleaseCommandTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_release_cmd_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_release_cmd_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_release_cmd_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14422,8 +13523,7 @@ struct pdu_session_res_release_resp_transfer_ext_ies_o {
 
 // PDUSessionResourceReleaseResponseTransfer ::= SEQUENCE
 struct pdu_session_res_release_resp_transfer_s {
-  bool                                                                      ext             = false;
-  bool                                                                      ie_exts_present = false;
+  bool                                                                      ext = false;
   protocol_ext_container_l<pdu_session_res_release_resp_transfer_ext_ies_o> ie_exts;
   // ...
 
@@ -14444,7 +13544,7 @@ struct maximum_integrity_protected_data_rate_opts {
 typedef enumerated<maximum_integrity_protected_data_rate_opts, true> maximum_integrity_protected_data_rate_e;
 
 // QosFlowSetupRequestItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_setup_request_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_setup_request_item_ext_ies_o = protocol_ext_empty_o;
 
 // ConfidentialityProtectionIndication ::= ENUMERATED
 struct confidentiality_protection_ind_opts {
@@ -14536,7 +13636,6 @@ using qos_flow_setup_request_list_l = dyn_array<qos_flow_setup_request_item_s>;
 struct security_ind_s {
   bool                                             ext                                              = false;
   bool                                             maximum_integrity_protected_data_rate_ul_present = false;
-  bool                                             ie_exts_present                                  = false;
   integrity_protection_ind_e                       integrity_protection_ind;
   confidentiality_protection_ind_e                 confidentiality_protection_ind;
   maximum_integrity_protected_data_rate_e          maximum_integrity_protected_data_rate_ul;
@@ -14647,29 +13746,19 @@ struct pdu_session_res_setup_request_transfer_ies_container {
 };
 
 // PDUSessionResourceSetupRequestTransfer ::= SEQUENCE
-struct pdu_session_res_setup_request_transfer_s {
-  bool                                                 ext = false;
-  pdu_session_res_setup_request_transfer_ies_container protocol_ies;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+using pdu_session_res_setup_request_transfer_s =
+    elementary_procedure_option<pdu_session_res_setup_request_transfer_ies_container>;
 
 // PDUSessionResourceSetupResponseTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_resp_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_resp_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_resp_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
 // PDUSessionResourceSetupResponseTransfer ::= SEQUENCE
 struct pdu_session_res_setup_resp_transfer_s {
-  bool                                                  ext                                   = false;
-  bool                                                  add_dl_qos_flow_per_tnl_info_present  = false;
-  bool                                                  security_result_present               = false;
-  bool                                                  qos_flow_failed_to_setup_list_present = false;
-  bool                                                  ie_exts_present                       = false;
+  bool                                                  ext                     = false;
+  bool                                                  security_result_present = false;
+  bool                                                  ie_exts_present         = false;
   qos_flow_per_tnl_info_s                               dlqos_flow_per_tnl_info;
   qos_flow_per_tnl_info_list_l                          add_dl_qos_flow_per_tnl_info;
   security_result_s                                     security_result;
@@ -14684,7 +13773,7 @@ struct pdu_session_res_setup_resp_transfer_s {
 };
 
 // PDUSessionResourceSetupUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using pdu_session_res_setup_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using pdu_session_res_setup_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using pdu_session_res_setup_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14741,7 +13830,6 @@ struct path_switch_request_ack_transfer_s {
   bool                                                                 ext                        = false;
   bool                                                                 ul_ngu_up_tnl_info_present = false;
   bool                                                                 security_ind_present       = false;
-  bool                                                                 ie_exts_present            = false;
   up_transport_layer_info_c                                            ul_ngu_up_tnl_info;
   security_ind_s                                                       security_ind;
   protocol_ext_container_l<path_switch_request_ack_transfer_ext_ies_o> ie_exts;
@@ -14754,7 +13842,7 @@ struct path_switch_request_ack_transfer_s {
 };
 
 // PathSwitchRequestSetupFailedTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using path_switch_request_setup_failed_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using path_switch_request_setup_failed_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using path_switch_request_setup_failed_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14773,7 +13861,7 @@ struct path_switch_request_setup_failed_transfer_s {
 };
 
 // QosFlowAcceptedItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_accepted_item_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_accepted_item_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_accepted_item_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14792,7 +13880,7 @@ struct qos_flow_accepted_item_s {
 };
 
 // UserPlaneSecurityInformation-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using user_plane_security_info_ext_ies_o = ngap_protocol_ext_empty_o;
+using user_plane_security_info_ext_ies_o = protocol_ext_empty_o;
 
 // DL-NGU-TNLInformationReused ::= ENUMERATED
 struct dl_ngu_tnl_info_reused_opts {
@@ -14859,7 +13947,6 @@ struct path_switch_request_transfer_s {
   bool                                                             ext                              = false;
   bool                                                             dl_ngu_tnl_info_reused_present   = false;
   bool                                                             user_plane_security_info_present = false;
-  bool                                                             ie_exts_present                  = false;
   up_transport_layer_info_c                                        dl_ngu_up_tnl_info;
   dl_ngu_tnl_info_reused_e                                         dl_ngu_tnl_info_reused;
   user_plane_security_info_s                                       user_plane_security_info;
@@ -14874,7 +13961,7 @@ struct path_switch_request_transfer_s {
 };
 
 // PathSwitchRequestUnsuccessfulTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using path_switch_request_unsuccessful_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using path_switch_request_unsuccessful_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using path_switch_request_unsuccessful_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14912,7 +13999,7 @@ template <class ies_set_paramT_>
 using protocol_ie_container_pair_l = dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>;
 
 // QosFlowSetupResponseItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using qos_flow_setup_resp_item_su_res_ext_ies_o = ngap_protocol_ext_empty_o;
+using qos_flow_setup_resp_item_su_res_ext_ies_o = protocol_ext_empty_o;
 
 using qos_flow_setup_resp_item_su_res_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14934,7 +14021,7 @@ struct qos_flow_setup_resp_item_su_res_s {
 using qos_flow_setup_resp_list_su_res_l = dyn_array<qos_flow_setup_resp_item_su_res_s>;
 
 // SecondaryRATDataUsageReportTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using secondary_rat_data_usage_report_transfer_ext_ies_o = ngap_protocol_ext_empty_o;
+using secondary_rat_data_usage_report_transfer_ext_ies_o = protocol_ext_empty_o;
 
 using secondary_rat_data_usage_report_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -14954,7 +14041,7 @@ struct secondary_rat_data_usage_report_transfer_s {
 };
 
 // SourceNGRANNode-ToTargetNGRANNode-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using source_ngran_node_to_target_ngran_node_transparent_container_ext_ies_o = ngap_protocol_ext_empty_o;
+using source_ngran_node_to_target_ngran_node_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 // UEHistoryInformation ::= SEQUENCE (SIZE (1..16)) OF LastVisitedCellItem
 using ue_history_info_l = dyn_array<last_visited_cell_item_s>;
@@ -14963,17 +14050,15 @@ using source_ngran_node_to_target_ngran_node_transparent_container_ext_ies_conta
 
 // SourceNGRANNode-ToTargetNGRANNode-TransparentContainer ::= SEQUENCE
 struct source_ngran_node_to_target_ngran_node_transparent_container_s {
-  bool                        ext                               = false;
-  bool                        pdu_session_res_info_list_present = false;
-  bool                        erab_info_list_present            = false;
-  bool                        idx_to_rfsp_present               = false;
-  bool                        ie_exts_present                   = false;
-  unbounded_octstring<true>   rrc_container;
-  pdu_session_res_info_list_l pdu_session_res_info_list;
-  erab_info_list_l            erab_info_list;
-  ngran_cgi_c                 target_cell_id;
-  uint16_t                    idx_to_rfsp = 1;
-  ue_history_info_l           uehistory_info;
+  bool                                                                           ext                 = false;
+  bool                                                                           idx_to_rfsp_present = false;
+  bool                                                                           ie_exts_present     = false;
+  unbounded_octstring<true>                                                      rrc_container;
+  pdu_session_res_info_list_l                                                    pdu_session_res_info_list;
+  erab_info_list_l                                                               erab_info_list;
+  ngran_cgi_c                                                                    target_cell_id;
+  uint16_t                                                                       idx_to_rfsp = 1;
+  ue_history_info_l                                                              uehistory_info;
   source_ngran_node_to_target_ngran_node_transparent_container_ext_ies_container ie_exts;
   // ...
 
@@ -14984,7 +14069,7 @@ struct source_ngran_node_to_target_ngran_node_transparent_container_s {
 };
 
 // TargetNGRANNode-ToSourceNGRANNode-TransparentContainer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
-using target_ngran_node_to_source_ngran_node_transparent_container_ext_ies_o = ngap_protocol_ext_empty_o;
+using target_ngran_node_to_source_ngran_node_transparent_container_ext_ies_o = protocol_ext_empty_o;
 
 using target_ngran_node_to_source_ngran_node_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
@@ -15002,7 +14087,86 @@ struct target_ngran_node_to_source_ngran_node_transparent_container_s {
   void        to_json(json_writer& j) const;
 };
 
-} // namespace ngap_nr
+} // namespace ngap
 } // namespace asn1
 
-#endif // SRSASN1_NGAP_NR_H
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::amf_cfg_upd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::amf_cfg_upd_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::amf_cfg_upd_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::cell_traffic_trace_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::deactiv_trace_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_nas_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_non_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_ran_cfg_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_ran_status_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::dl_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::error_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_cancel_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_cancel_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_notify_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_prep_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_request_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ho_required_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_context_setup_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_context_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_context_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::init_ue_msg_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::location_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::location_report_ctrl_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::location_report_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::nas_non_delivery_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_reset_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_reset_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_setup_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ng_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::overload_start_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_confirm_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_notify_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_release_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_release_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_setup_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_setup_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_cancel_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_cancel_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pws_restart_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::paging_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::path_switch_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::path_switch_request_ack_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::path_switch_request_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ran_cfg_upd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ran_cfg_upd_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::rrc_inactive_transition_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::reroute_nas_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::secondary_rat_data_usage_report_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::trace_fail_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::trace_start_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_mod_fail_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_mod_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_mod_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_release_cmd_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_release_complete_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_context_release_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_radio_cap_check_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_radio_cap_check_resp_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ue_radio_cap_info_ind_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::uetnla_binding_release_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_nas_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_non_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_ran_cfg_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_ran_status_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::ul_ueassociated_nrp_pa_transport_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::write_replace_warning_request_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::write_replace_warning_resp_ies_o>;
+extern template struct asn1::protocol_ext_field_s<asn1::ngap::pdu_session_res_modify_ind_transfer_ext_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_modify_request_transfer_ies_o>;
+extern template struct asn1::protocol_ie_field_s<asn1::ngap::pdu_session_res_setup_request_transfer_ies_o>;
+
+#endif // SRSASN1_NGAP_H

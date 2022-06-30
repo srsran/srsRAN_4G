@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -39,6 +39,7 @@ set(SOURCES arch_select.cc
             rrc_common.cc
             rlc_pcap.cc
             s1ap_pcap.cc
+            ngap_pcap.cc
             security.cc
             standard_streams.cc
             thread_pool.cc
@@ -62,6 +63,6 @@ target_include_directories(srsran_common PUBLIC ${SEC_INCLUDE_DIRS} ${CMAKE_SOUR
 target_link_libraries(srsran_common srsran_phy support srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES} ${SCTP_LIBRARIES})
 target_compile_definitions(srsran_common PRIVATE ${BACKWARD_DEFINITIONS})
 
-INSTALL(TARGETS srsran_common DESTINATION ${LIBRARY_DIR})
+install(TARGETS srsran_common DESTINATION ${LIBRARY_DIR} OPTIONAL)
 
 add_subdirectory(test)

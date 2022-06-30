@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -65,6 +65,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   string mcc;
   string mnc;
   string enb_id;
+  string cfr_mode;
   bool   use_standard_lte_rates = false;
 
   // Command line only options
@@ -142,10 +143,12 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     /* PCAP */
     ("pcap.enable",    bpo::value<bool>(&args->stack.mac_pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
-    ("pcap.filename",  bpo::value<string>(&args->stack.mac_pcap.filename)->default_value("enb_mac.pcap"), "MAC layer capture filename")
-    ("pcap.nr_filename",  bpo::value<string>(&args->nr_stack.mac.pcap.filename)->default_value("enb_mac_nr.pcap"), "NR MAC layer capture filename")
+    ("pcap.filename",  bpo::value<string>(&args->stack.mac_pcap.filename)->default_value("/tmp/enb_mac.pcap"), "MAC layer capture filename")
+    ("pcap.nr_filename",  bpo::value<string>(&args->nr_stack.mac.pcap.filename)->default_value("/tmp/enb_mac_nr.pcap"), "NR MAC layer capture filename")
     ("pcap.s1ap_enable",   bpo::value<bool>(&args->stack.s1ap_pcap.enable)->default_value(false),         "Enable S1AP packet captures for wireshark")
-    ("pcap.s1ap_filename", bpo::value<string>(&args->stack.s1ap_pcap.filename)->default_value("enb_s1ap.pcap"), "S1AP layer capture filename")
+    ("pcap.s1ap_filename", bpo::value<string>(&args->stack.s1ap_pcap.filename)->default_value("/tmp/enb_s1ap.pcap"), "S1AP layer capture filename")
+    ("pcap.ngap_enable",   bpo::value<bool>(&args->nr_stack.ngap_pcap.enable)->default_value(false),         "Enable NGAP packet captures for wireshark")
+    ("pcap.ngap_filename", bpo::value<string>(&args->nr_stack.ngap_pcap.filename)->default_value("/tmp/enb_ngap.pcap"), "NGAP layer capture filename")
     ("pcap.mac_net_enable", bpo::value<bool>(&args->stack.mac_pcap_net.enable)->default_value(false),         "Enable MAC network captures")
     ("pcap.bind_ip", bpo::value<string>(&args->stack.mac_pcap_net.bind_ip)->default_value("0.0.0.0"),         "Bind IP address for MAC network trace")
     ("pcap.bind_port", bpo::value<uint16_t>(&args->stack.mac_pcap_net.bind_port)->default_value(5687),        "Bind port for MAC network trace")
@@ -219,6 +222,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.hst.fd_hz",         bpo::value<float>(&args->phy.ul_channel_args.hst_fd_hz)->default_value(+750.0f),            "Doppler frequency in Hz")
     ("channel.ul.hst.init_time_s",   bpo::value<float>(&args->phy.ul_channel_args.hst_init_time_s)->default_value(0),            "Initial time in seconds")
 
+    /* CFR section */
+    ("cfr.enable", bpo::value<bool>(&args->phy.cfr_args.enable)->default_value(args->phy.cfr_args.enable), "CFR enable")
+    ("cfr.mode", bpo::value<string>(&cfr_mode)->default_value("manual"), "CFR mode")
+    ("cfr.manual_thres", bpo::value<float>(&args->phy.cfr_args.manual_thres)->default_value(args->phy.cfr_args.manual_thres), "Fixed manual clipping threshold for CFR manual mode")
+    ("cfr.strength", bpo::value<float>(&args->phy.cfr_args.strength)->default_value(args->phy.cfr_args.strength), "CFR ratio between amplitude-limited vs original signal (0 to 1)")
+    ("cfr.auto_target_papr", bpo::value<float>(&args->phy.cfr_args.auto_target_papr)->default_value(args->phy.cfr_args.auto_target_papr), "Signal PAPR target (in dB) in CFR auto modes")
+    ("cfr.ema_alpha", bpo::value<float>(&args->phy.cfr_args.ema_alpha)->default_value(args->phy.cfr_args.ema_alpha), "Alpha coefficient for the power average in auto_ema mode (0 to 1)")
+
       /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")
     ("expert.metrics_csv_enable",  bpo::value<bool>(&args->general.metrics_csv_enable)->default_value(false), "Write metrics to CSV file.")
@@ -256,6 +267,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.ts1_reloc_prep_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_prep_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocPrep Expiry Timeout value in milliseconds.")
     ("expert.ts1_reloc_overall_timeout", bpo::value<uint32_t>(&args->stack.s1ap.ts1_reloc_overall_timeout)->default_value(10000), "S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds.")
     ("expert.rlf_min_ul_snr_estim", bpo::value<int>(&args->stack.mac.rlf_min_ul_snr_estim)->default_value(-2), "SNR threshold in dB below which the eNB is notified with rlf ko.")
+    ("expert.max_s1_setup_retries", bpo::value<int32_t>(&args->stack.s1ap.max_s1_setup_retries)->default_value(-1), "Max S1 setup retries")
+    ("expert.rx_gain_offset", bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62), "RX Gain offset to add to rx_gain to calibrate RSRP readings")
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
@@ -267,13 +280,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.nr_pdsch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_dl_mcs)->default_value(28), "Fixed NR DL MCS (-1 for dynamic).")
     ("scheduler.nr_pusch_mcs", bpo::value<int>(&args->nr_stack.mac.sched_cfg.fixed_ul_mcs)->default_value(28), "Fixed NR UL MCS (-1 for dynamic).")
     ("expert.nr_pusch_max_its", bpo::value<uint32_t>(&args->phy.nr_pusch_max_its)->default_value(10),     "Maximum number of LDPC iterations for NR.")
-
-    // VNF params
-    ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue].")
-    ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface.")
-    ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3333), "Bind port.")
-    ("log.vnf_level",     bpo::value<string>(&args->phy.vnf_args.log_level),   "VNF log level.")
-    ("log.vnf_hex_limit", bpo::value<int>(&args->phy.vnf_args.log_hex_limit),  "VNF log hex dump limit.")
   ;
 
   // Positional options - config file location
@@ -344,6 +350,12 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   if (!srsran::string_to_mnc(mnc, &args->stack.s1ap.mnc)) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
+  if (!srsran::string_to_mcc(mcc, &args->nr_stack.ngap.mcc)) {
+    cout << "Error parsing enb.mcc:" << mcc << " - must be a 3-digit string." << endl;
+  }
+  if (!srsran::string_to_mnc(mnc, &args->nr_stack.ngap.mnc)) {
+    cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
+  }
 
   if (args->stack.embms.enable) {
     if (args->stack.mac.sched.max_nof_ctrl_symbols == 3) {
@@ -366,13 +378,20 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   // Convert eNB Id
   std::size_t pos = {};
   try {
-    args->enb.enb_id = std::stoi(enb_id, &pos, 0);
+    args->enb.enb_id = std::stoul(enb_id, &pos, 0);
   } catch (...) {
     cout << "Error parsing enb.enb_id: " << enb_id << "." << endl;
     exit(1);
   }
   if (pos != enb_id.size()) {
     cout << "Error parsing enb.enb_id: " << enb_id << "." << endl;
+    exit(1);
+  }
+
+  // parse the CFR mode string
+  args->phy.cfr_args.mode = srsran_cfr_str2mode(cfr_mode.c_str());
+  if (args->phy.cfr_args.mode == SRSRAN_CFR_THR_INVALID) {
+    cout << "Error, invalid CFR mode: " << cfr_mode << endl;
     exit(1);
   }
 
@@ -450,7 +469,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   if (!config_exists(args->enb_files.rb_config, "rb.conf")) {
-    cout << "Failed to read DRB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
+    cout << "Failed to read RB configuration file " << args->enb_files.rb_config << " - exiting" << endl;
     exit(1);
   }
 
@@ -472,6 +491,9 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
       cout << "Enter t to restart trace." << endl;
     }
     metrics->toggle_print(do_metrics);
+  } else if (cmd[0] == "m") {
+    // Trigger cell measurements
+    control->cmd_cell_measure();
   } else if (cmd[0] == "sleep") {
     if (cmd.size() != 2) {
       cout << "Usage: " << cmd[0] << " [number of seconds]" << endl;
@@ -514,6 +536,7 @@ static void execute_cmd(metrics_stdout* metrics, srsenb::enb_command_interface* 
   } else {
     cout << "Available commands: " << endl;
     cout << "          t: starts console trace" << endl;
+    cout << "          m: downlink signal measurements" << endl;
     cout << "          q: quit srsenb" << endl;
     cout << "  cell_gain: set relative cell gain" << endl;
     cout << "      sleep: pauses the commmand line operation for a given time in seconds" << endl;
@@ -641,10 +664,9 @@ int main(int argc, char* argv[])
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_handle(enb.get());
 
-  srsenb::metrics_csv metrics_file(args.general.metrics_csv_filename);
+  srsenb::metrics_csv metrics_file(args.general.metrics_csv_filename, enb.get());
   if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
-    metrics_file.set_handle(enb.get());
   }
 
   srsenb::metrics_json json_metrics(json_channel, enb.get());

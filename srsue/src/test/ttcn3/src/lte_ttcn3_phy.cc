@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -36,17 +36,6 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
   stack  = stack_;
   syssim = syssim_;
 
-  return init(args_);
-}
-
-int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
-{
-  return init(args_);
-}
-
-// ue_phy_base interface
-int lte_ttcn3_phy::init(const phy_args_t& args_)
-{
   logger.set_level(srslog::str_to_basic_level(args_.log.phy_level));
   logger.set_hex_dump_max_size(-1);
 
@@ -54,6 +43,11 @@ int lte_ttcn3_phy::init(const phy_args_t& args_)
 }
 
 void lte_ttcn3_phy::stop(){};
+
+bool lte_ttcn3_phy::is_initialized()
+{
+  return true;
+}
 
 void lte_ttcn3_phy::wait_initialize() {}
 
@@ -102,7 +96,7 @@ void lte_ttcn3_phy::meas_stop() {}
 // configured by the SS, including the ones that we should not even detect because
 // their power is too weak. The cell search should only report the cells that
 // are actually visible though.
-bool lte_ttcn3_phy::cell_search()
+bool lte_ttcn3_phy::cell_search(int earfcn)
 {
   std::lock_guard<std::mutex> lock(phy_mutex);
 
@@ -342,16 +336,6 @@ void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl
   }
 
   stack->tb_decoded(cc_idx, dl_grant, dl_ack);
-}
-
-void lte_ttcn3_phy::radio_overflow()
-{
-  logger.debug("%s not implemented.", __FUNCTION__);
-}
-
-void lte_ttcn3_phy::radio_failure()
-{
-  logger.debug("%s not implemented.", __FUNCTION__);
 }
 
 // Calling function set_tti() is holding mutex

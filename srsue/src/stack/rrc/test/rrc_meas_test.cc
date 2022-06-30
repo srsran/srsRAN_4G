@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -26,7 +26,7 @@
 #include "srsran/upper/pdcp.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
-#include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include <iostream>
 
@@ -49,7 +49,7 @@ public:
   void set_config_mbsfn_sib2(srsran::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
   void set_config_mbsfn_sib13(const srsran::sib13_t& sib13) override {}
   void set_config_mbsfn_mcch(const srsran::mcch_msg_t& mcch) override {}
-  bool cell_search() override { return true; }
+  bool cell_search(int earfcn) override { return true; }
   bool cell_is_camping() override { return true; }
   void deactivate_scells() override {}
   bool cell_select(phy_cell_t cell) override
@@ -180,13 +180,7 @@ public:
   int  get_nr_capabilities(srsran::byte_buffer_t* nr_cap) override { return SRSRAN_SUCCESS; };
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15) override{};
   void phy_meas_stop() override{};
-  bool rrc_reconfiguration(bool                endc_release_and_add_r15,
-                           bool                nr_secondary_cell_group_cfg_r15_present,
-                           asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
-                           bool                sk_counter_r15_present,
-                           uint32_t            sk_counter_r15,
-                           bool                nr_radio_bearer_cfg1_r15_present,
-                           asn1::dyn_octstring nr_radio_bearer_cfg1_r15) override
+  bool rrc_reconfiguration(bool endc_release_and_add_r15, const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf) override
   {
     return false;
   }

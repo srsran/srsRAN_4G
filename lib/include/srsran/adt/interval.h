@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -85,6 +85,17 @@ public:
   bool overlaps(interval other) const { return start_ < other.stop_ and other.start_ < stop_; }
 
   bool contains(T point) const { return start_ <= point and point < stop_; }
+
+  interval<T>& intersect(const interval<T>& other)
+  {
+    if (not overlaps(other)) {
+      *this = interval<T>{};
+    } else {
+      start_ = std::max(start(), other.start());
+      stop_  = std::min(stop(), other.stop());
+    }
+    return *this;
+  }
 
 private:
   T start_;

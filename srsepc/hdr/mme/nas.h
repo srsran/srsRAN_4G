@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -225,6 +225,7 @@ public:
 
   /* Uplink NAS messages handling */
   bool handle_attach_request(srsran::byte_buffer_t* nas_rx);
+  bool handle_pdn_connectivity_request(srsran::byte_buffer_t* nas_rx);
   bool handle_authentication_response(srsran::byte_buffer_t* nas_rx);
   bool handle_security_mode_complete(srsran::byte_buffer_t* nas_rx);
   bool handle_attach_complete(srsran::byte_buffer_t* nas_rx);
@@ -246,7 +247,7 @@ public:
   bool pack_attach_accept(srsran::byte_buffer_t* nas_buffer);
 
   /* Security functions */
-  bool integrity_check(srsran::byte_buffer_t* pdu);
+  bool integrity_check(srsran::byte_buffer_t* pdu, bool warn_failure = true);
   bool short_integrity_check(srsran::byte_buffer_t* pdu);
   void integrity_generate(srsran::byte_buffer_t* pdu, uint8_t* mac);
   void cipher_decrypt(srsran::byte_buffer_t* pdu);

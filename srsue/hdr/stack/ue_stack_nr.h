@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -32,6 +32,7 @@
 #include "srsran/rlc/rlc.h"
 #include "srsran/upper/pdcp.h"
 #include "upper/nas.h"
+#include "upper/sdap.h"
 #include "upper/usim.h"
 
 #include "srsran/common/buffer_pool.h"
@@ -81,17 +82,15 @@ public:
   // RRC interface for PHY
   void in_sync() final;
   void out_of_sync() final;
-  void run_tti(const uint32_t tti) final;
-  void set_phy_config_complete(bool status) override;
+  void set_phy_config_complete(bool status) final;
+  void cell_search_found_cell(const cell_search_result_t& result) final;
+
+  void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
   // MAC interface for PHY
   sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) final { return mac->get_dl_sched_rnti_nr(tti); }
   sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) final { return mac->get_ul_sched_rnti_nr(tti); }
-  int          sf_indication(const uint32_t tti) final
-  {
-    run_tti(tti);
-    return SRSRAN_SUCCESS;
-  }
+
   void tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, tb_action_dl_result_t result) final
   {
     mac->tb_decoded(cc_idx, grant, std::move(result));
@@ -122,6 +121,7 @@ public:
   void              add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final {}
   void              remove_eps_bearer(uint8_t eps_bearer_id) final {}
   void              reset_eps_bearers() final {}
+  void              cell_select_completed(const cell_select_result_t& result) override;
 
 private:
   void run_thread() final;
@@ -145,6 +145,7 @@ private:
   std::unique_ptr<rrc_nr>       rrc;
   std::unique_ptr<srsran::rlc>  rlc;
   std::unique_ptr<srsran::pdcp> pdcp;
+  std::unique_ptr<srsue::sdap>  sdap;
 
   // RAT-specific interfaces
   phy_interface_stack_nr* phy = nullptr;

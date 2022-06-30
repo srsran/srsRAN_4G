@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -32,9 +32,10 @@ mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
   return CCCH;
 }
 
-bool mac_sch_subpdu_nr::is_sdu()
+bool mac_sch_subpdu_nr::is_sdu() const
 {
-  return (lcid <= 32);
+  // UL-CCCH handling in done as CE
+  return (lcid <= 32 && !is_ul_ccch());
 }
 
 bool mac_sch_subpdu_nr::has_length_field()
@@ -56,12 +57,18 @@ bool mac_sch_subpdu_nr::is_valid_lcid()
 
 bool mac_sch_subpdu_nr::is_var_len_ce(uint32_t lcid)
 {
-  switch (lcid) {
-    case LONG_TRUNC_BSR:
-    case LONG_BSR:
-      return true;
-    default:
-      return false;
+  if (parent->is_ulsch()) {
+    // UL fixed-size CE
+    switch (lcid) {
+      case LONG_TRUNC_BSR:
+      case LONG_BSR:
+        return true;
+      default:
+        return false;
+    }
+  } else {
+    // all currently supported CEs in the DL are fixed-size
+    return false;
   }
 }
 
@@ -100,7 +107,8 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
 
 void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
-  lcid = lcid_;
+  // Use CCCH_SIZE_48 when SDU len fits
+  lcid = (lcid_ == CCCH_SIZE_64 && len_ == sizeof_ce(CCCH_SIZE_48, true)) ? CCCH_SIZE_48 : lcid_;
   sdu.set_storage_to(const_cast<uint8_t*>(payload_));
   header_length = is_ul_ccch() ? 1 : 2;
   sdu_length    = len_;
@@ -162,6 +170,18 @@ void mac_sch_subpdu_nr::set_sbsr(const lcg_bsr_t bsr_)
 // Turn a subPDU into a long BSR with variable size
 void mac_sch_subpdu_nr::set_lbsr(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, max_num_lcg_lbsr> bsr_) {}
 
+// Turn subPDU into a Con
+void mac_sch_subpdu_nr::set_ue_con_res_id_ce(const mac_sch_subpdu_nr::ue_con_res_id_t id)
+{
+  lcid          = CON_RES_ID;
+  header_length = 1;
+  sdu_length    = sizeof_ce(lcid, parent->is_ulsch());
+  uint8_t* ptr  = sdu.use_internal_storage();
+  for (int32_t i = 0; i < sdu_length; ++i) {
+    ptr[i] = id.at(i);
+  }
+}
+
 // Section 6.1.2
 uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
 {
@@ -200,17 +220,17 @@ uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
   return ptr - start_;
 }
 
-uint32_t mac_sch_subpdu_nr::get_total_length()
+uint32_t mac_sch_subpdu_nr::get_total_length() const
 {
   return (header_length + sdu_length);
 }
 
-uint32_t mac_sch_subpdu_nr::get_sdu_length()
+uint32_t mac_sch_subpdu_nr::get_sdu_length() const
 {
   return sdu_length;
 }
 
-uint32_t mac_sch_subpdu_nr::get_lcid()
+uint32_t mac_sch_subpdu_nr::get_lcid() const
 {
   return lcid;
 }
@@ -220,10 +240,15 @@ uint8_t* mac_sch_subpdu_nr::get_sdu()
   return sdu.ptr();
 }
 
-uint16_t mac_sch_subpdu_nr::get_c_rnti()
+const uint8_t* mac_sch_subpdu_nr::get_sdu() const
+{
+  return sdu.ptr();
+}
+
+uint16_t mac_sch_subpdu_nr::get_c_rnti() const
 {
   if (parent->is_ulsch() && lcid == CRNTI) {
-    uint8_t* ptr = sdu.ptr();
+    const uint8_t* ptr = sdu.ptr();
     return le16toh((uint16_t)ptr[0] << 8 | ptr[1]);
   }
   return 0;
@@ -258,26 +283,26 @@ mac_sch_subpdu_nr::ta_t mac_sch_subpdu_nr::get_ta()
   return ta;
 }
 
-mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
+mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr() const
 {
   lcg_bsr_t sbsr = {};
   if (parent->is_ulsch() && (lcid == SHORT_BSR || lcid == SHORT_TRUNC_BSR)) {
-    uint8_t* ptr     = sdu.ptr();
-    sbsr.lcg_id      = (ptr[0] & 0xe0) >> 5;
-    sbsr.buffer_size = ptr[0] & 0x1f;
+    const uint8_t* ptr = sdu.ptr();
+    sbsr.lcg_id        = (ptr[0] & 0xe0) >> 5;
+    sbsr.buffer_size   = ptr[0] & 0x1f;
   }
   return sbsr;
 }
 
-mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr()
+mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr() const
 {
   lbsr_t lbsr = {};
   lbsr.list.reserve(mac_sch_subpdu_nr::max_num_lcg_lbsr);
 
   if (parent->is_ulsch() && (lcid == LONG_BSR || lcid == LONG_TRUNC_BSR)) {
-    uint8_t* ptr = sdu.ptr();
-    lbsr.bitmap  = *ptr; // read LCG bitmap
-    ptr++;               // skip LCG bitmap
+    const uint8_t* ptr = sdu.ptr();
+    lbsr.bitmap        = *ptr; // read LCG bitmap
+    ptr++;                     // skip LCG bitmap
 
     // early stop if LBSR is empty
     if (lbsr.bitmap == 0) {
@@ -305,6 +330,27 @@ mac_sch_subpdu_nr::lbsr_t mac_sch_subpdu_nr::get_lbsr()
   }
 
   return lbsr;
+}
+
+mac_sch_subpdu_nr::ue_con_res_id_t mac_sch_subpdu_nr::get_ue_con_res_id_ce()
+{
+  mac_sch_subpdu_nr::ue_con_res_id_t id = {};
+  if (!parent->is_ulsch() && lcid == CON_RES_ID) {
+    const uint8_t* ptr = sdu.ptr();
+    memcpy(id.data(), ptr, id.size());
+  }
+  return id;
+}
+
+uint64_t mac_sch_subpdu_nr::get_ue_con_res_id_ce_packed()
+{
+  if (!parent->is_ulsch() && lcid == CON_RES_ID) {
+    const uint8_t* payload = sdu.ptr();
+    return le64toh(((uint64_t)payload[5]) | (((uint64_t)payload[4]) << 8) | (((uint64_t)payload[3]) << 16) |
+                   (((uint64_t)payload[2]) << 24) | (((uint64_t)payload[1]) << 32) | (((uint64_t)payload[0]) << 40));
+  } else {
+    return 0;
+  }
 }
 
 uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
@@ -343,7 +389,7 @@ uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
   return 0;
 }
 
-inline bool mac_sch_subpdu_nr::is_ul_ccch()
+bool mac_sch_subpdu_nr::is_ul_ccch() const
 {
   return (parent->is_ulsch() && (lcid == CCCH_SIZE_48 || lcid == CCCH_SIZE_64));
 }
@@ -357,6 +403,12 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
     if (parent->is_ulsch()) {
       // UL-SCH case
       switch (get_lcid()) {
+        case mac_sch_subpdu_nr::CCCH_SIZE_48:
+          fmt::format_to(buffer, " CCCH48: len={}", get_sdu_length());
+          break;
+        case mac_sch_subpdu_nr::CCCH_SIZE_64:
+          fmt::format_to(buffer, " CCCH64: len={}", get_sdu_length());
+          break;
         case mac_sch_subpdu_nr::CRNTI:
           fmt::format_to(buffer, " C-RNTI: {:#04x}", get_c_rnti());
           break;
@@ -384,7 +436,7 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
           fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
         default:
-          fmt::format_to(buffer, " CE={}", get_lcid());
+          fmt::format_to(buffer, " CE={} total_len={}", get_lcid(), get_total_length());
           break;
       }
     } else {
@@ -393,14 +445,22 @@ void mac_sch_subpdu_nr::to_string(fmt::memory_buffer& buffer)
         case mac_sch_subpdu_nr::TA_CMD:
           fmt::format_to(buffer, " TA: id={} command={}", get_ta().tag_id, get_ta().ta_command);
           break;
-        case mac_sch_subpdu_nr::CON_RES_ID:
-          fmt::format_to(buffer, " CONRES: len={}", get_total_length());
-          break;
+        case mac_sch_subpdu_nr::CON_RES_ID: {
+          ue_con_res_id_t id = get_ue_con_res_id_ce();
+          fmt::format_to(buffer,
+                         " CON_RES: id={:x}{:x}{:x}{:x}{:x}{:x}",
+                         id.at(0),
+                         id.at(1),
+                         id.at(2),
+                         id.at(3),
+                         id.at(4),
+                         id.at(5));
+        } break;
         case mac_sch_subpdu_nr::PADDING:
           fmt::format_to(buffer, " PAD: len={}", get_sdu_length());
           break;
         default:
-          fmt::format_to(buffer, " CE={}", get_lcid());
+          fmt::format_to(buffer, " CE={} total_len={}", get_lcid(), get_total_length());
           break;
       }
     }
@@ -448,12 +508,12 @@ int mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
   return SRSRAN_SUCCESS;
 }
 
-uint32_t mac_sch_pdu_nr::get_num_subpdus()
+const mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(const uint32_t& index) const
 {
-  return subpdus.size();
+  return subpdus.at(index);
 }
 
-const mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(const uint32_t& index)
+mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(uint32_t index)
 {
   return subpdus.at(index);
 }
@@ -541,6 +601,13 @@ mac_sch_pdu_nr::add_lbsr_ce(const std::array<mac_sch_subpdu_nr::lcg_bsr_t, mac_s
   return add_sudpdu(ce);
 }
 
+uint32_t mac_sch_pdu_nr::add_ue_con_res_id_ce(const mac_sch_subpdu_nr::ue_con_res_id_t id)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_ue_con_res_id_ce(id);
+  return add_sudpdu(ce);
+}
+
 uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
 {
   uint32_t subpdu_len = subpdu.get_total_length();
@@ -560,11 +627,11 @@ uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
   return SRSRAN_SUCCESS;
 }
 
-void mac_sch_pdu_nr::to_string(fmt::memory_buffer& buffer)
+void mac_sch_pdu_nr::to_string(fmt::memory_buffer& fmtbuffer)
 {
-  fmt::format_to(buffer, "{}", is_ulsch() ? "UL" : "DL");
+  fmt::format_to(fmtbuffer, "{}", is_ulsch() ? "UL" : "DL");
   for (auto& subpdu : subpdus) {
-    subpdu.to_string(buffer);
+    subpdu.to_string(fmtbuffer);
   }
 }
 

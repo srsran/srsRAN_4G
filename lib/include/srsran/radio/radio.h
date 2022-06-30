@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -110,7 +110,7 @@ private:
   std::array<std::vector<cf_t>, SRSRAN_MAX_CHANNELS>      rx_buffer;
   std::array<srsran_resampler_fft_t, SRSRAN_MAX_CHANNELS> interpolators = {};
   std::array<srsran_resampler_fft_t, SRSRAN_MAX_CHANNELS> decimators    = {};
-  bool decimator_busy = false; ///< Indicates the decimator is changing the rate
+  std::atomic<bool> decimator_busy = {false}; ///< Indicates the decimator is changing the rate
 
   rf_timestamp_t    end_of_burst_time = {};
   std::atomic<bool> is_start_of_burst{false};
@@ -166,6 +166,19 @@ private:
    * @return it returns true if the device was opened successful, otherwise it returns false
    */
   bool open_dev(const uint32_t& device_idx, const std::string& device_name, const std::string& devive_args);
+
+  /**
+   * Helper method for opening a file-based RF device abstraction
+   *
+   * @param device_idx Device index
+   * @param rx_files Array of pre-opened FILE* for rx
+   * @param tx_files Array of pre-opened FILE* for tx
+   * @param nof_channels Number of elements in each array @p rx_files and @p tx_files
+   * @param base_srate Sampling rate in Hz
+   * @return it returns true if the device was opened successful, otherwise it returns false
+   */
+  bool
+  open_dev(const uint32_t& device_idx, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate);
 
   /**
    * Helper method for transmitting over a single RF device. This function maps automatically the logical transmit

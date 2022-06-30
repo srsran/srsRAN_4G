@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -20,10 +20,6 @@
 
 add_library(test_helpers test_helpers.cc)
 target_link_libraries(test_helpers srsenb_rrc srsenb_common rrc_asn1 rrc_nr_asn1 s1ap_asn1 srsran_common enb_cfg_parser ${LIBCONFIGPP_LIBRARIES})
-
-add_executable(rrc_nr_test rrc_nr_test.cc)
-target_link_libraries(rrc_nr_test srsgnb_rrc test_helpers ${ATOMIC_LIBS})
-add_test(rrc_nr_test rrc_nr_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 add_executable(rrc_meascfg_test rrc_meascfg_test.cc)
 target_link_libraries(rrc_meascfg_test test_helpers ${ATOMIC_LIBS})

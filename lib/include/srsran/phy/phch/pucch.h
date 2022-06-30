@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -84,6 +84,8 @@ typedef struct SRSRAN_API {
   srsran_uci_value_t uci_data;
   float              dmrs_correlation;
   float              snr_db;
+  float              rssi_dbFs;
+  float              ni_dbFs;
   float              correlation;
   bool               detected;
 

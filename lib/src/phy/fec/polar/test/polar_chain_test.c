@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -193,9 +193,9 @@ int main(int argc, char** argv)
   int j          = 0;
   int snr_points = 0;
 
-  int errors_symb        = 0;
-  int errors_symb_s      = 0;
-  int errors_symb_c      = 0;
+  int errors_symb   = 0;
+  int errors_symb_s = 0;
+  int errors_symb_c = 0;
 #ifdef LV_HAVE_AVX2
   int errors_symb_c_avx2 = 0;
 #endif
@@ -217,12 +217,12 @@ int main(int argc, char** argv)
   double elapsed_time_enc_avx2[SNR_POINTS + 1];
 
   // 16-bit quantizer
-  int16_t inf16       = (1U << 15U) - 1;
-  int8_t  inf8        = (1U << 7U) - 1;
-  float   gain_s      = NAN;
-  float   gain_c      = NAN;
+  int16_t inf16  = (1U << 15U) - 1;
+  int8_t  inf8   = (1U << 7U) - 1;
+  float   gain_s = NAN;
+  float   gain_c = NAN;
 #ifdef LV_HAVE_AVX2
-  float   gain_c_avx2 = NAN;
+  float gain_c_avx2 = NAN;
 #endif
 
   srsran_polar_code_t    code;
@@ -328,13 +328,13 @@ int main(int argc, char** argv)
     for (int i = 0; i < snr_points; i++) {
       snr_db        = SNR_MIN + i * snr_inc;
       snr_db_vec[i] = snr_db;
-      var[i]        = srsran_convert_dB_to_amplitude(-snr_db);
+      var[i]        = srsran_convert_dB_to_power(-snr_db);
     }
     snr_db_vec[snr_points] = 101; // include the no noise case
     snr_points++;
   } else {
     snr_db_vec[0] = snr_db;
-    var[0]        = srsran_convert_dB_to_amplitude(-snr_db);
+    var[0]        = srsran_convert_dB_to_power(-snr_db);
     snr_points    = 1;
   }
 

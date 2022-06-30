@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -479,11 +479,89 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
   return SRSRAN_ERROR;
 }
 
+typedef struct {
+  srsran_pucch_nr_format_t format;
+  uint32_t                 start_symbol;
+  uint32_t                 rb_offset;
+  uint32_t                 N_cs;
+} pucch_res_common_cfg_t;
+
+// Table 9.2.1-1
+#define PUCCH_RES_COMMON_CFG_IDX_MAX 15
+static pucch_res_common_cfg_t pucch_res_common_cfg[PUCCH_RES_COMMON_CFG_IDX_MAX + 1] = {
+    {SRSRAN_PUCCH_NR_FORMAT_0, 12, 0, 2},
+    {SRSRAN_PUCCH_NR_FORMAT_0, 12, 0, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_0, 12, 3, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 10, 0, 2},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 10, 0, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 10, 2, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 10, 4, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 4, 0, 2},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 4, 0, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 4, 2, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 4, 4, 3},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 0, 0, 2},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 0, 0, 4},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 0, 2, 4},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 0, 4, 4},
+    {SRSRAN_PUCCH_NR_FORMAT_1, 0, 0, 4}};
+
 // Implements TS 38.213 Table 9.2.1-1: PUCCH resource sets before dedicated PUCCH resource configuration
-static int ra_ul_nr_pucch_resource_default(uint32_t r_pucch, srsran_pucch_nr_resource_t* resource)
+static int ra_ul_nr_pucch_resource_default(uint32_t                    pucch_res_common_idx,
+                                           uint32_t                    N_size_bwp,
+                                           uint32_t                    r_pucch,
+                                           srsran_pucch_nr_resource_t* resource)
 {
-  ERROR("Not implemented");
-  return SRSRAN_ERROR;
+  if (pucch_res_common_idx > PUCCH_RES_COMMON_CFG_IDX_MAX) {
+    ERROR("Invalid pucch_res_common_idx value (%d)\n", pucch_res_common_idx);
+    return SRSRAN_ERROR;
+  }
+
+  uint32_t cs_v_2[2] = {0, 6};
+  uint32_t cs_v_3[3] = {0, 4, 8};
+  uint32_t cs_v_4[4] = {0, 3, 6, 9};
+
+  // Table 9.2.1-1
+  resource->format           = pucch_res_common_cfg[pucch_res_common_idx].format;
+  resource->start_symbol_idx = pucch_res_common_cfg[pucch_res_common_idx].start_symbol;
+  resource->nof_symbols      = 14 - resource->start_symbol_idx;
+  uint32_t rb_offset_bwp     = pucch_res_common_cfg[pucch_res_common_idx].rb_offset;
+  uint32_t N_cs              = pucch_res_common_cfg[pucch_res_common_idx].N_cs;
+
+  // Special case for cs_v_2 value
+  if (pucch_res_common_idx == 0) {
+    cs_v_2[1] = 3;
+  }
+
+  // Special case for rb_offset
+  if (pucch_res_common_idx == 15) {
+    rb_offset_bwp = N_size_bwp / 4;
+  }
+
+  uint32_t csv_idx = 0;
+  if (r_pucch / 8 == 0) {
+    resource->starting_prb   = rb_offset_bwp + SRSRAN_FLOOR(r_pucch, N_cs);
+    resource->second_hop_prb = N_size_bwp - 1 - resource->starting_prb;
+    csv_idx                  = r_pucch % N_cs;
+  } else {
+    resource->second_hop_prb = rb_offset_bwp + SRSRAN_FLOOR(r_pucch - 8, N_cs);
+    resource->starting_prb   = N_size_bwp - 1 - resource->second_hop_prb;
+    csv_idx                  = (r_pucch - 8) % N_cs;
+  }
+
+  switch (N_cs) {
+    case 2:
+      resource->initial_cyclic_shift = cs_v_2[csv_idx];
+      break;
+    case 3:
+      resource->initial_cyclic_shift = cs_v_3[csv_idx];
+      break;
+    case 4:
+      resource->initial_cyclic_shift = cs_v_4[csv_idx];
+      break;
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 static int ra_ul_nr_pucch_resource_hl(const srsran_pucch_nr_hl_cfg_t* cfg,
@@ -531,6 +609,7 @@ static int ra_ul_nr_pucch_resource_hl(const srsran_pucch_nr_hl_cfg_t* cfg,
 
 int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
                                    const srsran_uci_cfg_nr_t*      uci_cfg,
+                                   uint32_t                        N_bwp_sz,
                                    srsran_pucch_nr_resource_t*     resource)
 {
   if (pucch_cfg == NULL || uci_cfg == NULL || resource == NULL) {
@@ -632,8 +711,9 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
   if (!pucch_cfg->enabled) {
-    uint32_t r_pucch = (2 * uci_cfg->pucch.n_cce_0) + 2 * uci_cfg->pucch.resource_id;
-    return ra_ul_nr_pucch_resource_default(r_pucch, resource);
+    uint32_t N_cce   = SRSRAN_FLOOR(N_bwp_sz, 6);
+    uint32_t r_pucch = ((2 * uci_cfg->pucch.n_cce_0) / N_cce) + 2 * uci_cfg->pucch.resource_id;
+    return ra_ul_nr_pucch_resource_default(pucch_cfg->common.resource_common, N_bwp_sz, r_pucch, resource);
   }
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
 }

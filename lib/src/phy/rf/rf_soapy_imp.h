@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #define DEVNAME_SOAPY "soapy"
+
+extern rf_dev_t srsran_rf_dev_soapy;
 
 SRSRAN_API int rf_soapy_open(char* args, void** handler);
 

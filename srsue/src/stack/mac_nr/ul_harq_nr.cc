@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -215,7 +215,7 @@ void ul_harq_entity_nr::ul_harq_process_nr::new_grant_ul(const mac_interface_phy
     // retransmission
     if (harq_buffer == nullptr) {
       // ignore the UL grant
-      logger.info("UL %d:  HARQ buffer empty. Ignoring grant.");
+      logger.info("UL %d:  HARQ buffer empty. Ignoring grant.", pid);
       return;
     }
 

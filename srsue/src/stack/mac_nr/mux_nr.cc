@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -77,59 +77,61 @@ srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
   logger.debug("Building new MAC PDU (%d B)", max_pdu_len);
   tx_pdu.init_tx(phy_tx_pdu.get(), max_pdu_len, true);
 
-  if (msg3_is_pending()) {
-    // only C-RNTI or CCCH SDU can be transmitted in Msg3
-    if (mac.has_crnti()) {
-      tx_pdu.add_crnti_ce(mac.get_crnti());
-    }
-    // TODO: add CCCH check
+  if (msg3_is_pending() && mac.has_crnti()) {
+    tx_pdu.add_crnti_ce(mac.get_crnti());
     msg3_transmitted();
-  } else {
-    // Pack normal UL data PDU
-    int32_t remaining_len = tx_pdu.get_remaing_len(); // local variable to reserve space for CEs
+  }
 
-    if (add_bsr_ce == sbsr_ce) {
-      // reserve space for SBSR
-      remaining_len -= 2;
-    }
+  // Pack normal UL data PDU
+  int32_t remaining_len = tx_pdu.get_remaing_len(); // local variable to reserve space for CEs
 
-    // First add MAC SDUs
-    for (const auto& lc : logical_channels) {
-      // TODO: Add proper priority handling
-      logger.debug("Adding SDUs for LCID=%d (max %d B)", lc.lcid, remaining_len);
-      while (remaining_len >= MIN_RLC_PDU_LEN) {
-        // read RLC PDU
-        rlc_buff->clear();
-        uint8_t* rd = rlc_buff->msg;
+  if (!msg3_is_pending() && add_bsr_ce == sbsr_ce) {
+    // reserve space for SBSR
+    remaining_len -= 2;
+  }
 
-        // Determine space for RLC
-        int32_t subpdu_header_len = (remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2);
+  // First add MAC SDUs
+  for (const auto& lc : logical_channels) {
+    // TODO: Add proper priority handling
+    logger.debug("Adding SDUs for LCID=%d (max %d B)", lc.lcid, remaining_len);
+    while (remaining_len >= MIN_RLC_PDU_LEN) {
+      // read RLC PDU
+      rlc_buff->clear();
+      uint8_t* rd = rlc_buff->msg;
 
-        // Read PDU from RLC (account for subPDU header)
-        int pdu_len = rlc->read_pdu(lc.lcid, rd, remaining_len - subpdu_header_len);
+      // Determine space for RLC
+      int32_t subpdu_header_len = (remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2);
 
-        if (pdu_len > remaining_len) {
-          logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
-          break;
-        } else {
-          // Add SDU if RLC has something to tx
-          if (pdu_len > 0) {
-            rlc_buff->N_bytes = pdu_len;
-            logger.debug(rlc_buff->msg, rlc_buff->N_bytes, "Read %d B from RLC", rlc_buff->N_bytes);
+      // Read PDU from RLC (account for subPDU header)
+      int pdu_len = rlc->read_pdu(lc.lcid, rd, remaining_len - subpdu_header_len);
 
-            // add to MAC PDU and pack
-            if (tx_pdu.add_sdu(lc.lcid, rlc_buff->msg, rlc_buff->N_bytes) != SRSRAN_SUCCESS) {
-              logger.error("Error packing MAC PDU");
-              break;
-            }
-          } else {
-            // couldn't read PDU from RLC
+      if (pdu_len > remaining_len) {
+        logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
+        break;
+      } else {
+        // Add SDU if RLC has something to tx
+        if (pdu_len > 0) {
+          rlc_buff->N_bytes = pdu_len;
+          logger.debug(rlc_buff->msg, rlc_buff->N_bytes, "Read %d B from RLC", rlc_buff->N_bytes);
+
+          // add to MAC PDU and pack
+          if (tx_pdu.add_sdu(lc.lcid, rlc_buff->msg, rlc_buff->N_bytes) != SRSRAN_SUCCESS) {
+            logger.error("Error packing MAC PDU");
             break;
           }
 
-          remaining_len -= (pdu_len + subpdu_header_len);
-          logger.debug("%d B remaining PDU", remaining_len);
+          if (lc.lcid == 0 && msg3_is_pending()) {
+            // TODO:
+            msg3_transmitted();
+          }
+
+        } else {
+          // couldn't read PDU from RLC
+          break;
         }
+
+        remaining_len -= (pdu_len + subpdu_header_len);
+        logger.debug("%d B remaining PDU", remaining_len);
       }
     }
   }

@@ -106,8 +106,9 @@ rx_gain = 40
 # To use the dissector, edit the preferences for DLT_USER to 
 # add an entry with DLT=150, Payload Protocol=s1ap.
 #
-# mac_enable:   Enable MAC layer packet captures (true/false)
-# mac_filename: File path to use for packet captures
+# mac_enable:    Enable MAC layer packet captures (true/false)
+# filename:      File path to use for LTE MAC packet captures
+# nr_filename:   File path to use for NR MAC packet captures
 # s1ap_enable:   Enable or disable the PCAP.
 # s1ap_filename: File name where to save the PCAP.
 #
@@ -118,16 +119,17 @@ rx_gain = 40
 # client_port Client IP address for MAC network trace (default: 5847)
 #####################################################################
 [pcap]
-enable = false
-filename = /tmp/enb.pcap
-s1ap_enable = false
-s1ap_filename = /tmp/enb_s1ap.pcap
+#enable = false
+#filename = /tmp/enb_mac.pcap
+#nr_filename = /tmp/enb_mac_nr.pcap
+#s1ap_enable = false
+#s1ap_filename = /tmp/enb_s1ap.pcap
 
-mac_net_enable = false
-bind_ip = 0.0.0.0
-bind_port = 5687
-client_ip = 127.0.0.1
-client_port = 5847
+#mac_net_enable = false
+#bind_ip = 0.0.0.0
+#bind_port = 5687
+#client_ip = 127.0.0.1
+#client_port = 5847
 
 #####################################################################
 # Log configuration
@@ -215,7 +217,7 @@ enable = false
 #init_dl_cqi=5
 #max_sib_coderate=0.3
 #pdcch_cqi_offset=0
-#nr_pdsch_mcs=28
+nr_pdsch_mcs=28
 #nr_pusch_mcs=28
 
 #####################################################################
@@ -324,6 +326,32 @@ enable = false
 #fd_hz         = -750.0
 #init_time_s   = 0.0
 
+#####################################################################
+# CFR configuration options
+#
+# The CFR module provides crest factor reduction for the transmitted signal.
+#
+# enable:           Enable or disable the CFR. Default: disabled
+#
+# mode:             manual:   CFR threshold is set by cfr_manual_thres (default).
+#                   auto_ema: CFR threshold is adaptive based on the signal PAPR. Power avg. with Exponential Moving Average.
+#                             The time constant of the averaging can be tweaked with the ema_alpha parameter.
+#                   auto_cma: CFR threshold is adaptive based on the signal PAPR. Power avg. with Cumulative Moving Average.
+#                             Use with care, as CMA's increasingly slow response may be unsuitable for most use cases.
+#
+# strength:         Ratio between amplitude-limited vs unprocessed signal (0 to 1). Default: 1
+# manual_thres:     Fixed manual clipping threshold for CFR manual mode. Default: 0.5
+# auto_target_papr: Signal PAPR target (in dB) in CFR auto modes. output PAPR can be higher due to peak smoothing. Default: 8
+# ema_alpha:        Alpha coefficient for the power average in auto_ema mode. Default: 1/7
+#
+#####################################################################
+[cfr]
+#enable           = false
+#mode             = manual
+#manual_thres     = 0.5
+#strength         = 1
+#auto_target_papr = 8
+#ema_alpha        = 0.0143
 
 #####################################################################
 # Expert configuration options
@@ -344,7 +372,6 @@ enable = false
 # tracing_filename:     File path to use for tracing information
 # tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store
 # stdout_ts_enable:     Prints once per second the timestamp into stdout
-# pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds)
 # max_mac_dl_kos:       Maximum number of consecutive KOs in DL before triggering the UE's release (default: 100)
@@ -359,7 +386,8 @@ enable = false
 # ts1_reloc_overall_timeout: S1AP TS 36.413 TS1RelocOverall Expiry Timeout value in milliseconds
 # rlf_release_timer_ms: Time taken by eNB to release UE context after it detects a RLF
 # rlf_min_ul_snr_estim: SNR threshold in dB below which the enb is notified with RLF ko
-#
+# s1_setup_max_retries: Maximum amount of retries to setup the S1AP connection. If this value is exceeded, an alarm is written to the log. -1 means infinity.
+# rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
 #####################################################################
 [expert]
 #pusch_max_its        = 8 # These are half iterations
@@ -378,7 +406,6 @@ enable = false
 #tracing_filename     = /tmp/enb_tracing.log
 #tracing_buffcapacity = 1000000
 #stdout_ts_enable     = false
-#pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000
 #max_mac_dl_kos       = 100
@@ -395,3 +422,5 @@ enable = false
 #ts1_reloc_overall_timeout = 10000
 #rlf_release_timer_ms = 4000
 #rlf_min_ul_snr_estim = -2
+#s1_setup_max_retries = -1
+#rx_gain_offset = 62

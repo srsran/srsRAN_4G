@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -32,12 +32,7 @@ using namespace srsran;
 
 namespace srsue {
 
-pcsc_usim::pcsc_usim(srslog::basic_logger& logger) : usim_base(logger), sc(logger)
-{
-  bzero(ck, CK_LEN);
-  bzero(ik, IK_LEN);
-  bzero(auts, IK_LEN);
-}
+pcsc_usim::pcsc_usim(srslog::basic_logger& logger) : usim_base(logger), sc(logger) {}
 
 pcsc_usim::~pcsc_usim()
 {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -135,7 +135,6 @@ bool gtpu_read_ext_header(srsran::byte_buffer_t* pdu,
     case GTPU_EXT_HEADER_PDU_SESSION_CONTAINER:
       pdu->msg += GTPU_EXT_HEADER_PDU_SESSION_CONTAINER_LEN;
       pdu->N_bytes -= GTPU_EXT_HEADER_PDU_SESSION_CONTAINER_LEN;
-      logger.warning("skip parsing of GTPU_EXT_HEADER_PDU_SESSION_CONTAINER");
       // TODO: Save Header Extension
       break;
     default:

@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -23,12 +23,11 @@ if(NOT SOAPYSDR_FOUND)
   pkg_check_modules (SOAPYSDR_PKG SoapySDR)
 
   find_path(SOAPYSDR_INCLUDE_DIRS 
-    NAMES Device.h
+    NAMES SoapySDR/Device.h
     HINTS $ENV{SOAPY_DIR}/include
-          $ENV{SOAPY_DIR}/include/SoapySDR
     PATHS ${SOAPYSDR_PKG_INCLUDE_DIRS}
-          /usr/include/SoapySDR
-          /usr/local/include/SoapySDR
+          /usr/include
+          /usr/local/include
   )
 
   find_library(SOAPYSDR_LIBRARIES 

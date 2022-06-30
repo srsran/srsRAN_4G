@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -33,9 +33,10 @@ class mac_interface_proc_ra_nr
 {
 public:
   // Functions for identity handling, e.g., contention id and c-rnti
-  virtual uint64_t get_contention_id()        = 0;
   virtual uint16_t get_crnti()                = 0;
   virtual bool     set_crnti(uint16_t c_rnti) = 0;
+  virtual void     set_temp_crnti(uint16_t c_rnti) = 0;
+  virtual void     set_crnti_to_temp()             = 0;
 
   // Functions for msg3 manipulation which shall be transparent to the procedure
   virtual bool msg3_is_transmitted() = 0;
@@ -89,6 +90,9 @@ public:
   // MAC also provides Temp C-RNTI (through RA proc)
   virtual uint16_t get_temp_crnti() = 0;
 
+  // HARQ can query MAC for current C-RNTI
+  virtual bool received_contention_id(uint64_t rx_contention_id) = 0;
+
   // MAC provides the Currently Scheduled RNTI (for SPS)
   virtual uint16_t get_csrnti() = 0;
 };
@@ -100,7 +104,10 @@ class demux_interface_harq_nr
 {
 public:
   /// Inform demux unit about a newly decoded TB.
-  virtual void push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti) = 0;
+  virtual void     push_bcch(srsran::unique_byte_buffer_t pdu)                         = 0;
+  virtual void     push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti)            = 0;
+  virtual void     push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti) = 0;
+  virtual uint64_t get_received_crueid()                                               = 0;
 };
 
 } // namespace srsue

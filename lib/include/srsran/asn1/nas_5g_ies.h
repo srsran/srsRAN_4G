@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -50,7 +50,7 @@ public:
       reserved                       = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<registration_type_type_, 3> registration_type_type;
 
@@ -60,7 +60,7 @@ public:
       follow_on_request_pending    = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<follow_on_request_bit_type_, 1> follow_on_request_bit_type;
 
@@ -83,7 +83,7 @@ public:
       mapped_security_context = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<security_context_flag_type_, 1> security_context_flag_type;
 
@@ -92,7 +92,7 @@ public:
       no_key_is_available_or_reserved = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<nas_key_set_identifier_type_, 3> nas_key_set_identifier_type;
 
@@ -122,7 +122,7 @@ public:
       eui_64      = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<identity_types_, 3> identity_types;
 
@@ -140,7 +140,7 @@ public:
         gli                         = 0b100,
 
       } value;
-      const char* to_string();
+      const char* to_string() const;
     };
     typedef nas_enumerated<supi_format_type_, 3> supi_format_type;
 
@@ -151,7 +151,7 @@ public:
         ecies_scheme_profile_b = 0b0010,
 
       } value;
-      const char* to_string();
+      const char* to_string() const;
     };
     typedef nas_enumerated<protection_scheme_id_type_, 4> protection_scheme_id_type;
 
@@ -284,42 +284,42 @@ public:
 
   guti_5g_s& set_guti_5g()
   {
-    set(identity_types::guti_5g);  
+    set(identity_types::guti_5g);
     choice_container = srslog::detail::any{guti_5g_s()};
     return *srslog::detail::any_cast<guti_5g_s>(&choice_container);
   }
 
   imei_s& set_imei()
   {
-    set(identity_types::imei);  
+    set(identity_types::imei);
     choice_container = srslog::detail::any{imei_s()};
     return *srslog::detail::any_cast<imei_s>(&choice_container);
   }
 
   s_tmsi_5g_s& set_s_tmsi_5g()
   {
-    set(identity_types::s_tmsi_5g);  
+    set(identity_types::s_tmsi_5g);
     choice_container = srslog::detail::any{s_tmsi_5g_s()};
     return *srslog::detail::any_cast<s_tmsi_5g_s>(&choice_container);
   }
 
   imeisv_s& set_imeisv()
   {
-    set(identity_types::imeisv);  
+    set(identity_types::imeisv);
     choice_container = srslog::detail::any{imeisv_s()};
     return *srslog::detail::any_cast<imeisv_s>(&choice_container);
   }
 
   mac_address_s& set_mac_address()
   {
-    set(identity_types::mac_address);  
+    set(identity_types::mac_address);
     choice_container = srslog::detail::any{mac_address_s()};
     return *srslog::detail::any_cast<mac_address_s>(&choice_container);
   }
 
   eui_64_s& set_eui_64()
   {
-    set(identity_types::eui_64);  
+    set(identity_types::eui_64);
     choice_container = srslog::detail::any{eui_64_s()};
     return *srslog::detail::any_cast<eui_64_s>(&choice_container);
   }
@@ -424,7 +424,7 @@ public:
       sst_sd_mapped_hplmn_sst_and_mapped_hplmn_sd = 0b00001000,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<SST_type_, 8> SST_type;
 
@@ -438,8 +438,6 @@ public:
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 }; // s_nssai_t
-
-
 
 // IE: NSSAI
 // Reference: 9.11.3.37
@@ -657,7 +655,7 @@ public:
       data_centric  = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<UE_usage_setting_type_, 1> UE_usage_setting_type;
 
@@ -682,7 +680,7 @@ public:
       drx_cycle_parameter_t_256 = 0b0100,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<drx_value_type_, 4> drx_value_type;
 
@@ -710,7 +708,6 @@ public:
 class dnn_t
 {
 public:
-  uint32_t             length;
   std::vector<uint8_t> dnn_value;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -748,7 +745,7 @@ public:
       multiple_payloads                              = 0b1111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Payload_container_type_type_, 4> Payload_container_type_type;
 
@@ -795,7 +792,7 @@ public:
       sms_over_nas_supported     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<SMS_requested_type_, 1> SMS_requested_type;
 
@@ -805,7 +802,7 @@ public:
       ue_radio_capability_update_needed     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<NG_RAN_RCU_type_, 1> NG_RAN_RCU_type;
 
@@ -817,7 +814,7 @@ public:
       reserved                              = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<PNB_5GS_CIoT_type_, 2> PNB_5GS_CIoT_type;
 
@@ -829,7 +826,7 @@ public:
       reserved                              = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<PNB_EPS_CIoT_type_, 2> PNB_EPS_CIoT_type;
 
@@ -927,7 +924,7 @@ public:
       seconds_20 = 0b1111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Paging_Time_Window_type_, 4> Paging_Time_Window_type;
 
@@ -951,7 +948,7 @@ public:
       second_20_48 = 0b1111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<eDRX_value_type_, 4> eDRX_value_type;
 
@@ -980,7 +977,7 @@ public:
       value_indicates_that_the_timer_is_deactivated   = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Unit_type_, 3> Unit_type;
 
@@ -1064,7 +1061,7 @@ public:
       drx_cycle_parameter_t_1024 = 0b0111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<nb_n1_mode_drx_value_type_, 4> nb_n1_mode_drx_value_type;
 
@@ -1086,7 +1083,7 @@ public:
       registered_for_emergency_services     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Emergency_registered_type_, 1> Emergency_registered_type;
 
@@ -1096,7 +1093,7 @@ public:
       nssaa_is_to_be_performed     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<NSSAA_to_be_performed_type_, 1> NSSAA_to_be_performed_type;
 
@@ -1106,7 +1103,7 @@ public:
       sms_over_nas_allowed     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<SMS_allowed_type_, 1> SMS_allowed_type;
 
@@ -1118,7 +1115,7 @@ public:
       reserved                          = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<registration_result_type_, 3> registration_result_type;
 
@@ -1156,7 +1153,7 @@ public:
       reserved                                                                    = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<type_of_list_type_, 2> type_of_list_type;
 
@@ -1309,7 +1306,7 @@ public:
       nssai_inclusion_mode_d = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<NSSAI_inclusion_mode_type_, 2> NSSAI_inclusion_mode_type;
 
@@ -1353,7 +1350,7 @@ public:
       network_assigned_ue_radio_capability_i_ds_deletion_requested = 0b001,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Deletion_request_type_, 3> Deletion_request_type;
 
@@ -1449,7 +1446,7 @@ public:
       protocol_error_unspecified                                   = 0b01101111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<cause_5gmm_type_, 8> cause_5gmm_type;
 
@@ -1471,7 +1468,7 @@ public:
       switch_off             = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<switch_off_type_, 1> switch_off_type;
 
@@ -1481,7 +1478,7 @@ public:
       re_registration_required     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<re_registration_required_type_, 1> re_registration_required_type;
 
@@ -1492,7 +1489,7 @@ public:
       access_3_gpp_and_non_3_gpp_access = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<access_type_type_, 2> access_type_type;
 
@@ -1537,7 +1534,7 @@ public:
       unused_shall_be_interpreted_as_data_2       = 0b1011,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Service_type_value_type_, 4> Service_type_value_type;
 
@@ -1561,7 +1558,7 @@ public:
       emergency_services_fallback = 0b100,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<control_plane_service_type_value_type_, 3> control_plane_service_type_value_type;
 
@@ -1588,11 +1585,6 @@ public:
 class time_zone_t
 {
 public:
-  uint8_t year;
-  uint8_t month;
-  uint8_t day;
-  uint8_t hour;
-  uint8_t second;
   uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1605,6 +1597,12 @@ public:
 class time_zone_and_time_t
 {
 public:
+  uint8_t year;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
   uint8_t time_zone;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
@@ -1625,7 +1623,7 @@ public:
       reserved                                    = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<value_type_, 3> value_type;
 
@@ -1659,7 +1657,7 @@ public:
       release_of_n1_nas_signalling_connection_not_required = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<SCMR_type_, 1> SCMR_type;
 
@@ -1746,7 +1744,7 @@ public:
       eui_64      = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<identity_types_, 3> identity_types;
 
@@ -1774,7 +1772,7 @@ public:
       ia7_5g     = 0b0111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<integrity_protection_algorithm_type_, 4> integrity_protection_algorithm_type;
 
@@ -1790,7 +1788,7 @@ public:
       ea7_5g     = 0b0111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<ciphering_algorithm_type_, 4> ciphering_algorithm_type;
 
@@ -1814,7 +1812,7 @@ public:
       imeisv_requested     = 0b001,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<imeisv_request_type_, 3> imeisv_request_type;
 
@@ -1842,7 +1840,7 @@ public:
       eia7     = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<integrity_protection_algorithm_type_, 3> integrity_protection_algorithm_type;
 
@@ -1858,7 +1856,7 @@ public:
       eea7     = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<ciphering_algorithm_type_, 3> ciphering_algorithm_type;
 
@@ -1944,7 +1942,7 @@ public:
       non_3_gpp_access = 0b10,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Access_type_value_type_, 2> Access_type_value_type;
 
@@ -1983,7 +1981,7 @@ public:
       reserved                       = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Request_type_value_type_, 3> Request_type_value_type;
 
@@ -2016,7 +2014,7 @@ public:
       ma_pdu_session_network_upgrade_is_allowed = 0b0001,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<MA_PDU_session_information_value_type_, 4> MA_PDU_session_information_value_type;
 
@@ -2041,7 +2039,7 @@ public:
       reserved                                       = 0b11,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Downlink_data_expected_type_, 2> Downlink_data_expected_type;
 
@@ -2065,7 +2063,7 @@ public:
       full_data_rate = 0b11111111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<max_data_rate_UPIP_uplink_type_, 8> max_data_rate_UPIP_uplink_type;
 
@@ -2076,7 +2074,7 @@ public:
       full_data_rate = 0b11111111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<max_data_rate_UPIP_downlink_type_, 8> max_data_rate_UPIP_downlink_type;
 
@@ -2103,7 +2101,7 @@ public:
       reserved     = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
@@ -2130,7 +2128,7 @@ public:
       reserved             = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<SSC_mode_value_type_, 3> SSC_mode_value_type;
 
@@ -2255,7 +2253,7 @@ public:
       bits_15                              = 0b10,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<CID_Length_type_, 2> CID_Length_type;
 
@@ -2278,15 +2276,15 @@ public:
       ipv4v6 = 0b011,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<PDU_session_type_value_type_, 3> PDU_session_type_value_type;
 
   bool                        si6_lla                = false;
   PDU_session_type_value_type pdu_session_type_value = PDU_session_type_value_type_::options::ipv4;
   std::array<uint8_t, 4>      ipv4;
-  std::array<uint8_t, 16>     ipv6;
-  std::array<uint8_t, 16>     smf_i_pv6_link_local_address;
+  std::array<uint8_t, 8>      ipv6;
+  std::array<uint8_t, 8>      smf_i_pv6_link_local_address;
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -2341,7 +2339,7 @@ public:
       inc_by_256_pbps = 0b00011001,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<unit_session_AMBR_type_, 8> unit_session_AMBR_type;
 
@@ -2407,7 +2405,7 @@ public:
       protocol_error_unspecified                                              = 0b01101111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<cause_value_type_, 8> cause_value_type;
 
@@ -2431,7 +2429,7 @@ public:
       value_indicates_that_the_timer_is_deactivated  = 0b111,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<Unit_type_, 3> Unit_type;
 
@@ -2486,7 +2484,7 @@ public:
       ethernet_pdn_type_in_s1_mode_supported     = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<EPT_S1_type_, 1> EPT_S1_type;
 
@@ -2558,7 +2556,7 @@ public:
       the_back_off_timer_is_applied_in_all_plm_ns          = 0b1,
 
     } value;
-    const char* to_string();
+    const char* to_string() const;
   };
   typedef nas_enumerated<abo_type_, 1> abo_type;
 

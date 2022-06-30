@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -100,7 +100,7 @@ bool pdcp_entity_lte::configure(const pdcp_config_t& cnfg_)
   logger.info("Status Report Required: %s", cfg.status_report_required ? "True" : "False");
 
   if (is_drb() and not rlc->rb_is_um(lcid)) {
-    undelivered_sdus = std::unique_ptr<undelivered_sdus_queue>(new undelivered_sdus_queue(task_sched));
+    undelivered_sdus = std::unique_ptr<undelivered_sdus_queue>(new undelivered_sdus_queue(task_sched, maximum_pdcp_sn));
     rx_counts_info.reserve(reordering_window);
   }
 
@@ -173,7 +173,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // If the bearer is mapped to RLC AM, save TX_COUNT and a copy of the PDU.
   // This will be used for reestablishment, where unack'ed PDUs will be re-transmitted.
   // PDUs will be removed from the queue, either when the lower layers will report
-  // a succesfull transmission or when the discard timer expires.
+  // a successfull transmission or when the discard timer expires.
   // Status report will also use this queue, to know the First Missing SDU (FMS).
   if (!rlc->rb_is_um(lcid) and is_drb()) {
     if (not store_sdu(used_sn, sdu)) {
@@ -230,6 +230,10 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // Pass PDU to lower layers
   metrics.num_tx_pdus++;
   metrics.num_tx_pdu_bytes += sdu->N_bytes;
+  // Count TX'd bytes as if they were ACK'd if RLC is UM
+  if (rlc->rb_is_um(lcid)) {
+    metrics.num_tx_acked_bytes = metrics.num_tx_pdu_bytes;
+  }
   rlc->write_sdu(lcid, std::move(sdu));
 }
 
@@ -815,10 +819,6 @@ bool pdcp_entity_lte::check_valid_config()
     logger.error("Trying to configure SRB or RLC AM bearer with SN LEN of 7");
     return false;
   }
-  if (cfg.sn_len == PDCP_SN_LEN_12 && is_srb()) {
-    logger.error("Trying to configure SRB with SN LEN of 12.");
-    return false;
-  }
   return true;
 }
 
@@ -871,7 +871,7 @@ void pdcp_entity_lte::reset_metrics()
 /****************************************************************************
  * Undelivered SDUs queue helpers
  ***************************************************************************/
-undelivered_sdus_queue::undelivered_sdus_queue(srsran::task_sched_handle task_sched)
+undelivered_sdus_queue::undelivered_sdus_queue(srsran::task_sched_handle task_sched, uint32_t sn_mod) : sn_mod(sn_mod)
 {
   for (auto& e : sdus) {
     e.discard_timer = task_sched.get_unique_timer();

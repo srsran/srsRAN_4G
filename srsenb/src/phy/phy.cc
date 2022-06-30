@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -94,7 +94,7 @@ void phy::parse_common_config(const phy_cfg_t& cfg)
   prach_cfg.root_seq_idx     = cfg.prach_cnfg.root_seq_idx;
   prach_cfg.zero_corr_zone   = cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
   prach_cfg.freq_offset      = cfg.prach_cnfg.prach_cfg_info.prach_freq_offset;
-  prach_cfg.num_ra_preambles = cfg.phy_cell_cfg.at(0).num_ra_preambles;
+  prach_cfg.num_ra_preambles = cfg.phy_cell_cfg.empty() ? 0 : cfg.phy_cell_cfg.at(0).num_ra_preambles;
   // DMRS
   workers_common.dmrs_pusch_cfg.cyclic_shift        = cfg.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
   workers_common.dmrs_pusch_cfg.delta_ss            = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
@@ -169,11 +169,14 @@ int phy::init_lte(const phy_args_t&            args,
   phy_log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   radio       = radio_;
-  nof_workers = args.nof_phy_threads;
+  nof_workers = cfg.phy_cell_cfg.empty() ? 0 : args.nof_phy_threads;
 
   workers_common.params = args;
 
   workers_common.init(cfg.phy_cell_cfg, cfg.phy_cell_cfg_nr, radio, stack_lte_);
+  if (cfg.cfr_config.cfr_enable) {
+    workers_common.set_cfr_config(cfg.cfr_config);
+  }
 
   parse_common_config(cfg);
 
@@ -258,20 +261,28 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
       metrics[j].ul.n_samples_pucch += metrics_tmp[j].ul.n_samples_pucch;
       metrics[j].ul.mcs += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.mcs;
       metrics[j].ul.n += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.n;
-      metrics[j].ul.rssi += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.rssi;
+      metrics[j].ul.pusch_rssi += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.pusch_rssi;
       metrics[j].ul.pusch_sinr += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.pusch_sinr;
+      metrics[j].ul.pucch_rssi += metrics_tmp[j].ul.n_samples_pucch * metrics_tmp[j].ul.pucch_rssi;
+      metrics[j].ul.pucch_ni += metrics_tmp[j].ul.n_samples_pucch * metrics_tmp[j].ul.pucch_ni;
       metrics[j].ul.pucch_sinr += metrics_tmp[j].ul.n_samples_pucch * metrics_tmp[j].ul.pucch_sinr;
       metrics[j].ul.turbo_iters += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.turbo_iters;
     }
   }
   for (uint32_t j = 0; j < metrics.size(); j++) {
-    metrics[j].dl.mcs /= metrics[j].dl.n_samples;
-    metrics[j].ul.mcs /= metrics[j].ul.n_samples;
-    metrics[j].ul.n /= metrics[j].ul.n_samples;
-    metrics[j].ul.rssi /= metrics[j].ul.n_samples;
-    metrics[j].ul.pusch_sinr /= metrics[j].ul.n_samples;
-    metrics[j].ul.pucch_sinr /= metrics[j].ul.n_samples_pucch;
-    metrics[j].ul.turbo_iters /= metrics[j].ul.n_samples;
+    if (metrics[j].dl.n_samples > 0) {
+      metrics[j].dl.mcs /= metrics[j].dl.n_samples;
+    }
+    if (metrics[j].ul.n_samples > 0) {
+      metrics[j].ul.mcs /= metrics[j].ul.n_samples;
+      metrics[j].ul.n /= metrics[j].ul.n_samples;
+      metrics[j].ul.pusch_rssi /= metrics[j].ul.n_samples;
+      metrics[j].ul.pusch_sinr /= metrics[j].ul.n_samples;
+      metrics[j].ul.pucch_rssi /= metrics[j].ul.n_samples_pucch;
+      metrics[j].ul.pucch_ni /= metrics[j].ul.n_samples_pucch;
+      metrics[j].ul.pucch_sinr /= metrics[j].ul.n_samples_pucch;
+      metrics[j].ul.turbo_iters /= metrics[j].ul.n_samples;
+    }
   }
 }
 
@@ -279,6 +290,11 @@ void phy::cmd_cell_gain(uint32_t cell_id, float gain_db)
 {
   Info("set_cell_gain: cell_id=%d, gain_db=%.2f", cell_id, gain_db);
   workers_common.set_cell_gain(cell_id, gain_db);
+}
+
+void phy::cmd_cell_measure()
+{
+  workers_common.set_cell_measure_trigger();
 }
 
 /***** RRC->PHY interface **********/

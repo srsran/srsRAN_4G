@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/common/rnti_pool.h"
 #include "srsenb/hdr/enb.h"
+#include "srsenb/hdr/stack/upper/gtpu_pdcp_adapter.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/interfaces/enb_x2_interfaces.h"
 #include "srsran/rlc/bearer_mem_pool.h"
@@ -30,60 +31,6 @@
 using namespace srsran;
 
 namespace srsenb {
-
-class gtpu_pdcp_adapter final : public gtpu_interface_pdcp, public pdcp_interface_gtpu
-{
-public:
-  gtpu_pdcp_adapter(srslog::basic_logger& logger_,
-                    pdcp*                 pdcp_lte,
-                    pdcp_interface_gtpu*  pdcp_x2,
-                    gtpu*                 gtpu_,
-                    enb_bearer_manager&   bearers_) :
-    logger(logger_), pdcp_obj(pdcp_lte), pdcp_x2_obj(pdcp_x2), gtpu_obj(gtpu_), bearers(&bearers_)
-  {}
-
-  /// Converts LCID to EPS-BearerID and sends corresponding PDU to GTPU
-  void write_pdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t pdu) override
-  {
-    auto bearer = bearers->get_lcid_bearer(rnti, lcid);
-    if (not bearer.is_valid()) {
-      logger.error("Bearer rnti=0x%x, lcid=%d not found", rnti, lcid);
-      return;
-    }
-    gtpu_obj->write_pdu(rnti, bearer.eps_bearer_id, std::move(pdu));
-  }
-  void write_sdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu, int pdcp_sn = -1) override
-  {
-    auto bearer = bearers->get_radio_bearer(rnti, eps_bearer_id);
-    // route SDU to PDCP entity
-    if (bearer.rat == srsran_rat_t::lte) {
-      pdcp_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
-    } else if (bearer.rat == srsran_rat_t::nr) {
-      pdcp_x2_obj->write_sdu(rnti, bearer.lcid, std::move(sdu), pdcp_sn);
-    } else {
-      logger.warning("Can't deliver SDU for EPS bearer %d. Dropping it.", eps_bearer_id);
-    }
-  }
-  std::map<uint32_t, srsran::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t eps_bearer_id) override
-  {
-    auto bearer = bearers->get_radio_bearer(rnti, eps_bearer_id);
-    // route SDU to PDCP entity
-    if (bearer.rat == srsran_rat_t::lte) {
-      return pdcp_obj->get_buffered_pdus(rnti, bearer.lcid);
-    } else if (bearer.rat == srsran_rat_t::nr) {
-      return pdcp_x2_obj->get_buffered_pdus(rnti, bearer.lcid);
-    }
-    logger.error("Bearer rnti=0x%x, eps-BearerID=%d not found", rnti, eps_bearer_id);
-    return {};
-  }
-
-private:
-  srslog::basic_logger& logger;
-  gtpu*                 gtpu_obj    = nullptr;
-  pdcp*                 pdcp_obj    = nullptr;
-  pdcp_interface_gtpu*  pdcp_x2_obj = nullptr;
-  enb_bearer_manager*   bearers     = nullptr;
-};
 
 enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   thread("STACK"),
@@ -98,8 +45,8 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
-  gtpu(&task_sched, gtpu_logger, &rx_sockets),
-  s1ap(&task_sched, s1ap_logger, &rx_sockets),
+  gtpu(&task_sched, gtpu_logger, &get_rx_io_manager()),
+  s1ap(&task_sched, s1ap_logger, &get_rx_io_manager()),
   rrc(&task_sched, bearers),
   mac_pcap(),
   pending_stack_metrics(64)
@@ -238,7 +185,7 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-  rx_sockets.stop();
+  get_rx_io_manager().stop();
 
   s1ap.stop();
   gtpu.stop();

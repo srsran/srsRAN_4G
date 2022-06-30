@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -439,7 +439,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t eps_bearer_id, srsran::unique_byte_
 {
   srsran::span<gtpu_tunnel_manager::bearer_teid_pair> teids = tunnels.find_rnti_bearer_tunnels(rnti, eps_bearer_id);
   if (teids.empty()) {
-    logger.warning("The rnti=0x%x,eps-BearerID=%d does not have any pdcp_active tunnel", rnti, eps_bearer_id);
+    logger.warning("The rnti=0x%x, eps-BearerID=%d does not have any pdcp_active tunnel", rnti, eps_bearer_id);
     return;
   }
   const gtpu_tunnel& tx_tun = *tunnels.find_tunnel(teids[0].teid);

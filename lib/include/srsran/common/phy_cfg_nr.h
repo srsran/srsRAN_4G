@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -42,7 +42,7 @@ struct phy_cfg_nr_t {
     uint32_t                                    periodicity_ms    = 0;
     std::array<bool, SRSRAN_SSB_NOF_CANDIDATES> position_in_burst = {};
     srsran_subcarrier_spacing_t                 scs               = srsran_subcarrier_spacing_30kHz;
-    srsran_ssb_patern_t                         pattern           = SRSRAN_SSB_PATTERN_A;
+    srsran_ssb_pattern_t                        pattern           = SRSRAN_SSB_PATTERN_A;
   };
 
   srsran_duplex_config_nr_t duplex   = {};
@@ -54,7 +54,8 @@ struct phy_cfg_nr_t {
   srsran_harq_ack_cfg_hl_t  harq_ack = {};
   srsran_csi_hl_cfg_t       csi      = {};
   srsran_carrier_nr_t       carrier  = {};
-  ssb_cfg_t                 ssb;
+  ssb_cfg_t                 ssb      = {};
+  uint32_t                  t_offset = 0; ///< n-TimingAdvanceOffset
 
   phy_cfg_nr_t() {}
 

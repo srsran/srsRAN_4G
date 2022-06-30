@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -41,6 +41,7 @@ struct s1ap_args_t {
   std::string enb_name;
   uint32_t    ts1_reloc_prep_timeout;
   uint32_t    ts1_reloc_overall_timeout;
+  int32_t     max_s1_setup_retries;
 };
 
 // S1AP interface for RRC
@@ -88,6 +89,7 @@ public:
    */
   virtual bool send_ho_required(uint16_t                     rnti,
                                 uint32_t                     target_eci,
+                                uint16_t                     target_tac,
                                 srsran::plmn_id_t            target_plmn,
                                 srsran::span<uint32_t>       fwd_erabs,
                                 srsran::unique_byte_buffer_t rrc_container,

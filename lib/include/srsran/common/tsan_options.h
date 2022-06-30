@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -60,6 +60,7 @@ const char* __tsan_default_suppressions()
       "deadlock:srsenb::mac::rlc_buffer_state\n"
       "deadlock:srsenb::mac::snr_info\n"
       "deadlock:srsenb::mac::ack_info\n"
+      "deadlock:srsenb::mac::cqi_info\n"
       "deadlock:srsenb::rlc::rb_is_um\n"
       "deadlock:srsenb::mac::sr_detected\n";
 }

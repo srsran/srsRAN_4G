@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -31,6 +31,7 @@
 #include "srsran/system/sys_metrics.h"
 #include "stack/mac/mac_metrics.h"
 #include "stack/rrc/rrc_metrics.h"
+#include "stack/rrc_nr/rrc_nr_metrics.h"
 #include "stack/upper/gw_metrics.h"
 #include "stack/upper/nas_metrics.h"
 
@@ -43,7 +44,7 @@ typedef struct {
   srsran::rlc_metrics_t rlc;
   nas_metrics_t         nas;
   rrc_metrics_t         rrc;
-  rrc_metrics_t         rrc_nr;
+  rrc_nr_metrics_t      rrc_nr;
 } stack_metrics_t;
 
 typedef struct {

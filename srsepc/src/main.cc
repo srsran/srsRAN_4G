@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -393,7 +393,7 @@ int main(int argc, char* argv[])
   cout << endl << "---  Software Radio Systems EPC  ---" << endl << endl;
   srsran_debug_handle_crash(argc, argv);
 
-  all_args_t args;
+  all_args_t args = {};
   parse_args(&args, argc, argv);
 
   // Setup logging.

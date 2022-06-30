@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -60,6 +60,12 @@ void srsran_vec_sub_sss(const int16_t* x, const int16_t* y, int16_t* z, const ui
 void srsran_vec_sub_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint32_t len)
 {
   srsran_vec_sub_bbb_simd(x, y, z, len);
+}
+
+/* sum a scalar to all elements of a vector */
+void srsran_vec_sc_sum_fff(const float* x, float h, float* z, uint32_t len)
+{
+  srsran_vec_sc_sum_fff_simd(x, h, z, len);
 }
 
 // Noise estimation in chest_dl, interpolation
@@ -583,7 +589,11 @@ int32_t srsran_vec_dot_prod_sss(const int16_t* x, const int16_t* y, const uint32
 
 float srsran_vec_avg_power_cf(const cf_t* x, const uint32_t len)
 {
-  return crealf(srsran_vec_dot_prod_conj_ccc(x, x, len)) / len;
+  if (!len) {
+    return 0;
+  } else {
+    return crealf(srsran_vec_dot_prod_conj_ccc(x, x, len)) / len;
+  }
 }
 
 float srsran_vec_avg_power_sf(const int16_t* x, const uint32_t len)
@@ -628,6 +638,17 @@ float srsran_vec_avg_power_bf(const int8_t* x, const uint32_t len)
 
   // Return accumulated value
   return acc;
+}
+
+float srsran_vec_avg_power_ff(const float* x, const uint32_t len)
+{
+  if (!len) {
+    return 0;
+  } else {
+    float pwr_symb_avg = srsran_vec_dot_prod_fff(x, x, len);
+    pwr_symb_avg /= (float)len;
+    return pwr_symb_avg;
+  }
 }
 
 // Correlation assumes zero-mean x and y
@@ -839,4 +860,39 @@ void srsran_vec_apply_cfo(const cf_t* x, float cfo, cf_t* z, int len)
 float srsran_vec_estimate_frequency(const cf_t* x, int len)
 {
   return srsran_vec_estimate_frequency_simd(x, len);
+}
+
+// TODO: implement with SIMD
+void srsran_vec_gen_clip_env(const float* x_abs, const float thres, const float alpha, float* env, const int len)
+{
+  for (int i = 0; i < len; i++) {
+    env[i] = (x_abs[i] > thres) ? (1 - alpha) + alpha * thres / x_abs[i] : 1;
+  }
+}
+
+float srsran_vec_papr_c(const cf_t* in, const int len)
+{
+  uint32_t max  = srsran_vec_max_abs_ci(in, len);
+  float    peak = SRSRAN_CSQABS(in[max]);
+  return peak / srsran_vec_avg_power_cf(in, len);
+}
+
+float srsran_vec_acpr_c(const cf_t* x_f, const uint32_t win_pos_len, const uint32_t win_neg_len, const uint32_t len)
+{
+  // The adjacent channel cannot extend beyond the FFT len
+  const uint32_t ch_len     = win_pos_len + win_neg_len;
+  const uint32_t adj_ch_len = ch_len > len / 2 ? len - ch_len : ch_len;
+
+  // Integrate positive half of the signal power spectrum
+  float signal_pwr = srsran_vec_dot_prod_conj_ccc(x_f, x_f, win_pos_len);
+  // Integrate negative halt of the signal power spectrum
+  signal_pwr += srsran_vec_dot_prod_conj_ccc(x_f + len - win_neg_len, x_f + len - win_neg_len, win_neg_len);
+
+  const float adj_ch_pwr = srsran_vec_dot_prod_conj_ccc(x_f + win_pos_len, x_f + win_pos_len, adj_ch_len);
+
+  if (isnormal(signal_pwr)) {
+    return adj_ch_pwr / signal_pwr;
+  } else {
+    return 0;
+  }
 }

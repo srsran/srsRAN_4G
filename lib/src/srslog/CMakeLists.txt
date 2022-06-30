@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -42,4 +42,4 @@ find_package(Threads REQUIRED)
 
 add_library(srslog STATIC ${SOURCES})
 target_link_libraries(srslog ${CMAKE_THREAD_LIBS_INIT})
-INSTALL(TARGETS srslog DESTINATION ${LIBRARY_DIR})
+install(TARGETS srslog DESTINATION ${LIBRARY_DIR} OPTIONAL)

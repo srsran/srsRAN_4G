@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -172,6 +172,25 @@ int srsran_ue_ul_set_cell(srsran_ue_ul_t* q, srsran_cell_t cell)
     ERROR("Invalid cell properties ue_ul: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
+}
+
+int srsran_ue_ul_set_cfr(srsran_ue_ul_t* q, const srsran_cfr_cfg_t* cfr)
+{
+  if (q == NULL || cfr == NULL) {
+    ERROR("Error, invalid inputs");
+    return SRSRAN_ERROR_INVALID_INPUTS;
+  }
+
+  // Copy the cfr config into the UE
+  q->cfr_config = *cfr;
+
+  // Set the cfr for the fft's
+  if (srsran_ofdm_set_cfr(&q->fft, &q->cfr_config) < SRSRAN_SUCCESS) {
+    ERROR("Error setting the CFR for the fft");
+    return SRSRAN_ERROR;
+  }
+
+  return SRSRAN_SUCCESS;
 }
 
 int srsran_ue_ul_pregen_signals(srsran_ue_ul_t* q, srsran_ue_ul_cfg_t* cfg)

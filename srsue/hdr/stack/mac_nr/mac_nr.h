@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -87,7 +87,7 @@ public:
   int  setup_lcid(const srsran::logical_channel_config_t& config);
   int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg);
   int  set_config(const srsran::sr_cfg_nr_t& sr_cfg);
-  void set_config(const srsran::rach_nr_cfg_t& rach_cfg);
+  void set_config(const srsran::rach_cfg_nr_t& rach_cfg_nr);
   int  set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg);
   void set_contention_id(const uint64_t ue_identity);
   bool set_crnti(const uint16_t crnti);
@@ -97,10 +97,12 @@ public:
   void start_ra_procedure();
 
   /// Interface for internal procedures (RA, MUX, HARQ)
-  uint64_t get_contention_id();
+  bool     received_contention_id(uint64_t rx_contention_id);
   uint16_t get_crnti();
   uint16_t get_temp_crnti();
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
+  void     set_temp_crnti(uint16_t temp_crnti);
+  void     set_crnti_to_temp();
 
   /// procedure sr nr interface
   void start_ra() { proc_ra.start_by_mac(); }
@@ -118,6 +120,7 @@ public:
   /// RRC
   void rrc_ra_problem();
   void rrc_ra_completed();
+  void bcch_search(bool enabled);
 
   /// stack interface
   void process_pdus();
@@ -138,6 +141,7 @@ private:
   bool is_paging_opportunity();
 
   bool has_crnti();
+  bool has_temp_crnti();
   bool is_valid_crnti(const uint16_t crnti);
 
   std::vector<srsran::logical_channel_config_t> logical_channels; // stores the raw configs provide by upper layers
@@ -158,7 +162,11 @@ private:
 
   std::atomic<bool> started = {false};
 
+  // Boolean to determine if need to decode SI-RNTI
+  std::atomic<bool> search_bcch = {false};
+
   ue_rnti rntis; // thread-safe helper to store RNTIs, contention ID, etc
+  bool    contention_res_successful;
 
   std::array<mac_metrics_t, SRSRAN_MAX_CARRIERS> metrics = {};
 

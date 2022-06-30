@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -101,17 +101,10 @@ bool phy::check_args(const phy_args_t& args_)
 
 int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srsran::radio_interface_phy* radio_)
 {
+  std::unique_lock<std::mutex> lock(config_mutex);
+
   stack = stack_;
   radio = radio_;
-
-  init(args_);
-
-  return SRSRAN_SUCCESS;
-}
-
-int phy::init(const phy_args_t& args_)
-{
-  std::unique_lock<std::mutex> lock(config_mutex);
 
   args = args_;
 
@@ -133,12 +126,12 @@ int phy::init(const phy_args_t& args_)
   logger_phy.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   if (!check_args(args)) {
-    return false;
+    return SRSRAN_ERROR;
   }
 
   is_configured = false;
   start();
-  return true;
+  return SRSRAN_SUCCESS;
 }
 
 // Initializes PHY in a thread
@@ -168,7 +161,7 @@ void phy::wait_initialize()
   }
 }
 
-bool phy::is_initiated()
+bool phy::is_initialized()
 {
   return is_configured;
 }
@@ -256,12 +249,11 @@ void phy::configure_prach_params()
 
 void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 {
+  uint32_t pcell_earfcn = selected_earfcn;
   // As the SCell configuration is performed asynchronously through the cmd_worker, append the command adding the
   // measurements to avoid a concurrency issue
-  cmd_worker.add_cmd([this, earfcn, pci]() {
+  cmd_worker.add_cmd([this, earfcn, pci, pcell_earfcn]() {
     // Check if the EARFCN matches with serving cell
-    uint32_t pcell_earfcn = 0;
-    sfsync.get_current_cell(nullptr, &pcell_earfcn);
     bool available = (pcell_earfcn == earfcn);
 
     // Find if there is secondary serving cell configured with the specified EARFCN
@@ -270,12 +262,17 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
       // If it is configured...
       if (common.cell_state.is_configured(cc)) {
         // ... Check if the EARFCN match
+        logger_phy.info(
+            "Setting new SCell measurement cc=%d is configured and earfcn=%d", cc, common.cell_state.get_earfcn(cc));
         if (common.cell_state.get_earfcn(cc) == earfcn) {
           available = true;
         }
-      } else if (cc_empty == 0) {
-        // ... otherwise, save the CC as non-configured
-        cc_empty = cc;
+      } else {
+        logger_phy.info("Setting new SCell measurement cc=%d is not configured", cc);
+        if (cc_empty == 0) {
+          // ... otherwise, save the CC as non-configured
+          cc_empty = cc;
+        }
       }
     }
 
@@ -291,7 +288,7 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 
       // Configure a the empty carrier as it was CA
       logger_phy.info("Setting new SCell measurement cc_idx=%d, earfcn=%d, pci=%d...", cc_empty, earfcn, cell.id);
-      set_scell(cell, cc_empty, earfcn);
+      set_scell(cell, cc_empty, earfcn, false);
     }
 
     // Finally, set the serving cell measure
@@ -316,8 +313,16 @@ bool phy::cell_select(phy_cell_t cell)
     // Update PCI before starting the background command to make sure PRACH gets the updated value
     selected_cell.id = cell.pci;
 
+    // Update EARCN before starting the background task to make sure is taken into account when finding carriers to
+    // measure inter-frequency neighbours (see set_cells_to_meas)
+    selected_earfcn = cell.earfcn;
+
     // Indicate workers that cell selection is in progress
     common.cell_is_selecting = true;
+
+    // Update EARCN before starting the background task to make sure is taken into account when finding carriers to
+    // measure inter-frequency neighbours (see set_cells_to_meas)
+    selected_earfcn = cell.earfcn;
 
     cmd_worker_cell.add_cmd([this, cell]() {
       // Wait SYNC transitions to IDLE
@@ -336,7 +341,6 @@ bool phy::cell_select(phy_cell_t cell)
 
       // Indicate workers that cell selection has finished
       common.cell_is_selecting = false;
-
     });
     return true;
   } else {
@@ -347,12 +351,12 @@ bool phy::cell_select(phy_cell_t cell)
 
 // This function executes one part of the procedure immediatly and returns to continue in the background.
 // When it returns, the caller thread can expect the PHY to have switched to IDLE and have stopped all DL/UL/PRACH
-// processing.
-bool phy::cell_search()
+// processing. If a valid EARFCN (>0) is given, this is used for cell search.
+bool phy::cell_search(int earfcn)
 {
   sfsync.scell_sync_stop();
   if (sfsync.cell_search_init()) {
-    cmd_worker_cell.add_cmd([this]() {
+    cmd_worker_cell.add_cmd([this, earfcn]() {
       // Wait SYNC transitions to IDLE
       sfsync.wait_idle();
 
@@ -360,7 +364,7 @@ bool phy::cell_search()
       reset();
 
       phy_cell_t                               found_cell = {};
-      rrc_interface_phy_lte::cell_search_ret_t ret        = sfsync.cell_search_start(&found_cell);
+      rrc_interface_phy_lte::cell_search_ret_t ret        = sfsync.cell_search_start(&found_cell, earfcn);
       stack->cell_search_complete(ret, found_cell);
     });
   } else {
@@ -457,7 +461,7 @@ void phy::start_plot()
 
 bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 {
-  if (!is_initiated()) {
+  if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
   }
@@ -466,7 +470,7 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
   if (cc_idx >= args.nof_lte_carriers) {
     srsran::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                     cc_idx);
-    return false;
+    return true;
   }
 
   Info("Setting configuration");
@@ -493,7 +497,12 @@ bool phy::set_config(const srsran::phy_cfg_t& config_, uint32_t cc_idx)
 
 bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
-  if (!is_initiated()) {
+  return set_scell(cell_info, cc_idx, earfcn, true);
+}
+
+bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool run_in_background)
+{
+  if (!is_initialized()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
     return false;
   }
@@ -527,49 +536,58 @@ bool phy::set_scell(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 
   // Component carrier index zero should be reserved for PCell
   // Send configuration to workers
-  cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
-    logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d...", cc_idx, earfcn, cell_info.id);
-    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-      // set_cell is not protected so run when worker has finished to ensure no PHY processing is done at the time of
-      // cell setting
-      lte::sf_worker* w = lte_workers.wait_worker_id(i);
-      if (w) {
-        // Reset secondary serving cell configuration, this needs to be done when the sf_worker is reserved to prevent
-        // resetting the cell while it is working
-        w->reset_cell_nolock(cc_idx);
-
-        // Set the new cell
-        w->set_cell_nolock(cc_idx, cell_info);
-
-        // Release the new worker, it should not start processing until the SCell state is set to configured
-        w->release();
-      }
-    }
-
-    // Reset measurements for the given CC after all workers finished processing and have been configured to ensure the
-    // measurements are not overwritten
-    common.reset_measurements(cc_idx);
-
-    // Change frequency only if the earfcn was modified
-    if (earfcn_is_different) {
-      double dl_freq = srsran_band_fd(earfcn) * 1e6;
-      double ul_freq = srsran_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
-      radio->set_rx_freq(cc_idx, dl_freq);
-      radio->set_tx_freq(cc_idx, ul_freq);
-    }
-
-    // Set secondary serving cell synchronization
-    sfsync.scell_sync_set(cc_idx, cell_info);
-
-    logger_phy.info(
-        "Finished setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d", cc_idx, earfcn, cell_info.id);
-
-    // Configure secondary serving cell, allows this component carrier to execute PHY processing
-    common.cell_state.configure(cc_idx, earfcn, cell_info.id);
-
-    stack->set_scell_complete(true);
-  });
+  if (run_in_background) {
+    cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
+      set_scell_cmd(cell_info, cc_idx, earfcn, earfcn_is_different);
+    });
+  } else {
+    set_scell_cmd(cell_info, cc_idx, earfcn, earfcn_is_different);
+  }
   return true;
+}
+
+void phy::set_scell_cmd(srsran_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn, bool earfcn_is_different)
+{
+  logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d...", cc_idx, earfcn, cell_info.id);
+  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
+    // set_cell is not protected so run when worker has finished to ensure no PHY processing is done at the time of
+    // cell setting
+    lte::sf_worker* w = lte_workers.wait_worker_id(i);
+    if (w) {
+      // Reset secondary serving cell configuration, this needs to be done when the sf_worker is reserved to prevent
+      // resetting the cell while it is working
+      w->reset_cell_nolock(cc_idx);
+
+      // Set the new cell
+      w->set_cell_nolock(cc_idx, cell_info);
+
+      // Release the new worker, it should not start processing until the SCell state is set to configured
+      w->release();
+    }
+  }
+
+  // Reset measurements for the given CC after all workers finished processing and have been configured to ensure the
+  // measurements are not overwritten
+  common.reset_measurements(cc_idx);
+
+  // Change frequency only if the earfcn was modified
+  if (earfcn_is_different) {
+    double dl_freq = srsran_band_fd(earfcn) * 1e6;
+    double ul_freq = srsran_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
+    radio->set_rx_freq(cc_idx, dl_freq);
+    radio->set_tx_freq(cc_idx, ul_freq);
+  }
+
+  // Set secondary serving cell synchronization
+  sfsync.scell_sync_set(cc_idx, cell_info);
+
+  logger_phy.info(
+      "Finished setting new SCell configuration cc_idx=%d, earfcn=%d, pci=%d", cc_idx, earfcn, cell_info.id);
+
+  // Configure secondary serving cell, allows this component carrier to execute PHY processing
+  common.cell_state.configure(cc_idx, earfcn, cell_info.id);
+
+  stack->set_scell_complete(true);
 }
 
 void phy::set_config_tdd(srsran_tdd_config_t& tdd_config_)
@@ -633,19 +651,19 @@ void phy::set_mch_period_stop(uint32_t stop)
 int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
   stack_nr = stack_;
-  if (!nr_workers.init(args_, common, stack_, WORKERS_THREAD_PRIO)) {
+  if (!nr_workers.init(args_, common, stack_)) {
     return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;
 }
 
-int phy::set_ul_grant(uint32_t                                       rar_slot_idx,
-                      std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                      uint16_t                                       rnti,
-                      srsran_rnti_type_t                             rnti_type)
+int phy::set_rar_grant(uint32_t                                       rar_slot_idx,
+                       std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                       uint16_t                                       rnti,
+                       srsran_rnti_type_t                             rnti_type)
 {
-  return nr_workers.set_ul_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
+  return nr_workers.set_rar_grant(rar_slot_idx, packed_ul_grant, rnti, rnti_type);
 }
 
 void phy::send_prach(const uint32_t prach_occasion,
@@ -654,11 +672,6 @@ void phy::send_prach(const uint32_t prach_occasion,
                      const float    ta_base_sec)
 {
   nr_workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
-}
-
-int phy::tx_request(const phy_interface_mac_nr::tx_request_t& request)
-{
-  return 0;
 }
 
 void phy::set_earfcn(std::vector<uint32_t> earfcns)

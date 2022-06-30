@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,7 +21,7 @@
 
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include "srsran/srsran.h"
-#include "srsue/hdr/stack/rrc/rrc_nr.h"
+#include "srsue/hdr/stack/rrc_nr/rrc_nr.h"
 
 using namespace srsran;
 
@@ -85,11 +85,18 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_nr_args_t rrc_args     = {};
   rrc_args.log_level         = args.log.rrc_level;
   rrc_args.log_hex_limit     = args.log.rrc_hex_limit;
-  rrc_args.coreless.drb_lcid = 4;
-  rrc_args.coreless.ip_addr  = "192.168.1.3";
-  rrc->init(
-      phy, mac.get(), rlc.get(), pdcp.get(), gw, nullptr, nullptr, task_sched.get_timer_handler(), this, rrc_args);
-  rrc->init_core_less();
+  rrc->init(phy,
+            mac.get(),
+            rlc.get(),
+            pdcp.get(),
+            sdap.get(),
+            gw,
+            nullptr,
+            nullptr,
+            nullptr,
+            task_sched.get_timer_handler(),
+            this,
+            rrc_args);
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
 
@@ -194,7 +201,7 @@ void ue_stack_nr::out_of_sync()
   // pending_tasks.push(sync_task_queue, task_t{[this](task_t*) { rrc.out_of_sync(); }});
 }
 
-void ue_stack_nr::run_tti(uint32_t tti)
+void ue_stack_nr::run_tti(uint32_t tti, uint32_t tti_jump)
 {
   sync_task_queue.push([this, tti]() { run_tti_impl(tti); });
 }
@@ -209,6 +216,16 @@ void ue_stack_nr::run_tti_impl(uint32_t tti)
 void ue_stack_nr::set_phy_config_complete(bool status)
 {
   sync_task_queue.push([this, status]() { rrc->set_phy_config_complete(status); });
+}
+
+void ue_stack_nr::cell_search_found_cell(const cell_search_result_t& result)
+{
+  sync_task_queue.push([this, result]() { rrc->cell_search_found_cell(result); });
+}
+
+void ue_stack_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+{
+  sync_task_queue.push([this, result]() { rrc->cell_select_completed(result); });
 }
 
 } // namespace srsue

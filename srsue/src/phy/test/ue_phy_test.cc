@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -517,7 +517,7 @@ int main(int argc, char** argv)
   phy_test->start();
 
   // 1. Cell search
-  TESTASSERT(phy_test->get_phy_interface_rrc()->cell_search());
+  TESTASSERT(phy_test->get_phy_interface_rrc()->cell_search(-1));
   TESTASSERT(phy_test->get_stack()->wait_cell_search(default_timeout));
   TESTASSERT(phy_test->get_stack()->cell_search_ret.found ==
              srsue::rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND);

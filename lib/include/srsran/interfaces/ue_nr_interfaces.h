@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -36,8 +36,41 @@ class rrc_interface_phy_nr
 public:
   virtual void in_sync()                            = 0;
   virtual void out_of_sync()                        = 0;
-  virtual void run_tti(const uint32_t tti)          = 0;
   virtual void set_phy_config_complete(bool status) = 0;
+
+  /**
+   * @brief Describes a cell search result
+   */
+  struct cell_search_result_t {
+    bool                          cell_found   = false;
+    uint32_t                      ssb_arfcn    = 0;  ///< SSB center ARFCN
+    uint32_t                      pci          = 0;  ///< Physical Cell Identifier
+    srsran_pbch_msg_nr_t          pbch_msg     = {}; ///< Packed PBCH message for the upper layers
+    srsran_csi_trs_measurements_t measurements = {}; ///< Measurements from SSB block
+  };
+
+  /**
+   * @brief Informs RRC about cell search process completion
+   * @param result Cell search result completion
+   */
+  virtual void cell_search_found_cell(const cell_search_result_t& result) = 0;
+
+  /**
+   * @brief Describes a cell select result
+   */
+  struct cell_select_result_t {
+    enum {
+      ERROR = 0,    ///< The cell selection procedure failed due a to an invalid configuration
+      UNSUCCESSFUL, ///< The cell selection failed to find and synchronise the SSB
+      SUCCESSFUL,   ///< The cell selection was successful, resulting in a camping state
+    } status;
+  };
+
+  /**
+   * @brief Informs RRC about cell select process completion
+   * @param result Cell select result completion
+   */
+  virtual void cell_select_completed(const cell_select_result_t& result) = 0;
 };
 
 class mac_interface_phy_nr
@@ -92,8 +125,6 @@ public:
   typedef struct {
     tb_ul_t tb; // only single TB in UL
   } tb_action_ul_t;
-
-  virtual int sf_indication(const uint32_t tti) = 0; ///< TODO: rename to slot indication
 
   // Query the MAC for the current RNTI to look for
   struct sched_rnti_t {
@@ -162,7 +193,7 @@ public:
   virtual int  set_config(const srsran::bsr_cfg_nr_t& bsr_cfg)            = 0;
   virtual int  set_config(const srsran::sr_cfg_nr_t& sr_cfg)              = 0;
   virtual int  set_config(const srsran::dl_harq_cfg_nr_t& dl_hrq_cfg)     = 0;
-  virtual void set_config(const srsran::rach_nr_cfg_t& rach_cfg)          = 0;
+  virtual void set_config(const srsran::rach_cfg_nr_t& rach_cfg_nr)       = 0;
   virtual int  add_tag_config(const srsran::tag_cfg_nr_t& tag_cfg)        = 0;
   virtual int  set_config(const srsran::phr_cfg_nr_t& phr_cfg)            = 0;
   virtual int  remove_tag_config(const uint32_t tag_id)                   = 0;
@@ -175,25 +206,31 @@ public:
 
   // RRC informs MAC about new UE identity for contention-free RA
   virtual bool set_crnti(const uint16_t crnti) = 0;
+
+  // RRC informs MAC to start/stop search for BCCH messages
+  virtual void bcch_search(bool enabled) = 0;
 };
 
 struct phy_args_nr_t {
-  uint32_t               rf_channel_offset  = 0; ///< Specifies the RF channel the NR carrier shall fill
-  uint32_t               nof_carriers       = 1;
-  uint32_t               max_nof_prb        = 106;
-  uint32_t               nof_phy_threads    = 3;
-  uint32_t               worker_cpu_mask    = 0;
-  srsran::phy_log_args_t log                = {};
-  srsran_ue_dl_nr_args_t dl                 = {};
-  srsran_ue_ul_nr_args_t ul                 = {};
-  std::set<uint32_t>     fixed_sr           = {1};
-  uint32_t               fix_wideband_cqi   = 15; // Set to a non-zero value for fixing the wide-band CQI report
-  bool                   store_pdsch_ko     = false;
-  float                  trs_epre_ema_alpha = 0.1f; ///< EPRE measurement exponential average alpha
-  float                  trs_rsrp_ema_alpha = 0.1f; ///< RSRP measurement exponential average alpha
-  float                  trs_sinr_ema_alpha = 0.1f; ///< SINR measurement exponential average alpha
-  float                  trs_cfo_ema_alpha  = 0.1f; ///< RSRP measurement exponential average alpha
-  bool                   enable_worker_cfo  = true; ///< Enable/Disable open loop CFO correction at the workers
+  uint32_t               rf_channel_offset     = 0; ///< Specifies the RF channel the NR carrier shall fill
+  uint32_t               nof_carriers          = 1;
+  uint32_t               max_nof_prb           = 106;
+  double                 srate_hz              = 23.04e6;
+  uint32_t               nof_phy_threads       = 3;
+  uint32_t               worker_cpu_mask       = 0;
+  int                    slot_recv_thread_prio = 0; /// Specifies the slot receive thread priority, RT by default
+  int                    workers_thread_prio   = 2; /// Specifies the workers thread priority, RT by default
+  srsran::phy_log_args_t log                   = {};
+  srsran_ue_dl_nr_args_t dl                    = {};
+  srsran_ue_ul_nr_args_t ul                    = {};
+  std::set<uint32_t>     fixed_sr              = {1};
+  uint32_t               fix_wideband_cqi      = 15; ///< Set to a non-zero value for fixing the wide-band CQI report
+  bool                   store_pdsch_ko        = false;
+  float                  trs_epre_ema_alpha    = 0.1f; ///< EPRE measurement exponential average alpha
+  float                  trs_rsrp_ema_alpha    = 0.1f; ///< RSRP measurement exponential average alpha
+  float                  trs_sinr_ema_alpha    = 0.1f; ///< SINR measurement exponential average alpha
+  float                  trs_cfo_ema_alpha     = 0.1f; ///< RSRP measurement exponential average alpha
+  bool                   enable_worker_cfo     = true; ///< Enable/Disable open loop CFO correction at the workers
 
   phy_args_nr_t()
   {
@@ -218,26 +255,23 @@ struct phy_args_nr_t {
 class phy_interface_mac_nr
 {
 public:
-  typedef struct {
-    uint32_t tti;
-    uint32_t tb_len;
-    uint8_t* data; // always a pointer in our case
-  } tx_request_t;
-
   // MAC informs PHY about UL grant included in RAR PDU
-  virtual int set_ul_grant(uint32_t                                       rar_slot_idx,
-                           std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
-                           uint16_t                                       rnti,
-                           srsran_rnti_type_t                             rnti_type) = 0;
-
-  // MAC instructs PHY to transmit MAC TB at the given TTI
-  virtual int tx_request(const tx_request_t& request) = 0;
+  virtual int set_rar_grant(uint32_t                                       rar_slot_idx,
+                            std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                            uint16_t                                       rnti,
+                            srsran_rnti_type_t                             rnti_type) = 0;
 
   /// Instruct PHY to send PRACH in the next occasion.
   virtual void send_prach(const uint32_t prach_occasion,
                           const int      preamble_index,
                           const float    preamble_received_target_power,
                           const float    ta_base_sec = 0.0f) = 0;
+
+  /// Apply TA command after RAR
+  virtual void set_timeadv_rar(uint32_t tti, uint32_t ta_cmd) = 0;
+
+  /// Apply TA command after MAC CE
+  virtual void set_timeadv(uint32_t tti, uint32_t ta_cmd) = 0;
 
   /**
    * @brief Query PHY if there is a valid PUCCH SR resource configured for a given SR identifier
@@ -256,13 +290,69 @@ class phy_interface_rrc_nr
 {
 public:
   virtual bool set_config(const srsran::phy_cfg_nr_t& cfg) = 0;
+
+  /**
+   * @brief Describe the possible NR standalone physical layer possible states
+   */
+  typedef enum {
+    PHY_NR_STATE_IDLE = 0,    ///< There is no process going on
+    PHY_NR_STATE_CELL_SEARCH, ///< Cell search is currently in progress
+    PHY_NR_STATE_CELL_SELECT, ///< Cell selection is in progress or it is camped on a cell
+    PHY_NR_STATE_CAMPING
+  } phy_nr_state_t;
+
+  /**
+   * @brief Retrieves the physical layer state
+   * @return
+   */
+  virtual phy_nr_state_t get_state() = 0;
+
+  /**
+   * @brief Stops the ongoing process and transitions to IDLE
+   */
+  virtual void reset_nr() = 0;
+
+  /**
+   * @brief Describes cell search arguments
+   */
+  struct cell_search_args_t {
+    double                      center_freq_hz;
+    double                      ssb_freq_hz;
+    srsran_subcarrier_spacing_t ssb_scs;
+    srsran_ssb_pattern_t        ssb_pattern;
+    srsran_duplex_mode_t        duplex_mode;
+  };
+
+  /**
+   * @brief Start cell search
+   * @param args Cell Search arguments
+   * @return true if the physical layer started successfully the cell search process
+   */
+  virtual bool start_cell_search(const cell_search_args_t& req) = 0;
+
+  /**
+   * @brief Describes cell select arguments
+   */
+  struct cell_select_args_t {
+    srsran_ssb_cfg_t    ssb_cfg;
+    srsran_carrier_nr_t carrier;
+  };
+
+  /**
+   * @brief Start cell search
+   * @param args Cell Search arguments
+   * @return true if the physical layer started successfully the cell search process
+   */
+  virtual bool start_cell_select(const cell_select_args_t& req) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)
-class stack_interface_phy_nr : public mac_interface_phy_nr,
-                               public rrc_interface_phy_nr,
-                               public srsran::stack_interface_phy_nr
-{};
+class stack_interface_phy_nr : public mac_interface_phy_nr, public rrc_interface_phy_nr
+{
+public:
+  /* Indicate new TTI */
+  virtual void run_tti(const uint32_t tti, const uint32_t tti_jump) = 0;
+};
 
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_nr : public phy_interface_mac_nr, public phy_interface_rrc_nr

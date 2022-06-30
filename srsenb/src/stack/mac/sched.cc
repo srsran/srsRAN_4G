@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -301,6 +301,12 @@ std::array<int, SRSRAN_MAX_CARRIERS> sched::get_enb_ue_activ_cc_map(uint16_t rnt
   return ret;
 }
 
+int sched::set_pdcch_order(uint32_t enb_cc_idx, dl_sched_po_info_t pdcch_order_info)
+{
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  return carrier_schedulers[enb_cc_idx]->pdcch_order_info(pdcch_order_info);
+}
+
 /*******************************************************
  *
  * Main sched functions
@@ -368,6 +374,12 @@ void sched::new_tti(tti_point tti_rx)
 bool sched::is_generated(srsran::tti_point tti_rx, uint32_t enb_cc_idx) const
 {
   return sched_results.has_sf(tti_rx) and sched_results.get_sf(tti_rx)->is_generated(enb_cc_idx);
+}
+
+int sched::metrics_read(uint16_t rnti, mac_ue_metrics_t& metrics)
+{
+  return ue_db_access_locked(
+      rnti, [&metrics](sched_ue& ue) { ue.metrics_read(metrics); }, "metrics_read");
 }
 
 // Common way to access ue_db elements in a read locking way

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -23,7 +23,7 @@
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/interfaces/enb_mac_interfaces.h"
 #include "srsran/interfaces/enb_pdcp_interfaces.h"
-#include "srsran/interfaces/enb_rrc_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_rlc.h"
 
 namespace srsenb {
 
@@ -84,13 +84,16 @@ void rlc::add_user(uint16_t rnti)
 
 void rlc::rem_user(uint16_t rnti)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].rlc->stop();
-    users.erase(rnti);
   } else {
     logger.error("Removing rnti=0x%x. Already removed", rnti);
   }
+  pthread_rwlock_unlock(&rwlock);
+
+  pthread_rwlock_wrlock(&rwlock);
+  users.erase(rnti);
   pthread_rwlock_unlock(&rwlock);
 }
 

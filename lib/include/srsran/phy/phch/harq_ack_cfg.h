@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -42,6 +42,7 @@ typedef struct {
   uint32_t pid;        ///< HARQ process identifier
   uint16_t rnti;
   uint32_t pucch_resource_id;
+  uint32_t n_cce;
 } srsran_harq_ack_resource_t;
 
 /**

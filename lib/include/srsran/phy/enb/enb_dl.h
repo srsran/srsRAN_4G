@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -64,7 +64,9 @@ typedef struct SRSRAN_API {
 
   srsran_dl_sf_cfg_t dl_sf;
 
-  cf_t* sf_symbols[SRSRAN_MAX_PORTS];
+  srsran_cfr_cfg_t cfr_config;
+
+  cf_t*         sf_symbols[SRSRAN_MAX_PORTS];
   cf_t*         out_buffer[SRSRAN_MAX_PORTS];
   srsran_ofdm_t ifft[SRSRAN_MAX_PORTS];
   srsran_ofdm_t ifft_mbsfn;
@@ -101,6 +103,8 @@ SRSRAN_API int srsran_enb_dl_init(srsran_enb_dl_t* q, cf_t* out_buffer[SRSRAN_MA
 SRSRAN_API void srsran_enb_dl_free(srsran_enb_dl_t* q);
 
 SRSRAN_API int srsran_enb_dl_set_cell(srsran_enb_dl_t* q, srsran_cell_t cell);
+
+SRSRAN_API int srsran_enb_dl_set_cfr(srsran_enb_dl_t* q, const srsran_cfr_cfg_t* cfr);
 
 SRSRAN_API bool srsran_enb_dl_location_is_common_ncce(srsran_enb_dl_t* q, const srsran_dci_location_t* loc);
 

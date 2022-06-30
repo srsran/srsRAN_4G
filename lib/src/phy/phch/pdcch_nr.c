@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -311,19 +311,6 @@ int srsran_pdcch_nr_set_carrier(srsran_pdcch_nr_t*         q,
   }
 
   return SRSRAN_SUCCESS;
-}
-
-static uint32_t pdcch_nr_bundle_size(srsran_coreset_bundle_size_t x)
-{
-  switch (x) {
-    case srsran_coreset_bundle_size_n2:
-      return 2;
-    case srsran_coreset_bundle_size_n3:
-      return 3;
-    case srsran_coreset_bundle_size_n6:
-      return 6;
-  }
-  return 0;
 }
 
 static int pdcch_nr_cce_to_reg_mapping_non_interleaved(const srsran_coreset_t*      coreset,

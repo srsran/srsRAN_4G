@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -53,7 +53,7 @@ void proc_ra_nr::init(phy_interface_mac_nr* phy_, srsran::ext_task_sched_handle*
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
-void proc_ra_nr::set_config(const srsran::rach_nr_cfg_t& rach_cfg_)
+void proc_ra_nr::set_config(const srsran::rach_cfg_nr_t& rach_cfg_)
 {
   if (state != IDLE) {
     logger.warning("Wrong state for ra reponse reception %s (expected state %s)",
@@ -124,16 +124,10 @@ bool proc_ra_nr::has_rar_rnti()
   return false;
 }
 
-bool proc_ra_nr::has_temp_crnti()
+void proc_ra_nr::received_contention_resolution(bool is_successful)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return temp_crnti != SRSRAN_INVALID_RNTI;
-}
-
-uint16_t proc_ra_nr::get_temp_crnti()
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  return temp_crnti;
+  ra_contention_resolution(is_successful);
 }
 
 void proc_ra_nr::timer_expired(uint32_t timer_id)
@@ -219,15 +213,18 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
     for (auto& subpdu : pdu.get_subpdus()) {
       if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
         logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
-        temp_crnti = subpdu.get_temp_crnti();
+        mac.set_temp_crnti(subpdu.get_temp_crnti());
 
         // Set Temporary-C-RNTI if provided, otherwise C-RNTI is ok
-        phy->set_ul_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), temp_crnti, srsran_rnti_type_ra);
+        phy->set_rar_grant(tb.rx_slot_idx, subpdu.get_ul_grant(), subpdu.get_temp_crnti(), srsran_rnti_type_ra);
+
+        // Apply TA CMD
+        current_ta = subpdu.get_ta();
+        phy->set_timeadv_rar(tb.rx_slot_idx, current_ta);
 
         // reset all parameters that are used before rar
         rar_rnti = SRSRAN_INVALID_RNTI;
         mac.msg3_prepare();
-        current_ta = subpdu.get_ta();
 
         // Set Backoff parameter
         if (subpdu.has_backoff()) {
@@ -246,7 +243,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
 
 // TS 38.321 Section 5.1.5 2 ways to resolve contention resolution
 // if the C-RNTI MAC CE was included in Msg3: (only this one is implemented)
-void proc_ra_nr::ra_contention_resolution()
+void proc_ra_nr::ra_contention_resolution(bool received_con_res_matches_ue_id)
 {
   if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
     logger.warning(
@@ -255,8 +252,12 @@ void proc_ra_nr::ra_contention_resolution()
         srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
     return;
   }
-  if (started_by == initiators_t::RRC || started_by == initiators_t::MAC) {
-    logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
+  if (started_by == initiators_t::RRC || started_by == initiators_t::MAC || received_con_res_matches_ue_id) {
+    if (received_con_res_matches_ue_id) {
+      logger.info("Received CONRES ID matches transmitted UE ID");
+    } else {
+      logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
+    }
     contention_resolution_timer.stop();
     state = WAITING_FOR_COMPLETION;
     ra_completion();
@@ -265,31 +266,25 @@ void proc_ra_nr::ra_contention_resolution()
   }
 }
 
-// or else if the CCCH SDU was included in Msg3 and the PDCCH transmission is addressed to its TEMPORARY_C-RNTI:
-void proc_ra_nr::ra_contention_resolution(uint64_t rx_contention_id)
-{
-  if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
-    logger.warning(
-        "Wrong state for ra contention resolution by phy %s (expected state %s)",
-        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-        srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
-    return;
-  }
-  // TODO
-}
-
 void proc_ra_nr::ra_completion()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (state != WAITING_FOR_COMPLETION) {
     logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
                    srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
     return;
   }
+
+  // Start looking for PDCCH CRNTI
+  if (!mac.get_crnti()) {
+    // promote temp RNTI to new C-RNTI
+    mac.set_crnti_to_temp();
+    mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
+  }
+
   srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
-  temp_crnti = SRSRAN_INVALID_RNTI;
+
   mac.rrc_ra_completed();
   reset();
 }
@@ -297,9 +292,9 @@ void proc_ra_nr::ra_completion()
 void proc_ra_nr::ra_error()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  temp_crnti = SRSRAN_INVALID_RNTI;
   preamble_transmission_counter++;
   contention_resolution_timer.stop();
+  mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
   uint32_t backoff_wait;
   bool     ra_procedure_completed = false; // true = (unsuccessfully) completed, false = uncompleted
 
@@ -381,7 +376,7 @@ void proc_ra_nr::handle_rar_pdu(mac_interface_phy_nr::tb_action_dl_result_t& res
 // Called from PHY thread, defer actions therefore.
 void proc_ra_nr::pdcch_to_crnti()
 {
-  task_queue.push([this]() { ra_contention_resolution(); });
+  task_queue.push([this]() { ra_contention_resolution(false); });
 }
 
 bool proc_ra_nr::is_contention_resolution()
@@ -393,6 +388,7 @@ void proc_ra_nr::reset()
 {
   state      = IDLE;
   started_by = initiators_t::initiators_t_NULLTYPE;
+  mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
   prach_send_timer.stop();
   rar_timeout_timer.stop();
   contention_resolution_timer.stop();

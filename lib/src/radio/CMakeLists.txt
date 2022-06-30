@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Software Radio Systems Limited
+# Copyright 2013-2022 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -21,7 +21,7 @@
 if(RF_FOUND)
   add_library(srsran_radio STATIC radio.cc channel_mapping.cc)
   target_link_libraries(srsran_radio srsran_rf srsran_common)
-  INSTALL(TARGETS srsran_radio DESTINATION ${LIBRARY_DIR})
+  install(TARGETS srsran_radio DESTINATION ${LIBRARY_DIR} OPTIONAL)
 endif(RF_FOUND)
 
 add_subdirectory(test)

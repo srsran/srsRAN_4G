@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -86,7 +86,8 @@ srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::react(
 srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::react(
     const srsran::nas_5g::pdu_session_establishment_reject_t& session_est_reject)
 {
-  return srsran::proc_outcome_t::success;
+  logger.info("PDU Session Establishment Reject with cause: %s", session_est_reject.cause_5gsm.cause_value.to_string());
+  return srsran::proc_outcome_t::error;
 }
 
 srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::step()

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -37,6 +37,8 @@ extern "C" {
 #define DEVNAME_N300 "uhd_n300"
 #define DEVNAME_E3X0 "uhd_e3x0"
 #define DEVNAME_UNKNOWN "uhd_unknown"
+
+extern rf_dev_t srsran_rf_dev_uhd;
 
 SRSRAN_API int rf_uhd_open(char* args, void** handler);
 

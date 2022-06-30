@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -466,13 +466,13 @@ int main(int argc, char** argv)
   dci.rnti                = rnti;
   dci.is_tdd              = false;
   dci.is_dwpts            = false;
-  dci.is_ra_order         = false;
+  dci.is_pdcch_order      = false;
   dci.tb_cw_swap          = false;
   dci.pconf               = false;
   dci.power_offset        = false;
   dci.tpc_pucch           = false;
-  dci.ra_preamble         = false;
-  dci.ra_mask_idx         = false;
+  dci.preamble_idx        = 0;
+  dci.prach_mask_idx      = 0;
   dci.srs_request         = false;
   dci.srs_request_present = false;
 

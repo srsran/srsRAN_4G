@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -34,6 +34,7 @@
 #include <strings.h>
 
 #include "srsran/config.h"
+#include "srsran/phy/cfr/cfr.h"
 #include "srsran/phy/common/phy_common.h"
 #include "srsran/phy/dft/dft.h"
 
@@ -48,18 +49,19 @@
 typedef struct SRSRAN_API {
   // Compulsory parameters
   uint32_t    nof_prb;    ///< Number of Resource Block
-  cf_t*       in_buffer;  ///< Input bnuffer pointer
+  cf_t*       in_buffer;  ///< Input buffer pointer
   cf_t*       out_buffer; ///< Output buffer pointer
   srsran_cp_t cp;         ///< Cyclic prefix type
 
   // Optional parameters
-  srsran_sf_t sf_type;               ///< Subframe type, normal or MBSFN
-  bool        normalize;             ///< Normalization flag, it divides the output by square root of the symbol size
-  float       freq_shift_f;          ///< Frequency shift, normalised by sampling rate (used in UL)
-  float       rx_window_offset;      ///< DFT Window offset in CP portion (0-1), RX only
-  uint32_t    symbol_sz;             ///< Symbol size, forces a given symbol size for the number of PRB
-  bool        keep_dc;               ///< If true, it does not remove the DC
-  double      phase_compensation_hz; ///< Carrier frequency in Hz for phase compensation, set to 0 to disable
+  srsran_sf_t      sf_type;          ///< Subframe type, normal or MBSFN
+  bool             normalize;        ///< Normalization flag, it divides the output by square root of the symbol size
+  float            freq_shift_f;     ///< Frequency shift, normalised by sampling rate (used in UL)
+  float            rx_window_offset; ///< DFT Window offset in CP portion (0-1), RX only
+  uint32_t         symbol_sz;        ///< Symbol size, forces a given symbol size for the number of PRB
+  bool             keep_dc;          ///< If true, it does not remove the DC
+  double           phase_compensation_hz; ///< Carrier frequency in Hz for phase compensation, set to 0 to disable
+  srsran_cfr_cfg_t cfr_tx_cfg;            ///< Tx CFR configuration
 } srsran_ofdm_cfg_t;
 
 /**
@@ -85,6 +87,7 @@ typedef struct SRSRAN_API {
   cf_t*             shift_buffer;
   cf_t*             window_offset_buffer;
   cf_t              phase_compensation[SRSRAN_MAX_NSYMB * SRSRAN_NOF_SLOTS_PER_SF];
+  srsran_cfr_t      tx_cfr; ///< Tx CFR object
 } srsran_ofdm_t;
 
 /**
@@ -144,5 +147,7 @@ SRSRAN_API void srsran_ofdm_set_normalize(srsran_ofdm_t* q, bool normalize_enabl
 SRSRAN_API int srsran_ofdm_set_phase_compensation(srsran_ofdm_t* q, double center_freq_hz);
 
 SRSRAN_API void srsran_ofdm_set_non_mbsfn_region(srsran_ofdm_t* q, uint8_t non_mbsfn_region);
+
+SRSRAN_API int srsran_ofdm_set_cfr(srsran_ofdm_t* q, srsran_cfr_cfg_t* cfr);
 
 #endif // SRSRAN_OFDM_H

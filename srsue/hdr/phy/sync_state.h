@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,6 +21,9 @@
 
 #ifndef SRSUE_SYNC_STATE_H
 #define SRSUE_SYNC_STATE_H
+
+#include <condition_variable>
+#include <mutex>
 
 namespace srsue {
 
@@ -65,6 +68,12 @@ public:
   {
     std::lock_guard<std::mutex> lock(mutex);
     next_state = SFN_SYNC;
+  }
+
+  state_t get_state()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return cur_state;
   }
 
   /* Functions to be called from outside the STM thread to instruct the STM to switch state.

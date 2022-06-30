@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -53,7 +53,7 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
   rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
 
   uint16_t                  rnti = 0x46;
-  sched_interface::ue_cfg_t ue_cfg;
+  sched_interface::ue_cfg_t ue_cfg = {};
   ue_cfg.supported_cc_list.resize(1);
   ue_cfg.supported_cc_list[0].active     = true;
   ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
@@ -98,12 +98,12 @@ int test_erab_setup(srsran::log_sink_spy& spy, bool qci_exists)
   asn1::cbit_ref bref(byte_buf.msg, byte_buf.N_bytes);
 
   TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
-  const auto& setupmsg = s1ap_pdu.init_msg().value.erab_setup_request().protocol_ies;
-  if (setupmsg.ueaggregate_maximum_bitrate_present) {
-    rrc.set_aggregate_max_bitrate(rnti, setupmsg.ueaggregate_maximum_bitrate.value);
+  const auto& setupmsg = s1ap_pdu.init_msg().value.erab_setup_request();
+  if (setupmsg->ueaggregate_maximum_bitrate_present) {
+    rrc.set_aggregate_max_bitrate(rnti, setupmsg->ueaggregate_maximum_bitrate.value);
   }
-  for (const auto& item : setupmsg.erab_to_be_setup_list_bearer_su_req.value) {
-    const auto&         erab = item.value.erab_to_be_setup_item_bearer_su_req();
+  for (const auto& item : setupmsg->erab_to_be_setup_list_bearer_su_req.value) {
+    const auto&         erab = item->erab_to_be_setup_item_bearer_su_req();
     asn1::s1ap::cause_c cause;
     int                 ret = rrc.setup_erab(rnti,
                              erab.erab_id,

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -98,7 +98,7 @@ public:
     } else {
       encryption_direction = direction;
     }
-    logger.debug("LCID=%d encryption=%s", lcid, srsran_direction_text[integrity_direction]);
+    logger.debug("LCID=%d, encryption=%s", lcid, srsran_direction_text[integrity_direction]);
   }
 
   void enable_security_timed(srsran_direction_t direction, uint32_t sn)

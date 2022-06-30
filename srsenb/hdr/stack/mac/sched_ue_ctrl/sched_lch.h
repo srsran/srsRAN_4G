@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2022 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,7 +22,7 @@
 #ifndef SRSRAN_SCHED_LCH_H
 #define SRSRAN_SCHED_LCH_H
 
-#include "srsenb/hdr/stack/mac/common/ue_buffer_manager.h"
+#include "srsenb/hdr/stack/mac/common/base_ue_buffer_manager.h"
 #include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsran/adt/pool/cached_alloc.h"
 #include "srsran/mac/pdu.h"
@@ -30,18 +30,17 @@
 
 namespace srsenb {
 
-class lch_ue_manager : private ue_buffer_manager<false>
+class lch_ue_manager : private base_ue_buffer_manager<false>
 {
-  using base_type = ue_buffer_manager<false>;
+  using base_type = base_ue_buffer_manager<false>;
 
 public:
-  explicit lch_ue_manager(uint16_t rnti) : ue_buffer_manager(rnti, srslog::fetch_basic_logger("MAC")) {}
+  explicit lch_ue_manager(uint16_t rnti) : base_ue_buffer_manager(rnti, srslog::fetch_basic_logger("MAC")) {}
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
   void new_tti();
 
   // Inherited methods from ue_buffer_manager base class
   using base_type::config_lcid;
-  using base_type::dl_buffer_state;
   using base_type::get_bsr;
   using base_type::get_bsr_state;
   using base_type::get_dl_prio_tx;
@@ -51,8 +50,9 @@ public:
   using base_type::is_bearer_dl;
   using base_type::is_bearer_ul;
   using base_type::is_lcg_active;
-  using base_type::ul_bsr;
 
+  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
+  void ul_bsr(uint32_t lcg_id, uint32_t val);
   void ul_buffer_add(uint8_t lcid, uint32_t bytes);
 
   int alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
