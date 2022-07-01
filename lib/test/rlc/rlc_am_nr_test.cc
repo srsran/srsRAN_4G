@@ -3121,6 +3121,63 @@ int out_of_order_status(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
+int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  byte_buffer_t pdu_bufs[NBUFS];
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("Full RX window and t-Reassmbly expiry test ({} bit SN)", to_number(sn_size));
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+  rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
+  rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
+
+  auto cfg = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  if (not rlc1.configure(cfg)) {
+    return -1;
+  }
+  if (not rlc2.configure(cfg)) {
+    return -1;
+  }
+  uint32_t mod_nr = cardinality(cfg.am_nr.tx_sn_field_length);
+
+  // Fill up the RX window
+  uint32_t sn;
+  for (uint32_t sn = 0; sn < am_window_size(sn_size) + 1; ++sn) {
+    unique_byte_buffer_t pdu_buf = srsran::make_byte_buffer();
+    // Manually prepare header
+    rlc_am_nr_pdu_header_t hdr = {};
+    hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
+    hdr.p                      = 0;
+    hdr.si                     = rlc_nr_si_field_t::full_sdu;
+    hdr.sn_size                = cfg.am_nr.tx_sn_field_length;
+    hdr.sn                     = sn % mod_nr;
+
+    // Write header
+    pdu_buf->N_bytes = rlc_am_nr_write_data_pdu_header(hdr, pdu_buf.get());
+
+    // Set payload
+    pdu_buf->msg[pdu_buf->N_bytes] = sn;
+    pdu_buf->N_bytes++;
+
+    // Write PDUs into RLC 2
+    if (sn != 0) {
+      rlc2.write_pdu(pdu_buf->msg, pdu_buf->N_bytes);
+    }
+  }
+  // Step timers until reassambly timeout expires
+  for (int cnt = 0; cnt < 35; cnt++) {
+    timers.step_all();
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int main()
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -3172,5 +3229,6 @@ int main()
     TESTASSERT(rx_nack_range_with_so_ending_with_full_sdu_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(out_of_order_status(sn_size) == SRSRAN_SUCCESS);
   }
+  TESTASSERT(full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t::size12bits) == SRSRAN_SUCCESS);
   return SRSRAN_SUCCESS;
 }
