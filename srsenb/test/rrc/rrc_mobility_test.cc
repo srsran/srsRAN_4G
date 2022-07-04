@@ -318,13 +318,25 @@ int test_s1ap_tenb_mobility(test_event test_params)
     TESTASSERT(tester.rrc.get_nof_users() == 0);
     return SRSRAN_SUCCESS;
   }
-  tester.tic();
-  TESTASSERT(tester.rrc.get_nof_users() == 1);
   TESTASSERT(tester.mac.ue_db.count(0x46));
   auto& mac_ue = tester.mac.ue_db[0x46];
   TESTASSERT(mac_ue.supported_cc_list[0].active);
   TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
   TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == mac_lc_ch_cfg_t::IDLE);
+
+  tester.tic();
+  TESTASSERT(tester.rrc.get_nof_users() == 1);
+  TESTASSERT(tester.mac.ue_db.count(0x46));
+  // auto& mac_ue = tester.mac.ue_db[0x46];
+  TESTASSERT(mac_ue.supported_cc_list[0].active);
+  TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb0)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == mac_lc_ch_cfg_t::IDLE);
   // Check Security Configuration
   TESTASSERT(tester.pdcp.bearers.count(0x46));
   TESTASSERT(tester.pdcp.bearers[0x46].count(srb_to_lcid(lte_srb::srb1)) and
@@ -341,6 +353,10 @@ int test_s1ap_tenb_mobility(test_event test_params)
   TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
   TESTASSERT(tester.pdcp.bearers[0x46][srb_to_lcid(lte_srb::srb1)].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
 
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == mac_lc_ch_cfg_t::IDLE);
+
   // Check if S1AP Handover Request ACK send is called
   TESTASSERT(tester.s1ap.last_ho_req_ack.rnti == 0x46);
   TESTASSERT(tester.s1ap.last_ho_req_ack.ho_cmd_pdu != nullptr);
@@ -355,6 +371,10 @@ int test_s1ap_tenb_mobility(test_event test_params)
   TESTASSERT(dl_dcch_msg.msg.type().value == dl_dcch_msg_type_c::types_opts::c1);
   TESTASSERT(dl_dcch_msg.msg.c1().type().value == dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg);
   auto& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == mac_lc_ch_cfg_t::IDLE);
 
   // Receives MMEStatusTransfer
   asn1::s1ap::bearers_subject_to_status_transfer_list_l bearers;
@@ -371,6 +391,10 @@ int test_s1ap_tenb_mobility(test_event test_params)
   TESTASSERT(tester.pdcp.bearers[0x46][3].state.tx_hfn == 3);
   TESTASSERT(tester.pdcp.bearers[0x46][3].state.next_pdcp_rx_sn == 120);
   TESTASSERT(tester.pdcp.bearers[0x46][3].state.rx_hfn == 4);
+
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb1)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction == mac_lc_ch_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[drb_to_lcid(lte_drb::drb1)].direction == mac_lc_ch_cfg_t::IDLE);
 
   // user PRACHs and sends C-RNTI CE
   sched_interface::ue_cfg_t ue_cfg{};
