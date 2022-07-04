@@ -3175,6 +3175,12 @@ int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
     timers.step_all();
   }
 
+  // Check Rx_Status_Highest
+  {
+    rlc_am_nr_rx_state_t st = rx2->get_rx_state();
+    TESTASSERT_EQ(2048, st.rx_highest_status);
+  }
+
   return SRSRAN_SUCCESS;
 }
 

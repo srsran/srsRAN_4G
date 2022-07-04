@@ -787,7 +787,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    * Checking if the ACK_SN is inside the the TX_WINDOW makes sure we discard out of order status reports
    * Checking if ACK_SN > Tx_Next makes sure we do not receive a ACK/NACK for something we did not TX
    */
-  if (not inside_tx_window(status.ack_sn)) {
+  if (not valid_ack_sn(status.ack_sn)) {
     RlcInfo("Received ACK with SN outside of TX_WINDOW, ignoring status report. ACK_SN=%d, TX_NEXT_ACK=%d.",
             status.ack_sn,
             st.tx_next_ack);
@@ -1309,7 +1309,7 @@ bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
   return tx_mod_base_nr(sn) < tx_window_size();
 }
 
-bool rlc_am_nr_tx::valid_ack_sn(uint32_t sn)
+bool rlc_am_nr_tx::valid_ack_sn(uint32_t sn) const
 {
   // Tx_Next_Ack < SN <= TX_Next + AM_Window_Size
   return (0 < tx_mod_base_nr(sn)) && (tx_mod_base_nr(sn) <= tx_window_size());
@@ -1943,13 +1943,13 @@ uint32_t rlc_am_nr_rx::rx_window_size() const
   return am_window_size(cfg.rx_sn_field_length);
 }
 
-bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
+bool rlc_am_nr_rx::inside_rx_window(uint32_t sn) const
 {
   // RX_Next <= SN < RX_Next + AM_Window_Size
   return rx_mod_base_nr(sn) < rx_window_size();
 }
 
-bool rlc_am_nr_rx::valid_ack_sn(uint32_t sn)
+bool rlc_am_nr_rx::valid_ack_sn(uint32_t sn) const
 {
   // RX_Next < SN <= RX_Next + AM_Window_Size
   return (0 < rx_mod_base_nr(sn)) && (rx_mod_base_nr(sn) <= rx_window_size());
